@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Nav } from "../../components/Nav";
+import Nav from "../../components/Nav";
 import { Card } from "../../components/Card";
 import { FormField, inputClass } from "../../components/FormField";
 import { supabase } from "../../lib/supabase";
