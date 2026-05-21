@@ -1,0 +1,3 @@
+module.exports=[2768,a=>{"use strict";var b=a.i(1925);a.s(["default",0,function(){async function a(){let a=await fetch("/api/property-suggest",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({input:"16717 Tammany"})});alert(JSON.stringify(await a.json(),null,2))}return(0,b.jsx)("main",{className:"min-h-screen bg-black p-10 text-white",children:(0,b.jsx)("button",{onClick:a,className:"rounded bg-teal-500 px-6 py-3 font-bold text-black",children:"Test Property Suggest"})})}])}];
+
+//# sourceMappingURL=on-point-inspect-mvp_app_api-test_page_tsx_06qhd7y._.js.map
