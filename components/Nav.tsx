@@ -1,50 +1,65 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useState } from "react";
 
-const links = [
-  { name: "Dashboard", href: "/" },
-  { name: "New Inspection", href: "/inspections/new" },
-  { name: "AI Capture", href: "/report-builder" },
-  { name: "Reports", href: "/reports" },
-  { name: "Templates", href: "/templates" },
-  { name: "Quote Calculator", href: "/quotes" },
-];
+export default function Nav() {
+  const [open, setOpen] = useState(false);
 
-export default function Navbar() {
-  const pathname = usePathname();
+  const links = [
+    { name: "Dashboard", href: "/" },
+    { name: "New Inspection", href: "/new" },
+    { name: "Reports", href: "/reports" },
+    { name: "AI Capture", href: "/ai-capture" },
+    { name: "Templates", href: "/templates" },
+    { name: "Quote Calculator", href: "/quotes" },
+    { name: "Report Builder", href: "/report-builder" },
+    { name: "Email Workflow", href: "/email-workflow" },
+    { name: "Client Portal", href: "/client/demo" },
+    { name: "Schedule", href: "/schedule" },
+  ];
 
   return (
-    <nav className="w-full border-b border-zinc-800 bg-[#050816] sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-6 py-4 flex flex-wrap items-center justify-between gap-4">
-        <Link
-          href="/"
-          className="text-2xl font-bold text-teal-400"
-        >
+    <header className="sticky top-0 z-50 border-b border-zinc-800 bg-[#050816]/95 backdrop-blur">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
+        <Link href="/" className="text-xl font-bold text-teal-400">
           On Point Inspect
         </Link>
 
-        <div className="flex flex-wrap gap-3">
-          {links.map((link) => {
-            const active = pathname === link.href;
+        <button
+          onClick={() => setOpen(!open)}
+          className="rounded-xl border border-zinc-700 px-4 py-2 text-teal-400 md:hidden"
+        >
+          {open ? "Close" : "Menu"}
+        </button>
 
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`px-4 py-2 rounded-xl border text-sm font-medium transition-all duration-200 ${
-                  active
-                    ? "bg-teal-500 text-black border-teal-400"
-                    : "bg-zinc-900 text-white border-zinc-700 hover:border-teal-400 hover:text-teal-300"
-                }`}
-              >
-                {link.name}
-              </Link>
-            );
-          })}
-        </div>
+        <nav className="hidden flex-wrap gap-3 md:flex">
+          {links.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm font-bold text-teal-400 hover:bg-teal-500 hover:text-black"
+            >
+              {link.name}
+            </Link>
+          ))}
+        </nav>
       </div>
-    </nav>
+
+      {open && (
+        <nav className="grid gap-3 border-t border-zinc-800 bg-black px-4 py-4 md:hidden">
+          {links.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              onClick={() => setOpen(false)}
+              className="rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-4 text-lg font-bold text-teal-400"
+            >
+              {link.name}
+            </Link>
+          ))}
+        </nav>
+      )}
+    </header>
   );
 }
