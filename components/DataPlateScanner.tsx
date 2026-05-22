@@ -4,21 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../lib/supabaseClient";
 
-const SECTIONS = [
-  "Roof",
-  "Exterior",
-  "Structure",
-  "Electrical",
-  "Plumbing",
-  "HVAC",
-  "Interior",
-  "Insulation / Ventilation",
-  "Appliances",
-  "Garage",
-  "Safety",
-  "General",
-];
-
 const SEVERITIES = [
   "Maintenance",
   "Recommended Repair",
@@ -27,30 +12,24 @@ const SEVERITIES = [
   "Monitor",
 ];
 
-type Finding = {
-  section: string;
-  severity: string;
+type DataPlateResult = {
   title: string;
   observation: string;
   implication: string;
   recommendation: string;
-  image_url?: string;
 };
 
-export default function FindingGenerator({ reportId }: { reportId: string }) {
+export default function DataPlateScanner({ reportId }: { reportId: string }) {
   const router = useRouter();
 
-  const [section, setSection] = useState("General");
-  const [severity, setSeverity] = useState("Recommended Repair");
-  const [note, setNote] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState("");
   const [uploadedImageUrl, setUploadedImageUrl] = useState("");
+  const [equipmentType, setEquipmentType] = useState("HVAC");
+  const [severity, setSeverity] = useState("Maintenance");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [generatedFinding, setGeneratedFinding] = useState<Finding | null>(
-    null
-  );
+  const [result, setResult] = useState<DataPlateResult | null>(null);
 
   function handleFileChange(selectedFile: File | null) {
     if (!selectedFile) return;
@@ -58,19 +37,22 @@ export default function FindingGenerator({ reportId }: { reportId: string }) {
     setFile(selectedFile);
     setPreviewUrl(URL.createObjectURL(selectedFile));
     setUploadedImageUrl("");
+    setResult(null);
   }
 
   async function uploadImage() {
     if (!file) return "";
 
     const fileExt = file.name.split(".").pop();
-    const fileName = `${Date.now()}-${crypto.randomUUID()}.${fileExt}`;
+    const fileName = `data-plate-${Date.now()}-${crypto.randomUUID()}.${fileExt}`;
 
     const { error } = await supabase.storage
       .from("inspection-photos")
       .upload(fileName, file);
 
-    if (error) throw new Error(error.message);
+    if (error) {
+      throw new Error(error.message);
+    }
 
     const { data } = supabase.storage
       .from("inspection-photos")
@@ -79,7 +61,7 @@ export default function FindingGenerator({ reportId }: { reportId: string }) {
     return data.publicUrl;
   }
 
-  async function generateFinding() {
+  async function scanDataPlate() {
     try {
       setLoading(true);
 
@@ -97,28 +79,39 @@ export default function FindingGenerator({ reportId }: { reportId: string }) {
         },
         body: JSON.stringify({
           imageUrl,
-          section,
+          section: equipmentType,
           note: `
-Severity level selected by inspector: ${severity}
+This is a data plate / equipment label photo.
 
-Inspector note:
-${note}
+Selected severity: ${severity}
+
+Analyze the visible information and create a professional home inspection report entry.
+
+Include any visible:
+- Manufacturer
+- Model number
+- Serial number
+- Approximate age if determinable
+- Fuel type or equipment type if visible
+- Capacity or efficiency ratings if visible
+- Any limitations if the label is blurry, obstructed, or unreadable
+
+Do not guess if information is not visible.
 `,
         }),
       });
 
       const data = await res.json();
 
-      if (!res.ok) throw new Error(data.error || "AI finding failed");
+      if (!res.ok) {
+        throw new Error(data.error || "Data plate scan failed");
+      }
 
-      setGeneratedFinding({
-        section,
-        severity,
-        title: data.title || "",
+      setResult({
+        title: data.title || "Equipment Data Plate",
         observation: data.observation || "",
         implication: data.implication || "",
         recommendation: data.recommendation || "",
-        image_url: imageUrl,
       });
     } catch (error: any) {
       alert(error.message || "Something went wrong");
@@ -127,36 +120,37 @@ ${note}
     }
   }
 
-  async function saveFinding() {
-    if (!generatedFinding) return;
+  async function saveToReport() {
+    if (!result) return;
 
     try {
       setSaving(true);
 
       const { error } = await supabase.from("findings").insert({
         inspection_id: reportId,
-        section: generatedFinding.section,
-        severity: generatedFinding.severity,
-        title: generatedFinding.title,
-        observation: generatedFinding.observation,
-        implication: generatedFinding.implication,
-        recommendation: generatedFinding.recommendation,
-        image_url: generatedFinding.image_url || null,
+        section: equipmentType,
+        severity,
+        title: result.title,
+        observation: result.observation,
+        implication: result.implication,
+        recommendation: result.recommendation,
+        image_url: uploadedImageUrl || null,
       });
 
-      if (error) throw new Error(error.message);
+      if (error) {
+        throw new Error(error.message);
+      }
 
-      setGeneratedFinding(null);
-      setSection("General");
-      setSeverity("Recommended Repair");
-      setNote("");
       setFile(null);
       setPreviewUrl("");
       setUploadedImageUrl("");
+      setResult(null);
+      setEquipmentType("HVAC");
+      setSeverity("Maintenance");
 
       router.refresh();
     } catch (error: any) {
-      alert(error.message || "Failed to save finding");
+      alert(error.message || "Failed to save data plate finding");
     } finally {
       setSaving(false);
     }
@@ -164,26 +158,37 @@ ${note}
 
   return (
     <section className="mt-8 rounded-xl border border-gray-300 bg-gray-50 p-5 text-black">
-      <h2 className="mb-4 text-2xl font-bold text-teal-700">
-        Add AI Photo Finding
+      <h2 className="mb-2 text-2xl font-bold text-teal-700">
+        Data Plate Scanner
       </h2>
+
+      <p className="mb-4 text-sm text-gray-700">
+        Take or upload a photo of an HVAC, water heater, appliance, or equipment
+        data plate and let AI help read the visible information.
+      </p>
 
       <div className="space-y-4">
         <div>
-          <label className="mb-2 block text-sm font-bold">Section</label>
+          <label className="mb-2 block text-sm font-bold">
+            Equipment / Section
+          </label>
+
           <select
-            value={section}
-            onChange={(e) => setSection(e.target.value)}
+            value={equipmentType}
+            onChange={(e) => setEquipmentType(e.target.value)}
             className="w-full rounded-lg border p-3 text-black"
           >
-            {SECTIONS.map((item) => (
-              <option key={item}>{item}</option>
-            ))}
+            <option>HVAC</option>
+            <option>Plumbing</option>
+            <option>Appliances</option>
+            <option>Electrical</option>
+            <option>General</option>
           </select>
         </div>
 
         <div>
           <label className="mb-2 block text-sm font-bold">Severity</label>
+
           <select
             value={severity}
             onChange={(e) => setSeverity(e.target.value)}
@@ -199,55 +204,43 @@ ${note}
           <label className="mb-2 block text-sm font-bold">
             Take Photo / Choose From Gallery
           </label>
+
           <input
             type="file"
             accept="image/*"
             onChange={(e) => handleFileChange(e.target.files?.[0] || null)}
             className="w-full rounded-lg border bg-white p-3 text-black"
           />
+
+          <p className="mt-2 text-xs text-gray-600">
+            On iPhone, this should allow Camera, Photo Library, or Browse.
+          </p>
         </div>
 
         {previewUrl && (
           <img
             src={previewUrl}
-            alt="Inspection preview"
+            alt="Data plate preview"
             className="max-h-96 w-full rounded-lg border object-contain"
           />
         )}
 
-        <div>
-          <label className="mb-2 block text-sm font-bold">Inspector Note</label>
-          <textarea
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="Example: Missing GFCI protection at kitchen counter outlet."
-            className="min-h-32 w-full rounded-lg border p-3 text-black"
-          />
-        </div>
-
         <button
-          onClick={generateFinding}
-          disabled={loading || (!file && !note)}
+          onClick={scanDataPlate}
+          disabled={loading || !file}
           className="w-full rounded-lg bg-teal-600 py-4 font-bold text-white disabled:opacity-50"
         >
-          {loading ? "Generating..." : "Generate AI Finding"}
+          {loading ? "Scanning..." : "Scan Data Plate"}
         </button>
       </div>
 
-      {generatedFinding && (
+      {result && (
         <div className="mt-6 space-y-4 rounded-xl border border-teal-600 bg-white p-5">
-          <h3 className="text-xl font-bold text-teal-700">
-            Generated Finding
-          </h3>
+          <h3 className="text-xl font-bold text-teal-700">Scan Result</h3>
 
           <select
-            value={generatedFinding.severity}
-            onChange={(e) =>
-              setGeneratedFinding({
-                ...generatedFinding,
-                severity: e.target.value,
-              })
-            }
+            value={severity}
+            onChange={(e) => setSeverity(e.target.value)}
             className="w-full rounded-lg border p-3 text-black"
           >
             {SEVERITIES.map((item) => (
@@ -255,31 +248,22 @@ ${note}
             ))}
           </select>
 
-          {generatedFinding.image_url && (
-            <img
-              src={generatedFinding.image_url}
-              alt="Generated finding"
-              className="max-h-96 w-full rounded-lg border object-contain"
-            />
-          )}
-
           <input
-            value={generatedFinding.title}
+            value={result.title}
             onChange={(e) =>
-              setGeneratedFinding({
-                ...generatedFinding,
+              setResult({
+                ...result,
                 title: e.target.value,
               })
             }
             className="w-full rounded-lg border p-3 font-bold text-black"
-            placeholder="Title"
           />
 
           <textarea
-            value={generatedFinding.observation}
+            value={result.observation}
             onChange={(e) =>
-              setGeneratedFinding({
-                ...generatedFinding,
+              setResult({
+                ...result,
                 observation: e.target.value,
               })
             }
@@ -288,10 +272,10 @@ ${note}
           />
 
           <textarea
-            value={generatedFinding.implication}
+            value={result.implication}
             onChange={(e) =>
-              setGeneratedFinding({
-                ...generatedFinding,
+              setResult({
+                ...result,
                 implication: e.target.value,
               })
             }
@@ -300,10 +284,10 @@ ${note}
           />
 
           <textarea
-            value={generatedFinding.recommendation}
+            value={result.recommendation}
             onChange={(e) =>
-              setGeneratedFinding({
-                ...generatedFinding,
+              setResult({
+                ...result,
                 recommendation: e.target.value,
               })
             }
@@ -312,11 +296,11 @@ ${note}
           />
 
           <button
-            onClick={saveFinding}
+            onClick={saveToReport}
             disabled={saving}
             className="w-full rounded-lg bg-teal-600 py-4 font-bold text-white disabled:opacity-50"
           >
-            {saving ? "Saving..." : "Save Finding to Report"}
+            {saving ? "Saving..." : "Save Data Plate to Report"}
           </button>
         </div>
       )}

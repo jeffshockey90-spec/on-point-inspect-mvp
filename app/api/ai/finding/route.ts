@@ -7,10 +7,13 @@ const openai = new OpenAI({
 
 export async function POST(request: Request) {
   try {
-    const { imageUrl, section } = await request.json();
+    const { imageUrl, section, note } = await request.json();
 
-    if (!imageUrl) {
-      return NextResponse.json({ error: "Missing imageUrl" }, { status: 400 });
+    if (!imageUrl && !note) {
+      return NextResponse.json(
+        { error: "Missing imageUrl or note" },
+        { status: 400 }
+      );
     }
 
     if (!process.env.OPENAI_API_KEY) {
@@ -20,43 +23,70 @@ export async function POST(request: Request) {
       );
     }
 
+    const content: any[] = [
+      {
+        type: "text",
+        text: `
+Analyze this home inspection finding for the ${section || "General"} section.
+
+Inspector note:
+${note || "No written note provided. Use the photo only."}
+
+Write a professional, detailed, realtor-friendly home inspection finding.
+
+Return ONLY valid JSON:
+{
+  "title": "",
+  "observation": "",
+  "implication": "",
+  "recommendation": ""
+}
+
+Rules:
+- Do not use markdown.
+- Do not overstate.
+- Do not claim code violations.
+- Do not say something is unsafe unless it is clearly a safety concern.
+- Use phrases like "appeared to be", "was observed", or "at the time of inspection" when appropriate.
+- Observation should clearly describe what was seen.
+- Implication should explain why it matters and what could happen if ignored.
+- Recommendation should recommend evaluation, repair, or correction by the proper qualified contractor when appropriate.
+`,
+      },
+    ];
+
+    if (imageUrl) {
+      content.push({
+        type: "image_url",
+        image_url: {
+          url: imageUrl,
+        },
+      });
+    }
+
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
           content:
-            "You write concise, factual, realtor-friendly home inspection comments. Return only valid JSON. Do not overstate. Do not claim code violations.",
+            "You are a senior certified home inspector writing professional inspection report comments. Return only valid JSON.",
         },
         {
           role: "user",
-          content: [
-            {
-              type: "text",
-              text: `Analyze this inspection photo for the ${section} section.
-
-Return only this JSON:
-{
-  "title": "",
-  "observation": "",
-  "implication": "",
-  "recommendation": ""
-}`,
-            },
-            {
-              type: "image_url",
-              image_url: {
-                url: imageUrl,
-              },
-            },
-          ],
+          content,
         },
       ],
-      max_tokens: 600,
+      temperature: 0.3,
+      max_tokens: 900,
     });
 
     const raw = response.choices[0]?.message?.content || "{}";
-    const cleaned = raw.replace(/```json/g, "").replace(/```/g, "").trim();
+
+    const cleaned = raw
+      .replace(/```json/g, "")
+      .replace(/```/g, "")
+      .trim();
 
     let parsed: any = {};
 

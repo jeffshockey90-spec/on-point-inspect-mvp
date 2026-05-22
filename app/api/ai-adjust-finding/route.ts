@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
+import {
+  routeFindingSection,
+  normalizeSeverity,
+} from "../../../lib/routeFindingSection";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
@@ -43,6 +47,7 @@ export async function POST(req: Request) {
       implication,
       recommendation,
       section,
+      severity,
     } = body;
 
     if (!note || note.trim() === "") {
@@ -53,82 +58,110 @@ export async function POST(req: Request) {
     }
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
           content: `
-You are a SENIOR LICENSED HOME INSPECTOR writing structured, detailed inspection reports.
+You are a senior licensed home inspector writing professional inspection report findings.
 
-You MUST ALWAYS return highly structured results.
+You write in the style of a clear, detailed, realtor-friendly home inspection report.
 
-ABSOLUTE RULES:
-- Never write short answers
-- Each section must be 4–7 full sentences minimum
-- Do NOT mix sections together
-- Be extremely descriptive and professional
-- Use inspection-report tone
+IMPORTANT:
+- Return ONLY valid JSON.
+- Do NOT use markdown.
+- Do NOT wrap the response in code fences.
+- Do NOT add explanations outside JSON.
+- Do NOT use "General" as a section.
+- Do NOT use "Safety" as a section.
+- Safety is a severity/tag, not a report section.
+- General is a severity/tag, not a report section.
 
-STRUCTURE YOU MUST FOLLOW:
+VALID REPORT SECTIONS:
+- Exterior
+- Roof
+- Basement, Foundation, Crawlspace & Structure
+- Heating
+- Cooling
+- Plumbing
+- Electrical
+- Fireplace
+- Attic, Insulation & Ventilation
+- Doors, Windows & Interior
+- Built-in Appliances
+- Garage
 
-OBSERVATION:
-- What is physically seen
-- Location, condition, materials
-- Visible defects or conditions
-- Be factual and detailed
+VALID SEVERITIES:
+- Informational
+- Monitor
+- Maintenance
+- Recommended Repair
+- Safety Concern
+- Major Concern
 
-IMPLICATION:
-- Why the condition matters
-- Risks or potential failure
-- Safety or property concerns
-- What could happen if ignored
+WRITING RULES:
+- Title should be short, clear, and inspection-style.
+- Observation must only describe what is visible or reported.
+- Implication must explain why it matters and possible consequences.
+- Recommendation must explain the next step and who should evaluate/repair.
+- Keep the language professional and non-alarmist.
+- Do not say the home passes or fails.
+- Do not advise whether the client should buy the home.
+- Do not claim code compliance unless directly stated by the inspector.
+- Use "recommend further evaluation and correction by a qualified contractor/professional as needed" where appropriate.
+- Each Observation, Implication, and Recommendation should be detailed but not bloated.
+- Prefer 3–6 strong sentences per section.
 
-RECOMMENDATION:
-- What should be done
-- Who should repair it (type of professional)
-- Corrective actions
-- Best practice guidance
-
-Return ONLY valid JSON.
-          `,
-        },
-        {
-          role: "user",
-          content: `
-Rewrite this inspection finding into a fully structured professional report.
-
-INSPECTOR NOTE:
-${note}
-
-CURRENT FINDING:
-
-Title: ${title}
-Observation: ${observation}
-Implication: ${implication}
-Recommendation: ${recommendation}
-Section: ${section}
-
-STRICT OUTPUT RULES:
-- Expand each field into 4–7 sentences minimum
-- Observation = ONLY physical description
-- Implication = ONLY risk + meaning + consequences
-- Recommendation = ONLY corrective actions
-- Do NOT combine sections
-- Do NOT shorten responses
-
-Return ONLY JSON:
+Return this exact JSON structure:
 
 {
   "title": "",
   "observation": "",
   "implication": "",
   "recommendation": "",
-  "section": ""
+  "section": "",
+  "severity": ""
 }
           `,
         },
+        {
+          role: "user",
+          content: `
+Create or rewrite this inspection finding into a complete professional report comment.
+
+INSPECTOR NOTE:
+${note}
+
+CURRENT FINDING INFO:
+Title: ${title || ""}
+Observation: ${observation || ""}
+Implication: ${implication || ""}
+Recommendation: ${recommendation || ""}
+Section: ${section || ""}
+Severity: ${severity || ""}
+
+IMPORTANT ROUTING RULES:
+- Choose the best matching section from the valid section list.
+- If the issue is electrical, use Electrical.
+- If the issue is plumbing, use Plumbing.
+- If the issue is roof covering, flashing, gutters, chimney, soffit, or fascia, use Roof.
+- If the issue is siding, grading, decks, porches, exterior trim, walkways, or driveways, use Exterior.
+- If the issue is furnace, boiler, heating equipment, flue, or heating distribution, use Heating.
+- If the issue is AC, condenser, evaporator, refrigerant, heat pump cooling mode, or cooling equipment, use Cooling.
+- If the issue is foundation, crawlspace, basement, joists, beams, piers, moisture in crawlspace, or structural support, use Basement, Foundation, Crawlspace & Structure.
+- If the issue is attic, insulation, ventilation, bath fan ducting, or attic access, use Attic, Insulation & Ventilation.
+- If the issue is doors, windows, floors, walls, ceilings, stairs, handrails, guardrails, or interior finishes, use Doors, Windows & Interior.
+- If the issue is dishwasher, range, oven, microwave, disposal, or built-in appliance, use Built-in Appliances.
+- If the issue is garage door, opener, auto-reverse, photo eyes, or garage firewall, use Garage.
+- Never return "General" as the section.
+- Never return "Safety" as the section.
+- If something is a safety issue, put "Safety Concern" in severity.
+
+Return ONLY valid JSON.
+          `,
+        },
       ],
-      temperature: 0.7,
+      temperature: 0.4,
     });
 
     const text = response.choices[0].message.content || "";
@@ -137,9 +170,28 @@ Return ONLY JSON:
 
     const parsed = safeParseAI(text);
 
-    console.log("✅ FINAL PARSED RESULT:", parsed);
+    const routedSection = routeFindingSection({
+      section: parsed.section,
+      title: parsed.title,
+      observation: parsed.observation,
+      implication: parsed.implication,
+      recommendation: parsed.recommendation,
+    });
 
-    return NextResponse.json(parsed);
+    const normalizedSeverity = normalizeSeverity(parsed.severity);
+
+    const finalResult = {
+      title: parsed.title || title || "Inspection Finding",
+      observation: parsed.observation || observation || "",
+      implication: parsed.implication || implication || "",
+      recommendation: parsed.recommendation || recommendation || "",
+      section: routedSection,
+      severity: normalizedSeverity,
+    };
+
+    console.log("✅ FINAL ROUTED RESULT:", finalResult);
+
+    return NextResponse.json(finalResult);
   } catch (err: any) {
     console.error("❌ AI ROUTE ERROR:", err);
 

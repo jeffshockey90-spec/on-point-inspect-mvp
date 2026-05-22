@@ -32,12 +32,11 @@ const VALID_SEVERITIES = [
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+    const transcript = body.transcript;
 
-    const image = body.image;
-
-    if (!image) {
+    if (!transcript) {
       return NextResponse.json(
-        { error: "Missing image." },
+        { error: "Missing transcript." },
         { status: 400 }
       );
     }
@@ -51,13 +50,13 @@ export async function POST(req: Request) {
         {
           role: "system",
           content: `
-You are an expert certified home inspector.
+You are a senior certified home inspector writing professional report findings.
 
-Analyze the uploaded inspection photo carefully.
+Convert the inspector's spoken field note into a clear, detailed, realtor-friendly inspection finding.
 
 Return ONLY valid JSON.
 
-Use this exact JSON structure:
+Use this exact structure:
 
 {
   "title": "",
@@ -65,58 +64,31 @@ Use this exact JSON structure:
   "severity": "",
   "observation": "",
   "implication": "",
-  "recommendation": "",
-  "equipment_type": "",
-  "manufacturer": "",
-  "model_number": "",
-  "serial_number": "",
-  "estimated_age": "",
-  "notes": ""
+  "recommendation": ""
 }
 
 Rules:
-- Write like a professional home inspector.
-- Use clear Observation, Implication, Recommendation wording.
-- Be realtor-friendly but accurate.
-- Do not exaggerate issues.
-- Only use these sections:
-Exterior, Roof, Basement, Foundation, Crawlspace & Structure, Heating, Cooling, Plumbing, Electrical, Fireplace, Attic, Insulation & Ventilation, Doors, Windows & Interior, Built-in Appliances, Garage.
+- Do not invent facts not stated in the field note.
+- Expand the wording professionally.
+- Keep it accurate and not overly alarming.
+- Use Observation, Implication, Recommendation style.
 - General and Safety are NOT sections.
-- Severity must be:
+- Section must be one of:
+Exterior, Roof, Basement, Foundation, Crawlspace & Structure, Heating, Cooling, Plumbing, Electrical, Fireplace, Attic, Insulation & Ventilation, Doors, Windows & Interior, Built-in Appliances, Garage.
+- Severity must be one of:
 Recommended Repair, Safety Concern, Major Concern, Maintenance, Monitor, Informational.
-- If this is HVAC, electrical, plumbing, appliance, or mechanical equipment, extract visible equipment data.
-- Never invent serial or model numbers.
-- If unreadable, leave blank.
-- If visible, identify:
-manufacturer,
-model number,
-serial number,
-estimated age,
-equipment type.
-- If photo is a data plate, focus heavily on OCR extraction.
-- If condition cannot be confirmed visually, state that.
+- Use Safety Concern only when the issue clearly presents a safety concern.
+- Recommend evaluation or correction by the appropriate qualified contractor when needed.
           `,
         },
         {
           role: "user",
-          content: [
-            {
-              type: "text",
-              text: "Analyze this inspection image.",
-            },
-            {
-              type: "image_url",
-              image_url: {
-                url: image,
-              },
-            },
-          ],
+          content: `Field note: ${transcript}`,
         },
       ],
     });
 
     const raw = response.choices[0]?.message?.content || "{}";
-
     const parsed = JSON.parse(raw);
 
     const cleanSection = VALID_SECTIONS.includes(parsed.section)
@@ -134,21 +106,13 @@ equipment type.
       observation: parsed.observation || "",
       implication: parsed.implication || "",
       recommendation: parsed.recommendation || "",
-      equipment_type: parsed.equipment_type || "",
-      manufacturer: parsed.manufacturer || "",
-      model_number: parsed.model_number || "",
-      serial_number: parsed.serial_number || "",
-      estimated_age: parsed.estimated_age || "",
-      notes: parsed.notes || "",
     });
   } catch (error: any) {
     console.error(error);
 
     return NextResponse.json(
       {
-        error:
-          error.message ||
-          "Failed to analyze inspection photo.",
+        error: error.message || "Failed to generate voice finding.",
       },
       { status: 500 }
     );

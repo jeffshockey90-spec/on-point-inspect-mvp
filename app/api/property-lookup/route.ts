@@ -8,51 +8,70 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing address" }, { status: 400 });
     }
 
-    const apiKey = process.env.RENTCAST_API_KEY;
+    const rentcastApiKey = process.env.RENTCAST_API_KEY;
+    const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
-    if (!apiKey) {
+    if (!rentcastApiKey) {
       return NextResponse.json(
         { error: "Missing RENTCAST_API_KEY" },
         { status: 500 }
       );
     }
 
-    const fullAddress = `${address}, ${city || ""}, ${state || ""} ${zip || ""}`;
+    const fullAddress = `${address}, ${city || ""}, ${state || ""} ${
+      zip || ""
+    }`;
 
-    const url = `https://api.rentcast.io/v1/properties?address=${encodeURIComponent(
+    const rentcastUrl = `https://api.rentcast.io/v1/properties?address=${encodeURIComponent(
       fullAddress
     )}`;
 
-    const rentcastRes = await fetch(url, {
+    const rentcastRes = await fetch(rentcastUrl, {
       headers: {
         accept: "application/json",
-        "X-Api-Key": apiKey,
+        "X-Api-Key": rentcastApiKey,
       },
     });
 
-    const data = await rentcastRes.json();
+    const rentcastData = await rentcastRes.json();
 
     if (!rentcastRes.ok) {
       return NextResponse.json(
         {
           error: "RentCast lookup failed",
-          details: data,
+          details: rentcastData,
         },
         { status: rentcastRes.status }
       );
     }
 
-    const property = Array.isArray(data) ? data[0] : data;
+    const property = Array.isArray(rentcastData)
+      ? rentcastData[0]
+      : rentcastData;
+
+    const streetViewImage = googleMapsApiKey
+      ? `https://maps.googleapis.com/maps/api/streetview?size=900x500&location=${encodeURIComponent(
+          fullAddress
+        )}&key=${googleMapsApiKey}`
+      : "";
 
     return NextResponse.json({
       square_feet: property?.squareFootage || "",
       squareFeet: property?.squareFootage || "",
       livingArea: property?.squareFootage || "",
       year_built: property?.yearBuilt || "",
+      yearBuilt: property?.yearBuilt || "",
       bedrooms: property?.bedrooms || "",
       bathrooms: property?.bathrooms || "",
       property_type: property?.propertyType || "",
       lot_size: property?.lotSize || "",
+      roof_style: property?.roofType || property?.roofStyle || "",
+      roofStyle: property?.roofType || property?.roofStyle || "",
+      style: property?.propertyType || "",
+      propertyStyle: property?.propertyType || "",
+      property_image: streetViewImage,
+      image: streetViewImage,
+      photo: streetViewImage,
       address,
       city,
       state,
