@@ -2,6 +2,7 @@ import { supabase } from "../../../lib/supabaseClient";
 import FindingGenerator from "../../../components/FindingGenerator";
 import DataPlateScanner from "../../../components/DataPlateScanner";
 import PrintButton from "../../../components/PrintButton";
+import PdfExportButton from "../../../components/PdfExportButton";
 import InspectionDetailsEditor from "../../../components/InspectionDetailsEditor";
 import OfflineFieldMode from "../../../components/OfflineFieldMode";
 import VoiceFindingGenerator from "../../../components/VoiceFindingGenerator";
@@ -94,6 +95,8 @@ export default async function ReportPage({
       <div className="mx-auto max-w-6xl rounded-2xl bg-[#111827] p-5 shadow-2xl md:p-10">
         <div className="mb-8 flex flex-wrap gap-3 print:hidden">
           <PrintButton />
+
+          <PdfExportButton />
 
           <Link
             href="/ai-capture"
