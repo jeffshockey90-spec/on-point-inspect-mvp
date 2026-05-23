@@ -40,8 +40,16 @@ export default function EditableFinding({ finding }: { finding: any }) {
   const [recommendation, setRecommendation] = useState(
     finding.recommendation || ""
   );
+  const [repairRequest, setRepairRequest] = useState(
+    finding.repair_request || false
+  );
+  const [repairPriority, setRepairPriority] = useState(
+    finding.repair_priority || "Recommended"
+  );
+  const [repairNotes, setRepairNotes] = useState(finding.repair_notes || "");
   const [saving, setSaving] = useState(false);
   const [savingTemplate, setSavingTemplate] = useState(false);
+  const [rewriting, setRewriting] = useState(false);
 
   async function saveFinding() {
     setSaving(true);
@@ -55,6 +63,9 @@ export default function EditableFinding({ finding }: { finding: any }) {
         observation,
         implication,
         recommendation,
+        repair_request: repairRequest,
+        repair_priority: repairPriority,
+        repair_notes: repairNotes,
       })
       .eq("id", finding.id);
 
@@ -66,6 +77,63 @@ export default function EditableFinding({ finding }: { finding: any }) {
     }
 
     setEditing(false);
+    window.location.reload();
+  }
+
+  async function saveRepairRequestSettings() {
+    const { error } = await supabase
+      .from("findings")
+      .update({
+        repair_request: repairRequest,
+        repair_priority: repairPriority,
+        repair_notes: repairNotes,
+      })
+      .eq("id", finding.id);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    window.location.reload();
+  }
+
+  async function rewriteSofter() {
+    setRewriting(true);
+
+    const response = await fetch("/api/rewrite-finding", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        observation,
+        implication,
+        recommendation,
+      }),
+    });
+
+    const data = await response.json();
+
+    setRewriting(false);
+
+    if (!data.rewritten) {
+      alert("Failed to rewrite finding");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("findings")
+      .update({
+        recommendation: data.rewritten,
+      })
+      .eq("id", finding.id);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
     window.location.reload();
   }
 
@@ -116,30 +184,86 @@ export default function EditableFinding({ finding }: { finding: any }) {
 
   if (!editing) {
     return (
-      <div className="mt-6 flex flex-wrap gap-3 print:hidden">
-        <button
-          onClick={() => setEditing(true)}
-          className="rounded-xl bg-teal-500 px-4 py-2 font-bold text-black hover:bg-teal-400"
-        >
-          Edit Finding
-        </button>
+      <div className="mt-6 space-y-4 print:hidden">
+        <div className="rounded-2xl border border-teal-700 bg-teal-950/30 p-5">
+          <p className="mb-4 text-sm font-bold uppercase tracking-wide text-teal-300">
+            AI / Repair Request Tools
+          </p>
 
-        <button
-          onClick={saveToLibrary}
-          disabled={savingTemplate}
-          className="rounded-xl border border-teal-500 px-4 py-2 font-bold text-teal-400 hover:bg-teal-500 hover:text-black"
-        >
-          {savingTemplate ? "Saving..." : "Save to Library"}
-        </button>
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={rewriteSofter}
+              disabled={rewriting}
+              className="rounded-xl bg-teal-500 px-4 py-2 font-bold text-black hover:bg-teal-400 disabled:opacity-60"
+            >
+              {rewriting ? "Rewriting..." : "AI Rewrite Softer"}
+            </button>
 
-        <button
-          onClick={deleteFinding}
-          className="rounded-xl bg-red-600 px-4 py-2 font-bold text-white hover:bg-red-500"
-        >
-          Delete Finding
-        </button>
+            <label className="flex items-center gap-3 rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-white">
+              <input
+                type="checkbox"
+                checked={repairRequest}
+                onChange={(e) => setRepairRequest(e.target.checked)}
+              />
+              Add To Repair Request
+            </label>
 
-        <FindingActions finding={finding} />
+            <button
+              onClick={saveRepairRequestSettings}
+              className="rounded-xl border border-orange-500 px-4 py-2 font-bold text-orange-400 hover:bg-orange-500 hover:text-black"
+            >
+              Save Repair Request
+            </button>
+          </div>
+
+          {repairRequest && (
+            <div className="mt-4 space-y-4">
+              <select
+                value={repairPriority}
+                onChange={(e) => setRepairPriority(e.target.value)}
+                className="w-full rounded-xl border border-slate-700 bg-slate-800 p-3 text-white"
+              >
+                <option>Safety</option>
+                <option>Major</option>
+                <option>Recommended</option>
+                <option>Informational</option>
+              </select>
+
+              <textarea
+                placeholder="Repair request notes..."
+                value={repairNotes}
+                onChange={(e) => setRepairNotes(e.target.value)}
+                className="min-h-[100px] w-full rounded-xl border border-slate-700 bg-slate-800 p-4 text-white"
+              />
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-wrap gap-3">
+          <button
+            onClick={() => setEditing(true)}
+            className="rounded-xl bg-teal-500 px-4 py-2 font-bold text-black hover:bg-teal-400"
+          >
+            Edit Finding
+          </button>
+
+          <button
+            onClick={saveToLibrary}
+            disabled={savingTemplate}
+            className="rounded-xl border border-teal-500 px-4 py-2 font-bold text-teal-400 hover:bg-teal-500 hover:text-black"
+          >
+            {savingTemplate ? "Saving..." : "Save to Library"}
+          </button>
+
+          <button
+            onClick={deleteFinding}
+            className="rounded-xl bg-red-600 px-4 py-2 font-bold text-white hover:bg-red-500"
+          >
+            Delete Finding
+          </button>
+
+          <FindingActions finding={finding} />
+        </div>
       </div>
     );
   }
@@ -211,6 +335,43 @@ export default function EditableFinding({ finding }: { finding: any }) {
         onChange={setRecommendation}
       />
 
+      <div className="rounded-2xl border border-teal-700 bg-teal-950/30 p-5">
+        <p className="mb-4 text-sm font-bold uppercase tracking-wide text-teal-300">
+          Repair Request Settings
+        </p>
+
+        <label className="flex items-center gap-3 text-white">
+          <input
+            type="checkbox"
+            checked={repairRequest}
+            onChange={(e) => setRepairRequest(e.target.checked)}
+          />
+          Add To Repair Request
+        </label>
+
+        {repairRequest && (
+          <div className="mt-4 space-y-4">
+            <select
+              value={repairPriority}
+              onChange={(e) => setRepairPriority(e.target.value)}
+              className="w-full rounded-xl border border-slate-700 bg-slate-800 p-3 text-white"
+            >
+              <option>Safety</option>
+              <option>Major</option>
+              <option>Recommended</option>
+              <option>Informational</option>
+            </select>
+
+            <textarea
+              placeholder="Repair request notes..."
+              value={repairNotes}
+              onChange={(e) => setRepairNotes(e.target.value)}
+              className="min-h-[100px] w-full rounded-xl border border-slate-700 bg-slate-800 p-4 text-white"
+            />
+          </div>
+        )}
+      </div>
+
       <div className="flex flex-wrap gap-3">
         <button
           onClick={saveFinding}
@@ -218,6 +379,14 @@ export default function EditableFinding({ finding }: { finding: any }) {
           className="rounded-xl bg-teal-500 px-5 py-2 font-bold text-black hover:bg-teal-400"
         >
           {saving ? "Saving..." : "Save Finding"}
+        </button>
+
+        <button
+          onClick={rewriteSofter}
+          disabled={rewriting}
+          className="rounded-xl bg-teal-600 px-5 py-2 font-bold text-white hover:bg-teal-500 disabled:opacity-60"
+        >
+          {rewriting ? "Rewriting..." : "AI Rewrite Softer"}
         </button>
 
         <button
