@@ -12,6 +12,7 @@ import OfflineFieldMode from "../../../components/OfflineFieldMode";
 import OfflineAIQueue from "../../../components/OfflineAIQueue";
 import OfflineAICaptureForm from "../../../components/OfflineAICaptureForm";
 import VoiceFindingGenerator from "../../../components/VoiceFindingGenerator";
+import GenerateSummaryButton from "../../../components/GenerateSummaryButton";
 import ReportFindingsSortable from "./ReportFindingsSortable";
 import ShareReportModal from "../components/share-report-modal";
 import Link from "next/link";
@@ -105,6 +106,7 @@ export default async function ReportPage({
             <div className="mb-8 flex flex-wrap gap-3 print:hidden">
               <PrintButton />
               <PdfExportButton />
+              <GenerateSummaryButton inspectionId={inspectionId} />
               <PublishReportButton inspectionId={inspectionId} />
               <ShareReportButton inspectionId={inspectionId} />
 
@@ -154,6 +156,18 @@ export default async function ReportPage({
             Residential Home Inspection Report
           </p>
         </header>
+
+        {inspection.executive_summary && (
+          <section className="mt-8 rounded-2xl border border-purple-700 bg-purple-950/20 p-6">
+            <h2 className="mb-4 text-3xl font-bold text-purple-300">
+              Executive Summary
+            </h2>
+
+            <p className="whitespace-pre-line leading-8 text-slate-200">
+              {inspection.executive_summary}
+            </p>
+          </section>
+        )}
 
         <section className="mt-10">
           <h2 className="mb-8 text-3xl font-bold text-teal-400">
