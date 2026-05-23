@@ -19,6 +19,8 @@ const STORAGE_KEY = "on_point_offline_ai_queue";
 export default function OfflineAIQueue({ reportId }: { reportId: string }) {
   const [items, setItems] = useState<QueuedFinding[]>([]);
   const [online, setOnline] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     setOnline(navigator.onLine);
@@ -26,7 +28,7 @@ export default function OfflineAIQueue({ reportId }: { reportId: string }) {
 
     function handleOnline() {
       setOnline(true);
-      syncQueue();
+      loadItems();
     }
 
     function handleOffline() {
@@ -42,10 +44,9 @@ export default function OfflineAIQueue({ reportId }: { reportId: string }) {
     };
   }, []);
 
-  function loadItems() {
+  function getStoredItems(): QueuedFinding[] {
     const raw = localStorage.getItem(STORAGE_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    setItems(parsed);
+    return raw ? JSON.parse(raw) : [];
   }
 
   function saveItems(nextItems: QueuedFinding[]) {
@@ -53,26 +54,46 @@ export default function OfflineAIQueue({ reportId }: { reportId: string }) {
     setItems(nextItems);
   }
 
+  function loadItems() {
+    setItems(getStoredItems());
+  }
+
   async function syncQueue() {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    const queue: QueuedFinding[] = raw ? JSON.parse(raw) : [];
+    setMessage("");
+    setSyncing(true);
 
-    const pending = queue.filter(
-      (item) =>
-        item.reportId === reportId &&
-        item.status !== "synced"
-    );
+    try {
+      if (!navigator.onLine) {
+        setMessage("Still offline. Reconnect to internet before syncing.");
+        setSyncing(false);
+        return;
+      }
 
-    if (pending.length === 0) return;
+      let queue = getStoredItems();
 
-    for (const item of pending) {
-      const syncingQueue = queue.map((q) =>
-        q.id === item.id ? { ...q, status: "syncing" as const } : q
+      const pending = queue.filter(
+        (item) =>
+          item.reportId === reportId &&
+          item.status !== "synced"
       );
 
-      saveItems(syncingQueue);
+      if (pending.length === 0) {
+        setMessage("No queued findings to sync.");
+        setSyncing(false);
+        return;
+      }
 
-      try {
+      for (const item of pending) {
+        queue = getStoredItems();
+
+        queue = queue.map((q) =>
+          q.id === item.id
+            ? { ...q, status: "syncing", error: "" }
+            : q
+        );
+
+        saveItems(queue);
+
         const res = await fetch("/api/offline-ai-sync", {
           method: "POST",
           headers: {
@@ -84,33 +105,46 @@ export default function OfflineAIQueue({ reportId }: { reportId: string }) {
         const data = await res.json();
 
         if (!res.ok) {
-          throw new Error(data.error || "Sync failed");
+          throw new Error(data.error || "Sync failed.");
         }
 
-        const syncedQueue = syncingQueue.map((q) =>
-          q.id === item.id ? { ...q, status: "synced" as const } : q
-        );
+        queue = getStoredItems();
 
-        saveItems(syncedQueue);
-      } catch (error: any) {
-        const failedQueue = syncingQueue.map((q) =>
+        queue = queue.map((q) =>
           q.id === item.id
-            ? {
-                ...q,
-                status: "failed" as const,
-                error: error.message || "Sync failed",
-              }
+            ? { ...q, status: "synced", error: "" }
             : q
         );
 
-        saveItems(failedQueue);
+        saveItems(queue);
       }
+
+      setMessage("Offline findings synced successfully. Refresh the report if needed.");
+    } catch (error: any) {
+      const queue = getStoredItems();
+
+      const failedQueue = queue.map((q) =>
+        q.reportId === reportId && q.status === "syncing"
+          ? {
+              ...q,
+              status: "failed" as const,
+              error: error.message || "Sync failed.",
+            }
+          : q
+      );
+
+      saveItems(failedQueue);
+      setMessage(error.message || "Sync failed.");
+    } finally {
+      setSyncing(false);
     }
   }
 
   function clearSynced() {
-    const nextItems = items.filter((item) => item.status !== "synced");
+    const queue = getStoredItems();
+    const nextItems = queue.filter((item) => item.status !== "synced");
     saveItems(nextItems);
+    setMessage("Synced items cleared.");
   }
 
   const reportItems = items.filter((item) => item.reportId === reportId);
@@ -132,21 +166,29 @@ export default function OfflineAIQueue({ reportId }: { reportId: string }) {
 
         <div className="flex gap-3">
           <button
+            type="button"
             onClick={syncQueue}
-            disabled={!online}
-            className="rounded-xl bg-teal-500 px-4 py-2 font-bold text-black disabled:opacity-50"
+            disabled={syncing}
+            className="touch-manipulation rounded-xl bg-teal-500 px-4 py-3 font-bold text-black disabled:opacity-50"
           >
-            Sync Now
+            {syncing ? "Syncing..." : "Sync Now"}
           </button>
 
           <button
+            type="button"
             onClick={clearSynced}
-            className="rounded-xl border border-slate-600 px-4 py-2 font-bold text-white hover:bg-slate-800"
+            className="touch-manipulation rounded-xl border border-slate-600 px-4 py-3 font-bold text-white hover:bg-slate-800"
           >
             Clear Synced
           </button>
         </div>
       </div>
+
+      {message && (
+        <p className="mt-4 rounded-lg border border-slate-700 bg-slate-950 p-3 text-sm text-teal-300">
+          {message}
+        </p>
+      )}
 
       <div className="mt-5 space-y-3">
         {reportItems.length === 0 ? (
@@ -172,6 +214,14 @@ export default function OfflineAIQueue({ reportId }: { reportId: string }) {
                   {item.status}
                 </span>
               </div>
+
+              {item.imageDataUrl && (
+                <img
+                  src={item.imageDataUrl}
+                  alt="Queued offline finding"
+                  className="mt-3 max-h-60 w-full rounded-lg border border-slate-700 object-contain"
+                />
+              )}
 
               {item.error && (
                 <p className="mt-2 text-sm text-red-300">{item.error}</p>
