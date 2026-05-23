@@ -1,0 +1,204 @@
+import { NextResponse } from "next/server";
+import nodemailer from "nodemailer";
+import { createClient } from "../../../../utils/supabase/server";
+
+function makeToken() {
+  return crypto.randomUUID();
+}
+
+async function sendReportEmail({
+  to,
+  name,
+  propertyAddress,
+  reportLink,
+}: {
+  to: string;
+  name?: string;
+  propertyAddress?: string;
+  reportLink: string;
+}) {
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    throw new Error("Missing EMAIL_USER or EMAIL_PASS in .env.local");
+  }
+
+  const transporter = nodemailer.createTransport({
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true,
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
+
+  await transporter.sendMail({
+    from: `"On Point Home Inspections" <${process.env.EMAIL_USER}>`,
+    to,
+    subject: "Your Home Inspection Report Is Ready",
+    html: `
+      <div style="font-family: Arial, sans-serif; line-height: 1.7; color: #0f172a; max-width: 700px; margin: auto;">
+        <div style="background:#0f172a;padding:30px;border-radius:12px 12px 0 0;text-align:center;">
+          <h1 style="color:#14b8a6;margin:0;">
+            On Point Home Inspections
+          </h1>
+          <p style="color:#cbd5e1;margin-top:10px;">
+            Protecting Your Investment. One Inspection at a Time.
+          </p>
+        </div>
+
+        <div style="border:1px solid #cbd5e1;border-top:none;padding:35px;border-radius:0 0 12px 12px;background:white;">
+          <h2 style="color:#0f766e;margin-top:0;">
+            Your inspection report is ready
+          </h2>
+
+          <p>Hello ${name || ""},</p>
+
+          <p>
+            The home inspection report for:
+          </p>
+
+          <p style="font-size:18px;font-weight:bold;color:#0f172a;">
+            ${propertyAddress || "Property Inspection"}
+          </p>
+
+          <p>
+            Your report has been completed and is now available online.
+          </p>
+
+          <div style="margin:35px 0;text-align:center;">
+            <a
+              href="${reportLink}"
+              style="
+                display:inline-block;
+                background:#14b8a6;
+                color:#020617;
+                padding:14px 22px;
+                border-radius:10px;
+                text-decoration:none;
+                font-weight:bold;
+                font-size:16px;
+              "
+            >
+              View Inspection Report
+            </a>
+          </div>
+
+          <p>
+            If you have any questions regarding the report,
+            feel free to contact us anytime.
+          </p>
+
+          <br />
+
+          <p>
+            Thank you,<br />
+            <strong>Jeff Shockey</strong><br />
+            On Point Home Inspections LLC
+          </p>
+        </div>
+      </div>
+    `,
+  });
+}
+
+export async function POST(req: Request) {
+  try {
+    const { inspectionId } = await req.json();
+
+    if (!inspectionId) {
+      return NextResponse.json(
+        { error: "Missing inspectionId" },
+        { status: 400 }
+      );
+    }
+
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json(
+        {
+          error: "Unauthorized. You must be logged in.",
+        },
+        { status: 401 }
+      );
+    }
+
+    const shareToken = makeToken();
+
+    const { data: inspection, error: inspectionError } = await supabase
+      .from("inspections")
+      .update({
+        published: true,
+        published_at: new Date().toISOString(),
+        share_token: shareToken,
+      })
+      .eq("id", inspectionId)
+      .select("*")
+      .single();
+
+    if (inspectionError) {
+      return NextResponse.json(
+        { error: inspectionError.message },
+        { status: 500 }
+      );
+    }
+
+    const baseUrl =
+      process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+
+    const reportLink = `${baseUrl}/reports/${inspectionId}?token=${shareToken}`;
+
+    const sentEmails: string[] = [];
+
+    if (inspection.client_email) {
+      await sendReportEmail({
+        to: inspection.client_email,
+        name: inspection.client_name,
+        propertyAddress: inspection.property_address,
+        reportLink,
+      });
+
+      sentEmails.push(inspection.client_email);
+    }
+
+    if (inspection.realtor_email) {
+      await sendReportEmail({
+        to: inspection.realtor_email,
+        name: inspection.realtor_name,
+        propertyAddress: inspection.property_address,
+        reportLink,
+      });
+
+      sentEmails.push(inspection.realtor_email);
+    }
+
+    if (sentEmails.length === 0) {
+      return NextResponse.json(
+        {
+          error:
+            "Report was published, but no client_email or realtor_email was found.",
+          reportLink,
+        },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "Report published and emails sent successfully.",
+      reportLink,
+      sentEmails,
+    });
+  } catch (error: any) {
+    return NextResponse.json(
+      {
+        error: error.message || "Something went wrong",
+      },
+      { status: 500 }
+    );
+  }
+}

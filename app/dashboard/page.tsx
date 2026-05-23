@@ -1,96 +1,159 @@
 import Link from "next/link";
+import LogoutButton from "./logout-button";
+import { createClient } from "../../utils/supabase/server";
 
-const cards = [
-  {
-    title: "New Inspection",
-    description: "Start a new inspection.",
-    href: "/new",
-    icon: "🏠",
-  },
-  {
-    title: "Reports",
-    description: "View and edit reports.",
-    href: "/reports",
-    icon: "📋",
-  },
-  {
-    title: "AI Capture",
-    description: "Create findings from photos.",
-    href: "/ai-capture",
-    icon: "🤖",
-  },
-  {
-    title: "Field Tool",
-    description: "Mobile AI inspection workflow.",
-    href: "/field",
-    icon: "📱",
-  },
-  {
-    title: "Templates",
-    description: "Manage templates.",
-    href: "/templates",
-    icon: "🧩",
-  },
-  {
-    title: "Quotes",
-    description: "Calculate pricing.",
-    href: "/quotes",
-    icon: "💲",
-  },
-  {
-    title: "Schedule",
-    description: "View inspection schedule.",
-    href: "/schedule",
-    icon: "🗓️",
-  },
-];
+export default async function DashboardPage() {
+  const supabase = await createClient();
 
-export default function DashboardPage() {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return null;
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
+    .single();
+
+  const role = profile?.role || "client";
+
   return (
-    <main className="min-h-screen bg-[#020617] px-4 py-8 text-white">
-      <div className="mx-auto max-w-6xl space-y-8">
-        <section className="rounded-2xl border border-slate-800 bg-[#0b1220] p-8">
-          <p className="mb-3 text-sm font-bold uppercase tracking-[0.4em] text-teal-400">
-            On Point Home Inspections
-          </p>
+    <main className="min-h-screen bg-slate-950 text-white p-6">
+      <div className="mx-auto max-w-6xl">
+        <div className="flex items-center justify-between border-b border-slate-800 pb-6">
+          <div>
+            <h1 className="text-3xl font-bold text-teal-400">
+              On Point Dashboard
+            </h1>
 
-          <h1 className="text-5xl font-extrabold">
-            Inspection Dashboard
-          </h1>
+            <p className="mt-1 text-slate-400">
+              {profile?.full_name}
+            </p>
 
-          <p className="mt-4 max-w-2xl text-lg leading-8 text-slate-300">
-            Manage inspections, reports, AI findings,
-            templates, quotes, and scheduling from one clean
-            dashboard.
-          </p>
-        </section>
+            <p className="text-sm uppercase tracking-wider text-teal-400">
+              {role}
+            </p>
+          </div>
 
-        <section className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-          {cards.map((card) => (
-            <Link
-              key={card.href}
-              href={card.href}
-              className="rounded-2xl border border-slate-800 bg-[#0b1220] p-6 transition hover:border-teal-500"
-            >
-              <div className="mb-5 text-4xl">
-                {card.icon}
-              </div>
+          <LogoutButton />
+        </div>
 
-              <h2 className="text-2xl font-bold text-white">
-                {card.title}
-              </h2>
+        {/* INSPECTOR */}
+        {role === "inspector" && (
+          <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <DashboardCard
+              title="New Inspection"
+              description="Start a new inspection."
+              href="/new"
+            />
 
-              <p className="mt-3 text-slate-400">
-                {card.description}
-              </p>
+            <DashboardCard
+              title="Reports"
+              description="Manage reports."
+              href="/reports"
+            />
 
-              <p className="mt-5 font-bold text-teal-400">
-                Open →
-              </p>
-            </Link>
-          ))}
-        </section>
+            <DashboardCard
+              title="AI Capture"
+              description="AI inspection workflow."
+              href="/ai-capture"
+            />
+
+            <DashboardCard
+              title="Clients"
+              description="Manage clients."
+              href="/clients"
+            />
+
+            <DashboardCard
+              title="Templates"
+              description="Report templates."
+              href="/templates"
+            />
+
+            <DashboardCard
+              title="Schedule"
+              description="Inspection scheduling."
+              href="/schedule"
+            />
+          </div>
+        )}
+
+        {/* REALTOR */}
+        {role === "realtor" && (
+          <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <DashboardCard
+              title="Shared Reports"
+              description="View shared inspection reports."
+              href="/shared-reports"
+            />
+
+            <DashboardCard
+              title="Repair Requests"
+              description="Create repair request addendums."
+              href="/repair-request"
+            />
+
+            <DashboardCard
+              title="Schedule Inspection"
+              description="Book inspections."
+              href="/schedule"
+            />
+          </div>
+        )}
+
+        {/* CLIENT */}
+        {role === "client" && (
+          <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <DashboardCard
+              title="My Reports"
+              description="View your reports."
+              href="/my-reports"
+            />
+
+            <DashboardCard
+              title="Repair Requests"
+              description="Review repair items."
+              href="/repair-request"
+            />
+
+            <DashboardCard
+              title="Documents"
+              description="Access agreements and PDFs."
+              href="/documents"
+            />
+          </div>
+        )}
       </div>
     </main>
+  );
+}
+
+function DashboardCard({
+  title,
+  description,
+  href,
+}: {
+  title: string;
+  description: string;
+  href: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="rounded-2xl border border-slate-800 bg-slate-900 p-5 transition hover:border-teal-400 hover:bg-slate-800"
+    >
+      <h2 className="text-xl font-semibold">
+        {title}
+      </h2>
+
+      <p className="mt-2 text-sm text-slate-400">
+        {description}
+      </p>
+    </Link>
   );
 }

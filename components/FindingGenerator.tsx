@@ -5,26 +5,27 @@ import { useRouter } from "next/navigation";
 import { supabase } from "../lib/supabaseClient";
 
 const SECTIONS = [
-  "Roof",
   "Exterior",
-  "Structure",
-  "Electrical",
+  "Roof",
+  "Basement, Foundation, Crawlspace & Structure",
+  "Heating",
+  "Cooling",
   "Plumbing",
-  "HVAC",
-  "Interior",
-  "Insulation / Ventilation",
-  "Appliances",
+  "Electrical",
+  "Fireplace",
+  "Attic, Insulation & Ventilation",
+  "Doors, Windows & Interior",
+  "Built-in Appliances",
   "Garage",
-  "Safety",
-  "General",
 ];
 
 const SEVERITIES = [
+  "Informational",
+  "Monitor",
   "Maintenance",
   "Recommended Repair",
   "Safety Concern",
   "Major Concern",
-  "Monitor",
 ];
 
 type Finding = {
@@ -40,7 +41,7 @@ type Finding = {
 export default function FindingGenerator({ reportId }: { reportId: string }) {
   const router = useRouter();
 
-  const [section, setSection] = useState("General");
+  const [section, setSection] = useState("Exterior");
   const [severity, setSeverity] = useState("Recommended Repair");
   const [note, setNote] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -48,11 +49,12 @@ export default function FindingGenerator({ reportId }: { reportId: string }) {
   const [uploadedImageUrl, setUploadedImageUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [generatedFinding, setGeneratedFinding] = useState<Finding | null>(
-    null
-  );
+  const [errorMessage, setErrorMessage] = useState("");
+  const [generatedFinding, setGeneratedFinding] = useState<Finding | null>(null);
 
   function handleFileChange(selectedFile: File | null) {
+    setErrorMessage("");
+
     if (!selectedFile) return;
 
     setFile(selectedFile);
@@ -63,14 +65,21 @@ export default function FindingGenerator({ reportId }: { reportId: string }) {
   async function uploadImage() {
     if (!file) return "";
 
-    const fileExt = file.name.split(".").pop();
-    const fileName = `${Date.now()}-${crypto.randomUUID()}.${fileExt}`;
+    const fileExt = file.name.split(".").pop() || "jpg";
+
+    const fileName = `${reportId}/${Date.now()}-${crypto.randomUUID()}.${fileExt}`;
 
     const { error } = await supabase.storage
       .from("inspection-photos")
-      .upload(fileName, file);
+      .upload(fileName, file, {
+        cacheControl: "3600",
+        upsert: false,
+        contentType: file.type || "image/jpeg",
+      });
 
-    if (error) throw new Error(error.message);
+    if (error) {
+      throw new Error(`Photo upload failed: ${error.message}`);
+    }
 
     const { data } = supabase.storage
       .from("inspection-photos")
@@ -82,6 +91,7 @@ export default function FindingGenerator({ reportId }: { reportId: string }) {
   async function generateFinding() {
     try {
       setLoading(true);
+      setErrorMessage("");
 
       let imageUrl = uploadedImageUrl;
 
@@ -89,6 +99,17 @@ export default function FindingGenerator({ reportId }: { reportId: string }) {
         imageUrl = await uploadImage();
         setUploadedImageUrl(imageUrl);
       }
+
+      const finalNote = `
+Section selected by inspector: ${section}
+Severity level selected by inspector: ${severity}
+
+Inspector note:
+${note || "Inspector uploaded a photo and requested an AI-generated finding."}
+
+Photo URL:
+${imageUrl || "No photo uploaded."}
+`;
 
       const res = await fetch("/api/ai/finding", {
         method: "POST",
@@ -98,22 +119,20 @@ export default function FindingGenerator({ reportId }: { reportId: string }) {
         body: JSON.stringify({
           imageUrl,
           section,
-          note: `
-Severity level selected by inspector: ${severity}
-
-Inspector note:
-${note}
-`,
+          severity,
+          note: finalNote,
         }),
       });
 
       const data = await res.json();
 
-      if (!res.ok) throw new Error(data.error || "AI finding failed");
+      if (!res.ok) {
+        throw new Error(data.error || "AI finding failed.");
+      }
 
       setGeneratedFinding({
-        section,
-        severity,
+        section: data.section || section,
+        severity: data.severity || severity,
         title: data.title || "",
         observation: data.observation || "",
         implication: data.implication || "",
@@ -121,7 +140,7 @@ ${note}
         image_url: imageUrl,
       });
     } catch (error: any) {
-      alert(error.message || "Something went wrong");
+      setErrorMessage(error.message || "Something went wrong.");
     } finally {
       setLoading(false);
     }
@@ -132,22 +151,38 @@ ${note}
 
     try {
       setSaving(true);
+      setErrorMessage("");
 
-      const { error } = await supabase.from("findings").insert({
-        inspection_id: reportId,
-        section: generatedFinding.section,
-        severity: generatedFinding.severity,
-        title: generatedFinding.title,
-        observation: generatedFinding.observation,
-        implication: generatedFinding.implication,
-        recommendation: generatedFinding.recommendation,
-        image_url: generatedFinding.image_url || null,
-      });
+      const { data: savedFinding, error } = await supabase
+        .from("findings")
+        .insert({
+          inspection_id: reportId,
+          section: generatedFinding.section,
+          severity: generatedFinding.severity,
+          title: generatedFinding.title,
+          observation: generatedFinding.observation,
+          implication: generatedFinding.implication,
+          recommendation: generatedFinding.recommendation,
+          image_url: generatedFinding.image_url || null,
+        })
+        .select("*")
+        .single();
 
-      if (error) throw new Error(error.message);
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      if (generatedFinding.image_url && savedFinding?.id) {
+        await supabase.from("photos").insert({
+          inspection_id: reportId,
+          finding_id: savedFinding.id,
+          url: generatedFinding.image_url,
+          image_url: generatedFinding.image_url,
+        });
+      }
 
       setGeneratedFinding(null);
-      setSection("General");
+      setSection("Exterior");
       setSeverity("Recommended Repair");
       setNote("");
       setFile(null);
@@ -156,7 +191,7 @@ ${note}
 
       router.refresh();
     } catch (error: any) {
-      alert(error.message || "Failed to save finding");
+      setErrorMessage(error.message || "Failed to save finding.");
     } finally {
       setSaving(false);
     }
@@ -171,26 +206,32 @@ ${note}
       <div className="space-y-4">
         <div>
           <label className="mb-2 block text-sm font-bold">Section</label>
+
           <select
             value={section}
             onChange={(e) => setSection(e.target.value)}
             className="w-full rounded-lg border p-3 text-black"
           >
             {SECTIONS.map((item) => (
-              <option key={item}>{item}</option>
+              <option key={item} value={item}>
+                {item}
+              </option>
             ))}
           </select>
         </div>
 
         <div>
           <label className="mb-2 block text-sm font-bold">Severity</label>
+
           <select
             value={severity}
             onChange={(e) => setSeverity(e.target.value)}
             className="w-full rounded-lg border p-3 text-black"
           >
             {SEVERITIES.map((item) => (
-              <option key={item}>{item}</option>
+              <option key={item} value={item}>
+                {item}
+              </option>
             ))}
           </select>
         </div>
@@ -199,9 +240,11 @@ ${note}
           <label className="mb-2 block text-sm font-bold">
             Take Photo / Choose From Gallery
           </label>
+
           <input
             type="file"
             accept="image/*"
+            capture="environment"
             onChange={(e) => handleFileChange(e.target.files?.[0] || null)}
             className="w-full rounded-lg border bg-white p-3 text-black"
           />
@@ -217,6 +260,7 @@ ${note}
 
         <div>
           <label className="mb-2 block text-sm font-bold">Inspector Note</label>
+
           <textarea
             value={note}
             onChange={(e) => setNote(e.target.value)}
@@ -225,10 +269,17 @@ ${note}
           />
         </div>
 
+        {errorMessage && (
+          <div className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm font-semibold text-red-700">
+            {errorMessage}
+          </div>
+        )}
+
         <button
+          type="button"
           onClick={generateFinding}
-          disabled={loading || (!file && !note)}
-          className="w-full rounded-lg bg-teal-600 py-4 font-bold text-white disabled:opacity-50"
+          disabled={loading || (!file && !note.trim())}
+          className="w-full touch-manipulation rounded-lg bg-teal-600 py-4 font-bold text-white disabled:opacity-50"
         >
           {loading ? "Generating..." : "Generate AI Finding"}
         </button>
@@ -241,6 +292,23 @@ ${note}
           </h3>
 
           <select
+            value={generatedFinding.section}
+            onChange={(e) =>
+              setGeneratedFinding({
+                ...generatedFinding,
+                section: e.target.value,
+              })
+            }
+            className="w-full rounded-lg border p-3 text-black"
+          >
+            {SECTIONS.map((item) => (
+              <option key={item} value={item}>
+                {item}
+              </option>
+            ))}
+          </select>
+
+          <select
             value={generatedFinding.severity}
             onChange={(e) =>
               setGeneratedFinding({
@@ -251,7 +319,9 @@ ${note}
             className="w-full rounded-lg border p-3 text-black"
           >
             {SEVERITIES.map((item) => (
-              <option key={item}>{item}</option>
+              <option key={item} value={item}>
+                {item}
+              </option>
             ))}
           </select>
 
@@ -312,9 +382,10 @@ ${note}
           />
 
           <button
+            type="button"
             onClick={saveFinding}
             disabled={saving}
-            className="w-full rounded-lg bg-teal-600 py-4 font-bold text-white disabled:opacity-50"
+            className="w-full touch-manipulation rounded-lg bg-teal-600 py-4 font-bold text-white disabled:opacity-50"
           >
             {saving ? "Saving..." : "Save Finding to Report"}
           </button>
