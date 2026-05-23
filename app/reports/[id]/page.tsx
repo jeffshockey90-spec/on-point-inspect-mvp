@@ -9,6 +9,8 @@ import SendReportModal from "../../../components/SendReportModal";
 import InspectionDetailsEditor from "../../../components/InspectionDetailsEditor";
 import ReportContactEditor from "../../../components/ReportContactEditor";
 import OfflineFieldMode from "../../../components/OfflineFieldMode";
+import OfflineAIQueue from "../../../components/OfflineAIQueue";
+import OfflineAICaptureForm from "../../../components/OfflineAICaptureForm";
 import VoiceFindingGenerator from "../../../components/VoiceFindingGenerator";
 import ReportFindingsSortable from "./ReportFindingsSortable";
 import ShareReportModal from "../components/share-report-modal";
@@ -70,7 +72,6 @@ export default async function ReportPage({
             <h1 className="text-3xl font-bold text-red-300">
               Report Access Denied
             </h1>
-
             <p className="mt-3 text-red-100">
               This report link is invalid, expired, or the report has not been
               published yet.
@@ -134,11 +135,8 @@ export default async function ReportPage({
           <>
             <div className="mb-8 flex flex-wrap gap-3 print:hidden">
               <PrintButton />
-
               <PdfExportButton />
-
               <PublishReportButton inspectionId={inspectionId} />
-
               <ShareReportButton inspectionId={inspectionId} />
 
               <SendReportModal
@@ -210,14 +208,12 @@ export default async function ReportPage({
 
           <div className="grid gap-4 md:grid-cols-3">
             <Info label="Property" value={inspection.property_address} />
-
             <Info
               label="Location"
               value={`${inspection.city || ""}, ${inspection.state || ""} ${
                 inspection.zip || ""
               }`}
             />
-
             <Info label="Client" value={inspection.client_name} />
             <Info label="Client Email" value={inspection.client_email} />
             <Info label="Client Phone" value={inspection.client_phone} />
@@ -228,7 +224,6 @@ export default async function ReportPage({
             <Info label="Square Feet" value={inspection.square_feet} />
             <Info label="Year Built" value={inspection.year_built} />
             <Info label="Roof Style" value={inspection.roof_style} />
-
             <Info
               label="Price"
               value={inspection.price ? `$${inspection.price}` : ""}
@@ -320,6 +315,10 @@ export default async function ReportPage({
             </section>
 
             <OfflineFieldMode inspectionId={inspectionId} />
+
+            <OfflineAICaptureForm reportId={inspectionId} />
+
+            <OfflineAIQueue reportId={inspectionId} />
 
             <VoiceFindingGenerator reportId={inspectionId} />
 
