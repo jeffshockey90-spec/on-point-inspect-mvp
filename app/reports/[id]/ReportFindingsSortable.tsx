@@ -9,14 +9,12 @@ import {
   useSensors,
   DragEndEvent,
 } from "@dnd-kit/core";
-
 import {
   SortableContext,
   verticalListSortingStrategy,
   arrayMove,
   useSortable,
 } from "@dnd-kit/sortable";
-
 import { CSS } from "@dnd-kit/utilities";
 
 import EditableFinding from "../../../components/EditableFinding";
@@ -31,35 +29,39 @@ export default function ReportFindingsSortable({
   allFindings: any[];
 }) {
   const storageKey = `section-order-${inspectionId}`;
-
-  const [sections, setSections] = useState(groupedFindings);
+  const [sections, setSections] = useState<any[]>(groupedFindings || []);
 
   useEffect(() => {
     const savedOrder = localStorage.getItem(storageKey);
 
     if (!savedOrder) {
-      setSections(groupedFindings);
+      setSections(groupedFindings || []);
       return;
     }
 
     try {
       const order = JSON.parse(savedOrder);
 
-      const sorted = [...groupedFindings].sort(
-        (a, b) => order.indexOf(a.section) - order.indexOf(b.section)
-      );
+      const sorted = [...(groupedFindings || [])].sort((a, b) => {
+        const aIndex = order.indexOf(a.section);
+        const bIndex = order.indexOf(b.section);
+
+        if (aIndex === -1 && bIndex === -1) return 0;
+        if (aIndex === -1) return 1;
+        if (bIndex === -1) return -1;
+
+        return aIndex - bIndex;
+      });
 
       setSections(sorted);
     } catch {
-      setSections(groupedFindings);
+      setSections(groupedFindings || []);
     }
   }, [groupedFindings, storageKey]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
+      activationConstraint: { distance: 8 },
     })
   );
 
@@ -69,21 +71,16 @@ export default function ReportFindingsSortable({
     if (!over || active.id === over.id) return;
 
     setSections((items) => {
-      const oldIndex = items.findIndex(
-        (item) => item.section === active.id
-      );
+      const oldIndex = items.findIndex((item) => item.section === active.id);
+      const newIndex = items.findIndex((item) => item.section === over.id);
 
-      const newIndex = items.findIndex(
-        (item) => item.section === over.id
-      );
+      if (oldIndex === -1 || newIndex === -1) return items;
 
       const newOrder = arrayMove(items, oldIndex, newIndex);
 
       localStorage.setItem(
         storageKey,
-        JSON.stringify(
-          newOrder.map((item) => item.section)
-        )
+        JSON.stringify(newOrder.map((item) => item.section))
       );
 
       return newOrder;
@@ -93,9 +90,7 @@ export default function ReportFindingsSortable({
   if (!allFindings || allFindings.length === 0) {
     return (
       <div className="rounded-2xl border border-slate-700 bg-[#0f172a] p-8 text-center">
-        <p className="text-slate-300">
-          No findings saved yet.
-        </p>
+        <p className="text-slate-300">No findings saved yet.</p>
       </div>
     );
   }
@@ -112,11 +107,7 @@ export default function ReportFindingsSortable({
       >
         <div className="space-y-10">
           {sections.map((group) => (
-            <SortableSection
-              key={group.section}
-              group={group}
-              inspectionId={inspectionId}
-            />
+            <SortableSection key={group.section} group={group} />
           ))}
         </div>
       </SortableContext>
@@ -124,13 +115,7 @@ export default function ReportFindingsSortable({
   );
 }
 
-function SortableSection({
-  group,
-  inspectionId,
-}: {
-  group: any;
-  inspectionId: string;
-}) {
+function SortableSection({ group }: { group: any }) {
   const {
     attributes,
     listeners,
@@ -166,12 +151,10 @@ function SortableSection({
           ☰
         </button>
 
-        <h3 className="text-2xl font-bold text-teal-400">
-          {group.section}
-        </h3>
+        <h3 className="text-2xl font-bold text-teal-400">{group.section}</h3>
       </div>
 
-      {group.findings.map((finding: any) => (
+      {(group.findings || []).map((finding: any) => (
         <div
           key={finding.id}
           className="rounded-2xl border border-slate-700 bg-[#0f172a] p-6 shadow-lg"
@@ -189,11 +172,8 @@ function SortableSection({
               <div className="grid gap-4 md:grid-cols-2">
                 {finding.photos.map((photo: any) => (
                   <img
-                    key={photo.id}
-                    src={
-                      photo.public_url ||
-                      photo.photo_url
-                    }
+                    key={photo.id || photo.public_url || photo.photo_url}
+                    src={photo.public_url || photo.photo_url}
                     alt="Finding Photo"
                     className="max-h-[320px] w-full rounded-xl border border-slate-700 object-cover"
                   />
@@ -207,30 +187,17 @@ function SortableSection({
               {finding.section}
             </span>
 
-            <SeverityBadge
-              severity={
-                finding.severity ||
-                "Recommended Repair"
-              }
-            />
+            <SeverityBadge severity={finding.severity || "Recommended Repair"} />
           </div>
 
-          <h4 className="text-2xl font-bold text-teal-300">
-            {finding.title}
-          </h4>
+          <h4 className="text-2xl font-bold text-teal-300">{finding.title}</h4>
 
           {finding.observation && (
-            <ReportBlock
-              title="Observation"
-              text={finding.observation}
-            />
+            <ReportBlock title="Observation" text={finding.observation} />
           )}
 
           {finding.implication && (
-            <ReportBlock
-              title="Implication"
-              text={finding.implication}
-            />
+            <ReportBlock title="Implication" text={finding.implication} />
           )}
 
           {finding.recommendation && (
@@ -240,29 +207,17 @@ function SortableSection({
             />
           )}
 
-          <EditableFinding
-            finding={finding}
-            inspectionId={inspectionId}
-          />
+          <EditableFinding finding={finding} />
         </div>
       ))}
     </div>
   );
 }
 
-function ReportBlock({
-  title,
-  text,
-}: {
-  title: string;
-  text: string;
-}) {
+function ReportBlock({ title, text }: { title: string; text: string }) {
   return (
     <div className="mt-5">
-      <p className="text-lg font-bold text-white">
-        {title}
-      </p>
-
+      <p className="text-lg font-bold text-white">{title}</p>
       <p className="mt-2 whitespace-pre-line leading-8 text-slate-300">
         {text}
       </p>
@@ -270,51 +225,34 @@ function ReportBlock({
   );
 }
 
-function SeverityBadge({
-  severity,
-}: {
-  severity: string;
-}) {
-  let classes =
-    "bg-slate-700 text-slate-200 border-slate-600";
+function SeverityBadge({ severity }: { severity: string }) {
+  let classes = "bg-slate-700 text-slate-200 border-slate-600";
 
-  if (
-    severity === "Safety Concern" ||
-    severity === "safety"
-  ) {
-    classes =
-      "bg-red-500/20 text-red-300 border-red-500/40";
+  if (severity === "Safety Concern" || severity === "safety") {
+    classes = "bg-red-500/20 text-red-300 border-red-500/40";
   }
 
   if (severity === "Major Concern") {
-    classes =
-      "bg-orange-500/20 text-orange-300 border-orange-500/40";
+    classes = "bg-orange-500/20 text-orange-300 border-orange-500/40";
   }
 
   if (
     severity === "Recommended Repair" ||
     severity === "recommendation"
   ) {
-    classes =
-      "bg-yellow-500/20 text-yellow-300 border-yellow-500/40";
+    classes = "bg-yellow-500/20 text-yellow-300 border-yellow-500/40";
   }
 
   if (severity === "Maintenance") {
-    classes =
-      "bg-blue-500/20 text-blue-300 border-blue-500/40";
+    classes = "bg-blue-500/20 text-blue-300 border-blue-500/40";
   }
 
   if (severity === "Monitor") {
-    classes =
-      "bg-purple-500/20 text-purple-300 border-purple-500/40";
+    classes = "bg-purple-500/20 text-purple-300 border-purple-500/40";
   }
 
-  if (
-    severity === "info" ||
-    severity === "Informational"
-  ) {
-    classes =
-      "bg-cyan-500/20 text-cyan-300 border-cyan-500/40";
+  if (severity === "info" || severity === "Informational") {
+    classes = "bg-cyan-500/20 text-cyan-300 border-cyan-500/40";
   }
 
   return (
