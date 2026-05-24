@@ -154,6 +154,12 @@ export default async function ReportPage({
     });
   }
 
+  const propertyPhoto =
+    inspection.property_image ||
+    inspection.street_view_url ||
+    inspection.property_photo ||
+    "";
+
   return (
     <main className="min-h-screen bg-[#020617] p-4 text-white md:p-8">
       <div className="mx-auto max-w-7xl rounded-3xl bg-[#0f172a] p-6 shadow-2xl md:p-10">
@@ -217,6 +223,16 @@ export default async function ReportPage({
             Residential Home Inspection Report
           </p>
         </header>
+
+        {propertyPhoto && (
+          <section className="mt-8 overflow-hidden rounded-2xl border border-slate-700 bg-slate-900">
+            <img
+              src={propertyPhoto}
+              alt="Property"
+              className="max-h-[420px] w-full object-cover"
+            />
+          </section>
+        )}
 
         {canEdit ? (
           <EditableInspectionDetails inspection={inspection} />
