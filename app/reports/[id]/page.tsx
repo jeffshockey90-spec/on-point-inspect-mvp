@@ -8,6 +8,7 @@ import PublishReportButton from "../../../components/PublishReportButton";
 import SendReportModal from "../../../components/SendReportModal";
 import GenerateSummaryButton from "../../../components/GenerateSummaryButton";
 import EditableInspectionDetails from "../../../components/EditableInspectionDetails";
+import DeleteInspectionButton from "../../../components/DeleteInspectionButton";
 import ReportFindingsSortable from "./ReportFindingsSortable";
 import Link from "next/link";
 
@@ -110,7 +111,10 @@ export default async function ReportPage({
 
     return (
       <main className="min-h-screen bg-black p-10 text-white">
-        <h1 className="text-3xl font-bold text-red-400">Access Denied</h1>
+        <h1 className="text-3xl font-bold text-red-400">
+          Access Denied
+        </h1>
+
         <p className="mt-4 text-slate-300">
           You do not have permission to view this report.
         </p>
@@ -140,11 +144,14 @@ export default async function ReportPage({
 
   const groupedFindings = SECTION_ORDER.map((section) => ({
     section,
-    findings: allFindings.filter((finding: any) => finding.section === section),
+    findings: allFindings.filter(
+      (finding: any) => finding.section === section
+    ),
   })).filter((group) => group.findings.length > 0);
 
   const otherFindings = allFindings.filter(
-    (finding: any) => !SECTION_ORDER.includes(finding.section)
+    (finding: any) =>
+      !SECTION_ORDER.includes(finding.section)
   );
 
   if (otherFindings.length > 0) {
@@ -166,10 +173,20 @@ export default async function ReportPage({
         {canEdit && (
           <div className="mb-10 flex flex-wrap gap-3 print:hidden">
             <PrintButton />
+
             <PdfExportButton />
-            <GenerateSummaryButton inspectionId={inspectionId} />
-            <PublishReportButton inspectionId={inspectionId} />
-            <ShareReportButton inspectionId={inspectionId} />
+
+            <GenerateSummaryButton
+              inspectionId={inspectionId}
+            />
+
+            <PublishReportButton
+              inspectionId={inspectionId}
+            />
+
+            <ShareReportButton
+              inspectionId={inspectionId}
+            />
 
             <SendReportModal
               inspectionId={inspectionId}
@@ -177,7 +194,9 @@ export default async function ReportPage({
               clientEmail={inspection.client_email}
               realtorName={inspection.realtor_name}
               realtorEmail={inspection.realtor_email}
-              propertyAddress={inspection.property_address}
+              propertyAddress={
+                inspection.property_address
+              }
             />
 
             <Link
@@ -211,6 +230,10 @@ export default async function ReportPage({
             >
               Equipment Analyzer
             </Link>
+
+            <DeleteInspectionButton
+              inspectionId={inspectionId}
+            />
           </div>
         )}
 
@@ -235,7 +258,9 @@ export default async function ReportPage({
         )}
 
         {canEdit ? (
-          <EditableInspectionDetails inspection={inspection} />
+          <EditableInspectionDetails
+            inspection={inspection}
+          />
         ) : (
           <section className="mt-10 rounded-2xl border border-slate-700 bg-slate-900/70 p-6">
             <h2 className="mb-4 text-2xl font-bold text-teal-400">
@@ -244,20 +269,33 @@ export default async function ReportPage({
 
             <div className="grid gap-4 text-slate-300 md:grid-cols-2">
               <p>
-                <span className="font-bold text-white">Property Address:</span>{" "}
-                {inspection.property_address || "N/A"}
+                <span className="font-bold text-white">
+                  Property Address:
+                </span>{" "}
+                {inspection.property_address ||
+                  "N/A"}
               </p>
+
               <p>
-                <span className="font-bold text-white">Client:</span>{" "}
+                <span className="font-bold text-white">
+                  Client:
+                </span>{" "}
                 {inspection.client_name || "N/A"}
               </p>
+
               <p>
-                <span className="font-bold text-white">Realtor:</span>{" "}
+                <span className="font-bold text-white">
+                  Realtor:
+                </span>{" "}
                 {inspection.realtor_name || "N/A"}
               </p>
+
               <p>
-                <span className="font-bold text-white">Inspection Date:</span>{" "}
-                {inspection.inspection_date || "N/A"}
+                <span className="font-bold text-white">
+                  Inspection Date:
+                </span>{" "}
+                {inspection.inspection_date ||
+                  "N/A"}
               </p>
             </div>
           </section>
