@@ -1,10 +1,40 @@
 import Link from "next/link";
-import { supabase } from "../../lib/supabaseClient";
+import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
+import { createServerClient } from "@supabase/ssr";
 
 export default async function ReportsPage() {
+  const cookieStore = await cookies();
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll() {},
+      },
+    }
+  );
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const userEmail = user.email || "";
+
   const { data: inspections, error } = await supabase
     .from("inspections")
     .select("*")
+    .or(
+      `inspector_id.eq.${user.id},client_email.eq.${userEmail},realtor_email.eq.${userEmail}`
+    )
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -63,21 +93,9 @@ export default async function ReportsPage() {
                 </div>
 
                 <div className="p-6">
-                  <div className="flex items-start justify-between gap-3">
-                    <h2 className="text-2xl font-bold text-white">
-                      {inspection.property_address || "Untitled Inspection"}
-                    </h2>
-
-                    <span
-                      className={`rounded-full px-3 py-1 text-xs font-bold ${
-                        inspection.published
-                          ? "bg-green-500/20 text-green-300"
-                          : "bg-yellow-500/20 text-yellow-300"
-                      }`}
-                    >
-                      {inspection.published ? "PUBLISHED" : "DRAFT"}
-                    </span>
-                  </div>
+                  <h2 className="text-2xl font-bold text-white">
+                    {inspection.property_address || "Untitled Inspection"}
+                  </h2>
 
                   <p className="mt-3 text-slate-300">
                     {inspection.city || ""}
@@ -94,21 +112,6 @@ export default async function ReportsPage() {
                     <p>
                       <span className="font-bold text-white">Realtor:</span>{" "}
                       {inspection.realtor_name || "N/A"}
-                    </p>
-
-                    <p>
-                      <span className="font-bold text-white">Year Built:</span>{" "}
-                      {inspection.year_built || "N/A"}
-                    </p>
-
-                    <p>
-                      <span className="font-bold text-white">Style:</span>{" "}
-                      {inspection.house_style || "N/A"}
-                    </p>
-
-                    <p>
-                      <span className="font-bold text-white">Roof:</span>{" "}
-                      {inspection.roof_style || "N/A"}
                     </p>
 
                     <p>
