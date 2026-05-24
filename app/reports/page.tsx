@@ -1,192 +1,153 @@
-import { supabase } from "../../../lib/supabaseClient";
-import FindingGenerator from "../../../components/FindingGenerator";
-import DataPlateScanner from "../../../components/DataPlateScanner";
-import PrintButton from "../../../components/PrintButton";
-import PdfExportButton from "../../../components/PdfExportButton";
-import ShareReportButton from "../../../components/ShareReportButton";
-import PublishReportButton from "../../../components/PublishReportButton";
-import SendReportModal from "../../../components/SendReportModal";
-import OfflineFieldMode from "../../../components/OfflineFieldMode";
-import OfflineAIQueue from "../../../components/OfflineAIQueue";
-import OfflineAICaptureForm from "../../../components/OfflineAICaptureForm";
-import VoiceFindingGenerator from "../../../components/VoiceFindingGenerator";
-import GenerateSummaryButton from "../../../components/GenerateSummaryButton";
-import ReportFindingsSortable from "./ReportFindingsSortable";
 import Link from "next/link";
+import { supabase } from "../../lib/supabaseClient";
 
-const SECTION_ORDER = [
-  "Exterior",
-  "Roof",
-  "Basement, Foundation, Crawlspace & Structure",
-  "Heating",
-  "Cooling",
-  "Plumbing",
-  "Electrical",
-  "Fireplace",
-  "Attic, Insulation & Ventilation",
-  "Doors, Windows & Interior",
-  "Built-in Appliances",
-  "Garage",
-];
-
-export default async function ReportPage({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ id: string }>;
-  searchParams: Promise<{ token?: string }>;
-}) {
-  const resolvedParams = await params;
-  const resolvedSearchParams = await searchParams;
-
-  const inspectionId = resolvedParams.id;
-  const token = resolvedSearchParams.token;
-  const isPublicView = Boolean(token);
-
-  const { data: inspection, error: inspectionError } = await supabase
+export default async function ReportsPage() {
+  const { data: inspections, error } = await supabase
     .from("inspections")
     .select("*")
-    .eq("id", inspectionId)
-    .single();
+    .order("created_at", { ascending: false });
 
-  if (inspectionError || !inspection) {
+  if (error) {
     return (
-      <main className="min-h-screen bg-black p-10 text-white">
-        Error loading inspection
+      <main className="min-h-screen bg-[#020617] p-8 text-white">
+        <h1 className="text-3xl font-bold text-red-400">
+          Error loading reports
+        </h1>
+
+        <p className="mt-4 text-slate-300">{error.message}</p>
       </main>
     );
   }
 
-  const { data: findings } = await supabase
-    .from("findings")
-    .select("*")
-    .eq("inspection_id", inspectionId)
-    .order("created_at", { ascending: false });
-
-  const { data: photos } = await supabase
-    .from("photos")
-    .select("*")
-    .eq("inspection_id", inspectionId);
-
-  const findingsWithPhotos = (findings || []).map((finding: any) => ({
-    ...finding,
-    photos: (photos || []).filter(
-      (photo: any) => photo.finding_id === finding.id
-    ),
-  }));
-
-  const allFindings = findingsWithPhotos;
-
-  const groupedFindings = SECTION_ORDER.map((section) => ({
-    section,
-    findings: allFindings.filter(
-      (finding: any) => finding.section === section
-    ),
-  })).filter((group) => group.findings.length > 0);
-
-  const otherFindings = allFindings.filter(
-    (finding: any) => !SECTION_ORDER.includes(finding.section)
-  );
-
-  if (otherFindings.length > 0) {
-    groupedFindings.push({
-      section: "Other",
-      findings: otherFindings,
-    });
-  }
-
   return (
-    <main className="min-h-screen bg-[#0f172a] p-4 text-white md:p-6">
-      <div className="mx-auto max-w-6xl rounded-2xl bg-[#111827] p-5 shadow-2xl md:p-10">
-        {!isPublicView && (
-          <div className="mb-8 flex flex-wrap gap-3 print:hidden">
-            <PrintButton />
-            <PdfExportButton />
-            <GenerateSummaryButton inspectionId={inspectionId} />
-            <PublishReportButton inspectionId={inspectionId} />
-            <ShareReportButton inspectionId={inspectionId} />
+    <main className="min-h-screen bg-[#020617] px-6 py-10 text-white">
+      <div className="mx-auto max-w-7xl">
+        <div className="mb-10 flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h1 className="text-5xl font-bold text-teal-400">
+              Saved Inspections
+            </h1>
 
-            <SendReportModal
-              inspectionId={inspectionId}
-              clientName={inspection.client_name}
-              clientEmail={inspection.client_email}
-              realtorName={inspection.realtor_name}
-              realtorEmail={inspection.realtor_email}
-              propertyAddress={inspection.property_address}
-            />
-
-            <Link
-              href={`/repair-request/${inspectionId}`}
-              className="rounded-xl bg-orange-600 px-5 py-3 font-bold text-white transition hover:bg-orange-500"
-            >
-              Repair Request Builder
-            </Link>
-
-            <Link
-              href={`/reports/${inspectionId}/summary`}
-              className="rounded-xl border border-teal-500 px-5 py-3 font-bold text-teal-400 transition hover:bg-teal-500 hover:text-black"
-            >
-              Realtor Summary
-            </Link>
-
-            <Link
-              href="/ai-capture"
-              className="rounded-xl bg-teal-500 px-5 py-3 font-bold text-black transition hover:bg-teal-400"
-            >
-              Open Full AI Capture
-            </Link>
-          </div>
-        )}
-
-        <header className="border-b border-slate-700 pb-6">
-          <h1 className="text-4xl font-bold text-teal-400">
-            On Point Home Inspections
-          </h1>
-
-          <p className="mt-2 text-lg text-slate-300">
-            Residential Home Inspection Report
-          </p>
-        </header>
-
-        {inspection.executive_summary && (
-          <section className="mt-8 rounded-2xl border border-purple-700 bg-purple-950/20 p-6">
-            <h2 className="mb-4 text-3xl font-bold text-purple-300">
-              Executive Summary
-            </h2>
-
-            <p className="whitespace-pre-line leading-8 text-slate-200">
-              {inspection.executive_summary}
+            <p className="mt-3 text-slate-300">
+              Manage inspection reports, publishing, and client delivery.
             </p>
-          </section>
-        )}
+          </div>
 
-        <section className="mt-10">
-          <h2 className="mb-8 text-3xl font-bold text-teal-400">
-            Inspection Findings
-          </h2>
+          <Link
+            href="/inspections/new"
+            className="rounded-xl bg-teal-500 px-6 py-3 font-bold text-black hover:bg-teal-400"
+          >
+            New Inspection
+          </Link>
+        </div>
 
-          <ReportFindingsSortable
-            inspectionId={inspectionId}
-            groupedFindings={groupedFindings}
-            allFindings={allFindings}
-          />
-        </section>
+        {(inspections || []).length === 0 ? (
+          <div className="rounded-2xl border border-slate-800 bg-slate-900 p-8">
+            <p className="text-slate-300">
+              No saved inspections found.
+            </p>
+          </div>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+            {inspections?.map((inspection: any) => (
+              <div
+                key={inspection.id}
+                className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 shadow-xl"
+              >
+                <div className="flex h-56 items-center justify-center overflow-hidden bg-slate-950 text-slate-500">
+                  {inspection.street_view_url ? (
+                    <img
+                      src={inspection.street_view_url}
+                      alt="Property"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span>No Property Photo</span>
+                  )}
+                </div>
 
-        {!isPublicView && (
-          <>
-            <OfflineFieldMode inspectionId={inspectionId} />
-            <OfflineAICaptureForm reportId={inspectionId} />
-            <OfflineAIQueue reportId={inspectionId} />
-            <VoiceFindingGenerator reportId={inspectionId} />
+                <div className="p-6">
+                  <div className="flex items-start justify-between gap-3">
+                    <h2 className="text-2xl font-bold text-white">
+                      {inspection.property_address ||
+                        "Untitled Inspection"}
+                    </h2>
 
-            <div className="print:hidden">
-              <FindingGenerator reportId={inspectionId} />
-            </div>
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs font-bold ${
+                        inspection.published
+                          ? "bg-green-500/20 text-green-300"
+                          : "bg-yellow-500/20 text-yellow-300"
+                      }`}
+                    >
+                      {inspection.published
+                        ? "PUBLISHED"
+                        : "DRAFT"}
+                    </span>
+                  </div>
 
-            <div className="print:hidden">
-              <DataPlateScanner reportId={inspectionId} />
-            </div>
-          </>
+                  <p className="mt-3 text-slate-300">
+                    {inspection.city || ""}
+                    {inspection.state
+                      ? `, ${inspection.state}`
+                      : ""}{" "}
+                    {inspection.zip || ""}
+                  </p>
+
+                  <div className="mt-5 space-y-2 text-sm text-slate-300">
+                    <p>
+                      <span className="font-bold text-white">
+                        Client:
+                      </span>{" "}
+                      {inspection.client_name || "N/A"}
+                    </p>
+
+                    <p>
+                      <span className="font-bold text-white">
+                        Realtor:
+                      </span>{" "}
+                      {inspection.realtor_name || "N/A"}
+                    </p>
+
+                    <p>
+                      <span className="font-bold text-white">
+                        Year Built:
+                      </span>{" "}
+                      {inspection.year_built || "N/A"}
+                    </p>
+
+                    <p>
+                      <span className="font-bold text-white">
+                        Style:
+                      </span>{" "}
+                      {inspection.house_style || "N/A"}
+                    </p>
+
+                    <p>
+                      <span className="font-bold text-white">
+                        Roof:
+                      </span>{" "}
+                      {inspection.roof_style || "N/A"}
+                    </p>
+
+                    <p>
+                      <span className="font-bold text-white">
+                        Inspection Date:
+                      </span>{" "}
+                      {inspection.inspection_date || "N/A"}
+                    </p>
+                  </div>
+
+                  <Link
+                    href={`/reports/${inspection.id}`}
+                    className="mt-6 inline-block rounded-xl bg-teal-500 px-5 py-3 font-bold text-black hover:bg-teal-400"
+                  >
+                    Open Report
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </main>
