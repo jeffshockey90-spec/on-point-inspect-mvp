@@ -12,6 +12,7 @@ type PageProps = {
 
 export default async function ReportPage({ params }: PageProps) {
   const { id } = await params;
+
   const cookieStore = await cookies();
 
   const supabase = createServerClient(
@@ -22,6 +23,7 @@ export default async function ReportPage({ params }: PageProps) {
         getAll() {
           return cookieStore.getAll();
         },
+
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => {
             cookieStore.set(name, value, options);
@@ -63,7 +65,9 @@ export default async function ReportPage({ params }: PageProps) {
     console.error("Findings load error:", findingsError);
   }
 
-  const findingIds = (findingsRaw || []).map((finding) => finding.id);
+  const findingIds = (findingsRaw || []).map(
+    (finding: any) => finding.id
+  );
 
   const { data: photosRaw, error: photosError } =
     findingIds.length > 0
@@ -72,7 +76,6 @@ export default async function ReportPage({ params }: PageProps) {
           .select("*")
           .in("finding_id", findingIds)
           .eq("inspection_id", inspection.id)
-          .eq("inspector_id", user.id)
       : { data: [], error: null };
 
   if (photosError) {
@@ -124,6 +127,7 @@ export default async function ReportPage({ params }: PageProps) {
       }
 
       acc[photo.finding_id].push(photo);
+
       return acc;
     },
     {}
@@ -139,15 +143,26 @@ export default async function ReportPage({ params }: PageProps) {
       <div className="mx-auto max-w-6xl px-4 py-6">
         <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-slate-800 bg-slate-900/70 p-5 shadow-lg md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="text-sm text-slate-400">Inspection Report</p>
+            <p className="text-sm text-slate-400">
+              Inspection Report
+            </p>
+
             <h1 className="text-2xl font-bold text-white">
               {inspection.address || "Untitled Inspection"}
             </h1>
 
             <div className="mt-2 text-sm text-slate-300">
-              {inspection.city && <span>{inspection.city}</span>}
-              {inspection.state && <span>, {inspection.state}</span>}
-              {inspection.zip && <span> {inspection.zip}</span>}
+              {inspection.city && (
+                <span>{inspection.city}</span>
+              )}
+
+              {inspection.state && (
+                <span>, {inspection.state}</span>
+              )}
+
+              {inspection.zip && (
+                <span> {inspection.zip}</span>
+              )}
             </div>
           </div>
 
@@ -180,6 +195,7 @@ export default async function ReportPage({ params }: PageProps) {
             <p className="text-xs uppercase tracking-wide text-slate-500">
               Client
             </p>
+
             <p className="mt-1 font-semibold text-white">
               {inspection.client_name || "Not entered"}
             </p>
@@ -189,6 +205,7 @@ export default async function ReportPage({ params }: PageProps) {
             <p className="text-xs uppercase tracking-wide text-slate-500">
               Realtor
             </p>
+
             <p className="mt-1 font-semibold text-white">
               {inspection.realtor_name || "Not entered"}
             </p>
@@ -198,6 +215,7 @@ export default async function ReportPage({ params }: PageProps) {
             <p className="text-xs uppercase tracking-wide text-slate-500">
               Inspection Date
             </p>
+
             <p className="mt-1 font-semibold text-white">
               {inspection.inspection_date || "Not entered"}
             </p>
@@ -206,7 +224,8 @@ export default async function ReportPage({ params }: PageProps) {
 
         <ReportFindingsSortable
           inspectionId={inspection.id}
-          findings={findings}
+          groupedFindings={findings}
+          allFindings={findings}
         />
       </div>
     </main>
