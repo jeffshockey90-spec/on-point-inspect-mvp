@@ -42,6 +42,7 @@ export async function middleware(request: NextRequest) {
     "/dashboard",
     "/reports",
     "/new",
+    "/inspections",
     "/ai-capture",
     "/equipment-test",
     "/field",

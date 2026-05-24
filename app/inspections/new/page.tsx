@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "../../../lib/supabaseClient";
+import { createClient } from "../../../utils/supabase/client";
 import { getCompanyId } from "../../../lib/getCompanyId";
 
 declare global {
@@ -12,13 +12,30 @@ declare global {
 }
 
 const timeOptions = [
-  "08:00", "08:30", "09:00", "09:30", "10:00", "10:30",
-  "11:00", "11:30", "12:00", "12:30", "13:00", "13:30",
-  "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00",
+  "08:00",
+  "08:30",
+  "09:00",
+  "09:30",
+  "10:00",
+  "10:30",
+  "11:00",
+  "11:30",
+  "12:00",
+  "12:30",
+  "13:00",
+  "13:30",
+  "14:00",
+  "14:30",
+  "15:00",
+  "15:30",
+  "16:00",
+  "16:30",
+  "17:00",
 ];
 
 function formatTime(value: string) {
   if (!value) return "";
+
   const [hour, minute] = value.split(":");
   const date = new Date();
   date.setHours(Number(hour), Number(minute));
@@ -31,12 +48,15 @@ function formatTime(value: string) {
 
 function calculateInspectionPrice(squareFeet: string) {
   const sqft = Number(squareFeet);
+
   if (!sqft || sqft <= 2000) return "500";
+
   return String(500 + Math.ceil((sqft - 2000) / 1000) * 50);
 }
 
 export default function NewInspectionPage() {
   const router = useRouter();
+  const supabase = createClient();
   const addressInputRef = useRef<HTMLInputElement | null>(null);
 
   const [clientName, setClientName] = useState("");
@@ -79,9 +99,11 @@ export default function NewInspectionPage() {
     }
 
     const existingScript = document.getElementById("google-places-script");
+
     if (existingScript) return;
 
     const script = document.createElement("script");
+
     script.id = "google-places-script";
     script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`;
     script.async = true;
@@ -128,10 +150,19 @@ export default function NewInspectionPage() {
         setPrice(calculateInspectionPrice(String(sqft)));
       }
 
-      const image = data.property_image || data.image || data.photo || "";
+      const image =
+        data.property_image ||
+        data.image ||
+        data.photo ||
+        "";
+
       if (image) setPropertyImage(image);
 
-      const built = data.year_built || data.yearBuilt || "";
+      const built =
+        data.year_built ||
+        data.yearBuilt ||
+        "";
+
       if (built) setYearBuilt(String(built));
 
       const style =
@@ -143,7 +174,11 @@ export default function NewInspectionPage() {
 
       if (style) setPropertyStyle(String(style));
 
-      const roof = data.roof_style || data.roofStyle || "";
+      const roof =
+        data.roof_style ||
+        data.roofStyle ||
+        "";
+
       if (roof) setRoofStyle(String(roof));
     } catch (error) {
       console.log("Property autofill skipped:", error);
@@ -166,6 +201,7 @@ export default function NewInspectionPage() {
 
     autocomplete.addListener("place_changed", () => {
       const place = autocomplete.getPlace();
+
       if (!place.address_components) return;
 
       let streetNumber = "";
@@ -177,12 +213,25 @@ export default function NewInspectionPage() {
       place.address_components.forEach((component: any) => {
         const types = component.types;
 
-        if (types.includes("street_number")) streetNumber = component.long_name;
-        if (types.includes("route")) route = component.long_name;
-        if (types.includes("locality")) locality = component.long_name;
-        if (types.includes("administrative_area_level_1"))
+        if (types.includes("street_number")) {
+          streetNumber = component.long_name;
+        }
+
+        if (types.includes("route")) {
+          route = component.long_name;
+        }
+
+        if (types.includes("locality")) {
+          locality = component.long_name;
+        }
+
+        if (types.includes("administrative_area_level_1")) {
           adminArea = component.short_name;
-        if (types.includes("postal_code")) postalCode = component.long_name;
+        }
+
+        if (types.includes("postal_code")) {
+          postalCode = component.long_name;
+        }
       });
 
       const streetAddress = `${streetNumber} ${route}`.trim();
@@ -241,6 +290,7 @@ export default function NewInspectionPage() {
             client_phone: clientPhone,
 
             property_address: propertyAddress,
+            address: propertyAddress,
             city,
             state: stateValue,
             zip,
@@ -261,6 +311,7 @@ export default function NewInspectionPage() {
             house_style: propertyStyle || null,
             roof_style: roofStyle || null,
             property_image: propertyImage || null,
+            street_view_url: propertyImage || null,
 
             report_status: "Draft",
             is_published: false,
@@ -295,9 +346,23 @@ export default function NewInspectionPage() {
 
         <section className="grid gap-5 lg:grid-cols-2">
           <Card title="Client Info">
-            <Input value={clientName} onChange={setClientName} placeholder="Client Name" />
-            <Input value={clientEmail} onChange={setClientEmail} placeholder="Client Email" />
-            <Input value={clientPhone} onChange={setClientPhone} placeholder="Client Phone" />
+            <Input
+              value={clientName}
+              onChange={setClientName}
+              placeholder="Client Name"
+            />
+
+            <Input
+              value={clientEmail}
+              onChange={setClientEmail}
+              placeholder="Client Email"
+            />
+
+            <Input
+              value={clientPhone}
+              onChange={setClientPhone}
+              placeholder="Client Phone"
+            />
           </Card>
 
           <Card title="Property Info">
@@ -310,15 +375,43 @@ export default function NewInspectionPage() {
             />
 
             <div className="grid gap-4 md:grid-cols-3">
-              <Input value={city} onChange={setCity} placeholder="City" />
-              <Input value={stateValue} onChange={setStateValue} placeholder="State" />
-              <Input value={zip} onChange={setZip} placeholder="Zip" />
+              <Input
+                value={city}
+                onChange={setCity}
+                placeholder="City"
+              />
+
+              <Input
+                value={stateValue}
+                onChange={setStateValue}
+                placeholder="State"
+              />
+
+              <Input
+                value={zip}
+                onChange={setZip}
+                placeholder="Zip"
+              />
             </div>
 
             <div className="grid gap-4 md:grid-cols-3">
-              <Input value={yearBuilt} onChange={setYearBuilt} placeholder="Year Built" />
-              <Input value={propertyStyle} onChange={setPropertyStyle} placeholder="House Type / Style" />
-              <Input value={roofStyle} onChange={setRoofStyle} placeholder="Roof Style" />
+              <Input
+                value={yearBuilt}
+                onChange={setYearBuilt}
+                placeholder="Year Built"
+              />
+
+              <Input
+                value={propertyStyle}
+                onChange={setPropertyStyle}
+                placeholder="House Type / Style"
+              />
+
+              <Input
+                value={roofStyle}
+                onChange={setRoofStyle}
+                placeholder="Roof Style"
+              />
             </div>
 
             {propertyImage && (
@@ -397,11 +490,15 @@ export default function NewInspectionPage() {
               placeholder={
                 loadingProperty
                   ? "Attempting property lookup..."
-                  : "Square Feet (auto-fill when available)"
+                  : "Square Feet"
               }
             />
 
-            <Input value={price} onChange={setPrice} placeholder="Price" />
+            <Input
+              value={price}
+              onChange={setPrice}
+              placeholder="Price"
+            />
           </div>
 
           <Input
