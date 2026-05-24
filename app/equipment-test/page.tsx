@@ -93,20 +93,22 @@ function EquipmentTestContent() {
 
     try {
       let imageUrl = "";
+      let filePath = "";
 
       if (image) {
         const fileExt = image.name.split(".").pop();
-        const fileName = `${inspectionId}/equipment-${Date.now()}.${fileExt}`;
+
+        filePath = `${inspectionId}/equipment-${Date.now()}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
           .from("inspection-photos")
-          .upload(fileName, image);
+          .upload(filePath, image);
 
         if (uploadError) throw uploadError;
 
         const { data } = supabase.storage
           .from("inspection-photos")
-          .getPublicUrl(fileName);
+          .getPublicUrl(filePath);
 
         imageUrl = data.publicUrl;
       }
@@ -117,16 +119,28 @@ function EquipmentTestContent() {
 
       const recommendation = [
         result.recommendation || "",
-        result.equipmentType ? `\n\nEquipment Type: ${result.equipmentType}` : "",
-        result.manufacturer ? `Manufacturer: ${result.manufacturer}` : "",
+        result.equipmentType
+          ? `\n\nEquipment Type: ${result.equipmentType}`
+          : "",
+        result.manufacturer
+          ? `Manufacturer: ${result.manufacturer}`
+          : "",
         result.model ? `Model Number: ${result.model}` : "",
         result.serial ? `Serial Number: ${result.serial}` : "",
-        result.manufactureYear ? `Manufacture Year: ${result.manufactureYear}` : "",
-        result.estimatedAge ? `Estimated Age: ${result.estimatedAge}` : "",
+        result.manufactureYear
+          ? `Manufacture Year: ${result.manufactureYear}`
+          : "",
+        result.estimatedAge
+          ? `Estimated Age: ${result.estimatedAge}`
+          : "",
         result.capacity ? `Capacity: ${result.capacity}` : "",
-        result.efficiency ? `Efficiency: ${result.efficiency}` : "",
+        result.efficiency
+          ? `Efficiency: ${result.efficiency}`
+          : "",
         result.fuelType ? `Fuel Type: ${result.fuelType}` : "",
-        result.refrigerant ? `Refrigerant: ${result.refrigerant}` : "",
+        result.refrigerant
+          ? `Refrigerant: ${result.refrigerant}`
+          : "",
         result.estimatedLifeRemaining
           ? `Estimated Life Remaining: ${result.estimatedLifeRemaining}`
           : "",
@@ -134,18 +148,35 @@ function EquipmentTestContent() {
         .filter(Boolean)
         .join("\n");
 
-      const { error } = await supabase.from("findings").insert({
-        inspection_id: inspectionId,
-        section: result.section || "Heating",
-        severity: result.severity || "Informational",
-        title,
-        observation: result.observation || "",
-        implication: result.implication || "",
-        recommendation,
-        image_url: imageUrl,
-      });
+      const { data: findingData, error } = await supabase
+        .from("findings")
+        .insert({
+          inspection_id: inspectionId,
+          section: result.section || "Heating",
+          severity: result.severity || "Informational",
+          title,
+          observation: result.observation || "",
+          implication: result.implication || "",
+          recommendation,
+          image_url: imageUrl,
+        })
+        .select()
+        .single();
 
       if (error) throw error;
+
+      if (image && findingData) {
+        const { error: photoError } = await supabase
+          .from("photos")
+          .insert({
+            inspection_id: inspectionId,
+            finding_id: findingData.id,
+            public_url: imageUrl,
+            file_path: filePath,
+          });
+
+        if (photoError) throw photoError;
+      }
 
       window.location.assign(`/reports/${inspectionId}`);
     } catch (error: any) {
@@ -165,7 +196,9 @@ function EquipmentTestContent() {
             ← Back To Report
           </a>
 
-          <h1 className="text-3xl font-bold">AI Equipment Scanner</h1>
+          <h1 className="text-3xl font-bold">
+            AI Equipment Scanner
+          </h1>
 
           <p className="mt-2 text-slate-400">
             Upload HVAC, electrical, or plumbing equipment photos.
@@ -173,7 +206,8 @@ function EquipmentTestContent() {
 
           {!inspectionId && (
             <p className="mt-3 rounded-xl border border-yellow-500/40 bg-yellow-500/10 p-3 text-sm text-yellow-200">
-              Test mode only. To save to a report, open this page from a report.
+              Test mode only. To save to a report, open this page
+              from a report.
             </p>
           )}
         </div>
@@ -184,10 +218,13 @@ function EquipmentTestContent() {
             accept="image/*"
             onChange={(e) => {
               const file = e.target.files?.[0] || null;
+
               setImage(file);
               setResult(null);
               setSaveError("");
-              setPreview(file ? URL.createObjectURL(file) : "");
+              setPreview(
+                file ? URL.createObjectURL(file) : ""
+              );
             }}
           />
 
@@ -230,22 +267,39 @@ function EquipmentTestContent() {
 
         {result?.observation && (
           <div className="rounded-2xl border border-slate-700 bg-slate-900 p-5">
-            <h2 className="text-xl font-bold">Suggested Inspection Finding</h2>
+            <h2 className="text-xl font-bold">
+              Suggested Inspection Finding
+            </h2>
 
             <div className="mt-5 space-y-5">
               <div>
-                <h3 className="font-bold text-teal-400">Observation</h3>
-                <p className="mt-1 text-slate-200">{result.observation}</p>
+                <h3 className="font-bold text-teal-400">
+                  Observation
+                </h3>
+
+                <p className="mt-1 text-slate-200">
+                  {result.observation}
+                </p>
               </div>
 
               <div>
-                <h3 className="font-bold text-yellow-400">Implication</h3>
-                <p className="mt-1 text-slate-200">{result.implication}</p>
+                <h3 className="font-bold text-yellow-400">
+                  Implication
+                </h3>
+
+                <p className="mt-1 text-slate-200">
+                  {result.implication}
+                </p>
               </div>
 
               <div>
-                <h3 className="font-bold text-red-400">Recommendation</h3>
-                <p className="mt-1 text-slate-200">{result.recommendation}</p>
+                <h3 className="font-bold text-red-400">
+                  Recommendation
+                </h3>
+
+                <p className="mt-1 text-slate-200">
+                  {result.recommendation}
+                </p>
               </div>
             </div>
           </div>

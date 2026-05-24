@@ -31,7 +31,13 @@ const SEVERITIES = [
 
 export default function AICapturePage() {
   return (
-    <Suspense fallback={<main className="min-h-screen bg-[#020617] p-4 text-white md:p-8">Loading...</main>}>
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-[#020617] p-4 text-white md:p-8">
+          Loading...
+        </main>
+      }
+    >
       <AICaptureContent />
     </Suspense>
   );
@@ -64,6 +70,7 @@ function AICaptureContent() {
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const selected = e.target.files?.[0];
+
     if (!selected) return;
 
     setFile(selected);
@@ -134,20 +141,22 @@ function AICaptureContent() {
 
     try {
       let imageUrl = "";
+      let filePath = "";
 
       if (file) {
         const fileExt = file.name.split(".").pop();
-        const fileName = `${inspectionId}/${Date.now()}.${fileExt}`;
+
+        filePath = `${inspectionId}/${Date.now()}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
           .from("inspection-photos")
-          .upload(fileName, file);
+          .upload(filePath, file);
 
         if (uploadError) throw uploadError;
 
         const { data } = supabase.storage
           .from("inspection-photos")
-          .getPublicUrl(fileName);
+          .getPublicUrl(filePath);
 
         imageUrl = data.publicUrl;
       }
@@ -164,18 +173,35 @@ function AICaptureContent() {
         .filter(Boolean)
         .join("\n");
 
-      const { error } = await supabase.from("findings").insert({
-        inspection_id: inspectionId,
-        title,
-        section,
-        severity,
-        observation,
-        implication,
-        recommendation: fullRecommendation,
-        image_url: imageUrl,
-      });
+      const { data: findingData, error } = await supabase
+        .from("findings")
+        .insert({
+          inspection_id: inspectionId,
+          title,
+          section,
+          severity,
+          observation,
+          implication,
+          recommendation: fullRecommendation,
+          image_url: imageUrl,
+        })
+        .select()
+        .single();
 
       if (error) throw error;
+
+      if (file && findingData) {
+        const { error: photoError } = await supabase
+          .from("photos")
+          .insert({
+            inspection_id: inspectionId,
+            finding_id: findingData.id,
+            public_url: imageUrl,
+            file_path: filePath,
+          });
+
+        if (photoError) throw photoError;
+      }
 
       window.location.assign(`/reports/${inspectionId}`);
     } catch (error: any) {
@@ -193,15 +219,22 @@ function AICaptureContent() {
               On Point AI
             </p>
 
-            <h1 className="mt-2 text-4xl font-extrabold">AI Capture</h1>
+            <h1 className="mt-2 text-4xl font-extrabold">
+              AI Capture
+            </h1>
 
             <p className="mt-3 max-w-2xl text-slate-300">
-              Upload inspection photos, add your field note, and generate report-ready findings.
+              Upload inspection photos, add your field note, and
+              generate report-ready findings.
             </p>
           </div>
 
           <Link
-            href={inspectionId ? `/reports/${inspectionId}` : "/reports"}
+            href={
+              inspectionId
+                ? `/reports/${inspectionId}`
+                : "/reports"
+            }
             className="rounded-xl border border-slate-700 px-5 py-3 font-bold text-slate-200 hover:bg-slate-800"
           >
             Back To Report
@@ -209,7 +242,9 @@ function AICaptureContent() {
         </div>
 
         <section className="rounded-2xl border border-slate-800 bg-[#0b1220] p-6">
-          <h2 className="mb-5 text-2xl font-bold text-teal-400">Upload Photo</h2>
+          <h2 className="mb-5 text-2xl font-bold text-teal-400">
+            Upload Photo
+          </h2>
 
           <input
             type="file"
@@ -245,7 +280,9 @@ function AICaptureContent() {
         </section>
 
         <section className="rounded-2xl border border-slate-800 bg-[#0b1220] p-6">
-          <h2 className="mb-5 text-2xl font-bold text-teal-400">AI Finding</h2>
+          <h2 className="mb-5 text-2xl font-bold text-teal-400">
+            AI Finding
+          </h2>
 
           <div className="grid gap-4 md:grid-cols-2">
             <input
@@ -276,9 +313,23 @@ function AICaptureContent() {
             </select>
           </div>
 
-          <TextArea label="Observation" value={observation} onChange={setObservation} />
-          <TextArea label="Implication" value={implication} onChange={setImplication} />
-          <TextArea label="Recommendation" value={recommendation} onChange={setRecommendation} />
+          <TextArea
+            label="Observation"
+            value={observation}
+            onChange={setObservation}
+          />
+
+          <TextArea
+            label="Implication"
+            value={implication}
+            onChange={setImplication}
+          />
+
+          <TextArea
+            label="Recommendation"
+            value={recommendation}
+            onChange={setRecommendation}
+          />
         </section>
 
         <section className="rounded-2xl border border-slate-800 bg-[#0b1220] p-6">
@@ -287,14 +338,42 @@ function AICaptureContent() {
           </h2>
 
           <div className="grid gap-4 md:grid-cols-2">
-            <Input label="Equipment Type" value={equipmentType} onChange={setEquipmentType} />
-            <Input label="Manufacturer" value={manufacturer} onChange={setManufacturer} />
-            <Input label="Model Number" value={modelNumber} onChange={setModelNumber} />
-            <Input label="Serial Number" value={serialNumber} onChange={setSerialNumber} />
-            <Input label="Estimated Age" value={estimatedAge} onChange={setEstimatedAge} />
+            <Input
+              label="Equipment Type"
+              value={equipmentType}
+              onChange={setEquipmentType}
+            />
+
+            <Input
+              label="Manufacturer"
+              value={manufacturer}
+              onChange={setManufacturer}
+            />
+
+            <Input
+              label="Model Number"
+              value={modelNumber}
+              onChange={setModelNumber}
+            />
+
+            <Input
+              label="Serial Number"
+              value={serialNumber}
+              onChange={setSerialNumber}
+            />
+
+            <Input
+              label="Estimated Age"
+              value={estimatedAge}
+              onChange={setEstimatedAge}
+            />
           </div>
 
-          <TextArea label="Equipment Notes" value={notes} onChange={setNotes} />
+          <TextArea
+            label="Equipment Notes"
+            value={notes}
+            onChange={setNotes}
+          />
         </section>
 
         <button
@@ -362,7 +441,9 @@ function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
 
-    reader.onload = () => resolve(reader.result as string);
+    reader.onload = () =>
+      resolve(reader.result as string);
+
     reader.onerror = reject;
 
     reader.readAsDataURL(file);

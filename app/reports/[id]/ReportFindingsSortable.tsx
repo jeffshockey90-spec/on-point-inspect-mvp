@@ -154,62 +154,85 @@ function SortableSection({ group }: { group: any }) {
         <h3 className="text-2xl font-bold text-teal-400">{group.section}</h3>
       </div>
 
-      {(group.findings || []).map((finding: any) => (
-        <div
-          key={finding.id}
-          className="rounded-2xl border border-slate-700 bg-[#0f172a] p-6 shadow-lg"
-        >
-          <div className="mb-5 space-y-4">
-            {finding.image_url && (
-              <img
-                src={finding.image_url}
-                alt="Finding"
-                className="max-h-[450px] w-full rounded-xl border border-slate-700 object-contain"
+      {(group.findings || []).map((finding: any) => {
+        const mainImageSrc =
+          finding.signed_image_url ||
+          finding.private_image_url ||
+          finding.image_url ||
+          "";
+
+        return (
+          <div
+            key={finding.id}
+            className="rounded-2xl border border-slate-700 bg-[#0f172a] p-6 shadow-lg"
+          >
+            <div className="mb-5 space-y-4">
+              {mainImageSrc && (
+                <img
+                  src={mainImageSrc}
+                  alt="Finding"
+                  className="max-h-[450px] w-full rounded-xl border border-slate-700 object-contain"
+                />
+              )}
+
+              {finding.photos?.length > 0 && (
+                <div className="grid gap-4 md:grid-cols-2">
+                  {finding.photos.map((photo: any) => {
+                    const imageSrc =
+                      photo.signed_url ||
+                      photo.private_url ||
+                      photo.public_url ||
+                      photo.photo_url ||
+                      "";
+
+                    if (!imageSrc) return null;
+
+                    return (
+                      <img
+                        key={photo.id || imageSrc}
+                        src={imageSrc}
+                        alt="Finding Photo"
+                        className="max-h-[320px] w-full rounded-xl border border-slate-700 object-cover"
+                      />
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="mb-4 flex flex-wrap items-center gap-3">
+              <span className="text-sm font-bold uppercase tracking-wide text-slate-400">
+                {finding.section}
+              </span>
+
+              <SeverityBadge
+                severity={finding.severity || "Recommended Repair"}
+              />
+            </div>
+
+            <h4 className="text-2xl font-bold text-teal-300">
+              {finding.title}
+            </h4>
+
+            {finding.observation && (
+              <ReportBlock title="Observation" text={finding.observation} />
+            )}
+
+            {finding.implication && (
+              <ReportBlock title="Implication" text={finding.implication} />
+            )}
+
+            {finding.recommendation && (
+              <ReportBlock
+                title="Recommendation"
+                text={finding.recommendation}
               />
             )}
 
-            {finding.photos?.length > 0 && (
-              <div className="grid gap-4 md:grid-cols-2">
-                {finding.photos.map((photo: any) => (
-                  <img
-                    key={photo.id || photo.public_url || photo.photo_url}
-                    src={photo.public_url || photo.photo_url}
-                    alt="Finding Photo"
-                    className="max-h-[320px] w-full rounded-xl border border-slate-700 object-cover"
-                  />
-                ))}
-              </div>
-            )}
+            <EditableFinding finding={finding} />
           </div>
-
-          <div className="mb-4 flex flex-wrap items-center gap-3">
-            <span className="text-sm font-bold uppercase tracking-wide text-slate-400">
-              {finding.section}
-            </span>
-
-            <SeverityBadge severity={finding.severity || "Recommended Repair"} />
-          </div>
-
-          <h4 className="text-2xl font-bold text-teal-300">{finding.title}</h4>
-
-          {finding.observation && (
-            <ReportBlock title="Observation" text={finding.observation} />
-          )}
-
-          {finding.implication && (
-            <ReportBlock title="Implication" text={finding.implication} />
-          )}
-
-          {finding.recommendation && (
-            <ReportBlock
-              title="Recommendation"
-              text={finding.recommendation}
-            />
-          )}
-
-          <EditableFinding finding={finding} />
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
