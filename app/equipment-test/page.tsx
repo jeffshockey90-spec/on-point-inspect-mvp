@@ -2,7 +2,7 @@
 
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import EquipmentCard from "../components/EquipmentCard";
+import EquipmentCard from "../../components/EquipmentCard";
 import { supabase } from "../../lib/supabaseClient";
 
 type EquipmentResult = {

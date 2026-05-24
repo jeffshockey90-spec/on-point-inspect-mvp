@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { supabase } from "../../../lib/supabaseClient";
-import PdfExportButton from "../../components/PdfExportButton";
+import PdfExportButton from "../../../components/PdfExportButton";
 
 const SECTION_ORDER = [
   "Exterior",
