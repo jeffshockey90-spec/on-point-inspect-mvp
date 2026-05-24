@@ -31,13 +31,7 @@ const SEVERITIES = [
 
 export default function AICapturePage() {
   return (
-    <Suspense
-      fallback={
-        <main className="min-h-screen bg-[#020617] p-4 text-white md:p-8">
-          Loading...
-        </main>
-      }
-    >
+    <Suspense fallback={<main className="min-h-screen bg-[#020617] p-4 text-white md:p-8">Loading...</main>}>
       <AICaptureContent />
     </Suspense>
   );
@@ -49,9 +43,10 @@ function AICaptureContent() {
 
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState("");
+  const [inspectorNote, setInspectorNote] = useState("");
+
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
 
   const [title, setTitle] = useState("");
   const [section, setSection] = useState("Exterior");
@@ -69,7 +64,6 @@ function AICaptureContent() {
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const selected = e.target.files?.[0];
-
     if (!selected) return;
 
     setFile(selected);
@@ -95,6 +89,7 @@ function AICaptureContent() {
         body: JSON.stringify({
           image: base64,
           mode: "inspection",
+          inspectorNote,
         }),
       });
 
@@ -126,7 +121,7 @@ function AICaptureContent() {
 
   async function saveFinding() {
     if (!inspectionId) {
-      alert("Missing inspection ID.");
+      alert("Missing inspection ID. Open AI Capture from inside a report.");
       return;
     }
 
@@ -182,14 +177,9 @@ function AICaptureContent() {
 
       if (error) throw error;
 
-      setSaved(true);
-
-      setTimeout(() => {
-        window.location.href = `/reports/${inspectionId}`;
-      }, 900);
+      window.location.assign(`/reports/${inspectionId}`);
     } catch (error: any) {
       alert(error.message || "Failed to save finding.");
-    } finally {
       setSaving(false);
     }
   }
@@ -203,17 +193,15 @@ function AICaptureContent() {
               On Point AI
             </p>
 
-            <h1 className="mt-2 text-4xl font-extrabold">
-              AI Capture
-            </h1>
+            <h1 className="mt-2 text-4xl font-extrabold">AI Capture</h1>
 
             <p className="mt-3 max-w-2xl text-slate-300">
-              Upload inspection photos and generate report-ready findings.
+              Upload inspection photos, add your field note, and generate report-ready findings.
             </p>
           </div>
 
           <Link
-            href={inspectionId ? `/reports/${inspectionId}` : "/"}
+            href={inspectionId ? `/reports/${inspectionId}` : "/reports"}
             className="rounded-xl border border-slate-700 px-5 py-3 font-bold text-slate-200 hover:bg-slate-800"
           >
             Back To Report
@@ -221,9 +209,7 @@ function AICaptureContent() {
         </div>
 
         <section className="rounded-2xl border border-slate-800 bg-[#0b1220] p-6">
-          <h2 className="mb-5 text-2xl font-bold text-teal-400">
-            Upload Photo
-          </h2>
+          <h2 className="mb-5 text-2xl font-bold text-teal-400">Upload Photo</h2>
 
           <input
             type="file"
@@ -241,6 +227,14 @@ function AICaptureContent() {
             />
           )}
 
+          <textarea
+            value={inspectorNote}
+            onChange={(e) => setInspectorNote(e.target.value)}
+            rows={4}
+            placeholder="Optional note for AI... Example: loose toilet, damaged shingles, water staining under sink, missing GFCI, etc."
+            className="mt-5 w-full rounded-xl border border-slate-700 bg-slate-950 p-4 text-white outline-none focus:border-teal-400"
+          />
+
           <button
             onClick={analyzeImage}
             disabled={loading}
@@ -251,9 +245,7 @@ function AICaptureContent() {
         </section>
 
         <section className="rounded-2xl border border-slate-800 bg-[#0b1220] p-6">
-          <h2 className="mb-5 text-2xl font-bold text-teal-400">
-            AI Finding
-          </h2>
+          <h2 className="mb-5 text-2xl font-bold text-teal-400">AI Finding</h2>
 
           <div className="grid gap-4 md:grid-cols-2">
             <input
@@ -284,23 +276,9 @@ function AICaptureContent() {
             </select>
           </div>
 
-          <TextArea
-            label="Observation"
-            value={observation}
-            onChange={setObservation}
-          />
-
-          <TextArea
-            label="Implication"
-            value={implication}
-            onChange={setImplication}
-          />
-
-          <TextArea
-            label="Recommendation"
-            value={recommendation}
-            onChange={setRecommendation}
-          />
+          <TextArea label="Observation" value={observation} onChange={setObservation} />
+          <TextArea label="Implication" value={implication} onChange={setImplication} />
+          <TextArea label="Recommendation" value={recommendation} onChange={setRecommendation} />
         </section>
 
         <section className="rounded-2xl border border-slate-800 bg-[#0b1220] p-6">
@@ -316,11 +294,7 @@ function AICaptureContent() {
             <Input label="Estimated Age" value={estimatedAge} onChange={setEstimatedAge} />
           </div>
 
-          <TextArea
-            label="Equipment Notes"
-            value={notes}
-            onChange={setNotes}
-          />
+          <TextArea label="Equipment Notes" value={notes} onChange={setNotes} />
         </section>
 
         <button
@@ -328,11 +302,7 @@ function AICaptureContent() {
           disabled={saving}
           className="w-full rounded-xl bg-teal-500 px-6 py-4 text-lg font-extrabold text-black transition hover:bg-teal-400 disabled:opacity-50"
         >
-          {saving
-            ? "Saving..."
-            : saved
-            ? "Saved! Returning to report..."
-            : "Save Finding to Report"}
+          {saving ? "Saving..." : "Save Finding to Report"}
         </button>
       </div>
     </main>

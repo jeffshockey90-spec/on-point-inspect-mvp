@@ -3,6 +3,7 @@
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import EquipmentCard from "../components/EquipmentCard";
+import { supabase } from "../../lib/supabaseClient";
 
 type EquipmentResult = {
   equipmentType?: string;
@@ -42,14 +43,13 @@ export default function EquipmentTestPage() {
 
 function EquipmentTestContent() {
   const searchParams = useSearchParams();
-  const inspectionId = searchParams.get("inspection_id");
+  const inspectionId = searchParams.get("inspection_id") || "";
 
   const [image, setImage] = useState<File | null>(null);
   const [preview, setPreview] = useState("");
   const [result, setResult] = useState<EquipmentResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState("");
 
   async function analyzeEquipment() {
@@ -57,21 +57,25 @@ function EquipmentTestContent() {
 
     setLoading(true);
     setResult(null);
-    setSaved(false);
     setSaveError("");
 
-    const formData = new FormData();
-    formData.append("image", image);
+    try {
+      const formData = new FormData();
+      formData.append("image", image);
 
-    const res = await fetch("/api/analyze-equipment", {
-      method: "POST",
-      body: formData,
-    });
+      const res = await fetch("/api/analyze-equipment", {
+        method: "POST",
+        body: formData,
+      });
 
-    const data = await res.json();
+      const data = await res.json();
 
-    setResult(data);
-    setLoading(false);
+      setResult(data);
+    } catch (error: any) {
+      setSaveError(error.message || "Failed to analyze equipment.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function addToReport() {
@@ -79,45 +83,75 @@ function EquipmentTestContent() {
 
     if (!inspectionId) {
       setSaveError(
-        "Missing inspection_id. Open this page from an inspection or add ?inspection_id=YOUR_ID to the URL."
+        "Missing inspection_id. Open this page from a report using the Equipment Analyzer button."
       );
       return;
     }
 
     setSaving(true);
-    setSaved(false);
     setSaveError("");
 
-    const title = `${result.manufacturer || "Equipment"} ${
-      result.equipmentType || "Finding"
-    }`;
+    try {
+      let imageUrl = "";
 
-    const res = await fetch("/api/save-finding", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+      if (image) {
+        const fileExt = image.name.split(".").pop();
+        const fileName = `${inspectionId}/equipment-${Date.now()}.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("inspection-photos")
+          .upload(fileName, image);
+
+        if (uploadError) throw uploadError;
+
+        const { data } = supabase.storage
+          .from("inspection-photos")
+          .getPublicUrl(fileName);
+
+        imageUrl = data.publicUrl;
+      }
+
+      const title = `${result.manufacturer || "Equipment"} ${
+        result.equipmentType || "Finding"
+      }`.trim();
+
+      const recommendation = [
+        result.recommendation || "",
+        result.equipmentType ? `\n\nEquipment Type: ${result.equipmentType}` : "",
+        result.manufacturer ? `Manufacturer: ${result.manufacturer}` : "",
+        result.model ? `Model Number: ${result.model}` : "",
+        result.serial ? `Serial Number: ${result.serial}` : "",
+        result.manufactureYear ? `Manufacture Year: ${result.manufactureYear}` : "",
+        result.estimatedAge ? `Estimated Age: ${result.estimatedAge}` : "",
+        result.capacity ? `Capacity: ${result.capacity}` : "",
+        result.efficiency ? `Efficiency: ${result.efficiency}` : "",
+        result.fuelType ? `Fuel Type: ${result.fuelType}` : "",
+        result.refrigerant ? `Refrigerant: ${result.refrigerant}` : "",
+        result.estimatedLifeRemaining
+          ? `Estimated Life Remaining: ${result.estimatedLifeRemaining}`
+          : "",
+      ]
+        .filter(Boolean)
+        .join("\n");
+
+      const { error } = await supabase.from("findings").insert({
         inspection_id: inspectionId,
-        section: result.section || "General",
+        section: result.section || "Heating",
+        severity: result.severity || "Informational",
         title,
         observation: result.observation || "",
         implication: result.implication || "",
-        recommendation: result.recommendation || "",
-        image_url: "",
-      }),
-    });
+        recommendation,
+        image_url: imageUrl,
+      });
 
-    const data = await res.json();
+      if (error) throw error;
 
-    if (!res.ok) {
-      setSaveError(data.error || "Failed to save finding");
+      window.location.assign(`/reports/${inspectionId}`);
+    } catch (error: any) {
+      setSaveError(error.message || "Failed to save finding.");
       setSaving(false);
-      return;
     }
-
-    setSaved(true);
-    setSaving(false);
   }
 
   return (
@@ -139,8 +173,7 @@ function EquipmentTestContent() {
 
           {!inspectionId && (
             <p className="mt-3 rounded-xl border border-yellow-500/40 bg-yellow-500/10 p-3 text-sm text-yellow-200">
-              Test mode only. To save to a report, this page needs an
-              inspection_id in the URL.
+              Test mode only. To save to a report, open this page from a report.
             </p>
           )}
         </div>
@@ -151,17 +184,10 @@ function EquipmentTestContent() {
             accept="image/*"
             onChange={(e) => {
               const file = e.target.files?.[0] || null;
-
               setImage(file);
               setResult(null);
-              setSaved(false);
               setSaveError("");
-
-              if (file) {
-                setPreview(URL.createObjectURL(file));
-              } else {
-                setPreview("");
-              }
+              setPreview(file ? URL.createObjectURL(file) : "");
             }}
           />
 
@@ -193,21 +219,6 @@ function EquipmentTestContent() {
             >
               {saving ? "Saving..." : "Add To Report"}
             </button>
-
-            {saved && (
-              <div className="rounded-xl bg-green-500/10 p-3 text-green-300">
-                <p>Saved to report.</p>
-
-                {inspectionId && (
-                  <a
-                    href={`/reports/${inspectionId}`}
-                    className="mt-3 inline-block rounded-lg bg-green-500 px-4 py-2 font-bold text-slate-950"
-                  >
-                    Back To Updated Report
-                  </a>
-                )}
-              </div>
-            )}
 
             {saveError && (
               <p className="rounded-xl bg-red-500/10 p-3 text-red-300">

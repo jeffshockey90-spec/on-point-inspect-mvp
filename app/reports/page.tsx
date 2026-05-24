@@ -13,7 +13,6 @@ export default async function ReportsPage() {
         <h1 className="text-3xl font-bold text-red-400">
           Error loading reports
         </h1>
-
         <p className="mt-4 text-slate-300">{error.message}</p>
       </main>
     );
@@ -27,7 +26,6 @@ export default async function ReportsPage() {
             <h1 className="text-5xl font-bold text-teal-400">
               Saved Inspections
             </h1>
-
             <p className="mt-3 text-slate-300">
               Manage inspection reports, publishing, and client delivery.
             </p>
@@ -43,9 +41,7 @@ export default async function ReportsPage() {
 
         {(inspections || []).length === 0 ? (
           <div className="rounded-2xl border border-slate-800 bg-slate-900 p-8">
-            <p className="text-slate-300">
-              No saved inspections found.
-            </p>
+            <p className="text-slate-300">No saved inspections found.</p>
           </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
@@ -69,8 +65,7 @@ export default async function ReportsPage() {
                 <div className="p-6">
                   <div className="flex items-start justify-between gap-3">
                     <h2 className="text-2xl font-bold text-white">
-                      {inspection.property_address ||
-                        "Untitled Inspection"}
+                      {inspection.property_address || "Untitled Inspection"}
                     </h2>
 
                     <span
@@ -80,53 +75,39 @@ export default async function ReportsPage() {
                           : "bg-yellow-500/20 text-yellow-300"
                       }`}
                     >
-                      {inspection.published
-                        ? "PUBLISHED"
-                        : "DRAFT"}
+                      {inspection.published ? "PUBLISHED" : "DRAFT"}
                     </span>
                   </div>
 
                   <p className="mt-3 text-slate-300">
                     {inspection.city || ""}
-                    {inspection.state
-                      ? `, ${inspection.state}`
-                      : ""}{" "}
+                    {inspection.state ? `, ${inspection.state}` : ""}{" "}
                     {inspection.zip || ""}
                   </p>
 
                   <div className="mt-5 space-y-2 text-sm text-slate-300">
                     <p>
-                      <span className="font-bold text-white">
-                        Client:
-                      </span>{" "}
+                      <span className="font-bold text-white">Client:</span>{" "}
                       {inspection.client_name || "N/A"}
                     </p>
 
                     <p>
-                      <span className="font-bold text-white">
-                        Realtor:
-                      </span>{" "}
+                      <span className="font-bold text-white">Realtor:</span>{" "}
                       {inspection.realtor_name || "N/A"}
                     </p>
 
                     <p>
-                      <span className="font-bold text-white">
-                        Year Built:
-                      </span>{" "}
+                      <span className="font-bold text-white">Year Built:</span>{" "}
                       {inspection.year_built || "N/A"}
                     </p>
 
                     <p>
-                      <span className="font-bold text-white">
-                        Style:
-                      </span>{" "}
+                      <span className="font-bold text-white">Style:</span>{" "}
                       {inspection.house_style || "N/A"}
                     </p>
 
                     <p>
-                      <span className="font-bold text-white">
-                        Roof:
-                      </span>{" "}
+                      <span className="font-bold text-white">Roof:</span>{" "}
                       {inspection.roof_style || "N/A"}
                     </p>
 

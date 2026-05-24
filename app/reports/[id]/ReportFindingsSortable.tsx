@@ -9,13 +9,16 @@ import {
   useSensors,
   DragEndEvent,
 } from "@dnd-kit/core";
+
 import {
   SortableContext,
   verticalListSortingStrategy,
   arrayMove,
   useSortable,
 } from "@dnd-kit/sortable";
+
 import { CSS } from "@dnd-kit/utilities";
+
 import EditableFinding from "../../../components/EditableFinding";
 
 export default function ReportFindingsSortable({
@@ -28,12 +31,16 @@ export default function ReportFindingsSortable({
   allFindings: any[];
 }) {
   const storageKey = `section-order-${inspectionId}`;
+
   const [sections, setSections] = useState(groupedFindings);
 
   useEffect(() => {
     const savedOrder = localStorage.getItem(storageKey);
 
-    if (!savedOrder) return;
+    if (!savedOrder) {
+      setSections(groupedFindings);
+      return;
+    }
 
     try {
       const order = JSON.parse(savedOrder);
@@ -62,24 +69,33 @@ export default function ReportFindingsSortable({
     if (!over || active.id === over.id) return;
 
     setSections((items) => {
-      const oldIndex = items.findIndex((item) => item.section === active.id);
-      const newIndex = items.findIndex((item) => item.section === over.id);
+      const oldIndex = items.findIndex(
+        (item) => item.section === active.id
+      );
+
+      const newIndex = items.findIndex(
+        (item) => item.section === over.id
+      );
 
       const newOrder = arrayMove(items, oldIndex, newIndex);
 
       localStorage.setItem(
         storageKey,
-        JSON.stringify(newOrder.map((item) => item.section))
+        JSON.stringify(
+          newOrder.map((item) => item.section)
+        )
       );
 
       return newOrder;
     });
   }
 
-  if (allFindings.length === 0) {
+  if (!allFindings || allFindings.length === 0) {
     return (
       <div className="rounded-2xl border border-slate-700 bg-[#0f172a] p-8 text-center">
-        <p className="text-slate-300">No findings saved yet.</p>
+        <p className="text-slate-300">
+          No findings saved yet.
+        </p>
       </div>
     );
   }
@@ -96,7 +112,11 @@ export default function ReportFindingsSortable({
       >
         <div className="space-y-10">
           {sections.map((group) => (
-            <SortableSection key={group.section} group={group} />
+            <SortableSection
+              key={group.section}
+              group={group}
+              inspectionId={inspectionId}
+            />
           ))}
         </div>
       </SortableContext>
@@ -104,7 +124,13 @@ export default function ReportFindingsSortable({
   );
 }
 
-function SortableSection({ group }: { group: any }) {
+function SortableSection({
+  group,
+  inspectionId,
+}: {
+  group: any;
+  inspectionId: string;
+}) {
   const {
     attributes,
     listeners,
@@ -112,7 +138,9 @@ function SortableSection({ group }: { group: any }) {
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: group.section });
+  } = useSortable({
+    id: group.section,
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -162,7 +190,10 @@ function SortableSection({ group }: { group: any }) {
                 {finding.photos.map((photo: any) => (
                   <img
                     key={photo.id}
-                    src={photo.public_url || photo.photo_url}
+                    src={
+                      photo.public_url ||
+                      photo.photo_url
+                    }
                     alt="Finding Photo"
                     className="max-h-[320px] w-full rounded-xl border border-slate-700 object-cover"
                   />
@@ -177,7 +208,10 @@ function SortableSection({ group }: { group: any }) {
             </span>
 
             <SeverityBadge
-              severity={finding.severity || "Recommended Repair"}
+              severity={
+                finding.severity ||
+                "Recommended Repair"
+              }
             />
           </div>
 
@@ -206,7 +240,10 @@ function SortableSection({ group }: { group: any }) {
             />
           )}
 
-          <EditableFinding finding={finding} />
+          <EditableFinding
+            finding={finding}
+            inspectionId={inspectionId}
+          />
         </div>
       ))}
     </div>
@@ -222,7 +259,9 @@ function ReportBlock({
 }) {
   return (
     <div className="mt-5">
-      <p className="text-lg font-bold text-white">{title}</p>
+      <p className="text-lg font-bold text-white">
+        {title}
+      </p>
 
       <p className="mt-2 whitespace-pre-line leading-8 text-slate-300">
         {text}
@@ -231,10 +270,18 @@ function ReportBlock({
   );
 }
 
-function SeverityBadge({ severity }: { severity: string }) {
-  let classes = "bg-slate-700 text-slate-200 border-slate-600";
+function SeverityBadge({
+  severity,
+}: {
+  severity: string;
+}) {
+  let classes =
+    "bg-slate-700 text-slate-200 border-slate-600";
 
-  if (severity === "Safety Concern" || severity === "safety") {
+  if (
+    severity === "Safety Concern" ||
+    severity === "safety"
+  ) {
     classes =
       "bg-red-500/20 text-red-300 border-red-500/40";
   }
