@@ -12,30 +12,13 @@ declare global {
 }
 
 const timeOptions = [
-  "08:00",
-  "08:30",
-  "09:00",
-  "09:30",
-  "10:00",
-  "10:30",
-  "11:00",
-  "11:30",
-  "12:00",
-  "12:30",
-  "13:00",
-  "13:30",
-  "14:00",
-  "14:30",
-  "15:00",
-  "15:30",
-  "16:00",
-  "16:30",
-  "17:00",
+  "08:00", "08:30", "09:00", "09:30", "10:00", "10:30",
+  "11:00", "11:30", "12:00", "12:30", "13:00", "13:30",
+  "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00",
 ];
 
 function formatTime(value: string) {
   if (!value) return "";
-
   const [hour, minute] = value.split(":");
   const date = new Date();
   date.setHours(Number(hour), Number(minute));
@@ -48,9 +31,7 @@ function formatTime(value: string) {
 
 function calculateInspectionPrice(squareFeet: string) {
   const sqft = Number(squareFeet);
-
   if (!sqft || sqft <= 2000) return "500";
-
   return String(500 + Math.ceil((sqft - 2000) / 1000) * 50);
 }
 
@@ -98,11 +79,9 @@ export default function NewInspectionPage() {
     }
 
     const existingScript = document.getElementById("google-places-script");
-
     if (existingScript) return;
 
     const script = document.createElement("script");
-
     script.id = "google-places-script";
     script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`;
     script.async = true;
@@ -155,7 +134,13 @@ export default function NewInspectionPage() {
       const built = data.year_built || data.yearBuilt || "";
       if (built) setYearBuilt(String(built));
 
-      const style = data.propertyStyle || data.style || data.property_type || "";
+      const style =
+        data.propertyStyle ||
+        data.style ||
+        data.property_type ||
+        data.house_style ||
+        "";
+
       if (style) setPropertyStyle(String(style));
 
       const roof = data.roof_style || data.roofStyle || "";
@@ -181,7 +166,6 @@ export default function NewInspectionPage() {
 
     autocomplete.addListener("place_changed", () => {
       const place = autocomplete.getPlace();
-
       if (!place.address_components) return;
 
       let streetNumber = "";
@@ -227,6 +211,17 @@ export default function NewInspectionPage() {
     try {
       setSaving(true);
 
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError || !user) {
+        alert("You must be logged in to create an inspection.");
+        router.push("/login");
+        return;
+      }
+
       const companyId = await getCompanyId();
 
       if (!companyId) {
@@ -238,26 +233,37 @@ export default function NewInspectionPage() {
         .from("inspections")
         .insert([
           {
+            inspector_id: user.id,
             company_id: companyId,
+
             client_name: clientName,
-            client_email: clientEmail,
+            client_email: clientEmail.trim().toLowerCase(),
             client_phone: clientPhone,
+
             property_address: propertyAddress,
             city,
             state: stateValue,
             zip,
+
             inspection_date: inspectionDate,
             inspection_time: inspectionTime,
             inspection_status: "Scheduled",
+
             square_feet: squareFeet ? Number(squareFeet) : null,
+            sqft: squareFeet || null,
             price: price ? Number(price) : 500,
+
             services,
             notes,
+
             year_built: yearBuilt || null,
             property_style: propertyStyle || null,
+            house_style: propertyStyle || null,
             roof_style: roofStyle || null,
             property_image: propertyImage || null,
+
             report_status: "Draft",
+            is_published: false,
           },
         ])
         .select()
