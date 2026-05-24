@@ -138,6 +138,28 @@ export default async function ReportPage({ params }: PageProps) {
     photos: photosByFindingId[finding.id] || [],
   }));
 
+  const groupedFindings = findings.reduce(
+    (acc: Record<string, any[]>, finding: any) => {
+      const section = finding.section || "General";
+
+      if (!acc[section]) {
+        acc[section] = [];
+      }
+
+      acc[section].push(finding);
+
+      return acc;
+    },
+    {}
+  );
+
+  const groupedFindingsArray = Object.entries(groupedFindings).map(
+    ([section, items]) => ({
+      section,
+      items,
+    })
+  );
+
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100">
       <div className="mx-auto max-w-6xl px-4 py-6">
@@ -224,7 +246,7 @@ export default async function ReportPage({ params }: PageProps) {
 
         <ReportFindingsSortable
           inspectionId={inspection.id}
-          groupedFindings={findings}
+          groupedFindings={groupedFindingsArray}
           allFindings={findings}
         />
       </div>
