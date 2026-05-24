@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
+import DeleteInspectionButton from "../../components/DeleteInspectionButton";
 
 export default async function ReportsPage() {
   const cookieStore = await cookies();
@@ -56,6 +57,7 @@ export default async function ReportsPage() {
             <h1 className="text-5xl font-bold text-teal-400">
               Saved Inspections
             </h1>
+
             <p className="mt-3 text-slate-300">
               Manage inspection reports, publishing, and client delivery.
             </p>
@@ -75,62 +77,79 @@ export default async function ReportsPage() {
           </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-            {inspections?.map((inspection: any) => (
-              <div
-                key={inspection.id}
-                className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 shadow-xl"
-              >
-                <div className="flex h-56 items-center justify-center overflow-hidden bg-slate-950 text-slate-500">
-                  {inspection.street_view_url ? (
-                    <img
-                      src={inspection.street_view_url}
-                      alt="Property"
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <span>No Property Photo</span>
-                  )}
-                </div>
+            {inspections?.map((inspection: any) => {
+              const isInspectorOwner =
+                inspection.inspector_id && inspection.inspector_id === user.id;
 
-                <div className="p-6">
-                  <h2 className="text-2xl font-bold text-white">
-                    {inspection.property_address || "Untitled Inspection"}
-                  </h2>
+              const propertyPhoto =
+                inspection.street_view_url ||
+                inspection.property_image ||
+                inspection.property_photo ||
+                "";
 
-                  <p className="mt-3 text-slate-300">
-                    {inspection.city || ""}
-                    {inspection.state ? `, ${inspection.state}` : ""}{" "}
-                    {inspection.zip || ""}
-                  </p>
-
-                  <div className="mt-5 space-y-2 text-sm text-slate-300">
-                    <p>
-                      <span className="font-bold text-white">Client:</span>{" "}
-                      {inspection.client_name || "N/A"}
-                    </p>
-
-                    <p>
-                      <span className="font-bold text-white">Realtor:</span>{" "}
-                      {inspection.realtor_name || "N/A"}
-                    </p>
-
-                    <p>
-                      <span className="font-bold text-white">
-                        Inspection Date:
-                      </span>{" "}
-                      {inspection.inspection_date || "N/A"}
-                    </p>
+              return (
+                <div
+                  key={inspection.id}
+                  className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 shadow-xl"
+                >
+                  <div className="flex h-56 items-center justify-center overflow-hidden bg-slate-950 text-slate-500">
+                    {propertyPhoto ? (
+                      <img
+                        src={propertyPhoto}
+                        alt="Property"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <span>No Property Photo</span>
+                    )}
                   </div>
 
-                  <Link
-                    href={`/reports/${inspection.id}`}
-                    className="mt-6 inline-block rounded-xl bg-teal-500 px-5 py-3 font-bold text-black hover:bg-teal-400"
-                  >
-                    Open Report
-                  </Link>
+                  <div className="p-6">
+                    <h2 className="text-2xl font-bold text-white">
+                      {inspection.property_address || "Untitled Inspection"}
+                    </h2>
+
+                    <p className="mt-3 text-slate-300">
+                      {inspection.city || ""}
+                      {inspection.state ? `, ${inspection.state}` : ""}{" "}
+                      {inspection.zip || ""}
+                    </p>
+
+                    <div className="mt-5 space-y-2 text-sm text-slate-300">
+                      <p>
+                        <span className="font-bold text-white">Client:</span>{" "}
+                        {inspection.client_name || "N/A"}
+                      </p>
+
+                      <p>
+                        <span className="font-bold text-white">Realtor:</span>{" "}
+                        {inspection.realtor_name || "N/A"}
+                      </p>
+
+                      <p>
+                        <span className="font-bold text-white">
+                          Inspection Date:
+                        </span>{" "}
+                        {inspection.inspection_date || "N/A"}
+                      </p>
+                    </div>
+
+                    <div className="mt-6 flex flex-col gap-3">
+                      <Link
+                        href={`/reports/${inspection.id}`}
+                        className="inline-block rounded-xl bg-teal-500 px-5 py-3 text-center font-bold text-black hover:bg-teal-400"
+                      >
+                        Open Report
+                      </Link>
+
+                      {isInspectorOwner && (
+                        <DeleteInspectionButton inspectionId={inspection.id} />
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
