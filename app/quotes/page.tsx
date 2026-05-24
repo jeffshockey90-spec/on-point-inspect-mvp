@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Card } from "../../components/Card";
+import { Card } from "../components/Card";
 
 export default function QuotePage() {
   const [sqft, setSqft] = useState(2500);

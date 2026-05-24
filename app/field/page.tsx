@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "../../lib/supabaseClient";
-import CommentLibrary from "../../components/CommentLibrary";
+import CommentLibrary from "../components/CommentLibrary";
 
 const SECTIONS = [
   "Exterior",

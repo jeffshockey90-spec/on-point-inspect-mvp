@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { supabase } from "../../../../lib/supabaseClient";
-import PrintSummaryButton from "../../../../components/PrintSummaryButton";
+import PrintSummaryButton from "../../../components/PrintSummaryButton";
 
 const SEVERITY_ORDER = [
   "Safety Concern",

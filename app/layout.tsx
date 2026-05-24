@@ -1,5 +1,5 @@
 import "./globals.css";
-import Navbar from "../components/Nav";
+import Navbar from "./components/Nav";
 
 export const metadata = {
   title: "On Point Inspection",

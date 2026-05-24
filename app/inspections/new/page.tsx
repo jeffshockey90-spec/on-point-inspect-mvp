@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../../lib/supabaseClient";
+import { getCompanyId } from "../../../lib/getCompanyId";
 
 declare global {
   interface Window {
@@ -47,35 +48,10 @@ function formatTime(value: string) {
 
 function calculateInspectionPrice(squareFeet: string) {
   const sqft = Number(squareFeet);
+
   if (!sqft || sqft <= 2000) return "500";
+
   return String(500 + Math.ceil((sqft - 2000) / 1000) * 50);
-}
-
-function buildDateOptions() {
-  const dates = [];
-
-  for (let i = 0; i < 90; i++) {
-    const date = new Date();
-    date.setDate(date.getDate() + i);
-
-    dates.push({
-      value: date.toISOString().split("T")[0],
-      label: date.toLocaleDateString("en-US", {
-        weekday: "short",
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      }),
-    });
-  }
-
-  return dates;
-}
-
-function buildMailto(email: string, subject: string, body: string) {
-  return `mailto:${email}?subject=${encodeURIComponent(
-    subject
-  )}&body=${encodeURIComponent(body)}`;
 }
 
 export default function NewInspectionPage() {
@@ -85,9 +61,6 @@ export default function NewInspectionPage() {
   const [clientName, setClientName] = useState("");
   const [clientEmail, setClientEmail] = useState("");
   const [clientPhone, setClientPhone] = useState("");
-
-  const [realtorName, setRealtorName] = useState("");
-  const [realtorEmail, setRealtorEmail] = useState("");
 
   const [propertyAddress, setPropertyAddress] = useState("");
   const [city, setCity] = useState("");
@@ -107,13 +80,8 @@ export default function NewInspectionPage() {
   const [roofStyle, setRoofStyle] = useState("");
   const [propertyImage, setPropertyImage] = useState("");
 
-  const [saving, setSaving] = useState(false);
   const [loadingProperty, setLoadingProperty] = useState(false);
-  const [createdReportId, setCreatedReportId] = useState<string | number | null>(
-    null
-  );
-
-  const dateOptions = buildDateOptions();
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     loadGooglePlaces();
@@ -130,9 +98,11 @@ export default function NewInspectionPage() {
     }
 
     const existingScript = document.getElementById("google-places-script");
+
     if (existingScript) return;
 
     const script = document.createElement("script");
+
     script.id = "google-places-script";
     script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`;
     script.async = true;
@@ -168,30 +138,28 @@ export default function NewInspectionPage() {
 
       const data = await res.json();
 
-      if (data.square_feet || data.squareFeet || data.livingArea) {
-        const sqft = String(
-          data.square_feet || data.squareFeet || data.livingArea
-        );
+      const sqft =
+        data.square_feet ||
+        data.squareFeet ||
+        data.livingArea ||
+        data.living_area;
 
-        setSquareFeet(sqft);
-        setPrice(calculateInspectionPrice(sqft));
+      if (sqft) {
+        setSquareFeet(String(sqft));
+        setPrice(calculateInspectionPrice(String(sqft)));
       }
 
-      if (data.year_built || data.yearBuilt) {
-        setYearBuilt(String(data.year_built || data.yearBuilt));
-      }
+      const image = data.property_image || data.image || data.photo || "";
+      if (image) setPropertyImage(image);
 
-      if (data.style || data.propertyStyle) {
-        setPropertyStyle(data.style || data.propertyStyle);
-      }
+      const built = data.year_built || data.yearBuilt || "";
+      if (built) setYearBuilt(String(built));
 
-      if (data.roof_style || data.roofStyle) {
-        setRoofStyle(data.roof_style || data.roofStyle);
-      }
+      const style = data.propertyStyle || data.style || data.property_type || "";
+      if (style) setPropertyStyle(String(style));
 
-      if (data.property_image || data.image || data.photo) {
-        setPropertyImage(data.property_image || data.image || data.photo);
-      }
+      const roof = data.roof_style || data.roofStyle || "";
+      if (roof) setRoofStyle(String(roof));
     } catch (error) {
       console.log("Property autofill skipped:", error);
     } finally {
@@ -234,14 +202,15 @@ export default function NewInspectionPage() {
       });
 
       const streetAddress = `${streetNumber} ${route}`.trim();
+      const finalAddress = streetAddress || place.formatted_address || "";
 
-      setPropertyAddress(streetAddress || place.formatted_address || "");
+      setPropertyAddress(finalAddress);
       setCity(locality);
       setStateValue(adminArea || "MD");
       setZip(postalCode);
 
       autofillPropertyDetails(
-        streetAddress || place.formatted_address || "",
+        finalAddress,
         locality,
         adminArea || "MD",
         postalCode
@@ -249,7 +218,7 @@ export default function NewInspectionPage() {
     });
   }
 
-  async function scheduleInspection(openReportNow = true) {
+  async function scheduleInspection() {
     if (!clientName || !propertyAddress || !inspectionDate || !inspectionTime) {
       alert("Client name, address, date, and time are required.");
       return;
@@ -258,15 +227,21 @@ export default function NewInspectionPage() {
     try {
       setSaving(true);
 
+      const companyId = await getCompanyId();
+
+      if (!companyId) {
+        alert("No company found for logged in user.");
+        return;
+      }
+
       const { data, error } = await supabase
         .from("inspections")
         .insert([
           {
+            company_id: companyId,
             client_name: clientName,
             client_email: clientEmail,
             client_phone: clientPhone,
-            realtor_name: realtorName,
-            realtor_email: realtorEmail,
             property_address: propertyAddress,
             city,
             state: stateValue,
@@ -279,6 +254,7 @@ export default function NewInspectionPage() {
             services,
             notes,
             year_built: yearBuilt || null,
+            property_style: propertyStyle || null,
             roof_style: roofStyle || null,
             property_image: propertyImage || null,
             report_status: "Draft",
@@ -292,75 +268,11 @@ export default function NewInspectionPage() {
         return;
       }
 
-      setCreatedReportId(data.id);
-
-      if (openReportNow) {
-        router.push(`/reports/${data.id}`);
-      }
+      router.push(`/reports/${data.id}`);
     } finally {
       setSaving(false);
     }
   }
-
-  const fullAddress = `${propertyAddress}, ${city}, ${stateValue} ${zip}`;
-  const readableTime = formatTime(inspectionTime);
-
-  const clientSubject = `Home Inspection Scheduled - ${propertyAddress}`;
-  const clientBody = `Hi ${clientName},
-
-Your home inspection has been scheduled.
-
-Property:
-${fullAddress}
-
-Date:
-${inspectionDate}
-
-Time:
-${readableTime}
-
-Services:
-${services}
-
-Price:
-$${price}
-
-Please be sure to review and complete any required agreement and payment prior to the inspection.
-
-I look forward to meeting you.
-
-Jeff Shockey
-On Point Home Inspections LLC
-240-527-7172`;
-
-  const realtorSubject = `Inspection Scheduled - ${propertyAddress}`;
-  const realtorBody = `Hi ${realtorName || ""},
-
-The home inspection has been scheduled.
-
-Property:
-${fullAddress}
-
-Client:
-${clientName}
-
-Date:
-${inspectionDate}
-
-Time:
-${readableTime}
-
-Services:
-${services}
-
-Price:
-$${price}
-
-I will keep the report clear, professional, and easy to understand.
-
-Jeff Shockey
-On Point Home Inspections LLC
-240-527-7172`;
 
   return (
     <main className="min-h-screen bg-[#050816] px-4 pb-24 pt-6 text-white md:px-8">
@@ -373,214 +285,142 @@ On Point Home Inspections LLC
           <h1 className="mt-2 text-3xl font-black md:text-5xl">
             Schedule Inspection
           </h1>
-
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">
-            Schedule the inspection, auto-calculate the quote, prepare emails,
-            and open the report from one page.
-          </p>
         </header>
-
-        {createdReportId && (
-          <section className="mb-6 rounded-2xl border border-teal-700 bg-teal-500/10 p-5">
-            <p className="text-lg font-black text-teal-400">
-              Inspection saved successfully.
-            </p>
-
-            <p className="mt-2 text-sm text-zinc-300">
-              You can now send the client/realtor emails or open the report.
-            </p>
-          </section>
-        )}
-
-        <section className="mb-6 rounded-2xl border border-teal-700 bg-[#0b1220] p-5">
-          <div className="grid gap-4 md:grid-cols-3">
-            <div>
-              <p className="text-sm font-bold uppercase text-zinc-400">
-                Auto Quote
-              </p>
-
-              <p className="mt-1 text-4xl font-black text-teal-400">${price}</p>
-
-              <p className="mt-2 text-xs text-zinc-500">
-                $500 base. Over 2,000 sqft adds $50 per additional 1,000 sqft.
-              </p>
-            </div>
-
-            <button
-              onClick={() => scheduleInspection(false)}
-              disabled={saving}
-              className="rounded-xl bg-zinc-800 px-5 py-4 font-black text-white hover:bg-zinc-700 disabled:opacity-50"
-            >
-              {saving ? "Saving..." : "Save + Stay Here"}
-            </button>
-
-            <button
-              onClick={() => scheduleInspection(true)}
-              disabled={saving}
-              className="rounded-xl bg-teal-500 px-5 py-4 font-black text-black hover:bg-teal-400 disabled:opacity-50"
-            >
-              {saving ? "Creating..." : "Save + Open Report"}
-            </button>
-          </div>
-        </section>
 
         <section className="grid gap-5 lg:grid-cols-2">
           <Card title="Client Info">
-            <Input label="Client Name" value={clientName} onChange={setClientName} />
-            <Input label="Client Email" value={clientEmail} onChange={setClientEmail} />
-            <Input label="Client Phone" value={clientPhone} onChange={setClientPhone} />
-          </Card>
-
-          <Card title="Realtor Info">
-            <Input label="Realtor Name" value={realtorName} onChange={setRealtorName} />
-            <Input label="Realtor Email" value={realtorEmail} onChange={setRealtorEmail} />
+            <Input value={clientName} onChange={setClientName} placeholder="Client Name" />
+            <Input value={clientEmail} onChange={setClientEmail} placeholder="Client Email" />
+            <Input value={clientPhone} onChange={setClientPhone} placeholder="Client Phone" />
           </Card>
 
           <Card title="Property Info">
-            <Input
-              refInput={addressInputRef}
-              label="Property Address"
+            <input
+              ref={addressInputRef}
               value={propertyAddress}
-              onChange={setPropertyAddress}
+              onChange={(e) => setPropertyAddress(e.target.value)}
               placeholder="Start typing property address..."
+              className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white"
             />
 
             <div className="grid gap-4 md:grid-cols-3">
-              <Input label="City" value={city} onChange={setCity} />
-
-              <div>
-                <label className="mb-2 block text-sm font-bold text-zinc-300">
-                  State
-                </label>
-
-                <select
-                  value={stateValue}
-                  onChange={(e) => setStateValue(e.target.value)}
-                  className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white"
-                >
-                  <option>MD</option>
-                  <option>WV</option>
-                  <option>PA</option>
-                </select>
-              </div>
-
-              <Input label="Zip" value={zip} onChange={setZip} />
+              <Input value={city} onChange={setCity} placeholder="City" />
+              <Input value={stateValue} onChange={setStateValue} placeholder="State" />
+              <Input value={zip} onChange={setZip} placeholder="Zip" />
             </div>
+
+            <div className="grid gap-4 md:grid-cols-3">
+              <Input value={yearBuilt} onChange={setYearBuilt} placeholder="Year Built" />
+              <Input value={propertyStyle} onChange={setPropertyStyle} placeholder="House Type / Style" />
+              <Input value={roofStyle} onChange={setRoofStyle} placeholder="Roof Style" />
+            </div>
+
+            {propertyImage && (
+              <img
+                src={propertyImage}
+                alt="Property preview"
+                className="max-h-80 w-full rounded-xl border border-zinc-700 object-cover"
+              />
+            )}
           </Card>
+        </section>
 
-          <Card title="Schedule + Quote">
-            <div className="grid gap-4 md:grid-cols-2">
-              <Select
-                label="Inspection Date"
+        <section className="mt-6 rounded-2xl border border-zinc-800 bg-[#0b1220] p-5">
+          <h2 className="mb-4 text-xl font-bold text-teal-400">
+            Schedule + Quote
+          </h2>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <label className="mb-2 block text-sm font-bold text-zinc-300">
+                Inspection Date
+              </label>
+
+              <select
                 value={inspectionDate}
-                onChange={setInspectionDate}
-                options={dateOptions}
-                placeholder="Select Date"
-              />
+                onChange={(e) => setInspectionDate(e.target.value)}
+                className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white"
+              >
+                <option value="">Select Date</option>
 
-              <Select
-                label="Inspection Time"
-                value={inspectionTime}
-                onChange={setInspectionTime}
-                options={timeOptions.map((time) => ({
-                  value: time,
-                  label: formatTime(time),
-                }))}
-                placeholder="Select Time"
-              />
+                {Array.from({ length: 90 }).map((_, i) => {
+                  const date = new Date();
+                  date.setDate(date.getDate() + i);
+
+                  const value = date.toISOString().split("T")[0];
+
+                  const label = date.toLocaleDateString("en-US", {
+                    weekday: "short",
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  });
+
+                  return (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  );
+                })}
+              </select>
             </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <Input
-                label="Square Feet"
-                value={squareFeet}
-                onChange={setSquareFeet}
-                placeholder={loadingProperty ? "Loading..." : "Square Feet"}
-              />
-
-              <Input label="Price" value={price} onChange={setPrice} />
-            </div>
-
-            <Input label="Services" value={services} onChange={setServices} />
 
             <div>
               <label className="mb-2 block text-sm font-bold text-zinc-300">
-                Notes
+                Inspection Time
               </label>
 
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                rows={4}
+              <select
+                value={inspectionTime}
+                onChange={(e) => setInspectionTime(e.target.value)}
                 className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white"
-              />
-            </div>
-          </Card>
-        </section>
+              >
+                <option value="">Select Time</option>
 
-        {propertyImage && (
-          <section className="mt-6 overflow-hidden rounded-2xl border border-zinc-800 bg-[#0b1220]">
-            <img
-              src={propertyImage}
-              alt="Property Preview"
-              className="h-[320px] w-full object-cover"
+                {timeOptions.map((time) => (
+                  <option key={time} value={time}>
+                    {formatTime(time)}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <Input
+              value={squareFeet}
+              onChange={setSquareFeet}
+              placeholder={
+                loadingProperty
+                  ? "Attempting property lookup..."
+                  : "Square Feet (auto-fill when available)"
+              }
             />
 
-            <div className="p-5">
-              <h2 className="text-2xl font-black text-white">{propertyAddress}</h2>
-
-              <p className="mt-2 text-zinc-400">
-                {city}, {stateValue} {zip}
-              </p>
-
-              <div className="mt-4 grid gap-3 md:grid-cols-3">
-                <PreviewInfo label="Built" value={yearBuilt || "N/A"} />
-                <PreviewInfo label="Style" value={propertyStyle || "N/A"} />
-                <PreviewInfo label="Roof" value={roofStyle || "N/A"} />
-              </div>
-            </div>
-          </section>
-        )}
-
-        <section className="mt-6 rounded-2xl border border-zinc-800 bg-[#0b1220] p-5">
-          <h2 className="mb-4 text-2xl font-bold text-teal-400">
-            Email Actions
-          </h2>
-
-          <div className="grid gap-4 md:grid-cols-3">
-            <a
-              href={
-                clientEmail
-                  ? buildMailto(clientEmail, clientSubject, clientBody)
-                  : "#"
-              }
-              className="rounded-xl bg-teal-500 px-5 py-4 text-center font-black text-black hover:bg-teal-400"
-            >
-              Email Client
-            </a>
-
-            <a
-              href={
-                realtorEmail
-                  ? buildMailto(realtorEmail, realtorSubject, realtorBody)
-                  : "#"
-              }
-              className="rounded-xl bg-zinc-800 px-5 py-4 text-center font-black text-white hover:bg-zinc-700"
-            >
-              Email Realtor
-            </a>
-
-            <button
-              onClick={() => {
-                if (createdReportId) router.push(`/reports/${createdReportId}`);
-                else alert("Save the inspection first.");
-              }}
-              className="rounded-xl bg-zinc-800 px-5 py-4 font-black text-white hover:bg-zinc-700"
-            >
-              Open Report
-            </button>
+            <Input value={price} onChange={setPrice} placeholder="Price" />
           </div>
+
+          <Input
+            value={services}
+            onChange={setServices}
+            placeholder="Services"
+            className="mt-4"
+          />
+
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            rows={4}
+            placeholder="Notes"
+            className="mt-4 w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white"
+          />
         </section>
+
+        <button
+          onClick={scheduleInspection}
+          disabled={saving}
+          className="mt-6 w-full rounded-xl bg-teal-500 px-5 py-4 text-lg font-black text-black hover:bg-teal-400 disabled:opacity-50"
+        >
+          {saving ? "Creating..." : "Create Inspection"}
+        </button>
       </div>
     </main>
   );
@@ -602,76 +442,22 @@ function Card({
 }
 
 function Input({
-  label,
   value,
   onChange,
   placeholder,
-  refInput,
+  className = "",
 }: {
-  label: string;
   value: string;
   onChange: (value: string) => void;
-  placeholder?: string;
-  refInput?: any;
-}) {
-  return (
-    <div>
-      <label className="mb-2 block text-sm font-bold text-zinc-300">
-        {label}
-      </label>
-
-      <input
-        ref={refInput}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white"
-      />
-    </div>
-  );
-}
-
-function Select({
-  label,
-  value,
-  onChange,
-  options,
-  placeholder,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  options: { value: string; label: string }[];
   placeholder: string;
+  className?: string;
 }) {
   return (
-    <div>
-      <label className="mb-2 block text-sm font-bold text-zinc-300">
-        {label}
-      </label>
-
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white"
-      >
-        <option value="">{placeholder}</option>
-
-        {options.map((item) => (
-          <option key={item.value} value={item.value}>
-            {item.label}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-}
-
-function PreviewInfo({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-xs font-bold uppercase text-zinc-500">{label}</p>
-      <p className="text-lg text-white">{value}</p>
-    </div>
+    <input
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      className={`w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white ${className}`}
+    />
   );
 }

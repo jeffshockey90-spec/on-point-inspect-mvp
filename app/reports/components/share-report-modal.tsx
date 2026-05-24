@@ -1,58 +1,32 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { createClient } from "../../../utils/supabase/client";
+import { useState } from "react";
 
 export default function ShareReportModal({
   reportId,
 }: {
   reportId: string;
 }) {
-  const supabase = createClient();
+  const [copied, setCopied] = useState(false);
 
-  const [profiles, setProfiles] = useState<any[]>([]);
-  const [selectedUser, setSelectedUser] = useState("");
-  const [selectedRole, setSelectedRole] = useState("client");
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
+  const baseUrl =
+    typeof window !== "undefined"
+      ? window.location.origin
+      : "";
 
-  useEffect(() => {
-    async function loadProfiles() {
-      const { data } = await supabase
-        .from("profiles")
-        .select("*")
-        .in("role", ["client", "realtor"]);
+  const shareUrl = `${baseUrl}/share/${reportId}`;
 
-      if (data) {
-        setProfiles(data);
-      }
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+
+      setTimeout(() => {
+        setCopied(false);
+      }, 2500);
+    } catch {
+      alert("Could not copy link. You can manually copy it from the box.");
     }
-
-    loadProfiles();
-  }, []);
-
-  async function shareReport() {
-    if (!selectedUser) return;
-
-    setLoading(true);
-    setMessage("");
-
-    const { error } = await supabase
-      .from("report_access")
-      .insert({
-        report_id: reportId,
-        user_id: selectedUser,
-        role: selectedRole,
-      });
-
-    if (error) {
-      setMessage(error.message);
-      setLoading(false);
-      return;
-    }
-
-    setMessage("Report shared successfully.");
-    setLoading(false);
   }
 
   return (
@@ -61,60 +35,32 @@ export default function ShareReportModal({
         Share Report
       </h2>
 
-      <div className="mt-4 space-y-4">
-        <select
-          value={selectedUser}
-          onChange={(e) =>
-            setSelectedUser(e.target.value)
-          }
-          className="w-full rounded-lg border border-slate-700 bg-slate-950 p-3 text-white"
-        >
-          <option value="">
-            Select User
-          </option>
+      <p className="mt-2 text-sm text-slate-400">
+        Copy this public report link and send it to the client or realtor.
+      </p>
 
-          {profiles.map((profile) => (
-            <option
-              key={profile.id}
-              value={profile.id}
-            >
-              {profile.full_name} ({profile.role})
-            </option>
-          ))}
-        </select>
-
-        <select
-          value={selectedRole}
-          onChange={(e) =>
-            setSelectedRole(e.target.value)
-          }
-          className="w-full rounded-lg border border-slate-700 bg-slate-950 p-3 text-white"
-        >
-          <option value="client">
-            Client
-          </option>
-
-          <option value="realtor">
-            Realtor
-          </option>
-        </select>
-
-        {message && (
-          <div className="rounded-lg border border-slate-700 bg-slate-950 p-3 text-sm text-slate-300">
-            {message}
-          </div>
-        )}
+      <div className="mt-4 flex flex-col gap-3 md:flex-row">
+        <input
+          value={shareUrl}
+          readOnly
+          className="flex-1 rounded-lg border border-slate-700 bg-slate-950 p-3 text-white"
+        />
 
         <button
-          onClick={shareReport}
-          disabled={loading}
-          className="w-full rounded-lg bg-teal-500 px-4 py-3 font-semibold text-slate-950 hover:bg-teal-400 disabled:opacity-50"
+          onClick={copyLink}
+          className="rounded-lg bg-teal-500 px-5 py-3 font-semibold text-slate-950 hover:bg-teal-400"
         >
-          {loading
-            ? "Sharing..."
-            : "Share Report"}
+          {copied ? "Copied!" : "Copy Link"}
         </button>
       </div>
+
+      <a
+        href={shareUrl}
+        target="_blank"
+        className="mt-4 inline-block rounded-lg border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-800"
+      >
+        Open Shared Report
+      </a>
     </div>
   );
 }

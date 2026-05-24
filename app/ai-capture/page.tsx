@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "../../lib/supabaseClient";
 
@@ -29,11 +30,28 @@ const SEVERITIES = [
 ];
 
 export default function AICapturePage() {
-  const [inspectionId, setInspectionId] = useState("");
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-[#020617] p-4 text-white md:p-8">
+          Loading...
+        </main>
+      }
+    >
+      <AICaptureContent />
+    </Suspense>
+  );
+}
+
+function AICaptureContent() {
+  const searchParams = useSearchParams();
+  const inspectionId = searchParams.get("inspection_id") || "";
+
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   const [title, setTitle] = useState("");
   const [section, setSection] = useState("Exterior");
@@ -51,6 +69,7 @@ export default function AICapturePage() {
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const selected = e.target.files?.[0];
+
     if (!selected) return;
 
     setFile(selected);
@@ -106,8 +125,8 @@ export default function AICapturePage() {
   }
 
   async function saveFinding() {
-    if (!inspectionId.trim()) {
-      alert("Enter the inspection/report ID before saving.");
+    if (!inspectionId) {
+      alert("Missing inspection ID.");
       return;
     }
 
@@ -163,22 +182,11 @@ export default function AICapturePage() {
 
       if (error) throw error;
 
-      alert("Finding saved successfully.");
+      setSaved(true);
 
-      setTitle("");
-      setSection("Exterior");
-      setSeverity("Recommended Repair");
-      setObservation("");
-      setImplication("");
-      setRecommendation("");
-      setEquipmentType("");
-      setManufacturer("");
-      setModelNumber("");
-      setSerialNumber("");
-      setEstimatedAge("");
-      setNotes("");
-      setFile(null);
-      setPreviewUrl("");
+      setTimeout(() => {
+        window.location.href = `/reports/${inspectionId}`;
+      }, 900);
     } catch (error: any) {
       alert(error.message || "Failed to save finding.");
     } finally {
@@ -195,20 +203,20 @@ export default function AICapturePage() {
               On Point AI
             </p>
 
-            <h1 className="mt-2 text-4xl font-extrabold">AI Capture</h1>
+            <h1 className="mt-2 text-4xl font-extrabold">
+              AI Capture
+            </h1>
 
             <p className="mt-3 max-w-2xl text-slate-300">
-              Upload an inspection photo. AI will identify the issue, route it
-              to the correct section, generate a report-ready finding, and
-              extract equipment data when visible.
+              Upload inspection photos and generate report-ready findings.
             </p>
           </div>
 
           <Link
-            href="/"
+            href={inspectionId ? `/reports/${inspectionId}` : "/"}
             className="rounded-xl border border-slate-700 px-5 py-3 font-bold text-slate-200 hover:bg-slate-800"
           >
-            Dashboard
+            Back To Report
           </Link>
         </div>
 
@@ -217,22 +225,13 @@ export default function AICapturePage() {
             Upload Photo
           </h2>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <input
-              value={inspectionId}
-              onChange={(e) => setInspectionId(e.target.value)}
-              placeholder="Inspection / Report ID"
-              className="rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
-            />
-
-            <input
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={handleFileChange}
-              className="rounded-xl border border-slate-700 bg-slate-950 p-3 text-white"
-            />
-          </div>
+          <input
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={handleFileChange}
+            className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white"
+          />
 
           {previewUrl && (
             <img
@@ -252,7 +251,9 @@ export default function AICapturePage() {
         </section>
 
         <section className="rounded-2xl border border-slate-800 bg-[#0b1220] p-6">
-          <h2 className="mb-5 text-2xl font-bold text-teal-400">AI Finding</h2>
+          <h2 className="mb-5 text-2xl font-bold text-teal-400">
+            AI Finding
+          </h2>
 
           <div className="grid gap-4 md:grid-cols-2">
             <input
@@ -283,9 +284,23 @@ export default function AICapturePage() {
             </select>
           </div>
 
-          <TextArea label="Observation" value={observation} onChange={setObservation} />
-          <TextArea label="Implication" value={implication} onChange={setImplication} />
-          <TextArea label="Recommendation" value={recommendation} onChange={setRecommendation} />
+          <TextArea
+            label="Observation"
+            value={observation}
+            onChange={setObservation}
+          />
+
+          <TextArea
+            label="Implication"
+            value={implication}
+            onChange={setImplication}
+          />
+
+          <TextArea
+            label="Recommendation"
+            value={recommendation}
+            onChange={setRecommendation}
+          />
         </section>
 
         <section className="rounded-2xl border border-slate-800 bg-[#0b1220] p-6">
@@ -301,7 +316,11 @@ export default function AICapturePage() {
             <Input label="Estimated Age" value={estimatedAge} onChange={setEstimatedAge} />
           </div>
 
-          <TextArea label="Equipment Notes" value={notes} onChange={setNotes} />
+          <TextArea
+            label="Equipment Notes"
+            value={notes}
+            onChange={setNotes}
+          />
         </section>
 
         <button
@@ -309,7 +328,11 @@ export default function AICapturePage() {
           disabled={saving}
           className="w-full rounded-xl bg-teal-500 px-6 py-4 text-lg font-extrabold text-black transition hover:bg-teal-400 disabled:opacity-50"
         >
-          {saving ? "Saving..." : "Save Finding to Report"}
+          {saving
+            ? "Saving..."
+            : saved
+            ? "Saved! Returning to report..."
+            : "Save Finding to Report"}
         </button>
       </div>
     </main>

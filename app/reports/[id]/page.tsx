@@ -6,15 +6,12 @@ import PdfExportButton from "../../../components/PdfExportButton";
 import ShareReportButton from "../../../components/ShareReportButton";
 import PublishReportButton from "../../../components/PublishReportButton";
 import SendReportModal from "../../../components/SendReportModal";
-import InspectionDetailsEditor from "../../../components/InspectionDetailsEditor";
-import ReportContactEditor from "../../../components/ReportContactEditor";
 import OfflineFieldMode from "../../../components/OfflineFieldMode";
 import OfflineAIQueue from "../../../components/OfflineAIQueue";
 import OfflineAICaptureForm from "../../../components/OfflineAICaptureForm";
 import VoiceFindingGenerator from "../../../components/VoiceFindingGenerator";
 import GenerateSummaryButton from "../../../components/GenerateSummaryButton";
 import ReportFindingsSortable from "./ReportFindingsSortable";
-import ShareReportModal from "../components/share-report-modal";
 import Link from "next/link";
 
 const SECTION_ORDER = [
@@ -102,49 +99,52 @@ export default async function ReportPage({
     <main className="min-h-screen bg-[#0f172a] p-4 text-white md:p-6">
       <div className="mx-auto max-w-6xl rounded-2xl bg-[#111827] p-5 shadow-2xl md:p-10">
         {!isPublicView && (
-          <>
-            <div className="mb-8 flex flex-wrap gap-3 print:hidden">
-              <PrintButton />
-              <PdfExportButton />
-              <GenerateSummaryButton inspectionId={inspectionId} />
-              <PublishReportButton inspectionId={inspectionId} />
-              <ShareReportButton inspectionId={inspectionId} />
+          <div className="mb-8 flex flex-wrap gap-3 print:hidden">
+            <PrintButton />
+            <PdfExportButton />
+            <GenerateSummaryButton inspectionId={inspectionId} />
+            <PublishReportButton inspectionId={inspectionId} />
+            <ShareReportButton inspectionId={inspectionId} />
 
-              <SendReportModal
-                inspectionId={inspectionId}
-                clientName={inspection.client_name}
-                clientEmail={inspection.client_email}
-                realtorName={inspection.realtor_name}
-                realtorEmail={inspection.realtor_email}
-                propertyAddress={inspection.property_address}
-              />
+            <SendReportModal
+              inspectionId={inspectionId}
+              clientName={inspection.client_name}
+              clientEmail={inspection.client_email}
+              realtorName={inspection.realtor_name}
+              realtorEmail={inspection.realtor_email}
+              propertyAddress={inspection.property_address}
+            />
 
-              <Link
-                href={`/repair-request/${inspectionId}`}
-                className="rounded-xl bg-orange-600 px-5 py-3 font-bold text-white transition hover:bg-orange-500"
-              >
-                Repair Request Builder
-              </Link>
+            <Link
+              href={`/repair-request/${inspectionId}`}
+              className="rounded-xl bg-orange-600 px-5 py-3 font-bold text-white transition hover:bg-orange-500"
+            >
+              Repair Request Builder
+            </Link>
 
-              <Link
-                href={`/reports/${inspectionId}/summary`}
-                className="rounded-xl border border-teal-500 px-5 py-3 font-bold text-teal-400 transition hover:bg-teal-500 hover:text-black"
-              >
-                Realtor Summary
-              </Link>
+            <Link
+              href={`/reports/${inspectionId}/summary`}
+              className="rounded-xl border border-teal-500 px-5 py-3 font-bold text-teal-400 transition hover:bg-teal-500 hover:text-black"
+            >
+              Realtor Summary
+            </Link>
 
-              <Link
-                href="/ai-capture"
-                className="rounded-xl bg-teal-500 px-5 py-3 font-bold text-black transition hover:bg-teal-400"
-              >
-                Open Full AI Capture
-              </Link>
-            </div>
+            <Link
+              href="/ai-capture"
+              className="rounded-xl bg-teal-500 px-5 py-3 font-bold text-black transition hover:bg-teal-400"
+            >
+              Open Full AI Capture
+            </Link>
 
-            <div className="mb-8 print:hidden">
-              <ShareReportModal reportId={inspectionId} />
-            </div>
-          </>
+            <Link
+              href={`/equipment-test?inspection_id=${encodeURIComponent(
+                inspectionId
+              )}`}
+              className="rounded-xl border border-blue-500 px-5 py-3 font-bold text-blue-300 transition hover:bg-blue-500 hover:text-white"
+            >
+              Equipment Analyzer
+            </Link>
+          </div>
         )}
 
         <header className="border-b border-slate-700 pb-6">
