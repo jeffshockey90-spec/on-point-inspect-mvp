@@ -41,29 +41,45 @@ export default async function ReportPage({ params }: PageProps) {
     redirect("/login");
   }
 
-  const { data: inspection, error: inspectionError } = await supabase
-    .from("inspections")
-    .select("*")
-    .eq("id", id)
-    .eq("inspector_id", user.id)
-    .single();
+  // =========================
+  // LOAD INSPECTION
+  // =========================
+
+  const { data: inspection, error: inspectionError } =
+    await supabase
+      .from("inspections")
+      .select("*")
+      .eq("id", id)
+      .eq("inspector_id", user.id)
+      .single();
 
   if (inspectionError || !inspection) {
     redirect("/reports");
   }
 
-  const { data: findingsRaw, error: findingsError } = await supabase
-    .from("findings")
-    .select("*")
-    .eq("inspection_id", inspection.id)
-    .eq("inspector_id", user.id)
-    .order("section", { ascending: true })
-    .order("sort_order", { ascending: true })
-    .order("created_at", { ascending: true });
+  // =========================
+  // LOAD FINDINGS
+  // =========================
+
+  const { data: findingsRaw, error: findingsError } =
+    await supabase
+      .from("findings")
+      .select("*")
+      .eq("inspection_id", inspection.id)
+      .order("section", { ascending: true })
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true });
 
   if (findingsError) {
-    console.error("Findings load error:", findingsError);
+    console.error(
+      "Findings load error:",
+      findingsError
+    );
   }
+
+  // =========================
+  // LOAD PHOTOS
+  // =========================
 
   const findingIds = (findingsRaw || []).map(
     (finding: any) => finding.id
@@ -79,8 +95,15 @@ export default async function ReportPage({ params }: PageProps) {
       : { data: [], error: null };
 
   if (photosError) {
-    console.error("Photos load error:", photosError);
+    console.error(
+      "Photos load error:",
+      photosError
+    );
   }
+
+  // =========================
+  // CREATE SIGNED URLS
+  // =========================
 
   const photosWithSignedUrls = await Promise.all(
     (photosRaw || []).map(async (photo: any) => {
@@ -107,40 +130,69 @@ export default async function ReportPage({ params }: PageProps) {
         .createSignedUrl(cleanPath, 60 * 60);
 
       if (error) {
-        console.error("Signed URL error:", error);
+        console.error(
+          "Signed URL error:",
+          error
+        );
       }
 
       return {
         ...photo,
         url: data?.signedUrl || null,
-        signed_url: data?.signedUrl || null,
+        signed_url:
+          data?.signedUrl || null,
       };
     })
   );
 
-  const photosByFindingId = photosWithSignedUrls.reduce(
-    (acc: Record<string, any[]>, photo: any) => {
-      if (!photo.finding_id) return acc;
+  // =========================
+  // GROUP PHOTOS BY FINDING
+  // =========================
 
-      if (!acc[photo.finding_id]) {
-        acc[photo.finding_id] = [];
-      }
+  const photosByFindingId =
+    photosWithSignedUrls.reduce(
+      (
+        acc: Record<string, any[]>,
+        photo: any
+      ) => {
+        if (!photo.finding_id) {
+          return acc;
+        }
 
-      acc[photo.finding_id].push(photo);
+        if (!acc[photo.finding_id]) {
+          acc[photo.finding_id] = [];
+        }
 
-      return acc;
-    },
-    {}
+        acc[photo.finding_id].push(photo);
+
+        return acc;
+      },
+      {}
+    );
+
+  // =========================
+  // ATTACH PHOTOS TO FINDINGS
+  // =========================
+
+  const findings = (findingsRaw || []).map(
+    (finding: any) => ({
+      ...finding,
+      photos:
+        photosByFindingId[finding.id] || [],
+    })
   );
 
-  const findings = (findingsRaw || []).map((finding: any) => ({
-    ...finding,
-    photos: photosByFindingId[finding.id] || [],
-  }));
+  // =========================
+  // GROUP FINDINGS BY SECTION
+  // =========================
 
   const groupedFindings = findings.reduce(
-    (acc: Record<string, any[]>, finding: any) => {
-      const section = finding.section || "General";
+    (
+      acc: Record<string, any[]>,
+      finding: any
+    ) => {
+      const section =
+        finding.section || "General";
 
       if (!acc[section]) {
         acc[section] = [];
@@ -153,16 +205,20 @@ export default async function ReportPage({ params }: PageProps) {
     {}
   );
 
-  const groupedFindingsArray = Object.entries(groupedFindings).map(
-    ([section, items]) => ({
-      section,
-      items,
-    })
-  );
+  const groupedFindingsArray =
+    Object.entries(groupedFindings).map(
+      ([section, items]) => ({
+        section,
+        items,
+      })
+    );
 
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100">
       <div className="mx-auto max-w-6xl px-4 py-6">
+
+        {/* HEADER */}
+
         <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-slate-800 bg-slate-900/70 p-5 shadow-lg md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-sm text-slate-400">
@@ -170,20 +226,28 @@ export default async function ReportPage({ params }: PageProps) {
             </p>
 
             <h1 className="text-2xl font-bold text-white">
-              {inspection.address || "Untitled Inspection"}
+              {inspection.address ||
+                "Untitled Inspection"}
             </h1>
 
             <div className="mt-2 text-sm text-slate-300">
               {inspection.city && (
-                <span>{inspection.city}</span>
+                <span>
+                  {inspection.city}
+                </span>
               )}
 
               {inspection.state && (
-                <span>, {inspection.state}</span>
+                <span>
+                  , {inspection.state}
+                </span>
               )}
 
               {inspection.zip && (
-                <span> {inspection.zip}</span>
+                <span>
+                  {" "}
+                  {inspection.zip}
+                </span>
               )}
             </div>
           </div>
@@ -212,6 +276,8 @@ export default async function ReportPage({ params }: PageProps) {
           </div>
         </div>
 
+        {/* INFO CARDS */}
+
         <section className="mb-6 grid gap-4 md:grid-cols-3">
           <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
             <p className="text-xs uppercase tracking-wide text-slate-500">
@@ -219,7 +285,8 @@ export default async function ReportPage({ params }: PageProps) {
             </p>
 
             <p className="mt-1 font-semibold text-white">
-              {inspection.client_name || "Not entered"}
+              {inspection.client_name ||
+                "Not entered"}
             </p>
           </div>
 
@@ -229,7 +296,8 @@ export default async function ReportPage({ params }: PageProps) {
             </p>
 
             <p className="mt-1 font-semibold text-white">
-              {inspection.realtor_name || "Not entered"}
+              {inspection.realtor_name ||
+                "Not entered"}
             </p>
           </div>
 
@@ -239,14 +307,19 @@ export default async function ReportPage({ params }: PageProps) {
             </p>
 
             <p className="mt-1 font-semibold text-white">
-              {inspection.inspection_date || "Not entered"}
+              {inspection.inspection_date ||
+                "Not entered"}
             </p>
           </div>
         </section>
 
+        {/* FINDINGS */}
+
         <ReportFindingsSortable
           inspectionId={inspection.id}
-          groupedFindings={groupedFindingsArray}
+          groupedFindings={
+            groupedFindingsArray
+          }
           allFindings={findings}
         />
       </div>
