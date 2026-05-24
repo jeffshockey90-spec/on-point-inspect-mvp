@@ -24,15 +24,9 @@ export async function middleware(request: NextRequest) {
             request,
           });
 
-          cookiesToSet.forEach(
-            ({ name, value, options }) => {
-              response.cookies.set(
-                name,
-                value,
-                options
-              );
-            }
-          );
+          cookiesToSet.forEach(({ name, value, options }) => {
+            response.cookies.set(name, value, options);
+          });
         },
       },
     }
@@ -49,33 +43,44 @@ export async function middleware(request: NextRequest) {
     "/reports",
     "/new",
     "/ai-capture",
+    "/equipment-test",
+    "/field",
     "/field-tool",
+    "/repair-request",
   ];
 
-  const isProtected = protectedRoutes.some(
-    (route) => pathname.startsWith(route)
+  const authRoutes = ["/login", "/signup"];
+
+  const isProtected = protectedRoutes.some((route) =>
+    pathname.startsWith(route)
   );
 
-  // Allow public report access using token
   const hasReportToken =
     pathname.startsWith("/reports") &&
-    request.nextUrl.searchParams.has(
-      "token"
-    );
+    request.nextUrl.searchParams.has("token");
 
-  if (
-    isProtected &&
-    !user &&
-    !hasReportToken
-  ) {
+  const hasShareToken =
+    pathname.startsWith("/share") &&
+    request.nextUrl.searchParams.has("token");
+
+  const isPublicAllowed =
+    hasReportToken ||
+    hasShareToken ||
+    pathname === "/" ||
+    pathname.startsWith("/api") ||
+    pathname.startsWith("/forgot-password") ||
+    pathname.startsWith("/reset-password");
+
+  if (isProtected && !user && !isPublicAllowed) {
     const url = request.nextUrl.clone();
 
     url.pathname = "/login";
+    url.searchParams.set("redirectedFrom", pathname);
 
     return NextResponse.redirect(url);
   }
 
-  if (pathname === "/login" && user) {
+  if (authRoutes.includes(pathname) && user) {
     const url = request.nextUrl.clone();
 
     url.pathname = "/dashboard";
