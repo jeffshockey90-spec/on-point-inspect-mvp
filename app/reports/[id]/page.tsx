@@ -5,6 +5,7 @@ import ShareReportButton from "../../../components/ShareReportButton";
 import PublishReportButton from "../../../components/PublishReportButton";
 import SendReportModal from "../../../components/SendReportModal";
 import GenerateSummaryButton from "../../../components/GenerateSummaryButton";
+import EditableInspectionDetails from "../../../components/EditableInspectionDetails";
 import ReportFindingsSortable from "./ReportFindingsSortable";
 import Link from "next/link";
 
@@ -104,6 +105,7 @@ export default async function ReportPage({
 
         {!isPublicView && (
           <div className="mb-10 flex flex-wrap gap-3 print:hidden">
+
             <PrintButton />
 
             <PdfExportButton />
@@ -162,6 +164,7 @@ export default async function ReportPage({
             >
               Equipment Analyzer
             </Link>
+
           </div>
         )}
 
@@ -175,139 +178,12 @@ export default async function ReportPage({
           </p>
         </header>
 
-        {/* INSPECTION DETAILS */}
-        <section className="mt-10 grid gap-6 md:grid-cols-2">
+        {/* EDITABLE INSPECTION DETAILS */}
+        <EditableInspectionDetails
+          inspection={inspection}
+        />
 
-          <div className="rounded-2xl border border-slate-700 bg-slate-900/70 p-6">
-            <h2 className="mb-4 text-2xl font-bold text-teal-400">
-              Inspection Details
-            </h2>
-
-            <div className="space-y-3 text-slate-300">
-              <p>
-                <span className="font-bold text-white">
-                  Property Address:
-                </span>{" "}
-                {inspection.property_address ||
-                  inspection.address ||
-                  "N/A"}
-              </p>
-
-              <p>
-                <span className="font-bold text-white">
-                  Client:
-                </span>{" "}
-                {inspection.client_name || "N/A"}
-              </p>
-
-              <p>
-                <span className="font-bold text-white">
-                  Client Email:
-                </span>{" "}
-                {inspection.client_email || "N/A"}
-              </p>
-
-              <p>
-                <span className="font-bold text-white">
-                  Realtor:
-                </span>{" "}
-                {inspection.realtor_name || "N/A"}
-              </p>
-
-              <p>
-                <span className="font-bold text-white">
-                  Realtor Email:
-                </span>{" "}
-                {inspection.realtor_email || "N/A"}
-              </p>
-
-              <p>
-                <span className="font-bold text-white">
-                  Inspection Date:
-                </span>{" "}
-                {inspection.inspection_date ||
-                  inspection.date ||
-                  "N/A"}
-              </p>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-slate-700 bg-slate-900/70 p-6">
-            <h2 className="mb-4 text-2xl font-bold text-teal-400">
-              Property / Site Information
-            </h2>
-
-            <div className="space-y-3 text-slate-300">
-
-              <p>
-                <span className="font-bold text-white">
-                  Square Feet:
-                </span>{" "}
-                {inspection.sqft ||
-                  inspection.square_feet ||
-                  "N/A"}
-              </p>
-
-              <p>
-                <span className="font-bold text-white">
-                  House Style:
-                </span>{" "}
-                {inspection.house_style || "N/A"}
-              </p>
-
-              <p>
-                <span className="font-bold text-white">
-                  Roof Style:
-                </span>{" "}
-                {inspection.roof_style || "N/A"}
-              </p>
-
-              <p>
-                <span className="font-bold text-white">
-                  Garage:
-                </span>{" "}
-                {inspection.garage || "N/A"}
-              </p>
-
-              <p>
-                <span className="font-bold text-white">
-                  Weather:
-                </span>{" "}
-                {inspection.weather || "N/A"}
-              </p>
-
-              <p>
-                <span className="font-bold text-white">
-                  Temperature:
-                </span>{" "}
-                {inspection.temperature || "N/A"}
-              </p>
-
-              <p>
-                <span className="font-bold text-white">
-                  Attendance:
-                </span>{" "}
-                {inspection.attendance || "N/A"}
-              </p>
-
-              <p>
-                <span className="font-bold text-white">
-                  Inspection Method:
-                </span>{" "}
-                {inspection.inspection_method || "N/A"}
-              </p>
-
-              <p>
-                <span className="font-bold text-white">
-                  Occupancy:
-                </span>{" "}
-                {inspection.occupancy || "N/A"}
-              </p>
-
-            </div>
-          </div>
-        </section>
-
+        {/* EXECUTIVE SUMMARY */}
         {inspection.executive_summary && (
           <section className="mt-8 rounded-2xl border border-purple-700 bg-purple-950/20 p-6">
             <h2 className="mb-4 text-3xl font-bold text-purple-300">
@@ -320,6 +196,7 @@ export default async function ReportPage({
           </section>
         )}
 
+        {/* FINDINGS */}
         <section className="mt-10">
           <h2 className="mb-8 text-3xl font-bold text-teal-400">
             Inspection Findings
