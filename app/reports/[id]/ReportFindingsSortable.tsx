@@ -1,22 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import {
-  DndContext,
-  closestCenter,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-  arrayMove,
-  useSortable,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-
 import EditableFinding from "../../../components/EditableFinding";
 
 const INSPECTION_DETAILS_CHECKLIST = [
@@ -62,7 +46,6 @@ const INSPECTION_DETAILS_CHECKLIST = [
     type: "temperature",
     options: ["Fahrenheit (F)", "Celsius (C)"],
     defaults: ["Fahrenheit (F)"],
-    defaultValue: "",
   },
   {
     title: "Type of Building",
@@ -95,435 +78,187 @@ const INSPECTION_DETAILS_CHECKLIST = [
 ];
 
 export default function ReportFindingsSortable({
-  inspectionId,
   groupedFindings,
-}: {
-  inspectionId: string;
-  groupedFindings: any[];
-  allFindings: any[];
-}) {
-  const sectionsWithRequiredInspectionDetails = useMemo(() => {
-    const baseSections = groupedFindings || [];
-
-    const existingInspectionDetails = baseSections.find(
-      (group) => group.section === "Inspection Details"
-    );
-
-    const otherSections = baseSections.filter(
-      (group) => group.section !== "Inspection Details"
-    );
-
-    const existingFindings = existingInspectionDetails?.findings || [];
-
-    const requiredFindings = INSPECTION_DETAILS_CHECKLIST.map((item) => {
-      const existing = existingFindings.find(
-        (finding: any) => finding.title === item.title
-      );
-
-      return (
-        existing || {
-          id: `required-${item.title}`,
-          section: "Inspection Details",
-          title: item.title,
-          severity: "Informational",
-          observation: "",
-          implication: "",
-          recommendation: "",
-          comment: "",
-          photos: [],
-          is_virtual_required: true,
-        }
-      );
-    });
-
-    const extraFindings = existingFindings.filter(
-      (finding: any) =>
-        !INSPECTION_DETAILS_CHECKLIST.some(
-          (item) => item.title === finding.title
-        )
-    );
-
-    return [
-      {
-        section: "Inspection Details",
-        findings: [...requiredFindings, ...extraFindings],
-      },
-      ...otherSections,
-    ];
-  }, [groupedFindings]);
-
-  const [sections, setSections] = useState<any[]>(
-    sectionsWithRequiredInspectionDetails
-  );
-
-  useEffect(() => {
-    setSections(sectionsWithRequiredInspectionDetails);
-  }, [sectionsWithRequiredInspectionDetails]);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 8 },
-    })
-  );
-
-  function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event;
-
-    if (!over || active.id === over.id) return;
-
-    setSections((items) => {
-      const oldIndex = items.findIndex((item) => item.section === active.id);
-      const newIndex = items.findIndex((item) => item.section === over.id);
-
-      if (oldIndex === -1 || newIndex === -1) return items;
-
-      return arrayMove(items, oldIndex, newIndex);
-    });
-  }
+  inspectionId,
+}: any) {
+  const inspectionDetails = INSPECTION_DETAILS_CHECKLIST;
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragEnd={handleDragEnd}
-    >
-      <SortableContext
-        items={sections.map((group) => group.section)}
-        strategy={verticalListSortingStrategy}
-      >
-        <div className="space-y-6">
-          {sections.map((group) => (
-            <SortableSection
-              key={group.section}
-              group={group}
+    <div className="space-y-5">
+      <section className="rounded-2xl border border-slate-700 bg-[#071224] shadow-xl overflow-hidden">
+        <div className="border-b border-slate-700 bg-slate-800/80 px-6 py-4">
+          <h2 className="text-2xl font-bold text-teal-400">
+            Inspection Details
+          </h2>
+        </div>
+
+        <div className="space-y-5 p-5">
+          {inspectionDetails.map((item) => (
+            <ChecklistCard
+              key={item.title}
+              item={item}
               inspectionId={inspectionId}
             />
           ))}
         </div>
-      </SortableContext>
-    </DndContext>
-  );
-}
+      </section>
 
-function SortableSection({
-  group,
-  inspectionId,
-}: {
-  group: any;
-  inspectionId: string;
-}) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-  } = useSortable({
-    id: group.section,
-  });
+      {groupedFindings
+        ?.filter((group: any) => group.section !== "Inspection Details")
+        ?.map((group: any) => (
+          <div key={group.section} className="space-y-4">
+            <div className="rounded-xl border border-slate-700 bg-[#071224] p-4">
+              <h2 className="text-2xl font-bold text-teal-400">
+                {group.section}
+              </h2>
+            </div>
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
-
-  const [activeTab, setActiveTab] = useState<"Information" | "Limitations">(
-    "Information"
-  );
-
-  const isInspectionDetails = group.section === "Inspection Details";
-
-  return (
-    <section ref={setNodeRef} style={style} className="space-y-4">
-      <div className="sticky top-0 z-10 rounded-xl border border-slate-700 bg-slate-900/95 px-4 py-3 backdrop-blur">
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            {...attributes}
-            {...listeners}
-            className="cursor-grab rounded-lg border border-slate-600 bg-slate-800 px-3 py-1 text-sm font-bold text-slate-200"
-          >
-            ☰
-          </button>
-
-          <h2 className="text-2xl font-bold text-teal-400">
-            {group.section}
-          </h2>
-        </div>
-
-        {isInspectionDetails && (
-          <div className="mt-3 flex gap-6 border-b border-slate-700">
-            <button
-              type="button"
-              onClick={() => setActiveTab("Information")}
-              className={`pb-2 text-sm font-bold ${
-                activeTab === "Information"
-                  ? "border-b-4 border-teal-400 text-white"
-                  : "text-slate-400"
-              }`}
-            >
-              Information
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab("Limitations")}
-              className={`pb-2 text-sm font-bold ${
-                activeTab === "Limitations"
-                  ? "border-b-4 border-teal-400 text-white"
-                  : "text-slate-400"
-              }`}
-            >
-              Limitations
-            </button>
+            {group.findings?.map((finding: any) => (
+              <NormalFindingCard key={finding.id} finding={finding} />
+            ))}
           </div>
-        )}
-      </div>
-
-      {isInspectionDetails && activeTab === "Limitations" ? (
-        <InspectionLimitationsCard inspectionId={inspectionId} />
-      ) : (
-        (group.findings || []).map((finding: any) => {
-          const checklist = INSPECTION_DETAILS_CHECKLIST.find(
-            (item) => item.title === finding.title
-          );
-
-          if (isInspectionDetails && checklist) {
-            return (
-              <ChecklistFindingCard
-                key={finding.id}
-                inspectionId={inspectionId}
-                finding={finding}
-                checklist={checklist}
-              />
-            );
-          }
-
-          return <NormalFindingCard key={finding.id} finding={finding} />;
-        })
-      )}
-    </section>
+        ))}
+    </div>
   );
 }
 
-function ChecklistFindingCard({
-  inspectionId,
-  finding,
-  checklist,
-}: {
-  inspectionId: string;
-  finding: any;
-  checklist: any;
-}) {
-  const localStorageKey = `inspection-${inspectionId}-${finding.title}`;
-  const customOptionsKey = `custom-options-${finding.title}`;
+function ChecklistCard({ item, inspectionId }: any) {
+  const storageKey = `inspection-${inspectionId}-${item.title}`;
+  const customKey = `custom-options-${item.title}`;
 
-  const [checkedOptions, setCheckedOptions] = useState<string[]>(
-    checklist.defaults || []
-  );
-
+  const [selected, setSelected] = useState<string[]>(item.defaults || []);
   const [customOptions, setCustomOptions] = useState<string[]>([]);
-  const [showOtherInput, setShowOtherInput] = useState(false);
+  const [showInput, setShowInput] = useState(false);
   const [otherText, setOtherText] = useState("");
-  const [temperatureValue, setTemperatureValue] = useState(
-    checklist.defaultValue || ""
-  );
+  const [temperature, setTemperature] = useState("");
 
   useEffect(() => {
-    const saved = localStorage.getItem(localStorageKey);
-    const savedCustom = localStorage.getItem(customOptionsKey);
+    const saved = localStorage.getItem(storageKey);
+    const savedCustom = localStorage.getItem(customKey);
 
-    if (saved) setCheckedOptions(JSON.parse(saved));
+    if (saved) setSelected(JSON.parse(saved));
     if (savedCustom) setCustomOptions(JSON.parse(savedCustom));
-  }, [localStorageKey, customOptionsKey]);
+  }, [storageKey, customKey]);
 
-  const allOptions = [...checklist.options, ...customOptions].filter(
-    (option, index, array) => array.indexOf(option) === index
-  );
+  const allOptions = [...item.options, ...customOptions];
 
   function toggleOption(option: string) {
-    setCheckedOptions((current) => {
-      let updated: string[];
+    let updated: string[];
 
-      if (checklist.type === "temperature") {
-        updated = [option];
-      } else {
-        updated = current.includes(option)
-          ? current.filter((item) => item !== option)
-          : [...current, option];
-      }
+    if (item.type === "temperature") {
+      updated = [option];
+    } else {
+      updated = selected.includes(option)
+        ? selected.filter((o) => o !== option)
+        : [...selected, option];
+    }
 
-      localStorage.setItem(localStorageKey, JSON.stringify(updated));
-      return updated;
-    });
+    setSelected(updated);
+    localStorage.setItem(storageKey, JSON.stringify(updated));
   }
 
-  function saveOtherOption() {
+  function saveOther() {
     const cleaned = otherText.trim();
 
     if (!cleaned) {
-      setShowOtherInput(false);
-      setOtherText("");
+      setShowInput(false);
       return;
     }
 
-    const updatedCustom = [...customOptions, cleaned].filter(
-      (option, index, array) => array.indexOf(option) === index
-    );
+    const updated = [...customOptions, cleaned];
 
-    setCustomOptions(updatedCustom);
-    localStorage.setItem(customOptionsKey, JSON.stringify(updatedCustom));
+    setCustomOptions(updated);
+    localStorage.setItem(customKey, JSON.stringify(updated));
 
-    setCheckedOptions((current) => {
-      const updatedChecked = current.includes(cleaned)
-        ? current
-        : [...current, cleaned];
+    const selectedUpdated = [...selected, cleaned];
 
-      localStorage.setItem(localStorageKey, JSON.stringify(updatedChecked));
-      return updatedChecked;
-    });
+    setSelected(selectedUpdated);
+    localStorage.setItem(storageKey, JSON.stringify(selectedUpdated));
 
     setOtherText("");
-    setShowOtherInput(false);
+    setShowInput(false);
   }
 
   return (
-    <article className="overflow-hidden rounded-xl border border-slate-700 bg-[#0f172a] text-slate-100 shadow-lg">
-      <div className="border-b border-slate-700 bg-slate-800/80 px-4 py-2">
-        <h3 className="text-sm font-bold text-teal-300">{finding.title}</h3>
+    <div className="overflow-hidden rounded-2xl border border-slate-700 bg-[#0b1730]">
+      <div className="border-b border-slate-700 bg-slate-800/70 px-6 py-3">
+        <h3 className="text-lg font-bold text-teal-300">{item.title}</h3>
       </div>
 
-      <div className="px-4 py-4">
-        {checklist.type === "temperature" && (
+      <div className="p-6">
+        {item.type === "temperature" && (
           <input
-            value={temperatureValue}
-            onChange={(e) => setTemperatureValue(e.target.value)}
-            className="mb-4 w-full border-b border-slate-600 bg-transparent px-1 py-2 text-sm text-slate-100 outline-none focus:border-teal-400"
+            value={temperature}
+            onChange={(e) => setTemperature(e.target.value)}
             placeholder="Enter temperature"
+            className="mb-6 w-full rounded-xl border border-slate-700 bg-[#020817] px-4 py-3 text-white outline-none focus:border-teal-400"
           />
         )}
 
-        <div className="flex flex-wrap gap-x-8 gap-y-3">
+        <div className="flex flex-wrap gap-x-14 gap-y-6">
           {allOptions.map((option: string) => {
-            const isChecked = checkedOptions.includes(option);
+            const checked = selected.includes(option);
 
             return (
               <label
                 key={option}
-                className="flex min-w-[190px] max-w-[240px] cursor-pointer items-center gap-2 rounded-lg px-2 py-1 text-sm text-slate-200 hover:bg-slate-800/80"
+                className="flex min-w-[240px] items-center gap-4 text-white"
               >
                 <input
-                  type={checklist.type === "temperature" ? "radio" : "checkbox"}
-                  checked={isChecked}
+                  type={item.type === "temperature" ? "radio" : "checkbox"}
+                  checked={checked}
                   onChange={() => toggleOption(option)}
-                  className="h-4 w-4 shrink-0 cursor-pointer rounded border border-teal-500 bg-slate-950 accent-teal-400"
+                  className="h-5 w-5 accent-teal-400"
                 />
 
-                <span className="whitespace-nowrap text-sm leading-tight text-slate-200">
-                  {option}
-                </span>
+                <span className="text-lg">{option}</span>
               </label>
             );
           })}
         </div>
 
-        {showOtherInput && (
-          <div className="mt-4 flex gap-2">
+        {showInput ? (
+          <div className="mt-6 flex gap-3">
             <input
               value={otherText}
               onChange={(e) => setOtherText(e.target.value)}
               onBlur={() => {
                 if (!otherText.trim()) {
-                  setShowOtherInput(false);
-                  setOtherText("");
+                  setShowInput(false);
                 }
               }}
               onKeyDown={(e) => {
-                if (e.key === "Enter") saveOtherOption();
-
-                if (e.key === "Escape") {
-                  setShowOtherInput(false);
-                  setOtherText("");
-                }
+                if (e.key === "Enter") saveOther();
               }}
               autoFocus
               placeholder="Add other option..."
-              className="flex-1 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-teal-400"
+              className="flex-1 rounded-xl border border-slate-700 bg-[#020817] px-4 py-3 text-white outline-none focus:border-teal-400"
             />
 
             <button
-              type="button"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={saveOtherOption}
-              className="rounded-lg bg-teal-500 px-4 py-2 text-sm font-bold text-slate-950 hover:bg-teal-400"
+              onClick={saveOther}
+              className="rounded-xl bg-teal-400 px-5 py-3 font-bold text-slate-900"
             >
               Save
             </button>
           </div>
-        )}
-
-        {!showOtherInput && (
+        ) : (
           <button
-            type="button"
-            onClick={() => setShowOtherInput(true)}
-            className="mt-4 text-sm font-medium text-teal-300 hover:text-teal-200"
+            onClick={() => setShowInput(true)}
+            className="mt-6 text-lg font-semibold text-teal-300 hover:text-teal-200"
           >
             + OTHER
           </button>
         )}
       </div>
-    </article>
+    </div>
   );
 }
 
-function InspectionLimitationsCard({ inspectionId }: { inspectionId: string }) {
-  const localStorageKey = `inspection-${inspectionId}-limitations-note`;
-
-  const [note, setNote] = useState("");
-
-  useEffect(() => {
-    setNote(localStorage.getItem(localStorageKey) || "");
-  }, [localStorageKey]);
-
-  function saveNote(value: string) {
-    setNote(value);
-    localStorage.setItem(localStorageKey, value);
-  }
-
-  return (
-    <article className="overflow-hidden rounded-xl border border-slate-700 bg-[#0f172a] text-slate-100 shadow-lg">
-      <div className="border-b border-slate-700 bg-slate-800/80 px-4 py-2">
-        <h3 className="text-sm font-bold text-teal-300">
-          Inspection Limitations
-        </h3>
-      </div>
-
-      <div className="p-4">
-        <textarea
-          value={note}
-          onChange={(e) => saveNote(e.target.value)}
-          rows={4}
-          placeholder="Example: Snow covered portions of roof, stored belongings limited access, utilities off, locked rooms, unsafe access, etc."
-          className="w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-slate-100 outline-none focus:border-teal-400"
-        />
-
-        <div className="mt-3 flex justify-end">
-          <button
-            type="button"
-            className="rounded-md border border-slate-600 px-3 py-1 text-xs font-bold text-slate-200 hover:bg-slate-800"
-          >
-            ✨ Edit with AI
-          </button>
-        </div>
-      </div>
-    </article>
-  );
-}
-
-function NormalFindingCard({ finding }: { finding: any }) {
+function NormalFindingCard({ finding }: any) {
   const firstPhoto = finding.photos?.[0];
 
-  const mainImage =
+  const image =
     finding.signed_image_url ||
     finding.image_url ||
     finding.public_image_url ||
@@ -533,18 +268,18 @@ function NormalFindingCard({ finding }: { finding: any }) {
     "";
 
   return (
-    <article className="overflow-hidden rounded-2xl border border-slate-700 bg-[#0f172a] shadow-xl">
-      {mainImage && (
+    <article className="overflow-hidden rounded-2xl border border-slate-700 bg-[#071224] shadow-xl">
+      {image && (
         <div className="border-b border-slate-700 bg-black">
           <img
-            src={mainImage}
+            src={image}
             alt="Finding"
             className="max-h-[650px] w-full object-contain"
           />
         </div>
       )}
 
-      <div className="p-5 md:p-6">
+      <div className="p-6">
         <EditableFinding finding={finding} />
 
         {finding.observation && (
@@ -567,7 +302,7 @@ function NormalFindingCard({ finding }: { finding: any }) {
   );
 }
 
-function ReportBlock({ title, text }: { title: string; text: string }) {
+function ReportBlock({ title, text }: any) {
   return (
     <div className="mt-5">
       <h4 className="mb-2 text-lg font-bold text-white">{title}</h4>
