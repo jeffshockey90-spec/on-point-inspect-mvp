@@ -9,15 +9,85 @@ import {
   useSensors,
   DragEndEvent,
 } from "@dnd-kit/core";
+
 import {
   SortableContext,
   verticalListSortingStrategy,
   arrayMove,
   useSortable,
 } from "@dnd-kit/sortable";
+
 import { CSS } from "@dnd-kit/utilities";
 
 import EditableFinding from "../../../components/EditableFinding";
+
+const CHECKLIST_OPTIONS: Record<string, string[]> = {
+  "In Attendance": [
+    "Client",
+    "Listing Agent",
+    "Home Owner",
+    "Client's Agent",
+    "Inspector",
+    "OTHER",
+  ],
+
+  Occupancy: [
+    "Furnished",
+    "Occupied",
+    "Vacant",
+    "Utilities Off",
+    "OTHER",
+  ],
+
+  Style: [
+    "Manufactured",
+    "Rambler",
+    "Modular",
+    "Ranch",
+    "Modern",
+    "Multi-level",
+    "Bungalow",
+    "Contemporary",
+    "Victorian",
+    "Colonial",
+    "Row House",
+    "Townhouse",
+    "OTHER",
+  ],
+
+  Temperature: [
+    "32",
+    "40",
+    "50",
+    "60",
+    "70",
+    "80",
+    "90",
+    "OTHER",
+  ],
+
+  "Type of Building": [
+    "Multi-Family",
+    "Attached",
+    "Single Family",
+    "Condominium / Townhouse",
+    "Detached",
+    "OTHER",
+  ],
+
+  "Weather Conditions": [
+    "Snow",
+    "Dry",
+    "Cloudy",
+    "Hot",
+    "Heavy Rain",
+    "Clear",
+    "Light Rain",
+    "Humid",
+    "Recent Rain",
+    "OTHER",
+  ],
+};
 
 export default function ReportFindingsSortable({
   inspectionId,
@@ -29,6 +99,7 @@ export default function ReportFindingsSortable({
   allFindings: any[];
 }) {
   const storageKey = `section-order-${inspectionId}`;
+
   const [sections, setSections] = useState<any[]>(groupedFindings || []);
 
   useEffect(() => {
@@ -43,11 +114,17 @@ export default function ReportFindingsSortable({
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
+
     if (!over || active.id === over.id) return;
 
     setSections((items) => {
-      const oldIndex = items.findIndex((item) => item.section === active.id);
-      const newIndex = items.findIndex((item) => item.section === over.id);
+      const oldIndex = items.findIndex(
+        (item) => item.section === active.id
+      );
+
+      const newIndex = items.findIndex(
+        (item) => item.section === over.id
+      );
 
       if (oldIndex === -1 || newIndex === -1) return items;
 
@@ -65,7 +142,9 @@ export default function ReportFindingsSortable({
   if (!allFindings || allFindings.length === 0) {
     return (
       <div className="rounded-2xl border border-slate-700 bg-[#0f172a] p-8 text-center">
-        <p className="text-slate-300">No findings saved yet.</p>
+        <p className="text-slate-300">
+          No findings saved yet.
+        </p>
       </div>
     );
   }
@@ -82,7 +161,10 @@ export default function ReportFindingsSortable({
       >
         <div className="space-y-10">
           {sections.map((group) => (
-            <SortableSection key={group.section} group={group} />
+            <SortableSection
+              key={group.section}
+              group={group}
+            />
           ))}
         </div>
       </SortableContext>
@@ -111,7 +193,9 @@ function SortableSection({ group }: { group: any }) {
     <section
       ref={setNodeRef}
       style={style}
-      className={`space-y-6 ${isDragging ? "opacity-60" : "opacity-100"}`}
+      className={`space-y-6 ${
+        isDragging ? "opacity-60" : "opacity-100"
+      }`}
     >
       <div className="sticky top-0 z-10 flex items-center gap-3 rounded-2xl border border-slate-700 bg-slate-900/95 px-5 py-4 backdrop-blur">
         <button
@@ -123,7 +207,9 @@ function SortableSection({ group }: { group: any }) {
           ☰
         </button>
 
-        <h2 className="text-4xl font-bold text-teal-400">{group.section}</h2>
+        <h2 className="text-4xl font-bold text-teal-400">
+          {group.section}
+        </h2>
       </div>
 
       {(group.findings || []).map((finding: any) => {
@@ -137,6 +223,9 @@ function SortableSection({ group }: { group: any }) {
           firstPhoto?.public_url ||
           firstPhoto?.image_url ||
           "";
+
+        const checklistOptions =
+          CHECKLIST_OPTIONS[finding.title] || [];
 
         return (
           <article
@@ -162,24 +251,56 @@ function SortableSection({ group }: { group: any }) {
                     </span>
 
                     <SeverityBadge
-                      severity={finding.severity || "Informational"}
+                      severity={
+                        finding.severity ||
+                        "Informational"
+                      }
                     />
                   </div>
 
                   <h3 className="text-4xl font-bold text-teal-300">
-                    {finding.title || "Untitled Finding"}
+                    {finding.title ||
+                      "Untitled Finding"}
                   </h3>
                 </div>
               </div>
 
               <EditableFinding finding={finding} />
 
+              {checklistOptions.length > 0 && (
+                <div className="mt-8 rounded-2xl border border-slate-700 bg-slate-900/60 p-6">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {checklistOptions.map(
+                      (option) => (
+                        <label
+                          key={option}
+                          className="flex items-center gap-3 text-lg text-slate-200"
+                        >
+                          <input
+                            type="checkbox"
+                            className="h-5 w-5 rounded border-slate-600 bg-slate-800"
+                          />
+
+                          <span>{option}</span>
+                        </label>
+                      )
+                    )}
+                  </div>
+                </div>
+              )}
+
               {finding.observation && (
-                <ReportBlock title="Observation" text={finding.observation} />
+                <ReportBlock
+                  title="Observation"
+                  text={finding.observation}
+                />
               )}
 
               {finding.implication && (
-                <ReportBlock title="Implication" text={finding.implication} />
+                <ReportBlock
+                  title="Implication"
+                  text={finding.implication}
+                />
               )}
 
               {finding.recommendation && (
@@ -190,7 +311,10 @@ function SortableSection({ group }: { group: any }) {
               )}
 
               {finding.comment && (
-                <ReportBlock title="Additional Notes" text={finding.comment} />
+                <ReportBlock
+                  title="Additional Notes"
+                  text={finding.comment}
+                />
               )}
 
               {finding.photos?.length > 1 && (
@@ -200,24 +324,28 @@ function SortableSection({ group }: { group: any }) {
                   </h4>
 
                   <div className="grid gap-4 md:grid-cols-2">
-                    {finding.photos.slice(1).map((photo: any) => {
-                      const imageSrc =
-                        photo.signed_url ||
-                        photo.public_url ||
-                        photo.image_url ||
-                        "";
+                    {finding.photos
+                      .slice(1)
+                      .map((photo: any) => {
+                        const imageSrc =
+                          photo.signed_url ||
+                          photo.public_url ||
+                          photo.image_url ||
+                          "";
 
-                      if (!imageSrc) return null;
+                        if (!imageSrc) return null;
 
-                      return (
-                        <img
-                          key={photo.id || imageSrc}
-                          src={imageSrc}
-                          alt="Finding Photo"
-                          className="max-h-[350px] w-full rounded-2xl border border-slate-700 object-cover"
-                        />
-                      );
-                    })}
+                        return (
+                          <img
+                            key={
+                              photo.id || imageSrc
+                            }
+                            src={imageSrc}
+                            alt="Finding Photo"
+                            className="max-h-[350px] w-full rounded-2xl border border-slate-700 object-cover"
+                          />
+                        );
+                      })}
                   </div>
                 </div>
               )}
@@ -229,43 +357,73 @@ function SortableSection({ group }: { group: any }) {
   );
 }
 
-function ReportBlock({ title, text }: { title: string; text: string }) {
+function ReportBlock({
+  title,
+  text,
+}: {
+  title: string;
+  text: string;
+}) {
   return (
     <div className="mt-8">
-      <h4 className="mb-3 text-2xl font-bold text-white">{title}</h4>
+      <h4 className="mb-3 text-2xl font-bold text-white">
+        {title}
+      </h4>
 
       <div className="rounded-2xl border border-slate-700 bg-slate-900/60 p-5">
-        <p className="whitespace-pre-line leading-8 text-slate-200">{text}</p>
+        <p className="whitespace-pre-line leading-8 text-slate-200">
+          {text}
+        </p>
       </div>
     </div>
   );
 }
 
-function SeverityBadge({ severity }: { severity: string }) {
-  let classes = "bg-slate-700 text-slate-200 border-slate-600";
+function SeverityBadge({
+  severity,
+}: {
+  severity: string;
+}) {
+  let classes =
+    "bg-slate-700 text-slate-200 border-slate-600";
 
-  if (severity === "Safety Concern" || severity === "safety") {
-    classes = "bg-red-500/20 text-red-300 border-red-500/40";
+  if (
+    severity === "Safety Concern" ||
+    severity === "safety"
+  ) {
+    classes =
+      "bg-red-500/20 text-red-300 border-red-500/40";
   }
 
   if (severity === "Major Concern") {
-    classes = "bg-orange-500/20 text-orange-300 border-orange-500/40";
+    classes =
+      "bg-orange-500/20 text-orange-300 border-orange-500/40";
   }
 
-  if (severity === "Recommended Repair" || severity === "recommendation") {
-    classes = "bg-yellow-500/20 text-yellow-300 border-yellow-500/40";
+  if (
+    severity === "Recommended Repair" ||
+    severity === "recommendation"
+  ) {
+    classes =
+      "bg-yellow-500/20 text-yellow-300 border-yellow-500/40";
   }
 
   if (severity === "Maintenance") {
-    classes = "bg-blue-500/20 text-blue-300 border-blue-500/40";
+    classes =
+      "bg-blue-500/20 text-blue-300 border-blue-500/40";
   }
 
   if (severity === "Monitor") {
-    classes = "bg-purple-500/20 text-purple-300 border-purple-500/40";
+    classes =
+      "bg-purple-500/20 text-purple-300 border-purple-500/40";
   }
 
-  if (severity === "info" || severity === "Informational") {
-    classes = "bg-cyan-500/20 text-cyan-300 border-cyan-500/40";
+  if (
+    severity === "info" ||
+    severity === "Informational"
+  ) {
+    classes =
+      "bg-cyan-500/20 text-cyan-300 border-cyan-500/40";
   }
 
   return (
