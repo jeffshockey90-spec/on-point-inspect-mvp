@@ -37,10 +37,6 @@ export default function ReportFindingsSortable({
     groupedFindings || []
   );
 
-  // =========================
-  // FIXED STATE SYNC
-  // =========================
-
   useEffect(() => {
     setSections(groupedFindings || []);
   }, [groupedFindings]);
@@ -53,57 +49,37 @@ export default function ReportFindingsSortable({
     })
   );
 
-  // =========================
-  // DRAG END
-  // =========================
-
-  function handleDragEnd(
-    event: DragEndEvent
-  ) {
+  function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
 
-    if (
-      !over ||
-      active.id === over.id
-    ) {
+    if (!over || active.id === over.id) {
       return;
     }
 
     setSections((items) => {
-      const oldIndex =
-        items.findIndex(
-          (item) =>
-            item.section ===
-            active.id
-        );
+      const oldIndex = items.findIndex(
+        (item) => item.section === active.id
+      );
 
-      const newIndex =
-        items.findIndex(
-          (item) =>
-            item.section ===
-            over.id
-        );
+      const newIndex = items.findIndex(
+        (item) => item.section === over.id
+      );
 
-      if (
-        oldIndex === -1 ||
-        newIndex === -1
-      ) {
+      if (oldIndex === -1 || newIndex === -1) {
         return items;
       }
 
-      const newOrder =
-        arrayMove(
-          items,
-          oldIndex,
-          newIndex
-        );
+      const newOrder = arrayMove(
+        items,
+        oldIndex,
+        newIndex
+      );
 
       localStorage.setItem(
         storageKey,
         JSON.stringify(
           newOrder.map(
-            (item) =>
-              item.section
+            (item) => item.section
           )
         )
       );
@@ -112,14 +88,7 @@ export default function ReportFindingsSortable({
     });
   }
 
-  // =========================
-  // EMPTY STATE
-  // =========================
-
-  if (
-    !allFindings ||
-    allFindings.length === 0
-  ) {
+  if (!allFindings || allFindings.length === 0) {
     return (
       <div className="rounded-2xl border border-slate-700 bg-[#0f172a] p-8 text-center">
         <p className="text-slate-300">
@@ -129,49 +98,32 @@ export default function ReportFindingsSortable({
     );
   }
 
-  // =========================
-  // MAIN
-  // =========================
-
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={
-        closestCenter
-      }
-      onDragEnd={
-        handleDragEnd
-      }
+      collisionDetection={closestCenter}
+      onDragEnd={handleDragEnd}
     >
       <SortableContext
         items={sections.map(
-          (group) =>
-            group.section
+          (group) => group.section
         )}
         strategy={
           verticalListSortingStrategy
         }
       >
-        <div className="space-y-12">
-          {sections.map(
-            (group) => (
-              <SortableSection
-                key={
-                  group.section
-                }
-                group={group}
-              />
-            )
-          )}
+        <div className="space-y-10">
+          {sections.map((group) => (
+            <SortableSection
+              key={group.section}
+              group={group}
+            />
+          ))}
         </div>
       </SortableContext>
     </DndContext>
   );
 }
-
-// =========================
-// SORTABLE SECTION
-// =========================
 
 function SortableSection({
   group,
@@ -201,7 +153,7 @@ function SortableSection({
     <section
       ref={setNodeRef}
       style={style}
-      className={`space-y-6 rounded-2xl ${
+      className={`space-y-6 ${
         isDragging
           ? "opacity-60"
           : "opacity-100"
@@ -209,30 +161,25 @@ function SortableSection({
     >
       {/* SECTION HEADER */}
 
-      <div className="sticky top-0 z-10 flex items-center gap-3 rounded-xl border border-slate-700 bg-slate-900/95 px-5 py-4 backdrop-blur">
+      <div className="sticky top-0 z-10 flex items-center gap-3 rounded-2xl border border-slate-700 bg-slate-900/95 px-5 py-4 backdrop-blur">
         <button
           type="button"
           {...attributes}
           {...listeners}
-          className="print:hidden cursor-grab rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm font-bold text-slate-200 active:cursor-grabbing"
+          className="cursor-grab rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm font-bold text-slate-200 active:cursor-grabbing"
         >
           ☰
         </button>
 
-        <h2 className="text-3xl font-bold text-teal-400">
+        <h2 className="text-4xl font-bold text-teal-400">
           {group.section}
         </h2>
       </div>
 
       {/* FINDINGS */}
 
-      {(group.findings ||
-        []).map(
+      {(group.findings || []).map(
         (finding: any) => {
-          // =========================
-          // IMAGE FALLBACK SYSTEM
-          // =========================
-
           const firstPhoto =
             finding.photos?.[0];
 
@@ -247,9 +194,7 @@ function SortableSection({
 
           return (
             <article
-              key={
-                finding.id
-              }
+              key={finding.id}
               className="overflow-hidden rounded-3xl border border-slate-700 bg-[#0f172a] shadow-2xl"
             >
               {/* IMAGE */}
@@ -270,35 +215,77 @@ function SortableSection({
 
                 {/* HEADER */}
 
-                <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
+                <div className="mb-5 flex flex-wrap items-start justify-between gap-5">
                   <div>
-                    <div className="mb-2 flex flex-wrap items-center gap-3">
-
-                      <span className="rounded-full border border-slate-700 bg-slate-800 px-3 py-1 text-xs font-bold uppercase tracking-wider text-slate-300">
-                        {
-                          finding.section
-                        }
+                    <div className="mb-3 flex flex-wrap items-center gap-3">
+                      <span className="rounded-full border border-slate-600 bg-slate-800 px-3 py-1 text-xs font-bold uppercase tracking-wide text-slate-200">
+                        {finding.section}
                       </span>
 
                       <SeverityBadge
                         severity={
                           finding.severity ||
-                          "Recommended Repair"
+                          "Informational"
                         }
                       />
                     </div>
 
-                    <h3 className="text-3xl font-bold text-teal-300">
+                    <h3 className="text-4xl font-bold text-teal-300">
                       {finding.title ||
                         "Untitled Finding"}
                     </h3>
                   </div>
 
                   <EditableFinding
-                    finding={
-                      finding
-                    }
+                    finding={finding}
                   />
+                </div>
+
+                {/* AI / REPAIR TOOLS */}
+
+                <div className="mt-6 rounded-2xl border border-teal-700 bg-gradient-to-r from-[#052b2b] to-[#071b35] p-5">
+
+                  <h4 className="mb-4 text-sm font-bold uppercase tracking-wider text-teal-300">
+                    AI / Repair Request Tools
+                  </h4>
+
+                  <div className="flex flex-wrap gap-3">
+
+                    <button className="min-w-[220px] rounded-xl bg-teal-500 px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-teal-400">
+                      AI Rewrite Softer
+                    </button>
+
+                    <button className="min-w-[220px] rounded-xl border border-slate-600 bg-slate-900 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-800">
+                      Add To Repair Request
+                    </button>
+
+                    <button className="min-w-[220px] rounded-xl border border-orange-500 bg-transparent px-5 py-3 text-sm font-bold text-orange-400 transition hover:bg-orange-500/10">
+                      Save Repair Request
+                    </button>
+
+                  </div>
+                </div>
+
+                {/* ACTION BUTTONS */}
+
+                <div className="mt-6 flex flex-wrap gap-3">
+
+                  <button className="min-w-[170px] rounded-xl bg-cyan-500 px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-cyan-400">
+                    Edit Finding
+                  </button>
+
+                  <button className="min-w-[170px] rounded-xl border border-cyan-500 bg-transparent px-5 py-3 text-sm font-bold text-cyan-300 transition hover:bg-cyan-500/10">
+                    Save to Library
+                  </button>
+
+                  <button className="min-w-[170px] rounded-xl bg-red-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-red-500">
+                    Delete Finding
+                  </button>
+
+                  <button className="min-w-[170px] rounded-xl border border-blue-500 bg-blue-500/10 px-5 py-3 text-sm font-bold text-blue-300 transition hover:bg-blue-500/20">
+                    Add Photos
+                  </button>
+
                 </div>
 
                 {/* OBSERVATION */}
@@ -306,9 +293,7 @@ function SortableSection({
                 {finding.observation && (
                   <ReportBlock
                     title="Observation"
-                    text={
-                      finding.observation
-                    }
+                    text={finding.observation}
                   />
                 )}
 
@@ -317,9 +302,7 @@ function SortableSection({
                 {finding.implication && (
                   <ReportBlock
                     title="Implication"
-                    text={
-                      finding.implication
-                    }
+                    text={finding.implication}
                   />
                 )}
 
@@ -339,16 +322,13 @@ function SortableSection({
                 {finding.comment && (
                   <ReportBlock
                     title="Additional Notes"
-                    text={
-                      finding.comment
-                    }
+                    text={finding.comment}
                   />
                 )}
 
                 {/* EXTRA PHOTOS */}
 
-                {finding.photos
-                  ?.length >
+                {finding.photos?.length >
                   1 && (
                   <div className="mt-8">
                     <h4 className="mb-4 text-lg font-bold text-slate-200">
@@ -368,20 +348,14 @@ function SortableSection({
                               photo.image_url ||
                               "";
 
-                            if (
-                              !imageSrc
-                            ) {
+                            if (!imageSrc) {
                               return null;
                             }
 
                             return (
                               <img
-                                key={
-                                  photo.id
-                                }
-                                src={
-                                  imageSrc
-                                }
+                                key={photo.id}
+                                src={imageSrc}
                                 alt="Finding Photo"
                                 className="max-h-[350px] w-full rounded-2xl border border-slate-700 object-cover"
                               />
@@ -400,10 +374,6 @@ function SortableSection({
   );
 }
 
-// =========================
-// REPORT BLOCK
-// =========================
-
 function ReportBlock({
   title,
   text,
@@ -413,7 +383,7 @@ function ReportBlock({
 }) {
   return (
     <div className="mt-8">
-      <h4 className="mb-3 text-xl font-bold text-white">
+      <h4 className="mb-3 text-2xl font-bold text-white">
         {title}
       </h4>
 
@@ -425,10 +395,6 @@ function ReportBlock({
     </div>
   );
 }
-
-// =========================
-// SEVERITY BADGE
-// =========================
 
 function SeverityBadge({
   severity,
