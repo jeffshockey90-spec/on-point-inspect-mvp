@@ -62,7 +62,7 @@ const INSPECTION_DETAILS_CHECKLIST = [
     type: "temperature",
     options: ["Fahrenheit (F)", "Celsius (C)"],
     defaults: ["Fahrenheit (F)"],
-    defaultValue: "56",
+    defaultValue: "",
   },
   {
     title: "Type of Building",
@@ -227,6 +227,10 @@ function SortableSection({
     transition,
   };
 
+  const [activeTab, setActiveTab] = useState<"Information" | "Limitations">(
+    "Information"
+  );
+
   const isInspectionDetails = group.section === "Inspection Details";
 
   return (
@@ -246,26 +250,58 @@ function SortableSection({
             {group.section}
           </h2>
         </div>
+
+        {isInspectionDetails && (
+          <div className="mt-3 flex gap-6 border-b border-slate-700">
+            <button
+              type="button"
+              onClick={() => setActiveTab("Information")}
+              className={`pb-2 text-sm font-bold ${
+                activeTab === "Information"
+                  ? "border-b-4 border-teal-400 text-white"
+                  : "text-slate-400"
+              }`}
+            >
+              Information
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab("Limitations")}
+              className={`pb-2 text-sm font-bold ${
+                activeTab === "Limitations"
+                  ? "border-b-4 border-teal-400 text-white"
+                  : "text-slate-400"
+              }`}
+            >
+              Limitations
+            </button>
+          </div>
+        )}
       </div>
 
-      {(group.findings || []).map((finding: any) => {
-        const checklist = INSPECTION_DETAILS_CHECKLIST.find(
-          (item) => item.title === finding.title
-        );
-
-        if (isInspectionDetails && checklist) {
-          return (
-            <ChecklistFindingCard
-              key={finding.id}
-              inspectionId={inspectionId}
-              finding={finding}
-              checklist={checklist}
-            />
+      {isInspectionDetails && activeTab === "Limitations" ? (
+        <InspectionLimitationsCard inspectionId={inspectionId} />
+      ) : (
+        (group.findings || []).map((finding: any) => {
+          const checklist = INSPECTION_DETAILS_CHECKLIST.find(
+            (item) => item.title === finding.title
           );
-        }
 
-        return <NormalFindingCard key={finding.id} finding={finding} />;
-      })}
+          if (isInspectionDetails && checklist) {
+            return (
+              <ChecklistFindingCard
+                key={finding.id}
+                inspectionId={inspectionId}
+                finding={finding}
+                checklist={checklist}
+              />
+            );
+          }
+
+          return <NormalFindingCard key={finding.id} finding={finding} />;
+        })
+      )}
     </section>
   );
 }
@@ -290,7 +326,7 @@ function ChecklistFindingCard({
   const [showOtherInput, setShowOtherInput] = useState(false);
   const [otherText, setOtherText] = useState("");
   const [temperatureValue, setTemperatureValue] = useState(
-    checklist.defaultValue || "56"
+    checklist.defaultValue || ""
   );
 
   useEffect(() => {
@@ -301,7 +337,9 @@ function ChecklistFindingCard({
     if (savedCustom) setCustomOptions(JSON.parse(savedCustom));
   }, [localStorageKey, customOptionsKey]);
 
-  const allOptions = [...checklist.options, ...customOptions];
+  const allOptions = [...checklist.options, ...customOptions].filter(
+    (option, index, array) => array.indexOf(option) === index
+  );
 
   function toggleOption(option: string) {
     setCheckedOptions((current) => {
@@ -433,6 +471,50 @@ function ChecklistFindingCard({
             + OTHER
           </button>
         )}
+      </div>
+    </article>
+  );
+}
+
+function InspectionLimitationsCard({ inspectionId }: { inspectionId: string }) {
+  const localStorageKey = `inspection-${inspectionId}-limitations-note`;
+
+  const [note, setNote] = useState("");
+
+  useEffect(() => {
+    setNote(localStorage.getItem(localStorageKey) || "");
+  }, [localStorageKey]);
+
+  function saveNote(value: string) {
+    setNote(value);
+    localStorage.setItem(localStorageKey, value);
+  }
+
+  return (
+    <article className="overflow-hidden rounded-xl border border-slate-700 bg-[#0f172a] text-slate-100 shadow-lg">
+      <div className="border-b border-slate-700 bg-slate-800/80 px-4 py-2">
+        <h3 className="text-sm font-bold text-teal-300">
+          Inspection Limitations
+        </h3>
+      </div>
+
+      <div className="p-4">
+        <textarea
+          value={note}
+          onChange={(e) => saveNote(e.target.value)}
+          rows={4}
+          placeholder="Example: Snow covered portions of roof, stored belongings limited access, utilities off, locked rooms, unsafe access, etc."
+          className="w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-slate-100 outline-none focus:border-teal-400"
+        />
+
+        <div className="mt-3 flex justify-end">
+          <button
+            type="button"
+            className="rounded-md border border-slate-600 px-3 py-1 text-xs font-bold text-slate-200 hover:bg-slate-800"
+          >
+            ✨ Edit with AI
+          </button>
+        </div>
       </div>
     </article>
   );
