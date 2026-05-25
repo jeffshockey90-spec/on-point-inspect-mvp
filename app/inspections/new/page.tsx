@@ -8,36 +8,19 @@ import { getCompanyId } from "../../../lib/getCompanyId";
 declare global {
   interface Window {
     google: any;
+    initGooglePlaces?: () => void;
   }
 }
 
 const timeOptions = [
-  "08:00",
-  "08:30",
-  "09:00",
-  "09:30",
-  "10:00",
-  "10:30",
-  "11:00",
-  "11:30",
-  "12:00",
-  "12:30",
-  "13:00",
-  "13:30",
-  "14:00",
-  "14:30",
-  "15:00",
-  "15:30",
-  "16:00",
-  "16:30",
-  "17:00",
+  "08:00", "08:30", "09:00", "09:30", "10:00", "10:30",
+  "11:00", "11:30", "12:00", "12:30", "13:00", "13:30",
+  "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00",
 ];
 
 function formatTime(value: string) {
   if (!value) return "";
-
   const [hour, minute] = value.split(":");
-
   const date = new Date();
   date.setHours(Number(hour), Number(minute));
 
@@ -49,10 +32,19 @@ function formatTime(value: string) {
 
 function calculateInspectionPrice(squareFeet: string) {
   const sqft = Number(squareFeet);
-
   if (!sqft || sqft <= 2000) return "500";
-
   return String(500 + Math.ceil((sqft - 2000) / 1000) * 50);
+}
+
+function getStreetViewImage(address: string, city: string, state: string, zip: string) {
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  const fullAddress = encodeURIComponent(
+    [address, city, state, zip].filter(Boolean).join(", ")
+  );
+
+  if (!apiKey || !fullAddress) return "";
+
+  return `https://maps.googleapis.com/maps/api/streetview?size=900x500&location=${fullAddress}&key=${apiKey}`;
 }
 
 export default function NewInspectionPage() {
@@ -96,34 +88,30 @@ export default function NewInspectionPage() {
   }, [squareFeet]);
 
   function loadGooglePlaces() {
+    window.initGooglePlaces = () => {
+      setupAutocomplete();
+    };
+
     if (window.google?.maps?.places) {
       setupAutocomplete();
       return;
     }
 
-    const existingScript = document.getElementById(
-      "google-places-script"
-    ) as HTMLScriptElement | null;
+    const existingScript = document.getElementById("google-places-script");
 
-    if (existingScript) {
-      existingScript.addEventListener("load", setupAutocomplete);
-
-      setTimeout(() => {
-        setupAutocomplete();
-      }, 500);
-
-      return;
-    }
+    if (existingScript) return;
 
     const script = document.createElement("script");
 
     script.id = "google-places-script";
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&loading=async&libraries=places&callback=initGooglePlaces`;
     script.async = true;
     script.defer = true;
 
-    script.onload = () => {
-      setupAutocomplete();
+    script.onerror = () => {
+      alert(
+        "Google address autocomplete failed to load. Check Maps JavaScript API, Places API, billing, API key, and website restrictions."
+      );
     };
 
     document.body.appendChild(script);
@@ -137,6 +125,9 @@ export default function NewInspectionPage() {
   ) {
     try {
       setLoadingProperty(true);
+
+      const streetViewUrl = getStreetViewImage(address, cityName, stateName, zipCode);
+      if (streetViewUrl) setPropertyImage(streetViewUrl);
 
       const res = await fetch("/api/property-lookup", {
         method: "POST",
@@ -166,24 +157,11 @@ export default function NewInspectionPage() {
         setPrice(calculateInspectionPrice(String(sqft)));
       }
 
-      const image =
-        data.property_image ||
-        data.image ||
-        data.photo ||
-        "";
+      const image = data.property_image || data.image || data.photo || "";
+      if (image) setPropertyImage(image);
 
-      if (image) {
-        setPropertyImage(image);
-      }
-
-      const built =
-        data.year_built ||
-        data.yearBuilt ||
-        "";
-
-      if (built) {
-        setYearBuilt(String(built));
-      }
+      const built = data.year_built || data.yearBuilt || "";
+      if (built) setYearBuilt(String(built));
 
       const style =
         data.propertyStyle ||
@@ -192,18 +170,10 @@ export default function NewInspectionPage() {
         data.house_style ||
         "";
 
-      if (style) {
-        setPropertyStyle(String(style));
-      }
+      if (style) setPropertyStyle(String(style));
 
-      const roof =
-        data.roof_style ||
-        data.roofStyle ||
-        "";
-
-      if (roof) {
-        setRoofStyle(String(roof));
-      }
+      const roof = data.roof_style || data.roofStyle || "";
+      if (roof) setRoofStyle(String(roof));
     } catch (error) {
       console.log("Property autofill skipped:", error);
     } finally {
@@ -226,9 +196,7 @@ export default function NewInspectionPage() {
       addressInputRef.current,
       {
         types: ["address"],
-        componentRestrictions: {
-          country: "us",
-        },
+        componentRestrictions: { country: "us" },
         fields: ["address_components", "formatted_address"],
       }
     );
@@ -247,58 +215,28 @@ export default function NewInspectionPage() {
       place.address_components.forEach((component: any) => {
         const types = component.types;
 
-        if (types.includes("street_number")) {
-          streetNumber = component.long_name;
-        }
-
-        if (types.includes("route")) {
-          route = component.long_name;
-        }
-
-        if (types.includes("locality")) {
-          locality = component.long_name;
-        }
-
-        if (types.includes("administrative_area_level_1")) {
-          adminArea = component.short_name;
-        }
-
-        if (types.includes("postal_code")) {
-          postalCode = component.long_name;
-        }
+        if (types.includes("street_number")) streetNumber = component.long_name;
+        if (types.includes("route")) route = component.long_name;
+        if (types.includes("locality")) locality = component.long_name;
+        if (types.includes("administrative_area_level_1")) adminArea = component.short_name;
+        if (types.includes("postal_code")) postalCode = component.long_name;
       });
 
       const streetAddress = `${streetNumber} ${route}`.trim();
-
-      const finalAddress =
-        streetAddress ||
-        place.formatted_address ||
-        "";
+      const finalAddress = streetAddress || place.formatted_address || "";
 
       setPropertyAddress(finalAddress);
       setCity(locality);
       setStateValue(adminArea || "MD");
       setZip(postalCode);
 
-      autofillPropertyDetails(
-        finalAddress,
-        locality,
-        adminArea || "MD",
-        postalCode
-      );
+      autofillPropertyDetails(finalAddress, locality, adminArea || "MD", postalCode);
     });
   }
 
   async function scheduleInspection() {
-    if (
-      !clientName ||
-      !propertyAddress ||
-      !inspectionDate ||
-      !inspectionTime
-    ) {
-      alert(
-        "Client name, address, date, and time are required."
-      );
+    if (!clientName || !propertyAddress || !inspectionDate || !inspectionTime) {
+      alert("Client name, address, date, and time are required.");
       return;
     }
 
@@ -344,35 +282,19 @@ export default function NewInspectionPage() {
             inspection_time: inspectionTime,
             inspection_status: "Scheduled",
 
-            square_feet: squareFeet
-              ? Number(squareFeet)
-              : null,
-
+            square_feet: squareFeet ? Number(squareFeet) : null,
             sqft: squareFeet || null,
-
-            price: price
-              ? Number(price)
-              : 500,
+            price: price ? Number(price) : 500,
 
             services,
             notes,
 
             year_built: yearBuilt || null,
-
-            property_style:
-              propertyStyle || null,
-
-            house_style:
-              propertyStyle || null,
-
-            roof_style:
-              roofStyle || null,
-
-            property_image:
-              propertyImage || null,
-
-            street_view_url:
-              propertyImage || null,
+            property_style: propertyStyle || null,
+            house_style: propertyStyle || null,
+            roof_style: roofStyle || null,
+            property_image: propertyImage || null,
+            street_view_url: propertyImage || null,
 
             report_status: "Draft",
             is_published: false,
@@ -407,83 +329,45 @@ export default function NewInspectionPage() {
 
         <section className="grid gap-5 lg:grid-cols-2">
           <Card title="Client Info">
-            <Input
-              value={clientName}
-              onChange={setClientName}
-              placeholder="Client Name"
-            />
-
-            <Input
-              value={clientEmail}
-              onChange={setClientEmail}
-              placeholder="Client Email"
-            />
-
-            <Input
-              value={clientPhone}
-              onChange={setClientPhone}
-              placeholder="Client Phone"
-            />
+            <Input value={clientName} onChange={setClientName} placeholder="Client Name" />
+            <Input value={clientEmail} onChange={setClientEmail} placeholder="Client Email" />
+            <Input value={clientPhone} onChange={setClientPhone} placeholder="Client Phone" />
           </Card>
 
           <Card title="Property Info">
             <input
               ref={addressInputRef}
               value={propertyAddress}
-              onChange={(e) =>
-                setPropertyAddress(e.target.value)
-              }
+              onChange={(e) => setPropertyAddress(e.target.value)}
               placeholder="Start typing property address..."
               autoComplete="off"
               className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white"
             />
 
+            <p className="text-xs text-zinc-500">
+              Start typing and select an address from the Google suggestions.
+            </p>
+
             <div className="grid gap-4 md:grid-cols-3">
-              <Input
-                value={city}
-                onChange={setCity}
-                placeholder="City"
-              />
-
-              <Input
-                value={stateValue}
-                onChange={setStateValue}
-                placeholder="State"
-              />
-
-              <Input
-                value={zip}
-                onChange={setZip}
-                placeholder="Zip"
-              />
+              <Input value={city} onChange={setCity} placeholder="City" />
+              <Input value={stateValue} onChange={setStateValue} placeholder="State" />
+              <Input value={zip} onChange={setZip} placeholder="Zip" />
             </div>
 
             <div className="grid gap-4 md:grid-cols-3">
-              <Input
-                value={yearBuilt}
-                onChange={setYearBuilt}
-                placeholder="Year Built"
-              />
-
-              <Input
-                value={propertyStyle}
-                onChange={setPropertyStyle}
-                placeholder="House Type / Style"
-              />
-
-              <Input
-                value={roofStyle}
-                onChange={setRoofStyle}
-                placeholder="Roof Style"
-              />
+              <Input value={yearBuilt} onChange={setYearBuilt} placeholder="Year Built" />
+              <Input value={propertyStyle} onChange={setPropertyStyle} placeholder="House Type / Style" />
+              <Input value={roofStyle} onChange={setRoofStyle} placeholder="Roof Style" />
             </div>
 
             {propertyImage && (
-              <img
-                src={propertyImage}
-                alt="Property preview"
-                className="max-h-80 w-full rounded-xl border border-zinc-700 object-cover"
-              />
+              <div className="overflow-hidden rounded-xl border border-zinc-700 bg-black">
+                <img
+                  src={propertyImage}
+                  alt="Property preview"
+                  className="max-h-80 w-full object-cover"
+                />
+              </div>
             )}
           </Card>
         </section>
@@ -501,48 +385,30 @@ export default function NewInspectionPage() {
 
               <select
                 value={inspectionDate}
-                onChange={(e) =>
-                  setInspectionDate(e.target.value)
-                }
+                onChange={(e) => setInspectionDate(e.target.value)}
                 className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white"
               >
-                <option value="">
-                  Select Date
-                </option>
+                <option value="">Select Date</option>
 
-                {Array.from({ length: 90 }).map(
-                  (_, i) => {
-                    const date = new Date();
+                {Array.from({ length: 90 }).map((_, i) => {
+                  const date = new Date();
+                  date.setDate(date.getDate() + i);
 
-                    date.setDate(
-                      date.getDate() + i
-                    );
+                  const value = date.toISOString().split("T")[0];
 
-                    const value = date
-                      .toISOString()
-                      .split("T")[0];
+                  const label = date.toLocaleDateString("en-US", {
+                    weekday: "short",
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  });
 
-                    const label =
-                      date.toLocaleDateString(
-                        "en-US",
-                        {
-                          weekday: "short",
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        }
-                      );
-
-                    return (
-                      <option
-                        key={value}
-                        value={value}
-                      >
-                        {label}
-                      </option>
-                    );
-                  }
-                )}
+                  return (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  );
+                })}
               </select>
             </div>
 
@@ -553,20 +419,13 @@ export default function NewInspectionPage() {
 
               <select
                 value={inspectionTime}
-                onChange={(e) =>
-                  setInspectionTime(e.target.value)
-                }
+                onChange={(e) => setInspectionTime(e.target.value)}
                 className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white"
               >
-                <option value="">
-                  Select Time
-                </option>
+                <option value="">Select Time</option>
 
                 {timeOptions.map((time) => (
-                  <option
-                    key={time}
-                    value={time}
-                  >
+                  <option key={time} value={time}>
                     {formatTime(time)}
                   </option>
                 ))}
@@ -576,18 +435,10 @@ export default function NewInspectionPage() {
             <Input
               value={squareFeet}
               onChange={setSquareFeet}
-              placeholder={
-                loadingProperty
-                  ? "Attempting property lookup..."
-                  : "Square Feet"
-              }
+              placeholder={loadingProperty ? "Attempting property lookup..." : "Square Feet"}
             />
 
-            <Input
-              value={price}
-              onChange={setPrice}
-              placeholder="Price"
-            />
+            <Input value={price} onChange={setPrice} placeholder="Price" />
           </div>
 
           <Input
@@ -599,9 +450,7 @@ export default function NewInspectionPage() {
 
           <textarea
             value={notes}
-            onChange={(e) =>
-              setNotes(e.target.value)
-            }
+            onChange={(e) => setNotes(e.target.value)}
             rows={4}
             placeholder="Notes"
             className="mt-4 w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white"
@@ -613,9 +462,7 @@ export default function NewInspectionPage() {
           disabled={saving}
           className="mt-6 w-full rounded-xl bg-teal-500 px-5 py-4 text-lg font-black text-black hover:bg-teal-400 disabled:opacity-50"
         >
-          {saving
-            ? "Creating..."
-            : "Create Inspection"}
+          {saving ? "Creating..." : "Create Inspection"}
         </button>
       </div>
     </main>
@@ -631,13 +478,8 @@ function Card({
 }) {
   return (
     <div className="rounded-2xl border border-zinc-800 bg-[#0b1220] p-5">
-      <h2 className="mb-4 text-xl font-bold text-teal-400">
-        {title}
-      </h2>
-
-      <div className="space-y-4">
-        {children}
-      </div>
+      <h2 className="mb-4 text-xl font-bold text-teal-400">{title}</h2>
+      <div className="space-y-4">{children}</div>
     </div>
   );
 }
@@ -656,9 +498,7 @@ function Input({
   return (
     <input
       value={value}
-      onChange={(e) =>
-        onChange(e.target.value)
-      }
+      onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       className={`w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white ${className}`}
     />
