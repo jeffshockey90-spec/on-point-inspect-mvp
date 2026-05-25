@@ -10,7 +10,9 @@ type PageProps = {
   }>;
 };
 
-export default async function ReportPage({ params }: PageProps) {
+export default async function ReportPage({
+  params,
+}: PageProps) {
   const { id } = await params;
 
   const cookieStore = await cookies();
@@ -25,13 +27,23 @@ export default async function ReportPage({ params }: PageProps) {
         },
 
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            cookieStore.set(name, value, options);
-          });
+          cookiesToSet.forEach(
+            ({ name, value, options }) => {
+              cookieStore.set(
+                name,
+                value,
+                options
+              );
+            }
+          );
         },
       },
     }
   );
+
+  // =========================
+  // AUTH
+  // =========================
 
   const {
     data: { user },
@@ -45,15 +57,20 @@ export default async function ReportPage({ params }: PageProps) {
   // LOAD INSPECTION
   // =========================
 
-  const { data: inspection, error: inspectionError } =
-    await supabase
-      .from("inspections")
-      .select("*")
-      .eq("id", id)
-      .eq("inspector_id", user.id)
-      .single();
+  const {
+    data: inspection,
+    error: inspectionError,
+  } = await supabase
+    .from("inspections")
+    .select("*")
+    .eq("id", id)
+    .eq("inspector_id", user.id)
+    .single();
 
-  if (inspectionError || !inspection) {
+  if (
+    inspectionError ||
+    !inspection
+  ) {
     redirect("/reports");
   }
 
@@ -61,14 +78,25 @@ export default async function ReportPage({ params }: PageProps) {
   // LOAD FINDINGS
   // =========================
 
-  const { data: findingsRaw, error: findingsError } =
-    await supabase
-      .from("findings")
-      .select("*")
-      .eq("inspection_id", inspection.id)
-      .order("section", { ascending: true })
-      .order("sort_order", { ascending: true })
-      .order("created_at", { ascending: true });
+  const {
+    data: findingsRaw,
+    error: findingsError,
+  } = await supabase
+    .from("findings")
+    .select("*")
+    .eq(
+      "inspection_id",
+      inspection.id
+    )
+    .order("section", {
+      ascending: true,
+    })
+    .order("sort_order", {
+      ascending: true,
+    })
+    .order("created_at", {
+      ascending: true,
+    });
 
   if (findingsError) {
     console.error(
@@ -81,18 +109,33 @@ export default async function ReportPage({ params }: PageProps) {
   // LOAD PHOTOS
   // =========================
 
-  const findingIds = (findingsRaw || []).map(
-    (finding: any) => finding.id
+  const findingIds = (
+    findingsRaw || []
+  ).map(
+    (finding: any) =>
+      finding.id
   );
 
-  const { data: photosRaw, error: photosError } =
+  const {
+    data: photosRaw,
+    error: photosError,
+  } =
     findingIds.length > 0
       ? await supabase
           .from("photos")
           .select("*")
-          .in("finding_id", findingIds)
-          .eq("inspection_id", inspection.id)
-      : { data: [], error: null };
+          .in(
+            "finding_id",
+            findingIds
+          )
+          .eq(
+            "inspection_id",
+            inspection.id
+          )
+      : {
+          data: [],
+          error: null,
+        };
 
   if (photosError) {
     console.error(
@@ -105,65 +148,98 @@ export default async function ReportPage({ params }: PageProps) {
   // CREATE SIGNED URLS
   // =========================
 
-  const photosWithSignedUrls = await Promise.all(
-    (photosRaw || []).map(async (photo: any) => {
-      const filePath =
-        photo.file_path ||
-        photo.storage_path ||
-        photo.path ||
-        photo.photo_path;
+  const photosWithSignedUrls =
+    await Promise.all(
+      (
+        photosRaw || []
+      ).map(
+        async (photo: any) => {
+          const filePath =
+            photo.file_path ||
+            photo.storage_path ||
+            photo.path ||
+            photo.photo_path;
 
-      if (!filePath) {
-        return {
-          ...photo,
-          url: null,
-          signed_url: null,
-        };
-      }
+          if (!filePath) {
+            return {
+              ...photo,
+              signed_url: null,
+            };
+          }
 
-      const cleanPath = String(filePath)
-        .replace(/^inspection-photos\//, "")
-        .replace(/^\/+/, "");
+          const cleanPath =
+            String(filePath)
+              .replace(
+                /^inspection-photos\//,
+                ""
+              )
+              .replace(
+                /^\/+/,
+                ""
+              );
 
-      const { data, error } = await supabase.storage
-        .from("inspection-photos")
-        .createSignedUrl(cleanPath, 60 * 60);
+          const {
+            data,
+            error,
+          } =
+            await supabase.storage
+              .from(
+                "inspection-photos"
+              )
+              .createSignedUrl(
+                cleanPath,
+                60 * 60
+              );
 
-      if (error) {
-        console.error(
-          "Signed URL error:",
-          error
-        );
-      }
+          if (error) {
+            console.error(
+              "Signed URL error:",
+              error
+            );
+          }
 
-      return {
-        ...photo,
-        url: data?.signedUrl || null,
-        signed_url:
-          data?.signedUrl || null,
-      };
-    })
-  );
+          return {
+            ...photo,
+            signed_url:
+              data?.signedUrl ||
+              null,
+          };
+        }
+      )
+    );
 
   // =========================
-  // GROUP PHOTOS BY FINDING
+  // GROUP PHOTOS
   // =========================
 
   const photosByFindingId =
     photosWithSignedUrls.reduce(
       (
-        acc: Record<string, any[]>,
+        acc: Record<
+          string,
+          any[]
+        >,
         photo: any
       ) => {
-        if (!photo.finding_id) {
+        if (
+          !photo.finding_id
+        ) {
           return acc;
         }
 
-        if (!acc[photo.finding_id]) {
-          acc[photo.finding_id] = [];
+        if (
+          !acc[
+            photo.finding_id
+          ]
+        ) {
+          acc[
+            photo.finding_id
+          ] = [];
         }
 
-        acc[photo.finding_id].push(photo);
+        acc[
+          photo.finding_id
+        ].push(photo);
 
         return acc;
       },
@@ -171,45 +247,61 @@ export default async function ReportPage({ params }: PageProps) {
     );
 
   // =========================
-  // ATTACH PHOTOS TO FINDINGS
+  // ATTACH PHOTOS
   // =========================
 
-  const findings = (findingsRaw || []).map(
+  const findings = (
+    findingsRaw || []
+  ).map(
     (finding: any) => ({
       ...finding,
       photos:
-        photosByFindingId[finding.id] || [],
+        photosByFindingId[
+          finding.id
+        ] || [],
     })
   );
 
   // =========================
-  // GROUP FINDINGS BY SECTION
+  // GROUP FINDINGS
   // =========================
 
-  const groupedFindings = findings.reduce(
-    (
-      acc: Record<string, any[]>,
-      finding: any
-    ) => {
-      const section =
-        finding.section || "General";
+  const groupedFindings =
+    findings.reduce(
+      (
+        acc: Record<
+          string,
+          any[]
+        >,
+        finding: any
+      ) => {
+        const section =
+          finding.section ||
+          "General";
 
-      if (!acc[section]) {
-        acc[section] = [];
-      }
+        if (!acc[section]) {
+          acc[section] = [];
+        }
 
-      acc[section].push(finding);
+        acc[section].push(
+          finding
+        );
 
-      return acc;
-    },
-    {}
-  );
+        return acc;
+      },
+      {}
+    );
 
   const groupedFindingsArray =
-    Object.entries(groupedFindings).map(
-      ([section, items]) => ({
+    Object.entries(
+      groupedFindings
+    ).map(
+      ([
         section,
-        items,
+        findings,
+      ]) => ({
+        section,
+        findings,
       })
     );
 
@@ -233,20 +325,27 @@ export default async function ReportPage({ params }: PageProps) {
             <div className="mt-2 text-sm text-slate-300">
               {inspection.city && (
                 <span>
-                  {inspection.city}
+                  {
+                    inspection.city
+                  }
                 </span>
               )}
 
               {inspection.state && (
                 <span>
-                  , {inspection.state}
+                  ,{" "}
+                  {
+                    inspection.state
+                  }
                 </span>
               )}
 
               {inspection.zip && (
                 <span>
                   {" "}
-                  {inspection.zip}
+                  {
+                    inspection.zip
+                  }
                 </span>
               )}
             </div>
@@ -316,11 +415,15 @@ export default async function ReportPage({ params }: PageProps) {
         {/* FINDINGS */}
 
         <ReportFindingsSortable
-          inspectionId={inspection.id}
+          inspectionId={
+            inspection.id
+          }
           groupedFindings={
             groupedFindingsArray
           }
-          allFindings={findings}
+          allFindings={
+            findings
+          }
         />
       </div>
     </main>
