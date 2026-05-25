@@ -3,128 +3,205 @@
 import { useEffect, useMemo, useState } from "react";
 import EditableFinding from "../../../components/EditableFinding";
 
-const INSPECTION_DETAILS_CHECKLIST = [
-  {
-    title: "In Attendance",
-    type: "checkbox",
-    options: [
-      "Client",
-      "Listing Agent",
-      "Home Owner",
-      "Client's Agent",
-      "Inspector",
-    ],
-    defaults: ["Client", "Inspector"],
-  },
-  {
-    title: "Occupancy",
-    type: "checkbox",
-    options: ["Furnished", "Occupied", "Vacant", "Utilities Off"],
-    defaults: ["Vacant"],
-  },
-  {
-    title: "Style",
-    type: "checkbox",
-    options: [
-      "Manufactured",
-      "Rambler",
-      "Modular",
-      "Ranch",
-      "Modern",
-      "Multi-level",
-      "Bungalow",
-      "Contemporary",
-      "Victorian",
-      "Colonial",
-      "Row House",
-      "Townhouse",
-    ],
-    defaults: ["Ranch"],
-  },
-  {
-    title: "Temperature",
-    type: "temperature",
-    options: ["Fahrenheit (F)", "Celsius (C)"],
-    defaults: ["Fahrenheit (F)"],
-  },
-  {
-    title: "Type of Building",
-    type: "checkbox",
-    options: [
-      "Multi-Family",
-      "Attached",
-      "Single Family",
-      "Condominium / Townhouse",
-      "Detached",
-    ],
-    defaults: ["Single Family"],
-  },
-  {
-    title: "Weather Conditions",
-    type: "checkbox",
-    options: [
-      "Snow",
-      "Dry",
-      "Cloudy",
-      "Hot",
-      "Heavy Rain",
-      "Clear",
-      "Light Rain",
-      "Humid",
-      "Recent Rain",
-    ],
-    defaults: ["Recent Rain"],
-  },
+const SECTION_CHECKLISTS: Record<string, any[]> = {
+  "Inspection Details": [
+    {
+      title: "In Attendance",
+      type: "checkbox",
+      options: ["Client", "Listing Agent", "Home Owner", "Client's Agent", "Inspector"],
+      defaults: ["Client", "Inspector"],
+    },
+    {
+      title: "Occupancy",
+      type: "checkbox",
+      options: ["Furnished", "Occupied", "Vacant", "Utilities Off"],
+      defaults: ["Vacant"],
+    },
+    {
+      title: "Style",
+      type: "checkbox",
+      options: [
+        "Manufactured",
+        "Rambler",
+        "Modular",
+        "Ranch",
+        "Modern",
+        "Multi-level",
+        "Bungalow",
+        "Contemporary",
+        "Victorian",
+        "Colonial",
+        "Row House",
+        "Townhouse",
+      ],
+      defaults: ["Ranch"],
+    },
+    {
+      title: "Temperature",
+      type: "temperature",
+      options: ["Fahrenheit (F)", "Celsius (C)"],
+      defaults: ["Fahrenheit (F)"],
+    },
+    {
+      title: "Type of Building",
+      type: "checkbox",
+      options: [
+        "Multi-Family",
+        "Attached",
+        "Single Family",
+        "Condominium / Townhouse",
+        "Detached",
+      ],
+      defaults: ["Single Family"],
+    },
+    {
+      title: "Weather Conditions",
+      type: "checkbox",
+      options: [
+        "Snow",
+        "Dry",
+        "Cloudy",
+        "Hot",
+        "Heavy Rain",
+        "Clear",
+        "Light Rain",
+        "Humid",
+        "Recent Rain",
+      ],
+      defaults: ["Recent Rain"],
+    },
+  ],
+
+  Exterior: [
+    {
+      title: "Inspection Method",
+      type: "checkbox",
+      options: ["Visual", "Infrared", "Attic Access", "Crawlspace Access"],
+      defaults: ["Visual"],
+    },
+    {
+      title: "Exterior Wall Covering",
+      type: "checkbox",
+      options: [
+        "Brick Veneer",
+        "Stone Veneer",
+        "Stucco",
+        "Vinyl Siding",
+        "Wood Siding",
+        "Fiber Cement Siding",
+        "Aluminum Siding",
+      ],
+      defaults: [],
+    },
+    {
+      title: "Driveway",
+      type: "checkbox",
+      options: ["Concrete", "Asphalt", "Gravel", "Pavers"],
+      defaults: [],
+    },
+    {
+      title: "Walkways",
+      type: "checkbox",
+      options: ["Concrete", "Pavers", "Brick", "Flagstone", "Gravel"],
+      defaults: [],
+    },
+    {
+      title: "Patio / Deck",
+      type: "checkbox",
+      options: ["Wood", "Composite", "Concrete", "Pavers", "Brick"],
+      defaults: [],
+    },
+    {
+      title: "Fencing",
+      type: "checkbox",
+      options: ["Wood", "Vinyl", "Chain Link", "Wrought Iron", "None"],
+      defaults: [],
+    },
+  ],
+};
+
+const SECTION_ORDER = [
+  "Inspection Details",
+  "Exterior",
+  "Roof",
+  "Basement, Foundation, Crawlspace & Structure",
+  "Heating",
+  "Cooling",
+  "Plumbing",
+  "Electrical",
+  "Attic, Insulation & Ventilation",
+  "Doors, Windows & Interior",
+  "Built-in Appliances",
+  "Garage",
 ];
 
 export default function ReportFindingsSortable({
   groupedFindings,
   inspectionId,
 }: any) {
-  const inspectionDetails = INSPECTION_DETAILS_CHECKLIST;
+  const orderedGroups = useMemo(() => {
+    const groups = groupedFindings || [];
+
+    return SECTION_ORDER.map((section) => {
+      const existing = groups.find((group: any) => group.section === section);
+
+      return {
+        section,
+        findings: existing?.findings || [],
+      };
+    });
+  }, [groupedFindings]);
 
   return (
-    <div className="space-y-5">
-      <section className="rounded-2xl border border-slate-700 bg-[#071224] shadow-xl overflow-hidden">
-        <div className="border-b border-slate-700 bg-slate-800/80 px-6 py-4">
-          <h2 className="text-2xl font-bold text-teal-400">
-            Inspection Details
-          </h2>
-        </div>
-
-        <div className="space-y-5 p-5">
-          {inspectionDetails.map((item) => (
-            <ChecklistCard
-              key={item.title}
-              item={item}
-              inspectionId={inspectionId}
-            />
-          ))}
-        </div>
-      </section>
-
-      {groupedFindings
-        ?.filter((group: any) => group.section !== "Inspection Details")
-        ?.map((group: any) => (
-          <div key={group.section} className="space-y-4">
-            <div className="rounded-xl border border-slate-700 bg-[#071224] p-4">
-              <h2 className="text-2xl font-bold text-teal-400">
-                {group.section}
-              </h2>
-            </div>
-
-            {group.findings?.map((finding: any) => (
-              <NormalFindingCard key={finding.id} finding={finding} />
-            ))}
-          </div>
-        ))}
+    <div className="space-y-6">
+      {orderedGroups.map((group: any) => (
+        <SectionBlock
+          key={group.section}
+          group={group}
+          inspectionId={inspectionId}
+        />
+      ))}
     </div>
   );
 }
 
-function ChecklistCard({ item, inspectionId }: any) {
-  const storageKey = `inspection-${inspectionId}-${item.title}`;
-  const customKey = `custom-options-${item.title}`;
+function SectionBlock({ group, inspectionId }: any) {
+  const checklist = SECTION_CHECKLISTS[group.section] || [];
+
+  const normalFindings =
+    group.findings?.filter(
+      (finding: any) =>
+        !checklist.some((item: any) => item.title === finding.title)
+    ) || [];
+
+  return (
+    <section className="overflow-hidden rounded-2xl border border-slate-700 bg-[#071224] shadow-xl">
+      <div className="border-b border-slate-700 bg-slate-800/80 px-6 py-4">
+        <h2 className="text-2xl font-bold text-teal-400">{group.section}</h2>
+      </div>
+
+      <div className="space-y-5 p-5">
+        {checklist.map((item: any) => (
+          <ChecklistCard
+            key={item.title}
+            item={item}
+            section={group.section}
+            inspectionId={inspectionId}
+          />
+        ))}
+
+        {normalFindings.map((finding: any) => (
+          <NormalFindingCard key={finding.id} finding={finding} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ChecklistCard({ item, section, inspectionId }: any) {
+  const storageKey = `inspection-${inspectionId}-${section}-${item.title}`;
+  const customKey = `custom-options-${section}-${item.title}`;
+  const temperatureKey = `temperature-${inspectionId}-${section}-${item.title}`;
 
   const [selected, setSelected] = useState<string[]>(item.defaults || []);
   const [customOptions, setCustomOptions] = useState<string[]>([]);
@@ -135,12 +212,16 @@ function ChecklistCard({ item, inspectionId }: any) {
   useEffect(() => {
     const saved = localStorage.getItem(storageKey);
     const savedCustom = localStorage.getItem(customKey);
+    const savedTemp = localStorage.getItem(temperatureKey);
 
     if (saved) setSelected(JSON.parse(saved));
     if (savedCustom) setCustomOptions(JSON.parse(savedCustom));
-  }, [storageKey, customKey]);
+    if (savedTemp) setTemperature(savedTemp);
+  }, [storageKey, customKey, temperatureKey]);
 
-  const allOptions = [...item.options, ...customOptions];
+  const allOptions = [...item.options, ...customOptions].filter(
+    (option, index, array) => array.indexOf(option) === index
+  );
 
   function toggleOption(option: string) {
     let updated: string[];
@@ -162,15 +243,20 @@ function ChecklistCard({ item, inspectionId }: any) {
 
     if (!cleaned) {
       setShowInput(false);
+      setOtherText("");
       return;
     }
 
-    const updated = [...customOptions, cleaned];
+    const updatedCustom = [...customOptions, cleaned].filter(
+      (option, index, array) => array.indexOf(option) === index
+    );
 
-    setCustomOptions(updated);
-    localStorage.setItem(customKey, JSON.stringify(updated));
+    setCustomOptions(updatedCustom);
+    localStorage.setItem(customKey, JSON.stringify(updatedCustom));
 
-    const selectedUpdated = [...selected, cleaned];
+    const selectedUpdated = selected.includes(cleaned)
+      ? selected
+      : [...selected, cleaned];
 
     setSelected(selectedUpdated);
     localStorage.setItem(storageKey, JSON.stringify(selectedUpdated));
@@ -189,7 +275,10 @@ function ChecklistCard({ item, inspectionId }: any) {
         {item.type === "temperature" && (
           <input
             value={temperature}
-            onChange={(e) => setTemperature(e.target.value)}
+            onChange={(e) => {
+              setTemperature(e.target.value);
+              localStorage.setItem(temperatureKey, e.target.value);
+            }}
             placeholder="Enter temperature"
             className="mb-6 w-full rounded-xl border border-slate-700 bg-[#020817] px-4 py-3 text-white outline-none focus:border-teal-400"
           />
@@ -202,7 +291,7 @@ function ChecklistCard({ item, inspectionId }: any) {
             return (
               <label
                 key={option}
-                className="flex min-w-[240px] items-center gap-4 text-white"
+                className="flex min-w-[210px] items-center gap-4 text-white"
               >
                 <input
                   type={item.type === "temperature" ? "radio" : "checkbox"}
@@ -225,10 +314,15 @@ function ChecklistCard({ item, inspectionId }: any) {
               onBlur={() => {
                 if (!otherText.trim()) {
                   setShowInput(false);
+                  setOtherText("");
                 }
               }}
               onKeyDown={(e) => {
                 if (e.key === "Enter") saveOther();
+                if (e.key === "Escape") {
+                  setShowInput(false);
+                  setOtherText("");
+                }
               }}
               autoFocus
               placeholder="Add other option..."
@@ -236,14 +330,17 @@ function ChecklistCard({ item, inspectionId }: any) {
             />
 
             <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
               onClick={saveOther}
-              className="rounded-xl bg-teal-400 px-5 py-3 font-bold text-slate-900"
+              className="rounded-xl bg-teal-400 px-5 py-3 font-bold text-slate-900 hover:bg-teal-300"
             >
               Save
             </button>
           </div>
         ) : (
           <button
+            type="button"
             onClick={() => setShowInput(true)}
             className="mt-6 text-lg font-semibold text-teal-300 hover:text-teal-200"
           >
