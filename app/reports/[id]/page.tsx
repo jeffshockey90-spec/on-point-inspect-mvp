@@ -2,7 +2,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
-import ReportFindingsSortable from "./ReportFindingsSortable";
 
 type PageProps = {
   params: Promise<{
@@ -87,16 +86,7 @@ export default async function ReportPage({
     .eq(
       "inspection_id",
       inspection.id
-    )
-    .order("section", {
-      ascending: true,
-    })
-    .order("sort_order", {
-      ascending: true,
-    })
-    .order("created_at", {
-      ascending: true,
-    });
+    );
 
   if (findingsError) {
     console.error(
@@ -127,10 +117,6 @@ export default async function ReportPage({
           .in(
             "finding_id",
             findingIds
-          )
-          .eq(
-            "inspection_id",
-            inspection.id
           )
       : {
           data: [],
@@ -321,34 +307,6 @@ export default async function ReportPage({
               {inspection.address ||
                 "Untitled Inspection"}
             </h1>
-
-            <div className="mt-2 text-sm text-slate-300">
-              {inspection.city && (
-                <span>
-                  {
-                    inspection.city
-                  }
-                </span>
-              )}
-
-              {inspection.state && (
-                <span>
-                  ,{" "}
-                  {
-                    inspection.state
-                  }
-                </span>
-              )}
-
-              {inspection.zip && (
-                <span>
-                  {" "}
-                  {
-                    inspection.zip
-                  }
-                </span>
-              )}
-            </div>
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -358,73 +316,24 @@ export default async function ReportPage({
             >
               Back to Reports
             </Link>
-
-            <Link
-              href={`/ai-capture?inspection_id=${inspection.id}`}
-              className="rounded-xl bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-cyan-400"
-            >
-              AI Capture
-            </Link>
-
-            <Link
-              href={`/equipment-analyzer?inspection_id=${inspection.id}`}
-              className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-emerald-400"
-            >
-              Equipment Analyzer
-            </Link>
           </div>
         </div>
 
-        {/* INFO CARDS */}
+        {/* DEBUG OUTPUT */}
 
-        <section className="mb-6 grid gap-4 md:grid-cols-3">
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
-            <p className="text-xs uppercase tracking-wide text-slate-500">
-              Client
-            </p>
-
-            <p className="mt-1 font-semibold text-white">
-              {inspection.client_name ||
-                "Not entered"}
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
-            <p className="text-xs uppercase tracking-wide text-slate-500">
-              Realtor
-            </p>
-
-            <p className="mt-1 font-semibold text-white">
-              {inspection.realtor_name ||
-                "Not entered"}
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
-            <p className="text-xs uppercase tracking-wide text-slate-500">
-              Inspection Date
-            </p>
-
-            <p className="mt-1 font-semibold text-white">
-              {inspection.inspection_date ||
-                "Not entered"}
-            </p>
-          </div>
-        </section>
-
-        {/* FINDINGS */}
-
-        <ReportFindingsSortable
-          inspectionId={
-            inspection.id
-          }
-          groupedFindings={
-            groupedFindingsArray
-          }
-          allFindings={
-            findings
-          }
-        />
+        <div className="rounded-xl bg-red-950 p-6 text-white">
+          <pre>
+            {JSON.stringify(
+              {
+                findingsRaw,
+                findings,
+                groupedFindingsArray,
+              },
+              null,
+              2
+            )}
+          </pre>
+        </div>
       </div>
     </main>
   );
