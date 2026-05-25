@@ -11,6 +11,17 @@ type PageProps = {
   }>;
 };
 
+function getStoragePathFromUrl(url: string | null | undefined) {
+  if (!url) return "";
+
+  const marker = "/inspection-photos/";
+  const index = url.indexOf(marker);
+
+  if (index === -1) return "";
+
+  return decodeURIComponent(url.substring(index + marker.length));
+}
+
 export default async function ReportPage({ params }: PageProps) {
   const { id } = await params;
   const cookieStore = await cookies();
@@ -76,14 +87,40 @@ export default async function ReportPage({ params }: PageProps) {
     console.error("Photos load error:", photosError);
   }
 
-  const photosWithUrls = (photosRaw || []).map((photo: any) => ({
-    ...photo,
-    signed_url:
-      photo.public_url ||
-      photo.image_url ||
-      photo.photo_url ||
-      null,
-  }));
+  const photosWithUrls = await Promise.all(
+    (photosRaw || []).map(async (photo: any) => {
+      const filePath =
+        photo.file_path ||
+        getStoragePathFromUrl(photo.public_url) ||
+        getStoragePathFromUrl(photo.image_url) ||
+        getStoragePathFromUrl(photo.photo_url);
+
+      if (!filePath) {
+        return {
+          ...photo,
+          signed_url:
+            photo.public_url ||
+            photo.image_url ||
+            photo.photo_url ||
+            null,
+        };
+      }
+
+      const { data, error } = await supabase.storage
+        .from("inspection-photos")
+        .createSignedUrl(filePath, 60 * 60);
+
+      return {
+        ...photo,
+        signed_url:
+          data?.signedUrl ||
+          photo.public_url ||
+          photo.image_url ||
+          photo.photo_url ||
+          null,
+      };
+    })
+  );
 
   const photosByFindingId = photosWithUrls.reduce(
     (acc: Record<string, any[]>, photo: any) => {
@@ -99,10 +136,29 @@ export default async function ReportPage({ params }: PageProps) {
     {}
   );
 
-  const findings = (findingsRaw || []).map((finding: any) => ({
-    ...finding,
-    photos: photosByFindingId[finding.id] || [],
-  }));
+  const findings = await Promise.all(
+    (findingsRaw || []).map(async (finding: any) => {
+      let signedImageUrl = finding.image_url || "";
+
+      const oldImagePath = getStoragePathFromUrl(finding.image_url);
+
+      if (oldImagePath) {
+        const { data, error } = await supabase.storage
+          .from("inspection-photos")
+          .createSignedUrl(oldImagePath, 60 * 60);
+
+        if (!error && data?.signedUrl) {
+          signedImageUrl = data.signedUrl;
+        }
+      }
+
+      return {
+        ...finding,
+        signed_image_url: signedImageUrl,
+        photos: photosByFindingId[finding.id] || [],
+      };
+    })
+  );
 
   const groupedFindings = findings.reduce(
     (acc: Record<string, any[]>, finding: any) => {
@@ -127,74 +183,128 @@ export default async function ReportPage({ params }: PageProps) {
 
   return (
     <main className="min-h-screen bg-[#020617] text-white">
-      <div className="mx-auto max-w-6xl px-4 py-6">
-        <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-slate-800 bg-slate-900/70 p-5 shadow-lg md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-sm text-slate-400">Inspection Report</p>
-
-            <h1 className="text-2xl font-bold text-white">
-              {inspection.address || "Untitled Inspection"}
-            </h1>
-
-            <p className="mt-2 text-sm text-slate-300">
-              {inspection.city}
-              {inspection.state ? `, ${inspection.state}` : ""}{" "}
-              {inspection.zip || ""}
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <Link
-              href="/reports"
-              className="rounded-xl border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-800"
+      <div className="mx-auto max-w-7xl px-6 py-8">
+        <div className="mb-8 rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
+          <div className="mb-8 flex flex-wrap gap-3">
+            <a
+              href="javascript:window.print()"
+              className="rounded-xl bg-black px-5 py-3 font-bold text-white hover:bg-slate-800"
             >
-              Back to Reports
+              Print / Save PDF
+            </a>
+
+            <a
+              href="javascript:window.print()"
+              className="rounded-xl bg-white px-5 py-3 font-bold text-black hover:bg-slate-200"
+            >
+              Export PDF
+            </a>
+
+            <Link
+              href={`/reports/${inspection.id}/summary`}
+              className="rounded-xl bg-purple-600 px-5 py-3 font-bold text-white hover:bg-purple-500"
+            >
+              Generate AI Summary
+            </Link>
+
+            <Link
+              href={`/share/${inspection.id}`}
+              className="rounded-xl bg-green-500 px-5 py-3 font-bold text-slate-950 hover:bg-green-400"
+            >
+              Publish Report
+            </Link>
+
+            <Link
+              href={`/share/${inspection.id}`}
+              className="rounded-xl border border-blue-500 px-5 py-3 font-bold text-blue-300 hover:bg-blue-500/10"
+            >
+              Copy Share Link
+            </Link>
+
+            <Link
+              href={`/client/${inspection.id}`}
+              className="rounded-xl border border-purple-500 px-5 py-3 font-bold text-purple-300 hover:bg-purple-500/10"
+            >
+              Send Report
+            </Link>
+
+            <Link
+              href={`/repair-request?inspection_id=${inspection.id}`}
+              className="rounded-xl bg-orange-600 px-5 py-3 font-bold text-white hover:bg-orange-500"
+            >
+              Repair Request Builder
+            </Link>
+
+            <Link
+              href={`/reports/${inspection.id}/summary`}
+              className="rounded-xl border border-cyan-500 px-5 py-3 font-bold text-cyan-300 hover:bg-cyan-500/10"
+            >
+              Realtor Summary
             </Link>
 
             <Link
               href={`/ai-capture?inspection_id=${inspection.id}`}
-              className="rounded-xl bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-cyan-400"
+              className="rounded-xl bg-teal-500 px-5 py-3 font-bold text-slate-950 hover:bg-teal-400"
             >
-              AI Capture
+              Open Full AI Capture
             </Link>
 
             <Link
               href={`/equipment-analyzer?inspection_id=${inspection.id}`}
-              className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-emerald-400"
+              className="rounded-xl border border-blue-500 px-5 py-3 font-bold text-blue-300 hover:bg-blue-500/10"
             >
               Equipment Analyzer
             </Link>
           </div>
+
+          <h1 className="text-5xl font-extrabold text-teal-400">
+            On Point Home Inspections
+          </h1>
+
+          <p className="mt-3 text-xl text-slate-200">
+            Residential Home Inspection Report
+          </p>
+
+          <div className="mt-8 border-t border-slate-700 pt-8">
+            <h2 className="text-2xl font-bold text-teal-400">
+              Inspection Details
+            </h2>
+
+            <div className="mt-6 grid gap-6 md:grid-cols-2">
+              <div>
+                <h3 className="mb-4 text-xl font-bold text-teal-300">
+                  Inspection Information
+                </h3>
+
+                <InfoItem label="Property Address" value={inspection.address} />
+                <InfoItem label="Client" value={inspection.client_name} />
+                <InfoItem label="Client Email" value={inspection.client_email} />
+                <InfoItem label="Realtor" value={inspection.realtor_name} />
+                <InfoItem
+                  label="Inspection Date"
+                  value={inspection.inspection_date}
+                />
+              </div>
+
+              <div>
+                <h3 className="mb-4 text-xl font-bold text-teal-300">
+                  Property / Site Information
+                </h3>
+
+                <InfoItem label="Square Feet" value={inspection.square_feet} />
+                <InfoItem label="House Style" value={inspection.house_style} />
+                <InfoItem label="Roof Style" value={inspection.roof_style} />
+                <InfoItem label="Garage" value={inspection.garage} />
+                <InfoItem
+                  label="Location"
+                  value={`${inspection.city || ""}, ${inspection.state || ""} ${
+                    inspection.zip || ""
+                  }`}
+                />
+              </div>
+            </div>
+          </div>
         </div>
-
-        <section className="mb-6 grid gap-4 md:grid-cols-3">
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
-            <p className="text-xs uppercase tracking-wide text-slate-500">
-              Client
-            </p>
-            <p className="mt-1 font-semibold text-white">
-              {inspection.client_name || "Not entered"}
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
-            <p className="text-xs uppercase tracking-wide text-slate-500">
-              Realtor
-            </p>
-            <p className="mt-1 font-semibold text-white">
-              {inspection.realtor_name || "Not entered"}
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
-            <p className="text-xs uppercase tracking-wide text-slate-500">
-              Inspection Date
-            </p>
-            <p className="mt-1 font-semibold text-white">
-              {inspection.inspection_date || "Not entered"}
-            </p>
-          </div>
-        </section>
 
         <ReportFindingsSortable
           inspectionId={String(inspection.id)}
@@ -203,5 +313,16 @@ export default async function ReportPage({ params }: PageProps) {
         />
       </div>
     </main>
+  );
+}
+
+function InfoItem({ label, value }: { label: string; value: any }) {
+  return (
+    <div className="mb-4">
+      <p className="mb-1 text-sm font-bold text-slate-400">{label}</p>
+      <div className="rounded-lg border border-slate-700 bg-[#020617] px-4 py-3 text-white">
+        {value || "Not entered"}
+      </div>
+    </div>
   );
 }
