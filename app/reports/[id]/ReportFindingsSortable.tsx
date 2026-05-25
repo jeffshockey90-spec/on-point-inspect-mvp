@@ -419,7 +419,7 @@ function ChecklistFindingCard({
                   className="h-4 w-4 shrink-0 cursor-pointer rounded border border-teal-500 bg-slate-950 accent-teal-400"
                 />
 
-                <span className="whitespace-nowrap leading-tight text-slate-200">
+                <span className="whitespace-normal break-normal leading-tight text-slate-200">
                   {option}
                 </span>
               </label>
