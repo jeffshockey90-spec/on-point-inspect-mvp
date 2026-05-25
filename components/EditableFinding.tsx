@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { supabase } from "../lib/supabaseClient";
 
 const SECTIONS = [
@@ -170,10 +171,7 @@ export default function EditableFinding({ finding }: { finding: any }) {
     const confirmed = confirm("Delete this finding?");
     if (!confirmed) return;
 
-    const { error } = await supabase
-      .from("findings")
-      .delete()
-      .eq("id", finding.id);
+    const { error } = await supabase.from("findings").delete().eq("id", finding.id);
 
     if (error) {
       alert(error.message);
@@ -260,6 +258,13 @@ export default function EditableFinding({ finding }: { finding: any }) {
           >
             Delete Finding
           </button>
+
+          <Link
+            href={`/ai-capture?inspection_id=${finding.inspection_id}`}
+            className="min-w-[170px] rounded-xl border border-blue-500 bg-blue-500/10 px-5 py-3 text-center text-sm font-bold text-blue-300 hover:bg-blue-500/20"
+          >
+            Add Photos
+          </Link>
         </div>
       </div>
     );
@@ -270,13 +275,38 @@ export default function EditableFinding({ finding }: { finding: any }) {
       <Input label="Title" value={title} onChange={setTitle} />
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Select label="Section" value={section} onChange={setSection} options={SECTIONS} />
-        <Select label="Severity" value={severity} onChange={setSeverity} options={SEVERITIES} />
+        <Select
+          label="Section"
+          value={section}
+          onChange={setSection}
+          options={SECTIONS}
+        />
+
+        <Select
+          label="Severity"
+          value={severity}
+          onChange={setSeverity}
+          options={SEVERITIES}
+        />
       </div>
 
-      <Textarea label="Observation" value={observation} onChange={setObservation} />
-      <Textarea label="Implication" value={implication} onChange={setImplication} />
-      <Textarea label="Recommendation" value={recommendation} onChange={setRecommendation} />
+      <Textarea
+        label="Observation"
+        value={observation}
+        onChange={setObservation}
+      />
+
+      <Textarea
+        label="Implication"
+        value={implication}
+        onChange={setImplication}
+      />
+
+      <Textarea
+        label="Recommendation"
+        value={recommendation}
+        onChange={setRecommendation}
+      />
 
       <div className="flex flex-wrap gap-3">
         <button
