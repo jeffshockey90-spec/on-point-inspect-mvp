@@ -9,12 +9,14 @@ import {
   useSensors,
   DragEndEvent,
 } from "@dnd-kit/core";
+
 import {
   SortableContext,
   verticalListSortingStrategy,
   arrayMove,
   useSortable,
 } from "@dnd-kit/sortable";
+
 import { CSS } from "@dnd-kit/utilities";
 
 import EditableFinding from "../../../components/EditableFinding";
@@ -29,16 +31,22 @@ const INSPECTION_DETAILS_CHECKLIST = [
       "Home Owner",
       "Client's Agent",
       "Inspector",
-      "OTHER",
     ],
     defaults: ["Client", "Inspector"],
   },
+
   {
     title: "Occupancy",
     type: "checkbox",
-    options: ["Furnished", "Occupied", "Vacant", "Utilities Off", "OTHER"],
+    options: [
+      "Furnished",
+      "Occupied",
+      "Vacant",
+      "Utilities Off",
+    ],
     defaults: ["Vacant"],
   },
+
   {
     title: "Style",
     type: "checkbox",
@@ -55,10 +63,10 @@ const INSPECTION_DETAILS_CHECKLIST = [
       "Colonial",
       "Row House",
       "Townhouse",
-      "OTHER",
     ],
     defaults: ["Ranch"],
   },
+
   {
     title: "Temperature",
     type: "temperature",
@@ -66,6 +74,7 @@ const INSPECTION_DETAILS_CHECKLIST = [
     defaults: ["Fahrenheit (F)"],
     defaultValue: "56",
   },
+
   {
     title: "Type of Building",
     type: "checkbox",
@@ -75,10 +84,10 @@ const INSPECTION_DETAILS_CHECKLIST = [
       "Single Family",
       "Condominium / Townhouse",
       "Detached",
-      "OTHER",
     ],
     defaults: ["Single Family"],
   },
+
   {
     title: "Weather Conditions",
     type: "checkbox",
@@ -92,7 +101,6 @@ const INSPECTION_DETAILS_CHECKLIST = [
       "Light Rain",
       "Humid",
       "Recent Rain",
-      "OTHER",
     ],
     defaults: ["Recent Rain"],
   },
@@ -106,8 +114,6 @@ export default function ReportFindingsSortable({
   groupedFindings: any[];
   allFindings: any[];
 }) {
-  const storageKey = `section-order-${inspectionId}`;
-
   const sectionsWithRequiredInspectionDetails = useMemo(() => {
     const baseSections = groupedFindings || [];
 
@@ -119,28 +125,31 @@ export default function ReportFindingsSortable({
       (group) => group.section !== "Inspection Details"
     );
 
-    const existingFindings = existingInspectionDetails?.findings || [];
+    const existingFindings =
+      existingInspectionDetails?.findings || [];
 
-    const requiredFindings = INSPECTION_DETAILS_CHECKLIST.map((item) => {
-      const existing = existingFindings.find(
-        (finding: any) => finding.title === item.title
-      );
+    const requiredFindings =
+      INSPECTION_DETAILS_CHECKLIST.map((item) => {
+        const existing = existingFindings.find(
+          (finding: any) =>
+            finding.title === item.title
+        );
 
-      return (
-        existing || {
-          id: `required-${item.title}`,
-          section: "Inspection Details",
-          title: item.title,
-          severity: "Informational",
-          observation: "",
-          implication: "",
-          recommendation: "",
-          comment: "",
-          photos: [],
-          is_virtual_required: true,
-        }
-      );
-    });
+        return (
+          existing || {
+            id: `required-${item.title}`,
+            section: "Inspection Details",
+            title: item.title,
+            severity: "Informational",
+            observation: "",
+            implication: "",
+            recommendation: "",
+            comment: "",
+            photos: [],
+            is_virtual_required: true,
+          }
+        );
+      });
 
     const extraFindings = existingFindings.filter(
       (finding: any) =>
@@ -152,8 +161,12 @@ export default function ReportFindingsSortable({
     return [
       {
         section: "Inspection Details",
-        findings: [...requiredFindings, ...extraFindings],
+        findings: [
+          ...requiredFindings,
+          ...extraFindings,
+        ],
       },
+
       ...otherSections,
     ];
   }, [groupedFindings]);
@@ -163,34 +176,45 @@ export default function ReportFindingsSortable({
   );
 
   useEffect(() => {
-    setSections(sectionsWithRequiredInspectionDetails);
+    setSections(
+      sectionsWithRequiredInspectionDetails
+    );
   }, [sectionsWithRequiredInspectionDetails]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: { distance: 8 },
+      activationConstraint: {
+        distance: 8,
+      },
     })
   );
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
 
-    if (!over || active.id === over.id) return;
+    if (!over || active.id === over.id)
+      return;
 
     setSections((items) => {
-      const oldIndex = items.findIndex((item) => item.section === active.id);
-      const newIndex = items.findIndex((item) => item.section === over.id);
-
-      if (oldIndex === -1 || newIndex === -1) return items;
-
-      const newOrder = arrayMove(items, oldIndex, newIndex);
-
-      localStorage.setItem(
-        storageKey,
-        JSON.stringify(newOrder.map((item) => item.section))
+      const oldIndex = items.findIndex(
+        (item) => item.section === active.id
       );
 
-      return newOrder;
+      const newIndex = items.findIndex(
+        (item) => item.section === over.id
+      );
+
+      if (
+        oldIndex === -1 ||
+        newIndex === -1
+      )
+        return items;
+
+      return arrayMove(
+        items,
+        oldIndex,
+        newIndex
+      );
     });
   }
 
@@ -201,10 +225,14 @@ export default function ReportFindingsSortable({
       onDragEnd={handleDragEnd}
     >
       <SortableContext
-        items={sections.map((group) => group.section)}
-        strategy={verticalListSortingStrategy}
+        items={sections.map(
+          (group) => group.section
+        )}
+        strategy={
+          verticalListSortingStrategy
+        }
       >
-        <div className="w-full max-w-full space-y-6 overflow-hidden">
+        <div className="space-y-6">
           {sections.map((group) => (
             <SortableSection
               key={group.section}
@@ -231,29 +259,24 @@ function SortableSection({
     setNodeRef,
     transform,
     transition,
-    isDragging,
   } = useSortable({
     id: group.section,
   });
 
   const style = {
-    transform: CSS.Transform.toString(transform),
+    transform:
+      CSS.Transform.toString(transform),
     transition,
   };
 
-  const [activeTab, setActiveTab] = useState<"Information" | "Limitations">(
-    "Information"
-  );
-
-  const isInspectionDetails = group.section === "Inspection Details";
+  const isInspectionDetails =
+    group.section === "Inspection Details";
 
   return (
     <section
       ref={setNodeRef}
       style={style}
-      className={`w-full max-w-full space-y-4 overflow-hidden ${
-        isDragging ? "opacity-60" : "opacity-100"
-      }`}
+      className="space-y-4"
     >
       <div className="sticky top-0 z-10 rounded-xl border border-slate-700 bg-slate-900/95 px-4 py-3 backdrop-blur">
         <div className="flex items-center gap-3">
@@ -261,52 +284,29 @@ function SortableSection({
             type="button"
             {...attributes}
             {...listeners}
-            className="cursor-grab rounded-lg border border-slate-600 bg-slate-800 px-3 py-1 text-sm font-bold text-slate-200 active:cursor-grabbing"
+            className="cursor-grab rounded-lg border border-slate-600 bg-slate-800 px-3 py-1 text-sm font-bold text-slate-200"
           >
             ☰
           </button>
 
-          <h2 className="text-2xl font-bold text-teal-400">{group.section}</h2>
+          <h2 className="text-2xl font-bold text-teal-400">
+            {group.section}
+          </h2>
         </div>
-
-        {isInspectionDetails && (
-          <div className="mt-3 flex gap-6 border-b border-slate-700">
-            <button
-              type="button"
-              onClick={() => setActiveTab("Information")}
-              className={`pb-2 text-sm font-bold ${
-                activeTab === "Information"
-                  ? "border-b-4 border-teal-400 text-white"
-                  : "text-slate-400"
-              }`}
-            >
-              Information
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab("Limitations")}
-              className={`pb-2 text-sm font-bold ${
-                activeTab === "Limitations"
-                  ? "border-b-4 border-teal-400 text-white"
-                  : "text-slate-400"
-              }`}
-            >
-              Limitations
-            </button>
-          </div>
-        )}
       </div>
 
-      {isInspectionDetails && activeTab === "Limitations" ? (
-        <InspectionLimitationsCard inspectionId={inspectionId} />
-      ) : (
-        (group.findings || []).map((finding: any) => {
-          const checklist = INSPECTION_DETAILS_CHECKLIST.find(
-            (item) => item.title === finding.title
-          );
+      {(group.findings || []).map(
+        (finding: any) => {
+          const checklist =
+            INSPECTION_DETAILS_CHECKLIST.find(
+              (item) =>
+                item.title === finding.title
+            );
 
-          if (isInspectionDetails && checklist) {
+          if (
+            isInspectionDetails &&
+            checklist
+          ) {
             return (
               <ChecklistFindingCard
                 key={finding.id}
@@ -317,8 +317,13 @@ function SortableSection({
             );
           }
 
-          return <NormalFindingCard key={finding.id} finding={finding} />;
-        })
+          return (
+            <NormalFindingCard
+              key={finding.id}
+              finding={finding}
+            />
+          );
+        }
       )}
     </section>
   );
@@ -333,85 +338,113 @@ function ChecklistFindingCard({
   finding: any;
   checklist: any;
 }) {
-  const localStorageKey = `inspection-${inspectionId}-checklist-${finding.title}`;
-  const customOptionsKey = `checklist-custom-options-${finding.title}`;
-  const tempStorageKey = `inspection-${inspectionId}-temperature-value`;
+  const localStorageKey = `inspection-${inspectionId}-${finding.title}`;
 
-  const [checkedOptions, setCheckedOptions] = useState<string[]>(
-    checklist.defaults || []
-  );
+  const customOptionsKey = `custom-options-${finding.title}`;
 
-  const [customOptions, setCustomOptions] = useState<string[]>([]);
-  const [showOtherInput, setShowOtherInput] = useState(false);
-  const [otherText, setOtherText] = useState("");
+  const [checkedOptions, setCheckedOptions] =
+    useState<string[]>(
+      checklist.defaults || []
+    );
 
-  const [temperatureValue, setTemperatureValue] = useState(
-    checklist.defaultValue || "56"
-  );
+  const [customOptions, setCustomOptions] =
+    useState<string[]>([]);
+
+  const [showOtherInput, setShowOtherInput] =
+    useState(false);
+
+  const [otherText, setOtherText] =
+    useState("");
+
+  const [temperatureValue, setTemperatureValue] =
+    useState(
+      checklist.defaultValue || "56"
+    );
 
   useEffect(() => {
-    const saved = localStorage.getItem(localStorageKey);
-    const savedCustomOptions = localStorage.getItem(customOptionsKey);
-    const savedTemp = localStorage.getItem(tempStorageKey);
+    const saved =
+      localStorage.getItem(
+        localStorageKey
+      );
+
+    const savedCustom =
+      localStorage.getItem(
+        customOptionsKey
+      );
 
     if (saved) {
-      setCheckedOptions(JSON.parse(saved));
+      setCheckedOptions(
+        JSON.parse(saved)
+      );
     }
 
-    if (savedCustomOptions) {
-      setCustomOptions(JSON.parse(savedCustomOptions));
+    if (savedCustom) {
+      setCustomOptions(
+        JSON.parse(savedCustom)
+      );
     }
+  }, [localStorageKey, customOptionsKey]);
 
-    if (savedTemp && checklist.type === "temperature") {
-      setTemperatureValue(savedTemp);
-    }
-  }, [localStorageKey, customOptionsKey, tempStorageKey, checklist.type]);
-
-  const allOptions = [...checklist.options, ...customOptions].filter(
-    (option, index, array) => array.indexOf(option) === index
-  );
+  const allOptions = [
+    ...checklist.options,
+    ...customOptions,
+  ];
 
   function toggleOption(option: string) {
     setCheckedOptions((current) => {
       let updated: string[];
 
-      if (checklist.type === "temperature") {
+      if (
+        checklist.type === "temperature"
+      ) {
         updated = [option];
       } else {
         updated = current.includes(option)
-          ? current.filter((item) => item !== option)
+          ? current.filter(
+              (item) => item !== option
+            )
           : [...current, option];
       }
 
-      localStorage.setItem(localStorageKey, JSON.stringify(updated));
+      localStorage.setItem(
+        localStorageKey,
+        JSON.stringify(updated)
+      );
 
       return updated;
     });
   }
 
-  function updateTemperature(value: string) {
-    setTemperatureValue(value);
-    localStorage.setItem(tempStorageKey, value);
-  }
-
   function saveOtherOption() {
-    const cleaned = otherText.trim();
+    const cleaned =
+      otherText.trim();
 
     if (!cleaned) return;
 
-    const updatedCustomOptions = [...customOptions, cleaned].filter(
-      (option, index, array) => array.indexOf(option) === index
+    const updated = [
+      ...customOptions,
+      cleaned,
+    ];
+
+    setCustomOptions(updated);
+
+    localStorage.setItem(
+      customOptionsKey,
+      JSON.stringify(updated)
     );
 
-    setCustomOptions(updatedCustomOptions);
-    localStorage.setItem(customOptionsKey, JSON.stringify(updatedCustomOptions));
-
     setCheckedOptions((current) => {
-      const updated = current.includes(cleaned) ? current : [...current, cleaned];
+      const next = [
+        ...current,
+        cleaned,
+      ];
 
-      localStorage.setItem(localStorageKey, JSON.stringify(updated));
+      localStorage.setItem(
+        localStorageKey,
+        JSON.stringify(next)
+      );
 
-      return updated;
+      return next;
     });
 
     setOtherText("");
@@ -419,95 +452,93 @@ function ChecklistFindingCard({
   }
 
   return (
-    <article className="w-full max-w-full overflow-hidden rounded-xl border border-slate-700 bg-[#0f172a] text-white shadow-lg">
-      <div className="flex flex-wrap items-center gap-3 border-b border-slate-700 bg-slate-800/80 px-4 py-2">
-        <h3 className="text-sm font-bold text-teal-300">{finding.title}</h3>
+    <article className="overflow-hidden rounded-xl border border-slate-700 bg-[#0f172a] text-white shadow-lg">
+      <div className="flex items-center gap-3 border-b border-slate-700 bg-slate-800/80 px-4 py-2">
+        <h3 className="text-sm font-bold text-teal-300">
+          {finding.title}
+        </h3>
 
-        <button
-          type="button"
-          className="text-xs text-slate-400 hover:text-white"
-          title="Edit"
-        >
+        <button className="text-xs text-slate-400 hover:text-white">
           ✎
         </button>
 
-        <button
-          type="button"
-          className="text-xs text-slate-400 hover:text-white"
-          title="Photos"
-        >
+        <button className="text-xs text-slate-400 hover:text-white">
           📷
         </button>
 
-        <button
-          type="button"
-          className="text-xs text-slate-400 hover:text-white"
-          title="Edit with AI"
-        >
+        <button className="text-xs text-slate-400 hover:text-white">
           ✨
         </button>
       </div>
 
-      <div className="w-full max-w-full overflow-hidden px-4 py-4">
-        {checklist.type === "temperature" && (
+      <div className="px-4 py-4">
+        {checklist.type ===
+          "temperature" && (
           <input
             value={temperatureValue}
-            onChange={(e) => updateTemperature(e.target.value)}
-            className="mb-4 w-full border-b border-slate-600 bg-transparent px-1 py-2 text-base text-white outline-none focus:border-teal-400"
-            placeholder="Enter temperature"
+            onChange={(e) =>
+              setTemperatureValue(
+                e.target.value
+              )
+            }
+            className="mb-4 w-full border-b border-slate-600 bg-transparent px-1 py-2 text-base text-white outline-none"
           />
         )}
 
-        <div className="grid w-full max-w-full grid-cols-1 gap-2 md:grid-cols-2">
-          {allOptions.map((option: string) => {
-            const isChecked = checkedOptions.includes(option);
+        <div className="grid grid-cols-1 gap-x-16 gap-y-3 md:grid-cols-2">
+          {allOptions.map(
+            (option: string) => {
+              const isChecked =
+                checkedOptions.includes(
+                  option
+                );
 
-            return (
-              <label
-                key={option}
-                className="flex min-w-0 max-w-full cursor-pointer items-start gap-3 rounded-lg px-2 py-1 text-sm text-slate-100 hover:bg-slate-800/80"
-              >
-                <input
-                  type={checklist.type === "temperature" ? "radio" : "checkbox"}
-                  checked={isChecked}
-                  onChange={() => toggleOption(option)}
-                  className="mt-0.5 h-4 w-4 shrink-0 accent-teal-500"
-                />
+              return (
+                <label
+                  key={option}
+                  className="flex items-center gap-3 rounded-lg px-2 py-1 text-sm text-slate-100 hover:bg-slate-800/80"
+                >
+                  <input
+                    type={
+                      checklist.type ===
+                      "temperature"
+                        ? "radio"
+                        : "checkbox"
+                    }
+                    checked={isChecked}
+                    onChange={() =>
+                      toggleOption(option)
+                    }
+                    className="h-4 w-4 shrink-0 accent-teal-500"
+                  />
 
-                <span className="min-w-0 max-w-full break-words leading-tight">
-                  {option}
-                </span>
-              </label>
-            );
-          })}
+                  <span className="whitespace-nowrap leading-tight">
+                    {option}
+                  </span>
+                </label>
+              );
+            }
+          )}
         </div>
 
         {showOtherInput && (
-          <div className="mt-4 flex flex-col gap-2 rounded-lg border border-slate-700 bg-[#020617] p-3 sm:flex-row">
+          <div className="mt-4 flex gap-2">
             <input
               value={otherText}
-              onChange={(e) => setOtherText(e.target.value)}
+              onChange={(e) =>
+                setOtherText(
+                  e.target.value
+                )
+              }
               placeholder="Add other option..."
-              className="min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:border-teal-400"
+              className="flex-1 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none"
             />
 
             <button
-              type="button"
               onClick={saveOtherOption}
-              className="rounded-lg bg-teal-500 px-4 py-2 text-sm font-bold text-slate-950 hover:bg-teal-400"
+              className="rounded-lg bg-teal-500 px-4 py-2 text-sm font-bold text-slate-950"
             >
               Save
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setShowOtherInput(false);
-                setOtherText("");
-              }}
-              className="rounded-lg border border-slate-600 px-4 py-2 text-sm font-bold text-slate-200 hover:bg-slate-800"
-            >
-              Cancel
             </button>
           </div>
         )}
@@ -515,7 +546,9 @@ function ChecklistFindingCard({
         {!showOtherInput && (
           <button
             type="button"
-            onClick={() => setShowOtherInput(true)}
+            onClick={() =>
+              setShowOtherInput(true)
+            }
             className="mt-4 text-sm font-medium text-teal-300 hover:text-teal-200"
           >
             + OTHER
@@ -526,185 +559,16 @@ function ChecklistFindingCard({
   );
 }
 
-function InspectionLimitationsCard({ inspectionId }: { inspectionId: string }) {
-  const localStorageKey = `inspection-${inspectionId}-limitations-note`;
-
-  const [note, setNote] = useState("");
-
-  useEffect(() => {
-    setNote(localStorage.getItem(localStorageKey) || "");
-  }, [localStorageKey]);
-
-  function saveNote(value: string) {
-    setNote(value);
-    localStorage.setItem(localStorageKey, value);
-  }
-
+function NormalFindingCard({
+  finding,
+}: {
+  finding: any;
+}) {
   return (
-    <article className="w-full max-w-full overflow-hidden rounded-xl border border-slate-700 bg-[#0f172a] text-white shadow-lg">
-      <div className="border-b border-slate-700 bg-slate-800/80 px-4 py-2">
-        <h3 className="text-sm font-bold text-teal-300">
-          Inspection Limitations
-        </h3>
-      </div>
-
-      <div className="p-4">
-        <textarea
-          value={note}
-          onChange={(e) => saveNote(e.target.value)}
-          rows={4}
-          placeholder="Example: Snow covered portions of roof, stored belongings limited access, utilities off, locked rooms, unsafe access, etc."
-          className="w-full rounded-lg border border-slate-700 bg-[#020617] px-4 py-3 text-sm text-white outline-none focus:border-teal-400"
-        />
-
-        <div className="mt-3 flex justify-end">
-          <button
-            type="button"
-            className="rounded-md border border-slate-600 px-3 py-1 text-xs font-bold text-slate-200 hover:bg-slate-800"
-          >
-            ✨ Edit with AI
-          </button>
-        </div>
-      </div>
-    </article>
-  );
-}
-
-function NormalFindingCard({ finding }: { finding: any }) {
-  const firstPhoto = finding.photos?.[0];
-
-  const mainImage =
-    finding.signed_image_url ||
-    finding.image_url ||
-    finding.public_image_url ||
-    firstPhoto?.signed_url ||
-    firstPhoto?.public_url ||
-    firstPhoto?.image_url ||
-    "";
-
-  return (
-    <article className="w-full max-w-full overflow-hidden rounded-2xl border border-slate-700 bg-[#0f172a] shadow-xl">
-      {mainImage && (
-        <div className="border-b border-slate-700 bg-black">
-          <img
-            src={mainImage}
-            alt="Finding"
-            className="max-h-[650px] w-full object-contain"
-          />
-        </div>
-      )}
-
+    <article className="overflow-hidden rounded-2xl border border-slate-700 bg-[#0f172a] shadow-xl">
       <div className="p-5 md:p-6">
-        <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <div className="mb-2 flex flex-wrap items-center gap-3">
-              <span className="rounded-full border border-slate-600 bg-slate-800 px-3 py-1 text-xs font-bold uppercase tracking-wide text-slate-200">
-                {finding.section || "General"}
-              </span>
-
-              <SeverityBadge severity={finding.severity || "Informational"} />
-            </div>
-
-            <h3 className="text-2xl font-bold text-teal-300">
-              {finding.title || "Untitled Finding"}
-            </h3>
-          </div>
-        </div>
-
         <EditableFinding finding={finding} />
-
-        {finding.observation && (
-          <ReportBlock title="Observation" text={finding.observation} />
-        )}
-
-        {finding.implication && (
-          <ReportBlock title="Implication" text={finding.implication} />
-        )}
-
-        {finding.recommendation && (
-          <ReportBlock title="Recommendation" text={finding.recommendation} />
-        )}
-
-        {finding.comment && (
-          <ReportBlock title="Additional Notes" text={finding.comment} />
-        )}
-
-        {finding.photos?.length > 1 && (
-          <div className="mt-6">
-            <h4 className="mb-3 text-base font-bold text-slate-200">
-              Additional Photos
-            </h4>
-
-            <div className="grid gap-3 md:grid-cols-2">
-              {finding.photos.slice(1).map((photo: any) => {
-                const imageSrc =
-                  photo.signed_url || photo.public_url || photo.image_url || "";
-
-                if (!imageSrc) return null;
-
-                return (
-                  <img
-                    key={photo.id || imageSrc}
-                    src={imageSrc}
-                    alt="Finding Photo"
-                    className="max-h-[300px] w-full rounded-xl border border-slate-700 object-cover"
-                  />
-                );
-              })}
-            </div>
-          </div>
-        )}
       </div>
     </article>
-  );
-}
-
-function ReportBlock({ title, text }: { title: string; text: string }) {
-  return (
-    <div className="mt-5">
-      <h4 className="mb-2 text-lg font-bold text-white">{title}</h4>
-
-      <div className="rounded-xl border border-slate-700 bg-slate-900/60 p-4">
-        <p className="whitespace-pre-line text-sm leading-7 text-slate-200">
-          {text}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function SeverityBadge({ severity }: { severity: string }) {
-  let classes = "bg-slate-700 text-slate-200 border-slate-600";
-
-  if (severity === "Safety Concern" || severity === "safety") {
-    classes = "bg-red-500/20 text-red-300 border-red-500/40";
-  }
-
-  if (severity === "Major Concern") {
-    classes = "bg-orange-500/20 text-orange-300 border-orange-500/40";
-  }
-
-  if (severity === "Recommended Repair" || severity === "recommendation") {
-    classes = "bg-yellow-500/20 text-yellow-300 border-yellow-500/40";
-  }
-
-  if (severity === "Maintenance") {
-    classes = "bg-blue-500/20 text-blue-300 border-blue-500/40";
-  }
-
-  if (severity === "Monitor") {
-    classes = "bg-purple-500/20 text-purple-300 border-purple-500/40";
-  }
-
-  if (severity === "info" || severity === "Informational") {
-    classes = "bg-cyan-500/20 text-cyan-300 border-cyan-500/40";
-  }
-
-  return (
-    <span
-      className={`rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-wide ${classes}`}
-    >
-      {severity}
-    </span>
   );
 }
