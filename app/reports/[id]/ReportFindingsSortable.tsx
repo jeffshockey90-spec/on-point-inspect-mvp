@@ -9,14 +9,12 @@ import {
   useSensors,
   DragEndEvent,
 } from "@dnd-kit/core";
-
 import {
   SortableContext,
   verticalListSortingStrategy,
   arrayMove,
   useSortable,
 } from "@dnd-kit/sortable";
-
 import { CSS } from "@dnd-kit/utilities";
 
 import EditableFinding from "../../../components/EditableFinding";
@@ -395,24 +393,24 @@ function ChecklistFindingCard({
         <h3 className="text-sm font-bold text-teal-300">{finding.title}</h3>
       </div>
 
-      <div className="px-3 py-3">
+      <div className="px-4 py-4">
         {checklist.type === "temperature" && (
           <input
             value={temperatureValue}
             onChange={(e) => setTemperatureValue(e.target.value)}
-            className="mb-3 w-full border-b border-slate-600 bg-transparent px-1 py-2 text-sm text-slate-100 outline-none focus:border-teal-400"
+            className="mb-4 w-full border-b border-slate-600 bg-transparent px-1 py-2 text-sm text-slate-100 outline-none focus:border-teal-400"
             placeholder="Enter temperature"
           />
         )}
 
-        <div className="grid grid-cols-2 gap-x-1 gap-y-1">
+        <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2 lg:grid-cols-4">
           {allOptions.map((option: string) => {
             const isChecked = checkedOptions.includes(option);
 
             return (
               <label
                 key={option}
-                className="flex items-center gap-1 rounded px-0 py-0.5 text-sm text-slate-200"
+                className="flex min-w-0 cursor-pointer items-center gap-2 rounded-lg px-2 py-1 text-sm text-slate-200 hover:bg-slate-800/80"
               >
                 <input
                   type={checklist.type === "temperature" ? "radio" : "checkbox"}
@@ -421,14 +419,16 @@ function ChecklistFindingCard({
                   className="h-4 w-4 shrink-0 cursor-pointer rounded border border-teal-500 bg-slate-950 accent-teal-400"
                 />
 
-                <span className="text-sm text-slate-200">{option}</span>
+                <span className="min-w-0 whitespace-normal break-words text-sm leading-tight text-slate-200">
+                  {option}
+                </span>
               </label>
             );
           })}
         </div>
 
         {showOtherInput && (
-          <div className="mt-3 flex gap-2">
+          <div className="mt-4 flex gap-2">
             <input
               value={otherText}
               onChange={(e) => setOtherText(e.target.value)}
@@ -466,7 +466,7 @@ function ChecklistFindingCard({
           <button
             type="button"
             onClick={() => setShowOtherInput(true)}
-            className="mt-3 text-sm font-medium text-teal-300 hover:text-teal-200"
+            className="mt-4 text-sm font-medium text-teal-300 hover:text-teal-200"
           >
             + OTHER
           </button>
