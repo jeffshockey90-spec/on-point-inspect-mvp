@@ -8,7 +8,6 @@ import { getCompanyId } from "../../../lib/getCompanyId";
 declare global {
   interface Window {
     google: any;
-    initGooglePlaces?: () => void;
   }
 }
 
@@ -34,12 +33,74 @@ const timeOptions = [
   "17:00",
 ];
 
+const DEFAULT_INSPECTION_DETAILS_FINDINGS = [
+  {
+    section: "Inspection Details",
+    title: "In Attendance",
+    observation:
+      "In attendance at the time of inspection: Client, Listing Agent, Home Owner, Client's Agent, Inspector, or Other.",
+    implication: "",
+    recommendation:
+      "Update this item as applicable to document who was present during the inspection.",
+    image_url: null,
+  },
+  {
+    section: "Inspection Details",
+    title: "Occupancy",
+    observation:
+      "Occupancy status at the time of inspection: Furnished, Occupied, Vacant, Utilities Off, or Other.",
+    implication: "",
+    recommendation:
+      "Update this item as applicable to document the occupancy and utility status observed during the inspection.",
+    image_url: null,
+  },
+  {
+    section: "Inspection Details",
+    title: "Style",
+    observation:
+      "Home style/type observed: Manufactured, Rambler, Modular, Ranch, Modern, Multi-level, Bungalow, Contemporary, Victorian, Colonial, Row House, Townhouse, or Other.",
+    implication: "",
+    recommendation:
+      "Update this item as applicable to document the observed home style.",
+    image_url: null,
+  },
+  {
+    section: "Inspection Details",
+    title: "Temperature",
+    observation:
+      "Approximate exterior temperature at the time of inspection should be documented.",
+    implication: "",
+    recommendation:
+      "Enter the approximate temperature observed during the inspection.",
+    image_url: null,
+  },
+  {
+    section: "Inspection Details",
+    title: "Type of Building",
+    observation:
+      "Building type observed: Multi-Family, Attached, Single Family, Condominium / Townhouse, Detached, or Other.",
+    implication: "",
+    recommendation:
+      "Update this item as applicable to document the building type.",
+    image_url: null,
+  },
+  {
+    section: "Inspection Details",
+    title: "Weather Conditions",
+    observation:
+      "Weather conditions at the time of inspection: Snow, Dry, Cloudy, Hot, Heavy Rain, Clear, Light Rain, Humid, Recent Rain, or Other.",
+    implication: "",
+    recommendation:
+      "Update this item as applicable to document weather conditions that may affect inspection visibility or limitations.",
+    image_url: null,
+  },
+];
+
 function formatTime(value: string) {
   if (!value) return "";
 
   const [hour, minute] = value.split(":");
   const date = new Date();
-
   date.setHours(Number(hour), Number(minute));
 
   return date.toLocaleTimeString("en-US", {
@@ -56,29 +117,10 @@ function calculateInspectionPrice(squareFeet: string) {
   return String(500 + Math.ceil((sqft - 2000) / 1000) * 50);
 }
 
-function getStreetViewImage(
-  address: string,
-  city: string,
-  state: string,
-  zip: string
-) {
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-
-  const fullAddress = encodeURIComponent(
-    [address, city, state, zip].filter(Boolean).join(", ")
-  );
-
-  if (!apiKey || !fullAddress) return "";
-
-  return `https://maps.googleapis.com/maps/api/streetview?size=900x500&location=${fullAddress}&key=${apiKey}`;
-}
-
 export default function NewInspectionPage() {
   const router = useRouter();
   const supabase = createClient();
-
   const addressInputRef = useRef<HTMLInputElement | null>(null);
-  const autocompleteInitialized = useRef(false);
 
   const [clientName, setClientName] = useState("");
   const [clientEmail, setClientEmail] = useState("");
@@ -107,10 +149,6 @@ export default function NewInspectionPage() {
 
   useEffect(() => {
     loadGooglePlaces();
-
-    return () => {
-      window.initGooglePlaces = undefined;
-    };
   }, []);
 
   useEffect(() => {
@@ -118,10 +156,6 @@ export default function NewInspectionPage() {
   }, [squareFeet]);
 
   function loadGooglePlaces() {
-    window.initGooglePlaces = () => {
-      setupAutocomplete();
-    };
-
     if (window.google?.maps?.places) {
       setupAutocomplete();
       return;
@@ -129,23 +163,15 @@ export default function NewInspectionPage() {
 
     const existingScript = document.getElementById("google-places-script");
 
-    if (existingScript) {
-      existingScript.addEventListener("load", setupAutocomplete);
-      return;
-    }
+    if (existingScript) return;
 
     const script = document.createElement("script");
 
     script.id = "google-places-script";
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places&callback=initGooglePlaces`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`;
     script.async = true;
     script.defer = true;
-
-    script.onerror = () => {
-      alert(
-        "Google address autocomplete failed to load. Check Maps JavaScript API, Places API, billing, API key, and website restrictions."
-      );
-    };
+    script.onload = setupAutocomplete;
 
     document.body.appendChild(script);
   }
@@ -158,17 +184,6 @@ export default function NewInspectionPage() {
   ) {
     try {
       setLoadingProperty(true);
-
-      const streetViewUrl = getStreetViewImage(
-        address,
-        cityName,
-        stateName,
-        zipCode
-      );
-
-      if (streetViewUrl) {
-        setPropertyImage(streetViewUrl);
-      }
 
       const res = await fetch("/api/property-lookup", {
         method: "POST",
@@ -200,15 +215,11 @@ export default function NewInspectionPage() {
 
       const image = data.property_image || data.image || data.photo || "";
 
-      if (image) {
-        setPropertyImage(image);
-      }
+      if (image) setPropertyImage(image);
 
       const built = data.year_built || data.yearBuilt || "";
 
-      if (built) {
-        setYearBuilt(String(built));
-      }
+      if (built) setYearBuilt(String(built));
 
       const style =
         data.propertyStyle ||
@@ -217,15 +228,11 @@ export default function NewInspectionPage() {
         data.house_style ||
         "";
 
-      if (style) {
-        setPropertyStyle(String(style));
-      }
+      if (style) setPropertyStyle(String(style));
 
       const roof = data.roof_style || data.roofStyle || "";
 
-      if (roof) {
-        setRoofStyle(String(roof));
-      }
+      if (roof) setRoofStyle(String(roof));
     } catch (error) {
       console.log("Property autofill skipped:", error);
     } finally {
@@ -234,23 +241,13 @@ export default function NewInspectionPage() {
   }
 
   function setupAutocomplete() {
-    if (
-      autocompleteInitialized.current ||
-      !addressInputRef.current ||
-      !window.google?.maps?.places
-    ) {
-      return;
-    }
-
-    autocompleteInitialized.current = true;
+    if (!addressInputRef.current || !window.google?.maps?.places) return;
 
     const autocomplete = new window.google.maps.places.Autocomplete(
       addressInputRef.current,
       {
         types: ["address"],
-        componentRestrictions: {
-          country: "us",
-        },
+        componentRestrictions: { country: "us" },
         fields: ["address_components", "formatted_address"],
       }
     );
@@ -381,6 +378,26 @@ export default function NewInspectionPage() {
         return;
       }
 
+      const defaultFindings = DEFAULT_INSPECTION_DETAILS_FINDINGS.map(
+        (finding) => ({
+          inspection_id: data.id,
+          inspector_id: user.id,
+          company_id: companyId,
+          ...finding,
+        })
+      );
+
+      const { error: defaultFindingsError } = await supabase
+        .from("findings")
+        .insert(defaultFindings);
+
+      if (defaultFindingsError) {
+        console.error(
+          "Default inspection details insert error:",
+          defaultFindingsError
+        );
+      }
+
       router.push(`/reports/${data.id}`);
     } finally {
       setSaving(false);
@@ -427,21 +444,18 @@ export default function NewInspectionPage() {
               value={propertyAddress}
               onChange={(e) => setPropertyAddress(e.target.value)}
               placeholder="Start typing property address..."
-              autoComplete="off"
               className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white"
             />
 
-            <p className="text-xs text-zinc-500">
-              Start typing and select an address from the Google suggestions.
-            </p>
-
             <div className="grid gap-4 md:grid-cols-3">
               <Input value={city} onChange={setCity} placeholder="City" />
+
               <Input
                 value={stateValue}
                 onChange={setStateValue}
                 placeholder="State"
               />
+
               <Input value={zip} onChange={setZip} placeholder="Zip" />
             </div>
 
@@ -451,11 +465,13 @@ export default function NewInspectionPage() {
                 onChange={setYearBuilt}
                 placeholder="Year Built"
               />
+
               <Input
                 value={propertyStyle}
                 onChange={setPropertyStyle}
                 placeholder="House Type / Style"
               />
+
               <Input
                 value={roofStyle}
                 onChange={setRoofStyle}
@@ -464,13 +480,11 @@ export default function NewInspectionPage() {
             </div>
 
             {propertyImage && (
-              <div className="overflow-hidden rounded-xl border border-zinc-700 bg-black">
-                <img
-                  src={propertyImage}
-                  alt="Property preview"
-                  className="max-h-80 w-full object-cover"
-                />
-              </div>
+              <img
+                src={propertyImage}
+                alt="Property preview"
+                className="max-h-80 w-full rounded-xl border border-zinc-700 object-cover"
+              />
             )}
           </Card>
         </section>
@@ -539,9 +553,7 @@ export default function NewInspectionPage() {
               value={squareFeet}
               onChange={setSquareFeet}
               placeholder={
-                loadingProperty
-                  ? "Attempting property lookup..."
-                  : "Square Feet"
+                loadingProperty ? "Attempting property lookup..." : "Square Feet"
               }
             />
 
