@@ -403,14 +403,14 @@ function ChecklistFindingCard({
           />
         )}
 
-        <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="flex flex-wrap gap-x-8 gap-y-3">
           {allOptions.map((option: string) => {
             const isChecked = checkedOptions.includes(option);
 
             return (
               <label
                 key={option}
-                className="flex min-w-0 cursor-pointer items-center gap-2 rounded-lg px-2 py-1 text-sm text-slate-200 hover:bg-slate-800/80"
+                className="flex min-w-[190px] max-w-[240px] cursor-pointer items-center gap-2 rounded-lg px-2 py-1 text-sm text-slate-200 hover:bg-slate-800/80"
               >
                 <input
                   type={checklist.type === "temperature" ? "radio" : "checkbox"}
@@ -419,7 +419,7 @@ function ChecklistFindingCard({
                   className="h-4 w-4 shrink-0 cursor-pointer rounded border border-teal-500 bg-slate-950 accent-teal-400"
                 />
 
-                <span className="min-w-0 whitespace-normal break-words text-sm leading-tight text-slate-200">
+                <span className="whitespace-nowrap text-sm leading-tight text-slate-200">
                   {option}
                 </span>
               </label>
