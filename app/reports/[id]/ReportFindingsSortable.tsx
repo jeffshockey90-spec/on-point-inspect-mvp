@@ -9,14 +9,12 @@ import {
   useSensors,
   DragEndEvent,
 } from "@dnd-kit/core";
-
 import {
   SortableContext,
   verticalListSortingStrategy,
   arrayMove,
   useSortable,
 } from "@dnd-kit/sortable";
-
 import { CSS } from "@dnd-kit/utilities";
 
 import EditableFinding from "../../../components/EditableFinding";
@@ -34,19 +32,12 @@ const INSPECTION_DETAILS_CHECKLIST = [
     ],
     defaults: ["Client", "Inspector"],
   },
-
   {
     title: "Occupancy",
     type: "checkbox",
-    options: [
-      "Furnished",
-      "Occupied",
-      "Vacant",
-      "Utilities Off",
-    ],
+    options: ["Furnished", "Occupied", "Vacant", "Utilities Off"],
     defaults: ["Vacant"],
   },
-
   {
     title: "Style",
     type: "checkbox",
@@ -66,7 +57,6 @@ const INSPECTION_DETAILS_CHECKLIST = [
     ],
     defaults: ["Ranch"],
   },
-
   {
     title: "Temperature",
     type: "temperature",
@@ -74,7 +64,6 @@ const INSPECTION_DETAILS_CHECKLIST = [
     defaults: ["Fahrenheit (F)"],
     defaultValue: "56",
   },
-
   {
     title: "Type of Building",
     type: "checkbox",
@@ -87,7 +76,6 @@ const INSPECTION_DETAILS_CHECKLIST = [
     ],
     defaults: ["Single Family"],
   },
-
   {
     title: "Weather Conditions",
     type: "checkbox",
@@ -125,31 +113,28 @@ export default function ReportFindingsSortable({
       (group) => group.section !== "Inspection Details"
     );
 
-    const existingFindings =
-      existingInspectionDetails?.findings || [];
+    const existingFindings = existingInspectionDetails?.findings || [];
 
-    const requiredFindings =
-      INSPECTION_DETAILS_CHECKLIST.map((item) => {
-        const existing = existingFindings.find(
-          (finding: any) =>
-            finding.title === item.title
-        );
+    const requiredFindings = INSPECTION_DETAILS_CHECKLIST.map((item) => {
+      const existing = existingFindings.find(
+        (finding: any) => finding.title === item.title
+      );
 
-        return (
-          existing || {
-            id: `required-${item.title}`,
-            section: "Inspection Details",
-            title: item.title,
-            severity: "Informational",
-            observation: "",
-            implication: "",
-            recommendation: "",
-            comment: "",
-            photos: [],
-            is_virtual_required: true,
-          }
-        );
-      });
+      return (
+        existing || {
+          id: `required-${item.title}`,
+          section: "Inspection Details",
+          title: item.title,
+          severity: "Informational",
+          observation: "",
+          implication: "",
+          recommendation: "",
+          comment: "",
+          photos: [],
+          is_virtual_required: true,
+        }
+      );
+    });
 
     const extraFindings = existingFindings.filter(
       (finding: any) =>
@@ -161,12 +146,8 @@ export default function ReportFindingsSortable({
     return [
       {
         section: "Inspection Details",
-        findings: [
-          ...requiredFindings,
-          ...extraFindings,
-        ],
+        findings: [...requiredFindings, ...extraFindings],
       },
-
       ...otherSections,
     ];
   }, [groupedFindings]);
@@ -176,45 +157,27 @@ export default function ReportFindingsSortable({
   );
 
   useEffect(() => {
-    setSections(
-      sectionsWithRequiredInspectionDetails
-    );
+    setSections(sectionsWithRequiredInspectionDetails);
   }, [sectionsWithRequiredInspectionDetails]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
+      activationConstraint: { distance: 8 },
     })
   );
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
 
-    if (!over || active.id === over.id)
-      return;
+    if (!over || active.id === over.id) return;
 
     setSections((items) => {
-      const oldIndex = items.findIndex(
-        (item) => item.section === active.id
-      );
+      const oldIndex = items.findIndex((item) => item.section === active.id);
+      const newIndex = items.findIndex((item) => item.section === over.id);
 
-      const newIndex = items.findIndex(
-        (item) => item.section === over.id
-      );
+      if (oldIndex === -1 || newIndex === -1) return items;
 
-      if (
-        oldIndex === -1 ||
-        newIndex === -1
-      )
-        return items;
-
-      return arrayMove(
-        items,
-        oldIndex,
-        newIndex
-      );
+      return arrayMove(items, oldIndex, newIndex);
     });
   }
 
@@ -225,12 +188,8 @@ export default function ReportFindingsSortable({
       onDragEnd={handleDragEnd}
     >
       <SortableContext
-        items={sections.map(
-          (group) => group.section
-        )}
-        strategy={
-          verticalListSortingStrategy
-        }
+        items={sections.map((group) => group.section)}
+        strategy={verticalListSortingStrategy}
       >
         <div className="space-y-6">
           {sections.map((group) => (
@@ -264,20 +223,14 @@ function SortableSection({
   });
 
   const style = {
-    transform:
-      CSS.Transform.toString(transform),
+    transform: CSS.Transform.toString(transform),
     transition,
   };
 
-  const isInspectionDetails =
-    group.section === "Inspection Details";
+  const isInspectionDetails = group.section === "Inspection Details";
 
   return (
-    <section
-      ref={setNodeRef}
-      style={style}
-      className="space-y-4"
-    >
+    <section ref={setNodeRef} style={style} className="space-y-4">
       <div className="sticky top-0 z-10 rounded-xl border border-slate-700 bg-slate-900/95 px-4 py-3 backdrop-blur">
         <div className="flex items-center gap-3">
           <button
@@ -295,36 +248,24 @@ function SortableSection({
         </div>
       </div>
 
-      {(group.findings || []).map(
-        (finding: any) => {
-          const checklist =
-            INSPECTION_DETAILS_CHECKLIST.find(
-              (item) =>
-                item.title === finding.title
-            );
+      {(group.findings || []).map((finding: any) => {
+        const checklist = INSPECTION_DETAILS_CHECKLIST.find(
+          (item) => item.title === finding.title
+        );
 
-          if (
-            isInspectionDetails &&
-            checklist
-          ) {
-            return (
-              <ChecklistFindingCard
-                key={finding.id}
-                inspectionId={inspectionId}
-                finding={finding}
-                checklist={checklist}
-              />
-            );
-          }
-
+        if (isInspectionDetails && checklist) {
           return (
-            <NormalFindingCard
+            <ChecklistFindingCard
               key={finding.id}
+              inspectionId={inspectionId}
               finding={finding}
+              checklist={checklist}
             />
           );
         }
-      )}
+
+        return <NormalFindingCard key={finding.id} finding={finding} />;
+      })}
     </section>
   );
 }
@@ -339,112 +280,69 @@ function ChecklistFindingCard({
   checklist: any;
 }) {
   const localStorageKey = `inspection-${inspectionId}-${finding.title}`;
-
   const customOptionsKey = `custom-options-${finding.title}`;
 
-  const [checkedOptions, setCheckedOptions] =
-    useState<string[]>(
-      checklist.defaults || []
-    );
+  const [checkedOptions, setCheckedOptions] = useState<string[]>(
+    checklist.defaults || []
+  );
 
-  const [customOptions, setCustomOptions] =
-    useState<string[]>([]);
-
-  const [showOtherInput, setShowOtherInput] =
-    useState(false);
-
-  const [otherText, setOtherText] =
-    useState("");
-
-  const [temperatureValue, setTemperatureValue] =
-    useState(
-      checklist.defaultValue || "56"
-    );
+  const [customOptions, setCustomOptions] = useState<string[]>([]);
+  const [showOtherInput, setShowOtherInput] = useState(false);
+  const [otherText, setOtherText] = useState("");
+  const [temperatureValue, setTemperatureValue] = useState(
+    checklist.defaultValue || "56"
+  );
 
   useEffect(() => {
-    const saved =
-      localStorage.getItem(
-        localStorageKey
-      );
+    const saved = localStorage.getItem(localStorageKey);
+    const savedCustom = localStorage.getItem(customOptionsKey);
 
-    const savedCustom =
-      localStorage.getItem(
-        customOptionsKey
-      );
-
-    if (saved) {
-      setCheckedOptions(
-        JSON.parse(saved)
-      );
-    }
-
-    if (savedCustom) {
-      setCustomOptions(
-        JSON.parse(savedCustom)
-      );
-    }
+    if (saved) setCheckedOptions(JSON.parse(saved));
+    if (savedCustom) setCustomOptions(JSON.parse(savedCustom));
   }, [localStorageKey, customOptionsKey]);
 
-  const allOptions = [
-    ...checklist.options,
-    ...customOptions,
-  ];
+  const allOptions = [...checklist.options, ...customOptions];
 
   function toggleOption(option: string) {
     setCheckedOptions((current) => {
       let updated: string[];
 
-      if (
-        checklist.type === "temperature"
-      ) {
+      if (checklist.type === "temperature") {
         updated = [option];
       } else {
         updated = current.includes(option)
-          ? current.filter(
-              (item) => item !== option
-            )
+          ? current.filter((item) => item !== option)
           : [...current, option];
       }
 
-      localStorage.setItem(
-        localStorageKey,
-        JSON.stringify(updated)
-      );
-
+      localStorage.setItem(localStorageKey, JSON.stringify(updated));
       return updated;
     });
   }
 
   function saveOtherOption() {
-    const cleaned =
-      otherText.trim();
+    const cleaned = otherText.trim();
 
-    if (!cleaned) return;
+    if (!cleaned) {
+      setShowOtherInput(false);
+      setOtherText("");
+      return;
+    }
 
-    const updated = [
-      ...customOptions,
-      cleaned,
-    ];
-
-    setCustomOptions(updated);
-
-    localStorage.setItem(
-      customOptionsKey,
-      JSON.stringify(updated)
+    const updatedCustom = [...customOptions, cleaned].filter(
+      (option, index, array) => array.indexOf(option) === index
     );
 
+    setCustomOptions(updatedCustom);
+    localStorage.setItem(customOptionsKey, JSON.stringify(updatedCustom));
+
     setCheckedOptions((current) => {
-      const next = [
-        ...current,
-        cleaned,
-      ];
+      const updatedChecked = current.includes(cleaned)
+        ? current
+        : [...current, cleaned];
 
-      localStorage.setItem(
-        localStorageKey,
-        JSON.stringify(next)
-      );
-
-      return next;
+      localStorage.setItem(localStorageKey, JSON.stringify(updatedChecked));
+      return updatedChecked;
     });
 
     setOtherText("");
@@ -452,91 +350,74 @@ function ChecklistFindingCard({
   }
 
   return (
-    <article className="overflow-hidden rounded-xl border border-slate-700 bg-[#0f172a] text-white shadow-lg">
-      <div className="flex items-center gap-3 border-b border-slate-700 bg-slate-800/80 px-4 py-2">
-        <h3 className="text-sm font-bold text-teal-300">
-          {finding.title}
-        </h3>
-
-        <button className="text-xs text-slate-400 hover:text-white">
-          ✎
-        </button>
-
-        <button className="text-xs text-slate-400 hover:text-white">
-          📷
-        </button>
-
-        <button className="text-xs text-slate-400 hover:text-white">
-          ✨
-        </button>
+    <article className="overflow-hidden rounded-xl border border-slate-700 bg-[#0f172a] text-slate-100 shadow-lg">
+      <div className="border-b border-slate-700 bg-slate-800/80 px-4 py-2">
+        <h3 className="text-sm font-bold text-teal-300">{finding.title}</h3>
       </div>
 
       <div className="px-4 py-4">
-        {checklist.type ===
-          "temperature" && (
+        {checklist.type === "temperature" && (
           <input
             value={temperatureValue}
-            onChange={(e) =>
-              setTemperatureValue(
-                e.target.value
-              )
-            }
-            className="mb-4 w-full border-b border-slate-600 bg-transparent px-1 py-2 text-base text-white outline-none"
+            onChange={(e) => setTemperatureValue(e.target.value)}
+            className="mb-4 w-full border-b border-slate-600 bg-transparent px-1 py-2 text-base text-slate-100 outline-none focus:border-teal-400"
+            placeholder="Enter temperature"
           />
         )}
 
         <div className="grid grid-cols-1 gap-x-16 gap-y-3 md:grid-cols-2">
-          {allOptions.map(
-            (option: string) => {
-              const isChecked =
-                checkedOptions.includes(
-                  option
-                );
+          {allOptions.map((option: string) => {
+            const isChecked = checkedOptions.includes(option);
 
-              return (
-                <label
-                  key={option}
-                  className="flex items-center gap-3 rounded-lg px-2 py-1 text-sm text-slate-100 hover:bg-slate-800/80"
-                >
-                  <input
-                    type={
-                      checklist.type ===
-                      "temperature"
-                        ? "radio"
-                        : "checkbox"
-                    }
-                    checked={isChecked}
-                    onChange={() =>
-                      toggleOption(option)
-                    }
-                    className="h-4 w-4 shrink-0 accent-teal-500"
-                  />
+            return (
+              <label
+                key={option}
+                className="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-1 text-sm text-slate-200 hover:bg-slate-800/80"
+              >
+                <input
+                  type={checklist.type === "temperature" ? "radio" : "checkbox"}
+                  checked={isChecked}
+                  onChange={() => toggleOption(option)}
+                  className="h-4 w-4 shrink-0 cursor-pointer rounded border border-teal-500 bg-slate-950 accent-teal-400"
+                />
 
-                  <span className="whitespace-nowrap leading-tight">
-                    {option}
-                  </span>
-                </label>
-              );
-            }
-          )}
+                <span className="whitespace-nowrap leading-tight text-slate-200">
+                  {option}
+                </span>
+              </label>
+            );
+          })}
         </div>
 
         {showOtherInput && (
           <div className="mt-4 flex gap-2">
             <input
               value={otherText}
-              onChange={(e) =>
-                setOtherText(
-                  e.target.value
-                )
-              }
+              onChange={(e) => setOtherText(e.target.value)}
+              onBlur={() => {
+                if (!otherText.trim()) {
+                  setShowOtherInput(false);
+                  setOtherText("");
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") saveOtherOption();
+
+                if (e.key === "Escape") {
+                  setShowOtherInput(false);
+                  setOtherText("");
+                }
+              }}
+              autoFocus
               placeholder="Add other option..."
-              className="flex-1 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none"
+              className="flex-1 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-teal-400"
             />
 
             <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
               onClick={saveOtherOption}
-              className="rounded-lg bg-teal-500 px-4 py-2 text-sm font-bold text-slate-950"
+              className="rounded-lg bg-teal-500 px-4 py-2 text-sm font-bold text-slate-950 hover:bg-teal-400"
             >
               Save
             </button>
@@ -546,9 +427,7 @@ function ChecklistFindingCard({
         {!showOtherInput && (
           <button
             type="button"
-            onClick={() =>
-              setShowOtherInput(true)
-            }
+            onClick={() => setShowOtherInput(true)}
             className="mt-4 text-sm font-medium text-teal-300 hover:text-teal-200"
           >
             + OTHER
@@ -559,16 +438,63 @@ function ChecklistFindingCard({
   );
 }
 
-function NormalFindingCard({
-  finding,
-}: {
-  finding: any;
-}) {
+function NormalFindingCard({ finding }: { finding: any }) {
+  const firstPhoto = finding.photos?.[0];
+
+  const mainImage =
+    finding.signed_image_url ||
+    finding.image_url ||
+    finding.public_image_url ||
+    firstPhoto?.signed_url ||
+    firstPhoto?.public_url ||
+    firstPhoto?.image_url ||
+    "";
+
   return (
     <article className="overflow-hidden rounded-2xl border border-slate-700 bg-[#0f172a] shadow-xl">
+      {mainImage && (
+        <div className="border-b border-slate-700 bg-black">
+          <img
+            src={mainImage}
+            alt="Finding"
+            className="max-h-[650px] w-full object-contain"
+          />
+        </div>
+      )}
+
       <div className="p-5 md:p-6">
         <EditableFinding finding={finding} />
+
+        {finding.observation && (
+          <ReportBlock title="Observation" text={finding.observation} />
+        )}
+
+        {finding.implication && (
+          <ReportBlock title="Implication" text={finding.implication} />
+        )}
+
+        {finding.recommendation && (
+          <ReportBlock title="Recommendation" text={finding.recommendation} />
+        )}
+
+        {finding.comment && (
+          <ReportBlock title="Additional Notes" text={finding.comment} />
+        )}
       </div>
     </article>
+  );
+}
+
+function ReportBlock({ title, text }: { title: string; text: string }) {
+  return (
+    <div className="mt-5">
+      <h4 className="mb-2 text-lg font-bold text-white">{title}</h4>
+
+      <div className="rounded-xl border border-slate-700 bg-slate-900/60 p-4">
+        <p className="whitespace-pre-line text-sm leading-7 text-slate-200">
+          {text}
+        </p>
+      </div>
+    </div>
   );
 }
