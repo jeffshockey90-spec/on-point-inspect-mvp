@@ -9,12 +9,14 @@ import {
   useSensors,
   DragEndEvent,
 } from "@dnd-kit/core";
+
 import {
   SortableContext,
   verticalListSortingStrategy,
   arrayMove,
   useSortable,
 } from "@dnd-kit/sortable";
+
 import { CSS } from "@dnd-kit/utilities";
 
 import EditableFinding from "../../../components/EditableFinding";
@@ -31,10 +33,18 @@ const INSPECTION_DETAILS_CHECKLIST = [
       "OTHER",
     ],
   },
+
   {
     title: "Occupancy",
-    options: ["Furnished", "Occupied", "Vacant", "Utilities Off", "OTHER"],
+    options: [
+      "Furnished",
+      "Occupied",
+      "Vacant",
+      "Utilities Off",
+      "OTHER",
+    ],
   },
+
   {
     title: "Style",
     options: [
@@ -53,10 +63,12 @@ const INSPECTION_DETAILS_CHECKLIST = [
       "OTHER",
     ],
   },
+
   {
     title: "Temperature",
     options: ["56", "OTHER"],
   },
+
   {
     title: "Type of Building",
     options: [
@@ -68,6 +80,7 @@ const INSPECTION_DETAILS_CHECKLIST = [
       "OTHER",
     ],
   },
+
   {
     title: "Weather Conditions",
     options: [
@@ -88,7 +101,6 @@ const INSPECTION_DETAILS_CHECKLIST = [
 export default function ReportFindingsSortable({
   inspectionId,
   groupedFindings,
-  allFindings,
 }: {
   inspectionId: string;
   groupedFindings: any[];
@@ -142,6 +154,7 @@ export default function ReportFindingsSortable({
         section: "Inspection Details",
         findings: [...requiredFindings, ...extraFindings],
       },
+
       ...otherSections,
     ];
   }, [groupedFindings]);
@@ -166,8 +179,13 @@ export default function ReportFindingsSortable({
     if (!over || active.id === over.id) return;
 
     setSections((items) => {
-      const oldIndex = items.findIndex((item) => item.section === active.id);
-      const newIndex = items.findIndex((item) => item.section === over.id);
+      const oldIndex = items.findIndex(
+        (item) => item.section === active.id
+      );
+
+      const newIndex = items.findIndex(
+        (item) => item.section === over.id
+      );
 
       if (oldIndex === -1 || newIndex === -1) return items;
 
@@ -229,17 +247,20 @@ function SortableSection({
     transition,
   };
 
-  const [activeTab, setActiveTab] = useState<"Information" | "Limitations">(
-    "Information"
-  );
+  const [activeTab, setActiveTab] = useState<
+    "Information" | "Limitations"
+  >("Information");
 
-  const isInspectionDetails = group.section === "Inspection Details";
+  const isInspectionDetails =
+    group.section === "Inspection Details";
 
   return (
     <section
       ref={setNodeRef}
       style={style}
-      className={`space-y-4 ${isDragging ? "opacity-60" : "opacity-100"}`}
+      className={`space-y-4 ${
+        isDragging ? "opacity-60" : "opacity-100"
+      }`}
     >
       <div className="sticky top-0 z-10 rounded-xl border border-slate-700 bg-slate-900/95 px-4 py-3 backdrop-blur">
         <div className="flex items-center gap-3">
@@ -252,14 +273,18 @@ function SortableSection({
             ☰
           </button>
 
-          <h2 className="text-2xl font-bold text-teal-400">{group.section}</h2>
+          <h2 className="text-2xl font-bold text-teal-400">
+            {group.section}
+          </h2>
         </div>
 
         {isInspectionDetails && (
           <div className="mt-3 flex gap-6 border-b border-slate-700">
             <button
               type="button"
-              onClick={() => setActiveTab("Information")}
+              onClick={() =>
+                setActiveTab("Information")
+              }
               className={`pb-2 text-sm font-bold ${
                 activeTab === "Information"
                   ? "border-b-4 border-teal-400 text-white"
@@ -271,7 +296,9 @@ function SortableSection({
 
             <button
               type="button"
-              onClick={() => setActiveTab("Limitations")}
+              onClick={() =>
+                setActiveTab("Limitations")
+              }
               className={`pb-2 text-sm font-bold ${
                 activeTab === "Limitations"
                   ? "border-b-4 border-teal-400 text-white"
@@ -284,13 +311,17 @@ function SortableSection({
         )}
       </div>
 
-      {isInspectionDetails && activeTab === "Limitations" ? (
-        <InspectionLimitationsCard inspectionId={inspectionId} />
+      {isInspectionDetails &&
+      activeTab === "Limitations" ? (
+        <InspectionLimitationsCard
+          inspectionId={inspectionId}
+        />
       ) : (
         (group.findings || []).map((finding: any) => {
-          const checklist = INSPECTION_DETAILS_CHECKLIST.find(
-            (item) => item.title === finding.title
-          );
+          const checklist =
+            INSPECTION_DETAILS_CHECKLIST.find(
+              (item) => item.title === finding.title
+            );
 
           if (isInspectionDetails && checklist) {
             return (
@@ -303,7 +334,12 @@ function SortableSection({
             );
           }
 
-          return <NormalFindingCard key={finding.id} finding={finding} />;
+          return (
+            <NormalFindingCard
+              key={finding.id}
+              finding={finding}
+            />
+          );
         })
       )}
     </section>
@@ -321,10 +357,12 @@ function ChecklistFindingCard({
 }) {
   const localStorageKey = `inspection-${inspectionId}-checklist-${finding.title}`;
 
-  const [checkedOptions, setCheckedOptions] = useState<string[]>([]);
+  const [checkedOptions, setCheckedOptions] =
+    useState<string[]>([]);
 
   useEffect(() => {
-    const saved = localStorage.getItem(localStorageKey);
+    const saved =
+      localStorage.getItem(localStorageKey);
 
     if (saved) {
       setCheckedOptions(JSON.parse(saved));
@@ -337,7 +375,10 @@ function ChecklistFindingCard({
         ? current.filter((item) => item !== option)
         : [...current, option];
 
-      localStorage.setItem(localStorageKey, JSON.stringify(updated));
+      localStorage.setItem(
+        localStorageKey,
+        JSON.stringify(updated)
+      );
 
       return updated;
     });
@@ -345,30 +386,29 @@ function ChecklistFindingCard({
 
   return (
     <article className="overflow-hidden rounded-xl border border-slate-700 bg-[#0f172a]">
-      <div className="flex items-center justify-between bg-slate-800/80 px-4 py-2">
+      <div className="flex items-center justify-between border-b border-slate-700 bg-slate-800/80 px-4 py-2">
         <div className="flex items-center gap-3">
-          <h3 className="text-base font-bold text-teal-300">{finding.title}</h3>
+          <h3 className="text-sm font-bold text-teal-300">
+            {finding.title}
+          </h3>
 
           <button
             type="button"
-            className="text-slate-400 hover:text-white"
-            title="Edit"
+            className="text-xs text-slate-400 transition hover:text-white"
           >
             ✎
           </button>
 
           <button
             type="button"
-            className="text-slate-400 hover:text-white"
-            title="Photos"
+            className="text-xs text-slate-400 transition hover:text-white"
           >
             📷
           </button>
 
           <button
             type="button"
-            className="text-slate-400 hover:text-white"
-            title="Edit with AI"
+            className="text-xs text-slate-400 transition hover:text-white"
           >
             ✨
           </button>
@@ -376,35 +416,41 @@ function ChecklistFindingCard({
       </div>
 
       <div className="p-4">
-        <div className="grid gap-2 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {options.map((option) => (
             <label
               key={option}
-              className="flex cursor-pointer items-center gap-2 text-sm text-slate-100"
+              className="flex min-w-0 cursor-pointer items-center gap-2 rounded-lg border border-transparent px-2 py-1 text-sm text-slate-100 transition hover:border-slate-700 hover:bg-slate-800/60"
             >
               <input
                 type="checkbox"
-                checked={checkedOptions.includes(option)}
-                onChange={() => toggleOption(option)}
-                className="h-4 w-4 rounded border-slate-500 bg-slate-900 accent-teal-500"
+                checked={checkedOptions.includes(
+                  option
+                )}
+                onChange={() =>
+                  toggleOption(option)
+                }
+                className="h-4 w-4 shrink-0 rounded border-slate-500 bg-slate-900 accent-teal-500"
               />
 
-              <span>{option}</span>
+              <span className="truncate leading-tight">
+                {option}
+              </span>
             </label>
           ))}
         </div>
 
-        <div className="mt-4 flex justify-between gap-4">
+        <div className="mt-4 flex items-center justify-between gap-4">
           <button
             type="button"
-            className="text-sm font-medium text-teal-300 hover:text-teal-200"
+            className="text-xs font-medium text-teal-300 transition hover:text-teal-200"
           >
             + OTHER
           </button>
 
           <button
             type="button"
-            className="rounded-lg border border-slate-600 px-3 py-1 text-xs font-bold text-slate-200 hover:bg-slate-800"
+            className="rounded-lg border border-slate-600 px-3 py-1 text-xs font-bold text-slate-200 transition hover:bg-slate-800"
           >
             ✨ Edit with AI
           </button>
@@ -424,12 +470,18 @@ function InspectionLimitationsCard({
   const [note, setNote] = useState("");
 
   useEffect(() => {
-    setNote(localStorage.getItem(localStorageKey) || "");
+    setNote(
+      localStorage.getItem(localStorageKey) || ""
+    );
   }, [localStorageKey]);
 
   function saveNote(value: string) {
     setNote(value);
-    localStorage.setItem(localStorageKey, value);
+
+    localStorage.setItem(
+      localStorageKey,
+      value
+    );
   }
 
   return (
@@ -443,7 +495,9 @@ function InspectionLimitationsCard({
       <div className="p-4">
         <textarea
           value={note}
-          onChange={(e) => saveNote(e.target.value)}
+          onChange={(e) =>
+            saveNote(e.target.value)
+          }
           rows={4}
           placeholder="Example: Snow covered portions of roof, stored belongings limited access, utilities off, locked rooms, unsafe access, etc."
           className="w-full rounded-xl border border-slate-700 bg-[#020617] px-4 py-3 text-sm text-white outline-none focus:border-teal-400"
@@ -462,7 +516,11 @@ function InspectionLimitationsCard({
   );
 }
 
-function NormalFindingCard({ finding }: { finding: any }) {
+function NormalFindingCard({
+  finding,
+}: {
+  finding: any;
+}) {
   const firstPhoto = finding.photos?.[0];
 
   const mainImage =
@@ -494,11 +552,17 @@ function NormalFindingCard({ finding }: { finding: any }) {
                 {finding.section || "General"}
               </span>
 
-              <SeverityBadge severity={finding.severity || "Informational"} />
+              <SeverityBadge
+                severity={
+                  finding.severity ||
+                  "Informational"
+                }
+              />
             </div>
 
             <h3 className="text-2xl font-bold text-teal-300">
-              {finding.title || "Untitled Finding"}
+              {finding.title ||
+                "Untitled Finding"}
             </h3>
           </div>
         </div>
@@ -506,55 +570,49 @@ function NormalFindingCard({ finding }: { finding: any }) {
         <EditableFinding finding={finding} />
 
         {finding.observation && (
-          <ReportBlock title="Observation" text={finding.observation} />
+          <ReportBlock
+            title="Observation"
+            text={finding.observation}
+          />
         )}
 
         {finding.implication && (
-          <ReportBlock title="Implication" text={finding.implication} />
+          <ReportBlock
+            title="Implication"
+            text={finding.implication}
+          />
         )}
 
         {finding.recommendation && (
-          <ReportBlock title="Recommendation" text={finding.recommendation} />
+          <ReportBlock
+            title="Recommendation"
+            text={finding.recommendation}
+          />
         )}
 
         {finding.comment && (
-          <ReportBlock title="Additional Notes" text={finding.comment} />
-        )}
-
-        {finding.photos?.length > 1 && (
-          <div className="mt-6">
-            <h4 className="mb-3 text-base font-bold text-slate-200">
-              Additional Photos
-            </h4>
-
-            <div className="grid gap-3 md:grid-cols-2">
-              {finding.photos.slice(1).map((photo: any) => {
-                const imageSrc =
-                  photo.signed_url || photo.public_url || photo.image_url || "";
-
-                if (!imageSrc) return null;
-
-                return (
-                  <img
-                    key={photo.id || imageSrc}
-                    src={imageSrc}
-                    alt="Finding Photo"
-                    className="max-h-[300px] w-full rounded-xl border border-slate-700 object-cover"
-                  />
-                );
-              })}
-            </div>
-          </div>
+          <ReportBlock
+            title="Additional Notes"
+            text={finding.comment}
+          />
         )}
       </div>
     </article>
   );
 }
 
-function ReportBlock({ title, text }: { title: string; text: string }) {
+function ReportBlock({
+  title,
+  text,
+}: {
+  title: string;
+  text: string;
+}) {
   return (
     <div className="mt-5">
-      <h4 className="mb-2 text-lg font-bold text-white">{title}</h4>
+      <h4 className="mb-2 text-lg font-bold text-white">
+        {title}
+      </h4>
 
       <div className="rounded-xl border border-slate-700 bg-slate-900/60 p-4">
         <p className="whitespace-pre-line text-sm leading-7 text-slate-200">
@@ -565,31 +623,51 @@ function ReportBlock({ title, text }: { title: string; text: string }) {
   );
 }
 
-function SeverityBadge({ severity }: { severity: string }) {
-  let classes = "bg-slate-700 text-slate-200 border-slate-600";
+function SeverityBadge({
+  severity,
+}: {
+  severity: string;
+}) {
+  let classes =
+    "bg-slate-700 text-slate-200 border-slate-600";
 
-  if (severity === "Safety Concern" || severity === "safety") {
-    classes = "bg-red-500/20 text-red-300 border-red-500/40";
+  if (
+    severity === "Safety Concern" ||
+    severity === "safety"
+  ) {
+    classes =
+      "bg-red-500/20 text-red-300 border-red-500/40";
   }
 
   if (severity === "Major Concern") {
-    classes = "bg-orange-500/20 text-orange-300 border-orange-500/40";
+    classes =
+      "bg-orange-500/20 text-orange-300 border-orange-500/40";
   }
 
-  if (severity === "Recommended Repair" || severity === "recommendation") {
-    classes = "bg-yellow-500/20 text-yellow-300 border-yellow-500/40";
+  if (
+    severity === "Recommended Repair" ||
+    severity === "recommendation"
+  ) {
+    classes =
+      "bg-yellow-500/20 text-yellow-300 border-yellow-500/40";
   }
 
   if (severity === "Maintenance") {
-    classes = "bg-blue-500/20 text-blue-300 border-blue-500/40";
+    classes =
+      "bg-blue-500/20 text-blue-300 border-blue-500/40";
   }
 
   if (severity === "Monitor") {
-    classes = "bg-purple-500/20 text-purple-300 border-purple-500/40";
+    classes =
+      "bg-purple-500/20 text-purple-300 border-purple-500/40";
   }
 
-  if (severity === "info" || severity === "Informational") {
-    classes = "bg-cyan-500/20 text-cyan-300 border-cyan-500/40";
+  if (
+    severity === "info" ||
+    severity === "Informational"
+  ) {
+    classes =
+      "bg-cyan-500/20 text-cyan-300 border-cyan-500/40";
   }
 
   return (
