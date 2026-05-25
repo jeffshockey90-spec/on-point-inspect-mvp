@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
+import { revalidatePath } from "next/cache";
 import { createServerClient } from "@supabase/ssr";
 
 import ReportFindingsSortable from "./ReportFindingsSortable";
@@ -26,45 +27,10 @@ const SECTION_ORDER = [
   "Garage",
 ];
 
-function normalizeSection(section: string | null | undefined) {
-  if (!section) return "Inspection Details";
-
-  const clean = section.trim();
-
-  const aliases: Record<string, string> = {
-    "General": "Inspection Details",
-    "Safety": "Inspection Details",
-    "Basement/Foundation/Crawlspace & Structure":
-      "Basement, Foundation, Crawlspace & Structure",
-    "Basement, Foundation, Crawlspace and Structure":
-      "Basement, Foundation, Crawlspace & Structure",
-    "Attic/Insulation & Ventilation": "Attic, Insulation & Ventilation",
-    "Attic, Insulation and Ventilation": "Attic, Insulation & Ventilation",
-    "Doors/Windows & Interior": "Doors, Windows & Interior",
-    "Doors, Windows and Interior": "Doors, Windows & Interior",
-    "Appliances": "Built-in Appliances",
-    "Built In Appliances": "Built-in Appliances",
-  };
-
-  return aliases[clean] || clean;
-}
-
-function getStoragePathFromUrl(url: string | null | undefined) {
-  if (!url) return "";
-
-  const marker = "/inspection-photos/";
-  const index = url.indexOf(marker);
-
-  if (index === -1) return "";
-
-  return decodeURIComponent(url.substring(index + marker.length));
-}
-
-export default async function ReportPage({ params }: PageProps) {
-  const { id } = await params;
+async function createSupabaseServerClient() {
   const cookieStore = await cookies();
 
-  const supabase = createServerClient(
+  return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
@@ -84,6 +50,84 @@ export default async function ReportPage({ params }: PageProps) {
       },
     }
   );
+}
+
+function normalizeSection(section: string | null | undefined) {
+  if (!section) return "Inspection Details";
+
+  const clean = section.trim();
+
+  const aliases: Record<string, string> = {
+    General: "Inspection Details",
+    Safety: "Inspection Details",
+    "Basement/Foundation/Crawlspace & Structure":
+      "Basement, Foundation, Crawlspace & Structure",
+    "Basement, Foundation, Crawlspace and Structure":
+      "Basement, Foundation, Crawlspace & Structure",
+    "Attic/Insulation & Ventilation": "Attic, Insulation & Ventilation",
+    "Attic, Insulation and Ventilation": "Attic, Insulation & Ventilation",
+    "Doors/Windows & Interior": "Doors, Windows & Interior",
+    "Doors, Windows and Interior": "Doors, Windows & Interior",
+    Appliances: "Built-in Appliances",
+    "Built In Appliances": "Built-in Appliances",
+  };
+
+  return aliases[clean] || clean;
+}
+
+function getStoragePathFromUrl(url: string | null | undefined) {
+  if (!url) return "";
+
+  const marker = "/inspection-photos/";
+  const index = url.indexOf(marker);
+
+  if (index === -1) return "";
+
+  return decodeURIComponent(url.substring(index + marker.length));
+}
+
+export default async function ReportPage({ params }: PageProps) {
+  const { id } = await params;
+  const supabase = await createSupabaseServerClient();
+
+  async function updateInspectionDetails(formData: FormData) {
+    "use server";
+
+    const supabase = await createSupabaseServerClient();
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      redirect("/login");
+    }
+
+    const inspectionId = String(formData.get("inspection_id") || "");
+
+    const updates = {
+      address: String(formData.get("address") || ""),
+      client_name: String(formData.get("client_name") || ""),
+      client_email: String(formData.get("client_email") || ""),
+      realtor_name: String(formData.get("realtor_name") || ""),
+      inspection_date: String(formData.get("inspection_date") || ""),
+      square_feet: String(formData.get("square_feet") || ""),
+      house_style: String(formData.get("house_style") || ""),
+      roof_style: String(formData.get("roof_style") || ""),
+      garage: String(formData.get("garage") || ""),
+      city: String(formData.get("city") || ""),
+      state: String(formData.get("state") || ""),
+      zip: String(formData.get("zip") || ""),
+    };
+
+    await supabase
+      .from("inspections")
+      .update(updates)
+      .eq("id", inspectionId)
+      .eq("inspector_id", user.id);
+
+    revalidatePath(`/reports/${inspectionId}`);
+  }
 
   const {
     data: { user },
@@ -118,10 +162,7 @@ export default async function ReportPage({ params }: PageProps) {
 
   const { data: photosRaw, error: photosError } =
     findingIds.length > 0
-      ? await supabase
-          .from("photos")
-          .select("*")
-          .in("finding_id", findingIds)
+      ? await supabase.from("photos").select("*").in("finding_id", findingIds)
       : { data: [], error: null };
 
   if (photosError) {
@@ -170,11 +211,7 @@ export default async function ReportPage({ params }: PageProps) {
   const photosByFindingId = photosWithUrls.reduce(
     (acc: Record<string, any[]>, photo: any) => {
       if (!photo.finding_id) return acc;
-
-      if (!acc[photo.finding_id]) {
-        acc[photo.finding_id] = [];
-      }
-
+      if (!acc[photo.finding_id]) acc[photo.finding_id] = [];
       acc[photo.finding_id].push(photo);
       return acc;
     },
@@ -219,73 +256,43 @@ export default async function ReportPage({ params }: PageProps) {
       <div className="mx-auto max-w-7xl px-6 py-8">
         <div className="mb-8 rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
           <div className="mb-8 flex flex-wrap gap-3">
-            <a
-              href="javascript:window.print()"
-              className="rounded-xl bg-black px-5 py-3 font-bold text-white hover:bg-slate-800"
-            >
+            <a href="javascript:window.print()" className="rounded-xl bg-black px-5 py-3 font-bold text-white hover:bg-slate-800">
               Print / Save PDF
             </a>
 
-            <a
-              href="javascript:window.print()"
-              className="rounded-xl bg-white px-5 py-3 font-bold text-black hover:bg-slate-200"
-            >
+            <a href="javascript:window.print()" className="rounded-xl bg-white px-5 py-3 font-bold text-black hover:bg-slate-200">
               Export PDF
             </a>
 
-            <Link
-              href={`/reports/${inspection.id}/summary`}
-              className="rounded-xl bg-purple-600 px-5 py-3 font-bold text-white hover:bg-purple-500"
-            >
+            <Link href={`/reports/${inspection.id}/summary`} className="rounded-xl bg-purple-600 px-5 py-3 font-bold text-white hover:bg-purple-500">
               Generate AI Summary
             </Link>
 
-            <Link
-              href={`/share/${inspection.id}`}
-              className="rounded-xl bg-green-500 px-5 py-3 font-bold text-slate-950 hover:bg-green-400"
-            >
+            <Link href={`/share/${inspection.id}`} className="rounded-xl bg-green-500 px-5 py-3 font-bold text-slate-950 hover:bg-green-400">
               Publish Report
             </Link>
 
-            <Link
-              href={`/share/${inspection.id}`}
-              className="rounded-xl border border-blue-500 px-5 py-3 font-bold text-blue-300 hover:bg-blue-500/10"
-            >
+            <Link href={`/share/${inspection.id}`} className="rounded-xl border border-blue-500 px-5 py-3 font-bold text-blue-300 hover:bg-blue-500/10">
               Copy Share Link
             </Link>
 
-            <Link
-              href={`/client/${inspection.id}`}
-              className="rounded-xl border border-purple-500 px-5 py-3 font-bold text-purple-300 hover:bg-purple-500/10"
-            >
+            <Link href={`/client/${inspection.id}`} className="rounded-xl border border-purple-500 px-5 py-3 font-bold text-purple-300 hover:bg-purple-500/10">
               Send Report
             </Link>
 
-            <Link
-              href={`/repair-request?inspection_id=${inspection.id}`}
-              className="rounded-xl bg-orange-600 px-5 py-3 font-bold text-white hover:bg-orange-500"
-            >
+            <Link href={`/repair-request?inspection_id=${inspection.id}`} className="rounded-xl bg-orange-600 px-5 py-3 font-bold text-white hover:bg-orange-500">
               Repair Request Builder
             </Link>
 
-            <Link
-              href={`/reports/${inspection.id}/summary`}
-              className="rounded-xl border border-cyan-500 px-5 py-3 font-bold text-cyan-300 hover:bg-cyan-500/10"
-            >
+            <Link href={`/reports/${inspection.id}/summary`} className="rounded-xl border border-cyan-500 px-5 py-3 font-bold text-cyan-300 hover:bg-cyan-500/10">
               Realtor Summary
             </Link>
 
-            <Link
-              href={`/ai-capture?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`}
-              className="rounded-xl bg-teal-500 px-5 py-3 font-bold text-slate-950 hover:bg-teal-400"
-            >
+            <Link href={`/ai-capture?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`} className="rounded-xl bg-teal-500 px-5 py-3 font-bold text-slate-950 hover:bg-teal-400">
               Open Full AI Capture
             </Link>
 
-            <Link
-              href={`/equipment-analyzer?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`}
-              className="rounded-xl border border-blue-500 px-5 py-3 font-bold text-blue-300 hover:bg-blue-500/10"
-            >
+            <Link href={`/equipment-analyzer?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`} className="rounded-xl border border-blue-500 px-5 py-3 font-bold text-blue-300 hover:bg-blue-500/10">
               Equipment Analyzer
             </Link>
           </div>
@@ -298,25 +305,30 @@ export default async function ReportPage({ params }: PageProps) {
             Residential Home Inspection Report
           </p>
 
-          <div className="mt-8 border-t border-slate-700 pt-8">
-            <h2 className="text-2xl font-bold text-teal-400">
-              Inspection Details
-            </h2>
+          <form action={updateInspectionDetails} className="mt-8 border-t border-slate-700 pt-8">
+            <input type="hidden" name="inspection_id" value={inspection.id} />
 
-            <div className="mt-6 grid gap-6 md:grid-cols-2">
+            <div className="mb-6 flex items-center justify-between gap-4">
+              <h2 className="text-2xl font-bold text-teal-400">
+                Inspection Details
+              </h2>
+
+              <button type="submit" className="rounded-xl bg-teal-500 px-5 py-3 font-bold text-slate-950 hover:bg-teal-400">
+                Save Inspection Details
+              </button>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-2">
               <div>
                 <h3 className="mb-4 text-xl font-bold text-teal-300">
                   Inspection Information
                 </h3>
 
-                <InfoItem label="Property Address" value={inspection.address} />
-                <InfoItem label="Client" value={inspection.client_name} />
-                <InfoItem label="Client Email" value={inspection.client_email} />
-                <InfoItem label="Realtor" value={inspection.realtor_name} />
-                <InfoItem
-                  label="Inspection Date"
-                  value={inspection.inspection_date}
-                />
+                <EditItem label="Property Address" name="address" value={inspection.address} />
+                <EditItem label="Client" name="client_name" value={inspection.client_name} />
+                <EditItem label="Client Email" name="client_email" value={inspection.client_email} />
+                <EditItem label="Realtor" name="realtor_name" value={inspection.realtor_name} />
+                <EditItem label="Inspection Date" name="inspection_date" value={inspection.inspection_date} type="date" />
               </div>
 
               <div>
@@ -324,19 +336,19 @@ export default async function ReportPage({ params }: PageProps) {
                   Property / Site Information
                 </h3>
 
-                <InfoItem label="Square Feet" value={inspection.square_feet} />
-                <InfoItem label="House Style" value={inspection.house_style} />
-                <InfoItem label="Roof Style" value={inspection.roof_style} />
-                <InfoItem label="Garage" value={inspection.garage} />
-                <InfoItem
-                  label="Location"
-                  value={`${inspection.city || ""}, ${inspection.state || ""} ${
-                    inspection.zip || ""
-                  }`}
-                />
+                <EditItem label="Square Feet" name="square_feet" value={inspection.square_feet} />
+                <EditItem label="House Style" name="house_style" value={inspection.house_style} />
+                <EditItem label="Roof Style" name="roof_style" value={inspection.roof_style} />
+                <EditItem label="Garage" name="garage" value={inspection.garage} />
+
+                <div className="grid grid-cols-3 gap-3">
+                  <EditItem label="City" name="city" value={inspection.city} />
+                  <EditItem label="State" name="state" value={inspection.state} />
+                  <EditItem label="Zip" name="zip" value={inspection.zip} />
+                </div>
               </div>
             </div>
-          </div>
+          </form>
         </div>
 
         <ReportFindingsSortable
@@ -349,13 +361,29 @@ export default async function ReportPage({ params }: PageProps) {
   );
 }
 
-function InfoItem({ label, value }: { label: string; value: any }) {
+function EditItem({
+  label,
+  name,
+  value,
+  type = "text",
+}: {
+  label: string;
+  name: string;
+  value: any;
+  type?: string;
+}) {
   return (
     <div className="mb-4">
-      <p className="mb-1 text-sm font-bold text-slate-400">{label}</p>
-      <div className="rounded-lg border border-slate-700 bg-[#020617] px-4 py-3 text-white">
-        {value || "Not entered"}
-      </div>
+      <label className="mb-1 block text-sm font-bold text-slate-400">
+        {label}
+      </label>
+      <input
+        type={type}
+        name={name}
+        defaultValue={value || ""}
+        placeholder="Not entered"
+        className="w-full rounded-lg border border-slate-700 bg-[#020617] px-4 py-3 text-white outline-none focus:border-teal-400"
+      />
     </div>
   );
 }
