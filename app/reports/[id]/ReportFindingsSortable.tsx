@@ -9,14 +9,12 @@ import {
   useSensors,
   DragEndEvent,
 } from "@dnd-kit/core";
-
 import {
   SortableContext,
   verticalListSortingStrategy,
   arrayMove,
   useSortable,
 } from "@dnd-kit/sortable";
-
 import { CSS } from "@dnd-kit/utilities";
 
 import EditableFinding from "../../../components/EditableFinding";
@@ -24,6 +22,7 @@ import EditableFinding from "../../../components/EditableFinding";
 const INSPECTION_DETAILS_CHECKLIST = [
   {
     title: "In Attendance",
+    type: "checkbox",
     options: [
       "Client",
       "Listing Agent",
@@ -32,21 +31,17 @@ const INSPECTION_DETAILS_CHECKLIST = [
       "Inspector",
       "OTHER",
     ],
+    defaults: ["Client", "Inspector"],
   },
-
   {
     title: "Occupancy",
-    options: [
-      "Furnished",
-      "Occupied",
-      "Vacant",
-      "Utilities Off",
-      "OTHER",
-    ],
+    type: "checkbox",
+    options: ["Furnished", "Occupied", "Vacant", "Utilities Off", "OTHER"],
+    defaults: ["Vacant"],
   },
-
   {
     title: "Style",
+    type: "checkbox",
     options: [
       "Manufactured",
       "Rambler",
@@ -62,15 +57,18 @@ const INSPECTION_DETAILS_CHECKLIST = [
       "Townhouse",
       "OTHER",
     ],
+    defaults: ["Ranch"],
   },
-
   {
     title: "Temperature",
-    options: ["56", "OTHER"],
+    type: "temperature",
+    options: ["Fahrenheit (F)", "Celsius (C)"],
+    defaults: ["Fahrenheit (F)"],
+    defaultValue: "56",
   },
-
   {
     title: "Type of Building",
+    type: "checkbox",
     options: [
       "Multi-Family",
       "Attached",
@@ -79,10 +77,11 @@ const INSPECTION_DETAILS_CHECKLIST = [
       "Detached",
       "OTHER",
     ],
+    defaults: ["Single Family"],
   },
-
   {
     title: "Weather Conditions",
+    type: "checkbox",
     options: [
       "Snow",
       "Dry",
@@ -95,6 +94,7 @@ const INSPECTION_DETAILS_CHECKLIST = [
       "Recent Rain",
       "OTHER",
     ],
+    defaults: ["Recent Rain"],
   },
 ];
 
@@ -154,7 +154,6 @@ export default function ReportFindingsSortable({
         section: "Inspection Details",
         findings: [...requiredFindings, ...extraFindings],
       },
-
       ...otherSections,
     ];
   }, [groupedFindings]);
@@ -179,13 +178,8 @@ export default function ReportFindingsSortable({
     if (!over || active.id === over.id) return;
 
     setSections((items) => {
-      const oldIndex = items.findIndex(
-        (item) => item.section === active.id
-      );
-
-      const newIndex = items.findIndex(
-        (item) => item.section === over.id
-      );
+      const oldIndex = items.findIndex((item) => item.section === active.id);
+      const newIndex = items.findIndex((item) => item.section === over.id);
 
       if (oldIndex === -1 || newIndex === -1) return items;
 
@@ -247,20 +241,17 @@ function SortableSection({
     transition,
   };
 
-  const [activeTab, setActiveTab] = useState<
-    "Information" | "Limitations"
-  >("Information");
+  const [activeTab, setActiveTab] = useState<"Information" | "Limitations">(
+    "Information"
+  );
 
-  const isInspectionDetails =
-    group.section === "Inspection Details";
+  const isInspectionDetails = group.section === "Inspection Details";
 
   return (
     <section
       ref={setNodeRef}
       style={style}
-      className={`space-y-4 ${
-        isDragging ? "opacity-60" : "opacity-100"
-      }`}
+      className={`space-y-4 ${isDragging ? "opacity-60" : "opacity-100"}`}
     >
       <div className="sticky top-0 z-10 rounded-xl border border-slate-700 bg-slate-900/95 px-4 py-3 backdrop-blur">
         <div className="flex items-center gap-3">
@@ -273,18 +264,14 @@ function SortableSection({
             ☰
           </button>
 
-          <h2 className="text-2xl font-bold text-teal-400">
-            {group.section}
-          </h2>
+          <h2 className="text-2xl font-bold text-teal-400">{group.section}</h2>
         </div>
 
         {isInspectionDetails && (
           <div className="mt-3 flex gap-6 border-b border-slate-700">
             <button
               type="button"
-              onClick={() =>
-                setActiveTab("Information")
-              }
+              onClick={() => setActiveTab("Information")}
               className={`pb-2 text-sm font-bold ${
                 activeTab === "Information"
                   ? "border-b-4 border-teal-400 text-white"
@@ -296,9 +283,7 @@ function SortableSection({
 
             <button
               type="button"
-              onClick={() =>
-                setActiveTab("Limitations")
-              }
+              onClick={() => setActiveTab("Limitations")}
               className={`pb-2 text-sm font-bold ${
                 activeTab === "Limitations"
                   ? "border-b-4 border-teal-400 text-white"
@@ -311,17 +296,13 @@ function SortableSection({
         )}
       </div>
 
-      {isInspectionDetails &&
-      activeTab === "Limitations" ? (
-        <InspectionLimitationsCard
-          inspectionId={inspectionId}
-        />
+      {isInspectionDetails && activeTab === "Limitations" ? (
+        <InspectionLimitationsCard inspectionId={inspectionId} />
       ) : (
         (group.findings || []).map((finding: any) => {
-          const checklist =
-            INSPECTION_DETAILS_CHECKLIST.find(
-              (item) => item.title === finding.title
-            );
+          const checklist = INSPECTION_DETAILS_CHECKLIST.find(
+            (item) => item.title === finding.title
+          );
 
           if (isInspectionDetails && checklist) {
             return (
@@ -329,17 +310,12 @@ function SortableSection({
                 key={finding.id}
                 inspectionId={inspectionId}
                 finding={finding}
-                options={checklist.options}
+                checklist={checklist}
               />
             );
           }
 
-          return (
-            <NormalFindingCard
-              key={finding.id}
-              finding={finding}
-            />
-          );
+          return <NormalFindingCard key={finding.id} finding={finding} />;
         })
       )}
     </section>
@@ -349,145 +325,136 @@ function SortableSection({
 function ChecklistFindingCard({
   inspectionId,
   finding,
-  options,
+  checklist,
 }: {
   inspectionId: string;
   finding: any;
-  options: string[];
+  checklist: any;
 }) {
   const localStorageKey = `inspection-${inspectionId}-checklist-${finding.title}`;
+  const tempStorageKey = `inspection-${inspectionId}-temperature-value`;
 
-  const [checkedOptions, setCheckedOptions] =
-    useState<string[]>([]);
+  const [checkedOptions, setCheckedOptions] = useState<string[]>(
+    checklist.defaults || []
+  );
+
+  const [temperatureValue, setTemperatureValue] = useState(
+    checklist.defaultValue || "56"
+  );
 
   useEffect(() => {
-    const saved =
-      localStorage.getItem(localStorageKey);
+    const saved = localStorage.getItem(localStorageKey);
+    const savedTemp = localStorage.getItem(tempStorageKey);
 
     if (saved) {
       setCheckedOptions(JSON.parse(saved));
     }
-  }, [localStorageKey]);
+
+    if (savedTemp && checklist.type === "temperature") {
+      setTemperatureValue(savedTemp);
+    }
+  }, [localStorageKey, tempStorageKey, checklist.type]);
 
   function toggleOption(option: string) {
     setCheckedOptions((current) => {
-      const updated = current.includes(option)
-        ? current.filter((item) => item !== option)
-        : [...current, option];
+      let updated: string[];
 
-      localStorage.setItem(
-        localStorageKey,
-        JSON.stringify(updated)
-      );
+      if (checklist.type === "temperature") {
+        updated = [option];
+      } else {
+        updated = current.includes(option)
+          ? current.filter((item) => item !== option)
+          : [...current, option];
+      }
 
+      localStorage.setItem(localStorageKey, JSON.stringify(updated));
       return updated;
     });
   }
 
+  function updateTemperature(value: string) {
+    setTemperatureValue(value);
+    localStorage.setItem(tempStorageKey, value);
+  }
+
   return (
-    <article className="overflow-hidden rounded-xl border border-slate-700 bg-[#0f172a]">
-      <div className="flex items-center justify-between border-b border-slate-700 bg-slate-800/80 px-4 py-2">
-        <div className="flex items-center gap-3">
-          <h3 className="text-sm font-bold text-teal-300">
-            {finding.title}
-          </h3>
+    <article className="overflow-hidden border border-slate-300 bg-white text-slate-900">
+      <div className="flex items-center gap-3 bg-slate-100 px-4 py-2">
+        <h3 className="text-sm font-bold text-slate-800">{finding.title}</h3>
 
-          <button
-            type="button"
-            className="text-xs text-slate-400 transition hover:text-white"
-          >
-            ✎
-          </button>
+        <button type="button" className="text-slate-500 hover:text-slate-900">
+          ✎
+        </button>
 
-          <button
-            type="button"
-            className="text-xs text-slate-400 transition hover:text-white"
-          >
-            📷
-          </button>
+        <button type="button" className="text-slate-500 hover:text-slate-900">
+          📷
+        </button>
 
-          <button
-            type="button"
-            className="text-xs text-slate-400 transition hover:text-white"
-          >
-            ✨
-          </button>
-        </div>
+        <button type="button" className="text-slate-500 hover:text-slate-900">
+          ✨
+        </button>
       </div>
 
-      <div className="p-4">
-        <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-          {options.map((option) => (
-            <label
-              key={option}
-              className="flex cursor-pointer items-start gap-2 rounded-lg border border-transparent px-2 py-1 text-sm text-slate-100 transition hover:border-slate-700 hover:bg-slate-800/60"
-            >
-              <input
-                type="checkbox"
-                checked={checkedOptions.includes(
-                  option
-                )}
-                onChange={() =>
-                  toggleOption(option)
-                }
-                className="mt-1 h-4 w-4 shrink-0 rounded border-slate-500 bg-slate-900 accent-teal-500"
-              />
+      <div className="px-4 py-4">
+        {checklist.type === "temperature" && (
+          <input
+            value={temperatureValue}
+            onChange={(e) => updateTemperature(e.target.value)}
+            className="mb-4 w-full border-b border-slate-400 bg-transparent px-1 py-2 text-base text-slate-900 outline-none"
+          />
+        )}
 
-              <span className="whitespace-normal leading-tight text-slate-100">
-                {option}
-              </span>
-            </label>
-          ))}
+        <div className="grid grid-cols-2 gap-x-20 gap-y-3">
+          {checklist.options.map((option: string) => {
+            const isChecked = checkedOptions.includes(option);
+
+            return (
+              <label
+                key={option}
+                className="flex cursor-pointer items-center gap-3 text-base text-slate-900"
+              >
+                <input
+                  type={checklist.type === "temperature" ? "radio" : "checkbox"}
+                  checked={isChecked}
+                  onChange={() => toggleOption(option)}
+                  className="h-4 w-4 accent-blue-700"
+                />
+
+                <span>{option}</span>
+              </label>
+            );
+          })}
         </div>
 
-        <div className="mt-4 flex items-center justify-between gap-4">
-          <button
-            type="button"
-            className="text-xs font-medium text-teal-300 transition hover:text-teal-200"
-          >
-            + OTHER
-          </button>
-
-          <button
-            type="button"
-            className="rounded-lg border border-slate-600 px-3 py-1 text-xs font-bold text-slate-200 transition hover:bg-slate-800"
-          >
-            ✨ Edit with AI
-          </button>
-        </div>
+        <button
+          type="button"
+          className="mt-4 text-base font-medium text-slate-700 hover:text-slate-950"
+        >
+          + OTHER
+        </button>
       </div>
     </article>
   );
 }
 
-function InspectionLimitationsCard({
-  inspectionId,
-}: {
-  inspectionId: string;
-}) {
+function InspectionLimitationsCard({ inspectionId }: { inspectionId: string }) {
   const localStorageKey = `inspection-${inspectionId}-limitations-note`;
 
   const [note, setNote] = useState("");
 
   useEffect(() => {
-    setNote(
-      localStorage.getItem(localStorageKey) || ""
-    );
+    setNote(localStorage.getItem(localStorageKey) || "");
   }, [localStorageKey]);
 
   function saveNote(value: string) {
     setNote(value);
-
-    localStorage.setItem(
-      localStorageKey,
-      value
-    );
+    localStorage.setItem(localStorageKey, value);
   }
 
   return (
-    <article className="overflow-hidden rounded-xl border border-slate-700 bg-[#0f172a]">
-      <div className="bg-slate-800/80 px-4 py-2">
-        <h3 className="text-base font-bold text-teal-300">
+    <article className="overflow-hidden border border-slate-300 bg-white text-slate-900">
+      <div className="bg-slate-100 px-4 py-2">
+        <h3 className="text-sm font-bold text-slate-800">
           Inspection Limitations
         </h3>
       </div>
@@ -495,18 +462,16 @@ function InspectionLimitationsCard({
       <div className="p-4">
         <textarea
           value={note}
-          onChange={(e) =>
-            saveNote(e.target.value)
-          }
+          onChange={(e) => saveNote(e.target.value)}
           rows={4}
           placeholder="Example: Snow covered portions of roof, stored belongings limited access, utilities off, locked rooms, unsafe access, etc."
-          className="w-full rounded-xl border border-slate-700 bg-[#020617] px-4 py-3 text-sm text-white outline-none focus:border-teal-400"
+          className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-teal-500"
         />
 
         <div className="mt-3 flex justify-end">
           <button
             type="button"
-            className="rounded-lg border border-slate-600 px-3 py-1 text-xs font-bold text-slate-200 hover:bg-slate-800"
+            className="rounded-md border border-slate-300 px-3 py-1 text-xs font-bold text-slate-700 hover:bg-slate-100"
           >
             ✨ Edit with AI
           </button>
@@ -516,11 +481,7 @@ function InspectionLimitationsCard({
   );
 }
 
-function NormalFindingCard({
-  finding,
-}: {
-  finding: any;
-}) {
+function NormalFindingCard({ finding }: { finding: any }) {
   const firstPhoto = finding.photos?.[0];
 
   const mainImage =
@@ -552,17 +513,11 @@ function NormalFindingCard({
                 {finding.section || "General"}
               </span>
 
-              <SeverityBadge
-                severity={
-                  finding.severity ||
-                  "Informational"
-                }
-              />
+              <SeverityBadge severity={finding.severity || "Informational"} />
             </div>
 
             <h3 className="text-2xl font-bold text-teal-300">
-              {finding.title ||
-                "Untitled Finding"}
+              {finding.title || "Untitled Finding"}
             </h3>
           </div>
         </div>
@@ -570,49 +525,29 @@ function NormalFindingCard({
         <EditableFinding finding={finding} />
 
         {finding.observation && (
-          <ReportBlock
-            title="Observation"
-            text={finding.observation}
-          />
+          <ReportBlock title="Observation" text={finding.observation} />
         )}
 
         {finding.implication && (
-          <ReportBlock
-            title="Implication"
-            text={finding.implication}
-          />
+          <ReportBlock title="Implication" text={finding.implication} />
         )}
 
         {finding.recommendation && (
-          <ReportBlock
-            title="Recommendation"
-            text={finding.recommendation}
-          />
+          <ReportBlock title="Recommendation" text={finding.recommendation} />
         )}
 
         {finding.comment && (
-          <ReportBlock
-            title="Additional Notes"
-            text={finding.comment}
-          />
+          <ReportBlock title="Additional Notes" text={finding.comment} />
         )}
       </div>
     </article>
   );
 }
 
-function ReportBlock({
-  title,
-  text,
-}: {
-  title: string;
-  text: string;
-}) {
+function ReportBlock({ title, text }: { title: string; text: string }) {
   return (
     <div className="mt-5">
-      <h4 className="mb-2 text-lg font-bold text-white">
-        {title}
-      </h4>
+      <h4 className="mb-2 text-lg font-bold text-white">{title}</h4>
 
       <div className="rounded-xl border border-slate-700 bg-slate-900/60 p-4">
         <p className="whitespace-pre-line text-sm leading-7 text-slate-200">
@@ -623,51 +558,31 @@ function ReportBlock({
   );
 }
 
-function SeverityBadge({
-  severity,
-}: {
-  severity: string;
-}) {
-  let classes =
-    "bg-slate-700 text-slate-200 border-slate-600";
+function SeverityBadge({ severity }: { severity: string }) {
+  let classes = "bg-slate-700 text-slate-200 border-slate-600";
 
-  if (
-    severity === "Safety Concern" ||
-    severity === "safety"
-  ) {
-    classes =
-      "bg-red-500/20 text-red-300 border-red-500/40";
+  if (severity === "Safety Concern" || severity === "safety") {
+    classes = "bg-red-500/20 text-red-300 border-red-500/40";
   }
 
   if (severity === "Major Concern") {
-    classes =
-      "bg-orange-500/20 text-orange-300 border-orange-500/40";
+    classes = "bg-orange-500/20 text-orange-300 border-orange-500/40";
   }
 
-  if (
-    severity === "Recommended Repair" ||
-    severity === "recommendation"
-  ) {
-    classes =
-      "bg-yellow-500/20 text-yellow-300 border-yellow-500/40";
+  if (severity === "Recommended Repair" || severity === "recommendation") {
+    classes = "bg-yellow-500/20 text-yellow-300 border-yellow-500/40";
   }
 
   if (severity === "Maintenance") {
-    classes =
-      "bg-blue-500/20 text-blue-300 border-blue-500/40";
+    classes = "bg-blue-500/20 text-blue-300 border-blue-500/40";
   }
 
   if (severity === "Monitor") {
-    classes =
-      "bg-purple-500/20 text-purple-300 border-purple-500/40";
+    classes = "bg-purple-500/20 text-purple-300 border-purple-500/40";
   }
 
-  if (
-    severity === "info" ||
-    severity === "Informational"
-  ) {
-    classes =
-      "bg-cyan-500/20 text-cyan-300 border-cyan-500/40";
+  if (severity === "info" || severity === "Informational") {
+    classes = "bg-cyan-500/20 text-cyan-300 border-cyan-500/40";
   }
 
   return (
