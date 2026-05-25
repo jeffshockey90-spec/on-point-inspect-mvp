@@ -118,6 +118,93 @@ const SECTION_CHECKLISTS: Record<string, any[]> = {
       defaults: [],
     },
   ],
+
+  Roof: [
+    {
+      title: "Inspection Method",
+      type: "checkbox",
+      options: [
+        "Walked Roof",
+        "From Ground",
+        "From Ladder",
+        "Drone",
+        "Binoculars",
+        "Limited Visibility",
+      ],
+      defaults: [],
+    },
+    {
+      title: "Roof Covering",
+      type: "checkbox",
+      options: [
+        "Asphalt Shingles",
+        "Architectural Shingles",
+        "3-Tab Shingles",
+        "Metal",
+        "Standing Seam Metal",
+        "Rubber / EPDM",
+        "Rolled Roofing",
+        "Slate",
+        "Tile",
+        "Wood Shakes",
+      ],
+      defaults: [],
+    },
+    {
+      title: "Roof Style",
+      type: "checkbox",
+      options: [
+        "Gable",
+        "Hip",
+        "Flat / Low Slope",
+        "Mansard",
+        "Gambrel",
+        "Shed",
+        "Combination",
+      ],
+      defaults: [],
+    },
+    {
+      title: "Roof Drainage",
+      type: "checkbox",
+      options: [
+        "Gutters Present",
+        "Downspouts Present",
+        "No Gutters",
+        "Underground Drains",
+        "Splash Blocks",
+        "Extensions Present",
+      ],
+      defaults: [],
+    },
+    {
+      title: "Flashing / Penetrations",
+      type: "checkbox",
+      options: [
+        "Plumbing Vent Boots",
+        "Chimney Flashing",
+        "Wall Flashing",
+        "Skylight Flashing",
+        "Roof Vents",
+        "Satellite / Antenna Mounts",
+      ],
+      defaults: [],
+    },
+    {
+      title: "Roof Limitations",
+      type: "checkbox",
+      options: [
+        "Steep Roof",
+        "Wet Roof",
+        "Snow Covered",
+        "Height Limitation",
+        "Unsafe Access",
+        "Viewed From Ground Only",
+        "Drone Only",
+      ],
+      defaults: [],
+    },
+  ],
 };
 
 const SECTION_ORDER = [
