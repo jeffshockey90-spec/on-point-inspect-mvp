@@ -36,9 +36,7 @@ export default function ReportFindingsSortable({
     groupedFindings || []
   );
 
-  // =========================
-  // FIXED SECTION STATE
-  // =========================
+  // FIXED STATE SYNC
 
   useEffect(() => {
     setSections(groupedFindings || []);
@@ -51,10 +49,6 @@ export default function ReportFindingsSortable({
       },
     })
   );
-
-  // =========================
-  // DRAG END
-  // =========================
 
   function handleDragEnd(
     event: DragEndEvent
@@ -111,9 +105,7 @@ export default function ReportFindingsSortable({
     });
   }
 
-  // =========================
   // EMPTY STATE
-  // =========================
 
   if (
     !allFindings ||
@@ -127,10 +119,6 @@ export default function ReportFindingsSortable({
       </div>
     );
   }
-
-  // =========================
-  // MAIN
-  // =========================
 
   return (
     <DndContext
@@ -167,10 +155,6 @@ export default function ReportFindingsSortable({
     </DndContext>
   );
 }
-
-// =========================
-// SORTABLE SECTION
-// =========================
 
 function SortableSection({
   group,
@@ -214,7 +198,6 @@ function SortableSection({
           {...attributes}
           {...listeners}
           className="print:hidden cursor-grab rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm font-bold text-slate-200 active:cursor-grabbing"
-          title="Drag to reorder section"
         >
           ☰
         </button>
@@ -229,9 +212,8 @@ function SortableSection({
       {(group.findings ||
         []).map(
         (finding: any) => {
-          const mainImageSrc =
+          const mainImage =
             finding.signed_image_url ||
-            finding.private_image_url ||
             finding.image_url ||
             "";
 
@@ -242,58 +224,52 @@ function SortableSection({
               }
               className="rounded-2xl border border-slate-700 bg-[#0f172a] p-6 shadow-lg"
             >
-              {/* PHOTOS */}
+              {/* MAIN IMAGE */}
 
-              <div className="mb-5 space-y-4">
-                {mainImageSrc && (
-                  <img
-                    src={
-                      mainImageSrc
-                    }
-                    alt="Finding"
-                    className="max-h-[450px] w-full rounded-xl border border-slate-700 object-contain"
-                  />
-                )}
+              {mainImage && (
+                <img
+                  src={mainImage}
+                  alt="Finding"
+                  className="mb-5 max-h-[450px] w-full rounded-xl border border-slate-700 object-contain"
+                />
+              )}
 
-                {finding.photos
-                  ?.length >
-                  0 && (
-                  <div className="grid gap-4 md:grid-cols-2">
-                    {finding.photos.map(
-                      (
-                        photo: any
-                      ) => {
-                        const imageSrc =
-                          photo.signed_url ||
-                          photo.private_url ||
-                          photo.public_url ||
-                          photo.photo_url ||
-                          "";
+              {/* EXTRA PHOTOS */}
 
-                        if (
-                          !imageSrc
-                        ) {
-                          return null;
-                        }
+              {finding.photos
+                ?.length >
+                0 && (
+                <div className="mb-5 grid gap-4 md:grid-cols-2">
+                  {finding.photos.map(
+                    (
+                      photo: any
+                    ) => {
+                      const imageSrc =
+                        photo.signed_url ||
+                        "";
 
-                        return (
-                          <img
-                            key={
-                              photo.id ||
-                              imageSrc
-                            }
-                            src={
-                              imageSrc
-                            }
-                            alt="Finding Photo"
-                            className="max-h-[320px] w-full rounded-xl border border-slate-700 object-cover"
-                          />
-                        );
+                      if (
+                        !imageSrc
+                      ) {
+                        return null;
                       }
-                    )}
-                  </div>
-                )}
-              </div>
+
+                      return (
+                        <img
+                          key={
+                            photo.id
+                          }
+                          src={
+                            imageSrc
+                          }
+                          alt="Finding Photo"
+                          className="max-h-[320px] w-full rounded-xl border border-slate-700 object-cover"
+                        />
+                      );
+                    }
+                  )}
+                </div>
+              )}
 
               {/* META */}
 
@@ -315,12 +291,11 @@ function SortableSection({
               {/* TITLE */}
 
               <h4 className="text-2xl font-bold text-teal-300">
-                {
-                  finding.title
-                }
+                {finding.title ||
+                  "Untitled Finding"}
               </h4>
 
-              {/* BLOCKS */}
+              {/* OBSERVATION */}
 
               {finding.observation && (
                 <ReportBlock
@@ -331,6 +306,8 @@ function SortableSection({
                 />
               )}
 
+              {/* IMPLICATION */}
+
               {finding.implication && (
                 <ReportBlock
                   title="Implication"
@@ -340,11 +317,24 @@ function SortableSection({
                 />
               )}
 
+              {/* RECOMMENDATION */}
+
               {finding.recommendation && (
                 <ReportBlock
                   title="Recommendation"
                   text={
                     finding.recommendation
+                  }
+                />
+              )}
+
+              {/* COMMENT */}
+
+              {finding.comment && (
+                <ReportBlock
+                  title="Additional Notes"
+                  text={
+                    finding.comment
                   }
                 />
               )}
@@ -363,10 +353,6 @@ function SortableSection({
     </div>
   );
 }
-
-// =========================
-// REPORT BLOCK
-// =========================
 
 function ReportBlock({
   title,
@@ -387,10 +373,6 @@ function ReportBlock({
     </div>
   );
 }
-
-// =========================
-// SEVERITY BADGE
-// =========================
 
 function SeverityBadge({
   severity,
