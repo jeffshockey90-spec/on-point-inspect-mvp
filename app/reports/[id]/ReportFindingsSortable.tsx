@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+
 import {
   DndContext,
   closestCenter,
@@ -36,7 +37,9 @@ export default function ReportFindingsSortable({
     groupedFindings || []
   );
 
+  // =========================
   // FIXED STATE SYNC
+  // =========================
 
   useEffect(() => {
     setSections(groupedFindings || []);
@@ -49,6 +52,10 @@ export default function ReportFindingsSortable({
       },
     })
   );
+
+  // =========================
+  // DRAG END
+  // =========================
 
   function handleDragEnd(
     event: DragEndEvent
@@ -105,7 +112,9 @@ export default function ReportFindingsSortable({
     });
   }
 
+  // =========================
   // EMPTY STATE
+  // =========================
 
   if (
     !allFindings ||
@@ -119,6 +128,10 @@ export default function ReportFindingsSortable({
       </div>
     );
   }
+
+  // =========================
+  // MAIN
+  // =========================
 
   return (
     <DndContext
@@ -155,6 +168,10 @@ export default function ReportFindingsSortable({
     </DndContext>
   );
 }
+
+// =========================
+// SORTABLE SECTION
+// =========================
 
 function SortableSection({
   group,
@@ -215,6 +232,7 @@ function SortableSection({
           const mainImage =
             finding.signed_image_url ||
             finding.image_url ||
+            finding.public_image_url ||
             "";
 
           return (
@@ -246,6 +264,8 @@ function SortableSection({
                     ) => {
                       const imageSrc =
                         photo.signed_url ||
+                        photo.public_url ||
+                        photo.image_url ||
                         "";
 
                       if (
@@ -328,7 +348,7 @@ function SortableSection({
                 />
               )}
 
-              {/* COMMENT */}
+              {/* ADDITIONAL NOTES */}
 
               {finding.comment && (
                 <ReportBlock
@@ -339,7 +359,7 @@ function SortableSection({
                 />
               )}
 
-              {/* EDIT */}
+              {/* EDIT FINDING */}
 
               <EditableFinding
                 finding={
@@ -353,6 +373,10 @@ function SortableSection({
     </div>
   );
 }
+
+// =========================
+// REPORT BLOCK
+// =========================
 
 function ReportBlock({
   title,
@@ -373,6 +397,10 @@ function ReportBlock({
     </div>
   );
 }
+
+// =========================
+// SEVERITY BADGE
+// =========================
 
 function SeverityBadge({
   severity,

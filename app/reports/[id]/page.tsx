@@ -139,7 +139,7 @@ export default async function ReportPage({
   }
 
   // =========================
-  // CREATE SIGNED PHOTO URLS
+  // CREATE SIGNED URLS
   // =========================
 
   const photosWithSignedUrls =
@@ -151,10 +151,14 @@ export default async function ReportPage({
           const filePath =
             photo.file_path;
 
+          // OLD PUBLIC IMAGE SUPPORT
           if (!filePath) {
             return {
               ...photo,
-              signed_url: null,
+              signed_url:
+                photo.public_url ||
+                photo.image_url ||
+                null,
             };
           }
 
@@ -176,12 +180,21 @@ export default async function ReportPage({
               "Signed URL error:",
               error
             );
+
+            return {
+              ...photo,
+              signed_url:
+                photo.public_url ||
+                photo.image_url ||
+                null,
+            };
           }
 
           return {
             ...photo,
             signed_url:
               data?.signedUrl ||
+              photo.public_url ||
               null,
           };
         }
@@ -375,11 +388,9 @@ export default async function ReportPage({
         {/* FINDINGS */}
 
         <ReportFindingsSortable
-          inspectionId={
-            String(
-              inspection.id
-            )
-          }
+          inspectionId={String(
+            inspection.id
+          )}
           groupedFindings={
             groupedFindingsArray
           }
