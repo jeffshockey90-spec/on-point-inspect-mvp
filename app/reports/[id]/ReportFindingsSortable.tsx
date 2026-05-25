@@ -152,7 +152,7 @@ export default function ReportFindingsSortable({
           verticalListSortingStrategy
         }
       >
-        <div className="space-y-10">
+        <div className="space-y-12">
           {sections.map(
             (group) => (
               <SortableSection
@@ -198,7 +198,7 @@ function SortableSection({
   };
 
   return (
-    <div
+    <section
       ref={setNodeRef}
       style={style}
       className={`space-y-6 rounded-2xl ${
@@ -209,7 +209,7 @@ function SortableSection({
     >
       {/* SECTION HEADER */}
 
-      <div className="flex items-center gap-3 border-b border-teal-500 pb-3">
+      <div className="sticky top-0 z-10 flex items-center gap-3 rounded-xl border border-slate-700 bg-slate-900/95 px-5 py-4 backdrop-blur">
         <button
           type="button"
           {...attributes}
@@ -219,9 +219,9 @@ function SortableSection({
           ☰
         </button>
 
-        <h3 className="text-2xl font-bold text-teal-400">
+        <h2 className="text-3xl font-bold text-teal-400">
           {group.section}
-        </h3>
+        </h2>
       </div>
 
       {/* FINDINGS */}
@@ -229,148 +229,174 @@ function SortableSection({
       {(group.findings ||
         []).map(
         (finding: any) => {
+          // =========================
+          // IMAGE FALLBACK SYSTEM
+          // =========================
+
+          const firstPhoto =
+            finding.photos?.[0];
+
           const mainImage =
             finding.signed_image_url ||
             finding.image_url ||
             finding.public_image_url ||
+            firstPhoto?.signed_url ||
+            firstPhoto?.public_url ||
+            firstPhoto?.image_url ||
             "";
 
           return (
-            <div
+            <article
               key={
                 finding.id
               }
-              className="rounded-2xl border border-slate-700 bg-[#0f172a] p-6 shadow-lg"
+              className="overflow-hidden rounded-3xl border border-slate-700 bg-[#0f172a] shadow-2xl"
             >
-              {/* MAIN IMAGE */}
+              {/* IMAGE */}
 
               {mainImage && (
-                <img
-                  src={mainImage}
-                  alt="Finding"
-                  className="mb-5 max-h-[450px] w-full rounded-xl border border-slate-700 object-contain"
-                />
-              )}
-
-              {/* EXTRA PHOTOS */}
-
-              {finding.photos
-                ?.length >
-                0 && (
-                <div className="mb-5 grid gap-4 md:grid-cols-2">
-                  {finding.photos.map(
-                    (
-                      photo: any
-                    ) => {
-                      const imageSrc =
-                        photo.signed_url ||
-                        photo.public_url ||
-                        photo.image_url ||
-                        "";
-
-                      if (
-                        !imageSrc
-                      ) {
-                        return null;
-                      }
-
-                      return (
-                        <img
-                          key={
-                            photo.id
-                          }
-                          src={
-                            imageSrc
-                          }
-                          alt="Finding Photo"
-                          className="max-h-[320px] w-full rounded-xl border border-slate-700 object-cover"
-                        />
-                      );
-                    }
-                  )}
+                <div className="border-b border-slate-700 bg-black">
+                  <img
+                    src={mainImage}
+                    alt="Finding"
+                    className="max-h-[650px] w-full object-contain"
+                  />
                 </div>
               )}
 
-              {/* META */}
+              {/* CONTENT */}
 
-              <div className="mb-4 flex flex-wrap items-center gap-3">
-                <span className="text-sm font-bold uppercase tracking-wide text-slate-400">
-                  {
-                    finding.section
-                  }
-                </span>
+              <div className="p-6 md:p-8">
 
-                <SeverityBadge
-                  severity={
-                    finding.severity ||
-                    "Recommended Repair"
-                  }
-                />
+                {/* HEADER */}
+
+                <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <div className="mb-2 flex flex-wrap items-center gap-3">
+
+                      <span className="rounded-full border border-slate-700 bg-slate-800 px-3 py-1 text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {
+                          finding.section
+                        }
+                      </span>
+
+                      <SeverityBadge
+                        severity={
+                          finding.severity ||
+                          "Recommended Repair"
+                        }
+                      />
+                    </div>
+
+                    <h3 className="text-3xl font-bold text-teal-300">
+                      {finding.title ||
+                        "Untitled Finding"}
+                    </h3>
+                  </div>
+
+                  <EditableFinding
+                    finding={
+                      finding
+                    }
+                  />
+                </div>
+
+                {/* OBSERVATION */}
+
+                {finding.observation && (
+                  <ReportBlock
+                    title="Observation"
+                    text={
+                      finding.observation
+                    }
+                  />
+                )}
+
+                {/* IMPLICATION */}
+
+                {finding.implication && (
+                  <ReportBlock
+                    title="Implication"
+                    text={
+                      finding.implication
+                    }
+                  />
+                )}
+
+                {/* RECOMMENDATION */}
+
+                {finding.recommendation && (
+                  <ReportBlock
+                    title="Recommendation"
+                    text={
+                      finding.recommendation
+                    }
+                  />
+                )}
+
+                {/* NOTES */}
+
+                {finding.comment && (
+                  <ReportBlock
+                    title="Additional Notes"
+                    text={
+                      finding.comment
+                    }
+                  />
+                )}
+
+                {/* EXTRA PHOTOS */}
+
+                {finding.photos
+                  ?.length >
+                  1 && (
+                  <div className="mt-8">
+                    <h4 className="mb-4 text-lg font-bold text-slate-200">
+                      Additional Photos
+                    </h4>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {finding.photos
+                        .slice(1)
+                        .map(
+                          (
+                            photo: any
+                          ) => {
+                            const imageSrc =
+                              photo.signed_url ||
+                              photo.public_url ||
+                              photo.image_url ||
+                              "";
+
+                            if (
+                              !imageSrc
+                            ) {
+                              return null;
+                            }
+
+                            return (
+                              <img
+                                key={
+                                  photo.id
+                                }
+                                src={
+                                  imageSrc
+                                }
+                                alt="Finding Photo"
+                                className="max-h-[350px] w-full rounded-2xl border border-slate-700 object-cover"
+                              />
+                            );
+                          }
+                        )}
+                    </div>
+                  </div>
+                )}
               </div>
-
-              {/* TITLE */}
-
-              <h4 className="text-2xl font-bold text-teal-300">
-                {finding.title ||
-                  "Untitled Finding"}
-              </h4>
-
-              {/* OBSERVATION */}
-
-              {finding.observation && (
-                <ReportBlock
-                  title="Observation"
-                  text={
-                    finding.observation
-                  }
-                />
-              )}
-
-              {/* IMPLICATION */}
-
-              {finding.implication && (
-                <ReportBlock
-                  title="Implication"
-                  text={
-                    finding.implication
-                  }
-                />
-              )}
-
-              {/* RECOMMENDATION */}
-
-              {finding.recommendation && (
-                <ReportBlock
-                  title="Recommendation"
-                  text={
-                    finding.recommendation
-                  }
-                />
-              )}
-
-              {/* ADDITIONAL NOTES */}
-
-              {finding.comment && (
-                <ReportBlock
-                  title="Additional Notes"
-                  text={
-                    finding.comment
-                  }
-                />
-              )}
-
-              {/* EDIT FINDING */}
-
-              <EditableFinding
-                finding={
-                  finding
-                }
-              />
-            </div>
+            </article>
           );
         }
       )}
-    </div>
+    </section>
   );
 }
 
@@ -386,14 +412,16 @@ function ReportBlock({
   text: string;
 }) {
   return (
-    <div className="mt-5">
-      <p className="text-lg font-bold text-white">
+    <div className="mt-8">
+      <h4 className="mb-3 text-xl font-bold text-white">
         {title}
-      </p>
+      </h4>
 
-      <p className="mt-2 whitespace-pre-line leading-8 text-slate-300">
-        {text}
-      </p>
+      <div className="rounded-2xl border border-slate-700 bg-slate-900/60 p-5">
+        <p className="whitespace-pre-line leading-8 text-slate-200">
+          {text}
+        </p>
+      </div>
     </div>
   );
 }
