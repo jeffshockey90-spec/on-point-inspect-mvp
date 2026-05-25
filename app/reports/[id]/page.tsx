@@ -2,24 +2,70 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
-
 import ReportFindingsSortable from "./ReportFindingsSortable";
 
+const SECTION_ORDER = [
+  "Inspection Details",
+  "Exterior",
+  "Roof",
+  "Basement, Foundation, Crawlspace & Structure",
+  "Heating",
+  "Cooling",
+  "Plumbing",
+  "Electrical",
+  "Attic, Insulation & Ventilation",
+  "Doors, Windows & Interior",
+  "Built-in Appliances",
+  "Garage",
+];
+
 type PageProps = {
-  params: Promise<{
-    id: string;
-  }>;
+  params: Promise<{ id: string }>;
 };
 
-function getStoragePathFromUrl(url: string | null | undefined) {
-  if (!url) return "";
+function normalizeSection(section?: string | null) {
+  if (!section) return "Inspection Details";
 
-  const marker = "/inspection-photos/";
-  const index = url.indexOf(marker);
+  const cleaned = section.trim();
 
-  if (index === -1) return "";
+  const aliases: Record<string, string> = {
+    "Basement/Foundation/Crawlspace & Structure":
+      "Basement, Foundation, Crawlspace & Structure",
+    "Basement, Foundation, Crawlspace and Structure":
+      "Basement, Foundation, Crawlspace & Structure",
+    "Attic/Insulation & Ventilation": "Attic, Insulation & Ventilation",
+    "Attic, Insulation and Ventilation": "Attic, Insulation & Ventilation",
+    "Doors/Windows & Interior": "Doors, Windows & Interior",
+    "Doors, Windows and Interior": "Doors, Windows & Interior",
+    Appliances: "Built-in Appliances",
+    "Built In Appliances": "Built-in Appliances",
+    "Built-in Appliance": "Built-in Appliances",
+  };
 
-  return decodeURIComponent(url.substring(index + marker.length));
+  return aliases[cleaned] || cleaned;
+}
+
+async function getSignedPhotoUrl(
+  supabase: any,
+  photo: any
+): Promise<string | null> {
+  if (photo?.signed_url) return photo.signed_url;
+  if (photo?.public_url) return photo.public_url;
+  if (photo?.image_url) return photo.image_url;
+
+  const path =
+    photo?.storage_path ||
+    photo?.photo_path ||
+    photo?.file_path ||
+    photo?.path;
+
+  if (!path) return null;
+
+  const { data } = await supabase.storage
+    .from("inspection-photos")
+    .createSignedUrl(path, 60 * 60 * 24 * 7);
+
+  return data?.signedUrl || null;
 }
 
 export default async function ReportPage({ params }: PageProps) {
@@ -62,267 +108,121 @@ export default async function ReportPage({ params }: PageProps) {
     redirect("/reports");
   }
 
-  const { data: findingsRaw, error: findingsError } = await supabase
+  const { data: findingsData } = await supabase
     .from("findings")
     .select("*")
-    .eq("inspection_id", inspection.id)
-    .order("section", { ascending: true })
+    .eq("inspection_id", id)
     .order("created_at", { ascending: true });
 
-  if (findingsError) {
-    console.error("Findings load error:", findingsError);
-  }
-
-  const findingIds = (findingsRaw || []).map((finding: any) => finding.id);
-
-  const { data: photosRaw, error: photosError } =
-    findingIds.length > 0
-      ? await supabase
-          .from("photos")
-          .select("*")
-          .in("finding_id", findingIds)
-      : { data: [], error: null };
-
-  if (photosError) {
-    console.error("Photos load error:", photosError);
-  }
+  const { data: photosData } = await supabase
+    .from("inspection_photos")
+    .select("*")
+    .eq("inspection_id", id)
+    .order("created_at", { ascending: true });
 
   const photosWithUrls = await Promise.all(
-    (photosRaw || []).map(async (photo: any) => {
-      const filePath =
-        photo.file_path ||
-        getStoragePathFromUrl(photo.public_url) ||
-        getStoragePathFromUrl(photo.image_url) ||
-        getStoragePathFromUrl(photo.photo_url);
-
-      if (!filePath) {
-        return {
-          ...photo,
-          signed_url:
-            photo.public_url ||
-            photo.image_url ||
-            photo.photo_url ||
-            null,
-        };
-      }
-
-      const { data, error } = await supabase.storage
-        .from("inspection-photos")
-        .createSignedUrl(filePath, 60 * 60);
-
-      return {
-        ...photo,
-        signed_url:
-          data?.signedUrl ||
-          photo.public_url ||
-          photo.image_url ||
-          photo.photo_url ||
-          null,
-      };
-    })
+    (photosData || []).map(async (photo: any) => ({
+      ...photo,
+      signed_url: await getSignedPhotoUrl(supabase, photo),
+    }))
   );
 
-  const photosByFindingId = photosWithUrls.reduce(
-    (acc: Record<string, any[]>, photo: any) => {
-      if (!photo.finding_id) return acc;
+  const photosByFindingId = photosWithUrls.reduce((acc: any, photo: any) => {
+    const findingId = photo.finding_id;
 
-      if (!acc[photo.finding_id]) {
-        acc[photo.finding_id] = [];
-      }
+    if (!findingId) return acc;
 
-      acc[photo.finding_id].push(photo);
-      return acc;
-    },
-    {}
-  );
+    if (!acc[findingId]) acc[findingId] = [];
+    acc[findingId].push(photo);
 
-  const findings = await Promise.all(
-    (findingsRaw || []).map(async (finding: any) => {
-      let signedImageUrl = finding.image_url || "";
+    return acc;
+  }, {});
 
-      const oldImagePath = getStoragePathFromUrl(finding.image_url);
+  const allFindings = (findingsData || []).map((finding: any) => {
+    const findingPhotos = photosByFindingId[finding.id] || [];
 
-      if (oldImagePath) {
-        const { data, error } = await supabase.storage
-          .from("inspection-photos")
-          .createSignedUrl(oldImagePath, 60 * 60);
+    return {
+      ...finding,
+      section: normalizeSection(finding.section),
+      photos: findingPhotos,
+      image_url:
+        finding.image_url ||
+        findingPhotos?.[0]?.signed_url ||
+        findingPhotos?.[0]?.image_url ||
+        null,
+    };
+  });
 
-        if (!error && data?.signedUrl) {
-          signedImageUrl = data.signedUrl;
-        }
-      }
-
-      return {
-        ...finding,
-        signed_image_url: signedImageUrl,
-        photos: photosByFindingId[finding.id] || [],
-      };
-    })
-  );
-
-  const groupedFindings = findings.reduce(
-    (acc: Record<string, any[]>, finding: any) => {
-      const section = finding.section || "General";
-
-      if (!acc[section]) {
-        acc[section] = [];
-      }
-
-      acc[section].push(finding);
-      return acc;
-    },
-    {}
-  );
-
-  const groupedFindingsArray = Object.entries(groupedFindings).map(
-    ([section, findings]) => ({
-      section,
-      findings,
-    })
-  );
+  const groupedFindings = SECTION_ORDER.reduce((acc: any, section) => {
+    acc[section] = allFindings.filter(
+      (finding: any) => normalizeSection(finding.section) === section
+    );
+    return acc;
+  }, {});
 
   return (
-    <main className="min-h-screen bg-[#020617] text-white">
-      <div className="mx-auto max-w-7xl px-6 py-8">
-        <div className="mb-8 rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
-          <div className="mb-8 flex flex-wrap gap-3">
-            <a
-              href="javascript:window.print()"
-              className="rounded-xl bg-black px-5 py-3 font-bold text-white hover:bg-slate-800"
-            >
-              Print / Save PDF
-            </a>
+    <main className="min-h-screen bg-slate-950 text-slate-100">
+      <div className="mx-auto max-w-7xl px-4 py-6">
+        <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-teal-500/20 bg-slate-900/80 p-5 shadow-lg shadow-teal-950/20">
+          <div>
+            <p className="text-sm font-medium text-teal-300">Inspection Report</p>
+            <h1 className="mt-1 text-2xl font-bold text-white">
+              {inspection.address || "Untitled Inspection"}
+            </h1>
 
-            <a
-              href="javascript:window.print()"
-              className="rounded-xl bg-white px-5 py-3 font-bold text-black hover:bg-slate-200"
-            >
-              Export PDF
-            </a>
+            <p className="mt-1 text-sm text-slate-400">
+              {[inspection.city, inspection.state, inspection.zip]
+                .filter(Boolean)
+                .join(", ")}
+            </p>
+          </div>
 
+          <div className="flex flex-wrap gap-3">
             <Link
-              href={`/reports/${inspection.id}/summary`}
-              className="rounded-xl bg-purple-600 px-5 py-3 font-bold text-white hover:bg-purple-500"
+              href="/reports"
+              className="rounded-xl border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-100 hover:bg-slate-700"
             >
-              Generate AI Summary
+              Back to Reports
             </Link>
 
             <Link
-              href={`/share/${inspection.id}`}
-              className="rounded-xl bg-green-500 px-5 py-3 font-bold text-slate-950 hover:bg-green-400"
+              href={`/ai-capture?inspection_id=${id}&return_to=/reports/${id}`}
+              className="rounded-xl bg-teal-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-teal-400"
             >
-              Publish Report
+              AI Capture
             </Link>
 
             <Link
-              href={`/share/${inspection.id}`}
-              className="rounded-xl border border-blue-500 px-5 py-3 font-bold text-blue-300 hover:bg-blue-500/10"
-            >
-              Copy Share Link
-            </Link>
-
-            <Link
-              href={`/client/${inspection.id}`}
-              className="rounded-xl border border-purple-500 px-5 py-3 font-bold text-purple-300 hover:bg-purple-500/10"
-            >
-              Send Report
-            </Link>
-
-            <Link
-              href={`/repair-request?inspection_id=${inspection.id}`}
-              className="rounded-xl bg-orange-600 px-5 py-3 font-bold text-white hover:bg-orange-500"
-            >
-              Repair Request Builder
-            </Link>
-
-            <Link
-              href={`/reports/${inspection.id}/summary`}
-              className="rounded-xl border border-cyan-500 px-5 py-3 font-bold text-cyan-300 hover:bg-cyan-500/10"
-            >
-              Realtor Summary
-            </Link>
-
-            <Link
-              href={`/ai-capture?inspection_id=${inspection.id}`}
-              className="rounded-xl bg-teal-500 px-5 py-3 font-bold text-slate-950 hover:bg-teal-400"
-            >
-              Open Full AI Capture
-            </Link>
-
-            <Link
-              href={`/equipment-analyzer?inspection_id=${inspection.id}`}
-              className="rounded-xl border border-blue-500 px-5 py-3 font-bold text-blue-300 hover:bg-blue-500/10"
+              href={`/equipment-analyzer?inspection_id=${id}&return_to=/reports/${id}`}
+              className="rounded-xl bg-teal-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-teal-400"
             >
               Equipment Analyzer
             </Link>
-          </div>
 
-          <h1 className="text-5xl font-extrabold text-teal-400">
-            On Point Home Inspections
-          </h1>
+            <Link
+              href={`/reports/${id}/repair-request`}
+              className="rounded-xl border border-teal-500/40 px-4 py-2 text-sm font-semibold text-teal-200 hover:bg-teal-500/10"
+            >
+              Repair Request
+            </Link>
 
-          <p className="mt-3 text-xl text-slate-200">
-            Residential Home Inspection Report
-          </p>
-
-          <div className="mt-8 border-t border-slate-700 pt-8">
-            <h2 className="text-2xl font-bold text-teal-400">
-              Inspection Details
-            </h2>
-
-            <div className="mt-6 grid gap-6 md:grid-cols-2">
-              <div>
-                <h3 className="mb-4 text-xl font-bold text-teal-300">
-                  Inspection Information
-                </h3>
-
-                <InfoItem label="Property Address" value={inspection.address} />
-                <InfoItem label="Client" value={inspection.client_name} />
-                <InfoItem label="Client Email" value={inspection.client_email} />
-                <InfoItem label="Realtor" value={inspection.realtor_name} />
-                <InfoItem
-                  label="Inspection Date"
-                  value={inspection.inspection_date}
-                />
-              </div>
-
-              <div>
-                <h3 className="mb-4 text-xl font-bold text-teal-300">
-                  Property / Site Information
-                </h3>
-
-                <InfoItem label="Square Feet" value={inspection.square_feet} />
-                <InfoItem label="House Style" value={inspection.house_style} />
-                <InfoItem label="Roof Style" value={inspection.roof_style} />
-                <InfoItem label="Garage" value={inspection.garage} />
-                <InfoItem
-                  label="Location"
-                  value={`${inspection.city || ""}, ${inspection.state || ""} ${
-                    inspection.zip || ""
-                  }`}
-                />
-              </div>
-            </div>
+            <Link
+              href={`/reports/${id}/share`}
+              className="rounded-xl border border-teal-500/40 px-4 py-2 text-sm font-semibold text-teal-200 hover:bg-teal-500/10"
+            >
+              Share Portal
+            </Link>
           </div>
         </div>
 
-        <ReportFindingsSortable
-          inspectionId={String(inspection.id)}
-          groupedFindings={groupedFindingsArray}
-          allFindings={findings}
-        />
+        <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4 shadow-lg">
+          <ReportFindingsSortable
+            inspectionId={id}
+            groupedFindings={groupedFindings}
+            allFindings={allFindings}
+          />
+        </section>
       </div>
     </main>
-  );
-}
-
-function InfoItem({ label, value }: { label: string; value: any }) {
-  return (
-    <div className="mb-4">
-      <p className="mb-1 text-sm font-bold text-slate-400">{label}</p>
-      <div className="rounded-lg border border-slate-700 bg-[#020617] px-4 py-3 text-white">
-        {value || "Not entered"}
-      </div>
-    </div>
   );
 }
