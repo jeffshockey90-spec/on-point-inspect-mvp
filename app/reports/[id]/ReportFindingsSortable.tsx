@@ -416,11 +416,11 @@ function ChecklistFindingCard({
       </div>
 
       <div className="p-4">
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
           {options.map((option) => (
             <label
               key={option}
-              className="flex min-w-0 cursor-pointer items-center gap-2 rounded-lg border border-transparent px-2 py-1 text-sm text-slate-100 transition hover:border-slate-700 hover:bg-slate-800/60"
+              className="flex cursor-pointer items-start gap-2 rounded-lg border border-transparent px-2 py-1 text-sm text-slate-100 transition hover:border-slate-700 hover:bg-slate-800/60"
             >
               <input
                 type="checkbox"
@@ -430,10 +430,10 @@ function ChecklistFindingCard({
                 onChange={() =>
                   toggleOption(option)
                 }
-                className="h-4 w-4 shrink-0 rounded border-slate-500 bg-slate-900 accent-teal-500"
+                className="mt-1 h-4 w-4 shrink-0 rounded border-slate-500 bg-slate-900 accent-teal-500"
               />
 
-              <span className="truncate leading-tight">
+              <span className="whitespace-normal leading-tight text-slate-100">
                 {option}
               </span>
             </label>
