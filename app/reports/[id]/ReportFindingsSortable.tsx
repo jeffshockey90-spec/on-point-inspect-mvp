@@ -192,7 +192,7 @@ export default function ReportFindingsSortable({
         items={sections.map((group) => group.section)}
         strategy={verticalListSortingStrategy}
       >
-        <div className="space-y-10">
+        <div className="space-y-6">
           {sections.map((group) => (
             <SortableSection
               key={group.section}
@@ -239,28 +239,28 @@ function SortableSection({
     <section
       ref={setNodeRef}
       style={style}
-      className={`space-y-6 ${isDragging ? "opacity-60" : "opacity-100"}`}
+      className={`space-y-4 ${isDragging ? "opacity-60" : "opacity-100"}`}
     >
-      <div className="sticky top-0 z-10 rounded-2xl border border-slate-700 bg-slate-900/95 px-5 py-4 backdrop-blur">
+      <div className="sticky top-0 z-10 rounded-xl border border-slate-700 bg-slate-900/95 px-4 py-3 backdrop-blur">
         <div className="flex items-center gap-3">
           <button
             type="button"
             {...attributes}
             {...listeners}
-            className="cursor-grab rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm font-bold text-slate-200 active:cursor-grabbing"
+            className="cursor-grab rounded-lg border border-slate-600 bg-slate-800 px-3 py-1 text-sm font-bold text-slate-200 active:cursor-grabbing"
           >
             ☰
           </button>
 
-          <h2 className="text-4xl font-bold text-teal-400">{group.section}</h2>
+          <h2 className="text-2xl font-bold text-teal-400">{group.section}</h2>
         </div>
 
         {isInspectionDetails && (
-          <div className="mt-4 flex gap-6 border-b border-slate-700">
+          <div className="mt-3 flex gap-6 border-b border-slate-700">
             <button
               type="button"
               onClick={() => setActiveTab("Information")}
-              className={`pb-2 text-lg font-bold ${
+              className={`pb-2 text-sm font-bold ${
                 activeTab === "Information"
                   ? "border-b-4 border-teal-400 text-white"
                   : "text-slate-400"
@@ -272,7 +272,7 @@ function SortableSection({
             <button
               type="button"
               onClick={() => setActiveTab("Limitations")}
-              className={`pb-2 text-lg font-bold ${
+              className={`pb-2 text-sm font-bold ${
                 activeTab === "Limitations"
                   ? "border-b-4 border-teal-400 text-white"
                   : "text-slate-400"
@@ -344,37 +344,49 @@ function ChecklistFindingCard({
   }
 
   return (
-    <article className="overflow-hidden rounded-2xl border border-slate-700 bg-[#0f172a] shadow-xl">
-      <div className="flex items-center justify-between bg-slate-800/80 px-5 py-4">
+    <article className="overflow-hidden rounded-xl border border-slate-700 bg-[#0f172a]">
+      <div className="flex items-center justify-between bg-slate-800/80 px-4 py-2">
         <div className="flex items-center gap-3">
-          <h3 className="text-xl font-bold text-teal-300">{finding.title}</h3>
+          <h3 className="text-base font-bold text-teal-300">{finding.title}</h3>
 
-          <span className="text-slate-400">✎</span>
-          <span className="text-slate-400">📷</span>
-          <span className="text-slate-400">✦</span>
-        </div>
+          <button
+            type="button"
+            className="text-slate-400 hover:text-white"
+            title="Edit"
+          >
+            ✎
+          </button>
 
-        <div className="flex gap-3 text-slate-400">
-          <span>💾</span>
-          <span>↕</span>
-          <span>⧉</span>
-          <span>⚑</span>
-          <span>🗑</span>
+          <button
+            type="button"
+            className="text-slate-400 hover:text-white"
+            title="Photos"
+          >
+            📷
+          </button>
+
+          <button
+            type="button"
+            className="text-slate-400 hover:text-white"
+            title="Edit with AI"
+          >
+            ✨
+          </button>
         </div>
       </div>
 
-      <div className="p-5">
-        <div className="grid gap-4 md:grid-cols-2">
+      <div className="p-4">
+        <div className="grid gap-2 md:grid-cols-2">
           {options.map((option) => (
             <label
               key={option}
-              className="flex cursor-pointer items-center gap-3 text-lg text-slate-100"
+              className="flex cursor-pointer items-center gap-2 text-sm text-slate-100"
             >
               <input
                 type="checkbox"
                 checked={checkedOptions.includes(option)}
                 onChange={() => toggleOption(option)}
-                className="h-5 w-5 rounded border-slate-500 bg-slate-900 accent-teal-500"
+                className="h-4 w-4 rounded border-slate-500 bg-slate-900 accent-teal-500"
               />
 
               <span>{option}</span>
@@ -382,17 +394,17 @@ function ChecklistFindingCard({
           ))}
         </div>
 
-        <div className="mt-5 flex justify-between gap-4">
+        <div className="mt-4 flex justify-between gap-4">
           <button
             type="button"
-            className="text-lg font-medium text-teal-300 hover:text-teal-200"
+            className="text-sm font-medium text-teal-300 hover:text-teal-200"
           >
             + OTHER
           </button>
 
           <button
             type="button"
-            className="rounded-lg border border-slate-600 px-4 py-2 text-sm font-bold text-slate-200 hover:bg-slate-800"
+            className="rounded-lg border border-slate-600 px-3 py-1 text-xs font-bold text-slate-200 hover:bg-slate-800"
           >
             ✨ Edit with AI
           </button>
@@ -421,26 +433,26 @@ function InspectionLimitationsCard({
   }
 
   return (
-    <article className="overflow-hidden rounded-2xl border border-slate-700 bg-[#0f172a] shadow-xl">
-      <div className="bg-slate-800/80 px-5 py-4">
-        <h3 className="text-xl font-bold text-teal-300">
+    <article className="overflow-hidden rounded-xl border border-slate-700 bg-[#0f172a]">
+      <div className="bg-slate-800/80 px-4 py-2">
+        <h3 className="text-base font-bold text-teal-300">
           Inspection Limitations
         </h3>
       </div>
 
-      <div className="p-5">
+      <div className="p-4">
         <textarea
           value={note}
           onChange={(e) => saveNote(e.target.value)}
-          rows={5}
+          rows={4}
           placeholder="Example: Snow covered portions of roof, stored belongings limited access, utilities off, locked rooms, unsafe access, etc."
-          className="w-full rounded-xl border border-slate-700 bg-[#020617] px-4 py-3 text-white outline-none focus:border-teal-400"
+          className="w-full rounded-xl border border-slate-700 bg-[#020617] px-4 py-3 text-sm text-white outline-none focus:border-teal-400"
         />
 
-        <div className="mt-4 flex justify-end">
+        <div className="mt-3 flex justify-end">
           <button
             type="button"
-            className="rounded-lg border border-slate-600 px-4 py-2 text-sm font-bold text-slate-200 hover:bg-slate-800"
+            className="rounded-lg border border-slate-600 px-3 py-1 text-xs font-bold text-slate-200 hover:bg-slate-800"
           >
             ✨ Edit with AI
           </button>
@@ -463,7 +475,7 @@ function NormalFindingCard({ finding }: { finding: any }) {
     "";
 
   return (
-    <article className="overflow-hidden rounded-3xl border border-slate-700 bg-[#0f172a] shadow-2xl">
+    <article className="overflow-hidden rounded-2xl border border-slate-700 bg-[#0f172a] shadow-xl">
       {mainImage && (
         <div className="border-b border-slate-700 bg-black">
           <img
@@ -474,10 +486,10 @@ function NormalFindingCard({ finding }: { finding: any }) {
         </div>
       )}
 
-      <div className="p-6 md:p-8">
-        <div className="mb-5 flex flex-wrap items-start justify-between gap-5">
+      <div className="p-5 md:p-6">
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
           <div>
-            <div className="mb-3 flex flex-wrap items-center gap-3">
+            <div className="mb-2 flex flex-wrap items-center gap-3">
               <span className="rounded-full border border-slate-600 bg-slate-800 px-3 py-1 text-xs font-bold uppercase tracking-wide text-slate-200">
                 {finding.section || "General"}
               </span>
@@ -485,7 +497,7 @@ function NormalFindingCard({ finding }: { finding: any }) {
               <SeverityBadge severity={finding.severity || "Informational"} />
             </div>
 
-            <h3 className="text-4xl font-bold text-teal-300">
+            <h3 className="text-2xl font-bold text-teal-300">
               {finding.title || "Untitled Finding"}
             </h3>
           </div>
@@ -508,6 +520,32 @@ function NormalFindingCard({ finding }: { finding: any }) {
         {finding.comment && (
           <ReportBlock title="Additional Notes" text={finding.comment} />
         )}
+
+        {finding.photos?.length > 1 && (
+          <div className="mt-6">
+            <h4 className="mb-3 text-base font-bold text-slate-200">
+              Additional Photos
+            </h4>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              {finding.photos.slice(1).map((photo: any) => {
+                const imageSrc =
+                  photo.signed_url || photo.public_url || photo.image_url || "";
+
+                if (!imageSrc) return null;
+
+                return (
+                  <img
+                    key={photo.id || imageSrc}
+                    src={imageSrc}
+                    alt="Finding Photo"
+                    className="max-h-[300px] w-full rounded-xl border border-slate-700 object-cover"
+                  />
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </article>
   );
@@ -515,10 +553,13 @@ function NormalFindingCard({ finding }: { finding: any }) {
 
 function ReportBlock({ title, text }: { title: string; text: string }) {
   return (
-    <div className="mt-8">
-      <h4 className="mb-3 text-2xl font-bold text-white">{title}</h4>
-      <div className="rounded-2xl border border-slate-700 bg-slate-900/60 p-5">
-        <p className="whitespace-pre-line leading-8 text-slate-200">{text}</p>
+    <div className="mt-5">
+      <h4 className="mb-2 text-lg font-bold text-white">{title}</h4>
+
+      <div className="rounded-xl border border-slate-700 bg-slate-900/60 p-4">
+        <p className="whitespace-pre-line text-sm leading-7 text-slate-200">
+          {text}
+        </p>
       </div>
     </div>
   );
