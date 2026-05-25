@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 
+import ReportFindingsSortable from "./ReportFindingsSortable";
+
 type PageProps = {
   params: Promise<{
     id: string;
@@ -86,7 +88,13 @@ export default async function ReportPage({
     .eq(
       "inspection_id",
       inspection.id
-    );
+    )
+    .order("section", {
+      ascending: true,
+    })
+    .order("created_at", {
+      ascending: true,
+    });
 
   if (findingsError) {
     console.error(
@@ -131,7 +139,7 @@ export default async function ReportPage({
   }
 
   // =========================
-  // CREATE SIGNED URLS
+  // CREATE SIGNED PHOTO URLS
   // =========================
 
   const photosWithSignedUrls =
@@ -141,10 +149,7 @@ export default async function ReportPage({
       ).map(
         async (photo: any) => {
           const filePath =
-            photo.file_path ||
-            photo.storage_path ||
-            photo.path ||
-            photo.photo_path;
+            photo.file_path;
 
           if (!filePath) {
             return {
@@ -152,17 +157,6 @@ export default async function ReportPage({
               signed_url: null,
             };
           }
-
-          const cleanPath =
-            String(filePath)
-              .replace(
-                /^inspection-photos\//,
-                ""
-              )
-              .replace(
-                /^\/+/,
-                ""
-              );
 
           const {
             data,
@@ -173,7 +167,7 @@ export default async function ReportPage({
                 "inspection-photos"
               )
               .createSignedUrl(
-                cleanPath,
+                filePath,
                 60 * 60
               );
 
@@ -207,12 +201,6 @@ export default async function ReportPage({
         >,
         photo: any
       ) => {
-        if (
-          !photo.finding_id
-        ) {
-          return acc;
-        }
-
         if (
           !acc[
             photo.finding_id
@@ -292,48 +280,113 @@ export default async function ReportPage({
     );
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100">
-      <div className="mx-auto max-w-6xl px-4 py-6">
+    <main className="min-h-screen bg-[#020617] text-white">
+      <div className="mx-auto max-w-7xl px-6 py-8">
 
         {/* HEADER */}
 
-        <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-slate-800 bg-slate-900/70 p-5 shadow-lg md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-sm text-slate-400">
-              Inspection Report
+        <div className="mb-8 rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+
+            <div>
+              <p className="text-sm uppercase tracking-widest text-slate-400">
+                Inspection Report
+              </p>
+
+              <h1 className="mt-2 text-4xl font-bold text-white">
+                {inspection.address ||
+                  "Untitled Inspection"}
+              </h1>
+
+              <p className="mt-2 text-slate-300">
+                {inspection.city},{" "}
+                {
+                  inspection.state
+                }{" "}
+                {
+                  inspection.zip
+                }
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href="/reports"
+                className="rounded-xl border border-slate-700 bg-slate-900 px-5 py-3 font-semibold text-slate-200 hover:bg-slate-800"
+              >
+                Back to Reports
+              </Link>
+
+              <Link
+                href={`/ai-capture?inspection_id=${inspection.id}`}
+                className="rounded-xl bg-cyan-500 px-5 py-3 font-semibold text-slate-950 hover:bg-cyan-400"
+              >
+                AI Capture
+              </Link>
+
+              <Link
+                href={`/equipment-analyzer?inspection_id=${inspection.id}`}
+                className="rounded-xl bg-emerald-500 px-5 py-3 font-semibold text-slate-950 hover:bg-emerald-400"
+              >
+                Equipment Analyzer
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* INFO CARDS */}
+
+        <div className="mb-8 grid gap-4 md:grid-cols-3">
+
+          <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-5">
+            <p className="text-xs uppercase tracking-widest text-slate-500">
+              Client
             </p>
 
-            <h1 className="text-2xl font-bold text-white">
-              {inspection.address ||
-                "Untitled Inspection"}
-            </h1>
+            <p className="mt-2 text-xl font-semibold">
+              {inspection.client_name ||
+                "Not entered"}
+            </p>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            <Link
-              href="/reports"
-              className="rounded-xl border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-800"
-            >
-              Back to Reports
-            </Link>
+          <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-5">
+            <p className="text-xs uppercase tracking-widest text-slate-500">
+              Realtor
+            </p>
+
+            <p className="mt-2 text-xl font-semibold">
+              {inspection.realtor_name ||
+                "Not entered"}
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-5">
+            <p className="text-xs uppercase tracking-widest text-slate-500">
+              Inspection Date
+            </p>
+
+            <p className="mt-2 text-xl font-semibold">
+              {inspection.inspection_date ||
+                "Not entered"}
+            </p>
           </div>
         </div>
 
-        {/* DEBUG OUTPUT */}
+        {/* FINDINGS */}
 
-        <div className="rounded-xl bg-red-950 p-6 text-white">
-          <pre>
-            {JSON.stringify(
-              {
-                findingsRaw,
-                findings,
-                groupedFindingsArray,
-              },
-              null,
-              2
-            )}
-          </pre>
-        </div>
+        <ReportFindingsSortable
+          inspectionId={
+            String(
+              inspection.id
+            )
+          }
+          groupedFindings={
+            groupedFindingsArray
+          }
+          allFindings={
+            findings
+          }
+        />
       </div>
     </main>
   );
