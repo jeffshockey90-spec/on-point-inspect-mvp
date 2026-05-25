@@ -204,7 +204,7 @@ export default function ReportFindingsSortable({
         items={sections.map((group) => group.section)}
         strategy={verticalListSortingStrategy}
       >
-        <div className="space-y-6">
+        <div className="w-full max-w-full space-y-6 overflow-hidden">
           {sections.map((group) => (
             <SortableSection
               key={group.section}
@@ -251,7 +251,9 @@ function SortableSection({
     <section
       ref={setNodeRef}
       style={style}
-      className={`space-y-4 ${isDragging ? "opacity-60" : "opacity-100"}`}
+      className={`w-full max-w-full space-y-4 overflow-hidden ${
+        isDragging ? "opacity-60" : "opacity-100"
+      }`}
     >
       <div className="sticky top-0 z-10 rounded-xl border border-slate-700 bg-slate-900/95 px-4 py-3 backdrop-blur">
         <div className="flex items-center gap-3">
@@ -332,11 +334,16 @@ function ChecklistFindingCard({
   checklist: any;
 }) {
   const localStorageKey = `inspection-${inspectionId}-checklist-${finding.title}`;
+  const customOptionsKey = `checklist-custom-options-${finding.title}`;
   const tempStorageKey = `inspection-${inspectionId}-temperature-value`;
 
   const [checkedOptions, setCheckedOptions] = useState<string[]>(
     checklist.defaults || []
   );
+
+  const [customOptions, setCustomOptions] = useState<string[]>([]);
+  const [showOtherInput, setShowOtherInput] = useState(false);
+  const [otherText, setOtherText] = useState("");
 
   const [temperatureValue, setTemperatureValue] = useState(
     checklist.defaultValue || "56"
@@ -344,16 +351,25 @@ function ChecklistFindingCard({
 
   useEffect(() => {
     const saved = localStorage.getItem(localStorageKey);
+    const savedCustomOptions = localStorage.getItem(customOptionsKey);
     const savedTemp = localStorage.getItem(tempStorageKey);
 
     if (saved) {
       setCheckedOptions(JSON.parse(saved));
     }
 
+    if (savedCustomOptions) {
+      setCustomOptions(JSON.parse(savedCustomOptions));
+    }
+
     if (savedTemp && checklist.type === "temperature") {
       setTemperatureValue(savedTemp);
     }
-  }, [localStorageKey, tempStorageKey, checklist.type]);
+  }, [localStorageKey, customOptionsKey, tempStorageKey, checklist.type]);
+
+  const allOptions = [...checklist.options, ...customOptions].filter(
+    (option, index, array) => array.indexOf(option) === index
+  );
 
   function toggleOption(option: string) {
     setCheckedOptions((current) => {
@@ -368,6 +384,7 @@ function ChecklistFindingCard({
       }
 
       localStorage.setItem(localStorageKey, JSON.stringify(updated));
+
       return updated;
     });
   }
@@ -377,61 +394,133 @@ function ChecklistFindingCard({
     localStorage.setItem(tempStorageKey, value);
   }
 
-  return (
-    <article className="overflow-hidden border border-slate-300 bg-white text-slate-900">
-      <div className="flex items-center gap-3 bg-slate-100 px-4 py-2">
-        <h3 className="text-sm font-bold text-slate-800">{finding.title}</h3>
+  function saveOtherOption() {
+    const cleaned = otherText.trim();
 
-        <button type="button" className="text-slate-500 hover:text-slate-900">
+    if (!cleaned) return;
+
+    const updatedCustomOptions = [...customOptions, cleaned].filter(
+      (option, index, array) => array.indexOf(option) === index
+    );
+
+    setCustomOptions(updatedCustomOptions);
+    localStorage.setItem(customOptionsKey, JSON.stringify(updatedCustomOptions));
+
+    setCheckedOptions((current) => {
+      const updated = current.includes(cleaned) ? current : [...current, cleaned];
+
+      localStorage.setItem(localStorageKey, JSON.stringify(updated));
+
+      return updated;
+    });
+
+    setOtherText("");
+    setShowOtherInput(false);
+  }
+
+  return (
+    <article className="w-full max-w-full overflow-hidden rounded-xl border border-slate-700 bg-[#0f172a] text-white shadow-lg">
+      <div className="flex flex-wrap items-center gap-3 border-b border-slate-700 bg-slate-800/80 px-4 py-2">
+        <h3 className="text-sm font-bold text-teal-300">{finding.title}</h3>
+
+        <button
+          type="button"
+          className="text-xs text-slate-400 hover:text-white"
+          title="Edit"
+        >
           ✎
         </button>
 
-        <button type="button" className="text-slate-500 hover:text-slate-900">
+        <button
+          type="button"
+          className="text-xs text-slate-400 hover:text-white"
+          title="Photos"
+        >
           📷
         </button>
 
-        <button type="button" className="text-slate-500 hover:text-slate-900">
+        <button
+          type="button"
+          className="text-xs text-slate-400 hover:text-white"
+          title="Edit with AI"
+        >
           ✨
         </button>
       </div>
 
-      <div className="px-4 py-4">
+      <div className="w-full max-w-full overflow-hidden px-4 py-4">
         {checklist.type === "temperature" && (
           <input
             value={temperatureValue}
             onChange={(e) => updateTemperature(e.target.value)}
-            className="mb-4 w-full border-b border-slate-400 bg-transparent px-1 py-2 text-base text-slate-900 outline-none"
+            className="mb-4 w-full border-b border-slate-600 bg-transparent px-1 py-2 text-base text-white outline-none focus:border-teal-400"
+            placeholder="Enter temperature"
           />
         )}
 
-        <div className="grid grid-cols-2 gap-x-20 gap-y-3">
-          {checklist.options.map((option: string) => {
+        <div className="grid w-full max-w-full grid-cols-1 gap-2 md:grid-cols-2">
+          {allOptions.map((option: string) => {
             const isChecked = checkedOptions.includes(option);
 
             return (
               <label
                 key={option}
-                className="flex cursor-pointer items-center gap-3 text-base text-slate-900"
+                className="flex min-w-0 max-w-full cursor-pointer items-start gap-3 rounded-lg px-2 py-1 text-sm text-slate-100 hover:bg-slate-800/80"
               >
                 <input
                   type={checklist.type === "temperature" ? "radio" : "checkbox"}
                   checked={isChecked}
                   onChange={() => toggleOption(option)}
-                  className="h-4 w-4 accent-blue-700"
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-teal-500"
                 />
 
-                <span>{option}</span>
+                <span className="min-w-0 max-w-full break-words leading-tight">
+                  {option}
+                </span>
               </label>
             );
           })}
         </div>
 
-        <button
-          type="button"
-          className="mt-4 text-base font-medium text-slate-700 hover:text-slate-950"
-        >
-          + OTHER
-        </button>
+        {showOtherInput && (
+          <div className="mt-4 flex flex-col gap-2 rounded-lg border border-slate-700 bg-[#020617] p-3 sm:flex-row">
+            <input
+              value={otherText}
+              onChange={(e) => setOtherText(e.target.value)}
+              placeholder="Add other option..."
+              className="min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:border-teal-400"
+            />
+
+            <button
+              type="button"
+              onClick={saveOtherOption}
+              className="rounded-lg bg-teal-500 px-4 py-2 text-sm font-bold text-slate-950 hover:bg-teal-400"
+            >
+              Save
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setShowOtherInput(false);
+                setOtherText("");
+              }}
+              className="rounded-lg border border-slate-600 px-4 py-2 text-sm font-bold text-slate-200 hover:bg-slate-800"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
+
+        {!showOtherInput && (
+          <button
+            type="button"
+            onClick={() => setShowOtherInput(true)}
+            className="mt-4 text-sm font-medium text-teal-300 hover:text-teal-200"
+          >
+            + OTHER
+          </button>
+        )}
       </div>
     </article>
   );
@@ -452,9 +541,9 @@ function InspectionLimitationsCard({ inspectionId }: { inspectionId: string }) {
   }
 
   return (
-    <article className="overflow-hidden border border-slate-300 bg-white text-slate-900">
-      <div className="bg-slate-100 px-4 py-2">
-        <h3 className="text-sm font-bold text-slate-800">
+    <article className="w-full max-w-full overflow-hidden rounded-xl border border-slate-700 bg-[#0f172a] text-white shadow-lg">
+      <div className="border-b border-slate-700 bg-slate-800/80 px-4 py-2">
+        <h3 className="text-sm font-bold text-teal-300">
           Inspection Limitations
         </h3>
       </div>
@@ -465,13 +554,13 @@ function InspectionLimitationsCard({ inspectionId }: { inspectionId: string }) {
           onChange={(e) => saveNote(e.target.value)}
           rows={4}
           placeholder="Example: Snow covered portions of roof, stored belongings limited access, utilities off, locked rooms, unsafe access, etc."
-          className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-teal-500"
+          className="w-full rounded-lg border border-slate-700 bg-[#020617] px-4 py-3 text-sm text-white outline-none focus:border-teal-400"
         />
 
         <div className="mt-3 flex justify-end">
           <button
             type="button"
-            className="rounded-md border border-slate-300 px-3 py-1 text-xs font-bold text-slate-700 hover:bg-slate-100"
+            className="rounded-md border border-slate-600 px-3 py-1 text-xs font-bold text-slate-200 hover:bg-slate-800"
           >
             ✨ Edit with AI
           </button>
@@ -494,7 +583,7 @@ function NormalFindingCard({ finding }: { finding: any }) {
     "";
 
   return (
-    <article className="overflow-hidden rounded-2xl border border-slate-700 bg-[#0f172a] shadow-xl">
+    <article className="w-full max-w-full overflow-hidden rounded-2xl border border-slate-700 bg-[#0f172a] shadow-xl">
       {mainImage && (
         <div className="border-b border-slate-700 bg-black">
           <img
@@ -538,6 +627,32 @@ function NormalFindingCard({ finding }: { finding: any }) {
 
         {finding.comment && (
           <ReportBlock title="Additional Notes" text={finding.comment} />
+        )}
+
+        {finding.photos?.length > 1 && (
+          <div className="mt-6">
+            <h4 className="mb-3 text-base font-bold text-slate-200">
+              Additional Photos
+            </h4>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              {finding.photos.slice(1).map((photo: any) => {
+                const imageSrc =
+                  photo.signed_url || photo.public_url || photo.image_url || "";
+
+                if (!imageSrc) return null;
+
+                return (
+                  <img
+                    key={photo.id || imageSrc}
+                    src={imageSrc}
+                    alt="Finding Photo"
+                    className="max-h-[300px] w-full rounded-xl border border-slate-700 object-cover"
+                  />
+                );
+              })}
+            </div>
+          </div>
         )}
       </div>
     </article>
