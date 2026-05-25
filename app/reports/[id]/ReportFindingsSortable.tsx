@@ -505,6 +505,52 @@ export default function ReportFindingsSortable({
   groupedFindings,
   inspectionId,
 }: any) {
+  const hiddenSectionsKey = `hidden-sections-${inspectionId}`;
+  const renamedSectionsKey = `renamed-sections-${inspectionId}`;
+
+  const [hiddenSections, setHiddenSections] = useState<string[]>([]);
+  const [renamedSections, setRenamedSections] = useState<Record<string, string>>(
+    {}
+  );
+
+  useEffect(() => {
+    const savedHidden = localStorage.getItem(hiddenSectionsKey);
+    const savedRenamed = localStorage.getItem(renamedSectionsKey);
+
+    if (savedHidden) setHiddenSections(JSON.parse(savedHidden));
+    if (savedRenamed) setRenamedSections(JSON.parse(savedRenamed));
+  }, [hiddenSectionsKey, renamedSectionsKey]);
+
+  function hideSection(section: string) {
+    const confirmed = confirm(
+      `Hide "${renamedSections[section] || section}" from this report view? This will not delete your findings.`
+    );
+
+    if (!confirmed) return;
+
+    const updated = [...hiddenSections, section].filter(
+      (item, index, array) => array.indexOf(item) === index
+    );
+
+    setHiddenSections(updated);
+    localStorage.setItem(hiddenSectionsKey, JSON.stringify(updated));
+  }
+
+  function renameSection(section: string, newName: string) {
+    const updated = {
+      ...renamedSections,
+      [section]: newName,
+    };
+
+    setRenamedSections(updated);
+    localStorage.setItem(renamedSectionsKey, JSON.stringify(updated));
+  }
+
+  function restoreAllSections() {
+    setHiddenSections([]);
+    localStorage.setItem(hiddenSectionsKey, JSON.stringify([]));
+  }
+
   const orderedGroups = useMemo(() => {
     const groups = groupedFindings || [];
 
@@ -515,24 +561,52 @@ export default function ReportFindingsSortable({
         section,
         findings: existing?.findings || [],
       };
-    });
-  }, [groupedFindings]);
+    }).filter((group) => !hiddenSections.includes(group.section));
+  }, [groupedFindings, hiddenSections]);
 
   return (
     <div className="space-y-6">
+      {hiddenSections.length > 0 && (
+        <div className="rounded-xl border border-slate-700 bg-[#071224] p-4">
+          <button
+            type="button"
+            onClick={restoreAllSections}
+            className="rounded-xl border border-teal-500 px-4 py-2 text-sm font-bold text-teal-300 hover:bg-teal-500/10"
+          >
+            Restore Hidden Sections
+          </button>
+        </div>
+      )}
+
       {orderedGroups.map((group: any) => (
         <SectionBlock
           key={group.section}
           group={group}
           inspectionId={inspectionId}
+          displayName={renamedSections[group.section] || group.section}
+          onRename={renameSection}
+          onHide={hideSection}
         />
       ))}
     </div>
   );
 }
 
-function SectionBlock({ group, inspectionId }: any) {
+function SectionBlock({
+  group,
+  inspectionId,
+  displayName,
+  onRename,
+  onHide,
+}: any) {
   const checklist = SECTION_CHECKLISTS[group.section] || [];
+
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [draftName, setDraftName] = useState(displayName);
+
+  useEffect(() => {
+    setDraftName(displayName);
+  }, [displayName]);
 
   const normalFindings =
     group.findings?.filter(
@@ -540,10 +614,83 @@ function SectionBlock({ group, inspectionId }: any) {
         !checklist.some((item: any) => item.title === finding.title)
     ) || [];
 
+  function saveName() {
+    const cleaned = draftName.trim();
+
+    if (!cleaned) {
+      setDraftName(displayName);
+      setIsEditingName(false);
+      return;
+    }
+
+    onRename(group.section, cleaned);
+    setIsEditingName(false);
+  }
+
   return (
     <section className="overflow-hidden rounded-2xl border border-slate-700 bg-[#071224] shadow-xl">
       <div className="border-b border-slate-700 bg-slate-800/80 px-6 py-4">
-        <h2 className="text-2xl font-bold text-teal-400">{group.section}</h2>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          {isEditingName ? (
+            <div className="flex flex-1 flex-wrap gap-2">
+              <input
+                value={draftName}
+                onChange={(e) => setDraftName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") saveName();
+
+                  if (e.key === "Escape") {
+                    setDraftName(displayName);
+                    setIsEditingName(false);
+                  }
+                }}
+                autoFocus
+                className="min-w-[260px] flex-1 rounded-xl border border-slate-700 bg-[#020817] px-4 py-2 text-white outline-none focus:border-teal-400"
+              />
+
+              <button
+                type="button"
+                onClick={saveName}
+                className="rounded-xl bg-teal-400 px-4 py-2 text-sm font-bold text-slate-900 hover:bg-teal-300"
+              >
+                Save
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setDraftName(displayName);
+                  setIsEditingName(false);
+                }}
+                className="rounded-xl border border-slate-600 px-4 py-2 text-sm font-bold text-slate-200 hover:bg-slate-700"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <h2 className="text-2xl font-bold text-teal-400">{displayName}</h2>
+          )}
+
+          {!isEditingName && (
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setIsEditingName(true)}
+                className="rounded-xl border border-slate-600 px-3 py-2 text-xs font-bold text-slate-200 hover:bg-slate-700"
+              >
+                Edit Name
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onHide(group.section)}
+                className="rounded-xl border border-red-500/50 px-3 py-2 text-xs font-bold text-red-300 hover:bg-red-500/10"
+              >
+                Hide Section
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="space-y-5 p-5">
