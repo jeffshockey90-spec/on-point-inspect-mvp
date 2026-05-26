@@ -1,5 +1,12 @@
 "use client";
 
+export type OfflinePhotoPayload = {
+  name: string;
+  type: string;
+  size: number;
+  base64: string;
+};
+
 export type OfflineQueueItem = {
   id: string;
   type: "finding" | "photo" | "inspection" | "template";
@@ -24,9 +31,11 @@ export function getOfflineQueue(): OfflineQueueItem[] {
 
   try {
     const raw = window.localStorage.getItem(QUEUE_KEY);
+
     if (!raw) return [];
 
     const parsed = JSON.parse(raw);
+
     return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
@@ -36,7 +45,10 @@ export function getOfflineQueue(): OfflineQueueItem[] {
 export function saveOfflineQueue(items: OfflineQueueItem[]) {
   if (!isBrowser()) return;
 
-  window.localStorage.setItem(QUEUE_KEY, JSON.stringify(items));
+  window.localStorage.setItem(
+    QUEUE_KEY,
+    JSON.stringify(items)
+  );
 
   window.dispatchEvent(
     new CustomEvent("on-point-offline-queue-change")
@@ -49,7 +61,9 @@ export function addOfflineQueueItem(
   const queue = getOfflineQueue();
 
   const newItem: OfflineQueueItem = {
-    id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    id: `${Date.now()}-${Math.random()
+      .toString(36)
+      .slice(2)}`,
     createdAt: new Date().toISOString(),
     attempts: 0,
     ...item,
@@ -62,11 +76,46 @@ export function addOfflineQueueItem(
 
 export function removeOfflineQueueItem(id: string) {
   const queue = getOfflineQueue();
-  saveOfflineQueue(queue.filter((item) => item.id !== id));
+
+  saveOfflineQueue(
+    queue.filter((item) => item.id !== id)
+  );
 }
 
 export function clearOfflineQueue() {
   saveOfflineQueue([]);
+}
+
+export function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () =>
+      resolve(reader.result as string);
+
+    reader.onerror = reject;
+
+    reader.readAsDataURL(file);
+  });
+}
+
+export async function filesToOfflinePhotos(
+  files: File[]
+): Promise<OfflinePhotoPayload[]> {
+  const photos: OfflinePhotoPayload[] = [];
+
+  for (const file of files) {
+    const base64 = await fileToBase64(file);
+
+    photos.push({
+      name: file.name,
+      type: file.type || "image/jpeg",
+      size: file.size,
+      base64,
+    });
+  }
+
+  return photos;
 }
 
 export async function processOfflineQueue({
@@ -93,7 +142,9 @@ export async function processOfflineQueue({
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || "Offline sync failed.");
+        throw new Error(
+          data.error || "Offline sync failed."
+        );
       }
 
       removeOfflineQueueItem(item.id);
@@ -106,7 +157,8 @@ export async function processOfflineQueue({
           queuedItem.id === item.id
             ? {
                 ...queuedItem,
-                attempts: (queuedItem.attempts || 0) + 1,
+                attempts:
+                  (queuedItem.attempts || 0) + 1,
               }
             : queuedItem
         )
