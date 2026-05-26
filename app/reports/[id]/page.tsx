@@ -114,9 +114,7 @@ export default async function ReportPage({ params }: PageProps) {
       realtor_name: String(formData.get("realtor_name") || ""),
       inspection_date: String(formData.get("inspection_date") || ""),
       square_feet: String(formData.get("square_feet") || ""),
-      house_style: String(formData.get("house_style") || ""),
-      roof_style: String(formData.get("roof_style") || ""),
-      garage: String(formData.get("garage") || ""),
+      year_built: String(formData.get("year_built") || ""),
       city: String(formData.get("city") || ""),
       state: String(formData.get("state") || ""),
       zip: String(formData.get("zip") || ""),
@@ -256,7 +254,7 @@ export default async function ReportPage({ params }: PageProps) {
   return (
     <main className="min-h-screen bg-[#020617] text-white">
       <div className="mx-auto max-w-7xl px-6 py-8">
-        <AiSummaryBanner inspectionId={String(inspection.id)} />
+        <AiSummaryBanner summary={inspection.report_summary} />
 
         <div className="mb-8 rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
           <div className="mb-8 flex flex-wrap gap-3">
@@ -372,9 +370,7 @@ export default async function ReportPage({ params }: PageProps) {
                 </h3>
 
                 <EditItem label="Square Feet" name="square_feet" value={inspection.square_feet} />
-                <EditItem label="House Style" name="house_style" value={inspection.house_style} />
-                <EditItem label="Roof Style" name="roof_style" value={inspection.roof_style} />
-                <EditItem label="Garage" name="garage" value={inspection.garage} />
+                <EditItem label="Year Built" name="year_built" value={inspection.year_built} />
 
                 <div className="grid grid-cols-3 gap-3">
                   <EditItem label="City" name="city" value={inspection.city} />

@@ -4,6 +4,20 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "../../../lib/supabaseClient";
 
+function getPropertyPhoto(inspection: any) {
+  return (
+    inspection?.property_image ||
+    inspection?.street_view_url ||
+    inspection?.cover_photo_url ||
+    inspection?.google_photo_url ||
+    inspection?.property_photo_url ||
+    inspection?.place_photo_url ||
+    inspection?.photo_url ||
+    inspection?.image_url ||
+    ""
+  );
+}
+
 export default function ClientPortalPage() {
   const params = useParams();
   const inspectionId = params.id as string;
@@ -57,7 +71,7 @@ export default function ClientPortalPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-black text-white flex items-center justify-center">
+      <main className="flex min-h-screen items-center justify-center bg-[#020617] text-white">
         Loading client portal...
       </main>
     );
@@ -65,27 +79,57 @@ export default function ClientPortalPage() {
 
   if (!inspection) {
     return (
-      <main className="min-h-screen bg-black text-white flex items-center justify-center">
+      <main className="flex min-h-screen items-center justify-center bg-[#020617] text-white">
         Inspection not found.
       </main>
     );
   }
 
-  return (
-    <main className="min-h-screen bg-black text-white p-6">
-      <div className="max-w-5xl mx-auto space-y-6">
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
-          <h1 className="text-4xl font-bold text-teal-400">
-            Client Portal
-          </h1>
+  const propertyPhoto = getPropertyPhoto(inspection);
 
-          <p className="text-zinc-400 mt-2">
-            On Point Home Inspections
-          </p>
+  return (
+    <main className="min-h-screen bg-[#020617] p-6 text-white">
+      <div className="mx-auto max-w-5xl space-y-6">
+        <div className="overflow-hidden rounded-2xl border border-slate-800 bg-[#0f172a] shadow-xl">
+          {propertyPhoto && (
+            <div className="border-b border-slate-800 bg-black">
+              <img
+                src={propertyPhoto}
+                alt="Property"
+                className="h-64 w-full object-cover"
+              />
+            </div>
+          )}
+
+          <div className="p-6">
+            <h1 className="text-4xl font-extrabold text-teal-400">
+              Client Portal
+            </h1>
+
+            <p className="mt-2 text-slate-400">
+              On Point Home Inspections
+            </p>
+          </div>
         </div>
 
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
-          <h2 className="text-2xl font-bold">
+        {inspection.report_summary && (
+          <div className="rounded-2xl border border-teal-500/40 bg-[#071224] p-6 shadow-xl">
+            <h2 className="text-2xl font-extrabold text-teal-300">
+              Report Summary
+            </h2>
+
+            <p className="mt-2 text-sm text-slate-400">
+              Summary of notable report findings and recommendations.
+            </p>
+
+            <div className="mt-5 whitespace-pre-line rounded-xl border border-slate-700 bg-[#020817]/70 p-5 text-base leading-8 text-slate-100">
+              {inspection.report_summary}
+            </div>
+          </div>
+        )}
+
+        <div className="space-y-4 rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
+          <h2 className="text-2xl font-bold text-teal-300">
             Inspection Details
           </h2>
 
@@ -109,6 +153,13 @@ export default function ClientPortalPage() {
             {inspection.inspection_time || "N/A"}
           </p>
 
+          {inspection.year_built && (
+            <p>
+              <strong>Year Built:</strong>{" "}
+              {inspection.year_built}
+            </p>
+          )}
+
           <p>
             <strong>Status:</strong>{" "}
             {inspection.report_status || "Draft"}
@@ -120,7 +171,7 @@ export default function ClientPortalPage() {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <PortalCard
             title="Agreement"
             status={inspection.agreement_status || "Pending"}
@@ -142,8 +193,8 @@ export default function ClientPortalPage() {
           />
         </div>
 
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
-          <h2 className="text-2xl font-bold mb-6">
+        <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
+          <h2 className="mb-6 text-2xl font-bold text-teal-300">
             Client Actions
           </h2>
 
@@ -152,7 +203,7 @@ export default function ClientPortalPage() {
               onClick={() =>
                 updateStatus("agreement_status", "Signed")
               }
-              className="rounded-xl bg-teal-500 px-6 py-3 font-bold text-black hover:bg-teal-400"
+              className="rounded-xl bg-teal-500 px-6 py-3 font-bold text-slate-950 hover:bg-teal-400"
             >
               Sign Agreement
             </button>
@@ -161,7 +212,7 @@ export default function ClientPortalPage() {
               onClick={() =>
                 updateStatus("payment_status", "Paid")
               }
-              className="rounded-xl bg-green-500 px-6 py-3 font-bold text-black hover:bg-green-400"
+              className="rounded-xl bg-green-500 px-6 py-3 font-bold text-slate-950 hover:bg-green-400"
             >
               Pay Invoice
             </button>
@@ -170,7 +221,7 @@ export default function ClientPortalPage() {
               onClick={() =>
                 updateStatus("review_status", "Submitted")
               }
-              className="rounded-xl bg-yellow-500 px-6 py-3 font-bold text-black hover:bg-yellow-400"
+              className="rounded-xl bg-yellow-500 px-6 py-3 font-bold text-slate-950 hover:bg-yellow-400"
             >
               Leave Review
             </button>
@@ -178,9 +229,9 @@ export default function ClientPortalPage() {
             <a
               href={`/reports/${inspectionId}`}
               target="_blank"
-              className="rounded-xl bg-white px-6 py-3 font-bold text-black hover:bg-zinc-200"
+              className="rounded-xl border border-teal-500 bg-[#071224] px-6 py-3 font-bold text-teal-300 hover:bg-teal-500/10"
             >
-              View Report PDF
+              View Full Report
             </a>
           </div>
         </div>
@@ -203,11 +254,11 @@ function PortalCard({
     status === "Submitted";
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
-      <p className="text-sm text-zinc-400">{title}</p>
+    <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
+      <p className="text-sm text-slate-400">{title}</p>
 
       <p
-        className={`text-xl font-bold mt-2 ${
+        className={`mt-2 text-xl font-bold ${
           green ? "text-green-400" : "text-teal-400"
         }`}
       >

@@ -21,7 +21,9 @@ async function createSupabaseServerClient() {
             cookiesToSet.forEach(({ name, value, options }) => {
               cookieStore.set(name, value, options);
             });
-          } catch {}
+          } catch {
+            // Server routes cannot always set cookies.
+          }
         },
       },
     }
@@ -38,13 +40,19 @@ export async function GET(req: Request) {
     const id = searchParams.get("id");
 
     if (!id) {
-      return NextResponse.json({ error: "Missing report id." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing report id." },
+        { status: 400 }
+      );
     }
 
     const apiKey = process.env.OPENAI_API_KEY;
 
     if (!apiKey) {
-      return NextResponse.json({ error: "Missing OPENAI_API_KEY." }, { status: 500 });
+      return NextResponse.json(
+        { error: "Missing OPENAI_API_KEY." },
+        { status: 500 }
+      );
     }
 
     const supabase = await createSupabaseServerClient();
@@ -54,7 +62,10 @@ export async function GET(req: Request) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: "Not logged in." }, { status: 401 });
+      return NextResponse.json(
+        { error: "Not logged in." },
+        { status: 401 }
+      );
     }
 
     const { data: inspection, error: inspectionError } = await supabase
@@ -65,7 +76,10 @@ export async function GET(req: Request) {
       .single();
 
     if (inspectionError || !inspection) {
-      return NextResponse.json({ error: "Inspection not found." }, { status: 404 });
+      return NextResponse.json(
+        { error: "Inspection not found." },
+        { status: 404 }
+      );
     }
 
     const { data: findingsRaw, error: findingsError } = await supabase
@@ -86,7 +100,7 @@ export async function GET(req: Request) {
     if (findings.length === 0) {
       return NextResponse.json({
         summary:
-          "No defects or report findings have been added yet. Add findings before generating a realtor summary.",
+          "No defects or report findings have been added yet. Add findings before generating a report summary.",
       });
     }
 
@@ -105,10 +119,12 @@ Additional Notes: ${cleanText(finding.comment || finding.notes) || "None"}
       .join("\n\n---\n\n");
 
     const propertyDetails = `
-Address: ${cleanText(inspection.address)}
+Address: ${cleanText(inspection.address || inspection.property_address)}
 Client: ${cleanText(inspection.client_name)}
 Realtor: ${cleanText(inspection.realtor_name)}
 Inspection Date: ${cleanText(inspection.inspection_date)}
+Year Built: ${cleanText(inspection.year_built)}
+Square Feet: ${cleanText(inspection.square_feet || inspection.sqft)}
     `.trim();
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -124,12 +140,12 @@ Inspection Date: ${cleanText(inspection.inspection_date)}
           {
             role: "system",
             content:
-              "You are a senior certified home inspector writing a realtor-friendly defect summary from actual inspection findings. Focus only on defects, safety concerns, material concerns, major repair items, limitations that affect the inspection, and recommendations. Do not summarize normal checklist items or general property details unless they relate to a defect. Do not invent anything. Do not say systems are functional, safe, code-compliant, or in good condition unless the report specifically says so. Return only the summary text.",
+              "You are a senior certified home inspector writing a client- and realtor-friendly report summary from actual inspection findings. Focus on defects, safety concerns, material concerns, major repair items, meaningful limitations, and recommendations. Do not summarize normal checklist items or general property details unless they relate to a defect. Do not invent anything. Do not say systems are functional, safe, code-compliant, or in good condition unless the report specifically says so. Return only the summary text.",
           },
           {
             role: "user",
             content: `
-Create a defect-focused realtor summary using ONLY the information below.
+Create a defect-focused Report Summary using ONLY the information below.
 
 PROPERTY / INSPECTION DETAILS:
 ${propertyDetails}
@@ -138,12 +154,13 @@ ACTUAL REPORT FINDINGS:
 ${findingText}
 
 FORMAT:
+- Title it exactly: Report Summary
 - Start with a short overview focused on notable defects only.
 - Group defects by section.
 - Include why the item matters and the recommended next step.
 - Skip sections with no defects.
 - Do not include placeholders, signatures, or thank-you language.
-- Return only the defect-focused summary text.
+- Return only the report summary text.
             `.trim(),
           },
         ],
@@ -162,13 +179,74 @@ FORMAT:
     const summary = data?.choices?.[0]?.message?.content?.trim();
 
     if (!summary) {
-      return NextResponse.json({ error: "OpenAI returned no summary." }, { status: 500 });
+      return NextResponse.json(
+        { error: "OpenAI returned no summary." },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({ summary });
   } catch (error: any) {
     return NextResponse.json(
       { error: error?.message || "Failed to generate summary." },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(req: Request) {
+  try {
+    const { id, summary } = await req.json();
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "Missing report id." },
+        { status: 400 }
+      );
+    }
+
+    if (!summary || !String(summary).trim()) {
+      return NextResponse.json(
+        { error: "Missing summary." },
+        { status: 400 }
+      );
+    }
+
+    const supabase = await createSupabaseServerClient();
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json(
+        { error: "Not logged in." },
+        { status: 401 }
+      );
+    }
+
+    const { error } = await supabase
+      .from("inspections")
+      .update({
+        report_summary: String(summary).trim(),
+      })
+      .eq("id", id)
+      .eq("inspector_id", user.id);
+
+    if (error) {
+      return NextResponse.json(
+        { error: error.message || "Could not save summary." },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      summary: String(summary).trim(),
+    });
+  } catch (error: any) {
+    return NextResponse.json(
+      { error: error?.message || "Failed to save summary." },
       { status: 500 }
     );
   }

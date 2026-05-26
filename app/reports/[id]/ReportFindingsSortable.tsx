@@ -861,6 +861,11 @@ function ChecklistCard({ item, section, inspectionId }: any) {
       ? "saved-disclaimer-options-Disclaimers-General Disclaimers"
       : `saved-disclaimer-options-${section}-${item.title}`;
 
+  const limitationTitleKey = `saved-limitation-title-${section}-${item.title}`;
+  const limitationTextKey = `saved-limitation-text-${section}-${item.title}`;
+  const limitationImagesKey = `saved-limitation-images-${section}-${item.title}`;
+  const limitationCustomKey = `saved-limitation-options-${section}-${item.title}`;
+
   const [selected, setSelected] = useState<string[]>([]);
   const [customOptions, setCustomOptions] = useState<string[]>([]);
   const [showInput, setShowInput] = useState(false);
@@ -877,6 +882,19 @@ function ChecklistCard({ item, section, inspectionId }: any) {
   const [editingDisclaimerTitle, setEditingDisclaimerTitle] = useState("");
   const [editingDisclaimerText, setEditingDisclaimerText] = useState("");
 
+  const [limitationTitle, setLimitationTitle] = useState("");
+  const [limitationText, setLimitationText] = useState("");
+  const [limitationImages, setLimitationImages] = useState<string[]>([]);
+  const [savedLimitations, setSavedLimitations] = useState<any[]>([]);
+  const [editingLimitationId, setEditingLimitationId] = useState<string | null>(
+    null
+  );
+  const [editingLimitationTitle, setEditingLimitationTitle] = useState("");
+  const [editingLimitationText, setEditingLimitationText] = useState("");
+  const [editingLimitationImages, setEditingLimitationImages] = useState<
+    string[]
+  >([]);
+
   useEffect(() => {
     const saved = localStorage.getItem(storageKey);
     const savedCustom = localStorage.getItem(customKey);
@@ -885,6 +903,10 @@ function ChecklistCard({ item, section, inspectionId }: any) {
     const savedDisclaimerTitle = localStorage.getItem(disclaimerTitleKey);
     const savedDisclaimerText = localStorage.getItem(disclaimerTextKey);
     const savedDisclaimerOptions = localStorage.getItem(disclaimerCustomKey);
+    const savedLimitationTitle = localStorage.getItem(limitationTitleKey);
+    const savedLimitationText = localStorage.getItem(limitationTextKey);
+    const savedLimitationImages = localStorage.getItem(limitationImagesKey);
+    const savedLimitationOptions = localStorage.getItem(limitationCustomKey);
 
     if (saved) {
       setSelected(JSON.parse(saved));
@@ -915,6 +937,32 @@ function ChecklistCard({ item, section, inspectionId }: any) {
 
       setSavedDisclaimers(normalized);
     }
+
+    if (savedLimitationTitle) setLimitationTitle(savedLimitationTitle);
+    if (savedLimitationText) setLimitationText(savedLimitationText);
+    if (savedLimitationImages) setLimitationImages(JSON.parse(savedLimitationImages));
+
+    if (savedLimitationOptions) {
+      const parsed = JSON.parse(savedLimitationOptions);
+
+      const normalized = parsed.map((item: any, index: number) => {
+        if (typeof item === "string") {
+          return {
+            id: `old-limitation-${index}-${item.slice(0, 20)}`,
+            title: item.length > 65 ? `${item.slice(0, 65)}...` : item,
+            text: item,
+            images: [],
+          };
+        }
+
+        return {
+          ...item,
+          images: item.images || [],
+        };
+      });
+
+      setSavedLimitations(normalized);
+    }
   }, [
     storageKey,
     customKey,
@@ -923,6 +971,10 @@ function ChecklistCard({ item, section, inspectionId }: any) {
     disclaimerTitleKey,
     disclaimerTextKey,
     disclaimerCustomKey,
+    limitationTitleKey,
+    limitationTextKey,
+    limitationImagesKey,
+    limitationCustomKey,
   ]);
 
   const allOptions = [...item.options, ...customOptions].filter(
@@ -1073,6 +1125,160 @@ function ChecklistCard({ item, section, inspectionId }: any) {
     localStorage.setItem(storageKey, JSON.stringify(selectedUpdated));
   }
 
+  function readFilesAsDataUrls(files: FileList | null, callback: (urls: string[]) => void) {
+    if (!files || files.length === 0) return;
+
+    const fileArray = Array.from(files);
+
+    Promise.all(
+      fileArray.map(
+        (file) =>
+          new Promise<string>((resolve) => {
+            const reader = new FileReader();
+
+            reader.onload = () => resolve(String(reader.result || ""));
+            reader.readAsDataURL(file);
+          })
+      )
+    ).then((urls) => callback(urls.filter(Boolean)));
+  }
+
+  function addLimitationImages(files: FileList | null) {
+    readFilesAsDataUrls(files, (urls) => {
+      const updated = [...limitationImages, ...urls];
+
+      setLimitationImages(updated);
+      localStorage.setItem(limitationImagesKey, JSON.stringify(updated));
+    });
+  }
+
+  function removeLimitationDraftImage(index: number) {
+    const updated = limitationImages.filter((_, imageIndex) => imageIndex !== index);
+
+    setLimitationImages(updated);
+    localStorage.setItem(limitationImagesKey, JSON.stringify(updated));
+  }
+
+  function addEditingLimitationImages(files: FileList | null) {
+    readFilesAsDataUrls(files, (urls) => {
+      setEditingLimitationImages((prev) => [...prev, ...urls]);
+    });
+  }
+
+  function removeEditingLimitationImage(index: number) {
+    setEditingLimitationImages((prev) =>
+      prev.filter((_, imageIndex) => imageIndex !== index)
+    );
+  }
+
+  function saveLimitationForFutureReports() {
+    const cleanedTitle = limitationTitle.trim();
+    const cleanedText = limitationText.trim();
+
+    if (!cleanedTitle || !cleanedText) {
+      alert("Add both a limitation title and limitation text.");
+      return;
+    }
+
+    const newLimitation = {
+      id: `${Date.now()}-${cleanedTitle}`,
+      title: cleanedTitle,
+      text: cleanedText,
+      images: limitationImages,
+    };
+
+    const updated = [...savedLimitations, newLimitation].filter(
+      (item, index, array) =>
+        array.findIndex((existing) => existing.title === item.title) === index
+    );
+
+    setSavedLimitations(updated);
+    localStorage.setItem(limitationCustomKey, JSON.stringify(updated));
+
+    setSelected((prev) => {
+      const selectedUpdated = prev.includes(newLimitation.id)
+        ? prev
+        : [...prev, newLimitation.id];
+
+      localStorage.setItem(storageKey, JSON.stringify(selectedUpdated));
+      return selectedUpdated;
+    });
+
+    setLimitationTitle("");
+    setLimitationText("");
+    setLimitationImages([]);
+
+    localStorage.setItem(limitationTitleKey, "");
+    localStorage.setItem(limitationTextKey, "");
+    localStorage.setItem(limitationImagesKey, JSON.stringify([]));
+  }
+
+  function deleteSavedLimitation(id: string) {
+    const confirmed = confirm("Delete this saved limitation?");
+    if (!confirmed) return;
+
+    const updated = savedLimitations.filter((item: any) => item.id !== id);
+
+    setSavedLimitations(updated);
+    localStorage.setItem(limitationCustomKey, JSON.stringify(updated));
+
+    const selectedUpdated = selected.filter((item) => item !== id);
+
+    setSelected(selectedUpdated);
+    localStorage.setItem(storageKey, JSON.stringify(selectedUpdated));
+  }
+
+  function toggleSavedLimitation(id: string) {
+    const selectedUpdated = selected.includes(id)
+      ? selected.filter((item) => item !== id)
+      : [...selected, id];
+
+    setSelected(selectedUpdated);
+    localStorage.setItem(storageKey, JSON.stringify(selectedUpdated));
+  }
+
+  function startEditingLimitation(limitation: any) {
+    setEditingLimitationId(limitation.id);
+    setEditingLimitationTitle(limitation.title || "");
+    setEditingLimitationText(limitation.text || "");
+    setEditingLimitationImages(limitation.images || []);
+  }
+
+  function cancelEditingLimitation() {
+    setEditingLimitationId(null);
+    setEditingLimitationTitle("");
+    setEditingLimitationText("");
+    setEditingLimitationImages([]);
+  }
+
+  function saveEditedLimitation() {
+    if (!editingLimitationId) return;
+
+    const cleanedTitle = editingLimitationTitle.trim();
+    const cleanedText = editingLimitationText.trim();
+
+    if (!cleanedTitle || !cleanedText) {
+      alert("Add both a limitation title and limitation text.");
+      return;
+    }
+
+    const updated = savedLimitations.map((item: any) =>
+      item.id === editingLimitationId
+        ? {
+            ...item,
+            title: cleanedTitle,
+            text: cleanedText,
+            images: editingLimitationImages,
+          }
+        : item
+    );
+
+    setSavedLimitations(updated);
+    localStorage.setItem(limitationCustomKey, JSON.stringify(updated));
+
+    cancelEditingLimitation();
+  }
+
   function saveAiNotes() {
     localStorage.setItem(aiNotesKey, aiNotes);
     alert("AI notes saved.");
@@ -1126,6 +1332,23 @@ function ChecklistCard({ item, section, inspectionId }: any) {
       }
 
       const generatedText = String(data.text).trim();
+
+      if (item.title.toLowerCase().includes("limitations")) {
+        const suggestedTitle =
+          notes.length > 70 ? `${notes.slice(0, 70)}...` : notes;
+
+        setLimitationTitle(suggestedTitle);
+        setLimitationText(generatedText);
+
+        localStorage.setItem(limitationTitleKey, suggestedTitle);
+        localStorage.setItem(limitationTextKey, generatedText);
+
+        alert(
+          "AI limitation generated. Review or edit the title and text, add photos if needed, then click Save Limitation for Future Reports."
+        );
+
+        return;
+      }
 
       if (section === "Disclaimers" || item.type === "ai-notes") {
         const suggestedTitle =
@@ -1447,13 +1670,275 @@ function ChecklistCard({ item, section, inspectionId }: any) {
               setAiNotes(e.target.value);
               localStorage.setItem(aiNotesKey, e.target.value);
             }}
-            placeholder="Add notes for the AI to consider when writing limitation language..."
+            placeholder="Example: attic access blocked by personal belongings, limited view from hatch only..."
             rows={4}
             className="w-full rounded-xl border border-slate-700 bg-[#020817] px-4 py-3 text-white outline-none transition placeholder:text-slate-500 focus:border-teal-400"
           />
+
+          <div className="mt-3 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={generateAiText}
+              disabled={generatingAi}
+              className="rounded-xl bg-purple-500 px-5 py-3 text-sm font-bold text-white hover:bg-purple-400 disabled:opacity-60"
+            >
+              {generatingAi ? "Generating..." : "Generate Limitation"}
+            </button>
+
+            <button
+              type="button"
+              onClick={saveAiNotes}
+              className="rounded-xl bg-teal-400 px-5 py-3 text-sm font-bold text-slate-950 hover:bg-teal-300"
+            >
+              Save AI Notes
+            </button>
+
+            <button
+              type="button"
+              onClick={clearAiNotes}
+              className="rounded-xl border border-slate-600 px-5 py-3 text-sm font-bold text-slate-200 hover:bg-slate-800"
+            >
+              Clear Notes
+            </button>
+          </div>
+
+          <div className="mt-6 rounded-2xl border border-slate-700 bg-[#071224] p-4">
+            <label className="mb-2 block text-sm font-extrabold uppercase tracking-wide text-teal-300">
+              Limitation Title
+            </label>
+
+            <input
+              value={limitationTitle}
+              onChange={(e) => {
+                setLimitationTitle(e.target.value);
+                localStorage.setItem(limitationTitleKey, e.target.value);
+              }}
+              placeholder="Example: Attic Access Limitation"
+              className="mb-4 w-full rounded-xl border border-slate-700 bg-[#020817] px-4 py-3 text-white outline-none transition placeholder:text-slate-500 focus:border-teal-400"
+            />
+
+            <label className="mb-2 block text-sm font-extrabold uppercase tracking-wide text-teal-300">
+              Limitation Text
+            </label>
+
+            <textarea
+              value={limitationText}
+              onChange={(e) => {
+                setLimitationText(e.target.value);
+                localStorage.setItem(limitationTextKey, e.target.value);
+              }}
+              placeholder="Write or generate the full limitation language..."
+              rows={6}
+              className="w-full rounded-xl border border-slate-700 bg-[#020817] px-4 py-3 text-white outline-none transition placeholder:text-slate-500 focus:border-teal-400"
+            />
+
+            <div className="mt-4">
+              <label className="mb-2 block text-sm font-extrabold uppercase tracking-wide text-teal-300">
+                Limitation Photos
+              </label>
+
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={(e) => {
+                  addLimitationImages(e.target.files);
+                  e.target.value = "";
+                }}
+                className="block w-full cursor-pointer rounded-xl border border-slate-700 bg-[#020817] px-4 py-3 text-sm text-slate-300 file:mr-4 file:rounded-lg file:border-0 file:bg-teal-400 file:px-4 file:py-2 file:font-bold file:text-slate-950"
+              />
+
+              {limitationImages.length > 0 && (
+                <div className="mt-4 grid gap-3 md:grid-cols-3">
+                  {limitationImages.map((image, index) => (
+                    <div
+                      key={`${image}-${index}`}
+                      className="overflow-hidden rounded-xl border border-slate-700 bg-black"
+                    >
+                      <img
+                        src={image}
+                        alt="Limitation"
+                        className="h-40 w-full object-cover"
+                      />
+
+                      <button
+                        type="button"
+                        onClick={() => removeLimitationDraftImage(index)}
+                        className="w-full border-t border-slate-700 bg-red-500/10 px-3 py-2 text-xs font-bold text-red-300 hover:bg-red-500/20"
+                      >
+                        Remove Photo
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={saveLimitationForFutureReports}
+              className="mt-4 rounded-xl bg-teal-400 px-5 py-3 font-bold text-slate-950 hover:bg-teal-300"
+            >
+              Save Limitation for Future Reports
+            </button>
+          </div>
+
+          {savedLimitations.length > 0 && (
+            <div className="mt-6 space-y-3">
+              <h4 className="text-sm font-extrabold uppercase tracking-wide text-slate-300">
+                Saved Limitations
+              </h4>
+
+              {savedLimitations.map((limitation: any) => {
+                const checked = selected.includes(limitation.id);
+                const isEditing = editingLimitationId === limitation.id;
+
+                return (
+                  <div
+                    key={limitation.id}
+                    className="rounded-2xl border border-slate-700 bg-[#071224] p-4"
+                  >
+                    {isEditing ? (
+                      <div className="space-y-3">
+                        <input
+                          value={editingLimitationTitle}
+                          onChange={(e) =>
+                            setEditingLimitationTitle(e.target.value)
+                          }
+                          className="w-full rounded-xl border border-slate-700 bg-[#020817] px-4 py-3 text-white outline-none focus:border-teal-400"
+                          placeholder="Limitation title"
+                        />
+
+                        <textarea
+                          value={editingLimitationText}
+                          onChange={(e) =>
+                            setEditingLimitationText(e.target.value)
+                          }
+                          rows={7}
+                          className="w-full rounded-xl border border-slate-700 bg-[#020817] px-4 py-3 text-white outline-none focus:border-teal-400"
+                          placeholder="Limitation text"
+                        />
+
+                        <input
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          onChange={(e) => {
+                            addEditingLimitationImages(e.target.files);
+                            e.target.value = "";
+                          }}
+                          className="block w-full cursor-pointer rounded-xl border border-slate-700 bg-[#020817] px-4 py-3 text-sm text-slate-300 file:mr-4 file:rounded-lg file:border-0 file:bg-teal-400 file:px-4 file:py-2 file:font-bold file:text-slate-950"
+                        />
+
+                        {editingLimitationImages.length > 0 && (
+                          <div className="grid gap-3 md:grid-cols-3">
+                            {editingLimitationImages.map((image, index) => (
+                              <div
+                                key={`${image}-${index}`}
+                                className="overflow-hidden rounded-xl border border-slate-700 bg-black"
+                              >
+                                <img
+                                  src={image}
+                                  alt="Limitation"
+                                  className="h-40 w-full object-cover"
+                                />
+
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    removeEditingLimitationImage(index)
+                                  }
+                                  className="w-full border-t border-slate-700 bg-red-500/10 px-3 py-2 text-xs font-bold text-red-300 hover:bg-red-500/20"
+                                >
+                                  Remove Photo
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={saveEditedLimitation}
+                            className="rounded-xl bg-teal-400 px-4 py-2 text-xs font-bold text-slate-950 hover:bg-teal-300"
+                          >
+                            Save Edit
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={cancelEditingLimitation}
+                            className="rounded-xl border border-slate-600 px-4 py-2 text-xs font-bold text-slate-200 hover:bg-slate-800"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <label className="flex cursor-pointer items-start gap-4">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() =>
+                              toggleSavedLimitation(limitation.id)
+                            }
+                            className="mt-1 h-5 w-5 accent-teal-400"
+                          />
+
+                          <div className="flex-1">
+                            <p className="text-lg font-extrabold text-white">
+                              {limitation.title}
+                            </p>
+
+                            <p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-300">
+                              {limitation.text}
+                            </p>
+
+                            {limitation.images?.length > 0 && (
+                              <div className="mt-4 grid gap-3 md:grid-cols-3">
+                                {limitation.images.map(
+                                  (image: string, index: number) => (
+                                    <img
+                                      key={`${image}-${index}`}
+                                      src={image}
+                                      alt="Limitation"
+                                      className="h-40 w-full rounded-xl border border-slate-700 object-cover"
+                                    />
+                                  )
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </label>
+
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => startEditingLimitation(limitation)}
+                            className="rounded-xl border border-cyan-500/60 px-4 py-2 text-xs font-bold text-cyan-300 hover:bg-cyan-500/10"
+                          >
+                            Edit
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => deleteSavedLimitation(limitation.id)}
+                            className="rounded-xl border border-red-500/60 px-4 py-2 text-xs font-bold text-red-300 hover:bg-red-500/10"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
-
       {showInput ? (
         <div className="mt-6 flex gap-3">
           <input
