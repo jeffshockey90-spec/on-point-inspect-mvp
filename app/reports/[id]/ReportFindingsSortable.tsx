@@ -9,13 +9,13 @@ const SECTION_CHECKLISTS: Record<string, any[]> = {
       title: "In Attendance",
       type: "checkbox",
       options: ["Client", "Listing Agent", "Home Owner", "Client's Agent", "Inspector"],
-      defaults: ["Client", "Inspector"],
+      defaults: [],
     },
     {
       title: "Occupancy",
       type: "checkbox",
       options: ["Furnished", "Occupied", "Vacant", "Utilities Off"],
-      defaults: ["Vacant"],
+      defaults: [],
     },
     {
       title: "Style",
@@ -34,25 +34,25 @@ const SECTION_CHECKLISTS: Record<string, any[]> = {
         "Row House",
         "Townhouse",
       ],
-      defaults: ["Ranch"],
+      defaults: [],
     },
     {
       title: "Temperature",
       type: "temperature",
-      options: ["Fahrenheit (F)", "Celsius (C)"],
-      defaults: ["Fahrenheit (F)"],
+      options: ["Fahrenheit (F)"],
+      defaults: [],
     },
     {
       title: "Type of Building",
       type: "checkbox",
       options: ["Multi-Family", "Attached", "Single Family", "Condominium / Townhouse", "Detached"],
-      defaults: ["Single Family"],
+      defaults: [],
     },
     {
       title: "Weather Conditions",
       type: "checkbox",
       options: ["Snow", "Dry", "Cloudy", "Hot", "Heavy Rain", "Clear", "Light Rain", "Humid", "Recent Rain"],
-      defaults: ["Recent Rain"],
+      defaults: [],
     },
   ],
 
@@ -61,7 +61,7 @@ const SECTION_CHECKLISTS: Record<string, any[]> = {
       title: "Inspection Method",
       type: "checkbox",
       options: ["Visual", "Infrared", "Attic Access", "Crawlspace Access"],
-      defaults: ["Visual"],
+      defaults: [],
     },
     {
       title: "Exterior Wall Covering",
@@ -446,41 +446,50 @@ const SECTION_CHECKLISTS: Record<string, any[]> = {
     },
   ],
 
+  Disclaimers: [
+    {
+      title: "General Disclaimers",
+      type: "disclaimer",
+      options: [],
+      defaults: [],
+    },
+    {
+      title: "AI Notes",
+      type: "ai-notes",
+      options: [],
+      defaults: [],
+    },
+  ],
+
   Garage: [
     {
-      title: "Garage Type",
+      title: "Material",
       type: "checkbox",
-      options: ["Attached", "Detached", "Built-in", "Carport", "No Garage", "One Car", "Two Car", "Three Car"],
+      options: [
+        "Metal",
+        "Insulated",
+        "Non-insulated",
+        "Steel",
+        "Aluminum",
+        "Wood",
+        "Wood Composite",
+        "Fiberglass",
+        "Vinyl",
+        "Glass",
+      ],
       defaults: [],
     },
     {
-      title: "Vehicle Door",
+      title: "Type",
       type: "checkbox",
-      options: ["Manual", "Automatic Opener", "Sectional Door", "Roll-up Door", "Not Operated", "Not Present"],
-      defaults: [],
-    },
-    {
-      title: "Auto-Reverse Safety",
-      type: "checkbox",
-      options: ["Photo Eyes Present", "Pressure Reverse Tested", "Not Tested", "Not Present", "Unable to Verify"],
-      defaults: [],
-    },
-    {
-      title: "Fire Separation",
-      type: "checkbox",
-      options: ["Drywall Present", "Self-Closing Door", "Fire-Rated Door", "Not Visible", "Not Applicable"],
-      defaults: [],
-    },
-    {
-      title: "Garage Interior",
-      type: "checkbox",
-      options: ["Concrete Slab", "Finished Walls", "Unfinished Walls", "Storage Present", "Utilities Present"],
-      defaults: [],
-    },
-    {
-      title: "Limitations",
-      type: "checkbox",
-      options: ["Vehicles Present", "Stored Belongings", "Door Not Operated", "Limited Access", "Power Off"],
+      options: [
+        "Sliding",
+        "Folding",
+        "Up-and-Over",
+        "Roll-Up",
+        "Automatic",
+        "Sectional",
+      ],
       defaults: [],
     },
   ],
@@ -498,6 +507,7 @@ const SECTION_ORDER = [
   "Attic, Insulation & Ventilation",
   "Doors, Windows & Interior",
   "Built-in Appliances",
+  "Disclaimers",
   "Garage",
 ];
 
@@ -507,19 +517,34 @@ export default function ReportFindingsSortable({
 }: any) {
   const hiddenSectionsKey = `hidden-sections-${inspectionId}`;
   const renamedSectionsKey = `renamed-sections-${inspectionId}`;
+  const sectionOrderKey = "saved-report-section-order-v1";
 
   const [hiddenSections, setHiddenSections] = useState<string[]>([]);
   const [renamedSections, setRenamedSections] = useState<Record<string, string>>(
     {}
   );
+  const [sectionOrder, setSectionOrder] = useState<string[]>(SECTION_ORDER);
+  const [draggedSection, setDraggedSection] = useState<string | null>(null);
+  const [customSections, setCustomSections] = useState<any[]>([]);
 
   useEffect(() => {
     const savedHidden = localStorage.getItem(hiddenSectionsKey);
     const savedRenamed = localStorage.getItem(renamedSectionsKey);
+    const savedSectionOrder = localStorage.getItem(sectionOrderKey);
 
     if (savedHidden) setHiddenSections(JSON.parse(savedHidden));
     if (savedRenamed) setRenamedSections(JSON.parse(savedRenamed));
-  }, [hiddenSectionsKey, renamedSectionsKey]);
+
+    if (savedSectionOrder) {
+      const parsed = JSON.parse(savedSectionOrder);
+      const merged = [
+        ...parsed.filter((section: string) => SECTION_ORDER.includes(section)),
+        ...SECTION_ORDER.filter((section) => !parsed.includes(section)),
+      ];
+
+      setSectionOrder(merged);
+    }
+  }, [hiddenSectionsKey, renamedSectionsKey, sectionOrderKey]);
 
   function hideSection(section: string) {
     const confirmed = confirm(
@@ -546,6 +571,35 @@ export default function ReportFindingsSortable({
     localStorage.setItem(renamedSectionsKey, JSON.stringify(updated));
   }
 
+  function moveSection(fromSection: string, toSection: string) {
+    if (!fromSection || fromSection === toSection) return;
+
+    const updated = [...sectionOrder];
+
+    const fromIndex = updated.indexOf(fromSection);
+    const toIndex = updated.indexOf(toSection);
+
+    if (fromIndex === -1 || toIndex === -1) return;
+
+    // remove dragged section
+    const [movedSection] = updated.splice(fromIndex, 1);
+
+    // insert into new location
+    updated.splice(toIndex, 0, movedSection);
+
+    setSectionOrder(updated);
+    localStorage.setItem(sectionOrderKey, JSON.stringify(updated));
+  }
+
+  function duplicateSection(sectionName: string) {
+    const newSection = {
+      section: `${sectionName} Copy ${Date.now()}`,
+      findings: [],
+    };
+
+    setCustomSections((prev: any) => [...prev, newSection]);
+  }
+
   function restoreAllSections() {
     setHiddenSections([]);
     localStorage.setItem(hiddenSectionsKey, JSON.stringify([]));
@@ -554,7 +608,7 @@ export default function ReportFindingsSortable({
   const orderedGroups = useMemo(() => {
     const groups = groupedFindings || [];
 
-    return SECTION_ORDER.map((section) => {
+    const baseSections = sectionOrder.map((section) => {
       const existing = groups.find((group: any) => group.section === section);
 
       return {
@@ -562,7 +616,9 @@ export default function ReportFindingsSortable({
         findings: existing?.findings || [],
       };
     }).filter((group) => !hiddenSections.includes(group.section));
-  }, [groupedFindings, hiddenSections]);
+
+    return [...baseSections, ...customSections];
+  }, [groupedFindings, hiddenSections, customSections, sectionOrder]);
 
   return (
     <div className="space-y-6">
@@ -586,6 +642,10 @@ export default function ReportFindingsSortable({
           displayName={renamedSections[group.section] || group.section}
           onRename={renameSection}
           onHide={hideSection}
+          draggedSection={draggedSection}
+          setDraggedSection={setDraggedSection}
+          moveSection={moveSection}
+          onDuplicate={duplicateSection}
         />
       ))}
     </div>
@@ -598,11 +658,16 @@ function SectionBlock({
   displayName,
   onRename,
   onHide,
+  onDuplicate,
+  draggedSection,
+  setDraggedSection,
+  moveSection,
 }: any) {
   const checklist = SECTION_CHECKLISTS[group.section] || [];
 
   const [isEditingName, setIsEditingName] = useState(false);
   const [draftName, setDraftName] = useState(displayName);
+  const [collapsed, setCollapsed] = useState(true);
 
   useEffect(() => {
     setDraftName(displayName);
@@ -628,8 +693,37 @@ function SectionBlock({
   }
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-slate-700 bg-[#071224] shadow-xl">
-      <div className="border-b border-slate-700 bg-slate-800/80 px-6 py-4">
+    <section
+      draggable
+      onDragStart={() => setDraggedSection(group.section)}
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={() => {
+        if (draggedSection) {
+          moveSection(draggedSection, group.section);
+          setDraggedSection(null);
+        }
+      }}
+      onDragEnd={() => setDraggedSection(null)}
+      className={`overflow-hidden rounded-2xl border bg-[#071224] shadow-xl transition-all duration-200 ${
+        draggedSection === group.section
+          ? "border-teal-400 opacity-60"
+          : "border-slate-700"
+      }`}
+    >
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => {
+          if (!isEditingName) setCollapsed(!collapsed);
+        }}
+        onKeyDown={(e) => {
+          if (!isEditingName && (e.key === "Enter" || e.key === " ")) {
+            e.preventDefault();
+            setCollapsed(!collapsed);
+          }
+        }}
+        className="cursor-pointer border-b border-slate-700 bg-slate-800/80 px-6 py-4 hover:bg-slate-800"
+      >
         <div className="flex flex-wrap items-center justify-between gap-3">
           {isEditingName ? (
             <div className="flex flex-1 flex-wrap gap-2">
@@ -668,14 +762,36 @@ function SectionBlock({
               </button>
             </div>
           ) : (
-            <h2 className="text-2xl font-bold text-teal-400">{displayName}</h2>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setCollapsed(!collapsed);
+              }}
+              className="flex flex-1 items-center justify-between text-left"
+            >
+              <span className="cursor-grab select-none text-xl font-black text-slate-400">
+                ⋮⋮
+              </span>
+
+              <h2 className="text-2xl font-bold text-teal-400">
+                {displayName}
+              </h2>
+
+              <span className="text-xl font-bold text-slate-300">
+                {collapsed ? "+" : "−"}
+              </span>
+            </button>
           )}
 
           {!isEditingName && (
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => setIsEditingName(true)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsEditingName(true);
+                }}
                 className="rounded-xl border border-slate-600 px-3 py-2 text-xs font-bold text-slate-200 hover:bg-slate-700"
               >
                 Edit Name
@@ -683,7 +799,21 @@ function SectionBlock({
 
               <button
                 type="button"
-                onClick={() => onHide(group.section)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDuplicate(group.section);
+                }}
+                className="rounded-xl border border-teal-500/50 px-3 py-2 text-xs font-bold text-teal-300 hover:bg-teal-500/10"
+              >
+                Duplicate Section
+              </button>
+
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onHide(group.section);
+                }}
                 className="rounded-xl border border-red-500/50 px-3 py-2 text-xs font-bold text-red-300 hover:bg-red-500/10"
               >
                 Hide Section
@@ -693,6 +823,7 @@ function SectionBlock({
         </div>
       </div>
 
+      {!collapsed && (
       <div className="space-y-5 p-5">
         {checklist.map((item: any) => (
           <ChecklistCard
@@ -707,30 +838,92 @@ function SectionBlock({
           <NormalFindingCard key={finding.id} finding={finding} />
         ))}
       </div>
+      )}
     </section>
   );
 }
 
 function ChecklistCard({ item, section, inspectionId }: any) {
-  const storageKey = `inspection-${inspectionId}-${section}-${item.title}`;
+  const storageKey = `inspection-clean-v7-${inspectionId}-${section}-${item.title}`;
   const customKey = `custom-options-${section}-${item.title}`;
   const temperatureKey = `temperature-${inspectionId}-${section}-${item.title}`;
+  const aiNotesKey = `ai-notes-${inspectionId}-${section}-${item.title}`;
+  const disclaimerTitleKey =
+    section === "Disclaimers"
+      ? "saved-disclaimer-title-Disclaimers-General Disclaimers"
+      : `saved-disclaimer-title-${section}-${item.title}`;
+  const disclaimerTextKey =
+    section === "Disclaimers"
+      ? "saved-disclaimer-text-Disclaimers-General Disclaimers"
+      : `saved-disclaimer-text-${section}-${item.title}`;
+  const disclaimerCustomKey =
+    section === "Disclaimers"
+      ? "saved-disclaimer-options-Disclaimers-General Disclaimers"
+      : `saved-disclaimer-options-${section}-${item.title}`;
 
-  const [selected, setSelected] = useState<string[]>(item.defaults || []);
+  const [selected, setSelected] = useState<string[]>([]);
   const [customOptions, setCustomOptions] = useState<string[]>([]);
   const [showInput, setShowInput] = useState(false);
   const [otherText, setOtherText] = useState("");
   const [temperature, setTemperature] = useState("");
+  const [aiNotes, setAiNotes] = useState("");
+  const [generatingAi, setGeneratingAi] = useState(false);
+  const [disclaimerTitle, setDisclaimerTitle] = useState("");
+  const [disclaimerText, setDisclaimerText] = useState("");
+  const [savedDisclaimers, setSavedDisclaimers] = useState<any[]>([]);
+  const [editingDisclaimerId, setEditingDisclaimerId] = useState<string | null>(
+    null
+  );
+  const [editingDisclaimerTitle, setEditingDisclaimerTitle] = useState("");
+  const [editingDisclaimerText, setEditingDisclaimerText] = useState("");
 
   useEffect(() => {
     const saved = localStorage.getItem(storageKey);
     const savedCustom = localStorage.getItem(customKey);
     const savedTemp = localStorage.getItem(temperatureKey);
+    const savedAiNotes = localStorage.getItem(aiNotesKey);
+    const savedDisclaimerTitle = localStorage.getItem(disclaimerTitleKey);
+    const savedDisclaimerText = localStorage.getItem(disclaimerTextKey);
+    const savedDisclaimerOptions = localStorage.getItem(disclaimerCustomKey);
 
-    if (saved) setSelected(JSON.parse(saved));
+    if (saved) {
+      setSelected(JSON.parse(saved));
+    } else {
+      setSelected([]);
+    }
+
     if (savedCustom) setCustomOptions(JSON.parse(savedCustom));
     if (savedTemp) setTemperature(savedTemp);
-  }, [storageKey, customKey, temperatureKey]);
+    if (savedAiNotes) setAiNotes(savedAiNotes);
+    if (savedDisclaimerTitle) setDisclaimerTitle(savedDisclaimerTitle);
+    if (savedDisclaimerText) setDisclaimerText(savedDisclaimerText);
+
+    if (savedDisclaimerOptions) {
+      const parsed = JSON.parse(savedDisclaimerOptions);
+
+      const normalized = parsed.map((item: any, index: number) => {
+        if (typeof item === "string") {
+          return {
+            id: `old-${index}-${item.slice(0, 20)}`,
+            title: item.length > 65 ? `${item.slice(0, 65)}...` : item,
+            text: item,
+          };
+        }
+
+        return item;
+      });
+
+      setSavedDisclaimers(normalized);
+    }
+  }, [
+    storageKey,
+    customKey,
+    temperatureKey,
+    aiNotesKey,
+    disclaimerTitleKey,
+    disclaimerTextKey,
+    disclaimerCustomKey,
+  ]);
 
   const allOptions = [...item.options, ...customOptions].filter(
     (option, index, array) => array.indexOf(option) === index
@@ -778,89 +971,532 @@ function ChecklistCard({ item, section, inspectionId }: any) {
     setShowInput(false);
   }
 
+  function saveDisclaimerForFutureReports() {
+    const cleanedTitle = disclaimerTitle.trim();
+    const cleanedText = disclaimerText.trim();
+
+    if (!cleanedTitle || !cleanedText) {
+      alert("Add both a disclaimer title and disclaimer text.");
+      return;
+    }
+
+    const newDisclaimer = {
+      id: `${Date.now()}-${cleanedTitle}`,
+      title: cleanedTitle,
+      text: cleanedText,
+    };
+
+    const updated = [...savedDisclaimers, newDisclaimer].filter(
+      (item, index, array) =>
+        array.findIndex((existing) => existing.title === item.title) === index
+    );
+
+    setSavedDisclaimers(updated);
+    localStorage.setItem(disclaimerCustomKey, JSON.stringify(updated));
+
+    setSelected((prev) => {
+      const selectedUpdated = prev.includes(newDisclaimer.id)
+        ? prev
+        : [...prev, newDisclaimer.id];
+
+      localStorage.setItem(storageKey, JSON.stringify(selectedUpdated));
+      return selectedUpdated;
+    });
+
+    setDisclaimerTitle("");
+    setDisclaimerText("");
+
+    localStorage.setItem(disclaimerTitleKey, "");
+    localStorage.setItem(disclaimerTextKey, "");
+  }
+
+  function deleteSavedDisclaimer(id: string) {
+    const confirmed = confirm("Delete this saved disclaimer?");
+    if (!confirmed) return;
+
+    const updated = savedDisclaimers.filter((item: any) => item.id !== id);
+
+    setSavedDisclaimers(updated);
+    localStorage.setItem(disclaimerCustomKey, JSON.stringify(updated));
+
+    const selectedUpdated = selected.filter((item) => item !== id);
+
+    setSelected(selectedUpdated);
+    localStorage.setItem(storageKey, JSON.stringify(selectedUpdated));
+  }
+
+  function startEditingDisclaimer(disclaimer: any) {
+    setEditingDisclaimerId(disclaimer.id);
+    setEditingDisclaimerTitle(disclaimer.title || "");
+    setEditingDisclaimerText(disclaimer.text || "");
+  }
+
+  function cancelEditingDisclaimer() {
+    setEditingDisclaimerId(null);
+    setEditingDisclaimerTitle("");
+    setEditingDisclaimerText("");
+  }
+
+  function saveEditedDisclaimer() {
+    if (!editingDisclaimerId) return;
+
+    const cleanedTitle = editingDisclaimerTitle.trim();
+    const cleanedText = editingDisclaimerText.trim();
+
+    if (!cleanedTitle || !cleanedText) {
+      alert("Add both a disclaimer title and disclaimer text.");
+      return;
+    }
+
+    const updated = savedDisclaimers.map((item: any) =>
+      item.id === editingDisclaimerId
+        ? {
+            ...item,
+            title: cleanedTitle,
+            text: cleanedText,
+          }
+        : item
+    );
+
+    setSavedDisclaimers(updated);
+    localStorage.setItem(disclaimerCustomKey, JSON.stringify(updated));
+
+    cancelEditingDisclaimer();
+  }
+
+  function toggleSavedDisclaimer(id: string) {
+    const selectedUpdated = selected.includes(id)
+      ? selected.filter((item) => item !== id)
+      : [...selected, id];
+
+    setSelected(selectedUpdated);
+    localStorage.setItem(storageKey, JSON.stringify(selectedUpdated));
+  }
+
+  function saveAiNotes() {
+    localStorage.setItem(aiNotesKey, aiNotes);
+    alert("AI notes saved.");
+  }
+
+  function clearAiNotes() {
+    setAiNotes("");
+    localStorage.setItem(aiNotesKey, "");
+  }
+
+  async function generateAiText() {
+    const notes = aiNotes.trim();
+
+    if (!notes) {
+      alert("Add AI notes first.");
+      return;
+    }
+
+    setGeneratingAi(true);
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 45000);
+
+    try {
+      const response = await fetch("/api/generate-report-note", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        signal: controller.signal,
+        body: JSON.stringify({
+          section,
+          title: item.title,
+          type: item.type,
+          notes,
+          selectedOptions: selected,
+        }),
+      });
+
+      let data: any = {};
+
+      try {
+        data = await response.json();
+      } catch {
+        data = {};
+      }
+
+      if (!response.ok || !data.text) {
+        alert(data.error || "AI failed to generate text. Check the terminal for the API error.");
+        return;
+      }
+
+      const generatedText = String(data.text).trim();
+
+      if (section === "Disclaimers" || item.type === "ai-notes") {
+        const suggestedTitle =
+          notes.length > 70 ? `${notes.slice(0, 70)}...` : notes;
+
+        setDisclaimerTitle(suggestedTitle);
+        setDisclaimerText(generatedText);
+
+        localStorage.setItem(disclaimerTitleKey, suggestedTitle);
+        localStorage.setItem(disclaimerTextKey, generatedText);
+
+        alert(
+          "AI disclaimer generated. Review or edit the title and text, then click Save Disclaimer for Future Reports."
+        );
+
+        return;
+      }
+
+      const updatedCustom = [...customOptions, generatedText].filter(
+        (option, index, array) => array.indexOf(option) === index
+      );
+
+      setCustomOptions(updatedCustom);
+      localStorage.setItem(customKey, JSON.stringify(updatedCustom));
+
+      const selectedUpdated = selected.includes(generatedText)
+        ? selected
+        : [...selected, generatedText];
+
+      setSelected(selectedUpdated);
+      localStorage.setItem(storageKey, JSON.stringify(selectedUpdated));
+
+      alert("AI text generated and added as a saved option.");
+    } catch (error: any) {
+      if (error?.name === "AbortError") {
+        alert("AI request timed out. Check the API route and OPENAI_API_KEY.");
+      } else {
+        alert(error?.message || "AI failed to generate text.");
+      }
+    } finally {
+      clearTimeout(timeout);
+      setGeneratingAi(false);
+    }
+  }
+
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-700 bg-[#0b1730]">
-      <div className="border-b border-slate-700 bg-slate-800/70 px-6 py-3">
-        <h3 className="text-lg font-bold text-teal-300">{item.title}</h3>
+    <div className="overflow-hidden rounded-2xl border border-slate-700/90 bg-gradient-to-br from-[#081426] via-[#0b1b33] to-[#071224] p-6 shadow-xl">
+      <div className="mb-6">
+        <h3 className="text-2xl font-extrabold tracking-tight text-teal-300">
+          {item.title}
+        </h3>
+
+        <p className="mt-2 text-base font-medium text-slate-300">
+          {item.type === "temperature"
+            ? "Enter temperature"
+            : item.type === "ai-notes"
+            ? "Add notes for AI"
+            : "Select all that apply"}
+        </p>
       </div>
 
-      <div className="p-6">
-        {item.type === "temperature" && (
-          <input
-            value={temperature}
-            onChange={(e) => {
-              setTemperature(e.target.value);
-              localStorage.setItem(temperatureKey, e.target.value);
-            }}
-            placeholder="Enter temperature"
-            className="mb-6 w-full rounded-xl border border-slate-700 bg-[#020817] px-4 py-3 text-white outline-none focus:border-teal-400"
-          />
-        )}
+      {item.type === "temperature" && (
+        <input
+          value={temperature}
+          onChange={(e) => {
+            setTemperature(e.target.value);
+            localStorage.setItem(temperatureKey, e.target.value);
+          }}
+          placeholder="Enter temperature"
+          className="mb-5 w-full rounded-xl border border-slate-600 bg-[#020817]/80 px-5 py-4 text-lg font-semibold text-white outline-none transition placeholder:text-slate-500 focus:border-teal-400"
+        />
+      )}
 
-        <div className="flex flex-wrap gap-x-14 gap-y-6">
+      {item.type === "disclaimer" && (
+        <div className="mb-6 rounded-2xl border border-teal-500/30 bg-[#020817]/70 p-4">
+          <label className="mb-2 block text-sm font-extrabold uppercase tracking-wide text-teal-300">
+            Disclaimer Title
+          </label>
+
+          <input
+            value={disclaimerTitle}
+            onChange={(e) => {
+              setDisclaimerTitle(e.target.value);
+              localStorage.setItem(disclaimerTitleKey, e.target.value);
+            }}
+            placeholder="Example: Lead-Based Paint Disclaimer"
+            className="mb-4 w-full rounded-xl border border-slate-700 bg-[#020817] px-4 py-3 text-white outline-none transition placeholder:text-slate-500 focus:border-teal-400"
+          />
+
+          <label className="mb-2 block text-sm font-extrabold uppercase tracking-wide text-teal-300">
+            Disclaimer Text
+          </label>
+
+          <textarea
+            value={disclaimerText}
+            onChange={(e) => {
+              setDisclaimerText(e.target.value);
+              localStorage.setItem(disclaimerTextKey, e.target.value);
+            }}
+            placeholder="Write or generate the full disclaimer text..."
+            rows={6}
+            className="w-full rounded-xl border border-slate-700 bg-[#020817] px-4 py-3 text-white outline-none transition placeholder:text-slate-500 focus:border-teal-400"
+          />
+
+          <button
+            type="button"
+            onClick={saveDisclaimerForFutureReports}
+            className="mt-3 rounded-xl bg-teal-400 px-5 py-3 font-bold text-slate-950 hover:bg-teal-300"
+          >
+            Save Disclaimer for Future Reports
+          </button>
+
+          {savedDisclaimers.length > 0 && (
+            <div className="mt-6 space-y-3">
+              <h4 className="text-sm font-extrabold uppercase tracking-wide text-slate-300">
+                Saved Disclaimers
+              </h4>
+
+              {savedDisclaimers.map((disclaimer: any) => {
+                const checked = selected.includes(disclaimer.id);
+                const isEditing = editingDisclaimerId === disclaimer.id;
+
+                return (
+                  <div
+                    key={disclaimer.id}
+                    className="rounded-2xl border border-slate-700 bg-[#071224] p-4"
+                  >
+                    {isEditing ? (
+                      <div className="space-y-3">
+                        <input
+                          value={editingDisclaimerTitle}
+                          onChange={(e) =>
+                            setEditingDisclaimerTitle(e.target.value)
+                          }
+                          className="w-full rounded-xl border border-slate-700 bg-[#020817] px-4 py-3 text-white outline-none focus:border-teal-400"
+                          placeholder="Disclaimer title"
+                        />
+
+                        <textarea
+                          value={editingDisclaimerText}
+                          onChange={(e) =>
+                            setEditingDisclaimerText(e.target.value)
+                          }
+                          rows={7}
+                          className="w-full rounded-xl border border-slate-700 bg-[#020817] px-4 py-3 text-white outline-none focus:border-teal-400"
+                          placeholder="Disclaimer text"
+                        />
+
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={saveEditedDisclaimer}
+                            className="rounded-xl bg-teal-400 px-4 py-2 text-xs font-bold text-slate-950 hover:bg-teal-300"
+                          >
+                            Save Edit
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={cancelEditingDisclaimer}
+                            className="rounded-xl border border-slate-600 px-4 py-2 text-xs font-bold text-slate-200 hover:bg-slate-800"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <label className="flex cursor-pointer items-start gap-4">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() =>
+                              toggleSavedDisclaimer(disclaimer.id)
+                            }
+                            className="mt-1 h-5 w-5 accent-teal-400"
+                          />
+
+                          <div className="flex-1">
+                            <p className="text-lg font-extrabold text-white">
+                              {disclaimer.title}
+                            </p>
+
+                            <p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-300">
+                              {disclaimer.text}
+                            </p>
+                          </div>
+                        </label>
+
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => startEditingDisclaimer(disclaimer)}
+                            className="rounded-xl border border-cyan-500/60 px-4 py-2 text-xs font-bold text-cyan-300 hover:bg-cyan-500/10"
+                          >
+                            Edit
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => deleteSavedDisclaimer(disclaimer.id)}
+                            className="rounded-xl border border-red-500/60 px-4 py-2 text-xs font-bold text-red-300 hover:bg-red-500/10"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {item.type === "ai-notes" && (
+        <div className="mb-6 rounded-2xl border border-teal-500/30 bg-[#020817]/70 p-4">
+          <label className="mb-2 block text-sm font-extrabold uppercase tracking-wide text-teal-300">
+            AI Notes for Disclaimers
+          </label>
+
+          <textarea
+            value={aiNotes}
+            onChange={(e) => {
+              setAiNotes(e.target.value);
+              localStorage.setItem(aiNotesKey, e.target.value);
+            }}
+            placeholder="Add notes for the AI to consider when writing or improving disclaimer language..."
+            rows={5}
+            className="w-full rounded-xl border border-slate-700 bg-[#020817] px-4 py-3 text-white outline-none transition placeholder:text-slate-500 focus:border-teal-400"
+          />
+
+          <div className="mt-3 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={generateAiText}
+              disabled={generatingAi}
+              className="rounded-xl bg-purple-500 px-5 py-3 text-sm font-bold text-white hover:bg-purple-400 disabled:opacity-60"
+            >
+              {generatingAi ? "Generating..." : "Generate Disclaimer"}
+            </button>
+
+            <button
+              type="button"
+              onClick={saveAiNotes}
+              className="rounded-xl bg-teal-400 px-5 py-3 text-sm font-bold text-slate-950 hover:bg-teal-300"
+            >
+              Save AI Notes
+            </button>
+
+            <button
+              type="button"
+              onClick={clearAiNotes}
+              className="rounded-xl border border-slate-600 px-5 py-3 text-sm font-bold text-slate-200 hover:bg-slate-800"
+            >
+              Clear Notes
+            </button>
+          </div>
+        </div>
+      )}
+
+      {item.type !== "ai-notes" && (
+        <div
+          className={
+            item.type === "temperature"
+              ? "grid grid-cols-1 gap-4"
+              : "grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
+          }
+        >
           {allOptions.map((option: string) => {
             const checked = selected.includes(option);
 
             return (
               <label
                 key={option}
-                className="flex min-w-[210px] items-center gap-4 text-white"
+                className="grid min-h-[86px] cursor-pointer grid-cols-[44px_minmax(0,1fr)] items-center rounded-xl border border-slate-600/80 bg-[#0b1a31]/85 px-6 py-5 text-white transition hover:border-teal-400 hover:bg-[#10213d]"
               >
                 <input
                   type={item.type === "temperature" ? "radio" : "checkbox"}
                   checked={checked}
                   onChange={() => toggleOption(option)}
-                  className="h-5 w-5 accent-teal-400"
+                  className="sr-only"
                 />
 
-                <span className="text-lg">{option}</span>
+                <span
+                  aria-hidden="true"
+                  className={`flex h-7 w-7 items-center justify-center rounded-[6px] border-2 shadow-sm ${
+                    checked
+                      ? "border-teal-400 bg-teal-400"
+                      : "border-white bg-transparent"
+                  }`}
+                >
+                  {checked && (
+                    <span className="text-base font-black leading-none text-slate-950">
+                      ✓
+                    </span>
+                  )}
+                </span>
+
+                <span className="pl-5 text-xl font-semibold leading-6 text-white">
+                  {option}
+                </span>
               </label>
             );
           })}
         </div>
+      )}
 
-        {showInput ? (
-          <div className="mt-6 flex gap-3">
-            <input
-              value={otherText}
-              onChange={(e) => setOtherText(e.target.value)}
-              onBlur={() => {
-                if (!otherText.trim()) {
-                  setShowInput(false);
-                  setOtherText("");
-                }
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") saveOther();
-                if (e.key === "Escape") {
-                  setShowInput(false);
-                  setOtherText("");
-                }
-              }}
-              autoFocus
-              placeholder="Add other option..."
-              className="flex-1 rounded-xl border border-slate-700 bg-[#020817] px-4 py-3 text-white outline-none focus:border-teal-400"
-            />
+      {item.title.toLowerCase().includes("limitations") && (
+        <div className="mt-6 rounded-2xl border border-teal-500/30 bg-[#020817]/70 p-4">
+          <label className="mb-2 block text-sm font-extrabold uppercase tracking-wide text-teal-300">
+            AI Notes for Limitations
+          </label>
 
-            <button
-              type="button"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={saveOther}
-              className="rounded-xl bg-teal-400 px-5 py-3 font-bold text-slate-900 hover:bg-teal-300"
-            >
-              Save
-            </button>
-          </div>
-        ) : (
+          <textarea
+            value={aiNotes}
+            onChange={(e) => {
+              setAiNotes(e.target.value);
+              localStorage.setItem(aiNotesKey, e.target.value);
+            }}
+            placeholder="Add notes for the AI to consider when writing limitation language..."
+            rows={4}
+            className="w-full rounded-xl border border-slate-700 bg-[#020817] px-4 py-3 text-white outline-none transition placeholder:text-slate-500 focus:border-teal-400"
+          />
+        </div>
+      )}
+
+      {showInput ? (
+        <div className="mt-6 flex gap-3">
+          <input
+            value={otherText}
+            onChange={(e) => setOtherText(e.target.value)}
+            onBlur={() => {
+              if (!otherText.trim()) {
+                setShowInput(false);
+                setOtherText("");
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") saveOther();
+              if (e.key === "Escape") {
+                setShowInput(false);
+                setOtherText("");
+              }
+            }}
+            autoFocus
+            placeholder="Add other option..."
+            className="flex-1 rounded-xl border border-slate-600 bg-[#020817]/80 px-5 py-4 text-white outline-none transition focus:border-teal-400"
+          />
+
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={saveOther}
+            className="rounded-xl bg-teal-400 px-6 py-4 font-bold text-slate-950 hover:bg-teal-300"
+          >
+            Save
+          </button>
+        </div>
+      ) : (
+        item.type !== "ai-notes" && (
           <button
             type="button"
             onClick={() => setShowInput(true)}
-            className="mt-6 text-lg font-semibold text-teal-300 hover:text-teal-200"
+            className="mt-6 text-lg font-extrabold text-teal-300 hover:text-teal-200"
           >
             + OTHER
           </button>
-        )}
-      </div>
+        )
+      )}
     </div>
   );
 }
