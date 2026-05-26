@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "../../utils/supabase/client";
@@ -53,7 +53,7 @@ function isRepairFinding(finding: Finding) {
   return !excluded.includes(title);
 }
 
-export default function RepairRequestPage() {
+function RepairRequestContent() {
   const searchParams = useSearchParams();
   const inspectionId = searchParams.get("inspection_id");
   const supabase = createClient();
@@ -506,6 +506,21 @@ export default function RepairRequestPage() {
         </section>
       </div>
     </main>
+  );
+}
+
+
+export default function RepairRequestPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-[#020617] p-8 text-white">
+          Loading repair request...
+        </main>
+      }
+    >
+      <RepairRequestContent />
+    </Suspense>
   );
 }
 
