@@ -30,8 +30,6 @@ export default function SendReportEmailButtons({
     setSending(type);
 
     try {
-      const shareUrl = `${window.location.origin}/share/${inspectionId}`;
-
       const res = await fetch("/api/send-report-email", {
         method: "POST",
         headers: {
@@ -41,7 +39,6 @@ export default function SendReportEmailButtons({
           inspectionId,
           recipientType: type,
           recipientEmail: email,
-          shareUrl,
         }),
       });
 
