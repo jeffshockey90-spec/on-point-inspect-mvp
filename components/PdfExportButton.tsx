@@ -1,14 +1,14 @@
 "use client";
 
-type PrintButtonProps = {
+type PDFExportButtonProps = {
   label?: string;
   className?: string;
 };
 
-export default function PrintButton({
-  label = "Print / Save PDF",
+export default function PDFExportButton({
+  label = "Export PDF",
   className = "",
-}: PrintButtonProps) {
+}: PDFExportButtonProps) {
   return (
     <button
       type="button"

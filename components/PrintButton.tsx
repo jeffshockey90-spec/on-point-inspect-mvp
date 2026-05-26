@@ -1,12 +1,21 @@
 "use client";
 
-export default function PrintButton() {
+type PrintButtonProps = {
+  label?: string;
+  className?: string;
+};
+
+export default function PrintButton({
+  label = "Print / Save PDF",
+  className = "",
+}: PrintButtonProps) {
   return (
     <button
+      type="button"
       onClick={() => window.print()}
-      className="rounded-lg bg-black px-5 py-3 font-bold text-white"
+      className={className}
     >
-      Print / Save PDF
+      {label}
     </button>
   );
 }
