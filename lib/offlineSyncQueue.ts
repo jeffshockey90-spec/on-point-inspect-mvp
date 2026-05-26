@@ -45,14 +45,27 @@ export function getOfflineQueue(): OfflineQueueItem[] {
 export function saveOfflineQueue(items: OfflineQueueItem[]) {
   if (!isBrowser()) return;
 
-  window.localStorage.setItem(
-    QUEUE_KEY,
-    JSON.stringify(items)
-  );
+  try {
+    window.localStorage.setItem(
+      QUEUE_KEY,
+      JSON.stringify(items)
+    );
 
-  window.dispatchEvent(
-    new CustomEvent("on-point-offline-queue-change")
-  );
+    window.dispatchEvent(
+      new CustomEvent("on-point-offline-queue-change")
+    );
+  } catch (error: any) {
+    if (
+      error?.name === "QuotaExceededError" ||
+      error?.message?.toLowerCase?.().includes("quota")
+    ) {
+      throw new Error(
+        "Offline storage is full. Try using fewer photos or smaller photos, then sync/clear the queue."
+      );
+    }
+
+    throw error;
+  }
 }
 
 export function addOfflineQueueItem(
@@ -99,19 +112,103 @@ export function fileToBase64(file: File): Promise<string> {
   });
 }
 
+async function compressImageToBase64(
+  file: File,
+  maxWidth = 1600,
+  quality = 0.7
+): Promise<{
+  base64: string;
+  type: string;
+  size: number;
+}> {
+  return new Promise((resolve, reject) => {
+    if (!isBrowser()) {
+      reject(new Error("Image compression requires a browser."));
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      reject(new Error("Selected file is not an image."));
+      return;
+    }
+
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+
+    img.onload = () => {
+      try {
+        const scale =
+          img.width > maxWidth
+            ? maxWidth / img.width
+            : 1;
+
+        const width = Math.round(img.width * scale);
+        const height = Math.round(img.height * scale);
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext("2d");
+
+        if (!ctx) {
+          URL.revokeObjectURL(objectUrl);
+          reject(new Error("Could not prepare image compression."));
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const outputType = "image/jpeg";
+        const base64 = canvas.toDataURL(outputType, quality);
+
+        URL.revokeObjectURL(objectUrl);
+
+        const approximateSize = Math.round(
+          (base64.length * 3) / 4
+        );
+
+        resolve({
+          base64,
+          type: outputType,
+          size: approximateSize,
+        });
+      } catch (error) {
+        URL.revokeObjectURL(objectUrl);
+        reject(error);
+      }
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("Could not load image for offline compression."));
+    };
+
+    img.src = objectUrl;
+  });
+}
+
 export async function filesToOfflinePhotos(
   files: File[]
 ): Promise<OfflinePhotoPayload[]> {
   const photos: OfflinePhotoPayload[] = [];
 
   for (const file of files) {
-    const base64 = await fileToBase64(file);
+    const compressed = await compressImageToBase64(
+      file,
+      1600,
+      0.7
+    );
+
+    const cleanName = file.name
+      ? file.name.replace(/\.[^/.]+$/, "") + "-offline.jpg"
+      : "offline-photo.jpg";
 
     photos.push({
-      name: file.name,
-      type: file.type || "image/jpeg",
-      size: file.size,
-      base64,
+      name: cleanName,
+      type: compressed.type,
+      size: compressed.size,
+      base64: compressed.base64,
     });
   }
 
