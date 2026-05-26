@@ -251,6 +251,63 @@ export default async function ReportPage({ params }: PageProps) {
     findings: findings.filter((finding: any) => finding.section === section),
   }));
 
+  const defectFindings = findings.filter((finding: any) => {
+    const section = String(finding.section || "").toLowerCase();
+    const title = String(finding.title || "").toLowerCase();
+
+    if (section === "inspection details") return false;
+    if (section === "disclaimers") return false;
+    if (title === "in attendance") return false;
+    if (title === "occupancy") return false;
+    if (title === "style") return false;
+    if (title === "temperature") return false;
+    if (title === "type of building") return false;
+    if (title === "weather conditions") return false;
+
+    return true;
+  });
+
+  const defectTotals = defectFindings.reduce(
+    (acc: Record<string, number>, finding: any) => {
+      const severity = String(
+        finding.severity || "Recommended Repair"
+      ).toLowerCase();
+
+      acc.total += 1;
+
+      if (
+        severity.includes("safety") ||
+        severity.includes("hazard") ||
+        severity.includes("major")
+      ) {
+        acc.safety += 1;
+      } else if (
+        severity.includes("maintenance") ||
+        severity.includes("monitor") ||
+        severity.includes("minor")
+      ) {
+        acc.maintenance += 1;
+      } else if (
+        severity.includes("information") ||
+        severity.includes("info") ||
+        severity.includes("client")
+      ) {
+        acc.information += 1;
+      } else {
+        acc.repair += 1;
+      }
+
+      return acc;
+    },
+    {
+      total: 0,
+      safety: 0,
+      repair: 0,
+      maintenance: 0,
+      information: 0,
+    }
+  );
+
   return (
     <main className="min-h-screen bg-[#020617] text-white">
       <div className="mx-auto max-w-7xl px-6 py-8">
@@ -291,6 +348,13 @@ export default async function ReportPage({ params }: PageProps) {
 
             <Link href={`/reports/${inspection.id}/summary`} className="rounded-xl border border-cyan-500 px-5 py-3 font-bold text-cyan-300 hover:bg-cyan-500/10">
               Realtor Summary
+            </Link>
+
+            <Link
+              href={`/field?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`}
+              className="rounded-xl border border-teal-500 bg-[#071224] px-5 py-3 font-bold text-teal-300 hover:bg-teal-500/10"
+            >
+              Field Tool
             </Link>
 
             <Link href={`/ai-capture?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`} className="rounded-xl bg-teal-500 px-5 py-3 font-bold text-slate-950 hover:bg-teal-400">
@@ -337,6 +401,52 @@ export default async function ReportPage({ params }: PageProps) {
           <p className="mt-3 text-xl text-slate-200">
             Residential Home Inspection Report
           </p>
+
+          <section className="mt-6 rounded-2xl border border-slate-700 bg-[#071224] p-5">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="text-2xl font-extrabold text-teal-300">
+                  Defect Totals
+                </h2>
+
+                <p className="mt-1 text-sm text-slate-400">
+                  Quick count of report findings by defect type.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+              <DefectCountCard
+                label="Total Defects"
+                value={defectTotals.total}
+                tone="text-white"
+              />
+
+              <DefectCountCard
+                label="Safety / Major"
+                value={defectTotals.safety}
+                tone="text-red-300"
+              />
+
+              <DefectCountCard
+                label="Recommended Repair"
+                value={defectTotals.repair}
+                tone="text-teal-300"
+              />
+
+              <DefectCountCard
+                label="Maintenance / Monitor"
+                value={defectTotals.maintenance}
+                tone="text-yellow-300"
+              />
+
+              <DefectCountCard
+                label="Informational"
+                value={defectTotals.information}
+                tone="text-blue-300"
+              />
+            </div>
+          </section>
 
           <form action={updateInspectionDetails} className="mt-8 border-t border-slate-700 pt-8">
             <input type="hidden" name="inspection_id" value={inspection.id} />
@@ -389,6 +499,29 @@ export default async function ReportPage({ params }: PageProps) {
         />
       </div>
     </main>
+  );
+}
+
+
+function DefectCountCard({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: string;
+}) {
+  return (
+    <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
+      <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+        {label}
+      </p>
+
+      <p className={`mt-2 text-3xl font-black ${tone}`}>
+        {value}
+      </p>
+    </div>
   );
 }
 

@@ -54,6 +54,12 @@ const SECTION_CHECKLISTS: Record<string, any[]> = {
       options: ["Snow", "Dry", "Cloudy", "Hot", "Heavy Rain", "Clear", "Light Rain", "Humid", "Recent Rain"],
       defaults: [],
     },
+    {
+      title: "Limitations",
+      type: "checkbox",
+      options: [],
+      defaults: [],
+    },
   ],
 
   Exterior: [
@@ -93,13 +99,21 @@ const SECTION_CHECKLISTS: Record<string, any[]> = {
       options: ["Wood", "Vinyl", "Chain Link", "Wrought Iron", "None"],
       defaults: [],
     },
+    {
+      title: "Limitations",
+      type: "checkbox",
+      options: [],
+      defaults: [],
+    },
   ],
 
-  Roof: [
+    Roof: [
+
     {
       title: "Inspection Method",
       type: "checkbox",
-      options: ["Walked Roof", "From Ground", "From Ladder", "Drone", "Binoculars", "Limited Visibility"],
+      options: ["Walked Roof", "From Ground", "From Ladder", "Drone", "Binoculars", "Limited Visibility"
+  ],
       defaults: [],
     },
     {
@@ -127,9 +141,9 @@ const SECTION_CHECKLISTS: Record<string, any[]> = {
       defaults: [],
     },
     {
-      title: "Roof Limitations",
+      title: "Limitations",
       type: "checkbox",
-      options: ["Steep Roof", "Wet Roof", "Snow Covered", "Height Limitation", "Unsafe Access", "Viewed From Ground Only", "Drone Only"],
+      options: [],
       defaults: [],
     },
   ],
@@ -168,7 +182,7 @@ const SECTION_CHECKLISTS: Record<string, any[]> = {
     {
       title: "Limitations",
       type: "checkbox",
-      options: ["Finished Areas", "Stored Belongings", "Limited Access", "Low Clearance", "Unsafe Access", "Not Accessible"],
+      options: [],
       defaults: [],
     },
   ],
@@ -207,7 +221,7 @@ const SECTION_CHECKLISTS: Record<string, any[]> = {
     {
       title: "Limitations",
       type: "checkbox",
-      options: ["System Not Operated", "Temperature Restrictions", "Access Limited", "Panel Restricted", "Stored Belongings"],
+      options: [],
       defaults: [],
     },
   ],
@@ -246,7 +260,7 @@ const SECTION_CHECKLISTS: Record<string, any[]> = {
     {
       title: "Limitations",
       type: "checkbox",
-      options: ["Low Outdoor Temperature", "System Not Operated", "Access Limited", "Panel Restricted", "Stored Belongings"],
+      options: [],
       defaults: [],
     },
   ],
@@ -285,7 +299,7 @@ const SECTION_CHECKLISTS: Record<string, any[]> = {
     {
       title: "Limitations",
       type: "checkbox",
-      options: ["Water Off", "Fixtures Not Operated", "Access Limited", "Stored Belongings", "Finished Areas"],
+      options: [],
       defaults: [],
     },
   ],
@@ -324,7 +338,7 @@ const SECTION_CHECKLISTS: Record<string, any[]> = {
     {
       title: "Limitations",
       type: "checkbox",
-      options: ["Panel Blocked", "Panel Cover Not Removed", "Limited Access", "Power Off", "Stored Belongings"],
+      options: [],
       defaults: [],
     },
   ],
@@ -363,7 +377,7 @@ const SECTION_CHECKLISTS: Record<string, any[]> = {
     {
       title: "Limitations",
       type: "checkbox",
-      options: ["No Flooring", "Limited Access", "Stored Belongings", "Low Clearance", "Unsafe Access", "Insulation Covered Components"],
+      options: [],
       defaults: [],
     },
   ],
@@ -402,7 +416,7 @@ const SECTION_CHECKLISTS: Record<string, any[]> = {
     {
       title: "Limitations",
       type: "checkbox",
-      options: ["Occupied Home", "Furnished Areas", "Stored Belongings", "Window Treatments", "Limited Access", "Personal Items"],
+      options: [],
       defaults: [],
     },
   ],
@@ -441,7 +455,7 @@ const SECTION_CHECKLISTS: Record<string, any[]> = {
     {
       title: "Limitations",
       type: "checkbox",
-      options: ["Appliances Not Moved", "Personal Property Present", "Not Operated", "Utilities Off", "Limited Access"],
+      options: [],
       defaults: [],
     },
   ],
@@ -490,6 +504,12 @@ const SECTION_CHECKLISTS: Record<string, any[]> = {
         "Automatic",
         "Sectional",
       ],
+      defaults: [],
+    },
+    {
+      title: "Limitations",
+      type: "checkbox",
+      options: [],
       defaults: [],
     },
   ],
@@ -1986,6 +2006,37 @@ function ChecklistCard({ item, section, inspectionId }: any) {
   );
 }
 
+
+function getSeverityStyle(severity: string | null | undefined) {
+  const clean = String(severity || "Recommended Repair").toLowerCase();
+
+  if (
+    clean.includes("safety") ||
+    clean.includes("hazard") ||
+    clean.includes("major")
+  ) {
+    return "border-red-500/60 bg-red-500/10 text-red-300";
+  }
+
+  if (
+    clean.includes("maintenance") ||
+    clean.includes("monitor") ||
+    clean.includes("minor")
+  ) {
+    return "border-yellow-500/60 bg-yellow-500/10 text-yellow-300";
+  }
+
+  if (
+    clean.includes("information") ||
+    clean.includes("info") ||
+    clean.includes("client")
+  ) {
+    return "border-blue-500/60 bg-blue-500/10 text-blue-300";
+  }
+
+  return "border-teal-500/60 bg-teal-500/10 text-teal-300";
+}
+
 function NormalFindingCard({ finding }: any) {
   const firstPhoto = finding.photos?.[0];
 
@@ -2011,6 +2062,22 @@ function NormalFindingCard({ finding }: any) {
       )}
 
       <div className="p-6">
+        <div className="mb-4 flex flex-wrap items-center gap-3">
+          <span
+            className={`rounded-full border px-3 py-1 text-xs font-extrabold uppercase tracking-wide ${getSeverityStyle(
+              finding.severity
+            )}`}
+          >
+            {finding.severity || "Recommended Repair"}
+          </span>
+
+          {finding.section && (
+            <span className="rounded-full border border-slate-600 bg-slate-900/70 px-3 py-1 text-xs font-bold uppercase tracking-wide text-slate-300">
+              {finding.section}
+            </span>
+          )}
+        </div>
+
         <EditableFinding finding={finding} />
 
         {finding.observation && (
