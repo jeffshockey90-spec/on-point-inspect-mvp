@@ -99,6 +99,136 @@ img {
   background: #475569;
 }
 
+/* FULLCALENDAR CUSTOM DARK THEME */
+
+.fc {
+  color: #f8fafc;
+}
+
+.fc .fc-toolbar {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.fc .fc-toolbar-title {
+  color: #2dd4bf;
+  font-weight: 800;
+  font-size: 1.4rem;
+}
+
+.fc .fc-button {
+  background: #0f172a !important;
+  border: 1px solid #334155 !important;
+  color: #f8fafc !important;
+  box-shadow: none !important;
+  border-radius: 10px !important;
+  font-weight: 700 !important;
+}
+
+.fc .fc-button:hover {
+  background: #14b8a6 !important;
+  color: #020617 !important;
+}
+
+.fc .fc-button-active {
+  background: #14b8a6 !important;
+  color: #020617 !important;
+}
+
+.fc-theme-standard td,
+.fc-theme-standard th,
+.fc-theme-standard .fc-scrollgrid {
+  border-color: #1e293b !important;
+}
+
+.fc-col-header-cell {
+  background: #0f172a;
+  color: #2dd4bf;
+  font-weight: bold;
+}
+
+.fc-col-header-cell-cushion {
+  color: #2dd4bf;
+  text-decoration: none;
+}
+
+.fc-timegrid-slot {
+  background: #020617;
+}
+
+.fc-timegrid-axis,
+.fc-timegrid-slot-label {
+  color: #94a3b8;
+}
+
+.fc-daygrid-day {
+  background: #020617;
+}
+
+.fc-daygrid-day-number {
+  color: #f8fafc;
+  text-decoration: none;
+}
+
+.fc-day-today {
+  background: rgba(20, 184, 166, 0.08) !important;
+}
+
+.fc-event {
+  background: #14b8a6 !important;
+  border: none !important;
+  color: #020617 !important;
+  font-weight: bold;
+  border-radius: 8px !important;
+  padding: 2px 4px;
+  cursor: pointer;
+}
+
+.fc-event:hover {
+  background: #2dd4bf !important;
+}
+
+.fc-event-title,
+.fc-event-time {
+  color: #020617 !important;
+}
+
+.fc-scrollgrid {
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.fc-list {
+  background: #020617;
+}
+
+.fc-list-event:hover td {
+  background: #0f172a !important;
+}
+
+@media (max-width: 768px) {
+  .fc .fc-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .fc .fc-toolbar-chunk {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .fc .fc-toolbar-title {
+    text-align: center;
+    font-size: 1.1rem;
+  }
+
+  .fc .fc-button {
+    font-size: 0.8rem !important;
+    padding: 6px 8px !important;
+  }
+}
+
 @media print {
   body {
     background: white !important;

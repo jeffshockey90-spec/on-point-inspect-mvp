@@ -6,6 +6,7 @@ import { createServerClient } from "@supabase/ssr";
 
 import ReportFindingsSortable from "./ReportFindingsSortable";
 import AiSummaryBanner from "./AiSummaryBanner";
+import SendReportEmailButtons from "../../../components/SendReportEmailButtons";
 
 type PageProps = {
   params: Promise<{
@@ -315,11 +316,17 @@ export default async function ReportPage({ params }: PageProps) {
 
         <div className="mb-8 rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
           <div className="mb-8 flex flex-wrap gap-3">
-            <a href="javascript:window.print()" className="rounded-xl bg-black px-5 py-3 font-bold text-white hover:bg-slate-800">
+            <a
+              href="javascript:window.print()"
+              className="rounded-xl bg-black px-5 py-3 font-bold text-white hover:bg-slate-800"
+            >
               Print / Save PDF
             </a>
 
-            <a href="javascript:window.print()" className="rounded-xl bg-white px-5 py-3 font-bold text-black hover:bg-slate-200">
+            <a
+              href="javascript:window.print()"
+              className="rounded-xl bg-white px-5 py-3 font-bold text-black hover:bg-slate-200"
+            >
               Export PDF
             </a>
 
@@ -330,23 +337,38 @@ export default async function ReportPage({ params }: PageProps) {
               Generate AI Summary
             </Link>
 
-            <Link href={`/share/${inspection.id}`} className="rounded-xl bg-green-500 px-5 py-3 font-bold text-slate-950 hover:bg-green-400">
+            <Link
+              href={`/share/${inspection.id}`}
+              className="rounded-xl bg-green-500 px-5 py-3 font-bold text-slate-950 hover:bg-green-400"
+            >
               Publish Report
             </Link>
 
-            <Link href={`/share/${inspection.id}`} className="rounded-xl border border-blue-500 px-5 py-3 font-bold text-blue-300 hover:bg-blue-500/10">
+            <Link
+              href={`/share/${inspection.id}`}
+              className="rounded-xl border border-blue-500 px-5 py-3 font-bold text-blue-300 hover:bg-blue-500/10"
+            >
               Copy Share Link
             </Link>
 
-            <Link href={`/client/${inspection.id}`} className="rounded-xl border border-purple-500 px-5 py-3 font-bold text-purple-300 hover:bg-purple-500/10">
+            <Link
+              href={`/client/${inspection.id}`}
+              className="rounded-xl border border-purple-500 px-5 py-3 font-bold text-purple-300 hover:bg-purple-500/10"
+            >
               Send Report
             </Link>
 
-            <Link href={`/repair-request?inspection_id=${inspection.id}`} className="rounded-xl bg-orange-600 px-5 py-3 font-bold text-white hover:bg-orange-500">
+            <Link
+              href={`/repair-request?inspection_id=${inspection.id}`}
+              className="rounded-xl bg-orange-600 px-5 py-3 font-bold text-white hover:bg-orange-500"
+            >
               Repair Request Builder
             </Link>
 
-            <Link href={`/reports/${inspection.id}/summary`} className="rounded-xl border border-cyan-500 px-5 py-3 font-bold text-cyan-300 hover:bg-cyan-500/10">
+            <Link
+              href={`/reports/${inspection.id}/summary`}
+              className="rounded-xl border border-cyan-500 px-5 py-3 font-bold text-cyan-300 hover:bg-cyan-500/10"
+            >
               Realtor Summary
             </Link>
 
@@ -357,13 +379,31 @@ export default async function ReportPage({ params }: PageProps) {
               Field Tool
             </Link>
 
-            <Link href={`/ai-capture?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`} className="rounded-xl bg-teal-500 px-5 py-3 font-bold text-slate-950 hover:bg-teal-400">
+            <Link
+              href={`/ai-capture?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`}
+              className="rounded-xl bg-teal-500 px-5 py-3 font-bold text-slate-950 hover:bg-teal-400"
+            >
               Open Full AI Capture
             </Link>
 
-            <Link href={`/equipment-analyzer?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`} className="rounded-xl border border-blue-500 px-5 py-3 font-bold text-blue-300 hover:bg-blue-500/10">
+            <Link
+              href={`/equipment-analyzer?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`}
+              className="rounded-xl border border-blue-500 px-5 py-3 font-bold text-blue-300 hover:bg-blue-500/10"
+            >
               Equipment Analyzer
             </Link>
+          </div>
+
+          <div className="mb-8 rounded-2xl border border-slate-700 bg-[#071224] p-5">
+            <h2 className="mb-4 text-2xl font-bold text-teal-300">
+              Email Report
+            </h2>
+
+            <SendReportEmailButtons
+              inspectionId={String(inspection.id)}
+              clientEmail={inspection.client_email}
+              realtorEmail={inspection.realtor_email || inspection.agent_email}
+            />
           </div>
 
           {(
@@ -448,7 +488,10 @@ export default async function ReportPage({ params }: PageProps) {
             </div>
           </section>
 
-          <form action={updateInspectionDetails} className="mt-8 border-t border-slate-700 pt-8">
+          <form
+            action={updateInspectionDetails}
+            className="mt-8 border-t border-slate-700 pt-8"
+          >
             <input type="hidden" name="inspection_id" value={inspection.id} />
 
             <div className="mb-6 flex items-center justify-between gap-4">
@@ -456,7 +499,10 @@ export default async function ReportPage({ params }: PageProps) {
                 Inspection Details
               </h2>
 
-              <button type="submit" className="rounded-xl bg-teal-500 px-5 py-3 font-bold text-slate-950 hover:bg-teal-400">
+              <button
+                type="submit"
+                className="rounded-xl bg-teal-500 px-5 py-3 font-bold text-slate-950 hover:bg-teal-400"
+              >
                 Save Inspection Details
               </button>
             </div>
@@ -467,11 +513,32 @@ export default async function ReportPage({ params }: PageProps) {
                   Inspection Information
                 </h3>
 
-                <EditItem label="Property Address" name="address" value={inspection.address} />
-                <EditItem label="Client" name="client_name" value={inspection.client_name} />
-                <EditItem label="Client Email" name="client_email" value={inspection.client_email} />
-                <EditItem label="Realtor" name="realtor_name" value={inspection.realtor_name} />
-                <EditItem label="Inspection Date" name="inspection_date" value={inspection.inspection_date} type="date" />
+                <EditItem
+                  label="Property Address"
+                  name="address"
+                  value={inspection.address}
+                />
+                <EditItem
+                  label="Client"
+                  name="client_name"
+                  value={inspection.client_name}
+                />
+                <EditItem
+                  label="Client Email"
+                  name="client_email"
+                  value={inspection.client_email}
+                />
+                <EditItem
+                  label="Realtor"
+                  name="realtor_name"
+                  value={inspection.realtor_name}
+                />
+                <EditItem
+                  label="Inspection Date"
+                  name="inspection_date"
+                  value={inspection.inspection_date}
+                  type="date"
+                />
               </div>
 
               <div>
@@ -479,12 +546,24 @@ export default async function ReportPage({ params }: PageProps) {
                   Property / Site Information
                 </h3>
 
-                <EditItem label="Square Feet" name="square_feet" value={inspection.square_feet} />
-                <EditItem label="Year Built" name="year_built" value={inspection.year_built} />
+                <EditItem
+                  label="Square Feet"
+                  name="square_feet"
+                  value={inspection.square_feet}
+                />
+                <EditItem
+                  label="Year Built"
+                  name="year_built"
+                  value={inspection.year_built}
+                />
 
                 <div className="grid grid-cols-3 gap-3">
                   <EditItem label="City" name="city" value={inspection.city} />
-                  <EditItem label="State" name="state" value={inspection.state} />
+                  <EditItem
+                    label="State"
+                    name="state"
+                    value={inspection.state}
+                  />
                   <EditItem label="Zip" name="zip" value={inspection.zip} />
                 </div>
               </div>
@@ -502,7 +581,6 @@ export default async function ReportPage({ params }: PageProps) {
   );
 }
 
-
 function DefectCountCard({
   label,
   value,
@@ -518,9 +596,7 @@ function DefectCountCard({
         {label}
       </p>
 
-      <p className={`mt-2 text-3xl font-black ${tone}`}>
-        {value}
-      </p>
+      <p className={`mt-2 text-3xl font-black ${tone}`}>{value}</p>
     </div>
   );
 }

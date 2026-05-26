@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
+import ScheduleCalendar from "../../components/ScheduleCalendar";
 
 type InspectionRow = Record<string, any>;
 
@@ -88,11 +89,16 @@ function formatTime(value: string) {
 
   if (/^\d{1,2}:\d{2}/.test(clean)) {
     const [hoursRaw, minutesRaw] = clean.split(":");
+
     const hours = Number(hoursRaw);
     const minutes = Number(minutesRaw.slice(0, 2));
 
-    if (!Number.isNaN(hours) && !Number.isNaN(minutes)) {
+    if (
+      !Number.isNaN(hours) &&
+      !Number.isNaN(minutes)
+    ) {
       const date = new Date();
+
       date.setHours(hours, minutes, 0, 0);
 
       return date.toLocaleTimeString("en-US", {
@@ -117,7 +123,10 @@ function formatTime(value: string) {
 function statusClass(status: string) {
   const lower = status.toLowerCase();
 
-  if (lower.includes("complete") || lower.includes("done")) {
+  if (
+    lower.includes("complete") ||
+    lower.includes("done")
+  ) {
     return "border-emerald-400/40 bg-emerald-500/10 text-emerald-200";
   }
 
@@ -125,7 +134,10 @@ function statusClass(status: string) {
     return "border-red-400/40 bg-red-500/10 text-red-200";
   }
 
-  if (lower.includes("draft") || lower.includes("pending")) {
+  if (
+    lower.includes("draft") ||
+    lower.includes("pending")
+  ) {
     return "border-yellow-400/40 bg-yellow-500/10 text-yellow-200";
   }
 
@@ -155,16 +167,19 @@ export default async function SchedulePage() {
     redirect("/login");
   }
 
-  const { data: inspections, error } = await supabase
-    .from("inspections")
-    .select("*")
-    .order("created_at", { ascending: false });
+  const { data: inspections, error } =
+    await supabase
+      .from("inspections")
+      .select("*")
+      .order("created_at", {
+        ascending: false,
+      });
 
   const rows = inspections ?? [];
 
   return (
     <main className="min-h-screen bg-black p-6 text-white">
-      <div className="mx-auto max-w-6xl">
+      <div className="mx-auto max-w-7xl">
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h1 className="text-4xl font-bold text-teal-400">
@@ -172,7 +187,8 @@ export default async function SchedulePage() {
             </h1>
 
             <p className="mt-3 text-zinc-400">
-              Upcoming inspections from your inspections table.
+              Upcoming inspections from your
+              inspections table.
             </p>
           </div>
 
@@ -184,9 +200,14 @@ export default async function SchedulePage() {
           </Link>
         </div>
 
+        <div className="mb-8">
+          <ScheduleCalendar inspections={rows} />
+        </div>
+
         {error ? (
           <div className="rounded-2xl border border-red-500/40 bg-red-950/40 p-6 text-red-100">
-            Schedule could not load: {error.message}
+            Schedule could not load:{" "}
+            {error.message}
           </div>
         ) : rows.length === 0 ? (
           <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
@@ -195,8 +216,10 @@ export default async function SchedulePage() {
             </h2>
 
             <p className="mt-2 text-zinc-400">
-              Once inspections are created, they will show here with the date,
-              time, address, client, realtor, and status.
+              Once inspections are created,
+              they will show here with the
+              date, time, address, client,
+              realtor, and status.
             </p>
           </div>
         ) : (
@@ -207,71 +230,94 @@ export default async function SchedulePage() {
               <div>Client</div>
               <div>Realtor</div>
               <div>Status</div>
-              <div className="text-right">Open</div>
+              <div className="text-right">
+                Open
+              </div>
             </div>
 
             <div className="divide-y divide-zinc-800">
-              {rows.map((inspection: InspectionRow) => {
-                const date = getInspectionDate(inspection);
-                const time = formatTime(getInspectionTime(inspection));
-                const status = getStatus(inspection);
+              {rows.map(
+                (inspection: InspectionRow) => {
+                  const date =
+                    getInspectionDate(
+                      inspection
+                    );
 
-                return (
-                  <div
-                    key={inspection.id}
-                    className="grid gap-4 px-5 py-5 hover:bg-zinc-800/60 lg:grid-cols-[1.1fr_1.7fr_1fr_1fr_.8fr_.7fr] lg:items-center"
-                  >
-                    <div>
-                      <p className="text-sm font-bold text-white">
-                        {formatDate(date)}
-                      </p>
+                  const time = formatTime(
+                    getInspectionTime(
+                      inspection
+                    )
+                  );
 
-                      <p className="mt-1 text-sm text-zinc-400">
-                        {time || "Time not entered"}
-                      </p>
-                    </div>
+                  const status =
+                    getStatus(inspection);
 
-                    <div>
-                      <p className="text-sm font-bold text-teal-100">
-                        {getAddress(inspection)}
-                      </p>
-
-                      {(inspection.inspection_type || inspection.type) && (
-                        <p className="mt-1 text-xs text-zinc-500">
-                          {inspection.inspection_type || inspection.type}
+                  return (
+                    <div
+                      key={inspection.id}
+                      className="grid gap-4 px-5 py-5 hover:bg-zinc-800/60 lg:grid-cols-[1.1fr_1.7fr_1fr_1fr_.8fr_.7fr] lg:items-center"
+                    >
+                      <div>
+                        <p className="text-sm font-bold text-white">
+                          {formatDate(date)}
                         </p>
-                      )}
+
+                        <p className="mt-1 text-sm text-zinc-400">
+                          {time ||
+                            "Time not entered"}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-sm font-bold text-teal-100">
+                          {getAddress(
+                            inspection
+                          )}
+                        </p>
+
+                        {(inspection.inspection_type ||
+                          inspection.type) && (
+                          <p className="mt-1 text-xs text-zinc-500">
+                            {inspection.inspection_type ||
+                              inspection.type}
+                          </p>
+                        )}
+                      </div>
+
+                      <p className="text-sm text-zinc-200">
+                        {getClient(
+                          inspection
+                        )}
+                      </p>
+
+                      <p className="text-sm text-zinc-200">
+                        {getRealtor(
+                          inspection
+                        )}
+                      </p>
+
+                      <div>
+                        <span
+                          className={`inline-flex rounded-full border px-3 py-1 text-xs font-bold ${statusClass(
+                            status
+                          )}`}
+                        >
+                          {status}
+                        </span>
+                      </div>
+
+                      <div className="flex lg:justify-end">
+                        <Link
+                          href={`/reports/${inspection.id}`}
+                          className="rounded-xl border border-teal-400/30 bg-teal-500/10 px-4 py-2 text-sm font-bold text-teal-200 transition hover:bg-teal-500/20"
+                        >
+                          Open
+                        </Link>
+                      </div>
                     </div>
-
-                    <p className="text-sm text-zinc-200">
-                      {getClient(inspection)}
-                    </p>
-
-                    <p className="text-sm text-zinc-200">
-                      {getRealtor(inspection)}
-                    </p>
-
-                    <div>
-                      <span
-                        className={`inline-flex rounded-full border px-3 py-1 text-xs font-bold ${statusClass(
-                          status
-                        )}`}
-                      >
-                        {status}
-                      </span>
-                    </div>
-
-                    <div className="flex lg:justify-end">
-                      <Link
-                        href={`/reports/${inspection.id}`}
-                        className="rounded-xl border border-teal-400/30 bg-teal-500/10 px-4 py-2 text-sm font-bold text-teal-200 transition hover:bg-teal-500/20"
-                      >
-                        Open
-                      </Link>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                }
+              )}
             </div>
           </div>
         )}
