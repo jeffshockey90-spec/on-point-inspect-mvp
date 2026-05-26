@@ -7,6 +7,8 @@ import { createServerClient } from "@supabase/ssr";
 import ReportFindingsSortable from "./ReportFindingsSortable";
 import AiSummaryBanner from "./AiSummaryBanner";
 import SendReportEmailButtons from "../../../components/SendReportEmailButtons";
+import PrintButton from "../../../components/PrintButton";
+import InsertFavoriteFindingButton from "../../../components/InsertFavoriteFindingButton";
 
 type PageProps = {
   params: Promise<{
@@ -68,9 +70,11 @@ function normalizeSection(section: string | null | undefined) {
     "Basement, Foundation, Crawlspace and Structure":
       "Basement, Foundation, Crawlspace & Structure",
     "Attic/Insulation & Ventilation": "Attic, Insulation & Ventilation",
-    "Attic, Insulation and Ventilation": "Attic, Insulation & Ventilation",
+    "Attic, Insulation and Ventilation":
+      "Attic, Insulation & Ventilation",
     "Doors/Windows & Interior": "Doors, Windows & Interior",
-    "Doors, Windows and Interior": "Doors, Windows & Interior",
+    "Doors, Windows and Interior":
+      "Doors, Windows & Interior",
     Appliances: "Built-in Appliances",
     "Built In Appliances": "Built-in Appliances",
   };
@@ -86,14 +90,20 @@ function getStoragePathFromUrl(url: string | null | undefined) {
 
   if (index === -1) return "";
 
-  return decodeURIComponent(url.substring(index + marker.length));
+  return decodeURIComponent(
+    url.substring(index + marker.length)
+  );
 }
 
-export default async function ReportPage({ params }: PageProps) {
+export default async function ReportPage({
+  params,
+}: PageProps) {
   const { id } = await params;
   const supabase = await createSupabaseServerClient();
 
-  async function updateInspectionDetails(formData: FormData) {
+  async function updateInspectionDetails(
+    formData: FormData
+  ) {
     "use server";
 
     const supabase = await createSupabaseServerClient();
@@ -106,16 +116,30 @@ export default async function ReportPage({ params }: PageProps) {
       redirect("/login");
     }
 
-    const inspectionId = String(formData.get("inspection_id") || "");
+    const inspectionId = String(
+      formData.get("inspection_id") || ""
+    );
 
     const updates = {
       address: String(formData.get("address") || ""),
-      client_name: String(formData.get("client_name") || ""),
-      client_email: String(formData.get("client_email") || ""),
-      realtor_name: String(formData.get("realtor_name") || ""),
-      inspection_date: String(formData.get("inspection_date") || ""),
-      square_feet: String(formData.get("square_feet") || ""),
-      year_built: String(formData.get("year_built") || ""),
+      client_name: String(
+        formData.get("client_name") || ""
+      ),
+      client_email: String(
+        formData.get("client_email") || ""
+      ),
+      realtor_name: String(
+        formData.get("realtor_name") || ""
+      ),
+      inspection_date: String(
+        formData.get("inspection_date") || ""
+      ),
+      square_feet: String(
+        formData.get("square_feet") || ""
+      ),
+      year_built: String(
+        formData.get("year_built") || ""
+      ),
       city: String(formData.get("city") || ""),
       state: String(formData.get("state") || ""),
       zip: String(formData.get("zip") || ""),
@@ -138,7 +162,10 @@ export default async function ReportPage({ params }: PageProps) {
     redirect("/login");
   }
 
-  const { data: inspection, error: inspectionError } = await supabase
+  const {
+    data: inspection,
+    error: inspectionError,
+  } = await supabase
     .from("inspections")
     .select("*")
     .eq("id", id)
@@ -149,21 +176,35 @@ export default async function ReportPage({ params }: PageProps) {
     redirect("/reports");
   }
 
-  const { data: findingsRaw, error: findingsError } = await supabase
+  const {
+    data: findingsRaw,
+    error: findingsError,
+  } = await supabase
     .from("findings")
     .select("*")
     .eq("inspection_id", inspection.id)
     .order("created_at", { ascending: true });
 
   if (findingsError) {
-    console.error("Findings load error:", findingsError);
+    console.error(
+      "Findings load error:",
+      findingsError
+    );
   }
 
-  const findingIds = (findingsRaw || []).map((finding: any) => finding.id);
+  const findingIds = (findingsRaw || []).map(
+    (finding: any) => finding.id
+  );
 
-  const { data: photosRaw, error: photosError } =
+  const {
+    data: photosRaw,
+    error: photosError,
+  } =
     findingIds.length > 0
-      ? await supabase.from("photos").select("*").in("finding_id", findingIds)
+      ? await supabase
+          .from("photos")
+          .select("*")
+          .in("finding_id", findingIds)
       : { data: [], error: null };
 
   if (photosError) {
@@ -194,7 +235,10 @@ export default async function ReportPage({ params }: PageProps) {
 
       const { data } = await supabase.storage
         .from("inspection-photos")
-        .createSignedUrl(filePath, 60 * 60 * 24 * 7);
+        .createSignedUrl(
+          filePath,
+          60 * 60 * 24 * 7
+        );
 
       return {
         ...photo,
@@ -210,10 +254,18 @@ export default async function ReportPage({ params }: PageProps) {
   );
 
   const photosByFindingId = photosWithUrls.reduce(
-    (acc: Record<string, any[]>, photo: any) => {
+    (
+      acc: Record<string, any[]>,
+      photo: any
+    ) => {
       if (!photo.finding_id) return acc;
-      if (!acc[photo.finding_id]) acc[photo.finding_id] = [];
+
+      if (!acc[photo.finding_id]) {
+        acc[photo.finding_id] = [];
+      }
+
       acc[photo.finding_id].push(photo);
+
       return acc;
     },
     {}
@@ -221,57 +273,99 @@ export default async function ReportPage({ params }: PageProps) {
 
   const findings = await Promise.all(
     (findingsRaw || []).map(async (finding: any) => {
-      let signedImageUrl = finding.image_url || "";
+      let signedImageUrl =
+        finding.image_url || "";
 
-      const oldImagePath = getStoragePathFromUrl(finding.image_url);
+      const oldImagePath = getStoragePathFromUrl(
+        finding.image_url
+      );
 
       if (oldImagePath) {
-        const { data, error } = await supabase.storage
-          .from("inspection-photos")
-          .createSignedUrl(oldImagePath, 60 * 60 * 24 * 7);
+        const { data, error } =
+          await supabase.storage
+            .from("inspection-photos")
+            .createSignedUrl(
+              oldImagePath,
+              60 * 60 * 24 * 7
+            );
 
         if (!error && data?.signedUrl) {
           signedImageUrl = data.signedUrl;
         }
       }
 
-      const normalizedSection = normalizeSection(finding.section);
+      const normalizedSection =
+        normalizeSection(finding.section);
 
       return {
         ...finding,
         section: normalizedSection,
         signed_image_url: signedImageUrl,
-        image_url: signedImageUrl || finding.image_url || null,
-        photos: photosByFindingId[finding.id] || [],
+        image_url:
+          signedImageUrl ||
+          finding.image_url ||
+          null,
+        photos:
+          photosByFindingId[finding.id] || [],
       };
     })
   );
 
-  const groupedFindingsArray = SECTION_ORDER.map((section) => ({
-    section,
-    findings: findings.filter((finding: any) => finding.section === section),
-  }));
+  const groupedFindingsArray =
+    SECTION_ORDER.map((section) => ({
+      section,
+      findings: findings.filter(
+        (finding: any) =>
+          finding.section === section
+      ),
+    }));
 
-  const defectFindings = findings.filter((finding: any) => {
-    const section = String(finding.section || "").toLowerCase();
-    const title = String(finding.title || "").toLowerCase();
+  const defectFindings = findings.filter(
+    (finding: any) => {
+      const section = String(
+        finding.section || ""
+      ).toLowerCase();
 
-    if (section === "inspection details") return false;
-    if (section === "disclaimers") return false;
-    if (title === "in attendance") return false;
-    if (title === "occupancy") return false;
-    if (title === "style") return false;
-    if (title === "temperature") return false;
-    if (title === "type of building") return false;
-    if (title === "weather conditions") return false;
+      const title = String(
+        finding.title || ""
+      ).toLowerCase();
 
-    return true;
-  });
+      if (section === "inspection details")
+        return false;
+
+      if (section === "disclaimers")
+        return false;
+
+      if (title === "in attendance")
+        return false;
+
+      if (title === "occupancy")
+        return false;
+
+      if (title === "style")
+        return false;
+
+      if (title === "temperature")
+        return false;
+
+      if (title === "type of building")
+        return false;
+
+      if (title === "weather conditions")
+        return false;
+
+      return true;
+    }
+  );
 
   const defectTotals = defectFindings.reduce(
-    (acc: Record<string, number>, finding: any) => {
+    (
+      acc: Record<string, number>,
+      finding: any
+    ) => {
       const severity = String(
-        finding.severity || "Recommended Repair"
+        finding.severity ||
+          "Recommended Repair"
       ).toLowerCase();
 
       acc.total += 1;
@@ -312,23 +406,23 @@ export default async function ReportPage({ params }: PageProps) {
   return (
     <main className="min-h-screen bg-[#020617] text-white">
       <div className="mx-auto max-w-7xl px-6 py-8">
-        <AiSummaryBanner summary={inspection.report_summary} />
+        <AiSummaryBanner
+          summary={inspection.report_summary}
+        />
 
         <div className="mb-8 rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
           <div className="mb-8 flex flex-wrap gap-3">
-            <a
-              href="javascript:window.print()"
+            <PrintButton
+              label="Print / Save PDF"
               className="rounded-xl bg-black px-5 py-3 font-bold text-white hover:bg-slate-800"
-            >
-              Print / Save PDF
-            </a>
+            />
 
-            <a
-              href="javascript:window.print()"
+            <Link
+              href={`/reports/${inspection.id}/print`}
               className="rounded-xl bg-white px-5 py-3 font-bold text-black hover:bg-slate-200"
             >
               Export PDF
-            </a>
+            </Link>
 
             <Link
               href={`/reports/${inspection.id}/summary`}
@@ -366,6 +460,17 @@ export default async function ReportPage({ params }: PageProps) {
             </Link>
 
             <Link
+              href={`/reports/${inspection.id}/templates`}
+              className="rounded-xl border border-yellow-500 px-5 py-3 font-bold text-yellow-300 hover:bg-yellow-500/10"
+            >
+              Favorite Findings
+            </Link>
+
+            <InsertFavoriteFindingButton
+              inspectionId={String(inspection.id)}
+            />
+
+            <Link
               href={`/reports/${inspection.id}/summary`}
               className="rounded-xl border border-cyan-500 px-5 py-3 font-bold text-cyan-300 hover:bg-cyan-500/10"
             >
@@ -400,22 +505,27 @@ export default async function ReportPage({ params }: PageProps) {
             </h2>
 
             <SendReportEmailButtons
-              inspectionId={String(inspection.id)}
-              clientEmail={inspection.client_email}
-              realtorEmail={inspection.realtor_email || inspection.agent_email}
+              inspectionId={String(
+                inspection.id
+              )}
+              clientEmail={
+                inspection.client_email
+              }
+              realtorEmail={
+                inspection.realtor_email ||
+                inspection.agent_email
+              }
             />
           </div>
 
-          {(
-            inspection.property_image ||
+          {(inspection.property_image ||
             inspection.street_view_url ||
             inspection.cover_photo_url ||
             inspection.google_photo_url ||
             inspection.property_photo_url ||
             inspection.place_photo_url ||
             inspection.photo_url ||
-            inspection.image_url
-          ) && (
+            inspection.image_url) && (
             <div className="mb-6 overflow-hidden rounded-2xl border border-slate-700 bg-black">
               <img
                 src={
@@ -450,7 +560,8 @@ export default async function ReportPage({ params }: PageProps) {
                 </h2>
 
                 <p className="mt-1 text-sm text-slate-400">
-                  Quick count of report findings by defect type.
+                  Quick count of report findings
+                  by defect type.
                 </p>
               </div>
             </div>
@@ -476,13 +587,17 @@ export default async function ReportPage({ params }: PageProps) {
 
               <DefectCountCard
                 label="Maintenance / Monitor"
-                value={defectTotals.maintenance}
+                value={
+                  defectTotals.maintenance
+                }
                 tone="text-yellow-300"
               />
 
               <DefectCountCard
                 label="Informational"
-                value={defectTotals.information}
+                value={
+                  defectTotals.information
+                }
                 tone="text-blue-300"
               />
             </div>
@@ -492,7 +607,11 @@ export default async function ReportPage({ params }: PageProps) {
             action={updateInspectionDetails}
             className="mt-8 border-t border-slate-700 pt-8"
           >
-            <input type="hidden" name="inspection_id" value={inspection.id} />
+            <input
+              type="hidden"
+              name="inspection_id"
+              value={inspection.id}
+            />
 
             <div className="mb-6 flex items-center justify-between gap-4">
               <h2 className="text-2xl font-bold text-teal-400">
@@ -518,25 +637,37 @@ export default async function ReportPage({ params }: PageProps) {
                   name="address"
                   value={inspection.address}
                 />
+
                 <EditItem
                   label="Client"
                   name="client_name"
-                  value={inspection.client_name}
+                  value={
+                    inspection.client_name
+                  }
                 />
+
                 <EditItem
                   label="Client Email"
                   name="client_email"
-                  value={inspection.client_email}
+                  value={
+                    inspection.client_email
+                  }
                 />
+
                 <EditItem
                   label="Realtor"
                   name="realtor_name"
-                  value={inspection.realtor_name}
+                  value={
+                    inspection.realtor_name
+                  }
                 />
+
                 <EditItem
                   label="Inspection Date"
                   name="inspection_date"
-                  value={inspection.inspection_date}
+                  value={
+                    inspection.inspection_date
+                  }
                   type="date"
                 />
               </div>
@@ -549,8 +680,11 @@ export default async function ReportPage({ params }: PageProps) {
                 <EditItem
                   label="Square Feet"
                   name="square_feet"
-                  value={inspection.square_feet}
+                  value={
+                    inspection.square_feet
+                  }
                 />
+
                 <EditItem
                   label="Year Built"
                   name="year_built"
@@ -558,13 +692,23 @@ export default async function ReportPage({ params }: PageProps) {
                 />
 
                 <div className="grid grid-cols-3 gap-3">
-                  <EditItem label="City" name="city" value={inspection.city} />
+                  <EditItem
+                    label="City"
+                    name="city"
+                    value={inspection.city}
+                  />
+
                   <EditItem
                     label="State"
                     name="state"
                     value={inspection.state}
                   />
-                  <EditItem label="Zip" name="zip" value={inspection.zip} />
+
+                  <EditItem
+                    label="Zip"
+                    name="zip"
+                    value={inspection.zip}
+                  />
                 </div>
               </div>
             </div>
@@ -573,7 +717,9 @@ export default async function ReportPage({ params }: PageProps) {
 
         <ReportFindingsSortable
           inspectionId={String(inspection.id)}
-          groupedFindings={groupedFindingsArray}
+          groupedFindings={
+            groupedFindingsArray
+          }
           allFindings={findings}
         />
       </div>
@@ -596,7 +742,11 @@ function DefectCountCard({
         {label}
       </p>
 
-      <p className={`mt-2 text-3xl font-black ${tone}`}>{value}</p>
+      <p
+        className={`mt-2 text-3xl font-black ${tone}`}
+      >
+        {value}
+      </p>
     </div>
   );
 }
@@ -617,6 +767,7 @@ function EditItem({
       <label className="mb-1 block text-sm font-bold text-slate-400">
         {label}
       </label>
+
       <input
         type={type}
         name={name}

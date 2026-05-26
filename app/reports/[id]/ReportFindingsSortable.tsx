@@ -2078,6 +2078,63 @@ function NormalFindingCard({ finding }: any) {
           )}
         </div>
 
+        <h3 className="mb-4 text-2xl font-black text-white">
+          {finding.title ||
+            finding.finding_title ||
+            finding.defect_title ||
+            finding.name ||
+            "Untitled Finding"}
+        </h3>
+
+        <div className="mb-4 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                const res = await fetch("/api/save-finding-template", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    title:
+                      finding.title ||
+                      finding.finding_title ||
+                      finding.defect_title ||
+                      finding.name ||
+                      "Untitled Finding",
+                    section: finding.section || "Inspection Details",
+                    severity: finding.severity || "Recommended Repair",
+                    observation: finding.observation || "",
+                    implication: finding.implication || "",
+                    recommendation: finding.recommendation || "",
+                  }),
+                });
+
+                let data: any = {};
+
+                try {
+                  data = await res.json();
+                } catch {
+                  data = {};
+                }
+
+                if (!res.ok) {
+                  alert(data.error || "Failed to save template.");
+                  return;
+                }
+
+                alert("Template saved!");
+              } catch {
+                alert("Failed to save template.");
+              }
+            }}
+            className="rounded-xl border border-yellow-500 px-4 py-2 text-sm font-black text-yellow-300 hover:bg-yellow-500/10"
+          >
+            ⭐ Save as Template
+          </button>
+        </div>
+
         <EditableFinding finding={finding} />
 
         {finding.observation && (
