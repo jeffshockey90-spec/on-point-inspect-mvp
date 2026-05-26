@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { supabase } from "../lib/supabaseClient";
+import AITemplateSuggestions from "./AITemplateSuggestions";
 
 const SECTIONS = [
   "Exterior",
@@ -46,6 +47,18 @@ export default function OneTapAIFindingInsert({ inspectionId }: Props) {
   const [observation, setObservation] = useState("");
   const [implication, setImplication] = useState("");
   const [recommendation, setRecommendation] = useState("");
+  const [inspectorId, setInspectorId] = useState("");
+
+
+  async function loadInspector() {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (user?.id) {
+      setInspectorId(user.id);
+    }
+  }
 
   function resetForm() {
     setFile(null);
@@ -193,7 +206,10 @@ export default function OneTapAIFindingInsert({ inspectionId }: Props) {
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setOpen(true);
+          loadInspector();
+        }}
         className="rounded-xl border border-teal-400 bg-teal-500/10 px-5 py-3 font-bold text-teal-300 transition hover:bg-teal-500 hover:text-black"
       >
         ⚡ One-Tap AI Finding
@@ -316,6 +332,29 @@ export default function OneTapAIFindingInsert({ inspectionId }: Props) {
                 label="Recommendation"
                 value={recommendation}
                 onChange={setRecommendation}
+              />
+
+              <AITemplateSuggestions
+                title={title}
+                observation={observation}
+                inspectorId={inspectorId}
+                onUseTemplate={(template) => {
+                  setTitle(template.title || "");
+                  setSection(template.section || "Exterior");
+                  setSeverity(
+                    template.severity ||
+                      "Recommended Repair"
+                  );
+                  setObservation(
+                    template.observation || ""
+                  );
+                  setImplication(
+                    template.implication || ""
+                  );
+                  setRecommendation(
+                    template.recommendation || ""
+                  );
+                }}
               />
 
               <button

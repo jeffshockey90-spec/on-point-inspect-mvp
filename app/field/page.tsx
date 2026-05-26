@@ -4,6 +4,8 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "../../lib/supabaseClient";
 import CommentLibrary from "../../components/CommentLibrary";
+import OfflineSyncStatus from "../../components/OfflineSyncStatus";
+import { addOfflineQueueItem, isOnline } from "../../lib/offlineSyncQueue";
 
 const SECTIONS = [
   "Exterior",
@@ -135,6 +137,37 @@ function FieldPageContent() {
       return;
     }
 
+    if (!isOnline()) {
+      addOfflineQueueItem({
+        type: "finding",
+        payload: {
+          inspection_id: selectedReport,
+          title,
+          section,
+          severity,
+          observation,
+          implication,
+          recommendation,
+          image_url: null,
+        },
+      });
+
+      setTitle("");
+      setSection("Exterior");
+      setSeverity("Recommended Repair");
+      setNote("");
+      setObservation("");
+      setImplication("");
+      setRecommendation("");
+      setPhotos([]);
+
+      alert(
+        "You are offline. This finding was saved to the offline queue and will sync when connection returns. Photos will be added in the next offline photo phase."
+      );
+
+      return;
+    }
+
     setSaving(true);
 
     try {
@@ -226,6 +259,10 @@ function FieldPageContent() {
             Take photos, enter quick notes, generate AI findings, and save
             directly to the report.
           </p>
+
+          <div className="mb-6">
+            <OfflineSyncStatus />
+          </div>
 
           <div className="space-y-5">
             <div>
