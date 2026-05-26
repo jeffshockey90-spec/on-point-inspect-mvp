@@ -1,6 +1,17 @@
 import Link from "next/link";
-import { supabase } from "../../../lib/supabaseClient";
+import { createClient } from "@supabase/supabase-js";
 import PdfExportButton from "../../../components/PdfExportButton";
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  }
+);
 
 const SECTION_ORDER = [
   "Inspection Details",
@@ -11,13 +22,46 @@ const SECTION_ORDER = [
   "Cooling",
   "Plumbing",
   "Electrical",
-  "Fireplace",
   "Attic, Insulation & Ventilation",
   "Doors, Windows & Interior",
   "Built-in Appliances",
   "Disclaimers",
   "Garage",
 ];
+
+function normalizeSection(section: string | null | undefined) {
+  if (!section) return "Inspection Details";
+
+  const clean = section.trim();
+
+  const aliases: Record<string, string> = {
+    General: "Inspection Details",
+    Safety: "Inspection Details",
+    "Basement/Foundation/Crawlspace & Structure":
+      "Basement, Foundation, Crawlspace & Structure",
+    "Basement, Foundation, Crawlspace and Structure":
+      "Basement, Foundation, Crawlspace & Structure",
+    "Attic/Insulation & Ventilation": "Attic, Insulation & Ventilation",
+    "Attic, Insulation and Ventilation": "Attic, Insulation & Ventilation",
+    "Doors/Windows & Interior": "Doors, Windows & Interior",
+    "Doors, Windows and Interior": "Doors, Windows & Interior",
+    Appliances: "Built-in Appliances",
+    "Built In Appliances": "Built-in Appliances",
+  };
+
+  return aliases[clean] || clean;
+}
+
+function getStoragePathFromUrl(url: string | null | undefined) {
+  if (!url) return "";
+
+  const marker = "/inspection-photos/";
+  const index = url.indexOf(marker);
+
+  if (index === -1) return "";
+
+  return decodeURIComponent(url.substring(index + marker.length));
+}
 
 function getPropertyPhoto(inspection: any) {
   return (
@@ -29,6 +73,43 @@ function getPropertyPhoto(inspection: any) {
     inspection?.place_photo_url ||
     inspection?.photo_url ||
     inspection?.image_url ||
+    ""
+  );
+}
+
+async function signPhotoUrl(photo: any) {
+  const filePath =
+    photo.file_path ||
+    photo.storage_path ||
+    photo.photo_path ||
+    getStoragePathFromUrl(photo.public_url) ||
+    getStoragePathFromUrl(photo.image_url) ||
+    getStoragePathFromUrl(photo.photo_url);
+
+  if (!filePath) {
+    return (
+      photo.signed_url ||
+      photo.public_url ||
+      photo.image_url ||
+      photo.photo_url ||
+      ""
+    );
+  }
+
+  const { data, error } = await supabase.storage
+    .from("inspection-photos")
+    .createSignedUrl(filePath, 60 * 60 * 24 * 7);
+
+  if (error) {
+    console.error("Share signed photo error:", error);
+  }
+
+  return (
+    data?.signedUrl ||
+    photo.signed_url ||
+    photo.public_url ||
+    photo.image_url ||
+    photo.photo_url ||
     ""
   );
 }
@@ -47,17 +128,6 @@ export default async function PublicSharePage({
     .eq("id", inspectionId)
     .single();
 
-  const { data: findings, error: findingsError } = await supabase
-    .from("findings")
-    .select("*")
-    .eq("inspection_id", inspectionId)
-    .order("created_at", { ascending: false });
-
-  const { data: photos } = await supabase
-    .from("photos")
-    .select("*")
-    .eq("inspection_id", inspectionId);
-
   if (inspectionError || !inspection) {
     return (
       <main className="min-h-screen bg-[#020617] p-10 text-white">
@@ -65,6 +135,12 @@ export default async function PublicSharePage({
       </main>
     );
   }
+
+  const { data: findingsRaw, error: findingsError } = await supabase
+    .from("findings")
+    .select("*")
+    .eq("inspection_id", inspectionId)
+    .order("created_at", { ascending: true });
 
   if (findingsError) {
     return (
@@ -74,23 +150,72 @@ export default async function PublicSharePage({
     );
   }
 
-  const propertyPhoto = getPropertyPhoto(inspection);
+  const findingIds = (findingsRaw || []).map((finding: any) => finding.id);
 
-  const findingsWithPhotos = (findings || []).map((finding: any) => ({
-    ...finding,
-    photos: (photos || []).filter(
-      (photo: any) => photo.finding_id === finding.id
-    ),
-  }));
+  const { data: photosRaw, error: photosError } =
+    findingIds.length > 0
+      ? await supabase.from("photos").select("*").in("finding_id", findingIds)
+      : { data: [], error: null };
+
+  if (photosError) {
+    console.error("Share photos load error:", photosError);
+  }
+
+  const photosWithUrls = await Promise.all(
+    (photosRaw || []).map(async (photo: any) => ({
+      ...photo,
+      signed_url: await signPhotoUrl(photo),
+    }))
+  );
+
+  const photosByFindingId = photosWithUrls.reduce(
+    (acc: Record<string, any[]>, photo: any) => {
+      if (!photo.finding_id) return acc;
+      if (!acc[photo.finding_id]) acc[photo.finding_id] = [];
+      acc[photo.finding_id].push(photo);
+      return acc;
+    },
+    {}
+  );
+
+  const findings = await Promise.all(
+    (findingsRaw || []).map(async (finding: any) => {
+      let signedImageUrl = finding.image_url || "";
+
+      const oldImagePath = getStoragePathFromUrl(finding.image_url);
+
+      if (oldImagePath) {
+        const { data, error } = await supabase.storage
+          .from("inspection-photos")
+          .createSignedUrl(oldImagePath, 60 * 60 * 24 * 7);
+
+        if (error) {
+          console.error("Share old finding image sign error:", error);
+        }
+
+        if (!error && data?.signedUrl) {
+          signedImageUrl = data.signedUrl;
+        }
+      }
+
+      return {
+        ...finding,
+        section: normalizeSection(finding.section),
+        signed_image_url: signedImageUrl,
+        image_url: signedImageUrl || finding.image_url || null,
+        photos: photosByFindingId[finding.id] || [],
+      };
+    })
+  );
+
+  const propertyPhoto = getPropertyPhoto(inspection);
 
   const groupedFindings = SECTION_ORDER.map((section) => ({
     section,
-    findings: findingsWithPhotos.filter(
-      (finding: any) => finding.section === section
-    ),
+    findings: findings.filter((finding: any) => finding.section === section),
   })).filter((group) => group.findings.length > 0);
 
-  const otherFindings = findingsWithPhotos.filter(
+  const otherFindings = findings.filter(
     (finding: any) => !SECTION_ORDER.includes(finding.section)
   );
 
@@ -157,10 +282,6 @@ export default async function PublicSharePage({
                 Report Summary
               </h2>
 
-              <p className="mt-2 text-sm text-slate-400">
-                Summary of notable report findings and recommendations.
-              </p>
-
               <div className="mt-5 whitespace-pre-line rounded-xl border border-slate-700 bg-[#020817]/70 p-5 text-base leading-8 text-slate-100">
                 {inspection.report_summary}
               </div>
@@ -180,9 +301,9 @@ export default async function PublicSharePage({
 
               <Info
                 label="Location"
-                value={`${inspection.city || ""}, ${
-                  inspection.state || ""
-                } ${inspection.zip || ""}`}
+                value={`${inspection.city || ""}, ${inspection.state || ""} ${
+                  inspection.zip || ""
+                }`}
               />
 
               <Info label="Client" value={inspection.client_name} />
@@ -195,19 +316,6 @@ export default async function PublicSharePage({
                 value={inspection.square_feet || inspection.sqft}
               />
             </div>
-          </section>
-
-          <section className="mt-8 rounded-2xl border border-slate-700 bg-[#071224] p-6">
-            <h2 className="mb-4 text-2xl font-bold text-teal-400">
-              Report Notice
-            </h2>
-
-            <p className="leading-7 text-slate-300">
-              This shared report view is provided for convenient client and
-              realtor review. The report is based on a visual, non-invasive
-              inspection of readily accessible systems and components at the time
-              of inspection.
-            </p>
           </section>
 
           <section className="mt-10">
@@ -231,84 +339,104 @@ export default async function PublicSharePage({
                     </h3>
 
                     <div className="space-y-6">
-                      {group.findings.map((finding: any) => (
-                        <article
-                          key={finding.id}
-                          className="rounded-xl border border-slate-700 bg-[#0f172a] p-5"
-                        >
-                          <div className="mb-3 flex flex-wrap items-center gap-3">
-                            <span className="rounded-full border border-teal-500/40 bg-teal-500/10 px-3 py-1 text-xs font-bold uppercase tracking-wide text-teal-300">
-                              {finding.severity || "Recommended Repair"}
-                            </span>
-                          </div>
+                      {group.findings.map((finding: any) => {
+                        const firstPhoto = finding.photos?.[0];
 
-                          {finding.image_url && (
-                            <img
-                              src={finding.image_url}
-                              alt="Inspection finding"
-                              className="mb-5 max-h-[450px] w-full rounded-xl border border-slate-700 object-contain"
-                            />
-                          )}
+                        const image =
+                          firstPhoto?.signed_url ||
+                          firstPhoto?.public_url ||
+                          firstPhoto?.image_url ||
+                          firstPhoto?.photo_url ||
+                          finding.signed_image_url ||
+                          finding.image_url ||
+                          finding.public_image_url ||
+                          "";
 
-                          {finding.photos?.length > 0 && (
-                            <div className="mb-5 grid gap-4 md:grid-cols-2">
-                              {finding.photos.map((photo: any) => (
-                                <img
-                                  key={photo.id}
-                                  src={
+                        return (
+                          <article
+                            key={finding.id}
+                            className="rounded-xl border border-slate-700 bg-[#0f172a] p-5"
+                          >
+                            <div className="mb-3 flex flex-wrap items-center gap-3">
+                              <span className="rounded-full border border-teal-500/40 bg-teal-500/10 px-3 py-1 text-xs font-bold uppercase tracking-wide text-teal-300">
+                                {finding.severity || "Recommended Repair"}
+                              </span>
+                            </div>
+
+                            {image && (
+                              <img
+                                src={image}
+                                alt="Inspection finding"
+                                className="mb-5 max-h-[450px] w-full rounded-xl border border-slate-700 object-contain"
+                              />
+                            )}
+
+                            {finding.photos?.length > 0 && (
+                              <div className="mb-5 grid gap-4 md:grid-cols-2">
+                                {finding.photos.map((photo: any) => {
+                                  const photoUrl =
                                     photo.signed_url ||
                                     photo.public_url ||
                                     photo.image_url ||
-                                    photo.photo_url
-                                  }
-                                  alt="Inspection finding"
-                                  className="max-h-[320px] w-full rounded-xl border border-slate-700 object-cover"
-                                />
-                              ))}
-                            </div>
-                          )}
+                                    photo.photo_url ||
+                                    "";
 
-                          <h4 className="text-2xl font-bold text-teal-300">
-                            {finding.title}
-                          </h4>
+                                  if (!photoUrl) return null;
 
-                          {finding.observation && (
-                            <p className="mt-4 whitespace-pre-line leading-7 text-slate-300">
-                              <span className="font-bold text-white">
-                                Observation:
-                              </span>{" "}
-                              {finding.observation}
-                            </p>
-                          )}
+                                  return (
+                                    <img
+                                      key={photo.id}
+                                      src={photoUrl}
+                                      alt="Inspection finding"
+                                      className="max-h-[320px] w-full rounded-xl border border-slate-700 object-cover"
+                                    />
+                                  );
+                                })}
+                              </div>
+                            )}
 
-                          {finding.implication && (
-                            <p className="mt-4 whitespace-pre-line leading-7 text-slate-300">
-                              <span className="font-bold text-white">
-                                Implication:
-                              </span>{" "}
-                              {finding.implication}
-                            </p>
-                          )}
+                            <h4 className="text-2xl font-bold text-teal-300">
+                              {finding.title}
+                            </h4>
 
-                          {finding.recommendation && (
-                            <p className="mt-4 whitespace-pre-line leading-7 text-slate-300">
-                              <span className="font-bold text-white">
-                                Recommendation:
-                              </span>{" "}
-                              {finding.recommendation}
-                            </p>
-                          )}
+                            {finding.observation && (
+                              <p className="mt-4 whitespace-pre-line leading-7 text-slate-300">
+                                <span className="font-bold text-white">
+                                  Observation:
+                                </span>{" "}
+                                {finding.observation}
+                              </p>
+                            )}
 
-                          {finding.comment && (
-                            <p className="mt-4 whitespace-pre-line leading-7 text-slate-300">
-                              <span className="font-bold text-white">
-                                Additional Notes:
-                              </span>{" "}
-                              {finding.comment}
-                            </p>
-                          )}
-                        </article>
-                      ))}
+                            {finding.implication && (
+                              <p className="mt-4 whitespace-pre-line leading-7 text-slate-300">
+                                <span className="font-bold text-white">
+                                  Implication:
+                                </span>{" "}
+                                {finding.implication}
+                              </p>
+                            )}
+
+                            {finding.recommendation && (
+                              <p className="mt-4 whitespace-pre-line leading-7 text-slate-300">
+                                <span className="font-bold text-white">
+                                  Recommendation:
+                                </span>{" "}
+                                {finding.recommendation}
+                              </p>
+                            )}
+
+                            {finding.comment && (
+                              <p className="mt-4 whitespace-pre-line leading-7 text-slate-300">
+                                <span className="font-bold text-white">
+                                  Additional Notes:
+                                </span>{" "}
+                                {finding.comment}
+                              </p>
+                            )}
+                          </article>
+                        );
+                      })}
                     </div>
                   </section>
                 ))}

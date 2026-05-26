@@ -42,7 +42,7 @@ const DEFAULT_INSPECTION_DETAILS_FINDINGS = [
     implication: "",
     recommendation:
       "Update this item as applicable to document who was present during the inspection.",
-    image_url: null,
+    severity: "Informational",
   },
   {
     section: "Inspection Details",
@@ -52,7 +52,7 @@ const DEFAULT_INSPECTION_DETAILS_FINDINGS = [
     implication: "",
     recommendation:
       "Update this item as applicable to document the occupancy and utility status observed during the inspection.",
-    image_url: null,
+    severity: "Informational",
   },
   {
     section: "Inspection Details",
@@ -62,7 +62,7 @@ const DEFAULT_INSPECTION_DETAILS_FINDINGS = [
     implication: "",
     recommendation:
       "Update this item as applicable to document the observed home style.",
-    image_url: null,
+    severity: "Informational",
   },
   {
     section: "Inspection Details",
@@ -72,7 +72,7 @@ const DEFAULT_INSPECTION_DETAILS_FINDINGS = [
     implication: "",
     recommendation:
       "Enter the approximate temperature observed during the inspection.",
-    image_url: null,
+    severity: "Informational",
   },
   {
     section: "Inspection Details",
@@ -82,7 +82,7 @@ const DEFAULT_INSPECTION_DETAILS_FINDINGS = [
     implication: "",
     recommendation:
       "Update this item as applicable to document the building type.",
-    image_url: null,
+    severity: "Informational",
   },
   {
     section: "Inspection Details",
@@ -92,7 +92,7 @@ const DEFAULT_INSPECTION_DETAILS_FINDINGS = [
     implication: "",
     recommendation:
       "Update this item as applicable to document weather conditions that may affect inspection visibility or limitations.",
-    image_url: null,
+    severity: "Informational",
   },
 ];
 
