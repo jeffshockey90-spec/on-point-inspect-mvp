@@ -1,17 +1,21 @@
 "use client";
 
-export default function PdfExportButton() {
-  function exportPdf() {
-    window.print();
-  }
+type PrintButtonProps = {
+  label?: string;
+  className?: string;
+};
 
+export default function PrintButton({
+  label = "Print / Save PDF",
+  className = "",
+}: PrintButtonProps) {
   return (
     <button
       type="button"
-      onClick={exportPdf}
-      className="rounded-xl bg-white px-5 py-3 font-bold text-black transition hover:bg-slate-200 print:hidden"
+      onClick={() => window.print()}
+      className={className}
     >
-      Export PDF
+      {label}
     </button>
   );
 }
