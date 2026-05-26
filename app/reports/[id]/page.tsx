@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createServerClient } from "@supabase/ssr";
 
 import ReportFindingsSortable from "./ReportFindingsSortable";
+import AiSummaryBanner from "./AiSummaryBanner";
 
 type PageProps = {
   params: Promise<{
@@ -24,6 +25,7 @@ const SECTION_ORDER = [
   "Attic, Insulation & Ventilation",
   "Doors, Windows & Interior",
   "Built-in Appliances",
+  "Disclaimers",
   "Garage",
 ];
 
@@ -254,6 +256,8 @@ export default async function ReportPage({ params }: PageProps) {
   return (
     <main className="min-h-screen bg-[#020617] text-white">
       <div className="mx-auto max-w-7xl px-6 py-8">
+        <AiSummaryBanner inspectionId={String(inspection.id)} />
+
         <div className="mb-8 rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
           <div className="mb-8 flex flex-wrap gap-3">
             <a href="javascript:window.print()" className="rounded-xl bg-black px-5 py-3 font-bold text-white hover:bg-slate-800">
@@ -264,7 +268,10 @@ export default async function ReportPage({ params }: PageProps) {
               Export PDF
             </a>
 
-            <Link href={`/reports/${inspection.id}/summary`} className="rounded-xl bg-purple-600 px-5 py-3 font-bold text-white hover:bg-purple-500">
+            <Link
+              href={`/reports/${inspection.id}/summary`}
+              className="rounded-xl border border-teal-500 bg-[#071224] px-5 py-3 font-bold text-teal-300 hover:bg-teal-500/10"
+            >
               Generate AI Summary
             </Link>
 
@@ -296,6 +303,34 @@ export default async function ReportPage({ params }: PageProps) {
               Equipment Analyzer
             </Link>
           </div>
+
+          {(
+            inspection.property_image ||
+            inspection.street_view_url ||
+            inspection.cover_photo_url ||
+            inspection.google_photo_url ||
+            inspection.property_photo_url ||
+            inspection.place_photo_url ||
+            inspection.photo_url ||
+            inspection.image_url
+          ) && (
+            <div className="mb-6 overflow-hidden rounded-2xl border border-slate-700 bg-black">
+              <img
+                src={
+                  inspection.property_image ||
+                  inspection.street_view_url ||
+                  inspection.cover_photo_url ||
+                  inspection.google_photo_url ||
+                  inspection.property_photo_url ||
+                  inspection.place_photo_url ||
+                  inspection.photo_url ||
+                  inspection.image_url
+                }
+                alt="Property"
+                className="h-56 w-full object-cover"
+              />
+            </div>
+          )}
 
           <h1 className="text-5xl font-extrabold text-teal-400">
             On Point Home Inspections
