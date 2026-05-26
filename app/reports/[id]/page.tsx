@@ -9,6 +9,7 @@ import AiSummaryBanner from "./AiSummaryBanner";
 import SendReportEmailButtons from "../../../components/SendReportEmailButtons";
 import PrintButton from "../../../components/PrintButton";
 import InsertFavoriteFindingButton from "../../../components/InsertFavoriteFindingButton";
+import OneTapAIFindingInsert from "../../../components/OneTapAIFindingInsert";
 
 type PageProps = {
   params: Promise<{
@@ -490,6 +491,10 @@ export default async function ReportPage({
             >
               Open Full AI Capture
             </Link>
+
+            <OneTapAIFindingInsert
+              inspectionId={String(inspection.id)}
+            />
 
             <Link
               href={`/equipment-analyzer?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`}
