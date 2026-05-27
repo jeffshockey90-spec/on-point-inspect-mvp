@@ -1,21 +1,28 @@
-export default function SchedulePage() {
+import Link from "next/link";
+
+export default function TemplatesPage() {
   return (
-    <main className="min-h-screen bg-black text-white px-6 py-10">
-      <div className="max-w-5xl mx-auto">
-        <h1 className="text-5xl font-bold text-cyan-400 mb-3">
-          Inspection Schedule
+    <main className="min-h-screen bg-black px-6 py-10 text-white">
+      <div className="mx-auto max-w-5xl">
+        <h1 className="mb-3 text-5xl font-bold text-cyan-400">
+          Finding Templates
         </h1>
 
-        <p className="text-gray-400 mb-10">
-          Upcoming inspections will show here.
+        <p className="mb-10 text-gray-400">
+          Manage reusable inspection findings, favorite comments, and AI-generated templates.
         </p>
 
-        <div className="bg-[#111827] border border-slate-800 rounded-2xl p-6 shadow-lg">
-          <p className="text-lg text-gray-200 leading-8">
-            Schedule page created. Next we can connect this to your inspections
-            table and show inspection date, time, address, client, realtor, and
-            status.
+        <div className="rounded-2xl border border-slate-800 bg-[#111827] p-6 shadow-lg">
+          <p className="mb-6 text-lg leading-8 text-gray-200">
+            Open a report to insert favorite findings or manage report-specific templates.
           </p>
+
+          <Link
+            href="/reports"
+            className="inline-flex rounded-xl bg-cyan-500 px-6 py-3 font-bold text-black hover:bg-cyan-400"
+          >
+            Open Reports
+          </Link>
         </div>
       </div>
     </main>
