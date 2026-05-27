@@ -6,6 +6,29 @@ export async function middleware(request: NextRequest) {
     request,
   });
 
+  const pathname = request.nextUrl.pathname;
+
+  const publicRoutes = [
+    "/",
+    "/login",
+    "/signup",
+    "/api",
+    "/share",
+    "/client",
+    "/client-portal",
+    "/client-agreement",
+    "/forgot-password",
+    "/reset-password",
+  ];
+
+  const isPublicRoute = publicRoutes.some((route) =>
+    route === "/" ? pathname === "/" : pathname.startsWith(route)
+  );
+
+  if (isPublicRoute) {
+    return response;
+  }
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -36,8 +59,6 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const pathname = request.nextUrl.pathname;
-
   const protectedRoutes = [
     "/dashboard",
     "/reports",
@@ -56,23 +77,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith(route)
   );
 
-  const hasReportToken =
-    pathname.startsWith("/reports") &&
-    request.nextUrl.searchParams.has("token");
-
-  const hasShareToken =
-    pathname.startsWith("/share") &&
-    request.nextUrl.searchParams.has("token");
-
-  const isPublicAllowed =
-    hasReportToken ||
-    hasShareToken ||
-    pathname === "/" ||
-    pathname.startsWith("/api") ||
-    pathname.startsWith("/forgot-password") ||
-    pathname.startsWith("/reset-password");
-
-  if (isProtected && !user && !isPublicAllowed) {
+  if (isProtected && !user) {
     const url = request.nextUrl.clone();
 
     url.pathname = "/login";

@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 import {
-  buildAgreementBody,
+  getAgreementTemplatesForInspection,
   getAgreementTitle,
+  mergeMultipleAgreementBodies,
   normalizeAgreementState,
 } from "../../../lib/agreementTemplates";
 import AgreementSignatureForm from "./AgreementSignatureForm";
@@ -63,28 +64,36 @@ export default async function ClientAgreementPage({
     selectedContact = data;
   }
 
-  const { data: signedAgreement } = await supabase
+  let signedAgreementQuery = supabase
     .from("inspection_agreements")
     .select("*")
     .eq("inspection_id", id)
     .eq("status", "signed")
-    .eq(
-      selectedContact?.id ? "contact_id" : "client_email",
-      selectedContact?.id
-        ? selectedContact.id
-        : selectedContact?.email || inspection.client_email || ""
-    )
     .order("signed_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(1);
+
+  if (selectedContact?.id) {
+    signedAgreementQuery = signedAgreementQuery.eq(
+      "contact_id",
+      selectedContact.id
+    );
+  }
+
+  const { data: signedAgreement } =
+    await signedAgreementQuery.maybeSingle();
 
   const state = normalizeAgreementState(
     inspection.agreement_state || inspection.state
   );
 
+  const templates = await getAgreementTemplatesForInspection({
+    inspection,
+  });
+
   const agreementBody =
     signedAgreement?.agreement_body ||
-    buildAgreementBody({
+    mergeMultipleAgreementBodies({
+      templates,
       state,
       clientName:
         selectedContact?.name ||
@@ -97,7 +106,14 @@ export default async function ClientAgreementPage({
         inspection.fee ||
         inspection.price,
       inspectorName: "On Point Home Inspections",
+      inspectionDate: inspection.inspection_date,
     });
+
+  const title =
+    signedAgreement?.agreement_title ||
+    (templates.length > 1
+      ? `${templates.length} Inspection Agreements`
+      : templates[0]?.title || getAgreementTitle(state));
 
   return (
     <main className="min-h-screen bg-[#020617] p-4 text-white md:p-8">
@@ -108,7 +124,7 @@ export default async function ClientAgreementPage({
           </p>
 
           <h1 className="mt-3 text-4xl font-extrabold text-white">
-            {getAgreementTitle(state)}
+            {title}
           </h1>
 
           <p className="mt-3 text-slate-300">
@@ -128,6 +144,22 @@ export default async function ClientAgreementPage({
           <p className="mt-1 text-slate-400">
             Agreement Selected: {state}
           </p>
+
+          {templates.length > 0 && (
+            <div className="mt-4 rounded-xl border border-slate-700 bg-slate-950 p-4">
+              <p className="font-bold text-teal-300">
+                Included Agreements:
+              </p>
+
+              <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-300">
+                {templates.map((template) => (
+                  <li key={template.id}>
+                    {template.title} — {template.version}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           <div className="mt-5 flex flex-wrap gap-3">
             <Link

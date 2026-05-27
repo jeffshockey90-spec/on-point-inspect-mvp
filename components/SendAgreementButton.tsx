@@ -50,7 +50,7 @@ export default function SendAgreementButton({
       type="button"
       onClick={sendAgreement}
       disabled={sending}
-      className="rounded-xl border border-emerald-500 bg-emerald-500/10 px-5 py-3 font-bold text-emerald-300 transition hover:bg-emerald-500 hover:text-slate-950 disabled:opacity-50"
+      className="rounded-xl border border-emerald-500 bg-emerald-500/10 px-5 py-3 font-bold text-emerald-300 transition hover:bg-emerald-500 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-50"
     >
       {sending ? "Sending..." : "Send Agreements / Portal"}
     </button>

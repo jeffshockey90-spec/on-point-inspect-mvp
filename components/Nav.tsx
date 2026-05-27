@@ -7,6 +7,7 @@ const navItems = [
   { title: "Dashboard", href: "/" },
   { title: "New Inspection", href: "/inspections/new" },
   { title: "Reports", href: "/reports" },
+  { title: "Agreements", href: "/agreements" },
   { title: "AI Capture", href: "/report-builder" },
   { title: "Templates", href: "/templates" },
   { title: "Quotes", href: "/quotes" },
@@ -18,7 +19,6 @@ export default function Navbar() {
 
   return (
     <>
-      {/* Desktop Navbar */}
       <header className="sticky top-0 z-50 hidden border-b border-zinc-800 bg-[#050816]/95 backdrop-blur md:block">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
           <Link href="/" className="flex items-center gap-4">
@@ -49,7 +49,7 @@ export default function Navbar() {
                       : "border-zinc-800 bg-[#0b1220] text-teal-400 hover:border-teal-500 hover:bg-[#111827]"
                   }`}
                 >
-                  {item.title}
+                  {item.title === "Agreements" ? "📄 Agreements" : item.title}
                 </Link>
               );
             })}
@@ -57,7 +57,6 @@ export default function Navbar() {
         </div>
       </header>
 
-      {/* Mobile Bottom Toolbar */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 h-[74px] border-t border-zinc-800 bg-[#0b1220] md:hidden">
         <div className="flex h-full items-center justify-around">
           {navItems.slice(0, 4).map((item) => {
@@ -78,7 +77,7 @@ export default function Navbar() {
                     ? "➕"
                     : item.title === "Reports"
                     ? "📋"
-                    : "🤖"}
+                    : "📄"}
                 </span>
 
                 <span className="mt-1 leading-none">

@@ -17,6 +17,12 @@ export async function POST(req: Request) {
     const inspectionId = String(body.inspectionId || "");
     const agreementState = normalizeAgreementState(body.agreementState);
 
+    const agreementTemplateIds = Array.isArray(body.agreementTemplateIds)
+      ? body.agreementTemplateIds.map((id: any) => String(id)).filter(Boolean)
+      : body.agreementTemplateId
+        ? [String(body.agreementTemplateId)]
+        : [];
+
     if (!inspectionId) {
       return NextResponse.json(
         { error: "Missing inspection ID." },
@@ -24,11 +30,31 @@ export async function POST(req: Request) {
       );
     }
 
+    let version = getAgreementVersion(agreementState);
+    let primaryTemplateId: string | null =
+      agreementTemplateIds[0] || null;
+
+    if (agreementTemplateIds.length > 0) {
+      const { data: templates } = await supabase
+        .from("agreement_templates")
+        .select("*")
+        .in("id", agreementTemplateIds);
+
+      if (templates && templates.length > 0) {
+        version = templates
+          .map((template) => template.version || template.title)
+          .filter(Boolean)
+          .join(" + ");
+      }
+    }
+
     const { data, error } = await supabase
       .from("inspections")
       .update({
         agreement_state: agreementState,
-        agreement_version: getAgreementVersion(agreementState),
+        agreement_version: version,
+        agreement_template_id: primaryTemplateId,
+        agreement_template_ids: agreementTemplateIds,
       })
       .eq("id", inspectionId)
       .select()
@@ -40,7 +66,9 @@ export async function POST(req: Request) {
       ok: true,
       inspection: data,
       agreement_state: agreementState,
-      agreement_version: getAgreementVersion(agreementState),
+      agreement_version: version,
+      agreement_template_id: primaryTemplateId,
+      agreement_template_ids: agreementTemplateIds,
     });
   } catch (error: any) {
     console.error("Update agreement state error:", error);

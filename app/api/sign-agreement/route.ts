@@ -3,9 +3,10 @@ import { headers } from "next/headers";
 import { createClient } from "@supabase/supabase-js";
 
 import {
-  buildAgreementBody,
+  getAgreementTemplatesForInspection,
   getAgreementTitle,
   getAgreementVersion,
+  mergeMultipleAgreementBodies,
   normalizeAgreementState,
 } from "../../../lib/agreementTemplates";
 
@@ -97,12 +98,18 @@ export async function POST(req: Request) {
       inspection.agreement_state || inspection.state
     );
 
-    const agreementBody = buildAgreementBody({
+    const templates = await getAgreementTemplatesForInspection({
+      inspection,
+    });
+
+    const agreementBody = mergeMultipleAgreementBodies({
+      templates,
       state,
       clientName,
       propertyAddress: inspection.address || inspection.property_address,
       fee: inspection.invoice_amount || inspection.fee || inspection.price,
       inspectorName: "On Point Home Inspections",
+      inspectionDate: inspection.inspection_date,
     });
 
     const h = await headers();
@@ -114,16 +121,32 @@ export async function POST(req: Request) {
 
     const userAgent = h.get("user-agent") || "";
 
+    const selectedTemplateIds = templates
+      .map((template) => template.id)
+      .filter(Boolean);
+
+    const agreementTitle =
+      templates.length > 1
+        ? `${templates.length} Inspection Agreements`
+        : templates[0]?.title || getAgreementTitle(state);
+
+    const agreementVersion =
+      templates.length > 0
+        ? templates.map((template) => template.version).join(" + ")
+        : getAgreementVersion(state);
+
     const { data: agreement, error } = await supabase
       .from("inspection_agreements")
       .insert({
         inspection_id: inspectionId,
         inspector_id: inspection.inspector_id,
         contact_id: contact?.id || null,
+        agreement_template_id: selectedTemplateIds[0] || null,
+        agreement_template_ids: selectedTemplateIds,
         signature_role: contact?.role || "client",
         state,
-        agreement_version: getAgreementVersion(state),
-        agreement_title: getAgreementTitle(state),
+        agreement_version: agreementVersion,
+        agreement_title: agreementTitle,
         agreement_body: agreementBody,
         client_name: clientName,
         client_email: clientEmail || contact?.email || inspection.client_email,
