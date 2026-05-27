@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function SendReportEmailButtons({
   inspectionId,
@@ -13,14 +13,59 @@ export default function SendReportEmailButtons({
 }) {
   const [customEmail, setCustomEmail] = useState("");
   const [sending, setSending] = useState<string | null>(null);
+  const [contactClientEmail, setContactClientEmail] = useState("");
+  const [contactRealtorEmail, setContactRealtorEmail] = useState("");
+
+  useEffect(() => {
+    async function loadContacts() {
+      if (!inspectionId) return;
+
+      try {
+        const res = await fetch(
+          `/api/inspection-contacts?inspection_id=${inspectionId}`
+        );
+
+        const data = await res.json();
+
+        const contacts = data.contacts || [];
+
+        const client = contacts.find((contact: any) =>
+          ["client", "co-client"].includes(
+            String(contact.role).toLowerCase()
+          )
+        );
+
+        const realtor = contacts.find((contact: any) =>
+          ["realtor", "agent", "transaction coordinator"].includes(
+            String(contact.role).toLowerCase()
+          )
+        );
+
+        if (client?.email) {
+          setContactClientEmail(client.email);
+        }
+
+        if (realtor?.email) {
+          setContactRealtorEmail(realtor.email);
+        }
+      } catch (error) {
+        console.error("Failed to load report email contacts:", error);
+      }
+    }
+
+    loadContacts();
+  }, [inspectionId]);
+
+  const finalClientEmail = clientEmail || contactClientEmail;
+  const finalRealtorEmail = realtorEmail || contactRealtorEmail;
 
   async function sendEmail(type: "client" | "realtor" | "custom") {
     const email =
       type === "client"
-        ? clientEmail
+        ? finalClientEmail
         : type === "realtor"
-        ? realtorEmail
-        : customEmail.trim();
+          ? finalRealtorEmail
+          : customEmail.trim();
 
     if (!email) {
       alert("No email address entered.");
@@ -49,7 +94,7 @@ export default function SendReportEmailButtons({
         return;
       }
 
-      alert(data.message || "Report email sent.");
+      alert(data.message || `Report email sent to ${email}.`);
     } catch (error: any) {
       alert(error?.message || "Email failed to send.");
     } finally {
@@ -62,7 +107,7 @@ export default function SendReportEmailButtons({
       <button
         type="button"
         onClick={() => sendEmail("client")}
-        disabled={sending !== null || !clientEmail}
+        disabled={sending !== null || !finalClientEmail}
         className="rounded-xl bg-teal-500 px-5 py-3 font-bold text-slate-950 hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {sending === "client" ? "Sending..." : "Email Client"}
@@ -71,7 +116,7 @@ export default function SendReportEmailButtons({
       <button
         type="button"
         onClick={() => sendEmail("realtor")}
-        disabled={sending !== null || !realtorEmail}
+        disabled={sending !== null || !finalRealtorEmail}
         className="rounded-xl border border-purple-500 px-5 py-3 font-bold text-purple-300 hover:bg-purple-500/10 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {sending === "realtor" ? "Sending..." : "Email Realtor"}

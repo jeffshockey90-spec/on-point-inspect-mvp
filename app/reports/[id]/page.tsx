@@ -10,6 +10,8 @@ import SendReportEmailButtons from "../../../components/SendReportEmailButtons";
 import PrintButton from "../../../components/PrintButton";
 import InsertFavoriteFindingButton from "../../../components/InsertFavoriteFindingButton";
 import OneTapAIFindingInsert from "../../../components/OneTapAIFindingInsert";
+import InspectionContactsManager from "../../../components/InspectionContactsManager";
+import SendAgreementButton from "../../../components/SendAgreementButton";
 
 type PageProps = {
   params: Promise<{
@@ -447,11 +449,22 @@ export default async function ReportPage({
             </Link>
 
             <Link
+              href={`/client-portal/${inspection.id}`}
+              className="rounded-xl border border-emerald-500 px-5 py-3 font-bold text-emerald-300 hover:bg-emerald-500/10"
+            >
+              Client Portal
+            </Link>
+
+            <Link
               href={`/client/${inspection.id}`}
               className="rounded-xl border border-purple-500 px-5 py-3 font-bold text-purple-300 hover:bg-purple-500/10"
             >
               Send Report
             </Link>
+
+            <SendAgreementButton
+              inspectionId={String(inspection.id)}
+            />
 
             <Link
               href={`/repair-request?inspection_id=${inspection.id}`}
@@ -522,6 +535,17 @@ export default async function ReportPage({
               }
             />
           </div>
+
+          <InspectionContactsManager
+            inspectionId={String(inspection.id)}
+            defaultClientName={inspection.client_name}
+            defaultClientEmail={inspection.client_email}
+            defaultRealtorName={inspection.realtor_name}
+            defaultRealtorEmail={
+              inspection.realtor_email ||
+              inspection.agent_email
+            }
+          />
 
           {(inspection.property_image ||
             inspection.street_view_url ||
