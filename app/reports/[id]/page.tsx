@@ -12,6 +12,9 @@ import InsertFavoriteFindingButton from "../../../components/InsertFavoriteFindi
 import OneTapAIFindingInsert from "../../../components/OneTapAIFindingInsert";
 import InspectionContactsManager from "../../../components/InspectionContactsManager";
 import SendAgreementButton from "../../../components/SendAgreementButton";
+import AgreementSelector from "../../../components/AgreementSelector";
+import AgreementStatusPanel from "../../../components/AgreementStatusPanel";
+import ReportDeliveryGuard from "../../../components/ReportDeliveryGuard";
 
 type PageProps = {
   params: Promise<{
@@ -545,6 +548,22 @@ export default async function ReportPage({
               inspection.realtor_email ||
               inspection.agent_email
             }
+          />
+
+          <AgreementSelector
+            inspectionId={String(inspection.id)}
+            initialAgreementState={
+              inspection.agreement_state
+            }
+            propertyState={inspection.state}
+          />
+
+          <AgreementStatusPanel
+            inspectionId={String(inspection.id)}
+          />
+
+          <ReportDeliveryGuard
+            inspectionId={String(inspection.id)}
           />
 
           {(inspection.property_image ||

@@ -26,7 +26,8 @@
     "nodemailer": "^8.0.7",
     "openai": "^6.39.0",
     "react": "latest",
-    "react-dom": "latest"
+    "react-dom": "latest",
+    "resend": "^6.12.4"
   },
   "devDependencies": {
     "@types/node": "latest",

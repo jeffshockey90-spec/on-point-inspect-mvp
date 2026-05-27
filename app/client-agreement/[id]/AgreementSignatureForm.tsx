@@ -4,10 +4,12 @@ import { useState } from "react";
 
 export default function AgreementSignatureForm({
   inspectionId,
+  contactId,
   defaultClientName,
   defaultClientEmail,
 }: {
   inspectionId: string;
+  contactId?: string;
   defaultClientName: string;
   defaultClientEmail: string;
 }) {
@@ -38,6 +40,7 @@ export default function AgreementSignatureForm({
         },
         body: JSON.stringify({
           inspectionId,
+          contactId,
           clientName,
           clientEmail,
           signature,
@@ -48,12 +51,18 @@ export default function AgreementSignatureForm({
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || "Failed to sign agreement.");
+        throw new Error(
+          data.error ||
+            "Failed to sign agreement."
+        );
       }
 
       window.location.reload();
     } catch (error: any) {
-      alert(error.message || "Failed to sign agreement.");
+      alert(
+        error.message ||
+          "Failed to sign agreement."
+      );
     } finally {
       setLoading(false);
     }
@@ -77,7 +86,9 @@ export default function AgreementSignatureForm({
 
           <input
             value={clientName}
-            onChange={(e) => setClientName(e.target.value)}
+            onChange={(e) =>
+              setClientName(e.target.value)
+            }
             className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
           />
         </label>
@@ -89,7 +100,9 @@ export default function AgreementSignatureForm({
 
           <input
             value={clientEmail}
-            onChange={(e) => setClientEmail(e.target.value)}
+            onChange={(e) =>
+              setClientEmail(e.target.value)
+            }
             className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
           />
         </label>
@@ -102,7 +115,9 @@ export default function AgreementSignatureForm({
 
         <input
           value={signature}
-          onChange={(e) => setSignature(e.target.value)}
+          onChange={(e) =>
+            setSignature(e.target.value)
+          }
           placeholder="Type full legal name"
           className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
         />
@@ -112,7 +127,9 @@ export default function AgreementSignatureForm({
         <input
           type="checkbox"
           checked={accepted}
-          onChange={(e) => setAccepted(e.target.checked)}
+          onChange={(e) =>
+            setAccepted(e.target.checked)
+          }
           className="mt-1"
         />
 
