@@ -1,12 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import EditableFinding from "../../../components/EditableFinding";
 
 export default function ReportFindingsSortable({ groupedFindings }: any) {
   const [closedSections, setClosedSections] = useState<Record<string, boolean>>(
     {}
   );
+
+  const [orderedGroups, setOrderedGroups] = useState<any[]>(groupedFindings || []);
+  const [draggingSection, setDraggingSection] = useState<string | null>(null);
+
+  useEffect(() => {
+    setOrderedGroups(groupedFindings || []);
+  }, [groupedFindings]);
 
   function toggleSection(section: string) {
     setClosedSections((prev) => ({
@@ -22,11 +29,58 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
   function collapseAll() {
     const next: Record<string, boolean> = {};
 
-    (groupedFindings || []).forEach((group: any) => {
+    (orderedGroups || []).forEach((group: any) => {
       next[group.section] = true;
     });
 
     setClosedSections(next);
+  }
+
+  function moveSection(fromIndex: number, toIndex: number) {
+    if (toIndex < 0 || toIndex >= orderedGroups.length) return;
+
+    setOrderedGroups((prev) => {
+      const next = [...prev];
+      const [moved] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, moved);
+      return next;
+    });
+  }
+
+  function handleDragStart(section: string) {
+    setDraggingSection(section);
+  }
+
+  function handleDragOver(event: React.DragEvent) {
+    event.preventDefault();
+  }
+
+  function handleDrop(targetSection: string) {
+    if (!draggingSection || draggingSection === targetSection) {
+      setDraggingSection(null);
+      return;
+    }
+
+    setOrderedGroups((prev) => {
+      const next = [...prev];
+
+      const fromIndex = next.findIndex(
+        (group: any) => group.section === draggingSection
+      );
+
+      const toIndex = next.findIndex(
+        (group: any) => group.section === targetSection
+      );
+
+      if (fromIndex === -1 || toIndex === -1) return prev;
+
+      const [moved] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, moved);
+
+      return next;
+    });
+
+    setDraggingSection(null);
   }
 
   return (
@@ -47,49 +101,95 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
         >
           Collapse All
         </button>
+
+        <div className="rounded-xl border border-slate-700 px-4 py-2 text-sm font-bold text-slate-400">
+          Drag section headers to reorder
+        </div>
       </div>
 
-      {(groupedFindings || []).map((group: any) => {
+      {(orderedGroups || []).map((group: any, index: number) => {
         const findings = group.findings || [];
         const isClosed = !!closedSections[group.section];
+        const isDragging = draggingSection === group.section;
 
         return (
           <section
             key={group.section}
-            className="overflow-hidden rounded-2xl border border-slate-700 bg-[#0f172a] shadow-xl"
+            draggable
+            onDragStart={() => handleDragStart(group.section)}
+            onDragOver={handleDragOver}
+            onDrop={() => handleDrop(group.section)}
+            onDragEnd={() => setDraggingSection(null)}
+            className={`overflow-hidden rounded-2xl border border-slate-700 bg-[#0f172a] shadow-xl transition ${
+              isDragging ? "opacity-50 ring-2 ring-teal-400" : ""
+            }`}
           >
-            <div
-              role="button"
-              tabIndex={0}
-              onClick={() => toggleSection(group.section)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
-                  toggleSection(group.section);
-                }
-              }}
-              className="flex w-full cursor-pointer items-center justify-between gap-4 border-b border-slate-700 px-6 py-4 text-left transition hover:bg-slate-800/60 focus:outline-none focus:ring-2 focus:ring-teal-400"
-            >
-              <div className="flex min-w-0 items-center gap-4">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-teal-500/50 bg-teal-500/10 text-2xl font-black text-teal-300">
-                  {isClosed ? "+" : "−"}
-                </span>
+            <div className="flex items-stretch border-b border-slate-700">
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => toggleSection(group.section)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    toggleSection(group.section);
+                  }
+                }}
+                className="flex min-w-0 flex-1 cursor-pointer items-center justify-between gap-4 px-6 py-4 text-left transition hover:bg-slate-800/60 focus:outline-none focus:ring-2 focus:ring-teal-400"
+              >
+                <div className="flex min-w-0 items-center gap-4">
+                  <span className="cursor-grab select-none text-2xl text-slate-500 active:cursor-grabbing">
+                    ⋮⋮
+                  </span>
 
-                <div className="min-w-0">
-                  <h2 className="truncate text-2xl font-bold text-teal-400">
-                    {group.section}
-                  </h2>
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-teal-500/50 bg-teal-500/10 text-2xl font-black text-teal-300">
+                    {isClosed ? "+" : "−"}
+                  </span>
 
-                  <p className="mt-1 text-sm text-slate-400">
-                    {findings.length} finding
-                    {findings.length === 1 ? "" : "s"}
-                  </p>
+                  <div className="min-w-0">
+                    <h2 className="truncate text-2xl font-bold text-teal-400">
+                      {group.section}
+                    </h2>
+
+                    <p className="mt-1 text-sm text-slate-400">
+                      {findings.length} finding
+                      {findings.length === 1 ? "" : "s"}
+                    </p>
+                  </div>
                 </div>
+
+                <span className="shrink-0 rounded-xl border border-slate-600 px-4 py-2 text-sm font-black text-slate-200">
+                  {isClosed ? "Open" : "Close"}
+                </span>
               </div>
 
-              <span className="shrink-0 rounded-xl border border-slate-600 px-4 py-2 text-sm font-black text-slate-200">
-                {isClosed ? "Open" : "Close"}
-              </span>
+              <div className="flex shrink-0 flex-col border-l border-slate-700">
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    moveSection(index, index - 1);
+                  }}
+                  disabled={index === 0}
+                  className="flex h-1/2 min-h-[36px] items-center justify-center px-3 text-sm font-black text-slate-300 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-30"
+                  title="Move section up"
+                >
+                  ↑
+                </button>
+
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    moveSection(index, index + 1);
+                  }}
+                  disabled={index === orderedGroups.length - 1}
+                  className="flex h-1/2 min-h-[36px] items-center justify-center border-t border-slate-700 px-3 text-sm font-black text-slate-300 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-30"
+                  title="Move section down"
+                >
+                  ↓
+                </button>
+              </div>
             </div>
 
             {!isClosed && (
@@ -195,7 +295,9 @@ function FindingCard({ finding }: any) {
         <div className="mb-5 flex flex-wrap gap-2">
           <button
             type="button"
-            onClick={async () => {
+            onClick={async (event) => {
+              event.stopPropagation();
+
               try {
                 const res = await fetch("/api/save-finding-template", {
                   method: "POST",
@@ -239,7 +341,10 @@ function FindingCard({ finding }: any) {
           </button>
         </div>
 
-        <div className="mb-5 rounded-xl border border-slate-700 bg-slate-950/40 p-4">
+        <div
+          onClick={(event) => event.stopPropagation()}
+          className="mb-5 rounded-xl border border-slate-700 bg-slate-950/40 p-4"
+        >
           <EditableFinding finding={finding} />
         </div>
 

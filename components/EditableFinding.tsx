@@ -171,7 +171,10 @@ export default function EditableFinding({ finding }: { finding: any }) {
     const confirmed = confirm("Delete this finding?");
     if (!confirmed) return;
 
-    const { error } = await supabase.from("findings").delete().eq("id", finding.id);
+    const { error } = await supabase
+      .from("findings")
+      .delete()
+      .eq("id", finding.id);
 
     if (error) {
       alert(error.message);
@@ -191,6 +194,7 @@ export default function EditableFinding({ finding }: { finding: any }) {
 
           <div className="flex flex-wrap gap-3">
             <button
+              type="button"
               onClick={rewriteSofter}
               disabled={rewriting}
               className="min-w-[220px] rounded-xl bg-teal-500 px-5 py-3 text-sm font-bold text-slate-950 hover:bg-teal-400 disabled:opacity-60"
@@ -199,6 +203,7 @@ export default function EditableFinding({ finding }: { finding: any }) {
             </button>
 
             <button
+              type="button"
               onClick={() => setRepairRequest(!repairRequest)}
               className="min-w-[220px] rounded-xl border border-slate-600 bg-slate-900 px-5 py-3 text-sm font-bold text-white hover:bg-slate-800"
             >
@@ -206,6 +211,7 @@ export default function EditableFinding({ finding }: { finding: any }) {
             </button>
 
             <button
+              type="button"
               onClick={saveRepairRequestSettings}
               className="min-w-[220px] rounded-xl border border-orange-500 px-5 py-3 text-sm font-bold text-orange-400 hover:bg-orange-500/10"
             >
@@ -238,6 +244,7 @@ export default function EditableFinding({ finding }: { finding: any }) {
 
         <div className="flex flex-wrap gap-3">
           <button
+            type="button"
             onClick={() => setEditing(true)}
             className="min-w-[170px] rounded-xl bg-cyan-500 px-5 py-3 text-sm font-bold text-slate-950 hover:bg-cyan-400"
           >
@@ -245,6 +252,7 @@ export default function EditableFinding({ finding }: { finding: any }) {
           </button>
 
           <button
+            type="button"
             onClick={saveToLibrary}
             disabled={savingTemplate}
             className="min-w-[170px] rounded-xl border border-cyan-500 px-5 py-3 text-sm font-bold text-cyan-300 hover:bg-cyan-500/10 disabled:opacity-60"
@@ -253,6 +261,7 @@ export default function EditableFinding({ finding }: { finding: any }) {
           </button>
 
           <button
+            type="button"
             onClick={deleteFinding}
             className="min-w-[170px] rounded-xl bg-red-600 px-5 py-3 text-sm font-bold text-white hover:bg-red-500"
           >
@@ -310,6 +319,7 @@ export default function EditableFinding({ finding }: { finding: any }) {
 
       <div className="flex flex-wrap gap-3">
         <button
+          type="button"
           onClick={saveFinding}
           disabled={saving}
           className="min-w-[170px] rounded-xl bg-teal-500 px-5 py-3 text-sm font-bold text-black hover:bg-teal-400 disabled:opacity-60"
@@ -318,6 +328,7 @@ export default function EditableFinding({ finding }: { finding: any }) {
         </button>
 
         <button
+          type="button"
           onClick={() => setEditing(false)}
           className="min-w-[170px] rounded-xl border border-slate-600 px-5 py-3 text-sm font-bold text-white hover:bg-slate-800"
         >
