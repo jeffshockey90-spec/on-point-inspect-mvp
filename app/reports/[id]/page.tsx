@@ -110,17 +110,13 @@ async function createSignedPhotoUrl(supabase: any, photo: any) {
     getStoragePathFromUrl(photo?.image_url) ||
     getStoragePathFromUrl(photo?.photo_url);
 
-  if (!filePath) {
-    return existing;
-  }
+  if (!filePath) return existing;
 
   const { data, error } = await supabase.storage
     .from("inspection-photos")
     .createSignedUrl(filePath, 60 * 60 * 24 * 7);
 
-  if (error || !data?.signedUrl) {
-    return existing;
-  }
+  if (error || !data?.signedUrl) return existing;
 
   return data.signedUrl;
 }
@@ -138,9 +134,7 @@ export default async function ReportPage({ params }: PageProps) {
       data: { user },
     } = await supabase.auth.getUser();
 
-    if (!user) {
-      redirect("/login");
-    }
+    if (!user) redirect("/login");
 
     const inspectionId = String(formData.get("inspection_id") || "");
 
@@ -168,9 +162,7 @@ export default async function ReportPage({ params }: PageProps) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
-    redirect("/login");
-  }
+  if (!user) redirect("/login");
 
   const { data: inspection, error: inspectionError } = await supabase
     .from("inspections")
@@ -179,9 +171,7 @@ export default async function ReportPage({ params }: PageProps) {
     .eq("inspector_id", user.id)
     .single();
 
-  if (inspectionError || !inspection) {
-    redirect("/reports");
-  }
+  if (inspectionError || !inspection) redirect("/reports");
 
   const { data: findingsRaw, error: findingsError } = await supabase
     .from("findings")
@@ -189,23 +179,16 @@ export default async function ReportPage({ params }: PageProps) {
     .eq("inspection_id", inspection.id)
     .order("created_at", { ascending: true });
 
-  if (findingsError) {
-    console.error("Findings load error:", findingsError);
-  }
+  if (findingsError) console.error("Findings load error:", findingsError);
 
   const findingIds = (findingsRaw || []).map((finding: any) => finding.id);
 
   const { data: photosRaw, error: photosError } =
     findingIds.length > 0
-      ? await supabase
-          .from("photos")
-          .select("*")
-          .in("finding_id", findingIds)
+      ? await supabase.from("photos").select("*").in("finding_id", findingIds)
       : { data: [], error: null };
 
-  if (photosError) {
-    console.error("Photos load error:", photosError);
-  }
+  if (photosError) console.error("Photos load error:", photosError);
 
   const photosWithUrls = await Promise.all(
     (photosRaw || []).map(async (photo: any) => ({
@@ -227,7 +210,6 @@ export default async function ReportPage({ params }: PageProps) {
   const findings = await Promise.all(
     (findingsRaw || []).map(async (finding: any) => {
       let signedImageUrl = finding.image_url || "";
-
       const oldImagePath = getStoragePathFromUrl(finding.image_url);
 
       if (oldImagePath) {
@@ -235,9 +217,7 @@ export default async function ReportPage({ params }: PageProps) {
           .from("inspection-photos")
           .createSignedUrl(oldImagePath, 60 * 60 * 24 * 7);
 
-        if (!error && data?.signedUrl) {
-          signedImageUrl = data.signedUrl;
-        }
+        if (!error && data?.signedUrl) signedImageUrl = data.signedUrl;
       }
 
       return {
@@ -303,13 +283,7 @@ export default async function ReportPage({ params }: PageProps) {
 
       return acc;
     },
-    {
-      total: 0,
-      safety: 0,
-      repair: 0,
-      maintenance: 0,
-      information: 0,
-    }
+    { total: 0, safety: 0, repair: 0, maintenance: 0, information: 0 }
   );
 
   const propertyPhoto =
@@ -335,93 +309,57 @@ export default async function ReportPage({ params }: PageProps) {
               className="rounded-xl bg-black px-5 py-3 font-bold text-white hover:bg-slate-800"
             />
 
-            <Link
-              href={`/reports/${inspection.id}/print`}
-              className="rounded-xl bg-white px-5 py-3 font-bold text-black hover:bg-slate-200"
-            >
+            <Link href={`/reports/${inspection.id}/print`} className="rounded-xl bg-white px-5 py-3 font-bold text-black hover:bg-slate-200">
               Export PDF
             </Link>
 
-            <Link
-              href={`/reports/${inspection.id}/summary`}
-              className="rounded-xl border border-teal-500 bg-[#071224] px-5 py-3 font-bold text-teal-300 hover:bg-teal-500/10"
-            >
+            <Link href={`/reports/${inspection.id}/summary`} className="rounded-xl border border-teal-500 bg-[#071224] px-5 py-3 font-bold text-teal-300 hover:bg-teal-500/10">
               Generate AI Summary
             </Link>
 
-            <Link
-              href={`/share/${inspection.id}`}
-              className="rounded-xl bg-green-500 px-5 py-3 font-bold text-slate-950 hover:bg-green-400"
-            >
+            <Link href={`/share/${inspection.id}`} className="rounded-xl bg-green-500 px-5 py-3 font-bold text-slate-950 hover:bg-green-400">
               Publish Report
             </Link>
 
-            <Link
-              href={`/share/${inspection.id}`}
-              className="rounded-xl border border-blue-500 px-5 py-3 font-bold text-blue-300 hover:bg-blue-500/10"
-            >
+            <Link href={`/share/${inspection.id}`} className="rounded-xl border border-blue-500 px-5 py-3 font-bold text-blue-300 hover:bg-blue-500/10">
               Copy Share Link
             </Link>
 
-            <Link
-              href={`/client-portal/${inspection.id}`}
-              className="rounded-xl border border-emerald-500 px-5 py-3 font-bold text-emerald-300 hover:bg-emerald-500/10"
-            >
+            <Link href={`/client-portal/${inspection.id}`} className="rounded-xl border border-emerald-500 px-5 py-3 font-bold text-emerald-300 hover:bg-emerald-500/10">
               Client Portal
             </Link>
 
-            <Link
-              href={`/client/${inspection.id}`}
-              className="rounded-xl border border-purple-500 px-5 py-3 font-bold text-purple-300 hover:bg-purple-500/10"
-            >
+            <Link href={`/client/${inspection.id}`} className="rounded-xl border border-purple-500 px-5 py-3 font-bold text-purple-300 hover:bg-purple-500/10">
               Send Report
             </Link>
 
             <SendAgreementButton inspectionId={String(inspection.id)} />
 
-            <Link
-              href={`/repair-request?inspection_id=${inspection.id}`}
-              className="rounded-xl bg-orange-600 px-5 py-3 font-bold text-white hover:bg-orange-500"
-            >
+            <Link href={`/repair-request?inspection_id=${inspection.id}`} className="rounded-xl bg-orange-600 px-5 py-3 font-bold text-white hover:bg-orange-500">
               Repair Request Builder
             </Link>
 
-            <Link
-              href={`/reports/${inspection.id}/templates`}
-              className="rounded-xl border border-yellow-500 px-5 py-3 font-bold text-yellow-300 hover:bg-yellow-500/10"
-            >
+            <Link href={`/reports/${inspection.id}/templates`} className="rounded-xl border border-yellow-500 px-5 py-3 font-bold text-yellow-300 hover:bg-yellow-500/10">
               Favorite Findings
             </Link>
 
             <InsertFavoriteFindingButton inspectionId={String(inspection.id)} />
 
-            <Link
-              href={`/reports/${inspection.id}/summary`}
-              className="rounded-xl border border-cyan-500 px-5 py-3 font-bold text-cyan-300 hover:bg-cyan-500/10"
-            >
+            <Link href={`/reports/${inspection.id}/summary`} className="rounded-xl border border-cyan-500 px-5 py-3 font-bold text-cyan-300 hover:bg-cyan-500/10">
               Realtor Summary
             </Link>
 
-            <Link
-              href={`/field?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`}
-              className="rounded-xl border border-teal-500 bg-[#071224] px-5 py-3 font-bold text-teal-300 hover:bg-teal-500/10"
-            >
+            <Link href={`/field?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`} className="rounded-xl border border-teal-500 bg-[#071224] px-5 py-3 font-bold text-teal-300 hover:bg-teal-500/10">
               Field Tool
             </Link>
 
-            <Link
-              href={`/ai-capture?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`}
-              className="rounded-xl bg-teal-500 px-5 py-3 font-bold text-slate-950 hover:bg-teal-400"
-            >
+            <Link href={`/ai-capture?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`} className="rounded-xl bg-teal-500 px-5 py-3 font-bold text-slate-950 hover:bg-teal-400">
               Open Full AI Capture
             </Link>
 
             <OneTapAIFindingInsert inspectionId={String(inspection.id)} />
 
-            <Link
-              href={`/equipment-analyzer?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`}
-              className="rounded-xl border border-blue-500 px-5 py-3 font-bold text-blue-300 hover:bg-blue-500/10"
-            >
+            <Link href={`/equipment-analyzer?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`} className="rounded-xl border border-blue-500 px-5 py-3 font-bold text-blue-300 hover:bg-blue-500/10">
               Equipment Analyzer
             </Link>
           </div>
@@ -458,11 +396,7 @@ export default async function ReportPage({ params }: PageProps) {
 
           {propertyPhoto && (
             <div className="mb-6 overflow-hidden rounded-2xl border border-slate-700 bg-black">
-              <img
-                src={propertyPhoto}
-                alt="Property"
-                className="h-56 w-full object-cover"
-              />
+              <img src={propertyPhoto} alt="Property" className="h-56 w-full object-cover" />
             </div>
           )}
 
@@ -494,10 +428,7 @@ export default async function ReportPage({ params }: PageProps) {
             </div>
           </section>
 
-          <form
-            action={updateInspectionDetails}
-            className="mt-8 border-t border-slate-700 pt-8"
-          >
+          <form action={updateInspectionDetails} className="mt-8 border-t border-slate-700 pt-8">
             <input type="hidden" name="inspection_id" value={inspection.id} />
 
             <div className="mb-6 flex items-center justify-between gap-4">
@@ -505,10 +436,7 @@ export default async function ReportPage({ params }: PageProps) {
                 Inspection Details
               </h2>
 
-              <button
-                type="submit"
-                className="rounded-xl bg-teal-500 px-5 py-3 font-bold text-slate-950 hover:bg-teal-400"
-              >
+              <button type="submit" className="rounded-xl bg-teal-500 px-5 py-3 font-bold text-slate-950 hover:bg-teal-400">
                 Save Inspection Details
               </button>
             </div>
@@ -554,21 +482,12 @@ export default async function ReportPage({ params }: PageProps) {
   );
 }
 
-function DefectCountCard({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: number;
-  tone: string;
-}) {
+function DefectCountCard({ label, value, tone }: { label: string; value: number; tone: string }) {
   return (
     <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
       <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
         {label}
       </p>
-
       <p className={`mt-2 text-3xl font-black ${tone}`}>{value}</p>
     </div>
   );

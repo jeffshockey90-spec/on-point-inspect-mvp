@@ -2,9 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 export default async function proxy(request: NextRequest) {
-  let response = NextResponse.next({
-    request,
-  });
+  let response = NextResponse.next({ request });
 
   const pathname = request.nextUrl.pathname;
 
@@ -37,15 +35,12 @@ export default async function proxy(request: NextRequest) {
         getAll() {
           return request.cookies.getAll();
         },
-
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) => {
             request.cookies.set(name, value);
           });
 
-          response = NextResponse.next({
-            request,
-          });
+          response = NextResponse.next({ request });
 
           cookiesToSet.forEach(({ name, value, options }) => {
             response.cookies.set(name, value, options);
@@ -66,9 +61,14 @@ export default async function proxy(request: NextRequest) {
     "/inspections",
     "/ai-capture",
     "/equipment-test",
+    "/equipment-analyzer",
     "/field",
     "/field-tool",
     "/repair-request",
+    "/agreements",
+    "/templates",
+    "/schedule",
+    "/quotes",
   ];
 
   const authRoutes = ["/login", "/signup"];
@@ -79,18 +79,14 @@ export default async function proxy(request: NextRequest) {
 
   if (isProtected && !user) {
     const url = request.nextUrl.clone();
-
     url.pathname = "/login";
     url.searchParams.set("redirectedFrom", pathname);
-
     return NextResponse.redirect(url);
   }
 
   if (authRoutes.includes(pathname) && user) {
     const url = request.nextUrl.clone();
-
     url.pathname = "/dashboard";
-
     return NextResponse.redirect(url);
   }
 

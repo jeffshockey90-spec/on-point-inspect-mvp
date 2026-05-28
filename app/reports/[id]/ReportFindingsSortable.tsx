@@ -16,7 +16,8 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
   return (
     <div className="space-y-6">
       {(groupedFindings || []).map((group: any) => {
-        const isOpen = openSections[group.section] ?? false;
+        const findings = group.findings || [];
+        const isOpen = openSections[group.section] ?? findings.length > 0;
 
         return (
           <section
@@ -34,8 +35,7 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
                 </h2>
 
                 <p className="mt-1 text-sm text-slate-400">
-                  {(group.findings || []).length} finding
-                  {(group.findings || []).length === 1 ? "" : "s"}
+                  {findings.length} finding{findings.length === 1 ? "" : "s"}
                 </p>
               </div>
 
@@ -46,13 +46,13 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
 
             {isOpen && (
               <div className="space-y-5 p-5">
-                {(group.findings || []).length === 0 && (
+                {findings.length === 0 && (
                   <div className="rounded-xl border border-slate-700 bg-[#071224] p-5 text-slate-400">
                     No findings in this section.
                   </div>
                 )}
 
-                {(group.findings || []).map((finding: any) => (
+                {findings.map((finding: any) => (
                   <FindingCard key={finding.id} finding={finding} />
                 ))}
               </div>
@@ -67,27 +67,15 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
 function getSeverityStyle(severity: string | null | undefined) {
   const clean = String(severity || "Recommended Repair").toLowerCase();
 
-  if (
-    clean.includes("safety") ||
-    clean.includes("hazard") ||
-    clean.includes("major")
-  ) {
+  if (clean.includes("safety") || clean.includes("hazard") || clean.includes("major")) {
     return "border-red-500/60 bg-red-500/10 text-red-300";
   }
 
-  if (
-    clean.includes("maintenance") ||
-    clean.includes("monitor") ||
-    clean.includes("minor")
-  ) {
+  if (clean.includes("maintenance") || clean.includes("monitor") || clean.includes("minor")) {
     return "border-yellow-500/60 bg-yellow-500/10 text-yellow-300";
   }
 
-  if (
-    clean.includes("information") ||
-    clean.includes("info") ||
-    clean.includes("client")
-  ) {
+  if (clean.includes("information") || clean.includes("info") || clean.includes("client")) {
     return "border-blue-500/60 bg-blue-500/10 text-blue-300";
   }
 
@@ -111,21 +99,13 @@ function FindingCard({ finding }: any) {
     <article className="overflow-hidden rounded-2xl border border-slate-700 bg-[#071224] shadow-xl">
       {image && (
         <div className="border-b border-slate-700 bg-black">
-          <img
-            src={image}
-            alt="Finding"
-            className="max-h-[650px] w-full object-contain"
-          />
+          <img src={image} alt="Finding" className="max-h-[650px] w-full object-contain" />
         </div>
       )}
 
       <div className="p-6">
         <div className="mb-4 flex flex-wrap items-center gap-3">
-          <span
-            className={`rounded-full border px-3 py-1 text-xs font-extrabold uppercase tracking-wide ${getSeverityStyle(
-              finding.severity
-            )}`}
-          >
+          <span className={`rounded-full border px-3 py-1 text-xs font-extrabold uppercase tracking-wide ${getSeverityStyle(finding.severity)}`}>
             {finding.severity || "Recommended Repair"}
           </span>
 
@@ -137,23 +117,17 @@ function FindingCard({ finding }: any) {
         </div>
 
         <h3 className="mb-4 text-2xl font-black text-white">
-          {finding.title ||
-            finding.finding_title ||
-            finding.defect_title ||
-            finding.name ||
-            "Untitled Finding"}
+          {finding.title || finding.finding_title || finding.defect_title || finding.name || "Untitled Finding"}
         </h3>
 
-        <div className="mb-4 flex flex-wrap gap-2">
+        <div className="mb-5 flex flex-wrap gap-2">
           <button
             type="button"
             onClick={async () => {
               try {
                 const res = await fetch("/api/save-finding-template", {
                   method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
+                  headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({
                     title:
                       finding.title ||
@@ -170,7 +144,6 @@ function FindingCard({ finding }: any) {
                 });
 
                 let data: any = {};
-
                 try {
                   data = await res.json();
                 } catch {
@@ -193,23 +166,14 @@ function FindingCard({ finding }: any) {
           </button>
         </div>
 
-        <EditableFinding finding={finding} />
+        <div className="mb-5 rounded-xl border border-slate-700 bg-slate-950/40 p-4">
+          <EditableFinding finding={finding} />
+        </div>
 
-        {finding.observation && (
-          <ReportBlock title="Observation" text={finding.observation} />
-        )}
-
-        {finding.implication && (
-          <ReportBlock title="Implication" text={finding.implication} />
-        )}
-
-        {finding.recommendation && (
-          <ReportBlock title="Recommendation" text={finding.recommendation} />
-        )}
-
-        {finding.comment && (
-          <ReportBlock title="Additional Notes" text={finding.comment} />
-        )}
+        {finding.observation && <ReportBlock title="Observation" text={finding.observation} />}
+        {finding.implication && <ReportBlock title="Implication" text={finding.implication} />}
+        {finding.recommendation && <ReportBlock title="Recommendation" text={finding.recommendation} />}
+        {finding.comment && <ReportBlock title="Additional Notes" text={finding.comment} />}
       </div>
     </article>
   );
