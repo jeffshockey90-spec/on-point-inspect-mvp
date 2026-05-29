@@ -838,42 +838,81 @@ function buildFullRecommendation(item: BulkItem) {
 }
 
 async function fileToBase64(file: File): Promise<string> {
-  if (file.type.startsWith("image/")) {
-    try {
-      const bitmap = await createImageBitmap(file);
-
-      const canvas = document.createElement("canvas");
-      canvas.width = bitmap.width;
-      canvas.height = bitmap.height;
-
-      const ctx = canvas.getContext("2d");
-
-      if (!ctx) {
-        throw new Error("Unable to process image.");
-      }
-
-      ctx.drawImage(bitmap, 0, 0);
-
-      return canvas.toDataURL("image/jpeg", 0.92);
-    } catch {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-
-        reader.readAsDataURL(file);
-      });
-    }
+  if (!file.type.startsWith("image/")) {
+    throw new Error("Only photos can be analyzed by AI.");
   }
 
+  const originalDataUrl = await readFileAsDataUrl(file);
+
+  try {
+    const image = await loadImageFromDataUrl(originalDataUrl);
+
+    const maxDimension = 1600;
+    const scale = Math.min(
+      1,
+      maxDimension / Math.max(image.naturalWidth || image.width, image.naturalHeight || image.height)
+    );
+
+    const width = Math.max(1, Math.round((image.naturalWidth || image.width) * scale));
+    const height = Math.max(1, Math.round((image.naturalHeight || image.height) * scale));
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+
+    const ctx = canvas.getContext("2d");
+
+    if (!ctx) {
+      throw new Error("Unable to process image for AI.");
+    }
+
+    ctx.drawImage(image, 0, 0, width, height);
+
+    const jpegDataUrl = canvas.toDataURL("image/jpeg", 0.82);
+
+    if (!jpegDataUrl || !jpegDataUrl.startsWith("data:image/jpeg;base64,")) {
+      throw new Error("Unable to convert image to JPEG.");
+    }
+
+    return jpegDataUrl;
+  } catch {
+    if (originalDataUrl.startsWith("data:image/jpeg") || originalDataUrl.startsWith("data:image/png") || originalDataUrl.startsWith("data:image/webp")) {
+      return originalDataUrl;
+    }
+
+    throw new Error(
+      "This phone photo format could not be prepared for AI. Try taking a new photo inside the app or choose a JPG/PNG image."
+    );
+  }
+}
+
+function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
 
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
+    reader.onload = () => {
+      const result = String(reader.result || "");
 
+      if (!result.startsWith("data:image/")) {
+        reject(new Error("Invalid image format."));
+        return;
+      }
+
+      resolve(result);
+    };
+
+    reader.onerror = () => reject(new Error("Could not read image file."));
     reader.readAsDataURL(file);
+  });
+}
+
+function loadImageFromDataUrl(dataUrl: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("Could not load image for processing."));
+    image.src = dataUrl;
   });
 }
 
