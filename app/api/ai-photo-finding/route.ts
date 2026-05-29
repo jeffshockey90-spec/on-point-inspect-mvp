@@ -59,7 +59,7 @@ function formatInspectorMemory(memories: any[]) {
 Inspector Memory / Saved Corrections:
 ${lines.join("\n")}
 
-Use these as guidance when they are relevant to the image or inspector note. Do not force them if they do not apply.
+Use these only when they support the inspector note. If an inspector note is provided, the inspector note overrides memory.
 `;
 }
 
@@ -76,6 +76,7 @@ export async function POST(req: Request) {
 
     try {
       const supabase = await createClient();
+
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -106,6 +107,7 @@ export async function POST(req: Request) {
       response_format: {
         type: "json_object",
       },
+      temperature: 0.15,
       messages: [
         {
           role: "system",
@@ -114,27 +116,46 @@ You are a senior certified home inspector writing professional inspection report
 
 You are analyzing ONE inspection photo and, if provided, ONE inspector field note.
 
-The inspector note is the PRIMARY GUIDANCE.
-The image is supporting evidence.
+The inspector note is the PRIMARY SOURCE OF TRUTH.
 
-If an inspector note is provided:
-- Focus the finding on the condition described in the note.
-- Use the note to decide what defect or concern matters most.
-- Use the photo to verify or add visible details.
-- Do not drift into unrelated items just because they appear in the photo.
-- Do not replace the note with a generic image description.
-- If the note mentions a location, include it.
-- If the note says possible, suspected, appears, may, or could, keep cautious wording.
-- If the image does not clearly confirm the note, say the condition was reported/noted and recommend further evaluation as appropriate.
-- If the note conflicts with the photo, do not pretend certainty. Use conservative wording.
+CRITICAL RULES:
+
+1. If an inspector note is provided, the finding MUST be based on the inspector note.
+
+2. The photo exists only to provide visual confirmation and supporting details.
+
+3. NEVER ignore the inspector note in favor of another visible condition.
+
+4. NEVER create a finding for a background item when the inspector note identifies the concern.
+
+5. If the note says "plumbing leak", then the finding must be Plumbing even if electrical equipment is visible.
+
+6. If the note says "electrical issue", then the finding must be Electrical even if plumbing is visible.
+
+7. If the note identifies a specific defect, section, location, or component, that information takes precedence over image interpretation.
+
+8. Only create ONE finding.
+
+9. Do not combine multiple defects.
+
+10. Do not create findings for unrelated visible items.
+
+11. When a note is present: NOTE > INSPECTOR MEMORY > IMAGE.
+
+12. The inspector note should influence section selection, severity selection, title, observation, implication, and recommendation.
+
+13. If the note and image appear inconsistent, follow the note and use conservative wording such as "reported", "observed", "appears", or "recommend further evaluation."
 
 If no inspector note is provided:
-- Analyze the visible condition in the photo normally.
+- Analyze the main visible inspection concern in the photo normally.
+- Create only one finding.
+- Do not create findings for background items.
 
 Return ONLY valid JSON.
 Do not include markdown.
-${inspectorMemoryGuidance}
 Do not include explanations outside the JSON.
+
+${inspectorMemoryGuidance}
 
 Use this exact JSON structure:
 
@@ -184,7 +205,7 @@ Severity guidance:
 - Major Concern: major system failure, structural concern, significant defect, structural concern, or potentially costly repair.
 
 Equipment extraction rules:
-- If this is HVAC, electrical, plumbing, appliance, or mechanical equipment, extract visible equipment data.
+- If this is HVAC, electrical, plumbing, appliance, or mechanical equipment, extract visible equipment data only if relevant to the inspector note or main photo subject.
 - Never invent serial or model numbers.
 - If unreadable, leave blank.
 - If visible, identify manufacturer, model number, serial number, estimated age, and equipment type.
@@ -204,7 +225,16 @@ Inspector note:
 ${inspectorNote || "No inspector note provided."}
 
 Important:
-If an inspector note is provided, base the finding primarily on that note. Use the image to support and refine the finding, not to replace the inspector's concern.
+
+The inspector note is the defect to be reported.
+
+Do NOT search the image for a different defect.
+
+Do NOT replace the inspector's concern with a different visible condition.
+
+Use the image only to add visual details to the defect described by the inspector.
+
+Create exactly ONE finding based on the inspector note when provided.
               `,
             },
             {
@@ -216,7 +246,6 @@ If an inspector note is provided, base the finding primarily on that note. Use t
           ],
         },
       ],
-      temperature: 0.25,
     });
 
     const raw = response.choices[0]?.message?.content || "{}";
