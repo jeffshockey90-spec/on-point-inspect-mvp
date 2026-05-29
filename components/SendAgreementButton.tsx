@@ -35,9 +35,7 @@ export default function SendAgreementButton({
         throw new Error(data.error || "Failed to send agreement.");
       }
 
-      alert(
-        `Sent ${data.sent?.length || 0} agreement/portal email(s).`
-      );
+      alert(`Sent ${data.sent?.length || 0} agreement/portal email(s).`);
     } catch (error: any) {
       alert(error.message || "Failed to send agreement.");
     } finally {

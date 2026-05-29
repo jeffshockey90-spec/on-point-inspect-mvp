@@ -1,17 +1,19 @@
 import "./globals.css";
 import Navbar from "../components/Nav";
-import PWARegister from "../components/PWARegister";
 
 export const metadata = {
   title: "On Point Inspection",
   description: "Inspection Dashboard",
   manifest: "/manifest.json",
-  themeColor: "#14b8a6",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
     title: "On Point Inspect",
   },
+};
+
+export const viewport = {
+  themeColor: "#14b8a6",
 };
 
 export default function RootLayout({
@@ -48,11 +50,23 @@ export default function RootLayout({
           rel="apple-touch-icon"
           href="/logo.jpg"
         />
+
+        <link
+          rel="icon"
+          type="image/png"
+          sizes="192x192"
+          href="/icons/icon-192.png"
+        />
+
+        <link
+          rel="icon"
+          type="image/png"
+          sizes="512x512"
+          href="/icons/icon-512.png"
+        />
       </head>
 
       <body className="bg-[#050816] text-white">
-        <PWARegister />
-
         <Navbar />
 
         {children}

@@ -2,30 +2,29 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 export default async function proxy(request: NextRequest) {
-  let response = NextResponse.next({ request });
-
   const pathname = request.nextUrl.pathname;
 
-  const publicRoutes = [
-    "/",
-    "/login",
-    "/signup",
-    "/api",
-    "/share",
-    "/client",
-    "/client-portal",
-    "/client-agreement",
-    "/forgot-password",
-    "/reset-password",
-  ];
-
-  const isPublicRoute = publicRoutes.some((route) =>
-    route === "/" ? pathname === "/" : pathname.startsWith(route)
-  );
+  const isPublicRoute =
+    pathname === "/" ||
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/signup") ||
+    pathname.startsWith("/api") ||
+    pathname.startsWith("/share") ||
+    pathname.startsWith("/client") ||
+    pathname.startsWith("/client-portal") ||
+    pathname.startsWith("/client-agreement") ||
+    pathname.startsWith("/forgot-password") ||
+    pathname.startsWith("/reset-password");
 
   if (isPublicRoute) {
-    return response;
+    return NextResponse.next();
   }
+
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -40,7 +39,11 @@ export default async function proxy(request: NextRequest) {
             request.cookies.set(name, value);
           });
 
-          response = NextResponse.next({ request });
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          });
 
           cookiesToSet.forEach(({ name, value, options }) => {
             response.cookies.set(name, value, options);
@@ -71,8 +74,6 @@ export default async function proxy(request: NextRequest) {
     "/quotes",
   ];
 
-  const authRoutes = ["/login", "/signup"];
-
   const isProtected = protectedRoutes.some((route) =>
     pathname.startsWith(route)
   );
@@ -84,17 +85,11 @@ export default async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (authRoutes.includes(pathname) && user) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
-    return NextResponse.redirect(url);
-  }
-
   return response;
 }
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next|favicon.ico|manifest.json|robots.txt|sitemap.xml|icons|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|map|txt|xml|json)$).*)",
   ],
 };

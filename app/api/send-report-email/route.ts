@@ -78,9 +78,9 @@ export async function POST(req: Request) {
 
     const appUrl =
       process.env.NEXT_PUBLIC_APP_URL ||
-      process.env.VERCEL_URL
+      (process.env.VERCEL_URL
         ? `https://${process.env.VERCEL_URL}`
-        : "http://localhost:3000";
+        : "http://localhost:3000");
 
     const finalShareUrl = `${appUrl}/share/${inspectionId}`;
 
@@ -128,7 +128,8 @@ export async function POST(req: Request) {
 
     const from =
       process.env.REPORT_EMAIL_FROM ||
-      "On Point Home Inspections <onboarding@resend.dev>";
+      process.env.RESEND_FROM_EMAIL ||
+      "On Point Home Inspections <reports@onpointhomeinspect.com>";
 
     const resendRes = await fetch("https://api.resend.com/emails", {
       method: "POST",

@@ -107,6 +107,43 @@ function getSeverityClass(severity: string | null | undefined) {
   return "bg-teal-700 text-white border-teal-800";
 }
 
+
+function groupChecklistRows(rows: any[]) {
+  const grouped: Record<string, Record<string, any[]>> = {};
+
+  (rows || []).forEach((row: any) => {
+    if (!grouped[row.section]) grouped[row.section] = {};
+    if (!grouped[row.section][row.group_title]) grouped[row.section][row.group_title] = [];
+    grouped[row.section][row.group_title].push(row);
+  });
+
+  return grouped;
+}
+
+function groupLimitations(rows: any[], photosByLimitationId: Record<string, any[]>) {
+  const grouped: Record<string, any[]> = {};
+
+  (rows || []).forEach((row: any) => {
+    if (!grouped[row.section]) grouped[row.section] = [];
+    grouped[row.section].push({
+      ...row,
+      photos: photosByLimitationId[row.id] || [],
+    });
+  });
+
+  return grouped;
+}
+
+async function createSignedUrl(supabase: any, filePath: string) {
+  if (!filePath) return "";
+
+  const { data } = await supabase.storage
+    .from("inspection-photos")
+    .createSignedUrl(filePath, 60 * 60 * 24 * 7);
+
+  return data?.signedUrl || "";
+}
+
 export default async function PrintableReportPage({ params }: PageProps) {
   const { id } = await params;
   const supabase = await createSupabaseServerClient();
@@ -209,6 +246,61 @@ export default async function PrintableReportPage({ params }: PageProps) {
       };
     })
   );
+
+
+  const { data: checklistRows } = await supabase
+    .from("section_checklist_selections")
+    .select("*")
+    .eq("inspection_id", inspection.id)
+    .order("created_at", { ascending: true });
+
+  const { data: limitationRows } = await supabase
+    .from("section_limitations")
+    .select("*")
+    .eq("inspection_id", inspection.id)
+    .order("created_at", { ascending: true });
+
+  const limitationIds = (limitationRows || []).map((item: any) => item.id);
+
+  const { data: limitationPhotosRaw } =
+    limitationIds.length > 0
+      ? await supabase
+          .from("limitation_photos")
+          .select("*")
+          .in("limitation_id", limitationIds)
+      : { data: [] };
+
+  const limitationPhotosWithUrls = await Promise.all(
+    (limitationPhotosRaw || []).map(async (photo: any) => ({
+      ...photo,
+      signed_url:
+        (await createSignedUrl(supabase, photo.file_path)) ||
+        photo.public_url ||
+        "",
+    }))
+  );
+
+  const photosByLimitationId = limitationPhotosWithUrls.reduce(
+    (acc: Record<string, any[]>, photo: any) => {
+      if (!photo.limitation_id) return acc;
+      if (!acc[photo.limitation_id]) acc[photo.limitation_id] = [];
+      acc[photo.limitation_id].push(photo);
+      return acc;
+    },
+    {}
+  );
+
+  const checklistBySection = groupChecklistRows(checklistRows || []);
+  const limitationsBySection = groupLimitations(
+    limitationRows || [],
+    photosByLimitationId
+  );
+
+  const { data: reportDisclaimers } = await supabase
+    .from("report_disclaimers")
+    .select("*")
+    .eq("inspection_id", inspection.id)
+    .order("created_at", { ascending: true });
 
   const defectFindings = findings.filter((finding: any) => {
     const section = String(finding.section || "").toLowerCase();
@@ -413,6 +505,117 @@ export default async function PrintableReportPage({ params }: PageProps) {
             <p className="mt-4 whitespace-pre-wrap text-base leading-7 text-slate-800">
               {inspection.report_summary}
             </p>
+          </section>
+        )}
+
+
+        {Object.keys(checklistBySection).length > 0 && (
+          <section className="avoid-break page-break rounded-2xl border border-slate-300 bg-white p-6">
+            <h2 className="text-3xl font-black text-slate-950">
+              Inspection Information
+            </h2>
+
+            <div className="mt-6 space-y-6">
+              {SECTION_ORDER.filter((section) => checklistBySection[section]).map(
+                (section) => (
+                  <div key={section} className="avoid-break rounded-xl border border-slate-300 p-5">
+                    <h3 className="mb-4 text-2xl font-black text-teal-800">
+                      {section}
+                    </h3>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {Object.entries(checklistBySection[section]).map(
+                        ([groupTitle, rows]: any) => (
+                          <div key={groupTitle}>
+                            <p className="text-xs font-black uppercase tracking-wide text-slate-500">
+                              {groupTitle}
+                            </p>
+
+                            <p className="mt-1 text-base font-semibold text-slate-800">
+                              {(rows || [])
+                                .map((row: any) => row.custom_text || row.value)
+                                .filter((value: string) => value !== "__TEXT_VALUE__")
+                                .join(", ") || "N/A"}
+                            </p>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  </div>
+                )
+              )}
+            </div>
+          </section>
+        )}
+
+        {Object.keys(limitationsBySection).length > 0 && (
+          <section className="avoid-break page-break rounded-2xl border border-yellow-300 bg-yellow-50 p-6">
+            <h2 className="text-3xl font-black text-yellow-800">
+              Limitations
+            </h2>
+
+            <div className="mt-6 space-y-6">
+              {SECTION_ORDER.filter((section) => limitationsBySection[section]).map(
+                (section) => (
+                  <div key={section} className="avoid-break rounded-xl border border-slate-300 bg-white p-5">
+                    <h3 className="mb-4 text-2xl font-black text-slate-950">
+                      {section}
+                    </h3>
+
+                    <div className="space-y-5">
+                      {(limitationsBySection[section] || []).map((item: any) => (
+                        <div key={item.id} className="avoid-break rounded-xl border border-slate-300 p-4">
+                          <p className="font-black text-yellow-800">
+                            {item.custom_text || item.label}
+                          </p>
+
+                          {item.limitation_comment && (
+                            <p className="mt-3 whitespace-pre-wrap text-base leading-7 text-slate-700">
+                              {item.limitation_comment}
+                            </p>
+                          )}
+
+                          {item.photos?.length > 0 && (
+                            <div className="mt-4 grid gap-4 md:grid-cols-3">
+                              {item.photos.map((photo: any) => (
+                                <img
+                                  key={photo.id}
+                                  src={photo.signed_url || photo.public_url}
+                                  alt="Limitation photo"
+                                  className="max-h-[260px] w-full rounded-xl border object-cover"
+                                />
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              )}
+            </div>
+          </section>
+        )}
+
+        {reportDisclaimers && reportDisclaimers.length > 0 && (
+          <section className="avoid-break page-break rounded-2xl border border-purple-200 bg-purple-50 p-6">
+            <h2 className="text-3xl font-black text-purple-800">
+              Disclaimers
+            </h2>
+
+            <div className="mt-6 space-y-5">
+              {reportDisclaimers.map((disclaimer: any) => (
+                <div key={disclaimer.id} className="avoid-break rounded-xl border border-slate-300 bg-white p-5">
+                  <h3 className="text-2xl font-black text-slate-950">
+                    {disclaimer.topic}
+                  </h3>
+
+                  <p className="mt-3 whitespace-pre-wrap text-base leading-7 text-slate-700">
+                    {disclaimer.disclaimer_text}
+                  </p>
+                </div>
+              ))}
+            </div>
           </section>
         )}
 

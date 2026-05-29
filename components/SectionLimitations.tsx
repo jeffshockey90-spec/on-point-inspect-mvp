@@ -1,0 +1,812 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { supabase } from "../lib/supabaseClient";
+
+const PHOTO_BUCKET = "inspection-photos";
+
+const DEFAULT_LIMITATIONS = [
+  "Personal Property Present",
+  "Stored Items Obstructing View",
+  "Limited Access",
+  "Not Operated",
+  "Utilities Off",
+  "Not Fully Visible",
+  "Unable to Inspect Fully",
+  "Other",
+];
+
+const SECTION_LIMITATIONS: Record<string, string[]> = {
+  "Inspection Details": [
+    "Client Not Present",
+    "Property Occupied",
+    "Utilities Off",
+    "Limited Access",
+    "Weather Limitations",
+    "Other",
+  ],
+  Exterior: [
+    "Personal Property Present",
+    "Vegetation Obstructing View",
+    "Limited Access",
+    "Snow Covered",
+    "Not Fully Visible",
+    "Other",
+  ],
+  Roof: [
+    "Viewed From Ground",
+    "Viewed From Ladder",
+    "Not Walked",
+    "Steep Roof",
+    "Wet Surface",
+    "Snow Covered",
+    "Limited Access",
+    "Other",
+  ],
+  "Basement, Foundation, Crawlspace & Structure": [
+    "Personal Property Present",
+    "Stored Items Obstructing View",
+    "Limited Access",
+    "Crawlspace Not Entered",
+    "Insulation Obstructing View",
+    "Other",
+  ],
+  Heating: [
+    "Not Operated",
+    "Utilities Off",
+    "Panel Not Removed",
+    "Limited Access",
+    "System Obstructed",
+    "Other",
+  ],
+  Cooling: [
+    "Not Operated",
+    "Low Outdoor Temperature",
+    "Utilities Off",
+    "Panel Not Removed",
+    "Limited Access",
+    "Other",
+  ],
+  Plumbing: [
+    "Utilities Off",
+    "Personal Property Present",
+    "Limited Access",
+    "Fixtures Not Operated",
+    "Water Off",
+    "Other",
+  ],
+  Electrical: [
+    "Panel Obstructed",
+    "Cover Not Removed",
+    "Utilities Off",
+    "Limited Access",
+    "Personal Property Present",
+    "Other",
+  ],
+  "Attic, Insulation & Ventilation": [
+    "Limited Access",
+    "Attic Not Entered",
+    "Viewed From Opening",
+    "Insulation Obstructing View",
+    "Stored Items Present",
+    "Other",
+  ],
+  "Doors, Windows & Interior": [
+    "Personal Property Present",
+    "Furniture Obstructing View",
+    "Limited Access",
+    "Not Operated",
+    "Stored Items Obstructing View",
+    "Other",
+  ],
+  "Built-in Appliances": [
+    "Appliances Not Moved",
+    "Personal Property Present",
+    "Not Operated",
+    "Utilities Off",
+    "Limited Access",
+    "Other",
+  ],
+  Garage: [
+    "Personal Property Present",
+    "Stored Items Obstructing View",
+    "Limited Access",
+    "Vehicle Present",
+    "Not Operated",
+    "Other",
+  ],
+};
+
+type LimitationRow = {
+  id: string;
+  inspection_id: string;
+  section: string;
+  label: string;
+  custom_text?: string | null;
+  ai_notes?: string | null;
+  limitation_comment?: string | null;
+};
+
+type LimitationPhoto = {
+  id: string;
+  limitation_id: string;
+  inspection_id: string;
+  section: string;
+  file_path: string;
+  public_url?: string | null;
+  signed_url?: string | null;
+};
+
+export default function SectionLimitations({
+  inspectionId,
+  section,
+}: {
+  inspectionId: string;
+  section: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [saved, setSaved] = useState<LimitationRow[]>([]);
+  const [photosByLimitationId, setPhotosByLimitationId] = useState<
+    Record<string, LimitationPhoto[]>
+  >({});
+  const [customText, setCustomText] = useState("");
+  const [aiNotes, setAiNotes] = useState("");
+  const [generatedComment, setGeneratedComment] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [uploadingForId, setUploadingForId] = useState<string | null>(null);
+
+  const options = useMemo(
+    () => SECTION_LIMITATIONS[section] || DEFAULT_LIMITATIONS,
+    [section]
+  );
+
+  useEffect(() => {
+    async function loadLimitations() {
+      if (!inspectionId || !section) return;
+
+      const { data, error } = await supabase
+        .from("section_limitations")
+        .select("*")
+        .eq("inspection_id", inspectionId)
+        .eq("section", section)
+        .order("created_at", { ascending: true });
+
+      if (error) {
+        console.error("Failed to load section limitations:", error);
+        return;
+      }
+
+      const rows = data || [];
+      setSaved(rows);
+
+      const aiRow = rows.find(
+        (item: LimitationRow) => item.label === "AI Limitation Note"
+      );
+
+      if (aiRow?.ai_notes) setAiNotes(aiRow.ai_notes);
+      if (aiRow?.limitation_comment || aiRow?.custom_text) {
+        setGeneratedComment(aiRow.limitation_comment || aiRow.custom_text || "");
+      }
+
+      const limitationIds = rows.map((row: LimitationRow) => row.id);
+
+      if (limitationIds.length === 0) {
+        setPhotosByLimitationId({});
+        return;
+      }
+
+      await loadLimitationPhotos(limitationIds);
+    }
+
+    loadLimitations();
+  }, [inspectionId, section]);
+
+  async function loadLimitationPhotos(limitationIds: string[]) {
+    const { data, error } = await supabase
+      .from("limitation_photos")
+      .select("*")
+      .in("limitation_id", limitationIds)
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      console.error("Failed to load limitation photos:", error);
+      return;
+    }
+
+    const photos = await Promise.all(
+      (data || []).map(async (photo: LimitationPhoto) => {
+        if (!photo.file_path) return photo;
+
+        const { data: signedData } = await supabase.storage
+          .from(PHOTO_BUCKET)
+          .createSignedUrl(photo.file_path, 60 * 60 * 24 * 7);
+
+        return {
+          ...photo,
+          signed_url: signedData?.signedUrl || photo.public_url || "",
+        };
+      })
+    );
+
+    const grouped: Record<string, LimitationPhoto[]> = {};
+
+    photos.forEach((photo) => {
+      if (!grouped[photo.limitation_id]) grouped[photo.limitation_id] = [];
+      grouped[photo.limitation_id].push(photo);
+    });
+
+    setPhotosByLimitationId(grouped);
+  }
+
+  const selectedStandard = saved.filter(
+    (item) => item.label !== "AI Limitation Note" && !item.custom_text
+  );
+
+  const customSaved = saved.filter(
+    (item) => item.label !== "AI Limitation Note" && item.custom_text
+  );
+
+  const aiSaved = saved.find((item) => item.label === "AI Limitation Note");
+
+  function isSelected(label: string) {
+    return saved.some(
+      (item) =>
+        item.label === label &&
+        !item.custom_text &&
+        item.label !== "AI Limitation Note"
+    );
+  }
+
+  async function toggleLimitation(label: string) {
+    if (!inspectionId || !section || saving) return;
+    if (label === "Other") return;
+
+    setSaving(true);
+
+    try {
+      const existing = saved.find(
+        (item) => item.label === label && !item.custom_text
+      );
+
+      if (existing) {
+        const { error } = await supabase
+          .from("section_limitations")
+          .delete()
+          .eq("id", existing.id);
+
+        if (error) throw error;
+
+        setSaved((prev) => prev.filter((item) => item.id !== existing.id));
+        setPhotosByLimitationId((prev) => {
+          const next = { ...prev };
+          delete next[existing.id];
+          return next;
+        });
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("section_limitations")
+        .insert({
+          inspection_id: inspectionId,
+          section,
+          label,
+        })
+        .select("*")
+        .single();
+
+      if (error) throw error;
+
+      if (data) setSaved((prev) => [...prev, data]);
+    } catch (error: any) {
+      alert(error?.message || "Failed to save limitation.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function addCustomLimitation() {
+    const clean = customText.trim();
+
+    if (!clean || !inspectionId || !section || saving) return;
+
+    setSaving(true);
+
+    try {
+      const { data, error } = await supabase
+        .from("section_limitations")
+        .insert({
+          inspection_id: inspectionId,
+          section,
+          label: "Other",
+          custom_text: clean,
+        })
+        .select("*")
+        .single();
+
+      if (error) throw error;
+
+      if (data) setSaved((prev) => [...prev, data]);
+      setCustomText("");
+    } catch (error: any) {
+      alert(error?.message || "Failed to save custom limitation.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function removeLimitation(id: string) {
+    if (saving) return;
+
+    setSaving(true);
+
+    try {
+      const { error } = await supabase
+        .from("section_limitations")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+
+      setSaved((prev) => prev.filter((item) => item.id !== id));
+      setPhotosByLimitationId((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+
+      if (aiSaved?.id === id) {
+        setAiNotes("");
+        setGeneratedComment("");
+      }
+    } catch (error: any) {
+      alert(error?.message || "Failed to remove limitation.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function uploadLimitationPhoto(
+    limitation: LimitationRow,
+    file: File | undefined
+  ) {
+    if (!file || !inspectionId || !limitation.id) return;
+
+    setUploadingForId(limitation.id);
+
+    try {
+      const fileExt = file.name.split(".").pop() || "jpg";
+      const filePath = `${inspectionId}/limitations/${limitation.id}/${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2)}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from(PHOTO_BUCKET)
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: publicData } = supabase.storage
+        .from(PHOTO_BUCKET)
+        .getPublicUrl(filePath);
+
+      const { data, error } = await supabase
+        .from("limitation_photos")
+        .insert({
+          limitation_id: limitation.id,
+          inspection_id: inspectionId,
+          section,
+          file_path: filePath,
+          public_url: publicData.publicUrl,
+        })
+        .select("*")
+        .single();
+
+      if (error) throw error;
+
+      const { data: signedData } = await supabase.storage
+        .from(PHOTO_BUCKET)
+        .createSignedUrl(filePath, 60 * 60 * 24 * 7);
+
+      const savedPhoto: LimitationPhoto = {
+        ...data,
+        signed_url: signedData?.signedUrl || publicData.publicUrl,
+      };
+
+      setPhotosByLimitationId((prev) => ({
+        ...prev,
+        [limitation.id]: [...(prev[limitation.id] || []), savedPhoto],
+      }));
+    } catch (error: any) {
+      alert(error?.message || "Failed to upload limitation photo.");
+    } finally {
+      setUploadingForId(null);
+    }
+  }
+
+  async function deleteLimitationPhoto(photo: LimitationPhoto) {
+    if (!photo.id) return;
+
+    const confirmed = window.confirm("Delete this limitation photo?");
+
+    if (!confirmed) return;
+
+    try {
+      const { error } = await supabase
+        .from("limitation_photos")
+        .delete()
+        .eq("id", photo.id);
+
+      if (error) throw error;
+
+      if (photo.file_path) {
+        await supabase.storage.from(PHOTO_BUCKET).remove([photo.file_path]);
+      }
+
+      setPhotosByLimitationId((prev) => ({
+        ...prev,
+        [photo.limitation_id]: (prev[photo.limitation_id] || []).filter(
+          (item) => item.id !== photo.id
+        ),
+      }));
+    } catch (error: any) {
+      alert(error?.message || "Failed to delete limitation photo.");
+    }
+  }
+
+  async function generateAiLimitationComment() {
+    const cleanNotes = aiNotes.trim();
+
+    if (!cleanNotes) {
+      alert("Add a note for the AI first.");
+      return;
+    }
+
+    setGenerating(true);
+
+    try {
+      const res = await fetch("/api/generate-limitation-note", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          section,
+          notes: cleanNotes,
+          selectedLimitations: [
+            ...selectedStandard.map((item) => item.label),
+            ...customSaved.map((item) => item.custom_text || item.label),
+          ],
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.error || "Failed to generate limitation note.");
+        return;
+      }
+
+      setGeneratedComment(data.comment || "");
+    } catch (error: any) {
+      alert(error?.message || "Failed to generate limitation note.");
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  async function saveAiLimitationComment() {
+    const cleanNotes = aiNotes.trim();
+    const cleanComment = generatedComment.trim();
+
+    if (!cleanComment) {
+      alert("No AI limitation comment to save.");
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      if (aiSaved) {
+        const { data, error } = await supabase
+          .from("section_limitations")
+          .update({
+            ai_notes: cleanNotes,
+            limitation_comment: cleanComment,
+            custom_text: cleanComment,
+          })
+          .eq("id", aiSaved.id)
+          .select("*")
+          .single();
+
+        if (error) throw error;
+
+        setSaved((prev) =>
+          prev.map((item) => (item.id === aiSaved.id ? data : item))
+        );
+      } else {
+        const { data, error } = await supabase
+          .from("section_limitations")
+          .insert({
+            inspection_id: inspectionId,
+            section,
+            label: "AI Limitation Note",
+            ai_notes: cleanNotes,
+            limitation_comment: cleanComment,
+            custom_text: cleanComment,
+          })
+          .select("*")
+          .single();
+
+        if (error) throw error;
+
+        if (data) setSaved((prev) => [...prev, data]);
+      }
+
+      alert("Limitation note saved.");
+    } catch (error: any) {
+      alert(error?.message || "Failed to save AI limitation note.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const selectedCount =
+    selectedStandard.length + customSaved.length + (aiSaved ? 1 : 0);
+
+  const selectedLimitations = [...selectedStandard, ...customSaved];
+
+  return (
+    <div className="rounded-2xl border border-slate-700 bg-[#071224]">
+      <button
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left hover:bg-slate-800/50"
+      >
+        <div>
+          <h3 className="text-xl font-black text-teal-300">Limitations</h3>
+          <p className="mt-1 text-sm text-slate-400">
+            {selectedCount > 0
+              ? `${selectedCount} limitation${selectedCount === 1 ? "" : "s"} selected`
+              : "No limitations selected"}
+          </p>
+        </div>
+
+        <span className="rounded-xl border border-slate-600 px-4 py-2 text-sm font-black text-slate-200">
+          {open ? "Hide" : "Show"}
+        </span>
+      </button>
+
+      {(selectedStandard.length > 0 || customSaved.length > 0 || aiSaved) && (
+        <div className="border-t border-slate-700 px-5 py-3">
+          <div className="flex flex-wrap gap-2">
+            {selectedStandard.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => removeLimitation(item.id)}
+                className="rounded-full border border-teal-500/60 bg-teal-500/10 px-3 py-1 text-sm font-bold text-teal-200 hover:bg-teal-500/20"
+                title="Click to remove"
+              >
+                {item.label} ×
+              </button>
+            ))}
+
+            {customSaved.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => removeLimitation(item.id)}
+                className="rounded-full border border-yellow-500/60 bg-yellow-500/10 px-3 py-1 text-sm font-bold text-yellow-200 hover:bg-yellow-500/20"
+                title="Click to remove"
+              >
+                {item.custom_text} ×
+              </button>
+            ))}
+
+            {aiSaved && (
+              <button
+                type="button"
+                onClick={() => removeLimitation(aiSaved.id)}
+                className="rounded-full border border-purple-500/60 bg-purple-500/10 px-3 py-1 text-sm font-bold text-purple-200 hover:bg-purple-500/20"
+                title="Click to remove"
+              >
+                AI Limitation Note ×
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {open && (
+        <div className="space-y-5 border-t border-slate-700 p-5">
+          <div>
+            <p className="mb-3 text-sm font-bold uppercase tracking-wide text-slate-400">
+              Select limitation conditions
+            </p>
+
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {options
+                .filter((option) => option !== "Other")
+                .map((option) => {
+                  const selected = isSelected(option);
+
+                  return (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => toggleLimitation(option)}
+                      disabled={saving}
+                      className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition ${
+                        selected
+                          ? "border-teal-400 bg-teal-500/15 text-teal-100"
+                          : "border-slate-600 bg-[#020617] text-white hover:border-teal-400 hover:bg-teal-500/10"
+                      } disabled:cursor-not-allowed disabled:opacity-60`}
+                    >
+                      <span
+                        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-2 ${
+                          selected
+                            ? "border-teal-300 bg-teal-400 text-slate-950"
+                            : "border-white"
+                        }`}
+                      >
+                        {selected ? "✓" : ""}
+                      </span>
+
+                      <span className="font-bold">{option}</span>
+                    </button>
+                  );
+                })}
+            </div>
+          </div>
+
+          {selectedLimitations.length > 0 && (
+            <div className="rounded-xl border border-slate-700 bg-slate-950/50 p-4">
+              <p className="mb-3 text-sm font-bold uppercase tracking-wide text-slate-400">
+                Limitation Photos
+              </p>
+
+              <div className="space-y-4">
+                {selectedLimitations.map((limitation) => {
+                  const label = limitation.custom_text || limitation.label;
+                  const photos = photosByLimitationId[limitation.id] || [];
+
+                  return (
+                    <div
+                      key={limitation.id}
+                      className="rounded-xl border border-slate-700 bg-[#020617] p-4"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <p className="font-black text-teal-300">{label}</p>
+
+                        <label className="cursor-pointer rounded-xl border border-teal-500 px-4 py-2 text-sm font-black text-teal-300 hover:bg-teal-500/10">
+                          {uploadingForId === limitation.id
+                            ? "Uploading..."
+                            : "Upload Photo"}
+                          <input
+                            type="file"
+                            accept="image/*"
+                                                        disabled={uploadingForId === limitation.id}
+                            onChange={(event) => {
+                              const file = event.target.files?.[0];
+                              uploadLimitationPhoto(limitation, file);
+                              event.currentTarget.value = "";
+                            }}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
+
+                      {photos.length > 0 && (
+                        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                          {photos.map((photo) => {
+                            const photoUrl =
+                              photo.signed_url || photo.public_url || "";
+
+                            if (!photoUrl) return null;
+
+                            return (
+                              <div
+                                key={photo.id}
+                                className="overflow-hidden rounded-xl border border-slate-700 bg-black"
+                              >
+                                <img
+                                  src={photoUrl}
+                                  alt="Limitation"
+                                  className="h-40 w-full object-cover"
+                                />
+
+                                <button
+                                  type="button"
+                                  onClick={() => deleteLimitationPhoto(photo)}
+                                  className="w-full border-t border-slate-700 bg-slate-950 px-3 py-2 text-xs font-black text-red-300 hover:bg-red-500/10"
+                                >
+                                  Delete Photo
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <div className="rounded-xl border border-slate-700 bg-slate-950/50 p-4">
+            <p className="mb-3 text-sm font-bold uppercase tracking-wide text-slate-400">
+              + Other Limitation
+            </p>
+
+            <div className="flex flex-col gap-3 md:flex-row">
+              <input
+                value={customText}
+                onChange={(event) => setCustomText(event.target.value)}
+                placeholder="Enter custom limitation..."
+                className="min-w-0 flex-1 rounded-xl border border-slate-700 bg-[#020617] px-4 py-3 text-white outline-none focus:border-teal-400"
+              />
+
+              <button
+                type="button"
+                onClick={addCustomLimitation}
+                disabled={saving || !customText.trim()}
+                className="rounded-xl border border-teal-500 px-5 py-3 font-black text-teal-300 hover:bg-teal-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Add Other
+              </button>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-purple-500/40 bg-purple-500/10 p-4">
+            <p className="text-sm font-bold uppercase tracking-wide text-purple-300">
+              AI Limitation Note
+            </p>
+
+            <p className="mt-1 text-sm text-slate-300">
+              Add your rough note, then let AI turn it into a professional limitation comment.
+            </p>
+
+            <textarea
+              value={aiNotes}
+              onChange={(event) => setAiNotes(event.target.value)}
+              rows={3}
+              placeholder="Example: attic only viewed from opening due to limited access and stored items..."
+              className="mt-4 w-full rounded-xl border border-slate-700 bg-[#020617] p-4 text-white outline-none focus:border-purple-400"
+            />
+
+            <div className="mt-3 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={generateAiLimitationComment}
+                disabled={generating || saving || !aiNotes.trim()}
+                className="rounded-xl bg-purple-500 px-5 py-3 font-black text-white hover:bg-purple-400 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {generating ? "Generating..." : "AI Fill Limitation Comment"}
+              </button>
+
+              <button
+                type="button"
+                onClick={saveAiLimitationComment}
+                disabled={saving || !generatedComment.trim()}
+                className="rounded-xl border border-teal-500 px-5 py-3 font-black text-teal-300 hover:bg-teal-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Save AI Note
+              </button>
+            </div>
+
+            <textarea
+              value={generatedComment}
+              onChange={(event) => setGeneratedComment(event.target.value)}
+              rows={4}
+              placeholder="AI limitation comment will appear here..."
+              className="mt-4 w-full rounded-xl border border-slate-700 bg-[#020617] p-4 text-white outline-none focus:border-purple-400"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

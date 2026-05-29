@@ -77,41 +77,87 @@ function getPropertyPhoto(inspection: any) {
   );
 }
 
-async function signPhotoUrl(photo: any) {
-  const filePath =
-    photo.file_path ||
-    photo.storage_path ||
-    photo.photo_path ||
-    getStoragePathFromUrl(photo.public_url) ||
-    getStoragePathFromUrl(photo.image_url) ||
-    getStoragePathFromUrl(photo.photo_url);
-
-  if (!filePath) {
-    return (
-      photo.signed_url ||
-      photo.public_url ||
-      photo.image_url ||
-      photo.photo_url ||
-      ""
-    );
-  }
-
-  const { data, error } = await supabase.storage
-    .from("inspection-photos")
-    .createSignedUrl(filePath, 60 * 60 * 24 * 7);
-
-  if (error) {
-    console.error("Share signed photo error:", error);
-  }
-
+function getPhotoStoragePath(photo: any) {
   return (
-    data?.signedUrl ||
-    photo.signed_url ||
-    photo.public_url ||
-    photo.image_url ||
-    photo.photo_url ||
+    photo?.file_path ||
+    photo?.storage_path ||
+    photo?.photo_path ||
+    getStoragePathFromUrl(photo?.public_url) ||
+    getStoragePathFromUrl(photo?.image_url) ||
+    getStoragePathFromUrl(photo?.photo_url) ||
     ""
   );
+}
+
+function getFallbackPhotoUrl(photo: any) {
+  return (
+    photo?.signed_url ||
+    photo?.public_url ||
+    photo?.image_url ||
+    photo?.photo_url ||
+    ""
+  );
+}
+
+async function createSignedUrlMap(paths: string[]) {
+  const uniquePaths = Array.from(
+    new Set(paths.filter((path) => Boolean(path)))
+  );
+
+  const signedMap: Record<string, string> = {};
+
+  if (uniquePaths.length === 0) return signedMap;
+
+  const chunkSize = 50;
+
+  for (let i = 0; i < uniquePaths.length; i += chunkSize) {
+    const chunk = uniquePaths.slice(i, i + chunkSize);
+
+    const { data, error } = await supabase.storage
+      .from("inspection-photos")
+      .createSignedUrls(chunk, 60 * 60 * 24 * 7);
+
+    if (error) {
+      console.error("Share batch signed photo error:", error);
+      continue;
+    }
+
+    (data || []).forEach((item: any, index: number) => {
+      const path = item?.path || chunk[index];
+      if (path && item?.signedUrl) {
+        signedMap[path] = item.signedUrl;
+      }
+    });
+  }
+
+  return signedMap;
+}
+
+
+function groupChecklistRows(rows: any[]) {
+  const grouped: Record<string, Record<string, any[]>> = {};
+
+  (rows || []).forEach((row: any) => {
+    if (!grouped[row.section]) grouped[row.section] = {};
+    if (!grouped[row.section][row.group_title]) grouped[row.section][row.group_title] = [];
+    grouped[row.section][row.group_title].push(row);
+  });
+
+  return grouped;
+}
+
+function groupLimitations(rows: any[], photosByLimitationId: Record<string, any[]>) {
+  const grouped: Record<string, any[]> = {};
+
+  (rows || []).forEach((row: any) => {
+    if (!grouped[row.section]) grouped[row.section] = [];
+    grouped[row.section].push({
+      ...row,
+      photos: photosByLimitationId[row.id] || [],
+    });
+  });
+
+  return grouped;
 }
 
 export default async function PublicSharePage({
@@ -161,12 +207,27 @@ export default async function PublicSharePage({
     console.error("Share photos load error:", photosError);
   }
 
-  const photosWithUrls = await Promise.all(
-    (photosRaw || []).map(async (photo: any) => ({
+  const photoStoragePaths = (photosRaw || [])
+    .map((photo: any) => getPhotoStoragePath(photo))
+    .filter(Boolean);
+
+  const oldFindingImagePaths = (findingsRaw || [])
+    .map((finding: any) => getStoragePathFromUrl(finding.image_url))
+    .filter(Boolean);
+
+  const signedUrlMap = await createSignedUrlMap([
+    ...photoStoragePaths,
+    ...oldFindingImagePaths,
+  ]);
+
+  const photosWithUrls = (photosRaw || []).map((photo: any) => {
+    const path = getPhotoStoragePath(photo);
+
+    return {
       ...photo,
-      signed_url: await signPhotoUrl(photo),
-    }))
-  );
+      signed_url: (path && signedUrlMap[path]) || getFallbackPhotoUrl(photo),
+    };
+  });
 
   const photosByFindingId = photosWithUrls.reduce(
     (acc: Record<string, any[]>, photo: any) => {
@@ -178,35 +239,82 @@ export default async function PublicSharePage({
     {}
   );
 
-  const findings = await Promise.all(
-    (findingsRaw || []).map(async (finding: any) => {
-      let signedImageUrl = finding.image_url || "";
+  const findings = (findingsRaw || []).map((finding: any) => {
+    const oldImagePath = getStoragePathFromUrl(finding.image_url);
+    const signedImageUrl =
+      (oldImagePath && signedUrlMap[oldImagePath]) ||
+      finding.signed_image_url ||
+      finding.public_image_url ||
+      finding.image_url ||
+      null;
 
-      const oldImagePath = getStoragePathFromUrl(finding.image_url);
+    return {
+      ...finding,
+      section: normalizeSection(finding.section),
+      signed_image_url: signedImageUrl,
+      image_url: signedImageUrl || finding.image_url || null,
+      photos: photosByFindingId[finding.id] || [],
+    };
+  });
 
-      if (oldImagePath) {
-        const { data, error } = await supabase.storage
-          .from("inspection-photos")
-          .createSignedUrl(oldImagePath, 60 * 60 * 24 * 7);
 
-        if (error) {
-          console.error("Share old finding image sign error:", error);
-        }
+  const { data: checklistRows } = await supabase
+    .from("section_checklist_selections")
+    .select("*")
+    .eq("inspection_id", inspectionId)
+    .order("created_at", { ascending: true });
 
-        if (!error && data?.signedUrl) {
-          signedImageUrl = data.signedUrl;
-        }
-      }
+  const { data: limitationRows } = await supabase
+    .from("section_limitations")
+    .select("*")
+    .eq("inspection_id", inspectionId)
+    .order("created_at", { ascending: true });
 
-      return {
-        ...finding,
-        section: normalizeSection(finding.section),
-        signed_image_url: signedImageUrl,
-        image_url: signedImageUrl || finding.image_url || null,
-        photos: photosByFindingId[finding.id] || [],
-      };
-    })
+  const limitationIds = (limitationRows || []).map((item: any) => item.id);
+
+  const { data: limitationPhotosRaw } =
+    limitationIds.length > 0
+      ? await supabase
+          .from("limitation_photos")
+          .select("*")
+          .in("limitation_id", limitationIds)
+      : { data: [] };
+
+  const limitationPhotoPaths = (limitationPhotosRaw || [])
+    .map((photo: any) => photo.file_path)
+    .filter(Boolean);
+
+  const limitationSignedUrlMap = await createSignedUrlMap(limitationPhotoPaths);
+
+  const limitationPhotosWithUrls = (limitationPhotosRaw || []).map((photo: any) => ({
+    ...photo,
+    signed_url:
+      (photo.file_path && limitationSignedUrlMap[photo.file_path]) ||
+      photo.public_url ||
+      "",
+  }));
+
+  const photosByLimitationId = limitationPhotosWithUrls.reduce(
+    (acc: Record<string, any[]>, photo: any) => {
+      if (!photo.limitation_id) return acc;
+      if (!acc[photo.limitation_id]) acc[photo.limitation_id] = [];
+      acc[photo.limitation_id].push(photo);
+      return acc;
+    },
+    {}
   );
+
+  const checklistBySection = groupChecklistRows(checklistRows || []);
+  const limitationsBySection = groupLimitations(
+    limitationRows || [],
+    photosByLimitationId
+  );
+
+  const { data: reportDisclaimers } = await supabase
+    .from("report_disclaimers")
+    .select("*")
+    .eq("inspection_id", inspectionId)
+    .order("created_at", { ascending: true });
 
   const propertyPhoto = getPropertyPhoto(inspection);
 
@@ -318,6 +426,129 @@ export default async function PublicSharePage({
             </div>
           </section>
 
+
+          {Object.keys(checklistBySection).length > 0 && (
+            <section className="mt-8 rounded-2xl border border-slate-700 bg-[#071224] p-6">
+              <h2 className="mb-5 text-2xl font-bold text-teal-400">
+                Inspection Information
+              </h2>
+
+              <div className="space-y-6">
+                {SECTION_ORDER.filter((section) => checklistBySection[section]).map(
+                  (section) => (
+                    <div
+                      key={section}
+                      className="rounded-xl border border-slate-700 bg-[#0f172a] p-5"
+                    >
+                      <h3 className="mb-4 text-xl font-bold text-white">
+                        {section}
+                      </h3>
+
+                      <div className="grid gap-4 md:grid-cols-2">
+                        {Object.entries(checklistBySection[section]).map(
+                          ([groupTitle, rows]: any) => (
+                            <div key={groupTitle}>
+                              <p className="text-sm font-bold uppercase tracking-wide text-slate-400">
+                                {groupTitle}
+                              </p>
+
+                              <p className="mt-1 whitespace-pre-line text-slate-100">
+                                {(rows || [])
+                                  .map((row: any) => row.custom_text || row.value)
+                                  .filter((value: string) => value !== "__TEXT_VALUE__")
+                                  .join(", ") || "N/A"}
+                              </p>
+                            </div>
+                          )
+                        )}
+                      </div>
+                    </div>
+                  )
+                )}
+              </div>
+            </section>
+          )}
+
+          {Object.keys(limitationsBySection).length > 0 && (
+            <section className="mt-8 rounded-2xl border border-yellow-500/40 bg-[#071224] p-6">
+              <h2 className="mb-5 text-2xl font-bold text-yellow-300">
+                Limitations
+              </h2>
+
+              <div className="space-y-6">
+                {SECTION_ORDER.filter((section) => limitationsBySection[section]).map(
+                  (section) => (
+                    <div
+                      key={section}
+                      className="rounded-xl border border-slate-700 bg-[#0f172a] p-5"
+                    >
+                      <h3 className="mb-4 text-xl font-bold text-white">
+                        {section}
+                      </h3>
+
+                      <div className="space-y-5">
+                        {(limitationsBySection[section] || []).map((item: any) => (
+                          <div
+                            key={item.id}
+                            className="rounded-xl border border-slate-700 bg-[#020617] p-4"
+                          >
+                            <p className="font-bold text-yellow-200">
+                              {item.custom_text || item.label}
+                            </p>
+
+                            {item.limitation_comment && (
+                              <p className="mt-3 whitespace-pre-line leading-7 text-slate-300">
+                                {item.limitation_comment}
+                              </p>
+                            )}
+
+                            {item.photos?.length > 0 && (
+                              <div className="mt-4 grid gap-3 md:grid-cols-3">
+                                {item.photos.map((photo: any) => (
+                                  <img
+                                    key={photo.id}
+                                    src={photo.signed_url || photo.public_url}
+                                    alt="Limitation photo"
+                                    className="max-h-[260px] w-full rounded-xl border border-slate-700 object-cover"
+                                  />
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                )}
+              </div>
+            </section>
+          )}
+
+          {reportDisclaimers && reportDisclaimers.length > 0 && (
+            <section className="mt-8 rounded-2xl border border-purple-500/40 bg-[#071224] p-6">
+              <h2 className="mb-5 text-2xl font-bold text-purple-300">
+                Disclaimers
+              </h2>
+
+              <div className="space-y-5">
+                {reportDisclaimers.map((disclaimer: any) => (
+                  <div
+                    key={disclaimer.id}
+                    className="rounded-xl border border-slate-700 bg-[#0f172a] p-5"
+                  >
+                    <h3 className="text-xl font-bold text-white">
+                      {disclaimer.topic}
+                    </h3>
+
+                    <p className="mt-3 whitespace-pre-line leading-7 text-slate-300">
+                      {disclaimer.disclaimer_text}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
           <section className="mt-10">
             <h2 className="mb-8 text-3xl font-bold text-teal-400">
               Inspection Findings
@@ -340,7 +571,7 @@ export default async function PublicSharePage({
 
                     <div className="space-y-6">
                       {group.findings.map((finding: any) => {
-                        const firstPhoto = finding.photos?.[0];
+                        const firstPhoto = (finding.photos || [])[0];
 
                         const image =
                           firstPhoto?.signed_url ||
@@ -371,29 +602,7 @@ export default async function PublicSharePage({
                               />
                             )}
 
-                            {finding.photos?.length > 0 && (
-                              <div className="mb-5 grid gap-4 md:grid-cols-2">
-                                {finding.photos.map((photo: any) => {
-                                  const photoUrl =
-                                    photo.signed_url ||
-                                    photo.public_url ||
-                                    photo.image_url ||
-                                    photo.photo_url ||
-                                    "";
-
-                                  if (!photoUrl) return null;
-
-                                  return (
-                                    <img
-                                      key={photo.id}
-                                      src={photoUrl}
-                                      alt="Inspection finding"
-                                      className="max-h-[320px] w-full rounded-xl border border-slate-700 object-cover"
-                                    />
-                                  );
-                                })}
-                              </div>
-                            )}
+                            
 
                             <h4 className="text-2xl font-bold text-teal-300">
                               {finding.title}

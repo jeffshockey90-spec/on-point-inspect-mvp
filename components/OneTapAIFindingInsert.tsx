@@ -49,7 +49,6 @@ export default function OneTapAIFindingInsert({ inspectionId }: Props) {
   const [recommendation, setRecommendation] = useState("");
   const [inspectorId, setInspectorId] = useState("");
 
-
   async function loadInspector() {
     const {
       data: { user },
@@ -62,6 +61,11 @@ export default function OneTapAIFindingInsert({ inspectionId }: Props) {
 
   function resetForm() {
     setFile(null);
+
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+
     setPreviewUrl("");
     setInspectorNote("");
     setLoading(false);
@@ -84,6 +88,10 @@ export default function OneTapAIFindingInsert({ inspectionId }: Props) {
     const selected = e.target.files?.[0];
 
     if (!selected) return;
+
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
 
     setFile(selected);
     setPreviewUrl(URL.createObjectURL(selected));
@@ -341,19 +349,10 @@ export default function OneTapAIFindingInsert({ inspectionId }: Props) {
                 onUseTemplate={(template) => {
                   setTitle(template.title || "");
                   setSection(template.section || "Exterior");
-                  setSeverity(
-                    template.severity ||
-                      "Recommended Repair"
-                  );
-                  setObservation(
-                    template.observation || ""
-                  );
-                  setImplication(
-                    template.implication || ""
-                  );
-                  setRecommendation(
-                    template.recommendation || ""
-                  );
+                  setSeverity(template.severity || "Recommended Repair");
+                  setObservation(template.observation || "");
+                  setImplication(template.implication || "");
+                  setRecommendation(template.recommendation || "");
                 }}
               />
 
@@ -403,7 +402,6 @@ function fileToBase64(file: File): Promise<string> {
     const reader = new FileReader();
 
     reader.onload = () => resolve(reader.result as string);
-
     reader.onerror = reject;
 
     reader.readAsDataURL(file);

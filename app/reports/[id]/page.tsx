@@ -4,17 +4,17 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { createServerClient } from "@supabase/ssr";
 
-import ReportFindingsSortable from "./ReportFindingsSortable";
-import AiSummaryBanner from "./AiSummaryBanner";
-import SendReportEmailButtons from "../../../components/SendReportEmailButtons";
 import PrintButton from "../../../components/PrintButton";
-import InsertFavoriteFindingButton from "../../../components/InsertFavoriteFindingButton";
-import OneTapAIFindingInsert from "../../../components/OneTapAIFindingInsert";
+import ReportFindingsSortable from "./ReportFindingsSortable";
+import SendReportEmailButtons from "../../../components/SendReportEmailButtons";
 import InspectionContactsManager from "../../../components/InspectionContactsManager";
-import SendAgreementButton from "../../../components/SendAgreementButton";
 import AgreementSelector from "../../../components/AgreementSelector";
 import AgreementStatusPanel from "../../../components/AgreementStatusPanel";
 import ReportDeliveryGuard from "../../../components/ReportDeliveryGuard";
+import SendAgreementButton from "../../../components/SendAgreementButton";
+import SendFullReportButton from "../../../components/SendFullReportButton";
+import InsertFavoriteFindingButton from "../../../components/InsertFavoriteFindingButton";
+import OneTapAIFindingInsert from "../../../components/OneTapAIFindingInsert";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -51,9 +51,7 @@ async function createSupabaseServerClient() {
             cookiesToSet.forEach(({ name, value, options }) => {
               cookieStore.set(name, value, options);
             });
-          } catch {
-            // Server Components cannot always set cookies.
-          }
+          } catch {}
         },
       },
     }
@@ -300,8 +298,6 @@ export default async function ReportPage({ params }: PageProps) {
   return (
     <main className="min-h-screen bg-[#020617] text-white">
       <div className="mx-auto max-w-7xl px-6 py-8">
-        <AiSummaryBanner summary={inspection.report_summary} />
-
         <div className="mb-8 rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
           <div className="mb-8 flex flex-wrap gap-3">
             <PrintButton
@@ -309,59 +305,104 @@ export default async function ReportPage({ params }: PageProps) {
               className="rounded-xl bg-black px-5 py-3 font-bold text-white hover:bg-slate-800"
             />
 
-            <Link href={`/reports/${inspection.id}/print`} className="rounded-xl bg-white px-5 py-3 font-bold text-black hover:bg-slate-200">
+            <Link
+              href={`/reports/${inspection.id}/print`}
+              className="rounded-xl bg-white px-5 py-3 font-bold text-black hover:bg-slate-200"
+            >
               Export PDF
             </Link>
 
-            <Link href={`/reports/${inspection.id}/summary`} className="rounded-xl border border-teal-500 bg-[#071224] px-5 py-3 font-bold text-teal-300 hover:bg-teal-500/10">
+            <Link
+              href={`/reports/${inspection.id}/summary`}
+              className="rounded-xl border border-teal-500 bg-[#071224] px-5 py-3 font-bold text-teal-300 hover:bg-teal-500/10"
+            >
               Generate AI Summary
             </Link>
 
-            <Link href={`/share/${inspection.id}`} className="rounded-xl bg-green-500 px-5 py-3 font-bold text-slate-950 hover:bg-green-400">
+            <Link
+              href={`/reports/${inspection.id}/summary`}
+              className="rounded-xl border border-cyan-500 px-5 py-3 font-bold text-cyan-300 hover:bg-cyan-500/10"
+            >
+              Realtor Summary
+            </Link>
+
+            <Link
+              href={`/share/${inspection.id}`}
+              className="rounded-xl bg-green-500 px-5 py-3 font-bold text-slate-950 hover:bg-green-400"
+            >
               Publish Report
             </Link>
 
-            <Link href={`/share/${inspection.id}`} className="rounded-xl border border-blue-500 px-5 py-3 font-bold text-blue-300 hover:bg-blue-500/10">
+            <Link
+              href={`/share/${inspection.id}`}
+              className="rounded-xl border border-cyan-500 px-5 py-3 font-bold text-cyan-300 hover:bg-cyan-500/10"
+            >
               Copy Share Link
             </Link>
 
-            <Link href={`/client-portal/${inspection.id}`} className="rounded-xl border border-emerald-500 px-5 py-3 font-bold text-emerald-300 hover:bg-emerald-500/10">
+            <Link
+              href={`/client-portal/${inspection.id}`}
+              className="rounded-xl border border-emerald-500 px-5 py-3 font-bold text-emerald-300 hover:bg-emerald-500/10"
+            >
               Client Portal
             </Link>
 
-            <Link href={`/client/${inspection.id}`} className="rounded-xl border border-purple-500 px-5 py-3 font-bold text-purple-300 hover:bg-purple-500/10">
-              Send Report
+            <SendFullReportButton
+              inspectionId={String(inspection.id)}
+              clientEmail={inspection.client_email}
+              realtorEmail={inspection.realtor_email || inspection.agent_email}
+            />
+
+            <Link
+              href={`/repair-request?inspection_id=${inspection.id}`}
+              className="rounded-xl bg-orange-600 px-5 py-3 font-bold text-white hover:bg-orange-500"
+            >
+              Repair Request Builder
             </Link>
 
             <SendAgreementButton inspectionId={String(inspection.id)} />
 
-            <Link href={`/repair-request?inspection_id=${inspection.id}`} className="rounded-xl bg-orange-600 px-5 py-3 font-bold text-white hover:bg-orange-500">
-              Repair Request Builder
-            </Link>
-
-            <Link href={`/reports/${inspection.id}/templates`} className="rounded-xl border border-yellow-500 px-5 py-3 font-bold text-yellow-300 hover:bg-yellow-500/10">
-              Favorite Findings
-            </Link>
-
             <InsertFavoriteFindingButton inspectionId={String(inspection.id)} />
 
-            <Link href={`/reports/${inspection.id}/summary`} className="rounded-xl border border-cyan-500 px-5 py-3 font-bold text-cyan-300 hover:bg-cyan-500/10">
-              Realtor Summary
-            </Link>
-
-            <Link href={`/field?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`} className="rounded-xl border border-teal-500 bg-[#071224] px-5 py-3 font-bold text-teal-300 hover:bg-teal-500/10">
-              Field Tool
-            </Link>
-
-            <Link href={`/ai-capture?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`} className="rounded-xl bg-teal-500 px-5 py-3 font-bold text-slate-950 hover:bg-teal-400">
-              Open Full AI Capture
+            <Link
+              href={`/reports/${inspection.id}/templates`}
+              className="rounded-xl border border-yellow-500 px-5 py-3 font-bold text-yellow-300 hover:bg-yellow-500/10"
+            >
+              Favorite Findings Library
             </Link>
 
             <OneTapAIFindingInsert inspectionId={String(inspection.id)} />
 
-            <Link href={`/equipment-analyzer?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`} className="rounded-xl border border-blue-500 px-5 py-3 font-bold text-blue-300 hover:bg-blue-500/10">
+            <Link
+              href={`/field?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`}
+              className="rounded-xl border border-teal-500 bg-[#071224] px-5 py-3 font-bold text-teal-300 hover:bg-teal-500/10"
+            >
+              Field Tool
+            </Link>
+
+            <Link
+              href={`/ai-capture?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`}
+              className="rounded-xl bg-teal-500 px-5 py-3 font-bold text-slate-950 hover:bg-teal-400"
+            >
+              Open Full AI Capture
+            </Link>
+
+            <Link
+              href={`/equipment-analyzer?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`}
+              className="rounded-xl border border-blue-500 px-5 py-3 font-bold text-blue-300 hover:bg-blue-500/10"
+            >
               Equipment Analyzer
             </Link>
+          </div>
+
+          <div className="mb-8 rounded-2xl border border-yellow-500 bg-yellow-950/30 p-5 text-yellow-200">
+            <h2 className="text-2xl font-black">Report Tools</h2>
+            <p className="mt-2">
+              All report tools are enabled, including Send Report, Realtor Summary,
+              email, agreements, Copy Share Link, Favorite Findings Library,
+              Insert Favorite Finding, One-Tap AI, Field Tool, Full AI Capture,
+              Equipment Analyzer, repair requests, and findings.
+            </p>
           </div>
 
           <div className="mb-8 rounded-2xl border border-slate-700 bg-[#071224] p-5">
@@ -387,6 +428,8 @@ export default async function ReportPage({ params }: PageProps) {
           <AgreementSelector
             inspectionId={String(inspection.id)}
             initialAgreementState={inspection.agreement_state}
+            initialAgreementTemplateId={inspection.agreement_template_id}
+            initialAgreementTemplateIds={inspection.agreement_template_ids}
             propertyState={inspection.state}
           />
 
@@ -396,7 +439,11 @@ export default async function ReportPage({ params }: PageProps) {
 
           {propertyPhoto && (
             <div className="mb-6 overflow-hidden rounded-2xl border border-slate-700 bg-black">
-              <img src={propertyPhoto} alt="Property" className="h-56 w-full object-cover" />
+              <img
+                src={propertyPhoto}
+                alt="Property"
+                className="h-56 w-full object-cover"
+              />
             </div>
           )}
 
@@ -420,15 +467,38 @@ export default async function ReportPage({ params }: PageProps) {
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-              <DefectCountCard label="Total Defects" value={defectTotals.total} tone="text-white" />
-              <DefectCountCard label="Safety / Major" value={defectTotals.safety} tone="text-red-300" />
-              <DefectCountCard label="Recommended Repair" value={defectTotals.repair} tone="text-teal-300" />
-              <DefectCountCard label="Maintenance / Monitor" value={defectTotals.maintenance} tone="text-yellow-300" />
-              <DefectCountCard label="Informational" value={defectTotals.information} tone="text-blue-300" />
+              <DefectCountCard
+                label="Total Defects"
+                value={defectTotals.total}
+                tone="text-white"
+              />
+              <DefectCountCard
+                label="Safety / Major"
+                value={defectTotals.safety}
+                tone="text-red-300"
+              />
+              <DefectCountCard
+                label="Recommended Repair"
+                value={defectTotals.repair}
+                tone="text-teal-300"
+              />
+              <DefectCountCard
+                label="Maintenance / Monitor"
+                value={defectTotals.maintenance}
+                tone="text-yellow-300"
+              />
+              <DefectCountCard
+                label="Informational"
+                value={defectTotals.information}
+                tone="text-blue-300"
+              />
             </div>
           </section>
 
-          <form action={updateInspectionDetails} className="mt-8 border-t border-slate-700 pt-8">
+          <form
+            action={updateInspectionDetails}
+            className="mt-8 border-t border-slate-700 pt-8"
+          >
             <input type="hidden" name="inspection_id" value={inspection.id} />
 
             <div className="mb-6 flex items-center justify-between gap-4">
@@ -436,7 +506,10 @@ export default async function ReportPage({ params }: PageProps) {
                 Inspection Details
               </h2>
 
-              <button type="submit" className="rounded-xl bg-teal-500 px-5 py-3 font-bold text-slate-950 hover:bg-teal-400">
+              <button
+                type="submit"
+                className="rounded-xl bg-teal-500 px-5 py-3 font-bold text-slate-950 hover:bg-teal-400"
+              >
                 Save Inspection Details
               </button>
             </div>
@@ -447,11 +520,32 @@ export default async function ReportPage({ params }: PageProps) {
                   Inspection Information
                 </h3>
 
-                <EditItem label="Property Address" name="address" value={inspection.address} />
-                <EditItem label="Client" name="client_name" value={inspection.client_name} />
-                <EditItem label="Client Email" name="client_email" value={inspection.client_email} />
-                <EditItem label="Realtor" name="realtor_name" value={inspection.realtor_name} />
-                <EditItem label="Inspection Date" name="inspection_date" value={inspection.inspection_date} type="date" />
+                <EditItem
+                  label="Property Address"
+                  name="address"
+                  value={inspection.address}
+                />
+                <EditItem
+                  label="Client"
+                  name="client_name"
+                  value={inspection.client_name}
+                />
+                <EditItem
+                  label="Client Email"
+                  name="client_email"
+                  value={inspection.client_email}
+                />
+                <EditItem
+                  label="Realtor"
+                  name="realtor_name"
+                  value={inspection.realtor_name}
+                />
+                <EditItem
+                  label="Inspection Date"
+                  name="inspection_date"
+                  value={inspection.inspection_date}
+                  type="date"
+                />
               </div>
 
               <div>
@@ -459,12 +553,24 @@ export default async function ReportPage({ params }: PageProps) {
                   Property / Site Information
                 </h3>
 
-                <EditItem label="Square Feet" name="square_feet" value={inspection.square_feet} />
-                <EditItem label="Year Built" name="year_built" value={inspection.year_built} />
+                <EditItem
+                  label="Square Feet"
+                  name="square_feet"
+                  value={inspection.square_feet}
+                />
+                <EditItem
+                  label="Year Built"
+                  name="year_built"
+                  value={inspection.year_built}
+                />
 
                 <div className="grid grid-cols-3 gap-3">
                   <EditItem label="City" name="city" value={inspection.city} />
-                  <EditItem label="State" name="state" value={inspection.state} />
+                  <EditItem
+                    label="State"
+                    name="state"
+                    value={inspection.state}
+                  />
                   <EditItem label="Zip" name="zip" value={inspection.zip} />
                 </div>
               </div>
@@ -472,17 +578,21 @@ export default async function ReportPage({ params }: PageProps) {
           </form>
         </div>
 
-        <ReportFindingsSortable
-          inspectionId={String(inspection.id)}
-          groupedFindings={groupedFindingsArray}
-          allFindings={findings}
-        />
+        <ReportFindingsSortable groupedFindings={groupedFindingsArray} />
       </div>
     </main>
   );
 }
 
-function DefectCountCard({ label, value, tone }: { label: string; value: number; tone: string }) {
+function DefectCountCard({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: string;
+}) {
   return (
     <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
       <p className="text-xs font-bold uppercase tracking-wide text-slate-400">

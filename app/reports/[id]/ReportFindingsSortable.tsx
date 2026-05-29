@@ -1,18 +1,38 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import EditableFinding from "../../../components/EditableFinding";
+import SectionLimitations from "../../../components/SectionLimitations";
+import ReportDisclaimers from "../../../components/ReportDisclaimers";
+import SectionInformationChecklist from "../../../components/SectionInformationChecklist";
 
 export default function ReportFindingsSortable({ groupedFindings }: any) {
+  const params = useParams();
+  const inspectionId = String(params?.id || "");
+
+  function getAllSectionsClosed(groups: any[]) {
+    const next: Record<string, boolean> = {};
+
+    (groups || []).forEach((group: any) => {
+      next[group.section] = true;
+    });
+
+    return next;
+  }
+
   const [closedSections, setClosedSections] = useState<Record<string, boolean>>(
-    {}
+    () => getAllSectionsClosed(groupedFindings || [])
   );
 
   const [orderedGroups, setOrderedGroups] = useState<any[]>(groupedFindings || []);
   const [draggingSection, setDraggingSection] = useState<string | null>(null);
 
   useEffect(() => {
-    setOrderedGroups(groupedFindings || []);
+    const nextGroups = groupedFindings || [];
+
+    setOrderedGroups(nextGroups);
+    setClosedSections(getAllSectionsClosed(nextGroups));
   }, [groupedFindings]);
 
   function toggleSection(section: string) {
@@ -194,6 +214,20 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
 
             {!isClosed && (
               <div className="space-y-5 p-5">
+                <SectionInformationChecklist
+                  inspectionId={inspectionId}
+                  section={group.section}
+                />
+
+                {group.section === "Inspection Details" && (
+                  <ReportDisclaimers inspectionId={inspectionId} />
+                )}
+
+                <SectionLimitations
+                  inspectionId={inspectionId}
+                  section={group.section}
+                />
+
                 {findings.length === 0 && (
                   <div className="rounded-xl border border-slate-700 bg-[#071224] p-5 text-slate-400">
                     No findings in this section.
