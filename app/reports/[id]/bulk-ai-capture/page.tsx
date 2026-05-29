@@ -837,11 +837,42 @@ function buildFullRecommendation(item: BulkItem) {
     .join("\n");
 }
 
-function fileToBase64(file: File): Promise<string> {
+async function fileToBase64(file: File): Promise<string> {
+  if (file.type.startsWith("image/")) {
+    try {
+      const bitmap = await createImageBitmap(file);
+
+      const canvas = document.createElement("canvas");
+      canvas.width = bitmap.width;
+      canvas.height = bitmap.height;
+
+      const ctx = canvas.getContext("2d");
+
+      if (!ctx) {
+        throw new Error("Unable to process image.");
+      }
+
+      ctx.drawImage(bitmap, 0, 0);
+
+      return canvas.toDataURL("image/jpeg", 0.92);
+    } catch {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+
+        reader.readAsDataURL(file);
+      });
+    }
+  }
+
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
+
     reader.onload = () => resolve(reader.result as string);
     reader.onerror = reject;
+
     reader.readAsDataURL(file);
   });
 }
