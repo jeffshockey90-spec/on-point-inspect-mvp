@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
+import { createClient } from "../../../utils/supabase/server";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -34,6 +35,34 @@ function cleanText(value: any) {
   return value.trim();
 }
 
+function formatInspectorMemory(memories: any[]) {
+  if (!Array.isArray(memories) || memories.length === 0) return "";
+
+  const lines = memories
+    .slice(0, 20)
+    .map((memory) => {
+      const trigger = cleanText(memory.trigger_text);
+      const section = cleanText(memory.preferred_section);
+      const severity = cleanText(memory.preferred_severity);
+
+      if (!trigger || !section) return "";
+
+      return `- When the issue resembles "${trigger}", prefer section "${section}"${
+        severity ? ` and severity "${severity}"` : ""
+      }.`;
+    })
+    .filter(Boolean);
+
+  if (lines.length === 0) return "";
+
+  return `
+Inspector Memory / Saved Corrections:
+${lines.join("\n")}
+
+Use these as guidance when they are relevant to the image or inspector note. Do not force them if they do not apply.
+`;
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -42,6 +71,28 @@ export async function POST(req: Request) {
     const inspectorNote = cleanText(
       body.inspectorNote || body.note || body.comment || ""
     );
+
+    let inspectorMemoryGuidance = "";
+
+    try {
+      const supabase = await createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (user) {
+        const { data: memories } = await supabase
+          .from("ai_inspector_memory")
+          .select("trigger_text, preferred_section, preferred_severity, created_at")
+          .eq("inspector_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(20);
+
+        inspectorMemoryGuidance = formatInspectorMemory(memories || []);
+      }
+    } catch {
+      inspectorMemoryGuidance = "";
+    }
 
     if (!image) {
       return NextResponse.json(
@@ -82,6 +133,7 @@ If no inspector note is provided:
 
 Return ONLY valid JSON.
 Do not include markdown.
+${inspectorMemoryGuidance}
 Do not include explanations outside the JSON.
 
 Use this exact JSON structure:

@@ -54,6 +54,9 @@ type BulkItem = {
   serialNumber: string;
   estimatedAge: string;
   notes: string;
+  aiOriginalTitle: string;
+  aiOriginalSection: string;
+  aiOriginalSeverity: string;
   savedFindingId: string;
   savedImageUrl: string;
   savedFilePath: string;
@@ -79,6 +82,9 @@ function makeItem(file: File): BulkItem {
     serialNumber: "",
     estimatedAge: "",
     notes: "",
+    aiOriginalTitle: "",
+    aiOriginalSection: "",
+    aiOriginalSeverity: "",
     savedFindingId: "",
     savedImageUrl: "",
     savedFilePath: "",
@@ -170,13 +176,17 @@ export default function BulkAICapturePage() {
         throw new Error(data.error || "AI analysis failed.");
       }
 
+      const cleanSection = SECTIONS.includes(data.section) ? data.section : "Exterior";
+      const cleanSeverity = SEVERITIES.includes(data.severity)
+        ? data.severity
+        : "Recommended Repair";
+      const cleanTitle = data.title || "Inspection Finding";
+
       updateItem(item.id, {
         status: "review",
-        title: data.title || "Inspection Finding",
-        section: SECTIONS.includes(data.section) ? data.section : "Exterior",
-        severity: SEVERITIES.includes(data.severity)
-          ? data.severity
-          : "Recommended Repair",
+        title: cleanTitle,
+        section: cleanSection,
+        severity: cleanSeverity,
         observation: data.observation || "",
         implication: data.implication || "",
         recommendation: data.recommendation || "",
@@ -186,6 +196,9 @@ export default function BulkAICapturePage() {
         serialNumber: data.serial_number || "",
         estimatedAge: data.estimated_age || "",
         notes: data.notes || "",
+        aiOriginalTitle: cleanTitle,
+        aiOriginalSection: cleanSection,
+        aiOriginalSeverity: cleanSeverity,
       });
     } catch (error: any) {
       updateItem(item.id, {
@@ -249,6 +262,8 @@ export default function BulkAICapturePage() {
 
         if (error) throw error;
 
+        await rememberInspectorCorrection(item);
+
         updateItem(item.id, { status: "saved", error: "" });
       } catch (error: any) {
         updateItem(item.id, {
@@ -311,7 +326,15 @@ export default function BulkAICapturePage() {
         if (photoError) throw photoError;
       }
 
-      updateItem(item.id, { status: "saved", error: "", savedFindingId: findingData?.id || "", savedImageUrl: imageUrl, savedFilePath: filePath });
+      await rememberInspectorCorrection(item);
+
+      updateItem(item.id, {
+        status: "saved",
+        error: "",
+        savedFindingId: findingData?.id || "",
+        savedImageUrl: imageUrl,
+        savedFilePath: filePath,
+      });
     } catch (error: any) {
       updateItem(item.id, {
         status: "error",
@@ -685,6 +708,44 @@ function SmallInput({
       />
     </label>
   );
+}
+
+
+async function rememberInspectorCorrection(item: BulkItem) {
+  const sectionChanged =
+    item.aiOriginalSection && item.aiOriginalSection !== item.section;
+
+  const severityChanged =
+    item.aiOriginalSeverity && item.aiOriginalSeverity !== item.severity;
+
+  if (!sectionChanged && !severityChanged) return;
+
+  const triggerText = [item.note, item.title, item.observation]
+    .filter(Boolean)
+    .join(" | ")
+    .slice(0, 500);
+
+  if (!triggerText.trim()) return;
+
+  try {
+    await fetch("/api/ai-inspector-memory", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        triggerText,
+        title: item.title,
+        aiSection: item.aiOriginalSection,
+        correctedSection: item.section,
+        aiSeverity: item.aiOriginalSeverity,
+        correctedSeverity: item.severity,
+        source: "bulk-ai-capture",
+      }),
+    });
+  } catch {
+    // Inspector memory should never block saving a report finding.
+  }
 }
 
 function buildFullRecommendation(item: BulkItem) {
