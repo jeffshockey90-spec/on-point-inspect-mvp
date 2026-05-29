@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "../../../../lib/supabaseClient";
@@ -97,9 +97,14 @@ export default function BulkAICapturePage() {
   const inspectionId = String(params?.id || "");
 
   const [items, setItems] = useState<BulkItem[]>([]);
+  const itemsRef = useRef<BulkItem[]>([]);
   const [globalNote, setGlobalNote] = useState(DEFAULT_BULK_AI_GUIDANCE);
   const [aiMemory, setAiMemory] = useState("");
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
 
   useEffect(() => {
     try {
@@ -128,9 +133,14 @@ export default function BulkAICapturePage() {
   );
 
   function updateItem(id: string, patch: Partial<BulkItem>) {
-    setItems((current) =>
-      current.map((item) => (item.id === id ? { ...item, ...patch } : item))
-    );
+    setItems((current) => {
+      const next = current.map((item) =>
+        item.id === id ? { ...item, ...patch } : item
+      );
+
+      itemsRef.current = next;
+      return next;
+    });
   }
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -144,7 +154,13 @@ export default function BulkAICapturePage() {
     }
 
     const limited = selected.slice(0, MAX_PHOTOS);
-    setItems(limited.map(makeItem));
+    const nextItems = limited.map(makeItem);
+
+    itemsRef.current = nextItems;
+    setItems(nextItems);
+
+    // Allows selecting the same file again on mobile if needed.
+    e.currentTarget.value = "";
   }
 
   async function analyzeOne(item: BulkItem) {
@@ -234,18 +250,25 @@ export default function BulkAICapturePage() {
   }
 
   async function analyzeAll() {
-    if (items.length === 0 || busy) return;
+    const snapshot = [...itemsRef.current];
+
+    if (snapshot.length === 0 || busy) return;
 
     setBusy(true);
 
-    const snapshot = [...items];
+    try {
+      for (const snapshotItem of snapshot) {
+        const latestItem =
+          itemsRef.current.find((item) => item.id === snapshotItem.id) ||
+          snapshotItem;
 
-    for (const item of snapshot) {
-      if (item.status === "saved") continue;
-      await analyzeOne(item);
+        if (latestItem.status === "saved") continue;
+
+        await analyzeOne(latestItem);
+      }
+    } finally {
+      setBusy(false);
     }
-
-    setBusy(false);
   }
 
   async function saveOne(item: BulkItem) {
@@ -373,13 +396,23 @@ export default function BulkAICapturePage() {
 
     setBusy(true);
 
-    const snapshot = items.filter((item) => item.status === "review");
+    try {
+      const snapshot = itemsRef.current.filter(
+        (item) => item.status === "review"
+      );
 
-    for (const item of snapshot) {
-      await saveOne(item);
+      for (const snapshotItem of snapshot) {
+        const latestItem =
+          itemsRef.current.find((item) => item.id === snapshotItem.id) ||
+          snapshotItem;
+
+        if (latestItem.status !== "review") continue;
+
+        await saveOne(latestItem);
+      }
+    } finally {
+      setBusy(false);
     }
-
-    setBusy(false);
   }
 
   return (
