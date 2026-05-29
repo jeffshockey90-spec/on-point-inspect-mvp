@@ -70,6 +70,12 @@ export default async function DashboardPage() {
               />
 
               <DashboardCard
+                title="Analytics"
+                description="Track inspections, revenue, add-ons, referrals, and report activity."
+                href="/analytics"
+              />
+
+              <DashboardCard
                 title="AI Capture"
                 description="AI inspection workflow."
                 href="/ai-capture"
