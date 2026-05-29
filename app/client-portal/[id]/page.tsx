@@ -18,6 +18,70 @@ function getPropertyPhoto(inspection: any) {
   );
 }
 
+
+function getNumber(value: any) {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+
+  if (typeof value === "string") {
+    const cleaned = value.replace(/[^0-9.-]/g, "");
+    const parsed = Number(cleaned);
+
+    if (Number.isFinite(parsed)) return parsed;
+  }
+
+  return 0;
+}
+
+function money(value: any) {
+  const amount = getNumber(value);
+
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(amount || 0);
+}
+
+function getInvoiceAmount(inspection: any) {
+  return (
+    getNumber(inspection?.invoice_amount) ||
+    getNumber(inspection?.total_price) ||
+    getNumber(inspection?.total) ||
+    getNumber(inspection?.price) ||
+    getNumber(inspection?.inspection_price) ||
+    getNumber(inspection?.inspection_fee) ||
+    0
+  );
+}
+
+function getAmountPaid(inspection: any) {
+  return getNumber(inspection?.amount_paid);
+}
+
+function getBalanceDue(inspection: any) {
+  if (
+    inspection?.balance_due !== null &&
+    inspection?.balance_due !== undefined
+  ) {
+    return getNumber(inspection.balance_due);
+  }
+
+  return Math.max(0, getInvoiceAmount(inspection) - getAmountPaid(inspection));
+}
+
+function isPaymentComplete(inspection: any) {
+  const status = String(
+    inspection?.payment_status || inspection?.invoice_status || "Pending"
+  ).toLowerCase();
+
+  if (status === "paid" || status === "waived") return true;
+
+  const invoiceAmount = getInvoiceAmount(inspection);
+  const amountPaid = getAmountPaid(inspection);
+
+  return invoiceAmount > 0 && amountPaid >= invoiceAmount;
+}
+
 export default function ClientPortalPage() {
   const params = useParams();
   const inspectionId = params.id as string;
@@ -86,6 +150,16 @@ export default function ClientPortalPage() {
   }
 
   const propertyPhoto = getPropertyPhoto(inspection);
+  const invoiceAmount = getInvoiceAmount(inspection);
+  const amountPaid = getAmountPaid(inspection);
+  const balanceDue = getBalanceDue(inspection);
+  const paymentComplete = isPaymentComplete(inspection);
+  const paymentStatus =
+    inspection.payment_status || inspection.invoice_status || "Pending";
+  const agreementStatus =
+    inspection.agreement_status ||
+    inspection.agreement_state ||
+    "Pending";
 
   return (
     <main className="min-h-screen bg-[#020617] p-6 text-white">
@@ -169,28 +243,61 @@ export default function ClientPortalPage() {
             <strong>Price:</strong>{" "}
             {inspection.price ? `$${inspection.price}` : "N/A"}
           </p>
+
+          <p>
+            <strong>Invoice Amount:</strong>{" "}
+            {invoiceAmount ? money(invoiceAmount) : "N/A"}
+          </p>
+
+          <p>
+            <strong>Amount Paid:</strong> {money(amountPaid)}
+          </p>
+
+          <p>
+            <strong>Balance Due:</strong> {money(balanceDue)}
+          </p>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <PortalCard
             title="Agreement"
-            status={inspection.agreement_status || "Pending"}
+            status={agreementStatus}
           />
 
           <PortalCard
             title="Payment"
-            status={inspection.payment_status || "Pending"}
+            status={paymentComplete ? "Paid" : paymentStatus}
+          />
+
+          <PortalCard
+            title="Balance Due"
+            status={money(balanceDue)}
           />
 
           <PortalCard
             title="Report"
             status={inspection.report_status || "Draft"}
           />
+        </div>
 
-          <PortalCard
-            title="Review"
-            status={inspection.review_status || "Not Requested"}
-          />
+        <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
+          <h2 className="text-2xl font-bold text-teal-300">
+            Payment Summary
+          </h2>
+
+          <div className="mt-5 grid gap-4 md:grid-cols-3">
+            <PaymentBox label="Invoice Amount" value={money(invoiceAmount)} />
+            <PaymentBox label="Amount Paid" value={money(amountPaid)} />
+            <PaymentBox
+              label="Balance Due"
+              value={money(balanceDue)}
+              highlight={balanceDue > 0 ? "warning" : "success"}
+            />
+          </div>
+
+          <p className="mt-4 text-sm text-slate-400">
+            Online payment is not active yet. Payment status is managed by On Point Home Inspections until Stripe checkout is connected.
+          </p>
         </div>
 
         <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
@@ -209,12 +316,10 @@ export default function ClientPortalPage() {
             </button>
 
             <button
-              onClick={() =>
-                updateStatus("payment_status", "Paid")
-              }
-              className="rounded-xl bg-green-500 px-6 py-3 font-bold text-slate-950 hover:bg-green-400"
+              disabled
+              className="cursor-not-allowed rounded-xl bg-slate-700 px-6 py-3 font-bold text-slate-300 opacity-80"
             >
-              Pay Invoice
+              Online Payment Coming Soon
             </button>
 
             <button
@@ -233,10 +338,54 @@ export default function ClientPortalPage() {
             >
               View Full Report
             </a>
+
+            <a
+              href={`/reports/${inspectionId}/print`}
+              target="_blank"
+              className="rounded-xl border border-cyan-500 bg-[#071224] px-6 py-3 font-bold text-cyan-300 hover:bg-cyan-500/10"
+            >
+              Download PDF
+            </a>
+
+            <a
+              href={`/repair-request?inspection_id=${inspectionId}`}
+              target="_blank"
+              className="rounded-xl border border-orange-500 bg-[#071224] px-6 py-3 font-bold text-orange-300 hover:bg-orange-500/10"
+            >
+              Repair Request
+            </a>
           </div>
         </div>
       </div>
     </main>
+  );
+}
+
+
+function PaymentBox({
+  label,
+  value,
+  highlight = "default",
+}: {
+  label: string;
+  value: string;
+  highlight?: "default" | "warning" | "success";
+}) {
+  const color =
+    highlight === "success"
+      ? "text-green-400"
+      : highlight === "warning"
+      ? "text-orange-300"
+      : "text-teal-300";
+
+  return (
+    <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
+      <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+        {label}
+      </p>
+
+      <p className={`mt-2 text-3xl font-black ${color}`}>{value}</p>
+    </div>
   );
 }
 
@@ -250,8 +399,10 @@ function PortalCard({
   const green =
     status === "Signed" ||
     status === "Paid" ||
+    status === "Waived" ||
     status === "Published" ||
-    status === "Submitted";
+    status === "Submitted" ||
+    status === "$0";
 
   return (
     <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
