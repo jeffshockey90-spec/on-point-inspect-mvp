@@ -1,13 +1,48 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { cookies } from "next/headers";
+import { createServerClient } from "@supabase/ssr";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+async function createSupabaseServerClient() {
+  const cookieStore = await cookies();
+
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options);
+            });
+          } catch {
+            // Server Components / Route Handlers may not always allow cookie writes.
+          }
+        },
+      },
+    }
+  );
+}
 
 export async function GET(req: Request) {
   try {
+    const supabase = await createSupabaseServerClient();
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      return NextResponse.json(
+        { error: "You must be logged in to view agreement templates." },
+        { status: 401 }
+      );
+    }
+
     const url = new URL(req.url);
     const state = url.searchParams.get("state");
     const activeOnly = url.searchParams.get("activeOnly") !== "false";
@@ -15,6 +50,7 @@ export async function GET(req: Request) {
     let query = supabase
       .from("agreement_templates")
       .select("*")
+      .eq("inspector_id", user.id)
       .order("state", { ascending: true })
       .order("service_type", { ascending: true })
       .order("display_order", { ascending: true })
@@ -46,6 +82,20 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
+    const supabase = await createSupabaseServerClient();
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      return NextResponse.json(
+        { error: "You must be logged in to create agreement templates." },
+        { status: 401 }
+      );
+    }
+
     const body = await req.json();
 
     const title = String(body.title || "").trim();
@@ -75,6 +125,7 @@ export async function POST(req: Request) {
     const { data, error } = await supabase
       .from("agreement_templates")
       .insert({
+        inspector_id: user.id,
         state,
         title,
         version,
@@ -102,8 +153,21 @@ export async function POST(req: Request) {
 
 export async function PATCH(req: Request) {
   try {
-    const body = await req.json();
+    const supabase = await createSupabaseServerClient();
 
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      return NextResponse.json(
+        { error: "You must be logged in to update agreement templates." },
+        { status: 401 }
+      );
+    }
+
+    const body = await req.json();
     const id = String(body.id || "");
 
     if (!id) {
@@ -119,17 +183,31 @@ export async function PATCH(req: Request) {
 
     if (body.title !== undefined) updates.title = String(body.title).trim();
     if (body.version !== undefined) updates.version = String(body.version).trim();
-    if (body.state !== undefined) updates.state = String(body.state).trim().toUpperCase();
-    if (body.service_type !== undefined) updates.service_type = String(body.service_type).trim();
-    if (body.display_order !== undefined) updates.display_order = Number(body.display_order || 0);
+    if (body.state !== undefined) {
+      updates.state = String(body.state).trim().toUpperCase();
+    }
+    if (body.service_type !== undefined) {
+      updates.service_type = String(body.service_type).trim();
+    }
+    if (body.display_order !== undefined) {
+      updates.display_order = Number(body.display_order || 0);
+    }
     if (body.body !== undefined) updates.body = String(body.body);
     if (body.is_active !== undefined) updates.is_active = Boolean(body.is_active);
     if (body.is_default !== undefined) updates.is_default = Boolean(body.is_default);
+
+    if (updates.state && !["MD", "WV", "PA"].includes(updates.state)) {
+      return NextResponse.json(
+        { error: "State must be MD, WV, or PA." },
+        { status: 400 }
+      );
+    }
 
     const { data, error } = await supabase
       .from("agreement_templates")
       .update(updates)
       .eq("id", id)
+      .eq("inspector_id", user.id)
       .select()
       .single();
 
