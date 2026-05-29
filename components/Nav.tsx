@@ -1,17 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { supabase } from "../lib/supabaseClient";
 
 const navItems = [
   { title: "Dashboard", href: "/", icon: "🏠", mobileLabel: "Home" },
   { title: "New Inspection", href: "/inspections/new", icon: "➕", mobileLabel: "New" },
   { title: "Reports", href: "/reports", icon: "📋", mobileLabel: "Reports" },
   { title: "Agreements", href: "/agreements", icon: "📄", mobileLabel: "Agreements" },
-
-  // FIXED
   { title: "AI Capture", href: "/ai-capture", icon: "✨", mobileLabel: "AI" },
-
   { title: "Templates", href: "/templates", icon: "📚", mobileLabel: "Templates" },
   { title: "Quotes", href: "/quotes", icon: "💬", mobileLabel: "Quotes" },
   { title: "Schedule", href: "/schedule", icon: "🗓️", mobileLabel: "Schedule" },
@@ -19,10 +17,22 @@ const navItems = [
 
 export default function Navbar() {
   const pathname = usePathname() || "";
+  const router = useRouter();
 
   function isActive(href: string) {
     if (href === "/") return pathname === "/";
     return pathname === href || pathname.startsWith(`${href}/`);
+  }
+
+  async function handleLogout() {
+    try {
+      await supabase.auth.signOut();
+      router.push("/login");
+      router.refresh();
+    } catch (error) {
+      console.error("Logout error:", error);
+      alert("Failed to log out.");
+    }
   }
 
   return (
@@ -71,6 +81,13 @@ export default function Navbar() {
                 );
               })}
             </nav>
+
+            <button
+              onClick={handleLogout}
+              className="rounded-2xl border border-red-500 bg-red-950/30 px-4 py-3 text-sm font-extrabold text-red-300 transition hover:bg-red-500 hover:text-white"
+            >
+              🚪 Logout
+            </button>
           </div>
         </div>
       </header>
@@ -94,6 +111,14 @@ export default function Navbar() {
               </Link>
             );
           })}
+
+          <button
+            onClick={handleLogout}
+            className="flex h-full flex-1 flex-col items-center justify-center text-[11px] font-bold text-red-300"
+          >
+            <span className="text-lg leading-none">🚪</span>
+            <span className="mt-1 leading-none">Logout</span>
+          </button>
         </div>
       </nav>
     </>
