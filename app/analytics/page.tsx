@@ -132,18 +132,6 @@ export default async function AnalyticsPage() {
     redirect("/login");
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .single();
-
-  const role = profile?.role || user.user_metadata?.role || "client";
-
-  if (role !== "inspector") {
-    redirect("/dashboard");
-  }
-
   const { data: inspectionsRaw, error: inspectionsError } = await supabase
     .from("inspections")
     .select("*")
