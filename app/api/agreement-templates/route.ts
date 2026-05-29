@@ -223,3 +223,46 @@ export async function PATCH(req: Request) {
     );
   }
 }
+
+export async function DELETE(req: Request) {
+  try {
+    const supabase = await createSupabaseServerClient();
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      return NextResponse.json(
+        { error: "You must be logged in to delete agreement templates." },
+        { status: 401 }
+      );
+    }
+
+    const url = new URL(req.url);
+    const id = String(url.searchParams.get("id") || "");
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "Missing agreement template ID." },
+        { status: 400 }
+      );
+    }
+
+    const { error } = await supabase
+      .from("agreement_templates")
+      .delete()
+      .eq("id", id)
+      .eq("inspector_id", user.id);
+
+    if (error) throw error;
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    return NextResponse.json(
+      { error: error.message || "Failed to delete agreement template." },
+      { status: 500 }
+    );
+  }
+}

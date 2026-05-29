@@ -13,8 +13,13 @@ export default function QuotePage() {
 
   const quote = useMemo(() => {
     const base = 500;
-    const extraThousands = sqft > 2000 ? Math.ceil((sqft - 2000) / 1000) : 0;
-    const sqftFee = extraThousands * 50;
+
+    let sqftFee = 0;
+
+    if (sqft >= 2000) {
+      sqftFee = (Math.floor((sqft - 2000) / 1000) + 1) * 50;
+    }
+
     const radonFee = radon ? 175 : 0;
     const moldFee = mold ? 150 : 0;
     const subtotal = base + sqftFee + travelFee + radonFee + moldFee;
