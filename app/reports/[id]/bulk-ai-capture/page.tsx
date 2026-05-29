@@ -134,11 +134,14 @@ export default function BulkAICapturePage() {
   }
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const selected = Array.from(e.target.files || []).filter((file) =>
-      file.type.startsWith("image/")
+    const selected = Array.from(e.target.files || []).filter(
+      (file) => file.type.startsWith("image/") || file.type.startsWith("video/")
     );
 
-    if (selected.length === 0) return;
+    if (selected.length === 0) {
+      alert("Please select photo or video files.");
+      return;
+    }
 
     const limited = selected.slice(0, MAX_PHOTOS);
     setItems(limited.map(makeItem));
@@ -148,6 +151,28 @@ export default function BulkAICapturePage() {
     updateItem(item.id, { status: "analyzing", error: "" });
 
     try {
+      if (item.file.type.startsWith("video/")) {
+        updateItem(item.id, {
+          status: "review",
+          title: item.title || "Video Attachment",
+          section: item.section || "Exterior",
+          severity: "Informational",
+          observation:
+            item.observation ||
+            "Video media was added to document the condition observed at the time of inspection.",
+          implication:
+            item.implication ||
+            "Video is provided for client reference and additional visual context.",
+          recommendation:
+            item.recommendation ||
+            "Review the attached video along with the written finding. Further evaluation or repair should be performed by the appropriate qualified contractor if concerns are present.",
+          aiOriginalTitle: item.title || "Video Attachment",
+          aiOriginalSection: item.section || "Exterior",
+          aiOriginalSeverity: "Informational",
+        });
+        return;
+      }
+
       const base64 = await fileToBase64(item.file);
       const combinedNote = [
         DEFAULT_BULK_AI_GUIDANCE,
@@ -255,7 +280,7 @@ export default function BulkAICapturePage() {
             observation: item.observation,
             implication: item.implication,
             recommendation: fullRecommendation,
-            image_url: item.savedImageUrl,
+            image_url: item.file.type.startsWith("image/") ? item.savedImageUrl : "",
           })
           .eq("id", item.savedFindingId)
           .eq("inspection_id", inspectionId);
@@ -308,7 +333,7 @@ export default function BulkAICapturePage() {
           observation: item.observation,
           implication: item.implication,
           recommendation: fullRecommendation,
-          image_url: imageUrl,
+          image_url: item.file.type.startsWith("image/") ? imageUrl : "",
         })
         .select()
         .single();
@@ -367,7 +392,7 @@ export default function BulkAICapturePage() {
             </p>
             <h1 className="mt-2 text-4xl font-extrabold">Bulk AI Capture</h1>
             <p className="mt-3 max-w-3xl text-slate-300">
-              Upload multiple inspection photos. The app will analyze each photo
+              Upload multiple inspection photos or videos. The app will analyze each photo
               one at a time, auto-select the report section, and let you review
               before saving findings to the report.
             </p>
@@ -386,14 +411,7 @@ export default function BulkAICapturePage() {
             Upload Photos
           </h2>
 
-          <input
-            type="file"
-            accept="image/*"
-            multiple
-            capture="environment"
-            onChange={handleFileChange}
-            className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white"
-          />
+          <MediaUploadButtons onChange={handleFileChange} />
 
           <textarea
             value={globalNote}
@@ -459,7 +477,7 @@ export default function BulkAICapturePage() {
           </div>
 
           <p className="mt-4 text-sm text-slate-400">
-            Selected: {items.length} / {MAX_PHOTOS} · Ready to save: {reviewCount} · Saved: {savedCount}
+            Selected media: {items.length} / {MAX_PHOTOS} · Ready to save: {reviewCount} · Saved: {savedCount}
           </p>
         </section>
 
@@ -483,6 +501,55 @@ export default function BulkAICapturePage() {
   );
 }
 
+
+function MediaUploadButtons({
+  onChange,
+}: {
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}) {
+  return (
+    <div className="grid gap-3 md:grid-cols-3">
+      <label className="cursor-pointer rounded-xl border border-teal-500 bg-teal-500/10 p-4 text-center font-bold text-teal-300 hover:bg-teal-500 hover:text-black">
+        📷 Take Photos
+        <input
+          type="file"
+          accept="image/*"
+          capture="environment"
+          multiple
+          onChange={onChange}
+          className="hidden"
+        />
+      </label>
+
+      <label className="cursor-pointer rounded-xl border border-cyan-500 bg-cyan-500/10 p-4 text-center font-bold text-cyan-300 hover:bg-cyan-500 hover:text-black">
+        🖼 Choose Photos
+        <input
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={onChange}
+          className="hidden"
+        />
+      </label>
+
+      <label className="cursor-pointer rounded-xl border border-purple-500 bg-purple-500/10 p-4 text-center font-bold text-purple-300 hover:bg-purple-500 hover:text-white">
+        🎥 Choose Videos
+        <input
+          type="file"
+          accept="video/*"
+          multiple
+          onChange={onChange}
+          className="hidden"
+        />
+      </label>
+
+      <p className="md:col-span-3 rounded-xl border border-slate-700 bg-slate-950 p-3 text-sm text-slate-300">
+        Photos can be analyzed by AI. Videos are saved to the report as media attachments and can be reviewed by the client.
+      </p>
+    </div>
+  );
+}
+
 function PhotoReviewCard({
   index,
   item,
@@ -503,7 +570,7 @@ function PhotoReviewCard({
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="text-xl font-extrabold text-teal-300">
-            Photo {index + 1}
+            {item.file.type.startsWith("video/") ? "Video" : "Photo"} {index + 1}
           </h3>
           <p className="text-sm text-slate-400">{item.file.name}</p>
         </div>
@@ -513,11 +580,19 @@ function PhotoReviewCard({
 
       <div className="grid gap-5 lg:grid-cols-[280px_1fr]">
         <div>
-          <img
-            src={item.previewUrl}
-            alt={`Preview ${index + 1}`}
-            className="max-h-[320px] w-full rounded-xl border border-slate-700 object-contain"
-          />
+          {item.file.type.startsWith("video/") ? (
+            <video
+              src={item.previewUrl}
+              controls
+              className="max-h-[320px] w-full rounded-xl border border-slate-700 bg-black"
+            />
+          ) : (
+            <img
+              src={item.previewUrl}
+              alt={`Preview ${index + 1}`}
+              className="max-h-[320px] w-full rounded-xl border border-slate-700 object-contain"
+            />
+          )}
 
           <textarea
             value={item.note}
@@ -533,7 +608,7 @@ function PhotoReviewCard({
               disabled={busy || item.status === "analyzing" || item.status === "saving"}
               className="rounded-lg bg-teal-500 px-4 py-2 text-sm font-bold text-black hover:bg-teal-400 disabled:opacity-50"
             >
-              Re-Analyze
+              {item.file.type.startsWith("video/") ? "Prepare Video" : "Re-Analyze"}
             </button>
 
             <button

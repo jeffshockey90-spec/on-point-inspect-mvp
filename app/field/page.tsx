@@ -268,7 +268,9 @@ function FieldPageContent() {
             implication,
             recommendation,
             image_url:
-              uploadedPhotos[0]?.publicUrl || null,
+              uploadedPhotos.find((photo: any) =>
+                String(photo.filePath || "").match(/\.(jpg|jpeg|png|webp|gif|heic)$/i)
+              )?.publicUrl || null,
           })
           .select()
           .single();
@@ -318,7 +320,7 @@ function FieldPageContent() {
           </h1>
 
           <p className="mb-6 text-slate-400">
-            Take photos, enter quick notes,
+            Take photos or choose media, enter quick notes,
             generate AI findings, and save
             directly to the report.
           </p>
@@ -471,14 +473,10 @@ function FieldPageContent() {
 
             <div>
               <label className="mb-2 block font-bold">
-                Photos
+                Media
               </label>
 
-              <input
-                type="file"
-                multiple
-                accept="image/*"
-                capture="environment"
+              <MediaUploadButtons
                 onChange={(e) =>
                   setPhotos(
                     Array.from(
@@ -486,20 +484,15 @@ function FieldPageContent() {
                     )
                   )
                 }
-                className="w-full rounded-xl border border-slate-700 bg-black p-4"
               />
             </div>
 
             {photos.length > 0 && (
               <div className="grid grid-cols-2 gap-4">
                 {photos.map((photo, index) => (
-                  <img
+                  <MediaPreview
                     key={`${photo.name}-${index}`}
-                    src={URL.createObjectURL(
-                      photo
-                    )}
-                    alt="Preview"
-                    className="h-40 w-full rounded-xl border border-slate-700 object-cover"
+                    file={photo}
                   />
                 ))}
               </div>
@@ -533,6 +526,73 @@ function FieldPageContent() {
         </div>
       </div>
     </main>
+  );
+}
+
+
+function MediaUploadButtons({
+  onChange,
+}: {
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}) {
+  return (
+    <div className="grid gap-3 md:grid-cols-3">
+      <label className="cursor-pointer rounded-xl border border-teal-500 bg-teal-500/10 p-4 text-center font-bold text-teal-300 hover:bg-teal-500 hover:text-black">
+        📷 Take Photos
+        <input
+          type="file"
+          accept="image/*"
+          capture="environment"
+          multiple
+          onChange={onChange}
+          className="hidden"
+        />
+      </label>
+
+      <label className="cursor-pointer rounded-xl border border-cyan-500 bg-cyan-500/10 p-4 text-center font-bold text-cyan-300 hover:bg-cyan-500 hover:text-black">
+        🖼 Choose Photos
+        <input
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={onChange}
+          className="hidden"
+        />
+      </label>
+
+      <label className="cursor-pointer rounded-xl border border-purple-500 bg-purple-500/10 p-4 text-center font-bold text-purple-300 hover:bg-purple-500 hover:text-white">
+        🎥 Choose Videos
+        <input
+          type="file"
+          accept="video/*"
+          multiple
+          onChange={onChange}
+          className="hidden"
+        />
+      </label>
+    </div>
+  );
+}
+
+function MediaPreview({ file }: { file: File }) {
+  const url = URL.createObjectURL(file);
+
+  if (file.type.startsWith("video/")) {
+    return (
+      <video
+        src={url}
+        controls
+        className="h-40 w-full rounded-xl border border-slate-700 bg-black object-contain"
+      />
+    );
+  }
+
+  return (
+    <img
+      src={url}
+      alt="Preview"
+      className="h-40 w-full rounded-xl border border-slate-700 object-cover"
+    />
   );
 }
 

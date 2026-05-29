@@ -36,6 +36,8 @@ export default function OneTapAIFindingInsert({ inspectionId }: Props) {
   const [open, setOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState("");
+  const isVideo = file?.type.startsWith("video/") || false;
+  const isImage = file?.type.startsWith("image/") || false;
   const [inspectorNote, setInspectorNote] = useState("");
 
   const [loading, setLoading] = useState(false);
@@ -95,11 +97,24 @@ export default function OneTapAIFindingInsert({ inspectionId }: Props) {
 
     setFile(selected);
     setPreviewUrl(URL.createObjectURL(selected));
+
+    if (selected.type.startsWith("video/")) {
+      setTitle((current) => current || "Video Attachment");
+      setSeverity("Informational");
+      setObservation((current) => current || "Video media was added to document the condition observed at the time of inspection.");
+      setImplication((current) => current || "Video is provided for client reference and additional visual context.");
+      setRecommendation((current) => current || "Review the attached video along with the written finding. Further evaluation or repair should be performed by the appropriate qualified contractor if concerns are present.");
+    }
   }
 
   async function analyzePhoto() {
     if (!file) {
       alert("Please select a photo first.");
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      alert("AI analysis works with photos only. Videos can be saved to the report, but they cannot be analyzed yet.");
       return;
     }
 
@@ -185,7 +200,7 @@ export default function OneTapAIFindingInsert({ inspectionId }: Props) {
           observation,
           implication,
           recommendation,
-          image_url: imageUrl,
+          image_url: file?.type.startsWith("image/") ? imageUrl : "",
         })
         .select()
         .single();
@@ -256,20 +271,28 @@ export default function OneTapAIFindingInsert({ inspectionId }: Props) {
                 Photo
               </h3>
 
-              <input
-                type="file"
-                accept="image/*"
-                capture="environment"
-                onChange={handleFileChange}
-                className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white"
-              />
+              <MediaUploadButtons onChange={handleFileChange} />
 
-              {previewUrl && (
+              {previewUrl && isImage && (
                 <img
                   src={previewUrl}
                   alt="Preview"
                   className="mt-5 max-h-[420px] w-full rounded-xl border border-slate-700 object-contain"
                 />
+              )}
+
+              {previewUrl && isVideo && (
+                <video
+                  src={previewUrl}
+                  controls
+                  className="mt-5 max-h-[420px] w-full rounded-xl border border-slate-700 bg-black"
+                />
+              )}
+
+              {file && (
+                <p className="mt-3 rounded-xl border border-slate-700 bg-slate-950 p-3 text-sm text-slate-300">
+                  Selected: {file.name} {isVideo ? "• Video will be saved as report media. AI analysis is photo-only." : ""}
+                </p>
               )}
 
               <textarea
@@ -286,7 +309,7 @@ export default function OneTapAIFindingInsert({ inspectionId }: Props) {
                 disabled={loading || saving}
                 className="mt-5 rounded-xl bg-teal-500 px-6 py-3 font-extrabold text-black transition hover:bg-teal-400 disabled:opacity-50"
               >
-                {loading ? "Analyzing..." : "Analyze Photo"}
+                {loading ? "Analyzing..." : isVideo ? "Videos Cannot Be Analyzed" : "Analyze Photo"}
               </button>
             </section>
 
@@ -369,6 +392,48 @@ export default function OneTapAIFindingInsert({ inspectionId }: Props) {
         </div>
       )}
     </>
+  );
+}
+
+
+function MediaUploadButtons({
+  onChange,
+}: {
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}) {
+  return (
+    <div className="grid gap-3 md:grid-cols-3">
+      <label className="cursor-pointer rounded-xl border border-teal-500 bg-teal-500/10 p-4 text-center font-bold text-teal-300 hover:bg-teal-500 hover:text-black">
+        📷 Take Photo
+        <input
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={onChange}
+          className="hidden"
+        />
+      </label>
+
+      <label className="cursor-pointer rounded-xl border border-cyan-500 bg-cyan-500/10 p-4 text-center font-bold text-cyan-300 hover:bg-cyan-500 hover:text-black">
+        🖼 Choose Photo
+        <input
+          type="file"
+          accept="image/*"
+          onChange={onChange}
+          className="hidden"
+        />
+      </label>
+
+      <label className="cursor-pointer rounded-xl border border-purple-500 bg-purple-500/10 p-4 text-center font-bold text-purple-300 hover:bg-purple-500 hover:text-white">
+        🎥 Choose Video
+        <input
+          type="file"
+          accept="video/*"
+          onChange={onChange}
+          className="hidden"
+        />
+      </label>
+    </div>
   );
 }
 

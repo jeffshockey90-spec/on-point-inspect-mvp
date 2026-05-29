@@ -326,6 +326,18 @@ function getPhotoUrl(photo: any) {
   );
 }
 
+function isVideoMedia(photo: any) {
+  const url = String(getPhotoUrl(photo) || "").toLowerCase();
+  const path = String(photo?.file_path || photo?.storage_path || photo?.photo_path || "").toLowerCase();
+  const type = String(photo?.mime_type || photo?.media_type || photo?.content_type || "").toLowerCase();
+
+  return (
+    type.startsWith("video/") ||
+    path.match(/\.(mp4|mov|m4v|webm|avi)$/) !== null ||
+    url.match(/\.(mp4|mov|m4v|webm|avi)(\?|$)/) !== null
+  );
+}
+
 function normalizePhotoKey(value: any) {
   if (!value) return "";
 
@@ -517,15 +529,27 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
                   className="overflow-hidden rounded-xl border border-slate-700 bg-slate-950"
                 >
                   <a href={url} target="_blank" rel="noreferrer" className="block">
-                    <img
-                      src={url}
-                      alt={`Finding photo ${index + 1}`}
-                      className={
-                        photos.length === 1
-                          ? "max-h-[650px] w-full object-contain"
-                          : "h-56 w-full object-contain transition hover:scale-[1.02]"
-                      }
-                    />
+                    {isVideoMedia(photo) ? (
+                      <video
+                        src={url}
+                        controls
+                        className={
+                          photos.length === 1
+                            ? "max-h-[650px] w-full bg-black object-contain"
+                            : "h-56 w-full bg-black object-contain"
+                        }
+                      />
+                    ) : (
+                      <img
+                        src={url}
+                        alt={`Finding photo ${index + 1}`}
+                        className={
+                          photos.length === 1
+                            ? "max-h-[650px] w-full object-contain"
+                            : "h-56 w-full object-contain transition hover:scale-[1.02]"
+                        }
+                      />
+                    )}
                   </a>
 
                   <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-800 px-3 py-2 text-xs font-bold text-slate-400">
@@ -691,11 +715,19 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
                       className="overflow-hidden rounded-xl border border-slate-700 bg-slate-950"
                     >
                       {url ? (
-                        <img
-                          src={url}
-                          alt={`Report photo ${index + 1}`}
-                          className="h-36 w-full object-contain"
-                        />
+                        isVideoMedia(photo) ? (
+                          <video
+                            src={url}
+                            controls
+                            className="h-36 w-full bg-black object-contain"
+                          />
+                        ) : (
+                          <img
+                            src={url}
+                            alt={`Report photo ${index + 1}`}
+                            className="h-36 w-full object-contain"
+                          />
+                        )
                       ) : (
                         <div className="flex h-36 items-center justify-center text-sm text-slate-500">
                           No preview
