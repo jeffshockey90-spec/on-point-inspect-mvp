@@ -10,7 +10,6 @@ const MAX_PHOTOS = 25;
 const DEFAULT_BULK_AI_GUIDANCE =
   "Identify the main inspection defect in each photo. Do not create findings for background items. Keep each photo to one finding only. Use the inspector note as the primary issue when provided. If plumbing is the main concern, route to Plumbing. If electrical is the main concern, route to Electrical. If roof covering, shingles, flashing, or roof penetration is the main concern, route to Roof. If siding, trim, grading, decks, porches, exterior doors, or exterior penetrations are the main concern, route to Exterior. Be conservative, realtor-friendly, and do not exaggerate.";
 
-
 const SECTIONS = [
   "Exterior",
   "Roof",
@@ -60,6 +59,14 @@ type BulkItem = {
   savedFindingId: string;
   savedImageUrl: string;
   savedFilePath: string;
+  mergedIntoId: string;
+};
+
+type ProposedMerge = {
+  sourceId: string;
+  targetId: string;
+  confidence: number;
+  reason: string;
 };
 
 function makeItem(file: File): BulkItem {
@@ -88,6 +95,7 @@ function makeItem(file: File): BulkItem {
     savedFindingId: "",
     savedImageUrl: "",
     savedFilePath: "",
+    mergedIntoId: "",
   };
 }
 
@@ -100,10 +108,13 @@ export default function BulkAICapturePage() {
   const [globalNote, setGlobalNote] = useState(DEFAULT_BULK_AI_GUIDANCE);
   const [aiMemory, setAiMemory] = useState("");
   const [busy, setBusy] = useState(false);
+  const [proposedMerges, setProposedMerges] = useState<ProposedMerge[]>([]);
+  const [showMergePreview, setShowMergePreview] = useState(false);
 
   useEffect(() => {
     try {
-      const savedMemory = window.localStorage.getItem("onpoint_bulk_ai_memory") || "";
+      const savedMemory =
+        window.localStorage.getItem("onpoint_bulk_ai_memory") || "";
       if (savedMemory) setAiMemory(savedMemory);
     } catch {}
   }, []);
@@ -123,7 +134,15 @@ export default function BulkAICapturePage() {
   );
 
   const reviewCount = useMemo(
-    () => items.filter((item) => item.status === "review").length,
+    () =>
+      items.filter(
+        (item) => item.status === "review" && !item.mergedIntoId
+      ).length,
+    [items]
+  );
+
+  const mergedCount = useMemo(
+    () => items.filter((item) => item.mergedIntoId).length,
     [items]
   );
 
@@ -143,12 +162,20 @@ export default function BulkAICapturePage() {
       return;
     }
 
+    proposedMerges.forEach(() => {});
+    setProposedMerges([]);
+    setShowMergePreview(false);
+
     const limited = selected.slice(0, MAX_PHOTOS);
     setItems(limited.map(makeItem));
   }
 
   async function analyzeOne(item: BulkItem) {
-    updateItem(item.id, { status: "analyzing", error: "" });
+    updateItem(item.id, {
+      status: "analyzing",
+      error: "",
+      mergedIntoId: "",
+    });
 
     try {
       if (item.file.type.startsWith("video/")) {
@@ -174,6 +201,7 @@ export default function BulkAICapturePage() {
       }
 
       const base64 = await fileToBase64(item.file);
+
       const combinedNote = [
         DEFAULT_BULK_AI_GUIDANCE,
         aiMemory.trim(),
@@ -201,10 +229,27 @@ export default function BulkAICapturePage() {
         throw new Error(data.error || "AI analysis failed.");
       }
 
-      const cleanSection = SECTIONS.includes(data.section) ? data.section : "Exterior";
+      const correctedSection = autoCorrectSection(
+        data.section,
+        [
+          data.title,
+          data.observation,
+          data.implication,
+          data.recommendation,
+          item.note,
+          globalNote,
+          aiMemory,
+        ].join(" ")
+      );
+
+      const cleanSection = SECTIONS.includes(correctedSection)
+        ? correctedSection
+        : "Exterior";
+
       const cleanSeverity = SEVERITIES.includes(data.severity)
         ? data.severity
         : "Recommended Repair";
+
       const cleanTitle = data.title || "Inspection Finding";
 
       updateItem(item.id, {
@@ -222,8 +267,9 @@ export default function BulkAICapturePage() {
         estimatedAge: data.estimated_age || "",
         notes: data.notes || "",
         aiOriginalTitle: cleanTitle,
-        aiOriginalSection: cleanSection,
+        aiOriginalSection: data.section || cleanSection,
         aiOriginalSeverity: cleanSeverity,
+        mergedIntoId: "",
       });
     } catch (error: any) {
       updateItem(item.id, {
@@ -237,6 +283,8 @@ export default function BulkAICapturePage() {
     if (items.length === 0 || busy) return;
 
     setBusy(true);
+    setProposedMerges([]);
+    setShowMergePreview(false);
 
     const snapshot = [...items];
 
@@ -248,11 +296,122 @@ export default function BulkAICapturePage() {
     setBusy(false);
   }
 
+  function previewAutoMergeSimilarFindings() {
+    const reviewItems = items.filter(
+      (item) =>
+        item.status === "review" &&
+        !item.file.type.startsWith("video/") &&
+        !item.mergedIntoId &&
+        item.title.trim()
+    );
+
+    if (reviewItems.length < 2) {
+      alert("You need at least two reviewed photo findings before merging.");
+      return;
+    }
+
+    const proposals: ProposedMerge[] = [];
+    const targetBySource = new Set<string>();
+
+    for (let i = 0; i < reviewItems.length; i++) {
+      const source = reviewItems[i];
+
+      if (targetBySource.has(source.id)) continue;
+
+      let bestTarget: BulkItem | null = null;
+      let bestScore = 0;
+      let bestReason = "";
+
+      for (let j = 0; j < i; j++) {
+        const target = reviewItems[j];
+
+        if (!target || target.id === source.id) continue;
+        if (targetBySource.has(target.id)) continue;
+        if (target.section !== source.section) continue;
+
+        const score = titleSimilarity(target.title, source.title);
+
+        if (score > bestScore) {
+          bestScore = score;
+          bestTarget = target;
+          bestReason =
+            score >= 0.95
+              ? "Same section and nearly identical title"
+              : "Same section and similar title";
+        }
+      }
+
+      if (bestTarget && bestScore >= 0.72) {
+        proposals.push({
+          sourceId: source.id,
+          targetId: bestTarget.id,
+          confidence: bestScore,
+          reason: bestReason,
+        });
+
+        targetBySource.add(source.id);
+      }
+    }
+
+    if (proposals.length === 0) {
+      alert("No strong merge matches found. You can still manually move photos after saving.");
+      return;
+    }
+
+    setProposedMerges(proposals);
+    setShowMergePreview(true);
+  }
+
+  function confirmMergeProposal() {
+    if (proposedMerges.length === 0) return;
+
+    setItems((current) =>
+      current.map((item) => {
+        const proposal = proposedMerges.find(
+          (merge) => merge.sourceId === item.id
+        );
+
+        if (!proposal) return item;
+
+        return {
+          ...item,
+          mergedIntoId: proposal.targetId,
+          error: "",
+        };
+      })
+    );
+
+    setShowMergePreview(false);
+    alert("Merge plan applied. Review the merged cards, then save all reviewed findings.");
+  }
+
+  function clearMergePlan() {
+    setProposedMerges([]);
+    setShowMergePreview(false);
+
+    setItems((current) =>
+      current.map((item) => ({
+        ...item,
+        mergedIntoId: "",
+      }))
+    );
+  }
+
   async function saveOne(item: BulkItem) {
+    if (item.mergedIntoId) {
+      updateItem(item.id, {
+        status: "error",
+        error:
+          "This photo is marked to merge into another finding. Save the main finding instead.",
+      });
+      return;
+    }
+
     if (!inspectionId) {
       updateItem(item.id, {
         status: "error",
-        error: "Missing inspection ID. Open Bulk AI Capture from inside a report.",
+        error:
+          "Missing inspection ID. Open Bulk AI Capture from inside a report.",
       });
       return;
     }
@@ -264,6 +423,10 @@ export default function BulkAICapturePage() {
       });
       return;
     }
+
+    const mergedChildren = items.filter(
+      (child) => child.mergedIntoId === item.id
+    );
 
     if (item.savedFindingId) {
       updateItem(item.id, { status: "saving", error: "" });
@@ -280,7 +443,9 @@ export default function BulkAICapturePage() {
             observation: item.observation,
             implication: item.implication,
             recommendation: fullRecommendation,
-            image_url: item.file.type.startsWith("image/") ? item.savedImageUrl : "",
+            image_url: item.file.type.startsWith("image/")
+              ? item.savedImageUrl
+              : "",
           })
           .eq("id", item.savedFindingId)
           .eq("inspection_id", inspectionId);
@@ -303,23 +468,27 @@ export default function BulkAICapturePage() {
     updateItem(item.id, { status: "saving", error: "" });
 
     try {
-      let imageUrl = "";
-      let filePath = "";
+      const uploadItems = [item, ...mergedChildren];
 
-      const fileExt = item.file.name.split(".").pop() || "jpg";
-      filePath = `${inspectionId}/${Date.now()}-${safeFileName(item.file.name)}.${fileExt}`;
+      const uploadedFiles = [];
 
-      const { error: uploadError } = await supabase.storage
-        .from("inspection-photos")
-        .upload(filePath, item.file);
+      for (let index = 0; index < uploadItems.length; index++) {
+        const uploadItem = uploadItems[index];
 
-      if (uploadError) throw uploadError;
+        const uploaded = await uploadMediaFile(
+          inspectionId,
+          uploadItem.file,
+          index
+        );
 
-      const { data } = supabase.storage
-        .from("inspection-photos")
-        .getPublicUrl(filePath);
+        uploadedFiles.push({
+          item: uploadItem,
+          imageUrl: uploaded.imageUrl,
+          filePath: uploaded.filePath,
+        });
+      }
 
-      imageUrl = data.publicUrl;
+      const primaryUpload = uploadedFiles[0];
 
       const fullRecommendation = buildFullRecommendation(item);
 
@@ -333,7 +502,9 @@ export default function BulkAICapturePage() {
           observation: item.observation,
           implication: item.implication,
           recommendation: fullRecommendation,
-          image_url: item.file.type.startsWith("image/") ? imageUrl : "",
+          image_url: item.file.type.startsWith("image/")
+            ? primaryUpload?.imageUrl || ""
+            : "",
         })
         .select()
         .single();
@@ -341,25 +512,49 @@ export default function BulkAICapturePage() {
       if (error) throw error;
 
       if (findingData) {
-        const { error: photoError } = await supabase.from("photos").insert({
+        const photoRows = uploadedFiles.map((uploaded) => ({
           inspection_id: inspectionId,
           finding_id: findingData.id,
-          public_url: imageUrl,
-          file_path: filePath,
-        });
+          public_url: uploaded.imageUrl,
+          file_path: uploaded.filePath,
+        }));
+
+        const { error: photoError } = await supabase
+          .from("photos")
+          .insert(photoRows);
 
         if (photoError) throw photoError;
       }
 
       await rememberInspectorCorrection(item);
 
-      updateItem(item.id, {
-        status: "saved",
-        error: "",
-        savedFindingId: findingData?.id || "",
-        savedImageUrl: imageUrl,
-        savedFilePath: filePath,
-      });
+      for (const child of mergedChildren) {
+        await rememberInspectorCorrection(child);
+      }
+
+      setItems((current) =>
+        current.map((currentItem) => {
+          if (
+            currentItem.id === item.id ||
+            mergedChildren.some((child) => child.id === currentItem.id)
+          ) {
+            const matchingUpload = uploadedFiles.find(
+              (uploaded) => uploaded.item.id === currentItem.id
+            );
+
+            return {
+              ...currentItem,
+              status: "saved",
+              error: "",
+              savedFindingId: findingData?.id || "",
+              savedImageUrl: matchingUpload?.imageUrl || "",
+              savedFilePath: matchingUpload?.filePath || "",
+            };
+          }
+
+          return currentItem;
+        })
+      );
     } catch (error: any) {
       updateItem(item.id, {
         status: "error",
@@ -373,7 +568,9 @@ export default function BulkAICapturePage() {
 
     setBusy(true);
 
-    const snapshot = items.filter((item) => item.status === "review");
+    const snapshot = items.filter(
+      (item) => item.status === "review" && !item.mergedIntoId
+    );
 
     for (const item of snapshot) {
       await saveOne(item);
@@ -390,11 +587,15 @@ export default function BulkAICapturePage() {
             <p className="text-sm font-bold uppercase tracking-[0.35em] text-teal-400">
               On Point AI
             </p>
-            <h1 className="mt-2 text-4xl font-extrabold">Bulk AI Capture</h1>
+
+            <h1 className="mt-2 text-4xl font-extrabold">
+              Bulk AI Capture
+            </h1>
+
             <p className="mt-3 max-w-3xl text-slate-300">
-              Upload multiple inspection photos or videos. The app will analyze each photo
-              one at a time, auto-select the report section, and let you review
-              before saving findings to the report.
+              Upload multiple inspection photos or videos. Review each AI
+              finding, preview similar finding merges, then save clean grouped
+              findings to the report.
             </p>
           </div>
 
@@ -417,7 +618,7 @@ export default function BulkAICapturePage() {
             value={globalNote}
             onChange={(e) => setGlobalNote(e.target.value)}
             rows={4}
-            placeholder="Optional note for all photos... Example: write concise realtor-friendly findings and route defects to the best section."
+            placeholder="Optional note for all photos..."
             className="mt-5 w-full rounded-xl border border-slate-700 bg-slate-950 p-4 text-white outline-none focus:border-teal-400"
           />
 
@@ -425,15 +626,17 @@ export default function BulkAICapturePage() {
             <h3 className="text-lg font-extrabold text-purple-300">
               AI Guidance Memory
             </h3>
+
             <p className="mt-1 text-sm text-slate-300">
-              Optional saved guidance for how you want Bulk AI Capture to write and route findings on this device.
+              Optional saved guidance for how you want Bulk AI Capture to write
+              and route findings on this device.
             </p>
 
             <textarea
               value={aiMemory}
               onChange={(e) => setAiMemory(e.target.value)}
               rows={4}
-              placeholder="Example: Always keep findings concise. Route sink, drain, supply, toilet, tub, shower, water heater, and visible leaks to Plumbing. Do not create findings for background items."
+              placeholder="Example: Always keep findings concise. Route sink, drain, supply, toilet, tub, shower, water heater, and visible leaks to Plumbing."
               className="mt-4 w-full rounded-xl border border-slate-700 bg-slate-950 p-4 text-white outline-none focus:border-purple-400"
             />
 
@@ -447,7 +650,9 @@ export default function BulkAICapturePage() {
           </div>
 
           <p className="mt-4 rounded-xl border border-teal-800 bg-teal-950/20 p-3 text-sm text-teal-100">
-            Tip: For best accuracy, add a quick 2–5 word note on confusing photos, such as “leak under sink,” “missing GFCI,” “damaged shingles,” or “loose toilet.”
+            Tip: Analyze all photos first. Then click Auto Merge Similar
+            Findings to preview which photos will be grouped together before
+            saving.
           </p>
 
           <div className="mt-5 flex flex-wrap gap-3">
@@ -460,11 +665,27 @@ export default function BulkAICapturePage() {
             </button>
 
             <button
+              onClick={previewAutoMergeSimilarFindings}
+              disabled={busy || items.filter((i) => i.status === "review").length < 2}
+              className="rounded-xl bg-cyan-600 px-6 py-3 font-bold text-white transition hover:bg-cyan-500 disabled:opacity-50"
+            >
+              Auto Merge Similar Findings
+            </button>
+
+            <button
               onClick={saveAllReviewed}
               disabled={reviewCount === 0 || busy}
               className="rounded-xl bg-purple-600 px-6 py-3 font-bold text-white transition hover:bg-purple-500 disabled:opacity-50"
             >
               Save All Reviewed Findings
+            </button>
+
+            <button
+              onClick={clearMergePlan}
+              disabled={busy || mergedCount === 0}
+              className="rounded-xl border border-yellow-600 px-6 py-3 font-bold text-yellow-300 transition hover:bg-yellow-500/10 disabled:opacity-50"
+            >
+              Clear Merge Plan
             </button>
 
             <button
@@ -477,30 +698,52 @@ export default function BulkAICapturePage() {
           </div>
 
           <p className="mt-4 text-sm text-slate-400">
-            Selected media: {items.length} / {MAX_PHOTOS} · Ready to save: {reviewCount} · Saved: {savedCount}
+            Selected media: {items.length} / {MAX_PHOTOS} · Ready to save:{" "}
+            {reviewCount} · Merged into other findings: {mergedCount} · Saved:{" "}
+            {savedCount}
           </p>
         </section>
 
+        {showMergePreview && proposedMerges.length > 0 && (
+          <MergePreviewPanel
+            items={items}
+            proposedMerges={proposedMerges}
+            onConfirm={confirmMergeProposal}
+            onCancel={() => setShowMergePreview(false)}
+          />
+        )}
+
         {items.length > 0 && (
           <section className="space-y-5">
-            {items.map((item, index) => (
-              <PhotoReviewCard
-                key={item.id}
-                index={index}
-                item={item}
-                updateItem={updateItem}
-                analyzeOne={analyzeOne}
-                saveOne={saveOne}
-                busy={busy}
-              />
-            ))}
+            {items.map((item, index) => {
+              const mergedIntoItem = items.find(
+                (target) => target.id === item.mergedIntoId
+              );
+
+              const mergedChildren = items.filter(
+                (child) => child.mergedIntoId === item.id
+              );
+
+              return (
+                <PhotoReviewCard
+                  key={item.id}
+                  index={index}
+                  item={item}
+                  mergedIntoItem={mergedIntoItem}
+                  mergedChildren={mergedChildren}
+                  updateItem={updateItem}
+                  analyzeOne={analyzeOne}
+                  saveOne={saveOne}
+                  busy={busy}
+                />
+              );
+            })}
           </section>
         )}
       </div>
     </main>
   );
 }
-
 
 function MediaUploadButtons({
   onChange,
@@ -543,9 +786,126 @@ function MediaUploadButtons({
         />
       </label>
 
-      <p className="md:col-span-3 rounded-xl border border-slate-700 bg-slate-950 p-3 text-sm text-slate-300">
-        Photos can be analyzed by AI. Videos are saved to the report as media attachments and can be reviewed by the client.
+      <p className="rounded-xl border border-slate-700 bg-slate-950 p-3 text-sm text-slate-300 md:col-span-3">
+        Photos can be analyzed by AI. Videos are saved to the report as media
+        attachments and can be reviewed by the client.
       </p>
+    </div>
+  );
+}
+
+function MergePreviewPanel({
+  items,
+  proposedMerges,
+  onConfirm,
+  onCancel,
+}: {
+  items: BulkItem[];
+  proposedMerges: ProposedMerge[];
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  function findItem(id: string) {
+    return items.find((item) => item.id === id);
+  }
+
+  return (
+    <section className="rounded-2xl border border-cyan-700 bg-cyan-950/20 p-6">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-2xl font-black text-cyan-300">
+            Review Merge Plan
+          </h2>
+
+          <p className="mt-1 text-sm text-slate-300">
+            Nothing has merged yet. Review these matches, then confirm if they
+            look correct.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={onConfirm}
+            className="rounded-xl bg-cyan-500 px-5 py-3 font-black text-slate-950 hover:bg-cyan-400"
+          >
+            Confirm Merge
+          </button>
+
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded-xl border border-slate-600 px-5 py-3 font-bold text-slate-200 hover:bg-slate-800"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        {proposedMerges.map((merge, index) => {
+          const source = findItem(merge.sourceId);
+          const target = findItem(merge.targetId);
+
+          if (!source || !target) return null;
+
+          return (
+            <div
+              key={`${merge.sourceId}-${merge.targetId}`}
+              className="rounded-xl border border-cyan-800 bg-slate-950/70 p-4"
+            >
+              <p className="mb-3 text-sm font-black uppercase tracking-wide text-cyan-300">
+                Merge Match {index + 1} · {Math.round(merge.confidence * 100)}%
+                confidence
+              </p>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <MergeMiniCard label="This photo" item={source} />
+
+                <MergeMiniCard label="Will merge into" item={target} />
+              </div>
+
+              <p className="mt-3 rounded-lg border border-slate-700 bg-slate-900 p-3 text-sm text-slate-300">
+                Reason: {merge.reason}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function MergeMiniCard({
+  label,
+  item,
+}: {
+  label: string;
+  item: BulkItem;
+}) {
+  return (
+    <div className="rounded-xl border border-slate-700 bg-[#020617] p-3">
+      <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
+        {label}
+      </p>
+
+      {item.file.type.startsWith("video/") ? (
+        <video
+          src={item.previewUrl}
+          controls
+          className="mb-3 h-40 w-full rounded-lg bg-black object-contain"
+        />
+      ) : (
+        <img
+          src={item.previewUrl}
+          alt={item.title}
+          className="mb-3 h-40 w-full rounded-lg object-contain"
+        />
+      )}
+
+      <p className="font-black text-white">{item.title}</p>
+      <p className="mt-1 text-sm text-slate-400">{item.section}</p>
+      <p className="mt-1 text-sm text-slate-400">{item.severity}</p>
     </div>
   );
 }
@@ -553,6 +913,8 @@ function MediaUploadButtons({
 function PhotoReviewCard({
   index,
   item,
+  mergedIntoItem,
+  mergedChildren,
   updateItem,
   analyzeOne,
   saveOne,
@@ -560,23 +922,79 @@ function PhotoReviewCard({
 }: {
   index: number;
   item: BulkItem;
+  mergedIntoItem?: BulkItem;
+  mergedChildren: BulkItem[];
   updateItem: (id: string, patch: Partial<BulkItem>) => void;
   analyzeOne: (item: BulkItem) => Promise<void>;
   saveOne: (item: BulkItem) => Promise<void>;
   busy: boolean;
 }) {
+  const isMergedChild = !!item.mergedIntoId;
+
   return (
-    <div className="rounded-2xl border border-slate-800 bg-[#0b1220] p-5">
+    <div
+      className={`rounded-2xl border bg-[#0b1220] p-5 ${
+        isMergedChild
+          ? "border-cyan-700 ring-1 ring-cyan-700/60"
+          : "border-slate-800"
+      }`}
+    >
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="text-xl font-extrabold text-teal-300">
-            {item.file.type.startsWith("video/") ? "Video" : "Photo"} {index + 1}
+            {item.file.type.startsWith("video/") ? "Video" : "Photo"}{" "}
+            {index + 1}
           </h3>
+
           <p className="text-sm text-slate-400">{item.file.name}</p>
         </div>
 
         <StatusBadge status={item.status} />
       </div>
+
+      {isMergedChild && mergedIntoItem && (
+        <div className="mb-5 rounded-xl border border-cyan-700 bg-cyan-950/30 p-4">
+          <p className="text-sm font-black uppercase tracking-wide text-cyan-300">
+            This photo will merge into:
+          </p>
+
+          <p className="mt-2 text-lg font-black text-white">
+            {mergedIntoItem.title}
+          </p>
+
+          <p className="mt-1 text-sm text-slate-300">
+            Section: {mergedIntoItem.section} · Severity:{" "}
+            {mergedIntoItem.severity}
+          </p>
+        </div>
+      )}
+
+      {mergedChildren.length > 0 && (
+        <div className="mb-5 rounded-xl border border-cyan-700 bg-cyan-950/30 p-4">
+          <p className="text-sm font-black uppercase tracking-wide text-cyan-300">
+            Photos merging into this finding:
+          </p>
+
+          <div className="mt-3 grid gap-3 sm:grid-cols-2 md:grid-cols-4">
+            {mergedChildren.map((child, childIndex) => (
+              <div
+                key={child.id}
+                className="rounded-lg border border-slate-700 bg-slate-950 p-2"
+              >
+                <img
+                  src={child.previewUrl}
+                  alt={`Merged photo ${childIndex + 1}`}
+                  className="h-28 w-full rounded-md object-contain"
+                />
+
+                <p className="mt-2 line-clamp-2 text-xs font-bold text-slate-300">
+                  {child.title}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-5 lg:grid-cols-[280px_1fr]">
         <div>
@@ -598,26 +1016,45 @@ function PhotoReviewCard({
             value={item.note}
             onChange={(e) => updateItem(item.id, { note: e.target.value })}
             rows={4}
+            disabled={isMergedChild}
             placeholder="Optional note for this photo..."
-            className="mt-4 w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+            className="mt-4 w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400 disabled:opacity-60"
           />
 
           <div className="mt-4 flex flex-wrap gap-2">
             <button
               onClick={() => analyzeOne(item)}
-              disabled={busy || item.status === "analyzing" || item.status === "saving"}
+              disabled={
+                busy ||
+                isMergedChild ||
+                item.status === "analyzing" ||
+                item.status === "saving"
+              }
               className="rounded-lg bg-teal-500 px-4 py-2 text-sm font-bold text-black hover:bg-teal-400 disabled:opacity-50"
             >
-              {item.file.type.startsWith("video/") ? "Prepare Video" : "Re-Analyze"}
+              {item.file.type.startsWith("video/")
+                ? "Prepare Video"
+                : "Re-Analyze"}
             </button>
 
             <button
               onClick={() => saveOne(item)}
-              disabled={busy || item.status !== "review"}
+              disabled={busy || isMergedChild || item.status !== "review"}
               className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-bold text-white hover:bg-purple-500 disabled:opacity-50"
             >
               Save Finding
             </button>
+
+            {isMergedChild && (
+              <button
+                type="button"
+                onClick={() => updateItem(item.id, { mergedIntoId: "" })}
+                disabled={busy}
+                className="rounded-lg border border-yellow-500 px-4 py-2 text-sm font-bold text-yellow-300 hover:bg-yellow-500/10 disabled:opacity-50"
+              >
+                Unmerge
+              </button>
+            )}
           </div>
 
           {item.error && (
@@ -631,15 +1068,17 @@ function PhotoReviewCard({
           <input
             value={item.title}
             onChange={(e) => updateItem(item.id, { title: e.target.value })}
+            disabled={isMergedChild}
             placeholder="Finding title"
-            className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+            className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400 disabled:opacity-60"
           />
 
           <div className="grid gap-4 md:grid-cols-2">
             <select
               value={item.section}
               onChange={(e) => updateItem(item.id, { section: e.target.value })}
-              className="rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+              disabled={isMergedChild}
+              className="rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400 disabled:opacity-60"
             >
               {SECTIONS.map((section) => (
                 <option key={section}>{section}</option>
@@ -648,8 +1087,11 @@ function PhotoReviewCard({
 
             <select
               value={item.severity}
-              onChange={(e) => updateItem(item.id, { severity: e.target.value })}
-              className="rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+              onChange={(e) =>
+                updateItem(item.id, { severity: e.target.value })
+              }
+              disabled={isMergedChild}
+              className="rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400 disabled:opacity-60"
             >
               {SEVERITIES.map((severity) => (
                 <option key={severity}>{severity}</option>
@@ -660,17 +1102,24 @@ function PhotoReviewCard({
           <MiniTextArea
             label="Observation"
             value={item.observation}
+            disabled={isMergedChild}
             onChange={(value) => updateItem(item.id, { observation: value })}
           />
+
           <MiniTextArea
             label="Implication"
             value={item.implication}
+            disabled={isMergedChild}
             onChange={(value) => updateItem(item.id, { implication: value })}
           />
+
           <MiniTextArea
             label="Recommendation"
             value={item.recommendation}
-            onChange={(value) => updateItem(item.id, { recommendation: value })}
+            disabled={isMergedChild}
+            onChange={(value) =>
+              updateItem(item.id, { recommendation: value })
+            }
           />
 
           {(item.equipmentType ||
@@ -680,37 +1129,61 @@ function PhotoReviewCard({
             item.estimatedAge ||
             item.notes) && (
             <div className="rounded-xl border border-blue-800 bg-blue-950/20 p-4">
-              <h4 className="mb-3 font-bold text-blue-300">Equipment Data</h4>
+              <h4 className="mb-3 font-bold text-blue-300">
+                Equipment Data
+              </h4>
+
               <div className="grid gap-3 md:grid-cols-2">
                 <SmallInput
                   label="Equipment Type"
                   value={item.equipmentType}
-                  onChange={(value) => updateItem(item.id, { equipmentType: value })}
+                  disabled={isMergedChild}
+                  onChange={(value) =>
+                    updateItem(item.id, { equipmentType: value })
+                  }
                 />
+
                 <SmallInput
                   label="Manufacturer"
                   value={item.manufacturer}
-                  onChange={(value) => updateItem(item.id, { manufacturer: value })}
+                  disabled={isMergedChild}
+                  onChange={(value) =>
+                    updateItem(item.id, { manufacturer: value })
+                  }
                 />
+
                 <SmallInput
                   label="Model Number"
                   value={item.modelNumber}
-                  onChange={(value) => updateItem(item.id, { modelNumber: value })}
+                  disabled={isMergedChild}
+                  onChange={(value) =>
+                    updateItem(item.id, { modelNumber: value })
+                  }
                 />
+
                 <SmallInput
                   label="Serial Number"
                   value={item.serialNumber}
-                  onChange={(value) => updateItem(item.id, { serialNumber: value })}
+                  disabled={isMergedChild}
+                  onChange={(value) =>
+                    updateItem(item.id, { serialNumber: value })
+                  }
                 />
+
                 <SmallInput
                   label="Estimated Age"
                   value={item.estimatedAge}
-                  onChange={(value) => updateItem(item.id, { estimatedAge: value })}
+                  disabled={isMergedChild}
+                  onChange={(value) =>
+                    updateItem(item.id, { estimatedAge: value })
+                  }
                 />
               </div>
+
               <MiniTextArea
                 label="Equipment Notes"
                 value={item.notes}
+                disabled={isMergedChild}
                 onChange={(value) => updateItem(item.id, { notes: value })}
               />
             </div>
@@ -742,21 +1215,25 @@ function MiniTextArea({
   label,
   value,
   onChange,
+  disabled = false,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  disabled?: boolean;
 }) {
   return (
     <label className="block">
       <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-400">
         {label}
       </p>
+
       <textarea
         rows={3}
         value={value}
+        disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+        className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400 disabled:opacity-60"
       />
     </label>
   );
@@ -766,25 +1243,28 @@ function SmallInput({
   label,
   value,
   onChange,
+  disabled = false,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  disabled?: boolean;
 }) {
   return (
     <label className="block">
       <p className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-400">
         {label}
       </p>
+
       <input
         value={value}
+        disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-lg border border-slate-700 bg-slate-950 p-2 text-white outline-none focus:border-teal-400"
+        className="w-full rounded-lg border border-slate-700 bg-slate-950 p-2 text-white outline-none focus:border-teal-400 disabled:opacity-60"
       />
     </label>
   );
 }
-
 
 async function rememberInspectorCorrection(item: BulkItem) {
   const sectionChanged =
@@ -818,9 +1298,7 @@ async function rememberInspectorCorrection(item: BulkItem) {
         source: "bulk-ai-capture",
       }),
     });
-  } catch {
-    // Inspector memory should never block saving a report finding.
-  }
+  } catch {}
 }
 
 function buildFullRecommendation(item: BulkItem) {
@@ -837,6 +1315,31 @@ function buildFullRecommendation(item: BulkItem) {
     .join("\n");
 }
 
+async function uploadMediaFile(
+  inspectionId: string,
+  file: File,
+  index: number
+) {
+  const originalExt = file.name.split(".").pop() || "jpg";
+  const safeBaseName = safeFileName(file.name);
+  const filePath = `${inspectionId}/${Date.now()}-${index}-${crypto.randomUUID()}-${safeBaseName}.${originalExt}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from("inspection-photos")
+    .upload(filePath, file);
+
+  if (uploadError) throw uploadError;
+
+  const { data } = supabase.storage
+    .from("inspection-photos")
+    .getPublicUrl(filePath);
+
+  return {
+    imageUrl: data.publicUrl,
+    filePath,
+  };
+}
+
 async function fileToBase64(file: File): Promise<string> {
   if (!file.type.startsWith("image/")) {
     throw new Error("Only photos can be analyzed by AI.");
@@ -848,13 +1351,25 @@ async function fileToBase64(file: File): Promise<string> {
     const image = await loadImageFromDataUrl(originalDataUrl);
 
     const maxDimension = 1600;
+
     const scale = Math.min(
       1,
-      maxDimension / Math.max(image.naturalWidth || image.width, image.naturalHeight || image.height)
+      maxDimension /
+        Math.max(
+          image.naturalWidth || image.width,
+          image.naturalHeight || image.height
+        )
     );
 
-    const width = Math.max(1, Math.round((image.naturalWidth || image.width) * scale));
-    const height = Math.max(1, Math.round((image.naturalHeight || image.height) * scale));
+    const width = Math.max(
+      1,
+      Math.round((image.naturalWidth || image.width) * scale)
+    );
+
+    const height = Math.max(
+      1,
+      Math.round((image.naturalHeight || image.height) * scale)
+    );
 
     const canvas = document.createElement("canvas");
     canvas.width = width;
@@ -876,7 +1391,11 @@ async function fileToBase64(file: File): Promise<string> {
 
     return jpegDataUrl;
   } catch {
-    if (originalDataUrl.startsWith("data:image/jpeg") || originalDataUrl.startsWith("data:image/png") || originalDataUrl.startsWith("data:image/webp")) {
+    if (
+      originalDataUrl.startsWith("data:image/jpeg") ||
+      originalDataUrl.startsWith("data:image/png") ||
+      originalDataUrl.startsWith("data:image/webp")
+    ) {
       return originalDataUrl;
     }
 
@@ -911,7 +1430,8 @@ function loadImageFromDataUrl(dataUrl: string): Promise<HTMLImageElement> {
     const image = new Image();
 
     image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error("Could not load image for processing."));
+    image.onerror = () =>
+      reject(new Error("Could not load image for processing."));
     image.src = dataUrl;
   });
 }
@@ -921,4 +1441,120 @@ function safeFileName(name: string) {
     .replace(/\.[^/.]+$/, "")
     .replace(/[^a-zA-Z0-9-_]/g, "-")
     .slice(0, 40);
+}
+
+function normalizeTitle(title: string) {
+  return String(title || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(
+      /\b(the|a|an|and|or|at|to|of|with|on|in|was|were|is|are|noted|observed|visible|appears|possible|defect|condition|issue|damage|damaged)\b/g,
+      " "
+    )
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function titleSimilarity(a: string, b: string) {
+  const cleanA = normalizeTitle(a);
+  const cleanB = normalizeTitle(b);
+
+  if (!cleanA || !cleanB) return 0;
+  if (cleanA === cleanB) return 1;
+
+  const tokensA = new Set(cleanA.split(" ").filter(Boolean));
+  const tokensB = new Set(cleanB.split(" ").filter(Boolean));
+
+  const intersection = [...tokensA].filter((token) => tokensB.has(token));
+  const union = new Set([...tokensA, ...tokensB]);
+
+  if (union.size === 0) return 0;
+
+  const jaccard = intersection.length / union.size;
+
+  if (cleanA.includes(cleanB) || cleanB.includes(cleanA)) {
+    return Math.max(jaccard, 0.82);
+  }
+
+  return jaccard;
+}
+
+function autoCorrectSection(originalSection: string, text: string) {
+  const clean = String(text || "").toLowerCase();
+
+  if (
+    /\b(gfci|gfi|outlet|receptacle|breaker|panel|disconnect|wire|wiring|junction|open ground|reverse polarity|double tap|bonding|electrical)\b/.test(
+      clean
+    )
+  ) {
+    return "Electrical";
+  }
+
+  if (
+    /\b(shingle|roof|flashing|ridge|valley|chimney flashing|boot|vent pipe|roof covering|gutter|downspout)\b/.test(
+      clean
+    )
+  ) {
+    return "Roof";
+  }
+
+  if (
+    /\b(sink|toilet|tub|shower|faucet|drain|supply line|trap|leak|plumbing|water heater|hose bib|valve)\b/.test(
+      clean
+    )
+  ) {
+    return "Plumbing";
+  }
+
+  if (
+    /\b(furnace|boiler|heat pump|air handler|heating|flue|burner|combustion)\b/.test(
+      clean
+    )
+  ) {
+    return "Heating";
+  }
+
+  if (
+    /\b(air conditioner|condenser|cooling|evaporator|refrigerant|ac unit|a\/c)\b/.test(
+      clean
+    )
+  ) {
+    return "Cooling";
+  }
+
+  if (
+    /\b(dishwasher|range|oven|microwave|garbage disposal|appliance)\b/.test(
+      clean
+    )
+  ) {
+    return "Built-in Appliances";
+  }
+
+  if (
+    /\b(attic|insulation|ventilation|soffit vent|ridge vent|bath fan duct)\b/.test(
+      clean
+    )
+  ) {
+    return "Attic, Insulation & Ventilation";
+  }
+
+  if (
+    /\b(window|door|interior|floor|wall|ceiling|trim|cabinet|stair|handrail|guardrail)\b/.test(
+      clean
+    )
+  ) {
+    return "Doors, Windows & Interior";
+  }
+
+  if (
+    /\b(foundation|crawlspace|basement|structure|joist|beam|girder|pier|sill plate|settlement)\b/.test(
+      clean
+    )
+  ) {
+    return "Basement, Foundation, Crawlspace & Structure";
+  }
+
+  if (SECTIONS.includes(originalSection)) return originalSection;
+
+  return "Exterior";
 }
