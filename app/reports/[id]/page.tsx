@@ -15,6 +15,7 @@ import SendAgreementButton from "../../../components/SendAgreementButton";
 import SendFullReportButton from "../../../components/SendFullReportButton";
 import InsertFavoriteFindingButton from "../../../components/InsertFavoriteFindingButton";
 import OneTapAIFindingInsert from "../../../components/OneTapAIFindingInsert";
+import PaymentInvoicePanel from "../../../components/PaymentInvoicePanel";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -443,6 +444,8 @@ export default async function ReportPage({ params }: PageProps) {
           <AgreementStatusPanel inspectionId={String(inspection.id)} />
 
           <ReportDeliveryGuard inspectionId={String(inspection.id)} />
+
+          <PaymentInvoicePanel inspection={inspection} />
 
           {propertyPhoto && (
             <div className="mb-6 overflow-hidden rounded-2xl border border-slate-700 bg-black">
