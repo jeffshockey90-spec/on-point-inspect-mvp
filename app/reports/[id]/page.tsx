@@ -388,6 +388,13 @@ export default async function ReportPage({ params }: PageProps) {
             </Link>
 
             <Link
+              href={`/reports/${inspection.id}/bulk-ai-capture`}
+              className="rounded-xl bg-purple-600 px-5 py-3 font-bold text-white hover:bg-purple-500"
+            >
+              📸 Bulk AI Capture
+            </Link>
+
+            <Link
               href={`/equipment-analyzer?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`}
               className="rounded-xl border border-blue-500 px-5 py-3 font-bold text-blue-300 hover:bg-blue-500/10"
             >
