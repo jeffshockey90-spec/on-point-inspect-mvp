@@ -5,7 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 export const runtime = "nodejs";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2025-12-17.clover",
+  apiVersion: "2026-05-27.dahlia",
 });
 
 function getNumber(value: any) {
