@@ -10,6 +10,8 @@ import {
   normalizeAgreementState,
 } from "../../../lib/agreementTemplates";
 
+export const runtime = "nodejs";
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -34,6 +36,78 @@ async function updateInspectionAgreementStatus(inspectionId: string) {
       agreement_status: allSigned ? "signed" : "partially_signed",
     })
     .eq("id", inspectionId);
+}
+
+async function findMatchingContact({
+  inspectionId,
+  contactId,
+  clientEmail,
+  clientName,
+}: {
+  inspectionId: string;
+  contactId: string;
+  clientEmail: string;
+  clientName: string;
+}) {
+  if (contactId) {
+    const { data } = await supabase
+      .from("inspection_contacts")
+      .select("*")
+      .eq("id", contactId)
+      .eq("inspection_id", inspectionId)
+      .maybeSingle();
+
+    if (data) return data;
+  }
+
+  const cleanEmail = clientEmail.trim().toLowerCase();
+
+  if (cleanEmail) {
+    const { data } = await supabase
+      .from("inspection_contacts")
+      .select("*")
+      .eq("inspection_id", inspectionId)
+      .ilike("email", cleanEmail)
+      .maybeSingle();
+
+    if (data) return data;
+  }
+
+  const cleanName = clientName.trim();
+
+  if (cleanName) {
+    const { data } = await supabase
+      .from("inspection_contacts")
+      .select("*")
+      .eq("inspection_id", inspectionId)
+      .ilike("name", cleanName)
+      .maybeSingle();
+
+    if (data) return data;
+  }
+
+  const { data: firstRequiredClient } = await supabase
+    .from("inspection_contacts")
+    .select("*")
+    .eq("inspection_id", inspectionId)
+    .eq("agreement_required", true)
+    .eq("agreement_signed", false)
+    .in("role", ["client", "co-client"])
+    .limit(1)
+    .maybeSingle();
+
+  if (firstRequiredClient) return firstRequiredClient;
+
+  const { data: firstRequired } = await supabase
+    .from("inspection_contacts")
+    .select("*")
+    .eq("inspection_id", inspectionId)
+    .eq("agreement_required", true)
+    .eq("agreement_signed", false)
+    .limit(1)
+    .maybeSingle();
+
+  return firstRequired || null;
 }
 
 export async function POST(req: Request) {
@@ -81,18 +155,12 @@ export async function POST(req: Request) {
       );
     }
 
-    let contact: any = null;
-
-    if (contactId) {
-      const { data } = await supabase
-        .from("inspection_contacts")
-        .select("*")
-        .eq("id", contactId)
-        .eq("inspection_id", inspectionId)
-        .maybeSingle();
-
-      contact = data;
-    }
+    const contact = await findMatchingContact({
+      inspectionId,
+      contactId,
+      clientEmail,
+      clientName,
+    });
 
     const state = normalizeAgreementState(
       inspection.agreement_state || inspection.state
@@ -149,7 +217,8 @@ export async function POST(req: Request) {
         agreement_title: agreementTitle,
         agreement_body: agreementBody,
         client_name: clientName,
-        client_email: clientEmail || contact?.email || inspection.client_email,
+        client_email:
+          clientEmail || contact?.email || inspection.client_email || null,
         client_signature: signature,
         signed_at: new Date().toISOString(),
         signer_ip: signerIp,
@@ -167,6 +236,8 @@ export async function POST(req: Request) {
         .update({
           agreement_signed: true,
           signed_at: new Date().toISOString(),
+          name: contact.name || clientName,
+          email: contact.email || clientEmail || null,
         })
         .eq("id", contact.id);
     } else {
@@ -178,9 +249,7 @@ export async function POST(req: Request) {
         .eq("id", inspectionId);
     }
 
-    if (contact?.id) {
-      await updateInspectionAgreementStatus(inspectionId);
-    }
+    await updateInspectionAgreementStatus(inspectionId);
 
     await supabase.from("client_portal_events").insert({
       inspection_id: inspectionId,
@@ -193,6 +262,8 @@ export async function POST(req: Request) {
     return NextResponse.json({
       ok: true,
       agreement,
+      contactUpdated: Boolean(contact?.id),
+      contactId: contact?.id || null,
     });
   } catch (error: any) {
     console.error("Agreement signing error:", error);
