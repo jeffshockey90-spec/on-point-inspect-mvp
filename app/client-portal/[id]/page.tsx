@@ -95,14 +95,34 @@ function isAgreementSigned(inspection: any) {
 }
 
 function isReportPublished(inspection: any) {
-  const status = String(inspection?.report_status || "Draft").toLowerCase();
+  const reportStatus = String(inspection?.report_status || "").toLowerCase().trim();
+  const status = String(inspection?.status || "").toLowerCase().trim();
+  const deliveryStatus = String(inspection?.delivery_status || "").toLowerCase().trim();
+  const publishStatus = String(inspection?.publish_status || "").toLowerCase().trim();
+  const sharedStatus = String(inspection?.shared_status || "").toLowerCase().trim();
+
+  const publishedWords = new Set([
+    "published",
+    "publish",
+    "ready",
+    "complete",
+    "completed",
+    "sent",
+    "delivered",
+    "shared",
+  ]);
 
   return (
-    status === "published" ||
-    status === "publish" ||
-    status === "ready" ||
-    status === "complete" ||
-    status === "completed"
+    inspection?.published === true ||
+    inspection?.is_published === true ||
+    Boolean(inspection?.published_at) ||
+    Boolean(inspection?.report_published_at) ||
+    Boolean(inspection?.sent_at) ||
+    publishedWords.has(reportStatus) ||
+    publishedWords.has(status) ||
+    publishedWords.has(deliveryStatus) ||
+    publishedWords.has(publishStatus) ||
+    publishedWords.has(sharedStatus)
   );
 }
 
