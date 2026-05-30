@@ -88,6 +88,7 @@ export default function ClientPortalPage() {
 
   const [inspection, setInspection] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [paying, setPaying] = useState(false);
 
   useEffect(() => {
     loadInspection();
@@ -132,6 +133,46 @@ export default function ClientPortalPage() {
 
     await loadInspection();
   }
+
+  async function startStripeCheckout() {
+    if (!inspectionId) {
+      alert("Missing inspection ID.");
+      return;
+    }
+
+    try {
+      setPaying(true);
+
+      const res = await fetch("/api/create-checkout-session", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          inspectionId,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.error || "Unable to start payment.");
+        return;
+      }
+
+      if (!data.url) {
+        alert("Stripe checkout URL was not returned.");
+        return;
+      }
+
+      window.location.href = data.url;
+    } catch (error: any) {
+      alert(error?.message || "Unable to start payment.");
+    } finally {
+      setPaying(false);
+    }
+  }
+
 
   if (loading) {
     return (
@@ -296,7 +337,7 @@ export default function ClientPortalPage() {
           </div>
 
           <p className="mt-4 text-sm text-slate-400">
-            Online payment is not active yet. Payment status is managed by On Point Home Inspections until Stripe checkout is connected.
+            Secure online payments are processed through Stripe. Once payment is complete, this portal will return to On Point Inspect and update the payment status.
           </p>
         </div>
 
@@ -315,12 +356,22 @@ export default function ClientPortalPage() {
               Sign Agreement
             </button>
 
-            <button
-              disabled
-              className="cursor-not-allowed rounded-xl bg-slate-700 px-6 py-3 font-bold text-slate-300 opacity-80"
-            >
-              Online Payment Coming Soon
-            </button>
+            {paymentComplete || balanceDue <= 0 ? (
+              <button
+                disabled
+                className="cursor-not-allowed rounded-xl bg-green-600 px-6 py-3 font-bold text-white opacity-80"
+              >
+                Payment Complete
+              </button>
+            ) : (
+              <button
+                onClick={startStripeCheckout}
+                disabled={paying}
+                className="rounded-xl bg-green-500 px-6 py-3 font-bold text-slate-950 hover:bg-green-400 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {paying ? "Opening Checkout..." : `Pay Now ${money(balanceDue)}`}
+              </button>
+            )}
 
             <button
               onClick={() =>

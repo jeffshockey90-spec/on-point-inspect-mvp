@@ -1,0 +1,119 @@
+import Link from "next/link";
+import Stripe from "stripe";
+import { createClient } from "@supabase/supabase-js";
+
+export const runtime = "nodejs";
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
+  apiVersion: "2025-12-17.clover",
+});
+
+function getSupabaseAdmin() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new Error("Missing Supabase admin environment variables.");
+  }
+
+  return createClient(supabaseUrl, serviceRoleKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
+}
+
+type PageProps = {
+  searchParams: Promise<{ session_id?: string }>;
+};
+
+export default async function PaymentSuccessPage({ searchParams }: PageProps) {
+  const params = await searchParams;
+  const sessionId = params.session_id || "";
+
+  let inspectionId = "";
+  let paid = false;
+  let message = "Payment could not be verified.";
+
+  try {
+    if (!sessionId) {
+      throw new Error("Missing Stripe session.");
+    }
+
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+    inspectionId =
+      String(session.metadata?.inspection_id || session.client_reference_id || "");
+
+    paid = session.payment_status === "paid" || session.status === "complete";
+
+    if (!inspectionId) {
+      throw new Error("Missing inspection ID from Stripe session.");
+    }
+
+    if (paid) {
+      const supabase = getSupabaseAdmin();
+      const amountPaid = (session.amount_total || 0) / 100;
+
+      await supabase
+        .from("inspections")
+        .update({
+          invoice_status: "Paid",
+          payment_status: "Paid",
+          amount_paid: amountPaid,
+          balance_due: 0,
+          payment_method: "Stripe",
+          payment_notes: `Stripe payment completed. Session: ${session.id}`,
+          invoice_notes: `Stripe payment completed. Session: ${session.id}`,
+          stripe_checkout_session_id: session.id,
+          stripe_payment_intent_id:
+            typeof session.payment_intent === "string"
+              ? session.payment_intent
+              : null,
+          paid_at: new Date().toISOString(),
+        })
+        .eq("id", inspectionId);
+
+      message = "Payment complete. Your inspection portal has been updated.";
+    } else {
+      message = "Stripe has not marked this payment complete yet.";
+    }
+  } catch (error: any) {
+    message = error?.message || "Payment verification failed.";
+  }
+
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-[#020617] p-6 text-white">
+      <section className="w-full max-w-2xl rounded-2xl border border-slate-800 bg-[#0f172a] p-8 shadow-xl">
+        <p className="text-sm font-black uppercase tracking-[0.35em] text-teal-400">
+          On Point Inspect
+        </p>
+
+        <h1 className="mt-4 text-4xl font-black text-white">
+          {paid ? "Payment Successful" : "Payment Verification"}
+        </h1>
+
+        <p className="mt-4 text-lg leading-8 text-slate-300">{message}</p>
+
+        <div className="mt-8 flex flex-wrap gap-3">
+          {inspectionId && (
+            <Link
+              href={`/client-portal/${inspectionId}`}
+              className="rounded-xl bg-teal-500 px-6 py-3 font-black text-slate-950 hover:bg-teal-400"
+            >
+              Return to Client Portal
+            </Link>
+          )}
+
+          <Link
+            href="/dashboard"
+            className="rounded-xl border border-slate-700 px-6 py-3 font-bold text-slate-200 hover:bg-slate-800"
+          >
+            Dashboard
+          </Link>
+        </div>
+      </section>
+    </main>
+  );
+}
