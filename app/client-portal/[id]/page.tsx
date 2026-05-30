@@ -18,7 +18,6 @@ function getPropertyPhoto(inspection: any) {
   );
 }
 
-
 function getNumber(value: any) {
   if (typeof value === "number" && Number.isFinite(value)) return value;
 
@@ -71,7 +70,7 @@ function getBalanceDue(inspection: any) {
 
 function isPaymentComplete(inspection: any) {
   const status = String(
-    inspection?.payment_status || inspection?.invoice_status || "Pending"
+    inspection?.payment_status || inspection?.invoice_status || "Pending",
   ).toLowerCase();
 
   if (status === "paid" || status === "waived") return true;
@@ -80,6 +79,53 @@ function isPaymentComplete(inspection: any) {
   const amountPaid = getAmountPaid(inspection);
 
   return invoiceAmount > 0 && amountPaid >= invoiceAmount;
+}
+
+function isAgreementSigned(inspection: any) {
+  const status = String(
+    inspection?.agreement_status || inspection?.agreement_state || "Pending",
+  ).toLowerCase();
+
+  return (
+    status === "signed" ||
+    status === "complete" ||
+    status === "completed" ||
+    status === "accepted"
+  );
+}
+
+function isReportPublished(inspection: any) {
+  const status = String(inspection?.report_status || "Draft").toLowerCase();
+
+  return (
+    status === "published" ||
+    status === "publish" ||
+    status === "ready" ||
+    status === "complete" ||
+    status === "completed"
+  );
+}
+
+function getReportUnlockMessage({
+  agreementSigned,
+  paymentComplete,
+  reportPublished,
+}: {
+  agreementSigned: boolean;
+  paymentComplete: boolean;
+  reportPublished: boolean;
+}) {
+  if (agreementSigned && paymentComplete && reportPublished) {
+    return "Your report is ready to view and download.";
+  }
+
+  const missing: string[] = [];
+
+  if (!agreementSigned) missing.push("signed agreement");
+  if (!paymentComplete) missing.push("completed payment");
+  if (!reportPublished) missing.push("published final report");
+
+  return `Your report will unlock after: ${missing.join(", ")}.`;
 }
 
 export default function ClientPortalPage() {
@@ -173,7 +219,6 @@ export default function ClientPortalPage() {
     }
   }
 
-
   if (loading) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#020617] text-white">
@@ -195,12 +240,23 @@ export default function ClientPortalPage() {
   const amountPaid = getAmountPaid(inspection);
   const balanceDue = getBalanceDue(inspection);
   const paymentComplete = isPaymentComplete(inspection);
-  const paymentStatus =
-    inspection.payment_status || inspection.invoice_status || "Pending";
-  const agreementStatus =
-    inspection.agreement_status ||
-    inspection.agreement_state ||
-    "Pending";
+  const agreementSigned = isAgreementSigned(inspection);
+  const reportPublished = isReportPublished(inspection);
+  const reportUnlocked = agreementSigned && paymentComplete && reportPublished;
+  const paymentStatus = paymentComplete
+    ? "Paid"
+    : inspection.payment_status || inspection.invoice_status || "Pending";
+  const agreementStatus = agreementSigned
+    ? "Signed"
+    : inspection.agreement_status || inspection.agreement_state || "Pending";
+  const reportStatus = reportPublished
+    ? "Published"
+    : inspection.report_status || "Draft";
+  const reportUnlockMessage = getReportUnlockMessage({
+    agreementSigned,
+    paymentComplete,
+    reportPublished,
+  });
 
   return (
     <main className="min-h-screen bg-[#020617] p-6 text-white">
@@ -221,9 +277,31 @@ export default function ClientPortalPage() {
               Client Portal
             </h1>
 
-            <p className="mt-2 text-slate-400">
-              On Point Home Inspections
-            </p>
+            <p className="mt-2 text-slate-400">On Point Home Inspections</p>
+
+            <div className="mt-5 flex flex-wrap gap-3">
+              {paymentComplete && (
+                <span className="rounded-full border border-green-500/40 bg-green-500/10 px-4 py-2 text-sm font-black uppercase tracking-wide text-green-300">
+                  Paid in Full
+                </span>
+              )}
+
+              {agreementSigned && (
+                <span className="rounded-full border border-teal-500/40 bg-teal-500/10 px-4 py-2 text-sm font-black uppercase tracking-wide text-teal-300">
+                  Agreement Signed
+                </span>
+              )}
+
+              {reportPublished ? (
+                <span className="rounded-full border border-cyan-500/40 bg-cyan-500/10 px-4 py-2 text-sm font-black uppercase tracking-wide text-cyan-300">
+                  Report Published
+                </span>
+              ) : (
+                <span className="rounded-full border border-yellow-500/40 bg-yellow-500/10 px-4 py-2 text-sm font-black uppercase tracking-wide text-yellow-300">
+                  Report Not Published Yet
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -254,30 +332,25 @@ export default function ClientPortalPage() {
           </p>
 
           <p>
-            <strong>Client:</strong>{" "}
-            {inspection.client_name || "N/A"}
+            <strong>Client:</strong> {inspection.client_name || "N/A"}
           </p>
 
           <p>
-            <strong>Date:</strong>{" "}
-            {inspection.inspection_date || "N/A"}
+            <strong>Date:</strong> {inspection.inspection_date || "N/A"}
           </p>
 
           <p>
-            <strong>Time:</strong>{" "}
-            {inspection.inspection_time || "N/A"}
+            <strong>Time:</strong> {inspection.inspection_time || "N/A"}
           </p>
 
           {inspection.year_built && (
             <p>
-              <strong>Year Built:</strong>{" "}
-              {inspection.year_built}
+              <strong>Year Built:</strong> {inspection.year_built}
             </p>
           )}
 
           <p>
-            <strong>Status:</strong>{" "}
-            {inspection.report_status || "Draft"}
+            <strong>Status:</strong> {reportStatus}
           </p>
 
           <p>
@@ -300,31 +373,20 @@ export default function ClientPortalPage() {
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <PortalCard
-            title="Agreement"
-            status={agreementStatus}
-          />
+          <PortalCard title="Agreement" status={agreementStatus} />
 
           <PortalCard
             title="Payment"
             status={paymentComplete ? "Paid" : paymentStatus}
           />
 
-          <PortalCard
-            title="Balance Due"
-            status={money(balanceDue)}
-          />
+          <PortalCard title="Balance Due" status={money(balanceDue)} />
 
-          <PortalCard
-            title="Report"
-            status={inspection.report_status || "Draft"}
-          />
+          <PortalCard title="Report" status={reportStatus} />
         </div>
 
         <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
-          <h2 className="text-2xl font-bold text-teal-300">
-            Payment Summary
-          </h2>
+          <h2 className="text-2xl font-bold text-teal-300">Payment Summary</h2>
 
           <div className="mt-5 grid gap-4 md:grid-cols-3">
             <PaymentBox label="Invoice Amount" value={money(invoiceAmount)} />
@@ -337,8 +399,37 @@ export default function ClientPortalPage() {
           </div>
 
           <p className="mt-4 text-sm text-slate-400">
-            Secure online payments are processed through Stripe. Once payment is complete, this portal will return to On Point Inspect and update the payment status.
+            Secure online payments are processed through Stripe. Once payment is
+            complete, this portal will return to On Point Inspect and update the
+            payment status.
           </p>
+        </div>
+
+        <div
+          className={`rounded-2xl border p-6 shadow-xl ${
+            reportUnlocked
+              ? "border-green-500/40 bg-green-950/20"
+              : "border-yellow-500/40 bg-yellow-950/20"
+          }`}
+        >
+          <h2
+            className={`text-2xl font-bold ${
+              reportUnlocked ? "text-green-300" : "text-yellow-300"
+            }`}
+          >
+            {reportUnlocked ? "Report Ready" : "Report Locked"}
+          </h2>
+
+          <p className="mt-3 text-sm leading-6 text-slate-300">
+            {reportUnlockMessage}
+          </p>
+
+          {!reportPublished && (
+            <p className="mt-2 text-sm leading-6 text-slate-400">
+              Payment can be complete before the final report is published. The
+              client will only be able to view the report after you publish it.
+            </p>
+          )}
         </div>
 
         <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
@@ -348,9 +439,7 @@ export default function ClientPortalPage() {
 
           <div className="flex flex-wrap gap-4">
             <button
-              onClick={() =>
-                updateStatus("agreement_status", "Signed")
-              }
+              onClick={() => updateStatus("agreement_status", "Signed")}
               className="rounded-xl bg-teal-500 px-6 py-3 font-bold text-slate-950 hover:bg-teal-400"
             >
               Sign Agreement
@@ -369,34 +458,54 @@ export default function ClientPortalPage() {
                 disabled={paying}
                 className="rounded-xl bg-green-500 px-6 py-3 font-bold text-slate-950 hover:bg-green-400 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {paying ? "Opening Checkout..." : `Pay Now ${money(balanceDue)}`}
+                {paying
+                  ? "Opening Checkout..."
+                  : `Pay Now ${money(balanceDue)}`}
               </button>
             )}
 
             <button
-              onClick={() =>
-                updateStatus("review_status", "Submitted")
-              }
+              onClick={() => updateStatus("review_status", "Submitted")}
               className="rounded-xl bg-yellow-500 px-6 py-3 font-bold text-slate-950 hover:bg-yellow-400"
             >
               Leave Review
             </button>
 
-            <a
-              href={`/reports/${inspectionId}`}
-              target="_blank"
-              className="rounded-xl border border-teal-500 bg-[#071224] px-6 py-3 font-bold text-teal-300 hover:bg-teal-500/10"
-            >
-              View Full Report
-            </a>
+            {reportUnlocked ? (
+              <a
+                href={`/share/${inspectionId}`}
+                target="_blank"
+                className="rounded-xl border border-teal-500 bg-[#071224] px-6 py-3 font-bold text-teal-300 hover:bg-teal-500/10"
+              >
+                View Full Report
+              </a>
+            ) : (
+              <button
+                disabled
+                title={reportUnlockMessage}
+                className="cursor-not-allowed rounded-xl border border-slate-700 bg-slate-900 px-6 py-3 font-bold text-slate-500"
+              >
+                View Full Report Locked
+              </button>
+            )}
 
-            <a
-              href={`/reports/${inspectionId}/print`}
-              target="_blank"
-              className="rounded-xl border border-cyan-500 bg-[#071224] px-6 py-3 font-bold text-cyan-300 hover:bg-cyan-500/10"
-            >
-              Download PDF
-            </a>
+            {reportUnlocked ? (
+              <a
+                href={`/reports/${inspectionId}/print`}
+                target="_blank"
+                className="rounded-xl border border-cyan-500 bg-[#071224] px-6 py-3 font-bold text-cyan-300 hover:bg-cyan-500/10"
+              >
+                Download PDF
+              </a>
+            ) : (
+              <button
+                disabled
+                title={reportUnlockMessage}
+                className="cursor-not-allowed rounded-xl border border-slate-700 bg-slate-900 px-6 py-3 font-bold text-slate-500"
+              >
+                Download PDF Locked
+              </button>
+            )}
 
             <a
               href={`/repair-request?inspection_id=${inspectionId}`}
@@ -412,7 +521,6 @@ export default function ClientPortalPage() {
   );
 }
 
-
 function PaymentBox({
   label,
   value,
@@ -426,8 +534,8 @@ function PaymentBox({
     highlight === "success"
       ? "text-green-400"
       : highlight === "warning"
-      ? "text-orange-300"
-      : "text-teal-300";
+        ? "text-orange-300"
+        : "text-teal-300";
 
   return (
     <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
@@ -440,13 +548,7 @@ function PaymentBox({
   );
 }
 
-function PortalCard({
-  title,
-  status,
-}: {
-  title: string;
-  status: string;
-}) {
+function PortalCard({ title, status }: { title: string; status: string }) {
   const green =
     status === "Signed" ||
     status === "Paid" ||
