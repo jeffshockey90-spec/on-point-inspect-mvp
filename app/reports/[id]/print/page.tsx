@@ -341,6 +341,8 @@ export default async function PrintableReportPage({ params }: PageProps) {
     if (title === "temperature") return false;
     if (title === "type of building") return false;
     if (title === "weather conditions") return false;
+    if (title.includes("section reference photo")) return false;
+    if (title.includes("reference photo")) return false;
 
     return true;
   });

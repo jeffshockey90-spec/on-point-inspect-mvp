@@ -99,6 +99,77 @@ function getFallbackPhotoUrl(photo: any) {
   );
 }
 
+function isReportDefect(finding: any) {
+  const section = String(finding?.section || "").toLowerCase().trim();
+  const title = String(finding?.title || "").toLowerCase().trim();
+
+  const nonDefectTitles = new Set([
+    "in attendance",
+    "occupancy",
+    "style",
+    "temperature",
+    "type of building",
+    "weather conditions",
+  ]);
+
+  if (section === "inspection details") return false;
+  if (section === "disclaimers") return false;
+  if (nonDefectTitles.has(title)) return false;
+
+  // Section Reference Photos are stored in section_reference_photos,
+  // not findings. This extra guard prevents any old/misfiled
+  // reference-photo record from being counted as a defect.
+  if (title.includes("section reference photo")) return false;
+  if (title.includes("reference photo")) return false;
+
+  return true;
+}
+
+function buildDefectTotals(findings: any[]) {
+  return (findings || []).filter(isReportDefect).reduce(
+    (acc: Record<string, number>, finding: any) => {
+      const severity = String(
+        finding.severity || "Recommended Repair"
+      ).toLowerCase();
+
+      acc.total += 1;
+
+      if (
+        severity.includes("safety") ||
+        severity.includes("hazard") ||
+        severity.includes("major")
+      ) {
+        acc.safety += 1;
+      } else if (severity.includes("repair") || severity.includes("defect")) {
+        acc.repair += 1;
+      } else if (
+        severity.includes("maintenance") ||
+        severity.includes("monitor") ||
+        severity.includes("minor")
+      ) {
+        acc.maintenance += 1;
+      } else if (
+        severity.includes("information") ||
+        severity.includes("info") ||
+        severity.includes("client")
+      ) {
+        acc.information += 1;
+      } else {
+        acc.repair += 1;
+      }
+
+      return acc;
+    },
+    {
+      total: 0,
+      safety: 0,
+      repair: 0,
+      maintenance: 0,
+      information: 0,
+    }
+  );
+}
+
 async function createSignedUrlMap(paths: string[]) {
   const uniquePaths = Array.from(
     new Set(paths.filter((path) => Boolean(path)))
@@ -350,6 +421,7 @@ export default async function PublicSharePage({
     .order("created_at", { ascending: true });
 
   const propertyPhoto = getPropertyPhoto(inspection);
+  const defectTotals = buildDefectTotals(findings);
 
   const groupedFindings = SECTION_ORDER.map((section) => ({
     section,
@@ -416,6 +488,53 @@ export default async function PublicSharePage({
               Protecting Your Investment. One Inspection at a Time.
             </p>
           </header>
+
+          <section className="mt-8 rounded-2xl border border-teal-500/40 bg-[#071224] p-6 shadow-xl">
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <p className="text-sm font-bold uppercase tracking-[0.3em] text-teal-400">
+                  Client Report Overview
+                </p>
+
+                <h2 className="mt-2 text-2xl font-extrabold text-white">
+                  Defect Summary
+                </h2>
+
+                <p className="mt-2 text-sm leading-6 text-slate-400">
+                  Section Reference Photos are documentation photos only and are
+                  not counted as defects.
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-teal-500/40 bg-teal-500/10 px-6 py-4 text-center">
+                <p className="text-xs font-bold uppercase tracking-wide text-teal-300">
+                  Total Defects
+                </p>
+                <p className="mt-1 text-4xl font-black text-white">
+                  {defectTotals.total}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <DefectSummaryCard
+                label="Safety / Major"
+                value={defectTotals.safety}
+              />
+              <DefectSummaryCard
+                label="Recommended Repair"
+                value={defectTotals.repair}
+              />
+              <DefectSummaryCard
+                label="Maintenance / Monitor"
+                value={defectTotals.maintenance}
+              />
+              <DefectSummaryCard
+                label="Informational"
+                value={defectTotals.information}
+              />
+            </div>
+          </section>
 
           {inspection.report_summary && (
             <section className="mt-8 rounded-2xl border border-teal-500/40 bg-[#071224] p-6 shadow-xl">
@@ -731,6 +850,24 @@ export default async function PublicSharePage({
         </div>
       </div>
     </main>
+  );
+}
+
+function DefectSummaryCard({
+  label,
+  value,
+}: {
+  label: string;
+  value: number;
+}) {
+  return (
+    <div className="rounded-xl border border-slate-700 bg-[#0f172a] p-4 text-center">
+      <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+        {label}
+      </p>
+
+      <p className="mt-2 text-3xl font-black text-white">{value}</p>
+    </div>
   );
 }
 
