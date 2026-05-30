@@ -70,82 +70,64 @@ function getBalanceDue(inspection: any) {
 
 function isPaymentComplete(inspection: any) {
   const status = String(
-    inspection?.payment_status || inspection?.invoice_status || "Pending",
+    inspection?.payment_status || inspection?.invoice_status || "Pending"
   ).toLowerCase();
 
   if (status === "paid" || status === "waived") return true;
 
   const invoiceAmount = getInvoiceAmount(inspection);
   const amountPaid = getAmountPaid(inspection);
+  const balanceDue = getBalanceDue(inspection);
 
-  return invoiceAmount > 0 && amountPaid >= invoiceAmount;
+  if (invoiceAmount > 0 && amountPaid >= invoiceAmount) return true;
+  if (amountPaid > 0 && balanceDue <= 0) return true;
+
+  return false;
 }
 
 function isAgreementSigned(inspection: any) {
-  const status = String(
-    inspection?.agreement_status || inspection?.agreement_state || "Pending",
+  const agreementStatus = String(
+    inspection?.agreement_status ||
+      inspection?.agreement_state ||
+      inspection?.agreement_signed_status ||
+      "Pending"
   ).toLowerCase();
 
   return (
-    status === "signed" ||
-    status === "complete" ||
-    status === "completed" ||
-    status === "accepted"
+    agreementStatus === "signed" ||
+    agreementStatus === "complete" ||
+    agreementStatus === "completed" ||
+    agreementStatus === "accepted" ||
+    inspection?.agreement_signed === true ||
+    inspection?.signed_agreement === true
   );
 }
 
 function isReportPublished(inspection: any) {
-  const reportStatus = String(inspection?.report_status || "").toLowerCase().trim();
-  const status = String(inspection?.status || "").toLowerCase().trim();
-  const deliveryStatus = String(inspection?.delivery_status || "").toLowerCase().trim();
-  const publishStatus = String(inspection?.publish_status || "").toLowerCase().trim();
-  const sharedStatus = String(inspection?.shared_status || "").toLowerCase().trim();
-
-  const publishedWords = new Set([
-    "published",
-    "publish",
-    "ready",
-    "complete",
-    "completed",
-    "sent",
-    "delivered",
-    "shared",
-  ]);
+  const reportStatus = String(inspection?.report_status || "").toLowerCase();
+  const status = String(inspection?.status || "").toLowerCase();
+  const deliveryStatus = String(
+    inspection?.delivery_status || inspection?.report_delivery_status || ""
+  ).toLowerCase();
 
   return (
     inspection?.published === true ||
     inspection?.is_published === true ||
-    Boolean(inspection?.published_at) ||
-    Boolean(inspection?.report_published_at) ||
-    Boolean(inspection?.sent_at) ||
-    publishedWords.has(reportStatus) ||
-    publishedWords.has(status) ||
-    publishedWords.has(deliveryStatus) ||
-    publishedWords.has(publishStatus) ||
-    publishedWords.has(sharedStatus)
+    inspection?.report_published === true ||
+    reportStatus === "published" ||
+    reportStatus === "publish" ||
+    reportStatus === "ready" ||
+    status === "published" ||
+    status === "publish" ||
+    status === "ready" ||
+    deliveryStatus === "published" ||
+    deliveryStatus === "ready"
   );
 }
 
-function getReportUnlockMessage({
-  agreementSigned,
-  paymentComplete,
-  reportPublished,
-}: {
-  agreementSigned: boolean;
-  paymentComplete: boolean;
-  reportPublished: boolean;
-}) {
-  if (agreementSigned && paymentComplete && reportPublished) {
-    return "Your report is ready to view and download.";
-  }
-
-  const missing: string[] = [];
-
-  if (!agreementSigned) missing.push("signed agreement");
-  if (!paymentComplete) missing.push("completed payment");
-  if (!reportPublished) missing.push("published final report");
-
-  return `Your report will unlock after: ${missing.join(", ")}.`;
+function getReportStatusLabel(inspection: any) {
+  if (isReportPublished(inspection)) return "Published";
+  return inspection?.report_status || inspection?.status || "Draft";
 }
 
 export default function ClientPortalPage() {
@@ -263,70 +245,217 @@ export default function ClientPortalPage() {
   const agreementSigned = isAgreementSigned(inspection);
   const reportPublished = isReportPublished(inspection);
   const reportUnlocked = agreementSigned && paymentComplete && reportPublished;
-  const paymentStatus = paymentComplete
-    ? "Paid"
-    : inspection.payment_status || inspection.invoice_status || "Pending";
-  const agreementStatus = agreementSigned
-    ? "Signed"
-    : inspection.agreement_status || inspection.agreement_state || "Pending";
-  const reportStatus = reportPublished
-    ? "Published"
-    : inspection.report_status || "Draft";
-  const reportUnlockMessage = getReportUnlockMessage({
-    agreementSigned,
-    paymentComplete,
-    reportPublished,
-  });
+
+  const paymentStatus =
+    inspection.payment_status || inspection.invoice_status || "Pending";
+  const agreementStatus =
+    inspection.agreement_status || inspection.agreement_state || "Pending";
+  const reportStatus = getReportStatusLabel(inspection);
+
+  const propertyAddress =
+    inspection.property_address || inspection.address || "Property Address Not Entered";
 
   return (
-    <main className="min-h-screen bg-[#020617] p-6 text-white">
-      <div className="mx-auto max-w-5xl space-y-6">
-        <div className="overflow-hidden rounded-2xl border border-slate-800 bg-[#0f172a] shadow-xl">
+    <main className="min-h-screen bg-[#020617] p-4 text-white md:p-8">
+      <div className="mx-auto max-w-6xl space-y-6">
+        <section className="overflow-hidden rounded-3xl border border-slate-800 bg-[#0f172a] shadow-2xl">
           {propertyPhoto && (
-            <div className="border-b border-slate-800 bg-black">
+            <div className="relative border-b border-slate-800 bg-black">
               <img
                 src={propertyPhoto}
                 alt="Property"
-                className="h-64 w-full object-cover"
+                className="h-72 w-full object-cover md:h-96"
               />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#020617] via-transparent to-transparent" />
             </div>
           )}
 
-          <div className="p-6">
-            <h1 className="text-4xl font-extrabold text-teal-400">
-              Client Portal
-            </h1>
+          <div className="p-6 md:p-8">
+            <p className="text-xs font-black uppercase tracking-[0.35em] text-teal-400">
+              On Point Home Inspections
+            </p>
 
-            <p className="mt-2 text-slate-400">On Point Home Inspections</p>
+            <div className="mt-4 flex flex-wrap items-end justify-between gap-6">
+              <div>
+                <h1 className="text-4xl font-black tracking-tight text-white md:text-5xl">
+                  Client Portal
+                </h1>
 
-            <div className="mt-5 flex flex-wrap gap-3">
-              {paymentComplete && (
-                <span className="rounded-full border border-green-500/40 bg-green-500/10 px-4 py-2 text-sm font-black uppercase tracking-wide text-green-300">
-                  Paid in Full
-                </span>
-              )}
+                <p className="mt-3 max-w-3xl text-lg leading-7 text-slate-300">
+                  {propertyAddress}
+                </p>
 
-              {agreementSigned && (
-                <span className="rounded-full border border-teal-500/40 bg-teal-500/10 px-4 py-2 text-sm font-black uppercase tracking-wide text-teal-300">
-                  Agreement Signed
-                </span>
-              )}
+                <p className="mt-2 text-sm text-slate-400">
+                  Protecting Your Investment. One Inspection at a Time.
+                </p>
+              </div>
 
-              {reportPublished ? (
-                <span className="rounded-full border border-cyan-500/40 bg-cyan-500/10 px-4 py-2 text-sm font-black uppercase tracking-wide text-cyan-300">
-                  Report Published
-                </span>
+              {reportUnlocked ? (
+                <div className="rounded-2xl border border-green-500/40 bg-green-500/10 px-6 py-4 text-center">
+                  <p className="text-xs font-black uppercase tracking-wide text-green-300">
+                    Report Access
+                  </p>
+                  <p className="mt-1 text-2xl font-black text-green-300">
+                    Unlocked
+                  </p>
+                </div>
               ) : (
-                <span className="rounded-full border border-yellow-500/40 bg-yellow-500/10 px-4 py-2 text-sm font-black uppercase tracking-wide text-yellow-300">
-                  Report Not Published Yet
-                </span>
+                <div className="rounded-2xl border border-yellow-500/40 bg-yellow-500/10 px-6 py-4 text-center">
+                  <p className="text-xs font-black uppercase tracking-wide text-yellow-300">
+                    Report Access
+                  </p>
+                  <p className="mt-1 text-2xl font-black text-yellow-300">
+                    Locked
+                  </p>
+                </div>
               )}
             </div>
           </div>
-        </div>
+        </section>
+
+        <section className="grid gap-4 md:grid-cols-3">
+          <StatusCard
+            title="Agreement"
+            status={agreementSigned ? "Signed" : agreementStatus}
+            complete={agreementSigned}
+            completeLabel="Agreement Signed"
+            incompleteLabel="Needs Signature"
+          />
+
+          <StatusCard
+            title="Payment"
+            status={paymentComplete ? "Paid" : paymentStatus}
+            complete={paymentComplete}
+            completeLabel="Paid In Full"
+            incompleteLabel="Payment Required"
+          />
+
+          <StatusCard
+            title="Report"
+            status={reportStatus}
+            complete={reportPublished}
+            completeLabel="Report Published"
+            incompleteLabel="Not Published Yet"
+          />
+        </section>
+
+        {!reportUnlocked && (
+          <section className="rounded-2xl border border-yellow-500/40 bg-yellow-950/20 p-6 shadow-xl">
+            <h2 className="text-2xl font-black text-yellow-300">
+              Report Access Requirements
+            </h2>
+
+            <p className="mt-2 text-slate-300">
+              The report will unlock when all requirements below are complete.
+            </p>
+
+            <div className="mt-5 grid gap-3 md:grid-cols-3">
+              <RequirementRow
+                complete={agreementSigned}
+                label="Agreement Signed"
+              />
+              <RequirementRow
+                complete={paymentComplete}
+                label="Payment Complete"
+              />
+              <RequirementRow
+                complete={reportPublished}
+                label="Report Published by Inspector"
+              />
+            </div>
+          </section>
+        )}
+
+        {reportUnlocked && (
+          <section className="rounded-2xl border border-green-500/40 bg-green-950/20 p-6 shadow-xl">
+            <h2 className="text-2xl font-black text-green-300">
+              Your Report Is Ready
+            </h2>
+
+            <p className="mt-2 text-slate-300">
+              Agreement, payment, and report publishing are complete. You can now view or download your inspection report.
+            </p>
+
+            <div className="mt-6 grid gap-4 md:grid-cols-3">
+              <ActionLink
+                href={`/share/${inspectionId}`}
+                title="View Client Report"
+                description="Open the online client-friendly inspection report."
+                tone="teal"
+              />
+
+              <ActionLink
+                href={`/reports/${inspectionId}/print`}
+                title="Download PDF"
+                description="Open the printable PDF version of the report."
+                tone="cyan"
+              />
+
+              <ActionLink
+                href={`/repair-request?inspection_id=${inspectionId}`}
+                title="Repair Request"
+                description="View or create the repair request list."
+                tone="orange"
+              />
+            </div>
+          </section>
+        )}
+
+        <section className="grid gap-6 lg:grid-cols-3">
+          <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl lg:col-span-2">
+            <h2 className="text-2xl font-bold text-teal-300">
+              Inspection Details
+            </h2>
+
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
+              <Info label="Property" value={propertyAddress} />
+              <Info label="Client" value={inspection.client_name || "N/A"} />
+              <Info label="Inspection Date" value={inspection.inspection_date || "N/A"} />
+              <Info label="Inspection Time" value={inspection.inspection_time || "N/A"} />
+              <Info label="Year Built" value={inspection.year_built || "N/A"} />
+              <Info
+                label="Square Feet"
+                value={inspection.square_feet || inspection.sqft || "N/A"}
+              />
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
+            <h2 className="text-2xl font-bold text-teal-300">
+              Payment Summary
+            </h2>
+
+            <div className="mt-5 space-y-4">
+              <PaymentLine label="Invoice Amount" value={money(invoiceAmount)} />
+              <PaymentLine label="Amount Paid" value={money(amountPaid)} />
+              <PaymentLine
+                label="Balance Due"
+                value={money(balanceDue)}
+                highlight={balanceDue > 0 ? "warning" : "success"}
+              />
+            </div>
+
+            {paymentComplete || balanceDue <= 0 ? (
+              <button
+                disabled
+                className="mt-6 w-full cursor-not-allowed rounded-xl bg-green-600 px-6 py-3 font-bold text-white opacity-90"
+              >
+                Payment Complete
+              </button>
+            ) : (
+              <button
+                onClick={startStripeCheckout}
+                disabled={paying}
+                className="mt-6 w-full rounded-xl bg-green-500 px-6 py-3 font-bold text-slate-950 hover:bg-green-400 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {paying ? "Opening Checkout..." : `Pay Now ${money(balanceDue)}`}
+              </button>
+            )}
+          </div>
+        </section>
 
         {inspection.report_summary && (
-          <div className="rounded-2xl border border-teal-500/40 bg-[#071224] p-6 shadow-xl">
+          <section className="rounded-2xl border border-teal-500/40 bg-[#071224] p-6 shadow-xl">
             <h2 className="text-2xl font-extrabold text-teal-300">
               Report Summary
             </h2>
@@ -338,210 +467,210 @@ export default function ClientPortalPage() {
             <div className="mt-5 whitespace-pre-line rounded-xl border border-slate-700 bg-[#020817]/70 p-5 text-base leading-8 text-slate-100">
               {inspection.report_summary}
             </div>
-          </div>
+          </section>
         )}
 
-        <div className="space-y-4 rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
+        <section className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
           <h2 className="text-2xl font-bold text-teal-300">
-            Inspection Details
-          </h2>
-
-          <p>
-            <strong>Property:</strong>{" "}
-            {inspection.property_address || inspection.address || "N/A"}
-          </p>
-
-          <p>
-            <strong>Client:</strong> {inspection.client_name || "N/A"}
-          </p>
-
-          <p>
-            <strong>Date:</strong> {inspection.inspection_date || "N/A"}
-          </p>
-
-          <p>
-            <strong>Time:</strong> {inspection.inspection_time || "N/A"}
-          </p>
-
-          {inspection.year_built && (
-            <p>
-              <strong>Year Built:</strong> {inspection.year_built}
-            </p>
-          )}
-
-          <p>
-            <strong>Status:</strong> {reportStatus}
-          </p>
-
-          <p>
-            <strong>Price:</strong>{" "}
-            {inspection.price ? `$${inspection.price}` : "N/A"}
-          </p>
-
-          <p>
-            <strong>Invoice Amount:</strong>{" "}
-            {invoiceAmount ? money(invoiceAmount) : "N/A"}
-          </p>
-
-          <p>
-            <strong>Amount Paid:</strong> {money(amountPaid)}
-          </p>
-
-          <p>
-            <strong>Balance Due:</strong> {money(balanceDue)}
-          </p>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <PortalCard title="Agreement" status={agreementStatus} />
-
-          <PortalCard
-            title="Payment"
-            status={paymentComplete ? "Paid" : paymentStatus}
-          />
-
-          <PortalCard title="Balance Due" status={money(balanceDue)} />
-
-          <PortalCard title="Report" status={reportStatus} />
-        </div>
-
-        <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
-          <h2 className="text-2xl font-bold text-teal-300">Payment Summary</h2>
-
-          <div className="mt-5 grid gap-4 md:grid-cols-3">
-            <PaymentBox label="Invoice Amount" value={money(invoiceAmount)} />
-            <PaymentBox label="Amount Paid" value={money(amountPaid)} />
-            <PaymentBox
-              label="Balance Due"
-              value={money(balanceDue)}
-              highlight={balanceDue > 0 ? "warning" : "success"}
-            />
-          </div>
-
-          <p className="mt-4 text-sm text-slate-400">
-            Secure online payments are processed through Stripe. Once payment is
-            complete, this portal will return to On Point Inspect and update the
-            payment status.
-          </p>
-        </div>
-
-        <div
-          className={`rounded-2xl border p-6 shadow-xl ${
-            reportUnlocked
-              ? "border-green-500/40 bg-green-950/20"
-              : "border-yellow-500/40 bg-yellow-950/20"
-          }`}
-        >
-          <h2
-            className={`text-2xl font-bold ${
-              reportUnlocked ? "text-green-300" : "text-yellow-300"
-            }`}
-          >
-            {reportUnlocked ? "Report Ready" : "Report Locked"}
-          </h2>
-
-          <p className="mt-3 text-sm leading-6 text-slate-300">
-            {reportUnlockMessage}
-          </p>
-
-          {!reportPublished && (
-            <p className="mt-2 text-sm leading-6 text-slate-400">
-              Payment can be complete before the final report is published. The
-              client will only be able to view the report after you publish it.
-            </p>
-          )}
-        </div>
-
-        <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
-          <h2 className="mb-6 text-2xl font-bold text-teal-300">
             Client Actions
           </h2>
 
-          <div className="flex flex-wrap gap-4">
+          <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <button
               onClick={() => updateStatus("agreement_status", "Signed")}
-              className="rounded-xl bg-teal-500 px-6 py-3 font-bold text-slate-950 hover:bg-teal-400"
+              disabled={agreementSigned}
+              className={`rounded-xl px-6 py-4 text-left font-bold transition ${
+                agreementSigned
+                  ? "cursor-not-allowed border border-green-500/40 bg-green-500/10 text-green-300"
+                  : "bg-teal-500 text-slate-950 hover:bg-teal-400"
+              }`}
             >
-              Sign Agreement
+              <span className="block text-lg">
+                {agreementSigned ? "Agreement Signed" : "Sign Agreement"}
+              </span>
+              <span className="mt-1 block text-sm font-medium opacity-80">
+                {agreementSigned
+                  ? "This requirement is complete."
+                  : "Complete the inspection agreement."}
+              </span>
             </button>
 
-            {paymentComplete || balanceDue <= 0 ? (
-              <button
-                disabled
-                className="cursor-not-allowed rounded-xl bg-green-600 px-6 py-3 font-bold text-white opacity-80"
-              >
-                Payment Complete
-              </button>
+            {reportUnlocked ? (
+              <>
+                <a
+                  href={`/share/${inspectionId}`}
+                  target="_blank"
+                  className="rounded-xl border border-teal-500 bg-[#071224] px-6 py-4 font-bold text-teal-300 hover:bg-teal-500/10"
+                >
+                  <span className="block text-lg">View Report</span>
+                  <span className="mt-1 block text-sm font-medium text-slate-400">
+                    Open the client report.
+                  </span>
+                </a>
+
+                <a
+                  href={`/reports/${inspectionId}/print`}
+                  target="_blank"
+                  className="rounded-xl border border-cyan-500 bg-[#071224] px-6 py-4 font-bold text-cyan-300 hover:bg-cyan-500/10"
+                >
+                  <span className="block text-lg">Download PDF</span>
+                  <span className="mt-1 block text-sm font-medium text-slate-400">
+                    Printable report version.
+                  </span>
+                </a>
+
+                <a
+                  href={`/repair-request?inspection_id=${inspectionId}`}
+                  target="_blank"
+                  className="rounded-xl border border-orange-500 bg-[#071224] px-6 py-4 font-bold text-orange-300 hover:bg-orange-500/10"
+                >
+                  <span className="block text-lg">Repair Request</span>
+                  <span className="mt-1 block text-sm font-medium text-slate-400">
+                    Open repair request builder.
+                  </span>
+                </a>
+              </>
             ) : (
-              <button
-                onClick={startStripeCheckout}
-                disabled={paying}
-                className="rounded-xl bg-green-500 px-6 py-3 font-bold text-slate-950 hover:bg-green-400 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {paying
-                  ? "Opening Checkout..."
-                  : `Pay Now ${money(balanceDue)}`}
-              </button>
+              <div className="rounded-xl border border-slate-700 bg-[#020617] px-6 py-4 text-slate-400 md:col-span-3">
+                <p className="text-lg font-bold text-white">
+                  Report Actions Locked
+                </p>
+                <p className="mt-1 text-sm">
+                  View Report, Download PDF, and Repair Request will appear after the agreement is signed, payment is complete, and the inspector publishes the report.
+                </p>
+              </div>
             )}
 
             <button
               onClick={() => updateStatus("review_status", "Submitted")}
-              className="rounded-xl bg-yellow-500 px-6 py-3 font-bold text-slate-950 hover:bg-yellow-400"
+              className="rounded-xl border border-yellow-500 bg-[#071224] px-6 py-4 text-left font-bold text-yellow-300 hover:bg-yellow-500/10"
             >
-              Leave Review
+              <span className="block text-lg">Leave Review</span>
+              <span className="mt-1 block text-sm font-medium text-slate-400">
+                Mark review follow-up submitted.
+              </span>
             </button>
-
-            {reportUnlocked ? (
-              <a
-                href={`/share/${inspectionId}`}
-                target="_blank"
-                className="rounded-xl border border-teal-500 bg-[#071224] px-6 py-3 font-bold text-teal-300 hover:bg-teal-500/10"
-              >
-                View Full Report
-              </a>
-            ) : (
-              <button
-                disabled
-                title={reportUnlockMessage}
-                className="cursor-not-allowed rounded-xl border border-slate-700 bg-slate-900 px-6 py-3 font-bold text-slate-500"
-              >
-                View Full Report Locked
-              </button>
-            )}
-
-            {reportUnlocked ? (
-              <a
-                href={`/reports/${inspectionId}/print`}
-                target="_blank"
-                className="rounded-xl border border-cyan-500 bg-[#071224] px-6 py-3 font-bold text-cyan-300 hover:bg-cyan-500/10"
-              >
-                Download PDF
-              </a>
-            ) : (
-              <button
-                disabled
-                title={reportUnlockMessage}
-                className="cursor-not-allowed rounded-xl border border-slate-700 bg-slate-900 px-6 py-3 font-bold text-slate-500"
-              >
-                Download PDF Locked
-              </button>
-            )}
-
-            <a
-              href={`/repair-request?inspection_id=${inspectionId}`}
-              target="_blank"
-              className="rounded-xl border border-orange-500 bg-[#071224] px-6 py-3 font-bold text-orange-300 hover:bg-orange-500/10"
-            >
-              Repair Request
-            </a>
           </div>
-        </div>
+        </section>
+
+        <footer className="border-t border-slate-800 py-6 text-center text-sm text-slate-500">
+          On Point Home Inspections LLC • Client Portal
+        </footer>
       </div>
     </main>
   );
 }
 
-function PaymentBox({
+function StatusCard({
+  title,
+  status,
+  complete,
+  completeLabel,
+  incompleteLabel,
+}: {
+  title: string;
+  status: string;
+  complete: boolean;
+  completeLabel: string;
+  incompleteLabel: string;
+}) {
+  return (
+    <div
+      className={`rounded-2xl border p-6 shadow-xl ${
+        complete
+          ? "border-green-500/40 bg-green-950/20"
+          : "border-slate-800 bg-[#0f172a]"
+      }`}
+    >
+      <p className="text-sm font-bold uppercase tracking-wide text-slate-400">
+        {title}
+      </p>
+
+      <p
+        className={`mt-2 text-3xl font-black ${
+          complete ? "text-green-300" : "text-yellow-300"
+        }`}
+      >
+        {complete ? "✓" : "•"} {status}
+      </p>
+
+      <p className="mt-2 text-sm text-slate-400">
+        {complete ? completeLabel : incompleteLabel}
+      </p>
+    </div>
+  );
+}
+
+function RequirementRow({
+  complete,
+  label,
+}: {
+  complete: boolean;
+  label: string;
+}) {
+  return (
+    <div
+      className={`rounded-xl border p-4 ${
+        complete
+          ? "border-green-500/40 bg-green-500/10 text-green-300"
+          : "border-yellow-500/40 bg-yellow-500/10 text-yellow-300"
+      }`}
+    >
+      <p className="font-bold">
+        {complete ? "✓ Complete" : "• Waiting"}
+      </p>
+      <p className="mt-1 text-sm text-slate-300">{label}</p>
+    </div>
+  );
+}
+
+function ActionLink({
+  href,
+  title,
+  description,
+  tone,
+}: {
+  href: string;
+  title: string;
+  description: string;
+  tone: "teal" | "cyan" | "orange";
+}) {
+  const classes =
+    tone === "teal"
+      ? "border-teal-500 text-teal-300 hover:bg-teal-500/10"
+      : tone === "cyan"
+      ? "border-cyan-500 text-cyan-300 hover:bg-cyan-500/10"
+      : "border-orange-500 text-orange-300 hover:bg-orange-500/10";
+
+  return (
+    <a
+      href={href}
+      target="_blank"
+      className={`rounded-xl border bg-[#071224] p-5 font-bold transition ${classes}`}
+    >
+      <span className="block text-lg">{title}</span>
+      <span className="mt-2 block text-sm font-medium text-slate-400">
+        {description}
+      </span>
+    </a>
+  );
+}
+
+function Info({ label, value }: { label: string; value?: any }) {
+  return (
+    <div>
+      <p className="text-sm font-bold uppercase tracking-wide text-slate-400">
+        {label}
+      </p>
+
+      <p className="mt-1 text-base font-semibold text-white">
+        {value || "N/A"}
+      </p>
+    </div>
+  );
+}
+
+function PaymentLine({
   label,
   value,
   highlight = "default",
@@ -554,8 +683,8 @@ function PaymentBox({
     highlight === "success"
       ? "text-green-400"
       : highlight === "warning"
-        ? "text-orange-300"
-        : "text-teal-300";
+      ? "text-orange-300"
+      : "text-teal-300";
 
   return (
     <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
@@ -563,31 +692,7 @@ function PaymentBox({
         {label}
       </p>
 
-      <p className={`mt-2 text-3xl font-black ${color}`}>{value}</p>
-    </div>
-  );
-}
-
-function PortalCard({ title, status }: { title: string; status: string }) {
-  const green =
-    status === "Signed" ||
-    status === "Paid" ||
-    status === "Waived" ||
-    status === "Published" ||
-    status === "Submitted" ||
-    status === "$0";
-
-  return (
-    <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
-      <p className="text-sm text-slate-400">{title}</p>
-
-      <p
-        className={`mt-2 text-xl font-bold ${
-          green ? "text-green-400" : "text-teal-400"
-        }`}
-      >
-        {status}
-      </p>
+      <p className={`mt-2 text-2xl font-black ${color}`}>{value}</p>
     </div>
   );
 }
