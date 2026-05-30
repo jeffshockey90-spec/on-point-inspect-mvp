@@ -6,6 +6,7 @@ import EditableFinding from "../../../components/EditableFinding";
 import SectionLimitations from "../../../components/SectionLimitations";
 import ReportDisclaimers from "../../../components/ReportDisclaimers";
 import SectionInformationChecklist from "../../../components/SectionInformationChecklist";
+import SectionReferencePhotos from "../../../components/SectionReferencePhotos";
 import { supabase } from "../../../lib/supabaseClient";
 
 export default function ReportFindingsSortable({ groupedFindings }: any) {
@@ -257,6 +258,11 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
                 )}
 
                 <SectionLimitations
+                  inspectionId={inspectionId}
+                  section={group.section}
+                />
+
+                <SectionReferencePhotos
                   inspectionId={inspectionId}
                   section={group.section}
                 />
