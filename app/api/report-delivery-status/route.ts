@@ -14,26 +14,38 @@ function getNumber(value: any) {
   return 0;
 }
 
+function getInvoiceAmount(inspection: any) {
+  return (
+    getNumber(inspection?.invoice_amount) ||
+    getNumber(inspection?.price) ||
+    getNumber(inspection?.amount) ||
+    getNumber(inspection?.fee) ||
+    0
+  );
+}
+
+function getBalanceDue(inspection: any) {
+  const invoiceAmount = getInvoiceAmount(inspection);
+  const amountPaid = getNumber(inspection?.amount_paid);
+
+  if (
+    inspection?.balance_due !== null &&
+    inspection?.balance_due !== undefined
+  ) {
+    return getNumber(inspection.balance_due);
+  }
+
+  return Math.max(0, invoiceAmount - amountPaid);
+}
+
 function isPaymentComplete(inspection: any) {
   const status = String(
     inspection?.payment_status || inspection?.invoice_status || "Unpaid"
   ).toLowerCase();
 
-  const invoiceAmount = getNumber(
-    inspection?.invoice_amount ||
-      inspection?.total_price ||
-      inspection?.total ||
-      inspection?.price ||
-      inspection?.inspection_price ||
-      inspection?.inspection_fee
-  );
-
+  const invoiceAmount = getInvoiceAmount(inspection);
   const amountPaid = getNumber(inspection?.amount_paid);
-
-  const balanceDue =
-    inspection?.balance_due !== null && inspection?.balance_due !== undefined
-      ? getNumber(inspection?.balance_due)
-      : Math.max(0, invoiceAmount - amountPaid);
+  const balanceDue = getBalanceDue(inspection);
 
   if (status === "paid" || status === "waived") return true;
   if (invoiceAmount > 0 && amountPaid >= invoiceAmount) return true;
@@ -68,9 +80,7 @@ export async function GET(req: Request) {
 
     const { data: inspection, error: inspectionError } = await supabase
       .from("inspections")
-      .select(
-        "id, inspector_id, client_email, realtor_email, invoice_status, payment_status, invoice_amount, amount_paid, balance_due, price, total_price, total, inspection_price, inspection_fee"
-      )
+      .select("*")
       .eq("id", inspectionId)
       .maybeSingle();
 
@@ -105,22 +115,9 @@ export async function GET(req: Request) {
     );
 
     const paymentComplete = isPaymentComplete(inspection);
-
-    const invoiceAmount = getNumber(
-      inspection.invoice_amount ||
-        inspection.total_price ||
-        inspection.total ||
-        inspection.price ||
-        inspection.inspection_price ||
-        inspection.inspection_fee
-    );
-
+    const invoiceAmount = getInvoiceAmount(inspection);
     const amountPaid = getNumber(inspection.amount_paid);
-
-    const balanceDue =
-      inspection.balance_due !== null && inspection.balance_due !== undefined
-        ? getNumber(inspection.balance_due)
-        : Math.max(0, invoiceAmount - amountPaid);
+    const balanceDue = getBalanceDue(inspection);
 
     const blockers: string[] = [];
 
@@ -141,6 +138,8 @@ export async function GET(req: Request) {
       canDeliver: blockers.length === 0,
       blockers,
       paymentComplete,
+      invoiceAmount,
+      amountPaid,
       balanceDue,
       unsignedRequiredContacts,
     });
