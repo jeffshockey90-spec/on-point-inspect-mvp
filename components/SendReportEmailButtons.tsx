@@ -59,6 +59,28 @@ export default function SendReportEmailButtons({
   const finalClientEmail = clientEmail || contactClientEmail;
   const finalRealtorEmail = realtorEmail || contactRealtorEmail;
 
+  async function checkDeliveryRequirements() {
+    const res = await fetch(
+      `/api/report-delivery-status?inspection_id=${inspectionId}`
+    );
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || "Could not check delivery requirements.");
+    }
+
+    if (!data.canDeliver) {
+      throw new Error(
+        `Report email is blocked until requirements are complete:\n\n${(
+          data.blockers || []
+        ).join("\n")}`
+      );
+    }
+
+    return data;
+  }
+
   async function sendEmail(type: "client" | "realtor" | "custom") {
     const email =
       type === "client"
@@ -75,6 +97,8 @@ export default function SendReportEmailButtons({
     setSending(type);
 
     try {
+      await checkDeliveryRequirements();
+
       const res = await fetch("/api/send-report-email", {
         method: "POST",
         headers: {
@@ -110,7 +134,7 @@ export default function SendReportEmailButtons({
         disabled={sending !== null || !finalClientEmail}
         className="rounded-xl bg-teal-500 px-5 py-3 font-bold text-slate-950 hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {sending === "client" ? "Sending..." : "Email Client"}
+        {sending === "client" ? "Checking..." : "Email Client"}
       </button>
 
       <button
@@ -119,7 +143,7 @@ export default function SendReportEmailButtons({
         disabled={sending !== null || !finalRealtorEmail}
         className="rounded-xl border border-purple-500 px-5 py-3 font-bold text-purple-300 hover:bg-purple-500/10 disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {sending === "realtor" ? "Sending..." : "Email Realtor"}
+        {sending === "realtor" ? "Checking..." : "Email Realtor"}
       </button>
 
       <div className="flex flex-wrap gap-2">
@@ -136,7 +160,7 @@ export default function SendReportEmailButtons({
           disabled={sending !== null}
           className="rounded-xl border border-cyan-500 px-5 py-3 font-bold text-cyan-300 hover:bg-cyan-500/10 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {sending === "custom" ? "Sending..." : "Send"}
+          {sending === "custom" ? "Checking..." : "Send"}
         </button>
       </div>
     </div>

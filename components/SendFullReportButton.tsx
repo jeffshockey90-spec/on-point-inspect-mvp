@@ -15,6 +15,28 @@ export default function SendFullReportButton({
 }: Props) {
   const [sending, setSending] = useState(false);
 
+  async function checkDeliveryRequirements() {
+    const res = await fetch(
+      `/api/report-delivery-status?inspection_id=${inspectionId}`
+    );
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || "Could not check delivery requirements.");
+    }
+
+    if (!data.canDeliver) {
+      throw new Error(
+        `Report delivery is blocked until requirements are complete:\n\n${(
+          data.blockers || []
+        ).join("\n")}`
+      );
+    }
+
+    return data;
+  }
+
   async function loadContactEmails() {
     let finalClientEmail = clientEmail || "";
     let finalRealtorEmail = realtorEmail || "";
@@ -90,6 +112,8 @@ export default function SendFullReportButton({
     setSending(true);
 
     try {
+      await checkDeliveryRequirements();
+
       const { finalClientEmail, finalRealtorEmail } =
         await loadContactEmails();
 
@@ -143,7 +167,7 @@ export default function SendFullReportButton({
       disabled={sending}
       className="rounded-xl border border-purple-500 px-5 py-3 font-bold text-purple-300 hover:bg-purple-500/10 disabled:cursor-not-allowed disabled:opacity-60"
     >
-      {sending ? "Sending Report..." : "Send Report"}
+      {sending ? "Checking Requirements..." : "Send Report"}
     </button>
   );
 }
