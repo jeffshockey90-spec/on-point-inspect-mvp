@@ -184,6 +184,16 @@ export default function SectionReferencePhotos({
     }
   }
 
+  async function uploadSelectedPhotos(fileList: FileList | null) {
+    const files = Array.from(fileList || []);
+
+    if (files.length === 0) return;
+
+    for (const file of files) {
+      await uploadPhoto(file);
+    }
+  }
+
   return (
     <div className="rounded-2xl border border-slate-700 bg-[#071224]">
       <button
@@ -249,10 +259,10 @@ export default function SectionReferencePhotos({
                   type="file"
                   accept="image/*"
                   capture="environment"
+                  multiple
                   disabled={uploading}
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    uploadPhoto(file);
+                  onChange={async (event) => {
+                    await uploadSelectedPhotos(event.target.files);
                     event.currentTarget.value = "";
                   }}
                   className="hidden"
@@ -264,10 +274,10 @@ export default function SectionReferencePhotos({
                 <input
                   type="file"
                   accept="image/*"
+                  multiple
                   disabled={uploading}
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    uploadPhoto(file);
+                  onChange={async (event) => {
+                    await uploadSelectedPhotos(event.target.files);
                     event.currentTarget.value = "";
                   }}
                   className="hidden"
