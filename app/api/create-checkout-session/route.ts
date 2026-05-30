@@ -3,10 +3,19 @@ import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2026-05-27.dahlia",
-});
+function getStripe() {
+  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+
+  if (!stripeSecretKey) {
+    throw new Error("Missing STRIPE_SECRET_KEY.");
+  }
+
+  return new Stripe(stripeSecretKey, {
+    apiVersion: "2026-05-27.dahlia",
+  });
+}
 
 function getNumber(value: any) {
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -21,6 +30,15 @@ function getNumber(value: any) {
   return 0;
 }
 
+function calculatePriceFromSqft(squareFeet: any) {
+  const sqft = getNumber(squareFeet);
+
+  if (!sqft || sqft <= 0) return 0;
+  if (sqft <= 2000) return 500;
+
+  return 500 + Math.ceil((sqft - 2000) / 1000) * 50;
+}
+
 function getInvoiceAmount(inspection: any) {
   return (
     getNumber(inspection?.invoice_amount) ||
@@ -29,6 +47,7 @@ function getInvoiceAmount(inspection: any) {
     getNumber(inspection?.price) ||
     getNumber(inspection?.inspection_price) ||
     getNumber(inspection?.inspection_fee) ||
+    calculatePriceFromSqft(inspection?.square_feet || inspection?.sqft) ||
     0
   );
 }
@@ -64,15 +83,19 @@ function getSupabaseAdmin() {
   });
 }
 
+function getValidEmail(value: any) {
+  const email = String(value || "").trim().toLowerCase();
+
+  if (!email || !email.includes("@") || !email.includes(".")) {
+    return undefined;
+  }
+
+  return email;
+}
+
 export async function POST(req: Request) {
   try {
-    if (!process.env.STRIPE_SECRET_KEY) {
-      return NextResponse.json(
-        { error: "Missing STRIPE_SECRET_KEY." },
-        { status: 500 }
-      );
-    }
-
+    const stripe = getStripe();
     const { inspectionId } = await req.json();
 
     if (!inspectionId) {
@@ -107,14 +130,16 @@ export async function POST(req: Request) {
     }
 
     const appUrl =
-      process.env.NEXT_PUBLIC_APP_URL || "https://on-point-inspect-mvp.vercel.app";
+      process.env.NEXT_PUBLIC_APP_URL ||
+      process.env.NEXT_PUBLIC_BASE_URL ||
+      "https://on-point-inspect-mvp.vercel.app";
 
     const property =
       inspection.property_address ||
       inspection.address ||
       "Inspection";
 
-    const clientEmail = inspection.client_email || undefined;
+    const clientEmail = getValidEmail(inspection.client_email);
 
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
