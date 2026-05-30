@@ -14,7 +14,7 @@ export default async function DashboardPage() {
   return (
     <main className="min-h-screen bg-[#020617] px-6 py-10 text-white">
       <div className="mx-auto max-w-6xl">
-        <section className="rounded-2xl border border-slate-800 bg-[#0f172a] p-8">
+        <section className="rounded-2xl border border-slate-800 bg-[#0f172a] p-8 shadow-xl">
           <p className="text-sm font-black uppercase tracking-[0.35em] text-teal-400">
             On Point Home Inspections
           </p>
@@ -24,8 +24,8 @@ export default async function DashboardPage() {
           </h1>
 
           <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-200">
-            Manage inspections, reports, AI findings, templates, quotes, and
-            scheduling from one clean dashboard.
+            Manage inspections, reports, AI findings, analytics, templates,
+            quotes, and scheduling from one clean dashboard.
           </p>
         </section>
 
@@ -47,7 +47,7 @@ export default async function DashboardPage() {
           <DashboardCard
             icon="📊"
             title="Analytics"
-            description="Track revenue, inspections, findings, referrals, and AI activity."
+            description="Track revenue, inspections, payments, agreements, reports, and referrals."
             href="/analytics"
           />
 
@@ -105,7 +105,7 @@ function DashboardCard({
   return (
     <Link
       href={href}
-      className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6 transition hover:border-teal-400 hover:bg-slate-800"
+      className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl transition hover:border-teal-400 hover:bg-slate-800"
     >
       <div className="text-4xl">{icon}</div>
 
