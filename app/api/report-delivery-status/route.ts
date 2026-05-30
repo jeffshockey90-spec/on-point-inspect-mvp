@@ -69,7 +69,7 @@ export async function GET(req: Request) {
     const { data: inspection, error: inspectionError } = await supabase
       .from("inspections")
       .select(
-        "id, inspector_id, client_email, realtor_email, agent_email, invoice_status, payment_status, invoice_amount, amount_paid, balance_due, price, total_price, total, inspection_price, inspection_fee"
+        "id, inspector_id, client_email, realtor_email, invoice_status, payment_status, invoice_amount, amount_paid, balance_due, price, total_price, total, inspection_price, inspection_fee"
       )
       .eq("id", inspectionId)
       .maybeSingle();
