@@ -10,7 +10,7 @@ const supabase = createClient(
       persistSession: false,
       autoRefreshToken: false,
     },
-  }
+  },
 );
 
 const SECTION_ORDER = [
@@ -100,8 +100,12 @@ function getFallbackPhotoUrl(photo: any) {
 }
 
 function isReportDefect(finding: any) {
-  const section = String(finding?.section || "").toLowerCase().trim();
-  const title = String(finding?.title || "").toLowerCase().trim();
+  const section = String(finding?.section || "")
+    .toLowerCase()
+    .trim();
+  const title = String(finding?.title || "")
+    .toLowerCase()
+    .trim();
 
   const nonDefectTitles = new Set([
     "in attendance",
@@ -129,7 +133,7 @@ function buildDefectTotals(findings: any[]) {
   return (findings || []).filter(isReportDefect).reduce(
     (acc: Record<string, number>, finding: any) => {
       const severity = String(
-        finding.severity || "Recommended Repair"
+        finding.severity || "Recommended Repair",
       ).toLowerCase();
 
       acc.total += 1;
@@ -166,13 +170,47 @@ function buildDefectTotals(findings: any[]) {
       repair: 0,
       maintenance: 0,
       information: 0,
-    }
+    },
   );
+}
+
+function getSeverityBadgeClass(severity: string | null | undefined) {
+  const value = String(severity || "").toLowerCase();
+
+  if (
+    value.includes("safety") ||
+    value.includes("hazard") ||
+    value.includes("major")
+  ) {
+    return "border-red-500/60 bg-red-500/15 text-red-200";
+  }
+
+  if (value.includes("repair") || value.includes("defect")) {
+    return "border-orange-400/60 bg-orange-500/15 text-orange-200";
+  }
+
+  if (
+    value.includes("maintenance") ||
+    value.includes("monitor") ||
+    value.includes("minor")
+  ) {
+    return "border-yellow-400/60 bg-yellow-500/15 text-yellow-200";
+  }
+
+  if (
+    value.includes("information") ||
+    value.includes("info") ||
+    value.includes("client")
+  ) {
+    return "border-blue-400/60 bg-blue-500/15 text-blue-200";
+  }
+
+  return "border-teal-400/60 bg-teal-500/15 text-teal-200";
 }
 
 async function createSignedUrlMap(paths: string[]) {
   const uniquePaths = Array.from(
-    new Set(paths.filter((path) => Boolean(path)))
+    new Set(paths.filter((path) => Boolean(path))),
   );
 
   const signedMap: Record<string, string> = {};
@@ -204,20 +242,23 @@ async function createSignedUrlMap(paths: string[]) {
   return signedMap;
 }
 
-
 function groupChecklistRows(rows: any[]) {
   const grouped: Record<string, Record<string, any[]>> = {};
 
   (rows || []).forEach((row: any) => {
     if (!grouped[row.section]) grouped[row.section] = {};
-    if (!grouped[row.section][row.group_title]) grouped[row.section][row.group_title] = [];
+    if (!grouped[row.section][row.group_title])
+      grouped[row.section][row.group_title] = [];
     grouped[row.section][row.group_title].push(row);
   });
 
   return grouped;
 }
 
-function groupLimitations(rows: any[], photosByLimitationId: Record<string, any[]>) {
+function groupLimitations(
+  rows: any[],
+  photosByLimitationId: Record<string, any[]>,
+) {
   const grouped: Record<string, any[]> = {};
 
   (rows || []).forEach((row: any) => {
@@ -307,7 +348,7 @@ export default async function PublicSharePage({
       acc[photo.finding_id].push(photo);
       return acc;
     },
-    {}
+    {},
   );
 
   const findings = (findingsRaw || []).map((finding: any) => {
@@ -327,7 +368,6 @@ export default async function PublicSharePage({
       photos: photosByFindingId[finding.id] || [],
     };
   });
-
 
   const { data: checklistRows } = await supabase
     .from("section_checklist_selections")
@@ -357,13 +397,15 @@ export default async function PublicSharePage({
 
   const limitationSignedUrlMap = await createSignedUrlMap(limitationPhotoPaths);
 
-  const limitationPhotosWithUrls = (limitationPhotosRaw || []).map((photo: any) => ({
-    ...photo,
-    signed_url:
-      (photo.file_path && limitationSignedUrlMap[photo.file_path]) ||
-      photo.public_url ||
-      "",
-  }));
+  const limitationPhotosWithUrls = (limitationPhotosRaw || []).map(
+    (photo: any) => ({
+      ...photo,
+      signed_url:
+        (photo.file_path && limitationSignedUrlMap[photo.file_path]) ||
+        photo.public_url ||
+        "",
+    }),
+  );
 
   const photosByLimitationId = limitationPhotosWithUrls.reduce(
     (acc: Record<string, any[]>, photo: any) => {
@@ -372,13 +414,13 @@ export default async function PublicSharePage({
       acc[photo.limitation_id].push(photo);
       return acc;
     },
-    {}
+    {},
   );
 
   const checklistBySection = groupChecklistRows(checklistRows || []);
   const limitationsBySection = groupLimitations(
     limitationRows || [],
-    photosByLimitationId
+    photosByLimitationId,
   );
 
   const { data: sectionReferencePhotosRaw } = await supabase
@@ -400,7 +442,7 @@ export default async function PublicSharePage({
         (photo.file_path && referenceSignedUrlMap[photo.file_path]) ||
         photo.public_url ||
         "",
-    })
+    }),
   );
 
   const referencePhotosBySection = sectionReferencePhotos.reduce(
@@ -410,9 +452,8 @@ export default async function PublicSharePage({
       acc[photo.section].push(photo);
       return acc;
     },
-    {}
+    {},
   );
-
 
   const { data: reportDisclaimers } = await supabase
     .from("report_disclaimers")
@@ -429,7 +470,7 @@ export default async function PublicSharePage({
   })).filter((group) => group.findings.length > 0);
 
   const otherFindings = findings.filter(
-    (finding: any) => !SECTION_ORDER.includes(finding.section)
+    (finding: any) => !SECTION_ORDER.includes(finding.section),
   );
 
   if (otherFindings.length > 0) {
@@ -443,12 +484,25 @@ export default async function PublicSharePage({
     <main className="min-h-screen bg-[#020617] p-4 text-white md:p-8">
       <div className="mx-auto max-w-6xl overflow-hidden rounded-2xl border border-slate-800 bg-[#0f172a] shadow-2xl">
         {propertyPhoto && (
-          <section className="border-b border-slate-800 bg-black">
+          <section className="relative border-b border-teal-500/20 bg-black">
             <img
               src={propertyPhoto}
               alt="Property"
-              className="h-72 w-full object-cover md:h-96"
+              className="h-80 w-full object-cover opacity-90 md:h-[28rem]"
             />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#020617] via-[#020617]/35 to-transparent" />
+            <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10">
+              <p className="text-xs font-black uppercase tracking-[0.35em] text-teal-300">
+                Shared Inspection Report
+              </p>
+              <h1 className="mt-3 max-w-4xl text-4xl font-black tracking-tight text-white md:text-6xl">
+                On Point Home Inspections
+              </h1>
+              <p className="mt-3 max-w-2xl text-base font-semibold text-slate-200 md:text-lg">
+                Residential Home Inspection Report • Protecting Your Investment.
+                One Inspection at a Time.
+              </p>
+            </div>
           </section>
         )}
 
@@ -471,25 +525,78 @@ export default async function PublicSharePage({
             </Link>
           </div>
 
-          <header className="border-b border-slate-700 pb-6">
-            <p className="text-sm font-bold uppercase tracking-[0.35em] text-teal-400">
-              Shared Inspection Report
-            </p>
+          <header className="rounded-3xl border border-teal-500/30 bg-gradient-to-br from-[#071224] via-[#0f172a] to-[#020617] p-6 shadow-2xl md:p-8">
+            <div className="flex flex-wrap items-start justify-between gap-6">
+              <div>
+                <p className="text-sm font-bold uppercase tracking-[0.35em] text-teal-400">
+                  Client Report Portal
+                </p>
 
-            <h1 className="mt-3 text-4xl font-extrabold text-white">
-              On Point Home Inspections
-            </h1>
+                <h1 className="mt-3 text-4xl font-extrabold text-white">
+                  On Point Home Inspections
+                </h1>
 
-            <p className="mt-3 text-lg text-slate-300">
-              Residential Home Inspection Report
-            </p>
+                <p className="mt-3 text-lg text-slate-300">
+                  Residential Home Inspection Report
+                </p>
 
-            <p className="mt-4 text-sm text-slate-400">
-              Protecting Your Investment. One Inspection at a Time.
-            </p>
+                <p className="mt-4 text-sm text-slate-400">
+                  Protecting Your Investment. One Inspection at a Time.
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-teal-400/30 bg-teal-500/10 p-4 text-left md:text-right">
+                <p className="text-xs font-bold uppercase tracking-wide text-teal-300">
+                  Inspection Address
+                </p>
+                <p className="mt-2 max-w-sm text-lg font-black text-white">
+                  {inspection.property_address || inspection.address || "N/A"}
+                </p>
+                <p className="mt-1 text-sm text-slate-300">
+                  {inspection.city || ""} {inspection.state || ""}{" "}
+                  {inspection.zip || ""}
+                </p>
+              </div>
+            </div>
           </header>
 
-          <section className="mt-8 rounded-2xl border border-teal-500/40 bg-[#071224] p-6 shadow-xl">
+          <nav className="mt-6 grid gap-3 text-sm font-bold print:hidden sm:grid-cols-2 lg:grid-cols-5">
+            <a
+              href="#property-info"
+              className="rounded-xl border border-slate-700 bg-[#071224] px-4 py-3 text-center text-slate-200 transition hover:border-teal-500 hover:text-teal-300"
+            >
+              Property Info
+            </a>
+            <a
+              href="#defect-summary"
+              className="rounded-xl border border-slate-700 bg-[#071224] px-4 py-3 text-center text-slate-200 transition hover:border-teal-500 hover:text-teal-300"
+            >
+              Defect Summary
+            </a>
+            <a
+              href="#findings"
+              className="rounded-xl border border-slate-700 bg-[#071224] px-4 py-3 text-center text-slate-200 transition hover:border-teal-500 hover:text-teal-300"
+            >
+              Findings
+            </a>
+            <a
+              href="#limitations"
+              className="rounded-xl border border-slate-700 bg-[#071224] px-4 py-3 text-center text-slate-200 transition hover:border-teal-500 hover:text-teal-300"
+            >
+              Limitations
+            </a>
+            <a
+              href="#disclaimers"
+              className="rounded-xl border border-slate-700 bg-[#071224] px-4 py-3 text-center text-slate-200 transition hover:border-teal-500 hover:text-teal-300"
+            >
+              Disclaimers
+            </a>
+          </nav>
+
+          <section
+            id="defect-summary"
+            className="mt-8 rounded-3xl border border-teal-500/40 bg-gradient-to-br from-[#071224] via-[#0f172a] to-[#020617] p-6 shadow-xl"
+          >
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div>
                 <p className="text-sm font-bold uppercase tracking-[0.3em] text-teal-400">
@@ -548,7 +655,10 @@ export default async function PublicSharePage({
             </section>
           )}
 
-          <section className="mt-8 rounded-2xl border border-slate-700 bg-[#071224] p-6">
+          <section
+            id="property-info"
+            className="mt-8 rounded-3xl border border-slate-700 bg-[#071224] p-6 shadow-xl"
+          >
             <h2 className="mb-5 text-2xl font-bold text-teal-400">
               Property Information
             </h2>
@@ -568,8 +678,14 @@ export default async function PublicSharePage({
 
               <Info label="Client" value={inspection.client_name} />
               <Info label="Realtor" value={inspection.realtor_name} />
-              <Info label="Inspection Date" value={inspection.inspection_date} />
-              <Info label="Inspection Time" value={inspection.inspection_time} />
+              <Info
+                label="Inspection Date"
+                value={inspection.inspection_date}
+              />
+              <Info
+                label="Inspection Time"
+                value={inspection.inspection_time}
+              />
               <Info label="Year Built" value={inspection.year_built} />
               <Info
                 label="Square Feet"
@@ -578,7 +694,6 @@ export default async function PublicSharePage({
             </div>
           </section>
 
-
           {Object.keys(checklistBySection).length > 0 && (
             <section className="mt-8 rounded-2xl border border-slate-700 bg-[#071224] p-6">
               <h2 className="mb-5 text-2xl font-bold text-teal-400">
@@ -586,60 +701,67 @@ export default async function PublicSharePage({
               </h2>
 
               <div className="space-y-6">
-                {SECTION_ORDER.filter((section) => checklistBySection[section]).map(
-                  (section) => (
-                    <div
-                      key={section}
-                      className="rounded-xl border border-slate-700 bg-[#0f172a] p-5"
-                    >
-                      <h3 className="mb-4 text-xl font-bold text-white">
-                        {section}
-                      </h3>
+                {SECTION_ORDER.filter(
+                  (section) => checklistBySection[section],
+                ).map((section) => (
+                  <div
+                    key={section}
+                    className="rounded-xl border border-slate-700 bg-[#0f172a] p-5"
+                  >
+                    <h3 className="mb-4 text-xl font-bold text-white">
+                      {section}
+                    </h3>
 
-                      <div className="grid gap-4 md:grid-cols-2">
-                        {Object.entries(checklistBySection[section]).map(
-                          ([groupTitle, rows]: any) => (
-                            <div key={groupTitle}>
-                              <p className="text-sm font-bold uppercase tracking-wide text-slate-400">
-                                {groupTitle}
-                              </p>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {Object.entries(checklistBySection[section]).map(
+                        ([groupTitle, rows]: any) => (
+                          <div key={groupTitle}>
+                            <p className="text-sm font-bold uppercase tracking-wide text-slate-400">
+                              {groupTitle}
+                            </p>
 
-                              <p className="mt-1 whitespace-pre-line text-slate-100">
-                                {(rows || [])
-                                  .map((row: any) => row.custom_text || row.value)
-                                  .filter((value: string) => value !== "__TEXT_VALUE__")
-                                  .join(", ") || "N/A"}
-                              </p>
-                            </div>
-                          )
-                        )}
-                      </div>
+                            <p className="mt-1 whitespace-pre-line text-slate-100">
+                              {(rows || [])
+                                .map((row: any) => row.custom_text || row.value)
+                                .filter(
+                                  (value: string) => value !== "__TEXT_VALUE__",
+                                )
+                                .join(", ") || "N/A"}
+                            </p>
+                          </div>
+                        ),
+                      )}
                     </div>
-                  )
-                )}
+                  </div>
+                ))}
               </div>
             </section>
           )}
 
           {Object.keys(limitationsBySection).length > 0 && (
-            <section className="mt-8 rounded-2xl border border-yellow-500/40 bg-[#071224] p-6">
+            <section
+              id="limitations"
+              className="mt-8 rounded-2xl border border-yellow-500/40 bg-[#071224] p-6"
+            >
               <h2 className="mb-5 text-2xl font-bold text-yellow-300">
                 Limitations
               </h2>
 
               <div className="space-y-6">
-                {SECTION_ORDER.filter((section) => limitationsBySection[section]).map(
-                  (section) => (
-                    <div
-                      key={section}
-                      className="rounded-xl border border-slate-700 bg-[#0f172a] p-5"
-                    >
-                      <h3 className="mb-4 text-xl font-bold text-white">
-                        {section}
-                      </h3>
+                {SECTION_ORDER.filter(
+                  (section) => limitationsBySection[section],
+                ).map((section) => (
+                  <div
+                    key={section}
+                    className="rounded-xl border border-slate-700 bg-[#0f172a] p-5"
+                  >
+                    <h3 className="mb-4 text-xl font-bold text-white">
+                      {section}
+                    </h3>
 
-                      <div className="space-y-5">
-                        {(limitationsBySection[section] || []).map((item: any) => (
+                    <div className="space-y-5">
+                      {(limitationsBySection[section] || []).map(
+                        (item: any) => (
                           <div
                             key={item.id}
                             className="rounded-xl border border-slate-700 bg-[#020617] p-4"
@@ -667,17 +789,20 @@ export default async function PublicSharePage({
                               </div>
                             )}
                           </div>
-                        ))}
-                      </div>
+                        ),
+                      )}
                     </div>
-                  )
-                )}
+                  </div>
+                ))}
               </div>
             </section>
           )}
 
           {reportDisclaimers && reportDisclaimers.length > 0 && (
-            <section className="mt-8 rounded-2xl border border-purple-500/40 bg-[#071224] p-6">
+            <section
+              id="disclaimers"
+              className="mt-8 rounded-2xl border border-purple-500/40 bg-[#071224] p-6"
+            >
               <h2 className="mb-5 text-2xl font-bold text-purple-300">
                 Disclaimers
               </h2>
@@ -701,10 +826,20 @@ export default async function PublicSharePage({
             </section>
           )}
 
-          <section className="mt-10">
-            <h2 className="mb-8 text-3xl font-bold text-teal-400">
-              Inspection Findings
-            </h2>
+          <section id="findings" className="mt-10">
+            <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <p className="text-sm font-bold uppercase tracking-[0.3em] text-teal-400">
+                  Report Details
+                </p>
+                <h2 className="mt-2 text-3xl font-black text-white">
+                  Inspection Findings
+                </h2>
+              </div>
+              <div className="rounded-2xl border border-teal-500/30 bg-teal-500/10 px-5 py-3 text-sm font-bold text-teal-200">
+                {defectTotals.total} total defects
+              </div>
+            </div>
 
             {groupedFindings.length === 0 ? (
               <div className="rounded-2xl border border-slate-700 bg-[#071224] p-8 text-center text-slate-300">
@@ -717,9 +852,14 @@ export default async function PublicSharePage({
                     key={group.section}
                     className="rounded-2xl border border-slate-700 bg-[#071224] p-6"
                   >
-                    <h3 className="mb-6 border-b border-slate-700 pb-3 text-2xl font-bold text-white">
-                      {group.section}
-                    </h3>
+                    <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-slate-700 pb-4">
+                      <h3 className="text-2xl font-black text-white">
+                        {group.section}
+                      </h3>
+                      <span className="rounded-full border border-teal-500/40 bg-teal-500/10 px-4 py-2 text-sm font-bold text-teal-300">
+                        {group.findings.filter(isReportDefect).length} Findings
+                      </span>
+                    </div>
 
                     {referencePhotosBySection[group.section]?.length > 0 && (
                       <div className="mb-6 rounded-xl border border-cyan-500/30 bg-cyan-950/20 p-4">
@@ -728,34 +868,41 @@ export default async function PublicSharePage({
                         </h4>
 
                         <p className="mb-4 text-sm text-slate-400">
-                          These photos document general section conditions and are not defect findings.
+                          These photos document general section conditions and
+                          are not defect findings.
                         </p>
 
                         <div className="grid gap-4 md:grid-cols-3">
-                          {referencePhotosBySection[group.section].map((photo: any, index: number) => {
-                            const photoUrl = photo.signed_url || photo.public_url || "";
+                          {referencePhotosBySection[group.section].map(
+                            (photo: any, index: number) => {
+                              const photoUrl =
+                                photo.signed_url || photo.public_url || "";
 
-                            if (!photoUrl) return null;
+                              if (!photoUrl) return null;
 
-                            return (
-                              <div
-                                key={photo.id || index}
-                                className="overflow-hidden rounded-xl border border-slate-700 bg-[#020617]"
-                              >
-                                <img
-                                  src={photoUrl}
-                                  alt={photo.caption || `Section reference photo ${index + 1}`}
-                                  className="max-h-[280px] w-full object-cover"
-                                />
+                              return (
+                                <div
+                                  key={photo.id || index}
+                                  className="overflow-hidden rounded-xl border border-slate-700 bg-[#020617]"
+                                >
+                                  <img
+                                    src={photoUrl}
+                                    alt={
+                                      photo.caption ||
+                                      `Section reference photo ${index + 1}`
+                                    }
+                                    className="max-h-[280px] w-full object-cover"
+                                  />
 
-                                {photo.caption && (
-                                  <p className="border-t border-slate-800 px-3 py-2 text-sm text-slate-300">
-                                    {photo.caption}
-                                  </p>
-                                )}
-                              </div>
-                            );
-                          })}
+                                  {photo.caption && (
+                                    <p className="border-t border-slate-800 px-3 py-2 text-sm text-slate-300">
+                                      {photo.caption}
+                                    </p>
+                                  )}
+                                </div>
+                              );
+                            },
+                          )}
                         </div>
                       </div>
                     )}
@@ -777,63 +924,64 @@ export default async function PublicSharePage({
                         return (
                           <article
                             key={finding.id}
-                            className="rounded-xl border border-slate-700 bg-[#0f172a] p-5"
+                            className="overflow-hidden rounded-2xl border border-slate-700 bg-[#0f172a] shadow-xl"
                           >
-                            <div className="mb-3 flex flex-wrap items-center gap-3">
-                              <span className="rounded-full border border-teal-500/40 bg-teal-500/10 px-3 py-1 text-xs font-bold uppercase tracking-wide text-teal-300">
-                                {finding.severity || "Recommended Repair"}
-                              </span>
+                            <div className="border-b border-slate-700 bg-[#020617]/70 p-5">
+                              <div className="flex flex-wrap items-start justify-between gap-4">
+                                <div>
+                                  <p className="text-xs font-bold uppercase tracking-[0.25em] text-slate-500">
+                                    {finding.section}
+                                  </p>
+                                  <h4 className="mt-2 text-2xl font-black text-teal-300">
+                                    {finding.title || "Untitled Finding"}
+                                  </h4>
+                                </div>
+
+                                <span
+                                  className={`rounded-full border px-4 py-2 text-xs font-black uppercase tracking-wide ${getSeverityBadgeClass(
+                                    finding.severity || "Recommended Repair",
+                                  )}`}
+                                >
+                                  {finding.severity || "Recommended Repair"}
+                                </span>
+                              </div>
                             </div>
 
-                            {image && (
-                              <img
-                                src={image}
-                                alt="Inspection finding"
-                                className="mb-5 max-h-[450px] w-full rounded-xl border border-slate-700 object-contain"
-                              />
-                            )}
+                            <div className="p-5">
+                              {image && (
+                                <img
+                                  src={image}
+                                  alt="Inspection finding"
+                                  className="mb-5 max-h-[480px] w-full rounded-xl border border-slate-700 bg-black object-contain"
+                                />
+                              )}
 
-                            
+                              <div className="grid gap-4">
+                                <FindingDetailCard
+                                  title="Observation"
+                                  value={finding.observation}
+                                  tone="blue"
+                                />
 
-                            <h4 className="text-2xl font-bold text-teal-300">
-                              {finding.title}
-                            </h4>
+                                <FindingDetailCard
+                                  title="Implication"
+                                  value={finding.implication}
+                                  tone="amber"
+                                />
 
-                            {finding.observation && (
-                              <p className="mt-4 whitespace-pre-line leading-7 text-slate-300">
-                                <span className="font-bold text-white">
-                                  Observation:
-                                </span>{" "}
-                                {finding.observation}
-                              </p>
-                            )}
+                                <FindingDetailCard
+                                  title="Recommendation"
+                                  value={finding.recommendation}
+                                  tone="teal"
+                                />
 
-                            {finding.implication && (
-                              <p className="mt-4 whitespace-pre-line leading-7 text-slate-300">
-                                <span className="font-bold text-white">
-                                  Implication:
-                                </span>{" "}
-                                {finding.implication}
-                              </p>
-                            )}
-
-                            {finding.recommendation && (
-                              <p className="mt-4 whitespace-pre-line leading-7 text-slate-300">
-                                <span className="font-bold text-white">
-                                  Recommendation:
-                                </span>{" "}
-                                {finding.recommendation}
-                              </p>
-                            )}
-
-                            {finding.comment && (
-                              <p className="mt-4 whitespace-pre-line leading-7 text-slate-300">
-                                <span className="font-bold text-white">
-                                  Additional Notes:
-                                </span>{" "}
-                                {finding.comment}
-                              </p>
-                            )}
+                                <FindingDetailCard
+                                  title="Additional Notes"
+                                  value={finding.comment}
+                                  tone="slate"
+                                />
+                              </div>
+                            </div>
                           </article>
                         );
                       })}
@@ -853,20 +1001,43 @@ export default async function PublicSharePage({
   );
 }
 
-function DefectSummaryCard({
-  label,
-  value,
-}: {
-  label: string;
-  value: number;
-}) {
+function DefectSummaryCard({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-xl border border-slate-700 bg-[#0f172a] p-4 text-center">
+    <div className="rounded-2xl border border-slate-700 bg-[#0f172a] p-5 text-center shadow-lg">
       <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
         {label}
       </p>
 
       <p className="mt-2 text-3xl font-black text-white">{value}</p>
+    </div>
+  );
+}
+
+function FindingDetailCard({
+  title,
+  value,
+  tone,
+}: {
+  title: string;
+  value?: any;
+  tone: "blue" | "amber" | "teal" | "slate";
+}) {
+  if (!value) return null;
+
+  const toneClasses: Record<string, string> = {
+    blue: "border-blue-500/30 bg-blue-500/10 text-blue-200",
+    amber: "border-amber-500/30 bg-amber-500/10 text-amber-200",
+    teal: "border-teal-500/30 bg-teal-500/10 text-teal-200",
+    slate: "border-slate-600 bg-[#020617] text-slate-200",
+  };
+
+  return (
+    <div className={`rounded-xl border p-4 ${toneClasses[tone]}`}>
+      <p className="text-xs font-black uppercase tracking-[0.25em]">{title}</p>
+
+      <p className="mt-3 whitespace-pre-line text-base leading-7 text-slate-100">
+        {value}
+      </p>
     </div>
   );
 }
