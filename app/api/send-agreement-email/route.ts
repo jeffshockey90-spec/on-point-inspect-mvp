@@ -1,206 +1,180 @@
-"use client";
+import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
+import { Resend } from "resend";
 
-import { useEffect, useMemo, useState } from "react";
+export const runtime = "nodejs";
 
-export default function AgreementStatusPanel({
-  inspectionId,
-}: {
-  inspectionId: string;
-}) {
-  const [contacts, setContacts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [sendingReminder, setSendingReminder] = useState<string | null>(null);
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
-  useEffect(() => {
-    loadContacts();
-  }, [inspectionId]);
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-  async function loadContacts() {
-    if (!inspectionId) return;
-
-    setLoading(true);
-
-    try {
-      const res = await fetch(
-        `/api/inspection-contacts?inspection_id=${inspectionId}`
-      );
-
-      const data = await res.json();
-
-      setContacts(data.contacts || []);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  const requiredContacts = useMemo(
-    () =>
-      contacts.filter((contact) =>
-        Boolean(contact.agreement_required)
-      ),
-    [contacts]
-  );
-
-  const unsignedRequiredContacts = useMemo(
-    () =>
-      requiredContacts.filter(
-        (contact) => !contact.agreement_signed
-      ),
-    [requiredContacts]
-  );
-
-  const allRequiredSigned =
-    requiredContacts.length > 0 &&
-    unsignedRequiredContacts.length === 0;
-
-  async function sendReminder(contactId?: string) {
-    setSendingReminder(contactId || "all");
-
-    try {
-      const res = await fetch("/api/send-agreement-reminder", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          inspectionId,
-          contactId,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to send reminder.");
-      }
-
-      alert(`Sent ${data.sent?.length || 0} reminder email(s).`);
-      await loadContacts();
-    } catch (error: any) {
-      alert(error.message || "Failed to send reminder.");
-    } finally {
-      setSendingReminder(null);
-    }
-  }
-
+function getBaseUrl(req: Request) {
   return (
-    <section className="mb-8 rounded-2xl border border-slate-700 bg-[#071224] p-5">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-teal-300">
-            Agreement Status
-          </h2>
+    process.env.NEXT_PUBLIC_BASE_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    new URL(req.url).origin
+  );
+}
 
-          <p className="mt-1 text-sm text-slate-400">
-            Track required client signatures before report delivery.
-          </p>
-        </div>
+export async function POST(req: Request) {
+  try {
+    const { inspectionId } = await req.json();
 
-        {requiredContacts.length > 0 && !allRequiredSigned && (
-          <button
-            type="button"
-            onClick={() => sendReminder()}
-            disabled={sendingReminder !== null}
-            className="rounded-xl border border-yellow-500 px-4 py-2 font-bold text-yellow-300 hover:bg-yellow-500/10 disabled:opacity-50"
-          >
-            {sendingReminder === "all"
-              ? "Sending..."
-              : "Remind All Unsigned"}
-          </button>
-        )}
-      </div>
+    if (!inspectionId) {
+      return NextResponse.json(
+        { error: "Missing inspection ID." },
+        { status: 400 }
+      );
+    }
 
-      {loading && (
-        <p className="mt-4 text-sm text-slate-400">
-          Loading agreement status...
-        </p>
-      )}
+    if (!process.env.RESEND_API_KEY) {
+      return NextResponse.json(
+        { error: "Missing RESEND_API_KEY." },
+        { status: 500 }
+      );
+    }
 
-      {!loading && requiredContacts.length === 0 && (
-        <div className="mt-4 rounded-xl border border-slate-700 bg-slate-950 p-4 text-sm text-slate-400">
-          No required agreement signers added yet. Add clients in the Client / Realtor Contacts section and check Agreement Required.
-        </div>
-      )}
+    const { data: inspection, error: inspectionError } = await supabase
+      .from("inspections")
+      .select("*")
+      .eq("id", inspectionId)
+      .single();
 
-      {!loading && requiredContacts.length > 0 && (
-        <>
-          <div
-            className={`mt-4 rounded-xl border p-4 ${
-              allRequiredSigned
-                ? "border-green-600 bg-green-950/30"
-                : "border-yellow-600 bg-yellow-950/20"
-            }`}
-          >
-            <p
-              className={`text-lg font-extrabold ${
-                allRequiredSigned
-                  ? "text-green-300"
-                  : "text-yellow-300"
-              }`}
-            >
-              {allRequiredSigned
-                ? "All required agreements signed"
-                : `${unsignedRequiredContacts.length} required signature${
-                    unsignedRequiredContacts.length === 1 ? "" : "s"
-                  } remaining`}
+    if (inspectionError || !inspection) {
+      return NextResponse.json(
+        { error: "Inspection not found." },
+        { status: 404 }
+      );
+    }
+
+    const { data: contacts, error: contactsError } = await supabase
+      .from("inspection_contacts")
+      .select("*")
+      .eq("inspection_id", inspectionId);
+
+    if (contactsError) {
+      return NextResponse.json(
+        { error: contactsError.message },
+        { status: 500 }
+      );
+    }
+
+    const contactEmails =
+      contacts
+        ?.filter(
+          (contact: any) =>
+            contact.email &&
+            (contact.agreement_required ||
+              contact.portal_access ||
+              ["client", "co-client"].includes(
+                String(contact.role).toLowerCase()
+              ))
+        )
+        .map((contact: any) => String(contact.email).trim().toLowerCase())
+        .filter(Boolean) || [];
+
+    const fallbackEmails = [
+      inspection.client_email,
+      inspection.realtor_email,
+      inspection.agent_email,
+    ]
+      .filter(Boolean)
+      .map((email: string) => String(email).trim().toLowerCase());
+
+    const recipients = Array.from(
+      new Set([...contactEmails, ...fallbackEmails])
+    );
+
+    if (!recipients.length) {
+      return NextResponse.json(
+        {
+          error:
+            "No recipient emails found. Add a client contact with an email and mark Agreement Required.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const baseUrl = getBaseUrl(req);
+    const agreementUrl = `${baseUrl}/client-agreement/${inspectionId}`;
+    const portalUrl = `${baseUrl}/client-portal/${inspectionId}`;
+
+    const property =
+      inspection.address ||
+      inspection.property_address ||
+      "Inspection Property";
+
+    const fromEmail =
+      process.env.RESEND_FROM_EMAIL ||
+      process.env.REPORT_EMAIL_FROM ||
+      "On Point Home Inspections <agreements@onpointhomeinspect.com>";
+
+    const sent: any[] = [];
+
+    for (const email of recipients) {
+      const result = await resend.emails.send({
+        from: fromEmail,
+        to: email,
+        subject: `Inspection Agreement - ${property}`,
+        html: `
+          <div style="font-family:Arial,sans-serif;padding:24px;line-height:1.6;color:#0f172a;">
+            <h2 style="color:#0f766e;">On Point Home Inspections</h2>
+
+            <p>Please review and sign your inspection agreement before the report is delivered.</p>
+
+            <p><strong>Property:</strong> ${property}</p>
+
+            <p>
+              <a href="${agreementUrl}" style="display:inline-block;background:#14b8a6;color:#020617;font-weight:bold;padding:14px 22px;border-radius:10px;text-decoration:none;">
+                Review & Sign Agreement
+              </a>
             </p>
 
-            {!allRequiredSigned && (
-              <p className="mt-1 text-sm text-slate-300">
-                Recommended: do not publish/send the final report until all required clients have signed.
-              </p>
-            )}
+            <p>
+              Client Portal:<br />
+              <a href="${portalUrl}">${portalUrl}</a>
+            </p>
+
+            <p style="margin-top:30px;font-size:12px;color:#64748b;">
+              On Point Home Inspections
+            </p>
           </div>
+        `,
+        text: `Please review and sign your inspection agreement for ${property}.
 
-          <div className="mt-4 space-y-3">
-            {requiredContacts.map((contact) => (
-              <div
-                key={contact.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-700 bg-slate-950 p-4"
-              >
-                <div>
-                  <p className="font-bold text-white">
-                    {contact.name}
-                  </p>
+Agreement:
+${agreementUrl}
 
-                  <p className="text-sm text-slate-400">
-                    {contact.email}
-                  </p>
+Client Portal:
+${portalUrl}
 
-                  <p className="mt-1 text-xs uppercase tracking-wide text-teal-300">
-                    {contact.role}
-                  </p>
-                </div>
+On Point Home Inspections`,
+      });
 
-                <div className="flex flex-wrap items-center gap-3">
-                  <span
-                    className={`rounded-xl px-3 py-2 text-sm font-bold ${
-                      contact.agreement_signed
-                        ? "bg-green-500 text-slate-950"
-                        : "border border-yellow-500 text-yellow-300"
-                    }`}
-                  >
-                    {contact.agreement_signed ? "Signed" : "Unsigned"}
-                  </span>
+      sent.push({
+        email,
+        result,
+      });
+    }
 
-                  {!contact.agreement_signed && (
-                    <button
-                      type="button"
-                      onClick={() => sendReminder(contact.id)}
-                      disabled={sendingReminder !== null}
-                      className="rounded-xl border border-yellow-500 px-3 py-2 text-sm font-bold text-yellow-300 hover:bg-yellow-500/10 disabled:opacity-50"
-                    >
-                      {sendingReminder === contact.id
-                        ? "Sending..."
-                        : "Send Reminder"}
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-    </section>
-  );
+    return NextResponse.json({
+      success: true,
+      message: `Agreement email sent to ${sent.length} recipient${
+        sent.length === 1 ? "" : "s"
+      }.`,
+      sent,
+    });
+  } catch (error: any) {
+    console.error("Send agreement email error:", error);
+
+    return NextResponse.json(
+      {
+        error: error?.message || "Failed to send agreement.",
+      },
+      { status: 500 }
+    );
+  }
 }
