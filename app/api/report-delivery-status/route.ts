@@ -50,7 +50,10 @@ export async function GET(req: Request) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
+      return NextResponse.json(
+        { error: "Not authenticated." },
+        { status: 401 }
+      );
     }
 
     const { searchParams } = new URL(req.url);
@@ -66,15 +69,21 @@ export async function GET(req: Request) {
     const { data: inspection, error: inspectionError } = await supabase
       .from("inspections")
       .select(
-        "id, inspector_id, invoice_status, payment_status, invoice_amount, amount_paid, balance_due, price, total_price, total, inspection_price, inspection_fee"
+        "id, inspector_id, client_email, realtor_email, agent_email, invoice_status, payment_status, invoice_amount, amount_paid, balance_due, price, total_price, total, inspection_price, inspection_fee"
       )
       .eq("id", inspectionId)
-      .eq("inspector_id", user.id)
-      .single();
+      .maybeSingle();
 
-    if (inspectionError || !inspection) {
+    if (inspectionError) {
       return NextResponse.json(
-        { error: "Inspection not found." },
+        { error: inspectionError.message },
+        { status: 500 }
+      );
+    }
+
+    if (!inspection) {
+      return NextResponse.json(
+        { error: "Inspection not found or not accessible." },
         { status: 404 }
       );
     }
