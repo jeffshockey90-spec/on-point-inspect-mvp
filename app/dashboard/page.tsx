@@ -24,8 +24,8 @@ export default async function DashboardPage() {
           </h1>
 
           <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-200">
-            Manage inspections, reports, AI findings, analytics, templates,
-            quotes, and scheduling from one clean dashboard.
+            Manage inspections, reports, AI findings, analytics, invoices,
+            templates, quotes, and scheduling from one clean dashboard.
           </p>
         </section>
 
@@ -49,6 +49,13 @@ export default async function DashboardPage() {
             title="Analytics"
             description="Track revenue, inspections, payments, agreements, reports, and referrals."
             href="/analytics"
+          />
+
+          <DashboardCard
+            icon="💰"
+            title="Invoices"
+            description="Track paid, pending, overdue, and outstanding balances."
+            href="/invoices"
           />
 
           <DashboardCard
