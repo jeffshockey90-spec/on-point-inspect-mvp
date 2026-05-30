@@ -2,71 +2,59 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "../../utils/supabase/server";
 
-type AnyRecord = Record<string, any>;
-
-const MONEY_FIELDS = [
-  "total_price",
-  "total",
-  "price",
-  "inspection_price",
-  "inspection_fee",
-  "fee",
-  "amount",
-  "invoice_amount",
-  "payment_amount",
-];
-
-const DATE_FIELDS = ["inspection_date", "scheduled_date", "created_at"];
-
 function getNumber(value: any) {
   if (typeof value === "number" && Number.isFinite(value)) return value;
 
   if (typeof value === "string") {
     const cleaned = value.replace(/[^0-9.-]/g, "");
     const parsed = Number(cleaned);
+
     if (Number.isFinite(parsed)) return parsed;
   }
 
   return 0;
 }
 
-function getMoneyValue(record: AnyRecord) {
-  for (const field of MONEY_FIELDS) {
-    const value = getNumber(record?.[field]);
-    if (value > 0) return value;
-  }
+function calculatePriceFromSqft(squareFeet: any) {
+  const sqft = getNumber(squareFeet);
 
-  return 0;
+  if (!sqft || sqft <= 0) return 0;
+  if (sqft <= 2000) return 500;
+
+  return 500 + Math.ceil((sqft - 2000) / 1000) * 50;
 }
 
-function getDateValue(record: AnyRecord) {
-  for (const field of DATE_FIELDS) {
-    const value = record?.[field];
-    if (!value) continue;
-
-    const parsed = new Date(value);
-    if (!Number.isNaN(parsed.getTime())) return parsed;
-  }
-
-  return null;
-}
-
-function isSameMonth(date: Date | null, now: Date) {
-  if (!date) return false;
-
+function getInspectionPrice(inspection: any) {
   return (
-    date.getFullYear() === now.getFullYear() &&
-    date.getMonth() === now.getMonth()
+    getNumber(inspection?.price) ||
+    getNumber(inspection?.invoice_amount) ||
+    getNumber(inspection?.total_price) ||
+    getNumber(inspection?.total) ||
+    getNumber(inspection?.inspection_price) ||
+    getNumber(inspection?.inspection_fee) ||
+    calculatePriceFromSqft(inspection?.square_feet || inspection?.sqft) ||
+    0
   );
 }
 
-function isSameYear(date: Date | null, now: Date) {
-  if (!date) return false;
-
-  return date.getFullYear() === now.getFullYear();
+function getPaidAmount(inspection: any) {
+  return getNumber(inspection?.amount_paid);
 }
 
-function money(amount: number) {
+function getBalanceDue(inspection: any) {
+  if (
+    inspection?.balance_due !== null &&
+    inspection?.balance_due !== undefined
+  ) {
+    return getNumber(inspection.balance_due);
+  }
+
+  return Math.max(0, getInspectionPrice(inspection) - getPaidAmount(inspection));
+}
+
+function money(value: any) {
+  const amount = getNumber(value);
+
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
@@ -74,51 +62,93 @@ function money(amount: number) {
   }).format(amount || 0);
 }
 
-function getInspectionTitle(inspection: AnyRecord) {
+function isSameMonth(dateValue: any, now = new Date()) {
+  if (!dateValue) return false;
+
+  const date = new Date(dateValue);
+
+  if (Number.isNaN(date.getTime())) return false;
+
   return (
-    inspection.property_address ||
-    inspection.address ||
-    inspection.client_name ||
-    "Untitled Inspection"
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth()
   );
 }
 
-function hasTruthyField(record: AnyRecord, fields: string[]) {
-  return fields.some((field) => {
-    const value = record?.[field];
+function getDateValue(inspection: any) {
+  return inspection?.inspection_date || inspection?.created_at || "";
+}
 
-    if (typeof value === "boolean") return value;
-    if (typeof value === "number") return value > 0;
-    if (typeof value === "string") {
-      const clean = value.toLowerCase().trim();
-      return (
-        clean === "true" ||
-        clean === "yes" ||
-        clean === "selected" ||
-        clean === "included" ||
-        clean === "paid" ||
-        clean.includes("radon") ||
-        clean.includes("mold")
-      );
-    }
+function isPaymentComplete(inspection: any) {
+  const status = String(
+    inspection?.payment_status || inspection?.invoice_status || ""
+  ).toLowerCase();
 
-    return false;
+  if (status === "paid" || status === "waived") return true;
+
+  const price = getInspectionPrice(inspection);
+  const paid = getPaidAmount(inspection);
+  const balance = getBalanceDue(inspection);
+
+  if (price > 0 && paid >= price) return true;
+  if (paid > 0 && balance <= 0) return true;
+
+  return false;
+}
+
+function isAgreementSigned(inspection: any) {
+  const status = String(
+    inspection?.agreement_status || inspection?.agreement_state || ""
+  ).toLowerCase();
+
+  return (
+    status === "signed" ||
+    status === "complete" ||
+    status === "completed" ||
+    status === "accepted" ||
+    inspection?.agreement_signed === true ||
+    inspection?.signed_agreement === true
+  );
+}
+
+function isReportPublished(inspection: any) {
+  const reportStatus = String(inspection?.report_status || "").toLowerCase();
+  const status = String(inspection?.status || "").toLowerCase();
+
+  return (
+    inspection?.published === true ||
+    inspection?.is_published === true ||
+    inspection?.report_published === true ||
+    reportStatus === "published" ||
+    reportStatus === "ready" ||
+    status === "published" ||
+    status === "ready"
+  );
+}
+
+function getMonthKey(dateValue: any) {
+  const date = new Date(dateValue);
+
+  if (Number.isNaN(date.getTime())) return "No Date";
+
+  return date.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
   });
 }
 
-function countBy(records: AnyRecord[], getter: (record: AnyRecord) => string) {
-  return records.reduce((acc: Record<string, number>, record) => {
-    const key = getter(record) || "Unknown";
-    acc[key] = (acc[key] || 0) + 1;
-    return acc;
-  }, {});
-}
+function formatDate(value: any) {
+  if (!value) return "N/A";
 
-function topEntries(counts: Record<string, number>, limit = 5) {
-  return Object.entries(counts)
-    .filter(([key]) => key && key !== "Unknown" && key !== "N/A")
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, limit);
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) return String(value);
+
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 }
 
 export default async function AnalyticsPage() {
@@ -128,330 +158,373 @@ export default async function AnalyticsPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
-    redirect("/login");
-  }
+  if (!user) redirect("/login");
 
-  const { data: inspectionsRaw, error: inspectionsError } = await supabase
+  const { data: inspections, error } = await supabase
     .from("inspections")
     .select("*")
     .eq("inspector_id", user.id)
     .order("created_at", { ascending: false });
 
-  if (inspectionsError) {
+  if (error) {
     return (
       <main className="min-h-screen bg-[#020617] p-8 text-white">
-        <div className="mx-auto max-w-5xl rounded-2xl border border-red-800 bg-red-950/30 p-6">
-          <h1 className="text-3xl font-black text-red-300">
-            Analytics Error
-          </h1>
-          <p className="mt-3 text-red-100">{inspectionsError.message}</p>
-          <Link
-            href="/dashboard"
-            className="mt-5 inline-block rounded-xl border border-red-400 px-5 py-3 font-bold text-red-200 hover:bg-red-500/10"
-          >
-            Back to Dashboard
-          </Link>
-        </div>
+        <h1 className="text-3xl font-bold text-red-400">
+          Error loading analytics
+        </h1>
+        <p className="mt-4 text-slate-300">{error.message}</p>
       </main>
     );
   }
 
-  const inspections = inspectionsRaw || [];
-  const inspectionIds = inspections.map((inspection: AnyRecord) => inspection.id);
-
-  const { data: findingsRaw } =
-    inspectionIds.length > 0
-      ? await supabase
-          .from("findings")
-          .select("*")
-          .in("inspection_id", inspectionIds)
-      : { data: [] };
-
-  const findings = findingsRaw || [];
+  const rows = inspections || [];
   const now = new Date();
 
-  const inspectionsThisMonth = inspections.filter((inspection: AnyRecord) =>
+  const inspectionsThisMonth = rows.filter((inspection: any) =>
     isSameMonth(getDateValue(inspection), now)
   );
 
-  const inspectionsThisYear = inspections.filter((inspection: AnyRecord) =>
-    isSameYear(getDateValue(inspection), now)
-  );
+  const paidRows = rows.filter(isPaymentComplete);
+  const paidThisMonth = inspectionsThisMonth.filter(isPaymentComplete);
 
-  const revenueThisMonth = inspectionsThisMonth.reduce(
-    (total: number, inspection: AnyRecord) => total + getMoneyValue(inspection),
+  const revenueAllTime = paidRows.reduce(
+    (sum: number, inspection: any) =>
+      sum + (getPaidAmount(inspection) || getInspectionPrice(inspection)),
     0
   );
 
-  const revenueThisYear = inspectionsThisYear.reduce(
-    (total: number, inspection: AnyRecord) => total + getMoneyValue(inspection),
+  const revenueThisMonth = paidThisMonth.reduce(
+    (sum: number, inspection: any) =>
+      sum + (getPaidAmount(inspection) || getInspectionPrice(inspection)),
     0
   );
 
-  const totalRevenue = inspections.reduce(
-    (total: number, inspection: AnyRecord) => total + getMoneyValue(inspection),
+  const quotedAllTime = rows.reduce(
+    (sum: number, inspection: any) => sum + getInspectionPrice(inspection),
     0
   );
 
-  const averageInspection =
-    inspections.length > 0 ? totalRevenue / inspections.length : 0;
-
-  const completedReports = inspections.filter((inspection: AnyRecord) =>
-    hasTruthyField(inspection, [
-      "completed",
-      "is_completed",
-      "report_completed",
-      "published",
-      "is_published",
-      "report_sent",
-      "report_delivered",
-    ])
-  ).length;
-
-  const radonCount = inspections.filter((inspection: AnyRecord) =>
-    hasTruthyField(inspection, [
-      "radon",
-      "radon_test",
-      "radon_addon",
-      "radon_included",
-      "services",
-      "addons",
-    ])
-  ).length;
-
-  const moldCount = inspections.filter((inspection: AnyRecord) =>
-    hasTruthyField(inspection, [
-      "mold",
-      "mold_test",
-      "mold_addon",
-      "mold_included",
-      "services",
-      "addons",
-    ])
-  ).length;
-
-  const severityCounts = countBy(findings, (finding) =>
-    String(finding.severity || "Recommended Repair")
+  const outstandingBalance = rows.reduce(
+    (sum: number, inspection: any) => sum + getBalanceDue(inspection),
+    0
   );
 
-  const sectionCounts = countBy(findings, (finding) =>
-    String(finding.section || "Inspection Details")
+  const averageInspectionFee =
+    rows.length > 0 ? quotedAllTime / rows.length : 0;
+
+  const paymentsPending = rows.filter(
+    (inspection: any) => !isPaymentComplete(inspection) && getBalanceDue(inspection) > 0
   );
 
-  const realtorCounts = countBy(inspections, (inspection) =>
-    String(
-      inspection.realtor_name ||
-        inspection.agent_name ||
-        inspection.realtor_email ||
-        inspection.agent_email ||
-        "N/A"
-    )
+  const agreementsPending = rows.filter((inspection: any) => !isAgreementSigned(inspection));
+
+  const reportsPendingPublish = rows.filter(
+    (inspection: any) => !isReportPublished(inspection)
   );
 
-  const photoBackedFindings = findings.filter(
-    (finding: AnyRecord) =>
-      finding.image_url ||
-      finding.public_image_url ||
-      finding.signed_image_url ||
-      finding.photo_url
-  ).length;
+  const readyToDeliver = rows.filter(
+    (inspection: any) =>
+      isAgreementSigned(inspection) &&
+      isPaymentComplete(inspection) &&
+      isReportPublished(inspection)
+  );
 
-  const recentInspections = inspections.slice(0, 6);
+  const monthMap: Record<string, { revenue: number; count: number }> = {};
+
+  rows.forEach((inspection: any) => {
+    const key = getMonthKey(getDateValue(inspection));
+    if (!monthMap[key]) monthMap[key] = { revenue: 0, count: 0 };
+
+    monthMap[key].count += 1;
+
+    if (isPaymentComplete(inspection)) {
+      monthMap[key].revenue +=
+        getPaidAmount(inspection) || getInspectionPrice(inspection);
+    }
+  });
+
+  const monthlyRows = Object.entries(monthMap)
+    .filter(([month]) => month !== "No Date")
+    .map(([month, values]) => ({
+      month,
+      ...values,
+    }))
+    .reverse()
+    .slice(-6);
+
+  const maxMonthlyRevenue = Math.max(
+    1,
+    ...monthlyRows.map((row) => row.revenue)
+  );
+
+  const realtorMap: Record<string, { count: number; revenue: number }> = {};
+
+  rows.forEach((inspection: any) => {
+    const realtor =
+      inspection?.realtor_name ||
+      inspection?.agent_name ||
+      inspection?.realtor_email ||
+      "No Realtor Listed";
+
+    if (!realtorMap[realtor]) realtorMap[realtor] = { count: 0, revenue: 0 };
+
+    realtorMap[realtor].count += 1;
+
+    if (isPaymentComplete(inspection)) {
+      realtorMap[realtor].revenue +=
+        getPaidAmount(inspection) || getInspectionPrice(inspection);
+    }
+  });
+
+  const topRealtors = Object.entries(realtorMap)
+    .map(([name, values]) => ({
+      name,
+      ...values,
+    }))
+    .sort((a, b) => b.count - a.count || b.revenue - a.revenue)
+    .slice(0, 8);
+
+  const recentInspections = rows.slice(0, 8);
 
   return (
-    <main className="min-h-screen bg-[#020617] px-6 py-8 text-white">
-      <div className="mx-auto max-w-7xl space-y-8">
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-6">
-          <div>
-            <p className="text-sm font-black uppercase tracking-[0.35em] text-teal-400">
-              On Point Inspect
-            </p>
-
-            <h1 className="mt-2 text-5xl font-black text-white">
-              Analytics Dashboard
-            </h1>
-
-            <p className="mt-3 max-w-3xl text-slate-300">
-              Business overview for inspections, revenue, add-ons, referral
-              sources, findings, and photo-backed report activity.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-3">
-            <Link
-              href="/dashboard"
-              className="rounded-xl border border-slate-700 px-5 py-3 font-bold text-slate-200 hover:bg-slate-800"
-            >
-              Dashboard
-            </Link>
-
-            <Link
-              href="/reports"
-              className="rounded-xl bg-teal-500 px-5 py-3 font-black text-slate-950 hover:bg-teal-400"
-            >
-              Reports
-            </Link>
-          </div>
-        </div>
-
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <MetricCard
-            label="Inspections This Month"
-            value={inspectionsThisMonth.length}
-            helper={`${inspectionsThisYear.length} this year`}
-          />
-
-          <MetricCard
-            label="Revenue This Month"
-            value={money(revenueThisMonth)}
-            helper={`${money(revenueThisYear)} this year`}
-          />
-
-          <MetricCard
-            label="Average Inspection"
-            value={money(averageInspection)}
-            helper={`${money(totalRevenue)} total tracked`}
-          />
-
-          <MetricCard
-            label="Completed / Delivered"
-            value={completedReports}
-            helper={`${inspections.length} total inspections`}
-          />
-        </section>
-
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <MetricCard
-            label="Radon Add-Ons"
-            value={radonCount}
-            helper="Based on available inspection fields"
-          />
-
-          <MetricCard
-            label="Mold Add-Ons"
-            value={moldCount}
-            helper="Based on available inspection fields"
-          />
-
-          <MetricCard
-            label="Findings Created"
-            value={findings.length}
-            helper="All report findings"
-          />
-
-          <MetricCard
-            label="Photo Findings"
-            value={photoBackedFindings}
-            helper="Findings with image fields"
-          />
-        </section>
-
-        <section className="grid gap-6 lg:grid-cols-3">
-          <AnalyticsPanel title="Findings by Severity">
-            <StatList entries={topEntries(severityCounts, 8)} empty="No findings yet." />
-          </AnalyticsPanel>
-
-          <AnalyticsPanel title="Findings by Section">
-            <StatList entries={topEntries(sectionCounts, 10)} empty="No sections yet." />
-          </AnalyticsPanel>
-
-          <AnalyticsPanel title="Top Realtors / Referrals">
-            <StatList entries={topEntries(realtorCounts, 8)} empty="No realtor data yet." />
-          </AnalyticsPanel>
-        </section>
-
-        <section className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6">
-          <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+    <main className="min-h-screen bg-[#020617] px-6 py-10 text-white">
+      <div className="mx-auto max-w-7xl">
+        <section className="rounded-3xl border border-slate-800 bg-[#0f172a] p-8 shadow-2xl">
+          <div className="flex flex-wrap items-end justify-between gap-6">
             <div>
-              <h2 className="text-2xl font-black text-teal-300">
-                Recent Inspection Activity
-              </h2>
+              <p className="text-sm font-black uppercase tracking-[0.35em] text-teal-400">
+                On Point Inspect
+              </p>
 
-              <p className="mt-1 text-sm text-slate-400">
-                Latest inspections connected to your inspector account.
+              <h1 className="mt-4 text-5xl font-black text-white">
+                Analytics Dashboard
+              </h1>
+
+              <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-300">
+                Track revenue, inspections, payments, agreements, publishing, and realtor referrals.
               </p>
             </div>
 
             <Link
-              href="/reports"
-              className="rounded-xl border border-teal-500 px-4 py-2 text-sm font-bold text-teal-300 hover:bg-teal-500/10"
+              href="/dashboard"
+              className="rounded-xl border border-teal-500 px-5 py-3 font-bold text-teal-300 hover:bg-teal-500/10"
             >
-              View All Reports
+              Back to Dashboard
             </Link>
           </div>
-
-          {recentInspections.length === 0 ? (
-            <p className="rounded-xl border border-slate-700 bg-slate-950 p-4 text-slate-400">
-              No inspection activity yet.
-            </p>
-          ) : (
-            <div className="overflow-hidden rounded-xl border border-slate-800">
-              <table className="w-full min-w-[760px] border-collapse text-left text-sm">
-                <thead className="bg-slate-950 text-xs uppercase tracking-wide text-slate-400">
-                  <tr>
-                    <th className="px-4 py-3">Property</th>
-                    <th className="px-4 py-3">Client</th>
-                    <th className="px-4 py-3">Realtor</th>
-                    <th className="px-4 py-3">Date</th>
-                    <th className="px-4 py-3 text-right">Value</th>
-                    <th className="px-4 py-3 text-right">Open</th>
-                  </tr>
-                </thead>
-
-                <tbody className="divide-y divide-slate-800 bg-[#071224]">
-                  {recentInspections.map((inspection: AnyRecord) => (
-                    <tr key={inspection.id}>
-                      <td className="px-4 py-4 font-bold text-white">
-                        {getInspectionTitle(inspection)}
-                      </td>
-
-                      <td className="px-4 py-4 text-slate-300">
-                        {inspection.client_name || "N/A"}
-                      </td>
-
-                      <td className="px-4 py-4 text-slate-300">
-                        {inspection.realtor_name ||
-                          inspection.agent_name ||
-                          "N/A"}
-                      </td>
-
-                      <td className="px-4 py-4 text-slate-300">
-                        {inspection.inspection_date ||
-                          inspection.scheduled_date ||
-                          "N/A"}
-                      </td>
-
-                      <td className="px-4 py-4 text-right font-bold text-teal-300">
-                        {money(getMoneyValue(inspection))}
-                      </td>
-
-                      <td className="px-4 py-4 text-right">
-                        <Link
-                          href={`/reports/${inspection.id}`}
-                          className="font-bold text-teal-300 hover:underline"
-                        >
-                          Open
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
         </section>
 
-        <section className="rounded-2xl border border-yellow-700 bg-yellow-950/20 p-5 text-yellow-100">
-          <h2 className="text-xl font-black text-yellow-300">
-            Revenue Note
+        <section className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+          <MetricCard
+            label="Revenue This Month"
+            value={money(revenueThisMonth)}
+            helper={`${paidThisMonth.length} paid inspection${paidThisMonth.length === 1 ? "" : "s"}`}
+            tone="green"
+          />
+
+          <MetricCard
+            label="Revenue All Time"
+            value={money(revenueAllTime)}
+            helper={`${paidRows.length} paid inspection${paidRows.length === 1 ? "" : "s"}`}
+            tone="teal"
+          />
+
+          <MetricCard
+            label="Inspections This Month"
+            value={String(inspectionsThisMonth.length)}
+            helper={`${rows.length} total inspection${rows.length === 1 ? "" : "s"}`}
+            tone="blue"
+          />
+
+          <MetricCard
+            label="Average Inspection Fee"
+            value={money(averageInspectionFee)}
+            helper="Uses saved price; falls back to sq ft pricing."
+            tone="purple"
+          />
+
+          <MetricCard
+            label="Payments Pending"
+            value={String(paymentsPending.length)}
+            helper={`${money(outstandingBalance)} outstanding`}
+            tone="orange"
+          />
+
+          <MetricCard
+            label="Agreements Pending"
+            value={String(agreementsPending.length)}
+            helper="Inspections missing signed agreement."
+            tone="yellow"
+          />
+
+          <MetricCard
+            label="Reports Pending Publish"
+            value={String(reportsPendingPublish.length)}
+            helper="Draft or unpublished reports."
+            tone="red"
+          />
+
+          <MetricCard
+            label="Ready / Delivered"
+            value={String(readyToDeliver.length)}
+            helper="Signed, paid, and published."
+            tone="green"
+          />
+        </section>
+
+        <section className="mt-8 grid gap-6 xl:grid-cols-2">
+          <Panel title="Monthly Revenue" subtitle="Paid revenue by inspection month.">
+            {monthlyRows.length === 0 ? (
+              <EmptyState text="No monthly revenue data yet." />
+            ) : (
+              <div className="space-y-4">
+                {monthlyRows.map((row) => {
+                  const width = Math.max(4, Math.round((row.revenue / maxMonthlyRevenue) * 100));
+
+                  return (
+                    <div key={row.month}>
+                      <div className="mb-2 flex justify-between text-sm">
+                        <span className="font-bold text-white">{row.month}</span>
+                        <span className="text-slate-300">{money(row.revenue)}</span>
+                      </div>
+
+                      <div className="h-4 overflow-hidden rounded-full bg-[#020617]">
+                        <div
+                          className="h-full rounded-full bg-teal-400"
+                          style={{ width: `${width}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </Panel>
+
+          <Panel title="Inspection Volume" subtitle="Inspection count by month.">
+            {monthlyRows.length === 0 ? (
+              <EmptyState text="No inspection volume data yet." />
+            ) : (
+              <div className="space-y-4">
+                {monthlyRows.map((row) => {
+                  const maxCount = Math.max(1, ...monthlyRows.map((item) => item.count));
+                  const width = Math.max(4, Math.round((row.count / maxCount) * 100));
+
+                  return (
+                    <div key={row.month}>
+                      <div className="mb-2 flex justify-between text-sm">
+                        <span className="font-bold text-white">{row.month}</span>
+                        <span className="text-slate-300">
+                          {row.count} inspection{row.count === 1 ? "" : "s"}
+                        </span>
+                      </div>
+
+                      <div className="h-4 overflow-hidden rounded-full bg-[#020617]">
+                        <div
+                          className="h-full rounded-full bg-cyan-400"
+                          style={{ width: `${width}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </Panel>
+        </section>
+
+        <section className="mt-8 grid gap-6 xl:grid-cols-2">
+          <Panel title="Top Referring Realtors" subtitle="Ranked by inspection count.">
+            {topRealtors.length === 0 ? (
+              <EmptyState text="No realtor referral data yet." />
+            ) : (
+              <div className="space-y-3">
+                {topRealtors.map((realtor, index) => (
+                  <div
+                    key={realtor.name}
+                    className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4"
+                  >
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <p className="text-sm font-black text-teal-300">
+                          #{index + 1}
+                        </p>
+
+                        <p className="mt-1 text-lg font-bold text-white">
+                          {realtor.name}
+                        </p>
+                      </div>
+
+                      <div className="text-right">
+                        <p className="font-black text-white">{realtor.count}</p>
+                        <p className="text-xs text-slate-400">inspections</p>
+                      </div>
+                    </div>
+
+                    <p className="mt-3 text-sm text-slate-400">
+                      Paid Revenue: {money(realtor.revenue)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Panel>
+
+          <Panel title="Recent Inspections" subtitle="Latest inspection activity.">
+            {recentInspections.length === 0 ? (
+              <EmptyState text="No inspections yet." />
+            ) : (
+              <div className="space-y-3">
+                {recentInspections.map((inspection: any) => {
+                  const paid = isPaymentComplete(inspection);
+                  const signed = isAgreementSigned(inspection);
+                  const published = isReportPublished(inspection);
+
+                  return (
+                    <Link
+                      key={inspection.id}
+                      href={`/reports/${inspection.id}`}
+                      className="block rounded-xl border border-slate-700 bg-[#020817]/70 p-4 transition hover:border-teal-500/60"
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-4">
+                        <div>
+                          <p className="font-bold text-white">
+                            {inspection.property_address ||
+                              inspection.address ||
+                              "Untitled Inspection"}
+                          </p>
+
+                          <p className="mt-1 text-sm text-slate-400">
+                            {formatDate(getDateValue(inspection))} •{" "}
+                            {inspection.client_name || "No client"}
+                          </p>
+                        </div>
+
+                        <p className="font-black text-teal-300">
+                          {money(getInspectionPrice(inspection))}
+                        </p>
+                      </div>
+
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <MiniBadge label={signed ? "Signed" : "Agreement"} complete={signed} />
+                        <MiniBadge label={paid ? "Paid" : "Payment"} complete={paid} />
+                        <MiniBadge label={published ? "Published" : "Draft"} complete={published} />
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </Panel>
+        </section>
+
+        <section className="mt-8 rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
+          <h2 className="text-2xl font-black text-teal-300">
+            Pricing Logic Used
           </h2>
 
-          <p className="mt-2 text-sm leading-6">
-            Revenue uses whichever price field exists on each inspection, such
-            as total_price, price, inspection_fee, amount, or invoice_amount.
-            If those fields are empty, revenue will show $0 until payments or
-            invoice fields are added.
+          <p className="mt-3 leading-7 text-slate-300">
+            Analytics uses the saved inspection price when available. If a price is missing, it estimates from square footage using your current pricing rule: <strong>$500 up to 2,000 sq ft</strong>, then <strong>+$50 per additional 1,000 sq ft or portion above 2,000 sq ft</strong>.
           </p>
         </section>
       </div>
@@ -463,76 +536,79 @@ function MetricCard({
   label,
   value,
   helper,
+  tone,
 }: {
   label: string;
-  value: string | number;
+  value: string;
   helper: string;
+  tone: "green" | "teal" | "blue" | "purple" | "orange" | "yellow" | "red";
 }) {
+  const colors: Record<string, string> = {
+    green: "border-green-500/40 bg-green-950/20 text-green-300",
+    teal: "border-teal-500/40 bg-teal-950/20 text-teal-300",
+    blue: "border-blue-500/40 bg-blue-950/20 text-blue-300",
+    purple: "border-purple-500/40 bg-purple-950/20 text-purple-300",
+    orange: "border-orange-500/40 bg-orange-950/20 text-orange-300",
+    yellow: "border-yellow-500/40 bg-yellow-950/20 text-yellow-300",
+    red: "border-red-500/40 bg-red-950/20 text-red-300",
+  };
+
   return (
-    <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-5 shadow-xl">
+    <div className={`rounded-2xl border p-6 shadow-xl ${colors[tone]}`}>
       <p className="text-xs font-black uppercase tracking-wide text-slate-400">
         {label}
       </p>
 
-      <p className="mt-3 text-4xl font-black text-teal-300">{value}</p>
+      <p className="mt-3 text-4xl font-black text-white">{value}</p>
 
-      <p className="mt-2 text-sm text-slate-400">{helper}</p>
+      <p className="mt-3 text-sm leading-6 text-slate-400">{helper}</p>
     </div>
   );
 }
 
-function AnalyticsPanel({
+function Panel({
   title,
+  subtitle,
   children,
 }: {
   title: string;
+  subtitle: string;
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6">
-      <h2 className="mb-4 text-2xl font-black text-teal-300">{title}</h2>
-      {children}
+    <section className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
+      <h2 className="text-2xl font-black text-teal-300">{title}</h2>
+      <p className="mt-2 text-sm text-slate-400">{subtitle}</p>
+
+      <div className="mt-6">{children}</div>
+    </section>
+  );
+}
+
+function EmptyState({ text }: { text: string }) {
+  return (
+    <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-6 text-center text-slate-400">
+      {text}
     </div>
   );
 }
 
-function StatList({
-  entries,
-  empty,
+function MiniBadge({
+  label,
+  complete,
 }: {
-  entries: [string, number][];
-  empty: string;
+  label: string;
+  complete: boolean;
 }) {
-  if (entries.length === 0) {
-    return (
-      <p className="rounded-xl border border-slate-700 bg-slate-950 p-4 text-slate-400">
-        {empty}
-      </p>
-    );
-  }
-
-  const max = Math.max(...entries.map(([, count]) => count), 1);
-
   return (
-    <div className="space-y-3">
-      {entries.map(([label, count]) => (
-        <div key={label}>
-          <div className="mb-1 flex items-center justify-between gap-3">
-            <span className="line-clamp-1 text-sm font-bold text-slate-200">
-              {label}
-            </span>
-
-            <span className="text-sm font-black text-teal-300">{count}</span>
-          </div>
-
-          <div className="h-2 overflow-hidden rounded-full bg-slate-800">
-            <div
-              className="h-full rounded-full bg-teal-400"
-              style={{ width: `${Math.max(8, (count / max) * 100)}%` }}
-            />
-          </div>
-        </div>
-      ))}
-    </div>
+    <span
+      className={`rounded-full border px-3 py-1 text-xs font-bold ${
+        complete
+          ? "border-green-500/40 bg-green-500/10 text-green-300"
+          : "border-yellow-500/40 bg-yellow-500/10 text-yellow-300"
+      }`}
+    >
+      {label}
+    </span>
   );
 }
