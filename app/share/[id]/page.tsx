@@ -310,6 +310,39 @@ export default async function PublicSharePage({
     photosByLimitationId
   );
 
+  const { data: sectionReferencePhotosRaw } = await supabase
+    .from("section_reference_photos")
+    .select("*")
+    .eq("inspection_id", inspectionId)
+    .order("created_at", { ascending: true });
+
+  const referencePhotoPaths = (sectionReferencePhotosRaw || [])
+    .map((photo: any) => photo.file_path)
+    .filter(Boolean);
+
+  const referenceSignedUrlMap = await createSignedUrlMap(referencePhotoPaths);
+
+  const sectionReferencePhotos = (sectionReferencePhotosRaw || []).map(
+    (photo: any) => ({
+      ...photo,
+      signed_url:
+        (photo.file_path && referenceSignedUrlMap[photo.file_path]) ||
+        photo.public_url ||
+        "",
+    })
+  );
+
+  const referencePhotosBySection = sectionReferencePhotos.reduce(
+    (acc: Record<string, any[]>, photo: any) => {
+      if (!photo.section) return acc;
+      if (!acc[photo.section]) acc[photo.section] = [];
+      acc[photo.section].push(photo);
+      return acc;
+    },
+    {}
+  );
+
+
   const { data: reportDisclaimers } = await supabase
     .from("report_disclaimers")
     .select("*")
@@ -568,6 +601,45 @@ export default async function PublicSharePage({
                     <h3 className="mb-6 border-b border-slate-700 pb-3 text-2xl font-bold text-white">
                       {group.section}
                     </h3>
+
+                    {referencePhotosBySection[group.section]?.length > 0 && (
+                      <div className="mb-6 rounded-xl border border-cyan-500/30 bg-cyan-950/20 p-4">
+                        <h4 className="mb-3 text-lg font-bold text-cyan-300">
+                          Section Reference Photos
+                        </h4>
+
+                        <p className="mb-4 text-sm text-slate-400">
+                          These photos document general section conditions and are not defect findings.
+                        </p>
+
+                        <div className="grid gap-4 md:grid-cols-3">
+                          {referencePhotosBySection[group.section].map((photo: any, index: number) => {
+                            const photoUrl = photo.signed_url || photo.public_url || "";
+
+                            if (!photoUrl) return null;
+
+                            return (
+                              <div
+                                key={photo.id || index}
+                                className="overflow-hidden rounded-xl border border-slate-700 bg-[#020617]"
+                              >
+                                <img
+                                  src={photoUrl}
+                                  alt={photo.caption || `Section reference photo ${index + 1}`}
+                                  className="max-h-[280px] w-full object-cover"
+                                />
+
+                                {photo.caption && (
+                                  <p className="border-t border-slate-800 px-3 py-2 text-sm text-slate-300">
+                                    {photo.caption}
+                                  </p>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
 
                     <div className="space-y-6">
                       {group.findings.map((finding: any) => {
