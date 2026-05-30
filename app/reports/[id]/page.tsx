@@ -157,6 +157,42 @@ export default async function ReportPage({ params }: PageProps) {
     revalidatePath(`/reports/${inspectionId}`);
   }
 
+  async function publishReport(formData: FormData) {
+    "use server";
+
+    const supabase = await createSupabaseServerClient();
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) redirect("/login");
+
+    const inspectionId = String(formData.get("inspection_id") || "");
+    const now = new Date().toISOString();
+
+    const { error } = await supabase
+      .from("inspections")
+      .update({
+        report_status: "Published",
+        published: true,
+        published_at: now,
+      })
+      .eq("id", inspectionId)
+      .eq("inspector_id", user.id);
+
+    if (error) {
+      console.error("Publish report error:", error);
+      redirect(`/reports/${inspectionId}?publish_error=1`);
+    }
+
+    revalidatePath(`/reports/${inspectionId}`);
+    revalidatePath(`/share/${inspectionId}`);
+    revalidatePath(`/client-portal/${inspectionId}`);
+
+    redirect(`/share/${inspectionId}`);
+  }
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -296,6 +332,10 @@ export default async function ReportPage({ params }: PageProps) {
     inspection.image_url ||
     "";
 
+  const reportIsPublished =
+    inspection.published === true ||
+    String(inspection.report_status || "").toLowerCase() === "published";
+
   return (
     <main className="min-h-screen bg-[#020617] text-white">
       <div className="mx-auto max-w-7xl px-6 py-8">
@@ -327,12 +367,19 @@ export default async function ReportPage({ params }: PageProps) {
               Realtor Summary
             </Link>
 
-            <Link
-              href={`/share/${inspection.id}`}
-              className="rounded-xl bg-green-500 px-5 py-3 font-bold text-slate-950 hover:bg-green-400"
-            >
-              Publish Report
-            </Link>
+            <form action={publishReport}>
+              <input type="hidden" name="inspection_id" value={inspection.id} />
+              <button
+                type="submit"
+                className={`rounded-xl px-5 py-3 font-bold ${
+                  reportIsPublished
+                    ? "bg-green-700 text-white hover:bg-green-600"
+                    : "bg-green-500 text-slate-950 hover:bg-green-400"
+                }`}
+              >
+                {reportIsPublished ? "Report Published" : "Publish Report"}
+              </button>
+            </form>
 
             <Link
               href={`/share/${inspection.id}`}
