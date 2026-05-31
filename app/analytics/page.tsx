@@ -151,6 +151,63 @@ function formatDate(value: any) {
   });
 }
 
+function getServiceType(inspection: any) {
+  const raw = String(
+    inspection?.inspection_type ||
+      inspection?.service_type ||
+      inspection?.type ||
+      ""
+  ).toLowerCase();
+
+  const hasRadon =
+    raw.includes("radon") ||
+    inspection?.radon === true ||
+    inspection?.radon_test === true ||
+    inspection?.radon_testing === true;
+
+  const hasMold =
+    raw.includes("mold") ||
+    inspection?.mold === true ||
+    inspection?.mold_test === true ||
+    inspection?.mold_testing === true;
+
+  if (hasRadon && hasMold) return "Home + Radon + Mold";
+  if (hasRadon) return "Home + Radon";
+  if (hasMold) return "Home + Mold";
+  if (raw.includes("maintenance")) return "Maintenance";
+  if (raw.includes("seller") || raw.includes("pre-list")) return "Seller";
+  if (raw.includes("new construction")) return "New Construction";
+  if (raw.includes("radon")) return "Radon";
+  if (raw.includes("mold")) return "Mold";
+
+  return inspection?.inspection_type || "Home Inspection";
+}
+
+function getRevenueValue(inspection: any) {
+  if (isPaymentComplete(inspection)) {
+    return getPaidAmount(inspection) || getInspectionPrice(inspection);
+  }
+
+  return 0;
+}
+
+function getDaysOutstanding(inspection: any) {
+  const dateValue =
+    inspection?.invoice_due_date ||
+    inspection?.inspection_date ||
+    inspection?.created_at;
+
+  if (!dateValue) return 0;
+
+  const date = new Date(dateValue);
+
+  if (Number.isNaN(date.getTime())) return 0;
+
+  const diff = Date.now() - date.getTime();
+
+  return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
+}
+
 export default async function AnalyticsPage() {
   const supabase = await createClient();
 
@@ -284,6 +341,67 @@ export default async function AnalyticsPage() {
     .sort((a, b) => b.count - a.count || b.revenue - a.revenue)
     .slice(0, 8);
 
+  const topRealtorsByRevenue = Object.entries(realtorMap)
+    .map(([name, values]) => ({
+      name,
+      ...values,
+    }))
+    .sort((a, b) => b.revenue - a.revenue || b.count - a.count)
+    .slice(0, 8);
+
+  const serviceTypeMap: Record<
+    string,
+    { count: number; revenue: number; quoted: number }
+  > = {};
+
+  rows.forEach((inspection: any) => {
+    const type = getServiceType(inspection);
+
+    if (!serviceTypeMap[type]) {
+      serviceTypeMap[type] = { count: 0, revenue: 0, quoted: 0 };
+    }
+
+    serviceTypeMap[type].count += 1;
+    serviceTypeMap[type].quoted += getInspectionPrice(inspection);
+    serviceTypeMap[type].revenue += getRevenueValue(inspection);
+  });
+
+  const serviceTypeRows = Object.entries(serviceTypeMap)
+    .map(([type, values]) => ({
+      type,
+      ...values,
+      percentage: rows.length > 0 ? Math.round((values.count / rows.length) * 100) : 0,
+    }))
+    .sort((a, b) => b.count - a.count || b.revenue - a.revenue);
+
+  const maxServiceCount = Math.max(
+    1,
+    ...serviceTypeRows.map((row) => row.count)
+  );
+
+  const maxServiceRevenue = Math.max(
+    1,
+    ...serviceTypeRows.map((row) => row.revenue)
+  );
+
+  const averageMonthlyRevenue =
+    monthlyRows.length > 0
+      ? monthlyRows.reduce((sum, row) => sum + row.revenue, 0) /
+        monthlyRows.length
+      : 0;
+
+  const outstandingInvoices = rows
+    .map((inspection: any) => ({
+      ...inspection,
+      invoiceAmount: getInspectionPrice(inspection),
+      amountPaid: getPaidAmount(inspection),
+      balanceDue: getBalanceDue(inspection),
+      daysOutstanding: getDaysOutstanding(inspection),
+    }))
+    .filter((inspection: any) => !isPaymentComplete(inspection) && inspection.balanceDue > 0)
+    .sort((a: any, b: any) => b.balanceDue - a.balanceDue)
+    .slice(0, 10);
+
   const recentInspections = rows.slice(0, 8);
 
   return (
@@ -314,7 +432,7 @@ export default async function AnalyticsPage() {
           </div>
         </section>
 
-        <section className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+        <section className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           <MetricCard
             label="Revenue This Month"
             value={money(revenueThisMonth)}
@@ -341,6 +459,13 @@ export default async function AnalyticsPage() {
             value={money(averageInspectionFee)}
             helper="Uses saved price; falls back to sq ft pricing."
             tone="purple"
+          />
+
+          <MetricCard
+            label="Avg Monthly Revenue"
+            value={money(averageMonthlyRevenue)}
+            helper="Based on displayed monthly revenue data."
+            tone="teal"
           />
 
           <MetricCard
@@ -513,6 +638,174 @@ export default async function AnalyticsPage() {
                     </Link>
                   );
                 })}
+              </div>
+            )}
+          </Panel>
+        </section>
+
+        <section className="mt-8 grid gap-6 xl:grid-cols-2">
+          <Panel
+            title="Inspection Type Analytics"
+            subtitle="Inspection count and percentage by service type."
+          >
+            {serviceTypeRows.length === 0 ? (
+              <EmptyState text="No inspection type data yet." />
+            ) : (
+              <div className="space-y-4">
+                {serviceTypeRows.map((row) => {
+                  const width = Math.max(
+                    4,
+                    Math.round((row.count / maxServiceCount) * 100)
+                  );
+
+                  return (
+                    <div
+                      key={row.type}
+                      className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4"
+                    >
+                      <div className="mb-2 flex flex-wrap items-center justify-between gap-3 text-sm">
+                        <span className="font-bold text-white">{row.type}</span>
+                        <span className="text-slate-300">
+                          {row.count} inspection{row.count === 1 ? "" : "s"} •{" "}
+                          {row.percentage}%
+                        </span>
+                      </div>
+
+                      <div className="h-4 overflow-hidden rounded-full bg-[#020617]">
+                        <div
+                          className="h-full rounded-full bg-blue-400"
+                          style={{ width: `${width}%` }}
+                        />
+                      </div>
+
+                      <p className="mt-3 text-sm text-slate-400">
+                        Paid Revenue: {money(row.revenue)} • Quoted:{" "}
+                        {money(row.quoted)}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </Panel>
+
+          <Panel
+            title="Revenue by Service Type"
+            subtitle="Paid revenue grouped by inspection or add-on type."
+          >
+            {serviceTypeRows.length === 0 ? (
+              <EmptyState text="No service revenue data yet." />
+            ) : (
+              <div className="space-y-4">
+                {serviceTypeRows.map((row) => {
+                  const width = Math.max(
+                    4,
+                    Math.round((row.revenue / maxServiceRevenue) * 100)
+                  );
+
+                  return (
+                    <div key={row.type}>
+                      <div className="mb-2 flex justify-between gap-3 text-sm">
+                        <span className="font-bold text-white">{row.type}</span>
+                        <span className="text-slate-300">
+                          {money(row.revenue)}
+                        </span>
+                      </div>
+
+                      <div className="h-4 overflow-hidden rounded-full bg-[#020617]">
+                        <div
+                          className="h-full rounded-full bg-green-400"
+                          style={{ width: `${width}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </Panel>
+        </section>
+
+        <section className="mt-8 grid gap-6 xl:grid-cols-2">
+          <Panel
+            title="Top Realtors by Revenue"
+            subtitle="Ranked by paid revenue generated."
+          >
+            {topRealtorsByRevenue.length === 0 ? (
+              <EmptyState text="No realtor revenue data yet." />
+            ) : (
+              <div className="space-y-3">
+                {topRealtorsByRevenue.map((realtor, index) => (
+                  <div
+                    key={realtor.name}
+                    className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4"
+                  >
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <p className="text-sm font-black text-teal-300">
+                          #{index + 1}
+                        </p>
+
+                        <p className="mt-1 text-lg font-bold text-white">
+                          {realtor.name}
+                        </p>
+                      </div>
+
+                      <div className="text-right">
+                        <p className="font-black text-green-300">
+                          {money(realtor.revenue)}
+                        </p>
+                        <p className="text-xs text-slate-400">
+                          {realtor.count} referral
+                          {realtor.count === 1 ? "" : "s"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Panel>
+
+          <Panel
+            title="Outstanding Invoice Leaderboard"
+            subtitle="Highest unpaid balances requiring follow-up."
+          >
+            {outstandingInvoices.length === 0 ? (
+              <EmptyState text="No outstanding invoices." />
+            ) : (
+              <div className="space-y-3">
+                {outstandingInvoices.map((inspection: any) => (
+                  <Link
+                    key={inspection.id}
+                    href={`/invoices/${inspection.id}/print`}
+                    className="block rounded-xl border border-slate-700 bg-[#020817]/70 p-4 transition hover:border-orange-500/60"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                      <div>
+                        <p className="font-bold text-white">
+                          {inspection.property_address ||
+                            inspection.address ||
+                            "Untitled Inspection"}
+                        </p>
+                        <p className="mt-1 text-sm text-slate-400">
+                          {inspection.client_name || inspection.client || "No client"} •{" "}
+                          {inspection.daysOutstanding} day
+                          {inspection.daysOutstanding === 1 ? "" : "s"} outstanding
+                        </p>
+                      </div>
+
+                      <div className="text-right">
+                        <p className="font-black text-orange-300">
+                          {money(inspection.balanceDue)}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          Invoice {money(inspection.invoiceAmount)}
+                        </p>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
               </div>
             )}
           </Panel>
