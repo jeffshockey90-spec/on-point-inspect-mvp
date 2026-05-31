@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "../../../utils/supabase/client";
 import { getCompanyId } from "../../../lib/getCompanyId";
@@ -10,6 +10,25 @@ declare global {
     google: any;
   }
 }
+
+type ServiceMode =
+  | "home"
+  | "radon_only"
+  | "mold_only"
+  | "radon_mold"
+  | "home_radon"
+  | "home_mold"
+  | "home_radon_mold";
+
+const serviceOptions: { value: ServiceMode; label: string }[] = [
+  { value: "home", label: "Home Inspection" },
+  { value: "radon_only", label: "Radon Only" },
+  { value: "mold_only", label: "Mold Only" },
+  { value: "radon_mold", label: "Radon + Mold" },
+  { value: "home_radon", label: "Home + Radon" },
+  { value: "home_mold", label: "Home + Mold" },
+  { value: "home_radon_mold", label: "Home + Radon + Mold" },
+];
 
 const timeOptions = [
   "08:00",
@@ -96,6 +115,19 @@ const DEFAULT_INSPECTION_DETAILS_FINDINGS = [
   },
 ];
 
+function getNumber(value: any) {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+
+  if (typeof value === "string") {
+    const cleaned = value.replace(/[^0-9.-]/g, "");
+    const parsed = Number(cleaned);
+
+    if (Number.isFinite(parsed)) return parsed;
+  }
+
+  return 0;
+}
+
 function formatTime(value: string) {
   if (!value) return "";
 
@@ -109,12 +141,109 @@ function formatTime(value: string) {
   });
 }
 
-function calculateInspectionPrice(squareFeet: string) {
-  const sqft = Number(squareFeet);
+function calculateHomeInspectionPrice(squareFeet: string | number) {
+  const sqft = getNumber(squareFeet);
 
-  if (!sqft || sqft <= 2000) return "500";
+  if (!sqft || sqft <= 0) return 500;
+  if (sqft <= 2000) return 500;
 
-  return String(500 + Math.ceil((sqft - 2000) / 1000) * 50);
+  return 500 + Math.ceil((sqft - 2000) / 1000) * 50;
+}
+
+function hasHomeInspection(serviceMode: ServiceMode) {
+  return (
+    serviceMode === "home" ||
+    serviceMode === "home_radon" ||
+    serviceMode === "home_mold" ||
+    serviceMode === "home_radon_mold"
+  );
+}
+
+function hasRadon(serviceMode: ServiceMode) {
+  return (
+    serviceMode === "radon_only" ||
+    serviceMode === "radon_mold" ||
+    serviceMode === "home_radon" ||
+    serviceMode === "home_radon_mold"
+  );
+}
+
+function hasMold(serviceMode: ServiceMode) {
+  return (
+    serviceMode === "mold_only" ||
+    serviceMode === "radon_mold" ||
+    serviceMode === "home_mold" ||
+    serviceMode === "home_radon_mold"
+  );
+}
+
+function getServiceLabel(serviceMode: ServiceMode) {
+  return (
+    serviceOptions.find((option) => option.value === serviceMode)?.label ||
+    "Home Inspection"
+  );
+}
+
+function calculateFullInspectionPrice({
+  squareFeet,
+  serviceMode,
+  moldAirSamples,
+  moldSurfaceSamples,
+  travelFee,
+  discount,
+}: {
+  squareFeet: string | number;
+  serviceMode: ServiceMode;
+  moldAirSamples: string | number;
+  moldSurfaceSamples: string | number;
+  travelFee: string | number;
+  discount: string | number;
+}) {
+  const includesHome = hasHomeInspection(serviceMode);
+  const includesRadon = hasRadon(serviceMode);
+  const includesMold = hasMold(serviceMode);
+
+  const base = includesHome ? calculateHomeInspectionPrice(squareFeet) : 0;
+  const radonFee = includesRadon ? (includesHome ? 175 : 225) : 0;
+
+  const airSamples = includesMold
+    ? Math.max(0, Math.floor(getNumber(moldAirSamples)))
+    : 0;
+  const surfaceSamples = includesMold
+    ? Math.max(0, Math.floor(getNumber(moldSurfaceSamples)))
+    : 0;
+  const totalMoldSamples = airSamples + surfaceSamples;
+
+  const moldSetupFee = includesMold ? (includesHome ? 175 : 225) : 0;
+  const moldAirFee = airSamples * 75;
+  const moldSurfaceFee = surfaceSamples * 75;
+  const moldFee = moldSetupFee + moldAirFee + moldSurfaceFee;
+
+  const safeTravelFee = Math.max(0, getNumber(travelFee));
+  const safeDiscount = Math.max(0, getNumber(discount));
+
+  const subtotal = base + radonFee + moldFee + safeTravelFee;
+  const total = Math.max(0, subtotal - safeDiscount);
+
+  return {
+    base,
+    radonFee,
+    moldSetupFee,
+    moldAirFee,
+    moldSurfaceFee,
+    moldFee,
+    airSamples,
+    surfaceSamples,
+    totalMoldSamples,
+    travelFee: safeTravelFee,
+    discount: safeDiscount,
+    subtotal,
+    total,
+    includesHome,
+    includesRadon,
+    includesMold,
+    serviceLabel: getServiceLabel(serviceMode),
+  };
 }
 
 export default function NewInspectionPage() {
@@ -135,9 +264,15 @@ export default function NewInspectionPage() {
   const [inspectionTime, setInspectionTime] = useState("");
 
   const [squareFeet, setSquareFeet] = useState("");
+  const [serviceMode, setServiceMode] = useState<ServiceMode>("home");
   const [price, setPrice] = useState("500");
   const [services, setServices] = useState("Home Inspection");
   const [notes, setNotes] = useState("");
+
+  const [moldAirSamples, setMoldAirSamples] = useState("0");
+  const [moldSurfaceSamples, setMoldSurfaceSamples] = useState("0");
+  const [travelFee, setTravelFee] = useState("0");
+  const [discount, setDiscount] = useState("0");
 
   const [yearBuilt, setYearBuilt] = useState("");
   const [propertyStyle, setPropertyStyle] = useState("");
@@ -147,13 +282,27 @@ export default function NewInspectionPage() {
   const [loadingProperty, setLoadingProperty] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  const quote = useMemo(
+    () =>
+      calculateFullInspectionPrice({
+        squareFeet,
+        serviceMode,
+        moldAirSamples,
+        moldSurfaceSamples,
+        travelFee,
+        discount,
+      }),
+    [squareFeet, serviceMode, moldAirSamples, moldSurfaceSamples, travelFee, discount]
+  );
+
   useEffect(() => {
     loadGooglePlaces();
   }, []);
 
   useEffect(() => {
-    setPrice(calculateInspectionPrice(squareFeet));
-  }, [squareFeet]);
+    setPrice(String(quote.total));
+    setServices(quote.serviceLabel);
+  }, [quote.total, quote.serviceLabel]);
 
   function loadGooglePlaces() {
     if (window.google?.maps?.places) {
@@ -210,7 +359,6 @@ export default function NewInspectionPage() {
 
       if (sqft) {
         setSquareFeet(String(sqft));
-        setPrice(calculateInspectionPrice(String(sqft)));
       }
 
       const image = data.property_image || data.image || data.photo || "";
@@ -331,6 +479,21 @@ export default function NewInspectionPage() {
         return;
       }
 
+      const totalPrice = Number(price || quote.total || 500);
+
+      const fullAddressForImage = `${propertyAddress}, ${city || ""}, ${
+        stateValue || ""
+      } ${zip || ""}`.trim();
+
+      const fallbackStreetViewImage =
+        process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY && fullAddressForImage
+          ? `https://maps.googleapis.com/maps/api/streetview?size=900x500&location=${encodeURIComponent(
+              fullAddressForImage
+            )}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`
+          : "";
+
+      const finalPropertyImage = propertyImage || fallbackStreetViewImage || null;
+
       const { data, error } = await supabase
         .from("inspections")
         .insert([
@@ -352,19 +515,37 @@ export default function NewInspectionPage() {
             inspection_time: inspectionTime,
             inspection_status: "Scheduled",
 
-            square_feet: squareFeet ? Number(squareFeet) : null,
-            sqft: squareFeet || null,
-            price: price ? Number(price) : 500,
+            square_feet: quote.includesHome && squareFeet ? Number(squareFeet) : null,
+            sqft: quote.includesHome ? squareFeet || null : null,
+
+            price: totalPrice,
+            invoice_amount: totalPrice,
+            balance_due: totalPrice,
+            amount_paid: 0,
+            invoice_status: "Pending",
+            payment_status: "Pending",
 
             services,
+            service_mode: serviceMode,
+            inspection_type: services,
             notes,
+
+            radon: quote.includesRadon,
+            radon_fee: quote.radonFee,
+            mold: quote.includesMold,
+            mold_air_samples: quote.airSamples,
+            mold_surface_samples: quote.surfaceSamples,
+            mold_setup_fee: quote.moldSetupFee,
+            mold_fee: quote.moldFee,
+            travel_fee: quote.travelFee,
+            discount: quote.discount,
 
             year_built: yearBuilt || null,
             property_style: propertyStyle || null,
             house_style: propertyStyle || null,
             roof_style: roofStyle || null,
-            property_image: propertyImage || null,
-            street_view_url: propertyImage || null,
+            property_image: finalPropertyImage,
+            street_view_url: finalPropertyImage,
 
             report_status: "Draft",
             is_published: false,
@@ -392,10 +573,10 @@ export default function NewInspectionPage() {
         .insert(defaultFindings);
 
       if (defaultFindingsError) {
-        console.error(
-          "Default inspection details insert error:",
-          defaultFindingsError
-        );
+        // Do not block inspection creation if the optional default inspection
+        // details findings cannot be inserted. This keeps the core scheduling
+        // and report workflow stable.
+        console.warn("Default inspection details were not inserted.");
       }
 
       router.push(`/reports/${data.id}`);
@@ -549,15 +730,83 @@ export default function NewInspectionPage() {
               </select>
             </div>
 
-            <Input
-              value={squareFeet}
-              onChange={setSquareFeet}
-              placeholder={
-                loadingProperty ? "Attempting property lookup..." : "Square Feet"
-              }
-            />
+            <div>
+              <label className="mb-2 block text-sm font-bold text-zinc-300">
+                Service Type
+              </label>
+              <select
+                value={serviceMode}
+                onChange={(e) => setServiceMode(e.target.value as ServiceMode)}
+                className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white"
+              >
+                {serviceOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
 
             <Input value={price} onChange={setPrice} placeholder="Price" />
+
+            {quote.includesHome && (
+              <Input
+                value={squareFeet}
+                onChange={setSquareFeet}
+                placeholder={
+                  loadingProperty
+                    ? "Attempting property lookup..."
+                    : "Square Feet"
+                }
+              />
+            )}
+
+            <Input
+              value={travelFee}
+              onChange={setTravelFee}
+              placeholder="Travel Fee"
+            />
+
+            {quote.includesMold && (
+              <>
+                <Input
+                  value={moldAirSamples}
+                  onChange={setMoldAirSamples}
+                  placeholder="Mold Air Samples"
+                />
+
+                <Input
+                  value={moldSurfaceSamples}
+                  onChange={setMoldSurfaceSamples}
+                  placeholder="Mold Surface/Tape/Swab Samples"
+                />
+              </>
+            )}
+
+            <Input
+              value={discount}
+              onChange={setDiscount}
+              placeholder="Discount"
+            />
+          </div>
+
+          <div className="mt-5 rounded-2xl border border-teal-500/40 bg-teal-500/10 p-5">
+            <p className="text-sm font-bold uppercase tracking-wide text-zinc-400">
+              Auto Pricing
+            </p>
+            <p className="mt-2 text-4xl font-black text-teal-300">
+              ${quote.total}
+            </p>
+            <div className="mt-4 grid gap-2 text-sm text-zinc-300 md:grid-cols-2">
+              <p>Home Inspection: ${quote.base}</p>
+              <p>Radon: ${quote.radonFee}</p>
+              <p>Mold Setup/Admin: ${quote.moldSetupFee}</p>
+              <p>Mold Air Samples: ${quote.moldAirFee}</p>
+              <p>Mold Surface Samples: ${quote.moldSurfaceFee}</p>
+              <p>Travel Fee: ${quote.travelFee}</p>
+              <p>Discount: -${quote.discount}</p>
+              <p className="font-bold text-white">Total: ${quote.total}</p>
+            </div>
           </div>
 
           <Input
@@ -619,6 +868,19 @@ function Input({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
+      type={
+        placeholder.toLowerCase().includes("email") ||
+        placeholder.toLowerCase().includes("phone") ||
+        placeholder.toLowerCase().includes("city") ||
+        placeholder.toLowerCase().includes("state") ||
+        placeholder.toLowerCase().includes("zip") ||
+        placeholder.toLowerCase().includes("name") ||
+        placeholder.toLowerCase().includes("style") ||
+        placeholder.toLowerCase().includes("services")
+          ? "text"
+          : "number"
+      }
+      min="0"
       className={`w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white ${className}`}
     />
   );

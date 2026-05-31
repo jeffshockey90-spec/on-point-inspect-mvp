@@ -28,6 +28,18 @@ const cards = [
     icon: "💰",
   },
   {
+    title: "Radon",
+    description: "Manage radon tests, readings, devices, and results.",
+    href: "/radon",
+    icon: "☢️",
+  },
+  {
+    title: "Mold",
+    description: "Track mold samples, lab reports, results, and summaries.",
+    href: "/mold",
+    icon: "🧫",
+  },
+  {
     title: "AI Capture",
     description: "Create findings from photos.",
     href: "/ai-capture",
@@ -74,8 +86,8 @@ export default function HomePage() {
 
           <p className="mt-4 max-w-2xl text-lg leading-8 text-slate-300">
             Manage inspections, reports, AI findings, analytics,
-            invoices, templates, quotes, and scheduling from one clean
-            dashboard.
+            invoices, radon, mold, templates, quotes, and scheduling
+            from one clean dashboard.
           </p>
         </section>
 

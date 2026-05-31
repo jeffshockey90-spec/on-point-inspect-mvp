@@ -3,36 +3,182 @@
 import { useMemo, useState } from "react";
 import { Card } from "../../components/Card";
 
+type ServiceMode =
+  | "home"
+  | "radon_only"
+  | "mold_only"
+  | "radon_mold"
+  | "home_radon"
+  | "home_mold"
+  | "home_radon_mold";
+
+const serviceOptions: { value: ServiceMode; label: string }[] = [
+  { value: "home", label: "Home Inspection" },
+  { value: "radon_only", label: "Radon Only" },
+  { value: "mold_only", label: "Mold Only" },
+  { value: "radon_mold", label: "Radon + Mold" },
+  { value: "home_radon", label: "Home + Radon" },
+  { value: "home_mold", label: "Home + Mold" },
+  { value: "home_radon_mold", label: "Home + Radon + Mold" },
+];
+
+function getNumber(value: any) {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+
+  if (typeof value === "string") {
+    const cleaned = value.replace(/[^0-9.-]/g, "");
+    const parsed = Number(cleaned);
+
+    if (Number.isFinite(parsed)) return parsed;
+  }
+
+  return 0;
+}
+
+function calculateHomeInspectionPrice(squareFeet: number) {
+  const sqft = getNumber(squareFeet);
+
+  if (!sqft || sqft <= 0) return 500;
+  if (sqft <= 2000) return 500;
+
+  return 500 + Math.ceil((sqft - 2000) / 1000) * 50;
+}
+
+function hasHomeInspection(serviceMode: ServiceMode) {
+  return (
+    serviceMode === "home" ||
+    serviceMode === "home_radon" ||
+    serviceMode === "home_mold" ||
+    serviceMode === "home_radon_mold"
+  );
+}
+
+function hasRadon(serviceMode: ServiceMode) {
+  return (
+    serviceMode === "radon_only" ||
+    serviceMode === "radon_mold" ||
+    serviceMode === "home_radon" ||
+    serviceMode === "home_radon_mold"
+  );
+}
+
+function hasMold(serviceMode: ServiceMode) {
+  return (
+    serviceMode === "mold_only" ||
+    serviceMode === "radon_mold" ||
+    serviceMode === "home_mold" ||
+    serviceMode === "home_radon_mold"
+  );
+}
+
+function getServiceLabel(serviceMode: ServiceMode) {
+  return (
+    serviceOptions.find((option) => option.value === serviceMode)?.label ||
+    "Home Inspection"
+  );
+}
+
+function calculateQuote({
+  sqft,
+  serviceMode,
+  moldAirSamples,
+  moldSurfaceSamples,
+  travelFee,
+  discount,
+}: {
+  sqft: number;
+  serviceMode: ServiceMode;
+  moldAirSamples: number;
+  moldSurfaceSamples: number;
+  travelFee: number;
+  discount: number;
+}) {
+  const includesHome = hasHomeInspection(serviceMode);
+  const includesRadon = hasRadon(serviceMode);
+  const includesMold = hasMold(serviceMode);
+
+  const base = includesHome ? calculateHomeInspectionPrice(sqft) : 0;
+  const radonFee = includesRadon ? (includesHome ? 175 : 225) : 0;
+
+  const airSamples = includesMold
+    ? Math.max(0, Math.floor(getNumber(moldAirSamples)))
+    : 0;
+  const surfaceSamples = includesMold
+    ? Math.max(0, Math.floor(getNumber(moldSurfaceSamples)))
+    : 0;
+
+  const totalMoldSamples = airSamples + surfaceSamples;
+
+  const moldSetupFee = includesMold ? (includesHome ? 175 : 225) : 0;
+  const moldAirFee = airSamples * 75;
+  const moldSurfaceFee = surfaceSamples * 75;
+  const moldFee = moldSetupFee + moldAirFee + moldSurfaceFee;
+
+  const safeTravelFee = Math.max(0, getNumber(travelFee));
+  const safeDiscount = Math.max(0, getNumber(discount));
+
+  const subtotal = base + radonFee + moldFee + safeTravelFee;
+  const total = Math.max(0, subtotal - safeDiscount);
+
+  return {
+    base,
+    radonFee,
+    moldSetupFee,
+    moldAirFee,
+    moldSurfaceFee,
+    moldFee,
+    airSamples,
+    surfaceSamples,
+    totalMoldSamples,
+    travelFee: safeTravelFee,
+    discount: safeDiscount,
+    subtotal,
+    total,
+    includesHome,
+    includesRadon,
+    includesMold,
+    serviceLabel: getServiceLabel(serviceMode),
+  };
+}
+
 export default function QuotePage() {
   const [sqft, setSqft] = useState(2500);
+  const [serviceMode, setServiceMode] = useState<ServiceMode>("home");
   const [travelFee, setTravelFee] = useState(0);
-  const [radon, setRadon] = useState(false);
-  const [mold, setMold] = useState(false);
+  const [moldAirSamples, setMoldAirSamples] = useState(0);
+  const [moldSurfaceSamples, setMoldSurfaceSamples] = useState(0);
   const [discount, setDiscount] = useState(0);
   const [creating, setCreating] = useState(false);
 
-  const quote = useMemo(() => {
-    const base = 500;
+  const quote = useMemo(
+    () =>
+      calculateQuote({
+        sqft,
+        serviceMode,
+        moldAirSamples,
+        moldSurfaceSamples,
+        travelFee,
+        discount,
+      }),
+    [sqft, serviceMode, moldAirSamples, moldSurfaceSamples, travelFee, discount]
+  );
 
-    let sqftFee = 0;
+  const selectedAddOns = [
+    quote.includesHome ? "Home inspection" : "",
+    quote.includesRadon ? "Radon testing" : "",
+    quote.includesMold && quote.airSamples > 0
+      ? `${quote.airSamples} mold air sample${quote.airSamples === 1 ? "" : "s"}`
+      : "",
+    quote.includesMold && quote.surfaceSamples > 0
+      ? `${quote.surfaceSamples} mold surface sample${
+          quote.surfaceSamples === 1 ? "" : "s"
+        }`
+      : "",
+  ].filter(Boolean);
 
-    if (sqft >= 2000) {
-      sqftFee = (Math.floor((sqft - 2000) / 1000) + 1) * 50;
-    }
-
-    const radonFee = radon ? 175 : 0;
-    const moldFee = mold ? 150 : 0;
-    const subtotal = base + sqftFee + travelFee + radonFee + moldFee;
-    const total = Math.max(0, subtotal - discount);
-
-    return { base, sqftFee, radonFee, moldFee, subtotal, total };
-  }, [sqft, travelFee, radon, mold, discount]);
-
-  const message = `Hi, this is Jeff with On Point Home Inspections. For this property, the home inspection quote is $${quote.total}. This includes a thorough visual inspection and a clear digital report. Add-ons selected: ${
-    radon || mold
-      ? `${radon ? "Radon " : ""}${mold ? "Mold sampling " : ""}`
-      : "None"
-  }.`;
+  const message = `Hi, this is Jeff with On Point Home Inspections. For this property, the quote is $${quote.total}. Services selected: ${
+    selectedAddOns.length > 0 ? selectedAddOns.join(", ") : quote.serviceLabel
+  }. This includes a clear digital report for the selected service(s).`;
 
   async function copyQuote() {
     await navigator.clipboard.writeText(message);
@@ -43,16 +189,32 @@ export default function QuotePage() {
     try {
       setCreating(true);
 
+      const services = quote.serviceLabel;
+
       const res = await fetch("/api/create-inspection-from-quote", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          square_feet: sqft,
+          square_feet: quote.includesHome ? sqft : null,
+          sqft: quote.includesHome ? sqft : null,
           price: quote.total,
-          radon,
-          mold,
+          invoice_amount: quote.total,
+          balance_due: quote.total,
+          amount_paid: 0,
+          service_mode: serviceMode,
+          radon: quote.includesRadon,
+          radon_fee: quote.radonFee,
+          mold: quote.includesMold,
+          mold_air_samples: quote.airSamples,
+          mold_surface_samples: quote.surfaceSamples,
+          mold_setup_fee: quote.moldSetupFee,
+          mold_fee: quote.moldFee,
+          travel_fee: quote.travelFee,
+          discount: quote.discount,
+          services,
+          inspection_type: services,
         }),
       });
 
@@ -85,19 +247,38 @@ export default function QuotePage() {
           </h1>
 
           <p className="mt-4 max-w-2xl text-sm leading-6 text-zinc-400 md:text-base">
-            Generate inspection pricing, build quote messages, and convert
-            quotes into inspections.
+            Generate pricing for home inspections, radon-only tests, mold-only
+            sampling, Radon + Mold, and bundled services.
           </p>
         </section>
 
         <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
           <Card title="Build Quote">
             <div className="grid gap-5 md:grid-cols-2">
-              <Input
-                label="Square Footage"
-                value={sqft}
-                onChange={setSqft}
-              />
+              <label className="space-y-2 md:col-span-2">
+                <span className="text-sm font-bold text-zinc-300">
+                  Service Type
+                </span>
+                <select
+                  value={serviceMode}
+                  onChange={(e) => setServiceMode(e.target.value as ServiceMode)}
+                  className="w-full rounded-xl border border-zinc-700 bg-black p-3 text-white"
+                >
+                  {serviceOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              {quote.includesHome && (
+                <Input
+                  label="Square Footage"
+                  value={sqft}
+                  onChange={setSqft}
+                />
+              )}
 
               <Input
                 label="Travel Fee"
@@ -105,19 +286,34 @@ export default function QuotePage() {
                 onChange={setTravelFee}
               />
 
-              <ToggleCard
-                title="Radon Add-On"
-                price="+$175"
-                checked={radon}
-                onChange={setRadon}
-              />
+              {quote.includesMold && (
+                <div className="rounded-2xl border border-zinc-700 bg-black p-4 md:col-span-2">
+                  <div className="mb-4">
+                    <p className="font-bold text-white">Mold Sampling</p>
+                    <p className="text-sm leading-6 text-zinc-400">
+                      {quote.includesHome
+                        ? "$175 setup/admin fee with inspection"
+                        : "$225 standalone setup/admin fee"}
+                      , plus $75 per air sample and $75 per
+                      surface/tape/swab sample.
+                    </p>
+                  </div>
 
-              <ToggleCard
-                title="Mold Sampling"
-                price="+$150"
-                checked={mold}
-                onChange={setMold}
-              />
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <Input
+                      label="Mold Air Samples"
+                      value={moldAirSamples}
+                      onChange={setMoldAirSamples}
+                    />
+
+                    <Input
+                      label="Mold Surface / Tape / Swab Samples"
+                      value={moldSurfaceSamples}
+                      onChange={setMoldSurfaceSamples}
+                    />
+                  </div>
+                </div>
+              )}
 
               <div className="md:col-span-2">
                 <Input
@@ -131,12 +327,16 @@ export default function QuotePage() {
 
           <Card title="Quote Summary">
             <div className="space-y-3 text-zinc-300">
-              <SummaryLine label="Base Inspection" value={quote.base} />
-              <SummaryLine label="Square Footage Fee" value={quote.sqftFee} />
+              <SummaryLine label="Home Inspection" value={quote.base} />
               <SummaryLine label="Radon" value={quote.radonFee} />
-              <SummaryLine label="Mold Sampling" value={quote.moldFee} />
-              <SummaryLine label="Travel Fee" value={travelFee} />
-              <SummaryLine label="Discount" value={-discount} />
+              <SummaryLine label="Mold Setup/Admin" value={quote.moldSetupFee} />
+              <SummaryLine label="Mold Air Samples" value={quote.moldAirFee} />
+              <SummaryLine
+                label="Mold Surface Samples"
+                value={quote.moldSurfaceFee}
+              />
+              <SummaryLine label="Travel Fee" value={quote.travelFee} />
+              <SummaryLine label="Discount" value={-quote.discount} />
 
               <div className="mt-5 rounded-2xl border border-teal-700 bg-teal-500/10 p-5">
                 <p className="text-sm font-bold uppercase tracking-wide text-zinc-400">
@@ -145,6 +345,16 @@ export default function QuotePage() {
 
                 <p className="mt-1 text-5xl font-black text-teal-400">
                   ${quote.total}
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-zinc-800 bg-black/40 p-4 text-sm leading-6 text-zinc-400">
+                <p className="font-bold text-white">Pricing Rules</p>
+                <p className="mt-2">
+                  Home inspection is $500 up to 2,000 sq ft, then +$50 per
+                  additional 1,000 sq ft or portion. Radon is $175 with a home
+                  inspection or $225 standalone. Mold is $175 setup/admin with a
+                  home inspection or $225 standalone, plus $75 per sample.
                 </p>
               </div>
             </div>
@@ -196,36 +406,9 @@ function Input({
       <input
         className="w-full rounded-xl border border-zinc-700 bg-black p-3 text-white"
         type="number"
+        min="0"
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-      />
-    </label>
-  );
-}
-
-function ToggleCard({
-  title,
-  price,
-  checked,
-  onChange,
-}: {
-  title: string;
-  price: string;
-  checked: boolean;
-  onChange: (value: boolean) => void;
-}) {
-  return (
-    <label className="flex cursor-pointer items-center justify-between rounded-2xl border border-zinc-700 bg-black p-4">
-      <div>
-        <p className="font-bold text-white">{title}</p>
-        <p className="text-sm text-zinc-400">{price}</p>
-      </div>
-
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-        className="h-5 w-5"
       />
     </label>
   );
@@ -235,7 +418,9 @@ function SummaryLine({ label, value }: { label: string; value: number }) {
   return (
     <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
       <span>{label}</span>
-      <span className="font-bold">${value}</span>
+      <span className="font-bold">
+        {value < 0 ? "-" : ""}${Math.abs(value)}
+      </span>
     </div>
   );
 }
