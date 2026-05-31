@@ -77,6 +77,27 @@ function getPropertyPhoto(inspection: any) {
   );
 }
 
+function getServiceType(inspection: any) {
+  return String(
+    inspection?.service_mode ||
+      inspection?.inspection_type ||
+      inspection?.services ||
+      ""
+  ).toLowerCase();
+}
+
+function hasMoldService(inspection: any) {
+  const serviceType = getServiceType(inspection);
+
+  return serviceType.includes("mold") || inspection?.mold === true;
+}
+
+function hasRadonService(inspection: any) {
+  const serviceType = getServiceType(inspection);
+
+  return serviceType.includes("radon") || inspection?.radon === true;
+}
+
 function getPhotoStoragePath(photo: any) {
   return (
     photo?.file_path ||
@@ -445,6 +466,24 @@ export default async function PublicSharePage({
     .eq("inspection_id", inspectionId)
     .order("created_at", { ascending: true });
 
+  const { data: moldTest } = await supabase
+    .from("mold_tests")
+    .select("*")
+    .eq("inspection_id", inspectionId)
+    .maybeSingle();
+
+  const { data: radonTest } = await supabase
+    .from("radon_tests")
+    .select("*")
+    .eq("inspection_id", inspectionId)
+    .maybeSingle();
+
+  const moldReportUrl = moldTest?.lab_report_url || "";
+  const radonReportUrl = radonTest?.report_url || "";
+  const showEnvironmentalLinks =
+    (hasMoldService(inspection) && moldReportUrl) ||
+    (hasRadonService(inspection) && radonReportUrl);
+
   const propertyPhoto = getPropertyPhoto(inspection);
   const defectTotals = buildDefectTotals(findings);
 
@@ -612,6 +651,52 @@ export default async function PublicSharePage({
               />
             </div>
           </section>
+
+          {showEnvironmentalLinks && (
+            <section className="mt-8 rounded-2xl border border-purple-500/40 bg-[#071224] p-6">
+              <h2 className="text-2xl font-bold text-purple-300">
+                Official Environmental Reports
+              </h2>
+
+              <p className="mt-2 text-sm text-slate-400">
+                These links open the official third-party environmental reports from the lab or testing device.
+              </p>
+
+              <div className="mt-5 grid gap-4 md:grid-cols-2">
+                {hasMoldService(inspection) && moldReportUrl && (
+                  <a
+                    href={moldReportUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded-xl border border-purple-500 bg-[#0f172a] p-5 font-bold text-purple-300 transition hover:bg-purple-500/10"
+                  >
+                    <span className="block text-lg">
+                      View Official Mold Report
+                    </span>
+                    <span className="mt-2 block text-sm font-medium text-slate-400">
+                      Open the official mold lab report.
+                    </span>
+                  </a>
+                )}
+
+                {hasRadonService(inspection) && radonReportUrl && (
+                  <a
+                    href={radonReportUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded-xl border border-purple-500 bg-[#0f172a] p-5 font-bold text-purple-300 transition hover:bg-purple-500/10"
+                  >
+                    <span className="block text-lg">
+                      View Official Radon Report
+                    </span>
+                    <span className="mt-2 block text-sm font-medium text-slate-400">
+                      Open the official radon device report.
+                    </span>
+                  </a>
+                )}
+              </div>
+            </section>
+          )}
 
           {sectionStats.length > 0 && (
             <section className="mt-8 rounded-2xl border border-slate-700 bg-[#071224] p-6">

@@ -125,6 +125,8 @@ export default function RadonPage() {
           end_time: test.end_time ? String(test.end_time).slice(0, 16) : "",
           device_name: test.device_name || "",
           serial_number: test.serial_number || "",
+          report_url: test.report_url || "",
+          report_status: test.report_status || "Pending",
           notes: test.notes || "",
         };
       });
@@ -389,6 +391,39 @@ export default function RadonPage() {
                         }
                         type="text"
                       />
+
+                      <Field
+                        label="Official Report URL"
+                        value={form.report_url}
+                        onChange={(value) =>
+                          updateForm(inspection.id, "report_url", value)
+                        }
+                        type="text"
+                      />
+
+                      <label>
+                        <span className="text-sm font-bold text-slate-300">
+                          Report Status
+                        </span>
+
+                        <select
+                          value={form.report_status || "Pending"}
+                          onChange={(event) =>
+                            updateForm(
+                              inspection.id,
+                              "report_status",
+                              event.target.value
+                            )
+                          }
+                          className="mt-2 w-full rounded-xl border border-slate-700 bg-black px-4 py-3 text-white"
+                        >
+                          <option value="Pending">Pending</option>
+                          <option value="Completed">Completed</option>
+                          <option value="Action Recommended">
+                            Action Recommended
+                          </option>
+                        </select>
+                      </label>
                     </div>
 
                     <label className="mt-4 block">
@@ -438,6 +473,17 @@ export default function RadonPage() {
                       >
                         Invoice PDF
                       </Link>
+
+                      {form.report_url && (
+                        <a
+                          href={form.report_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="rounded-xl border border-purple-500 px-5 py-3 font-bold text-purple-300 hover:bg-purple-500/10"
+                        >
+                          Open Official Report
+                        </a>
+                      )}
                     </div>
                   </div>
                 );

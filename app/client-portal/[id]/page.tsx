@@ -130,11 +130,56 @@ function getReportStatusLabel(inspection: any) {
   return inspection?.report_status || inspection?.status || "Draft";
 }
 
+function getServiceType(inspection: any) {
+  return String(
+    inspection?.service_mode ||
+      inspection?.inspection_type ||
+      inspection?.services ||
+      ""
+  ).toLowerCase();
+}
+
+function hasMoldService(inspection: any) {
+  const serviceType = getServiceType(inspection);
+
+  return serviceType.includes("mold") || inspection?.mold === true;
+}
+
+function hasRadonService(inspection: any) {
+  const serviceType = getServiceType(inspection);
+
+  return serviceType.includes("radon") || inspection?.radon === true;
+}
+
+function isStandaloneEnvironmentalService(inspection: any) {
+  const serviceType = getServiceType(inspection);
+
+  return (
+    serviceType.includes("radon_only") ||
+    serviceType.includes("mold_only") ||
+    serviceType.includes("radon_mold")
+  );
+}
+
+function getClientReportHref(inspection: any, inspectionId: string) {
+  return isStandaloneEnvironmentalService(inspection)
+    ? `/environmental-share/${inspectionId}`
+    : `/share/${inspectionId}`;
+}
+
+function getClientPdfHref(inspection: any, inspectionId: string) {
+  return isStandaloneEnvironmentalService(inspection)
+    ? `/environmental-share/${inspectionId}`
+    : `/reports/${inspectionId}/print`;
+}
+
 export default function ClientPortalPage() {
   const params = useParams();
   const inspectionId = params.id as string;
 
   const [inspection, setInspection] = useState<any>(null);
+  const [moldTest, setMoldTest] = useState<any>(null);
+  const [radonTest, setRadonTest] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
 
@@ -155,7 +200,35 @@ export default function ClientPortalPage() {
       return;
     }
 
+    let moldData = null;
+    let radonData = null;
+
+    try {
+      const environmentalRes = await fetch(
+        `/api/environmental-links?inspection_id=${inspectionId}`,
+        {
+          cache: "no-store",
+        }
+      );
+
+      const environmentalData = await environmentalRes.json();
+
+      if (environmentalRes.ok) {
+        moldData = environmentalData.mold_test || null;
+        radonData = environmentalData.radon_test || null;
+      } else {
+        console.error(
+          "Environmental links load error:",
+          environmentalData.error
+        );
+      }
+    } catch (environmentalError) {
+      console.error("Could not load environmental links:", environmentalError);
+    }
+
     setInspection(data);
+    setMoldTest(moldData);
+    setRadonTest(radonData);
     setLoading(false);
   }
 
@@ -260,6 +333,15 @@ export default function ClientPortalPage() {
 
   const propertyAddress =
     inspection.property_address || inspection.address || "Property Address Not Entered";
+
+  const reportHref = getClientReportHref(inspection, inspectionId);
+  const pdfHref = getClientPdfHref(inspection, inspectionId);
+
+  const moldReportUrl = moldTest?.lab_report_url || "";
+  const radonReportUrl = radonTest?.report_url || "";
+  const showEnvironmentalLinks =
+    (hasMoldService(inspection) && moldReportUrl) ||
+    (hasRadonService(inspection) && radonReportUrl);
 
   return (
     <main className="min-h-screen bg-[#020617] p-4 text-white md:p-8">
@@ -390,16 +472,20 @@ export default function ClientPortalPage() {
 
             <div className="mt-6 grid gap-4 md:grid-cols-3">
               <ActionLink
-                href={`/share/${inspectionId}`}
+                href={reportHref}
                 title="View Client Report"
-                description="Open the online client-friendly inspection report."
+                description="Open the online client-friendly report."
                 tone="teal"
               />
 
               <ActionLink
-                href={`/reports/${inspectionId}/print`}
+                href={pdfHref}
                 title="Download PDF"
-                description="Open the printable PDF version of the report."
+                description={
+                  isStandaloneEnvironmentalService(inspection)
+                    ? "Open the environmental report for printing or saving."
+                    : "Open the printable PDF version of the report."
+                }
                 tone="cyan"
               />
 
@@ -409,6 +495,38 @@ export default function ClientPortalPage() {
                 description="View or create the repair request list."
                 tone="orange"
               />
+            </div>
+          </section>
+        )}
+
+        {reportUnlocked && showEnvironmentalLinks && (
+          <section className="rounded-2xl border border-purple-500/40 bg-purple-950/20 p-6 shadow-xl">
+            <h2 className="text-2xl font-black text-purple-300">
+              Official Environmental Reports
+            </h2>
+
+            <p className="mt-2 text-slate-300">
+              These links open the official third-party environmental reports from the lab or testing device.
+            </p>
+
+            <div className="mt-6 grid gap-4 md:grid-cols-2">
+              {hasMoldService(inspection) && moldReportUrl && (
+                <ActionLink
+                  href={moldReportUrl}
+                  title="View Official Mold Report"
+                  description="Open the official mold lab report."
+                  tone="purple"
+                />
+              )}
+
+              {hasRadonService(inspection) && radonReportUrl && (
+                <ActionLink
+                  href={radonReportUrl}
+                  title="View Official Radon Report"
+                  description="Open the official radon device report."
+                  tone="purple"
+                />
+              )}
             </div>
           </section>
         )}
@@ -512,7 +630,7 @@ export default function ClientPortalPage() {
             {reportUnlocked ? (
               <>
                 <a
-                  href={`/share/${inspectionId}`}
+                  href={reportHref}
                   target="_blank"
                   className="rounded-xl border border-teal-500 bg-[#071224] px-6 py-4 font-bold text-teal-300 hover:bg-teal-500/10"
                 >
@@ -523,7 +641,7 @@ export default function ClientPortalPage() {
                 </a>
 
                 <a
-                  href={`/reports/${inspectionId}/print`}
+                  href={pdfHref}
                   target="_blank"
                   className="rounded-xl border border-cyan-500 bg-[#071224] px-6 py-4 font-bold text-cyan-300 hover:bg-cyan-500/10"
                 >
@@ -647,13 +765,15 @@ function ActionLink({
   href: string;
   title: string;
   description: string;
-  tone: "teal" | "cyan" | "orange";
+  tone: "teal" | "cyan" | "orange" | "purple";
 }) {
   const classes =
     tone === "teal"
       ? "border-teal-500 text-teal-300 hover:bg-teal-500/10"
       : tone === "cyan"
       ? "border-cyan-500 text-cyan-300 hover:bg-cyan-500/10"
+      : tone === "purple"
+      ? "border-purple-500 text-purple-300 hover:bg-purple-500/10"
       : "border-orange-500 text-orange-300 hover:bg-orange-500/10";
 
   return (

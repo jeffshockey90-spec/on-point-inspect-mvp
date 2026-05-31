@@ -4,7 +4,7 @@ const cards = [
   {
     title: "New Inspection",
     description: "Start a new inspection.",
-    href: "/new",
+    href: "/inspections/new",
     icon: "🏠",
   },
   {

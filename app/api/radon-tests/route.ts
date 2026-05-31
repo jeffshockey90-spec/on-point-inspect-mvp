@@ -15,7 +15,7 @@ function getNumber(value: any) {
     if (Number.isFinite(parsed)) return parsed;
   }
 
-  return null;
+  return 0;
 }
 
 function getSupabaseAdmin() {
@@ -34,32 +34,14 @@ function getSupabaseAdmin() {
   });
 }
 
-function classifyRadon(average: any) {
-  const value = getNumber(average);
+function classifyRadon(value: any) {
+  const average = getNumber(value);
 
-  if (value === null) return "Pending";
-  if (value >= 4) return "Action Recommended";
-  if (value >= 2) return "Monitor";
+  if (!average) return "Pending";
+  if (average >= 4) return "Action Recommended";
+  if (average >= 2) return "Monitor";
 
   return "Low";
-}
-
-function buildSummary(average: any) {
-  const value = getNumber(average);
-
-  if (value === null) {
-    return "Radon test results have not been entered yet.";
-  }
-
-  if (value >= 4) {
-    return `The average radon concentration measured during the testing period was ${value} pCi/L. This is at or above the EPA action level of 4.0 pCi/L. Mitigation by a qualified radon contractor is recommended.`;
-  }
-
-  if (value >= 2) {
-    return `The average radon concentration measured during the testing period was ${value} pCi/L. This is below the EPA action level of 4.0 pCi/L but above 2.0 pCi/L. Continued monitoring or consultation may be considered.`;
-  }
-
-  return `The average radon concentration measured during the testing period was ${value} pCi/L. This is below the EPA action level of 4.0 pCi/L.`;
 }
 
 export async function GET() {
@@ -175,19 +157,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Forbidden." }, { status: 403 });
     }
 
-    const average = getNumber(body.average_pci);
-    const result = classifyRadon(average);
-    const summary = buildSummary(average);
+    const averagePci = getNumber(body.average_pci);
+    const result = body.result || classifyRadon(averagePci);
 
     const payload = {
       inspection_id: inspectionId,
-      average_pci: average,
-      highest_pci: getNumber(body.highest_pci),
-      lowest_pci: getNumber(body.lowest_pci),
+      average_pci: averagePci || null,
+      highest_pci: getNumber(body.highest_pci) || null,
+      lowest_pci: getNumber(body.lowest_pci) || null,
       start_time: body.start_time || null,
       end_time: body.end_time || null,
       device_name: body.device_name || "",
       serial_number: body.serial_number || "",
+      report_url: body.report_url || "",
+      report_status: body.report_status || "Pending",
       result,
       notes: body.notes || "",
     };
@@ -231,7 +214,6 @@ export async function POST(req: Request) {
       success: true,
       radon_test: saved,
       result,
-      summary,
     });
   } catch (error: any) {
     console.error("Radon POST error:", error);

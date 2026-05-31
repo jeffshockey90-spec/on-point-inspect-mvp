@@ -186,9 +186,34 @@ export default async function ReportPage({ params }: PageProps) {
       redirect(`/reports/${inspectionId}?publish_error=1`);
     }
 
+    const { data: publishInspection } = await supabase
+      .from("inspections")
+      .select("service_mode, inspection_type, services")
+      .eq("id", inspectionId)
+      .eq("inspector_id", user.id)
+      .single();
+
+    const serviceType = String(
+      publishInspection?.service_mode ||
+        publishInspection?.inspection_type ||
+        publishInspection?.services ||
+        ""
+    ).toLowerCase();
+
+    const isStandaloneEnvironmentalReport =
+      serviceType.includes("radon_only") ||
+      serviceType.includes("mold_only") ||
+      serviceType.includes("radon_mold");
+
     revalidatePath(`/reports/${inspectionId}`);
     revalidatePath(`/share/${inspectionId}`);
     revalidatePath(`/client-portal/${inspectionId}`);
+    revalidatePath(`/environmental-share/${inspectionId}`);
+    revalidatePath(`/environmental-report/${inspectionId}`);
+
+    if (isStandaloneEnvironmentalReport) {
+      redirect(`/environmental-share/${inspectionId}`);
+    }
 
     redirect(`/share/${inspectionId}`);
   }
@@ -336,6 +361,24 @@ export default async function ReportPage({ params }: PageProps) {
     inspection.published === true ||
     String(inspection.report_status || "").toLowerCase() === "published";
 
+  const serviceType = String(
+    inspection.service_mode ||
+      inspection.inspection_type ||
+      inspection.services ||
+      ""
+  ).toLowerCase();
+
+  const isStandaloneEnvironmentalReport =
+    serviceType.includes("radon_only") ||
+    serviceType.includes("mold_only") ||
+    serviceType.includes("radon_mold");
+
+  const shareHref = isStandaloneEnvironmentalReport
+    ? `/environmental-share/${inspection.id}`
+    : `/share/${inspection.id}`;
+
+  const editableEnvironmentalHref = `/environmental-report/${inspection.id}`;
+
   return (
     <main className="min-h-screen bg-[#020617] text-white">
       <div className="mx-auto max-w-7xl px-6 py-8">
@@ -382,11 +425,20 @@ export default async function ReportPage({ params }: PageProps) {
             </form>
 
             <Link
-              href={`/share/${inspection.id}`}
+              href={shareHref}
               className="rounded-xl border border-cyan-500 px-5 py-3 font-bold text-cyan-300 hover:bg-cyan-500/10"
             >
               Copy Share Link
             </Link>
+
+            {isStandaloneEnvironmentalReport && (
+              <Link
+                href={editableEnvironmentalHref}
+                className="rounded-xl border border-lime-500 px-5 py-3 font-bold text-lime-300 hover:bg-lime-500/10"
+              >
+                Environmental Report
+              </Link>
+            )}
 
             <Link
               href={`/client-portal/${inspection.id}`}
