@@ -2,24 +2,6 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 export default async function proxy(request: NextRequest) {
-  const pathname = request.nextUrl.pathname;
-
-  const isPublicRoute =
-    pathname === "/" ||
-    pathname.startsWith("/login") ||
-    pathname.startsWith("/signup") ||
-    pathname.startsWith("/api") ||
-    pathname.startsWith("/share") ||
-    pathname.startsWith("/client") ||
-    pathname.startsWith("/client-portal") ||
-    pathname.startsWith("/client-agreement") ||
-    pathname.startsWith("/forgot-password") ||
-    pathname.startsWith("/reset-password");
-
-  if (isPublicRoute) {
-    return NextResponse.next();
-  }
-
   let response = NextResponse.next({
     request: {
       headers: request.headers,
@@ -57,10 +39,24 @@ export default async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  const pathname = request.nextUrl.pathname;
+
+  const isPublicRoute =
+    pathname === "/" ||
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/signup") ||
+    pathname.startsWith("/api") ||
+    pathname.startsWith("/share") ||
+    pathname.startsWith("/environmental-share") ||
+    pathname.startsWith("/client") ||
+    pathname.startsWith("/client-portal") ||
+    pathname.startsWith("/client-agreement") ||
+    pathname.startsWith("/forgot-password") ||
+    pathname.startsWith("/reset-password");
+
   const protectedRoutes = [
     "/dashboard",
     "/reports",
-    "/new",
     "/inspections",
     "/ai-capture",
     "/equipment-test",
@@ -72,6 +68,11 @@ export default async function proxy(request: NextRequest) {
     "/templates",
     "/schedule",
     "/quotes",
+    "/invoices",
+    "/analytics",
+    "/radon",
+    "/mold",
+    "/environmental-report",
   ];
 
   const isProtected = protectedRoutes.some((route) =>
