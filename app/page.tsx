@@ -21,6 +21,13 @@ const cards = [
     icon: "📊",
   },
   {
+    title: "Invoices",
+    description:
+      "Track paid, pending, overdue, and outstanding balances.",
+    href: "/invoices",
+    icon: "💰",
+  },
+  {
     title: "AI Capture",
     description: "Create findings from photos.",
     href: "/ai-capture",
@@ -67,7 +74,7 @@ export default function HomePage() {
 
           <p className="mt-4 max-w-2xl text-lg leading-8 text-slate-300">
             Manage inspections, reports, AI findings, analytics,
-            templates, quotes, and scheduling from one clean
+            invoices, templates, quotes, and scheduling from one clean
             dashboard.
           </p>
         </section>

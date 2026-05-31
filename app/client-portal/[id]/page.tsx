@@ -73,11 +73,11 @@ function isPaymentComplete(inspection: any) {
     inspection?.payment_status || inspection?.invoice_status || "Pending"
   ).toLowerCase();
 
-  if (status === "paid" || status === "waived") return true;
-
   const invoiceAmount = getInvoiceAmount(inspection);
   const amountPaid = getAmountPaid(inspection);
   const balanceDue = getBalanceDue(inspection);
+
+  if (status === "paid") return true;
 
   if (invoiceAmount > 0 && amountPaid >= invoiceAmount) return true;
   if (amountPaid > 0 && balanceDue <= 0) return true;
@@ -241,13 +241,19 @@ export default function ClientPortalPage() {
   const invoiceAmount = getInvoiceAmount(inspection);
   const amountPaid = getAmountPaid(inspection);
   const balanceDue = getBalanceDue(inspection);
-  const paymentComplete = isPaymentComplete(inspection);
-  const agreementSigned = isAgreementSigned(inspection);
-  const reportPublished = isReportPublished(inspection);
-  const reportUnlocked = agreementSigned && paymentComplete && reportPublished;
 
   const paymentStatus =
     inspection.payment_status || inspection.invoice_status || "Pending";
+  const paymentStatusLower = String(paymentStatus).toLowerCase();
+  const paymentComplete = isPaymentComplete(inspection);
+  const paymentRequirementComplete =
+    paymentComplete || paymentStatusLower === "waived";
+
+  const agreementSigned = isAgreementSigned(inspection);
+  const reportPublished = isReportPublished(inspection);
+  const reportUnlocked =
+    agreementSigned && paymentRequirementComplete && reportPublished;
+
   const agreementStatus =
     inspection.agreement_status || inspection.agreement_state || "Pending";
   const reportStatus = getReportStatusLabel(inspection);
@@ -325,8 +331,10 @@ export default function ClientPortalPage() {
           <StatusCard
             title="Payment"
             status={paymentComplete ? "Paid" : paymentStatus}
-            complete={paymentComplete}
-            completeLabel="Paid In Full"
+            complete={paymentRequirementComplete}
+            completeLabel={
+              paymentStatusLower === "waived" ? "Payment Waived" : "Paid In Full"
+            }
             incompleteLabel="Payment Required"
           />
 
@@ -355,8 +363,12 @@ export default function ClientPortalPage() {
                 label="Agreement Signed"
               />
               <RequirementRow
-                complete={paymentComplete}
-                label="Payment Complete"
+                complete={paymentRequirementComplete}
+                label={
+                  paymentStatusLower === "waived"
+                    ? "Payment Waived"
+                    : "Payment Complete"
+                }
               />
               <RequirementRow
                 complete={reportPublished}
@@ -435,12 +447,14 @@ export default function ClientPortalPage() {
               />
             </div>
 
-            {paymentComplete || balanceDue <= 0 ? (
+            {paymentRequirementComplete || balanceDue <= 0 ? (
               <button
                 disabled
                 className="mt-6 w-full cursor-not-allowed rounded-xl bg-green-600 px-6 py-3 font-bold text-white opacity-90"
               >
-                Payment Complete
+                {paymentStatusLower === "waived"
+                  ? "Payment Waived"
+                  : "Payment Complete"}
               </button>
             ) : (
               <button

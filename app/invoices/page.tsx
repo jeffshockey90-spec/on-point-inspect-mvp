@@ -26,10 +26,8 @@ function money(value: any) {
 
 function calculatePriceFromSqft(squareFeet: any) {
   const sqft = getNumber(squareFeet);
-
   if (!sqft || sqft <= 0) return 0;
   if (sqft <= 2000) return 500;
-
   return 500 + Math.ceil((sqft - 2000) / 1000) * 50;
 }
 
@@ -55,9 +53,8 @@ function getBalanceDue(inspection: any) {
     inspection?.balance_due !== null &&
     inspection?.balance_due !== undefined
   ) {
-    const storedBalance = getNumber(inspection.balance_due);
-
-    if (storedBalance > 0) return storedBalance;
+    const value = getNumber(inspection.balance_due);
+    if (value > 0) return value;
   }
 
   return Math.max(0, getInvoiceAmount(inspection) - getAmountPaid(inspection));
@@ -80,7 +77,6 @@ function getInvoiceStatus(inspection: any) {
   if (rawStatus === "paid") return "Paid";
   if (rawStatus === "waived") return "Waived";
   if (rawStatus === "partial") return "Partial";
-
   if (amount > 0 && paid >= amount) return "Paid";
   if (paid > 0 && balance > 0) return "Partial";
   if (balance > 0) return "Unpaid";
@@ -210,40 +206,11 @@ export default async function InvoicesPage() {
         </section>
 
         <section className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-5">
-          <MetricCard
-            label="Outstanding"
-            value={money(outstandingBalance)}
-            helper="Total unpaid balance"
-            tone="red"
-          />
-
-          <MetricCard
-            label="Paid"
-            value={String(paidInvoices.length)}
-            helper="Fully paid invoices"
-            tone="green"
-          />
-
-          <MetricCard
-            label="Unpaid / Partial"
-            value={String(unpaidInvoices.length)}
-            helper="Invoices needing payment"
-            tone="orange"
-          />
-
-          <MetricCard
-            label="Overdue"
-            value={String(overdueInvoices.length)}
-            helper="Past due invoices"
-            tone="yellow"
-          />
-
-          <MetricCard
-            label="Waived"
-            value={String(waivedInvoices.length)}
-            helper="Payment waived"
-            tone="blue"
-          />
+          <MetricCard label="Outstanding" value={money(outstandingBalance)} helper="Total unpaid balance" tone="red" />
+          <MetricCard label="Paid" value={String(paidInvoices.length)} helper="Fully paid invoices" tone="green" />
+          <MetricCard label="Unpaid / Partial" value={String(unpaidInvoices.length)} helper="Invoices needing payment" tone="orange" />
+          <MetricCard label="Overdue" value={String(overdueInvoices.length)} helper="Past due invoices" tone="yellow" />
+          <MetricCard label="Waived" value={String(waivedInvoices.length)} helper="Payment waived" tone="blue" />
         </section>
 
         <section className="mt-8 rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
@@ -268,19 +235,19 @@ export default async function InvoicesPage() {
             </div>
           ) : (
             <div className="mt-6 overflow-x-auto">
-              <table className="w-full min-w-[980px] border-collapse">
+              <table className="w-full min-w-[1120px] border-collapse">
                 <thead>
                   <tr className="border-b border-slate-700 text-left text-xs uppercase tracking-wide text-slate-400">
-                    <th className="py-3 pr-3">Status</th>
-                    <th className="py-3 pr-3">Property</th>
-                    <th className="py-3 pr-3">Client</th>
-                    <th className="py-3 pr-3">Type</th>
-                    <th className="py-3 pr-3">Invoice</th>
-                    <th className="py-3 pr-3">Paid</th>
-                    <th className="py-3 pr-3">Balance</th>
-                    <th className="py-3 pr-3">Method</th>
-                    <th className="py-3 pr-3">Due</th>
-                    <th className="py-3 pl-2 text-left">Actions</th>
+                    <th className="py-3 pr-4">Status</th>
+                    <th className="py-3 pr-4">Property</th>
+                    <th className="py-3 pr-4">Client</th>
+                    <th className="py-3 pr-4">Type</th>
+                    <th className="py-3 pr-4">Invoice</th>
+                    <th className="py-3 pr-4">Paid</th>
+                    <th className="py-3 pr-4">Balance</th>
+                    <th className="py-3 pr-4">Method</th>
+                    <th className="py-3 pr-4">Due</th>
+                    <th className="py-3 pr-4">Actions</th>
                   </tr>
                 </thead>
 
@@ -292,69 +259,47 @@ export default async function InvoicesPage() {
                       inspection.invoiceStatus !== "Waived";
 
                     return (
-                      <tr
-                        key={inspection.id}
-                        className="border-b border-slate-800 text-sm"
-                      >
-                        <td className="py-4 pr-3">
-                          <InvoiceStatusBadge
-                            status={inspection.invoiceStatus}
-                            overdue={inspection.overdue}
-                          />
+                      <tr key={inspection.id} className="border-b border-slate-800 text-sm">
+                        <td className="py-4 pr-4">
+                          <InvoiceStatusBadge status={inspection.invoiceStatus} overdue={inspection.overdue} />
                         </td>
 
-                        <td className="py-4 pr-3">
+                        <td className="py-4 pr-4">
                           <p className="font-bold text-white">
-                            {inspection.address ||
-                              inspection.property_address ||
-                              "Untitled Inspection"}
+                            {inspection.address || inspection.property_address || "Untitled Inspection"}
                           </p>
-                          <p className="mt-1 text-xs text-slate-500">
-                            ID #{inspection.id}
-                          </p>
+                          <p className="mt-1 text-xs text-slate-500">ID #{inspection.id}</p>
                         </td>
 
-                        <td className="py-4 pr-3 text-slate-300">
+                        <td className="py-4 pr-4 text-slate-300">
                           {inspection.client_name || inspection.client || "N/A"}
                         </td>
 
-                        <td className="py-4 pr-3 text-slate-300">
+                        <td className="py-4 pr-4 text-slate-300">
                           {inspection.inspection_type || "Inspection"}
                         </td>
 
-                        <td className="py-4 pr-3 font-bold text-white">
-                          {money(inspection.invoiceAmount)}
-                        </td>
+                        <td className="py-4 pr-4 font-bold text-white">{money(inspection.invoiceAmount)}</td>
+                        <td className="py-4 pr-4 text-green-300">{money(inspection.amountPaid)}</td>
+                        <td className="py-4 pr-4 font-bold text-red-300">{money(inspection.balanceDue)}</td>
+                        <td className="py-4 pr-4 text-slate-300">{inspection.payment_method || "N/A"}</td>
+                        <td className="py-4 pr-4 text-slate-300">{formatDate(inspection.invoice_due_date)}</td>
 
-                        <td className="py-4 pr-3 text-green-300">
-                          {money(inspection.amountPaid)}
-                        </td>
-
-                        <td className="py-4 pr-3 font-bold text-red-300">
-                          {money(inspection.balanceDue)}
-                        </td>
-
-                        <td className="py-4 pr-3 text-slate-300">
-                          {inspection.payment_method || "N/A"}
-                        </td>
-
-                        <td className="py-4 pr-3 text-slate-300">
-                          {formatDate(inspection.invoice_due_date)}
-                        </td>
-
-                        <td className="py-4 pl-2">
+                        <td className="py-4 pr-4">
                           <div className="flex max-w-[260px] flex-wrap gap-2">
                             {canPay && (
                               <>
-                                <InvoicePaymentButton
-                                  inspectionId={inspection.id}
-                                />
-
-                                <InvoiceReminderButton
-                                  inspectionId={inspection.id}
-                                />
+                                <InvoicePaymentButton inspectionId={inspection.id} />
+                                <InvoiceReminderButton inspectionId={inspection.id} />
                               </>
                             )}
+
+                            <Link
+                              href={`/invoices/${inspection.id}/print`}
+                              className="inline-flex rounded-lg border border-cyan-500 px-3 py-2 text-xs font-black text-cyan-300 transition hover:bg-cyan-500/10"
+                            >
+                              Invoice PDF
+                            </Link>
 
                             <Link
                               href={`/reports/${inspection.id}`}
@@ -400,24 +345,14 @@ function MetricCard({
 
   return (
     <div className={`rounded-2xl border p-6 shadow-xl ${colors[tone]}`}>
-      <p className="text-xs font-black uppercase tracking-wide text-slate-400">
-        {label}
-      </p>
-
+      <p className="text-xs font-black uppercase tracking-wide text-slate-400">{label}</p>
       <p className="mt-3 text-4xl font-black text-white">{value}</p>
-
       <p className="mt-3 text-sm leading-6 text-slate-400">{helper}</p>
     </div>
   );
 }
 
-function InvoiceStatusBadge({
-  status,
-  overdue,
-}: {
-  status: string;
-  overdue: boolean;
-}) {
+function InvoiceStatusBadge({ status, overdue }: { status: string; overdue: boolean }) {
   if (overdue) {
     return (
       <span className="rounded-full border border-red-500/40 bg-red-500/10 px-3 py-1 text-xs font-black text-red-300">
@@ -434,11 +369,7 @@ function InvoiceStatusBadge({
   };
 
   return (
-    <span
-      className={`rounded-full border px-3 py-1 text-xs font-black ${
-        styles[status] || "border-slate-500/40 bg-slate-500/10 text-slate-300"
-      }`}
-    >
+    <span className={`rounded-full border px-3 py-1 text-xs font-black ${styles[status] || "border-slate-500/40 bg-slate-500/10 text-slate-300"}`}>
       {status}
     </span>
   );
