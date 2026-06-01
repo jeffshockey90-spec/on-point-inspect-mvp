@@ -25,6 +25,46 @@ async function createSupabaseServerClient() {
   );
 }
 
+function getServiceType(inspection: any) {
+  return String(
+    inspection?.service_mode ||
+      inspection?.inspection_type ||
+      inspection?.services ||
+      ""
+  ).toLowerCase();
+}
+
+function hasRadonService(inspection: any) {
+  const serviceType = getServiceType(inspection);
+
+  return serviceType.includes("radon") || inspection?.radon === true;
+}
+
+function hasMoldService(inspection: any) {
+  const serviceType = getServiceType(inspection);
+
+  return serviceType.includes("mold") || inspection?.mold === true;
+}
+
+function isStandaloneEnvironmentalService(inspection: any) {
+  const serviceType = getServiceType(inspection);
+
+  return (
+    serviceType.includes("radon_only") ||
+    serviceType.includes("mold_only") ||
+    serviceType.includes("radon_mold")
+  );
+}
+
+function escapeHtml(value: any) {
+  return String(value || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll("\"", "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
 export async function POST(req: Request) {
   try {
     const { inspectionId, recipientType, recipientEmail } = await req.json();
@@ -82,14 +122,84 @@ export async function POST(req: Request) {
         ? `https://${process.env.VERCEL_URL}`
         : "http://localhost:3000");
 
-    const finalShareUrl = `${appUrl}/share/${inspectionId}`;
+    const finalShareUrl = isStandaloneEnvironmentalService(inspection)
+      ? `${appUrl}/environmental-share/${inspectionId}`
+      : `${appUrl}/share/${inspectionId}`;
+
+    const { data: moldTest } = await supabase
+      .from("mold_tests")
+      .select("lab_report_url, lab_name, result, lab_status")
+      .eq("inspection_id", inspectionId)
+      .maybeSingle();
+
+    const { data: radonTest } = await supabase
+      .from("radon_tests")
+      .select("report_url, report_status, result, average_pci")
+      .eq("inspection_id", inspectionId)
+      .maybeSingle();
+
+    const moldReportUrl =
+      hasMoldService(inspection) && moldTest?.lab_report_url
+        ? String(moldTest.lab_report_url)
+        : "";
+
+    const radonReportUrl =
+      hasRadonService(inspection) && radonTest?.report_url
+        ? String(radonTest.report_url)
+        : "";
+
+    const hasEnvironmentalLinks = Boolean(moldReportUrl || radonReportUrl);
 
     const property =
       inspection.property_address ||
       inspection.address ||
       "the inspected property";
 
-    const subject = `Inspection Report Ready - ${property}`;
+    const subject = isStandaloneEnvironmentalService(inspection)
+      ? `Environmental Report Ready - ${property}`
+      : `Inspection Report Ready - ${property}`;
+
+    const environmentalLinksHtml = hasEnvironmentalLinks
+      ? `
+          <div style="margin-top:22px; padding:18px; border:1px solid #334155; border-radius:14px; background:#020617;">
+            <h2 style="margin:0 0 12px 0; color:#c4b5fd; font-size:20px;">
+              Official Environmental Reports
+            </h2>
+
+            <p style="color:#cbd5e1; line-height:1.6; margin:0 0 14px 0;">
+              The following links open the official third-party lab or device reports.
+            </p>
+
+            ${
+              moldReportUrl
+                ? `
+                    <p style="margin:12px 0;">
+                      <a href="${escapeHtml(
+                        moldReportUrl
+                      )}" style="display:inline-block; background:#7c3aed; color:#ffffff; padding:12px 18px; border-radius:10px; text-decoration:none; font-weight:bold;">
+                        View Official Mold Report
+                      </a>
+                    </p>
+                  `
+                : ""
+            }
+
+            ${
+              radonReportUrl
+                ? `
+                    <p style="margin:12px 0;">
+                      <a href="${escapeHtml(
+                        radonReportUrl
+                      )}" style="display:inline-block; background:#7c3aed; color:#ffffff; padding:12px 18px; border-radius:10px; text-decoration:none; font-weight:bold;">
+                        View Official Radon Report
+                      </a>
+                    </p>
+                  `
+                : ""
+            }
+          </div>
+        `
+      : "";
 
     const html = `
       <div style="font-family: Arial, sans-serif; background:#020617; color:#f8fafc; padding:24px;">
@@ -98,19 +208,29 @@ export async function POST(req: Request) {
 
           <p>Hello,</p>
 
-          <p>Your inspection report for:</p>
+          <p>Your ${
+            isStandaloneEnvironmentalService(inspection)
+              ? "environmental report"
+              : "inspection report"
+          } for:</p>
 
           <p style="font-size:18px; font-weight:bold; color:#ffffff;">
-            ${property}
+            ${escapeHtml(property)}
           </p>
 
           <p>is ready to review.</p>
 
           <p>
             <a href="${finalShareUrl}" style="display:inline-block; background:#14b8a6; color:#020617; padding:12px 18px; border-radius:10px; text-decoration:none; font-weight:bold;">
-              View Inspection Report
+              ${
+                isStandaloneEnvironmentalService(inspection)
+                  ? "View Environmental Report"
+                  : "View Inspection Report"
+              }
             </a>
           </p>
+
+          ${environmentalLinksHtml}
 
           <p style="color:#cbd5e1; line-height:1.6;">
             This report is based on a visual, non-invasive inspection of readily accessible systems and components at the time of inspection.
@@ -162,6 +282,8 @@ export async function POST(req: Request) {
       success: true,
       message: `Report email sent to ${finalRecipient}.`,
       shareUrl: finalShareUrl,
+      moldReportUrl,
+      radonReportUrl,
     });
   } catch (error: any) {
     return NextResponse.json(
