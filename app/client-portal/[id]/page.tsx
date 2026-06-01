@@ -68,6 +68,14 @@ function getBalanceDue(inspection: any) {
   return Math.max(0, getInvoiceAmount(inspection) - getAmountPaid(inspection));
 }
 
+const PORTAL_PROCESSING_FEE_DOLLARS = 15;
+
+function getPortalProcessingFee(balanceDue: number) {
+  if (!balanceDue || balanceDue <= 0) return 0;
+
+  return PORTAL_PROCESSING_FEE_DOLLARS;
+}
+
 function isPaymentComplete(inspection: any) {
   const status = String(
     inspection?.payment_status || inspection?.invoice_status || "Pending"
@@ -76,6 +84,8 @@ function isPaymentComplete(inspection: any) {
   const invoiceAmount = getInvoiceAmount(inspection);
   const amountPaid = getAmountPaid(inspection);
   const balanceDue = getBalanceDue(inspection);
+  const portalProcessingFee = getPortalProcessingFee(balanceDue);
+  const totalOnlinePayment = balanceDue + portalProcessingFee;
 
   if (status === "paid") return true;
 
@@ -264,6 +274,14 @@ export default function ClientPortalPage() {
     try {
       setPaying(true);
 
+      const confirmed = window.confirm(
+        "Online card payments through the portal include a small processing fee. Other approved payment methods may be available without this online fee. Continue to Stripe checkout?"
+      );
+
+      if (!confirmed) {
+        return;
+      }
+
       const res = await fetch("/api/create-checkout-session", {
         method: "POST",
         headers: {
@@ -314,6 +332,8 @@ export default function ClientPortalPage() {
   const invoiceAmount = getInvoiceAmount(inspection);
   const amountPaid = getAmountPaid(inspection);
   const balanceDue = getBalanceDue(inspection);
+  const portalProcessingFee = getPortalProcessingFee(balanceDue);
+  const totalOnlinePayment = balanceDue + portalProcessingFee;
 
   const paymentStatus =
     inspection.payment_status || inspection.invoice_status || "Pending";
@@ -563,6 +583,27 @@ export default function ClientPortalPage() {
                 value={money(balanceDue)}
                 highlight={balanceDue > 0 ? "warning" : "success"}
               />
+
+              {!paymentRequirementComplete && balanceDue > 0 && (
+                <>
+                  <PaymentLine
+                    label="Online Payment Fee"
+                    value={money(portalProcessingFee)}
+                    highlight="warning"
+                  />
+
+                  <PaymentLine
+                    label="Total If Paid Online"
+                    value={money(totalOnlinePayment)}
+                    highlight="warning"
+                  />
+
+                  <p className="rounded-xl border border-yellow-500/40 bg-yellow-500/10 p-3 text-xs leading-5 text-yellow-200">
+                    Online card payments through the portal include a small processing fee.
+                    Other approved payment methods may be available without this online fee.
+                  </p>
+                </>
+              )}
             </div>
 
             {paymentRequirementComplete || balanceDue <= 0 ? (
@@ -580,7 +621,9 @@ export default function ClientPortalPage() {
                 disabled={paying}
                 className="mt-6 w-full rounded-xl bg-green-500 px-6 py-3 font-bold text-slate-950 hover:bg-green-400 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {paying ? "Opening Checkout..." : `Pay Now ${money(balanceDue)}`}
+                {paying
+                  ? "Opening Checkout..."
+                  : `Pay Online ${money(totalOnlinePayment)}`}
               </button>
             )}
           </div>

@@ -83,6 +83,14 @@ function getSupabaseAdmin() {
   });
 }
 
+const PORTAL_PROCESSING_FEE_DOLLARS = 15;
+
+function getPortalProcessingFee(balanceDue: number) {
+  if (!balanceDue || balanceDue <= 0) return 0;
+
+  return PORTAL_PROCESSING_FEE_DOLLARS;
+}
+
 function getValidEmail(value: any) {
   const email = String(value || "").trim().toLowerCase();
 
@@ -121,6 +129,8 @@ export async function POST(req: Request) {
     }
 
     const balanceDue = getBalanceDue(inspection);
+    const portalProcessingFee = getPortalProcessingFee(balanceDue);
+    const totalOnlinePayment = balanceDue + portalProcessingFee;
 
     if (!balanceDue || balanceDue <= 0) {
       return NextResponse.json(
@@ -149,6 +159,9 @@ export async function POST(req: Request) {
       metadata: {
         inspection_id: String(inspectionId),
         property_address: String(property),
+        invoice_balance_due: String(balanceDue),
+        portal_processing_fee: String(portalProcessingFee),
+        total_online_payment: String(totalOnlinePayment),
       },
       line_items: [
         {
@@ -157,11 +170,27 @@ export async function POST(req: Request) {
             currency: "usd",
             unit_amount: Math.round(balanceDue * 100),
             product_data: {
-              name: "Home Inspection Payment",
+              name: "Inspection Balance Due",
               description: `On Point Home Inspections - ${property}`,
             },
           },
         },
+        ...(portalProcessingFee > 0
+          ? [
+              {
+                quantity: 1,
+                price_data: {
+                  currency: "usd",
+                  unit_amount: Math.round(portalProcessingFee * 100),
+                  product_data: {
+                    name: "Online Payment Processing Fee",
+                    description:
+                      "Small portal fee for using online card checkout.",
+                  },
+                },
+              },
+            ]
+          : []),
       ],
       success_url: `${appUrl}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${appUrl}/payment-cancelled?inspection_id=${inspectionId}`,
@@ -173,12 +202,20 @@ export async function POST(req: Request) {
         invoice_status: "Pending",
         payment_status: "Pending",
         stripe_checkout_session_id: session.id,
+        payment_notes: `Stripe checkout opened. Balance due: $${balanceDue.toFixed(
+          2
+        )}. Online payment fee: $${portalProcessingFee.toFixed(
+          2
+        )}. Total online checkout: $${totalOnlinePayment.toFixed(2)}.`,
       })
       .eq("id", inspectionId);
 
     return NextResponse.json({
       url: session.url,
       sessionId: session.id,
+      balanceDue,
+      portalProcessingFee,
+      totalOnlinePayment,
     });
   } catch (error: any) {
     console.error("Stripe checkout error:", error);

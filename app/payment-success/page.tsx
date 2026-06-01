@@ -28,6 +28,26 @@ type PageProps = {
   searchParams: Promise<{ session_id?: string }>;
 };
 
+function getNumber(value: any) {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+
+  if (typeof value === "string") {
+    const cleaned = value.replace(/[^0-9.-]/g, "");
+    const parsed = Number(cleaned);
+
+    if (Number.isFinite(parsed)) return parsed;
+  }
+
+  return 0;
+}
+
+function money(value: any) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(getNumber(value));
+}
+
 export default async function PaymentSuccessPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const sessionId = params.session_id || "";
@@ -35,6 +55,9 @@ export default async function PaymentSuccessPage({ searchParams }: PageProps) {
   let inspectionId = "";
   let paid = false;
   let message = "Payment could not be verified.";
+  let balancePaid = 0;
+  let portalProcessingFee = 0;
+  let totalPaid = 0;
 
   try {
     if (!sessionId) {
@@ -54,18 +77,31 @@ export default async function PaymentSuccessPage({ searchParams }: PageProps) {
 
     if (paid) {
       const supabase = getSupabaseAdmin();
-      const amountPaid = (session.amount_total || 0) / 100;
+
+      totalPaid = (session.amount_total || 0) / 100;
+      portalProcessingFee = getNumber(session.metadata?.portal_processing_fee);
+      balancePaid =
+        getNumber(session.metadata?.invoice_balance_due) ||
+        Math.max(0, totalPaid - portalProcessingFee);
 
       await supabase
         .from("inspections")
         .update({
           invoice_status: "Paid",
           payment_status: "Paid",
-          amount_paid: amountPaid,
+          amount_paid: balancePaid,
           balance_due: 0,
           payment_method: "Stripe",
-          payment_notes: `Stripe payment completed. Session: ${session.id}`,
-          invoice_notes: `Stripe payment completed. Session: ${session.id}`,
+          payment_notes: `Stripe payment completed. Inspection balance paid: ${money(
+            balancePaid
+          )}. Online payment fee: ${money(
+            portalProcessingFee
+          )}. Total charged online: ${money(totalPaid)}. Session: ${session.id}`,
+          invoice_notes: `Stripe payment completed. Inspection balance paid: ${money(
+            balancePaid
+          )}. Online payment fee: ${money(
+            portalProcessingFee
+          )}. Total charged online: ${money(totalPaid)}. Session: ${session.id}`,
           stripe_checkout_session_id: session.id,
           stripe_payment_intent_id:
             typeof session.payment_intent === "string"
@@ -95,6 +131,20 @@ export default async function PaymentSuccessPage({ searchParams }: PageProps) {
         </h1>
 
         <p className="mt-4 text-lg leading-8 text-slate-300">{message}</p>
+
+        {paid && (
+          <div className="mt-6 space-y-3 rounded-xl border border-slate-700 bg-[#020817]/70 p-5">
+            <p className="font-bold text-white">
+              Inspection Balance Paid: {money(balancePaid)}
+            </p>
+            <p className="font-bold text-yellow-300">
+              Online Payment Fee: {money(portalProcessingFee)}
+            </p>
+            <p className="font-black text-green-300">
+              Total Charged Online: {money(totalPaid)}
+            </p>
+          </div>
+        )}
 
         <div className="mt-8 flex flex-wrap gap-3">
           {inspectionId && (

@@ -13,6 +13,14 @@ export default function InvoicePaymentButton({
     try {
       setLoading(true);
 
+      const confirmed = window.confirm(
+        "Online card payments through the portal include a small processing fee. Other approved payment methods may be available without this online fee. Continue to Stripe checkout?"
+      );
+
+      if (!confirmed) {
+        return;
+      }
+
       const res = await fetch("/api/create-checkout-session", {
         method: "POST",
         headers: {
@@ -41,9 +49,10 @@ export default function InvoicePaymentButton({
       type="button"
       onClick={openPayment}
       disabled={loading}
+      title="Online card payments include a small portal processing fee."
       className="rounded-lg border border-green-500 px-3 py-2 text-xs font-black text-green-300 transition hover:bg-green-500/10 disabled:cursor-not-allowed disabled:opacity-50"
     >
-      {loading ? "Opening..." : "Open Payment"}
+      {loading ? "Opening..." : "Pay Online"}
     </button>
   );
 }

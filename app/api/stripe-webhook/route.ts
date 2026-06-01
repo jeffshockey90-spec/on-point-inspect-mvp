@@ -54,12 +54,16 @@ function buildReceiptHtml({
   balanceDue,
   paidAt,
   sessionId,
+  portalProcessingFee,
+  totalCharged,
 }: {
   inspection: any;
   amountPaid: number;
   balanceDue: number;
   paidAt: string;
   sessionId: string;
+  portalProcessingFee: number;
+  totalCharged: number;
 }) {
   const property =
     inspection?.property_address ||
@@ -105,10 +109,28 @@ function buildReceiptHtml({
             <div style="display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:22px;">
               <div style="border:1px solid #334155;background:#071224;border-radius:14px;padding:16px;">
                 <p style="margin:0;color:#94a3b8;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">
-                  Amount Paid
+                  Inspection Balance Paid
                 </p>
                 <p style="margin:7px 0 0;color:#4ade80;font-size:28px;font-weight:900;">
                   ${money(amountPaid)}
+                </p>
+              </div>
+
+              <div style="border:1px solid #334155;background:#071224;border-radius:14px;padding:16px;">
+                <p style="margin:0;color:#94a3b8;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">
+                  Online Payment Fee
+                </p>
+                <p style="margin:7px 0 0;color:#facc15;font-size:28px;font-weight:900;">
+                  ${money(portalProcessingFee)}
+                </p>
+              </div>
+
+              <div style="border:1px solid #334155;background:#071224;border-radius:14px;padding:16px;">
+                <p style="margin:0;color:#94a3b8;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">
+                  Total Charged Online
+                </p>
+                <p style="margin:7px 0 0;color:#4ade80;font-size:28px;font-weight:900;">
+                  ${money(totalCharged)}
                 </p>
               </div>
 
@@ -147,12 +169,16 @@ async function sendReceiptEmail({
   amountPaid,
   balanceDue,
   paidAt,
+  portalProcessingFee,
+  totalCharged,
 }: {
   inspection: any;
   session: Stripe.Checkout.Session;
   amountPaid: number;
   balanceDue: number;
   paidAt: string;
+  portalProcessingFee: number;
+  totalCharged: number;
 }) {
   if (!resend) {
     console.warn("Receipt email skipped: RESEND_API_KEY is missing.");
@@ -182,6 +208,8 @@ async function sendReceiptEmail({
     balanceDue,
     paidAt,
     sessionId: session.id,
+    portalProcessingFee,
+    totalCharged,
   });
 
   const { error } = await resend.emails.send({
@@ -245,9 +273,17 @@ export async function POST(req: Request) {
         );
       }
 
-      const amountPaid = session.amount_total
+      const totalCharged = session.amount_total
         ? session.amount_total / 100
         : 0;
+
+      const portalProcessingFee = Number(
+        session.metadata?.portal_processing_fee || 0
+      );
+
+      const amountPaid =
+        Number(session.metadata?.invoice_balance_due || 0) ||
+        Math.max(0, totalCharged - portalProcessingFee);
 
       const paidAt = new Date().toISOString();
       const supabase = getSupabaseAdmin();
@@ -266,6 +302,16 @@ export async function POST(req: Request) {
           amount_paid: amountPaid,
           balance_due: 0,
           payment_method: "Stripe",
+          payment_notes: `Stripe payment completed. Inspection balance paid: ${money(
+            amountPaid
+          )}. Online payment fee: ${money(
+            portalProcessingFee
+          )}. Total charged online: ${money(totalCharged)}. Session: ${session.id}`,
+          invoice_notes: `Stripe payment completed. Inspection balance paid: ${money(
+            amountPaid
+          )}. Online payment fee: ${money(
+            portalProcessingFee
+          )}. Total charged online: ${money(totalCharged)}. Session: ${session.id}`,
           stripe_payment_intent_id:
             typeof session.payment_intent === "string"
               ? session.payment_intent
@@ -291,6 +337,8 @@ export async function POST(req: Request) {
           amountPaid,
           balanceDue: 0,
           paidAt,
+          portalProcessingFee,
+          totalCharged,
         });
       }
     }
