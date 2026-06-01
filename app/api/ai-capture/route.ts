@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
+import { logAIEvent } from "../../../lib/logging";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -35,12 +36,26 @@ function cleanText(value: any) {
 }
 
 export async function POST(req: Request) {
+  let note = "";
+  let inspectionId: string | number | null = null;
+
   try {
     const body = await req.json();
 
-    const note = cleanText(body.note);
+    note = cleanText(body.note);
+    inspectionId = body.inspectionId || body.inspection_id || null;
 
     if (!note) {
+      await logAIEvent({
+        inspectionId,
+        tool: "ai_capture",
+        prompt: note,
+        status: "failed",
+        response: {
+          error: "Missing inspector note.",
+        },
+      });
+
       return NextResponse.json(
         { error: "Missing inspector note." },
         { status: 400 }
@@ -155,16 +170,42 @@ Base the entire finding on this note. Expand it professionally, but do not drift
       ? parsed.severity
       : "Recommended Repair";
 
-    return NextResponse.json({
+    const result = {
       title: cleanText(parsed.title) || "Inspection Finding",
       section: cleanSection,
       severity: cleanSeverity,
       observation: cleanText(parsed.observation),
       implication: cleanText(parsed.implication),
       recommendation: cleanText(parsed.recommendation),
+    };
+
+    await logAIEvent({
+      inspectionId,
+      tool: "ai_capture",
+      prompt: note,
+      response: {
+        title: result.title,
+        section: result.section,
+        severity: result.severity,
+        model: "gpt-4o-mini",
+      },
+      tokensUsed: response.usage?.total_tokens ?? null,
+      status: "success",
     });
+
+    return NextResponse.json(result);
   } catch (error: any) {
     console.error(error);
+
+    await logAIEvent({
+      inspectionId,
+      tool: "ai_capture",
+      prompt: note,
+      status: "failed",
+      response: {
+        error: error?.message || "Failed to generate AI finding.",
+      },
+    });
 
     return NextResponse.json(
       {

@@ -29,6 +29,95 @@ function getSupabaseAdmin() {
   });
 }
 
+
+async function logStripeEvent(
+  supabase: any,
+  {
+    inspectionId,
+    paymentIntentId,
+    amount,
+    status,
+    metadata = {},
+  }: {
+    inspectionId: any;
+    paymentIntentId?: string | null;
+    amount?: number | null;
+    status: string;
+    metadata?: Record<string, any>;
+  }
+) {
+  try {
+    await supabase.from("stripe_logs").insert({
+      inspection_id: Number(inspectionId),
+      payment_intent_id: paymentIntentId || null,
+      amount: amount ?? null,
+      status,
+      metadata,
+    });
+  } catch (error) {
+    console.error("Stripe log insert failed:", error);
+  }
+}
+
+async function logAuditEvent(
+  supabase: any,
+  {
+    action,
+    resourceType,
+    resourceId,
+    metadata = {},
+  }: {
+    action: string;
+    resourceType: string;
+    resourceId: any;
+    metadata?: Record<string, any>;
+  }
+) {
+  try {
+    await supabase.from("audit_logs").insert({
+      user_id: null,
+      action,
+      resource_type: resourceType,
+      resource_id: String(resourceId),
+      metadata,
+    });
+  } catch (error) {
+    console.error("Audit log insert failed:", error);
+  }
+}
+
+async function logEmailEvent(
+  supabase: any,
+  {
+    inspectionId,
+    recipient,
+    subject,
+    status,
+    resendId,
+    metadata = {},
+  }: {
+    inspectionId: any;
+    recipient: string;
+    subject: string;
+    status: "sent" | "failed" | "skipped";
+    resendId?: string | null;
+    metadata?: Record<string, any>;
+  }
+) {
+  try {
+    await supabase.from("email_logs").insert({
+      inspection_id: Number(inspectionId),
+      recipient,
+      subject,
+      status,
+      resend_id: resendId || null,
+      metadata,
+    });
+  } catch (error) {
+    console.error("Email log insert failed:", error);
+  }
+}
+
 function money(value: number) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -164,6 +253,7 @@ function buildReceiptHtml({
 }
 
 async function sendReceiptEmail({
+  supabase,
   inspection,
   session,
   amountPaid,
@@ -172,6 +262,7 @@ async function sendReceiptEmail({
   portalProcessingFee,
   totalCharged,
 }: {
+  supabase: any;
   inspection: any;
   session: Stripe.Checkout.Session;
   amountPaid: number;
@@ -182,6 +273,18 @@ async function sendReceiptEmail({
 }) {
   if (!resend) {
     console.warn("Receipt email skipped: RESEND_API_KEY is missing.");
+
+    await logEmailEvent(supabase, {
+      inspectionId: inspection?.id || session.metadata?.inspection_id,
+      recipient: "",
+      subject: "Payment Received",
+      status: "skipped",
+      metadata: {
+        reason: "RESEND_API_KEY is missing",
+        sessionId: session.id,
+      },
+    });
+
     return;
   }
 
@@ -189,6 +292,18 @@ async function sendReceiptEmail({
 
   if (!to) {
     console.warn("Receipt email skipped: no valid client email.");
+
+    await logEmailEvent(supabase, {
+      inspectionId: inspection?.id || session.metadata?.inspection_id,
+      recipient: "",
+      subject: "Payment Received",
+      status: "skipped",
+      metadata: {
+        reason: "No valid client email",
+        sessionId: session.id,
+      },
+    });
+
     return;
   }
 
@@ -212,16 +327,47 @@ async function sendReceiptEmail({
     totalCharged,
   });
 
-  const { error } = await resend.emails.send({
+  const subject = `Payment Received - ${property}`;
+
+  const { data, error } = await resend.emails.send({
     from,
     to,
-    subject: `Payment Received - ${property}`,
+    subject,
     html,
   });
 
   if (error) {
     console.error("Receipt email send error:", error);
+
+    await logEmailEvent(supabase, {
+      inspectionId: inspection?.id || session.metadata?.inspection_id,
+      recipient: to,
+      subject,
+      status: "failed",
+      metadata: {
+        type: "stripe_payment_receipt",
+        sessionId: session.id,
+        error,
+      },
+    });
+
+    return;
   }
+
+  await logEmailEvent(supabase, {
+    inspectionId: inspection?.id || session.metadata?.inspection_id,
+    recipient: to,
+    subject,
+    status: "sent",
+    resendId: data?.id || null,
+    metadata: {
+      type: "stripe_payment_receipt",
+      sessionId: session.id,
+      amountPaid,
+      portalProcessingFee,
+      totalCharged,
+    },
+  });
 }
 
 export async function POST(req: Request) {
@@ -330,8 +476,41 @@ export async function POST(req: Request) {
         );
       }
 
+      await logStripeEvent(supabase, {
+        inspectionId,
+        paymentIntentId:
+          typeof session.payment_intent === "string"
+            ? session.payment_intent
+            : null,
+        amount: totalCharged,
+        status: "payment_completed",
+        metadata: {
+          sessionId: session.id,
+          eventId: event.id,
+          amountPaid,
+          portalProcessingFee,
+          totalCharged,
+          paidAt,
+        },
+      });
+
+      await logAuditEvent(supabase, {
+        action: "stripe_payment_completed",
+        resourceType: "inspection",
+        resourceId: inspectionId,
+        metadata: {
+          sessionId: session.id,
+          eventId: event.id,
+          amountPaid,
+          portalProcessingFee,
+          totalCharged,
+          paidAt,
+        },
+      });
+
       if (existingInspection) {
         await sendReceiptEmail({
+          supabase,
           inspection: existingInspection,
           session,
           amountPaid,

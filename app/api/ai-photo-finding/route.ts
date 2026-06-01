@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
 import { createClient } from "../../../utils/supabase/server";
+import { logAIEvent } from "../../../lib/logging";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -64,10 +65,14 @@ Use these only when they support the inspector note. If an inspector note is pro
 }
 
 export async function POST(req: Request) {
+  let inspectionId: string | number | null = null;
+
   try {
     const body = await req.json();
 
     const image = body.image;
+    inspectionId = body.inspectionId || body.inspection_id || null;
+
     const inspectorNote = cleanText(
       body.inspectorNote || body.note || body.comment || ""
     );
@@ -96,6 +101,16 @@ export async function POST(req: Request) {
     }
 
     if (!image) {
+      await logAIEvent({
+        inspectionId,
+        tool: "ai_capture",
+        prompt: inspectorNote,
+        status: "failed",
+        response: {
+          error: "Missing image.",
+        },
+      });
+
       return NextResponse.json(
         { error: "Missing image." },
         { status: 400 }
@@ -266,7 +281,7 @@ Create exactly ONE finding based on the inspector note when provided.
       ? parsed.severity
       : "Recommended Repair";
 
-    return NextResponse.json({
+    const result = {
       title: cleanText(parsed.title) || "Inspection Finding",
       section: cleanSection,
       severity: cleanSeverity,
@@ -279,9 +294,38 @@ Create exactly ONE finding based on the inspector note when provided.
       serial_number: cleanText(parsed.serial_number),
       estimated_age: cleanText(parsed.estimated_age),
       notes: cleanText(parsed.notes),
+    };
+
+    await logAIEvent({
+      inspectionId,
+      tool: "ai_capture",
+      prompt: inspectorNote,
+      response: {
+        title: result.title,
+        section: result.section,
+        severity: result.severity,
+        equipment_type: result.equipment_type,
+        manufacturer: result.manufacturer,
+        model_number: result.model_number,
+        serial_number: result.serial_number,
+        estimated_age: result.estimated_age,
+      },
+      tokensUsed: response.usage?.total_tokens ?? null,
+      status: "success",
     });
+
+    return NextResponse.json(result);
   } catch (error: any) {
     console.error(error);
+
+    await logAIEvent({
+      inspectionId,
+      tool: "ai_capture",
+      status: "failed",
+      response: {
+        error: error?.message || "Failed to analyze inspection photo.",
+      },
+    });
 
     return NextResponse.json(
       {

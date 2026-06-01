@@ -4,6 +4,60 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "../../../lib/supabaseClient";
 
+const SECTION_ORDER = [
+  "Inspection Details",
+  "Exterior",
+  "Roof",
+  "Basement, Foundation, Crawlspace & Structure",
+  "Heating",
+  "Cooling",
+  "Plumbing",
+  "Electrical",
+  "Attic, Insulation & Ventilation",
+  "Doors, Windows & Interior",
+  "Built-in Appliances",
+  "Garage",
+];
+
+function normalizeSection(section: string | null | undefined) {
+  if (!section) return "Inspection Details";
+
+  const clean = section.trim();
+
+  const aliases: Record<string, string> = {
+    General: "Inspection Details",
+    Safety: "Inspection Details",
+    "Basement/Foundation/Crawlspace & Structure":
+      "Basement, Foundation, Crawlspace & Structure",
+    "Basement, Foundation, Crawlspace and Structure":
+      "Basement, Foundation, Crawlspace & Structure",
+    "Attic/Insulation & Ventilation": "Attic, Insulation & Ventilation",
+    "Attic, Insulation and Ventilation": "Attic, Insulation & Ventilation",
+    "Doors/Windows & Interior": "Doors, Windows & Interior",
+    "Doors, Windows and Interior": "Doors, Windows & Interior",
+    Appliances: "Built-in Appliances",
+    "Built In Appliances": "Built-in Appliances",
+  };
+
+  return aliases[clean] || clean;
+}
+
+function groupChecklistRows(rows: any[]) {
+  const grouped: Record<string, Record<string, any[]>> = {};
+
+  (rows || []).forEach((row: any) => {
+    const section = normalizeSection(row.section);
+    const groupTitle = row.group_title || row.group || "General";
+
+    if (!grouped[section]) grouped[section] = {};
+    if (!grouped[section][groupTitle]) grouped[section][groupTitle] = [];
+
+    grouped[section][groupTitle].push(row);
+  });
+
+  return grouped;
+}
+
 function getPropertyPhoto(inspection: any) {
   return (
     inspection?.property_image ||
@@ -190,6 +244,7 @@ export default function ClientPortalPage() {
   const [inspection, setInspection] = useState<any>(null);
   const [moldTest, setMoldTest] = useState<any>(null);
   const [radonTest, setRadonTest] = useState<any>(null);
+  const [checklistRows, setChecklistRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
 
@@ -236,9 +291,20 @@ export default function ClientPortalPage() {
       console.error("Could not load environmental links:", environmentalError);
     }
 
+    const { data: checklistData, error: checklistError } = await supabase
+      .from("section_checklist_selections")
+      .select("*")
+      .eq("inspection_id", inspectionId)
+      .order("created_at", { ascending: true });
+
+    if (checklistError) {
+      console.error("Checklist selections load error:", checklistError);
+    }
+
     setInspection(data);
     setMoldTest(moldData);
     setRadonTest(radonData);
+    setChecklistRows(checklistData || []);
     setLoading(false);
   }
 
@@ -362,6 +428,11 @@ export default function ClientPortalPage() {
   const showEnvironmentalLinks =
     (hasMoldService(inspection) && moldReportUrl) ||
     (hasRadonService(inspection) && radonReportUrl);
+
+  const checklistBySection = groupChecklistRows(checklistRows);
+  const checklistSections = SECTION_ORDER.filter(
+    (section) => checklistBySection[section]
+  );
 
   return (
     <main className="min-h-screen bg-[#020617] p-4 text-white md:p-8">
@@ -628,6 +699,59 @@ export default function ClientPortalPage() {
             )}
           </div>
         </section>
+
+        {checklistSections.length > 0 && (
+          <section className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
+            <h2 className="text-2xl font-bold text-teal-300">
+              Inspection Information
+            </h2>
+
+            <p className="mt-2 text-sm text-slate-400">
+              Selected inspection information, component types, materials, and system details.
+            </p>
+
+            <div className="mt-6 space-y-6">
+              {checklistSections.map((section) => (
+                <div
+                  key={section}
+                  className="rounded-xl border border-slate-700 bg-[#020817]/70 p-5"
+                >
+                  <h3 className="text-xl font-black text-white">
+                    {section}
+                  </h3>
+
+                  <div className="mt-4 grid gap-4 md:grid-cols-2">
+                    {Object.entries(checklistBySection[section]).map(
+                      ([groupTitle, rows]: any) => {
+                        const values = (rows || [])
+                          .map((row: any) => row.custom_text || row.value)
+                          .filter(
+                            (value: string) =>
+                              value && value !== "__TEXT_VALUE__"
+                          );
+
+                        return (
+                          <div
+                            key={groupTitle}
+                            className="rounded-xl border border-slate-700 bg-[#0f172a] p-4"
+                          >
+                            <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                              {groupTitle}
+                            </p>
+
+                            <p className="mt-2 whitespace-pre-line text-base font-semibold leading-7 text-slate-100">
+                              {values.length > 0 ? values.join(", ") : "N/A"}
+                            </p>
+                          </div>
+                        );
+                      }
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {inspection.report_summary && (
           <section className="rounded-2xl border border-teal-500/40 bg-[#071224] p-6 shadow-xl">

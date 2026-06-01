@@ -116,6 +116,7 @@ function AICaptureContent() {
           image: base64,
           mode: "inspection",
           inspectorNote,
+          inspectionId,
         }),
       });
 

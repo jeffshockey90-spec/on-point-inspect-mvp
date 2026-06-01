@@ -65,6 +65,68 @@ function escapeHtml(value: any) {
     .replaceAll("'", "&#039;");
 }
 
+async function logEmailEvent(
+  supabase: any,
+  {
+    inspectionId,
+    recipient,
+    subject,
+    status,
+    resendId,
+    metadata = {},
+  }: {
+    inspectionId: any;
+    recipient: string;
+    subject: string;
+    status: "sent" | "failed";
+    resendId?: string | null;
+    metadata?: Record<string, any>;
+  }
+) {
+  try {
+    await supabase.from("email_logs").insert({
+      inspection_id: Number(inspectionId),
+      recipient,
+      subject,
+      status,
+      resend_id: resendId || null,
+      metadata,
+    });
+  } catch (error) {
+    console.error("Email log insert failed:", error);
+  }
+}
+
+async function logAuditEvent(
+  supabase: any,
+  {
+    userId,
+    action,
+    resourceType,
+    resourceId,
+    metadata = {},
+  }: {
+    userId?: string | null;
+    action: string;
+    resourceType: string;
+    resourceId: any;
+    metadata?: Record<string, any>;
+  }
+) {
+  try {
+    await supabase.from("audit_logs").insert({
+      user_id: userId || null,
+      action,
+      resource_type: resourceType,
+      resource_id: String(resourceId),
+      metadata,
+    });
+  } catch (error) {
+    console.error("Audit log insert failed:", error);
+  }
+}
+
+
 export async function POST(req: Request) {
   try {
     const { inspectionId, recipientType, recipientEmail } = await req.json();
@@ -268,6 +330,25 @@ export async function POST(req: Request) {
     const resendData = await resendRes.json();
 
     if (!resendRes.ok) {
+      await logEmailEvent(supabase, {
+        inspectionId,
+        recipient: finalRecipient,
+        subject,
+        status: "failed",
+        metadata: {
+          type: isStandaloneEnvironmentalService(inspection)
+            ? "environmental_report"
+            : "inspection_report",
+          error:
+            resendData?.message ||
+            "Email failed to send. Check Resend settings.",
+          resendData,
+          shareUrl: finalShareUrl,
+          moldReportUrl,
+          radonReportUrl,
+        },
+      });
+
       return NextResponse.json(
         {
           error:
@@ -277,6 +358,37 @@ export async function POST(req: Request) {
         { status: 500 }
       );
     }
+
+    await logEmailEvent(supabase, {
+      inspectionId,
+      recipient: finalRecipient,
+      subject,
+      status: "sent",
+      resendId: resendData?.id || null,
+      metadata: {
+        type: isStandaloneEnvironmentalService(inspection)
+          ? "environmental_report"
+          : "inspection_report",
+        recipientType,
+        shareUrl: finalShareUrl,
+        moldReportUrl,
+        radonReportUrl,
+      },
+    });
+
+    await logAuditEvent(supabase, {
+      userId: user.id,
+      action: isStandaloneEnvironmentalService(inspection)
+        ? "environmental_report_email_sent"
+        : "report_email_sent",
+      resourceType: "inspection",
+      resourceId: inspectionId,
+      metadata: {
+        recipient: finalRecipient,
+        subject,
+        shareUrl: finalShareUrl,
+      },
+    });
 
     return NextResponse.json({
       success: true,

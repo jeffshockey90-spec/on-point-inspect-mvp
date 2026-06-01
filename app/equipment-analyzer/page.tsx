@@ -63,6 +63,10 @@ function EquipmentTestContent() {
       const formData = new FormData();
       formData.append("image", image);
 
+      if (inspectionId) {
+        formData.append("inspectionId", inspectionId);
+      }
+
       const res = await fetch("/api/analyze-equipment", {
         method: "POST",
         body: formData,

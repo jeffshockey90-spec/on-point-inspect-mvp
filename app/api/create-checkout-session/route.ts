@@ -101,6 +101,63 @@ function getValidEmail(value: any) {
   return email;
 }
 
+async function logStripeEvent(
+  supabase: any,
+  {
+    inspectionId,
+    paymentIntentId,
+    amount,
+    status,
+    metadata = {},
+  }: {
+    inspectionId: any;
+    paymentIntentId?: string | null;
+    amount?: number | null;
+    status: string;
+    metadata?: Record<string, any>;
+  }
+) {
+  try {
+    await supabase.from("stripe_logs").insert({
+      inspection_id: Number(inspectionId),
+      payment_intent_id: paymentIntentId || null,
+      amount: amount ?? null,
+      status,
+      metadata,
+    });
+  } catch (error) {
+    console.error("Stripe log insert failed:", error);
+  }
+}
+
+async function logAuditEvent(
+  supabase: any,
+  {
+    action,
+    resourceType,
+    resourceId,
+    metadata = {},
+  }: {
+    action: string;
+    resourceType: string;
+    resourceId: any;
+    metadata?: Record<string, any>;
+  }
+) {
+  try {
+    await supabase.from("audit_logs").insert({
+      user_id: null,
+      action,
+      resource_type: resourceType,
+      resource_id: String(resourceId),
+      metadata,
+    });
+  } catch (error) {
+    console.error("Audit log insert failed:", error);
+  }
+}
+
+
 export async function POST(req: Request) {
   try {
     const stripe = getStripe();
@@ -209,6 +266,35 @@ export async function POST(req: Request) {
         )}. Total online checkout: $${totalOnlinePayment.toFixed(2)}.`,
       })
       .eq("id", inspectionId);
+
+    await logStripeEvent(supabase, {
+      inspectionId,
+      paymentIntentId: session.payment_intent
+        ? String(session.payment_intent)
+        : null,
+      amount: totalOnlinePayment,
+      status: "checkout_created",
+      metadata: {
+        sessionId: session.id,
+        balanceDue,
+        portalProcessingFee,
+        totalOnlinePayment,
+        property,
+        clientEmail,
+      },
+    });
+
+    await logAuditEvent(supabase, {
+      action: "stripe_checkout_created",
+      resourceType: "inspection",
+      resourceId: inspectionId,
+      metadata: {
+        sessionId: session.id,
+        balanceDue,
+        portalProcessingFee,
+        totalOnlinePayment,
+      },
+    });
 
     return NextResponse.json({
       url: session.url,

@@ -19,6 +19,68 @@ function getBaseUrl(req: Request) {
   );
 }
 
+async function logEmailEvent({
+  inspectionId,
+  recipient,
+  subject,
+  status,
+  resendId,
+  metadata = {},
+}: {
+  inspectionId: any;
+  recipient: string;
+  subject: string;
+  status: "sent" | "failed";
+  resendId?: string | null;
+  metadata?: Record<string, any>;
+}) {
+  try {
+    const { error } = await supabase.from("email_logs").insert({
+      inspection_id_bigint: Number(inspectionId),
+      recipient,
+      recipient_email: recipient,
+      email_type: metadata?.type || "agreement_email",
+      subject,
+      message: metadata?.agreementUrl || "",
+      status,
+      resend_id: resendId || null,
+      metadata,
+    });
+
+    if (error) {
+      console.error("EMAIL LOG INSERT ERROR:", error);
+    } else {
+      console.log("EMAIL LOG INSERT SUCCESS");
+    }
+  } catch (error) {
+    console.error("Email log insert failed:", error);
+  }
+}
+
+async function logAuditEvent({
+  action,
+  resourceType,
+  resourceId,
+  metadata = {},
+}: {
+  action: string;
+  resourceType: string;
+  resourceId: any;
+  metadata?: Record<string, any>;
+}) {
+  try {
+    await supabase.from("audit_logs").insert({
+      user_id: null,
+      action,
+      resource_type: resourceType,
+      resource_id: String(resourceId),
+      metadata,
+    });
+  } catch (error) {
+    console.error("Audit log insert failed:", error);
+  }
+}
+
 export async function POST(req: Request) {
   try {
     const { inspectionId } = await req.json();
@@ -113,37 +175,41 @@ export async function POST(req: Request) {
       "On Point Home Inspections <agreements@onpointhomeinspect.com>";
 
     const sent: any[] = [];
+    const failed: any[] = [];
 
     for (const email of recipients) {
-      const result = await resend.emails.send({
-        from: fromEmail,
-        to: email,
-        subject: `Inspection Agreement - ${property}`,
-        html: `
-          <div style="font-family:Arial,sans-serif;padding:24px;line-height:1.6;color:#0f172a;">
-            <h2 style="color:#0f766e;">On Point Home Inspections</h2>
+      const subject = `Inspection Agreement - ${property}`;
 
-            <p>Please review and sign your inspection agreement before the report is delivered.</p>
+      try {
+        const result = await resend.emails.send({
+          from: fromEmail,
+          to: email,
+          subject,
+          html: `
+            <div style="font-family:Arial,sans-serif;padding:24px;line-height:1.6;color:#0f172a;">
+              <h2 style="color:#0f766e;">On Point Home Inspections</h2>
 
-            <p><strong>Property:</strong> ${property}</p>
+              <p>Please review and sign your inspection agreement before the report is delivered.</p>
 
-            <p>
-              <a href="${agreementUrl}" style="display:inline-block;background:#14b8a6;color:#020617;font-weight:bold;padding:14px 22px;border-radius:10px;text-decoration:none;">
-                Review & Sign Agreement
-              </a>
-            </p>
+              <p><strong>Property:</strong> ${property}</p>
 
-            <p>
-              Client Portal:<br />
-              <a href="${portalUrl}">${portalUrl}</a>
-            </p>
+              <p>
+                <a href="${agreementUrl}" style="display:inline-block;background:#14b8a6;color:#020617;font-weight:bold;padding:14px 22px;border-radius:10px;text-decoration:none;">
+                  Review & Sign Agreement
+                </a>
+              </p>
 
-            <p style="margin-top:30px;font-size:12px;color:#64748b;">
-              On Point Home Inspections
-            </p>
-          </div>
-        `,
-        text: `Please review and sign your inspection agreement for ${property}.
+              <p>
+                Client Portal:<br />
+                <a href="${portalUrl}">${portalUrl}</a>
+              </p>
+
+              <p style="margin-top:30px;font-size:12px;color:#64748b;">
+                On Point Home Inspections
+              </p>
+            </div>
+          `,
+          text: `Please review and sign your inspection agreement for ${property}.
 
 Agreement:
 ${agreementUrl}
@@ -152,12 +218,70 @@ Client Portal:
 ${portalUrl}
 
 On Point Home Inspections`,
-      });
+        });
 
-      sent.push({
-        email,
-        result,
+        await logEmailEvent({
+          inspectionId,
+          recipient: email,
+          subject,
+          status: "sent",
+          resendId: result?.data?.id || null,
+          metadata: {
+            type: "agreement_email",
+            agreementUrl,
+            portalUrl,
+          },
+        });
+
+        sent.push({
+          email,
+          result,
+        });
+      } catch (error: any) {
+        await logEmailEvent({
+          inspectionId,
+          recipient: email,
+          subject,
+          status: "failed",
+          metadata: {
+            type: "agreement_email",
+            agreementUrl,
+            portalUrl,
+            error: error?.message || "Failed to send agreement email.",
+          },
+        });
+
+        failed.push({
+          email,
+          error: error?.message || "Failed to send agreement email.",
+        });
+      }
+    }
+
+    if (sent.length > 0) {
+      await logAuditEvent({
+        action: "agreement_email_sent",
+        resourceType: "inspection",
+        resourceId: inspectionId,
+        metadata: {
+          sentCount: sent.length,
+          failedCount: failed.length,
+          recipients: sent.map((item) => item.email),
+          failed,
+          agreementUrl,
+          portalUrl,
+        },
       });
+    }
+
+    if (!sent.length && failed.length) {
+      return NextResponse.json(
+        {
+          error: "Failed to send agreement email.",
+          failed,
+        },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({
@@ -166,6 +290,7 @@ On Point Home Inspections`,
         sent.length === 1 ? "" : "s"
       }.`,
       sent,
+      failed,
     });
   } catch (error: any) {
     console.error("Send agreement email error:", error);

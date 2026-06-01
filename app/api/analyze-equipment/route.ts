@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
+import { logAIEvent } from "../../../lib/logging";
 
 export const runtime = "nodejs";
 
@@ -8,8 +9,19 @@ const openai = new OpenAI({
 });
 
 export async function POST(req: Request) {
+  let inspectionId: string | number | null = null;
+
   try {
     if (!process.env.OPENAI_API_KEY) {
+      await logAIEvent({
+        inspectionId,
+        tool: "equipment_analyzer",
+        status: "failed",
+        response: {
+          error: "Missing OPENAI_API_KEY",
+        },
+      });
+
       return NextResponse.json(
         { error: "Missing OPENAI_API_KEY" },
         { status: 500 }
@@ -17,9 +29,23 @@ export async function POST(req: Request) {
     }
 
     const formData = await req.formData();
+
     const image = formData.get("image") as File | null;
+    inspectionId =
+      (formData.get("inspectionId") as string | null) ||
+      (formData.get("inspection_id") as string | null) ||
+      null;
 
     if (!image) {
+      await logAIEvent({
+        inspectionId,
+        tool: "equipment_analyzer",
+        status: "failed",
+        response: {
+          error: "No image uploaded",
+        },
+      });
+
       return NextResponse.json(
         { error: "No image uploaded" },
         { status: 400 }
@@ -100,7 +126,7 @@ Rules:
 
     const text = result.choices[0]?.message?.content || "{}";
 
-    let parsed;
+    let parsed: any;
 
     try {
       parsed = JSON.parse(text);
@@ -111,9 +137,37 @@ Rules:
       };
     }
 
+    await logAIEvent({
+      inspectionId,
+      tool: "equipment_analyzer",
+      prompt: "Equipment Analyzer photo analysis",
+      response: {
+        equipmentType: parsed?.equipmentType,
+        manufacturer: parsed?.manufacturer,
+        model: parsed?.model,
+        serial: parsed?.serial,
+        manufactureYear: parsed?.manufactureYear,
+        estimatedAge: parsed?.estimatedAge,
+        refrigerant: parsed?.refrigerant,
+        section: parsed?.section,
+        severity: parsed?.severity,
+      },
+      tokensUsed: result.usage?.total_tokens ?? null,
+      status: parsed?.error ? "failed" : "success",
+    });
+
     return NextResponse.json(parsed);
   } catch (error: any) {
     console.error("Analyze equipment error:", error);
+
+    await logAIEvent({
+      inspectionId,
+      tool: "equipment_analyzer",
+      status: "failed",
+      response: {
+        error: error?.message || "Failed to analyze equipment",
+      },
+    });
 
     return NextResponse.json(
       {
