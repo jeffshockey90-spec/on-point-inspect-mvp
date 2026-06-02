@@ -138,12 +138,12 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap gap-3 rounded-2xl border border-slate-700 bg-[#0f172a] p-4">
+    <div className="w-full max-w-full space-y-6 overflow-hidden">
+      <div className="flex w-full flex-col gap-3 rounded-2xl border border-slate-700 bg-[#0f172a] p-4 sm:flex-row sm:flex-wrap">
         <button
           type="button"
           onClick={expandAll}
-          className="rounded-xl bg-teal-500 px-4 py-2 text-sm font-black text-slate-950 hover:bg-teal-400"
+          className="w-full rounded-xl bg-teal-500 px-4 py-2 text-sm font-black text-slate-950 hover:bg-teal-400 sm:w-auto"
         >
           Expand All
         </button>
@@ -151,12 +151,12 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
         <button
           type="button"
           onClick={collapseAll}
-          className="rounded-xl border border-slate-600 px-4 py-2 text-sm font-black text-slate-200 hover:bg-slate-800"
+          className="w-full rounded-xl border border-slate-600 px-4 py-2 text-sm font-black text-slate-200 hover:bg-slate-800 sm:w-auto"
         >
           Collapse All
         </button>
 
-        <div className="rounded-xl border border-slate-700 px-4 py-2 text-sm font-bold text-slate-400">
+        <div className="w-full rounded-xl border border-slate-700 px-4 py-2 text-sm font-bold text-slate-400 sm:w-auto">
           Drag section headers to reorder
         </div>
       </div>
@@ -174,11 +174,11 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
             onDragOver={handleDragOver}
             onDrop={() => handleDrop(group.section)}
             onDragEnd={() => setDraggingSection(null)}
-            className={`overflow-hidden rounded-2xl border border-slate-700 bg-[#0f172a] shadow-xl transition ${
+            className={`w-full max-w-full overflow-hidden rounded-2xl border border-slate-700 bg-[#0f172a] shadow-xl transition ${
               isDragging ? "opacity-50 ring-2 ring-teal-400" : ""
             }`}
           >
-            <div className="flex items-stretch border-b border-slate-700">
+            <div className="flex min-w-0 items-stretch border-b border-slate-700">
               <div
                 role="button"
                 tabIndex={0}
@@ -189,9 +189,9 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
                     toggleSection(group.section);
                   }
                 }}
-                className="flex min-w-0 flex-1 cursor-pointer items-center justify-between gap-4 px-6 py-4 text-left transition hover:bg-slate-800/60 focus:outline-none focus:ring-2 focus:ring-teal-400"
+                className="flex min-w-0 flex-1 cursor-pointer flex-col items-stretch gap-3 px-4 py-4 text-left transition hover:bg-slate-800/60 focus:outline-none focus:ring-2 focus:ring-teal-400 sm:flex-row sm:items-center sm:justify-between sm:px-6"
               >
-                <div className="flex min-w-0 items-center gap-4">
+                <div className="flex min-w-0 items-center gap-3 sm:gap-4">
                   <span className="cursor-grab select-none text-2xl text-slate-500 active:cursor-grabbing">
                     ⋮⋮
                   </span>
@@ -201,7 +201,7 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
                   </span>
 
                   <div className="min-w-0">
-                    <h2 className="truncate text-2xl font-bold text-teal-400">
+                    <h2 className="break-words text-xl font-bold text-teal-400 sm:text-2xl">
                       {group.section}
                     </h2>
 
@@ -212,7 +212,7 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
                   </div>
                 </div>
 
-                <span className="shrink-0 rounded-xl border border-slate-600 px-4 py-2 text-sm font-black text-slate-200">
+                <span className="w-full rounded-xl border border-slate-600 px-4 py-2 text-center text-sm font-black text-slate-200 sm:w-auto sm:shrink-0">
                   {isClosed ? "Open" : "Close"}
                 </span>
               </div>
@@ -247,7 +247,7 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
             </div>
 
             {!isClosed && (
-              <div className="space-y-5 p-5">
+              <div className="w-full max-w-full space-y-5 overflow-hidden p-3 sm:p-5">
                 <SectionInformationChecklist
                   inspectionId={inspectionId}
                   section={group.section}
@@ -334,13 +334,36 @@ function getPhotoUrl(photo: any) {
 
 function isVideoMedia(photo: any) {
   const url = String(getPhotoUrl(photo) || "").toLowerCase();
-  const path = String(photo?.file_path || photo?.storage_path || photo?.photo_path || "").toLowerCase();
-  const type = String(photo?.mime_type || photo?.media_type || photo?.content_type || "").toLowerCase();
+  const path = String(
+    photo?.file_path ||
+      photo?.storage_path ||
+      photo?.photo_path ||
+      photo?.image_path ||
+      ""
+  ).toLowerCase();
+  const type = String(
+    photo?.mime_type ||
+      photo?.media_type ||
+      photo?.content_type ||
+      photo?.file_type ||
+      ""
+  ).toLowerCase();
+  const title = String(
+    photo?.title ||
+      photo?.current_finding_title ||
+      photo?.finding_title ||
+      photo?.caption ||
+      ""
+  ).toLowerCase();
 
   return (
+    Boolean(photo?.is_video) ||
+    Boolean(photo?.video_url) ||
     type.startsWith("video/") ||
-    path.match(/\.(mp4|mov|m4v|webm|avi)$/) !== null ||
-    url.match(/\.(mp4|mov|m4v|webm|avi)(\?|$)/) !== null
+    type.includes("quicktime") ||
+    path.match(/\.(mp4|mov|m4v|webm|avi|quicktime)$/) !== null ||
+    url.match(/\.(mp4|mov|m4v|webm|avi|quicktime)(\?|$)/) !== null ||
+    title.includes("video")
   );
 }
 
@@ -429,6 +452,25 @@ function getFindingPhotos(finding: any) {
     signed_url: legacyImage,
     public_url: legacyImage,
     image_url: legacyImage,
+    file_path:
+      finding.file_path ||
+      finding.storage_path ||
+      finding.photo_path ||
+      finding.image_path ||
+      "",
+    mime_type:
+      finding.mime_type ||
+      finding.media_type ||
+      finding.content_type ||
+      finding.file_type ||
+      "",
+    title:
+      finding.title ||
+      finding.finding_title ||
+      finding.defect_title ||
+      finding.name ||
+      "",
+    is_video: finding.is_video || finding.media_type === "video",
     isLegacyImage: true,
   };
 
@@ -515,7 +557,7 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
   }
 
   return (
-    <article className="overflow-hidden rounded-2xl border border-slate-700 bg-[#071224] shadow-xl">
+    <article className="w-full max-w-full overflow-hidden rounded-2xl border border-slate-700 bg-[#071224] shadow-xl">
       {photos.length > 0 && (
         <div className="border-b border-slate-700 bg-black p-3">
           <div
@@ -532,20 +574,24 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
               return (
                 <div
                   key={String(photo.id || photo.file_path || url || index)}
-                  className="overflow-hidden rounded-xl border border-slate-700 bg-slate-950"
+                  className="w-full max-w-full overflow-hidden rounded-xl border border-slate-700 bg-slate-950"
                 >
-                  <a href={url} target="_blank" rel="noreferrer" className="block">
-                    {isVideoMedia(photo) ? (
-                      <video
-                        src={url}
-                        controls
-                        className={
-                          photos.length === 1
-                            ? "max-h-[650px] w-full bg-black object-contain"
-                            : "h-56 w-full bg-black object-contain"
-                        }
-                      />
-                    ) : (
+                  {isVideoMedia(photo) ? (
+                    <video
+                      src={url}
+                      controls
+                      playsInline
+                      preload="metadata"
+                      className={
+                        photos.length === 1
+                          ? "max-h-[650px] w-full bg-black object-contain"
+                          : "h-56 w-full bg-black object-contain"
+                      }
+                    >
+                      Your browser does not support video playback.
+                    </video>
+                  ) : (
+                    <a href={url} target="_blank" rel="noreferrer" className="block">
                       <img
                         src={url}
                         alt={`Finding photo ${index + 1}`}
@@ -555,8 +601,8 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
                             : "h-56 w-full object-contain transition hover:scale-[1.02]"
                         }
                       />
-                    )}
-                  </a>
+                    </a>
+                  )}
 
                   <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-800 px-3 py-2 text-xs font-bold text-slate-400">
                     <span>Photo {index + 1}</span>
@@ -591,7 +637,7 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
         </div>
       )}
 
-      <div className="p-6">
+      <div className="w-full max-w-full overflow-hidden p-4 sm:p-6">
         <div className="mb-4 flex flex-wrap items-center gap-3">
           <span
             className={`rounded-full border px-3 py-1 text-xs font-extrabold uppercase tracking-wide ${getSeverityStyle(
@@ -614,7 +660,7 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
           )}
         </div>
 
-        <h3 className="mb-4 text-2xl font-black text-white">
+        <h3 className="mb-4 break-words text-2xl font-black text-white">
           {finding.title ||
             finding.finding_title ||
             finding.defect_title ||
@@ -622,7 +668,7 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
             "Untitled Finding"}
         </h3>
 
-        <div className="mb-5 flex flex-wrap gap-2">
+        <div className="mb-5 flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap">
           <button
             type="button"
             onClick={async (event) => {
@@ -665,7 +711,7 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
                 alert("Failed to save template.");
               }
             }}
-            className="rounded-xl border border-yellow-500 px-4 py-2 text-sm font-black text-yellow-300 hover:bg-yellow-500/10"
+            className="w-full rounded-xl border border-yellow-500 px-4 py-2 text-sm font-black text-yellow-300 hover:bg-yellow-500/10 sm:w-auto"
           >
             ⭐ Save as Template
           </button>
@@ -676,15 +722,15 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
               event.stopPropagation();
               setShowPhotoPicker((prev) => !prev);
             }}
-            className="rounded-xl border border-cyan-500 px-4 py-2 text-sm font-black text-cyan-300 hover:bg-cyan-500/10"
+            className="w-full rounded-xl border border-cyan-500 px-4 py-2 text-sm font-black text-cyan-300 hover:bg-cyan-500/10 sm:w-auto"
           >
             📎 Add Existing Photo
           </button>
         </div>
 
         {showPhotoPicker && (
-          <div className="mb-5 rounded-xl border border-cyan-700 bg-cyan-950/20 p-4">
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <div className="mb-5 w-full max-w-full overflow-hidden rounded-xl border border-cyan-700 bg-cyan-950/20 p-4">
+            <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h4 className="text-lg font-black text-cyan-300">
                   Add Existing Photo To This Finding
@@ -697,7 +743,7 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
               <button
                 type="button"
                 onClick={() => setShowPhotoPicker(false)}
-                className="rounded-lg border border-slate-600 px-3 py-2 text-sm font-bold text-slate-200 hover:bg-slate-800"
+                className="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm font-bold text-slate-200 hover:bg-slate-800 sm:w-auto"
               >
                 Close
               </button>
@@ -708,7 +754,7 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
                 No movable photo records were found in this report yet.
               </p>
             ) : (
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 {allPhotos.map((photo: any, index: number) => {
                   const url = getPhotoUrl(photo);
                   const alreadyAttached =
@@ -718,7 +764,7 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
                   return (
                     <div
                       key={String(photo.id || photo.file_path || index)}
-                      className="overflow-hidden rounded-xl border border-slate-700 bg-slate-950"
+                      className="w-full max-w-full overflow-hidden rounded-xl border border-slate-700 bg-slate-950"
                     >
                       {url ? (
                         isVideoMedia(photo) ? (
@@ -768,7 +814,7 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
 
         <div
           onClick={(event) => event.stopPropagation()}
-          className="mb-5 rounded-xl border border-slate-700 bg-slate-950/40 p-4"
+          className="mb-5 w-full max-w-full overflow-hidden rounded-xl border border-slate-700 bg-slate-950/40 p-3 sm:p-4"
         >
           <EditableFinding finding={finding} />
         </div>
@@ -798,8 +844,8 @@ function ReportBlock({ title, text }: any) {
     <div className="mt-5">
       <h4 className="mb-2 text-lg font-bold text-white">{title}</h4>
 
-      <div className="rounded-xl border border-slate-700 bg-slate-900/60 p-4">
-        <p className="whitespace-pre-line text-sm leading-7 text-slate-200">
+      <div className="w-full max-w-full overflow-hidden rounded-xl border border-slate-700 bg-slate-900/60 p-4">
+        <p className="whitespace-pre-line break-words text-sm leading-7 text-slate-200">
           {text}
         </p>
       </div>

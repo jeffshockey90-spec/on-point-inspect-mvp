@@ -84,8 +84,8 @@ export default function AgreementStatusPanel({
   }
 
   return (
-    <section className="mb-8 rounded-2xl border border-slate-700 bg-[#071224] p-5">
-      <div className="flex flex-wrap items-start justify-between gap-4">
+    <section className="mb-8 w-full max-w-full overflow-hidden rounded-2xl border border-slate-700 bg-[#071224] p-4 sm:p-5">
+      <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h2 className="text-2xl font-bold text-teal-300">
             Agreement Status
@@ -101,7 +101,7 @@ export default function AgreementStatusPanel({
             type="button"
             onClick={() => sendReminder()}
             disabled={sendingReminder !== null}
-            className="rounded-xl border border-yellow-500 px-4 py-2 font-bold text-yellow-300 hover:bg-yellow-500/10 disabled:opacity-50"
+            className="w-full rounded-xl border border-yellow-500 px-4 py-2 font-bold text-yellow-300 hover:bg-yellow-500/10 disabled:opacity-50 sm:w-auto"
           >
             {sendingReminder === "all"
               ? "Sending..."
@@ -156,14 +156,14 @@ export default function AgreementStatusPanel({
             {requiredContacts.map((contact) => (
               <div
                 key={contact.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-700 bg-slate-950 p-4"
+                className="flex w-full min-w-0 flex-col gap-3 rounded-xl border border-slate-700 bg-slate-950 p-4 sm:flex-row sm:items-center sm:justify-between"
               >
-                <div>
-                  <p className="font-bold text-white">
+                <div className="min-w-0">
+                  <p className="break-words font-bold text-white">
                     {contact.name}
                   </p>
 
-                  <p className="text-sm text-slate-400">
+                  <p className="break-all text-sm text-slate-400">
                     {contact.email}
                   </p>
 
@@ -172,9 +172,9 @@ export default function AgreementStatusPanel({
                   </p>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
                   <span
-                    className={`rounded-xl px-3 py-2 text-sm font-bold ${
+                    className={`w-full rounded-xl px-3 py-2 text-center text-sm font-bold sm:w-auto ${
                       contact.agreement_signed
                         ? "bg-green-500 text-slate-950"
                         : "border border-yellow-500 text-yellow-300"
@@ -188,7 +188,7 @@ export default function AgreementStatusPanel({
                       type="button"
                       onClick={() => sendReminder(contact.id)}
                       disabled={sendingReminder !== null}
-                      className="rounded-xl border border-yellow-500 px-3 py-2 text-sm font-bold text-yellow-300 hover:bg-yellow-500/10 disabled:opacity-50"
+                      className="w-full rounded-xl border border-yellow-500 px-3 py-2 text-sm font-bold text-yellow-300 hover:bg-yellow-500/10 disabled:opacity-50 sm:w-auto"
                     >
                       {sendingReminder === contact.id
                         ? "Sending..."

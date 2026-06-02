@@ -165,7 +165,7 @@ export default function SendFullReportButton({
       type="button"
       onClick={sendReport}
       disabled={sending}
-      className="rounded-xl border border-purple-500 px-5 py-3 font-bold text-purple-300 hover:bg-purple-500/10 disabled:cursor-not-allowed disabled:opacity-60"
+      className="w-full rounded-xl border border-purple-500 px-5 py-3 font-bold text-purple-300 hover:bg-purple-500/10 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
     >
       {sending ? "Checking Requirements..." : "Send Report"}
     </button>

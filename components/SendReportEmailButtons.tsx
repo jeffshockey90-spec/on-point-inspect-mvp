@@ -117,12 +117,12 @@ export default function SendReportEmailButtons({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
+    <div className="flex w-full max-w-full flex-col gap-3 overflow-hidden sm:flex-row sm:flex-wrap sm:items-center">
       <button
         type="button"
         onClick={() => sendEmail("client")}
         disabled={sending !== null || !finalClientEmail}
-        className="rounded-xl bg-teal-500 px-5 py-3 font-bold text-slate-950 hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50"
+        className="w-full rounded-xl bg-teal-500 px-5 py-3 font-bold text-slate-950 hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
         title={finalClientEmail || "No client email found"}
       >
         {sending === "client" ? "Checking..." : "Email Client"}
@@ -132,25 +132,25 @@ export default function SendReportEmailButtons({
         type="button"
         onClick={() => sendEmail("realtor")}
         disabled={sending !== null || !finalRealtorEmail}
-        className="rounded-xl border border-purple-500 px-5 py-3 font-bold text-purple-300 hover:bg-purple-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+        className="w-full rounded-xl border border-purple-500 px-5 py-3 font-bold text-purple-300 hover:bg-purple-500/10 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
         title={finalRealtorEmail || "No realtor email found"}
       >
         {sending === "realtor" ? "Checking..." : "Email Realtor"}
       </button>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex w-full min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
         <input
           value={customEmail}
           onChange={(e) => setCustomEmail(e.target.value)}
           placeholder="Send to another email"
-          className="min-w-[260px] rounded-xl border border-slate-700 bg-[#020617] px-4 py-3 text-white"
+          className="box-border w-full min-w-0 rounded-xl border border-slate-700 bg-[#020617] px-4 py-3 text-white outline-none placeholder:text-slate-500 focus:border-cyan-400 sm:max-w-sm sm:flex-1"
         />
 
         <button
           type="button"
           onClick={() => sendEmail("custom")}
           disabled={sending !== null}
-          className="rounded-xl border border-cyan-500 px-5 py-3 font-bold text-cyan-300 hover:bg-cyan-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full rounded-xl border border-cyan-500 px-5 py-3 font-bold text-cyan-300 hover:bg-cyan-500/10 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
         >
           {sending === "custom" ? "Checking..." : "Send"}
         </button>

@@ -149,13 +149,13 @@ export default function PaymentInvoicePanel({
 
   return (
     <section
-      className={`mb-8 rounded-2xl border p-5 ${
+      className={`mb-8 w-full max-w-full overflow-hidden rounded-2xl border p-4 sm:p-5 ${
         isPaid
           ? "border-emerald-600 bg-emerald-950/20"
           : "border-orange-600 bg-orange-950/20"
       }`}
     >
-      <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
+      <div className="mb-5 flex flex-col items-stretch gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h2
             className={`text-2xl font-black ${
@@ -172,7 +172,7 @@ export default function PaymentInvoicePanel({
         </div>
 
         <div
-          className={`rounded-xl border px-4 py-3 text-right ${
+          className={`w-full rounded-xl border px-4 py-3 text-left sm:w-auto sm:text-right ${
             isPaid
               ? "border-emerald-500 bg-emerald-950/40"
               : "border-orange-500 bg-orange-950/40"
@@ -201,7 +201,7 @@ export default function PaymentInvoicePanel({
         </div>
       )}
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid w-full grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
         <label className="block">
           <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
             Payment Status
@@ -210,7 +210,7 @@ export default function PaymentInvoicePanel({
           <select
             value={paymentStatus}
             onChange={(event) => setPaymentStatus(event.target.value)}
-            className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+            className="box-border w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
           >
             {PAYMENT_STATUSES.map((status) => (
               <option key={status}>{status}</option>
@@ -227,7 +227,7 @@ export default function PaymentInvoicePanel({
             type="number"
             value={invoiceAmount}
             onChange={(event) => setInvoiceAmount(event.target.value)}
-            className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+            className="box-border w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
           />
         </label>
 
@@ -240,7 +240,7 @@ export default function PaymentInvoicePanel({
             type="number"
             value={amountPaid}
             onChange={(event) => setAmountPaid(event.target.value)}
-            className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+            className="box-border w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
           />
         </label>
 
@@ -253,12 +253,12 @@ export default function PaymentInvoicePanel({
             type="date"
             value={invoiceDueDate}
             onChange={(event) => setInvoiceDueDate(event.target.value)}
-            className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+            className="box-border w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
           />
         </label>
       </div>
 
-      <div className="mt-4 grid gap-4 md:grid-cols-2">
+      <div className="mt-4 grid w-full grid-cols-1 gap-4 md:grid-cols-2">
         <label className="block">
           <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
             Payment Method
@@ -267,7 +267,7 @@ export default function PaymentInvoicePanel({
           <select
             value={paymentMethod}
             onChange={(event) => setPaymentMethod(event.target.value)}
-            className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+            className="box-border w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
           >
             {PAYMENT_METHODS.map((method) => (
               <option key={method} value={method}>
@@ -286,16 +286,16 @@ export default function PaymentInvoicePanel({
             value={paymentNotes}
             onChange={(event) => setPaymentNotes(event.target.value)}
             placeholder="Example: paid by check, invoice sent, waived, etc."
-            className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+            className="box-border w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
           />
         </label>
       </div>
 
-      <div className="mt-5 flex flex-wrap gap-3">
+      <div className="mt-5 flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap">
         <button
           type="button"
           onClick={markPaid}
-          className="rounded-xl bg-emerald-500 px-5 py-3 font-black text-slate-950 hover:bg-emerald-400"
+          className="w-full rounded-xl bg-emerald-500 px-5 py-3 font-black text-slate-950 hover:bg-emerald-400 sm:w-auto"
         >
           Mark Paid
         </button>
@@ -303,7 +303,7 @@ export default function PaymentInvoicePanel({
         <button
           type="button"
           onClick={markUnpaid}
-          className="rounded-xl border border-orange-500 px-5 py-3 font-bold text-orange-300 hover:bg-orange-500/10"
+          className="w-full rounded-xl border border-orange-500 px-5 py-3 font-bold text-orange-300 hover:bg-orange-500/10 sm:w-auto"
         >
           Mark Unpaid
         </button>
@@ -311,7 +311,7 @@ export default function PaymentInvoicePanel({
         <button
           type="button"
           onClick={markWaived}
-          className="rounded-xl border border-slate-600 px-5 py-3 font-bold text-slate-200 hover:bg-slate-800"
+          className="w-full rounded-xl border border-slate-600 px-5 py-3 font-bold text-slate-200 hover:bg-slate-800 sm:w-auto"
         >
           Waive Payment
         </button>
@@ -320,7 +320,7 @@ export default function PaymentInvoicePanel({
           type="button"
           onClick={savePaymentStatus}
           disabled={saving}
-          className="rounded-xl bg-teal-500 px-6 py-3 font-black text-slate-950 hover:bg-teal-400 disabled:opacity-50"
+          className="w-full rounded-xl bg-teal-500 px-6 py-3 font-black text-slate-950 hover:bg-teal-400 disabled:opacity-50 sm:w-auto"
         >
           {saving ? "Saving..." : "Save Payment Status"}
         </button>
