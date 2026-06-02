@@ -250,6 +250,69 @@ function getSeverityClass(severityValue: any) {
   return "border-teal-500/50 bg-teal-500/15 text-teal-200";
 }
 
+
+function getFindingTitle(finding: any) {
+  return (
+    finding?.title ||
+    finding?.finding_title ||
+    finding?.defect_title ||
+    finding?.name ||
+    "Untitled Finding"
+  );
+}
+
+function getFindingSummary(finding: any) {
+  return (
+    finding?.observation ||
+    finding?.recommendation ||
+    finding?.implication ||
+    finding?.comment ||
+    "Tap to view finding details."
+  );
+}
+
+function getFindingPhotoUrl(finding: any) {
+  const firstPhoto = (finding?.photos || [])[0];
+
+  return (
+    firstPhoto?.signed_url ||
+    firstPhoto?.public_url ||
+    firstPhoto?.image_url ||
+    firstPhoto?.photo_url ||
+    finding?.signed_image_url ||
+    finding?.image_url ||
+    finding?.public_image_url ||
+    ""
+  );
+}
+
+function isVideoMedia(media: any, urlValue?: string) {
+  const url = String(urlValue || "").toLowerCase();
+  const path = String(
+    media?.file_path ||
+      media?.storage_path ||
+      media?.photo_path ||
+      media?.image_path ||
+      ""
+  ).toLowerCase();
+  const type = String(
+    media?.mime_type ||
+      media?.media_type ||
+      media?.content_type ||
+      media?.file_type ||
+      ""
+  ).toLowerCase();
+
+  return (
+    Boolean(media?.is_video) ||
+    Boolean(media?.video_url) ||
+    type.startsWith("video/") ||
+    type.includes("quicktime") ||
+    path.match(/\.(mp4|mov|m4v|webm|avi|quicktime)$/) !== null ||
+    url.match(/\.(mp4|mov|m4v|webm|avi|quicktime)(\?|$)/) !== null
+  );
+}
+
 async function createSignedUrlMap(paths: string[]) {
   const uniquePaths = Array.from(
     new Set(paths.filter((path) => Boolean(path)))
@@ -1179,85 +1242,201 @@ export default async function PublicSharePage({
                         </div>
                       )}
 
-                      <div className="space-y-6">
+                      <div className="space-y-3 md:space-y-6">
                         {group.findings.map((finding: any) => {
                           const firstPhoto = (finding.photos || [])[0];
-
-                          const image =
-                            firstPhoto?.signed_url ||
-                            firstPhoto?.public_url ||
-                            firstPhoto?.image_url ||
-                            firstPhoto?.photo_url ||
-                            finding.signed_image_url ||
-                            finding.image_url ||
-                            finding.public_image_url ||
-                            "";
+                          const image = getFindingPhotoUrl(finding);
+                          const title = getFindingTitle(finding);
+                          const summary = getFindingSummary(finding);
+                          const isVideo = isVideoMedia(firstPhoto || finding, image);
 
                           return (
-                            <article
-                              key={finding.id}
-                              className="overflow-hidden rounded-2xl border border-slate-700 bg-[#0f172a] shadow-xl"
-                            >
-                              <div className="border-b border-slate-700 bg-[#020817] p-5">
-                                <div className="flex flex-wrap items-start justify-between gap-4">
-                                  <div>
-                                    <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                                      {finding.section}
-                                    </p>
+                            <div key={finding.id}>
+                              <details className="group overflow-hidden rounded-2xl border border-slate-700 bg-[#0f172a] shadow-xl md:hidden">
+                                <summary className="cursor-pointer list-none">
+                                  <div className="flex gap-3 p-3">
+                                    <div className="h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-slate-700 bg-[#020617]">
+                                      {image ? (
+                                        isVideo ? (
+                                          <div className="relative h-full w-full bg-black">
+                                            <video
+                                              src={image}
+                                              muted
+                                              playsInline
+                                              preload="metadata"
+                                              className="h-full w-full object-cover opacity-80"
+                                            />
+                                            <span className="absolute inset-x-2 bottom-2 rounded-full border border-cyan-400 bg-black/75 px-2 py-1 text-center text-[10px] font-black uppercase tracking-wide text-cyan-300">
+                                              Video
+                                            </span>
+                                          </div>
+                                        ) : (
+                                          <img
+                                            src={image}
+                                            alt={title}
+                                            loading="lazy"
+                                            decoding="async"
+                                            className="h-full w-full object-cover"
+                                          />
+                                        )
+                                      ) : (
+                                        <div className="flex h-full w-full items-center justify-center px-2 text-center text-[10px] font-black uppercase tracking-wide text-slate-500">
+                                          No Photo
+                                        </div>
+                                      )}
+                                    </div>
 
-                                    <h4 className="mt-1 text-2xl font-black text-teal-300">
-                                      {finding.title || "Untitled Finding"}
-                                    </h4>
+                                    <div className="min-w-0 flex-1">
+                                      <div className="mb-2 flex flex-wrap items-center gap-2">
+                                        <span
+                                          className={`rounded-full border px-2 py-1 text-[10px] font-black uppercase tracking-wide ${getSeverityClass(
+                                            finding.severity
+                                          )}`}
+                                        >
+                                          {finding.severity || "Recommended Repair"}
+                                        </span>
+                                      </div>
+
+                                      <h4 className="line-clamp-2 break-words text-base font-black leading-tight text-white">
+                                        {title}
+                                      </h4>
+
+                                      <p className="mt-1 truncate text-[11px] font-bold uppercase tracking-wide text-teal-300">
+                                        {finding.section}
+                                      </p>
+
+                                      <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-300">
+                                        {summary}
+                                      </p>
+
+                                      <p className="mt-2 text-xs font-black text-cyan-300">
+                                        View Finding →
+                                      </p>
+                                    </div>
                                   </div>
+                                </summary>
 
-                                  <span
-                                    className={`rounded-full border px-4 py-2 text-xs font-black uppercase tracking-wide ${getSeverityClass(
-                                      finding.severity
-                                    )}`}
-                                  >
-                                    {finding.severity || "Recommended Repair"}
-                                  </span>
+                                <div className="border-t border-slate-700 p-4">
+                                  {image && (
+                                    isVideo ? (
+                                      <video
+                                        src={image}
+                                        controls
+                                        playsInline
+                                        preload="metadata"
+                                        className="mb-4 max-h-[360px] w-full rounded-xl border border-slate-700 bg-black object-contain"
+                                      />
+                                    ) : (
+                                      <img
+                                        src={image}
+                                        alt="Inspection finding"
+                                        loading="lazy"
+                                        decoding="async"
+                                        className="mb-4 max-h-[360px] w-full rounded-xl border border-slate-700 object-contain"
+                                      />
+                                    )
+                                  )}
+
+                                  <div className="grid gap-3">
+                                    <FindingTextCard
+                                      title="Observation"
+                                      value={finding.observation}
+                                      tone="blue"
+                                    />
+
+                                    <FindingTextCard
+                                      title="Implication"
+                                      value={finding.implication}
+                                      tone="yellow"
+                                    />
+
+                                    <FindingTextCard
+                                      title="Recommendation"
+                                      value={finding.recommendation}
+                                      tone="teal"
+                                    />
+
+                                    <FindingTextCard
+                                      title="Additional Notes"
+                                      value={finding.comment}
+                                      tone="slate"
+                                    />
+                                  </div>
                                 </div>
-                              </div>
+                              </details>
 
-                              <div className="p-5">
-                                {image && (
-                                  <img
-                                    src={image}
-                                    alt="Inspection finding"
-                                    loading="lazy"
-                                    decoding="async"
-                                    className="mb-5 max-h-[520px] w-full rounded-xl border border-slate-700 object-contain"
-                                  />
-                                )}
+                              <article className="hidden overflow-hidden rounded-2xl border border-slate-700 bg-[#0f172a] shadow-xl md:block">
+                                <div className="border-b border-slate-700 bg-[#020817] p-5">
+                                  <div className="flex flex-wrap items-start justify-between gap-4">
+                                    <div>
+                                      <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                                        {finding.section}
+                                      </p>
 
-                                <div className="grid gap-4">
-                                  <FindingTextCard
-                                    title="Observation"
-                                    value={finding.observation}
-                                    tone="blue"
-                                  />
+                                      <h4 className="mt-1 text-2xl font-black text-teal-300">
+                                        {title}
+                                      </h4>
+                                    </div>
 
-                                  <FindingTextCard
-                                    title="Implication"
-                                    value={finding.implication}
-                                    tone="yellow"
-                                  />
-
-                                  <FindingTextCard
-                                    title="Recommendation"
-                                    value={finding.recommendation}
-                                    tone="teal"
-                                  />
-
-                                  <FindingTextCard
-                                    title="Additional Notes"
-                                    value={finding.comment}
-                                    tone="slate"
-                                  />
+                                    <span
+                                      className={`rounded-full border px-4 py-2 text-xs font-black uppercase tracking-wide ${getSeverityClass(
+                                        finding.severity
+                                      )}`}
+                                    >
+                                      {finding.severity || "Recommended Repair"}
+                                    </span>
+                                  </div>
                                 </div>
-                              </div>
-                            </article>
+
+                                <div className="p-5">
+                                  {image && (
+                                    isVideo ? (
+                                      <video
+                                        src={image}
+                                        controls
+                                        playsInline
+                                        preload="metadata"
+                                        className="mb-5 max-h-[520px] w-full rounded-xl border border-slate-700 bg-black object-contain"
+                                      />
+                                    ) : (
+                                      <img
+                                        src={image}
+                                        alt="Inspection finding"
+                                        loading="lazy"
+                                        decoding="async"
+                                        className="mb-5 max-h-[520px] w-full rounded-xl border border-slate-700 object-contain"
+                                      />
+                                    )
+                                  )}
+
+                                  <div className="grid gap-4">
+                                    <FindingTextCard
+                                      title="Observation"
+                                      value={finding.observation}
+                                      tone="blue"
+                                    />
+
+                                    <FindingTextCard
+                                      title="Implication"
+                                      value={finding.implication}
+                                      tone="yellow"
+                                    />
+
+                                    <FindingTextCard
+                                      title="Recommendation"
+                                      value={finding.recommendation}
+                                      tone="teal"
+                                    />
+
+                                    <FindingTextCard
+                                      title="Additional Notes"
+                                      value={finding.comment}
+                                      tone="slate"
+                                    />
+                                  </div>
+                                </div>
+                              </article>
+                            </div>
                           );
                         })}
                       </div>

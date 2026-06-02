@@ -481,28 +481,10 @@ function getFindingPhotos(finding: any) {
   return photos;
 }
 
-
 function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
   const [showPhotoPicker, setShowPhotoPicker] = useState(false);
   const [movingPhotoId, setMovingPhotoId] = useState<string | null>(null);
-  const [mobileExpanded, setMobileExpanded] = useState(false);
   const photos = getFindingPhotos(finding);
-
-  const findingTitle =
-    finding.title ||
-    finding.finding_title ||
-    finding.defect_title ||
-    finding.name ||
-    "Untitled Finding";
-
-  const firstPhoto = photos[0];
-  const firstPhotoUrl = firstPhoto ? getPhotoUrl(firstPhoto) : "";
-  const shortSummary =
-    finding.observation ||
-    finding.recommendation ||
-    finding.implication ||
-    finding.comment ||
-    "";
 
   async function movePhotoToFinding(photo: any) {
     if (!photo?.id || photo.isLegacyImage) {
@@ -574,44 +556,8 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
     }
   }
 
-  async function saveFindingAsTemplate(event: React.MouseEvent) {
-    event.stopPropagation();
-
-    try {
-      const res = await fetch("/api/save-finding-template", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: findingTitle,
-          section: finding.section || "Inspection Details",
-          severity: finding.severity || "Recommended Repair",
-          observation: finding.observation || "",
-          implication: finding.implication || "",
-          recommendation: finding.recommendation || "",
-        }),
-      });
-
-      let data: any = {};
-
-      try {
-        data = await res.json();
-      } catch {
-        data = {};
-      }
-
-      if (!res.ok) {
-        alert(data.error || "Failed to save template.");
-        return;
-      }
-
-      alert("Template saved!");
-    } catch {
-      alert("Failed to save template.");
-    }
-  }
-
-  const photoGallery = (
-    <>
+  return (
+    <article className="w-full max-w-full overflow-hidden rounded-2xl border border-slate-700 bg-[#071224] shadow-xl">
       {photos.length > 0 && (
         <div className="border-b border-slate-700 bg-black p-3">
           <div
@@ -690,280 +636,206 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
           </div>
         </div>
       )}
-    </>
-  );
 
-  const photoPicker = (
-    <>
-      {showPhotoPicker && (
-        <div className="mb-5 w-full max-w-full overflow-hidden rounded-xl border border-cyan-700 bg-cyan-950/20 p-4">
-          <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h4 className="text-lg font-black text-cyan-300">
-                Add Existing Photo To This Finding
-              </h4>
-              <p className="mt-1 text-sm text-slate-300">
-                Select a photo from this report. It will be moved from its current finding to this one.
-              </p>
-            </div>
+      <div className="w-full max-w-full overflow-hidden p-4 sm:p-6">
+        <div className="mb-4 flex flex-wrap items-center gap-3">
+          <span
+            className={`rounded-full border px-3 py-1 text-xs font-extrabold uppercase tracking-wide ${getSeverityStyle(
+              finding.severity
+            )}`}
+          >
+            {finding.severity || "Recommended Repair"}
+          </span>
 
-            <button
-              type="button"
-              onClick={() => setShowPhotoPicker(false)}
-              className="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm font-bold text-slate-200 hover:bg-slate-800 sm:w-auto"
-            >
-              Close
-            </button>
-          </div>
+          {finding.section && (
+            <span className="rounded-full border border-slate-600 bg-slate-900/70 px-3 py-1 text-xs font-bold uppercase tracking-wide text-slate-300">
+              {finding.section}
+            </span>
+          )}
 
-          {allPhotos.length === 0 ? (
-            <p className="rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-sm text-slate-400">
-              No movable photo records were found in this report yet.
-            </p>
-          ) : (
-            <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {allPhotos.map((photo: any, index: number) => {
-                const url = getPhotoUrl(photo);
-                const alreadyAttached =
-                  String(photo.finding_id || photo.current_finding_id || "") ===
-                  String(finding.id);
-
-                return (
-                  <div
-                    key={String(photo.id || photo.file_path || index)}
-                    className="w-full max-w-full overflow-hidden rounded-xl border border-slate-700 bg-slate-950"
-                  >
-                    {url ? (
-                      isVideoMedia(photo) ? (
-                        <video
-                          src={url}
-                          controls
-                          playsInline
-                          preload="metadata"
-                          className="h-36 w-full bg-black object-contain"
-                        />
-                      ) : (
-                        <img
-                          src={url}
-                          alt={`Report photo ${index + 1}`}
-                          className="h-36 w-full object-contain"
-                        />
-                      )
-                    ) : (
-                      <div className="flex h-36 items-center justify-center text-sm text-slate-500">
-                        No preview
-                      </div>
-                    )}
-
-                    <div className="space-y-2 border-t border-slate-800 p-3">
-                      <p className="line-clamp-2 text-xs font-bold text-slate-300">
-                        {photo.current_section} · {photo.current_finding_title}
-                      </p>
-
-                      <button
-                        type="button"
-                        onClick={() => movePhotoToFinding(photo)}
-                        disabled={alreadyAttached || movingPhotoId === String(photo.id)}
-                        className="w-full rounded-lg bg-cyan-500 px-3 py-2 text-xs font-black text-slate-950 hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        {alreadyAttached
-                          ? "Already Here"
-                          : movingPhotoId === String(photo.id)
-                          ? "Moving..."
-                          : "Move Here"}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+          {photos.length > 0 && (
+            <span className="rounded-full border border-cyan-600 bg-cyan-950/40 px-3 py-1 text-xs font-bold uppercase tracking-wide text-cyan-300">
+              {photos.length} photo{photos.length === 1 ? "" : "s"}
+            </span>
           )}
         </div>
-      )}
-    </>
-  );
 
-  const findingActions = (
-    <div className="mb-5 flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap">
-      <button
-        type="button"
-        onClick={saveFindingAsTemplate}
-        className="w-full rounded-xl border border-yellow-500 px-4 py-2 text-sm font-black text-yellow-300 hover:bg-yellow-500/10 sm:w-auto"
-      >
-        ⭐ Save as Template
-      </button>
+        <h3 className="mb-4 break-words text-2xl font-black text-white">
+          {finding.title ||
+            finding.finding_title ||
+            finding.defect_title ||
+            finding.name ||
+            "Untitled Finding"}
+        </h3>
 
-      <button
-        type="button"
-        onClick={(event) => {
-          event.stopPropagation();
-          setShowPhotoPicker((prev) => !prev);
-        }}
-        className="w-full rounded-xl border border-cyan-500 px-4 py-2 text-sm font-black text-cyan-300 hover:bg-cyan-500/10 sm:w-auto"
-      >
-        📎 Add Existing Photo
-      </button>
-    </div>
-  );
+        <div className="mb-5 flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap">
+          <button
+            type="button"
+            onClick={async (event) => {
+              event.stopPropagation();
 
-  const fullFindingContent = (
-    <>
-      <div className="mb-4 flex flex-wrap items-center gap-3">
-        <span
-          className={`rounded-full border px-3 py-1 text-xs font-extrabold uppercase tracking-wide ${getSeverityStyle(
-            finding.severity
-          )}`}
-        >
-          {finding.severity || "Recommended Repair"}
-        </span>
+              try {
+                const res = await fetch("/api/save-finding-template", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    title:
+                      finding.title ||
+                      finding.finding_title ||
+                      finding.defect_title ||
+                      finding.name ||
+                      "Untitled Finding",
+                    section: finding.section || "Inspection Details",
+                    severity: finding.severity || "Recommended Repair",
+                    observation: finding.observation || "",
+                    implication: finding.implication || "",
+                    recommendation: finding.recommendation || "",
+                  }),
+                });
 
-        {finding.section && (
-          <span className="rounded-full border border-slate-600 bg-slate-900/70 px-3 py-1 text-xs font-bold uppercase tracking-wide text-slate-300">
-            {finding.section}
-          </span>
-        )}
+                let data: any = {};
 
-        {photos.length > 0 && (
-          <span className="rounded-full border border-cyan-600 bg-cyan-950/40 px-3 py-1 text-xs font-bold uppercase tracking-wide text-cyan-300">
-            {photos.length} photo{photos.length === 1 ? "" : "s"}
-          </span>
-        )}
-      </div>
+                try {
+                  data = await res.json();
+                } catch {
+                  data = {};
+                }
 
-      <h3 className="mb-4 break-words text-2xl font-black text-white">
-        {findingTitle}
-      </h3>
+                if (!res.ok) {
+                  alert(data.error || "Failed to save template.");
+                  return;
+                }
 
-      {findingActions}
+                alert("Template saved!");
+              } catch {
+                alert("Failed to save template.");
+              }
+            }}
+            className="w-full rounded-xl border border-yellow-500 px-4 py-2 text-sm font-black text-yellow-300 hover:bg-yellow-500/10 sm:w-auto"
+          >
+            ⭐ Save as Template
+          </button>
 
-      {photoPicker}
-
-      <div
-        onClick={(event) => event.stopPropagation()}
-        className="mb-5 w-full max-w-full overflow-hidden rounded-xl border border-slate-700 bg-slate-950/40 p-3 sm:p-4"
-      >
-        <EditableFinding finding={finding} />
-      </div>
-
-      {finding.observation && (
-        <ReportBlock title="Observation" text={finding.observation} />
-      )}
-
-      {finding.implication && (
-        <ReportBlock title="Implication" text={finding.implication} />
-      )}
-
-      {finding.recommendation && (
-        <ReportBlock title="Recommendation" text={finding.recommendation} />
-      )}
-
-      {finding.comment && (
-        <ReportBlock title="Additional Notes" text={finding.comment} />
-      )}
-    </>
-  );
-
-  return (
-    <>
-      <article className="hidden w-full max-w-full overflow-hidden rounded-2xl border border-slate-700 bg-[#071224] shadow-xl md:block">
-        {photoGallery}
-
-        <div className="w-full max-w-full overflow-hidden p-4 sm:p-6">
-          {fullFindingContent}
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              setShowPhotoPicker((prev) => !prev);
+            }}
+            className="w-full rounded-xl border border-cyan-500 px-4 py-2 text-sm font-black text-cyan-300 hover:bg-cyan-500/10 sm:w-auto"
+          >
+            📎 Add Existing Photo
+          </button>
         </div>
-      </article>
 
-      <article className="block w-full max-w-full overflow-hidden rounded-2xl border border-slate-800 bg-[#071224]/95 shadow-xl md:hidden">
-        <button
-          type="button"
-          onClick={() => setMobileExpanded((prev) => !prev)}
-          className="block w-full text-left transition hover:bg-slate-900/40"
-        >
-          <div className="flex min-w-0 gap-3 p-3">
-            <div className="h-28 w-28 shrink-0 overflow-hidden rounded-xl border border-slate-700 bg-slate-950 shadow-inner">
-              {firstPhotoUrl ? (
-                isVideoMedia(firstPhoto) ? (
-                  <div className="relative flex h-full w-full items-center justify-center bg-black text-xs font-black uppercase tracking-wide text-cyan-300">
-                    <span className="absolute z-10 rounded-full border border-cyan-400 bg-black/80 px-2 py-1 text-[10px]">
-                      Video
-                    </span>
-                  </div>
-                ) : (
-                  <img
-                    src={firstPhotoUrl}
-                    alt={`Finding photo for ${findingTitle}`}
-                    loading="lazy"
-                    decoding="async"
-                    className="h-full w-full object-cover"
-                  />
-                )
-              ) : (
-                <div className="flex h-full w-full items-center justify-center text-center text-[11px] font-bold uppercase tracking-wide text-slate-500">
-                  No Photo
-                </div>
-              )}
-            </div>
-
-            <div className="min-w-0 flex-1 pr-1">
-              {finding.section && (
-                <p className="truncate text-[11px] font-bold text-slate-400">
-                  {finding.section}
+        {showPhotoPicker && (
+          <div className="mb-5 w-full max-w-full overflow-hidden rounded-xl border border-cyan-700 bg-cyan-950/20 p-4">
+            <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h4 className="text-lg font-black text-cyan-300">
+                  Add Existing Photo To This Finding
+                </h4>
+                <p className="mt-1 text-sm text-slate-300">
+                  Select a photo from this report. It will be moved from its current finding to this one.
                 </p>
-              )}
-
-              <h3 className="mt-1 line-clamp-2 break-words text-[17px] font-black leading-tight text-white">
-                {findingTitle}
-              </h3>
-
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <span
-                  className={`rounded-full border px-2 py-1 text-[10px] font-black uppercase tracking-wide ${getSeverityStyle(
-                    finding.severity
-                  )}`}
-                >
-                  {finding.severity || "Recommended Repair"}
-                </span>
-
-                {photos.length > 0 && (
-                  <span className="rounded-full border border-cyan-600 bg-cyan-950/40 px-2 py-1 text-[10px] font-black uppercase tracking-wide text-cyan-300">
-                    {photos.length} photo{photos.length === 1 ? "" : "s"}
-                  </span>
-                )}
               </div>
 
-              {shortSummary && (
-                <p className="mt-2 line-clamp-2 text-[13px] leading-5 text-slate-300">
-                  {shortSummary}
-                </p>
-              )}
+              <button
+                type="button"
+                onClick={() => setShowPhotoPicker(false)}
+                className="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm font-bold text-slate-200 hover:bg-slate-800 sm:w-auto"
+              >
+                Close
+              </button>
             </div>
 
-            <div className="flex shrink-0 items-center text-3xl font-light text-slate-300">
-              {mobileExpanded ? "⌄" : "›"}
-            </div>
-          </div>
-        </button>
-
-        {mobileExpanded && (
-          <div className="border-t border-slate-800 bg-[#020817]/70 p-3">
-            <div className="mb-3 rounded-xl border border-cyan-700/60 bg-cyan-950/20 p-3 text-sm text-slate-300">
-              <p className="font-black uppercase tracking-wide text-cyan-300">
-                Finding Details
+            {allPhotos.length === 0 ? (
+              <p className="rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-sm text-slate-400">
+                No movable photo records were found in this report yet.
               </p>
-              <p className="mt-1 text-xs leading-5 text-slate-400">
-                Full editor tools stay available here for the inspector. Desktop remains unchanged.
-              </p>
-            </div>
+            ) : (
+              <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {allPhotos.map((photo: any, index: number) => {
+                  const url = getPhotoUrl(photo);
+                  const alreadyAttached =
+                    String(photo.finding_id || photo.current_finding_id || "") ===
+                    String(finding.id);
 
-            {photoGallery}
+                  return (
+                    <div
+                      key={String(photo.id || photo.file_path || index)}
+                      className="w-full max-w-full overflow-hidden rounded-xl border border-slate-700 bg-slate-950"
+                    >
+                      {url ? (
+                        isVideoMedia(photo) ? (
+                          <video
+                            src={url}
+                            controls
+                            className="h-36 w-full bg-black object-contain"
+                          />
+                        ) : (
+                          <img
+                            src={url}
+                            alt={`Report photo ${index + 1}`}
+                            className="h-36 w-full object-contain"
+                          />
+                        )
+                      ) : (
+                        <div className="flex h-36 items-center justify-center text-sm text-slate-500">
+                          No preview
+                        </div>
+                      )}
 
-            <div className="w-full max-w-full overflow-hidden pt-4">
-              {fullFindingContent}
-            </div>
+                      <div className="space-y-2 border-t border-slate-800 p-3">
+                        <p className="line-clamp-2 text-xs font-bold text-slate-300">
+                          {photo.current_section} · {photo.current_finding_title}
+                        </p>
+
+                        <button
+                          type="button"
+                          onClick={() => movePhotoToFinding(photo)}
+                          disabled={alreadyAttached || movingPhotoId === String(photo.id)}
+                          className="w-full rounded-lg bg-cyan-500 px-3 py-2 text-xs font-black text-slate-950 hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {alreadyAttached
+                            ? "Already Here"
+                            : movingPhotoId === String(photo.id)
+                            ? "Moving..."
+                            : "Move Here"}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
-      </article>
-    </>
+
+        <div
+          onClick={(event) => event.stopPropagation()}
+          className="mb-5 w-full max-w-full overflow-hidden rounded-xl border border-slate-700 bg-slate-950/40 p-3 sm:p-4"
+        >
+          <EditableFinding finding={finding} />
+        </div>
+
+        {finding.observation && (
+          <ReportBlock title="Observation" text={finding.observation} />
+        )}
+
+        {finding.implication && (
+          <ReportBlock title="Implication" text={finding.implication} />
+        )}
+
+        {finding.recommendation && (
+          <ReportBlock title="Recommendation" text={finding.recommendation} />
+        )}
+
+        {finding.comment && (
+          <ReportBlock title="Additional Notes" text={finding.comment} />
+        )}
+      </div>
+    </article>
   );
 }
 
