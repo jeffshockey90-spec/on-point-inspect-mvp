@@ -3,10 +3,19 @@ import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2026-05-27.dahlia",
-});
+function getStripe() {
+  const key = process.env.STRIPE_SECRET_KEY;
+
+  if (!key) {
+    throw new Error("Missing STRIPE_SECRET_KEY.");
+  }
+
+  return new Stripe(key, {
+    apiVersion: "2026-05-27.dahlia",
+  });
+}
 
 function getSupabaseAdmin() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -34,7 +43,6 @@ function getNumber(value: any) {
   if (typeof value === "string") {
     const cleaned = value.replace(/[^0-9.-]/g, "");
     const parsed = Number(cleaned);
-
     if (Number.isFinite(parsed)) return parsed;
   }
 
@@ -64,10 +72,12 @@ export default async function PaymentSuccessPage({ searchParams }: PageProps) {
       throw new Error("Missing Stripe session.");
     }
 
+    const stripe = getStripe();
     const session = await stripe.checkout.sessions.retrieve(sessionId);
 
-    inspectionId =
-      String(session.metadata?.inspection_id || session.client_reference_id || "");
+    inspectionId = String(
+      session.metadata?.inspection_id || session.client_reference_id || ""
+    );
 
     paid = session.payment_status === "paid" || session.status === "complete";
 
@@ -96,12 +106,16 @@ export default async function PaymentSuccessPage({ searchParams }: PageProps) {
             balancePaid
           )}. Online payment fee: ${money(
             portalProcessingFee
-          )}. Total charged online: ${money(totalPaid)}. Session: ${session.id}`,
+          )}. Total charged online: ${money(totalPaid)}. Session: ${
+            session.id
+          }`,
           invoice_notes: `Stripe payment completed. Inspection balance paid: ${money(
             balancePaid
           )}. Online payment fee: ${money(
             portalProcessingFee
-          )}. Total charged online: ${money(totalPaid)}. Session: ${session.id}`,
+          )}. Total charged online: ${money(totalPaid)}. Session: ${
+            session.id
+          }`,
           stripe_checkout_session_id: session.id,
           stripe_payment_intent_id:
             typeof session.payment_intent === "string"
@@ -146,11 +160,11 @@ export default async function PaymentSuccessPage({ searchParams }: PageProps) {
           </div>
         )}
 
-        <div className="mt-8 flex flex-wrap gap-3">
+        <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
           {inspectionId && (
             <Link
               href={`/client-portal/${inspectionId}`}
-              className="rounded-xl bg-teal-500 px-6 py-3 font-black text-slate-950 hover:bg-teal-400"
+              className="w-full rounded-xl bg-teal-500 px-6 py-3 text-center font-black text-slate-950 hover:bg-teal-400 sm:w-auto"
             >
               Return to Client Portal
             </Link>
@@ -158,7 +172,7 @@ export default async function PaymentSuccessPage({ searchParams }: PageProps) {
 
           <Link
             href="/dashboard"
-            className="rounded-xl border border-slate-700 px-6 py-3 font-bold text-slate-200 hover:bg-slate-800"
+            className="w-full rounded-xl border border-slate-700 px-6 py-3 text-center font-bold text-slate-200 hover:bg-slate-800 sm:w-auto"
           >
             Dashboard
           </Link>

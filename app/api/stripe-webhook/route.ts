@@ -4,14 +4,27 @@ import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2026-05-27.dahlia",
-});
+function getStripe() {
+  const key = process.env.STRIPE_SECRET_KEY;
 
-const resend = process.env.RESEND_API_KEY
-  ? new Resend(process.env.RESEND_API_KEY)
-  : null;
+  if (!key) {
+    throw new Error("Missing STRIPE_SECRET_KEY.");
+  }
+
+  return new Stripe(key, {
+    apiVersion: "2026-05-27.dahlia",
+  });
+}
+
+function getResend() {
+  const key = process.env.RESEND_API_KEY;
+
+  if (!key) return null;
+
+  return new Resend(key);
+}
 
 function getSupabaseAdmin() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -28,7 +41,6 @@ function getSupabaseAdmin() {
     },
   });
 }
-
 
 async function logStripeEvent(
   supabase: any,
@@ -271,6 +283,8 @@ async function sendReceiptEmail({
   portalProcessingFee: number;
   totalCharged: number;
 }) {
+  const resend = getResend();
+
   if (!resend) {
     console.warn("Receipt email skipped: RESEND_API_KEY is missing.");
 
@@ -391,6 +405,8 @@ export async function POST(req: Request) {
   let event: Stripe.Event;
 
   try {
+    const stripe = getStripe();
+
     event = stripe.webhooks.constructEvent(
       body,
       signature,
