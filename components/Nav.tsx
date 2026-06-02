@@ -8,6 +8,7 @@ const navItems = [
   { title: "Dashboard", href: "/", icon: "🏠", mobileLabel: "Home" },
   { title: "New Inspection", href: "/inspections/new", icon: "➕", mobileLabel: "New" },
   { title: "Reports", href: "/reports", icon: "📋", mobileLabel: "Reports" },
+  { title: "Realtors", href: "/realtors", icon: "🏡", mobileLabel: "Realtors" },
   { title: "Agreements", href: "/agreements", icon: "📄", mobileLabel: "Agreements" },
   { title: "AI Capture", href: "/ai-capture", icon: "✨", mobileLabel: "AI" },
   { title: "Templates", href: "/templates", icon: "📚", mobileLabel: "Templates" },
@@ -94,7 +95,7 @@ export default function Navbar() {
 
       <nav className="fixed bottom-0 left-0 right-0 z-50 h-[74px] border-t border-zinc-800 bg-[#0b1220] md:hidden">
         <div className="flex h-full items-center justify-around">
-          {navItems.slice(0, 4).map((item) => {
+          {navItems.slice(0, 5).map((item) => {
             const active = isActive(item.href);
 
             return (

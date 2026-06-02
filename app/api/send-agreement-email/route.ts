@@ -44,6 +44,7 @@ async function logEmailEvent({
       message: metadata?.agreementUrl || "",
       status,
       resend_id: resendId || null,
+      sent_at: status === "sent" ? new Date().toISOString() : null,
       metadata,
     });
 
@@ -126,23 +127,22 @@ export async function POST(req: Request) {
 
     const contactEmails =
       contacts
-        ?.filter(
-          (contact: any) =>
+        ?.filter((contact: any) => {
+          const role = String(contact.role || "").toLowerCase();
+
+          return (
             contact.email &&
             (contact.agreement_required ||
-              contact.portal_access ||
-              ["client", "co-client"].includes(
-                String(contact.role).toLowerCase()
-              ))
-        )
+              role === "client" ||
+              role === "co-client")
+          );
+        })
         .map((contact: any) => String(contact.email).trim().toLowerCase())
         .filter(Boolean) || [];
 
-    const fallbackEmails = [
-      inspection.client_email,
-      inspection.realtor_email,
-      inspection.agent_email,
-    ]
+    // Agreement emails stay client-only. Realtors still receive report/schedule
+    // emails, but are intentionally excluded from pre-inspection agreements.
+    const fallbackEmails = [inspection.client_email]
       .filter(Boolean)
       .map((email: string) => String(email).trim().toLowerCase());
 

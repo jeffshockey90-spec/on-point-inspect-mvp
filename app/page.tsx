@@ -21,6 +21,12 @@ const cards = [
     icon: "📊",
   },
   {
+    title: "Realtors",
+    description: "Manage realtor contacts, referrals, and revenue.",
+    href: "/realtors",
+    icon: "🏡",
+  },
+  {
     title: "Invoices",
     description:
       "Track paid, pending, overdue, and outstanding balances.",
@@ -86,8 +92,8 @@ export default function HomePage() {
 
           <p className="mt-4 max-w-2xl text-lg leading-8 text-slate-300">
             Manage inspections, reports, AI findings, analytics,
-            invoices, radon, mold, templates, quotes, and scheduling
-            from one clean dashboard.
+            invoices, realtor contacts, radon, mold, templates, quotes,
+            and scheduling from one clean dashboard.
           </p>
         </section>
 

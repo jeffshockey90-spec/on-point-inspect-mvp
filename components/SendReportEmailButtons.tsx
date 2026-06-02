@@ -26,13 +26,10 @@ export default function SendReportEmailButtons({
         );
 
         const data = await res.json();
-
         const contacts = data.contacts || [];
 
         const client = contacts.find((contact: any) =>
-          ["client", "co-client"].includes(
-            String(contact.role).toLowerCase()
-          )
+          ["client", "co-client"].includes(String(contact.role).toLowerCase())
         );
 
         const realtor = contacts.find((contact: any) =>
@@ -41,13 +38,8 @@ export default function SendReportEmailButtons({
           )
         );
 
-        if (client?.email) {
-          setContactClientEmail(client.email);
-        }
-
-        if (realtor?.email) {
-          setContactRealtorEmail(realtor.email);
-        }
+        if (client?.email) setContactClientEmail(client.email);
+        if (realtor?.email) setContactRealtorEmail(realtor.email);
       } catch (error) {
         console.error("Failed to load report email contacts:", error);
       }
@@ -101,9 +93,7 @@ export default function SendReportEmailButtons({
 
       const res = await fetch("/api/send-report-email", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           inspectionId,
           recipientType: type,
@@ -133,6 +123,7 @@ export default function SendReportEmailButtons({
         onClick={() => sendEmail("client")}
         disabled={sending !== null || !finalClientEmail}
         className="rounded-xl bg-teal-500 px-5 py-3 font-bold text-slate-950 hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50"
+        title={finalClientEmail || "No client email found"}
       >
         {sending === "client" ? "Checking..." : "Email Client"}
       </button>
@@ -142,6 +133,7 @@ export default function SendReportEmailButtons({
         onClick={() => sendEmail("realtor")}
         disabled={sending !== null || !finalRealtorEmail}
         className="rounded-xl border border-purple-500 px-5 py-3 font-bold text-purple-300 hover:bg-purple-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+        title={finalRealtorEmail || "No realtor email found"}
       >
         {sending === "realtor" ? "Checking..." : "Email Realtor"}
       </button>

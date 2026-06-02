@@ -87,9 +87,12 @@ async function logEmailEvent(
     await supabase.from("email_logs").insert({
       inspection_id: Number(inspectionId),
       recipient,
+      recipient_email: recipient,
+      email_type: metadata?.type || "inspection_report",
       subject,
       status,
       resend_id: resendId || null,
+      sent_at: status === "sent" ? new Date().toISOString() : null,
       metadata,
     });
   } catch (error) {
@@ -165,8 +168,30 @@ export async function POST(req: Request) {
       );
     }
 
+    let contactEmail = "";
+
+    if (!recipientEmail && (recipientType === "client" || recipientType === "realtor")) {
+      const { data: contacts } = await supabase
+        .from("inspection_contacts")
+        .select("email, role")
+        .eq("inspection_id", inspectionId);
+
+      const contact = (contacts || []).find((item: any) => {
+        const role = String(item.role || "").toLowerCase();
+
+        if (recipientType === "client") {
+          return ["client", "co-client"].includes(role) && item.email;
+        }
+
+        return ["realtor", "agent", "transaction coordinator"].includes(role) && item.email;
+      });
+
+      contactEmail = contact?.email || "";
+    }
+
     const finalRecipient =
       recipientEmail ||
+      contactEmail ||
       (recipientType === "client"
         ? inspection.client_email
         : inspection.realtor_email || inspection.agent_email);

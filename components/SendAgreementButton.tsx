@@ -20,13 +20,8 @@ export default function SendAgreementButton({
     try {
       const res = await fetch("/api/send-agreement-email", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          inspectionId,
-          sendToAll: true,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inspectionId }),
       });
 
       const data = await res.json();
@@ -35,7 +30,7 @@ export default function SendAgreementButton({
         throw new Error(data.error || "Failed to send agreement.");
       }
 
-      alert(`Sent ${data.sent?.length || 0} agreement/portal email(s).`);
+      alert(`Sent ${data.sent?.length || 0} client agreement email(s). Realtors are not included on pre-inspection agreements.`);
     } catch (error: any) {
       alert(error.message || "Failed to send agreement.");
     } finally {
@@ -50,7 +45,7 @@ export default function SendAgreementButton({
       disabled={sending}
       className="rounded-xl border border-emerald-500 bg-emerald-500/10 px-5 py-3 font-bold text-emerald-300 transition hover:bg-emerald-500 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-50"
     >
-      {sending ? "Sending..." : "Send Agreements / Portal"}
+      {sending ? "Sending..." : "Send Client Agreement"}
     </button>
   );
 }

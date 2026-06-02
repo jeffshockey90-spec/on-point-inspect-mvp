@@ -20,6 +20,15 @@ type ServiceMode =
   | "home_mold"
   | "home_radon_mold";
 
+
+type RealtorContact = {
+  id: string;
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+  last_contact_date?: string | null;
+};
+
 const serviceOptions: { value: ServiceMode; label: string }[] = [
   { value: "home", label: "Home Inspection" },
   { value: "radon_only", label: "Radon Only" },
@@ -255,6 +264,13 @@ export default function NewInspectionPage() {
   const [clientEmail, setClientEmail] = useState("");
   const [clientPhone, setClientPhone] = useState("");
 
+  const [realtorId, setRealtorId] = useState("");
+  const [realtorName, setRealtorName] = useState("");
+  const [realtorEmail, setRealtorEmail] = useState("");
+  const [realtorPhone, setRealtorPhone] = useState("");
+  const [realtors, setRealtors] = useState<RealtorContact[]>([]);
+  const [showRealtorMatches, setShowRealtorMatches] = useState(false);
+
   const [propertyAddress, setPropertyAddress] = useState("");
   const [city, setCity] = useState("");
   const [stateValue, setStateValue] = useState("MD");
@@ -295,14 +311,54 @@ export default function NewInspectionPage() {
     [squareFeet, serviceMode, moldAirSamples, moldSurfaceSamples, travelFee, discount]
   );
 
+  const filteredRealtors = useMemo(() => {
+    const search = realtorName.trim().toLowerCase();
+
+    if (!search) return realtors.slice(0, 8);
+
+    return realtors
+      .filter((realtor) =>
+        [realtor.name, realtor.email, realtor.phone]
+          .filter(Boolean)
+          .some((value) => String(value).toLowerCase().includes(search))
+      )
+      .slice(0, 8);
+  }, [realtorName, realtors]);
+
   useEffect(() => {
     loadGooglePlaces();
+  }, []);
+
+
+  useEffect(() => {
+    loadRealtors();
   }, []);
 
   useEffect(() => {
     setPrice(String(quote.total));
     setServices(quote.serviceLabel);
   }, [quote.total, quote.serviceLabel]);
+
+  async function loadRealtors() {
+    try {
+      const res = await fetch("/api/realtors", { cache: "no-store" });
+      const data = await res.json();
+
+      if (res.ok) {
+        setRealtors(data.realtors || []);
+      }
+    } catch (error) {
+      console.error("Failed to load realtors:", error);
+    }
+  }
+
+  function selectRealtor(realtor: RealtorContact) {
+    setRealtorId(realtor.id);
+    setRealtorName(realtor.name || "");
+    setRealtorEmail(realtor.email || "");
+    setRealtorPhone(realtor.phone || "");
+    setShowRealtorMatches(false);
+  }
 
   function loadGooglePlaces() {
     if (window.google?.maps?.places) {
@@ -505,6 +561,13 @@ export default function NewInspectionPage() {
             client_email: clientEmail.trim().toLowerCase(),
             client_phone: clientPhone,
 
+            realtor_id: realtorId || null,
+            realtor_name: realtorName || null,
+            realtor_email: realtorEmail.trim().toLowerCase() || null,
+            realtor_phone: realtorPhone || null,
+            agent_name: realtorName || null,
+            agent_email: realtorEmail.trim().toLowerCase() || null,
+
             property_address: propertyAddress,
             address: propertyAddress,
             city,
@@ -579,6 +642,44 @@ export default function NewInspectionPage() {
         console.warn("Default inspection details were not inserted.");
       }
 
+      const inspectionContacts = [];
+
+      if (clientEmail.trim()) {
+        inspectionContacts.push({
+          inspection_id: data.id,
+          inspector_id: user.id,
+          name: clientName,
+          email: clientEmail.trim().toLowerCase(),
+          phone: clientPhone || null,
+          role: "client",
+          agreement_required: true,
+          portal_access: true,
+        });
+      }
+
+      if (realtorEmail.trim()) {
+        inspectionContacts.push({
+          inspection_id: data.id,
+          inspector_id: user.id,
+          name: realtorName || "Realtor",
+          email: realtorEmail.trim().toLowerCase(),
+          phone: realtorPhone || null,
+          role: "realtor",
+          agreement_required: false,
+          portal_access: true,
+        });
+      }
+
+      if (inspectionContacts.length > 0) {
+        const { error: contactsError } = await supabase
+          .from("inspection_contacts")
+          .insert(inspectionContacts);
+
+        if (contactsError) {
+          console.warn("Inspection contacts were not inserted.");
+        }
+      }
+
       router.push(`/reports/${data.id}`);
     } finally {
       setSaving(false);
@@ -617,6 +718,59 @@ export default function NewInspectionPage() {
               onChange={setClientPhone}
               placeholder="Client Phone"
             />
+          </Card>
+
+          <Card title="Realtor Info">
+            <div className="relative">
+              <input
+                value={realtorName}
+                onChange={(e) => {
+                  setRealtorName(e.target.value);
+                  setRealtorId("");
+                  setShowRealtorMatches(true);
+                }}
+                onFocus={() => setShowRealtorMatches(true)}
+                placeholder="Start typing realtor name..."
+                className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white"
+              />
+
+              {showRealtorMatches && filteredRealtors.length > 0 && (
+                <div className="absolute z-20 mt-2 max-h-72 w-full overflow-auto rounded-xl border border-zinc-700 bg-[#020617] shadow-2xl">
+                  {filteredRealtors.map((realtor) => (
+                    <button
+                      key={realtor.id}
+                      type="button"
+                      onClick={() => selectRealtor(realtor)}
+                      className="block w-full border-b border-zinc-800 px-4 py-3 text-left hover:bg-teal-500/10"
+                    >
+                      <span className="block font-bold text-white">
+                        {realtor.name}
+                      </span>
+                      <span className="mt-1 block text-sm text-zinc-400">
+                        {[realtor.email, realtor.phone].filter(Boolean).join(" • ") ||
+                          "No email or phone saved"}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <Input
+              value={realtorEmail}
+              onChange={setRealtorEmail}
+              placeholder="Realtor Email"
+            />
+
+            <Input
+              value={realtorPhone}
+              onChange={setRealtorPhone}
+              placeholder="Realtor Phone"
+            />
+
+            <p className="text-sm text-zinc-400">
+              Saved realtor contacts will auto-fill here and will be included on report/schedule emails, but not pre-inspection agreement emails.
+            </p>
           </Card>
 
           <Card title="Property Info">

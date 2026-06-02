@@ -28,6 +28,7 @@ export default function InspectionContactsManager({
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [role, setRole] = useState("client");
   const [agreementRequired, setAgreementRequired] = useState(true);
   const [portalAccess, setPortalAccess] = useState(true);
@@ -91,6 +92,7 @@ export default function InspectionContactsManager({
     override?: {
       name: string;
       email: string;
+      phone?: string;
       role: string;
       agreement_required: boolean;
       portal_access: boolean;
@@ -100,6 +102,7 @@ export default function InspectionContactsManager({
     const payload = override || {
       name,
       email,
+      phone,
       role,
       agreement_required: agreementRequired,
       portal_access: portalAccess,
@@ -133,6 +136,7 @@ export default function InspectionContactsManager({
     if (!override) {
       setName("");
       setEmail("");
+      setPhone("");
       setRole("client");
       setAgreementRequired(true);
       setPortalAccess(true);
@@ -201,7 +205,7 @@ export default function InspectionContactsManager({
         </button>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-[1fr_1fr_180px]">
+      <div className="grid gap-3 md:grid-cols-[1fr_1fr_1fr_180px]">
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -213,6 +217,13 @@ export default function InspectionContactsManager({
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="Email"
+          className="rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none focus:border-teal-400"
+        />
+
+        <input
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          placeholder="Phone"
           className="rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none focus:border-teal-400"
         />
 
@@ -281,6 +292,9 @@ export default function InspectionContactsManager({
               <div>
                 <h3 className="font-bold text-white">{contact.name}</h3>
                 <p className="text-sm text-slate-400">{contact.email}</p>
+                {contact.phone && (
+                  <p className="text-sm text-slate-500">{contact.phone}</p>
+                )}
                 <p className="mt-1 text-xs uppercase tracking-wide text-teal-300">
                   {contact.role}
                 </p>

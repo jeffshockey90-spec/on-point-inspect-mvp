@@ -120,6 +120,30 @@ async function createSignedPhotoUrl(supabase: any, photo: any) {
   return data.signedUrl;
 }
 
+
+function formatEmailStatusDate(value: any) {
+  if (!value) return "N/A";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) return String(value);
+
+  return date.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function getLatestEmailLog(logs: any[], type: string) {
+  return (logs || []).find((log: any) => {
+    const emailType = String(log.email_type || log.metadata?.type || "").toLowerCase();
+    return emailType === type;
+  });
+}
+
 export default async function ReportPage({ params }: PageProps) {
   const { id } = await params;
   const supabase = await createSupabaseServerClient();
@@ -232,6 +256,22 @@ export default async function ReportPage({ params }: PageProps) {
     .single();
 
   if (inspectionError || !inspection) redirect("/reports");
+
+  const { data: emailLogsRaw, error: emailLogsError } = await supabase
+    .from("email_logs")
+    .select("*")
+    .or(`inspection_id.eq.${inspection.id},inspection_id_bigint.eq.${inspection.id}`)
+    .order("created_at", { ascending: false });
+
+  if (emailLogsError) {
+    console.error("Email logs load error:", emailLogsError);
+  }
+
+  const emailLogs = emailLogsRaw || [];
+  const latestAgreementEmail = getLatestEmailLog(emailLogs, "agreement_email");
+  const latestReportEmail =
+    getLatestEmailLog(emailLogs, "inspection_report") ||
+    getLatestEmailLog(emailLogs, "environmental_report");
 
   const { data: equipmentInventoryRaw, error: equipmentInventoryError } = await supabase
     .from("equipment_inventory")
@@ -532,6 +572,30 @@ export default async function ReportPage({ params }: PageProps) {
             </p>
           </div>
 
+          <section className="mb-8 rounded-2xl border border-slate-700 bg-[#071224] p-5">
+            <h2 className="text-2xl font-bold text-teal-300">
+              Email Status
+            </h2>
+
+            <p className="mt-1 text-sm text-slate-400">
+              Agreement emails are client-only. Report emails may be sent to the client and realtor. Open/click tracking appears here after Resend webhooks are enabled.
+            </p>
+
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
+              <EmailStatusCard
+                title="Agreement Email"
+                log={latestAgreementEmail}
+                emptyText="Not sent yet"
+              />
+
+              <EmailStatusCard
+                title="Report Email"
+                log={latestReportEmail}
+                emptyText="Not sent yet"
+              />
+            </div>
+          </section>
+
           <div className="mb-8 rounded-2xl border border-slate-700 bg-[#071224] p-5">
             <h2 className="mb-4 text-2xl font-bold text-teal-300">
               Email Report
@@ -770,6 +834,69 @@ export default async function ReportPage({ params }: PageProps) {
         <ReportFindingsSortable groupedFindings={groupedFindingsArray} />
       </div>
     </main>
+  );
+}
+
+function EmailStatusCard({
+  title,
+  log,
+  emptyText,
+}: {
+  title: string;
+  log: any;
+  emptyText: string;
+}) {
+  const sentAt = log?.sent_at || log?.created_at;
+  const deliveredAt = log?.delivered_at;
+  const openedAt = log?.opened_at;
+  const clickedAt = log?.clicked_at;
+  const failedAt = log?.failed_at || log?.bounced_at;
+
+  return (
+    <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
+      <p className="text-sm font-black uppercase tracking-wide text-slate-400">
+        {title}
+      </p>
+
+      {!log ? (
+        <p className="mt-2 text-lg font-bold text-yellow-300">{emptyText}</p>
+      ) : (
+        <div className="mt-3 space-y-2 text-sm text-slate-300">
+          <p>
+            <span className="font-bold text-white">Status:</span>{" "}
+            {log.status || "sent"}
+          </p>
+          <p>
+            <span className="font-bold text-white">Recipient:</span>{" "}
+            {log.recipient_email || log.recipient || "N/A"}
+          </p>
+          <p>
+            <span className="font-bold text-white">Sent:</span>{" "}
+            {formatEmailStatusDate(sentAt)}
+          </p>
+          {deliveredAt && (
+            <p className="text-green-300">
+              Delivered: {formatEmailStatusDate(deliveredAt)}
+            </p>
+          )}
+          {openedAt && (
+            <p className="text-blue-300">
+              Opened: {formatEmailStatusDate(openedAt)}
+            </p>
+          )}
+          {clickedAt && (
+            <p className="text-teal-300">
+              Link Clicked: {formatEmailStatusDate(clickedAt)}
+            </p>
+          )}
+          {failedAt && (
+            <p className="text-red-300">
+              Failed/Bounced: {formatEmailStatusDate(failedAt)}
+            </p>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 

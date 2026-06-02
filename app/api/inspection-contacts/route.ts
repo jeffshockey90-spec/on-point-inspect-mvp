@@ -44,6 +44,7 @@ export async function POST(req: Request) {
     const inspectionId = String(body.inspection_id || "");
     const name = String(body.name || "").trim();
     const email = String(body.email || "").trim();
+    const phone = String(body.phone || "").trim();
     const role = String(body.role || "client");
     const agreementRequired = Boolean(body.agreement_required);
     const portalAccess =
@@ -78,6 +79,7 @@ export async function POST(req: Request) {
         inspector_id: inspection.inspector_id,
         name,
         email,
+        phone: phone || null,
         role,
         agreement_required: agreementRequired,
         portal_access: portalAccess,
@@ -115,6 +117,7 @@ export async function PATCH(req: Request) {
 
     if (body.name !== undefined) updates.name = String(body.name).trim();
     if (body.email !== undefined) updates.email = String(body.email).trim();
+    if (body.phone !== undefined) updates.phone = String(body.phone).trim();
     if (body.role !== undefined) updates.role = String(body.role);
     if (body.agreement_required !== undefined) {
       updates.agreement_required = Boolean(body.agreement_required);
