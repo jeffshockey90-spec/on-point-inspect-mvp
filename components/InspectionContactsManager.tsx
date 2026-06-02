@@ -223,9 +223,9 @@ export default function InspectionContactsManager({
     "box-border h-[52px] min-w-0 w-full rounded-xl border border-slate-700 bg-[#020617] px-4 text-white outline-none transition placeholder:text-slate-500 focus:border-teal-400 focus:ring-1 focus:ring-teal-400/40";
 
   return (
-    <section className="mb-8 overflow-hidden rounded-3xl border border-slate-700 bg-[#071224] shadow-2xl shadow-black/20">
+    <section className="mb-8 w-full max-w-full overflow-hidden rounded-3xl border border-slate-700 bg-[#071224] shadow-2xl shadow-black/20">
       <div className="border-b border-slate-800 bg-gradient-to-r from-[#0f172a] via-[#0b1628] to-[#071224] p-5 md:p-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex flex-col items-stretch gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.28em] text-teal-400">
               Delivery Contacts
@@ -243,7 +243,7 @@ export default function InspectionContactsManager({
           <button
             type="button"
             onClick={seedDefaults}
-            className="rounded-2xl border border-teal-500/70 bg-teal-500/10 px-5 py-3 text-sm font-black text-teal-300 transition hover:bg-teal-500 hover:text-slate-950"
+            className="w-full rounded-2xl border border-teal-500/70 bg-teal-500/10 px-5 py-3 text-sm font-black text-teal-300 transition hover:bg-teal-500 hover:text-slate-950 sm:w-auto"
           >
             Add Existing Client/Realtor
           </button>
@@ -251,7 +251,7 @@ export default function InspectionContactsManager({
       </div>
 
       <div className="p-5 md:p-6">
-        <div className="overflow-hidden rounded-2xl border border-slate-700 bg-[#020817]/80 p-4">
+        <div className="w-full max-w-full overflow-hidden rounded-2xl border border-slate-700 bg-[#020817]/80 p-4">
           <div className="grid w-full min-w-0 grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
             <input
               value={name}
@@ -302,9 +302,9 @@ export default function InspectionContactsManager({
             </div>
           </div>
 
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
-            <div className="flex flex-wrap gap-3">
-              <label className="inline-flex items-center gap-3 rounded-xl border border-slate-700 bg-[#071224] px-4 py-3 text-sm font-bold text-slate-300">
+          <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <label className="inline-flex w-full items-center gap-3 rounded-xl border border-slate-700 bg-[#071224] px-4 py-3 text-sm font-bold text-slate-300 sm:w-auto">
                 <input
                   type="checkbox"
                   checked={agreementRequired}
@@ -314,7 +314,7 @@ export default function InspectionContactsManager({
                 Agreement required
               </label>
 
-              <label className="inline-flex items-center gap-3 rounded-xl border border-slate-700 bg-[#071224] px-4 py-3 text-sm font-bold text-slate-300">
+              <label className="inline-flex w-full items-center gap-3 rounded-xl border border-slate-700 bg-[#071224] px-4 py-3 text-sm font-bold text-slate-300 sm:w-auto">
                 <input
                   type="checkbox"
                   checked={portalAccess}
@@ -329,7 +329,7 @@ export default function InspectionContactsManager({
               type="button"
               onClick={() => addContact()}
               disabled={saving}
-              className="rounded-2xl bg-teal-500 px-6 py-3 text-sm font-black text-slate-950 transition hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
+              className="w-full rounded-2xl bg-teal-500 px-6 py-3 text-sm font-black text-slate-950 transition hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
             >
               {saving ? "Saving..." : "Add Contact"}
             </button>
@@ -357,12 +357,12 @@ export default function InspectionContactsManager({
               {contacts.map((contact) => (
                 <article
                   key={contact.id}
-                  className="rounded-2xl border border-slate-700 bg-[#020817]/80 p-5 shadow-xl"
+                  className="w-full max-w-full overflow-hidden rounded-2xl border border-slate-700 bg-[#020817]/80 p-5 shadow-xl"
                 >
-                  <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div className="flex flex-col items-stretch gap-4 lg:flex-row lg:items-start lg:justify-between">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-3">
-                        <h3 className="text-xl font-black text-white">
+                        <h3 className="break-words text-xl font-black text-white">
                           {contact.name}
                         </h3>
 
@@ -385,15 +385,15 @@ export default function InspectionContactsManager({
                         </span>
                       </div>
 
-                      <div className="mt-3 grid gap-2 text-sm text-slate-400 md:grid-cols-2">
+                      <div className="mt-3 grid min-w-0 gap-2 text-sm text-slate-400 md:grid-cols-2">
                         <p>
                           <span className="font-bold text-slate-500">Email:</span>{" "}
-                          {contact.email || "N/A"}
+                          <span className="break-all">{contact.email || "N/A"}</span>
                         </p>
 
                         <p>
                           <span className="font-bold text-slate-500">Phone:</span>{" "}
-                          {contact.phone || "N/A"}
+                          <span className="break-all">{contact.phone || "N/A"}</span>
                         </p>
                       </div>
                     </div>
@@ -401,14 +401,14 @@ export default function InspectionContactsManager({
                     <button
                       type="button"
                       onClick={() => deleteContact(contact.id)}
-                      className="rounded-xl border border-red-500/70 bg-red-500/10 px-4 py-2 text-sm font-black text-red-300 transition hover:bg-red-500 hover:text-white"
+                      className="w-full rounded-xl border border-red-500/70 bg-red-500/10 px-4 py-2 text-sm font-black text-red-300 transition hover:bg-red-500 hover:text-white sm:w-auto"
                     >
                       Delete
                     </button>
                   </div>
 
-                  <div className="mt-4 grid gap-3 border-t border-slate-800 pt-4 md:grid-cols-2">
-                    <label className="flex items-center justify-between gap-4 rounded-xl border border-slate-700 bg-[#071224] px-4 py-3 text-sm font-bold text-slate-300">
+                  <div className="mt-4 grid w-full gap-3 border-t border-slate-800 pt-4 lg:grid-cols-2">
+                    <label className="flex w-full min-w-0 items-center justify-between gap-4 rounded-xl border border-slate-700 bg-[#071224] px-4 py-3 text-sm font-bold text-slate-300">
                       <span>Agreement required</span>
                       <input
                         type="checkbox"
@@ -422,7 +422,7 @@ export default function InspectionContactsManager({
                       />
                     </label>
 
-                    <label className="flex items-center justify-between gap-4 rounded-xl border border-slate-700 bg-[#071224] px-4 py-3 text-sm font-bold text-slate-300">
+                    <label className="flex w-full min-w-0 items-center justify-between gap-4 rounded-xl border border-slate-700 bg-[#071224] px-4 py-3 text-sm font-bold text-slate-300">
                       <span>Portal access</span>
                       <input
                         type="checkbox"

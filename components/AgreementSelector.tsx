@@ -141,8 +141,8 @@ export default function AgreementSelector({
   }, [templates]);
 
   return (
-    <section className="mb-8 rounded-2xl border border-slate-700 bg-[#071224] p-5">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <section className="mb-8 w-full max-w-full overflow-hidden rounded-2xl border border-slate-700 bg-[#071224] p-4 sm:p-5">
+      <div className="mb-4 flex flex-col items-stretch gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h2 className="text-2xl font-bold text-teal-300">
             Agreement Selection
@@ -155,13 +155,13 @@ export default function AgreementSelector({
 
         <a
           href="/agreements"
-          className="rounded-xl border border-teal-500 px-4 py-2 font-bold text-teal-300 hover:bg-teal-500/10"
+          className="w-full rounded-xl border border-teal-500 px-4 py-2 text-center font-bold text-teal-300 hover:bg-teal-500/10 sm:w-auto"
         >
           Manage Agreement Library
         </a>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-3">
+      <div className="grid w-full max-w-full grid-cols-1 gap-3 md:grid-cols-3">
         {["MD", "WV", "PA"].map((state) => {
           const active = state === agreementState;
 
@@ -170,7 +170,7 @@ export default function AgreementSelector({
               key={state}
               type="button"
               onClick={() => handleStateChange(state)}
-              className={`rounded-2xl border p-4 text-left transition ${
+              className={`w-full rounded-2xl border p-4 text-left transition ${
                 active
                   ? "border-teal-400 bg-teal-500/15"
                   : "border-slate-700 bg-slate-950 hover:border-teal-500"
@@ -194,12 +194,12 @@ export default function AgreementSelector({
         })}
       </div>
 
-      <div className="mt-5 space-y-5">
+      <div className="mt-5 w-full max-w-full space-y-5">
         {Object.entries(templatesByServiceType).map(
           ([serviceType, serviceTemplates]) => (
             <div
               key={serviceType}
-              className="rounded-2xl border border-slate-700 bg-slate-950 p-4"
+              className="w-full max-w-full overflow-hidden rounded-2xl border border-slate-700 bg-slate-950 p-4"
             >
               <h3 className="text-lg font-extrabold text-teal-300">
                 {serviceType
@@ -207,20 +207,20 @@ export default function AgreementSelector({
                   .replace(/\b\w/g, (letter) => letter.toUpperCase())}
               </h3>
 
-              <div className="mt-3 grid gap-3 md:grid-cols-2">
+              <div className="mt-3 grid w-full max-w-full grid-cols-1 gap-3 md:grid-cols-2">
                 {serviceTemplates.map((template: any) => {
                   const checked = selectedTemplateIds.includes(template.id);
 
                   return (
                     <label
                       key={template.id}
-                      className={`cursor-pointer rounded-xl border p-4 transition ${
+                      className={`block w-full min-w-0 cursor-pointer rounded-xl border p-4 transition ${
                         checked
                           ? "border-teal-400 bg-teal-500/10"
                           : "border-slate-700 bg-[#071224] hover:border-teal-500"
                       }`}
                     >
-                      <div className="flex items-start gap-3">
+                      <div className="flex min-w-0 items-start gap-3">
                         <input
                           type="checkbox"
                           checked={checked}
@@ -228,8 +228,8 @@ export default function AgreementSelector({
                           className="mt-1"
                         />
 
-                        <div>
-                          <p className="font-bold text-white">
+                        <div className="min-w-0">
+                          <p className="break-words font-bold text-white">
                             {template.title}
                           </p>
 
@@ -249,12 +249,12 @@ export default function AgreementSelector({
       </div>
 
       {selectedTemplates.length > 0 && (
-        <div className="mt-4 rounded-xl border border-slate-700 bg-slate-950 p-4">
+        <div className="mt-4 w-full max-w-full overflow-hidden rounded-xl border border-slate-700 bg-slate-950 p-4">
           <p className="font-bold text-white">
             Selected Agreements:
           </p>
 
-          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-300">
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-300 [overflow-wrap:anywhere]">
             {selectedTemplates.map((template) => (
               <li key={template.id}>
                 {template.title} — {template.version}
@@ -268,7 +268,7 @@ export default function AgreementSelector({
         type="button"
         onClick={() => saveAgreementSelection()}
         disabled={saving || selectedTemplateIds.length === 0}
-        className="mt-4 rounded-xl bg-teal-500 px-5 py-3 font-bold text-slate-950 hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50"
+        className="mt-4 w-full rounded-xl bg-teal-500 px-5 py-3 font-bold text-slate-950 hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
       >
         {saving ? "Saving..." : "Save Agreement Selection"}
       </button>

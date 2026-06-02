@@ -186,18 +186,18 @@ export default function EditableFinding({ finding }: { finding: any }) {
 
   if (!editing) {
     return (
-      <div className="mt-6 space-y-5 print:hidden">
-        <div className="rounded-2xl border border-teal-700 bg-gradient-to-r from-[#052b2b] to-[#071b35] p-5">
+      <div className="mt-6 w-full max-w-full space-y-5 overflow-hidden print:hidden">
+        <div className="w-full max-w-full overflow-hidden rounded-2xl border border-teal-700 bg-gradient-to-r from-[#052b2b] to-[#071b35] p-4 sm:p-5">
           <h4 className="mb-4 text-sm font-bold uppercase tracking-wider text-teal-300">
             AI / Repair Request Tools
           </h4>
 
-          <div className="flex flex-wrap gap-3">
+          <div className="flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap">
             <button
               type="button"
               onClick={rewriteSofter}
               disabled={rewriting}
-              className="min-w-[220px] rounded-xl bg-teal-500 px-5 py-3 text-sm font-bold text-slate-950 hover:bg-teal-400 disabled:opacity-60"
+              className="w-full rounded-xl bg-teal-500 px-5 py-3 text-sm font-bold text-slate-950 hover:bg-teal-400 disabled:opacity-60 sm:w-auto"
             >
               {rewriting ? "Rewriting..." : "AI Rewrite Softer"}
             </button>
@@ -205,7 +205,7 @@ export default function EditableFinding({ finding }: { finding: any }) {
             <button
               type="button"
               onClick={() => setRepairRequest(!repairRequest)}
-              className="min-w-[220px] rounded-xl border border-slate-600 bg-slate-900 px-5 py-3 text-sm font-bold text-white hover:bg-slate-800"
+              className="w-full rounded-xl border border-slate-600 bg-slate-900 px-5 py-3 text-sm font-bold text-white hover:bg-slate-800 sm:w-auto"
             >
               {repairRequest ? "Remove From Request" : "Add To Repair Request"}
             </button>
@@ -213,18 +213,18 @@ export default function EditableFinding({ finding }: { finding: any }) {
             <button
               type="button"
               onClick={saveRepairRequestSettings}
-              className="min-w-[220px] rounded-xl border border-orange-500 px-5 py-3 text-sm font-bold text-orange-400 hover:bg-orange-500/10"
+              className="w-full rounded-xl border border-orange-500 px-5 py-3 text-sm font-bold text-orange-400 hover:bg-orange-500/10 sm:w-auto"
             >
               Save Repair Request
             </button>
           </div>
 
           {repairRequest && (
-            <div className="mt-4 grid gap-3 md:grid-cols-2">
+            <div className="mt-4 grid w-full max-w-full gap-3 md:grid-cols-2">
               <select
                 value={repairPriority}
                 onChange={(e) => setRepairPriority(e.target.value)}
-                className="rounded-xl border border-slate-700 bg-slate-900 p-3 text-white"
+                className="w-full min-w-0 rounded-xl border border-slate-700 bg-slate-900 p-3 text-white"
               >
                 <option>Safety</option>
                 <option>Major</option>
@@ -236,17 +236,17 @@ export default function EditableFinding({ finding }: { finding: any }) {
                 placeholder="Repair request notes..."
                 value={repairNotes}
                 onChange={(e) => setRepairNotes(e.target.value)}
-                className="min-h-[90px] rounded-xl border border-slate-700 bg-slate-900 p-3 text-white md:col-span-2"
+                className="min-h-[90px] w-full min-w-0 rounded-xl border border-slate-700 bg-slate-900 p-3 text-white md:col-span-2"
               />
             </div>
           )}
         </div>
 
-        <div className="flex flex-wrap gap-3">
+        <div className="flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap">
           <button
             type="button"
             onClick={() => setEditing(true)}
-            className="min-w-[170px] rounded-xl bg-cyan-500 px-5 py-3 text-sm font-bold text-slate-950 hover:bg-cyan-400"
+            className="w-full rounded-xl bg-cyan-500 px-5 py-3 text-sm font-bold text-slate-950 hover:bg-cyan-400 sm:w-auto"
           >
             Edit Finding
           </button>
@@ -255,7 +255,7 @@ export default function EditableFinding({ finding }: { finding: any }) {
             type="button"
             onClick={saveToLibrary}
             disabled={savingTemplate}
-            className="min-w-[170px] rounded-xl border border-cyan-500 px-5 py-3 text-sm font-bold text-cyan-300 hover:bg-cyan-500/10 disabled:opacity-60"
+            className="w-full rounded-xl border border-cyan-500 px-5 py-3 text-sm font-bold text-cyan-300 hover:bg-cyan-500/10 disabled:opacity-60 sm:w-auto"
           >
             {savingTemplate ? "Saving..." : "Save to Library"}
           </button>
@@ -263,14 +263,14 @@ export default function EditableFinding({ finding }: { finding: any }) {
           <button
             type="button"
             onClick={deleteFinding}
-            className="min-w-[170px] rounded-xl bg-red-600 px-5 py-3 text-sm font-bold text-white hover:bg-red-500"
+            className="w-full rounded-xl bg-red-600 px-5 py-3 text-sm font-bold text-white hover:bg-red-500 sm:w-auto"
           >
             Delete Finding
           </button>
 
           <Link
             href={`/ai-capture?inspection_id=${finding.inspection_id}`}
-            className="min-w-[170px] rounded-xl border border-blue-500 bg-blue-500/10 px-5 py-3 text-center text-sm font-bold text-blue-300 hover:bg-blue-500/20"
+            className="w-full rounded-xl border border-blue-500 bg-blue-500/10 px-5 py-3 text-center text-sm font-bold text-blue-300 hover:bg-blue-500/20 sm:w-auto"
           >
             Add Photos
           </Link>
@@ -280,10 +280,10 @@ export default function EditableFinding({ finding }: { finding: any }) {
   }
 
   return (
-    <div className="mt-6 space-y-4 rounded-2xl border border-slate-700 bg-[#111827] p-5 print:hidden">
+    <div className="mt-6 w-full max-w-full space-y-4 overflow-hidden rounded-2xl border border-slate-700 bg-[#111827] p-4 print:hidden sm:p-5">
       <Input label="Title" value={title} onChange={setTitle} />
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid w-full max-w-full gap-4 md:grid-cols-2">
         <Select
           label="Section"
           value={section}
@@ -317,12 +317,12 @@ export default function EditableFinding({ finding }: { finding: any }) {
         onChange={setRecommendation}
       />
 
-      <div className="flex flex-wrap gap-3">
+      <div className="flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap">
         <button
           type="button"
           onClick={saveFinding}
           disabled={saving}
-          className="min-w-[170px] rounded-xl bg-teal-500 px-5 py-3 text-sm font-bold text-black hover:bg-teal-400 disabled:opacity-60"
+          className="w-full rounded-xl bg-teal-500 px-5 py-3 text-sm font-bold text-black hover:bg-teal-400 disabled:opacity-60 sm:w-auto"
         >
           {saving ? "Saving..." : "Save Finding"}
         </button>
@@ -330,7 +330,7 @@ export default function EditableFinding({ finding }: { finding: any }) {
         <button
           type="button"
           onClick={() => setEditing(false)}
-          className="min-w-[170px] rounded-xl border border-slate-600 px-5 py-3 text-sm font-bold text-white hover:bg-slate-800"
+          className="w-full rounded-xl border border-slate-600 px-5 py-3 text-sm font-bold text-white hover:bg-slate-800 sm:w-auto"
         >
           Cancel
         </button>
@@ -354,7 +354,7 @@ function Input({
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-lg border border-slate-700 bg-black p-3 text-white"
+        className="w-full min-w-0 rounded-lg border border-slate-700 bg-black p-3 text-white"
       />
     </label>
   );
@@ -377,7 +377,7 @@ function Select({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-lg border border-slate-700 bg-black p-3 text-white"
+        className="w-full min-w-0 rounded-lg border border-slate-700 bg-black p-3 text-white"
       >
         {options.map((item) => (
           <option key={item} value={item}>
@@ -405,7 +405,7 @@ function Textarea({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         rows={5}
-        className="w-full rounded-lg border border-slate-700 bg-black p-3 leading-7 text-white"
+        className="w-full min-w-0 rounded-lg border border-slate-700 bg-black p-3 leading-7 text-white"
       />
     </label>
   );
