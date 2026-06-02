@@ -873,25 +873,18 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
         </div>
       </article>
 
-      <article className="block w-full max-w-full overflow-hidden rounded-2xl border border-slate-700 bg-[#071224] shadow-xl md:hidden">
+      <article className="block w-full max-w-full overflow-hidden rounded-2xl border border-slate-800 bg-[#071224]/95 shadow-xl md:hidden">
         <button
           type="button"
           onClick={() => setMobileExpanded((prev) => !prev)}
-          className="block w-full text-left"
+          className="block w-full text-left transition hover:bg-slate-900/40"
         >
           <div className="flex min-w-0 gap-3 p-3">
-            <div className="h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-slate-700 bg-slate-950">
+            <div className="h-28 w-28 shrink-0 overflow-hidden rounded-xl border border-slate-700 bg-slate-950 shadow-inner">
               {firstPhotoUrl ? (
                 isVideoMedia(firstPhoto) ? (
                   <div className="relative flex h-full w-full items-center justify-center bg-black text-xs font-black uppercase tracking-wide text-cyan-300">
-                    <video
-                      src={firstPhotoUrl}
-                      playsInline
-                      preload="metadata"
-                      muted
-                      className="h-full w-full object-cover opacity-75"
-                    />
-                    <span className="absolute rounded-full border border-cyan-400 bg-black/70 px-2 py-1 text-[10px]">
+                    <span className="absolute z-10 rounded-full border border-cyan-400 bg-black/80 px-2 py-1 text-[10px]">
                       Video
                     </span>
                   </div>
@@ -899,6 +892,8 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
                   <img
                     src={firstPhotoUrl}
                     alt={`Finding photo for ${findingTitle}`}
+                    loading="lazy"
+                    decoding="async"
                     className="h-full w-full object-cover"
                   />
                 )
@@ -909,8 +904,18 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
               )}
             </div>
 
-            <div className="min-w-0 flex-1">
-              <div className="mb-2 flex flex-wrap gap-2">
+            <div className="min-w-0 flex-1 pr-1">
+              {finding.section && (
+                <p className="truncate text-[11px] font-bold text-slate-400">
+                  {finding.section}
+                </p>
+              )}
+
+              <h3 className="mt-1 line-clamp-2 break-words text-[17px] font-black leading-tight text-white">
+                {findingTitle}
+              </h3>
+
+              <div className="mt-2 flex flex-wrap items-center gap-2">
                 <span
                   className={`rounded-full border px-2 py-1 text-[10px] font-black uppercase tracking-wide ${getSeverityStyle(
                     finding.severity
@@ -926,37 +931,36 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
                 )}
               </div>
 
-              <h3 className="line-clamp-2 break-words text-base font-black leading-tight text-white">
-                {findingTitle}
-              </h3>
-
-              {finding.section && (
-                <p className="mt-1 truncate text-xs font-bold uppercase tracking-wide text-teal-300">
-                  {finding.section}
-                </p>
-              )}
-
               {shortSummary && (
-                <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-300">
+                <p className="mt-2 line-clamp-2 text-[13px] leading-5 text-slate-300">
                   {shortSummary}
                 </p>
               )}
+            </div>
 
-              <p className="mt-2 text-xs font-black text-cyan-300">
-                {mobileExpanded ? "Hide Details ↑" : "View Finding →"}
-              </p>
+            <div className="flex shrink-0 items-center text-3xl font-light text-slate-300">
+              {mobileExpanded ? "⌄" : "›"}
             </div>
           </div>
         </button>
 
         {mobileExpanded && (
-          <>
+          <div className="border-t border-slate-800 bg-[#020817]/70 p-3">
+            <div className="mb-3 rounded-xl border border-cyan-700/60 bg-cyan-950/20 p-3 text-sm text-slate-300">
+              <p className="font-black uppercase tracking-wide text-cyan-300">
+                Finding Details
+              </p>
+              <p className="mt-1 text-xs leading-5 text-slate-400">
+                Full editor tools stay available here for the inspector. Desktop remains unchanged.
+              </p>
+            </div>
+
             {photoGallery}
 
-            <div className="w-full max-w-full overflow-hidden border-t border-slate-700 p-4">
+            <div className="w-full max-w-full overflow-hidden pt-4">
               {fullFindingContent}
             </div>
-          </>
+          </div>
         )}
       </article>
     </>
