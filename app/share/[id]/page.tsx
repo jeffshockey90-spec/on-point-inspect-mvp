@@ -807,12 +807,26 @@ export default async function PublicSharePage({
             </div>
           </section>
 
-          <section className="mt-8 rounded-2xl border border-slate-700 bg-[#071224] p-6">
-            <h2 className="mb-5 text-2xl font-bold text-teal-400">
-              Property Information
-            </h2>
+          <details className="mt-8 rounded-2xl border border-slate-700 bg-[#071224] p-6">
+            <summary className="cursor-pointer list-none">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-2xl font-bold text-teal-400">
+                    Property Information
+                  </h2>
 
-            <div className="grid gap-4 md:grid-cols-3">
+                  <p className="mt-2 text-sm text-slate-400">
+                    Click to expand property details and inspection information.
+                  </p>
+                </div>
+
+                <span className="rounded-full border border-teal-500/40 px-4 py-2 text-sm font-bold text-teal-300">
+                  Click to Expand
+                </span>
+              </div>
+            </summary>
+
+            <div className="mt-5 grid gap-4 md:grid-cols-3">
               <Info label="Property" value={address} />
               <Info
                 label="Location"
@@ -830,7 +844,7 @@ export default async function PublicSharePage({
                 value={inspection.square_feet || inspection.sqft}
               />
             </div>
-          </section>
+          </details>
 
           {equipmentInventory.length > 0 && (
             <details
