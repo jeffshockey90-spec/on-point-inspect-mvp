@@ -260,7 +260,7 @@ export default async function ReportPage({ params }: PageProps) {
   const { data: emailLogsRaw, error: emailLogsError } = await supabase
     .from("email_logs")
     .select("*")
-    .or(`inspection_id.eq.${inspection.id},inspection_id_bigint.eq.${inspection.id}`)
+    .eq("inspection_id_bigint", Number(inspection.id))
     .order("created_at", { ascending: false });
 
   if (emailLogsError) {
