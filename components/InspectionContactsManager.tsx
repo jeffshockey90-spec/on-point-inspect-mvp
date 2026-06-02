@@ -10,6 +10,31 @@ const ROLE_OPTIONS = [
   "other",
 ];
 
+function formatRole(role: string) {
+  return String(role || "client")
+    .split(" ")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function roleBadgeClass(role: string) {
+  const clean = String(role || "").toLowerCase();
+
+  if (clean.includes("client")) {
+    return "border-teal-500/40 bg-teal-500/10 text-teal-300";
+  }
+
+  if (clean.includes("realtor") || clean.includes("agent")) {
+    return "border-purple-500/40 bg-purple-500/10 text-purple-300";
+  }
+
+  if (clean.includes("transaction")) {
+    return "border-cyan-500/40 bg-cyan-500/10 text-cyan-300";
+  }
+
+  return "border-slate-600 bg-slate-800/60 text-slate-300";
+}
+
 export default function InspectionContactsManager({
   inspectionId,
   defaultClientName,
@@ -32,6 +57,7 @@ export default function InspectionContactsManager({
   const [role, setRole] = useState("client");
   const [agreementRequired, setAgreementRequired] = useState(true);
   const [portalAccess, setPortalAccess] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     loadContacts();
@@ -50,6 +76,8 @@ export default function InspectionContactsManager({
       const data = await res.json();
 
       setContacts(data.contacts || []);
+    } catch (error) {
+      console.error("Failed to load contacts:", error);
     } finally {
       setLoading(false);
     }
@@ -63,6 +91,7 @@ export default function InspectionContactsManager({
         addContact({
           name: defaultClientName || "Client",
           email: defaultClientEmail,
+          phone: "",
           role: "client",
           agreement_required: true,
           portal_access: true,
@@ -76,6 +105,7 @@ export default function InspectionContactsManager({
         addContact({
           name: defaultRealtorName || "Realtor",
           email: defaultRealtorEmail,
+          phone: "",
           role: "realtor",
           agreement_required: false,
           portal_access: true,
@@ -113,34 +143,40 @@ export default function InspectionContactsManager({
       return;
     }
 
-    const res = await fetch("/api/inspection-contacts", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        inspection_id: inspectionId,
-        ...payload,
-      }),
-    });
+    try {
+      setSaving(true);
 
-    const data = await res.json();
+      const res = await fetch("/api/inspection-contacts", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          inspection_id: inspectionId,
+          ...payload,
+        }),
+      });
 
-    if (!res.ok) {
-      if (!override?.silent) {
-        alert(data.error || "Failed to add contact.");
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (!override?.silent) {
+          alert(data.error || "Failed to add contact.");
+        }
+        return;
       }
-      return;
-    }
 
-    if (!override) {
-      setName("");
-      setEmail("");
-      setPhone("");
-      setRole("client");
-      setAgreementRequired(true);
-      setPortalAccess(true);
-      await loadContacts();
+      if (!override) {
+        setName("");
+        setEmail("");
+        setPhone("");
+        setRole("client");
+        setAgreementRequired(true);
+        setPortalAccess(true);
+        await loadContacts();
+      }
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -183,171 +219,228 @@ export default function InspectionContactsManager({
     await loadContacts();
   }
 
+  const fieldClass =
+    "box-border h-[52px] min-w-0 w-full rounded-xl border border-slate-700 bg-[#020617] px-4 text-white outline-none transition placeholder:text-slate-500 focus:border-teal-400 focus:ring-1 focus:ring-teal-400/40";
+
   return (
-    <section className="mb-8 rounded-2xl border border-slate-700 bg-[#071224] p-5">
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="text-2xl font-bold text-teal-300">
-            Client / Realtor Contacts
-          </h2>
+    <section className="mb-8 overflow-hidden rounded-3xl border border-slate-700 bg-[#071224] shadow-2xl shadow-black/20">
+      <div className="border-b border-slate-800 bg-gradient-to-r from-[#0f172a] via-[#0b1628] to-[#071224] p-5 md:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.28em] text-teal-400">
+              Delivery Contacts
+            </p>
 
-          <p className="mt-1 text-sm text-slate-400">
-            Add multiple clients, co-clients, realtors, and transaction contacts.
-          </p>
-        </div>
+            <h2 className="mt-2 text-2xl font-black text-white md:text-3xl">
+              Client / Realtor Contacts
+            </h2>
 
-        <button
-          type="button"
-          onClick={seedDefaults}
-          className="rounded-xl border border-teal-500 px-4 py-2 font-bold text-teal-300 hover:bg-teal-500/10"
-        >
-          Add Existing Client/Realtor
-        </button>
-      </div>
-
-      <div className="grid gap-3 md:grid-cols-[1fr_1fr_1fr_180px]">
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Name"
-          className="rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none focus:border-teal-400"
-        />
-
-        <input
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="Email"
-          className="rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none focus:border-teal-400"
-        />
-
-        <input
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          placeholder="Phone"
-          className="rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none focus:border-teal-400"
-        />
-
-        <select
-          value={role}
-          onChange={(e) => {
-            const nextRole = e.target.value;
-            setRole(nextRole);
-            setAgreementRequired(
-              nextRole === "client" || nextRole === "co-client"
-            );
-          }}
-          className="rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none focus:border-teal-400"
-        >
-          {ROLE_OPTIONS.map((item) => (
-            <option key={item}>{item}</option>
-          ))}
-        </select>
-      </div>
-
-      <div className="mt-3 flex flex-wrap gap-4 text-sm text-slate-300">
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={agreementRequired}
-            onChange={(e) => setAgreementRequired(e.target.checked)}
-          />
-          Agreement required
-        </label>
-
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={portalAccess}
-            onChange={(e) => setPortalAccess(e.target.checked)}
-          />
-          Portal access
-        </label>
-
-        <button
-          type="button"
-          onClick={() => addContact()}
-          className="rounded-xl bg-teal-500 px-4 py-2 font-bold text-slate-950 hover:bg-teal-400"
-        >
-          Add Contact
-        </button>
-      </div>
-
-      <div className="mt-5 space-y-3">
-        {loading && (
-          <p className="text-sm text-slate-400">Loading contacts...</p>
-        )}
-
-        {!loading && contacts.length === 0 && (
-          <div className="rounded-xl border border-slate-700 bg-slate-950 p-4 text-sm text-slate-400">
-            No portal contacts added yet.
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
+              Add clients, co-clients, realtors, and transaction contacts. Agreement emails stay limited to contacts marked as agreement required.
+            </p>
           </div>
-        )}
 
-        {contacts.map((contact) => (
-          <div
-            key={contact.id}
-            className="rounded-xl border border-slate-700 bg-slate-950 p-4"
+          <button
+            type="button"
+            onClick={seedDefaults}
+            className="rounded-2xl border border-teal-500/70 bg-teal-500/10 px-5 py-3 text-sm font-black text-teal-300 transition hover:bg-teal-500 hover:text-slate-950"
           >
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h3 className="font-bold text-white">{contact.name}</h3>
-                <p className="text-sm text-slate-400">{contact.email}</p>
-                {contact.phone && (
-                  <p className="text-sm text-slate-500">{contact.phone}</p>
-                )}
-                <p className="mt-1 text-xs uppercase tracking-wide text-teal-300">
-                  {contact.role}
-                </p>
-              </div>
+            Add Existing Client/Realtor
+          </button>
+        </div>
+      </div>
 
-              <button
-                type="button"
-                onClick={() => deleteContact(contact.id)}
-                className="rounded-xl border border-red-500 px-3 py-2 text-sm font-bold text-red-300 hover:bg-red-500/10"
+      <div className="p-5 md:p-6">
+        <div className="overflow-hidden rounded-2xl border border-slate-700 bg-[#020817]/80 p-4">
+          <div className="grid w-full min-w-0 grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Contact name"
+              className={fieldClass}
+            />
+
+            <input
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Email address"
+              type="email"
+              className={fieldClass}
+            />
+
+            <input
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="Phone number"
+              className={fieldClass}
+            />
+
+            <div className="relative min-w-0">
+              <select
+                value={role}
+                onChange={(e) => {
+                  const nextRole = e.target.value;
+                  setRole(nextRole);
+                  setAgreementRequired(
+                    nextRole === "client" || nextRole === "co-client"
+                  );
+                }}
+                className="box-border h-[52px] min-w-0 w-full rounded-xl border border-slate-700 bg-[#020617] px-4 pr-12 text-white outline-none transition placeholder:text-slate-500 focus:border-teal-400 focus:ring-1 focus:ring-teal-400/40 appearance-none"
               >
-                Delete
-              </button>
-            </div>
+                {ROLE_OPTIONS.map((item) => (
+                  <option key={item} value={item}>
+                    {formatRole(item)}
+                  </option>
+                ))}
+              </select>
 
-            <div className="mt-3 flex flex-wrap gap-4 text-sm text-slate-300">
-              <label className="flex items-center gap-2">
+              <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-slate-400">
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-wrap gap-3">
+              <label className="inline-flex items-center gap-3 rounded-xl border border-slate-700 bg-[#071224] px-4 py-3 text-sm font-bold text-slate-300">
                 <input
                   type="checkbox"
-                  checked={Boolean(contact.agreement_required)}
-                  onChange={(e) =>
-                    updateContact(contact.id, {
-                      agreement_required: e.target.checked,
-                    })
-                  }
+                  checked={agreementRequired}
+                  onChange={(e) => setAgreementRequired(e.target.checked)}
+                  className="h-4 w-4 accent-teal-400"
                 />
                 Agreement required
               </label>
 
-              <label className="flex items-center gap-2">
+              <label className="inline-flex items-center gap-3 rounded-xl border border-slate-700 bg-[#071224] px-4 py-3 text-sm font-bold text-slate-300">
                 <input
                   type="checkbox"
-                  checked={Boolean(contact.portal_access)}
-                  onChange={(e) =>
-                    updateContact(contact.id, {
-                      portal_access: e.target.checked,
-                    })
-                  }
+                  checked={portalAccess}
+                  onChange={(e) => setPortalAccess(e.target.checked)}
+                  className="h-4 w-4 accent-teal-400"
                 />
                 Portal access
               </label>
-
-              <span
-                className={
-                  contact.agreement_signed
-                    ? "text-green-300"
-                    : "text-yellow-300"
-                }
-              >
-                {contact.agreement_signed ? "Signed" : "Not signed"}
-              </span>
             </div>
+
+            <button
+              type="button"
+              onClick={() => addContact()}
+              disabled={saving}
+              className="rounded-2xl bg-teal-500 px-6 py-3 text-sm font-black text-slate-950 transition hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {saving ? "Saving..." : "Add Contact"}
+            </button>
           </div>
-        ))}
+        </div>
+
+        <div className="mt-5">
+          {loading && (
+            <div className="rounded-2xl border border-slate-700 bg-[#020817]/80 p-6 text-sm text-slate-400">
+              Loading contacts...
+            </div>
+          )}
+
+          {!loading && contacts.length === 0 && (
+            <div className="rounded-2xl border border-dashed border-slate-700 bg-[#020817]/70 p-8 text-center">
+              <p className="text-lg font-bold text-white">No contacts added yet.</p>
+              <p className="mt-2 text-sm text-slate-400">
+                Add the client and realtor here so emails, portal access, and agreement requirements stay organized.
+              </p>
+            </div>
+          )}
+
+          {!loading && contacts.length > 0 && (
+            <div className="space-y-4">
+              {contacts.map((contact) => (
+                <article
+                  key={contact.id}
+                  className="rounded-2xl border border-slate-700 bg-[#020817]/80 p-5 shadow-xl"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <h3 className="text-xl font-black text-white">
+                          {contact.name}
+                        </h3>
+
+                        <span
+                          className={`rounded-full border px-3 py-1 text-xs font-black uppercase tracking-wide ${roleBadgeClass(
+                            contact.role
+                          )}`}
+                        >
+                          {formatRole(contact.role)}
+                        </span>
+
+                        <span
+                          className={
+                            contact.agreement_signed
+                              ? "rounded-full border border-green-500/40 bg-green-500/10 px-3 py-1 text-xs font-black uppercase tracking-wide text-green-300"
+                              : "rounded-full border border-yellow-500/40 bg-yellow-500/10 px-3 py-1 text-xs font-black uppercase tracking-wide text-yellow-300"
+                          }
+                        >
+                          {contact.agreement_signed ? "Signed" : "Not Signed"}
+                        </span>
+                      </div>
+
+                      <div className="mt-3 grid gap-2 text-sm text-slate-400 md:grid-cols-2">
+                        <p>
+                          <span className="font-bold text-slate-500">Email:</span>{" "}
+                          {contact.email || "N/A"}
+                        </p>
+
+                        <p>
+                          <span className="font-bold text-slate-500">Phone:</span>{" "}
+                          {contact.phone || "N/A"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => deleteContact(contact.id)}
+                      className="rounded-xl border border-red-500/70 bg-red-500/10 px-4 py-2 text-sm font-black text-red-300 transition hover:bg-red-500 hover:text-white"
+                    >
+                      Delete
+                    </button>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 border-t border-slate-800 pt-4 md:grid-cols-2">
+                    <label className="flex items-center justify-between gap-4 rounded-xl border border-slate-700 bg-[#071224] px-4 py-3 text-sm font-bold text-slate-300">
+                      <span>Agreement required</span>
+                      <input
+                        type="checkbox"
+                        checked={Boolean(contact.agreement_required)}
+                        onChange={(e) =>
+                          updateContact(contact.id, {
+                            agreement_required: e.target.checked,
+                          })
+                        }
+                        className="h-4 w-4 accent-teal-400"
+                      />
+                    </label>
+
+                    <label className="flex items-center justify-between gap-4 rounded-xl border border-slate-700 bg-[#071224] px-4 py-3 text-sm font-bold text-slate-300">
+                      <span>Portal access</span>
+                      <input
+                        type="checkbox"
+                        checked={Boolean(contact.portal_access)}
+                        onChange={(e) =>
+                          updateContact(contact.id, {
+                            portal_access: e.target.checked,
+                          })
+                        }
+                        className="h-4 w-4 accent-teal-400"
+                      />
+                    </label>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </section>
   );

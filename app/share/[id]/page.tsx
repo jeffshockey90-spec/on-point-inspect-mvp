@@ -13,6 +13,41 @@ const supabase = createClient(
   }
 );
 
+
+async function recordInspectionView({
+  inspectionId,
+  viewType,
+  contactId,
+  viewerRole,
+  viewerEmail,
+}: {
+  inspectionId: string | number;
+  viewType: string;
+  contactId?: string | null;
+  viewerRole?: string | null;
+  viewerEmail?: string | null;
+}) {
+  try {
+    const numericInspectionId = Number(inspectionId);
+
+    if (!numericInspectionId || !Number.isFinite(numericInspectionId)) return;
+
+    await supabase.from("inspection_view_events").insert({
+      inspection_id_bigint: numericInspectionId,
+      view_type: viewType,
+      contact_id: contactId || null,
+      viewer_role: viewerRole || null,
+      viewer_email: viewerEmail || null,
+      path: `/share/${inspectionId}`,
+      metadata: {
+        source: "public_share_page",
+      },
+    });
+  } catch (error) {
+    console.error("Share view tracking error:", error);
+  }
+}
+
 const SECTION_ORDER = [
   "Inspection Details",
   "Exterior",
@@ -283,7 +318,7 @@ export default async function PublicSharePage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams?: Promise<{ defect_filter?: string }>;
+  searchParams?: Promise<{ defect_filter?: string; contact?: string; role?: string; email?: string }>;
 }) {
   const resolvedParams = await params;
   const resolvedSearchParams = searchParams ? await searchParams : {};
@@ -320,6 +355,14 @@ export default async function PublicSharePage({
       </main>
     );
   }
+
+  await recordInspectionView({
+    inspectionId,
+    viewType: "report_share",
+    contactId: resolvedSearchParams?.contact || null,
+    viewerRole: resolvedSearchParams?.role || null,
+    viewerEmail: resolvedSearchParams?.email || null,
+  });
 
   const { data: findingsRaw, error: findingsError } = await supabase
     .from("findings")

@@ -17,6 +17,26 @@ const supabase = createClient(
   }
 );
 
+
+async function recordInspectionView(inspectionId: string | number) {
+  try {
+    const numericInspectionId = Number(inspectionId);
+
+    if (!numericInspectionId || !Number.isFinite(numericInspectionId)) return;
+
+    await supabase.from("inspection_view_events").insert({
+      inspection_id_bigint: numericInspectionId,
+      view_type: "environmental_share",
+      path: `/environmental-share/${inspectionId}`,
+      metadata: {
+        source: "environmental_share_page",
+      },
+    });
+  } catch (error) {
+    console.error("Environmental share view tracking error:", error);
+  }
+}
+
 function getNumber(value: any) {
   if (typeof value === "number" && Number.isFinite(value)) return value;
 
@@ -209,6 +229,8 @@ export default async function PublicEnvironmentalSharePage({ params }: PageProps
       </main>
     );
   }
+
+  await recordInspectionView(id);
 
   const { data: radonTest } = await supabase
     .from("radon_tests")

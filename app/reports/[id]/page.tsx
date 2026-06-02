@@ -144,6 +144,14 @@ function getLatestEmailLog(logs: any[], type: string) {
   });
 }
 
+
+function getLatestViewLog(logs: any[], type: string) {
+  return (logs || []).find((log: any) => {
+    const viewType = String(log.view_type || "").toLowerCase();
+    return viewType === type;
+  });
+}
+
 export default async function ReportPage({ params }: PageProps) {
   const { id } = await params;
   const supabase = await createSupabaseServerClient();
@@ -272,6 +280,25 @@ export default async function ReportPage({ params }: PageProps) {
   const latestReportEmail =
     getLatestEmailLog(emailLogs, "inspection_report") ||
     getLatestEmailLog(emailLogs, "environmental_report");
+
+  const { data: viewLogsRaw, error: viewLogsError } = await supabase
+    .from("inspection_view_events")
+    .select("*")
+    .eq("inspection_id_bigint", Number(inspection.id))
+    .order("created_at", { ascending: false });
+
+  if (viewLogsError) {
+    console.error("Inspection view logs load error:", viewLogsError);
+  }
+
+  const viewLogs = viewLogsRaw || [];
+  const latestAgreementPageView = getLatestViewLog(viewLogs, "agreement_page");
+  const latestClientPortalView = getLatestViewLog(viewLogs, "client_portal");
+  const latestReportShareView = getLatestViewLog(viewLogs, "report_share");
+  const latestEnvironmentalShareView = getLatestViewLog(
+    viewLogs,
+    "environmental_share"
+  );
 
   const { data: equipmentInventoryRaw, error: equipmentInventoryError } = await supabase
     .from("equipment_inventory")
@@ -578,7 +605,7 @@ export default async function ReportPage({ params }: PageProps) {
             </h2>
 
             <p className="mt-1 text-sm text-slate-400">
-              Agreement emails are client-only. Report emails may be sent to the client and realtor. Open/click tracking appears here after Resend webhooks are enabled.
+              Email delivery comes from Resend. Page-open tracking is recorded directly by On Point Inspect when the client/realtor opens the portal, agreement, shared report, or environmental report.
             </p>
 
             <div className="mt-5 grid gap-4 md:grid-cols-2">
@@ -592,6 +619,32 @@ export default async function ReportPage({ params }: PageProps) {
                 title="Report Email"
                 log={latestReportEmail}
                 emptyText="Not sent yet"
+              />
+            </div>
+
+            <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <ViewStatusCard
+                title="Agreement Opened"
+                log={latestAgreementPageView}
+                emptyText="Not opened yet"
+              />
+
+              <ViewStatusCard
+                title="Client Portal Opened"
+                log={latestClientPortalView}
+                emptyText="Not opened yet"
+              />
+
+              <ViewStatusCard
+                title="Report Opened"
+                log={latestReportShareView}
+                emptyText="Not opened yet"
+              />
+
+              <ViewStatusCard
+                title="Environmental Report Opened"
+                log={latestEnvironmentalShareView}
+                emptyText="Not opened yet"
               />
             </div>
           </section>
@@ -892,6 +945,49 @@ function EmailStatusCard({
           {failedAt && (
             <p className="text-red-300">
               Failed/Bounced: {formatEmailStatusDate(failedAt)}
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+function ViewStatusCard({
+  title,
+  log,
+  emptyText,
+}: {
+  title: string;
+  log: any;
+  emptyText: string;
+}) {
+  return (
+    <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
+      <p className="text-sm font-black uppercase tracking-wide text-slate-400">
+        {title}
+      </p>
+
+      {!log ? (
+        <p className="mt-2 text-lg font-bold text-yellow-300">{emptyText}</p>
+      ) : (
+        <div className="mt-3 space-y-2 text-sm text-slate-300">
+          <p className="text-green-300">
+            Opened: {formatEmailStatusDate(log.created_at)}
+          </p>
+
+          {log.viewer_email && (
+            <p>
+              <span className="font-bold text-white">Viewer:</span>{" "}
+              {log.viewer_email}
+            </p>
+          )}
+
+          {log.viewer_role && (
+            <p>
+              <span className="font-bold text-white">Role:</span>{" "}
+              {log.viewer_role}
             </p>
           )}
         </div>

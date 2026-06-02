@@ -252,6 +252,31 @@ export default function ClientPortalPage() {
     loadInspection();
   }, [inspectionId]);
 
+  useEffect(() => {
+    async function trackClientPortalView() {
+      if (!inspectionId) return;
+
+      try {
+        await fetch("/api/track-inspection-view", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            inspection_id: inspectionId,
+            view_type: "client_portal",
+            viewer_role: "client",
+            path: `/client-portal/${inspectionId}`,
+          }),
+        });
+      } catch (error) {
+        console.error("Client portal view tracking error:", error);
+      }
+    }
+
+    trackClientPortalView();
+  }, [inspectionId]);
+
   async function loadInspection() {
     const { data, error } = await supabase
       .from("inspections")

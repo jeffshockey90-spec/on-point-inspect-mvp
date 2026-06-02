@@ -13,6 +13,37 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+
+async function recordInspectionView({
+  inspectionId,
+  contactId,
+  viewerEmail,
+}: {
+  inspectionId: string | number;
+  contactId?: string | null;
+  viewerEmail?: string | null;
+}) {
+  try {
+    const numericInspectionId = Number(inspectionId);
+
+    if (!numericInspectionId || !Number.isFinite(numericInspectionId)) return;
+
+    await supabase.from("inspection_view_events").insert({
+      inspection_id_bigint: numericInspectionId,
+      view_type: "agreement_page",
+      contact_id: contactId || null,
+      viewer_role: "client",
+      viewer_email: viewerEmail || null,
+      path: `/client-agreement/${inspectionId}`,
+      metadata: {
+        source: "client_agreement_page",
+      },
+    });
+  } catch (error) {
+    console.error("Agreement view tracking error:", error);
+  }
+}
+
 type PageProps = {
   params: Promise<{
     id: string;
@@ -63,6 +94,12 @@ export default async function ClientAgreementPage({
 
     selectedContact = data;
   }
+
+  await recordInspectionView({
+    inspectionId: id,
+    contactId: selectedContact?.id || contact || null,
+    viewerEmail: selectedContact?.email || inspection.client_email || null,
+  });
 
   let signedAgreementQuery = supabase
     .from("inspection_agreements")
