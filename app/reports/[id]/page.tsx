@@ -654,6 +654,8 @@ export default async function ReportPage({ params }: PageProps) {
                         <img
                           src={equipmentImage}
                           alt={item.equipment_type || "Equipment"}
+                          loading="lazy"
+                          decoding="async"
                           className="mb-4 max-h-56 w-full rounded-xl border border-slate-700 object-contain"
                         />
                       )}

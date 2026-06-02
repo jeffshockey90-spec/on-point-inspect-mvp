@@ -763,6 +763,8 @@ export default async function PublicSharePage({
                         <img
                           src={equipmentImage}
                           alt={item.equipment_type || "Equipment"}
+                          loading="lazy"
+                          decoding="async"
                           className="mb-4 max-h-56 w-full rounded-xl border border-slate-700 object-contain"
                         />
                       )}
@@ -1001,6 +1003,8 @@ export default async function PublicSharePage({
                                     key={photo.id}
                                     src={photo.signed_url || photo.public_url}
                                     alt="Limitation photo"
+                                    loading="lazy"
+                                    decoding="async"
                                     className="max-h-[260px] w-full rounded-xl border border-slate-700 object-cover"
                                   />
                                 ))}
@@ -1115,6 +1119,8 @@ export default async function PublicSharePage({
                                   <img
                                     src={photoUrl}
                                     alt={photo.caption || `Section reference photo ${index + 1}`}
+                                    loading="lazy"
+                                    decoding="async"
                                     className="max-h-[280px] w-full object-cover"
                                   />
 
@@ -1176,6 +1182,8 @@ export default async function PublicSharePage({
                                   <img
                                     src={image}
                                     alt="Inspection finding"
+                                    loading="lazy"
+                                    decoding="async"
                                     className="mb-5 max-h-[520px] w-full rounded-xl border border-slate-700 object-contain"
                                   />
                                 )}
