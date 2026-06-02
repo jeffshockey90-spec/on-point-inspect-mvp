@@ -8,6 +8,626 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+type EquipmentAnalysis = {
+  equipmentType?: string;
+  manufacturer?: string;
+  model?: string;
+  serial?: string;
+  manufactureYear?: string | number;
+  estimatedAge?: string | number;
+  expectedServiceLife?: string;
+  estimatedSEER?: string;
+  estimatedAFUE?: string;
+  estimatedBTU?: string;
+  equipmentCategory?: string;
+  budgetPlanning?: string;
+  maintenanceLevel?: string;
+  efficiency?: string;
+  capacity?: string;
+  fuelType?: string;
+  refrigerant?: string;
+  condition?: string;
+  estimatedLifeRemaining?: string;
+  clientSummary?: string;
+  section?: string;
+  severity?: string;
+  observation?: string;
+  implication?: string;
+  recommendation?: string;
+  error?: string;
+  raw?: string;
+};
+
+const VALID_SECTIONS = [
+  "Exterior",
+  "Roof",
+  "Basement, Foundation, Crawlspace & Structure",
+  "Heating",
+  "Cooling",
+  "Plumbing",
+  "Electrical",
+  "Attic, Insulation & Ventilation",
+  "Doors, Windows & Interior",
+  "Built-in Appliances",
+  "Garage",
+  "General",
+];
+
+const VALID_SEVERITIES = [
+  "Informational",
+  "Monitor",
+  "Maintenance",
+  "Recommended Repair",
+  "Safety Concern",
+  "Major Concern",
+];
+
+function cleanText(value: any) {
+  if (value === null || value === undefined) return "";
+  return String(value).trim();
+}
+
+function getCurrentYear() {
+  return new Date().getFullYear();
+}
+
+function getFirstYear(value: any) {
+  const text = cleanText(value);
+  const match = text.match(/\b(19\d{2}|20\d{2})\b/);
+  if (!match) return null;
+
+  const year = Number(match[1]);
+  const currentYear = getCurrentYear();
+
+  if (!Number.isFinite(year) || year < 1950 || year > currentYear + 1) {
+    return null;
+  }
+
+  return year;
+}
+
+function getAgeFromYear(year: number | null) {
+  if (!year) return null;
+  const age = getCurrentYear() - year;
+  if (!Number.isFinite(age) || age < 0 || age > 80) return null;
+  return age;
+}
+
+function normalizeManufacturer(value: any) {
+  const text = cleanText(value);
+  if (!text || text.toLowerCase() === "unknown") return "Unknown";
+  return text;
+}
+
+function lowerIncludes(text: string, terms: string[]) {
+  const lower = text.toLowerCase();
+  return terms.some((term) => lower.includes(term.toLowerCase()));
+}
+
+function inferEquipmentCategory(parsed: EquipmentAnalysis) {
+  const combined = [
+    parsed.equipmentType,
+    parsed.section,
+    parsed.observation,
+    parsed.recommendation,
+    parsed.manufacturer,
+    parsed.model,
+  ]
+    .map(cleanText)
+    .join(" ")
+    .toLowerCase();
+
+  if (
+    lowerIncludes(combined, [
+      "water heater",
+      "tankless",
+      "hot water",
+      "water heating",
+    ])
+  ) {
+    return "water_heater";
+  }
+
+  if (
+    lowerIncludes(combined, [
+      "furnace",
+      "boiler",
+      "air handler",
+      "heat pump",
+      "heating",
+    ])
+  ) {
+    return "heating";
+  }
+
+  if (
+    lowerIncludes(combined, [
+      "air conditioner",
+      "a/c",
+      "ac condenser",
+      "condenser",
+      "cooling",
+      "heat pump",
+      "mini split",
+    ])
+  ) {
+    return "cooling";
+  }
+
+  if (
+    lowerIncludes(combined, [
+      "panel",
+      "breaker",
+      "electrical",
+      "disconnect",
+      "fpe",
+      "federal pacific",
+      "zinsco",
+      "challenger",
+      "pushmatic",
+      "stab-lok",
+      "stab lok",
+    ])
+  ) {
+    return "electrical_panel";
+  }
+
+  if (
+    lowerIncludes(combined, [
+      "dishwasher",
+      "range",
+      "oven",
+      "cooktop",
+      "refrigerator",
+      "microwave",
+      "disposal",
+      "appliance",
+    ])
+  ) {
+    return "appliance";
+  }
+
+  return "general";
+}
+
+function getExpectedLife(category: string, equipmentType: string) {
+  const type = equipmentType.toLowerCase();
+
+  if (category === "water_heater") {
+    if (type.includes("tankless")) return "15-20 years";
+    return "8-12 years";
+  }
+
+  if (category === "cooling") {
+    if (type.includes("heat pump")) return "10-15 years";
+    return "12-15 years";
+  }
+
+  if (category === "heating") {
+    if (type.includes("boiler")) return "20-30 years";
+    if (type.includes("heat pump")) return "10-15 years";
+    return "15-20 years";
+  }
+
+  if (category === "electrical_panel") return "Evaluation-based; age alone is not the primary concern";
+
+  if (category === "appliance") return "8-15 years";
+
+  return "Varies by equipment type and maintenance history";
+}
+
+function getLifeMax(category: string, equipmentType: string) {
+  const type = equipmentType.toLowerCase();
+
+  if (category === "water_heater") return type.includes("tankless") ? 20 : 12;
+  if (category === "cooling") return type.includes("heat pump") ? 15 : 15;
+  if (category === "heating") {
+    if (type.includes("boiler")) return 30;
+    if (type.includes("heat pump")) return 15;
+    return 20;
+  }
+  if (category === "appliance") return 15;
+  return null;
+}
+
+function estimateLifeRemaining(age: number | null, category: string, equipmentType: string) {
+  const maxLife = getLifeMax(category, equipmentType);
+
+  if (age === null || maxLife === null) return "Unknown";
+
+  const remaining = maxLife - age;
+
+  if (remaining <= 0) return "At or beyond typical service life";
+  if (remaining <= 3) return `Approximately 0-${remaining} years`;
+  return `Approximately ${remaining} years`;
+}
+
+function hasR22(parsed: EquipmentAnalysis) {
+  const combined = [parsed.refrigerant, parsed.observation, parsed.recommendation]
+    .map(cleanText)
+    .join(" ")
+    .toLowerCase();
+
+  return combined.includes("r22") || combined.includes("r-22") || combined.includes("hcfc-22");
+}
+
+function hasProblemPanel(parsed: EquipmentAnalysis) {
+  const combined = [
+    parsed.manufacturer,
+    parsed.model,
+    parsed.equipmentType,
+    parsed.observation,
+    parsed.recommendation,
+  ]
+    .map(cleanText)
+    .join(" ")
+    .toLowerCase();
+
+  if (combined.includes("federal pacific") || combined.includes("fpe")) {
+    return "Federal Pacific / Stab-Lok";
+  }
+
+  if (combined.includes("stab-lok") || combined.includes("stab lok")) {
+    return "Federal Pacific / Stab-Lok";
+  }
+
+  if (combined.includes("zinsco")) return "Zinsco";
+  if (combined.includes("challenger")) return "Challenger";
+  if (combined.includes("pushmatic")) return "Pushmatic";
+
+  return "";
+}
+
+function getAgeCondition(age: number | null, category: string, equipmentType: string) {
+  if (age === null) return "Unknown";
+
+  const maxLife = getLifeMax(category, equipmentType);
+  if (!maxLife) return "Typical service life varies";
+
+  if (age >= maxLife) return "At or beyond typical service life";
+  if (age >= maxLife - 3) return "Near end of typical service life";
+  return "Typical service life remaining";
+}
+
+function chooseSection(parsed: EquipmentAnalysis, category: string) {
+  const proposed = cleanText(parsed.section);
+  if (VALID_SECTIONS.includes(proposed)) return proposed;
+
+  if (category === "cooling") return "Cooling";
+  if (category === "heating") return "Heating";
+  if (category === "water_heater") return "Plumbing";
+  if (category === "electrical_panel") return "Electrical";
+  if (category === "appliance") return "Built-in Appliances";
+
+  return "General";
+}
+
+function chooseSeverity({
+  parsed,
+  age,
+  category,
+  equipmentType,
+  problemPanel,
+  r22,
+}: {
+  parsed: EquipmentAnalysis;
+  age: number | null;
+  category: string;
+  equipmentType: string;
+  problemPanel: string;
+  r22: boolean;
+}) {
+  if (problemPanel) return "Safety Concern";
+
+  const maxLife = getLifeMax(category, equipmentType);
+  if (maxLife && age !== null) {
+    if (age >= maxLife) return "Recommended Repair";
+    if (age >= maxLife - 3) return "Monitor";
+  }
+
+  if (r22) return "Monitor";
+
+  const proposed = cleanText(parsed.severity);
+  if (VALID_SEVERITIES.includes(proposed)) return proposed;
+
+  return "Informational";
+}
+
+function buildClientSummary({
+  parsed,
+  category,
+  equipmentType,
+  manufacturer,
+  model,
+  manufactureYear,
+  age,
+  expectedLife,
+  lifeRemaining,
+  r22,
+  problemPanel,
+}: {
+  parsed: EquipmentAnalysis;
+  category: string;
+  equipmentType: string;
+  manufacturer: string;
+  model: string;
+  manufactureYear: string;
+  age: number | null;
+  expectedLife: string;
+  lifeRemaining: string;
+  r22: boolean;
+  problemPanel: string;
+}) {
+  const existing = cleanText(parsed.clientSummary);
+  if (existing && existing.toLowerCase() !== "unknown") return existing;
+
+  const nameParts = [manufacturer !== "Unknown" ? manufacturer : "", equipmentType || "equipment"]
+    .filter(Boolean)
+    .join(" ");
+
+  if (problemPanel) {
+    return `The electrical panel appears to be a ${problemPanel} type panel. These panels are commonly considered a concern in residential inspections, and evaluation by a qualified electrical contractor is recommended.`;
+  }
+
+  const ageText = age !== null ? `It appears to be approximately ${age} years old` : "The exact age could not be confirmed from the photo";
+  const yearText = manufactureYear && manufactureYear !== "Unknown" ? `, with a manufacture year of ${manufactureYear}` : "";
+  const modelText = model && model !== "Unknown" ? ` Model number: ${model}.` : "";
+
+  let summary = `The ${nameParts} was reviewed from the equipment photo. ${ageText}${yearText}. Typical expected service life is ${expectedLife}, and the estimated remaining life is ${lifeRemaining}.${modelText}`;
+
+  if (r22) {
+    summary += " The system appears to use R-22 refrigerant, which is obsolete and can be expensive or difficult to service. Budgeting for future replacement should be considered.";
+  }
+
+  return summary;
+}
+
+
+function parseTonnageFromModel(modelValue: any) {
+  const model = cleanText(modelValue).toUpperCase();
+  if (!model || model === "UNKNOWN") return "Unknown";
+
+  const match = model.match(/(?:^|[^0-9])(18|24|30|36|42|48|60)(?:[^0-9]|$)/);
+  if (!match) return "Unknown";
+
+  const btu = Number(match[1]) * 1000;
+  const tons = btu / 12000;
+
+  return `${btu.toLocaleString()} BTU / ${tons} ton${tons === 1 ? "" : "s"}`;
+}
+
+function estimateSEER({ age, refrigerant, category }: { age: number | null; refrigerant: string; category: string }) {
+  if (category !== "cooling") return "Unknown";
+
+  const ref = refrigerant.toLowerCase();
+
+  if (age === null) {
+    if (ref.includes("r-22") || ref.includes("r22")) return "Likely older/lower efficiency";
+    if (ref.includes("410")) return "Likely 13+ SEER";
+    return "Unknown";
+  }
+
+  const year = getCurrentYear() - age;
+
+  if (year >= 2023) return "Likely SEER2 rated; verify label/manual";
+  if (year >= 2015) return "Approx. 14+ SEER if code-minimum or better";
+  if (year >= 2006) return "Approx. 13+ SEER if code-minimum or better";
+  return "Likely 10 SEER or lower";
+}
+
+function estimateAFUE({ age, category, fuelType }: { age: number | null; category: string; fuelType: string }) {
+  if (category !== "heating") return "Unknown";
+
+  const fuel = fuelType.toLowerCase();
+  if (!fuel.includes("gas") && !fuel.includes("oil") && !fuel.includes("propane")) {
+    return "Unknown";
+  }
+
+  if (age === null) return "Unknown; verify equipment label";
+
+  const year = getCurrentYear() - age;
+  if (year >= 2015) return "Typically 80%-96% AFUE depending on furnace type";
+  if (year >= 1992) return "Typically 78%-90% AFUE depending on furnace type";
+  return "Older/lower efficiency likely";
+}
+
+function estimateBTU({ parsed, category }: { parsed: EquipmentAnalysis; category: string }) {
+  const visibleCapacity = cleanText(parsed.capacity);
+  if (visibleCapacity && visibleCapacity.toLowerCase() !== "unknown") return visibleCapacity;
+
+  if (category === "cooling" || category === "heating") {
+    const fromModel = parseTonnageFromModel(parsed.model);
+    if (fromModel !== "Unknown") return fromModel;
+  }
+
+  return "Unknown";
+}
+
+function getBudgetPlanning({ age, category, condition, r22, problemPanel }: { age: number | null; category: string; condition: string; r22: boolean; problemPanel: string }) {
+  if (problemPanel) return "Specialist evaluation recommended";
+  if (r22) return "Budget for future replacement due to obsolete refrigerant";
+
+  const cond = condition.toLowerCase();
+  if (cond.includes("beyond")) return "Replacement should be anticipated";
+  if (cond.includes("near end")) return "Budget for replacement in the coming years";
+
+  if (age !== null) {
+    const maxLife = getLifeMax(category, "");
+    if (maxLife && age >= maxLife) return "Replacement should be anticipated";
+    if (maxLife && age >= maxLife - 3) return "Budget for replacement in the coming years";
+  }
+
+  return "Routine maintenance recommended";
+}
+
+function getMaintenanceLevel({ age, category, condition, r22, problemPanel }: { age: number | null; category: string; condition: string; r22: boolean; problemPanel: string }) {
+  if (problemPanel) return "High - specialist evaluation recommended";
+  if (r22) return "Elevated - obsolete refrigerant may increase service cost";
+
+  const cond = condition.toLowerCase();
+  if (cond.includes("beyond") || cond.includes("near end")) return "Elevated - monitor closely and budget for replacement";
+
+  if (age !== null) {
+    const maxLife = getLifeMax(category, "");
+    if (maxLife && age >= maxLife - 3) return "Elevated - approaching typical service life";
+  }
+
+  if (category === "water_heater") return "Normal - recommend periodic inspection and maintenance";
+  if (category === "cooling" || category === "heating") return "Normal - recommend annual HVAC service";
+  if (category === "appliance") return "Normal - maintain per manufacturer instructions";
+
+  return "Normal";
+}
+
+function enhanceAnalysis(parsed: EquipmentAnalysis) {
+  const category = inferEquipmentCategory(parsed);
+  const manufacturer = normalizeManufacturer(parsed.manufacturer);
+  const equipmentType = cleanText(parsed.equipmentType) ||
+    (category === "cooling"
+      ? "Cooling Equipment"
+      : category === "heating"
+      ? "Heating Equipment"
+      : category === "water_heater"
+      ? "Water Heater"
+      : category === "electrical_panel"
+      ? "Electrical Panel"
+      : category === "appliance"
+      ? "Built-in Appliance"
+      : "Equipment");
+
+  const model = cleanText(parsed.model) || "Unknown";
+  const serial = cleanText(parsed.serial) || "Unknown";
+
+  const manufactureYearNumber = getFirstYear(parsed.manufactureYear);
+  const ageFromYear = getAgeFromYear(manufactureYearNumber);
+  const parsedAgeNumber = Number(cleanText(parsed.estimatedAge).replace(/[^0-9.-]/g, ""));
+  const age = ageFromYear ?? (Number.isFinite(parsedAgeNumber) && parsedAgeNumber > 0 ? parsedAgeNumber : null);
+
+  const manufactureYear = manufactureYearNumber
+    ? String(manufactureYearNumber)
+    : cleanText(parsed.manufactureYear) || "Unknown";
+
+  const expectedServiceLife = cleanText(parsed.expectedServiceLife) || getExpectedLife(category, equipmentType);
+  const estimatedLifeRemaining =
+    cleanText(parsed.estimatedLifeRemaining) && cleanText(parsed.estimatedLifeRemaining).toLowerCase() !== "unknown"
+      ? cleanText(parsed.estimatedLifeRemaining)
+      : estimateLifeRemaining(age, category, equipmentType);
+
+  const r22 = hasR22(parsed);
+  const problemPanel = hasProblemPanel(parsed);
+  const condition = problemPanel || getAgeCondition(age, category, equipmentType);
+  const section = chooseSection(parsed, category);
+  const severity = chooseSeverity({
+    parsed,
+    age,
+    category,
+    equipmentType,
+    problemPanel,
+    r22,
+  });
+
+  const estimatedBTU = estimateBTU({ parsed, category });
+  const refrigerantValue = cleanText(parsed.refrigerant) || (r22 ? "R-22" : "Unknown");
+  const estimatedSEER = cleanText(parsed.estimatedSEER) || estimateSEER({ age, refrigerant: refrigerantValue, category });
+  const estimatedAFUE = cleanText(parsed.estimatedAFUE) || estimateAFUE({ age, category, fuelType: cleanText(parsed.fuelType) });
+  const equipmentCategory = cleanText(parsed.equipmentCategory) || category.replaceAll("_", " ");
+  const budgetPlanning =
+    cleanText(parsed.budgetPlanning) ||
+    getBudgetPlanning({
+      age,
+      category,
+      condition,
+      r22,
+      problemPanel,
+    });
+
+  const clientSummary = buildClientSummary({
+    parsed,
+    category,
+    equipmentType,
+    manufacturer,
+    model,
+    manufactureYear,
+    age,
+    expectedLife: expectedServiceLife,
+    lifeRemaining: estimatedLifeRemaining,
+    r22,
+    problemPanel,
+  });
+
+  let observation = cleanText(parsed.observation);
+  let implication = cleanText(parsed.implication);
+  let recommendation = cleanText(parsed.recommendation);
+
+  if (!observation || observation.toLowerCase() === "unknown") {
+    observation = `${manufacturer !== "Unknown" ? manufacturer + " " : ""}${equipmentType} was observed. Model: ${model}. Serial: ${serial}.`;
+  }
+
+  if (problemPanel) {
+    observation = `The electrical panel appears to be a ${problemPanel} type panel.`;
+    implication = "These panels are commonly associated with reliability and safety concerns and should be further evaluated.";
+    recommendation = "Recommend evaluation by a qualified electrical contractor. Replacement may be recommended depending on the specific panel, condition, and installation.";
+  } else if (r22) {
+    implication = implication || "R-22 refrigerant is obsolete and can be expensive or difficult to service.";
+    recommendation = recommendation || "Recommend servicing by a qualified HVAC contractor and budgeting for future system replacement due to the obsolete refrigerant type.";
+  } else if (severity === "Recommended Repair" && !recommendation) {
+    recommendation = "Recommend further evaluation by the appropriate qualified contractor and budgeting for replacement due to the age or condition of the equipment.";
+  } else if (severity === "Monitor" && !recommendation) {
+    recommendation = "Recommend monitoring the equipment, maintaining regular service, and budgeting for replacement as it approaches the end of its typical service life.";
+  }
+
+  if (!implication || implication.toLowerCase() === "unknown") {
+    implication = "Older equipment may be less efficient and may have a higher risk of repair or replacement needs as it ages.";
+  }
+
+  if (!recommendation || recommendation.toLowerCase() === "unknown") {
+    recommendation = "Recommend regular maintenance and review by the appropriate qualified contractor as needed.";
+  }
+
+  const maintenanceLevel = cleanText(parsed.maintenanceLevel) || getMaintenanceLevel({
+    age,
+    category,
+    condition,
+    r22,
+    problemPanel,
+  });
+
+  return {
+    equipmentType,
+    manufacturer,
+    model,
+    serial,
+    manufactureYear,
+    estimatedAge: age !== null ? `${age} years` : cleanText(parsed.estimatedAge) || "Unknown",
+    expectedServiceLife,
+    estimatedSEER,
+    estimatedAFUE,
+    estimatedBTU,
+    equipmentCategory,
+    budgetPlanning,
+    maintenanceLevel,
+    efficiency: cleanText(parsed.efficiency) || "Unknown",
+    capacity: estimatedBTU || cleanText(parsed.capacity) || "Unknown",
+    fuelType: cleanText(parsed.fuelType) || "Unknown",
+    refrigerant: refrigerantValue,
+    condition,
+    estimatedLifeRemaining,
+    clientSummary,
+    section,
+    severity,
+    observation,
+    implication,
+    recommendation,
+    intelligenceFlags: {
+      category,
+      r22Detected: r22,
+      problemPanelDetected: Boolean(problemPanel),
+      problemPanelType: problemPanel || null,
+      ageBasedSeverityApplied: severity === "Monitor" || severity === "Recommended Repair",
+    },
+  };
+}
+
 export async function POST(req: Request) {
   let inspectionId: string | number | null = null;
 
@@ -59,11 +679,12 @@ export async function POST(req: Request) {
     const result = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       response_format: { type: "json_object" },
+      temperature: 0.1,
       messages: [
         {
           role: "system",
           content:
-            "You are an expert home inspection equipment analyst. Return ONLY valid JSON. Be accurate, conservative, and use Unknown when information cannot be confirmed from the photo.",
+            "You are an expert home inspection equipment analyst. Return ONLY valid JSON. Be accurate, conservative, and use Unknown when information cannot be confirmed from the photo. Never invent serial numbers or model numbers.",
         },
         {
           role: "user",
@@ -82,12 +703,20 @@ Return ONLY valid JSON in this exact format:
   "serial": "",
   "manufactureYear": "",
   "estimatedAge": "",
+  "expectedServiceLife": "",
+  "estimatedSEER": "",
+  "estimatedAFUE": "",
+  "estimatedBTU": "",
+  "equipmentCategory": "",
+  "budgetPlanning": "",
+  "maintenanceLevel": "",
   "efficiency": "",
   "capacity": "",
   "fuelType": "",
   "refrigerant": "",
   "condition": "",
   "estimatedLifeRemaining": "",
+  "clientSummary": "",
   "section": "",
   "severity": "",
   "observation": "",
@@ -101,16 +730,38 @@ Exterior, Roof, Basement, Foundation, Crawlspace & Structure, Heating, Cooling, 
 Severity must be one of:
 Informational, Monitor, Maintenance, Recommended Repair, Safety Concern, Major Concern.
 
-Rules:
+Equipment classification rules:
 - Furnace, boiler, air handler, or heating equipment = Heating
 - AC condenser, heat pump, mini split, or cooling equipment = Cooling
 - Electrical panel, disconnect, breaker, service equipment = Electrical
 - Water heater, tankless water heater, expansion tank, or plumbing equipment = Plumbing
 - Dishwasher, refrigerator, range, oven, cooktop, garbage disposal = Built-in Appliances
 - Garage door equipment = Garage
-- If information is not visible, use "Unknown"
-- Do not guess manufacture year unless the photo or serial pattern clearly supports it
-- Recommendations should be clear, professional, and not overly alarmist
+
+Enhanced intelligence rules:
+- Carefully extract manufacturer, model, and serial only when visible.
+- If information is not visible, use "Unknown".
+- Do not guess manufacture year unless the label, serial number pattern, or visible date clearly supports it.
+- If visible, identify refrigerant type, especially R-22, HCFC-22, R410A, R-410A, R32, or R454B.
+- Flag R-22 or HCFC-22 as obsolete refrigerant.
+- Estimate expected service life conservatively:
+  - Central AC condenser: 12-15 years
+  - Heat pump: 10-15 years
+  - Furnace: 15-20 years
+  - Boiler: 20-30 years
+  - Tank water heater: 8-12 years
+  - Tankless water heater: 15-20 years
+  - Built-in appliances: 8-15 years
+- Estimate remaining life only when age is reasonably known.
+- Estimate SEER/SEER2 only conservatively from visible label information or equipment age. If not visible, state approximate/verify.
+- Estimate AFUE only for gas/oil/propane heating equipment when reasonable. If not visible, state approximate/verify.
+- Estimate BTU/tonnage from visible capacity or model number only when supported. Common AC model numbers include 18=1.5 ton, 24=2 ton, 30=2.5 ton, 36=3 ton, 42=3.5 ton, 48=4 ton, 60=5 ton.
+- Do not provide dollar amounts or replacement cost ranges. Use budget planning language only, such as "Routine maintenance recommended", "Budget for replacement in the coming years", or "Replacement should be anticipated."
+- Provide maintenance level: Low, Normal, Elevated, or High with short reason.
+- If equipment is near or beyond expected service life, explain that budgeting for replacement is recommended.
+- If the photo shows Federal Pacific, FPE, Stab-Lok, Zinsco, Challenger, or Pushmatic electrical equipment, mark severity as Safety Concern and recommend electrician evaluation.
+- Recommendations should be clear, professional, and not overly alarmist.
+- Client summary should be easy for a homebuyer to understand.
               `,
             },
             {
@@ -126,7 +777,7 @@ Rules:
 
     const text = result.choices[0]?.message?.content || "{}";
 
-    let parsed: any;
+    let parsed: EquipmentAnalysis;
 
     try {
       parsed = JSON.parse(text);
@@ -137,26 +788,36 @@ Rules:
       };
     }
 
+    const enhanced = parsed?.error ? parsed : enhanceAnalysis(parsed || {});
+
     await logAIEvent({
       inspectionId,
       tool: "equipment_analyzer",
-      prompt: "Equipment Analyzer photo analysis",
+      prompt: "Equipment Analyzer expanded intelligence photo analysis",
       response: {
-        equipmentType: parsed?.equipmentType,
-        manufacturer: parsed?.manufacturer,
-        model: parsed?.model,
-        serial: parsed?.serial,
-        manufactureYear: parsed?.manufactureYear,
-        estimatedAge: parsed?.estimatedAge,
-        refrigerant: parsed?.refrigerant,
-        section: parsed?.section,
-        severity: parsed?.severity,
+        equipmentType: enhanced?.equipmentType,
+        manufacturer: enhanced?.manufacturer,
+        model: enhanced?.model,
+        serial: enhanced?.serial,
+        manufactureYear: enhanced?.manufactureYear,
+        estimatedAge: enhanced?.estimatedAge,
+        expectedServiceLife: (enhanced as any)?.expectedServiceLife,
+        estimatedLifeRemaining: enhanced?.estimatedLifeRemaining,
+        refrigerant: enhanced?.refrigerant,
+        estimatedSEER: (enhanced as any)?.estimatedSEER,
+        estimatedAFUE: (enhanced as any)?.estimatedAFUE,
+        estimatedBTU: (enhanced as any)?.estimatedBTU,
+        budgetPlanning: (enhanced as any)?.budgetPlanning,
+        maintenanceLevel: (enhanced as any)?.maintenanceLevel,
+        section: enhanced?.section,
+        severity: enhanced?.severity,
+        intelligenceFlags: (enhanced as any)?.intelligenceFlags,
       },
       tokensUsed: result.usage?.total_tokens ?? null,
       status: parsed?.error ? "failed" : "success",
     });
 
-    return NextResponse.json(parsed);
+    return NextResponse.json(enhanced);
   } catch (error: any) {
     console.error("Analyze equipment error:", error);
 

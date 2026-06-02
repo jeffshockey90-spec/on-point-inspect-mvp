@@ -280,11 +280,32 @@ function groupLimitations(rows: any[], photosByLimitationId: Record<string, any[
 
 export default async function PublicSharePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<{ defect_filter?: string }>;
 }) {
   const resolvedParams = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : {};
   const inspectionId = resolvedParams.id;
+
+  const requestedDefectFilter = String(
+    resolvedSearchParams?.defect_filter || "all"
+  ).toLowerCase();
+
+  const activeDefectFilter = ["safety", "repair", "maintenance", "information"].includes(
+    requestedDefectFilter
+  )
+    ? requestedDefectFilter
+    : "all";
+
+  const activeDefectFilterLabel: Record<string, string> = {
+    all: "All Findings",
+    safety: "Safety / Major",
+    repair: "Recommended Repair",
+    maintenance: "Maintenance / Monitor",
+    information: "Informational",
+  };
 
   const { data: inspection, error: inspectionError } = await supabase
     .from("inspections")
@@ -466,6 +487,30 @@ export default async function PublicSharePage({
     .eq("inspection_id", inspectionId)
     .order("created_at", { ascending: true });
 
+  const { data: equipmentInventoryRaw, error: equipmentInventoryError } = await supabase
+    .from("equipment_inventory")
+    .select("*")
+    .eq("inspection_id", inspectionId)
+    .order("created_at", { ascending: true });
+
+  if (equipmentInventoryError) {
+    console.error("Share equipment inventory load error:", equipmentInventoryError);
+  }
+
+  const equipmentPhotoPaths = (equipmentInventoryRaw || [])
+    .map((item: any) => item.file_path)
+    .filter(Boolean);
+
+  const equipmentSignedUrlMap = await createSignedUrlMap(equipmentPhotoPaths);
+
+  const equipmentInventory = (equipmentInventoryRaw || []).map((item: any) => ({
+    ...item,
+    signed_image_url:
+      (item.file_path && equipmentSignedUrlMap[item.file_path]) ||
+      item.image_url ||
+      "",
+  }));
+
   const { data: moldTest } = await supabase
     .from("mold_tests")
     .select("*")
@@ -487,12 +532,21 @@ export default async function PublicSharePage({
   const propertyPhoto = getPropertyPhoto(inspection);
   const defectTotals = buildDefectTotals(findings);
 
+  const displayFindings =
+    activeDefectFilter === "all"
+      ? findings
+      : findings.filter(
+          (finding: any) =>
+            isReportDefect(finding) &&
+            getSeverityBucket(finding.severity) === activeDefectFilter
+        );
+
   const groupedFindings = SECTION_ORDER.map((section) => ({
     section,
-    findings: findings.filter((finding: any) => finding.section === section),
+    findings: displayFindings.filter((finding: any) => finding.section === section),
   })).filter((group) => group.findings.length > 0);
 
-  const otherFindings = findings.filter(
+  const otherFindings = displayFindings.filter(
     (finding: any) => !SECTION_ORDER.includes(finding.section)
   );
 
@@ -608,22 +662,42 @@ export default async function PublicSharePage({
                 label="Safety / Major"
                 value={defectTotals.safety}
                 tone="red"
+                href={`/share/${inspectionId}?defect_filter=safety#inspection-findings`}
+                active={activeDefectFilter === "safety"}
               />
               <DefectSummaryCard
                 label="Recommended Repair"
                 value={defectTotals.repair}
                 tone="teal"
+                href={`/share/${inspectionId}?defect_filter=repair#inspection-findings`}
+                active={activeDefectFilter === "repair"}
               />
               <DefectSummaryCard
                 label="Maintenance / Monitor"
                 value={defectTotals.maintenance}
                 tone="yellow"
+                href={`/share/${inspectionId}?defect_filter=maintenance#inspection-findings`}
+                active={activeDefectFilter === "maintenance"}
               />
               <DefectSummaryCard
                 label="Informational"
                 value={defectTotals.information}
                 tone="blue"
+                href={`/share/${inspectionId}?defect_filter=information#inspection-findings`}
+                active={activeDefectFilter === "information"}
               />
+            </div>
+
+            <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-slate-400">
+              <span>Click a defect type above to filter the findings list.</span>
+              {activeDefectFilter !== "all" && (
+                <Link
+                  href={`/share/${inspectionId}#inspection-findings`}
+                  className="rounded-full border border-slate-600 px-3 py-1 font-bold text-white hover:bg-slate-800"
+                >
+                  Clear filter: {activeDefectFilterLabel[activeDefectFilter]}
+                </Link>
+              )}
             </div>
           </section>
 
@@ -651,6 +725,71 @@ export default async function PublicSharePage({
               />
             </div>
           </section>
+
+          {equipmentInventory.length > 0 && (
+            <details
+              id="equipment-inventory"
+              className="mt-8 rounded-2xl border border-cyan-500/40 bg-[#071224] p-6"
+            >
+              <summary className="cursor-pointer list-none">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-2xl font-bold text-cyan-300">
+                      Equipment Inventory
+                    </h2>
+
+                    <p className="mt-2 text-sm text-slate-400">
+                      Click to expand major systems and equipment documented during the inspection. These records are informational and are not counted as defects unless a separate finding is included.
+                    </p>
+                  </div>
+
+                  <span className="rounded-full border border-cyan-500/40 bg-cyan-500/10 px-4 py-2 text-sm font-bold text-cyan-200">
+                    {equipmentInventory.length} record{equipmentInventory.length === 1 ? "" : "s"}
+                  </span>
+                </div>
+              </summary>
+
+              <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {equipmentInventory.map((item: any) => {
+                  const equipmentImage =
+                    item.signed_image_url || item.image_url || item.public_url || "";
+
+                  return (
+                    <div
+                      key={item.id}
+                      className="rounded-xl border border-slate-700 bg-[#0f172a] p-4"
+                    >
+                      {equipmentImage && (
+                        <img
+                          src={equipmentImage}
+                          alt={item.equipment_type || "Equipment"}
+                          className="mb-4 max-h-56 w-full rounded-xl border border-slate-700 object-contain"
+                        />
+                      )}
+
+                      <p className="text-xs font-black uppercase tracking-wide text-cyan-300">
+                        {item.equipment_type || "Equipment"}
+                      </p>
+
+                      <h3 className="mt-2 text-xl font-black text-white">
+                        {[item.manufacturer, item.model].filter(Boolean).join(" ") || "Equipment Record"}
+                      </h3>
+
+                      <div className="mt-4 grid gap-2 text-sm text-slate-300">
+                        <InventoryLine label="Serial" value={item.serial} />
+                        <InventoryLine label="Manufacture Year" value={item.manufacture_year} />
+                        <InventoryLine label="Estimated Age" value={item.estimated_age} />
+                        <InventoryLine label="Expected Life" value={item.expected_service_life} />
+                        <InventoryLine label="Life Remaining" value={item.estimated_life_remaining} />
+                        <InventoryLine label="Refrigerant" value={item.refrigerant} />
+                        <InventoryLine label="Condition" value={item.condition} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </details>
+          )}
 
           {showEnvironmentalLinks && (
             <section className="mt-8 rounded-2xl border border-purple-500/40 bg-[#071224] p-6">
@@ -698,7 +837,7 @@ export default async function PublicSharePage({
             </section>
           )}
 
-          {sectionStats.length > 0 && (
+          {(sectionStats.length > 0 || equipmentInventory.length > 0) && (
             <section className="mt-8 rounded-2xl border border-slate-700 bg-[#071224] p-6">
               <h2 className="text-2xl font-bold text-teal-400">
                 Section Snapshot
@@ -725,29 +864,68 @@ export default async function PublicSharePage({
                     </p>
                   </a>
                 ))}
+
+                {equipmentInventory.length > 0 && (
+                  <a
+                    href="#equipment-inventory"
+                    className="rounded-xl border border-cyan-500/40 bg-cyan-500/10 p-4 transition hover:border-cyan-400 hover:bg-cyan-500/20"
+                  >
+                    <p className="font-black text-cyan-200">
+                      Equipment Inventory
+                    </p>
+                    <p className="mt-2 text-sm text-slate-300">
+                      {equipmentInventory.length} equipment record
+                      {equipmentInventory.length === 1 ? "" : "s"} • informational only
+                    </p>
+                  </a>
+                )}
               </div>
             </section>
           )}
 
           {inspection.report_summary && (
-            <section className="mt-8 rounded-2xl border border-teal-500/40 bg-[#071224] p-6 shadow-xl">
-              <h2 className="text-2xl font-extrabold text-teal-300">
-                Report Summary
-              </h2>
+            <details className="mt-8 rounded-2xl border border-teal-500/40 bg-[#071224] p-6 shadow-xl">
+              <summary className="cursor-pointer list-none">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-2xl font-extrabold text-teal-300">
+                      Report Summary
+                    </h2>
+                    <p className="mt-2 text-sm text-slate-400">
+                      Click to expand the generated summary of notable findings and recommendations.
+                    </p>
+                  </div>
+                  <span className="rounded-full border border-teal-500/40 px-4 py-2 text-sm font-bold text-teal-300">
+                    Click to Expand
+                  </span>
+                </div>
+              </summary>
 
               <div className="mt-5 whitespace-pre-line rounded-xl border border-slate-700 bg-[#020817]/70 p-5 text-base leading-8 text-slate-100">
                 {inspection.report_summary}
               </div>
-            </section>
+            </details>
           )}
 
           {Object.keys(checklistBySection).length > 0 && (
-            <section className="mt-8 rounded-2xl border border-slate-700 bg-[#071224] p-6">
-              <h2 className="mb-5 text-2xl font-bold text-teal-400">
-                Inspection Information
-              </h2>
+            <details className="mt-8 rounded-2xl border border-slate-700 bg-[#071224] p-6">
+              <summary className="cursor-pointer list-none">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-2xl font-bold text-teal-400">
+                      Inspection Information
+                    </h2>
+                    <p className="mt-2 text-sm text-slate-400">
+                      Click to expand selected inspection information, component types, materials, and system details.
+                    </p>
+                  </div>
+                  <span className="rounded-full border border-teal-500/40 px-4 py-2 text-sm font-bold text-teal-300">
+                    Click to Expand
+                  </span>
+                </div>
+              </summary>
 
-              <div className="space-y-6">
+              <div className="mt-5 space-y-6">
                 {SECTION_ORDER.filter((section) => checklistBySection[section]).map(
                   (section) => (
                     <div
@@ -780,7 +958,7 @@ export default async function PublicSharePage({
                   )
                 )}
               </div>
-            </section>
+            </details>
           )}
 
           {Object.keys(limitationsBySection).length > 0 && (
@@ -863,7 +1041,7 @@ export default async function PublicSharePage({
             </section>
           )}
 
-          <section className="mt-10">
+          <section id="inspection-findings" className="mt-10">
             <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
               <div>
                 <p className="text-sm font-bold uppercase tracking-[0.3em] text-teal-400">
@@ -872,10 +1050,17 @@ export default async function PublicSharePage({
                 <h2 className="mt-2 text-4xl font-black text-white">
                   Findings By Section
                 </h2>
+                {activeDefectFilter !== "all" && (
+                  <p className="mt-2 text-sm font-semibold text-teal-300">
+                    Showing: {activeDefectFilterLabel[activeDefectFilter]} only
+                  </p>
+                )}
               </div>
 
               <div className="rounded-2xl border border-slate-700 bg-[#071224] px-5 py-3 text-sm text-slate-300">
-                {defectTotals.total} total defect{defectTotals.total === 1 ? "" : "s"} documented
+                {activeDefectFilter === "all"
+                  ? `${defectTotals.total} total defect${defectTotals.total === 1 ? "" : "s"} documented`
+                  : `${displayFindings.filter(isReportDefect).length} ${activeDefectFilterLabel[activeDefectFilter].toLowerCase()} finding${displayFindings.filter(isReportDefect).length === 1 ? "" : "s"}`}
               </div>
             </div>
 
@@ -1045,28 +1230,40 @@ function DefectSummaryCard({
   label,
   value,
   tone,
+  href,
+  active = false,
 }: {
   label: string;
   value: number;
   tone: "red" | "teal" | "yellow" | "blue";
+  href: string;
+  active?: boolean;
 }) {
   const color =
     tone === "red"
-      ? "text-red-300 border-red-500/30 bg-red-500/10"
+      ? "text-red-300 border-red-500/30 bg-red-500/10 hover:bg-red-500/20"
       : tone === "yellow"
-      ? "text-yellow-300 border-yellow-500/30 bg-yellow-500/10"
+      ? "text-yellow-300 border-yellow-500/30 bg-yellow-500/10 hover:bg-yellow-500/20"
       : tone === "blue"
-      ? "text-blue-300 border-blue-500/30 bg-blue-500/10"
-      : "text-teal-300 border-teal-500/30 bg-teal-500/10";
+      ? "text-blue-300 border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20"
+      : "text-teal-300 border-teal-500/30 bg-teal-500/10 hover:bg-teal-500/20";
 
   return (
-    <div className={`rounded-xl border p-4 text-center ${color}`}>
+    <Link
+      href={href}
+      className={`rounded-xl border p-4 text-center transition ${color} ${
+        active ? "ring-2 ring-white/70" : ""
+      }`}
+    >
       <p className="text-xs font-bold uppercase tracking-wide text-slate-300">
         {label}
       </p>
 
       <p className="mt-2 text-3xl font-black text-white">{value}</p>
-    </div>
+      <p className="mt-1 text-xs font-semibold text-slate-400">
+        Click to filter
+      </p>
+    </Link>
   );
 }
 
@@ -1080,6 +1277,17 @@ function Info({ label, value }: { label: string; value?: any }) {
       <p className="mt-1 text-base font-semibold text-white">
         {value || "N/A"}
       </p>
+    </div>
+  );
+}
+
+function InventoryLine({ label, value }: { label: string; value?: any }) {
+  if (!value) return null;
+
+  return (
+    <div className="flex justify-between gap-3 border-b border-slate-800 pb-1">
+      <span className="font-bold text-slate-500">{label}</span>
+      <span className="text-right font-semibold text-slate-200">{value}</span>
     </div>
   );
 }

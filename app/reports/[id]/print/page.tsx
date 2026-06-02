@@ -329,6 +329,26 @@ export default async function PrintableReportPage({ params }: PageProps) {
     .eq("inspection_id", inspection.id)
     .order("created_at", { ascending: true });
 
+  const { data: equipmentInventoryRaw, error: equipmentInventoryError } = await supabase
+    .from("equipment_inventory")
+    .select("*")
+    .eq("inspection_id", inspection.id)
+    .order("created_at", { ascending: true });
+
+  if (equipmentInventoryError) {
+    console.error("Print equipment inventory load error:", equipmentInventoryError);
+  }
+
+  const equipmentInventory = await Promise.all(
+    (equipmentInventoryRaw || []).map(async (item: any) => ({
+      ...item,
+      signed_image_url:
+        (await createSignedUrl(supabase, item.file_path)) ||
+        item.image_url ||
+        "",
+    }))
+  );
+
   const defectFindings = findings.filter((finding: any) => {
     const section = String(finding.section || "").toLowerCase();
     const title = String(finding.title || "").toLowerCase();
@@ -524,6 +544,61 @@ export default async function PrintableReportPage({ params }: PageProps) {
             </div>
           </div>
         </section>
+
+        {equipmentInventory.length > 0 && (
+          <section
+            id="equipment-inventory"
+            className="avoid-break page-break rounded-2xl border border-cyan-200 bg-cyan-50 p-6"
+          >
+            <h2 className="text-3xl font-black text-cyan-800">
+              Equipment Inventory
+            </h2>
+
+            <p className="mt-3 text-base leading-7 text-slate-700">
+              Major systems and equipment documented during the inspection. These records are informational and are not counted as defects unless a separate finding is included.
+            </p>
+
+            <div className="mt-6 grid gap-4 md:grid-cols-2">
+              {equipmentInventory.map((item: any) => {
+                const equipmentImage =
+                  item.signed_image_url || item.image_url || item.public_url || "";
+
+                return (
+                  <div
+                    key={item.id}
+                    className="avoid-break rounded-xl border border-slate-300 bg-white p-5"
+                  >
+                    {equipmentImage && (
+                      <img
+                        src={equipmentImage}
+                        alt={item.equipment_type || "Equipment"}
+                        className="mb-4 max-h-[260px] w-full rounded-xl border border-slate-300 object-contain"
+                      />
+                    )}
+
+                    <p className="text-xs font-black uppercase tracking-wide text-cyan-700">
+                      {item.equipment_type || "Equipment"}
+                    </p>
+
+                    <h3 className="mt-2 text-2xl font-black text-slate-950">
+                      {[item.manufacturer, item.model].filter(Boolean).join(" ") || "Equipment Record"}
+                    </h3>
+
+                    <div className="mt-4 grid gap-2 text-base text-slate-700">
+                      <InventoryLine label="Serial" value={item.serial} />
+                      <InventoryLine label="Manufacture Year" value={item.manufacture_year} />
+                      <InventoryLine label="Estimated Age" value={item.estimated_age} />
+                      <InventoryLine label="Expected Life" value={item.expected_service_life} />
+                      <InventoryLine label="Life Remaining" value={item.estimated_life_remaining} />
+                      <InventoryLine label="Refrigerant" value={item.refrigerant} />
+                      <InventoryLine label="Condition" value={item.condition} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         {inspection.report_summary && (
           <section className="avoid-break page-break rounded-2xl border border-teal-200 bg-teal-50 p-6">
@@ -829,6 +904,17 @@ function DefectCountCard({
       </p>
 
       <p className="mt-2 text-3xl font-black text-slate-950">{value}</p>
+    </div>
+  );
+}
+
+function InventoryLine({ label, value }: { label: string; value?: any }) {
+  if (!value) return null;
+
+  return (
+    <div className="flex justify-between gap-3 border-b border-slate-200 pb-1">
+      <span className="font-black text-slate-500">{label}</span>
+      <span className="text-right font-semibold text-slate-800">{value}</span>
     </div>
   );
 }

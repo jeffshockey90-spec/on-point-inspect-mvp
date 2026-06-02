@@ -12,20 +12,81 @@ type EquipmentResult = {
   serial?: string;
   manufactureYear?: string | number;
   estimatedAge?: string | number;
+  expectedServiceLife?: string;
+  estimatedSEER?: string;
+  estimatedAFUE?: string;
+  estimatedBTU?: string;
+  equipmentCategory?: string;
+  maintenanceLevel?: string;
   efficiency?: string;
   capacity?: string;
   fuelType?: string;
   refrigerant?: string;
   condition?: string;
   estimatedLifeRemaining?: string;
+  clientSummary?: string;
   section?: string;
   severity?: string;
   observation?: string;
   implication?: string;
   recommendation?: string;
+  intelligenceFlags?: {
+    category?: string;
+    r22Detected?: boolean;
+    problemPanelDetected?: boolean;
+    problemPanelType?: string | null;
+    ageBasedSeverityApplied?: boolean;
+  };
   error?: string;
   raw?: string;
 };
+
+function shouldCreateFinding(result: EquipmentResult) {
+  const severity = String(result.severity || "").toLowerCase();
+  const condition = String(result.condition || "").toLowerCase();
+
+  if (result.intelligenceFlags?.problemPanelDetected) return true;
+  if (result.intelligenceFlags?.r22Detected) return true;
+
+  if (
+    severity.includes("monitor") ||
+    severity.includes("maintenance") ||
+    severity.includes("repair") ||
+    severity.includes("safety") ||
+    severity.includes("major")
+  ) {
+    return true;
+  }
+
+  if (
+    condition.includes("near end") ||
+    condition.includes("beyond") ||
+    condition.includes("end of typical service life")
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+function getBudgetPlanning(result: EquipmentResult) {
+  const condition = String(result.condition || "").toLowerCase();
+  const remaining = String(result.estimatedLifeRemaining || "").toLowerCase();
+
+  if (
+    condition.includes("beyond") ||
+    remaining.includes("beyond") ||
+    remaining.includes("0-")
+  ) {
+    return "Budget for replacement";
+  }
+
+  if (condition.includes("near end")) {
+    return "Plan and budget for future replacement";
+  }
+
+  return "Routine maintenance recommended";
+}
 
 export default function EquipmentTestPage() {
   return (
@@ -100,7 +161,7 @@ function EquipmentTestContent() {
       let filePath = "";
 
       if (image) {
-        const fileExt = image.name.split(".").pop();
+        const fileExt = image.name.split(".").pop() || "jpg";
 
         filePath = `${inspectionId}/equipment-${Date.now()}.${fileExt}`;
 
@@ -117,12 +178,42 @@ function EquipmentTestContent() {
         imageUrl = data.publicUrl;
       }
 
+      const { error: inventoryError } = await supabase
+        .from("equipment_inventory")
+        .insert({
+          inspection_id: Number(inspectionId),
+          equipment_type: result.equipmentType || "",
+          manufacturer: result.manufacturer || "",
+          model: result.model || "",
+          serial: result.serial || "",
+          manufacture_year: result.manufactureYear
+            ? String(result.manufactureYear)
+            : "",
+          estimated_age: result.estimatedAge ? String(result.estimatedAge) : "",
+          expected_service_life: result.expectedServiceLife || "",
+          estimated_life_remaining: result.estimatedLifeRemaining || "",
+          refrigerant: result.refrigerant || "",
+          condition: result.condition || "",
+          image_url: imageUrl,
+          file_path: filePath,
+        });
+
+      if (inventoryError) throw inventoryError;
+
+      const createFinding = shouldCreateFinding(result);
+
+      if (!createFinding) {
+        window.location.assign(`/reports/${inspectionId}`);
+        return;
+      }
+
       const title = `${result.manufacturer || "Equipment"} ${
         result.equipmentType || "Finding"
       }`.trim();
 
       const recommendation = [
         result.recommendation || "",
+        result.clientSummary ? `\n\nClient Summary: ${result.clientSummary}` : "",
         result.equipmentType
           ? `\n\nEquipment Type: ${result.equipmentType}`
           : "",
@@ -137,6 +228,18 @@ function EquipmentTestContent() {
         result.estimatedAge
           ? `Estimated Age: ${result.estimatedAge}`
           : "",
+        result.expectedServiceLife
+          ? `Expected Service Life: ${result.expectedServiceLife}`
+          : "",
+        result.estimatedLifeRemaining
+          ? `Estimated Life Remaining: ${result.estimatedLifeRemaining}`
+          : "",
+        result.condition ? `Condition: ${result.condition}` : "",
+        result.estimatedSEER ? `Estimated SEER/SEER2: ${result.estimatedSEER}` : "",
+        result.estimatedAFUE ? `Estimated AFUE: ${result.estimatedAFUE}` : "",
+        result.estimatedBTU ? `Estimated Capacity: ${result.estimatedBTU}` : "",
+        result.maintenanceLevel ? `Maintenance Level: ${result.maintenanceLevel}` : "",
+        `Budget Planning: ${getBudgetPlanning(result)}`,
         result.capacity ? `Capacity: ${result.capacity}` : "",
         result.efficiency
           ? `Efficiency: ${result.efficiency}`
@@ -144,9 +247,6 @@ function EquipmentTestContent() {
         result.fuelType ? `Fuel Type: ${result.fuelType}` : "",
         result.refrigerant
           ? `Refrigerant: ${result.refrigerant}`
-          : "",
-        result.estimatedLifeRemaining
-          ? `Estimated Life Remaining: ${result.estimatedLifeRemaining}`
           : "",
       ]
         .filter(Boolean)
@@ -205,7 +305,7 @@ function EquipmentTestContent() {
           </h1>
 
           <p className="mt-2 text-slate-400">
-            Upload HVAC, electrical, or plumbing equipment photos.
+            Upload HVAC, electrical, plumbing, water heater, or appliance equipment photos.
           </p>
 
           {!inspectionId && (
@@ -253,13 +353,25 @@ function EquipmentTestContent() {
           <>
             <EquipmentCard equipment={result} />
 
+            <EnhancedEquipmentIntelligence result={result} />
+
             <button
               onClick={addToReport}
               disabled={saving}
               className="w-full rounded-xl bg-green-500 px-5 py-3 font-bold text-slate-950 disabled:opacity-50"
             >
-              {saving ? "Saving..." : "Add To Report"}
+              {saving
+                ? "Saving..."
+                : shouldCreateFinding(result)
+                  ? "Add To Report"
+                  : "Save To Equipment Inventory"}
             </button>
+
+            {!shouldCreateFinding(result) && (
+              <p className="rounded-xl border border-blue-500/40 bg-blue-500/10 p-3 text-sm text-blue-200">
+                This appears to be informational equipment data only. It will be saved to Equipment Inventory and will not count as a defect.
+              </p>
+            )}
 
             {saveError && (
               <p className="rounded-xl bg-red-500/10 p-3 text-red-300">
@@ -269,7 +381,7 @@ function EquipmentTestContent() {
           </>
         )}
 
-        {result?.observation && (
+        {result?.observation && shouldCreateFinding(result) && (
           <div className="rounded-2xl border border-slate-700 bg-slate-900 p-5">
             <h2 className="text-xl font-bold">
               Suggested Inspection Finding
@@ -316,5 +428,85 @@ function EquipmentTestContent() {
         )}
       </div>
     </main>
+  );
+}
+
+function EnhancedEquipmentIntelligence({ result }: { result: EquipmentResult }) {
+  return (
+    <section className="rounded-2xl border border-teal-500/40 bg-teal-950/20 p-5 shadow-xl">
+      <h2 className="text-xl font-bold text-teal-300">
+        Enhanced Equipment Intelligence
+      </h2>
+
+      {result.clientSummary && (
+        <p className="mt-4 rounded-xl border border-slate-700 bg-slate-950 p-4 text-sm leading-6 text-slate-200">
+          {result.clientSummary}
+        </p>
+      )}
+
+      <div className="mt-5 grid gap-3 md:grid-cols-2">
+        <IntelligenceItem
+          label="Expected Service Life"
+          value={result.expectedServiceLife || "Unknown"}
+        />
+        <IntelligenceItem
+          label="Estimated Life Remaining"
+          value={result.estimatedLifeRemaining || "Unknown"}
+        />
+        <IntelligenceItem
+          label="Condition"
+          value={result.condition || "Unknown"}
+        />
+        <IntelligenceItem
+          label="Estimated Efficiency"
+          value={result.estimatedSEER || result.estimatedAFUE || result.efficiency || "Unknown"}
+        />
+        <IntelligenceItem
+          label="Estimated Capacity"
+          value={result.estimatedBTU || result.capacity || "Unknown"}
+        />
+        <IntelligenceItem
+          label="Budget Planning"
+          value={getBudgetPlanning(result)}
+        />
+        <IntelligenceItem
+          label="Maintenance Level"
+          value={result.maintenanceLevel || "Unknown"}
+        />
+        <IntelligenceItem
+          label="Refrigerant"
+          value={result.refrigerant || "Unknown"}
+        />
+        <IntelligenceItem
+          label="Fuel Type"
+          value={result.fuelType || "Unknown"}
+        />
+      </div>
+
+      {result.intelligenceFlags?.r22Detected && (
+        <p className="mt-4 rounded-xl border border-orange-500/40 bg-orange-500/10 p-3 text-sm font-semibold text-orange-200">
+          R-22 refrigerant detected. This refrigerant is obsolete and can be expensive to service.
+        </p>
+      )}
+
+      {result.intelligenceFlags?.problemPanelDetected && (
+        <p className="mt-4 rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm font-semibold text-red-200">
+          Potential problem electrical panel detected: {result.intelligenceFlags.problemPanelType}. Electrical contractor evaluation is recommended.
+        </p>
+      )}
+    </section>
+  );
+}
+
+function IntelligenceItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-slate-700 bg-slate-950 p-3">
+      <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+        {label}
+      </p>
+      <p className="mt-1 text-sm font-bold text-white">
+        {value || "Unknown"}
+      </p>
+    </div>
   );
 }
