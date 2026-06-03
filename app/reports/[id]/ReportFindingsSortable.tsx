@@ -10,6 +10,8 @@ import SectionReferencePhotos from "../../../components/SectionReferencePhotos";
 import PhotoMarkupEditor from "../../../components/PhotoMarkupEditor";
 import { supabase } from "../../../lib/supabaseClient";
 
+const PHOTO_BUCKET = "inspection-photos";
+
 export default function ReportFindingsSortable({ groupedFindings }: any) {
   const params = useParams();
   const router = useRouter();
@@ -484,10 +486,65 @@ function getFindingPhotos(finding: any) {
 
 function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
   const [showPhotoPicker, setShowPhotoPicker] = useState(false);
+  const [showUploadPanel, setShowUploadPanel] = useState(false);
+  const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [movingPhotoId, setMovingPhotoId] = useState<string | null>(null);
   const [markupPhoto, setMarkupPhoto] = useState<any | null>(null);
   const [showMarkupEditor, setShowMarkupEditor] = useState(false);
   const photos = getFindingPhotos(finding);
+
+  async function uploadNewPhotosToFinding(fileList: FileList | null) {
+    const files = Array.from(fileList || []);
+
+    if (!files.length) return;
+
+    const imageFiles = files.filter((file) => file.type.startsWith("image/"));
+
+    if (!imageFiles.length) {
+      alert("Please choose image files only.");
+      return;
+    }
+
+    setUploadingPhotos(true);
+
+    try {
+      for (const file of imageFiles) {
+        const fileExt = file.name.split(".").pop() || "jpg";
+        const safeName = file.name
+          .replace(/\.[^/.]+$/, "")
+          .replace(/[^a-zA-Z0-9-_]/g, "-")
+          .slice(0, 50);
+
+        const filePath = `${inspectionId}/finding-photos/${finding.id}/${Date.now()}-${crypto.randomUUID()}-${safeName}.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from(PHOTO_BUCKET)
+          .upload(filePath, file);
+
+        if (uploadError) throw uploadError;
+
+        const { data: publicData } = supabase.storage
+          .from(PHOTO_BUCKET)
+          .getPublicUrl(filePath);
+
+        const { error: insertError } = await supabase.from("photos").insert({
+          inspection_id: inspectionId,
+          finding_id: finding.id,
+          file_path: filePath,
+          public_url: publicData.publicUrl,
+        });
+
+        if (insertError) throw insertError;
+      }
+
+      setShowUploadPanel(false);
+      router.refresh();
+    } catch (error: any) {
+      alert(error?.message || "Failed to add photo to this finding.");
+    } finally {
+      setUploadingPhotos(false);
+    }
+  }
 
   async function movePhotoToFinding(photo: any) {
     if (!photo?.id || photo.isLegacyImage) {
@@ -723,11 +780,24 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
             type="button"
             onClick={(event) => {
               event.stopPropagation();
+              setShowUploadPanel((prev) => !prev);
+              setShowPhotoPicker(false);
+            }}
+            className="w-full rounded-xl border border-teal-500 px-4 py-2 text-sm font-black text-teal-300 hover:bg-teal-500/10 sm:w-auto"
+          >
+            📷 Add Pictures
+          </button>
+
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
               setShowPhotoPicker((prev) => !prev);
+              setShowUploadPanel(false);
             }}
             className="w-full rounded-xl border border-cyan-500 px-4 py-2 text-sm font-black text-cyan-300 hover:bg-cyan-500/10 sm:w-auto"
           >
-            📎 Add Existing Photo
+            📎 Move Existing Photo
           </button>
 
           <button
@@ -748,6 +818,62 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
             ✏️ Markup Photo
           </button>
         </div>
+
+        {showUploadPanel && (
+          <div className="mb-5 w-full max-w-full overflow-hidden rounded-xl border border-teal-700 bg-teal-950/20 p-4">
+            <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h4 className="text-lg font-black text-teal-300">
+                  Add Pictures To This Defect
+                </h4>
+                <p className="mt-1 text-sm text-slate-300">
+                  These photos save to this existing finding only. They do not create a new defect and they do not affect section reference photos.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowUploadPanel(false)}
+                className="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm font-bold text-slate-200 hover:bg-slate-800 sm:w-auto"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              <label className="cursor-pointer rounded-xl border border-teal-500 bg-teal-500/10 p-4 text-center font-black text-teal-300 hover:bg-teal-500 hover:text-slate-950">
+                {uploadingPhotos ? "Uploading..." : "📷 Take Photo"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  multiple
+                  disabled={uploadingPhotos}
+                  onChange={async (event) => {
+                    await uploadNewPhotosToFinding(event.target.files);
+                    event.currentTarget.value = "";
+                  }}
+                  className="hidden"
+                />
+              </label>
+
+              <label className="cursor-pointer rounded-xl border border-cyan-500 bg-cyan-500/10 p-4 text-center font-black text-cyan-300 hover:bg-cyan-500 hover:text-slate-950">
+                {uploadingPhotos ? "Uploading..." : "🖼 Choose Photo"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  disabled={uploadingPhotos}
+                  onChange={async (event) => {
+                    await uploadNewPhotosToFinding(event.target.files);
+                    event.currentTarget.value = "";
+                  }}
+                  className="hidden"
+                />
+              </label>
+            </div>
+          </div>
+        )}
 
         {showPhotoPicker && (
           <div className="mb-5 w-full max-w-full overflow-hidden rounded-xl border border-cyan-700 bg-cyan-950/20 p-4">

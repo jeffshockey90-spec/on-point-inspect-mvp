@@ -404,6 +404,16 @@ export default async function ReportPage({ params }: PageProps) {
         finding.severity || "Recommended Repair"
       ).toLowerCase();
 
+      const isInformational =
+        severity.includes("information") ||
+        severity.includes("info") ||
+        severity.includes("client");
+
+      if (isInformational) {
+        acc.information += 1;
+        return acc;
+      }
+
       acc.total += 1;
 
       if (
@@ -418,12 +428,6 @@ export default async function ReportPage({ params }: PageProps) {
         severity.includes("minor")
       ) {
         acc.maintenance += 1;
-      } else if (
-        severity.includes("information") ||
-        severity.includes("info") ||
-        severity.includes("client")
-      ) {
-        acc.information += 1;
       } else {
         acc.repair += 1;
       }
@@ -708,7 +712,7 @@ export default async function ReportPage({ params }: PageProps) {
               </h2>
 
               <p className="mt-1 text-sm text-slate-400">
-                Quick count of report findings by defect type.
+                Quick count of true defects. Informational items are tracked separately and are not included in Total Defects.
               </p>
             </div>
 
