@@ -216,20 +216,37 @@ function getSeverityBucket(severityValue: any) {
 }
 
 function buildDefectTotals(findings: any[]) {
-  return (findings || []).filter(isReportDefect).reduce(
-    (acc: Record<string, number>, finding: any) => {
-      acc.total += 1;
-      acc[getSeverityBucket(finding.severity)] += 1;
-      return acc;
-    },
-    {
-      total: 0,
-      safety: 0,
-      repair: 0,
-      maintenance: 0,
-      information: 0,
-    }
-  );
+  return (findings || [])
+    .filter(isReportDefect)
+    .reduce(
+      (acc: Record<string, number>, finding: any) => {
+        const bucket = getSeverityBucket(finding.severity);
+
+        if (bucket === "information") {
+          acc.information += 1;
+          return acc;
+        }
+
+        acc.total += 1;
+
+        if (bucket === "safety") {
+          acc.safety += 1;
+        } else if (bucket === "maintenance") {
+          acc.maintenance += 1;
+        } else {
+          acc.repair += 1;
+        }
+
+        return acc;
+      },
+      {
+        total: 0,
+        safety: 0,
+        repair: 0,
+        maintenance: 0,
+        information: 0,
+      }
+    );
 }
 
 function getSeverityClass(severityValue: any) {
