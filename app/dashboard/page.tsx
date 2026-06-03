@@ -1,81 +1,148 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { createClient } from "../../utils/supabase/server";
 
-export default async function DashboardPage() {
-  const supabase = await createClient();
+const cards = [
+  {
+    title: "New Inspection",
+    description: "Start a new inspection.",
+    href: "/new",
+    icon: "🏠",
+  },
+  {
+    title: "Reports",
+    description: "View and edit reports.",
+    href: "/reports",
+    icon: "📋",
+  },
+  {
+    title: "Analytics",
+    description: "Track revenue, inspections, payments, agreements, and reports.",
+    href: "/analytics",
+    icon: "📊",
+  },
+  {
+    title: "Realtors",
+    description: "Manage realtor contacts, referrals, and revenue.",
+    href: "/realtors",
+    icon: "🏡",
+  },
+  {
+    title: "Invoices",
+    description: "Track paid, pending, overdue, and outstanding balances.",
+    href: "/invoices",
+    icon: "💰",
+  },
+  {
+    title: "Agreements",
+    description: "Manage agreement templates, sending, and signed status.",
+    href: "/agreements",
+    icon: "📝",
+  },
+  {
+    title: "Client Portal",
+    description: "Open client-facing portals, report access, payments, and delivery.",
+    href: "/client-portal",
+    icon: "🔐",
+  },
+  {
+    title: "Repair Requests",
+    description: "Build repair requests, negotiation addendums, and seller responses.",
+    href: "/repair-request",
+    icon: "🛠️",
+  },
+  {
+    title: "Radon",
+    description: "Manage radon tests, readings, devices, and results.",
+    href: "/radon",
+    icon: "☢️",
+  },
+  {
+    title: "Mold",
+    description: "Track mold samples, lab reports, results, and summaries.",
+    href: "/mold",
+    icon: "🧫",
+  },
+  {
+    title: "AI Capture",
+    description: "Create findings from photos.",
+    href: "/ai-capture",
+    icon: "🤖",
+  },
+  {
+    title: "Equipment Analyzer",
+    description: "Read data plates and document equipment inventory.",
+    href: "/equipment-analyzer",
+    icon: "🔎",
+  },
+  {
+    title: "Field Tool",
+    description: "Mobile AI inspection workflow.",
+    href: "/field",
+    icon: "📱",
+  },
+  {
+    title: "Templates",
+    description: "Manage favorite findings, templates, and reusable language.",
+    href: "/templates",
+    icon: "🧩",
+  },
+  {
+    title: "Quotes",
+    description: "Calculate pricing.",
+    href: "/quotes",
+    icon: "💲",
+  },
+  {
+    title: "Schedule",
+    description: "View inspection schedule.",
+    href: "/schedule",
+    icon: "🗓️",
+  },
+];
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) redirect("/login");
-
+export default function DashboardPage() {
   return (
-    <main className="min-h-screen bg-[#020617] px-6 py-10 text-white">
-      <div className="mx-auto max-w-6xl">
-        <section className="rounded-2xl border border-slate-800 bg-[#0f172a] p-8 shadow-xl">
-          <p className="text-sm font-black uppercase tracking-[0.35em] text-teal-400">
+    <main className="min-h-screen bg-[#020617] px-4 py-8 text-white sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl">
+        <section className="mb-8 rounded-2xl border border-slate-700 bg-[#0f172a] p-6 shadow-xl">
+          <p className="text-xs font-black uppercase tracking-[0.45em] text-teal-300">
             On Point Home Inspections
           </p>
 
-          <h1 className="mt-4 text-5xl font-black text-white">
+          <h1 className="mt-3 text-4xl font-black tracking-tight text-white sm:text-5xl">
             Inspection Dashboard
           </h1>
 
-          <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-200">
-            Manage inspections, reports, AI findings, analytics, invoices,
-            templates, quotes, scheduling, agreements, realtors, radon, and mold
-            from one clean dashboard.
+          <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-300 sm:text-base">
+            Manage inspections, reports, AI findings, analytics, invoices, realtor contacts,
+            agreements, client portals, radon, mold, templates, quotes, and scheduling from
+            one clean dashboard.
           </p>
         </section>
 
-        <section className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-          <DashboardCard icon="🏠" title="New Inspection" description="Start a new inspection." href="/inspections/new" />
-          <DashboardCard icon="📋" title="Reports" description="View and edit reports." href="/reports" />
-          <DashboardCard icon="📊" title="Analytics" description="Track revenue, inspections, payments, agreements, reports, and referrals." href="/analytics" />
-          <DashboardCard icon="💰" title="Invoices" description="Track paid, pending, overdue, and outstanding balances." href="/invoices" />
+        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {cards.map((card) => (
+            <Link
+              key={card.href}
+              href={card.href}
+              className="group rounded-2xl border border-slate-700 bg-[#0f172a] p-5 shadow-lg transition hover:-translate-y-0.5 hover:border-teal-400/70 hover:bg-[#13213a]"
+            >
+              <div className="text-3xl">{card.icon}</div>
 
-          <DashboardCard icon="🤖" title="AI Capture" description="Create findings from photos." href="/ai-capture" />
-          <DashboardCard icon="📱" title="Field Tool" description="Mobile AI inspection workflow." href="/field" />
-          <DashboardCard icon="🧩" title="Templates" description="Manage reusable findings and report templates." href="/templates" />
-          <DashboardCard icon="💲" title="Quotes" description="Calculate inspection pricing." href="/quotes" />
+              <h2 className="mt-4 text-xl font-black text-white group-hover:text-teal-300">
+                {card.title}
+              </h2>
 
-          <DashboardCard icon="🗓️" title="Schedule" description="View and manage inspection schedule." href="/schedule" />
-          <DashboardCard icon="🤝" title="Realtors" description="Manage realtor contacts and referral relationships." href="/realtors" />
-          <DashboardCard icon="📄" title="Agreements" description="Manage pre-inspection agreements and templates." href="/agreements" />
-          <DashboardCard icon="👥" title="Clients" description="View client records and portal access." href="/clients" />
+              <p className="mt-2 min-h-[44px] text-sm leading-5 text-slate-400">
+                {card.description}
+              </p>
 
-          <DashboardCard icon="🧪" title="Mold" description="Manage mold testing workflows and reports." href="/mold" />
-          <DashboardCard icon="☢️" title="Radon" description="Manage radon testing workflows and reports." href="/radon" />
-          <DashboardCard icon="🛠️" title="Equipment Analyzer" description="Analyze data plates and major equipment." href="/equipment-analyzer" />
-          <DashboardCard icon="📨" title="Email Workflow" description="Review report delivery and email workflow." href="/email-workflow" />
+              <p className="mt-4 text-sm font-black text-teal-300">
+                Open →
+              </p>
+            </Link>
+          ))}
         </section>
       </div>
     </main>
-  );
-}
-
-function DashboardCard({
-  icon,
-  title,
-  description,
-  href,
-}: {
-  icon: string;
-  title: string;
-  description: string;
-  href: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl transition hover:border-teal-400 hover:bg-slate-800"
-    >
-      <div className="text-4xl">{icon}</div>
-      <h2 className="mt-6 text-2xl font-black text-white">{title}</h2>
-      <p className="mt-4 text-slate-300">{description}</p>
-      <p className="mt-6 font-black text-teal-400">Open →</p>
-    </Link>
   );
 }

@@ -34,6 +34,27 @@ const cards = [
     icon: "💰",
   },
   {
+    title: "Agreements",
+    description:
+      "Manage agreement templates, sending, and signed status.",
+    href: "/agreements",
+    icon: "📝",
+  },
+  {
+    title: "Client Portal",
+    description:
+      "Open client portals from reports after selecting an inspection.",
+    href: "/reports",
+    icon: "🔐",
+  },
+  {
+    title: "Repair Requests",
+    description:
+      "Open repair requests from reports after selecting an inspection.",
+    href: "/reports",
+    icon: "🛠️",
+  },
+  {
     title: "Radon",
     description: "Manage radon tests, readings, devices, and results.",
     href: "/radon",
@@ -52,6 +73,13 @@ const cards = [
     icon: "🤖",
   },
   {
+    title: "Equipment Analyzer",
+    description:
+      "Read data plates and document equipment inventory.",
+    href: "/equipment-analyzer",
+    icon: "🔎",
+  },
+  {
     title: "Field Tool",
     description: "Mobile AI inspection workflow.",
     href: "/field",
@@ -59,7 +87,8 @@ const cards = [
   },
   {
     title: "Templates",
-    description: "Manage templates.",
+    description:
+      "Manage favorite findings, templates, and reusable language.",
     href: "/templates",
     icon: "🧩",
   },
@@ -91,16 +120,17 @@ export default function HomePage() {
           </h1>
 
           <p className="mt-4 max-w-2xl text-lg leading-8 text-slate-300">
-            Manage inspections, reports, AI findings, analytics,
-            invoices, realtor contacts, radon, mold, templates, quotes,
-            and scheduling from one clean dashboard.
+            Manage inspections, reports, AI findings, analytics, invoices,
+            realtor contacts, agreements, client portals, repair requests,
+            radon, mold, templates, quotes, and scheduling from one clean
+            dashboard.
           </p>
         </section>
 
         <section className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
           {cards.map((card) => (
             <Link
-              key={card.href}
+              key={card.href + card.title}
               href={card.href}
               className="rounded-2xl border border-slate-800 bg-[#0b1220] p-6 transition hover:border-teal-500"
             >
