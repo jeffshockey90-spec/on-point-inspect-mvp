@@ -7,6 +7,7 @@ import SectionLimitations from "../../../components/SectionLimitations";
 import ReportDisclaimers from "../../../components/ReportDisclaimers";
 import SectionInformationChecklist from "../../../components/SectionInformationChecklist";
 import SectionReferencePhotos from "../../../components/SectionReferencePhotos";
+import PhotoMarkupEditor from "../../../components/PhotoMarkupEditor";
 import { supabase } from "../../../lib/supabaseClient";
 
 export default function ReportFindingsSortable({ groupedFindings }: any) {
@@ -484,6 +485,8 @@ function getFindingPhotos(finding: any) {
 function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
   const [showPhotoPicker, setShowPhotoPicker] = useState(false);
   const [movingPhotoId, setMovingPhotoId] = useState<string | null>(null);
+  const [markupPhoto, setMarkupPhoto] = useState<any | null>(null);
+  const [showMarkupEditor, setShowMarkupEditor] = useState(false);
   const photos = getFindingPhotos(finding);
 
   async function movePhotoToFinding(photo: any) {
@@ -726,6 +729,24 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
           >
             📎 Add Existing Photo
           </button>
+
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+
+              if (!photos.length) {
+                alert("This finding has no photos.");
+                return;
+              }
+
+              setMarkupPhoto(photos[0]);
+              setShowMarkupEditor(true);
+            }}
+            className="w-full rounded-xl border border-purple-500 px-4 py-2 text-sm font-black text-purple-300 hover:bg-purple-500/10 sm:w-auto"
+          >
+            ✏️ Markup Photo
+          </button>
         </div>
 
         {showPhotoPicker && (
@@ -809,6 +830,37 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
                 })}
               </div>
             )}
+          </div>
+        )}
+
+        {showMarkupEditor && markupPhoto && (
+          <div className="mb-5 rounded-xl border border-purple-700 bg-purple-950/20 p-4">
+            <PhotoMarkupEditor
+              imageUrl={getPhotoUrl(markupPhoto)}
+              severity={finding.severity}
+              onCancel={() => {
+                setShowMarkupEditor(false);
+                setMarkupPhoto(null);
+              }}
+              onSave={async (items) => {
+                const { error } = await supabase.from("photo_annotations").insert({
+                  inspection_id: Number(inspectionId),
+                  finding_id: finding.id,
+                  photo_id: markupPhoto.id || null,
+                  image_url: getPhotoUrl(markupPhoto),
+                  annotation_json: items,
+                });
+
+                if (error) {
+                  alert(error.message);
+                  return;
+                }
+
+                alert("Photo markup saved.");
+                setShowMarkupEditor(false);
+                setMarkupPhoto(null);
+              }}
+            />
           </div>
         )}
 
