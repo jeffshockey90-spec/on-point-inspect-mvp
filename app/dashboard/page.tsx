@@ -1,4 +1,3 @@
-```tsx
 import Link from "next/link";
 
 const cards = [
@@ -154,4 +153,3 @@ export default function DashboardPage() {
     </main>
   );
 }
-```
