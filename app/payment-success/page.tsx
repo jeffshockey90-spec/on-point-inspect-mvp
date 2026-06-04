@@ -34,7 +34,10 @@ function getSupabaseAdmin() {
 }
 
 type PageProps = {
-  searchParams: Promise<{ session_id?: string }>;
+  searchParams: Promise<{
+    session_id?: string;
+    stripe_account?: string;
+  }>;
 };
 
 function getNumber(value: any) {
@@ -43,6 +46,7 @@ function getNumber(value: any) {
   if (typeof value === "string") {
     const cleaned = value.replace(/[^0-9.-]/g, "");
     const parsed = Number(cleaned);
+
     if (Number.isFinite(parsed)) return parsed;
   }
 
@@ -56,9 +60,66 @@ function money(value: any) {
   }).format(getNumber(value));
 }
 
+async function logStripeEvent(
+  supabase: any,
+  {
+    inspectionId,
+    paymentIntentId,
+    amount,
+    status,
+    metadata = {},
+  }: {
+    inspectionId: any;
+    paymentIntentId?: string | null;
+    amount?: number | null;
+    status: string;
+    metadata?: Record<string, any>;
+  }
+) {
+  try {
+    await supabase.from("stripe_logs").insert({
+      inspection_id: Number(inspectionId),
+      payment_intent_id: paymentIntentId || null,
+      amount: amount ?? null,
+      status,
+      metadata,
+    });
+  } catch (error) {
+    console.error("Stripe log insert failed:", error);
+  }
+}
+
+async function logAuditEvent(
+  supabase: any,
+  {
+    action,
+    resourceType,
+    resourceId,
+    metadata = {},
+  }: {
+    action: string;
+    resourceType: string;
+    resourceId: any;
+    metadata?: Record<string, any>;
+  }
+) {
+  try {
+    await supabase.from("audit_logs").insert({
+      user_id: null,
+      action,
+      resource_type: resourceType,
+      resource_id: String(resourceId),
+      metadata,
+    });
+  } catch (error) {
+    console.error("Audit log insert failed:", error);
+  }
+}
+
 export default async function PaymentSuccessPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const sessionId = params.session_id || "";
+  const stripeAccountId = params.stripe_account || "";
 
   let inspectionId = "";
   let paid = false;
@@ -66,6 +127,8 @@ export default async function PaymentSuccessPage({ searchParams }: PageProps) {
   let balancePaid = 0;
   let portalProcessingFee = 0;
   let totalPaid = 0;
+  let chargeType = "";
+  let verifiedStripeAccount = "";
 
   try {
     if (!sessionId) {
@@ -73,11 +136,27 @@ export default async function PaymentSuccessPage({ searchParams }: PageProps) {
     }
 
     const stripe = getStripe();
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+    const session = stripeAccountId
+      ? await stripe.checkout.sessions.retrieve(
+          sessionId,
+          {},
+          {
+            stripeAccount: stripeAccountId,
+          }
+        )
+      : await stripe.checkout.sessions.retrieve(sessionId);
 
     inspectionId = String(
       session.metadata?.inspection_id || session.client_reference_id || ""
     );
+
+    verifiedStripeAccount =
+      String(session.metadata?.stripe_connect_account || "") ||
+      stripeAccountId ||
+      "";
+
+    chargeType = String(session.metadata?.charge_type || "");
 
     paid = session.payment_status === "paid" || session.status === "complete";
 
@@ -94,6 +173,11 @@ export default async function PaymentSuccessPage({ searchParams }: PageProps) {
         getNumber(session.metadata?.invoice_balance_due) ||
         Math.max(0, totalPaid - portalProcessingFee);
 
+      const paymentIntentId =
+        typeof session.payment_intent === "string"
+          ? session.payment_intent
+          : null;
+
       await supabase
         .from("inspections")
         .update({
@@ -108,6 +192,10 @@ export default async function PaymentSuccessPage({ searchParams }: PageProps) {
             portalProcessingFee
           )}. Total charged online: ${money(totalPaid)}. Session: ${
             session.id
+          }${
+            verifiedStripeAccount
+              ? `. Stripe account: ${verifiedStripeAccount}.`
+              : "."
           }`,
           invoice_notes: `Stripe payment completed. Inspection balance paid: ${money(
             balancePaid
@@ -115,15 +203,63 @@ export default async function PaymentSuccessPage({ searchParams }: PageProps) {
             portalProcessingFee
           )}. Total charged online: ${money(totalPaid)}. Session: ${
             session.id
+          }${
+            verifiedStripeAccount
+              ? `. Stripe account: ${verifiedStripeAccount}.`
+              : "."
           }`,
           stripe_checkout_session_id: session.id,
-          stripe_payment_intent_id:
-            typeof session.payment_intent === "string"
-              ? session.payment_intent
-              : null,
+          stripe_payment_intent_id: paymentIntentId,
           paid_at: new Date().toISOString(),
         })
         .eq("id", inspectionId);
+
+      await logStripeEvent(supabase, {
+        inspectionId,
+        paymentIntentId,
+        amount: totalPaid,
+        status: "payment_success_page_verified",
+        metadata: {
+          sessionId: session.id,
+          stripeAccountId: verifiedStripeAccount || null,
+          chargeType: chargeType || null,
+          balancePaid,
+          portalProcessingFee,
+          totalPaid,
+        },
+      });
+
+      await logAuditEvent(supabase, {
+        action: "payment_success_page_verified",
+        resourceType: "inspection",
+        resourceId: inspectionId,
+        metadata: {
+          sessionId: session.id,
+          stripeAccountId: verifiedStripeAccount || null,
+          chargeType: chargeType || null,
+          balancePaid,
+          portalProcessingFee,
+          totalPaid,
+        },
+      });
+
+      await supabase.from("inspection_view_events").insert({
+        inspection_id_bigint: Number(inspectionId),
+        view_type: "payment_received",
+        viewer_role: "system",
+        viewer_email: null,
+        path: "/payment-success",
+        metadata: {
+          source: "payment_success_page",
+          amount_paid: balancePaid,
+          total_charged: totalPaid,
+          portal_processing_fee: portalProcessingFee,
+          session_id: session.id,
+          stripe_account_id: verifiedStripeAccount || null,
+          charge_type: chargeType || null,
+          paid_at: new Date().toISOString(),
+        },
+      });
 
       message = "Payment complete. Your inspection portal has been updated.";
     } else {
@@ -151,12 +287,20 @@ export default async function PaymentSuccessPage({ searchParams }: PageProps) {
             <p className="font-bold text-white">
               Inspection Balance Paid: {money(balancePaid)}
             </p>
+
             <p className="font-bold text-yellow-300">
               Online Payment Fee: {money(portalProcessingFee)}
             </p>
+
             <p className="font-black text-green-300">
               Total Charged Online: {money(totalPaid)}
             </p>
+
+            {verifiedStripeAccount && (
+              <p className="break-all text-xs text-slate-500">
+                Paid through inspector Stripe account: {verifiedStripeAccount}
+              </p>
+            )}
           </div>
         )}
 

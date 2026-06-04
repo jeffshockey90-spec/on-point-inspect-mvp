@@ -6,19 +6,19 @@ export async function getCompanyId() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    console.warn("No logged in user found. Falling back to company 1.");
-    return 1;
+    throw new Error("No logged in user.");
   }
 
   const { data, error } = await supabase
     .from("company_users")
     .select("company_id")
     .eq("user_id", user.id)
-    .maybeSingle();
+    .single();
 
-  if (error || !data) {
-    console.warn("No company found for user. Falling back to company 1.");
-    return 1;
+  if (error || !data?.company_id) {
+    throw new Error(
+      "No company is linked to this account."
+    );
   }
 
   return data.company_id;

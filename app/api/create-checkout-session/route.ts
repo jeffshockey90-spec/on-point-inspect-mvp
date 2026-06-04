@@ -83,14 +83,6 @@ function getSupabaseAdmin() {
   });
 }
 
-const PORTAL_PROCESSING_FEE_DOLLARS = 15;
-
-function getPortalProcessingFee(balanceDue: number) {
-  if (!balanceDue || balanceDue <= 0) return 0;
-
-  return PORTAL_PROCESSING_FEE_DOLLARS;
-}
-
 function getValidEmail(value: any) {
   const email = String(value || "").trim().toLowerCase();
 
@@ -101,62 +93,71 @@ function getValidEmail(value: any) {
   return email;
 }
 
-async function logStripeEvent(
-  supabase: any,
-  {
-    inspectionId,
-    paymentIntentId,
-    amount,
-    status,
-    metadata = {},
-  }: {
-    inspectionId: any;
-    paymentIntentId?: string | null;
-    amount?: number | null;
-    status: string;
-    metadata?: Record<string, any>;
+function getCompanyDisplayName(company: any) {
+  return company?.display_name || company?.name || "Inspection Company";
+}
+
+async function getCompanyForInspection(supabase: any, inspection: any) {
+  if (inspection?.company_id) {
+    const { data } = await supabase
+      .from("companies")
+      .select("*")
+      .eq("id", inspection.company_id)
+      .maybeSingle();
+
+    if (data) return data;
   }
-) {
+
+  if (inspection?.inspector_id) {
+    const { data: companyUser } = await supabase
+      .from("company_users")
+      .select("company_id")
+      .eq("user_id", inspection.inspector_id)
+      .maybeSingle();
+
+    if (companyUser?.company_id) {
+      const { data } = await supabase
+        .from("companies")
+        .select("*")
+        .eq("id", companyUser.company_id)
+        .maybeSingle();
+
+      if (data) return data;
+    }
+  }
+
+  return null;
+}
+
+function getStripeConnectBlocker(company: any) {
+  if (!company) return "This inspection is not connected to a company profile.";
+  if (!company.stripe_account_id) return "This inspector has not connected a Stripe account yet.";
+  if (company.stripe_onboarding_complete !== true) return "This inspector has not completed Stripe onboarding yet.";
+  if (company.stripe_charges_enabled !== true) return "This inspector is not approved to accept Stripe charges yet.";
+  return "";
+}
+
+function getPortalProcessingFee(balanceDue: number, company: any) {
+  if (!balanceDue || balanceDue <= 0) return 0;
+  if (company?.online_payment_fee_enabled === false) return 0;
+
+  const amount = getNumber(company?.online_payment_fee_amount);
+  return amount > 0 ? amount : 0;
+}
+
+async function logStripeEvent(supabase: any, payload: any) {
   try {
     await supabase.from("stripe_logs").insert({
-      inspection_id: Number(inspectionId),
-      payment_intent_id: paymentIntentId || null,
-      amount: amount ?? null,
-      status,
-      metadata,
+      inspection_id: Number(payload.inspectionId),
+      payment_intent_id: payload.paymentIntentId || null,
+      amount: payload.amount ?? null,
+      status: payload.status,
+      metadata: payload.metadata || {},
     });
   } catch (error) {
     console.error("Stripe log insert failed:", error);
   }
 }
-
-async function logAuditEvent(
-  supabase: any,
-  {
-    action,
-    resourceType,
-    resourceId,
-    metadata = {},
-  }: {
-    action: string;
-    resourceType: string;
-    resourceId: any;
-    metadata?: Record<string, any>;
-  }
-) {
-  try {
-    await supabase.from("audit_logs").insert({
-      user_id: null,
-      action,
-      resource_type: resourceType,
-      resource_id: String(resourceId),
-      metadata,
-    });
-  } catch (error) {
-    console.error("Audit log insert failed:", error);
-  }
-}
-
 
 export async function POST(req: Request) {
   try {
@@ -164,10 +165,7 @@ export async function POST(req: Request) {
     const { inspectionId } = await req.json();
 
     if (!inspectionId) {
-      return NextResponse.json(
-        { error: "Missing inspection ID." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Missing inspection ID." }, { status: 400 });
     }
 
     const supabase = getSupabaseAdmin();
@@ -179,14 +177,27 @@ export async function POST(req: Request) {
       .single();
 
     if (error || !inspection) {
+      return NextResponse.json({ error: "Inspection not found." }, { status: 404 });
+    }
+
+    const company = await getCompanyForInspection(supabase, inspection);
+    const stripeBlocker = getStripeConnectBlocker(company);
+
+    if (stripeBlocker) {
       return NextResponse.json(
-        { error: "Inspection not found." },
-        { status: 404 }
+        {
+          error: "Online payment is not available until this inspector connects their own Stripe account.",
+          details: stripeBlocker,
+        },
+        { status: 403 }
       );
     }
 
+    const connectedStripeAccountId = String(company.stripe_account_id);
+    const companyName = getCompanyDisplayName(company);
+
     const balanceDue = getBalanceDue(inspection);
-    const portalProcessingFee = getPortalProcessingFee(balanceDue);
+    const portalProcessingFee = getPortalProcessingFee(balanceDue, company);
     const totalOnlinePayment = balanceDue + portalProcessingFee;
 
     if (!balanceDue || balanceDue <= 0) {
@@ -201,57 +212,67 @@ export async function POST(req: Request) {
       process.env.NEXT_PUBLIC_BASE_URL ||
       "https://on-point-inspect-mvp.vercel.app";
 
-    const property =
-      inspection.property_address ||
-      inspection.address ||
-      "Inspection";
-
+    const property = inspection.property_address || inspection.address || "Inspection";
     const clientEmail = getValidEmail(inspection.client_email);
 
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      payment_method_types: ["card"],
-      customer_email: clientEmail,
-      client_reference_id: String(inspectionId),
-      metadata: {
-        inspection_id: String(inspectionId),
-        property_address: String(property),
-        invoice_balance_due: String(balanceDue),
-        portal_processing_fee: String(portalProcessingFee),
-        total_online_payment: String(totalOnlinePayment),
-      },
-      line_items: [
-        {
-          quantity: 1,
-          price_data: {
-            currency: "usd",
-            unit_amount: Math.round(balanceDue * 100),
-            product_data: {
-              name: "Inspection Balance Due",
-              description: `On Point Home Inspections - ${property}`,
+    const metadata: Record<string, string> = {
+      inspection_id: String(inspectionId),
+      property_address: String(property),
+      invoice_balance_due: String(balanceDue),
+      portal_processing_fee: String(portalProcessingFee),
+      total_online_payment: String(totalOnlinePayment),
+      company_id: String(company.id),
+      company_name: String(companyName),
+      stripe_connect_account: connectedStripeAccountId,
+      charge_type: "direct_charge",
+    };
+
+    const session = await stripe.checkout.sessions.create(
+      {
+        mode: "payment",
+        payment_method_types: ["card"],
+        customer_email: clientEmail,
+        client_reference_id: String(inspectionId),
+        metadata,
+        payment_intent_data: {
+          metadata,
+        },
+        line_items: [
+          {
+            quantity: 1,
+            price_data: {
+              currency: "usd",
+              unit_amount: Math.round(balanceDue * 100),
+              product_data: {
+                name: "Inspection Balance Due",
+                description: `${companyName} - ${property}`,
+              },
             },
           },
-        },
-        ...(portalProcessingFee > 0
-          ? [
-              {
-                quantity: 1,
-                price_data: {
-                  currency: "usd",
-                  unit_amount: Math.round(portalProcessingFee * 100),
-                  product_data: {
-                    name: "Online Payment Processing Fee",
-                    description:
-                      "Small portal fee for using online card checkout.",
+          ...(portalProcessingFee > 0
+            ? [
+                {
+                  quantity: 1,
+                  price_data: {
+                    currency: "usd",
+                    unit_amount: Math.round(portalProcessingFee * 100),
+                    product_data: {
+                      name: "Online Payment Processing Fee",
+                      description:
+                        "Optional online card payment fee set by the inspector.",
+                    },
                   },
                 },
-              },
-            ]
-          : []),
-      ],
-      success_url: `${appUrl}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${appUrl}/payment-cancelled?inspection_id=${inspectionId}`,
-    });
+              ]
+            : []),
+        ],
+        success_url: `${appUrl}/payment-success?session_id={CHECKOUT_SESSION_ID}&stripe_account=${connectedStripeAccountId}`,
+        cancel_url: `${appUrl}/payment-cancelled?inspection_id=${inspectionId}`,
+      },
+      {
+        stripeAccount: connectedStripeAccountId,
+      }
+    );
 
     await supabase
       .from("inspections")
@@ -259,19 +280,19 @@ export async function POST(req: Request) {
         invoice_status: "Pending",
         payment_status: "Pending",
         stripe_checkout_session_id: session.id,
-        payment_notes: `Stripe checkout opened. Balance due: $${balanceDue.toFixed(
+        payment_notes: `Stripe checkout opened as direct charge. Balance due: $${balanceDue.toFixed(
           2
         )}. Online payment fee: $${portalProcessingFee.toFixed(
           2
-        )}. Total online checkout: $${totalOnlinePayment.toFixed(2)}.`,
+        )}. Total online checkout: $${totalOnlinePayment.toFixed(
+          2
+        )}. Stripe account: ${connectedStripeAccountId}.`,
       })
       .eq("id", inspectionId);
 
     await logStripeEvent(supabase, {
       inspectionId,
-      paymentIntentId: session.payment_intent
-        ? String(session.payment_intent)
-        : null,
+      paymentIntentId: session.payment_intent ? String(session.payment_intent) : null,
       amount: totalOnlinePayment,
       status: "checkout_created",
       metadata: {
@@ -281,18 +302,10 @@ export async function POST(req: Request) {
         totalOnlinePayment,
         property,
         clientEmail,
-      },
-    });
-
-    await logAuditEvent(supabase, {
-      action: "stripe_checkout_created",
-      resourceType: "inspection",
-      resourceId: inspectionId,
-      metadata: {
-        sessionId: session.id,
-        balanceDue,
-        portalProcessingFee,
-        totalOnlinePayment,
+        companyId: company?.id || null,
+        companyName,
+        stripeConnectAccount: connectedStripeAccountId,
+        chargeType: "direct_charge",
       },
     });
 
@@ -302,6 +315,8 @@ export async function POST(req: Request) {
       balanceDue,
       portalProcessingFee,
       totalOnlinePayment,
+      stripeConnectEnabled: true,
+      chargeType: "direct_charge",
     });
   } catch (error: any) {
     console.error("Stripe checkout error:", error);

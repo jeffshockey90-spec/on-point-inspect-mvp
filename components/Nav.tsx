@@ -14,6 +14,7 @@ const navItems = [
   { title: "Templates", href: "/templates", icon: "📚", mobileLabel: "Templates" },
   { title: "Quotes", href: "/quotes", icon: "💬", mobileLabel: "Quotes" },
   { title: "Schedule", href: "/schedule", icon: "🗓️", mobileLabel: "Schedule" },
+  { title: "Settings", href: "/settings", icon: "⚙️", mobileLabel: "Settings" },
 ];
 
 export default function Navbar() {
@@ -112,6 +113,17 @@ export default function Navbar() {
               </Link>
             );
           })}
+
+          <Link
+            href="/settings"
+            prefetch={false}
+            className={`flex h-full flex-1 flex-col items-center justify-center text-[11px] font-bold ${
+              isActive("/settings") ? "text-teal-300" : "text-zinc-300"
+            }`}
+          >
+            <span className="text-lg leading-none">⚙️</span>
+            <span className="mt-1 leading-none">Settings</span>
+          </Link>
 
           <button
             onClick={handleLogout}
