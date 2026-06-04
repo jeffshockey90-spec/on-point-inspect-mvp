@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import DeleteInspectionButton from "../../components/DeleteInspectionButton";
-import LiveReportsActivity from "../../components/LiveReportsActivity";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -192,16 +191,8 @@ export default async function ReportsPage() {
 
   const activityByInspectionId = buildReportActivityMap(viewLogsRaw || []);
 
-  const liveInspectionSummaries = rows.map((inspection: any) => ({
-    id: inspection.id,
-    property_address: inspection.property_address || null,
-    address: inspection.address || null,
-  }));
-
   return (
     <main className="min-h-screen bg-[#020617] px-6 py-10 text-white">
-      <LiveReportsActivity inspections={liveInspectionSummaries} />
-
       <div className="mx-auto max-w-7xl">
         <div className="mb-10 flex flex-wrap items-center justify-between gap-4">
           <div>

@@ -1,5 +1,6 @@
 import "./globals.css";
 import Navbar from "../components/Nav";
+import GlobalLiveActivity from "../components/GlobalLiveActivity";
 
 export const metadata = {
   title: "On Point Inspection",
@@ -26,15 +27,9 @@ export default function RootLayout({
       <head>
         <link rel="manifest" href="/manifest.json" />
 
-        <meta
-          name="theme-color"
-          content="#14b8a6"
-        />
+        <meta name="theme-color" content="#14b8a6" />
 
-        <meta
-          name="apple-mobile-web-app-capable"
-          content="yes"
-        />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
 
         <meta
           name="apple-mobile-web-app-status-bar-style"
@@ -46,10 +41,7 @@ export default function RootLayout({
           content="On Point Inspect"
         />
 
-        <link
-          rel="apple-touch-icon"
-          href="/logo.jpg"
-        />
+        <link rel="apple-touch-icon" href="/logo.jpg" />
 
         <link
           rel="icon"
@@ -68,6 +60,8 @@ export default function RootLayout({
 
       <body className="bg-[#050816] text-white">
         <Navbar />
+
+        <GlobalLiveActivity />
 
         {children}
       </body>
