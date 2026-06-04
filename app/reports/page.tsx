@@ -3,11 +3,15 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import DeleteInspectionButton from "../../components/DeleteInspectionButton";
+import LiveReportsActivity from "../../components/LiveReportsActivity";
 
-export default async function ReportsPage() {
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+async function createSupabaseServerClient() {
   const cookieStore = await cookies();
 
-  const supabase = createServerClient(
+  return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
@@ -19,6 +23,125 @@ export default async function ReportsPage() {
       },
     }
   );
+}
+
+function getViewType(log: any) {
+  return String(log?.view_type || "").toLowerCase();
+}
+
+function formatViewDate(value: any) {
+  if (!value) return "N/A";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) return "N/A";
+
+  return date.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function getRelativeTime(value: any) {
+  if (!value) return "";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) return "";
+
+  const diffMs = Date.now() - date.getTime();
+  const diffMinutes = Math.max(0, Math.floor(diffMs / (1000 * 60)));
+
+  if (diffMinutes < 1) return "Just now";
+  if (diffMinutes < 60) return `${diffMinutes}m ago`;
+
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 7) return `${diffDays}d ago`;
+
+  return formatViewDate(value);
+}
+
+function buildReportActivityMap(viewLogs: any[]) {
+  const map: Record<
+    string,
+    {
+      totalViews: number;
+      clientViewed: boolean;
+      realtorViewed: boolean;
+      inspectorViewed: boolean;
+      emailClicked: boolean;
+      lastViewedAt: string | null;
+    }
+  > = {};
+
+  (viewLogs || []).forEach((log: any) => {
+    const inspectionId = String(log?.inspection_id_bigint || log?.inspection_id || "");
+    if (!inspectionId) return;
+
+    if (!map[inspectionId]) {
+      map[inspectionId] = {
+        totalViews: 0,
+        clientViewed: false,
+        realtorViewed: false,
+        inspectorViewed: false,
+        emailClicked: false,
+        lastViewedAt: null,
+      };
+    }
+
+    const type = getViewType(log);
+    const role = String(log?.viewer_role || "").toLowerCase();
+
+    const isReportView =
+      type === "client_portal" ||
+      type === "report_share" ||
+      type === "environmental_share";
+
+    if (isReportView) {
+      map[inspectionId].totalViews += 1;
+
+      if (!map[inspectionId].lastViewedAt) {
+        map[inspectionId].lastViewedAt = log.created_at || null;
+      }
+    }
+
+    if (
+      type === "client_portal" ||
+      (type === "report_share" && role === "client") ||
+      (type === "environmental_share" && role === "client")
+    ) {
+      map[inspectionId].clientViewed = true;
+    }
+
+    if (
+      (type === "report_share" && (role === "realtor" || role === "agent")) ||
+      (type === "environmental_share" && (role === "realtor" || role === "agent"))
+    ) {
+      map[inspectionId].realtorViewed = true;
+    }
+
+    if (
+      role === "inspector" ||
+      (isReportView && !role && !log?.viewer_email)
+    ) {
+      map[inspectionId].inspectorViewed = true;
+    }
+
+    if (type === "email_click") {
+      map[inspectionId].emailClicked = true;
+    }
+  });
+
+  return map;
+}
+
+export default async function ReportsPage() {
+  const supabase = await createSupabaseServerClient();
 
   const {
     data: { user },
@@ -49,8 +172,36 @@ export default async function ReportsPage() {
     );
   }
 
+  const rows = inspections || [];
+  const inspectionIds = rows
+    .map((inspection: any) => Number(inspection.id))
+    .filter(Boolean);
+
+  const { data: viewLogsRaw, error: viewLogsError } =
+    inspectionIds.length > 0
+      ? await supabase
+          .from("inspection_view_events")
+          .select("*")
+          .in("inspection_id_bigint", inspectionIds)
+          .order("created_at", { ascending: false })
+      : { data: [], error: null };
+
+  if (viewLogsError) {
+    console.error("Reports page view logs error:", viewLogsError);
+  }
+
+  const activityByInspectionId = buildReportActivityMap(viewLogsRaw || []);
+
+  const liveInspectionSummaries = rows.map((inspection: any) => ({
+    id: inspection.id,
+    property_address: inspection.property_address || null,
+    address: inspection.address || null,
+  }));
+
   return (
     <main className="min-h-screen bg-[#020617] px-6 py-10 text-white">
+      <LiveReportsActivity inspections={liveInspectionSummaries} />
+
       <div className="mx-auto max-w-7xl">
         <div className="mb-10 flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -59,7 +210,7 @@ export default async function ReportsPage() {
             </h1>
 
             <p className="mt-3 text-slate-300">
-              Manage inspection reports, publishing, and client delivery.
+              Manage inspection reports, publishing, client delivery, and live report engagement.
             </p>
           </div>
 
@@ -71,13 +222,13 @@ export default async function ReportsPage() {
           </Link>
         </div>
 
-        {(inspections || []).length === 0 ? (
+        {rows.length === 0 ? (
           <div className="rounded-2xl border border-slate-800 bg-slate-900 p-8">
             <p className="text-slate-300">No saved inspections found.</p>
           </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-            {inspections?.map((inspection: any) => {
+            {rows.map((inspection: any) => {
               const isInspectorOwner =
                 inspection.inspector_id && inspection.inspector_id === user.id;
 
@@ -86,6 +237,16 @@ export default async function ReportsPage() {
                 inspection.property_image ||
                 inspection.property_photo ||
                 "";
+
+              const activity =
+                activityByInspectionId[String(inspection.id)] || {
+                  totalViews: 0,
+                  clientViewed: false,
+                  realtorViewed: false,
+                  inspectorViewed: false,
+                  emailClicked: false,
+                  lastViewedAt: null,
+                };
 
               return (
                 <div
@@ -134,6 +295,52 @@ export default async function ReportsPage() {
                       </p>
                     </div>
 
+                    <div className="mt-5 rounded-2xl border border-slate-800 bg-[#020617]/70 p-4">
+                      <p className="text-xs font-black uppercase tracking-wide text-teal-300">
+                        Report Engagement
+                      </p>
+
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <EngagementBadge
+                          active={activity.clientViewed}
+                          activeLabel="👤 Client Viewed"
+                          inactiveLabel="👤 Client Not Viewed"
+                        />
+
+                        <EngagementBadge
+                          active={activity.realtorViewed}
+                          activeLabel="🏡 Realtor Viewed"
+                          inactiveLabel="🏡 Realtor Not Viewed"
+                        />
+
+                        <EngagementBadge
+                          active={activity.emailClicked}
+                          activeLabel="📧 Email Clicked"
+                          inactiveLabel="📧 No Email Click"
+                        />
+
+                        {activity.inspectorViewed && (
+                          <span className="rounded-full border border-blue-500/40 bg-blue-500/10 px-3 py-1 text-xs font-black text-blue-300">
+                            🔎 Inspector Viewed
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="mt-3 grid gap-2 text-xs text-slate-400">
+                        <p>
+                          <span className="font-bold text-slate-300">Views:</span>{" "}
+                          {activity.totalViews}
+                        </p>
+
+                        <p>
+                          <span className="font-bold text-slate-300">Last View:</span>{" "}
+                          {activity.lastViewedAt
+                            ? getRelativeTime(activity.lastViewedAt)
+                            : "No views yet"}
+                        </p>
+                      </div>
+                    </div>
+
                     <div className="mt-6 flex flex-col gap-3">
                       <Link
                         href={`/reports/${inspection.id}`}
@@ -154,5 +361,27 @@ export default async function ReportsPage() {
         )}
       </div>
     </main>
+  );
+}
+
+function EngagementBadge({
+  active,
+  activeLabel,
+  inactiveLabel,
+}: {
+  active: boolean;
+  activeLabel: string;
+  inactiveLabel: string;
+}) {
+  return (
+    <span
+      className={
+        active
+          ? "rounded-full border border-green-500/40 bg-green-500/10 px-3 py-1 text-xs font-black text-green-300"
+          : "rounded-full border border-slate-700 bg-slate-800/70 px-3 py-1 text-xs font-black text-slate-400"
+      }
+    >
+      {active ? activeLabel : inactiveLabel}
+    </span>
   );
 }

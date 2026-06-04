@@ -238,6 +238,51 @@ function getViewerSummary(logs: any[]) {
   return viewers;
 }
 
+function normalizeEmail(value: any) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function isClientViewLog(log: any, clientEmail: string) {
+  const role = String(log?.viewer_role || "").trim().toLowerCase();
+  const email = normalizeEmail(log?.viewer_email);
+
+  return (
+    role.includes("client") ||
+    role.includes("buyer") ||
+    Boolean(clientEmail && email && email === clientEmail)
+  );
+}
+
+function isRealtorViewLog(log: any, realtorEmails: string[]) {
+  const role = String(log?.viewer_role || "").trim().toLowerCase();
+  const email = normalizeEmail(log?.viewer_email);
+
+  return (
+    role.includes("realtor") ||
+    role.includes("agent") ||
+    role.includes("transaction") ||
+    Boolean(email && realtorEmails.includes(email))
+  );
+}
+
+function getFinalReadingSeconds(logs: any[]) {
+  return (logs || []).reduce((sum: number, log: any) => {
+    const viewType = String(log?.view_type || "").toLowerCase();
+    if (viewType !== "report_time_final") return sum;
+    return sum + getDurationSeconds(log);
+  }, 0);
+}
+
+function getLatestViewLogFromList(logs: any[]) {
+  if (!logs || logs.length === 0) return null;
+
+  return [...logs].sort(
+    (a: any, b: any) =>
+      new Date(b.created_at || 0).getTime() -
+      new Date(a.created_at || 0).getTime()
+  )[0];
+}
+
 export default async function ReportPage({ params }: PageProps) {
   const { id } = await params;
   const supabase = await createSupabaseServerClient();
@@ -423,6 +468,26 @@ export default async function ReportPage({ params }: PageProps) {
   const latestEngagementView = engagementViews[0] || null;
   const uniqueViewerCount = getUniqueViewerCount(engagementViews);
   const viewerSummary = getViewerSummary(engagementViews);
+
+  const clientViewerEmail = normalizeEmail(inspection.client_email);
+  const realtorViewerEmails = [
+    normalizeEmail(inspection.realtor_email),
+    normalizeEmail(inspection.agent_email),
+  ].filter(Boolean);
+
+  const clientEngagementViews = engagementViews.filter((log: any) =>
+    isClientViewLog(log, clientViewerEmail)
+  );
+  const realtorEngagementViews = engagementViews.filter((log: any) =>
+    isRealtorViewLog(log, realtorViewerEmails)
+  );
+
+  const firstClientView = getFirstViewLog(clientEngagementViews);
+  const latestClientView = getLatestViewLogFromList(clientEngagementViews);
+  const firstRealtorView = getFirstViewLog(realtorEngagementViews);
+  const latestRealtorView = getLatestViewLogFromList(realtorEngagementViews);
+  const clientReadingSeconds = getFinalReadingSeconds(clientEngagementViews);
+  const realtorReadingSeconds = getFinalReadingSeconds(realtorEngagementViews);
 
   const { data: equipmentInventoryRaw, error: equipmentInventoryError } = await supabase
     .from("equipment_inventory")
@@ -770,6 +835,30 @@ export default async function ReportPage({ params }: PageProps) {
                 label="Last Viewed"
                 value={formatEmailStatusDate(latestEngagementView?.created_at)}
                 helper={latestEngagementView?.view_type || "No views yet"}
+              />
+            </div>
+
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
+              <ViewerRoleStatusCard
+                title="Client Viewed"
+                viewed={clientEngagementViews.length > 0}
+                firstView={firstClientView}
+                latestView={latestClientView}
+                totalViews={clientEngagementViews.length}
+                totalReadTimeSeconds={clientReadingSeconds}
+                viewerEmail={inspection.client_email}
+                emptyText="Client has not opened the report or portal yet"
+              />
+
+              <ViewerRoleStatusCard
+                title="Realtor Viewed"
+                viewed={realtorEngagementViews.length > 0}
+                firstView={firstRealtorView}
+                latestView={latestRealtorView}
+                totalViews={realtorEngagementViews.length}
+                totalReadTimeSeconds={realtorReadingSeconds}
+                viewerEmail={inspection.realtor_email || inspection.agent_email}
+                emptyText="Realtor has not opened the report or portal yet"
               />
             </div>
 
@@ -1154,6 +1243,90 @@ function EngagementStatCard({
       <p className="mt-2 text-2xl font-black text-white">{value}</p>
 
       {helper && <p className="mt-2 text-xs leading-5 text-slate-400">{helper}</p>}
+    </div>
+  );
+}
+
+function ViewerRoleStatusCard({
+  title,
+  viewed,
+  firstView,
+  latestView,
+  totalViews,
+  totalReadTimeSeconds,
+  viewerEmail,
+  emptyText,
+}: {
+  title: string;
+  viewed: boolean;
+  firstView: any;
+  latestView: any;
+  totalViews: number;
+  totalReadTimeSeconds: number;
+  viewerEmail?: string | null;
+  emptyText: string;
+}) {
+  return (
+    <div
+      className={`rounded-xl border p-4 ${
+        viewed
+          ? "border-green-500/40 bg-green-500/10"
+          : "border-yellow-500/40 bg-yellow-500/10"
+      }`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-black uppercase tracking-wide text-slate-300">
+            {title}
+          </p>
+
+          <p
+            className={`mt-2 text-2xl font-black ${
+              viewed ? "text-green-300" : "text-yellow-300"
+            }`}
+          >
+            {viewed ? "Yes" : "No"}
+          </p>
+        </div>
+
+        <span
+          className={`rounded-full border px-3 py-1 text-xs font-black ${
+            viewed
+              ? "border-green-500/40 bg-green-500/10 text-green-300"
+              : "border-yellow-500/40 bg-yellow-500/10 text-yellow-300"
+          }`}
+        >
+          {totalViews} view{totalViews === 1 ? "" : "s"}
+        </span>
+      </div>
+
+      {!viewed ? (
+        <p className="mt-3 text-sm leading-5 text-slate-300">{emptyText}</p>
+      ) : (
+        <div className="mt-4 space-y-2 text-sm text-slate-300">
+          {viewerEmail && (
+            <p>
+              <span className="font-bold text-white">Expected Viewer:</span>{" "}
+              <span className="break-all">{viewerEmail}</span>
+            </p>
+          )}
+
+          <p>
+            <span className="font-bold text-white">First Viewed:</span>{" "}
+            {formatEmailStatusDate(firstView?.created_at)}
+          </p>
+
+          <p>
+            <span className="font-bold text-white">Last Viewed:</span>{" "}
+            {formatEmailStatusDate(latestView?.created_at)}
+          </p>
+
+          <p>
+            <span className="font-bold text-white">Read Time:</span>{" "}
+            {formatDuration(totalReadTimeSeconds)}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
