@@ -27,6 +27,13 @@ const cards = [
     icon: "🏡",
   },
   {
+    title: "Referral Leaderboard",
+    description:
+      "Rank realtor referrals, revenue, paid inspections, and outstanding balances.",
+    href: "/realtors/leaderboard",
+    icon: "🏆",
+  },
+  {
     title: "Invoices",
     description:
       "Track paid, pending, overdue, and outstanding balances.",
@@ -121,9 +128,9 @@ export default function HomePage() {
 
           <p className="mt-4 max-w-2xl text-lg leading-8 text-slate-300">
             Manage inspections, reports, AI findings, analytics, invoices,
-            realtor contacts, agreements, client portals, repair requests,
-            radon, mold, templates, quotes, and scheduling from one clean
-            dashboard.
+            realtor contacts, referral leaderboard, agreements, client portals,
+            repair requests, radon, mold, templates, quotes, and scheduling
+            from one clean dashboard.
           </p>
         </section>
 

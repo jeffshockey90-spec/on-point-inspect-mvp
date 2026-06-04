@@ -213,6 +213,32 @@ export async function POST(req: Request) {
       ? `${appUrl}/environmental-share/${inspectionId}`
       : `${appUrl}/share/${inspectionId}`;
 
+    const recipientRoleForTracking =
+      recipientType === "client" || recipientType === "realtor"
+        ? recipientType
+        : "custom";
+
+    const shareUrlWithViewer =
+      `${finalShareUrl}?role=${encodeURIComponent(
+        recipientRoleForTracking
+      )}&email=${encodeURIComponent(finalRecipient)}`;
+
+    const trackedShareUrl =
+      `${appUrl}/api/email-click?inspection_id=${encodeURIComponent(
+        String(inspectionId)
+      )}&recipient_type=${encodeURIComponent(
+        recipientRoleForTracking
+      )}&recipient_email=${encodeURIComponent(
+        finalRecipient
+      )}&target=${encodeURIComponent(shareUrlWithViewer)}`;
+
+    const emailOpenPixelUrl =
+      `${appUrl}/api/email-open?inspection_id=${encodeURIComponent(
+        String(inspectionId)
+      )}&recipient_type=${encodeURIComponent(
+        recipientRoleForTracking
+      )}&recipient_email=${encodeURIComponent(finalRecipient)}`;
+
     const { data: moldTest } = await supabase
       .from("mold_tests")
       .select("lab_report_url, lab_name, result, lab_status")
@@ -308,7 +334,7 @@ export async function POST(req: Request) {
           <p>is ready to review.</p>
 
           <p>
-            <a href="${finalShareUrl}" style="display:inline-block; background:#14b8a6; color:#020617; padding:12px 18px; border-radius:10px; text-decoration:none; font-weight:bold;">
+            <a href="${trackedShareUrl}" style="display:inline-block; background:#14b8a6; color:#020617; padding:12px 18px; border-radius:10px; text-decoration:none; font-weight:bold;">
               ${
                 isStandaloneEnvironmentalService(inspection)
                   ? "View Environmental Report"
@@ -322,6 +348,14 @@ export async function POST(req: Request) {
           <p style="color:#cbd5e1; line-height:1.6;">
             This report is based on a visual, non-invasive inspection of readily accessible systems and components at the time of inspection.
           </p>
+
+          <img
+            src="${emailOpenPixelUrl}"
+            width="1"
+            height="1"
+            alt=""
+            style="display:none; opacity:0; width:1px; height:1px;"
+          />
 
           <hr style="border:0; border-top:1px solid #334155; margin:24px 0;" />
 
@@ -369,6 +403,7 @@ export async function POST(req: Request) {
             "Email failed to send. Check Resend settings.",
           resendData,
           shareUrl: finalShareUrl,
+        trackedShareUrl,
           moldReportUrl,
           radonReportUrl,
         },
@@ -396,6 +431,7 @@ export async function POST(req: Request) {
           : "inspection_report",
         recipientType,
         shareUrl: finalShareUrl,
+        trackedShareUrl,
         moldReportUrl,
         radonReportUrl,
       },
@@ -412,6 +448,7 @@ export async function POST(req: Request) {
         recipient: finalRecipient,
         subject,
         shareUrl: finalShareUrl,
+        trackedShareUrl,
       },
     });
 
@@ -419,6 +456,7 @@ export async function POST(req: Request) {
       success: true,
       message: `Report email sent to ${finalRecipient}.`,
       shareUrl: finalShareUrl,
+        trackedShareUrl,
       moldReportUrl,
       radonReportUrl,
     });

@@ -1,10 +1,23 @@
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
-import { supabase } from "../../../lib/supabaseClient";
+import { createClient } from "@supabase/supabase-js";
+
+export const runtime = "nodejs";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
+
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  }
+);
 
 export async function POST(req: Request) {
   try {
@@ -12,44 +25,109 @@ export async function POST(req: Request) {
 
     if (!inspectionId) {
       return NextResponse.json(
-        { error: "Missing inspection ID" },
+        { error: "Missing inspection ID." },
         { status: 400 }
       );
     }
 
-    const { data: findings } = await supabase
+    const numericInspectionId = Number(inspectionId);
+
+    if (!numericInspectionId || !Number.isFinite(numericInspectionId)) {
+      return NextResponse.json(
+        { error: "Invalid inspection ID." },
+        { status: 400 }
+      );
+    }
+
+    const { data: inspection, error: inspectionError } = await supabaseAdmin
+      .from("inspections")
+      .select("id, address, property_address, client_name")
+      .eq("id", numericInspectionId)
+      .single();
+
+    if (inspectionError || !inspection) {
+      return NextResponse.json(
+        { error: "Inspection not found." },
+        { status: 404 }
+      );
+    }
+
+    const { data: findings, error: findingsError } = await supabaseAdmin
       .from("findings")
-      .select("*")
-      .eq("inspection_id", inspectionId);
+      .select(
+        "id, title, section, severity, observation, implication, recommendation"
+      )
+      .eq("inspection_id", numericInspectionId)
+      .order("created_at", { ascending: true });
+
+    if (findingsError) {
+      return NextResponse.json(
+        { error: findingsError.message || "Failed to load findings." },
+        { status: 500 }
+      );
+    }
 
     if (!findings || findings.length === 0) {
       return NextResponse.json(
-        { error: "No findings found" },
+        { error: "No findings found for this inspection." },
         { status: 400 }
       );
     }
 
-    const findingsText = findings
+    const reportFindings = findings.filter((finding: any) => {
+      const section = String(finding.section || "").toLowerCase().trim();
+      const title = String(finding.title || "").toLowerCase().trim();
+
+      const nonSummaryTitles = new Set([
+        "in attendance",
+        "occupancy",
+        "style",
+        "temperature",
+        "type of building",
+        "weather conditions",
+      ]);
+
+      if (section === "inspection details") return false;
+      if (section === "disclaimers") return false;
+      if (nonSummaryTitles.has(title)) return false;
+      if (title.includes("reference photo")) return false;
+
+      return true;
+    });
+
+    const findingsForSummary =
+      reportFindings.length > 0 ? reportFindings : findings;
+
+    const findingsText = findingsForSummary
       .map(
-        (f: any) => `
-Title: ${f.title}
+        (finding: any, index: number) => `
+Finding ${index + 1}
+Section: ${finding.section || "N/A"}
+Severity: ${finding.severity || "N/A"}
+Title: ${finding.title || "Untitled Finding"}
 
 Observation:
-${f.observation}
+${finding.observation || "N/A"}
 
 Implication:
-${f.implication}
+${finding.implication || "N/A"}
 
 Recommendation:
-${f.recommendation}
+${finding.recommendation || "N/A"}
 `
       )
       .join("\n\n");
 
+    const property =
+      inspection.property_address ||
+      inspection.address ||
+      "the inspected property";
+
     const prompt = `
 You are an expert home inspector.
 
-Generate a professional executive summary for a home inspection report.
+Generate a professional executive summary for a home inspection report for:
+${property}
 
 The summary should include:
 
@@ -59,16 +137,15 @@ The summary should include:
 4. Positive Attributes
 5. Recommended Next Steps
 
-The tone should be:
+Tone:
 - professional
 - balanced
 - realtor friendly
 - technically accurate
 - easy for clients to understand
-
-Do not exaggerate issues.
-Do not use alarming wording.
-Do not use bullet spam.
+- do not exaggerate issues
+- do not use alarming wording
+- do not use excessive bullet spam
 
 Return clean formatted text.
 
@@ -82,35 +159,59 @@ ${findingsText}
         {
           role: "system",
           content:
-            "You generate executive summaries for home inspections.",
+            "You generate professional executive summaries for home inspection reports.",
         },
         {
           role: "user",
           content: prompt,
         },
       ],
-      temperature: 0.7,
+      temperature: 0.45,
     });
 
-    const summary =
-      response.choices[0]?.message?.content || "";
+    const summary = response.choices[0]?.message?.content?.trim() || "";
 
-    await supabase
+    if (!summary) {
+      return NextResponse.json(
+        { error: "OpenAI did not return a summary." },
+        { status: 500 }
+      );
+    }
+
+    const { data: updatedInspection, error: updateError } = await supabaseAdmin
       .from("inspections")
       .update({
         executive_summary: summary,
+        summary_generated_at: new Date().toISOString(),
       })
-      .eq("id", inspectionId);
+      .eq("id", numericInspectionId)
+      .select("id, executive_summary, summary_generated_at")
+      .single();
+
+    if (updateError) {
+      console.error("Executive summary save error:", updateError);
+
+      return NextResponse.json(
+        {
+          error:
+            updateError.message ||
+            "Summary generated but failed to save to inspection.",
+        },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({
-      summary,
+      success: true,
+      summary: updatedInspection?.executive_summary || summary,
+      summary_generated_at: updatedInspection?.summary_generated_at || null,
     });
   } catch (error: any) {
-    console.error(error);
+    console.error("Generate summary error:", error);
 
     return NextResponse.json(
       {
-        error: error.message || "Failed to generate summary",
+        error: error?.message || "Failed to generate summary.",
       },
       {
         status: 500,

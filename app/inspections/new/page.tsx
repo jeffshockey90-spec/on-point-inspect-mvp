@@ -562,6 +562,7 @@ export default function NewInspectionPage() {
             client_phone: clientPhone,
 
             realtor_id: realtorId || null,
+            realtor_contact_id: realtorId || null,
             realtor_name: realtorName || null,
             realtor_email: realtorEmail.trim().toLowerCase() || null,
             realtor_phone: realtorPhone || null,

@@ -1,3 +1,4 @@
+```tsx
 import Link from "next/link";
 
 const cards = [
@@ -24,6 +25,13 @@ const cards = [
     description: "Manage realtor contacts, referrals, and revenue.",
     href: "/realtors",
     icon: "🏡",
+  },
+  {
+    title: "Referral Leaderboard",
+    description:
+      "Rank realtor referrals, revenue, paid inspections, and outstanding balances.",
+    href: "/realtors/leaderboard",
+    icon: "🏆",
   },
   {
     title: "Invoices",
@@ -112,10 +120,10 @@ export default function DashboardPage() {
             Inspection Dashboard
           </h1>
 
-          <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-300 sm:text-base">
-            Manage inspections, reports, AI findings, analytics, invoices, realtor contacts,
-            agreements, client portals, radon, mold, templates, quotes, and scheduling from
-            one clean dashboard.
+          <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-300">
+            Manage inspections, reports, AI findings, analytics, invoices,
+            realtor contacts, referral leaderboards, agreements, client portals,
+            radon, mold, templates, quotes, and scheduling from one clean dashboard.
           </p>
         </section>
 
@@ -146,3 +154,4 @@ export default function DashboardPage() {
     </main>
   );
 }
+```

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 import PdfExportButton from "../../../components/PdfExportButton";
+import ReportTimeTracker from "../../../components/ReportTimeTracker";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -667,7 +668,16 @@ export default async function PublicSharePage({
   const groupedFindings = SECTION_ORDER.map((section) => ({
     section,
     findings: displayFindings.filter((finding: any) => finding.section === section),
-  })).filter((group) => group.findings.length > 0);
+  })).filter((group) => {
+    const hasFindings = group.findings.length > 0;
+    const hasReferencePhotos =
+      (referencePhotosBySection[group.section] || []).length > 0;
+    const hasChecklistInfo = Boolean(checklistBySection[group.section]);
+    const hasLimitations =
+      (limitationsBySection[group.section] || []).length > 0;
+
+    return hasFindings || hasReferencePhotos || hasChecklistInfo || hasLimitations;
+  });
 
   const otherFindings = displayFindings.filter(
     (finding: any) => !SECTION_ORDER.includes(finding.section)
@@ -680,11 +690,16 @@ export default async function PublicSharePage({
     });
   }
 
-  const sectionStats = groupedFindings.map((group) => ({
-    section: group.section,
-    defectCount: group.findings.filter(isReportDefect).length,
-    findingCount: group.findings.length,
-    referenceCount: referencePhotosBySection[group.section]?.length || 0,
+  const sectionStats = SECTION_ORDER.map((section) => ({
+    section,
+    defectCount: findings.filter(
+      (finding: any) =>
+        finding.section === section && isReportDefect(finding)
+    ).length,
+    findingCount: findings.filter(
+      (finding: any) => finding.section === section
+    ).length,
+    referenceCount: referencePhotosBySection[section]?.length || 0,
   }));
 
   const address =
@@ -692,6 +707,13 @@ export default async function PublicSharePage({
 
   return (
     <main className="min-h-screen bg-[#020617] p-4 text-white md:p-8">
+      <ReportTimeTracker
+        inspectionId={String(inspectionId)}
+        viewerRole={resolvedSearchParams?.role || null}
+        viewerEmail={resolvedSearchParams?.email || null}
+        path={`/share/${inspectionId}`}
+      />
+
       <div className="mx-auto max-w-7xl overflow-hidden rounded-3xl border border-slate-800 bg-[#0f172a] shadow-2xl">
         <section className="relative overflow-hidden border-b border-slate-800 bg-[#020617]">
           {propertyPhoto ? (
@@ -823,6 +845,22 @@ export default async function PublicSharePage({
               )}
             </div>
           </section>
+
+          {inspection.executive_summary && (
+            <section className="mt-8 rounded-2xl border border-purple-500/40 bg-[#071224] p-6 shadow-xl">
+              <h2 className="text-2xl font-extrabold text-purple-300">
+                Executive Summary
+              </h2>
+
+              <p className="mt-2 text-sm leading-6 text-slate-400">
+                This client-friendly overview summarizes the report findings in plain language.
+              </p>
+
+              <div className="mt-5 whitespace-pre-line rounded-xl border border-slate-700 bg-[#020817]/70 p-5 text-base leading-8 text-slate-100">
+                {inspection.executive_summary}
+              </div>
+            </section>
+          )}
 
           <details className="mt-8 rounded-2xl border border-slate-700 bg-[#071224] p-6">
             <summary className="cursor-pointer list-none">
@@ -1270,6 +1308,12 @@ export default async function PublicSharePage({
                               );
                             })}
                           </div>
+                        </div>
+                      )}
+
+                      {group.findings.length === 0 && (
+                        <div className="rounded-xl border border-slate-700 bg-[#020617]/70 p-5 text-slate-300">
+                          No defect findings documented in this section.
                         </div>
                       )}
 

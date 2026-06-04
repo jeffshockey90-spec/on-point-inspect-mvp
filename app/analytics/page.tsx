@@ -208,6 +208,114 @@ function getDaysOutstanding(inspection: any) {
   return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
 }
 
+
+function getPercent(part: number, total: number) {
+  if (!total) return 0;
+  return Math.round((part / total) * 100);
+}
+
+function getDurationSeconds(log: any) {
+  const seconds = Number(log?.metadata?.duration_seconds || 0);
+  return Number.isFinite(seconds) ? seconds : 0;
+}
+
+function formatDuration(secondsValue: number) {
+  const seconds = Math.max(0, Math.round(secondsValue || 0));
+
+  if (seconds < 60) return `${seconds}s`;
+
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+
+  if (minutes < 60) {
+    return remainingSeconds > 0 ? `${minutes}m ${remainingSeconds}s` : `${minutes}m`;
+  }
+
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+
+  return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
+}
+
+function hasRadonService(inspection: any) {
+  const raw = String(
+    inspection?.inspection_type ||
+      inspection?.service_type ||
+      inspection?.type ||
+      inspection?.service_mode ||
+      inspection?.services ||
+      ""
+  ).toLowerCase();
+
+  return (
+    raw.includes("radon") ||
+    inspection?.radon === true ||
+    inspection?.radon_test === true ||
+    inspection?.radon_testing === true
+  );
+}
+
+function hasMoldService(inspection: any) {
+  const raw = String(
+    inspection?.inspection_type ||
+      inspection?.service_type ||
+      inspection?.type ||
+      inspection?.service_mode ||
+      inspection?.services ||
+      ""
+  ).toLowerCase();
+
+  return (
+    raw.includes("mold") ||
+    inspection?.mold === true ||
+    inspection?.mold_test === true ||
+    inspection?.mold_testing === true
+  );
+}
+
+function isReviewRequested(inspection: any) {
+  const status = String(
+    inspection?.review_status ||
+      inspection?.google_review_status ||
+      inspection?.review_request_status ||
+      ""
+  ).toLowerCase();
+
+  return (
+    status.includes("requested") ||
+    status.includes("sent") ||
+    status.includes("received") ||
+    inspection?.review_requested === true ||
+    Boolean(inspection?.review_requested_at)
+  );
+}
+
+function isReviewReceived(inspection: any) {
+  const status = String(
+    inspection?.review_status ||
+      inspection?.google_review_status ||
+      inspection?.review_request_status ||
+      ""
+  ).toLowerCase();
+
+  return (
+    status.includes("received") ||
+    status.includes("complete") ||
+    status.includes("completed") ||
+    status.includes("left") ||
+    inspection?.review_received === true ||
+    Boolean(inspection?.review_received_at)
+  );
+}
+
+function getViewType(log: any) {
+  return String(log?.view_type || "").toLowerCase();
+}
+
+function getInspectionIdFromViewLog(log: any) {
+  return String(log?.inspection_id_bigint || log?.inspection_id || "");
+}
+
 export default async function AnalyticsPage() {
   const supabase = await createClient();
 
@@ -236,6 +344,23 @@ export default async function AnalyticsPage() {
 
   const rows = inspections || [];
   const now = new Date();
+
+  const inspectionIds = rows.map((inspection: any) => Number(inspection.id)).filter(Boolean);
+
+  const { data: viewEventsRaw, error: viewEventsError } =
+    inspectionIds.length > 0
+      ? await supabase
+          .from("inspection_view_events")
+          .select("*")
+          .in("inspection_id_bigint", inspectionIds)
+          .order("created_at", { ascending: false })
+      : { data: [], error: null };
+
+  if (viewEventsError) {
+    console.error("Analytics view events load error:", viewEventsError);
+  }
+
+  const viewEvents = viewEventsRaw || [];
 
   const inspectionsThisMonth = rows.filter((inspection: any) =>
     isSameMonth(getDateValue(inspection), now)
@@ -286,6 +411,96 @@ export default async function AnalyticsPage() {
       isReportPublished(inspection)
   );
 
+  const totalInspections = rows.length;
+  const signedAgreementCount = rows.filter(isAgreementSigned).length;
+  const paidInspectionCount = rows.filter(isPaymentComplete).length;
+  const publishedReportCount = rows.filter(isReportPublished).length;
+
+  const revenueAtRisk = paymentsPending.reduce(
+    (sum: number, inspection: any) => sum + getBalanceDue(inspection),
+    0
+  );
+
+  const reviewRequestedRows = rows.filter(isReviewRequested);
+  const reviewReceivedRows = rows.filter(isReviewReceived);
+  const reviewRequestRate = getPercent(reviewRequestedRows.length, rows.length);
+  const reviewConversionRate = getPercent(
+    reviewReceivedRows.length,
+    reviewRequestedRows.length
+  );
+
+  const emailOpenEvents = viewEvents.filter(
+    (log: any) => getViewType(log) === "email_open"
+  );
+  const emailClickEvents = viewEvents.filter(
+    (log: any) => getViewType(log) === "email_click"
+  );
+  const reportOpenEvents = viewEvents.filter((log: any) =>
+    ["report_share", "environmental_share", "client_portal"].includes(
+      getViewType(log)
+    )
+  );
+  const reportTimeEvents = viewEvents.filter(
+    (log: any) =>
+      getViewType(log) === "report_time_final" ||
+      getViewType(log) === "report_time_checkpoint"
+  );
+  const reportTimeFinalEvents = viewEvents.filter(
+    (log: any) => getViewType(log) === "report_time_final"
+  );
+
+  const totalReadingSeconds = reportTimeFinalEvents.reduce(
+    (sum: number, log: any) => sum + getDurationSeconds(log),
+    0
+  );
+  const averageReadingSeconds =
+    reportTimeFinalEvents.length > 0
+      ? totalReadingSeconds / reportTimeFinalEvents.length
+      : 0;
+
+  const reportViewMap: Record<string, { count: number; seconds: number }> = {};
+
+  reportOpenEvents.forEach((log: any) => {
+    const key = getInspectionIdFromViewLog(log);
+    if (!key) return;
+    if (!reportViewMap[key]) reportViewMap[key] = { count: 0, seconds: 0 };
+    reportViewMap[key].count += 1;
+  });
+
+  reportTimeFinalEvents.forEach((log: any) => {
+    const key = getInspectionIdFromViewLog(log);
+    if (!key) return;
+    if (!reportViewMap[key]) reportViewMap[key] = { count: 0, seconds: 0 };
+    reportViewMap[key].seconds += getDurationSeconds(log);
+  });
+
+  const mostViewedReport = Object.entries(reportViewMap)
+    .map(([inspectionId, values]) => {
+      const inspection = rows.find(
+        (row: any) => String(row.id) === String(inspectionId)
+      );
+
+      return {
+        inspectionId,
+        inspection,
+        ...values,
+      };
+    })
+    .sort((a, b) => b.count - a.count || b.seconds - a.seconds)[0];
+
+  const radonRows = rows.filter(hasRadonService);
+  const moldRows = rows.filter(hasMoldService);
+  const radonAttachmentRate = getPercent(radonRows.length, rows.length);
+  const moldAttachmentRate = getPercent(moldRows.length, rows.length);
+  const radonRevenue = radonRows.reduce(
+    (sum: number, inspection: any) => sum + getRevenueValue(inspection),
+    0
+  );
+  const moldRevenue = moldRows.reduce(
+    (sum: number, inspection: any) => sum + getRevenueValue(inspection),
+    0
+  );
+
   const monthMap: Record<string, { revenue: number; count: number }> = {};
 
   rows.forEach((inspection: any) => {
@@ -314,38 +529,76 @@ export default async function AnalyticsPage() {
     ...monthlyRows.map((row) => row.revenue)
   );
 
-  const realtorMap: Record<string, { count: number; revenue: number }> = {};
+  const realtorMap: Record<
+    string,
+    { name: string; email: string; count: number; revenue: number }
+  > = {};
 
   rows.forEach((inspection: any) => {
-    const realtor =
+    const displayName =
       inspection?.realtor_name ||
       inspection?.agent_name ||
       inspection?.realtor_email ||
       "No Realtor Listed";
 
-    if (!realtorMap[realtor]) realtorMap[realtor] = { count: 0, revenue: 0 };
+    const displayEmail =
+      inspection?.realtor_email ||
+      inspection?.agent_email ||
+      "";
 
-    realtorMap[realtor].count += 1;
+    const key = inspection?.realtor_contact_id
+      ? `contact:${inspection.realtor_contact_id}`
+      : `legacy:${String(displayEmail || displayName).trim().toLowerCase()}`;
+
+    if (!realtorMap[key]) {
+      realtorMap[key] = {
+        name: displayName,
+        email: displayEmail,
+        count: 0,
+        revenue: 0,
+      };
+    }
+
+    realtorMap[key].count += 1;
 
     if (isPaymentComplete(inspection)) {
-      realtorMap[realtor].revenue +=
+      realtorMap[key].revenue +=
         getPaidAmount(inspection) || getInspectionPrice(inspection);
     }
   });
 
-  const topRealtors = Object.entries(realtorMap)
-    .map(([name, values]) => ({
-      name,
-      ...values,
-    }))
+  const realtorRows = Object.entries(realtorMap).map(([key, values]) => ({
+    key,
+    ...values,
+  }));
+
+  const linkedReferralCount = rows.filter(
+    (inspection: any) => !!inspection?.realtor_contact_id
+  ).length;
+
+  const referralCount = rows.filter(
+    (inspection: any) =>
+      !!inspection?.realtor_contact_id ||
+      !!inspection?.realtor_name ||
+      !!inspection?.agent_name ||
+      !!inspection?.realtor_email
+  ).length;
+
+  const referralRevenue = rows.reduce((sum: number, inspection: any) => {
+    const hasReferral =
+      !!inspection?.realtor_contact_id ||
+      !!inspection?.realtor_name ||
+      !!inspection?.agent_name ||
+      !!inspection?.realtor_email;
+
+    return hasReferral ? sum + getRevenueValue(inspection) : sum;
+  }, 0);
+
+  const topRealtors = realtorRows
     .sort((a, b) => b.count - a.count || b.revenue - a.revenue)
     .slice(0, 8);
 
-  const topRealtorsByRevenue = Object.entries(realtorMap)
-    .map(([name, values]) => ({
-      name,
-      ...values,
-    }))
+  const topRealtorsByRevenue = [...realtorRows]
     .sort((a, b) => b.revenue - a.revenue || b.count - a.count)
     .slice(0, 8);
 
@@ -455,6 +708,20 @@ export default async function AnalyticsPage() {
           />
 
           <MetricCard
+            label="Realtor Referrals"
+            value={String(referralCount)}
+            helper={`${linkedReferralCount} linked to saved realtor contacts`}
+            tone="teal"
+          />
+
+          <MetricCard
+            label="Referral Revenue"
+            value={money(referralRevenue)}
+            helper="Paid revenue tied to realtor referrals."
+            tone="green"
+          />
+
+          <MetricCard
             label="Average Inspection Fee"
             value={money(averageInspectionFee)}
             helper="Uses saved price; falls back to sq ft pricing."
@@ -473,6 +740,13 @@ export default async function AnalyticsPage() {
             value={String(paymentsPending.length)}
             helper={`${money(outstandingBalance)} outstanding`}
             tone="orange"
+          />
+
+          <MetricCard
+            label="Revenue At Risk"
+            value={money(revenueAtRisk)}
+            helper="Unpaid balances needing follow-up."
+            tone="red"
           />
 
           <MetricCard
@@ -495,6 +769,147 @@ export default async function AnalyticsPage() {
             helper="Signed, paid, and published."
             tone="green"
           />
+        </section>
+
+        <section className="mt-8 grid gap-6 xl:grid-cols-2">
+          <Panel
+            title="Conversion Funnel"
+            subtitle="Shows where inspections stand from creation to delivery."
+          >
+            <div className="space-y-4">
+              <FunnelStep
+                label="Inspections Created"
+                value={totalInspections}
+                percent={100}
+                helper="All inspections in your account."
+              />
+              <FunnelStep
+                label="Agreements Signed"
+                value={signedAgreementCount}
+                percent={getPercent(signedAgreementCount, totalInspections)}
+                helper={`${getPercent(signedAgreementCount, totalInspections)}% of inspections`}
+              />
+              <FunnelStep
+                label="Payments Complete"
+                value={paidInspectionCount}
+                percent={getPercent(paidInspectionCount, totalInspections)}
+                helper={`${money(revenueAtRisk)} still at risk`}
+              />
+              <FunnelStep
+                label="Reports Published"
+                value={publishedReportCount}
+                percent={getPercent(publishedReportCount, totalInspections)}
+                helper={`${reportsPendingPublish.length} report${reportsPendingPublish.length === 1 ? "" : "s"} pending publish`}
+              />
+              <FunnelStep
+                label="Ready / Delivered"
+                value={readyToDeliver.length}
+                percent={getPercent(readyToDeliver.length, totalInspections)}
+                helper="Signed, paid, and published."
+              />
+            </div>
+          </Panel>
+
+          <Panel
+            title="Client Engagement"
+            subtitle="Email opens, report clicks, portal/report views, and reading time."
+          >
+            <div className="grid gap-4 sm:grid-cols-2">
+              <MiniMetric
+                label="Email Opens"
+                value={String(emailOpenEvents.length)}
+                helper="Tracked from report emails."
+              />
+              <MiniMetric
+                label="Email Clicks"
+                value={String(emailClickEvents.length)}
+                helper="Report link clicks from email."
+              />
+              <MiniMetric
+                label="Report / Portal Opens"
+                value={String(reportOpenEvents.length)}
+                helper="Share, portal, and environmental opens."
+              />
+              <MiniMetric
+                label="Avg Read Time"
+                value={formatDuration(averageReadingSeconds)}
+                helper={`${reportTimeFinalEvents.length} completed session${reportTimeFinalEvents.length === 1 ? "" : "s"}`}
+              />
+            </div>
+
+            {mostViewedReport?.inspection && (
+              <Link
+                href={`/reports/${mostViewedReport.inspectionId}`}
+                className="mt-5 block rounded-xl border border-purple-500/40 bg-purple-950/20 p-4 transition hover:bg-purple-500/10"
+              >
+                <p className="text-xs font-black uppercase tracking-wide text-purple-300">
+                  Most Viewed Report
+                </p>
+                <p className="mt-2 font-bold text-white">
+                  {mostViewedReport.inspection.property_address ||
+                    mostViewedReport.inspection.address ||
+                    "Untitled Inspection"}
+                </p>
+                <p className="mt-1 text-sm text-slate-400">
+                  {mostViewedReport.count} open{mostViewedReport.count === 1 ? "" : "s"} •{" "}
+                  {formatDuration(mostViewedReport.seconds)} reading time
+                </p>
+              </Link>
+            )}
+          </Panel>
+        </section>
+
+        <section className="mt-8 grid gap-6 xl:grid-cols-2">
+          <Panel
+            title="Review Tracking"
+            subtitle="Track review requests and received reviews."
+          >
+            <div className="grid gap-4 sm:grid-cols-3">
+              <MiniMetric
+                label="Requested"
+                value={String(reviewRequestedRows.length)}
+                helper={`${reviewRequestRate}% of inspections`}
+              />
+              <MiniMetric
+                label="Received"
+                value={String(reviewReceivedRows.length)}
+                helper={`${reviewConversionRate}% of requested`}
+              />
+              <MiniMetric
+                label="Not Requested"
+                value={String(Math.max(0, rows.length - reviewRequestedRows.length))}
+                helper="Opportunity for follow-up."
+              />
+            </div>
+          </Panel>
+
+          <Panel
+            title="Environmental Add-On Analytics"
+            subtitle="Radon and mold attachment rates and paid revenue."
+          >
+            <div className="grid gap-4 sm:grid-cols-2">
+              <MiniMetric
+                label="Radon Sold"
+                value={String(radonRows.length)}
+                helper={`${radonAttachmentRate}% attachment rate`}
+              />
+              <MiniMetric
+                label="Mold Sold"
+                value={String(moldRows.length)}
+                helper={`${moldAttachmentRate}% attachment rate`}
+              />
+              <MiniMetric
+                label="Radon Revenue"
+                value={money(radonRevenue)}
+                helper="Paid revenue from inspections with radon."
+              />
+              <MiniMetric
+                label="Mold Revenue"
+                value={money(moldRevenue)}
+                helper="Paid revenue from inspections with mold."
+              />
+            </div>
+          </Panel>
         </section>
 
         <section className="mt-8 grid gap-6 xl:grid-cols-2">
@@ -566,7 +981,7 @@ export default async function AnalyticsPage() {
               <div className="space-y-3">
                 {topRealtors.map((realtor, index) => (
                   <div
-                    key={realtor.name}
+                    key={realtor.key}
                     className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4"
                   >
                     <div className="flex items-center justify-between gap-4">
@@ -578,6 +993,11 @@ export default async function AnalyticsPage() {
                         <p className="mt-1 text-lg font-bold text-white">
                           {realtor.name}
                         </p>
+                        {realtor.email && (
+                          <p className="mt-1 text-xs text-slate-500">
+                            {realtor.email}
+                          </p>
+                        )}
                       </div>
 
                       <div className="text-right">
@@ -737,7 +1157,7 @@ export default async function AnalyticsPage() {
               <div className="space-y-3">
                 {topRealtorsByRevenue.map((realtor, index) => (
                   <div
-                    key={realtor.name}
+                    key={realtor.key}
                     className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4"
                   >
                     <div className="flex items-center justify-between gap-4">
@@ -749,6 +1169,11 @@ export default async function AnalyticsPage() {
                         <p className="mt-1 text-lg font-bold text-white">
                           {realtor.name}
                         </p>
+                        {realtor.email && (
+                          <p className="mt-1 text-xs text-slate-500">
+                            {realtor.email}
+                          </p>
+                        )}
                       </div>
 
                       <div className="text-right">
@@ -882,6 +1307,66 @@ function EmptyState({ text }: { text: string }) {
   return (
     <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-6 text-center text-slate-400">
       {text}
+    </div>
+  );
+}
+
+
+function FunnelStep({
+  label,
+  value,
+  percent,
+  helper,
+}: {
+  label: string;
+  value: number;
+  percent: number;
+  helper: string;
+}) {
+  const safePercent = Math.max(0, Math.min(100, percent || 0));
+
+  return (
+    <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="font-black text-white">{label}</p>
+          <p className="mt-1 text-sm text-slate-400">{helper}</p>
+        </div>
+
+        <div className="text-right">
+          <p className="text-2xl font-black text-teal-300">{value}</p>
+          <p className="text-xs font-bold text-slate-500">{safePercent}%</p>
+        </div>
+      </div>
+
+      <div className="h-3 overflow-hidden rounded-full bg-[#020617]">
+        <div
+          className="h-full rounded-full bg-teal-400"
+          style={{ width: `${Math.max(3, safePercent)}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function MiniMetric({
+  label,
+  value,
+  helper,
+}: {
+  label: string;
+  value: string;
+  helper: string;
+}) {
+  return (
+    <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
+      <p className="text-xs font-black uppercase tracking-wide text-slate-500">
+        {label}
+      </p>
+
+      <p className="mt-2 text-2xl font-black text-white">{value}</p>
+
+      <p className="mt-2 text-sm leading-5 text-slate-400">{helper}</p>
     </div>
   );
 }

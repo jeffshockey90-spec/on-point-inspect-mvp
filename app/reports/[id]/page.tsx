@@ -16,6 +16,12 @@ import SendFullReportButton from "../../../components/SendFullReportButton";
 import InsertFavoriteFindingButton from "../../../components/InsertFavoriteFindingButton";
 import OneTapAIFindingInsert from "../../../components/OneTapAIFindingInsert";
 import PaymentInvoicePanel from "../../../components/PaymentInvoicePanel";
+import GenerateSummaryButton from "../../../components/GenerateSummaryButton";
+import SendReviewRequestButton from "../../../components/SendReviewRequestButton";
+import DeleteSummaryButton from "../../../components/DeleteSummaryButton";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -152,6 +158,86 @@ function getLatestViewLog(logs: any[], type: string) {
   });
 }
 
+
+function getViewLogsByType(logs: any[], type: string) {
+  const cleanType = String(type || "").toLowerCase();
+
+  return (logs || []).filter((log: any) => {
+    const viewType = String(log.view_type || "").toLowerCase();
+    return viewType === cleanType;
+  });
+}
+
+function getFirstViewLog(logs: any[]) {
+  if (!logs || logs.length === 0) return null;
+
+  return [...logs].sort(
+    (a: any, b: any) =>
+      new Date(a.created_at || 0).getTime() -
+      new Date(b.created_at || 0).getTime()
+  )[0];
+}
+
+function getUniqueViewerCount(logs: any[]) {
+  const viewers = new Set<string>();
+
+  (logs || []).forEach((log: any) => {
+    const viewerEmail = String(log.viewer_email || "").trim().toLowerCase();
+    const contactId = String(log.contact_id || "").trim();
+    const viewerRole = String(log.viewer_role || "").trim().toLowerCase();
+    const ipAddress = String(log.ip_address || "").trim();
+
+    const key = viewerEmail || contactId || `${viewerRole}:${ipAddress}`;
+    if (key && key !== ":") viewers.add(key);
+  });
+
+  return viewers.size;
+}
+
+
+function getDurationSeconds(log: any) {
+  const seconds = Number(log?.metadata?.duration_seconds || 0);
+  return Number.isFinite(seconds) ? seconds : 0;
+}
+
+function formatDuration(secondsValue: number) {
+  const seconds = Math.max(0, Math.round(secondsValue || 0));
+
+  if (seconds < 60) return `${seconds}s`;
+
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+
+  if (minutes < 60) {
+    return remainingSeconds > 0 ? `${minutes}m ${remainingSeconds}s` : `${minutes}m`;
+  }
+
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+
+  return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
+}
+
+function getViewerSummary(logs: any[]) {
+  const viewers: string[] = [];
+  const seen = new Set<string>();
+
+  (logs || []).forEach((log: any) => {
+    const viewerEmail = String(log.viewer_email || "").trim();
+    const viewerRole = String(log.viewer_role || "").trim();
+
+    const label = viewerEmail || viewerRole || "Unknown viewer";
+    const key = label.toLowerCase();
+
+    if (!seen.has(key)) {
+      seen.add(key);
+      viewers.push(label);
+    }
+  });
+
+  return viewers;
+}
+
 export default async function ReportPage({ params }: PageProps) {
   const { id } = await params;
   const supabase = await createSupabaseServerClient();
@@ -265,6 +351,8 @@ export default async function ReportPage({ params }: PageProps) {
 
   if (inspectionError || !inspection) redirect("/reports");
 
+  const executiveSummary = String(inspection.executive_summary || "").trim();
+
   const { data: emailLogsRaw, error: emailLogsError } = await supabase
     .from("email_logs")
     .select("*")
@@ -292,13 +380,49 @@ export default async function ReportPage({ params }: PageProps) {
   }
 
   const viewLogs = viewLogsRaw || [];
-  const latestAgreementPageView = getLatestViewLog(viewLogs, "agreement_page");
-  const latestClientPortalView = getLatestViewLog(viewLogs, "client_portal");
-  const latestReportShareView = getLatestViewLog(viewLogs, "report_share");
-  const latestEnvironmentalShareView = getLatestViewLog(
+  const agreementPageViews = getViewLogsByType(viewLogs, "agreement_page");
+  const clientPortalViews = getViewLogsByType(viewLogs, "client_portal");
+  const reportShareViews = getViewLogsByType(viewLogs, "report_share");
+  const environmentalShareViews = getViewLogsByType(
     viewLogs,
     "environmental_share"
   );
+
+  const emailOpenViews = getViewLogsByType(viewLogs, "email_open");
+  const emailClickViews = getViewLogsByType(viewLogs, "email_click");
+  const reportTimeCheckpoints = getViewLogsByType(
+    viewLogs,
+    "report_time_checkpoint"
+  );
+  const reportTimeFinals = getViewLogsByType(viewLogs, "report_time_final");
+  const reportTimeEvents = [...reportTimeCheckpoints, ...reportTimeFinals];
+  const totalReportTimeSeconds = reportTimeFinals.reduce(
+    (sum: number, log: any) => sum + getDurationSeconds(log),
+    0
+  );
+  const latestReportTimeEvent = reportTimeEvents[0] || null;
+
+  const latestAgreementPageView = agreementPageViews[0] || null;
+  const latestClientPortalView = clientPortalViews[0] || null;
+  const latestReportShareView = reportShareViews[0] || null;
+  const latestEnvironmentalShareView = environmentalShareViews[0] || null;
+  const latestEmailOpenView = emailOpenViews[0] || null;
+  const latestEmailClickView = emailClickViews[0] || null;
+
+  const engagementViews = [
+    ...emailOpenViews,
+    ...emailClickViews,
+    ...reportTimeEvents,
+    ...agreementPageViews,
+    ...clientPortalViews,
+    ...reportShareViews,
+    ...environmentalShareViews,
+  ];
+
+  const firstEngagementView = getFirstViewLog(engagementViews);
+  const latestEngagementView = engagementViews[0] || null;
+  const uniqueViewerCount = getUniqueViewerCount(engagementViews);
+  const viewerSummary = getViewerSummary(engagementViews);
 
   const { data: equipmentInventoryRaw, error: equipmentInventoryError } = await supabase
     .from("equipment_inventory")
@@ -489,13 +613,6 @@ export default async function ReportPage({ params }: PageProps) {
 
             <Link
               href={`/reports/${inspection.id}/summary`}
-              className="rounded-xl border border-teal-500 bg-[#071224] px-5 py-3 font-bold text-teal-300 hover:bg-teal-500/10"
-            >
-              Generate AI Summary
-            </Link>
-
-            <Link
-              href={`/reports/${inspection.id}/summary`}
               className="rounded-xl border border-cyan-500 px-5 py-3 font-bold text-cyan-300 hover:bg-cyan-500/10"
             >
               Realtor Summary
@@ -542,6 +659,12 @@ export default async function ReportPage({ params }: PageProps) {
               inspectionId={String(inspection.id)}
               clientEmail={inspection.client_email}
               realtorEmail={inspection.realtor_email || inspection.agent_email}
+            />
+
+            <SendReviewRequestButton
+              inspectionId={String(inspection.id)}
+              clientEmail={inspection.client_email}
+              reviewStatus={inspection.review_status}
             />
 
             <Link
@@ -605,12 +728,50 @@ export default async function ReportPage({ params }: PageProps) {
 
           <section className="mb-8 rounded-2xl border border-slate-700 bg-[#071224] p-5">
             <h2 className="text-2xl font-bold text-teal-300">
-              Email Status
+              Report Engagement
             </h2>
 
             <p className="mt-1 text-sm text-slate-400">
               Email delivery comes from Resend. Page-open tracking is recorded directly by On Point Inspect when the client/realtor opens the portal, agreement, shared report, or environmental report.
             </p>
+
+            <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+              <EngagementStatCard
+                label="Total Views"
+                value={String(engagementViews.length)}
+                helper="All tracked report, portal, agreement, and environmental opens"
+              />
+
+              <EngagementStatCard
+                label="Unique Viewers"
+                value={String(uniqueViewerCount)}
+                helper="Based on available email, contact, role, or IP data"
+              />
+
+              <EngagementStatCard
+                label="Time Spent"
+                value={formatDuration(totalReportTimeSeconds)}
+                helper={
+                  latestReportTimeEvent
+                    ? `Last session update: ${formatEmailStatusDate(
+                        latestReportTimeEvent.created_at
+                      )}`
+                    : "No tracked reading time yet"
+                }
+              />
+
+              <EngagementStatCard
+                label="First Viewed"
+                value={formatEmailStatusDate(firstEngagementView?.created_at)}
+                helper={firstEngagementView?.view_type || "No views yet"}
+              />
+
+              <EngagementStatCard
+                label="Last Viewed"
+                value={formatEmailStatusDate(latestEngagementView?.created_at)}
+                helper={latestEngagementView?.view_type || "No views yet"}
+              />
+            </div>
 
             <div className="mt-5 grid gap-4 md:grid-cols-2">
               <EmailStatusCard
@@ -628,28 +789,109 @@ export default async function ReportPage({ params }: PageProps) {
 
             <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               <ViewStatusCard
-                title="Agreement Opened"
+                title="Email Opens"
+                log={latestEmailOpenView}
+                count={emailOpenViews.length}
+                emptyText="Not opened yet"
+              />
+
+              <ViewStatusCard
+                title="Email Link Clicks"
+                log={latestEmailClickView}
+                count={emailClickViews.length}
+                emptyText="No clicks yet"
+              />
+
+              <ViewStatusCard
+                title="Reading Time"
+                log={latestReportTimeEvent}
+                count={reportTimeFinals.length}
+                emptyText="No reading time yet"
+              />
+
+              <ViewStatusCard
+                title="Agreement Opens"
                 log={latestAgreementPageView}
+                count={agreementPageViews.length}
                 emptyText="Not opened yet"
               />
 
               <ViewStatusCard
-                title="Client Portal Opened"
+                title="Client Portal Opens"
                 log={latestClientPortalView}
+                count={clientPortalViews.length}
                 emptyText="Not opened yet"
               />
 
               <ViewStatusCard
-                title="Report Opened"
+                title="Report Opens"
                 log={latestReportShareView}
+                count={reportShareViews.length}
                 emptyText="Not opened yet"
               />
 
               <ViewStatusCard
-                title="Environmental Report Opened"
+                title="Environmental Report Opens"
                 log={latestEnvironmentalShareView}
+                count={environmentalShareViews.length}
                 emptyText="Not opened yet"
               />
+            </div>
+
+            {viewerSummary.length > 0 && (
+              <div className="mt-5 rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
+                <p className="text-sm font-black uppercase tracking-wide text-slate-400">
+                  Viewers Detected
+                </p>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {viewerSummary.map((viewer) => (
+                    <span
+                      key={viewer}
+                      className="rounded-full border border-teal-500/40 bg-teal-500/10 px-3 py-1 text-xs font-bold text-teal-300"
+                    >
+                      {viewer}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </section>
+
+          <section className="mb-8 rounded-2xl border border-purple-500/40 bg-[#071224] p-5 shadow-xl">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-bold text-purple-300">
+                  Executive Summary
+                </h2>
+
+                <p className="mt-1 text-sm text-slate-400">
+                  AI-generated client-friendly overview saved from this report.
+                </p>
+              </div>
+
+              <span
+                className={`rounded-full border px-3 py-1 text-xs font-black ${
+                  executiveSummary
+                    ? "border-green-500/40 bg-green-500/10 text-green-300"
+                    : "border-yellow-500/40 bg-yellow-500/10 text-yellow-300"
+                }`}
+              >
+                {executiveSummary ? "Saved" : "Not Generated Yet"}
+              </span>
+            </div>
+
+            <div className="mt-5 flex flex-wrap gap-3">
+              <GenerateSummaryButton inspectionId={String(inspection.id)} />
+
+              {executiveSummary && (
+                <DeleteSummaryButton inspectionId={String(inspection.id)} />
+              )}
+            </div>
+
+            <div className="mt-4 whitespace-pre-line rounded-xl border border-slate-700 bg-[#020817]/70 p-5 text-sm leading-7 text-slate-100">
+              {executiveSummary ||
+                "Click Generate AI Summary to create and save the executive summary for this report."}
             </div>
           </section>
 
@@ -894,6 +1136,28 @@ export default async function ReportPage({ params }: PageProps) {
   );
 }
 
+function EngagementStatCard({
+  label,
+  value,
+  helper,
+}: {
+  label: string;
+  value: string;
+  helper?: string;
+}) {
+  return (
+    <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
+      <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+        {label}
+      </p>
+
+      <p className="mt-2 text-2xl font-black text-white">{value}</p>
+
+      {helper && <p className="mt-2 text-xs leading-5 text-slate-400">{helper}</p>}
+    </div>
+  );
+}
+
 function EmailStatusCard({
   title,
   log,
@@ -961,17 +1225,25 @@ function EmailStatusCard({
 function ViewStatusCard({
   title,
   log,
+  count = 0,
   emptyText,
 }: {
   title: string;
   log: any;
+  count?: number;
   emptyText: string;
 }) {
   return (
     <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
-      <p className="text-sm font-black uppercase tracking-wide text-slate-400">
-        {title}
-      </p>
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-sm font-black uppercase tracking-wide text-slate-400">
+          {title}
+        </p>
+
+        <span className="rounded-full border border-teal-500/40 bg-teal-500/10 px-2 py-1 text-xs font-black text-teal-300">
+          {count}
+        </span>
+      </div>
 
       {!log ? (
         <p className="mt-2 text-lg font-bold text-yellow-300">{emptyText}</p>
@@ -980,6 +1252,12 @@ function ViewStatusCard({
           <p className="text-green-300">
             Opened: {formatEmailStatusDate(log.created_at)}
           </p>
+
+          {getDurationSeconds(log) > 0 && (
+            <p className="text-purple-300">
+              Time: {formatDuration(getDurationSeconds(log))}
+            </p>
+          )}
 
           {log.viewer_email && (
             <p>

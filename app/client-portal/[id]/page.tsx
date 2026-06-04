@@ -615,6 +615,22 @@ export default function ClientPortalPage() {
           </section>
         )}
 
+        {reportUnlocked && inspection.executive_summary && (
+          <section className="rounded-2xl border border-purple-500/40 bg-purple-950/20 p-6 shadow-xl">
+            <h2 className="text-2xl font-black text-purple-300">
+              Executive Summary
+            </h2>
+
+            <p className="mt-2 text-slate-300">
+              This client-friendly overview summarizes the report findings in plain language.
+            </p>
+
+            <div className="mt-5 whitespace-pre-line rounded-xl border border-slate-700 bg-[#020817]/70 p-5 text-sm leading-7 text-slate-100">
+              {inspection.executive_summary}
+            </div>
+          </section>
+        )}
+
         {reportUnlocked && showEnvironmentalLinks && (
           <section className="rounded-2xl border border-purple-500/40 bg-purple-950/20 p-6 shadow-xl">
             <h2 className="text-2xl font-black text-purple-300">
