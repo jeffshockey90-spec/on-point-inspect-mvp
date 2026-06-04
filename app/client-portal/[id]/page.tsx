@@ -138,8 +138,6 @@ function isPaymentComplete(inspection: any) {
   const invoiceAmount = getInvoiceAmount(inspection);
   const amountPaid = getAmountPaid(inspection);
   const balanceDue = getBalanceDue(inspection);
-  const portalProcessingFee = getPortalProcessingFee(balanceDue);
-  const totalOnlinePayment = balanceDue + portalProcessingFee;
 
   if (status === "paid") return true;
 
@@ -747,24 +745,24 @@ export default function ClientPortalPage() {
           </h2>
 
           <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <button
-              onClick={() => updateStatus("agreement_status", "Signed")}
-              disabled={agreementSigned}
-              className={`rounded-xl px-6 py-4 text-left font-bold transition ${
-                agreementSigned
-                  ? "cursor-not-allowed border border-green-500/40 bg-green-500/10 text-green-300"
-                  : "bg-teal-500 text-slate-950 hover:bg-teal-400"
-              }`}
-            >
-              <span className="block text-lg">
-                {agreementSigned ? "Agreement Signed" : "Sign Agreement"}
-              </span>
-              <span className="mt-1 block text-sm font-medium opacity-80">
-                {agreementSigned
-                  ? "This requirement is complete."
-                  : "Complete the inspection agreement."}
-              </span>
-            </button>
+            {agreementSigned ? (
+              <div className="rounded-xl border border-green-500/40 bg-green-500/10 px-6 py-4 text-left font-bold text-green-300">
+                <span className="block text-lg">Agreement Signed</span>
+                <span className="mt-1 block text-sm font-medium opacity-80">
+                  This requirement is complete.
+                </span>
+              </div>
+            ) : (
+              <a
+                href={`/client-agreement/${inspectionId}`}
+                className="rounded-xl bg-teal-500 px-6 py-4 text-left font-bold text-slate-950 transition hover:bg-teal-400"
+              >
+                <span className="block text-lg">Sign Agreement</span>
+                <span className="mt-1 block text-sm font-medium opacity-80">
+                  Open and sign the inspection agreement.
+                </span>
+              </a>
+            )}
 
             {reportUnlocked ? (
               <>
@@ -823,6 +821,48 @@ export default function ClientPortalPage() {
             </button>
           </div>
         </section>
+
+        {checklistSections.length > 0 && (
+          <section className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
+            <h2 className="text-2xl font-bold text-teal-300">
+              Inspection Components
+            </h2>
+
+            <div className="mt-6 space-y-5">
+              {checklistSections.map((section) => (
+                <div
+                  key={section}
+                  className="rounded-xl border border-slate-800 bg-[#020817]/70 p-5"
+                >
+                  <h3 className="text-xl font-black text-white">{section}</h3>
+
+                  <div className="mt-4 grid gap-4 md:grid-cols-2">
+                    {Object.entries(checklistBySection[section]).map(
+                      ([groupTitle, rows]) => (
+                        <div
+                          key={groupTitle}
+                          className="rounded-xl border border-slate-700 bg-[#071224] p-4"
+                        >
+                          <p className="font-black text-teal-300">
+                            {groupTitle}
+                          </p>
+
+                          <ul className="mt-3 space-y-2 text-sm text-slate-300">
+                            {(rows as any[]).map((row: any) => (
+                              <li key={row.id}>
+                                ✓ {row.item_label || row.item || row.value}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         <footer className="border-t border-slate-800 py-6 text-center text-sm text-slate-500">
           On Point Home Inspections LLC • Client Portal
@@ -919,6 +959,7 @@ function ActionLink({
     <a
       href={href}
       target="_blank"
+      rel="noreferrer"
       className={`rounded-xl border bg-[#071224] p-5 font-bold transition ${classes}`}
     >
       <span className="block text-lg">{title}</span>
