@@ -108,8 +108,8 @@ export default function GlobalLiveActivity() {
   const [soundEnabled, setSoundEnabled] = useState(false);
 
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const notificationSoundRef = useRef<HTMLAudioElement | null>(null);
+  const lastEventIdRef = useRef<string | null>(null);
 
   const inspectionMap = useMemo(() => {
     const map = new Map<string, InspectionSummary>();
@@ -216,6 +216,9 @@ export default function GlobalLiveActivity() {
         (payload) => {
           const event = payload.new as LiveEvent;
 
+          if (event.id && lastEventIdRef.current === event.id) return;
+          lastEventIdRef.current = event.id || null;
+
           const inspectionId = String(
             event?.inspection_id_bigint || event?.inspection_id || ""
           );
@@ -233,17 +236,12 @@ export default function GlobalLiveActivity() {
             setVisible(false);
           }, 7000);
 
-          if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
-          refreshTimerRef.current = setTimeout(() => {
-            router.refresh();
-          }, 900);
         }
       )
       .subscribe();
 
     return () => {
       if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
       supabase.removeChannel(channel);
     };
   }, [inspectionIds, router, supabase, soundEnabled]);
