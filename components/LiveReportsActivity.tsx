@@ -1,217 +1,387 @@
-"use client";
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
+import { createServerClient } from "@supabase/ssr";
+import DeleteInspectionButton from "../../components/DeleteInspectionButton";
+import LiveReportsActivity from "../../components/LiveReportsActivity";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
-import { createClient } from "../utils/supabase/client";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
-type InspectionSummary = {
-  id: string | number;
-  property_address?: string | null;
-  address?: string | null;
-};
+async function createSupabaseServerClient() {
+  const cookieStore = await cookies();
 
-type LiveEvent = {
-  id?: string;
-  inspection_id_bigint?: number | string | null;
-  inspection_id?: number | string | null;
-  view_type?: string | null;
-  viewer_role?: string | null;
-  viewer_email?: string | null;
-  created_at?: string | null;
-  metadata?: any;
-};
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll() {},
+      },
+    }
+  );
+}
 
-function getViewType(log: LiveEvent) {
+function getViewType(log: any) {
   return String(log?.view_type || "").toLowerCase();
 }
 
-function getViewerLabel(log: LiveEvent) {
-  const role = String(log?.viewer_role || "").trim().toLowerCase();
-  const viewerEmail = String(log?.viewer_email || "").trim();
+function formatViewDate(value: any) {
+  if (!value) return "N/A";
 
-  if (viewerEmail) return viewerEmail;
-  if (role === "client") return "Client";
-  if (role === "realtor" || role === "agent") return "Realtor";
-  if (role === "transaction coordinator") return "Transaction Coordinator";
-  if (role === "inspector") return "Inspector";
+  const date = new Date(value);
 
-  return "Inspector";
+  if (Number.isNaN(date.getTime())) return "N/A";
+
+  return date.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }
 
-function getActivityTitle(log: LiveEvent) {
-  const type = getViewType(log);
-  const viewer = getViewerLabel(log);
+function getRelativeTime(value: any) {
+  if (!value) return "";
 
-  if (type === "client_portal") return `${viewer} opened the client portal`;
-  if (type === "report_share") return `${viewer} viewed the report`;
-  if (type === "environmental_share") return `${viewer} viewed the environmental report`;
-  if (type === "email_open") return `${viewer} opened an email`;
-  if (type === "email_click") return `${viewer} clicked a report link`;
-  if (type === "agreement_page") return `${viewer} opened the agreement page`;
-  if (type === "report_time_final") return `${viewer} finished reading the report`;
+  const date = new Date(value);
 
-  return `${viewer} activity recorded`;
+  if (Number.isNaN(date.getTime())) return "";
+
+  const diffMs = Date.now() - date.getTime();
+  const diffMinutes = Math.max(0, Math.floor(diffMs / (1000 * 60)));
+
+  if (diffMinutes < 1) return "Just now";
+  if (diffMinutes < 60) return `${diffMinutes}m ago`;
+
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 7) return `${diffDays}d ago`;
+
+  return formatViewDate(value);
 }
 
-function getActivityIcon(log: LiveEvent) {
-  const type = getViewType(log);
+function buildReportActivityMap(viewLogs: any[]) {
+  const map: Record<
+    string,
+    {
+      totalViews: number;
+      clientViewed: boolean;
+      realtorViewed: boolean;
+      inspectorViewed: boolean;
+      emailClicked: boolean;
+      lastViewedAt: string | null;
+    }
+  > = {};
 
-  if (type === "client_portal") return "🔐";
-  if (type === "report_share") return "📋";
-  if (type === "environmental_share") return "🧪";
-  if (type === "email_open") return "📬";
-  if (type === "email_click") return "👆";
-  if (type === "agreement_page") return "📝";
-  if (type === "report_time_final") return "⏱️";
+  (viewLogs || []).forEach((log: any) => {
+    const inspectionId = String(log?.inspection_id_bigint || log?.inspection_id || "");
+    if (!inspectionId) return;
 
-  return "🔔";
+    if (!map[inspectionId]) {
+      map[inspectionId] = {
+        totalViews: 0,
+        clientViewed: false,
+        realtorViewed: false,
+        inspectorViewed: false,
+        emailClicked: false,
+        lastViewedAt: null,
+      };
+    }
+
+    const type = getViewType(log);
+    const role = String(log?.viewer_role || "").toLowerCase();
+
+    const isReportView =
+      type === "client_portal" ||
+      type === "report_share" ||
+      type === "environmental_share";
+
+    if (isReportView) {
+      map[inspectionId].totalViews += 1;
+
+      if (!map[inspectionId].lastViewedAt) {
+        map[inspectionId].lastViewedAt = log.created_at || null;
+      }
+    }
+
+    if (
+      type === "client_portal" ||
+      (type === "report_share" && role === "client") ||
+      (type === "environmental_share" && role === "client")
+    ) {
+      map[inspectionId].clientViewed = true;
+    }
+
+    if (
+      (type === "report_share" && (role === "realtor" || role === "agent")) ||
+      (type === "environmental_share" && (role === "realtor" || role === "agent"))
+    ) {
+      map[inspectionId].realtorViewed = true;
+    }
+
+    if (
+      role === "inspector" ||
+      (isReportView && !role && !log?.viewer_email)
+    ) {
+      map[inspectionId].inspectorViewed = true;
+    }
+
+    if (type === "email_click") {
+      map[inspectionId].emailClicked = true;
+    }
+  });
+
+  return map;
 }
 
-function shouldShowEvent(log: LiveEvent) {
-  return [
-    "client_portal",
-    "report_share",
-    "environmental_share",
-    "email_open",
-    "email_click",
-    "agreement_page",
-    "report_time_final",
-  ].includes(getViewType(log));
-}
+export default async function ReportsPage() {
+  const supabase = await createSupabaseServerClient();
 
-export default function LiveReportsActivity({
-  inspections,
-}: {
-  inspections: InspectionSummary[];
-}) {
-  const router = useRouter();
-  const supabase = useMemo(() => createClient(), []);
-  const [latestEvent, setLatestEvent] = useState<LiveEvent | null>(null);
-  const [visible, setVisible] = useState(false);
-  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  const inspectionMap = useMemo(() => {
-    const map = new Map<string, InspectionSummary>();
+  if (!user) {
+    redirect("/login");
+  }
 
-    inspections.forEach((inspection) => {
-      map.set(String(inspection.id), inspection);
-    });
+  const userEmail = user.email || "";
 
-    return map;
-  }, [inspections]);
+  const { data: inspections, error } = await supabase
+    .from("inspections")
+    .select("*")
+    .or(
+      `inspector_id.eq.${user.id},client_email.eq.${userEmail},realtor_email.eq.${userEmail}`
+    )
+    .order("created_at", { ascending: false });
 
-  const inspectionIds = useMemo(
-    () => inspections.map((inspection) => String(inspection.id)),
-    [inspections]
-  );
+  if (error) {
+    return (
+      <main className="min-h-screen bg-[#020617] p-8 text-white">
+        <h1 className="text-3xl font-bold text-red-400">
+          Error loading reports
+        </h1>
+        <p className="mt-4 text-slate-300">{error.message}</p>
+      </main>
+    );
+  }
 
-  useEffect(() => {
-    if (inspectionIds.length === 0) return;
+  const rows = inspections || [];
+  const inspectionIds = rows
+    .map((inspection: any) => Number(inspection.id))
+    .filter(Boolean);
 
-    const channel = supabase
-      .channel("live-report-activity")
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "inspection_view_events",
-        },
-        (payload) => {
-          const event = payload.new as LiveEvent;
-          const inspectionId = String(
-            event?.inspection_id_bigint || event?.inspection_id || ""
-          );
+  const { data: viewLogsRaw, error: viewLogsError } =
+    inspectionIds.length > 0
+      ? await supabase
+          .from("inspection_view_events")
+          .select("*")
+          .in("inspection_id_bigint", inspectionIds)
+          .order("created_at", { ascending: false })
+      : { data: [], error: null };
 
-          if (!inspectionId || !inspectionIds.includes(inspectionId)) return;
-          if (!shouldShowEvent(event)) return;
+  if (viewLogsError) {
+    console.error("Reports page view logs error:", viewLogsError);
+  }
 
-          setLatestEvent(event);
-          setVisible(true);
+  const activityByInspectionId = buildReportActivityMap(viewLogsRaw || []);
 
-          if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-          hideTimerRef.current = setTimeout(() => {
-            setVisible(false);
-          }, 7000);
-
-          if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
-          refreshTimerRef.current = setTimeout(() => {
-            router.refresh();
-          }, 900);
-        }
-      )
-      .subscribe();
-
-    return () => {
-      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
-      supabase.removeChannel(channel);
-    };
-  }, [inspectionIds, router, supabase]);
-
-  if (!latestEvent || !visible) return null;
-
-  const inspectionId = String(
-    latestEvent.inspection_id_bigint || latestEvent.inspection_id || ""
-  );
-
-  const inspection = inspectionMap.get(inspectionId);
-  const address =
-    inspection?.property_address ||
-    inspection?.address ||
-    "Inspection report";
+  const liveInspectionSummaries = rows.map((inspection: any) => ({
+    id: inspection.id,
+    property_address: inspection.property_address || null,
+    address: inspection.address || null,
+  }));
 
   return (
-    <div className="fixed bottom-5 right-5 z-50 w-[calc(100vw-2.5rem)] max-w-md rounded-2xl border border-teal-500/50 bg-[#020617] p-4 text-white shadow-2xl shadow-black/40">
-      <div className="flex gap-3">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-teal-500/10 text-2xl">
-          {getActivityIcon(latestEvent)}
-        </div>
+    <main className="min-h-screen bg-[#020617] px-6 py-10 text-white">
+      <LiveReportsActivity inspections={liveInspectionSummaries} />
 
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-xs font-black uppercase tracking-wide text-teal-300">
-                Live Activity
-              </p>
+      <div className="mx-auto max-w-7xl">
+        <div className="mb-10 flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h1 className="text-5xl font-bold text-teal-400">
+              Saved Inspections
+            </h1>
 
-              <p className="mt-1 font-black text-white">
-                {getActivityTitle(latestEvent)}
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setVisible(false)}
-              className="rounded-lg border border-slate-700 px-2 py-1 text-xs font-black text-slate-300 transition hover:border-red-400 hover:text-red-300"
-            >
-              ✕
-            </button>
+            <p className="mt-3 text-slate-300">
+              Manage inspection reports, publishing, client delivery, and live report engagement.
+            </p>
           </div>
 
-          <p className="mt-2 truncate text-sm text-slate-400">
-            {address}
-          </p>
-
-          <div className="mt-3 flex flex-wrap gap-2">
-            <a
-              href={`/reports/${inspectionId}`}
-              className="rounded-lg bg-teal-500 px-3 py-2 text-xs font-black text-slate-950 transition hover:bg-teal-400"
-            >
-              Open Report
-            </a>
-
-            <button
-              type="button"
-              onClick={() => router.refresh()}
-              className="rounded-lg border border-slate-700 px-3 py-2 text-xs font-black text-slate-300 transition hover:border-teal-400 hover:text-teal-300"
-            >
-              Refresh Badges
-            </button>
-          </div>
+          <Link
+            href="/inspections/new"
+            className="rounded-xl bg-teal-500 px-6 py-3 font-bold text-black hover:bg-teal-400"
+          >
+            New Inspection
+          </Link>
         </div>
+
+        {rows.length === 0 ? (
+          <div className="rounded-2xl border border-slate-800 bg-slate-900 p-8">
+            <p className="text-slate-300">No saved inspections found.</p>
+          </div>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+            {rows.map((inspection: any) => {
+              const isInspectorOwner =
+                inspection.inspector_id && inspection.inspector_id === user.id;
+
+              const propertyPhoto =
+                inspection.street_view_url ||
+                inspection.property_image ||
+                inspection.property_photo ||
+                "";
+
+              const activity =
+                activityByInspectionId[String(inspection.id)] || {
+                  totalViews: 0,
+                  clientViewed: false,
+                  realtorViewed: false,
+                  inspectorViewed: false,
+                  emailClicked: false,
+                  lastViewedAt: null,
+                };
+
+              return (
+                <div
+                  key={inspection.id}
+                  className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 shadow-xl"
+                >
+                  <div className="flex h-56 items-center justify-center overflow-hidden bg-slate-950 text-slate-500">
+                    {propertyPhoto ? (
+                      <img
+                        src={propertyPhoto}
+                        alt="Property"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <span>No Property Photo</span>
+                    )}
+                  </div>
+
+                  <div className="p-6">
+                    <h2 className="text-2xl font-bold text-white">
+                      {inspection.property_address || "Untitled Inspection"}
+                    </h2>
+
+                    <p className="mt-3 text-slate-300">
+                      {inspection.city || ""}
+                      {inspection.state ? `, ${inspection.state}` : ""}{" "}
+                      {inspection.zip || ""}
+                    </p>
+
+                    <div className="mt-5 space-y-2 text-sm text-slate-300">
+                      <p>
+                        <span className="font-bold text-white">Client:</span>{" "}
+                        {inspection.client_name || "N/A"}
+                      </p>
+
+                      <p>
+                        <span className="font-bold text-white">Realtor:</span>{" "}
+                        {inspection.realtor_name || "N/A"}
+                      </p>
+
+                      <p>
+                        <span className="font-bold text-white">
+                          Inspection Date:
+                        </span>{" "}
+                        {inspection.inspection_date || "N/A"}
+                      </p>
+                    </div>
+
+                    <div className="mt-5 rounded-2xl border border-slate-800 bg-[#020617]/70 p-4">
+                      <p className="text-xs font-black uppercase tracking-wide text-teal-300">
+                        Report Engagement
+                      </p>
+
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <EngagementBadge
+                          active={activity.clientViewed}
+                          activeLabel="👤 Client Viewed"
+                          inactiveLabel="👤 Client Not Viewed"
+                        />
+
+                        <EngagementBadge
+                          active={activity.realtorViewed}
+                          activeLabel="🏡 Realtor Viewed"
+                          inactiveLabel="🏡 Realtor Not Viewed"
+                        />
+
+                        <EngagementBadge
+                          active={activity.emailClicked}
+                          activeLabel="📧 Email Clicked"
+                          inactiveLabel="📧 No Email Click"
+                        />
+
+                        {activity.inspectorViewed && (
+                          <span className="rounded-full border border-blue-500/40 bg-blue-500/10 px-3 py-1 text-xs font-black text-blue-300">
+                            🔎 Inspector Viewed
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="mt-3 grid gap-2 text-xs text-slate-400">
+                        <p>
+                          <span className="font-bold text-slate-300">Views:</span>{" "}
+                          {activity.totalViews}
+                        </p>
+
+                        <p>
+                          <span className="font-bold text-slate-300">Last View:</span>{" "}
+                          {activity.lastViewedAt
+                            ? getRelativeTime(activity.lastViewedAt)
+                            : "No views yet"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-6 flex flex-col gap-3">
+                      <Link
+                        href={`/reports/${inspection.id}`}
+                        className="inline-block rounded-xl bg-teal-500 px-5 py-3 text-center font-bold text-black hover:bg-teal-400"
+                      >
+                        Open Report
+                      </Link>
+
+                      {isInspectorOwner && (
+                        <DeleteInspectionButton inspectionId={inspection.id} />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
-    </div>
+    </main>
+  );
+}
+
+function EngagementBadge({
+  active,
+  activeLabel,
+  inactiveLabel,
+}: {
+  active: boolean;
+  activeLabel: string;
+  inactiveLabel: string;
+}) {
+  return (
+    <span
+      className={
+        active
+          ? "rounded-full border border-green-500/40 bg-green-500/10 px-3 py-1 text-xs font-black text-green-300"
+          : "rounded-full border border-slate-700 bg-slate-800/70 px-3 py-1 text-xs font-black text-slate-400"
+      }
+    >
+      {active ? activeLabel : inactiveLabel}
+    </span>
   );
 }

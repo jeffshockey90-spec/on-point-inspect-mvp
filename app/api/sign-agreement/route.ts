@@ -259,6 +259,20 @@ export async function POST(req: Request) {
       user_agent: userAgent,
     });
 
+    await supabase.from("inspection_view_events").insert({
+      inspection_id_bigint: Number(inspectionId),
+      view_type: "agreement_signed",
+      contact_id: contact?.id || null,
+      viewer_role: contact?.role || "client",
+      viewer_email:
+        clientEmail || contact?.email || inspection.client_email || null,
+      path: "/agreement",
+      metadata: {
+        source: "agreement_signing",
+        signer_name: clientName,
+      },
+    });
+
     return NextResponse.json({
       ok: true,
       agreement,

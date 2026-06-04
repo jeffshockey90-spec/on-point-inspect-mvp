@@ -524,6 +524,22 @@ export async function POST(req: Request) {
         },
       });
 
+      await supabase.from("inspection_view_events").insert({
+        inspection_id_bigint: Number(inspectionId),
+        view_type: "payment_received",
+        viewer_role: "system",
+        viewer_email: null,
+        path: "/payment",
+        metadata: {
+          source: "stripe_webhook",
+          amount_paid: amountPaid,
+          total_charged: totalCharged,
+          portal_processing_fee: portalProcessingFee,
+          session_id: session.id,
+          paid_at: paidAt,
+        },
+      });
+
       if (existingInspection) {
         await sendReceiptEmail({
           supabase,
