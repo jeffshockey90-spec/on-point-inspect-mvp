@@ -48,29 +48,29 @@ export default function Navbar() {
   return (
     <>
       <header className="sticky top-0 z-50 hidden border-b border-zinc-800 bg-[#050816]/95 backdrop-blur md:block">
-        <div className="mx-auto max-w-[1600px] px-3 py-3 lg:px-5">
-          <div className="flex min-w-0 items-center gap-3 rounded-2xl border border-slate-800 bg-[#0b1220]/95 px-3 py-3 shadow-2xl shadow-black/20 lg:gap-5 lg:px-5 lg:py-4">
+        <div className="mx-auto max-w-[1600px] px-5 py-3">
+          <div className="flex items-center gap-5 rounded-2xl border border-slate-800 bg-[#0b1220]/95 px-5 py-4 shadow-2xl shadow-black/20">
             <Link
               href="/"
-              className="flex min-w-[185px] shrink-0 items-center gap-3 border-r border-slate-700/70 pr-3 lg:min-w-[250px] lg:gap-4 lg:pr-5"
+              className="flex min-w-[265px] shrink-0 items-center gap-4 border-r border-slate-700/70 pr-5"
             >
               <img
                 src="/logo.jpg?v=2"
                 alt="On Point Logo"
-                className="h-12 w-12 shrink-0 rounded-full border border-teal-500/40 object-cover shadow-lg shadow-teal-500/10 lg:h-16 lg:w-16"
+                className="h-16 w-16 shrink-0 rounded-full border border-teal-500/40 object-cover shadow-lg shadow-teal-500/10"
               />
 
               <div className="min-w-0 leading-tight">
-                <div className="whitespace-nowrap text-xl font-black text-teal-400 lg:text-2xl">
+                <div className="whitespace-nowrap text-2xl font-black text-teal-400">
                   On Point
                 </div>
-                <div className="whitespace-nowrap text-xl font-black text-white lg:text-2xl">
+                <div className="whitespace-nowrap text-2xl font-black text-white">
                   Inspect
                 </div>
               </div>
             </Link>
 
-            <nav className="flex min-w-0 flex-1 flex-wrap items-center gap-2 lg:gap-3">
+            <nav className="flex min-w-0 flex-1 flex-wrap items-center gap-3">
               {navItems.map((item) => {
                 const active = isActive(item.href);
 
@@ -79,14 +79,14 @@ export default function Navbar() {
                     key={item.href}
                     href={item.href}
                     prefetch={false}
-                    className={`inline-flex min-w-0 items-center justify-center gap-2 rounded-2xl border px-3 py-2.5 text-xs font-extrabold transition lg:px-4 lg:py-3 lg:text-sm ${
+                    className={`inline-flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-extrabold transition ${
                       active
                         ? "border-white/40 bg-gradient-to-r from-cyan-400 to-teal-400 text-black shadow-2xl shadow-cyan-500/40"
                         : "border-slate-700 bg-[#050816] text-teal-300 hover:border-teal-500 hover:bg-[#111827] hover:text-white"
                     }`}
                   >
-                    <span className="shrink-0 text-base leading-none">{item.icon}</span>
-                    <span className="truncate whitespace-nowrap">{item.title}</span>
+                    <span className="text-base leading-none">{item.icon}</span>
+                    <span className="whitespace-nowrap">{item.title}</span>
                   </Link>
                 );
               })}
@@ -95,7 +95,7 @@ export default function Navbar() {
             <button
               type="button"
               onClick={handleLogout}
-              className="shrink-0 rounded-2xl border border-red-500 bg-red-950/30 px-3 py-2.5 text-xs font-extrabold text-red-300 transition hover:bg-red-500 hover:text-white lg:px-4 lg:py-3 lg:text-sm"
+              className="rounded-2xl border border-red-500 bg-red-950/30 px-4 py-3 text-sm font-extrabold text-red-300 transition hover:bg-red-500 hover:text-white"
             >
               🚪 Logout
             </button>
@@ -103,8 +103,11 @@ export default function Navbar() {
         </div>
       </header>
 
-      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-zinc-800 bg-[#0b1220]/98 pb-[env(safe-area-inset-bottom)] shadow-2xl shadow-black/40 md:hidden">
-        <div className="grid h-[72px] grid-cols-6 items-stretch">
+      <nav
+        className="fixed bottom-0 left-0 right-0 z-50 block border-t border-zinc-800 bg-[#0b1220] pb-[env(safe-area-inset-bottom)] md:hidden"
+        style={{ height: "calc(74px + env(safe-area-inset-bottom))" }}
+      >
+        <div className="flex h-[74px] w-full flex-row flex-nowrap items-stretch justify-between">
           {mobileItems.map((item) => {
             const active = isActive(item.href);
 
@@ -113,14 +116,12 @@ export default function Navbar() {
                 key={item.href}
                 href={item.href}
                 prefetch={false}
-                className={`flex min-w-0 flex-col items-center justify-center gap-1 px-1 text-[10px] font-black transition ${
-                  active
-                    ? "bg-teal-500/10 text-teal-300"
-                    : "text-zinc-300 hover:bg-slate-800/70 hover:text-white"
+                className={`flex h-[74px] min-w-0 flex-1 flex-col items-center justify-center gap-1 overflow-hidden px-1 text-center text-[10px] font-bold leading-none ${
+                  active ? "bg-teal-500/10 text-teal-300" : "text-zinc-300"
                 }`}
               >
-                <span className="text-lg leading-none">{item.icon}</span>
-                <span className="max-w-full truncate leading-none">
+                <span className="block shrink-0 text-lg leading-none">{item.icon}</span>
+                <span className="block max-w-full truncate leading-none">
                   {item.mobileLabel}
                 </span>
               </Link>
@@ -130,10 +131,10 @@ export default function Navbar() {
           <button
             type="button"
             onClick={handleLogout}
-            className="flex min-w-0 flex-col items-center justify-center gap-1 px-1 text-[10px] font-black text-red-300 transition hover:bg-red-500/10"
+            className="flex h-[74px] min-w-0 flex-1 flex-col items-center justify-center gap-1 overflow-hidden px-1 text-center text-[10px] font-bold leading-none text-red-300"
           >
-            <span className="text-lg leading-none">🚪</span>
-            <span className="max-w-full truncate leading-none">Logout</span>
+            <span className="block shrink-0 text-lg leading-none">🚪</span>
+            <span className="block max-w-full truncate leading-none">Logout</span>
           </button>
         </div>
       </nav>
