@@ -435,6 +435,15 @@ export default async function AnalyticsPage() {
   const emailClickEvents = viewEvents.filter(
     (log: any) => getViewType(log) === "email_click"
   );
+  const agreementViewedEvents = viewEvents.filter(
+    (log: any) => getViewType(log) === "agreement_viewed"
+  );
+  const agreementSignedEvents = viewEvents.filter(
+    (log: any) => getViewType(log) === "agreement_signed"
+  );
+  const repairRequestEvents = viewEvents.filter(
+    (log: any) => getViewType(log) === "repair_request"
+  );
   const reportOpenEvents = viewEvents.filter((log: any) =>
     ["report_share", "environmental_share", "client_portal"].includes(
       getViewType(log)
@@ -834,6 +843,21 @@ export default async function AnalyticsPage() {
                 label="Avg Read Time"
                 value={formatDuration(averageReadingSeconds)}
                 helper={`${reportTimeFinalEvents.length} completed session${reportTimeFinalEvents.length === 1 ? "" : "s"}`}
+              />
+              <MiniMetric
+                label="Agreement Views"
+                value={String(agreementViewedEvents.length)}
+                helper="Clients opened agreement pages."
+              />
+              <MiniMetric
+                label="Agreements Signed"
+                value={String(agreementSignedEvents.length)}
+                helper="Completed agreement signatures."
+              />
+              <MiniMetric
+                label="Repair Requests Viewed"
+                value={String(repairRequestEvents.length)}
+                helper="Clients opened repair requests."
               />
             </div>
 
