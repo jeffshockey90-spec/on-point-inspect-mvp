@@ -47,18 +47,18 @@ function StripeStatusCard({ company }: { company: any }) {
 
   return (
     <div
-      className={`rounded-2xl border p-5 ${
+      className={`rounded-2xl border p-4 sm:p-5 ${
         ready
           ? "border-emerald-500/50 bg-emerald-950/20"
           : "border-yellow-500/50 bg-yellow-950/20"
       }`}
     >
-      <p className="text-xs font-black uppercase tracking-[0.25em] text-slate-400">
+      <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 sm:tracking-[0.25em]">
         Stripe Status
       </p>
 
       <h3
-        className={`mt-2 text-2xl font-black ${
+        className={`mt-2 text-xl font-black sm:text-2xl ${
           ready ? "text-emerald-300" : "text-yellow-300"
         }`}
       >
@@ -66,10 +66,16 @@ function StripeStatusCard({ company }: { company: any }) {
       </h3>
 
       <div className="mt-4 grid gap-2 text-sm text-slate-300 sm:grid-cols-2">
-        <p>Connected: {connected ? "Yes" : "No"}</p>
-        <p>Onboarding: {onboardingComplete ? "Complete" : "Incomplete"}</p>
-        <p>Charges: {chargesEnabled ? "Enabled" : "Not enabled"}</p>
-        <p>Payouts: {payoutsEnabled ? "Enabled" : "Not enabled"}</p>
+        <p className="min-w-0">Connected: {connected ? "Yes" : "No"}</p>
+        <p className="min-w-0">
+          Onboarding: {onboardingComplete ? "Complete" : "Incomplete"}
+        </p>
+        <p className="min-w-0">
+          Charges: {chargesEnabled ? "Enabled" : "Not enabled"}
+        </p>
+        <p className="min-w-0">
+          Payouts: {payoutsEnabled ? "Enabled" : "Not enabled"}
+        </p>
       </div>
 
       {company?.stripe_account_id && (
@@ -110,13 +116,13 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
 
   if (!company) {
     return (
-      <main className="min-h-screen bg-[#050816] p-6 pb-28 text-white md:pb-10">
-        <div className="mx-auto max-w-5xl rounded-3xl border border-red-500/40 bg-red-950/20 p-8">
-          <h1 className="text-3xl font-black text-red-300">
+      <main className="min-h-screen bg-[#050816] px-4 py-4 pb-28 text-white md:p-8 md:pb-10">
+        <div className="mx-auto max-w-5xl rounded-3xl border border-red-500/40 bg-red-950/20 p-5 sm:p-8">
+          <h1 className="text-2xl font-black text-red-300 sm:text-3xl">
             Company profile not found
           </h1>
 
-          <p className="mt-3 text-slate-300">
+          <p className="mt-3 text-sm leading-6 text-slate-300 sm:text-base">
             Your user account is not linked to a company yet. If this is a new
             inspector account, sign out and sign back in once. If it still
             appears, the company setup step did not complete.
@@ -185,18 +191,18 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
       : 15;
 
   return (
-    <main className="min-h-screen bg-[#050816] p-4 pb-28 text-white md:p-8 md:pb-10">
+    <main className="min-h-screen overflow-x-hidden bg-[#050816] px-4 py-4 pb-28 text-white md:p-8 md:pb-10">
       <div className="mx-auto max-w-6xl space-y-6">
-        <section className="rounded-3xl border border-slate-800 bg-[#0b1220] p-6 shadow-2xl shadow-black/20 md:p-8">
-          <p className="text-xs font-black uppercase tracking-[0.35em] text-teal-300">
+        <section className="rounded-3xl border border-slate-800 bg-[#0b1220] p-5 shadow-2xl shadow-black/20 sm:p-6 md:p-8">
+          <p className="text-xs font-black uppercase tracking-[0.25em] text-teal-300 sm:tracking-[0.35em]">
             On Point Inspect
           </p>
 
-          <h1 className="mt-3 text-4xl font-black tracking-tight text-white">
+          <h1 className="mt-3 text-3xl font-black tracking-tight text-white md:text-4xl">
             Settings
           </h1>
 
-          <p className="mt-3 max-w-3xl text-slate-300">
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300 sm:text-base">
             Manage your company branding, Stripe payment setup, and client online
             payment fee options.
           </p>
@@ -247,35 +253,35 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
         )}
 
         <form action={saveCompanySettings} className="space-y-6">
-          <section className="rounded-3xl border border-slate-800 bg-[#0b1220] p-6 md:p-8">
-            <h2 className="text-2xl font-black text-teal-300">
+          <section className="rounded-3xl border border-slate-800 bg-[#0b1220] p-5 sm:p-6 md:p-8">
+            <h2 className="text-xl font-black text-teal-300 sm:text-2xl">
               Company Profile
             </h2>
 
             <div className="mt-6 grid gap-4 md:grid-cols-2">
-              <label className="block">
+              <label className="block min-w-0">
                 <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
                   Legal Business Name
                 </p>
                 <input
                   name="name"
                   defaultValue={company.name || ""}
-                  className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+                  className="w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
                 />
               </label>
 
-              <label className="block">
+              <label className="block min-w-0">
                 <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
                   Display Name on Reports
                 </p>
                 <input
                   name="display_name"
                   defaultValue={company.display_name || company.name || ""}
-                  className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+                  className="w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
                 />
               </label>
 
-              <label className="block">
+              <label className="block min-w-0">
                 <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
                   Email
                 </p>
@@ -283,44 +289,44 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                   name="email"
                   type="email"
                   defaultValue={company.email || ""}
-                  className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+                  className="w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
                 />
               </label>
 
-              <label className="block">
+              <label className="block min-w-0">
                 <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
                   Phone
                 </p>
                 <input
                   name="phone"
                   defaultValue={company.phone || ""}
-                  className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+                  className="w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
                 />
               </label>
 
-              <label className="block">
+              <label className="block min-w-0">
                 <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
                   Website
                 </p>
                 <input
                   name="website"
                   defaultValue={company.website || ""}
-                  className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+                  className="w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
                 />
               </label>
 
-              <label className="block">
+              <label className="block min-w-0">
                 <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
                   Brand Color
                 </p>
                 <input
                   name="brand_color"
                   defaultValue={company.brand_color || "#14b8a6"}
-                  className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+                  className="w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
                 />
               </label>
 
-              <label className="block md:col-span-2">
+              <label className="block min-w-0 md:col-span-2">
                 <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
                   Logo URL
                 </p>
@@ -328,11 +334,11 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                   name="logo_url"
                   defaultValue={company.logo_url || ""}
                   placeholder="Paste logo URL for now. Upload button can be added next."
-                  className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+                  className="w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
                 />
               </label>
 
-              <label className="block md:col-span-2">
+              <label className="block min-w-0 md:col-span-2">
                 <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
                   License Info
                 </p>
@@ -340,11 +346,11 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                   name="license_info"
                   defaultValue={company.license_info || ""}
                   rows={3}
-                  className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+                  className="w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
                 />
               </label>
 
-              <label className="block md:col-span-2">
+              <label className="block min-w-0 md:col-span-2">
                 <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
                   Report Footer Branding
                 </p>
@@ -352,38 +358,38 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                   name="report_footer_branding"
                   defaultValue={company.report_footer_branding || ""}
                   rows={3}
-                  className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+                  className="w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
                 />
               </label>
 
-              <label className="flex items-center gap-3 rounded-xl border border-slate-700 bg-slate-950 p-4 md:col-span-2">
+              <label className="flex min-w-0 items-start gap-3 rounded-xl border border-slate-700 bg-slate-950 p-4 md:col-span-2">
                 <input
                   name="show_powered_by"
                   type="checkbox"
                   defaultChecked={company.show_powered_by !== false}
-                  className="h-5 w-5"
+                  className="mt-0.5 h-5 w-5 shrink-0"
                 />
-                <span className="font-bold text-slate-200">
+                <span className="min-w-0 text-sm font-bold leading-6 text-slate-200 sm:text-base">
                   Show “Powered by On Point Inspect” on client-facing pages
                 </span>
               </label>
             </div>
           </section>
 
-          <section className="rounded-3xl border border-slate-800 bg-[#0b1220] p-6 md:p-8">
-            <h2 className="text-2xl font-black text-teal-300">
+          <section className="rounded-3xl border border-slate-800 bg-[#0b1220] p-5 sm:p-6 md:p-8">
+            <h2 className="text-xl font-black text-teal-300 sm:text-2xl">
               Payments
             </h2>
 
             <div className="mt-6 grid gap-5 lg:grid-cols-2">
               <StripeStatusCard company={company} />
 
-              <div className="rounded-2xl border border-slate-700 bg-slate-950 p-5">
-                <p className="text-xs font-black uppercase tracking-[0.25em] text-slate-400">
+              <div className="rounded-2xl border border-slate-700 bg-slate-950 p-4 sm:p-5">
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 sm:tracking-[0.25em]">
                   Stripe Setup
                 </p>
 
-                <h3 className="mt-2 text-2xl font-black text-white">
+                <h3 className="mt-2 text-xl font-black text-white sm:text-2xl">
                   Connect Your Stripe Account
                 </h3>
 
@@ -397,14 +403,14 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                 <div className="mt-5 flex flex-col gap-3 sm:flex-row">
                   <a
                     href="/api/stripe/connect/onboard"
-                    className="rounded-xl bg-teal-500 px-5 py-3 text-center font-black text-slate-950 hover:bg-teal-400"
+                    className="w-full rounded-xl bg-teal-500 px-5 py-3 text-center font-black text-slate-950 hover:bg-teal-400 sm:w-auto"
                   >
                     Connect / Update Stripe
                   </a>
 
                   <a
                     href="/api/stripe/connect/refresh"
-                    className="rounded-xl border border-slate-700 px-5 py-3 text-center font-bold text-slate-200 hover:border-teal-400 hover:text-teal-300"
+                    className="w-full rounded-xl border border-slate-700 px-5 py-3 text-center font-bold text-slate-200 hover:border-teal-400 hover:text-teal-300 sm:w-auto"
                   >
                     Refresh Stripe Status
                   </a>
@@ -412,30 +418,30 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
               </div>
             </div>
 
-            <div className="mt-6 rounded-2xl border border-slate-700 bg-slate-950 p-5">
-              <h3 className="text-xl font-black text-white">
+            <div className="mt-6 rounded-2xl border border-slate-700 bg-slate-950 p-4 sm:p-5">
+              <h3 className="text-lg font-black text-white sm:text-xl">
                 Online Payment Fee
               </h3>
 
-              <p className="mt-2 text-sm text-slate-300">
+              <p className="mt-2 text-sm leading-6 text-slate-300">
                 This lets each inspector choose whether to pass a flat online
                 card payment fee to the client.
               </p>
 
               <div className="mt-5 grid gap-4 md:grid-cols-2">
-                <label className="flex items-center gap-3 rounded-xl border border-slate-700 bg-[#020617] p-4">
+                <label className="flex min-w-0 items-start gap-3 rounded-xl border border-slate-700 bg-[#020617] p-4">
                   <input
                     name="online_payment_fee_enabled"
                     type="checkbox"
                     defaultChecked={feeEnabled}
-                    className="h-5 w-5"
+                    className="mt-0.5 h-5 w-5 shrink-0"
                   />
-                  <span className="font-bold text-slate-200">
+                  <span className="min-w-0 text-sm font-bold leading-6 text-slate-200 sm:text-base">
                     Pass online payment fee to client
                   </span>
                 </label>
 
-                <label className="block">
+                <label className="block min-w-0">
                   <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
                     Flat Fee Amount
                   </p>
@@ -445,7 +451,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                     step="0.01"
                     min="0"
                     defaultValue={String(feeAmount)}
-                    className="w-full rounded-xl border border-slate-700 bg-[#020617] p-3 text-white outline-none focus:border-teal-400"
+                    className="w-full min-w-0 rounded-xl border border-slate-700 bg-[#020617] p-3 text-white outline-none focus:border-teal-400"
                   />
                 </label>
               </div>
@@ -455,7 +461,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
           <div className="flex flex-col gap-3 sm:flex-row">
             <button
               type="submit"
-              className="rounded-xl bg-teal-500 px-8 py-4 font-black text-slate-950 hover:bg-teal-400"
+              className="w-full rounded-xl bg-teal-500 px-8 py-4 font-black text-slate-950 hover:bg-teal-400 sm:w-auto"
             >
               Save Settings
             </button>
