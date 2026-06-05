@@ -26,7 +26,6 @@ export async function POST(req: Request) {
         email,
         full_name: fullName,
         role: "inspector",
-        updated_at: now,
       });
 
     if (profileError) {
@@ -36,11 +35,19 @@ export async function POST(req: Request) {
       );
     }
 
-    const { data: existingCompanyUser } = await supabaseAdmin
-      .from("company_users")
-      .select("company_id")
-      .eq("user_id", userId)
-      .maybeSingle();
+    const { data: existingCompanyUser, error: existingError } =
+      await supabaseAdmin
+        .from("company_users")
+        .select("company_id")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+    if (existingError) {
+      return NextResponse.json(
+        { error: existingError.message },
+        { status: 500 }
+      );
+    }
 
     if (existingCompanyUser?.company_id) {
       return NextResponse.json({
@@ -54,9 +61,8 @@ export async function POST(req: Request) {
       .from("companies")
       .insert({
         name: businessName,
-        owner_id: userId,
+        email,
         created_at: now,
-        updated_at: now,
       })
       .select("id")
       .single();
@@ -80,21 +86,6 @@ export async function POST(req: Request) {
     if (companyUserError) {
       return NextResponse.json(
         { error: companyUserError.message },
-        { status: 500 }
-      );
-    }
-
-    const { error: profileCompanyError } = await supabaseAdmin
-      .from("profiles")
-      .update({
-        company_id: company.id,
-        updated_at: now,
-      })
-      .eq("id", userId);
-
-    if (profileCompanyError) {
-      return NextResponse.json(
-        { error: profileCompanyError.message },
         { status: 500 }
       );
     }
