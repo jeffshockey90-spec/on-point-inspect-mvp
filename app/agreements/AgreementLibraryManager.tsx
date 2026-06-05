@@ -1,13 +1,75 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 
-const STATES = ["MD", "WV", "PA"];
+const STATES = [
+  { code: "AL", name: "Alabama" },
+  { code: "AK", name: "Alaska" },
+  { code: "AZ", name: "Arizona" },
+  { code: "AR", name: "Arkansas" },
+  { code: "CA", name: "California" },
+  { code: "CO", name: "Colorado" },
+  { code: "CT", name: "Connecticut" },
+  { code: "DE", name: "Delaware" },
+  { code: "DC", name: "District of Columbia" },
+  { code: "FL", name: "Florida" },
+  { code: "GA", name: "Georgia" },
+  { code: "HI", name: "Hawaii" },
+  { code: "ID", name: "Idaho" },
+  { code: "IL", name: "Illinois" },
+  { code: "IN", name: "Indiana" },
+  { code: "IA", name: "Iowa" },
+  { code: "KS", name: "Kansas" },
+  { code: "KY", name: "Kentucky" },
+  { code: "LA", name: "Louisiana" },
+  { code: "ME", name: "Maine" },
+  { code: "MD", name: "Maryland" },
+  { code: "MA", name: "Massachusetts" },
+  { code: "MI", name: "Michigan" },
+  { code: "MN", name: "Minnesota" },
+  { code: "MS", name: "Mississippi" },
+  { code: "MO", name: "Missouri" },
+  { code: "MT", name: "Montana" },
+  { code: "NE", name: "Nebraska" },
+  { code: "NV", name: "Nevada" },
+  { code: "NH", name: "New Hampshire" },
+  { code: "NJ", name: "New Jersey" },
+  { code: "NM", name: "New Mexico" },
+  { code: "NY", name: "New York" },
+  { code: "NC", name: "North Carolina" },
+  { code: "ND", name: "North Dakota" },
+  { code: "OH", name: "Ohio" },
+  { code: "OK", name: "Oklahoma" },
+  { code: "OR", name: "Oregon" },
+  { code: "PA", name: "Pennsylvania" },
+  { code: "RI", name: "Rhode Island" },
+  { code: "SC", name: "South Carolina" },
+  { code: "SD", name: "South Dakota" },
+  { code: "TN", name: "Tennessee" },
+  { code: "TX", name: "Texas" },
+  { code: "UT", name: "Utah" },
+  { code: "VT", name: "Vermont" },
+  { code: "VA", name: "Virginia" },
+  { code: "WA", name: "Washington" },
+  { code: "WV", name: "West Virginia" },
+  { code: "WI", name: "Wisconsin" },
+  { code: "WY", name: "Wyoming" },
+  { code: "GENERAL", name: "General / Any State" },
+];
 
 const SERVICE_TYPES = [
   "home_inspection",
+  "pre_listing",
+  "new_construction",
+  "commercial",
+  "maintenance",
   "radon",
   "mold",
+  "radon_mold",
+  "sewer_scope",
+  "water_quality",
+  "termite_wdo",
+  "pool_spa",
   "ancillary",
   "other",
 ];
@@ -26,11 +88,44 @@ const PLACEHOLDERS = [
   "{{AGREEMENT_VERSION}}",
 ];
 
+function serviceLabel(value: string) {
+  return String(value || "home_inspection")
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function getStateLabel(code: string) {
+  const found = STATES.find((state) => state.code === code);
+  return found ? `${found.code} - ${found.name}` : code || "General";
+}
+
+function safeFileName(value: string) {
+  return String(value || "agreement")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "")
+    .slice(0, 80);
+}
+
+function normalizeImportedTemplate(raw: any) {
+  return {
+    state: String(raw?.state || raw?.state_code || "GENERAL").toUpperCase(),
+    title: String(raw?.title || "Imported Agreement").trim(),
+    version: String(raw?.version || "v1").trim(),
+    service_type: String(raw?.service_type || raw?.template_type || "home_inspection").trim(),
+    display_order: Number(raw?.display_order || 0),
+    body: String(raw?.body || raw?.agreement_body || "").trim(),
+    is_active: raw?.is_active === undefined ? true : Boolean(raw.is_active),
+    is_default: false,
+  };
+}
+
 export default function AgreementLibraryManager() {
   const [templates, setTemplates] = useState<any[]>([]);
   const [selected, setSelected] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
 
   const [state, setState] = useState("MD");
   const [title, setTitle] = useState("");
@@ -41,14 +136,45 @@ export default function AgreementLibraryManager() {
   const [isActive, setIsActive] = useState(true);
   const [isDefault, setIsDefault] = useState(false);
 
+  const [stateFilter, setStateFilter] = useState("ALL");
+  const [serviceFilter, setServiceFilter] = useState("ALL");
+  const [search, setSearch] = useState("");
+
   const [selectedPlaceholder, setSelectedPlaceholder] = useState("");
   const [copied, setCopied] = useState("");
 
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const importInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     loadTemplates();
   }, []);
+
+  const filteredTemplates = useMemo(() => {
+    const cleanSearch = search.trim().toLowerCase();
+
+    return templates.filter((template) => {
+      const templateState = template.state || template.state_code || "GENERAL";
+      const templateService = template.service_type || template.template_type || "home_inspection";
+
+      if (stateFilter !== "ALL" && templateState !== stateFilter) return false;
+      if (serviceFilter !== "ALL" && templateService !== serviceFilter) return false;
+
+      if (!cleanSearch) return true;
+
+      const haystack = [
+        template.title,
+        template.version,
+        templateState,
+        templateService,
+        template.body,
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      return haystack.includes(cleanSearch);
+    });
+  }, [templates, stateFilter, serviceFilter, search]);
 
   async function loadTemplates() {
     setLoading(true);
@@ -81,16 +207,17 @@ export default function AgreementLibraryManager() {
 
   function editTemplate(template: any) {
     setSelected(template);
-    setState(template.state || "MD");
+    setState(template.state || template.state_code || "MD");
     setTitle(template.title || "");
     setVersion(template.version || "");
-    setServiceType(template.service_type || "home_inspection");
+    setServiceType(template.service_type || template.template_type || "home_inspection");
     setDisplayOrder(Number(template.display_order || 0));
     setBody(template.body || "");
-    setIsActive(Boolean(template.is_active));
+    setIsActive(template.is_active !== false);
     setIsDefault(Boolean(template.is_default));
     setSelectedPlaceholder("");
     setCopied("");
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   async function saveTemplate() {
@@ -102,9 +229,11 @@ export default function AgreementLibraryManager() {
     const payload = {
       id: selected?.id,
       state,
+      state_code: state,
       title,
       version: version || "v1",
       service_type: serviceType,
+      template_type: serviceType,
       display_order: displayOrder,
       body,
       is_active: isActive,
@@ -131,14 +260,14 @@ export default function AgreementLibraryManager() {
     await loadTemplates();
   }
 
-  async function deleteTemplate() {
-    if (!selected?.id) {
+  async function deleteTemplate(templateToDelete = selected) {
+    if (!templateToDelete?.id) {
       alert("Select an agreement first.");
       return;
     }
 
     const confirmed = window.confirm(
-      `Delete "${selected.title || "this agreement"}"?\n\nThis cannot be undone.`
+      `Delete "${templateToDelete.title || "this agreement"}"?\n\nThis cannot be undone.`
     );
 
     if (!confirmed) return;
@@ -147,7 +276,7 @@ export default function AgreementLibraryManager() {
 
     try {
       const res = await fetch(
-        `/api/agreement-templates?id=${encodeURIComponent(selected.id)}`,
+        `/api/agreement-templates?id=${encodeURIComponent(templateToDelete.id)}`,
         { method: "DELETE" }
       );
 
@@ -165,12 +294,132 @@ export default function AgreementLibraryManager() {
       }
 
       alert("Agreement deleted.");
-      resetForm();
+
+      if (selected?.id === templateToDelete.id) {
+        resetForm();
+      }
+
       await loadTemplates();
     } catch (error: any) {
       alert(error?.message || "Failed to delete agreement.");
     } finally {
       setDeleting(false);
+    }
+  }
+
+  async function duplicateTemplate(template: any) {
+    if (!template?.id) return;
+
+    const newTitle = `${template.title || "Agreement"} (Copy)`;
+
+    const confirmed = window.confirm(`Duplicate "${template.title}" as "${newTitle}"?`);
+    if (!confirmed) return;
+
+    setDuplicatingId(template.id);
+
+    try {
+      const payload = {
+        state: template.state || template.state_code || "GENERAL",
+        state_code: template.state || template.state_code || "GENERAL",
+        title: newTitle,
+        version: template.version || "v1",
+        service_type: template.service_type || template.template_type || "home_inspection",
+        template_type: template.service_type || template.template_type || "home_inspection",
+        display_order: Number(template.display_order || 0) + 1,
+        body: template.body || "",
+        is_active: true,
+        is_default: false,
+      };
+
+      const res = await fetch("/api/agreement-templates", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.error || "Failed to duplicate agreement.");
+        return;
+      }
+
+      alert("Agreement duplicated.");
+      await loadTemplates();
+      if (data.template) editTemplate(data.template);
+    } catch (error: any) {
+      alert(error?.message || "Failed to duplicate agreement.");
+    } finally {
+      setDuplicatingId(null);
+    }
+  }
+
+  function exportTemplate(template = selected) {
+    if (!template?.id) {
+      alert("Select an agreement first.");
+      return;
+    }
+
+    const exportData = {
+      title: template.title || "",
+      state: template.state || template.state_code || "GENERAL",
+      version: template.version || "v1",
+      service_type: template.service_type || template.template_type || "home_inspection",
+      display_order: Number(template.display_order || 0),
+      body: template.body || "",
+      is_active: template.is_active !== false,
+      exported_from: "On Point Inspect",
+      exported_at: new Date().toISOString(),
+    };
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+      type: "application/json",
+    });
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${safeFileName(exportData.title)}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  async function handleImportFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      const imported = normalizeImportedTemplate(parsed);
+
+      if (!imported.title || !imported.body) {
+        alert("Imported file must include a title and body.");
+        return;
+      }
+
+      setSelected(null);
+      setState(imported.state);
+      setTitle(imported.title);
+      setVersion(imported.version);
+      setServiceType(imported.service_type);
+      setDisplayOrder(imported.display_order);
+      setBody(imported.body);
+      setIsActive(imported.is_active);
+      setIsDefault(false);
+
+      alert("Agreement imported into the form. Review it, then click Save Agreement.");
+    } catch (error: any) {
+      alert(error?.message || "Could not import agreement JSON file.");
+    } finally {
+      if (importInputRef.current) {
+        importInputRef.current.value = "";
+      }
     }
   }
 
@@ -209,6 +458,28 @@ export default function AgreementLibraryManager() {
     setSelectedPlaceholder("");
   }
 
+  function applyFormat(format: "bold" | "italic" | "underline" | "bullet" | "number") {
+    const textarea = textareaRef.current;
+    const start = textarea?.selectionStart ?? body.length;
+    const end = textarea?.selectionEnd ?? body.length;
+    const selectedText = body.slice(start, end);
+
+    let replacement = selectedText;
+
+    if (format === "bold") replacement = `**${selectedText || "bold text"}**`;
+    if (format === "italic") replacement = `_${selectedText || "italic text"}_`;
+    if (format === "underline") replacement = `<u>${selectedText || "underlined text"}</u>`;
+    if (format === "bullet") replacement = selectedText ? selectedText.split("\n").map((line) => `• ${line}`).join("\n") : "• List item";
+    if (format === "number") replacement = selectedText ? selectedText.split("\n").map((line, index) => `${index + 1}. ${line}`).join("\n") : "1. List item";
+
+    setBody(`${body.slice(0, start)}${replacement}${body.slice(end)}`);
+
+    window.setTimeout(() => {
+      textarea?.focus();
+      textarea?.setSelectionRange(start + replacement.length, start + replacement.length);
+    }, 0);
+  }
+
   return (
     <div className="w-full max-w-full space-y-6 overflow-hidden">
       <section className="rounded-2xl border border-slate-800 bg-[#0b1220] p-5">
@@ -216,56 +487,169 @@ export default function AgreementLibraryManager() {
           <div>
             <h2 className="text-2xl font-bold text-teal-300">Templates</h2>
             <p className="mt-1 text-sm text-slate-400">
-              Select an agreement to edit, or create a new one.
+              Select, duplicate, export, delete, or create a custom agreement.
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={resetForm}
-            className="rounded-xl border border-teal-500 px-4 py-2 text-sm font-bold text-teal-300 hover:bg-teal-500/10"
+          <div className="flex flex-wrap gap-2">
+            <input
+              ref={importInputRef}
+              type="file"
+              accept="application/json,.json"
+              onChange={handleImportFile}
+              className="hidden"
+            />
+
+            <button
+              type="button"
+              onClick={() => importInputRef.current?.click()}
+              className="rounded-xl border border-slate-600 px-4 py-2 text-sm font-bold text-slate-300 hover:bg-slate-800"
+            >
+              Import JSON
+            </button>
+
+            <button
+              type="button"
+              onClick={() => exportTemplate()}
+              disabled={!selected?.id}
+              className="rounded-xl border border-slate-600 px-4 py-2 text-sm font-bold text-slate-300 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Export Selected
+            </button>
+
+            <button
+              type="button"
+              onClick={resetForm}
+              className="rounded-xl border border-teal-500 px-4 py-2 text-sm font-bold text-teal-300 hover:bg-teal-500/10"
+            >
+              New Agreement
+            </button>
+          </div>
+        </div>
+
+        <div className="mb-4 grid gap-3 md:grid-cols-3">
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search agreements..."
+            className="h-11 rounded-xl border border-slate-700 bg-slate-950 px-4 text-white outline-none focus:border-teal-400"
+          />
+
+          <select
+            value={stateFilter}
+            onChange={(e) => setStateFilter(e.target.value)}
+            className="h-11 rounded-xl border border-slate-700 bg-slate-950 px-4 text-white outline-none focus:border-teal-400"
           >
-            New Agreement
-          </button>
+            <option value="ALL">All States</option>
+            {STATES.map((item) => (
+              <option key={item.code} value={item.code}>
+                {item.code} - {item.name}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={serviceFilter}
+            onChange={(e) => setServiceFilter(e.target.value)}
+            className="h-11 rounded-xl border border-slate-700 bg-slate-950 px-4 text-white outline-none focus:border-teal-400"
+          >
+            <option value="ALL">All Service Types</option>
+            {SERVICE_TYPES.map((item) => (
+              <option key={item} value={item}>
+                {serviceLabel(item)}
+              </option>
+            ))}
+          </select>
         </div>
 
         {loading && <p className="text-sm text-slate-400">Loading templates...</p>}
 
+        {!loading && filteredTemplates.length === 0 && (
+          <div className="rounded-xl border border-slate-700 bg-slate-950 p-4 text-sm text-slate-400">
+            No agreements found. Create a new agreement or clear your filters.
+          </div>
+        )}
+
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {templates.map((template) => (
-            <button
-              key={template.id}
-              type="button"
-              onClick={() => editTemplate(template)}
-              className={`rounded-xl border p-4 text-left ${
-                selected?.id === template.id
-                  ? "border-teal-400 bg-teal-500/10"
-                  : "border-slate-700 bg-slate-950 hover:border-teal-500"
-              }`}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="break-words font-bold text-white">{template.title}</p>
-                  <p className="mt-1 break-words text-sm text-slate-400">
-                    {template.state} • {template.version}
-                  </p>
-                  <p className="mt-1 break-words text-xs font-bold uppercase tracking-wide text-teal-300">
-                    {(template.service_type || "home_inspection").replace(/_/g, " ")}
-                  </p>
+          {filteredTemplates.map((template) => {
+            const templateState = template.state || template.state_code || "GENERAL";
+            const templateService = template.service_type || template.template_type || "home_inspection";
+
+            return (
+              <div
+                key={template.id}
+                className={`rounded-xl border p-4 ${
+                  selected?.id === template.id
+                    ? "border-teal-400 bg-teal-500/10"
+                    : "border-slate-700 bg-slate-950"
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() => editTemplate(template)}
+                  className="block w-full text-left"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="break-words font-bold text-white">{template.title}</p>
+                      <p className="mt-1 break-words text-sm text-slate-400">
+                        {getStateLabel(templateState)} • {template.version || "v1"}
+                      </p>
+                      <p className="mt-1 break-words text-xs font-bold uppercase tracking-wide text-teal-300">
+                        {serviceLabel(templateService)}
+                      </p>
+                    </div>
+
+                    {template.is_default && (
+                      <span className="shrink-0 rounded-lg bg-teal-500 px-2 py-1 text-xs font-bold text-slate-950">
+                        Default
+                      </span>
+                    )}
+                  </div>
+
+                  {!template.is_active && (
+                    <p className="mt-2 text-xs font-bold text-red-300">Inactive</p>
+                  )}
+                </button>
+
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => editTemplate(template)}
+                    className="rounded-lg border border-teal-500 px-3 py-2 text-xs font-bold text-teal-300 hover:bg-teal-500/10"
+                  >
+                    Edit
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => duplicateTemplate(template)}
+                    disabled={duplicatingId === template.id}
+                    className="rounded-lg border border-sky-500 px-3 py-2 text-xs font-bold text-sky-300 hover:bg-sky-500/10 disabled:opacity-50"
+                  >
+                    {duplicatingId === template.id ? "Copying..." : "Duplicate"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => exportTemplate(template)}
+                    className="rounded-lg border border-slate-500 px-3 py-2 text-xs font-bold text-slate-300 hover:bg-slate-700"
+                  >
+                    Export
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => deleteTemplate(template)}
+                    disabled={deleting}
+                    className="rounded-lg border border-red-500 px-3 py-2 text-xs font-bold text-red-300 hover:bg-red-500 hover:text-white disabled:opacity-50"
+                  >
+                    Delete
+                  </button>
                 </div>
-
-                {template.is_default && (
-                  <span className="shrink-0 rounded-lg bg-teal-500 px-2 py-1 text-xs font-bold text-slate-950">
-                    Default
-                  </span>
-                )}
               </div>
-
-              {!template.is_active && (
-                <p className="mt-2 text-xs font-bold text-red-300">Inactive</p>
-              )}
-            </button>
-          ))}
+            );
+          })}
         </div>
       </section>
 
@@ -276,14 +660,15 @@ export default function AgreementLibraryManager() {
               {selected ? "Edit Agreement" : "Add Agreement"}
             </h2>
             <p className="mt-1 text-sm text-slate-400">
-              Manage the agreement text, state, service type, and default status.
+              Save any title and agreement body, assign it to a state, and mark
+              it as default when needed.
             </p>
           </div>
 
           {selected?.id && (
             <button
               type="button"
-              onClick={deleteTemplate}
+              onClick={() => deleteTemplate(selected)}
               disabled={deleting}
               className="rounded-xl border border-red-500 bg-red-950/30 px-4 py-2 text-sm font-bold text-red-300 hover:bg-red-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
             >
@@ -301,7 +686,9 @@ export default function AgreementLibraryManager() {
               className="h-12 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 text-white outline-none focus:border-teal-400"
             >
               {STATES.map((item) => (
-                <option key={item}>{item}</option>
+                <option key={item.code} value={item.code}>
+                  {item.code} - {item.name}
+                </option>
               ))}
             </select>
           </label>
@@ -315,7 +702,7 @@ export default function AgreementLibraryManager() {
             >
               {SERVICE_TYPES.map((item) => (
                 <option key={item} value={item}>
-                  {item.replace(/_/g, " ")}
+                  {serviceLabel(item)}
                 </option>
               ))}
             </select>
@@ -343,10 +730,11 @@ export default function AgreementLibraryManager() {
         </div>
 
         <label className="mt-4 block">
-          <span className="mb-2 block text-sm font-bold text-slate-400">Title</span>
+          <span className="mb-2 block text-sm font-bold text-slate-400">Custom Agreement Title</span>
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
+            placeholder="Example: Florida Buyer Inspection Agreement"
             className="h-12 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 text-white outline-none focus:border-teal-400"
           />
         </label>
@@ -377,8 +765,7 @@ export default function AgreementLibraryManager() {
           <h3 className="text-lg font-extrabold text-teal-300">Auto-Fill Placeholders</h3>
           <p className="mt-2 text-sm leading-6 text-slate-300">
             Click Select, then click inside the agreement body where you want
-            the placeholder inserted. Existing labels like Client:, Inspector:,
-            Common Street Address:, and Fee: are also auto-filled.
+            the placeholder inserted.
           </p>
 
           {selectedPlaceholder && (
@@ -419,17 +806,57 @@ export default function AgreementLibraryManager() {
           </div>
         </div>
 
-        <label className="mt-5 block">
-          <span className="mb-2 block text-sm font-bold text-slate-400">Agreement Body</span>
-          <textarea
-            ref={textareaRef}
-            value={body}
-            onClick={handleTextareaClick}
-            onChange={(e) => setBody(e.target.value)}
-            rows={30}
-            className="w-full rounded-xl border border-slate-700 bg-slate-950 p-4 font-mono text-sm leading-7 text-white outline-none focus:border-teal-400"
-          />
-        </label>
+        <div className="mt-5 rounded-2xl border border-slate-700 bg-slate-950 p-3">
+          <div className="mb-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => applyFormat("bold")}
+              className="rounded-lg border border-slate-600 px-3 py-2 text-xs font-bold text-slate-200 hover:bg-slate-800"
+            >
+              Bold
+            </button>
+            <button
+              type="button"
+              onClick={() => applyFormat("italic")}
+              className="rounded-lg border border-slate-600 px-3 py-2 text-xs font-bold text-slate-200 hover:bg-slate-800"
+            >
+              Italic
+            </button>
+            <button
+              type="button"
+              onClick={() => applyFormat("underline")}
+              className="rounded-lg border border-slate-600 px-3 py-2 text-xs font-bold text-slate-200 hover:bg-slate-800"
+            >
+              Underline
+            </button>
+            <button
+              type="button"
+              onClick={() => applyFormat("bullet")}
+              className="rounded-lg border border-slate-600 px-3 py-2 text-xs font-bold text-slate-200 hover:bg-slate-800"
+            >
+              Bullets
+            </button>
+            <button
+              type="button"
+              onClick={() => applyFormat("number")}
+              className="rounded-lg border border-slate-600 px-3 py-2 text-xs font-bold text-slate-200 hover:bg-slate-800"
+            >
+              Numbered
+            </button>
+          </div>
+
+          <label className="block">
+            <span className="mb-2 block text-sm font-bold text-slate-400">Agreement Body</span>
+            <textarea
+              ref={textareaRef}
+              value={body}
+              onClick={handleTextareaClick}
+              onChange={(e) => setBody(e.target.value)}
+              rows={30}
+              className="w-full rounded-xl border border-slate-700 bg-slate-950 p-4 font-mono text-sm leading-7 text-white outline-none focus:border-teal-400"
+            />
+          </label>
+        </div>
 
         <div className="mt-5 flex flex-wrap gap-3">
           <button

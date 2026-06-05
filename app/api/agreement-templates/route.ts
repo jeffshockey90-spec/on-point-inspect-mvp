@@ -27,6 +27,61 @@ async function createSupabaseServerClient() {
   );
 }
 
+async function getCompanyIdForUser(supabase: any, userId: string) {
+  const { data } = await supabase
+    .from("company_users")
+    .select("company_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  return data?.company_id || null;
+}
+
+function normalizeState(value: any) {
+  const state = String(value || "GENERAL").trim().toUpperCase();
+  return state || "GENERAL";
+}
+
+function normalizeServiceType(value: any) {
+  return String(value || "home_inspection").trim() || "home_inspection";
+}
+
+async function clearCompetingDefault({
+  supabase,
+  companyId,
+  userId,
+  state,
+  serviceType,
+  excludeId,
+}: {
+  supabase: any;
+  companyId: any;
+  userId: string;
+  state: string;
+  serviceType: string;
+  excludeId?: string;
+}) {
+  let query = supabase
+    .from("agreement_templates")
+    .update({
+      is_default: false,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("inspector_id", userId)
+    .eq("state", state)
+    .eq("service_type", serviceType);
+
+  if (companyId) {
+    query = query.eq("company_id", companyId);
+  }
+
+  if (excludeId) {
+    query = query.neq("id", excludeId);
+  }
+
+  await query;
+}
+
 export async function GET(req: Request) {
   try {
     const supabase = await createSupabaseServerClient();
@@ -43,6 +98,8 @@ export async function GET(req: Request) {
       );
     }
 
+    const companyId = await getCompanyIdForUser(supabase, user.id);
+
     const url = new URL(req.url);
     const state = url.searchParams.get("state");
     const activeOnly = url.searchParams.get("activeOnly") !== "false";
@@ -57,8 +114,12 @@ export async function GET(req: Request) {
       .order("is_default", { ascending: false })
       .order("created_at", { ascending: false });
 
+    if (companyId) {
+      query = query.eq("company_id", companyId);
+    }
+
     if (state) {
-      query = query.eq("state", state.toUpperCase());
+      query = query.eq("state", normalizeState(state));
     }
 
     if (activeOnly) {
@@ -96,12 +157,13 @@ export async function POST(req: Request) {
       );
     }
 
+    const companyId = await getCompanyIdForUser(supabase, user.id);
     const body = await req.json();
 
     const title = String(body.title || "").trim();
     const version = String(body.version || "v1").trim();
-    const state = String(body.state || "MD").trim().toUpperCase();
-    const serviceType = String(body.service_type || "home_inspection").trim();
+    const state = normalizeState(body.state || body.state_code);
+    const serviceType = normalizeServiceType(body.service_type || body.template_type);
     const displayOrder = Number(body.display_order || 0);
     const templateBody = String(body.body || "").trim();
     const isActive =
@@ -115,21 +177,27 @@ export async function POST(req: Request) {
       );
     }
 
-    if (!["MD", "WV", "PA"].includes(state)) {
-      return NextResponse.json(
-        { error: "State must be MD, WV, or PA." },
-        { status: 400 }
-      );
+    if (isDefault) {
+      await clearCompetingDefault({
+        supabase,
+        companyId,
+        userId: user.id,
+        state,
+        serviceType,
+      });
     }
 
     const { data, error } = await supabase
       .from("agreement_templates")
       .insert({
         inspector_id: user.id,
+        company_id: companyId,
         state,
+        state_code: state,
         title,
         version,
         service_type: serviceType,
+        template_type: serviceType,
         display_order: displayOrder,
         body: templateBody,
         is_active: isActive,
@@ -167,6 +235,7 @@ export async function PATCH(req: Request) {
       );
     }
 
+    const companyId = await getCompanyIdForUser(supabase, user.id);
     const body = await req.json();
     const id = String(body.id || "");
 
@@ -181,35 +250,67 @@ export async function PATCH(req: Request) {
       updated_at: new Date().toISOString(),
     };
 
+    const nextState =
+      body.state !== undefined || body.state_code !== undefined
+        ? normalizeState(body.state || body.state_code)
+        : null;
+
+    const nextServiceType =
+      body.service_type !== undefined || body.template_type !== undefined
+        ? normalizeServiceType(body.service_type || body.template_type)
+        : null;
+
     if (body.title !== undefined) updates.title = String(body.title).trim();
     if (body.version !== undefined) updates.version = String(body.version).trim();
-    if (body.state !== undefined) {
-      updates.state = String(body.state).trim().toUpperCase();
+
+    if (nextState) {
+      updates.state = nextState;
+      updates.state_code = nextState;
     }
-    if (body.service_type !== undefined) {
-      updates.service_type = String(body.service_type).trim();
+
+    if (nextServiceType) {
+      updates.service_type = nextServiceType;
+      updates.template_type = nextServiceType;
     }
+
     if (body.display_order !== undefined) {
       updates.display_order = Number(body.display_order || 0);
     }
+
     if (body.body !== undefined) updates.body = String(body.body);
     if (body.is_active !== undefined) updates.is_active = Boolean(body.is_active);
     if (body.is_default !== undefined) updates.is_default = Boolean(body.is_default);
+    if (companyId) updates.company_id = companyId;
 
-    if (updates.state && !["MD", "WV", "PA"].includes(updates.state)) {
-      return NextResponse.json(
-        { error: "State must be MD, WV, or PA." },
-        { status: 400 }
-      );
+    if (updates.is_default === true) {
+      const { data: existing } = await supabase
+        .from("agreement_templates")
+        .select("state, service_type")
+        .eq("id", id)
+        .eq("inspector_id", user.id)
+        .maybeSingle();
+
+      await clearCompetingDefault({
+        supabase,
+        companyId,
+        userId: user.id,
+        state: updates.state || existing?.state || "GENERAL",
+        serviceType: updates.service_type || existing?.service_type || "home_inspection",
+        excludeId: id,
+      });
     }
 
-    const { data, error } = await supabase
+    let query = supabase
       .from("agreement_templates")
       .update(updates)
       .eq("id", id)
-      .eq("inspector_id", user.id)
-      .select()
-      .single();
+      .eq("inspector_id", user.id);
+
+    if (companyId) {
+      query = query.eq("company_id", companyId);
+    }
+
+    const { data, error } = await query.select().single();
 
     if (error) throw error;
 
@@ -240,6 +341,8 @@ export async function DELETE(req: Request) {
       );
     }
 
+    const companyId = await getCompanyIdForUser(supabase, user.id);
+
     const url = new URL(req.url);
     const id = String(url.searchParams.get("id") || "");
 
@@ -250,11 +353,17 @@ export async function DELETE(req: Request) {
       );
     }
 
-    const { error } = await supabase
+    let query = supabase
       .from("agreement_templates")
       .delete()
       .eq("id", id)
       .eq("inspector_id", user.id);
+
+    if (companyId) {
+      query = query.eq("company_id", companyId);
+    }
+
+    const { error } = await query;
 
     if (error) throw error;
 

@@ -28,6 +28,16 @@ async function getCompanyForUser(supabase: any, userId: string) {
   return company;
 }
 
+function getReadableMessage(value: string | undefined) {
+  if (!value) return "";
+
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
 function StripeStatusCard({ company }: { company: any }) {
   const connected = Boolean(company?.stripe_account_id);
   const onboardingComplete = company?.stripe_onboarding_complete === true;
@@ -71,7 +81,23 @@ function StripeStatusCard({ company }: { company: any }) {
   );
 }
 
-export default async function SettingsPage() {
+type SettingsPageProps = {
+  searchParams: Promise<{
+    stripe_error?: string;
+    stripe?: string;
+    saved?: string;
+    error?: string;
+  }>;
+};
+
+export default async function SettingsPage({ searchParams }: SettingsPageProps) {
+  const params = await searchParams;
+
+  const stripeError = getReadableMessage(params?.stripe_error);
+  const stripeStatus = getReadableMessage(params?.stripe);
+  const pageError = getReadableMessage(params?.error);
+  const saved = params?.saved;
+
   const supabase = await createClient();
 
   const {
@@ -89,10 +115,18 @@ export default async function SettingsPage() {
           <h1 className="text-3xl font-black text-red-300">
             Company profile not found
           </h1>
+
           <p className="mt-3 text-slate-300">
-            Your user account is not linked to a company yet. Add a row in
-            company_users linking your user_id to your companies.id.
+            Your user account is not linked to a company yet. If this is a new
+            inspector account, sign out and sign back in once. If it still
+            appears, the company setup step did not complete.
           </p>
+
+          {pageError && (
+            <p className="mt-4 break-words rounded-xl border border-red-500/40 bg-red-950/30 p-4 text-sm text-red-200">
+              {pageError}
+            </p>
+          )}
         </div>
       </main>
     );
@@ -167,6 +201,50 @@ export default async function SettingsPage() {
             payment fee options.
           </p>
         </section>
+
+        {saved && (
+          <div className="rounded-2xl border border-emerald-500/50 bg-emerald-950/20 p-5">
+            <h3 className="font-black text-emerald-300">
+              Settings saved successfully.
+            </h3>
+          </div>
+        )}
+
+        {stripeError && (
+          <div className="rounded-2xl border border-red-500/50 bg-red-950/20 p-5">
+            <h3 className="font-black text-red-300">Stripe Connect Error</h3>
+
+            <p className="mt-2 break-words text-sm leading-6 text-slate-200">
+              {stripeError}
+            </p>
+
+            <p className="mt-3 text-sm leading-6 text-slate-400">
+              If this mentions signing up for Connect, your live Stripe account
+              still needs Stripe Connect enabled before On Point Inspect can
+              create connected inspector accounts.
+            </p>
+          </div>
+        )}
+
+        {stripeStatus && !stripeError && (
+          <div className="rounded-2xl border border-sky-500/50 bg-sky-950/20 p-5">
+            <h3 className="font-black text-sky-300">Stripe Status</h3>
+
+            <p className="mt-2 break-words text-sm leading-6 text-slate-200">
+              {stripeStatus}
+            </p>
+          </div>
+        )}
+
+        {pageError && !stripeError && (
+          <div className="rounded-2xl border border-red-500/50 bg-red-950/20 p-5">
+            <h3 className="font-black text-red-300">Settings Error</h3>
+
+            <p className="mt-2 break-words text-sm leading-6 text-slate-200">
+              {pageError}
+            </p>
+          </div>
+        )}
 
         <form action={saveCompanySettings} className="space-y-6">
           <section className="rounded-3xl border border-slate-800 bg-[#0b1220] p-6 md:p-8">

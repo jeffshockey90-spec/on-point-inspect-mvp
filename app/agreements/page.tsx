@@ -14,7 +14,9 @@ export default function AgreementsPage() {
           </h1>
 
           <p className="mt-2 text-slate-400">
-            View, edit, add, and manage MD, WV, and PA agreement templates.
+            Create, edit, and manage custom agreement templates for any state.
+            Each inspector can save their own titles, agreement text, defaults,
+            service types, and state-specific templates.
           </p>
         </div>
 
