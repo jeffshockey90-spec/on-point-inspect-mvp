@@ -116,7 +116,7 @@ export default function Navbar() {
                 key={item.href}
                 href={item.href}
                 prefetch={false}
-                className={`flex h-[58px] min-w-0 flex-1 -translate-y-3 flex-col items-center justify-center gap-0.5 overflow-hidden px-1 text-center text-[10px] font-bold leading-none ${
+                className={`flex h-[58px] min-w-0 flex-1 -translate-y-6 flex-col items-center justify-center gap-0.5 overflow-hidden px-1 text-center text-[10px] font-bold leading-none ${
                   active ? "bg-teal-500/10 text-teal-300" : "text-zinc-300"
                 }`}
               >
@@ -131,7 +131,7 @@ export default function Navbar() {
           <button
             type="button"
             onClick={handleLogout}
-            className="flex h-[58px] min-w-0 flex-1 -translate-y-3 flex-col items-center justify-center gap-0.5 overflow-hidden px-1 text-center text-[10px] font-bold leading-none text-red-300"
+            className="flex h-[58px] min-w-0 flex-1 -translate-y-6 flex-col items-center justify-center gap-0.5 overflow-hidden px-1 text-center text-[10px] font-bold leading-none text-red-300"
           >
             <span className="block shrink-0 text-lg leading-none">🚪</span>
             <span className="block max-w-full truncate leading-none">Logout</span>
