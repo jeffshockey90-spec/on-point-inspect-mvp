@@ -64,6 +64,31 @@ function RepairRequestContent() {
   const [loading, setLoading] = useState(true);
   const [showAddendum, setShowAddendum] = useState(false);
 
+  useEffect(() => {
+    async function trackRepairRequestView() {
+      if (!inspectionId) return;
+
+      try {
+        await fetch("/api/track-inspection-view", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            inspection_id: inspectionId,
+            view_type: "repair_request",
+            viewer_role: "client",
+            path: `/repair-request?inspection_id=${inspectionId}`,
+          }),
+        });
+      } catch (error) {
+        console.error("Repair request tracking error:", error);
+      }
+    }
+
+    trackRepairRequestView();
+  }, [inspectionId]);
+
   const [requestIntro, setRequestIntro] = useState(
     "The following items are requested for repair, correction, evaluation, or further review by qualified professionals prior to closing, unless otherwise negotiated by the parties involved."
   );
@@ -508,7 +533,6 @@ function RepairRequestContent() {
     </main>
   );
 }
-
 
 export default function RepairRequestPage() {
   return (
