@@ -2,7 +2,7 @@
   "name": "On Point Inspect",
   "short_name": "On Point",
   "description": "On Point Inspect field reporting platform",
-  "start_url": "/dashboard",
+  "start_url": "/login",
   "scope": "/",
   "display": "standalone",
   "background_color": "#020617",
