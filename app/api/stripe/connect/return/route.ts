@@ -63,7 +63,7 @@ export async function GET() {
     } = await supabase.auth.getUser();
 
     if (userError) {
-      console.error("Stripe Connect user lookup failed:", userError);
+      console.error("Stripe Connect return user lookup failed:", userError);
     }
 
     if (!user) {
@@ -77,57 +77,43 @@ export async function GET() {
       return NextResponse.redirect(`${getAppUrl()}/settings?error=no_company`);
     }
 
-    let stripeAccountId = company.stripe_account_id || "";
-
-    if (!stripeAccountId) {
-      const account = await stripe.accounts.create({
-        type: "express",
-        email: company.email || user.email || undefined,
-        business_profile: {
-          name: company.display_name || company.name || undefined,
-          url: company.website || undefined,
-        },
-        metadata: {
-          company_id: String(company.id),
-          user_id: String(user.id),
-          platform: "on_point_inspect",
-        },
-      });
-
-      stripeAccountId = account.id;
-
-      const { error: updateError } = await supabase
-        .from("companies")
-        .update({
-          stripe_account_id: stripeAccountId,
-          stripe_account_type: "express",
-          stripe_onboarding_complete: false,
-          stripe_charges_enabled: false,
-          stripe_payouts_enabled: false,
-          stripe_details_submitted: false,
-        })
-        .eq("id", company.id);
-
-      if (updateError) {
-        console.error("COMPANY UPDATE FAILED:", updateError);
-        throw updateError;
-      }
+    if (!company.stripe_account_id) {
+      return NextResponse.redirect(`${getAppUrl()}/settings?stripe=not_connected`);
     }
 
-    const accountLink = await stripe.accountLinks.create({
-      account: stripeAccountId,
-      refresh_url: `${getAppUrl()}/api/stripe/connect/refresh`,
-      return_url: `${getAppUrl()}/api/stripe/connect/return`,
-      type: "account_onboarding",
-    });
+    const account = await stripe.accounts.retrieve(company.stripe_account_id);
 
-    return NextResponse.redirect(accountLink.url);
+    const chargesEnabled = Boolean(account.charges_enabled);
+    const payoutsEnabled = Boolean(account.payouts_enabled);
+    const detailsSubmitted = Boolean(account.details_submitted);
+    const onboardingComplete = detailsSubmitted && chargesEnabled;
+
+    const { error: updateError } = await supabase
+      .from("companies")
+      .update({
+        stripe_onboarding_complete: onboardingComplete,
+        stripe_charges_enabled: chargesEnabled,
+        stripe_payouts_enabled: payoutsEnabled,
+        stripe_details_submitted: detailsSubmitted,
+      })
+      .eq("id", company.id);
+
+    if (updateError) {
+      console.error("Stripe Connect company status update failed:", updateError);
+      throw updateError;
+    }
+
+    const status = onboardingComplete
+      ? "connect_complete"
+      : "connect_incomplete";
+
+    return NextResponse.redirect(`${getAppUrl()}/settings?stripe=${status}`);
   } catch (error: any) {
-    console.error("Stripe Connect onboarding error:", error);
+    console.error("Stripe Connect return error:", error);
 
     return NextResponse.redirect(
       `${getAppUrl()}/settings?stripe_error=${encodeURIComponent(
-        error?.message || "Stripe onboarding failed"
+        error?.message || "Stripe return failed"
       )}`
     );
   }
