@@ -3,18 +3,38 @@ import Navbar from "../components/Nav";
 import GlobalLiveActivity from "../components/GlobalLiveActivity";
 
 export const metadata = {
-  title: "On Point Inspection",
-  description: "Inspection Dashboard",
+  title: "On Point Inspect",
+  description:
+    "Inspection management, reports, agreements, payments, analytics, and client portals for home inspectors.",
   manifest: "/manifest.json",
+  applicationName: "On Point Inspect",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
     title: "On Point Inspect",
   },
+  icons: {
+    icon: [
+      {
+        url: "/icons/icon-192.png",
+        sizes: "192x192",
+        type: "image/png",
+      },
+      {
+        url: "/icons/icon-512.png",
+        sizes: "512x512",
+        type: "image/png",
+      },
+    ],
+    apple: "/logo.jpg",
+  },
 };
 
 export const viewport = {
   themeColor: "#14b8a6",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
 };
 
 export default function RootLayout({
@@ -24,41 +44,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <head>
-        <link rel="manifest" href="/manifest.json" />
-
-        <meta name="theme-color" content="#14b8a6" />
-
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-
-        <meta
-          name="apple-mobile-web-app-status-bar-style"
-          content="black-translucent"
-        />
-
-        <meta
-          name="apple-mobile-web-app-title"
-          content="On Point Inspect"
-        />
-
-        <link rel="apple-touch-icon" href="/logo.jpg" />
-
-        <link
-          rel="icon"
-          type="image/png"
-          sizes="192x192"
-          href="/icons/icon-192.png"
-        />
-
-        <link
-          rel="icon"
-          type="image/png"
-          sizes="512x512"
-          href="/icons/icon-512.png"
-        />
-      </head>
-
-      <body className="bg-[#050816] text-white">
+      <body className="min-h-screen overflow-x-hidden bg-[#050816] text-white antialiased">
         <Navbar />
 
         <GlobalLiveActivity />
