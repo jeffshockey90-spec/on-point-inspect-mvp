@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function AgreementSignatureForm({
   inspectionId,
@@ -18,6 +18,33 @@ export default function AgreementSignatureForm({
   const [signature, setSignature] = useState("");
   const [accepted, setAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    async function trackAgreementView() {
+      if (!inspectionId) return;
+
+      try {
+        await fetch("/api/track-inspection-view", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            inspection_id: inspectionId,
+            view_type: "agreement_viewed",
+            contact_id: contactId || null,
+            viewer_role: "client",
+            viewer_email: defaultClientEmail || null,
+            path: "/agreement",
+          }),
+        });
+      } catch (error) {
+        console.error("Agreement view tracking error:", error);
+      }
+    }
+
+    trackAgreementView();
+  }, [inspectionId, contactId, defaultClientEmail]);
 
   async function signAgreement() {
     if (!accepted) {
@@ -51,18 +78,12 @@ export default function AgreementSignatureForm({
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(
-          data.error ||
-            "Failed to sign agreement."
-        );
+        throw new Error(data.error || "Failed to sign agreement.");
       }
 
       window.location.reload();
     } catch (error: any) {
-      alert(
-        error.message ||
-          "Failed to sign agreement."
-      );
+      alert(error.message || "Failed to sign agreement.");
     } finally {
       setLoading(false);
     }
@@ -86,9 +107,7 @@ export default function AgreementSignatureForm({
 
           <input
             value={clientName}
-            onChange={(e) =>
-              setClientName(e.target.value)
-            }
+            onChange={(e) => setClientName(e.target.value)}
             className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
           />
         </label>
@@ -100,9 +119,7 @@ export default function AgreementSignatureForm({
 
           <input
             value={clientEmail}
-            onChange={(e) =>
-              setClientEmail(e.target.value)
-            }
+            onChange={(e) => setClientEmail(e.target.value)}
             className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
           />
         </label>
@@ -115,9 +132,7 @@ export default function AgreementSignatureForm({
 
         <input
           value={signature}
-          onChange={(e) =>
-            setSignature(e.target.value)
-          }
+          onChange={(e) => setSignature(e.target.value)}
           placeholder="Type full legal name"
           className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
         />
@@ -127,9 +142,7 @@ export default function AgreementSignatureForm({
         <input
           type="checkbox"
           checked={accepted}
-          onChange={(e) =>
-            setAccepted(e.target.checked)
-          }
+          onChange={(e) => setAccepted(e.target.checked)}
           className="mt-1"
         />
 
