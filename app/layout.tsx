@@ -8,11 +8,13 @@ export const metadata = {
     "Inspection management, reports, agreements, payments, analytics, and client portals for home inspectors.",
   manifest: "/manifest.json",
   applicationName: "On Point Inspect",
+
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
     title: "On Point Inspect",
   },
+
   icons: {
     icon: [
       {
@@ -26,7 +28,8 @@ export const metadata = {
         type: "image/png",
       },
     ],
-    apple: "/logo.jpg",
+
+    apple: "/icons/icon-512.png",
   },
 };
 
