@@ -2,6 +2,7 @@
 
 import dotenv from "dotenv";
 dotenv.config({ path: ".env.local" });
+
 import { createClient } from "@supabase/supabase-js";
 import sharp from "sharp";
 import path from "node:path";
@@ -11,7 +12,9 @@ const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const PHOTO_BUCKET = "inspection-photos";
 
 if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
-  console.error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env.local");
+  console.error(
+    "Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env.local"
+  );
   process.exit(1);
 }
 
@@ -20,41 +23,16 @@ const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
 });
 
 const TABLES = [
-  {
-    name: "photos",
-    idColumn: "id",
-    filePathColumns: ["file_path"],
-    urlColumns: ["public_url"],
-  },
-  {
-    name: "section_reference_photos",
-    idColumn: "id",
-    filePathColumns: ["file_path"],
-    urlColumns: ["public_url"],
-  },
-  {
-    name: "limitation_photos",
-    idColumn: "id",
-    filePathColumns: ["file_path"],
-    urlColumns: ["public_url"],
-  },
-  {
-    name: "equipment_inventory",
-    idColumn: "id",
-    filePathColumns: ["file_path"],
-    urlColumns: ["public_url", "image_url", "signed_image_url"],
-  },
+  { name: "photos", idColumn: "id", filePathColumns: ["file_path"], urlColumns: ["public_url"] },
+  { name: "section_reference_photos", idColumn: "id", filePathColumns: ["file_path"], urlColumns: ["public_url"] },
+  { name: "limitation_photos", idColumn: "id", filePathColumns: ["file_path"], urlColumns: ["public_url"] },
+  { name: "equipment_inventory", idColumn: "id", filePathColumns: ["file_path"], urlColumns: ["public_url", "image_url", "signed_image_url"] },
 ];
 
 function getStoragePathFromUrl(url) {
   if (!url || typeof url !== "string") return "";
-
   let clean = url.trim();
-
-  try {
-    clean = decodeURIComponent(clean);
-  } catch {}
-
+  try { clean = decodeURIComponent(clean); } catch {}
   clean = clean.split("?")[0];
 
   const markers = [
@@ -67,9 +45,7 @@ function getStoragePathFromUrl(url) {
 
   for (const marker of markers) {
     const index = clean.indexOf(marker);
-    if (index !== -1) {
-      return clean.substring(index + marker.length);
-    }
+    if (index !== -1) return clean.substring(index + marker.length);
   }
 
   return "";
@@ -117,12 +93,12 @@ async function createThumbnailBuffer(originalBuffer) {
     .toBuffer();
 }
 
-async function fetchRows(tableName, from, to) {
+async function fetchRows(tableName, limit) {
   const { data, error } = await supabase
     .from(tableName)
     .select("*")
     .is("thumbnail_path", null)
-    .range(from, to);
+    .limit(limit);
 
   if (error) {
     console.error(`[${tableName}] select error:`, error.message);
@@ -134,32 +110,43 @@ async function fetchRows(tableName, from, to) {
 
 async function backfillTable(config) {
   const pageSize = 100;
-  let from = 0;
   let processed = 0;
   let created = 0;
   let skipped = 0;
   let failed = 0;
+  let loopCount = 0;
 
   console.log(`\n=== Backfilling ${config.name} ===`);
 
   while (true) {
-    const rows = await fetchRows(config.name, from, from + pageSize - 1);
+    loopCount += 1;
+
+    const rows = await fetchRows(config.name, pageSize);
     if (!rows.length) break;
 
     for (const row of rows) {
-      processed++;
+      processed += 1;
 
       const originalPath = getOriginalPath(row, config);
 
       if (!originalPath) {
-        skipped++;
+        skipped += 1;
         console.log(`[${config.name}] skipped ${row.id}: no file path`);
         continue;
       }
 
       if (!isImagePath(originalPath)) {
-        skipped++;
+        skipped += 1;
         console.log(`[${config.name}] skipped ${row.id}: not image ${originalPath}`);
+
+        await supabase
+          .from(config.name)
+          .update({
+            thumbnail_path: "SKIPPED_NON_IMAGE",
+            thumbnail_url: null,
+          })
+          .eq(config.idColumn, row[config.idColumn]);
+
         continue;
       }
 
@@ -168,7 +155,7 @@ async function backfillTable(config) {
           await supabase.storage.from(PHOTO_BUCKET).download(originalPath);
 
         if (downloadError || !originalData) {
-          failed++;
+          failed += 1;
           console.error(
             `[${config.name}] download failed ${row.id}:`,
             downloadError?.message || "No file returned"
@@ -189,7 +176,7 @@ async function backfillTable(config) {
           });
 
         if (uploadError) {
-          failed++;
+          failed += 1;
           console.error(`[${config.name}] upload failed ${row.id}:`, uploadError.message);
           continue;
         }
@@ -207,23 +194,28 @@ async function backfillTable(config) {
           .eq(config.idColumn, row[config.idColumn]);
 
         if (updateError) {
-          failed++;
+          failed += 1;
           console.error(`[${config.name}] update failed ${row.id}:`, updateError.message);
           continue;
         }
 
-        created++;
+        created += 1;
 
         if (created % 25 === 0) {
           console.log(`[${config.name}] created ${created} thumbnails...`);
         }
       } catch (error) {
-        failed++;
+        failed += 1;
         console.error(`[${config.name}] failed ${row.id}:`, error?.message || error);
       }
     }
 
-    from += pageSize;
+    if (loopCount > 50) {
+      console.log(
+        `[${config.name}] stopped after 50 passes. Remaining rows are probably failed downloads or invalid files.`
+      );
+      break;
+    }
   }
 
   console.log(
