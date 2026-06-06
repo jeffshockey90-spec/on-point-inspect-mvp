@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { createClient } from "../../utils/supabase/client";
 
 export default function DeleteAccountSection() {
   const [confirmText, setConfirmText] = useState("");
@@ -24,6 +24,8 @@ export default function DeleteAccountSection() {
     setMessage("");
 
     try {
+      const supabase = createClient();
+
       const {
         data: { session },
       } = await supabase.auth.getSession();
@@ -80,6 +82,7 @@ export default function DeleteAccountSection() {
       {message && <p className="mt-3 text-sm text-red-300">{message}</p>}
 
       <button
+        type="button"
         onClick={handleDeleteAccount}
         disabled={loading || confirmText !== "DELETE"}
         className="mt-5 rounded-xl bg-red-600 px-5 py-3 font-semibold text-white hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50"
