@@ -1,90 +1,152 @@
 export default function PrivacyPolicyPage() {
   return (
-    <main className="min-h-screen bg-[#020617] px-4 py-10 text-white md:px-8">
-      <article className="mx-auto max-w-4xl rounded-3xl border border-slate-800 bg-[#0b1220] p-6 shadow-2xl md:p-10">
-        <p className="text-xs font-black uppercase tracking-[0.35em] text-teal-300">
-          On Point Inspect
-        </p>
-
-        <h1 className="mt-4 text-3xl font-black md:text-5xl">
+    <main className="min-h-screen bg-slate-950 text-slate-100 px-6 py-10">
+      <div className="mx-auto max-w-5xl rounded-2xl border border-teal-700/40 bg-slate-900 p-8 shadow-xl">
+        <h1 className="text-4xl font-bold text-teal-300 mb-4">
           Privacy Policy
         </h1>
 
-        <p className="mt-3 text-sm text-slate-400">
-          Last updated: June 2026
+        <p className="text-sm text-slate-400 mb-8">
+          Last Updated: June 5, 2026
         </p>
 
-        <div className="mt-8 space-y-6 leading-7 text-slate-300">
-          <section>
-            <h2 className="text-2xl font-black text-white">Overview</h2>
-            <p className="mt-3">
-              On Point Inspect is an inspection management platform used to create
-              inspections, reports, photos, agreements, invoices, payments, client
-              portals, repair requests, analytics, and related communication records.
-            </p>
-          </section>
+        <div className="space-y-6 text-slate-200 leading-7">
+          <p>
+            On Point Inspect ("Platform", "we", "our", or "us") provides
+            software tools for home inspectors and inspection companies to
+            manage inspections, reports, agreements, payments, scheduling,
+            communications, photos, analytics, and related business operations.
+          </p>
 
-          <section>
-            <h2 className="text-2xl font-black text-white">Information We Collect</h2>
-            <p className="mt-3">
-              We may collect account information, company profile information,
-              inspection details, property information, client and realtor contact
-              information, uploaded photos or videos, report content, agreement
-              signatures, payment status, email delivery events, page view events,
-              and technical information such as browser type, device information,
-              IP address, and usage logs.
-            </p>
-          </section>
+          <h2 className="text-xl font-bold text-teal-300">
+            1. Information We Collect
+          </h2>
 
-          <section>
-            <h2 className="text-2xl font-black text-white">How Information Is Used</h2>
-            <p className="mt-3">
-              Information is used to operate the app, generate and deliver reports,
-              manage agreements, process payments, track report engagement, provide
-              analytics, support inspectors and clients, improve reliability, and
-              protect against unauthorized access.
-            </p>
-          </section>
+          <ul className="list-disc pl-6 space-y-2">
+            <li>Account information</li>
+            <li>Inspection information</li>
+            <li>Property information</li>
+            <li>Client and agent contact information</li>
+            <li>Inspection photos and documents</li>
+            <li>Agreement signatures</li>
+            <li>Invoice and payment status information</li>
+            <li>Email delivery and communication logs</li>
+            <li>Analytics and usage information</li>
+            <li>Device and browser information</li>
+          </ul>
 
-          <section>
-            <h2 className="text-2xl font-black text-white">Payments</h2>
-            <p className="mt-3">
-              Payments are processed through Stripe. On Point Inspect does not store
-              full card numbers. Stripe may collect and process payment and identity
-              information according to Stripe's own policies.
-            </p>
-          </section>
+          <h2 className="text-xl font-bold text-teal-300">
+            2. How We Use Information
+          </h2>
 
-          <section>
-            <h2 className="text-2xl font-black text-white">Data Sharing</h2>
-            <p className="mt-3">
-              Inspection data may be shared with authorized inspectors, clients,
-              agents, transaction coordinators, and other users associated with a
-              specific inspection or company account. We may also use service
-              providers such as Supabase, Stripe, Resend, Vercel, and AI providers
-              to operate the platform.
-            </p>
-          </section>
+          <p>
+            Information may be used to operate and improve the Platform,
+            generate reports, deliver agreements, process payments, manage
+            scheduling, generate analytics, provide support, and comply with
+            legal obligations.
+          </p>
 
-          <section>
-            <h2 className="text-2xl font-black text-white">Security</h2>
-            <p className="mt-3">
-              The platform uses authentication, company isolation, role-based access
-              controls, private storage, and signed image URLs to help protect data.
-              No system can guarantee absolute security, but reasonable safeguards
-              are used to reduce risk.
-            </p>
-          </section>
+          <h2 className="text-xl font-bold text-teal-300">
+            3. Payment Processing
+          </h2>
 
-          <section>
-            <h2 className="text-2xl font-black text-white">Contact</h2>
-            <p className="mt-3">
-              Questions about this policy may be sent to On Point Home Inspections
-              through the contact information provided by the company using the app.
-            </p>
-          </section>
+          <p>
+            Payments are processed through Stripe. We do not store full payment
+            card information.
+          </p>
+
+          <h2 className="text-xl font-bold text-teal-300">
+            4. Data Sharing
+          </h2>
+
+          <p>
+            We do not sell personal information. Information may only be shared
+            with authorized users, service providers, payment processors, email
+            providers, or legal authorities when required by law.
+          </p>
+
+          <h2 className="text-xl font-bold text-teal-300">
+            5. Data Security
+          </h2>
+
+          <p>
+            We implement reasonable technical and administrative safeguards to
+            protect information. However, no system can guarantee absolute
+            security.
+          </p>
+
+          <h2 className="text-xl font-bold text-teal-300">
+            6. Account Privacy
+          </h2>
+
+          <p>
+            The Platform is designed so that each inspector or company accesses
+            only its own inspections, reports, contacts, agreements, payments,
+            and related records.
+          </p>
+
+          <h2 className="text-xl font-bold text-teal-300">
+            7. Data Retention
+          </h2>
+
+          <p>
+            Information may be retained as necessary to provide services,
+            maintain records, resolve disputes, enforce agreements, and comply
+            with legal obligations.
+          </p>
+
+          <h2 className="text-xl font-bold text-teal-300">
+            8. Account Deletion
+          </h2>
+
+          <p>
+            Users may request account deletion through the Platform. Certain
+            records may be retained where required by law, tax regulations,
+            fraud prevention, payment processing requirements, or dispute
+            resolution obligations.
+          </p>
+
+          <h2 className="text-xl font-bold text-teal-300">
+            9. Third-Party Services
+          </h2>
+
+          <p>
+            The Platform may utilize Stripe, cloud hosting providers, email
+            delivery services, analytics providers, mapping services, and AI
+            providers. We are not responsible for the privacy practices of
+            third-party services.
+          </p>
+
+          <h2 className="text-xl font-bold text-teal-300">
+            10. Children
+          </h2>
+
+          <p>
+            The Platform is not intended for children under 13 years of age.
+          </p>
+
+          <h2 className="text-xl font-bold text-teal-300">
+            11. Changes
+          </h2>
+
+          <p>
+            We may modify this Privacy Policy at any time. Continued use of the
+            Platform constitutes acceptance of any updates.
+          </p>
+
+          <h2 className="text-xl font-bold text-teal-300">
+            12. Contact
+          </h2>
+
+          <p>
+            On Point Home Inspections LLC
+            <br />
+            support@onpointhomeinspect.com
+            <br />
+            onpointhomeinspect.com
+          </p>
         </div>
-      </article>
+      </div>
     </main>
   );
 }

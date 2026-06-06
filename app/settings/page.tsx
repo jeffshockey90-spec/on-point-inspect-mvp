@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "../../utils/supabase/server";
+import DeleteAccountSection from "./DeleteAccountSection";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -467,6 +468,8 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
             </button>
           </div>
         </form>
+
+        <DeleteAccountSection />
       </div>
     </main>
   );
