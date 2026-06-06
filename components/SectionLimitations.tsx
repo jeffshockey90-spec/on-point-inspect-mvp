@@ -747,26 +747,6 @@ export default function SectionLimitations({
                 {item.custom_text} ×
               </button>
             ))}
-
-            {saved
-              .filter(
-                (item) =>
-                  item.label !== "AI Limitation Note" &&
-                  !item.custom_text &&
-                  item.limitation_comment
-              )
-              .map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => removeLimitation(item.id)}
-                  className="rounded-full border border-cyan-500/60 bg-cyan-500/10 px-3 py-1 text-sm font-bold text-cyan-200 hover:bg-cyan-500/20"
-                  title="Click to remove"
-                >
-                  {item.label} ×
-                </button>
-              ))}
-
             {aiSaved && (
               <button
                 type="button"
