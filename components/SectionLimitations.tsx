@@ -137,6 +137,14 @@ type LimitationPhoto = {
   signed_url?: string | null;
 };
 
+type LimitationTemplate = {
+  id: string;
+  inspector_id: string;
+  title: string;
+  limitation_text: string;
+  created_at?: string;
+};
+
 export default function SectionLimitations({
   inspectionId,
   section,
@@ -146,6 +154,7 @@ export default function SectionLimitations({
 }) {
   const [open, setOpen] = useState(false);
   const [saved, setSaved] = useState<LimitationRow[]>([]);
+  const [templates, setTemplates] = useState<LimitationTemplate[]>([]);
   const [photosByLimitationId, setPhotosByLimitationId] = useState<
     Record<string, LimitationPhoto[]>
   >({});
@@ -201,6 +210,26 @@ export default function SectionLimitations({
 
     loadLimitations();
   }, [inspectionId, section]);
+
+  useEffect(() => {
+    loadTemplates();
+  }, []);
+
+  async function loadTemplates() {
+    try {
+      const res = await fetch("/api/get-limitation-templates", {
+        method: "GET",
+        cache: "no-store",
+      });
+
+      if (!res.ok) return;
+
+      const data = await res.json();
+      setTemplates(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Failed to load limitation templates:", error);
+    }
+  }
 
   async function loadLimitationPhotos(limitationIds: string[]) {
     const { data, error } = await supabase
@@ -258,6 +287,16 @@ export default function SectionLimitations({
     );
   }
 
+  function isTemplateSelected(template: LimitationTemplate) {
+    return saved.some(
+      (item) =>
+        item.label === template.title &&
+        !item.custom_text &&
+        String(item.limitation_comment || "").trim() ===
+          String(template.limitation_text || "").trim()
+    );
+  }
+
   async function toggleLimitation(label: string) {
     if (!inspectionId || !section || saving) return;
     if (label === "Other") return;
@@ -301,6 +340,59 @@ export default function SectionLimitations({
       if (data) setSaved((prev) => [...prev, data]);
     } catch (error: any) {
       alert(error?.message || "Failed to save limitation.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function toggleTemplate(template: LimitationTemplate) {
+    if (!inspectionId || !section || saving) return;
+
+    setSaving(true);
+
+    try {
+      const existing = saved.find(
+        (item) =>
+          item.label === template.title &&
+          !item.custom_text &&
+          String(item.limitation_comment || "").trim() ===
+            String(template.limitation_text || "").trim()
+      );
+
+      if (existing) {
+        const { error } = await supabase
+          .from("section_limitations")
+          .delete()
+          .eq("id", existing.id);
+
+        if (error) throw error;
+
+        setSaved((prev) => prev.filter((item) => item.id !== existing.id));
+        setPhotosByLimitationId((prev) => {
+          const next = { ...prev };
+          delete next[existing.id];
+          return next;
+        });
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("section_limitations")
+        .insert({
+          inspection_id: inspectionId,
+          section,
+          label: template.title,
+          limitation_comment: template.limitation_text,
+          custom_text: null,
+        })
+        .select("*")
+        .single();
+
+      if (error) throw error;
+
+      if (data) setSaved((prev) => [...prev, data]);
+    } catch (error: any) {
+      alert(error?.message || "Failed to use saved limitation template.");
     } finally {
       setSaving(false);
     }
@@ -514,7 +606,7 @@ export default function SectionLimitations({
           .update({
             ai_notes: cleanNotes,
             limitation_comment: cleanComment,
-            custom_text: cleanComment,
+            custom_text: null,
           })
           .eq("id", aiSaved.id)
           .select("*")
@@ -534,7 +626,7 @@ export default function SectionLimitations({
             label: "AI Limitation Note",
             ai_notes: cleanNotes,
             limitation_comment: cleanComment,
-            custom_text: cleanComment,
+            custom_text: null,
           })
           .select("*")
           .single();
@@ -547,6 +639,57 @@ export default function SectionLimitations({
       alert("Limitation note saved.");
     } catch (error: any) {
       alert(error?.message || "Failed to save AI limitation note.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function saveGeneratedCommentToLibrary() {
+    const cleanComment = generatedComment.trim();
+
+    if (!cleanComment) {
+      alert("Generate or enter a limitation comment first.");
+      return;
+    }
+
+    const title = window.prompt(
+      "Template title to show in the checkbox list:",
+      section ? `${section} Limitation` : "Saved Limitation"
+    );
+
+    const cleanTitle = String(title || "").trim();
+
+    if (!cleanTitle) return;
+
+    setSaving(true);
+
+    try {
+      const res = await fetch("/api/save-limitation-template", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: cleanTitle,
+          limitationText: cleanComment,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to save limitation template.");
+      }
+
+      if (data.template) {
+        setTemplates((prev) => [data.template, ...prev]);
+      } else {
+        await loadTemplates();
+      }
+
+      alert("Limitation saved to library.");
+    } catch (error: any) {
+      alert(error?.message || "Failed to save limitation template.");
     } finally {
       setSaving(false);
     }
@@ -605,6 +748,25 @@ export default function SectionLimitations({
               </button>
             ))}
 
+            {saved
+              .filter(
+                (item) =>
+                  item.label !== "AI Limitation Note" &&
+                  !item.custom_text &&
+                  item.limitation_comment
+              )
+              .map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => removeLimitation(item.id)}
+                  className="rounded-full border border-cyan-500/60 bg-cyan-500/10 px-3 py-1 text-sm font-bold text-cyan-200 hover:bg-cyan-500/20"
+                  title="Click to remove"
+                >
+                  {item.label} ×
+                </button>
+              ))}
+
             {aiSaved && (
               <button
                 type="button"
@@ -661,6 +823,51 @@ export default function SectionLimitations({
             </div>
           </div>
 
+          {templates.length > 0 && (
+            <div className="rounded-xl border border-cyan-500/40 bg-cyan-500/10 p-4">
+              <p className="mb-3 text-sm font-bold uppercase tracking-wide text-cyan-300">
+                Saved Limitation Templates
+              </p>
+
+              <p className="mb-4 text-sm text-slate-300">
+                Select a title here. The full saved limitation text is inserted into the report.
+              </p>
+
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {templates.map((template) => {
+                  const selected = isTemplateSelected(template);
+
+                  return (
+                    <button
+                      key={template.id}
+                      type="button"
+                      onClick={() => toggleTemplate(template)}
+                      disabled={saving}
+                      className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition ${
+                        selected
+                          ? "border-cyan-300 bg-cyan-500/20 text-cyan-100"
+                          : "border-slate-600 bg-[#020617] text-white hover:border-cyan-400 hover:bg-cyan-500/10"
+                      } disabled:cursor-not-allowed disabled:opacity-60`}
+                      title={template.limitation_text}
+                    >
+                      <span
+                        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-2 ${
+                          selected
+                            ? "border-cyan-200 bg-cyan-300 text-slate-950"
+                            : "border-white"
+                        }`}
+                      >
+                        {selected ? "✓" : ""}
+                      </span>
+
+                      <span className="font-bold">{template.title}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {selectedLimitations.length > 0 && (
             <div className="rounded-xl border border-slate-700 bg-slate-950/50 p-4">
               <p className="mb-3 text-sm font-bold uppercase tracking-wide text-slate-400">
@@ -687,7 +894,7 @@ export default function SectionLimitations({
                           <input
                             type="file"
                             accept="image/*"
-                                                        disabled={uploadingForId === limitation.id}
+                            disabled={uploadingForId === limitation.id}
                             onChange={(event) => {
                               const file = event.target.files?.[0];
                               uploadLimitationPhoto(limitation, file);
@@ -794,6 +1001,15 @@ export default function SectionLimitations({
                 className="rounded-xl border border-teal-500 px-5 py-3 font-black text-teal-300 hover:bg-teal-500/10 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Save AI Note
+              </button>
+
+              <button
+                type="button"
+                onClick={saveGeneratedCommentToLibrary}
+                disabled={saving || !generatedComment.trim()}
+                className="rounded-xl border border-cyan-500 px-5 py-3 font-black text-cyan-300 hover:bg-cyan-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Save To Library
               </button>
             </div>
 
