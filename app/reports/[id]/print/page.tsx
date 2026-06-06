@@ -575,10 +575,9 @@ export default async function PrintableReportPage({ params }: PageProps) {
                       <img
                         src={equipmentImage}
                         alt={item.equipment_type || "Equipment"}
-                        decoding="async"
                         loading="lazy"
-                              decoding="async"
-                              fetchPriority="low"
+                        decoding="async"
+                        fetchPriority="low"
                               className="mb-4 max-h-[260px] w-full rounded-xl border border-slate-300 object-contain"
                       />
                     )}
@@ -747,7 +746,6 @@ export default async function PrintableReportPage({ params }: PageProps) {
                             <img
                               src={photoUrl}
                               alt={photo.caption || `Section reference photo ${index + 1}`}
-                              decoding="async"
                               loading="lazy"
                               decoding="async"
                               fetchPriority="low"
