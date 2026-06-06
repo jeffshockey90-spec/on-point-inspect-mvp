@@ -119,10 +119,17 @@ export default function SectionReferencePhotos({
 
     const withSignedUrls = await Promise.all(
       (data || []).map(async (photo: ReferencePhoto) => {
+        if (photo.public_url || photo.signed_url) {
+          return {
+            ...photo,
+            signed_url: photo.public_url || photo.signed_url || "",
+          };
+        }
+
         if (!photo.file_path) {
           return {
             ...photo,
-            signed_url: photo.public_url || "",
+            signed_url: "",
           };
         }
 
@@ -132,7 +139,7 @@ export default function SectionReferencePhotos({
 
         return {
           ...photo,
-          signed_url: signedData?.signedUrl || photo.public_url || "",
+          signed_url: signedData?.signedUrl || "",
         };
       })
     );
@@ -367,7 +374,12 @@ export default function SectionReferencePhotos({
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {photos.map((photo, index) => {
-                const photoUrl = photo.signed_url || photo.public_url || "";
+                const photoUrl =
+                  photo.thumbnail_url ||
+                  (photo as any).signed_thumbnail_url ||
+                  photo.public_url ||
+                  photo.signed_url ||
+                  "";
                 const isDeleting = deletingId === photo.id;
 
                 return (
@@ -381,9 +393,9 @@ export default function SectionReferencePhotos({
                           src={photoUrl}
                           alt={photo.caption || `Reference photo ${index + 1}`}
                           loading="lazy"
-                          decoding="async"
-                          fetchPriority="low"
-                          className="h-48 w-full object-cover transition hover:scale-[1.02]"
+                decoding="async"
+                fetchPriority="low"
+                className="h-48 w-full object-cover transition hover:scale-[1.02]"
                         />
                       </a>
                     ) : (

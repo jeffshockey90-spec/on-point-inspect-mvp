@@ -148,10 +148,12 @@ function getPhotoStoragePath(photo: any) {
 
 function getFallbackPhotoUrl(photo: any) {
   return (
-    photo?.signed_url ||
+    photo?.thumbnail_url ||
+    photo?.signed_thumbnail_url ||
     photo?.public_url ||
     photo?.image_url ||
     photo?.photo_url ||
+    photo?.signed_url ||
     ""
   );
 }
@@ -291,10 +293,12 @@ function getFindingSummary(finding: any) {
 
 function getMediaUrl(media: any) {
   return (
-    media?.signed_url ||
+    media?.thumbnail_url ||
+    media?.signed_thumbnail_url ||
     media?.public_url ||
     media?.image_url ||
     media?.photo_url ||
+    media?.signed_url ||
     media?.url ||
     ""
   );
@@ -514,10 +518,12 @@ export default async function PublicSharePage({
   }
 
   const photoStoragePaths = (photosRaw || [])
+    .filter((photo: any) => !getFallbackPhotoUrl(photo))
     .map((photo: any) => getPhotoStoragePath(photo))
     .filter(Boolean);
 
   const oldFindingImagePaths = (findingsRaw || [])
+    .filter((finding: any) => !finding.signed_image_url && !finding.public_image_url)
     .map((finding: any) => getStoragePathFromUrl(finding.image_url))
     .filter(Boolean);
 
@@ -529,9 +535,11 @@ export default async function PublicSharePage({
   const photosWithUrls = (photosRaw || []).map((photo: any) => {
     const path = getPhotoStoragePath(photo);
 
+    const fastUrl = getFallbackPhotoUrl(photo);
+
     return {
       ...photo,
-      signed_url: (path && signedUrlMap[path]) || getFallbackPhotoUrl(photo),
+      signed_url: fastUrl || (path && signedUrlMap[path]) || "",
     };
   });
 
@@ -586,6 +594,7 @@ export default async function PublicSharePage({
       : { data: [] };
 
   const limitationPhotoPaths = (limitationPhotosRaw || [])
+    .filter((photo: any) => !photo.public_url && !photo.signed_url)
     .map((photo: any) => photo.file_path)
     .filter(Boolean);
 
@@ -594,8 +603,9 @@ export default async function PublicSharePage({
   const limitationPhotosWithUrls = (limitationPhotosRaw || []).map((photo: any) => ({
     ...photo,
     signed_url:
-      (photo.file_path && limitationSignedUrlMap[photo.file_path]) ||
       photo.public_url ||
+      photo.signed_url ||
+      (photo.file_path && limitationSignedUrlMap[photo.file_path]) ||
       "",
   }));
 
@@ -622,6 +632,7 @@ export default async function PublicSharePage({
     .order("created_at", { ascending: true });
 
   const referencePhotoPaths = (sectionReferencePhotosRaw || [])
+    .filter((photo: any) => !photo.public_url && !photo.signed_url)
     .map((photo: any) => photo.file_path)
     .filter(Boolean);
 
@@ -632,8 +643,9 @@ export default async function PublicSharePage({
       ...photo,
       section: normalizeSection(photo.section),
       signed_url:
-        (photo.file_path && referenceSignedUrlMap[photo.file_path]) ||
         photo.public_url ||
+        photo.signed_url ||
+        (photo.file_path && referenceSignedUrlMap[photo.file_path]) ||
         "",
     })
   );
@@ -665,6 +677,7 @@ export default async function PublicSharePage({
   }
 
   const equipmentPhotoPaths = (equipmentInventoryRaw || [])
+    .filter((item: any) => !item.image_url && !item.signed_image_url && !item.public_url)
     .map((item: any) => item.file_path)
     .filter(Boolean);
 
@@ -673,8 +686,10 @@ export default async function PublicSharePage({
   const equipmentInventory = (equipmentInventoryRaw || []).map((item: any) => ({
     ...item,
     signed_image_url:
-      (item.file_path && equipmentSignedUrlMap[item.file_path]) ||
       item.image_url ||
+      item.public_url ||
+      item.signed_image_url ||
+      (item.file_path && equipmentSignedUrlMap[item.file_path]) ||
       "",
   }));
 
@@ -985,8 +1000,9 @@ export default async function PublicSharePage({
                           src={equipmentImage}
                           alt={item.equipment_type || "Equipment"}
                           loading="lazy"
-                          decoding="async"
-                          className="mb-4 max-h-56 w-full rounded-xl border border-slate-700 object-contain"
+                decoding="async"
+                fetchPriority="low"
+                className="mb-4 max-h-56 w-full rounded-xl border border-slate-700 object-contain"
                         />
                       )}
 
@@ -1225,8 +1241,9 @@ export default async function PublicSharePage({
                                     src={photo.signed_url || photo.public_url}
                                     alt="Limitation photo"
                                     loading="lazy"
-                                    decoding="async"
-                                    className="max-h-[260px] w-full rounded-xl border border-slate-700 object-cover"
+                decoding="async"
+                fetchPriority="low"
+                className="max-h-[260px] w-full rounded-xl border border-slate-700 object-cover"
                                   />
                                 ))}
                               </div>
@@ -1341,8 +1358,9 @@ export default async function PublicSharePage({
                                     src={photoUrl}
                                     alt={photo.caption || `Section reference photo ${index + 1}`}
                                     loading="lazy"
-                                    decoding="async"
-                                    className="max-h-[280px] w-full object-cover"
+                decoding="async"
+                fetchPriority="low"
+                className="max-h-[280px] w-full object-cover"
                                   />
 
                                   {photo.caption && (
@@ -1396,8 +1414,9 @@ export default async function PublicSharePage({
                                             src={image}
                                             alt={title}
                                             loading="lazy"
-                                            decoding="async"
-                                            className="h-full w-full object-cover"
+                decoding="async"
+                fetchPriority="low"
+                className="h-full w-full object-cover"
                                           />
                                         )
                                       ) : (
@@ -1452,8 +1471,9 @@ export default async function PublicSharePage({
                                         src={image}
                                         alt="Inspection finding"
                                         loading="lazy"
-                                        decoding="async"
-                                        className="mb-4 max-h-[360px] w-full rounded-xl border border-slate-700 object-contain"
+                decoding="async"
+                fetchPriority="low"
+                className="mb-4 max-h-[360px] w-full rounded-xl border border-slate-700 object-contain"
                                       />
                                     )
                                   )}
@@ -1524,8 +1544,9 @@ export default async function PublicSharePage({
                                         src={image}
                                         alt="Inspection finding"
                                         loading="lazy"
-                                        decoding="async"
-                                        className="mb-5 max-h-[520px] w-full rounded-xl border border-slate-700 object-contain"
+                decoding="async"
+                fetchPriority="low"
+                className="mb-5 max-h-[520px] w-full rounded-xl border border-slate-700 object-contain"
                                       />
                                     )
                                   )}

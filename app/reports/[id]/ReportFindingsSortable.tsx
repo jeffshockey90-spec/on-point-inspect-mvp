@@ -326,10 +326,12 @@ function getSeverityStyle(severity: string | null | undefined) {
 
 function getPhotoUrl(photo: any) {
   return (
-    photo?.signed_url ||
+    photo?.thumbnail_url ||
+    photo?.signed_thumbnail_url ||
     photo?.public_url ||
     photo?.image_url ||
     photo?.photo_url ||
+    photo?.signed_url ||
     photo?.url ||
     ""
   );
@@ -730,9 +732,9 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
                         src={url}
                         alt={`Finding photo ${index + 1}`}
                         loading="lazy"
-                        decoding="async"
-                        fetchPriority="low"
-                        className={
+                decoding="async"
+                fetchPriority="low"
+                className={
                           photos.length === 1
                             ? "max-h-[650px] w-full object-contain"
                             : "h-56 w-full object-contain transition hover:scale-[1.02]"
@@ -1004,9 +1006,9 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
                             src={url}
                             alt={`Report photo ${index + 1}`}
                             loading="lazy"
-                            decoding="async"
-                            fetchPriority="low"
-                            className="h-36 w-full object-contain"
+                decoding="async"
+                fetchPriority="low"
+                className="h-36 w-full object-contain"
                           />
                         )
                       ) : (
