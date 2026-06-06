@@ -303,6 +303,16 @@ function getMediaUrl(media: any) {
   );
 }
 
+function getMediaPreviewUrl(media: any) {
+  if (!media) return "";
+
+  return (
+    media?.signed_thumbnail_url ||
+    media?.thumbnail_url ||
+    getMediaUrl(media)
+  );
+}
+
 function getFindingPrimaryMedia(finding: any) {
   const photos = Array.isArray(finding?.photos) ? finding.photos : [];
 
@@ -520,6 +530,10 @@ export default async function PublicSharePage({
     .map((photo: any) => getPhotoStoragePath(photo))
     .filter(Boolean);
 
+  const photoThumbnailPaths = (photosRaw || [])
+    .map((photo: any) => photo.thumbnail_path)
+    .filter(Boolean);
+
   const oldFindingImagePaths = (findingsRaw || [])
     .map((finding: any) => getStoragePathFromUrl(finding.image_url))
     .filter(Boolean);
@@ -529,6 +543,8 @@ export default async function PublicSharePage({
     ...oldFindingImagePaths,
   ]);
 
+  const signedThumbnailUrlMap = await createSignedUrlMap(photoThumbnailPaths);
+
   const photosWithUrls = (photosRaw || []).map((photo: any) => {
     const path = getPhotoStoragePath(photo);
 
@@ -537,6 +553,10 @@ export default async function PublicSharePage({
     return {
       ...photo,
       signed_url: (path && signedUrlMap[path]) || fastUrl || "",
+      signed_thumbnail_url:
+        (photo.thumbnail_path && signedThumbnailUrlMap[photo.thumbnail_path]) ||
+        photo.thumbnail_url ||
+        "",
     };
   });
 
@@ -594,7 +614,12 @@ export default async function PublicSharePage({
     .map((photo: any) => photo.file_path)
     .filter(Boolean);
 
+  const limitationThumbnailPaths = (limitationPhotosRaw || [])
+    .map((photo: any) => photo.thumbnail_path)
+    .filter(Boolean);
+
   const limitationSignedUrlMap = await createSignedUrlMap(limitationPhotoPaths);
+  const limitationThumbnailSignedUrlMap = await createSignedUrlMap(limitationThumbnailPaths);
 
   const limitationPhotosWithUrls = (limitationPhotosRaw || []).map((photo: any) => ({
     ...photo,
@@ -602,6 +627,10 @@ export default async function PublicSharePage({
       (photo.file_path && limitationSignedUrlMap[photo.file_path]) ||
       photo.signed_url ||
       photo.public_url ||
+      "",
+    signed_thumbnail_url:
+      (photo.thumbnail_path && limitationThumbnailSignedUrlMap[photo.thumbnail_path]) ||
+      photo.thumbnail_url ||
       "",
   }));
 
@@ -631,7 +660,12 @@ export default async function PublicSharePage({
     .map((photo: any) => photo.file_path)
     .filter(Boolean);
 
+  const referenceThumbnailPaths = (sectionReferencePhotosRaw || [])
+    .map((photo: any) => photo.thumbnail_path)
+    .filter(Boolean);
+
   const referenceSignedUrlMap = await createSignedUrlMap(referencePhotoPaths);
+  const referenceThumbnailSignedUrlMap = await createSignedUrlMap(referenceThumbnailPaths);
 
   const sectionReferencePhotos = (sectionReferencePhotosRaw || []).map(
     (photo: any) => ({
@@ -641,6 +675,10 @@ export default async function PublicSharePage({
         (photo.file_path && referenceSignedUrlMap[photo.file_path]) ||
         photo.signed_url ||
         photo.public_url ||
+        "",
+      signed_thumbnail_url:
+        (photo.thumbnail_path && referenceThumbnailSignedUrlMap[photo.thumbnail_path]) ||
+        photo.thumbnail_url ||
         "",
     })
   );
@@ -675,7 +713,12 @@ export default async function PublicSharePage({
     .map((item: any) => item.file_path)
     .filter(Boolean);
 
+  const equipmentThumbnailPaths = (equipmentInventoryRaw || [])
+    .map((item: any) => item.thumbnail_path)
+    .filter(Boolean);
+
   const equipmentSignedUrlMap = await createSignedUrlMap(equipmentPhotoPaths);
+  const equipmentThumbnailSignedUrlMap = await createSignedUrlMap(equipmentThumbnailPaths);
 
   const equipmentInventory = (equipmentInventoryRaw || []).map((item: any) => ({
     ...item,
@@ -684,6 +727,10 @@ export default async function PublicSharePage({
       item.signed_image_url ||
       item.image_url ||
       item.public_url ||
+      "",
+    signed_thumbnail_url:
+      (item.thumbnail_path && equipmentThumbnailSignedUrlMap[item.thumbnail_path]) ||
+      item.thumbnail_url ||
       "",
   }));
 
@@ -982,7 +1029,7 @@ export default async function PublicSharePage({
               <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {equipmentInventory.map((item: any) => {
                   const equipmentImage =
-                    item.signed_image_url || item.image_url || item.public_url || "";
+                    item.signed_thumbnail_url || item.thumbnail_url || item.signed_image_url || item.image_url || item.public_url || "";
 
                   return (
                     <div
@@ -1339,7 +1386,7 @@ export default async function PublicSharePage({
 
                           <div className="grid gap-4 md:grid-cols-3">
                             {referencePhotosBySection[group.section].map((photo: any, index: number) => {
-                              const photoUrl = photo.signed_url || photo.public_url || photo.image_url || photo.photo_url || "";
+                              const photoUrl = photo.signed_thumbnail_url || photo.thumbnail_url || photo.signed_url || photo.public_url || photo.image_url || photo.photo_url || "";
 
                               if (!photoUrl) return null;
 
@@ -1379,6 +1426,7 @@ export default async function PublicSharePage({
                         {group.findings.map((finding: any) => {
                           const primaryMedia = getFindingPrimaryMedia(finding);
                           const image = getMediaUrl(primaryMedia);
+                          const previewImage = getMediaPreviewUrl(primaryMedia);
                           const title = getFindingTitle(finding);
                           const summary = getFindingSummary(finding);
                           const isVideo = isVideoMedia(primaryMedia || finding, image);
@@ -1405,7 +1453,7 @@ export default async function PublicSharePage({
                                           </div>
                                         ) : (
                                           <img
-                                            src={image}
+                                            src={previewImage || image}
                                             alt={title}
                                             loading="lazy"
                 decoding="async"

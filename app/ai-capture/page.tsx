@@ -163,26 +163,29 @@ function AICaptureContent() {
       let imageUrl = "";
       let filePath = "";
 
-      if (file) {
-        const uploadFile = file.type.startsWith("image/")
-          ? await compressImageForUpload(file)
-          : file;
+      let thumbnailUrl = "";
+      let thumbnailPath = "";
 
-        const fileExt = uploadFile.type.startsWith("image/")
-          ? "jpg"
-          : uploadFile.name.split(".").pop() || "mp4";
+      if (file) {
+        const isImageUpload = file.type.startsWith("image/");
+        const uploadFile = isImageUpload ? await createFullImageForUpload(file) : file;
+        const thumbnailFile = isImageUpload ? await createThumbnailForUpload(file) : null;
+
+        const fileExt = isImageUpload ? "jpg" : uploadFile.name.split(".").pop() || "mp4";
 
         const safeName = uploadFile.name
           .replace(/\.[^/.]+$/, "")
           .replace(/[^a-zA-Z0-9-_]/g, "-")
           .slice(0, 40);
 
-        filePath = `${inspectionId}/${Date.now()}-${crypto.randomUUID()}-${safeName}.${fileExt}`;
+        const baseName = `${Date.now()}-${crypto.randomUUID()}-${safeName}`;
+
+        filePath = `${inspectionId}/${baseName}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
           .from("inspection-photos")
           .upload(filePath, uploadFile, {
-            cacheControl: "3600",
+            cacheControl: "31536000",
             upsert: false,
             contentType: uploadFile.type || undefined,
           });
@@ -194,6 +197,26 @@ function AICaptureContent() {
           .getPublicUrl(filePath);
 
         imageUrl = data.publicUrl;
+
+        if (thumbnailFile) {
+          thumbnailPath = `${inspectionId}/thumbnails/${baseName}-thumb.jpg`;
+
+          const { error: thumbnailUploadError } = await supabase.storage
+            .from("inspection-photos")
+            .upload(thumbnailPath, thumbnailFile, {
+              cacheControl: "31536000",
+              upsert: false,
+              contentType: "image/jpeg",
+            });
+
+          if (!thumbnailUploadError) {
+            const { data: thumbnailData } = supabase.storage
+              .from("inspection-photos")
+              .getPublicUrl(thumbnailPath);
+
+            thumbnailUrl = thumbnailData.publicUrl;
+          }
+        }
       }
 
       const fullRecommendation = [
@@ -233,6 +256,8 @@ function AICaptureContent() {
             finding_id: findingData.id,
             public_url: imageUrl,
             file_path: filePath,
+            thumbnail_url: thumbnailUrl || null,
+            thumbnail_path: thumbnailPath || null,
           });
 
         if (photoError) throw photoError;
@@ -527,14 +552,19 @@ function TextArea({
 }
 
 
-async function compressImageForUpload(file: File): Promise<File> {
+
+async function createImageVariantForUpload(
+  file: File,
+  maxDimension: number,
+  quality: number,
+  suffix: string
+): Promise<File> {
   if (!file.type.startsWith("image/")) return file;
 
   try {
     const originalDataUrl = await readFileAsDataUrl(file);
     const image = await loadImageFromDataUrl(originalDataUrl);
 
-    const maxDimension = 1800;
     const originalWidth = image.naturalWidth || image.width;
     const originalHeight = image.naturalHeight || image.height;
 
@@ -552,13 +582,13 @@ async function compressImageForUpload(file: File): Promise<File> {
     ctx.drawImage(image, 0, 0, width, height);
 
     const blob = await new Promise<Blob | null>((resolve) => {
-      canvas.toBlob(resolve, "image/jpeg", 0.78);
+      canvas.toBlob(resolve, "image/jpeg", quality);
     });
 
     if (!blob) return file;
 
     const originalName = file.name.replace(/\.[^/.]+$/, "");
-    return new File([blob], `${originalName}-optimized.jpg`, {
+    return new File([blob], `${originalName}-${suffix}.jpg`, {
       type: "image/jpeg",
       lastModified: Date.now(),
     });
@@ -566,6 +596,16 @@ async function compressImageForUpload(file: File): Promise<File> {
     return file;
   }
 }
+
+async function createFullImageForUpload(file: File): Promise<File> {
+  return createImageVariantForUpload(file, 1800, 0.8, "optimized");
+}
+
+async function createThumbnailForUpload(file: File): Promise<File> {
+  return createImageVariantForUpload(file, 480, 0.7, "thumb");
+}
+
+
 
 async function fileToBase64(file: File): Promise<string> {
   if (!file.type.startsWith("image/")) {

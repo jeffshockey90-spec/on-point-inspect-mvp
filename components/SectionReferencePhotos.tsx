@@ -48,14 +48,19 @@ async function loadImageFromDataUrl(dataUrl: string): Promise<HTMLImageElement> 
   });
 }
 
-async function compressImageForUpload(file: File): Promise<File> {
+
+async function createImageVariantForUpload(
+  file: File,
+  maxDimension: number,
+  quality: number,
+  suffix: string
+): Promise<File> {
   if (!file.type.startsWith("image/")) return file;
 
   try {
     const originalDataUrl = await readFileAsDataUrl(file);
     const image = await loadImageFromDataUrl(originalDataUrl);
 
-    const maxDimension = 1800;
     const originalWidth = image.naturalWidth || image.width;
     const originalHeight = image.naturalHeight || image.height;
 
@@ -73,13 +78,13 @@ async function compressImageForUpload(file: File): Promise<File> {
     ctx.drawImage(image, 0, 0, width, height);
 
     const blob = await new Promise<Blob | null>((resolve) => {
-      canvas.toBlob(resolve, "image/jpeg", 0.78);
+      canvas.toBlob(resolve, "image/jpeg", quality);
     });
 
     if (!blob) return file;
 
     const originalName = file.name.replace(/\.[^/.]+$/, "");
-    return new File([blob], `${originalName}-optimized.jpg`, {
+    return new File([blob], `${originalName}-${suffix}.jpg`, {
       type: "image/jpeg",
       lastModified: Date.now(),
     });
@@ -87,6 +92,16 @@ async function compressImageForUpload(file: File): Promise<File> {
     return file;
   }
 }
+
+async function createFullImageForUpload(file: File): Promise<File> {
+  return createImageVariantForUpload(file, 1800, 0.8, "optimized");
+}
+
+async function createThumbnailForUpload(file: File): Promise<File> {
+  return createImageVariantForUpload(file, 480, 0.7, "thumb");
+}
+
+
 
 export default function SectionReferencePhotos({
   inspectionId,
@@ -133,9 +148,20 @@ export default function SectionReferencePhotos({
           .from(PHOTO_BUCKET)
           .createSignedUrl(photo.file_path, 60 * 60 * 24 * 7);
 
+        let signedThumbnailUrl = photo.thumbnail_url || "";
+
+        if (photo.thumbnail_path) {
+          const { data: signedThumbnailData } = await supabase.storage
+            .from(PHOTO_BUCKET)
+            .createSignedUrl(photo.thumbnail_path, 60 * 60 * 24 * 7);
+
+          signedThumbnailUrl = signedThumbnailData?.signedUrl || photo.thumbnail_url || "";
+        }
+
         return {
           ...photo,
           signed_url: signedData?.signedUrl || photo.signed_url || photo.public_url || "",
+          signed_thumbnail_url: signedThumbnailUrl,
         };
       })
     );
@@ -154,7 +180,8 @@ export default function SectionReferencePhotos({
     setUploading(true);
 
     try {
-      const uploadFile = await compressImageForUpload(file);
+      const uploadFile = await createFullImageForUpload(file);
+      const thumbnailFile = await createThumbnailForUpload(file);
       const fileExt = "jpg";
       const safeSection = section.replace(/[^a-zA-Z0-9-_]/g, "-").slice(0, 50);
       const safeName = uploadFile.name
@@ -162,12 +189,14 @@ export default function SectionReferencePhotos({
         .replace(/[^a-zA-Z0-9-_]/g, "-")
         .slice(0, 40);
 
-      const filePath = `${inspectionId}/reference-photos/${safeSection}/${Date.now()}-${crypto.randomUUID()}-${safeName}.${fileExt}`;
+      const baseName = `${Date.now()}-${crypto.randomUUID()}-${safeName}`;
+      const filePath = `${inspectionId}/reference-photos/${safeSection}/${baseName}.${fileExt}`;
+      const thumbnailPath = `${inspectionId}/reference-photos/${safeSection}/thumbnails/${baseName}-thumb.jpg`;
 
       const { error: uploadError } = await supabase.storage
         .from(PHOTO_BUCKET)
         .upload(filePath, uploadFile, {
-          cacheControl: "3600",
+          cacheControl: "31536000",
           upsert: false,
           contentType: uploadFile.type || "image/jpeg",
         });
@@ -178,6 +207,24 @@ export default function SectionReferencePhotos({
         .from(PHOTO_BUCKET)
         .getPublicUrl(filePath);
 
+      let thumbnailUrl = "";
+
+      const { error: thumbnailUploadError } = await supabase.storage
+        .from(PHOTO_BUCKET)
+        .upload(thumbnailPath, thumbnailFile, {
+          cacheControl: "31536000",
+          upsert: false,
+          contentType: "image/jpeg",
+        });
+
+      if (!thumbnailUploadError) {
+        const { data: thumbnailData } = supabase.storage
+          .from(PHOTO_BUCKET)
+          .getPublicUrl(thumbnailPath);
+
+        thumbnailUrl = thumbnailData.publicUrl;
+      }
+
       const { data, error } = await supabase
         .from("section_reference_photos")
         .insert({
@@ -186,6 +233,8 @@ export default function SectionReferencePhotos({
           caption: caption.trim() || null,
           file_path: filePath,
           public_url: publicData.publicUrl,
+          thumbnail_path: thumbnailUrl ? thumbnailPath : null,
+          thumbnail_url: thumbnailUrl || null,
         })
         .select("*")
         .single();
@@ -201,6 +250,9 @@ export default function SectionReferencePhotos({
         {
           ...data,
           signed_url: signedData?.signedUrl || publicData.publicUrl,
+          signed_thumbnail_url: thumbnailUrl,
+          thumbnail_path: thumbnailUrl ? thumbnailPath : null,
+          thumbnail_url: thumbnailUrl || null,
         },
       ]);
 
@@ -371,6 +423,8 @@ export default function SectionReferencePhotos({
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {photos.map((photo, index) => {
                 const photoUrl =
+                  photo.signed_thumbnail_url ||
+                  photo.thumbnail_url ||
                   photo.signed_url ||
                   photo.public_url ||
                   "";

@@ -326,14 +326,20 @@ function getSeverityStyle(severity: string | null | undefined) {
 
 function getPhotoUrl(photo: any) {
   return (
-    photo?.thumbnail_url ||
-    photo?.signed_thumbnail_url ||
+    photo?.signed_url ||
     photo?.public_url ||
     photo?.image_url ||
     photo?.photo_url ||
-    photo?.signed_url ||
     photo?.url ||
     ""
+  );
+}
+
+function getPhotoPreviewUrl(photo: any) {
+  return (
+    photo?.signed_thumbnail_url ||
+    photo?.thumbnail_url ||
+    getPhotoUrl(photo)
   );
 }
 
@@ -439,6 +445,7 @@ function getFindingPhotos(finding: any) {
 
   (finding.photos || []).forEach((photo: any) => {
     const url = getPhotoUrl(photo);
+    const previewUrl = getPhotoPreviewUrl(photo);
 
     if (!url || hasSeenPhoto(seen, photo)) return;
 
@@ -515,14 +522,19 @@ async function loadImageFromDataUrl(dataUrl: string): Promise<HTMLImageElement> 
   });
 }
 
-async function compressImageForUpload(file: File): Promise<File> {
+
+async function createImageVariantForUpload(
+  file: File,
+  maxDimension: number,
+  quality: number,
+  suffix: string
+): Promise<File> {
   if (!file.type.startsWith("image/")) return file;
 
   try {
     const originalDataUrl = await readFileAsDataUrl(file);
     const image = await loadImageFromDataUrl(originalDataUrl);
 
-    const maxDimension = 1800;
     const originalWidth = image.naturalWidth || image.width;
     const originalHeight = image.naturalHeight || image.height;
 
@@ -540,13 +552,13 @@ async function compressImageForUpload(file: File): Promise<File> {
     ctx.drawImage(image, 0, 0, width, height);
 
     const blob = await new Promise<Blob | null>((resolve) => {
-      canvas.toBlob(resolve, "image/jpeg", 0.78);
+      canvas.toBlob(resolve, "image/jpeg", quality);
     });
 
     if (!blob) return file;
 
     const originalName = file.name.replace(/\.[^/.]+$/, "");
-    return new File([blob], `${originalName}-optimized.jpg`, {
+    return new File([blob], `${originalName}-${suffix}.jpg`, {
       type: "image/jpeg",
       lastModified: Date.now(),
     });
@@ -554,6 +566,16 @@ async function compressImageForUpload(file: File): Promise<File> {
     return file;
   }
 }
+
+async function createFullImageForUpload(file: File): Promise<File> {
+  return createImageVariantForUpload(file, 1800, 0.8, "optimized");
+}
+
+async function createThumbnailForUpload(file: File): Promise<File> {
+  return createImageVariantForUpload(file, 480, 0.7, "thumb");
+}
+
+
 
 function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
   const [showPhotoPicker, setShowPhotoPicker] = useState(false);
@@ -580,19 +602,22 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
 
     try {
       for (const file of imageFiles) {
-        const uploadFile = await compressImageForUpload(file);
+        const uploadFile = await createFullImageForUpload(file);
+        const thumbnailFile = await createThumbnailForUpload(file);
         const fileExt = "jpg";
         const safeName = uploadFile.name
           .replace(/\.[^/.]+$/, "")
           .replace(/[^a-zA-Z0-9-_]/g, "-")
           .slice(0, 50);
 
-        const filePath = `${inspectionId}/finding-photos/${finding.id}/${Date.now()}-${crypto.randomUUID()}-${safeName}.${fileExt}`;
+        const baseName = `${Date.now()}-${crypto.randomUUID()}-${safeName}`;
+        const filePath = `${inspectionId}/finding-photos/${finding.id}/${baseName}.${fileExt}`;
+        const thumbnailPath = `${inspectionId}/finding-photos/${finding.id}/thumbnails/${baseName}-thumb.jpg`;
 
         const { error: uploadError } = await supabase.storage
           .from(PHOTO_BUCKET)
           .upload(filePath, uploadFile, {
-            cacheControl: "3600",
+            cacheControl: "31536000",
             upsert: false,
             contentType: uploadFile.type || "image/jpeg",
           });
@@ -603,11 +628,31 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
           .from(PHOTO_BUCKET)
           .getPublicUrl(filePath);
 
+        let thumbnailUrl = "";
+
+        const { error: thumbnailUploadError } = await supabase.storage
+          .from(PHOTO_BUCKET)
+          .upload(thumbnailPath, thumbnailFile, {
+            cacheControl: "31536000",
+            upsert: false,
+            contentType: "image/jpeg",
+          });
+
+        if (!thumbnailUploadError) {
+          const { data: thumbnailData } = supabase.storage
+            .from(PHOTO_BUCKET)
+            .getPublicUrl(thumbnailPath);
+
+          thumbnailUrl = thumbnailData.publicUrl;
+        }
+
         const { error: insertError } = await supabase.from("photos").insert({
           inspection_id: inspectionId,
           finding_id: finding.id,
           file_path: filePath,
           public_url: publicData.publicUrl,
+          thumbnail_path: thumbnailUrl ? thumbnailPath : null,
+          thumbnail_url: thumbnailUrl || null,
         });
 
         if (insertError) throw insertError;
@@ -705,6 +750,7 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
           >
             {photos.map((photo: any, index: number) => {
               const url = getPhotoUrl(photo);
+    const previewUrl = getPhotoPreviewUrl(photo);
               const isBusy = movingPhotoId === String(photo.id);
 
               return (
@@ -714,7 +760,7 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
                 >
                   {isVideoMedia(photo) ? (
                     <video
-                      src={url}
+                      src={previewUrl || url}
                       controls
                       playsInline
                       preload="metadata"
@@ -729,7 +775,7 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
                   ) : (
                     <a href={url} target="_blank" rel="noreferrer" className="block">
                       <img
-                        src={url}
+                        src={previewUrl || url}
                         alt={`Finding photo ${index + 1}`}
                         loading="lazy"
                 decoding="async"
@@ -983,6 +1029,7 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
               <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 {allPhotos.map((photo: any, index: number) => {
                   const url = getPhotoUrl(photo);
+    const previewUrl = getPhotoPreviewUrl(photo);
                   const alreadyAttached =
                     String(photo.finding_id || photo.current_finding_id || "") ===
                     String(finding.id);
@@ -1003,7 +1050,7 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
                           />
                         ) : (
                           <img
-                            src={url}
+                            src={previewUrl || url}
                             alt={`Report photo ${index + 1}`}
                             loading="lazy"
                 decoding="async"
