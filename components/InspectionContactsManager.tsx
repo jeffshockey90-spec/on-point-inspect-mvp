@@ -285,7 +285,7 @@ export default function InspectionContactsManager({
                     nextRole === "client" || nextRole === "co-client"
                   );
                 }}
-                className="box-border h-[52px] min-w-0 w-full rounded-xl border border-slate-700 bg-[#020617] px-4 pr-12 text-white outline-none transition placeholder:text-slate-500 focus:border-teal-400 focus:ring-1 focus:ring-teal-400/40 appearance-none"
+                className="box-border h-[52px] min-w-0 w-full appearance-none rounded-xl border border-slate-700 bg-[#020617] px-4 pr-12 text-white outline-none transition placeholder:text-slate-500 focus:border-teal-400 focus:ring-1 focus:ring-teal-400/40"
               >
                 {ROLE_OPTIONS.map((item) => (
                   <option key={item} value={item}>
@@ -408,8 +408,8 @@ export default function InspectionContactsManager({
                   </div>
 
                   <div className="mt-4 grid w-full gap-3 border-t border-slate-800 pt-4 lg:grid-cols-2">
-                    <label className="flex w-full min-w-0 items-center justify-between gap-4 rounded-xl border border-slate-700 bg-[#071224] px-4 py-3 text-sm font-bold text-slate-300">
-                      <span>Agreement required</span>
+                    <label className="flex min-h-[56px] w-full min-w-0 items-center justify-between gap-4 rounded-xl border border-slate-700 bg-[#071224] px-4 py-3 text-sm font-bold text-slate-300">
+                      <span className="min-w-0 break-words">Agreement Required</span>
                       <input
                         type="checkbox"
                         checked={Boolean(contact.agreement_required)}
@@ -418,12 +418,12 @@ export default function InspectionContactsManager({
                             agreement_required: e.target.checked,
                           })
                         }
-                        className="h-4 w-4 accent-teal-400"
+                        className="h-5 w-5 shrink-0 accent-teal-400"
                       />
                     </label>
 
-                    <label className="flex w-full min-w-0 items-center justify-between gap-4 rounded-xl border border-slate-700 bg-[#071224] px-4 py-3 text-sm font-bold text-slate-300">
-                      <span>Portal access</span>
+                    <label className="flex min-h-[56px] w-full min-w-0 items-center justify-between gap-4 rounded-xl border border-slate-700 bg-[#071224] px-4 py-3 text-sm font-bold text-slate-300">
+                      <span className="min-w-0 break-words">Portal Access</span>
                       <input
                         type="checkbox"
                         checked={Boolean(contact.portal_access)}
@@ -432,7 +432,7 @@ export default function InspectionContactsManager({
                             portal_access: e.target.checked,
                           })
                         }
-                        className="h-4 w-4 accent-teal-400"
+                        className="h-5 w-5 shrink-0 accent-teal-400"
                       />
                     </label>
                   </div>
