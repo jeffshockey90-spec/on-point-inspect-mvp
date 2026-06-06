@@ -466,7 +466,7 @@ export default function ClientPortalPage() {
               <img
                 src={propertyPhoto}
                 alt="Property"
-                              loading="eager"
+                loading="eager"
                 decoding="async"
                 fetchPriority="high"
                 className="h-72 w-full object-cover md:h-96"

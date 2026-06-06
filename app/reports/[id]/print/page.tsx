@@ -464,7 +464,7 @@ export default async function PrintableReportPage({ params }: PageProps) {
           {propertyPhoto && (
             <img
               src={propertyPhoto}
-              alt="Property" loading="lazy" decoding="async" fetchPriority="low"
+              alt="Property" loading="eager" decoding="async" fetchPriority="high"
                               className="h-80 w-full object-cover print:h-72"
             />
           )}

@@ -148,12 +148,11 @@ function getPhotoStoragePath(photo: any) {
 
 function getFallbackPhotoUrl(photo: any) {
   return (
-    photo?.thumbnail_url ||
-    photo?.signed_thumbnail_url ||
+    photo?.signed_url ||
     photo?.public_url ||
     photo?.image_url ||
     photo?.photo_url ||
-    photo?.signed_url ||
+    photo?.url ||
     ""
   );
 }
@@ -292,13 +291,13 @@ function getFindingSummary(finding: any) {
 }
 
 function getMediaUrl(media: any) {
+  if (!media) return "";
+
   return (
-    media?.thumbnail_url ||
-    media?.signed_thumbnail_url ||
+    media?.signed_url ||
     media?.public_url ||
     media?.image_url ||
     media?.photo_url ||
-    media?.signed_url ||
     media?.url ||
     ""
   );
@@ -518,12 +517,10 @@ export default async function PublicSharePage({
   }
 
   const photoStoragePaths = (photosRaw || [])
-    .filter((photo: any) => !getFallbackPhotoUrl(photo))
     .map((photo: any) => getPhotoStoragePath(photo))
     .filter(Boolean);
 
   const oldFindingImagePaths = (findingsRaw || [])
-    .filter((finding: any) => !finding.signed_image_url && !finding.public_image_url)
     .map((finding: any) => getStoragePathFromUrl(finding.image_url))
     .filter(Boolean);
 
@@ -539,7 +536,7 @@ export default async function PublicSharePage({
 
     return {
       ...photo,
-      signed_url: fastUrl || (path && signedUrlMap[path]) || "",
+      signed_url: (path && signedUrlMap[path]) || fastUrl || "",
     };
   });
 
@@ -594,7 +591,6 @@ export default async function PublicSharePage({
       : { data: [] };
 
   const limitationPhotoPaths = (limitationPhotosRaw || [])
-    .filter((photo: any) => !photo.public_url && !photo.signed_url)
     .map((photo: any) => photo.file_path)
     .filter(Boolean);
 
@@ -603,9 +599,9 @@ export default async function PublicSharePage({
   const limitationPhotosWithUrls = (limitationPhotosRaw || []).map((photo: any) => ({
     ...photo,
     signed_url:
-      photo.public_url ||
-      photo.signed_url ||
       (photo.file_path && limitationSignedUrlMap[photo.file_path]) ||
+      photo.signed_url ||
+      photo.public_url ||
       "",
   }));
 
@@ -632,7 +628,6 @@ export default async function PublicSharePage({
     .order("created_at", { ascending: true });
 
   const referencePhotoPaths = (sectionReferencePhotosRaw || [])
-    .filter((photo: any) => !photo.public_url && !photo.signed_url)
     .map((photo: any) => photo.file_path)
     .filter(Boolean);
 
@@ -643,9 +638,9 @@ export default async function PublicSharePage({
       ...photo,
       section: normalizeSection(photo.section),
       signed_url:
-        photo.public_url ||
-        photo.signed_url ||
         (photo.file_path && referenceSignedUrlMap[photo.file_path]) ||
+        photo.signed_url ||
+        photo.public_url ||
         "",
     })
   );
@@ -677,7 +672,6 @@ export default async function PublicSharePage({
   }
 
   const equipmentPhotoPaths = (equipmentInventoryRaw || [])
-    .filter((item: any) => !item.image_url && !item.signed_image_url && !item.public_url)
     .map((item: any) => item.file_path)
     .filter(Boolean);
 
@@ -686,10 +680,10 @@ export default async function PublicSharePage({
   const equipmentInventory = (equipmentInventoryRaw || []).map((item: any) => ({
     ...item,
     signed_image_url:
+      (item.file_path && equipmentSignedUrlMap[item.file_path]) ||
+      item.signed_image_url ||
       item.image_url ||
       item.public_url ||
-      item.signed_image_url ||
-      (item.file_path && equipmentSignedUrlMap[item.file_path]) ||
       "",
   }));
 
@@ -1345,7 +1339,7 @@ export default async function PublicSharePage({
 
                           <div className="grid gap-4 md:grid-cols-3">
                             {referencePhotosBySection[group.section].map((photo: any, index: number) => {
-                              const photoUrl = photo.signed_url || photo.public_url || "";
+                              const photoUrl = photo.signed_url || photo.public_url || photo.image_url || photo.photo_url || "";
 
                               if (!photoUrl) return null;
 
