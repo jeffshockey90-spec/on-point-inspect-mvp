@@ -302,9 +302,9 @@ export default function InspectionContactsManager({
             </div>
           </div>
 
-          <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="mt-4 flex flex-col gap-4">
             <div className="flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap">
-              <label className="inline-flex w-full items-center gap-3 rounded-xl border border-slate-700 bg-[#071224] px-4 py-3 text-sm font-bold text-slate-300 sm:w-auto">
+              <label className="flex w-full items-center gap-3 rounded-xl border border-slate-700 bg-[#071224] px-4 py-3 text-sm font-bold text-slate-300">
                 <input
                   type="checkbox"
                   checked={agreementRequired}
@@ -314,7 +314,7 @@ export default function InspectionContactsManager({
                 Agreement required
               </label>
 
-              <label className="inline-flex w-full items-center gap-3 rounded-xl border border-slate-700 bg-[#071224] px-4 py-3 text-sm font-bold text-slate-300 sm:w-auto">
+              <label className="flex w-full items-center gap-3 rounded-xl border border-slate-700 bg-[#071224] px-4 py-3 text-sm font-bold text-slate-300">
                 <input
                   type="checkbox"
                   checked={portalAccess}
@@ -329,7 +329,7 @@ export default function InspectionContactsManager({
               type="button"
               onClick={() => addContact()}
               disabled={saving}
-              className="w-full rounded-2xl bg-teal-500 px-6 py-3 text-sm font-black text-slate-950 transition hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+              className="w-full rounded-2xl bg-teal-500 px-6 py-3 text-sm font-black text-slate-950 transition hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {saving ? "Saving..." : "Add Contact"}
             </button>
