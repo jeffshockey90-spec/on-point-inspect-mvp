@@ -107,7 +107,7 @@ export default function Navbar() {
         className="fixed bottom-0 left-0 right-0 z-50 border-t border-zinc-800 bg-[#0b1220]/95 shadow-2xl shadow-black/60 backdrop-blur md:hidden portrait:block landscape:hidden"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
-        <div className="flex h-[78px] w-full flex-row flex-nowrap items-stretch justify-between">
+        <div className="flex h-[78px] w-full flex-row flex-nowrap items-center justify-between">
           {mobileItems.map((item) => {
             const active = isActive(item.href);
 
@@ -116,16 +116,16 @@ export default function Navbar() {
                 key={item.href}
                 href={item.href}
                 prefetch={false}
-                className={`flex min-w-0 flex-1 flex-col items-center justify-center gap-1 overflow-hidden px-1 text-center text-xs font-black leading-none transition ${
+                className={`flex h-full min-w-0 flex-1 flex-col items-center justify-center overflow-hidden px-0.5 text-center transition ${
                   active
                     ? "bg-teal-500/15 text-teal-300"
                     : "text-zinc-300 hover:bg-slate-800/70 hover:text-teal-300"
                 }`}
               >
-                <span className="block shrink-0 text-2xl leading-none">
+                <span className="flex w-full items-center justify-center text-xl leading-none">
                   {item.icon}
                 </span>
-                <span className="block max-w-full truncate leading-none">
+                <span className="mt-1 block w-full text-center text-[10px] font-black leading-none whitespace-nowrap">
                   {item.mobileLabel}
                 </span>
               </Link>
@@ -135,10 +135,14 @@ export default function Navbar() {
           <button
             type="button"
             onClick={handleLogout}
-            className="flex min-w-0 flex-1 flex-col items-center justify-center gap-1 overflow-hidden px-1 text-center text-xs font-black leading-none text-red-300 transition hover:bg-red-950/30"
+            className="flex h-full min-w-0 flex-1 flex-col items-center justify-center overflow-hidden px-0.5 text-center text-red-300 transition hover:bg-red-950/30"
           >
-            <span className="block shrink-0 text-2xl leading-none">🚪</span>
-            <span className="block max-w-full truncate leading-none">Logout</span>
+            <span className="flex w-full items-center justify-center text-xl leading-none">
+              🚪
+            </span>
+            <span className="mt-1 block w-full text-center text-[10px] font-black leading-none whitespace-nowrap">
+              Logout
+            </span>
           </button>
         </div>
       </nav>

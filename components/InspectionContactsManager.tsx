@@ -45,8 +45,8 @@ function ToggleRow({
   title: string;
 }) {
   return (
-    <label className="flex min-h-[52px] w-full cursor-pointer items-center justify-between gap-3 rounded-xl border border-slate-700 bg-[#071224] px-4 py-3 text-sm font-black text-slate-200">
-      <span className="min-w-0 flex-1 whitespace-normal break-words leading-5">
+    <label className="grid min-h-[52px] w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-slate-700 bg-[#071224] px-4 py-3 text-sm font-black text-slate-200">
+      <span className="block min-w-0 whitespace-nowrap leading-5">
         {title}
       </span>
 
