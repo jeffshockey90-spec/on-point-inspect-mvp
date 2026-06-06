@@ -104,12 +104,10 @@ export default function Navbar() {
       </header>
 
       <nav
-        className="fixed bottom-0 left-0 right-0 z-50 border-t border-zinc-800 bg-[#0b1220]/98 shadow-2xl shadow-black/60 backdrop-blur md:hidden portrait:block landscape:hidden"
-        style={{
-          paddingBottom: "env(safe-area-inset-bottom)",
-        }}
+        className="fixed bottom-0 left-0 right-0 z-50 border-t border-zinc-800 bg-[#0b1220]/95 shadow-2xl shadow-black/60 backdrop-blur md:hidden portrait:block landscape:hidden"
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
-        <div className="flex h-[76px] w-full flex-row flex-nowrap items-stretch justify-between">
+        <div className="flex h-[78px] w-full flex-row flex-nowrap items-stretch justify-between">
           {mobileItems.map((item) => {
             const active = isActive(item.href);
 

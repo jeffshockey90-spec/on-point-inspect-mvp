@@ -35,6 +35,31 @@ function roleBadgeClass(role: string) {
   return "border-slate-600 bg-slate-800/60 text-slate-300";
 }
 
+function ToggleRow({
+  checked,
+  onChange,
+  title,
+}: {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  title: string;
+}) {
+  return (
+    <label className="flex min-h-[52px] w-full cursor-pointer items-center justify-between gap-3 rounded-xl border border-slate-700 bg-[#071224] px-4 py-3 text-sm font-black text-slate-200">
+      <span className="min-w-0 flex-1 whitespace-normal break-words leading-5">
+        {title}
+      </span>
+
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="h-5 w-5 shrink-0 accent-teal-400"
+      />
+    </label>
+  );
+}
+
 export default function InspectionContactsManager({
   inspectionId,
   defaultClientName,
@@ -304,25 +329,17 @@ export default function InspectionContactsManager({
 
           <div className="mt-4 space-y-3">
             <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2">
-              <label className="flex min-h-[56px] w-full items-center gap-3 rounded-xl border border-slate-700 bg-[#071224] px-4 py-3 text-sm font-bold text-slate-300">
-                <input
-                  type="checkbox"
-                  checked={agreementRequired}
-                  onChange={(e) => setAgreementRequired(e.target.checked)}
-                  className="h-5 w-5 shrink-0 accent-teal-400"
-                />
-                <span className="min-w-0 break-words">Agreement Required</span>
-              </label>
+              <ToggleRow
+                checked={agreementRequired}
+                onChange={setAgreementRequired}
+                title="Agreement Required"
+              />
 
-              <label className="flex min-h-[56px] w-full items-center gap-3 rounded-xl border border-slate-700 bg-[#071224] px-4 py-3 text-sm font-bold text-slate-300">
-                <input
-                  type="checkbox"
-                  checked={portalAccess}
-                  onChange={(e) => setPortalAccess(e.target.checked)}
-                  className="h-5 w-5 shrink-0 accent-teal-400"
-                />
-                <span className="min-w-0 break-words">Portal Access</span>
-              </label>
+              <ToggleRow
+                checked={portalAccess}
+                onChange={setPortalAccess}
+                title="Portal Access"
+              />
             </div>
 
             <button
@@ -408,33 +425,25 @@ export default function InspectionContactsManager({
                   </div>
 
                   <div className="mt-4 grid w-full gap-3 border-t border-slate-800 pt-4 lg:grid-cols-2">
-                    <label className="flex min-h-[56px] w-full min-w-0 items-center justify-between gap-4 rounded-xl border border-slate-700 bg-[#071224] px-4 py-3 text-sm font-bold text-slate-300">
-                      <span className="min-w-0 break-words">Agreement Required</span>
-                      <input
-                        type="checkbox"
-                        checked={Boolean(contact.agreement_required)}
-                        onChange={(e) =>
-                          updateContact(contact.id, {
-                            agreement_required: e.target.checked,
-                          })
-                        }
-                        className="h-5 w-5 shrink-0 accent-teal-400"
-                      />
-                    </label>
+                    <ToggleRow
+                      checked={Boolean(contact.agreement_required)}
+                      onChange={(checked) =>
+                        updateContact(contact.id, {
+                          agreement_required: checked,
+                        })
+                      }
+                      title="Agreement Required"
+                    />
 
-                    <label className="flex min-h-[56px] w-full min-w-0 items-center justify-between gap-4 rounded-xl border border-slate-700 bg-[#071224] px-4 py-3 text-sm font-bold text-slate-300">
-                      <span className="min-w-0 break-words">Portal Access</span>
-                      <input
-                        type="checkbox"
-                        checked={Boolean(contact.portal_access)}
-                        onChange={(e) =>
-                          updateContact(contact.id, {
-                            portal_access: e.target.checked,
-                          })
-                        }
-                        className="h-5 w-5 shrink-0 accent-teal-400"
-                      />
-                    </label>
+                    <ToggleRow
+                      checked={Boolean(contact.portal_access)}
+                      onChange={(checked) =>
+                        updateContact(contact.id, {
+                          portal_access: checked,
+                        })
+                      }
+                      title="Portal Access"
+                    />
                   </div>
                 </article>
               ))}
