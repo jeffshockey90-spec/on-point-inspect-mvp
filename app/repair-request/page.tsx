@@ -11,11 +11,19 @@ type Inspection = Record<string, any>;
 function getSeverityStyle(severity: string) {
   const clean = String(severity || "Recommended Repair").toLowerCase();
 
-  if (clean.includes("safety") || clean.includes("hazard") || clean.includes("major")) {
+  if (
+    clean.includes("safety") ||
+    clean.includes("hazard") ||
+    clean.includes("major")
+  ) {
     return "border-red-500/60 bg-red-500/10 text-red-300";
   }
 
-  if (clean.includes("maintenance") || clean.includes("monitor") || clean.includes("minor")) {
+  if (
+    clean.includes("maintenance") ||
+    clean.includes("monitor") ||
+    clean.includes("minor")
+  ) {
     return "border-yellow-500/60 bg-yellow-500/10 text-yellow-300";
   }
 
@@ -64,6 +72,10 @@ function RepairRequestContent() {
   const [loading, setLoading] = useState(true);
   const [showAddendum, setShowAddendum] = useState(false);
 
+  const [requestIntro, setRequestIntro] = useState(
+    "The following items are requested for repair, correction, evaluation, or further review by qualified professionals prior to closing, unless otherwise negotiated by the parties involved."
+  );
+
   useEffect(() => {
     async function trackRepairRequestView() {
       if (!inspectionId) return;
@@ -88,10 +100,6 @@ function RepairRequestContent() {
 
     trackRepairRequestView();
   }, [inspectionId]);
-
-  const [requestIntro, setRequestIntro] = useState(
-    "The following items are requested for repair, correction, evaluation, or further review by qualified professionals prior to closing, unless otherwise negotiated by the parties involved."
-  );
 
   useEffect(() => {
     async function loadData() {
@@ -207,7 +215,11 @@ function RepairRequestContent() {
 
     const safetyCount = selectedFindings.filter((finding) => {
       const severity = String(finding.severity || "").toLowerCase();
-      return severity.includes("safety") || severity.includes("hazard") || severity.includes("major");
+      return (
+        severity.includes("safety") ||
+        severity.includes("hazard") ||
+        severity.includes("major")
+      );
     }).length;
 
     const sections = Array.from(
@@ -231,7 +243,11 @@ function RepairRequestContent() {
     const safetyIds = findings
       .filter((finding) => {
         const severity = String(finding.severity || "").toLowerCase();
-        return severity.includes("safety") || severity.includes("hazard") || severity.includes("major");
+        return (
+          severity.includes("safety") ||
+          severity.includes("hazard") ||
+          severity.includes("major")
+        );
       })
       .map((finding) => finding.id);
 
@@ -239,7 +255,8 @@ function RepairRequestContent() {
   }
 
   function emailRepairRequest() {
-    const property = inspection?.property_address || inspection?.address || "Inspection Property";
+    const property =
+      inspection?.property_address || inspection?.address || "Inspection Property";
     const subject = encodeURIComponent(`Repair Request Summary - ${property}`);
     const body = encodeURIComponent(
       `Hello,\n\nAttached/linked is the repair request summary for ${property}.\n\n${realtorSummary}\n\nPlease review the requested repair/correction items and advise on next steps.\n\nOn Point Home Inspections LLC`
@@ -250,8 +267,10 @@ function RepairRequestContent() {
 
   if (!inspectionId) {
     return (
-      <main className="min-h-screen bg-[#020617] p-8 text-white">
-        <h1 className="text-3xl font-black text-teal-400">Repair Request Builder</h1>
+      <main className="min-h-screen bg-[#020617] p-4 text-white md:p-8">
+        <h1 className="break-words text-3xl font-black text-teal-400">
+          Repair Request Builder
+        </h1>
         <p className="mt-4 text-slate-300">Missing inspection ID.</p>
       </main>
     );
@@ -259,80 +278,88 @@ function RepairRequestContent() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#020617] p-8 text-white">
+      <main className="min-h-screen bg-[#020617] p-4 text-white md:p-8">
         Loading repair request...
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-[#020617] p-4 text-white md:p-8">
-      <div className="mx-auto max-w-7xl">
-        <div className="mb-6 flex flex-wrap gap-3 print:hidden">
+    <main className="min-h-screen overflow-x-hidden bg-[#020617] p-4 pb-32 text-white md:p-8 md:pb-8">
+      <div className="mx-auto max-w-7xl overflow-hidden">
+        <div className="mb-6 grid grid-cols-1 gap-3 print:hidden sm:grid-cols-2 lg:flex lg:flex-wrap">
           <Link
             href={`/reports/${inspectionId}`}
-            className="rounded-xl border border-slate-600 px-5 py-3 font-bold text-white hover:bg-slate-800"
+            className="w-full rounded-xl border border-slate-600 px-5 py-3 text-center font-bold text-white hover:bg-slate-800 lg:w-auto"
           >
             Back to Report
           </Link>
 
           <button
+            type="button"
             onClick={() => window.print()}
-            className="rounded-xl bg-teal-500 px-5 py-3 font-bold text-slate-950 hover:bg-teal-400"
+            className="w-full rounded-xl bg-teal-500 px-5 py-3 font-bold text-slate-950 hover:bg-teal-400 lg:w-auto"
           >
             Share Repair Request PDF
           </button>
 
           <button
+            type="button"
             onClick={emailRepairRequest}
-            className="rounded-xl border border-cyan-500 px-5 py-3 font-bold text-cyan-300 hover:bg-cyan-500/10"
+            className="w-full rounded-xl border border-cyan-500 px-5 py-3 font-bold text-cyan-300 hover:bg-cyan-500/10 lg:w-auto"
           >
             Email Repair Request
           </button>
 
           <button
+            type="button"
             onClick={() => setShowAddendum(!showAddendum)}
-            className="rounded-xl border border-purple-500 px-5 py-3 font-bold text-purple-300 hover:bg-purple-500/10"
+            className="w-full rounded-xl border border-purple-500 px-5 py-3 font-bold text-purple-300 hover:bg-purple-500/10 lg:w-auto"
           >
             {showAddendum ? "Hide Addendum" : "Export Negotiation Addendum"}
           </button>
 
           <button
+            type="button"
             onClick={() => setSelectedIds(findings.map((finding) => finding.id))}
-            className="rounded-xl border border-teal-500 px-5 py-3 font-bold text-teal-300 hover:bg-teal-500/10"
+            className="w-full rounded-xl border border-teal-500 px-5 py-3 font-bold text-teal-300 hover:bg-teal-500/10 lg:w-auto"
           >
             Select All
           </button>
 
           <button
+            type="button"
             onClick={() => setSelectedIds([])}
-            className="rounded-xl border border-red-500 px-5 py-3 font-bold text-red-300 hover:bg-red-500/10"
+            className="w-full rounded-xl border border-red-500 px-5 py-3 font-bold text-red-300 hover:bg-red-500/10 lg:w-auto"
           >
             Clear All
           </button>
 
           <button
+            type="button"
             onClick={selectSafetyOnly}
-            className="rounded-xl border border-orange-500 px-5 py-3 font-bold text-orange-300 hover:bg-orange-500/10"
+            className="w-full rounded-xl border border-orange-500 px-5 py-3 font-bold text-orange-300 hover:bg-orange-500/10 lg:w-auto"
           >
             Safety Only
           </button>
         </div>
 
-        <section className="mb-8 rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
-          <p className="text-sm font-bold uppercase tracking-[0.3em] text-teal-400">
+        <section className="mb-8 overflow-hidden rounded-2xl border border-slate-800 bg-[#0f172a] p-5 shadow-xl md:p-6">
+          <p className="break-words text-sm font-bold uppercase tracking-[0.22em] text-teal-400 md:tracking-[0.3em]">
             On Point Home Inspections
           </p>
 
-          <h1 className="mt-3 text-4xl font-black text-white">
+          <h1 className="mt-3 break-words text-3xl font-black text-white md:text-4xl">
             Repair Request Summary
           </h1>
 
-          <p className="mt-3 text-slate-300">
-            {inspection?.property_address || inspection?.address || "Property address not entered"}
+          <p className="mt-3 break-words text-slate-300">
+            {inspection?.property_address ||
+              inspection?.address ||
+              "Property address not entered"}
           </p>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-4">
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 md:grid-cols-4">
             <Info label="Client" value={inspection?.client_name} />
             <Info label="Realtor" value={inspection?.realtor_name} />
             <Info label="Date" value={inspection?.inspection_date} />
@@ -340,18 +367,20 @@ function RepairRequestContent() {
           </div>
         </section>
 
-        <section className="mb-8 rounded-2xl border border-teal-500/30 bg-[#071224] p-6">
-          <h2 className="mb-3 text-2xl font-bold text-teal-300">
+        <section className="mb-8 overflow-hidden rounded-2xl border border-teal-500/30 bg-[#071224] p-5 md:p-6">
+          <h2 className="mb-3 break-words text-2xl font-bold text-teal-300">
             Generate Realtor Summary
           </h2>
 
           <div className="rounded-xl border border-slate-700 bg-[#020617] p-4 text-slate-200">
-            <p className="whitespace-pre-line leading-7">{realtorSummary}</p>
+            <p className="whitespace-pre-line break-words leading-7">
+              {realtorSummary}
+            </p>
           </div>
         </section>
 
-        <section className="mb-8 rounded-2xl border border-slate-800 bg-[#071224] p-6">
-          <h2 className="mb-3 text-2xl font-bold text-teal-300">
+        <section className="mb-8 overflow-hidden rounded-2xl border border-slate-800 bg-[#071224] p-5 md:p-6">
+          <h2 className="mb-3 break-words text-2xl font-bold text-teal-300">
             Request Language
           </h2>
 
@@ -359,76 +388,101 @@ function RepairRequestContent() {
             value={requestIntro}
             onChange={(e) => setRequestIntro(e.target.value)}
             rows={4}
-            className="w-full rounded-xl border border-slate-700 bg-[#020617] p-4 text-white"
+            className="w-full max-w-full rounded-xl border border-slate-700 bg-[#020617] p-4 text-white outline-none focus:border-teal-400"
           />
         </section>
 
-        <section className="mb-8 rounded-2xl border border-slate-800 bg-[#0f172a] p-6 print:hidden">
-          <h2 className="mb-4 text-2xl font-bold text-teal-300">
+        <section className="mb-8 overflow-hidden rounded-2xl border border-slate-800 bg-[#0f172a] p-5 print:hidden md:p-6">
+          <h2 className="mb-4 break-words text-2xl font-bold text-teal-300">
             Select Findings
           </h2>
 
           <div className="space-y-3">
-            {findings.map((finding) => (
-              <label
-                key={finding.id}
-                className="flex cursor-pointer items-start gap-4 rounded-xl border border-slate-700 bg-[#020617] p-4 hover:border-teal-500"
-              >
-                <input
-                  type="checkbox"
-                  checked={selectedIds.includes(finding.id)}
-                  onChange={() => toggleFinding(finding.id)}
-                  className="mt-1 h-5 w-5 accent-teal-400"
-                />
+            {findings.map((finding) => {
+              const selected = selectedIds.includes(finding.id);
 
-                <div className="flex-1">
-                  <div className="mb-2 flex flex-wrap gap-2">
-                    <span
-                      className={`rounded-full border px-3 py-1 text-xs font-bold uppercase ${getSeverityStyle(
-                        finding.severity
-                      )}`}
-                    >
-                      {finding.severity || "Recommended Repair"}
-                    </span>
+              return (
+                <label
+                  key={finding.id}
+                  className={`block w-full max-w-full cursor-pointer overflow-hidden rounded-xl border bg-[#020617] p-4 transition ${
+                    selected
+                      ? "border-teal-400 ring-1 ring-teal-400/40"
+                      : "border-slate-700 hover:border-teal-500"
+                  }`}
+                >
+                  <div className="flex w-full max-w-full flex-col gap-4 sm:flex-row sm:items-start">
+                    <input
+                      type="checkbox"
+                      checked={selected}
+                      onChange={() => toggleFinding(finding.id)}
+                      className="h-6 w-6 shrink-0 accent-teal-400"
+                    />
 
-                    <span className="rounded-full border border-slate-600 px-3 py-1 text-xs font-bold uppercase text-slate-300">
-                      {finding.section}
-                    </span>
+                    <div className="min-w-0 flex-1 overflow-hidden">
+                      <div className="mb-2 flex max-w-full flex-wrap gap-2">
+                        <span
+                          className={`max-w-full break-words rounded-full border px-3 py-1 text-xs font-bold uppercase ${getSeverityStyle(
+                            finding.severity
+                          )}`}
+                        >
+                          {finding.severity || "Recommended Repair"}
+                        </span>
+
+                        <span className="max-w-full break-words rounded-full border border-slate-600 px-3 py-1 text-xs font-bold uppercase text-slate-300">
+                          {finding.section || "Other"}
+                        </span>
+                      </div>
+
+                      <p className="break-words font-bold text-white">
+                        {finding.title || "Untitled Finding"}
+                      </p>
+
+                      <p className="mt-1 line-clamp-3 break-words text-sm leading-6 text-slate-400">
+                        {finding.recommendation || finding.observation || ""}
+                      </p>
+                    </div>
                   </div>
-
-                  <p className="font-bold text-white">{finding.title}</p>
-                  <p className="mt-1 line-clamp-2 text-sm text-slate-400">
-                    {finding.recommendation || finding.observation}
-                  </p>
-                </div>
-              </label>
-            ))}
+                </label>
+              );
+            })}
           </div>
         </section>
 
         {showAddendum && (
-          <section className="mb-8 rounded-2xl border border-purple-500/40 bg-white p-6 text-black">
-            <h2 className="mb-4 text-3xl font-black text-slate-950">
+          <section className="mb-8 overflow-hidden rounded-2xl border border-purple-500/40 bg-white p-5 text-black md:p-6">
+            <h2 className="mb-4 break-words text-3xl font-black text-slate-950">
               Negotiation Addendum Draft
             </h2>
 
-            <p className="mb-6 leading-7 text-slate-700">
+            <p className="mb-6 break-words leading-7 text-slate-700">
               Buyer requests that seller address the following inspection items by repair, licensed contractor evaluation, replacement, seller credit, or other mutually agreed resolution.
             </p>
 
             <div className="space-y-4">
               {selectedFindings.map((finding, index) => (
-                <div key={finding.id} className="rounded-xl border border-slate-300 p-4">
-                  <p className="font-black text-slate-950">
+                <div
+                  key={finding.id}
+                  className="overflow-hidden rounded-xl border border-slate-300 p-4"
+                >
+                  <p className="break-words font-black text-slate-950">
                     {index + 1}. {finding.title}
                   </p>
-                  <p className="mt-2 text-slate-700">
-                    Requested Action: {finding.recommendation || finding.observation || "Further evaluation/repair requested."}
+                  <p className="mt-2 break-words text-slate-700">
+                    Requested Action:{" "}
+                    {finding.recommendation ||
+                      finding.observation ||
+                      "Further evaluation/repair requested."}
                   </p>
                   <div className="mt-4 grid gap-3 md:grid-cols-3">
-                    <div className="rounded-lg border border-slate-300 p-3">Seller to Repair ☐</div>
-                    <div className="rounded-lg border border-slate-300 p-3">Credit Offered ☐</div>
-                    <div className="rounded-lg border border-slate-300 p-3">Further Evaluation ☐</div>
+                    <div className="rounded-lg border border-slate-300 p-3">
+                      Seller to Repair ☐
+                    </div>
+                    <div className="rounded-lg border border-slate-300 p-3">
+                      Credit Offered ☐
+                    </div>
+                    <div className="rounded-lg border border-slate-300 p-3">
+                      Further Evaluation ☐
+                    </div>
                   </div>
                 </div>
               ))}
@@ -447,12 +501,14 @@ function RepairRequestContent() {
           </section>
         )}
 
-        <section className="rounded-2xl border border-slate-800 bg-white p-6 text-black">
-          <h2 className="mb-4 text-3xl font-black text-slate-950">
+        <section className="overflow-hidden rounded-2xl border border-slate-800 bg-white p-5 text-black md:p-6">
+          <h2 className="mb-4 break-words text-3xl font-black text-slate-950">
             Requested Repairs / Corrections
           </h2>
 
-          <p className="mb-8 leading-7 text-slate-700">{requestIntro}</p>
+          <p className="mb-8 break-words leading-7 text-slate-700">
+            {requestIntro}
+          </p>
 
           {selectedFindings.length === 0 ? (
             <p>No findings selected.</p>
@@ -460,7 +516,7 @@ function RepairRequestContent() {
             <div className="space-y-8">
               {Object.entries(groupedFindings).map(([section, items]) => (
                 <div key={section}>
-                  <h3 className="mb-4 border-b border-slate-300 pb-2 text-2xl font-black text-slate-950">
+                  <h3 className="mb-4 break-words border-b border-slate-300 pb-2 text-2xl font-black text-slate-950">
                     {section}
                   </h3>
 
@@ -471,14 +527,14 @@ function RepairRequestContent() {
                       return (
                         <article
                           key={finding.id}
-                          className="break-inside-avoid rounded-xl border border-slate-300 p-5"
+                          className="break-inside-avoid overflow-hidden rounded-xl border border-slate-300 p-5"
                         >
-                          <div className="mb-3 flex items-center justify-between gap-3">
-                            <h4 className="text-xl font-black text-slate-950">
+                          <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <h4 className="break-words text-xl font-black text-slate-950">
                               {index + 1}. {finding.title}
                             </h4>
 
-                            <span className="rounded-full border border-slate-400 px-3 py-1 text-xs font-bold uppercase text-slate-700">
+                            <span className="w-fit max-w-full break-words rounded-full border border-slate-400 px-3 py-1 text-xs font-bold uppercase text-slate-700">
                               {finding.severity || "Recommended Repair"}
                             </span>
                           </div>
@@ -500,7 +556,10 @@ function RepairRequestContent() {
                           )}
 
                           {finding.recommendation && (
-                            <ReportText title="Requested Action" text={finding.recommendation} />
+                            <ReportText
+                              title="Requested Action"
+                              text={finding.recommendation}
+                            />
                           )}
 
                           <div className="mt-4 rounded-lg border border-slate-300 bg-slate-50 p-4">
@@ -550,11 +609,11 @@ export default function RepairRequestPage() {
 
 function Info({ label, value }: { label: string; value?: any }) {
   return (
-    <div className="rounded-xl border border-slate-700 bg-[#020617] p-4">
-      <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+    <div className="overflow-hidden rounded-xl border border-slate-700 bg-[#020617] p-4">
+      <p className="break-words text-xs font-bold uppercase tracking-wide text-slate-400">
         {label}
       </p>
-      <p className="mt-1 font-bold text-white">{value || "N/A"}</p>
+      <p className="mt-1 break-words font-bold text-white">{value || "N/A"}</p>
     </div>
   );
 }
@@ -562,8 +621,10 @@ function Info({ label, value }: { label: string; value?: any }) {
 function ReportText({ title, text }: { title: string; text: string }) {
   return (
     <div className="mt-3">
-      <p className="font-black text-slate-950">{title}:</p>
-      <p className="mt-1 whitespace-pre-line leading-7 text-slate-700">{text}</p>
+      <p className="break-words font-black text-slate-950">{title}:</p>
+      <p className="mt-1 whitespace-pre-line break-words leading-7 text-slate-700">
+        {text}
+      </p>
     </div>
   );
 }
