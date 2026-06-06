@@ -386,9 +386,9 @@ export default function InspectionContactsManager({
                       </div>
 
                       <div className="mt-3 flex flex-col gap-2 text-sm text-slate-400">
-                        <p className="w-full overflow-hidden">\n                          <span className="font-bold text-slate-500">Email:</span>{" "}\n                          <span className="break-all">{contact.email || "N/A"}</span>\n                        </p>
+                        <p className="w-full overflow-hidden">                          <span className="font-bold text-slate-500">Email:</span>{" "}                          <span className="break-all">{contact.email || "N/A"}</span>                        </p>
 
-                        <p className="w-full overflow-hidden">\n                          <span className="font-bold text-slate-500">Phone:</span>{" "}\n                          <span className="break-all">{contact.phone || "N/A"}</span>\n                        </p>
+                        <p className="w-full overflow-hidden">                          <span className="font-bold text-slate-500">Phone:</span>{" "}                          <span className="break-all">{contact.phone || "N/A"}</span>                        </p>
                       </div>
                     </div>
 
