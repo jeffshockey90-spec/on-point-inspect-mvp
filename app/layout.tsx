@@ -52,7 +52,9 @@ export default function RootLayout({
 
         <GlobalLiveActivity />
 
-        {children}
+        <div className="min-h-screen pb-28 md:pb-0">
+          {children}
+        </div>
       </body>
     </html>
   );
