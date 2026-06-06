@@ -62,7 +62,7 @@ export default function DeleteAccountSection() {
     <section className="mt-10 rounded-2xl border border-red-500/40 bg-red-950/20 p-6">
       <h2 className="text-xl font-bold text-red-300">Delete Account</h2>
 
-      <p className="mt-3 text-sm text-slate-300 leading-6">
+      <p className="mt-3 text-sm leading-6 text-slate-300">
         Permanently deleting your account may remove your inspections, reports,
         contacts, templates, agreements, invoices, analytics, photos, and related
         data. This action cannot be undone.
@@ -85,7 +85,7 @@ export default function DeleteAccountSection() {
         type="button"
         onClick={handleDeleteAccount}
         disabled={loading || confirmText !== "DELETE"}
-        className="mt-5 rounded-xl bg-red-600 px-5 py-3 font-semibold text-white hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50"
+        className="mt-5 w-full rounded-xl bg-red-600 px-5 py-3 font-semibold text-white hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
       >
         {loading ? "Deleting..." : "Permanently Delete Account"}
       </button>

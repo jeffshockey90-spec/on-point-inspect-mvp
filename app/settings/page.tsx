@@ -363,14 +363,14 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                 />
               </label>
 
-              <label className="flex min-w-0 items-start gap-3 rounded-xl border border-slate-700 bg-slate-950 p-4 md:col-span-2">
+              <label className="flex flex-col gap-3 rounded-xl border border-slate-700 bg-slate-950 p-4 md:col-span-2 sm:flex-row sm:items-start">
                 <input
                   name="show_powered_by"
                   type="checkbox"
                   defaultChecked={company.show_powered_by !== false}
                   className="mt-0.5 h-5 w-5 shrink-0"
                 />
-                <span className="min-w-0 text-sm font-bold leading-6 text-slate-200 sm:text-base">
+                <span className="flex-1 text-sm font-bold leading-6 text-slate-200 break-words sm:text-base">
                   Show “Powered by On Point Inspect” on client-facing pages
                 </span>
               </label>
@@ -430,14 +430,14 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
               </p>
 
               <div className="mt-5 grid gap-4 md:grid-cols-2">
-                <label className="flex min-w-0 items-start gap-3 rounded-xl border border-slate-700 bg-[#020617] p-4">
+                <label className="flex flex-col gap-3 rounded-xl border border-slate-700 bg-[#020617] p-4 sm:flex-row sm:items-start">
                   <input
                     name="online_payment_fee_enabled"
                     type="checkbox"
                     defaultChecked={feeEnabled}
                     className="mt-0.5 h-5 w-5 shrink-0"
                   />
-                  <span className="min-w-0 text-sm font-bold leading-6 text-slate-200 sm:text-base">
+                  <span className="flex-1 text-sm font-bold leading-6 text-slate-200 break-words sm:text-base">
                     Pass online payment fee to client
                   </span>
                 </label>
