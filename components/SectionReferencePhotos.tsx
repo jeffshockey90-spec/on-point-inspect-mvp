@@ -13,6 +13,9 @@ type ReferencePhoto = {
   file_path?: string | null;
   public_url?: string | null;
   signed_url?: string | null;
+  thumbnail_path?: string | null;
+  thumbnail_url?: string | null;
+  signed_thumbnail_url?: string | null;
   created_at?: string | null;
 };
 
