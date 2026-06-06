@@ -16,6 +16,75 @@ type ReferencePhoto = {
   created_at?: string | null;
 };
 
+
+async function readFileAsDataUrl(file: File): Promise<string> {
+  return await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        resolve(reader.result);
+        return;
+      }
+
+      reject(new Error("Unable to read image file."));
+    };
+
+    reader.onerror = () => reject(new Error("Unable to read image file."));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function loadImageFromDataUrl(dataUrl: string): Promise<HTMLImageElement> {
+  return await new Promise((resolve, reject) => {
+    const image = new Image();
+
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("Unable to load image."));
+    image.src = dataUrl;
+  });
+}
+
+async function compressImageForUpload(file: File): Promise<File> {
+  if (!file.type.startsWith("image/")) return file;
+
+  try {
+    const originalDataUrl = await readFileAsDataUrl(file);
+    const image = await loadImageFromDataUrl(originalDataUrl);
+
+    const maxDimension = 1800;
+    const originalWidth = image.naturalWidth || image.width;
+    const originalHeight = image.naturalHeight || image.height;
+
+    const scale = Math.min(1, maxDimension / Math.max(originalWidth, originalHeight));
+    const width = Math.max(1, Math.round(originalWidth * scale));
+    const height = Math.max(1, Math.round(originalHeight * scale));
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return file;
+
+    ctx.drawImage(image, 0, 0, width, height);
+
+    const blob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob(resolve, "image/jpeg", 0.78);
+    });
+
+    if (!blob) return file;
+
+    const originalName = file.name.replace(/\.[^/.]+$/, "");
+    return new File([blob], `${originalName}-optimized.jpg`, {
+      type: "image/jpeg",
+      lastModified: Date.now(),
+    });
+  } catch {
+    return file;
+  }
+}
+
 export default function SectionReferencePhotos({
   inspectionId,
   section,
@@ -82,9 +151,10 @@ export default function SectionReferencePhotos({
     setUploading(true);
 
     try {
-      const fileExt = file.name.split(".").pop() || "jpg";
+      const uploadFile = await compressImageForUpload(file);
+      const fileExt = "jpg";
       const safeSection = section.replace(/[^a-zA-Z0-9-_]/g, "-").slice(0, 50);
-      const safeName = file.name
+      const safeName = uploadFile.name
         .replace(/\.[^/.]+$/, "")
         .replace(/[^a-zA-Z0-9-_]/g, "-")
         .slice(0, 40);
@@ -93,7 +163,11 @@ export default function SectionReferencePhotos({
 
       const { error: uploadError } = await supabase.storage
         .from(PHOTO_BUCKET)
-        .upload(filePath, file);
+        .upload(filePath, uploadFile, {
+          cacheControl: "3600",
+          upsert: false,
+          contentType: uploadFile.type || "image/jpeg",
+        });
 
       if (uploadError) throw uploadError;
 
@@ -306,6 +380,9 @@ export default function SectionReferencePhotos({
                         <img
                           src={photoUrl}
                           alt={photo.caption || `Reference photo ${index + 1}`}
+                          loading="lazy"
+                          decoding="async"
+                          fetchPriority="low"
                           className="h-48 w-full object-cover transition hover:scale-[1.02]"
                         />
                       </a>

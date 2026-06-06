@@ -164,8 +164,15 @@ function AICaptureContent() {
       let filePath = "";
 
       if (file) {
-        const fileExt = file.name.split(".").pop() || "jpg";
-        const safeName = file.name
+        const uploadFile = file.type.startsWith("image/")
+          ? await compressImageForUpload(file)
+          : file;
+
+        const fileExt = uploadFile.type.startsWith("image/")
+          ? "jpg"
+          : uploadFile.name.split(".").pop() || "mp4";
+
+        const safeName = uploadFile.name
           .replace(/\.[^/.]+$/, "")
           .replace(/[^a-zA-Z0-9-_]/g, "-")
           .slice(0, 40);
@@ -174,7 +181,11 @@ function AICaptureContent() {
 
         const { error: uploadError } = await supabase.storage
           .from("inspection-photos")
-          .upload(filePath, file);
+          .upload(filePath, uploadFile, {
+            cacheControl: "3600",
+            upsert: false,
+            contentType: uploadFile.type || undefined,
+          });
 
         if (uploadError) throw uploadError;
 
@@ -276,6 +287,8 @@ function AICaptureContent() {
             <img
               src={previewUrl}
               alt="Preview"
+              loading="lazy"
+              decoding="async"
               className="mt-5 max-h-[450px] w-full rounded-xl border border-slate-700 object-contain"
             />
           )}
@@ -284,6 +297,8 @@ function AICaptureContent() {
             <video
               src={previewUrl}
               controls
+              playsInline
+              preload="metadata"
               className="mt-5 max-h-[450px] w-full rounded-xl border border-slate-700 bg-black"
             />
           )}
@@ -509,6 +524,47 @@ function TextArea({
       />
     </label>
   );
+}
+
+
+async function compressImageForUpload(file: File): Promise<File> {
+  if (!file.type.startsWith("image/")) return file;
+
+  try {
+    const originalDataUrl = await readFileAsDataUrl(file);
+    const image = await loadImageFromDataUrl(originalDataUrl);
+
+    const maxDimension = 1800;
+    const originalWidth = image.naturalWidth || image.width;
+    const originalHeight = image.naturalHeight || image.height;
+
+    const scale = Math.min(1, maxDimension / Math.max(originalWidth, originalHeight));
+    const width = Math.max(1, Math.round(originalWidth * scale));
+    const height = Math.max(1, Math.round(originalHeight * scale));
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return file;
+
+    ctx.drawImage(image, 0, 0, width, height);
+
+    const blob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob(resolve, "image/jpeg", 0.78);
+    });
+
+    if (!blob) return file;
+
+    const originalName = file.name.replace(/\.[^/.]+$/, "");
+    return new File([blob], `${originalName}-optimized.jpg`, {
+      type: "image/jpeg",
+      lastModified: Date.now(),
+    });
+  } catch {
+    return file;
+  }
 }
 
 async function fileToBase64(file: File): Promise<string> {
