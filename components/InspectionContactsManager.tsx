@@ -309,9 +309,9 @@ export default function InspectionContactsManager({
                   type="checkbox"
                   checked={agreementRequired}
                   onChange={(e) => setAgreementRequired(e.target.checked)}
-                  className="h-4 w-4 accent-teal-400"
+                  className="h-5 w-5 shrink-0 accent-teal-400"
                 />
-                Agreement required
+                <span className="min-w-0 break-words">Agreement Required</span>
               </label>
 
               <label className="flex w-full items-center gap-3 rounded-xl border border-slate-700 bg-[#071224] px-4 py-3 text-sm font-bold text-slate-300">
@@ -319,9 +319,9 @@ export default function InspectionContactsManager({
                   type="checkbox"
                   checked={portalAccess}
                   onChange={(e) => setPortalAccess(e.target.checked)}
-                  className="h-4 w-4 accent-teal-400"
+                  className="h-5 w-5 shrink-0 accent-teal-400"
                 />
-                Portal access
+                <span className="min-w-0 break-words">Portal Access</span>
               </label>
             </div>
 
