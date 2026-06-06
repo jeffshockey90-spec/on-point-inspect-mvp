@@ -466,7 +466,10 @@ export default function ClientPortalPage() {
               <img
                 src={propertyPhoto}
                 alt="Property"
-                className="h-72 w-full object-cover md:h-96"
+                loading="lazy"
+                              decoding="async"
+                              fetchPriority="low"
+                              className="h-72 w-full object-cover md:h-96"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[#020617] via-transparent to-transparent" />
             </div>

@@ -289,19 +289,62 @@ function getFindingSummary(finding: any) {
   );
 }
 
-function getFindingPhotoUrl(finding: any) {
-  const firstPhoto = (finding?.photos || [])[0];
-
+function getMediaUrl(media: any) {
   return (
-    firstPhoto?.signed_url ||
-    firstPhoto?.public_url ||
-    firstPhoto?.image_url ||
-    firstPhoto?.photo_url ||
+    media?.signed_url ||
+    media?.public_url ||
+    media?.image_url ||
+    media?.photo_url ||
+    media?.url ||
+    ""
+  );
+}
+
+function getFindingPrimaryMedia(finding: any) {
+  const photos = Array.isArray(finding?.photos) ? finding.photos : [];
+
+  const imagePhoto = photos.find((photo: any) => {
+    const url = getMediaUrl(photo);
+    return url && !isVideoMedia(photo, url);
+  });
+
+  if (imagePhoto) return imagePhoto;
+
+  const firstUsablePhoto = photos.find((photo: any) => getMediaUrl(photo));
+  if (firstUsablePhoto) return firstUsablePhoto;
+
+  const legacyUrl =
     finding?.signed_image_url ||
     finding?.image_url ||
     finding?.public_image_url ||
-    ""
-  );
+    "";
+
+  if (!legacyUrl) return null;
+
+  return {
+    signed_url: legacyUrl,
+    public_url: legacyUrl,
+    image_url: legacyUrl,
+    photo_url: legacyUrl,
+    file_path:
+      finding?.file_path ||
+      finding?.storage_path ||
+      finding?.photo_path ||
+      finding?.image_path ||
+      "",
+    mime_type:
+      finding?.mime_type ||
+      finding?.media_type ||
+      finding?.content_type ||
+      finding?.file_type ||
+      "",
+    is_video: finding?.is_video || finding?.media_type === "video",
+  };
+}
+
+function getFindingPhotoUrl(finding: any) {
+  const primaryMedia = getFindingPrimaryMedia(finding);
+  return getMediaUrl(primaryMedia);
 }
 
 function isVideoMedia(media: any, urlValue?: string) {
@@ -721,6 +764,9 @@ export default async function PublicSharePage({
               <img
                 src={propertyPhoto}
                 alt="Property"
+                loading="eager"
+                decoding="async"
+                fetchPriority="high"
                 className="h-[360px] w-full object-cover md:h-[520px]"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[#020617] via-[#020617]/35 to-black/20" />
@@ -1319,11 +1365,11 @@ export default async function PublicSharePage({
 
                       <div className="space-y-3 md:space-y-6">
                         {group.findings.map((finding: any) => {
-                          const firstPhoto = (finding.photos || [])[0];
-                          const image = getFindingPhotoUrl(finding);
+                          const primaryMedia = getFindingPrimaryMedia(finding);
+                          const image = getMediaUrl(primaryMedia);
                           const title = getFindingTitle(finding);
                           const summary = getFindingSummary(finding);
-                          const isVideo = isVideoMedia(firstPhoto || finding, image);
+                          const isVideo = isVideoMedia(primaryMedia || finding, image);
 
                           return (
                             <div key={finding.id}>

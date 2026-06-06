@@ -465,7 +465,10 @@ export default async function PrintableReportPage({ params }: PageProps) {
             <img
               src={propertyPhoto}
               alt="Property"
-              className="h-80 w-full object-cover print:h-72"
+              loading="lazy"
+                              decoding="async"
+                              fetchPriority="low"
+                              className="h-80 w-full object-cover print:h-72"
             />
           )}
 
@@ -573,7 +576,10 @@ export default async function PrintableReportPage({ params }: PageProps) {
                         src={equipmentImage}
                         alt={item.equipment_type || "Equipment"}
                         decoding="async"
-                        className="mb-4 max-h-[260px] w-full rounded-xl border border-slate-300 object-contain"
+                        loading="lazy"
+                              decoding="async"
+                              fetchPriority="low"
+                              className="mb-4 max-h-[260px] w-full rounded-xl border border-slate-300 object-contain"
                       />
                     )}
 
@@ -688,7 +694,10 @@ export default async function PrintableReportPage({ params }: PageProps) {
                                   src={photo.signed_url || photo.public_url}
                                   alt="Limitation photo"
                                   decoding="async"
-                                  className="max-h-[260px] w-full rounded-xl border object-cover"
+                                  loading="lazy"
+                              decoding="async"
+                              fetchPriority="low"
+                              className="max-h-[260px] w-full rounded-xl border object-cover"
                                 />
                               ))}
                             </div>
@@ -739,6 +748,9 @@ export default async function PrintableReportPage({ params }: PageProps) {
                               src={photoUrl}
                               alt={photo.caption || `Section reference photo ${index + 1}`}
                               decoding="async"
+                              loading="lazy"
+                              decoding="async"
+                              fetchPriority="low"
                               className="max-h-[280px] w-full object-cover"
                             />
 
@@ -833,7 +845,10 @@ export default async function PrintableReportPage({ params }: PageProps) {
                                 src={finding.image_url}
                                 alt={finding.title || "Finding photo"}
                                 decoding="async"
-                                className="max-h-[360px] w-full rounded-xl border object-cover"
+                                loading="lazy"
+                              decoding="async"
+                              fetchPriority="low"
+                              className="max-h-[360px] w-full rounded-xl border object-cover"
                               />
                             )}
 
@@ -843,7 +858,10 @@ export default async function PrintableReportPage({ params }: PageProps) {
                                 src={photo.signed_url}
                                 alt={finding.title || "Finding photo"}
                                 decoding="async"
-                                className="max-h-[360px] w-full rounded-xl border object-cover"
+                                loading="lazy"
+                              decoding="async"
+                              fetchPriority="low"
+                              className="max-h-[360px] w-full rounded-xl border object-cover"
                               />
                             ))}
                           </div>

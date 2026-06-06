@@ -41,6 +41,75 @@ type EquipmentResult = {
   raw?: string;
 };
 
+
+async function readFileAsDataUrl(file: File): Promise<string> {
+  return await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        resolve(reader.result);
+        return;
+      }
+
+      reject(new Error("Unable to read image file."));
+    };
+
+    reader.onerror = () => reject(new Error("Unable to read image file."));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function loadImageFromDataUrl(dataUrl: string): Promise<HTMLImageElement> {
+  return await new Promise((resolve, reject) => {
+    const image = new Image();
+
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("Unable to load image."));
+    image.src = dataUrl;
+  });
+}
+
+async function compressImageForUpload(file: File): Promise<File> {
+  if (!file.type.startsWith("image/")) return file;
+
+  try {
+    const originalDataUrl = await readFileAsDataUrl(file);
+    const image = await loadImageFromDataUrl(originalDataUrl);
+
+    const maxDimension = 1800;
+    const originalWidth = image.naturalWidth || image.width;
+    const originalHeight = image.naturalHeight || image.height;
+
+    const scale = Math.min(1, maxDimension / Math.max(originalWidth, originalHeight));
+    const width = Math.max(1, Math.round(originalWidth * scale));
+    const height = Math.max(1, Math.round(originalHeight * scale));
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return file;
+
+    ctx.drawImage(image, 0, 0, width, height);
+
+    const blob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob(resolve, "image/jpeg", 0.78);
+    });
+
+    if (!blob) return file;
+
+    const originalName = file.name.replace(/\.[^/.]+$/, "");
+    return new File([blob], `${originalName}-optimized.jpg`, {
+      type: "image/jpeg",
+      lastModified: Date.now(),
+    });
+  } catch {
+    return file;
+  }
+}
+
 function shouldCreateFinding(result: EquipmentResult) {
   const severity = String(result.severity || "").toLowerCase();
   const condition = String(result.condition || "").toLowerCase();
@@ -161,13 +230,18 @@ function EquipmentTestContent() {
       let filePath = "";
 
       if (image) {
-        const fileExt = image.name.split(".").pop() || "jpg";
+        const uploadFile = await compressImageForUpload(image);
+        const fileExt = "jpg";
 
         filePath = `${inspectionId}/equipment-${Date.now()}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
           .from("inspection-photos")
-          .upload(filePath, image);
+          .upload(filePath, uploadFile, {
+            cacheControl: "3600",
+            upsert: false,
+            contentType: uploadFile.type || "image/jpeg",
+          });
 
         if (uploadError) throw uploadError;
 
@@ -334,7 +408,9 @@ function EquipmentTestContent() {
 
           {preview && (
             <img
-              src={preview}
+                src={preview}
+                loading="lazy"
+                decoding="async"
               alt="Preview"
               className="mt-4 max-h-96 w-full rounded-xl object-contain"
             />
