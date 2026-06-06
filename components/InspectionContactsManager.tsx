@@ -302,9 +302,9 @@ export default function InspectionContactsManager({
             </div>
           </div>
 
-          <div className="mt-4 flex flex-col gap-4">
-            <div className="flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap">
-              <label className="flex w-full items-center gap-3 rounded-xl border border-slate-700 bg-[#071224] px-4 py-3 text-sm font-bold text-slate-300">
+          <div className="mt-4 space-y-3">
+            <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2">
+              <label className="flex min-h-[56px] w-full items-center gap-3 rounded-xl border border-slate-700 bg-[#071224] px-4 py-3 text-sm font-bold text-slate-300">
                 <input
                   type="checkbox"
                   checked={agreementRequired}
@@ -314,7 +314,7 @@ export default function InspectionContactsManager({
                 <span className="min-w-0 break-words">Agreement Required</span>
               </label>
 
-              <label className="flex w-full items-center gap-3 rounded-xl border border-slate-700 bg-[#071224] px-4 py-3 text-sm font-bold text-slate-300">
+              <label className="flex min-h-[56px] w-full items-center gap-3 rounded-xl border border-slate-700 bg-[#071224] px-4 py-3 text-sm font-bold text-slate-300">
                 <input
                   type="checkbox"
                   checked={portalAccess}
@@ -386,9 +386,15 @@ export default function InspectionContactsManager({
                       </div>
 
                       <div className="mt-3 flex flex-col gap-2 text-sm text-slate-400">
-                        <p className="w-full overflow-hidden">                          <span className="font-bold text-slate-500">Email:</span>{" "}                          <span className="break-all">{contact.email || "N/A"}</span>                        </p>
+                        <p className="w-full overflow-hidden">
+                          <span className="font-bold text-slate-500">Email:</span>{" "}
+                          <span className="break-all">{contact.email || "N/A"}</span>
+                        </p>
 
-                        <p className="w-full overflow-hidden">                          <span className="font-bold text-slate-500">Phone:</span>{" "}                          <span className="break-all">{contact.phone || "N/A"}</span>                        </p>
+                        <p className="w-full overflow-hidden">
+                          <span className="font-bold text-slate-500">Phone:</span>{" "}
+                          <span className="break-all">{contact.phone || "N/A"}</span>
+                        </p>
                       </div>
                     </div>
 
