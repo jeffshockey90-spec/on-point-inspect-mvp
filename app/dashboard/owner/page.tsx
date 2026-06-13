@@ -8,7 +8,7 @@ import PushNotificationSetup from "../../../components/PushNotificationSetup";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-const OWNER_EMAIL = "jeffshockey90@gmail.com";
+const OWNER_EMAIL = "jeff@onpointhomeinspect.com";
 
 type Tone = "teal" | "green" | "blue" | "purple" | "orange" | "yellow" | "red";
 
