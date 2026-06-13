@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "../../../lib/supabaseClient";
+import FastLinkButton from "../../../components/FastLinkButton";
 
 const SECTION_ORDER = [
   "Inspection Details",
@@ -245,6 +246,9 @@ export default function ClientPortalPage() {
   const [checklistRows, setChecklistRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
+  const [updatingReview, setUpdatingReview] = useState(false);
+  const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState<"success" | "error" | "">("");
 
   useEffect(() => {
     loadInspection();
@@ -272,102 +276,129 @@ export default function ClientPortalPage() {
       }
     }
 
-    trackClientPortalView();
+    const timer = window.setTimeout(() => {
+      trackClientPortalView();
+    }, 2000);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
   }, [inspectionId]);
 
+  function showMessage(type: "success" | "error", text: string) {
+    setMessageType(type);
+    setMessage(text);
+  }
+
   async function loadInspection() {
-    const { data, error } = await supabase
+    if (!inspectionId) return;
+
+    setLoading(true);
+
+    const inspectionQuery = supabase
       .from("inspections")
       .select("*")
       .eq("id", inspectionId)
       .single();
 
-    if (error) {
-      console.error(error);
-      setLoading(false);
-      return;
-    }
-
-    let moldData = null;
-    let radonData = null;
-
-    try {
-      const environmentalRes = await fetch(
-        `/api/environmental-links?inspection_id=${inspectionId}`,
-        {
-          cache: "no-store",
-        }
-      );
-
-      const environmentalData = await environmentalRes.json();
-
-      if (environmentalRes.ok) {
-        moldData = environmentalData.mold_test || null;
-        radonData = environmentalData.radon_test || null;
-      } else {
-        console.error(
-          "Environmental links load error:",
-          environmentalData.error
-        );
-      }
-    } catch (environmentalError) {
-      console.error("Could not load environmental links:", environmentalError);
-    }
-
-    const { data: checklistData, error: checklistError } = await supabase
+    const checklistQuery = supabase
       .from("section_checklist_selections")
       .select("*")
       .eq("inspection_id", inspectionId)
       .order("created_at", { ascending: true });
 
-    if (checklistError) {
-      console.error("Checklist selections load error:", checklistError);
+    const environmentalQuery = fetch(
+      `/api/environmental-links?inspection_id=${inspectionId}`,
+      { cache: "no-store" }
+    )
+      .then(async (res) => {
+        const data = await res.json().catch(() => ({}));
+        return { ok: res.ok, data };
+      })
+      .catch((error) => {
+        console.error("Could not load environmental links:", error);
+        return { ok: false, data: {} };
+      });
+
+    const [inspectionResult, checklistResult, environmentalResult] =
+      await Promise.all([inspectionQuery, checklistQuery, environmentalQuery]);
+
+    if (inspectionResult.error) {
+      console.error(inspectionResult.error);
+      setLoading(false);
+      return;
     }
 
-    setInspection(data);
-    setMoldTest(moldData);
-    setRadonTest(radonData);
-    setChecklistRows(checklistData || []);
+    if (checklistResult.error) {
+      console.error("Checklist selections load error:", checklistResult.error);
+    }
+
+    if (!environmentalResult.ok && environmentalResult.data?.error) {
+      console.error("Environmental links load error:", environmentalResult.data.error);
+    }
+
+    setInspection(inspectionResult.data);
+    setMoldTest(environmentalResult.data?.mold_test || null);
+    setRadonTest(environmentalResult.data?.radon_test || null);
+    setChecklistRows(checklistResult.data || []);
     setLoading(false);
   }
 
   async function updateStatus(field: string, value: string) {
-    const res = await fetch("/api/update-client-status", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        inspectionId,
-        field,
-        value,
-      }),
-    });
+    if (updatingReview) return;
 
-    const data = await res.json();
+    setUpdatingReview(true);
+    setMessage("");
+    setMessageType("");
 
-    if (!res.ok) {
-      alert(data.error || "Failed to update status");
-      return;
+    try {
+      const res = await fetch("/api/update-client-status", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          inspectionId,
+          field,
+          value,
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        showMessage("error", data.error || "Failed to update status.");
+        return;
+      }
+
+      showMessage("success", "Review follow-up marked as submitted.");
+      await loadInspection();
+    } catch (error: any) {
+      showMessage("error", error?.message || "Failed to update status.");
+    } finally {
+      setUpdatingReview(false);
     }
-
-    await loadInspection();
   }
 
   async function startStripeCheckout() {
+    if (paying) return;
+
     if (!inspectionId) {
-      alert("Missing inspection ID.");
+      showMessage("error", "Missing inspection ID.");
       return;
     }
 
     try {
       setPaying(true);
+      setMessage("");
+      setMessageType("");
 
       const confirmed = window.confirm(
         "Online card payments through the portal include a small processing fee. Other approved payment methods may be available without this online fee. Continue to Stripe checkout?"
       );
 
       if (!confirmed) {
+        setPaying(false);
         return;
       }
 
@@ -381,21 +412,21 @@ export default function ClientPortalPage() {
         }),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        alert(data.error || "Unable to start payment.");
+        showMessage("error", data.error || "Unable to start payment.");
         return;
       }
 
       if (!data.url) {
-        alert("Stripe checkout URL was not returned.");
+        showMessage("error", "Stripe checkout URL was not returned.");
         return;
       }
 
       window.location.href = data.url;
     } catch (error: any) {
-      alert(error?.message || "Unable to start payment.");
+      showMessage("error", error?.message || "Unable to start payment.");
     } finally {
       setPaying(false);
     }
@@ -460,6 +491,18 @@ export default function ClientPortalPage() {
   return (
     <main className="min-h-screen bg-[#020617] p-4 text-white md:p-8">
       <div className="mx-auto max-w-6xl space-y-6">
+        {message && (
+          <div
+            className={`rounded-2xl border p-4 text-sm font-bold shadow-xl ${
+              messageType === "success"
+                ? "border-green-500/40 bg-green-950/30 text-green-300"
+                : "border-red-500/40 bg-red-950/30 text-red-300"
+            }`}
+          >
+            {message}
+          </div>
+        )}
+
         <section className="overflow-hidden rounded-3xl border border-slate-800 bg-[#0f172a] shadow-2xl">
           {propertyPhoto && (
             <div className="relative border-b border-slate-800 bg-black">
@@ -730,10 +773,15 @@ export default function ClientPortalPage() {
               </button>
             ) : (
               <button
+                type="button"
                 onClick={startStripeCheckout}
                 disabled={paying}
-                className="mt-6 w-full rounded-xl bg-green-500 px-6 py-3 font-bold text-slate-950 hover:bg-green-400 disabled:cursor-not-allowed disabled:opacity-60"
+                aria-busy={paying}
+                className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-green-500 px-6 py-3 font-bold text-slate-950 transition active:scale-[0.98] hover:bg-green-400 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
               >
+                {paying && (
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                )}
                 {paying
                   ? "Opening Checkout..."
                   : `Pay Online ${money(totalOnlinePayment)}`}
@@ -756,15 +804,18 @@ export default function ClientPortalPage() {
                 </span>
               </div>
             ) : (
-              <a
+              <FastLinkButton
                 href={`/client-agreement/${inspectionId}`}
-                className="rounded-xl bg-teal-500 px-6 py-4 text-left font-bold text-slate-950 transition hover:bg-teal-400"
+                loadingText="Opening Agreement..."
+                className="rounded-xl bg-teal-500 px-6 py-4 text-left font-bold text-slate-950 hover:bg-teal-400"
               >
-                <span className="block text-lg">Sign Agreement</span>
-                <span className="mt-1 block text-sm font-medium opacity-80">
-                  Open and sign the inspection agreement.
+                <span>
+                  <span className="block text-lg">Sign Agreement</span>
+                  <span className="mt-1 block text-sm font-medium opacity-80">
+                    Open and sign the inspection agreement.
+                  </span>
                 </span>
-              </a>
+              </FastLinkButton>
             )}
 
             {reportUnlocked ? (
@@ -814,12 +865,22 @@ export default function ClientPortalPage() {
             )}
 
             <button
+              type="button"
               onClick={() => updateStatus("review_status", "Submitted")}
-              className="rounded-xl border border-yellow-500 bg-[#071224] px-6 py-4 text-left font-bold text-yellow-300 hover:bg-yellow-500/10"
+              disabled={updatingReview}
+              aria-busy={updatingReview}
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-yellow-500 bg-[#071224] px-6 py-4 text-left font-bold text-yellow-300 transition active:scale-[0.98] hover:bg-yellow-500/10 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
             >
-              <span className="block text-lg">Leave Review</span>
-              <span className="mt-1 block text-sm font-medium text-slate-400">
-                Mark review follow-up submitted.
+              {updatingReview && (
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+              )}
+              <span>
+                <span className="block text-lg">
+                  {updatingReview ? "Saving Review..." : "Leave Review"}
+                </span>
+                <span className="mt-1 block text-sm font-medium text-slate-400">
+                  Mark review follow-up submitted.
+                </span>
               </span>
             </button>
           </div>
@@ -958,21 +1019,44 @@ function ActionLink({
       ? "border-purple-500 text-purple-300 hover:bg-purple-500/10"
       : "border-orange-500 text-orange-300 hover:bg-orange-500/10";
 
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noreferrer"
-      className={`rounded-xl border bg-[#071224] p-5 font-bold transition ${classes}`}
-    >
+  const isExternal =
+    href.startsWith("http://") ||
+    href.startsWith("https://") ||
+    href.startsWith("mailto:") ||
+    href.startsWith("tel:");
+
+  const content = (
+    <span>
       <span className="block text-lg">{title}</span>
       <span className="mt-2 block text-sm font-medium text-slate-400">
         {description}
       </span>
-    </a>
+    </span>
+  );
+
+  if (isExternal) {
+    return (
+      <a
+        href={href}
+        target="_blank"
+        rel="noreferrer"
+        className={`rounded-xl border bg-[#071224] p-5 font-bold transition active:scale-[0.98] [touch-action:manipulation] ${classes}`}
+      >
+        {content}
+      </a>
+    );
+  }
+
+  return (
+    <FastLinkButton
+      href={href}
+      loadingText="Opening..."
+      className={`rounded-xl border bg-[#071224] p-5 font-bold ${classes}`}
+    >
+      {content}
+    </FastLinkButton>
   );
 }
-
 function Info({ label, value }: { label: string; value?: any }) {
   return (
     <div>

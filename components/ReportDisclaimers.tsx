@@ -67,6 +67,15 @@ export default function ReportDisclaimers({
   const [generatedText, setGeneratedText] = useState("");
   const [saving, setSaving] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState<"success" | "error" | "">("");
+
+
+
+  function showMessage(type: "success" | "error", text: string) {
+    setMessageType(type);
+    setMessage(text);
+  }
 
   useEffect(() => {
     async function loadDisclaimers() {
@@ -144,7 +153,7 @@ export default function ReportDisclaimers({
 
       if (data) setRows((prev) => [...prev, data]);
     } catch (error: any) {
-      alert(error?.message || "Failed to update disclaimer.");
+      showMessage("error", error?.message || "Failed to update disclaimer.");
     } finally {
       setSaving(false);
     }
@@ -179,7 +188,7 @@ export default function ReportDisclaimers({
 
       setCustomTopic("");
     } catch (error: any) {
-      alert(error?.message || "Failed to add disclaimer.");
+      showMessage("error", error?.message || "Failed to add disclaimer.");
     } finally {
       setSaving(false);
     }
@@ -189,12 +198,12 @@ export default function ReportDisclaimers({
     const finalTopic = activeTopic;
 
     if (!finalTopic) {
-      alert("Choose a disclaimer first.");
+      showMessage("error", "Choose a disclaimer first.");
       return;
     }
 
     if (!roughNotes.trim()) {
-      alert("Add a short note for the AI first.");
+      showMessage("error", "Add a short note for the AI first.");
       return;
     }
 
@@ -215,13 +224,13 @@ export default function ReportDisclaimers({
       const data = await res.json();
 
       if (!res.ok) {
-        alert(data.error || "Failed to generate disclaimer.");
+        showMessage("error", data.error || "Failed to generate disclaimer.");
         return;
       }
 
       setGeneratedText(data.disclaimer || "");
     } catch (error: any) {
-      alert(error?.message || "Failed to generate disclaimer.");
+      showMessage("error", error?.message || "Failed to generate disclaimer.");
     } finally {
       setGenerating(false);
     }
@@ -229,12 +238,12 @@ export default function ReportDisclaimers({
 
   async function saveActiveDisclaimer() {
     if (!activeTopic) {
-      alert("Choose a disclaimer first.");
+      showMessage("error", "Choose a disclaimer first.");
       return;
     }
 
     if (!generatedText.trim()) {
-      alert("No disclaimer text to save.");
+      showMessage("error", "No disclaimer text to save.");
       return;
     }
 
@@ -274,9 +283,9 @@ export default function ReportDisclaimers({
         if (data) setRows((prev) => [...prev, data]);
       }
 
-      alert("Disclaimer saved.");
+      showMessage("success", "Disclaimer saved.");
     } catch (error: any) {
-      alert(error?.message || "Failed to save disclaimer.");
+      showMessage("error", error?.message || "Failed to save disclaimer.");
     } finally {
       setSaving(false);
     }
@@ -306,6 +315,20 @@ export default function ReportDisclaimers({
           {open ? "Hide" : "Show"}
         </span>
       </button>
+
+
+
+      {message && (
+        <div
+          className={`border-t border-slate-700 px-5 py-3 text-sm font-bold ${
+            messageType === "success"
+              ? "bg-emerald-950/30 text-emerald-300"
+              : "bg-red-950/30 text-red-300"
+          }`}
+        >
+          {message}
+        </div>
+      )}
 
       {rows.length > 0 && (
         <div className="border-t border-slate-700 px-5 py-3">

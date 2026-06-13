@@ -7,25 +7,54 @@ export default function ShareReportButton({
 }: {
   inspectionId: string;
 }) {
-  const [copied, setCopied] = useState(false);
+  const [status, setStatus] = useState<"idle" | "copying" | "copied" | "error">(
+    "idle"
+  );
 
   async function copyLink() {
-    const link = `${window.location.origin}/share/${inspectionId}`;
+    if (status === "copying") return;
 
-    await navigator.clipboard.writeText(link);
+    setStatus("copying");
 
-    setCopied(true);
+    try {
+      const link = `${window.location.origin}/share/${inspectionId}`;
 
-    setTimeout(() => setCopied(false), 2000);
+      await navigator.clipboard.writeText(link);
+
+      setStatus("copied");
+
+      window.setTimeout(() => {
+        setStatus("idle");
+      }, 2000);
+    } catch (error) {
+      console.error("Copy share link failed:", error);
+
+      setStatus("error");
+
+      window.setTimeout(() => {
+        setStatus("idle");
+      }, 2500);
+    }
   }
+
+  const label =
+    status === "copying"
+      ? "Copying..."
+      : status === "copied"
+        ? "Copied!"
+        : status === "error"
+          ? "Copy Failed"
+          : "Copy Share Link";
 
   return (
     <button
       type="button"
       onClick={copyLink}
-      className="rounded-xl border border-blue-500 px-5 py-3 font-bold text-blue-300 transition hover:bg-blue-500 hover:text-black print:hidden"
+      disabled={status === "copying"}
+      aria-busy={status === "copying"}
+      className="rounded-xl border border-blue-500 px-5 py-3 font-bold text-blue-300 transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70 hover:bg-blue-500 hover:text-black print:hidden"
     >
-      {copied ? "Copied!" : "Copy Share Link"}
+      {label}
     </button>
   );
 }

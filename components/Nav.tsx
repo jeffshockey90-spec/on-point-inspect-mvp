@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 
 const navItems = [
@@ -28,21 +29,43 @@ const mobileItems = [
 export default function Navbar() {
   const pathname = usePathname() || "";
   const router = useRouter();
+  const [loggingOut, setLoggingOut] = useState(false);
+  const [openingHref, setOpeningHref] = useState("");
 
   function isActive(href: string) {
     if (href === "/") return pathname === "/";
     return pathname === href || pathname.startsWith(`${href}/`);
   }
 
+  function prefetchRoute(href: string) {
+    router.prefetch(href);
+  }
+
+  function handleNavClick(href: string) {
+    if (href !== pathname) setOpeningHref(href);
+  }
+
   async function handleLogout() {
+    if (loggingOut) return;
+
+    setLoggingOut(true);
+
     try {
       await supabase.auth.signOut();
       router.push("/login");
       router.refresh();
     } catch (error) {
       console.error("Logout error:", error);
-      alert("Failed to log out.");
+      setLoggingOut(false);
     }
+  }
+
+  function NavSpinner({ active }: { active: boolean }) {
+    if (!active) return null;
+
+    return (
+      <span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+    );
   }
 
   return (
@@ -52,7 +75,10 @@ export default function Navbar() {
           <div className="flex items-center gap-5 rounded-2xl border border-slate-800 bg-[#0b1220]/95 px-5 py-4 shadow-2xl shadow-black/20">
             <Link
               href="/"
-              className="flex min-w-[265px] shrink-0 items-center gap-4 border-r border-slate-700/70 pr-5"
+              prefetch
+              onPointerEnter={() => prefetchRoute("/")}
+              onClick={() => handleNavClick("/")}
+              className="flex min-w-[265px] shrink-0 items-center gap-4 border-r border-slate-700/70 pr-5 transition active:scale-[0.98] [touch-action:manipulation]"
             >
               <img
                 src="/logo.jpg?v=2"
@@ -73,20 +99,30 @@ export default function Navbar() {
             <nav className="flex min-w-0 flex-1 flex-wrap items-center gap-3">
               {navItems.map((item) => {
                 const active = isActive(item.href);
+                const opening = openingHref === item.href && !active;
 
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
-                    prefetch={false}
-                    className={`inline-flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-extrabold transition ${
+                    prefetch
+                    onPointerEnter={() => prefetchRoute(item.href)}
+                    onTouchStart={() => prefetchRoute(item.href)}
+                    onClick={() => handleNavClick(item.href)}
+                    aria-busy={opening}
+                    className={`inline-flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-extrabold transition active:scale-[0.98] [touch-action:manipulation] ${
                       active
                         ? "border-white/40 bg-gradient-to-r from-cyan-400 to-teal-400 text-black shadow-2xl shadow-cyan-500/40"
-                        : "border-slate-700 bg-[#050816] text-teal-300 hover:border-teal-500 hover:bg-[#111827] hover:text-white"
+                        : opening
+                          ? "border-teal-500 bg-[#111827] text-teal-300 opacity-80"
+                          : "border-slate-700 bg-[#050816] text-teal-300 hover:border-teal-500 hover:bg-[#111827] hover:text-white"
                     }`}
                   >
-                    <span className="text-base leading-none">{item.icon}</span>
-                    <span className="whitespace-nowrap">{item.title}</span>
+                    <NavSpinner active={opening} />
+                    {!opening && <span className="text-base leading-none">{item.icon}</span>}
+                    <span className="whitespace-nowrap">
+                      {opening ? "Opening..." : item.title}
+                    </span>
                   </Link>
                 );
               })}
@@ -95,9 +131,14 @@ export default function Navbar() {
             <button
               type="button"
               onClick={handleLogout}
-              className="rounded-2xl border border-red-500 bg-red-950/30 px-4 py-3 text-sm font-extrabold text-red-300 transition hover:bg-red-500 hover:text-white"
+              disabled={loggingOut}
+              aria-busy={loggingOut}
+              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-red-500 bg-red-950/30 px-4 py-3 text-sm font-extrabold text-red-300 transition active:scale-[0.98] hover:bg-red-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
             >
-              🚪 Logout
+              {loggingOut && (
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+              )}
+              {loggingOut ? "Logging Out..." : "🚪 Logout"}
             </button>
           </div>
         </div>
@@ -110,23 +151,34 @@ export default function Navbar() {
         <div className="flex h-[78px] w-full flex-row flex-nowrap items-center justify-between">
           {mobileItems.map((item) => {
             const active = isActive(item.href);
+            const opening = openingHref === item.href && !active;
 
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                prefetch={false}
-                className={`flex h-full min-w-0 flex-1 flex-col items-center justify-center overflow-hidden px-0.5 text-center transition ${
+                prefetch
+                onTouchStart={() => prefetchRoute(item.href)}
+                onPointerEnter={() => prefetchRoute(item.href)}
+                onClick={() => handleNavClick(item.href)}
+                aria-busy={opening}
+                className={`flex h-full min-w-0 flex-1 flex-col items-center justify-center overflow-hidden px-0.5 text-center transition active:scale-[0.98] [touch-action:manipulation] ${
                   active
                     ? "bg-teal-500/15 text-teal-300"
-                    : "text-zinc-300 hover:bg-slate-800/70 hover:text-teal-300"
+                    : opening
+                      ? "bg-slate-800/70 text-teal-300 opacity-80"
+                      : "text-zinc-300 hover:bg-slate-800/70 hover:text-teal-300"
                 }`}
               >
                 <span className="flex w-full items-center justify-center text-xl leading-none">
-                  {item.icon}
+                  {opening ? (
+                    <span className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  ) : (
+                    item.icon
+                  )}
                 </span>
                 <span className="mt-1 block w-full text-center text-[10px] font-black leading-none whitespace-nowrap">
-                  {item.mobileLabel}
+                  {opening ? "Opening" : item.mobileLabel}
                 </span>
               </Link>
             );
@@ -135,13 +187,19 @@ export default function Navbar() {
           <button
             type="button"
             onClick={handleLogout}
-            className="flex h-full min-w-0 flex-1 flex-col items-center justify-center overflow-hidden px-0.5 text-center text-red-300 transition hover:bg-red-950/30"
+            disabled={loggingOut}
+            aria-busy={loggingOut}
+            className="flex h-full min-w-0 flex-1 flex-col items-center justify-center overflow-hidden px-0.5 text-center text-red-300 transition active:scale-[0.98] hover:bg-red-950/30 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
           >
             <span className="flex w-full items-center justify-center text-xl leading-none">
-              🚪
+              {loggingOut ? (
+                <span className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+              ) : (
+                "🚪"
+              )}
             </span>
             <span className="mt-1 block w-full text-center text-[10px] font-black leading-none whitespace-nowrap">
-              Logout
+              {loggingOut ? "Leaving" : "Logout"}
             </span>
           </button>
         </div>

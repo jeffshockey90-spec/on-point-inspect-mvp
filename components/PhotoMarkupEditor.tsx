@@ -144,7 +144,12 @@ export default function PhotoMarkupEditor({
   const [tool, setTool] = useState<Tool>("select");
   const [draftId, setDraftId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [activeColor, setActiveColor] = useState(() => getSeverityColor(severity));
+  const [saveLabel, setSaveLabel] = useState("Save");
+  const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState<"success" | "error" | "">("");
+  const [activeColor, setActiveColor] = useState(() =>
+    getSeverityColor(severity)
+  );
 
   useMemo(() => {
     if (items.length === 0) setActiveColor(getSeverityColor(severity));
@@ -153,6 +158,11 @@ export default function PhotoMarkupEditor({
   const stageWidth = 900;
   const imageRatio = image ? image.height / image.width : 0.65;
   const stageHeight = Math.max(420, Math.min(700, stageWidth * imageRatio));
+
+  function showMessage(type: "success" | "error", text: string) {
+    setMessageType(type);
+    setMessage(text);
+  }
 
   function getPointerPosition(stage: any) {
     const pos = stage?.getPointerPosition();
@@ -176,6 +186,8 @@ export default function PhotoMarkupEditor({
   }
 
   function handleStagePointerDown(event: any) {
+    if (saving) return;
+
     stopPageGesture(event);
 
     const stage = event.target.getStage();
@@ -248,6 +260,8 @@ export default function PhotoMarkupEditor({
   }
 
   function handleStagePointerMove(event: any) {
+    if (saving) return;
+
     stopPageGesture(event);
     if (!draftId) return;
 
@@ -271,6 +285,8 @@ export default function PhotoMarkupEditor({
   }
 
   function handleStagePointerUp(event?: any) {
+    if (saving) return;
+
     stopPageGesture(event);
     if (!draftId) return;
 
@@ -279,22 +295,38 @@ export default function PhotoMarkupEditor({
   }
 
   function deleteSelected() {
-    if (!selectedId) return;
+    if (!selectedId || saving) return;
     setItems((prev) => prev.filter((item) => item.id !== selectedId));
     setSelectedId(null);
+    setMessage("");
+    setMessageType("");
   }
 
   async function save() {
+    if (saving) return;
+
     setSaving(true);
+    setSaveLabel("Saving...");
+    setMessage("");
+    setMessageType("");
+
     try {
       await onSave(items);
+      setSaveLabel("Saved!");
+      showMessage("success", "Photo markup saved.");
+    } catch (error: any) {
+      setSaveLabel("Failed");
+      showMessage("error", error?.message || "Failed to save photo markup.");
     } finally {
-      setSaving(false);
+      window.setTimeout(() => {
+        setSaving(false);
+        setSaveLabel("Save");
+      }, 700);
     }
   }
 
   const toolButtonClass = (toolName: Tool) =>
-    `flex min-w-[72px] flex-col items-center justify-center rounded-xl px-3 py-2 text-xs font-black transition ${
+    `flex min-w-[72px] flex-col items-center justify-center rounded-xl px-3 py-2 text-xs font-black transition active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-40 [touch-action:manipulation] ${
       tool === toolName
         ? "border border-[#65c832] bg-black/60 text-[#65c832]"
         : "text-slate-100 hover:bg-white/10"
@@ -306,7 +338,8 @@ export default function PhotoMarkupEditor({
         <button
           type="button"
           onClick={onCancel}
-          className="text-lg font-semibold text-white hover:text-slate-300"
+          disabled={saving}
+          className="inline-flex items-center justify-center rounded-xl px-3 py-2 text-lg font-semibold text-white transition active:scale-[0.96] hover:text-slate-300 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
         >
           Cancel
         </button>
@@ -317,14 +350,30 @@ export default function PhotoMarkupEditor({
           type="button"
           onClick={save}
           disabled={saving}
-          className="text-lg font-black text-[#65c832] hover:text-[#7ee047] disabled:opacity-50"
+          aria-busy={saving}
+          className="inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-lg font-black text-[#65c832] transition active:scale-[0.96] hover:text-[#7ee047] disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
         >
-          {saving ? "Saving..." : "Save"}
+          {saving && (
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+          )}
+          {saveLabel}
         </button>
       </div>
 
+      {message && (
+        <div
+          className={`mx-4 mt-3 rounded-xl border px-4 py-3 text-sm font-bold ${
+            messageType === "success"
+              ? "border-emerald-500 bg-emerald-950/40 text-emerald-300"
+              : "border-red-500 bg-red-950/40 text-red-300"
+          }`}
+        >
+          {message}
+        </div>
+      )}
+
       <div
-        className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-black touch-none select-none"
+        className="relative flex min-h-0 flex-1 select-none items-center justify-center overflow-hidden bg-black touch-none"
         style={{ touchAction: "none", overscrollBehavior: "contain" }}
         onTouchMove={(event) => event.preventDefault()}
       >
@@ -355,19 +404,21 @@ export default function PhotoMarkupEditor({
               const common = {
                 x: item.x,
                 y: item.y,
-                draggable: tool === "select" && !draftId,
+                draggable: tool === "select" && !draftId && !saving,
                 onClick: (event: any) => {
                   stopPageGesture(event);
-                  setSelectedId(item.id);
+                  if (!saving) setSelectedId(item.id);
                 },
                 onTap: (event: any) => {
                   stopPageGesture(event);
-                  setSelectedId(item.id);
+                  if (!saving) setSelectedId(item.id);
                 },
                 onDragStart: (event: any) => stopPageGesture(event),
                 onDragMove: (event: any) => stopPageGesture(event),
                 onDragEnd: (event: any) => {
                   stopPageGesture(event);
+                  if (saving) return;
+
                   const nextX = event.target.x();
                   const nextY = event.target.y();
 
@@ -447,8 +498,11 @@ export default function PhotoMarkupEditor({
               key={option}
               type="button"
               onClick={() => setActiveColor(option)}
-              className={`h-12 w-12 rounded-xl border-2 transition ${
-                activeColor === option ? "border-white scale-105" : "border-black/50"
+              disabled={saving}
+              className={`h-12 w-12 rounded-xl border-2 transition active:scale-[0.94] disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation] ${
+                activeColor === option
+                  ? "scale-105 border-white"
+                  : "border-black/50"
               }`}
               style={{ backgroundColor: option }}
               title={option}
@@ -462,6 +516,7 @@ export default function PhotoMarkupEditor({
           <button
             type="button"
             onClick={() => setTool("select")}
+            disabled={saving}
             className={toolButtonClass("select")}
           >
             <span className="text-2xl">▣</span>
@@ -471,6 +526,7 @@ export default function PhotoMarkupEditor({
           <button
             type="button"
             onClick={() => setTool("arrow")}
+            disabled={saving}
             className={toolButtonClass("arrow")}
           >
             <span className="text-3xl leading-none">↗</span>
@@ -480,6 +536,7 @@ export default function PhotoMarkupEditor({
           <button
             type="button"
             onClick={() => setTool("circle")}
+            disabled={saving}
             className={toolButtonClass("circle")}
           >
             <span className="text-3xl leading-none">○</span>
@@ -489,6 +546,7 @@ export default function PhotoMarkupEditor({
           <button
             type="button"
             onClick={() => setTool("text")}
+            disabled={saving}
             className={toolButtonClass("text")}
           >
             <span className="text-3xl leading-none">T</span>
@@ -498,8 +556,8 @@ export default function PhotoMarkupEditor({
           <button
             type="button"
             onClick={deleteSelected}
-            disabled={!selectedId}
-            className="flex min-w-[72px] flex-col items-center justify-center rounded-xl px-3 py-2 text-xs font-black text-slate-100 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+            disabled={!selectedId || saving}
+            className="flex min-w-[72px] flex-col items-center justify-center rounded-xl px-3 py-2 text-xs font-black text-slate-100 transition active:scale-[0.96] hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 [touch-action:manipulation]"
           >
             <span className="text-3xl leading-none">⌫</span>
             <span>Delete</span>

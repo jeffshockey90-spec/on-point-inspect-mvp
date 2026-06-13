@@ -19,7 +19,6 @@ type ReferencePhoto = {
   created_at?: string | null;
 };
 
-
 async function readFileAsDataUrl(file: File): Promise<string> {
   return await new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -48,7 +47,6 @@ async function loadImageFromDataUrl(dataUrl: string): Promise<HTMLImageElement> 
   });
 }
 
-
 async function createImageVariantForUpload(
   file: File,
   maxDimension: number,
@@ -64,7 +62,10 @@ async function createImageVariantForUpload(
     const originalWidth = image.naturalWidth || image.width;
     const originalHeight = image.naturalHeight || image.height;
 
-    const scale = Math.min(1, maxDimension / Math.max(originalWidth, originalHeight));
+    const scale = Math.min(
+      1,
+      maxDimension / Math.max(originalWidth, originalHeight)
+    );
     const width = Math.max(1, Math.round(originalWidth * scale));
     const height = Math.max(1, Math.round(originalHeight * scale));
 
@@ -101,7 +102,11 @@ async function createThumbnailForUpload(file: File): Promise<File> {
   return createImageVariantForUpload(file, 480, 0.7, "thumb");
 }
 
-
+function SmallSpinner() {
+  return (
+    <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+  );
+}
 
 export default function SectionReferencePhotos({
   inspectionId,
@@ -114,7 +119,9 @@ export default function SectionReferencePhotos({
   const [photos, setPhotos] = useState<ReferencePhoto[]>([]);
   const [caption, setCaption] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [uploadLabel, setUploadLabel] = useState("Uploading...");
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [loadingPhotos, setLoadingPhotos] = useState(false);
 
   useEffect(() => {
     loadPhotos();
@@ -123,50 +130,58 @@ export default function SectionReferencePhotos({
   async function loadPhotos() {
     if (!inspectionId || !section) return;
 
-    const { data, error } = await supabase
-      .from("section_reference_photos")
-      .select("*")
-      .eq("inspection_id", inspectionId)
-      .eq("section", section)
-      .order("created_at", { ascending: true });
+    setLoadingPhotos(true);
 
-    if (error) {
-      console.error("Failed to load section reference photos:", error);
-      return;
-    }
+    try {
+      const { data, error } = await supabase
+        .from("section_reference_photos")
+        .select("*")
+        .eq("inspection_id", inspectionId)
+        .eq("section", section)
+        .order("created_at", { ascending: true });
 
-    const withSignedUrls = await Promise.all(
-      (data || []).map(async (photo: ReferencePhoto) => {
-        if (!photo.file_path) {
+      if (error) {
+        console.error("Failed to load section reference photos:", error);
+        return;
+      }
+
+      const withSignedUrls = await Promise.all(
+        (data || []).map(async (photo: ReferencePhoto) => {
+          if (!photo.file_path) {
+            return {
+              ...photo,
+              signed_url: photo.signed_url || photo.public_url || "",
+            };
+          }
+
+          const { data: signedData } = await supabase.storage
+            .from(PHOTO_BUCKET)
+            .createSignedUrl(photo.file_path, 60 * 60 * 24 * 7);
+
+          let signedThumbnailUrl = photo.thumbnail_url || "";
+
+          if (photo.thumbnail_path) {
+            const { data: signedThumbnailData } = await supabase.storage
+              .from(PHOTO_BUCKET)
+              .createSignedUrl(photo.thumbnail_path, 60 * 60 * 24 * 7);
+
+            signedThumbnailUrl =
+              signedThumbnailData?.signedUrl || photo.thumbnail_url || "";
+          }
+
           return {
             ...photo,
-            signed_url: photo.signed_url || photo.public_url || "",
+            signed_url:
+              signedData?.signedUrl || photo.signed_url || photo.public_url || "",
+            signed_thumbnail_url: signedThumbnailUrl,
           };
-        }
+        })
+      );
 
-        const { data: signedData } = await supabase.storage
-          .from(PHOTO_BUCKET)
-          .createSignedUrl(photo.file_path, 60 * 60 * 24 * 7);
-
-        let signedThumbnailUrl = photo.thumbnail_url || "";
-
-        if (photo.thumbnail_path) {
-          const { data: signedThumbnailData } = await supabase.storage
-            .from(PHOTO_BUCKET)
-            .createSignedUrl(photo.thumbnail_path, 60 * 60 * 24 * 7);
-
-          signedThumbnailUrl = signedThumbnailData?.signedUrl || photo.thumbnail_url || "";
-        }
-
-        return {
-          ...photo,
-          signed_url: signedData?.signedUrl || photo.signed_url || photo.public_url || "",
-          signed_thumbnail_url: signedThumbnailUrl,
-        };
-      })
-    );
-
-    setPhotos(withSignedUrls);
+      setPhotos(withSignedUrls);
+    } finally {
+      setLoadingPhotos(false);
+    }
   }
 
   async function uploadPhoto(file: File | undefined) {
@@ -178,10 +193,13 @@ export default function SectionReferencePhotos({
     }
 
     setUploading(true);
+    setUploadLabel("Preparing Photo...");
 
     try {
       const uploadFile = await createFullImageForUpload(file);
+      setUploadLabel("Creating Thumbnail...");
       const thumbnailFile = await createThumbnailForUpload(file);
+
       const fileExt = "jpg";
       const safeSection = section.replace(/[^a-zA-Z0-9-_]/g, "-").slice(0, 50);
       const safeName = uploadFile.name
@@ -192,6 +210,8 @@ export default function SectionReferencePhotos({
       const baseName = `${Date.now()}-${crypto.randomUUID()}-${safeName}`;
       const filePath = `${inspectionId}/reference-photos/${safeSection}/${baseName}.${fileExt}`;
       const thumbnailPath = `${inspectionId}/reference-photos/${safeSection}/thumbnails/${baseName}-thumb.jpg`;
+
+      setUploadLabel("Uploading Photo...");
 
       const { error: uploadError } = await supabase.storage
         .from(PHOTO_BUCKET)
@@ -209,6 +229,8 @@ export default function SectionReferencePhotos({
 
       let thumbnailUrl = "";
 
+      setUploadLabel("Uploading Thumbnail...");
+
       const { error: thumbnailUploadError } = await supabase.storage
         .from(PHOTO_BUCKET)
         .upload(thumbnailPath, thumbnailFile, {
@@ -224,6 +246,8 @@ export default function SectionReferencePhotos({
 
         thumbnailUrl = thumbnailData.publicUrl;
       }
+
+      setUploadLabel("Saving Reference Photo...");
 
       const { data, error } = await supabase
         .from("section_reference_photos")
@@ -257,10 +281,15 @@ export default function SectionReferencePhotos({
       ]);
 
       setCaption("");
+      setUploadLabel("Uploaded!");
     } catch (error: any) {
+      setUploadLabel("Failed");
       alert(error?.message || "Failed to upload reference photo.");
     } finally {
-      setUploading(false);
+      window.setTimeout(() => {
+        setUploading(false);
+        setUploadLabel("Uploading...");
+      }, 700);
     }
   }
 
@@ -286,6 +315,8 @@ export default function SectionReferencePhotos({
   }
 
   async function deletePhoto(photo: ReferencePhoto) {
+    if (deletingId) return;
+
     const confirmed = window.confirm("Delete this section reference photo?");
 
     if (!confirmed) return;
@@ -316,7 +347,7 @@ export default function SectionReferencePhotos({
   async function uploadSelectedPhotos(fileList: FileList | null) {
     const files = Array.from(fileList || []);
 
-    if (files.length === 0) return;
+    if (files.length === 0 || uploading) return;
 
     for (const file of files) {
       await uploadPhoto(file);
@@ -328,7 +359,7 @@ export default function SectionReferencePhotos({
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left hover:bg-slate-800/50"
+        className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left transition active:scale-[0.99] hover:bg-slate-800/50 [touch-action:manipulation]"
       >
         <div>
           <h3 className="text-xl font-black text-cyan-300">
@@ -336,13 +367,18 @@ export default function SectionReferencePhotos({
           </h3>
 
           <p className="mt-1 text-sm text-slate-400">
-            {photos.length > 0
-              ? `${photos.length} reference photo${photos.length === 1 ? "" : "s"} added`
-              : "Add photos to this section without creating a defect"}
+            {loadingPhotos
+              ? "Loading reference photos..."
+              : photos.length > 0
+                ? `${photos.length} reference photo${
+                    photos.length === 1 ? "" : "s"
+                  } added`
+                : "Add photos to this section without creating a defect"}
           </p>
         </div>
 
-        <span className="rounded-xl border border-slate-600 px-4 py-2 text-sm font-black text-slate-200">
+        <span className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-600 px-4 py-2 text-sm font-black text-slate-200">
+          {loadingPhotos && <SmallSpinner />}
           {open ? "Hide" : "Show"}
         </span>
       </button>
@@ -370,20 +406,28 @@ export default function SectionReferencePhotos({
             </p>
 
             <p className="mt-1 text-sm text-slate-300">
-              These photos are for section documentation only. They are not findings,
-              defects, repair request items, or severity-counted issues.
+              These photos are for section documentation only. They are not
+              findings, defects, repair request items, or severity-counted issues.
             </p>
 
             <input
               value={caption}
               onChange={(event) => setCaption(event.target.value)}
+              disabled={uploading}
               placeholder="Optional caption, example: Front elevation, Water heater location, Main panel overview..."
-              className="mt-4 w-full rounded-xl border border-slate-700 bg-[#020617] px-4 py-3 text-white outline-none focus:border-cyan-400"
+              className="mt-4 w-full rounded-xl border border-slate-700 bg-[#020617] px-4 py-3 text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
             />
 
             <div className="mt-4 grid gap-3 md:grid-cols-2">
-              <label className="cursor-pointer rounded-xl border border-cyan-500 bg-cyan-500/10 p-4 text-center font-black text-cyan-300 hover:bg-cyan-500 hover:text-slate-950">
-                {uploading ? "Uploading..." : "📷 Take Photo"}
+              <label
+                className={`rounded-xl border border-cyan-500 bg-cyan-500/10 p-4 text-center font-black text-cyan-300 transition active:scale-[0.98] hover:bg-cyan-500 hover:text-slate-950 [touch-action:manipulation] ${
+                  uploading ? "cursor-not-allowed opacity-60" : "cursor-pointer"
+                }`}
+              >
+                <span className="inline-flex items-center justify-center gap-2">
+                  {uploading && <SmallSpinner />}
+                  {uploading ? uploadLabel : "📷 Take Photo"}
+                </span>
                 <input
                   type="file"
                   accept="image/*"
@@ -398,8 +442,15 @@ export default function SectionReferencePhotos({
                 />
               </label>
 
-              <label className="cursor-pointer rounded-xl border border-teal-500 bg-teal-500/10 p-4 text-center font-black text-teal-300 hover:bg-teal-500 hover:text-slate-950">
-                {uploading ? "Uploading..." : "🖼 Choose Photo"}
+              <label
+                className={`rounded-xl border border-teal-500 bg-teal-500/10 p-4 text-center font-black text-teal-300 transition active:scale-[0.98] hover:bg-teal-500 hover:text-slate-950 [touch-action:manipulation] ${
+                  uploading ? "cursor-not-allowed opacity-60" : "cursor-pointer"
+                }`}
+              >
+                <span className="inline-flex items-center justify-center gap-2">
+                  {uploading && <SmallSpinner />}
+                  {uploading ? uploadLabel : "🖼 Choose Photo"}
+                </span>
                 <input
                   type="file"
                   accept="image/*"
@@ -441,9 +492,9 @@ export default function SectionReferencePhotos({
                           src={photoUrl}
                           alt={photo.caption || `Reference photo ${index + 1}`}
                           loading="lazy"
-                decoding="async"
-                fetchPriority="low"
-                className="h-48 w-full object-cover transition hover:scale-[1.02]"
+                          decoding="async"
+                          fetchPriority="low"
+                          className="h-48 w-full object-cover transition hover:scale-[1.02]"
                         />
                       </a>
                     ) : (
@@ -458,8 +509,9 @@ export default function SectionReferencePhotos({
                         onChange={(event) =>
                           updateCaption(photo, event.target.value)
                         }
+                        disabled={isDeleting || uploading}
                         placeholder={`Reference photo ${index + 1}`}
-                        className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400"
+                        className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
                       />
 
                       <div className="flex flex-wrap justify-between gap-2 text-xs font-bold">
@@ -468,7 +520,7 @@ export default function SectionReferencePhotos({
                             href={photoUrl}
                             target="_blank"
                             rel="noreferrer"
-                            className="rounded-lg border border-slate-600 px-3 py-2 text-slate-200 hover:bg-slate-800"
+                            className="rounded-lg border border-slate-600 px-3 py-2 text-slate-200 transition active:scale-[0.98] hover:bg-slate-800 [touch-action:manipulation]"
                           >
                             Open
                           </a>
@@ -477,9 +529,10 @@ export default function SectionReferencePhotos({
                         <button
                           type="button"
                           onClick={() => deletePhoto(photo)}
-                          disabled={isDeleting}
-                          className="rounded-lg border border-red-600 px-3 py-2 font-black text-red-300 hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+                          disabled={isDeleting || uploading}
+                          className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-600 px-3 py-2 font-black text-red-300 transition active:scale-[0.98] hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
                         >
+                          {isDeleting && <SmallSpinner />}
                           {isDeleting ? "Deleting..." : "Delete"}
                         </button>
                       </div>

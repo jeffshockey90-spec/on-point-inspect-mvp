@@ -3,6 +3,7 @@
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import EquipmentCard from "../../components/EquipmentCard";
+import FastLinkButton from "../../components/FastLinkButton";
 import { supabase } from "../../lib/supabaseClient";
 
 type EquipmentResult = {
@@ -181,11 +182,14 @@ function EquipmentTestContent() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [analyzeLabel, setAnalyzeLabel] = useState("Analyze Equipment");
+  const [saveLabel, setSaveLabel] = useState("Add To Report");
 
   async function analyzeEquipment() {
-    if (!image) return;
+    if (!image || loading || saving) return;
 
     setLoading(true);
+    setAnalyzeLabel("Preparing Image...");
     setResult(null);
     setSaveError("");
 
@@ -197,6 +201,8 @@ function EquipmentTestContent() {
         formData.append("inspectionId", inspectionId);
       }
 
+      setAnalyzeLabel("Analyzing Equipment...");
+
       const res = await fetch("/api/analyze-equipment", {
         method: "POST",
         body: formData,
@@ -205,15 +211,21 @@ function EquipmentTestContent() {
       const data = await res.json();
 
       setResult(data);
+      setAnalyzeLabel("Analysis Complete");
     } catch (error: any) {
+      setAnalyzeLabel("Failed");
       setSaveError(error.message || "Failed to analyze equipment.");
     } finally {
       setLoading(false);
+
+      window.setTimeout(() => {
+        setAnalyzeLabel("Analyze Equipment");
+      }, 900);
     }
   }
 
   async function addToReport() {
-    if (!result) return;
+    if (!result || saving || loading) return;
 
     if (!inspectionId) {
       setSaveError(
@@ -223,6 +235,7 @@ function EquipmentTestContent() {
     }
 
     setSaving(true);
+    setSaveLabel(shouldCreateFinding(result) ? "Preparing Report Save..." : "Preparing Inventory Save...");
     setSaveError("");
 
     try {
@@ -230,10 +243,13 @@ function EquipmentTestContent() {
       let filePath = "";
 
       if (image) {
+        setSaveLabel("Optimizing Image...");
         const uploadFile = await compressImageForUpload(image);
         const fileExt = "jpg";
 
         filePath = `${inspectionId}/equipment-${Date.now()}.${fileExt}`;
+
+        setSaveLabel("Uploading Image...");
 
         const { error: uploadError } = await supabase.storage
           .from("inspection-photos")
@@ -251,6 +267,8 @@ function EquipmentTestContent() {
 
         imageUrl = data.publicUrl;
       }
+
+      setSaveLabel("Saving Equipment Inventory...");
 
       const { error: inventoryError } = await supabase
         .from("equipment_inventory")
@@ -277,6 +295,7 @@ function EquipmentTestContent() {
       const createFinding = shouldCreateFinding(result);
 
       if (!createFinding) {
+        setSaveLabel("Opening Report...");
         window.location.assign(`/reports/${inspectionId}`);
         return;
       }
@@ -326,6 +345,8 @@ function EquipmentTestContent() {
         .filter(Boolean)
         .join("\n");
 
+      setSaveLabel("Creating Finding...");
+
       const { data: findingData, error } = await supabase
         .from("findings")
         .insert({
@@ -344,6 +365,8 @@ function EquipmentTestContent() {
       if (error) throw error;
 
       if (image && findingData) {
+        setSaveLabel("Attaching Photo...");
+
         const { error: photoError } = await supabase
           .from("photos")
           .insert({
@@ -356,10 +379,16 @@ function EquipmentTestContent() {
         if (photoError) throw photoError;
       }
 
+      setSaveLabel("Opening Report...");
       window.location.assign(`/reports/${inspectionId}`);
     } catch (error: any) {
+      setSaveLabel("Failed");
       setSaveError(error.message || "Failed to save finding.");
-      setSaving(false);
+
+      window.setTimeout(() => {
+        setSaving(false);
+        setSaveLabel(result && shouldCreateFinding(result) ? "Add To Report" : "Save To Equipment Inventory");
+      }, 700);
     }
   }
 
@@ -367,12 +396,13 @@ function EquipmentTestContent() {
     <main className="min-h-screen bg-slate-950 p-6 text-white">
       <div className="mx-auto max-w-3xl space-y-6">
         <div>
-          <a
+          <FastLinkButton
             href={inspectionId ? `/reports/${inspectionId}` : "/reports"}
-            className="mb-4 inline-block rounded-xl border border-slate-600 px-4 py-2 text-sm font-bold text-slate-200 hover:bg-slate-800"
+            loadingText="Opening Report..."
+            className="mb-4 rounded-xl border border-slate-600 px-4 py-2 text-sm font-bold text-slate-200 hover:bg-slate-800"
           >
             ← Back To Report
-          </a>
+          </FastLinkButton>
 
           <h1 className="text-3xl font-bold">
             AI Equipment Scanner
@@ -394,6 +424,8 @@ function EquipmentTestContent() {
           <input
             type="file"
             accept="image/*"
+            disabled={loading || saving}
+            className="block w-full cursor-pointer rounded-xl border border-slate-700 bg-slate-950 p-3 text-sm text-slate-200 file:mr-4 file:rounded-lg file:border-0 file:bg-teal-500 file:px-4 file:py-2 file:font-bold file:text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
             onChange={(e) => {
               const file = e.target.files?.[0] || null;
 
@@ -408,20 +440,25 @@ function EquipmentTestContent() {
 
           {preview && (
             <img
-                src={preview}
-                loading="lazy"
-                decoding="async"
+              src={preview}
+              loading="lazy"
+              decoding="async"
               alt="Preview"
               className="mt-4 max-h-96 w-full rounded-xl object-contain"
             />
           )}
 
           <button
+            type="button"
             onClick={analyzeEquipment}
-            disabled={!image || loading}
-            className="mt-4 rounded-xl bg-teal-500 px-5 py-3 font-bold text-slate-950 disabled:opacity-50"
+            disabled={!image || loading || saving}
+            aria-busy={loading}
+            className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl bg-teal-500 px-5 py-3 font-bold text-slate-950 transition active:scale-[0.98] hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
           >
-            {loading ? "Analyzing..." : "Analyze Equipment"}
+            {loading && (
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            )}
+            {analyzeLabel}
           </button>
         </div>
 
@@ -432,12 +469,17 @@ function EquipmentTestContent() {
             <EnhancedEquipmentIntelligence result={result} />
 
             <button
+              type="button"
               onClick={addToReport}
-              disabled={saving}
-              className="w-full rounded-xl bg-green-500 px-5 py-3 font-bold text-slate-950 disabled:opacity-50"
+              disabled={saving || loading}
+              aria-busy={saving}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-green-500 px-5 py-3 font-bold text-slate-950 transition active:scale-[0.98] hover:bg-green-400 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
             >
+              {saving && (
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+              )}
               {saving
-                ? "Saving..."
+                ? saveLabel
                 : shouldCreateFinding(result)
                   ? "Add To Report"
                   : "Save To Equipment Inventory"}

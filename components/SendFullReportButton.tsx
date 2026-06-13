@@ -8,14 +8,31 @@ type Props = {
   realtorEmail?: string | null;
 };
 
+type MessageType = "success" | "error" | "warning" | "";
+
 export default function SendFullReportButton({
   inspectionId,
   clientEmail,
   realtorEmail,
 }: Props) {
   const [sending, setSending] = useState(false);
+  const [statusText, setStatusText] = useState("Send Report");
+  const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState<MessageType>("");
+
+  function showMessage(type: MessageType, text: string) {
+    setMessageType(type);
+    setMessage(text);
+  }
+
+  function clearMessage() {
+    setMessageType("");
+    setMessage("");
+  }
 
   async function checkDeliveryRequirements() {
+    setStatusText("Checking Requirements...");
+
     const res = await fetch(
       `/api/report-delivery-status?inspection_id=${inspectionId}`
     );
@@ -38,6 +55,8 @@ export default function SendFullReportButton({
   }
 
   async function loadContactEmails() {
+    setStatusText("Loading Contacts...");
+
     let finalClientEmail = clientEmail || "";
     let finalRealtorEmail = realtorEmail || "";
 
@@ -80,6 +99,10 @@ export default function SendFullReportButton({
     recipientType: "client" | "realtor",
     recipientEmail: string
   ) {
+    setStatusText(
+      recipientType === "client" ? "Sending Client..." : "Sending Realtor..."
+    );
+
     const res = await fetch("/api/send-report-email", {
       method: "POST",
       headers: {
@@ -104,12 +127,17 @@ export default function SendFullReportButton({
   }
 
   async function sendReport() {
+    if (sending) return;
+
+    clearMessage();
+
     if (!inspectionId) {
-      alert("Missing inspection ID.");
+      showMessage("error", "Missing inspection ID.");
       return;
     }
 
     setSending(true);
+    setStatusText("Starting...");
 
     try {
       await checkDeliveryRequirements();
@@ -118,7 +146,8 @@ export default function SendFullReportButton({
         await loadContactEmails();
 
       if (!finalClientEmail && !finalRealtorEmail) {
-        alert("No client or realtor email found.");
+        setStatusText("No Email Found");
+        showMessage("warning", "No client or realtor email found.");
         return;
       }
 
@@ -144,30 +173,57 @@ export default function SendFullReportButton({
       }
 
       if (failed.length > 0) {
-        alert(
-          `Report delivery completed with errors.\n\nSent:\n${
-            sentTo.length ? sentTo.join("\n") : "None"
-          }\n\nFailed:\n${failed.join("\n")}`
+        setStatusText("Completed With Errors");
+        showMessage(
+          "error",
+          `Report delivery completed with errors. Sent: ${
+            sentTo.length ? sentTo.join(", ") : "None"
+          }. Failed: ${failed.join(", ")}`
         );
         return;
       }
 
-      alert(`Report sent successfully to:\n${sentTo.join("\n")}`);
+      setStatusText("Sent!");
+      showMessage("success", `Report sent successfully to ${sentTo.join(", ")}.`);
     } catch (error: any) {
-      alert(error?.message || "Failed to send report.");
+      setStatusText("Failed");
+      showMessage("error", error?.message || "Failed to send report.");
     } finally {
-      setSending(false);
+      window.setTimeout(() => {
+        setSending(false);
+        setStatusText("Send Report");
+      }, 900);
     }
   }
 
   return (
-    <button
-      type="button"
-      onClick={sendReport}
-      disabled={sending}
-      className="w-full rounded-xl border border-purple-500 px-5 py-3 font-bold text-purple-300 hover:bg-purple-500/10 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
-    >
-      {sending ? "Checking Requirements..." : "Send Report"}
-    </button>
+    <div className="w-full max-w-full space-y-2 sm:w-auto">
+      <button
+        type="button"
+        onClick={sendReport}
+        disabled={sending}
+        aria-busy={sending}
+        className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-purple-500 px-5 py-3 font-bold text-purple-300 transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 hover:bg-purple-500/10 sm:w-auto [touch-action:manipulation]"
+      >
+        {sending && (
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+        )}
+        {statusText}
+      </button>
+
+      {message && (
+        <div
+          className={`rounded-xl border px-4 py-3 text-sm font-bold ${
+            messageType === "success"
+              ? "border-emerald-500 bg-emerald-950/30 text-emerald-300"
+              : messageType === "warning"
+                ? "border-yellow-500 bg-yellow-950/30 text-yellow-300"
+                : "border-red-500 bg-red-950/30 text-red-300"
+          }`}
+        >
+          {message}
+        </div>
+      )}
+    </div>
   );
 }

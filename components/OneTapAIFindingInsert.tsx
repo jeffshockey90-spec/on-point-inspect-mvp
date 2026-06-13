@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
 import { supabase } from "../lib/supabaseClient";
 import AITemplateSuggestions from "./AITemplateSuggestions";
 
@@ -32,7 +33,10 @@ type Props = {
   inspectionId: string;
 };
 
+type MessageType = "success" | "error" | "info" | "";
+
 export default function OneTapAIFindingInsert({ inspectionId }: Props) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState("");
@@ -42,6 +46,10 @@ export default function OneTapAIFindingInsert({ inspectionId }: Props) {
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [isRefreshing, startTransition] = useTransition();
+  const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState<MessageType>("");
 
   const [title, setTitle] = useState("");
   const [section, setSection] = useState("Exterior");
@@ -50,6 +58,18 @@ export default function OneTapAIFindingInsert({ inspectionId }: Props) {
   const [implication, setImplication] = useState("");
   const [recommendation, setRecommendation] = useState("");
   const [inspectorId, setInspectorId] = useState("");
+
+  const busy = loading || saving || isRefreshing;
+
+  function showMessage(type: MessageType, text: string) {
+    setMessageType(type);
+    setMessage(text);
+  }
+
+  function clearMessage() {
+    setMessageType("");
+    setMessage("");
+  }
 
   async function loadInspector() {
     const {
@@ -72,6 +92,8 @@ export default function OneTapAIFindingInsert({ inspectionId }: Props) {
     setInspectorNote("");
     setLoading(false);
     setSaving(false);
+    setSaved(false);
+    clearMessage();
     setTitle("");
     setSection("Exterior");
     setSeverity("Recommended Repair");
@@ -81,7 +103,7 @@ export default function OneTapAIFindingInsert({ inspectionId }: Props) {
   }
 
   function closeModal() {
-    if (loading || saving) return;
+    if (busy) return;
     setOpen(false);
     resetForm();
   }
@@ -89,36 +111,63 @@ export default function OneTapAIFindingInsert({ inspectionId }: Props) {
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const selected = e.target.files?.[0];
 
-    if (!selected) return;
+    if (!selected || busy) return;
 
     if (previewUrl) {
       URL.revokeObjectURL(previewUrl);
     }
 
     setFile(selected);
+    setSaved(false);
+    clearMessage();
     setPreviewUrl(URL.createObjectURL(selected));
 
     if (selected.type.startsWith("video/")) {
       setTitle((current) => current || "Video Attachment");
       setSeverity("Informational");
-      setObservation((current) => current || "Video media was added to document the condition observed at the time of inspection.");
-      setImplication((current) => current || "Video is provided for client reference and additional visual context.");
-      setRecommendation((current) => current || "Review the attached video along with the written finding. Further evaluation or repair should be performed by the appropriate qualified contractor if concerns are present.");
+      setObservation(
+        (current) =>
+          current ||
+          "Video media was added to document the condition observed at the time of inspection."
+      );
+      setImplication(
+        (current) =>
+          current ||
+          "Video is provided for client reference and additional visual context."
+      );
+      setRecommendation(
+        (current) =>
+          current ||
+          "Review the attached video along with the written finding. Further evaluation or repair should be performed by the appropriate qualified contractor if concerns are present."
+      );
+      showMessage(
+        "info",
+        "Video selected. It can be saved to the report, but AI analysis is photo-only."
+      );
+    } else {
+      showMessage("info", "Photo selected. You can analyze it or manually complete the finding.");
     }
   }
 
   async function analyzePhoto() {
+    if (busy) return;
+
     if (!file) {
-      alert("Please select a photo first.");
+      showMessage("error", "Please select a photo first.");
       return;
     }
 
     if (!file.type.startsWith("image/")) {
-      alert("AI analysis works with photos only. Videos can be saved to the report, but they cannot be analyzed yet.");
+      showMessage(
+        "error",
+        "AI analysis works with photos only. Videos can still be saved to the report."
+      );
       return;
     }
 
     setLoading(true);
+    setSaved(false);
+    showMessage("info", "Analyzing photo...");
 
     try {
       const base64 = await fileToBase64(file);
@@ -147,25 +196,33 @@ export default function OneTapAIFindingInsert({ inspectionId }: Props) {
       setObservation(data.observation || "");
       setImplication(data.implication || "");
       setRecommendation(data.recommendation || "");
+      showMessage("success", "AI draft ready. Review and edit before inserting.");
     } catch (error: any) {
-      alert(error.message || "Something went wrong analyzing the photo.");
+      showMessage(
+        "error",
+        error?.message || "Something went wrong analyzing the photo."
+      );
     } finally {
       setLoading(false);
     }
   }
 
   async function insertFinding() {
+    if (busy) return;
+
     if (!inspectionId) {
-      alert("Missing inspection ID.");
+      showMessage("error", "Missing inspection ID.");
       return;
     }
 
     if (!title.trim()) {
-      alert("Finding title is required.");
+      showMessage("error", "Finding title is required.");
       return;
     }
 
     setSaving(true);
+    setSaved(false);
+    showMessage("info", "Inserting finding into report...");
 
     try {
       let imageUrl = "";
@@ -218,9 +275,20 @@ export default function OneTapAIFindingInsert({ inspectionId }: Props) {
         if (photoError) throw photoError;
       }
 
-      window.location.reload();
+      setSaved(true);
+      showMessage("success", "Finding inserted successfully.");
+
+      startTransition(() => {
+        router.refresh();
+      });
+
+      window.setTimeout(() => {
+        setOpen(false);
+        resetForm();
+      }, 850);
     } catch (error: any) {
-      alert(error.message || "Failed to insert finding.");
+      showMessage("error", error?.message || "Failed to insert finding.");
+    } finally {
       setSaving(false);
     }
   }
@@ -230,12 +298,18 @@ export default function OneTapAIFindingInsert({ inspectionId }: Props) {
       <button
         type="button"
         onClick={() => {
+          if (busy) return;
           setOpen(true);
+          clearMessage();
           loadInspector();
         }}
-        className="rounded-xl border border-teal-400 bg-teal-500/10 px-5 py-3 font-bold text-teal-300 transition hover:bg-teal-500 hover:text-black"
+        disabled={busy}
+        className="inline-flex items-center justify-center gap-2 rounded-xl border border-teal-400 bg-teal-500/10 px-5 py-3 font-bold text-teal-300 transition active:scale-[0.98] hover:bg-teal-500 hover:text-black disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
       >
-        ⚡ One-Tap AI Finding
+        {isRefreshing && (
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+        )}
+        {isRefreshing ? "Updating..." : "⚡ One-Tap AI Finding"}
       </button>
 
       {open && (
@@ -259,19 +333,33 @@ export default function OneTapAIFindingInsert({ inspectionId }: Props) {
               <button
                 type="button"
                 onClick={closeModal}
-                disabled={loading || saving}
-                className="rounded-xl border border-slate-600 px-4 py-2 font-bold text-slate-200 hover:bg-slate-800 disabled:opacity-50"
+                disabled={busy}
+                className="rounded-xl border border-slate-600 px-4 py-2 font-bold text-slate-200 transition active:scale-[0.98] hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
               >
                 Close
               </button>
             </div>
+
+            {message && (
+              <div
+                className={`mb-5 rounded-xl border p-4 text-sm font-bold ${
+                  messageType === "success"
+                    ? "border-emerald-500 bg-emerald-950/30 text-emerald-200"
+                    : messageType === "error"
+                      ? "border-red-500 bg-red-950/30 text-red-200"
+                      : "border-cyan-500 bg-cyan-950/30 text-cyan-200"
+                }`}
+              >
+                {message}
+              </div>
+            )}
 
             <section className="rounded-2xl border border-slate-800 bg-slate-950/60 p-5">
               <h3 className="mb-4 text-xl font-bold text-teal-400">
                 Photo
               </h3>
 
-              <MediaUploadButtons onChange={handleFileChange} />
+              <MediaUploadButtons onChange={handleFileChange} disabled={busy} />
 
               {previewUrl && isImage && (
                 <img
@@ -300,15 +388,20 @@ export default function OneTapAIFindingInsert({ inspectionId }: Props) {
                 onChange={(e) => setInspectorNote(e.target.value)}
                 rows={3}
                 placeholder="Optional note for AI... Example: damaged roof panel, loose toilet, water stain under sink, missing GFCI, etc."
-                className="mt-5 w-full rounded-xl border border-slate-700 bg-slate-950 p-4 text-white outline-none focus:border-teal-400"
+                disabled={busy}
+                className="mt-5 w-full rounded-xl border border-slate-700 bg-slate-950 p-4 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
               />
 
               <button
                 type="button"
                 onClick={analyzePhoto}
-                disabled={loading || saving}
-                className="mt-5 rounded-xl bg-teal-500 px-6 py-3 font-extrabold text-black transition hover:bg-teal-400 disabled:opacity-50"
+                disabled={busy || isVideo}
+                aria-busy={loading}
+                className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl bg-teal-500 px-6 py-3 font-extrabold text-black transition active:scale-[0.98] hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
               >
+                {loading && (
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                )}
                 {loading ? "Analyzing..." : isVideo ? "Videos Cannot Be Analyzed" : "Analyze Photo"}
               </button>
             </section>
@@ -323,13 +416,15 @@ export default function OneTapAIFindingInsert({ inspectionId }: Props) {
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Finding title"
-                  className="rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+                  disabled={busy}
+                  className="rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
                 />
 
                 <select
                   value={section}
                   onChange={(e) => setSection(e.target.value)}
-                  className="rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+                  disabled={busy}
+                  className="rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {SECTIONS.map((item) => (
                     <option key={item}>{item}</option>
@@ -339,7 +434,8 @@ export default function OneTapAIFindingInsert({ inspectionId }: Props) {
                 <select
                   value={severity}
                   onChange={(e) => setSeverity(e.target.value)}
-                  className="rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400 md:col-span-2"
+                  disabled={busy}
+                  className="rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60 md:col-span-2"
                 >
                   {SEVERITIES.map((item) => (
                     <option key={item}>{item}</option>
@@ -351,18 +447,21 @@ export default function OneTapAIFindingInsert({ inspectionId }: Props) {
                 label="Observation"
                 value={observation}
                 onChange={setObservation}
+                disabled={busy}
               />
 
               <FieldTextArea
                 label="Implication"
                 value={implication}
                 onChange={setImplication}
+                disabled={busy}
               />
 
               <FieldTextArea
                 label="Recommendation"
                 value={recommendation}
                 onChange={setRecommendation}
+                disabled={busy}
               />
 
               <AITemplateSuggestions
@@ -370,6 +469,8 @@ export default function OneTapAIFindingInsert({ inspectionId }: Props) {
                 observation={observation}
                 inspectorId={inspectorId}
                 onUseTemplate={(template) => {
+                  if (busy) return;
+                  clearMessage();
                   setTitle(template.title || "");
                   setSection(template.section || "Exterior");
                   setSeverity(template.severity || "Recommended Repair");
@@ -382,10 +483,20 @@ export default function OneTapAIFindingInsert({ inspectionId }: Props) {
               <button
                 type="button"
                 onClick={insertFinding}
-                disabled={saving || loading}
-                className="mt-6 w-full rounded-xl bg-teal-500 px-6 py-4 text-lg font-extrabold text-black transition hover:bg-teal-400 disabled:opacity-50"
+                disabled={busy}
+                aria-busy={saving || isRefreshing}
+                className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-teal-500 px-6 py-4 text-lg font-extrabold text-black transition active:scale-[0.98] hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
               >
-                {saving ? "Inserting..." : "Insert Finding Into Report"}
+                {(saving || isRefreshing) && (
+                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                )}
+                {saving
+                  ? "Inserting..."
+                  : isRefreshing
+                    ? "Updating Report..."
+                    : saved
+                      ? "Finding Inserted"
+                      : "Insert Finding Into Report"}
               </button>
             </section>
           </div>
@@ -395,41 +506,45 @@ export default function OneTapAIFindingInsert({ inspectionId }: Props) {
   );
 }
 
-
 function MediaUploadButtons({
   onChange,
+  disabled,
 }: {
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  disabled?: boolean;
 }) {
   return (
     <div className="grid gap-3 md:grid-cols-3">
-      <label className="cursor-pointer rounded-xl border border-teal-500 bg-teal-500/10 p-4 text-center font-bold text-teal-300 hover:bg-teal-500 hover:text-black">
+      <label className={`rounded-xl border border-teal-500 bg-teal-500/10 p-4 text-center font-bold text-teal-300 transition active:scale-[0.98] hover:bg-teal-500 hover:text-black [touch-action:manipulation] ${disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}>
         📷 Take Photo
         <input
           type="file"
           accept="image/*"
           capture="environment"
           onChange={onChange}
+          disabled={disabled}
           className="hidden"
         />
       </label>
 
-      <label className="cursor-pointer rounded-xl border border-cyan-500 bg-cyan-500/10 p-4 text-center font-bold text-cyan-300 hover:bg-cyan-500 hover:text-black">
+      <label className={`rounded-xl border border-cyan-500 bg-cyan-500/10 p-4 text-center font-bold text-cyan-300 transition active:scale-[0.98] hover:bg-cyan-500 hover:text-black [touch-action:manipulation] ${disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}>
         🖼 Choose Photo
         <input
           type="file"
           accept="image/*"
           onChange={onChange}
+          disabled={disabled}
           className="hidden"
         />
       </label>
 
-      <label className="cursor-pointer rounded-xl border border-purple-500 bg-purple-500/10 p-4 text-center font-bold text-purple-300 hover:bg-purple-500 hover:text-white">
+      <label className={`rounded-xl border border-purple-500 bg-purple-500/10 p-4 text-center font-bold text-purple-300 transition active:scale-[0.98] hover:bg-purple-500 hover:text-white [touch-action:manipulation] ${disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}>
         🎥 Choose Video
         <input
           type="file"
           accept="video/*"
           onChange={onChange}
+          disabled={disabled}
           className="hidden"
         />
       </label>
@@ -441,10 +556,12 @@ function FieldTextArea({
   label,
   value,
   onChange,
+  disabled,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  disabled?: boolean;
 }) {
   return (
     <label className="mt-5 block">
@@ -456,7 +573,8 @@ function FieldTextArea({
         rows={4}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-xl border border-slate-700 bg-slate-950 p-4 text-white outline-none focus:border-teal-400"
+        disabled={disabled}
+        className="w-full rounded-xl border border-slate-700 bg-slate-950 p-4 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
       />
     </label>
   );
