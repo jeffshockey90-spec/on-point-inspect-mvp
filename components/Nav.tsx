@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
+
+const OWNER_EMAIL = "jeff@onpointhomeinspect.com";
 
 const navItems = [
   { title: "Dashboard", href: "/", icon: "🏠", mobileLabel: "Home" },
@@ -18,6 +20,13 @@ const navItems = [
   { title: "Settings", href: "/settings", icon: "⚙️", mobileLabel: "Settings" },
 ];
 
+const ownerNavItem = {
+  title: "Owner",
+  href: "/dashboard/owner",
+  icon: "📈",
+  mobileLabel: "Owner",
+};
+
 const mobileItems = [
   { title: "Dashboard", href: "/", icon: "🏠", mobileLabel: "Home" },
   { title: "Reports", href: "/reports", icon: "📋", mobileLabel: "Reports" },
@@ -31,6 +40,47 @@ export default function Navbar() {
   const router = useRouter();
   const [loggingOut, setLoggingOut] = useState(false);
   const [openingHref, setOpeningHref] = useState("");
+  const [isOwner, setIsOwner] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadOwnerStatus() {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (!active) return;
+
+        const email = String(user?.email || "").toLowerCase();
+        setIsOwner(email === OWNER_EMAIL);
+      } catch (error) {
+        console.error("Owner nav check failed:", error);
+        if (active) setIsOwner(false);
+      }
+    }
+
+    loadOwnerStatus();
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      const email = String(session?.user?.email || "").toLowerCase();
+      setIsOwner(email === OWNER_EMAIL);
+    });
+
+    return () => {
+      active = false;
+      listener.subscription.unsubscribe();
+    };
+  }, []);
+
+  const visibleNavItems = useMemo(() => {
+    return isOwner ? [...navItems, ownerNavItem] : navItems;
+  }, [isOwner]);
+
+  const visibleMobileItems = useMemo(() => {
+    return isOwner ? [...mobileItems, ownerNavItem] : mobileItems;
+  }, [isOwner]);
 
   function isActive(href: string) {
     if (href === "/") return pathname === "/";
@@ -97,7 +147,7 @@ export default function Navbar() {
             </Link>
 
             <nav className="flex min-w-0 flex-1 flex-wrap items-center gap-3">
-              {navItems.map((item) => {
+              {visibleNavItems.map((item) => {
                 const active = isActive(item.href);
                 const opening = openingHref === item.href && !active;
 
@@ -115,7 +165,9 @@ export default function Navbar() {
                         ? "border-white/40 bg-gradient-to-r from-cyan-400 to-teal-400 text-black shadow-2xl shadow-cyan-500/40"
                         : opening
                           ? "border-teal-500 bg-[#111827] text-teal-300 opacity-80"
-                          : "border-slate-700 bg-[#050816] text-teal-300 hover:border-teal-500 hover:bg-[#111827] hover:text-white"
+                          : item.href === "/dashboard/owner"
+                            ? "border-yellow-500/60 bg-yellow-500/10 text-yellow-300 hover:border-yellow-400 hover:bg-yellow-500/20 hover:text-yellow-200"
+                            : "border-slate-700 bg-[#050816] text-teal-300 hover:border-teal-500 hover:bg-[#111827] hover:text-white"
                     }`}
                   >
                     <NavSpinner active={opening} />
@@ -149,7 +201,7 @@ export default function Navbar() {
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         <div className="flex h-[78px] w-full flex-row flex-nowrap items-center justify-between">
-          {mobileItems.map((item) => {
+          {visibleMobileItems.map((item) => {
             const active = isActive(item.href);
             const opening = openingHref === item.href && !active;
 
@@ -167,7 +219,9 @@ export default function Navbar() {
                     ? "bg-teal-500/15 text-teal-300"
                     : opening
                       ? "bg-slate-800/70 text-teal-300 opacity-80"
-                      : "text-zinc-300 hover:bg-slate-800/70 hover:text-teal-300"
+                      : item.href === "/dashboard/owner"
+                        ? "text-yellow-300 hover:bg-yellow-500/10"
+                        : "text-zinc-300 hover:bg-slate-800/70 hover:text-teal-300"
                 }`}
               >
                 <span className="flex w-full items-center justify-center text-xl leading-none">
