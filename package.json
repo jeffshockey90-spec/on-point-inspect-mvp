@@ -49,6 +49,7 @@
     "@types/nodemailer": "^8.0.0",
     "@types/react": "latest",
     "@types/react-dom": "latest",
+    "@types/web-push": "^3.6.4",
     "autoprefixer": "latest",
     "postcss": "latest",
     "tailwindcss": "latest",
