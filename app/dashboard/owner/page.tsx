@@ -396,18 +396,6 @@ export default async function OwnerDashboardPage() {
     if (id) inspectorIds.add(id);
   });
 
-  const activeInspectorIds = new Set(
-    inspections
-      .filter((inspection: any) => isAfter(inspection?.created_at || inspection?.inspection_date, thirtyDaysAgo))
-      .map(getInspectorId)
-      .filter(Boolean)
-  );
-
-  const reportsCreated = liveInspections.length;
-  const reportsThisMonth = inspections.filter((inspection: any) =>
-    isThisMonth(getInspectionDate(inspection), now)
-  ).length;
-
   const demoReports = inspections
     .filter((inspection: any) => inspection?.is_demo === true)
     .sort(
@@ -416,7 +404,21 @@ export default async function OwnerDashboardPage() {
         new Date(a?.demo_created_at || a?.created_at || 0).getTime()
     );
 
-  const liveInspections = inspections.filter((inspection: any) => inspection?.is_demo !== true);
+  const liveInspections = inspections.filter(
+    (inspection: any) => inspection?.is_demo !== true
+  );
+
+  const activeInspectorIds = new Set(
+    inspections
+      .filter((inspection: any) => isAfter(inspection?.created_at || inspection?.inspection_date, thirtyDaysAgo))
+      .map(getInspectorId)
+      .filter(Boolean)
+  );
+
+  const reportsCreated = liveInspections.length;
+  const reportsThisMonth = liveInspections.filter((inspection: any) =>
+    isThisMonth(getInspectionDate(inspection), now)
+  ).length;
 
   const paidInspections = liveInspections.filter(isPaymentComplete);
   const revenue = paidInspections.reduce((sum: number, inspection: any) => {
