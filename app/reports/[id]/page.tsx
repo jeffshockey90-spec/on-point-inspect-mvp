@@ -19,6 +19,7 @@ import GenerateSummaryButton from "../../../components/GenerateSummaryButton";
 import SendReviewRequestButton from "../../../components/SendReviewRequestButton";
 import DeleteSummaryButton from "../../../components/DeleteSummaryButton";
 import FastLinkButton from "../../../components/FastLinkButton";
+import CreateDemoReportButton from "../../../components/CreateDemoReportButton";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -791,6 +792,8 @@ export default async function ReportPage({ params }: PageProps) {
             >
               Copy Share Link
             </FastLinkButton>
+
+            <CreateDemoReportButton inspectionId={String(inspection.id)} />
 
             {isStandaloneEnvironmentalReport && (
               <FastLinkButton
