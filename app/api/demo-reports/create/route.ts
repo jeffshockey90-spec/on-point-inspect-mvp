@@ -36,278 +36,242 @@ function createAdminClient() {
   );
 }
 
-function makeDemoSlug() {
-  return `demo-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-}
-
-function cleanRowForInsert(row: any, patch: Record<string, any>) {
-  const copy = { ...(row || {}) };
-
-  delete copy.id;
-  delete copy.created_at;
-  delete copy.updated_at;
-  delete copy.deleted_at;
+function sanitizeInspectionForDemo(inspection: any, ownerId: string) {
+  const {
+    id,
+    created_at,
+    updated_at,
+    client_name,
+    client_email,
+    client_phone,
+    realtor_name,
+    realtor_email,
+    agent_email,
+    buyer_email,
+    seller_email,
+    email,
+    phone,
+    agreement_status,
+    agreement_template_id,
+    agreement_template_ids,
+    agreement_state,
+    payment_status,
+    invoice_status,
+    invoice_amount,
+    amount_paid,
+    balance_due,
+    stripe_payment_intent_id,
+    stripe_checkout_session_id,
+    paid_at,
+    client_portal_token,
+    access_token,
+    share_token,
+    ...rest
+  } = inspection || {};
 
   return {
-    ...copy,
-    ...patch,
-  };
-}
+    ...rest,
 
-function sanitizeInspectionForDemo(inspection: any, userId: string) {
-  return cleanRowForInsert(inspection, {
-    inspector_id: userId,
-    is_demo: true,
-    source_inspection_id: inspection.id,
-    demo_slug: makeDemoSlug(),
-    report_status: "Demo",
-    published: true,
+    inspector_id: ownerId,
+
+    // Keep report content and property context, but strip private people/payment data.
     client_name: "Sample Client",
     client_email: null,
     client_phone: null,
-    email: null,
-    realtor_name: null,
+    realtor_name: "Sample Realtor",
     realtor_email: null,
     agent_email: null,
-    agent_name: null,
-    agreement_status: null,
-    agreement_state: inspection.agreement_state || inspection.state || null,
-    agreement_template_id: null,
-    agreement_template_ids: null,
-    payment_status: "Demo",
-    invoice_status: "Demo",
+
+    agreement_status: "demo",
+    payment_status: "demo",
+    invoice_status: "demo",
     amount_paid: 0,
     balance_due: 0,
-    paid_at: null,
-    stripe_payment_intent_id: null,
-    stripe_checkout_session_id: null,
-    payment_notes: null,
-    invoice_notes: null,
-  });
+
+    report_status: "Published",
+    published: true,
+    published_at: new Date().toISOString(),
+
+    is_demo: true,
+    demo_source_inspection_id: Number(id),
+    demo_created_at: new Date().toISOString(),
+  };
 }
 
-async function cloneSimpleTable({
+async function copyRows({
   admin,
   table,
-  inspectionId,
-  newInspectionId,
-  extraPatch = {},
+  sourceColumn,
+  targetColumn,
+  sourceId,
+  targetId,
+  stripColumns = [],
 }: {
   admin: any;
   table: string;
-  inspectionId: string;
-  newInspectionId: number;
-  extraPatch?: Record<string, any>;
+  sourceColumn: string;
+  targetColumn: string;
+  sourceId: string;
+  targetId: string | number;
+  stripColumns?: string[];
 }) {
   const { data, error } = await admin
     .from(table)
     .select("*")
-    .eq("inspection_id", inspectionId);
+    .eq(sourceColumn, sourceId);
 
   if (error) {
-    console.error(`Demo clone load failed for ${table}:`, error);
-    return [];
+    console.error(`Demo copy read error for ${table}:`, error);
+    return;
   }
 
-  const rows = (data || []).map((row: any) =>
-    cleanRowForInsert(row, {
-      inspection_id: newInspectionId,
-      ...extraPatch,
-    })
-  );
+  const rows = (data || []).map((row: any) => {
+    const copy = { ...row };
 
-  if (rows.length === 0) return [];
+    delete copy.id;
+    delete copy.created_at;
+    delete copy.updated_at;
 
-  const { data: inserted, error: insertError } = await admin
-    .from(table)
-    .insert(rows)
-    .select("*");
+    stripColumns.forEach((column) => {
+      delete copy[column];
+    });
+
+    copy[targetColumn] = targetId;
+
+    return copy;
+  });
+
+  if (rows.length === 0) return;
+
+  const { error: insertError } = await admin.from(table).insert(rows);
 
   if (insertError) {
-    console.error(`Demo clone insert failed for ${table}:`, insertError);
-    return [];
+    console.error(`Demo copy insert error for ${table}:`, insertError);
   }
-
-  return inserted || [];
 }
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json().catch(() => ({}));
-    const inspectionId = String(body.inspectionId || body.inspection_id || "");
+    const { inspectionId } = await req.json().catch(() => ({}));
 
     if (!inspectionId) {
-      return NextResponse.json({ error: "Missing inspection ID." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing inspection ID." },
+        { status: 400 }
+      );
     }
 
     const userClient = await createUserClient();
+
     const {
       data: { user },
     } = await userClient.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
+      return NextResponse.json(
+        { error: "You must be logged in." },
+        { status: 401 }
+      );
     }
 
     const admin = createAdminClient();
 
-    const { data: originalInspection, error: inspectionError } = await admin
+    const { data: inspection, error: inspectionError } = await admin
       .from("inspections")
       .select("*")
       .eq("id", inspectionId)
       .eq("inspector_id", user.id)
       .single();
 
-    if (inspectionError || !originalInspection) {
-      return NextResponse.json({ error: "Inspection not found." }, { status: 404 });
+    if (inspectionError || !inspection) {
+      return NextResponse.json(
+        { error: "Inspection not found." },
+        { status: 404 }
+      );
     }
 
-    const { data: demoInspection, error: demoInsertError } = await admin
+    const demoInspection = sanitizeInspectionForDemo(inspection, user.id);
+
+    const { data: createdDemo, error: createError } = await admin
       .from("inspections")
-      .insert(sanitizeInspectionForDemo(originalInspection, user.id))
-      .select("*")
+      .insert(demoInspection)
+      .select("id")
       .single();
 
-    if (demoInsertError || !demoInspection) {
-      console.error("Demo inspection insert error:", demoInsertError);
+    if (createError || !createdDemo?.id) {
+      console.error("Demo inspection create error:", createError);
+
       return NextResponse.json(
         {
           error:
-            demoInsertError?.message ||
-            "Failed to create demo inspection. Make sure demo columns were added in Supabase.",
+            createError?.message ||
+            "Could not create demo report. Check demo columns were added.",
         },
         { status: 500 }
       );
     }
 
-    const newInspectionId = Number(demoInspection.id);
+    const demoId = createdDemo.id;
 
-    // Clone findings first so photo finding_id references can be remapped.
-    const { data: originalFindings, error: findingsError } = await admin
-      .from("findings")
-      .select("*")
-      .eq("inspection_id", inspectionId)
-      .order("created_at", { ascending: true });
+    await copyRows({
+      admin,
+      table: "findings",
+      sourceColumn: "inspection_id",
+      targetColumn: "inspection_id",
+      sourceId: String(inspectionId),
+      targetId: demoId,
+      stripColumns: ["client_email", "realtor_email", "email"],
+    });
 
-    const findingIdMap: Record<string, number> = {};
+    await copyRows({
+      admin,
+      table: "section_checklist_selections",
+      sourceColumn: "inspection_id",
+      targetColumn: "inspection_id",
+      sourceId: String(inspectionId),
+      targetId: demoId,
+    });
 
-    if (!findingsError && originalFindings?.length) {
-      for (const finding of originalFindings) {
-        const { data: newFinding, error: newFindingError } = await admin
-          .from("findings")
-          .insert(
-            cleanRowForInsert(finding, {
-              inspection_id: newInspectionId,
-            })
-          )
-          .select("*")
-          .single();
+    await copyRows({
+      admin,
+      table: "section_limitations",
+      sourceColumn: "inspection_id",
+      targetColumn: "inspection_id",
+      sourceId: String(inspectionId),
+      targetId: demoId,
+    });
 
-        if (!newFindingError && newFinding?.id) {
-          findingIdMap[String(finding.id)] = newFinding.id;
-        } else {
-          console.error("Demo finding clone error:", newFindingError);
-        }
-      }
-    }
+    await copyRows({
+      admin,
+      table: "section_reference_photos",
+      sourceColumn: "inspection_id",
+      targetColumn: "inspection_id",
+      sourceId: String(inspectionId),
+      targetId: demoId,
+    });
 
-    // Clone photos attached to findings.
-    const originalFindingIds = Object.keys(findingIdMap);
-    if (originalFindingIds.length > 0) {
-      const { data: originalPhotos, error: photosError } = await admin
-        .from("photos")
-        .select("*")
-        .in("finding_id", originalFindingIds);
+    await copyRows({
+      admin,
+      table: "report_disclaimers",
+      sourceColumn: "inspection_id",
+      targetColumn: "inspection_id",
+      sourceId: String(inspectionId),
+      targetId: demoId,
+    });
 
-      if (!photosError && originalPhotos?.length) {
-        const photoRows = originalPhotos
-          .map((photo: any) => {
-            const newFindingId = findingIdMap[String(photo.finding_id)];
-            if (!newFindingId) return null;
-
-            return cleanRowForInsert(photo, {
-              finding_id: newFindingId,
-            });
-          })
-          .filter(Boolean);
-
-        if (photoRows.length > 0) {
-          const { error } = await admin.from("photos").insert(photoRows);
-          if (error) console.error("Demo photos clone error:", error);
-        }
-      }
-    }
-
-    await cloneSimpleTable({ admin, table: "section_reference_photos", inspectionId, newInspectionId });
-    await cloneSimpleTable({ admin, table: "section_checklist_selections", inspectionId, newInspectionId });
-    await cloneSimpleTable({ admin, table: "report_disclaimers", inspectionId, newInspectionId });
-    await cloneSimpleTable({ admin, table: "equipment_inventory", inspectionId, newInspectionId });
-    await cloneSimpleTable({ admin, table: "mold_tests", inspectionId, newInspectionId });
-    await cloneSimpleTable({ admin, table: "radon_tests", inspectionId, newInspectionId });
-
-    // Clone limitations and limitation photos with limitation_id remapping.
-    const { data: originalLimitations } = await admin
-      .from("section_limitations")
-      .select("*")
-      .eq("inspection_id", inspectionId);
-
-    const limitationIdMap: Record<string, number> = {};
-
-    for (const limitation of originalLimitations || []) {
-      const { data: newLimitation, error: limitationError } = await admin
-        .from("section_limitations")
-        .insert(
-          cleanRowForInsert(limitation, {
-            inspection_id: newInspectionId,
-          })
-        )
-        .select("*")
-        .single();
-
-      if (!limitationError && newLimitation?.id) {
-        limitationIdMap[String(limitation.id)] = newLimitation.id;
-      }
-    }
-
-    const originalLimitationIds = Object.keys(limitationIdMap);
-    if (originalLimitationIds.length > 0) {
-      const { data: limitationPhotos } = await admin
-        .from("limitation_photos")
-        .select("*")
-        .in("limitation_id", originalLimitationIds);
-
-      const limitationPhotoRows = (limitationPhotos || [])
-        .map((photo: any) => {
-          const newLimitationId = limitationIdMap[String(photo.limitation_id)];
-          if (!newLimitationId) return null;
-
-          return cleanRowForInsert(photo, {
-            limitation_id: newLimitationId,
-          });
-        })
-        .filter(Boolean);
-
-      if (limitationPhotoRows.length > 0) {
-        const { error } = await admin.from("limitation_photos").insert(limitationPhotoRows);
-        if (error) console.error("Demo limitation photos clone error:", error);
-      }
-    }
-
-    await admin.from("audit_logs").insert({
-      user_id: user.id,
-      action: "demo_report_created",
-      resource_type: "inspection",
-      resource_id: String(newInspectionId),
-      metadata: {
-        source_inspection_id: inspectionId,
-      },
+    await copyRows({
+      admin,
+      table: "equipment_inventory",
+      sourceColumn: "inspection_id",
+      targetColumn: "inspection_id",
+      sourceId: String(inspectionId),
+      targetId: demoId,
     });
 
     return NextResponse.json({
       ok: true,
-      demoId: String(newInspectionId),
-      demoSlug: demoInspection.demo_slug || null,
-      demoUrl: `/demo/${newInspectionId}`,
+      demoInspectionId: demoId,
+      demoUrl: `/demo/${demoId}`,
     });
   } catch (error: any) {
     console.error("Create demo report error:", error);
