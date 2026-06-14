@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import PushNotificationSetup from "../../../components/PushNotificationSetup";
+import DeleteDemoReportButton from "../../../components/DeleteDemoReportButton";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -402,17 +403,27 @@ export default async function OwnerDashboardPage() {
       .filter(Boolean)
   );
 
-  const reportsCreated = inspections.length;
+  const reportsCreated = liveInspections.length;
   const reportsThisMonth = inspections.filter((inspection: any) =>
     isThisMonth(getInspectionDate(inspection), now)
   ).length;
 
-  const paidInspections = inspections.filter(isPaymentComplete);
+  const demoReports = inspections
+    .filter((inspection: any) => inspection?.is_demo === true)
+    .sort(
+      (a: any, b: any) =>
+        new Date(b?.demo_created_at || b?.created_at || 0).getTime() -
+        new Date(a?.demo_created_at || a?.created_at || 0).getTime()
+    );
+
+  const liveInspections = inspections.filter((inspection: any) => inspection?.is_demo !== true);
+
+  const paidInspections = liveInspections.filter(isPaymentComplete);
   const revenue = paidInspections.reduce((sum: number, inspection: any) => {
     return sum + (getPaidAmount(inspection) || getInspectionPrice(inspection));
   }, 0);
 
-  const revenueThisMonth = inspections
+  const revenueThisMonth = liveInspections
     .filter((inspection: any) => isThisMonth(getInspectionDate(inspection), now) && isPaymentComplete(inspection))
     .reduce((sum: number, inspection: any) => sum + (getPaidAmount(inspection) || getInspectionPrice(inspection)), 0);
 
@@ -538,7 +549,65 @@ export default async function OwnerDashboardPage() {
           <MetricCard label="Managed Users" value={String(userManagementRows.length)} helper={`${inactiveUsers} inactive, deleted, or pending deletion.`} tone="orange" />
           <MetricCard label="Top Inspector" value={topInspector?.name || "N/A"} helper={topInspector ? `${topInspector.reports} reports • ${money(topInspector.revenue)}` : "No report activity yet."} tone="teal" />
           <MetricCard label="Push Subscriptions" value={String(pushSubscriptions.length)} helper="Saved browser/device push subscriptions." tone="purple" />
+          <MetricCard label="Demo Reports" value={String(demoReports.length)} helper="Public sample reports created for marketing." tone="purple" />
         </section>
+
+        <Panel title="Demo Report Management" subtitle="Public sample reports created from real reports with client, realtor, agreement, and payment details removed.">
+          {demoReports.length === 0 ? (
+            <EmptyState text="No demo reports created yet." />
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {demoReports.slice(0, 12).map((demo: any) => {
+                const demoAddress =
+                  demo?.property_address ||
+                  demo?.address ||
+                  `Demo Report #${demo?.id}`;
+
+                const demoUrl = `/demo/${demo.id}`;
+
+                return (
+                  <div
+                    key={demo.id}
+                    className="rounded-2xl border border-slate-700 bg-[#020817]/70 p-5 shadow-xl"
+                  >
+                    <p className="text-xs font-black uppercase tracking-wide text-fuchsia-300">
+                      Demo Report
+                    </p>
+
+                    <h3 className="mt-2 line-clamp-2 text-lg font-black text-white">
+                      {demoAddress}
+                    </h3>
+
+                    <div className="mt-3 space-y-1 text-xs text-slate-400">
+                      <p>Demo ID: #{demo.id}</p>
+                      <p>Source Report: #{demo.demo_source_inspection_id || "N/A"}</p>
+                      <p>Created: {formatDateTime(demo.demo_created_at || demo.created_at)}</p>
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <Link
+                        href={demoUrl}
+                        className="rounded-lg border border-teal-500 px-3 py-2 text-xs font-black text-teal-300 transition hover:bg-teal-500/10"
+                      >
+                        View Demo
+                      </Link>
+
+                      <Link
+                        href={demoUrl}
+                        target="_blank"
+                        className="rounded-lg border border-slate-600 px-3 py-2 text-xs font-black text-slate-200 transition hover:bg-slate-800"
+                      >
+                        Open Public Link
+                      </Link>
+
+                      <DeleteDemoReportButton demoInspectionId={String(demo.id)} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Panel>
 
         <Panel title="Owner User Management" subtitle="System-wide user and inspector performance. Sorted by revenue and report activity.">
           {userManagementRows.length === 0 ? (
