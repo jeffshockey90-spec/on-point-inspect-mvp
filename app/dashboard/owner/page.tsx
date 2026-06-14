@@ -12,6 +12,21 @@ const OWNER_EMAIL = "jeff@onpointhomeinspect.com";
 
 type Tone = "teal" | "green" | "blue" | "purple" | "orange" | "yellow" | "red";
 
+type UserManagementRow = {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  createdAt: string | null;
+  isActive: boolean;
+  deletionRequestedAt: string | null;
+  deletedAt: string | null;
+  reports: number;
+  revenue: number;
+  lastActivity: string | null;
+  source: string;
+};
+
 async function createUserClient() {
   const cookieStore = await cookies();
 
@@ -154,11 +169,23 @@ function getMonthKey(value: any) {
 }
 
 function getViewType(event: any) {
-  return String(event?.view_type || "").toLowerCase();
+  return String(event?.view_type || event?.event_type || "").toLowerCase();
 }
 
 function getUserEmail(row: any) {
   return row?.email || row?.user_email || row?.owner_email || row?.auth_email || "";
+}
+
+function getUserName(row: any) {
+  return (
+    row?.full_name ||
+    row?.display_name ||
+    row?.business_name ||
+    row?.company_name ||
+    row?.name ||
+    getUserEmail(row) ||
+    "Unknown User"
+  );
 }
 
 function getUserRole(row: any) {
@@ -173,6 +200,29 @@ function getInspectionDate(inspection: any) {
   return inspection?.inspection_date || inspection?.created_at || "";
 }
 
+function getUserKey(row: any) {
+  return String(row?.id || row?.user_id || row?.auth_user_id || row?.inspector_id || getUserEmail(row) || "");
+}
+
+function getInspectionRevenue(inspection: any) {
+  if (!isPaymentComplete(inspection)) return 0;
+  return getPaidAmount(inspection) || getInspectionPrice(inspection);
+}
+
+function getUserStatusLabel(row: UserManagementRow) {
+  if (row.deletedAt) return "Deleted";
+  if (row.deletionRequestedAt) return "Deletion Requested";
+  if (!row.isActive) return "Inactive";
+  return "Active";
+}
+
+function getUserStatusClass(row: UserManagementRow) {
+  if (row.deletedAt) return "border-red-500/40 bg-red-500/10 text-red-300";
+  if (row.deletionRequestedAt) return "border-orange-500/40 bg-orange-500/10 text-orange-300";
+  if (!row.isActive) return "border-yellow-500/40 bg-yellow-500/10 text-yellow-300";
+  return "border-green-500/40 bg-green-500/10 text-green-300";
+}
+
 async function safeSelect<T = any>(query: PromiseLike<{ data: T | null; error: any }>, label: string) {
   try {
     const { data, error } = await query;
@@ -185,6 +235,107 @@ async function safeSelect<T = any>(query: PromiseLike<{ data: T | null; error: a
     console.error(`Owner dashboard ${label} exception:`, error);
     return [] as any[];
   }
+}
+
+function buildUserManagementRows({
+  profiles,
+  inspectorProfiles,
+  companyUsers,
+  inspections,
+  events,
+  deviceEvents,
+}: {
+  profiles: any[];
+  inspectorProfiles: any[];
+  companyUsers: any[];
+  inspections: any[];
+  events: any[];
+  deviceEvents: any[];
+}) {
+  const rows = new Map<string, UserManagementRow>();
+
+  function upsertUser(row: any, source: string) {
+    const key = getUserKey(row);
+    if (!key) return;
+
+    const current = rows.get(key);
+    const email = getUserEmail(row) || current?.email || "";
+    const role = getUserRole(row) || current?.role || (source === "inspector_profiles" ? "inspector" : "user");
+
+    rows.set(key, {
+      id: key,
+      name: getUserName(row) || current?.name || "Unknown User",
+      email,
+      role,
+      createdAt: row?.created_at || current?.createdAt || null,
+      isActive: row?.is_active === false ? false : current?.isActive ?? true,
+      deletionRequestedAt: row?.deletion_requested_at || current?.deletionRequestedAt || null,
+      deletedAt: row?.deleted_at || current?.deletedAt || null,
+      reports: current?.reports || 0,
+      revenue: current?.revenue || 0,
+      lastActivity: current?.lastActivity || null,
+      source: current?.source ? `${current.source}, ${source}` : source,
+    });
+  }
+
+  profiles.forEach((row: any) => upsertUser(row, "profiles"));
+  companyUsers.forEach((row: any) => upsertUser(row, "company_users"));
+  inspectorProfiles.forEach((row: any) => upsertUser({ ...row, id: row.inspector_id || row.id, role: "inspector" }, "inspector_profiles"));
+
+  inspections.forEach((inspection: any) => {
+    const inspectorId = getInspectorId(inspection);
+    if (!inspectorId) return;
+
+    if (!rows.has(inspectorId)) {
+      rows.set(inspectorId, {
+        id: inspectorId,
+        name: "Inspector",
+        email: "",
+        role: "inspector",
+        createdAt: null,
+        isActive: true,
+        deletionRequestedAt: null,
+        deletedAt: null,
+        reports: 0,
+        revenue: 0,
+        lastActivity: null,
+        source: "inspections",
+      });
+    }
+
+    const current = rows.get(inspectorId)!;
+    const inspectionDate = inspection?.created_at || inspection?.inspection_date || null;
+
+    current.reports += 1;
+    current.revenue += getInspectionRevenue(inspection);
+
+    if (inspectionDate) {
+      const currentTime = current.lastActivity ? new Date(current.lastActivity).getTime() : 0;
+      const nextTime = new Date(inspectionDate).getTime();
+      if (!Number.isNaN(nextTime) && nextTime > currentTime) {
+        current.lastActivity = inspectionDate;
+      }
+    }
+  });
+
+  [...events, ...deviceEvents].forEach((event: any) => {
+    const email = String(event?.viewer_email || event?.user_email || "").toLowerCase();
+    if (!email) return;
+
+    const matching = [...rows.values()].find((row) => row.email.toLowerCase() === email);
+    if (!matching) return;
+
+    const eventDate = event?.created_at || null;
+    if (!eventDate) return;
+
+    const currentTime = matching.lastActivity ? new Date(matching.lastActivity).getTime() : 0;
+    const nextTime = new Date(eventDate).getTime();
+    if (!Number.isNaN(nextTime) && nextTime > currentTime) {
+      matching.lastActivity = eventDate;
+    }
+  });
+
+  return [...rows.values()].sort((a, b) => b.revenue - a.revenue || b.reports - a.reports);
 }
 
 export default async function OwnerDashboardPage() {
@@ -232,9 +383,9 @@ export default async function OwnerDashboardPage() {
 
   [...profiles, ...inspectorProfiles, ...companyUsers].forEach((row: any) => {
     const role = getUserRole(row);
-    const id = String(row?.id || row?.user_id || row?.auth_user_id || "");
+    const id = String(row?.id || row?.user_id || row?.auth_user_id || row?.inspector_id || "");
 
-    if (role.includes("inspector") || row?.is_inspector === true || row?.inspector === true) {
+    if (role.includes("inspector") || row?.is_inspector === true || row?.inspector === true || row?.inspector_id) {
       if (id) inspectorIds.add(id);
     }
   });
@@ -330,6 +481,17 @@ export default async function OwnerDashboardPage() {
 
   const retentionRate = firstOpenDevices.size > 0 ? Math.round((retainedDevices.size / firstOpenDevices.size) * 100) : 0;
 
+  const userManagementRows = buildUserManagementRows({
+    profiles,
+    inspectorProfiles,
+    companyUsers,
+    inspections,
+    events,
+    deviceEvents,
+  });
+
+  const inactiveUsers = userManagementRows.filter((row) => !row.isActive || row.deletedAt || row.deletionRequestedAt).length;
+  const topInspector = userManagementRows.find((row) => row.reports > 0);
   const recentEvents = events.slice(0, 12);
   const recentUsers = newSignups.slice(0, 10);
 
@@ -372,6 +534,61 @@ export default async function OwnerDashboardPage() {
           <MetricCard label="Retention" value={`${retentionRate}%`} helper="Devices with install/first-open and recent activity." tone="purple" />
         </section>
 
+        <section className="grid gap-5 md:grid-cols-3">
+          <MetricCard label="Managed Users" value={String(userManagementRows.length)} helper={`${inactiveUsers} inactive, deleted, or pending deletion.`} tone="orange" />
+          <MetricCard label="Top Inspector" value={topInspector?.name || "N/A"} helper={topInspector ? `${topInspector.reports} reports • ${money(topInspector.revenue)}` : "No report activity yet."} tone="teal" />
+          <MetricCard label="Push Subscriptions" value={String(pushSubscriptions.length)} helper="Saved browser/device push subscriptions." tone="purple" />
+        </section>
+
+        <Panel title="Owner User Management" subtitle="System-wide user and inspector performance. Sorted by revenue and report activity.">
+          {userManagementRows.length === 0 ? (
+            <EmptyState text="No users found." />
+          ) : (
+            <div className="overflow-hidden rounded-2xl border border-slate-700">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-slate-800 text-sm">
+                  <thead className="bg-[#020817] text-left text-xs uppercase tracking-wide text-slate-400">
+                    <tr>
+                      <th className="px-4 py-3">User</th>
+                      <th className="px-4 py-3">Role</th>
+                      <th className="px-4 py-3 text-right">Reports</th>
+                      <th className="px-4 py-3 text-right">Revenue</th>
+                      <th className="px-4 py-3">Last Activity</th>
+                      <th className="px-4 py-3">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800 bg-[#020817]/60">
+                    {userManagementRows.map((row) => (
+                      <tr key={row.id} className="hover:bg-slate-900/70">
+                        <td className="px-4 py-4">
+                          <div className="max-w-[280px]">
+                            <p className="truncate font-black text-white">{row.name}</p>
+                            <p className="mt-1 truncate text-xs text-slate-400">{row.email || "No email"}</p>
+                            <p className="mt-1 truncate text-[11px] text-slate-600">{row.source}</p>
+                          </div>
+                        </td>
+                        <td className="px-4 py-4">
+                          <span className="rounded-full border border-teal-500/30 bg-teal-500/10 px-2 py-1 text-xs font-black text-teal-300">
+                            {row.role || "user"}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4 text-right font-black text-white">{row.reports}</td>
+                        <td className="px-4 py-4 text-right font-black text-green-300">{money(row.revenue)}</td>
+                        <td className="px-4 py-4 text-slate-300">{formatDateTime(row.lastActivity || row.createdAt)}</td>
+                        <td className="px-4 py-4">
+                          <span className={`rounded-full border px-2 py-1 text-xs font-black ${getUserStatusClass(row)}`}>
+                            {getUserStatusLabel(row)}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </Panel>
+
         <section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
           <Panel title="Growth Metrics" subtitle="Users, reports, and revenue by month.">
             {growthRows.length === 0 ? (
@@ -413,7 +630,7 @@ export default async function OwnerDashboardPage() {
               <div className="space-y-3">
                 {recentUsers.map((row: any, index: number) => {
                   const email = getUserEmail(row) || "No email";
-                  const name = row?.full_name || row?.name || row?.display_name || row?.company_name || "New user";
+                  const name = getUserName(row);
 
                   return (
                     <div key={row?.id || row?.user_id || index} className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
