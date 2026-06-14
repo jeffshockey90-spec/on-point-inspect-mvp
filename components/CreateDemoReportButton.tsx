@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 
 export default function CreateDemoReportButton({
   inspectionId,
@@ -11,9 +11,12 @@ export default function CreateDemoReportButton({
   const router = useRouter();
   const [creating, setCreating] = useState(false);
   const [message, setMessage] = useState("");
+  const [isNavigating, startTransition] = useTransition();
+
+  const busy = creating || isNavigating;
 
   async function createDemoReport() {
-    if (creating) return;
+    if (busy) return;
 
     const confirmed = window.confirm(
       "Create a public demo copy of this report? Client, realtor, agreement, and payment details will be removed from the demo copy."
@@ -39,8 +42,19 @@ export default function CreateDemoReportButton({
         throw new Error(data.error || "Failed to create demo report.");
       }
 
-      setMessage("Demo report created. Opening...");
-      router.push(`/demo/${data.demoId}`);
+      const demoId = data.demoInspectionId || data.demoId || data.id;
+      const demoUrl = data.demoUrl || (demoId ? `/demo/${demoId}` : "");
+
+      if (!demoUrl) {
+        throw new Error("Demo report was created, but no demo URL was returned.");
+      }
+
+      setMessage("Demo report created. Opening demo...");
+
+      startTransition(() => {
+        router.push(demoUrl);
+        router.refresh();
+      });
     } catch (error: any) {
       setMessage(error?.message || "Failed to create demo report.");
       setCreating(false);
@@ -52,14 +66,19 @@ export default function CreateDemoReportButton({
       <button
         type="button"
         onClick={createDemoReport}
-        disabled={creating}
-        aria-busy={creating}
+        disabled={busy}
+        aria-busy={busy}
         className="inline-flex items-center justify-center gap-2 rounded-xl border border-fuchsia-500 px-5 py-3 font-bold text-fuchsia-300 transition active:scale-[0.98] hover:bg-fuchsia-500/10 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
       >
-        {creating && (
+        {busy && (
           <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
         )}
-        {creating ? "Creating Demo..." : "Create Demo Report"}
+
+        {creating
+          ? "Creating Demo..."
+          : isNavigating
+            ? "Opening Demo..."
+            : "Create Demo Report"}
       </button>
 
       {message && (
