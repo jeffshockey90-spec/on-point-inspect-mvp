@@ -29,10 +29,29 @@ const VALID_SEVERITIES = [
   "Informational",
 ];
 
+function cleanString(value: any) {
+  return String(value || "").trim();
+}
+
+function getValidSection(value: any, fallback = "Exterior") {
+  const clean = cleanString(value);
+  return VALID_SECTIONS.includes(clean) ? clean : fallback;
+}
+
+function getValidSeverity(value: any, fallback = "Recommended Repair") {
+  const clean = cleanString(value);
+  return VALID_SEVERITIES.includes(clean) ? clean : fallback;
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const transcript = body.transcript;
+    const transcript = cleanString(body.transcript);
+    const preferredSection = getValidSection(body.section, "Exterior");
+    const preferredSeverity = getValidSeverity(
+      body.severity,
+      "Recommended Repair"
+    );
 
     if (!transcript) {
       return NextResponse.json(
@@ -50,14 +69,13 @@ export async function POST(req: Request) {
         {
           role: "system",
           content: `
-You are a senior certified home inspector writing professional report findings.
+You are a senior certified home inspector writing professional report findings for a home inspection report.
 
-Convert the inspector's spoken field note into a clear, detailed, realtor-friendly inspection finding.
+Convert the inspector's spoken shorthand into a clear, detailed, professional finding.
 
 Return ONLY valid JSON.
 
 Use this exact structure:
-
 {
   "title": "",
   "section": "",
@@ -69,21 +87,35 @@ Use this exact structure:
 
 Rules:
 - Do not invent facts not stated in the field note.
-- Expand the wording professionally.
-- Keep it accurate and not overly alarming.
+- You may expand shorthand into professional language if the meaning is clear.
+- Keep the tone accurate, calm, and realtor-friendly.
 - Use Observation, Implication, Recommendation style.
+- Do not overstate risk.
+- Do not mention code unless the field note specifically mentions code.
 - General and Safety are NOT sections.
 - Section must be one of:
-Exterior, Roof, Basement, Foundation, Crawlspace & Structure, Heating, Cooling, Plumbing, Electrical, Fireplace, Attic, Insulation & Ventilation, Doors, Windows & Interior, Built-in Appliances, Garage.
+${VALID_SECTIONS.join(", ")}.
 - Severity must be one of:
-Recommended Repair, Safety Concern, Major Concern, Maintenance, Monitor, Informational.
-- Use Safety Concern only when the issue clearly presents a safety concern.
-- Recommend evaluation or correction by the appropriate qualified contractor when needed.
+${VALID_SEVERITIES.join(", ")}.
+- Use Safety Concern only when the note clearly presents a safety risk.
+- Use Major Concern only for significant defects, system failure, structural concern, active water intrusion, unsafe major equipment, or other major issue.
+- Use Recommended Repair for typical repair defects.
+- Use Maintenance for minor service/maintenance items.
+- Use Monitor when the client should watch an item over time.
+- Use Informational for non-defect information.
+- Recommend the proper qualified contractor when needed, such as electrician, plumber, HVAC contractor, roofer, qualified contractor, or garage door contractor.
+- If the user's preferred section or severity is reasonable, keep it.
           `,
         },
         {
           role: "user",
-          content: `Field note: ${transcript}`,
+          content: `
+Preferred section: ${preferredSection}
+Preferred severity: ${preferredSeverity}
+
+Inspector voice note:
+${transcript}
+          `,
         },
       ],
     });
@@ -91,28 +123,23 @@ Recommended Repair, Safety Concern, Major Concern, Maintenance, Monitor, Informa
     const raw = response.choices[0]?.message?.content || "{}";
     const parsed = JSON.parse(raw);
 
-    const cleanSection = VALID_SECTIONS.includes(parsed.section)
-      ? parsed.section
-      : "Exterior";
-
-    const cleanSeverity = VALID_SEVERITIES.includes(parsed.severity)
-      ? parsed.severity
-      : "Recommended Repair";
+    const cleanSection = getValidSection(parsed.section, preferredSection);
+    const cleanSeverity = getValidSeverity(parsed.severity, preferredSeverity);
 
     return NextResponse.json({
-      title: parsed.title || "Inspection Finding",
+      title: cleanString(parsed.title) || "Inspection Finding",
       section: cleanSection,
       severity: cleanSeverity,
-      observation: parsed.observation || "",
-      implication: parsed.implication || "",
-      recommendation: parsed.recommendation || "",
+      observation: cleanString(parsed.observation),
+      implication: cleanString(parsed.implication),
+      recommendation: cleanString(parsed.recommendation),
     });
   } catch (error: any) {
-    console.error(error);
+    console.error("Voice finding error:", error);
 
     return NextResponse.json(
       {
-        error: error.message || "Failed to generate voice finding.",
+        error: error?.message || "Failed to generate voice finding.",
       },
       { status: 500 }
     );
