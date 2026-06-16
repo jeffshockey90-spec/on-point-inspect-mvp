@@ -7,15 +7,30 @@ export type OfflinePhotoPayload = {
   base64: string;
 };
 
+export type OfflineQueueItemType =
+  | "finding"
+  | "reference_photo"
+  | "photo"
+  | "inspection"
+  | "template";
+
 export type OfflineQueueItem = {
   id: string;
-  type: "finding" | "photo" | "inspection" | "template";
+  type: OfflineQueueItemType;
   createdAt: string;
   attempts: number;
+  lastError?: string | null;
   payload: any;
 };
 
 const QUEUE_KEY = "on_point_offline_sync_queue";
+const MAX_QUEUE_ITEMS = 50;
+const MAX_PHOTOS_PER_ITEM = 6;
+const MAX_QUEUE_BYTES = 25 * 1024 * 1024;
+const MAX_IMAGE_WIDTH = 1200;
+const IMAGE_QUALITY = 0.62;
+
+let syncInProgress = false;
 
 export function isBrowser() {
   return typeof window !== "undefined";
@@ -26,41 +41,65 @@ export function isOnline() {
   return navigator.onLine;
 }
 
+function getStorageBytes(value: string) {
+  return new Blob([value]).size;
+}
+
 export function getOfflineQueue(): OfflineQueueItem[] {
   if (!isBrowser()) return [];
 
   try {
     const raw = window.localStorage.getItem(QUEUE_KEY);
-
     if (!raw) return [];
 
     const parsed = JSON.parse(raw);
-
     return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
   }
 }
 
+export function getOfflineQueueSummary() {
+  const queue = getOfflineQueue();
+  const raw = isBrowser() ? window.localStorage.getItem(QUEUE_KEY) || "" : "";
+  const bytes = getStorageBytes(raw);
+
+  return {
+    count: queue.length,
+    bytes,
+    megabytes: Number((bytes / 1024 / 1024).toFixed(1)),
+    maxMegabytes: Number((MAX_QUEUE_BYTES / 1024 / 1024).toFixed(0)),
+  };
+}
+
 export function saveOfflineQueue(items: OfflineQueueItem[]) {
   if (!isBrowser()) return;
 
-  try {
-    window.localStorage.setItem(
-      QUEUE_KEY,
-      JSON.stringify(items)
+  if (items.length > MAX_QUEUE_ITEMS) {
+    throw new Error(
+      `Offline queue is full. Sync or clear some items before adding more. Limit: ${MAX_QUEUE_ITEMS} items.`
     );
+  }
 
-    window.dispatchEvent(
-      new CustomEvent("on-point-offline-queue-change")
-    );
+  try {
+    const serialized = JSON.stringify(items);
+    const bytes = getStorageBytes(serialized);
+
+    if (bytes > MAX_QUEUE_BYTES) {
+      throw new Error(
+        "Offline storage is getting too large. Sync queued items before adding more photos."
+      );
+    }
+
+    window.localStorage.setItem(QUEUE_KEY, serialized);
+    window.dispatchEvent(new CustomEvent("on-point-offline-queue-change"));
   } catch (error: any) {
     if (
       error?.name === "QuotaExceededError" ||
       error?.message?.toLowerCase?.().includes("quota")
     ) {
       throw new Error(
-        "Offline storage is full. Try using fewer photos or smaller photos, then sync/clear the queue."
+        "Offline storage is full. Try using fewer photos, then sync or clear the queue."
       );
     }
 
@@ -69,30 +108,25 @@ export function saveOfflineQueue(items: OfflineQueueItem[]) {
 }
 
 export function addOfflineQueueItem(
-  item: Omit<OfflineQueueItem, "id" | "createdAt" | "attempts">
+  item: Omit<OfflineQueueItem, "id" | "createdAt" | "attempts" | "lastError">
 ) {
   const queue = getOfflineQueue();
 
   const newItem: OfflineQueueItem = {
-    id: `${Date.now()}-${Math.random()
-      .toString(36)
-      .slice(2)}`,
+    id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
     createdAt: new Date().toISOString(),
     attempts: 0,
+    lastError: null,
     ...item,
   };
 
   saveOfflineQueue([...queue, newItem]);
-
   return newItem;
 }
 
 export function removeOfflineQueueItem(id: string) {
   const queue = getOfflineQueue();
-
-  saveOfflineQueue(
-    queue.filter((item) => item.id !== id)
-  );
+  saveOfflineQueue(queue.filter((item) => item.id !== id));
 }
 
 export function clearOfflineQueue() {
@@ -102,25 +136,17 @@ export function clearOfflineQueue() {
 export function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-
-    reader.onload = () =>
-      resolve(reader.result as string);
-
+    reader.onload = () => resolve(reader.result as string);
     reader.onerror = reject;
-
     reader.readAsDataURL(file);
   });
 }
 
 async function compressImageToBase64(
   file: File,
-  maxWidth = 1600,
-  quality = 0.7
-): Promise<{
-  base64: string;
-  type: string;
-  size: number;
-}> {
+  maxWidth = MAX_IMAGE_WIDTH,
+  quality = IMAGE_QUALITY
+): Promise<{ base64: string; type: string; size: number }> {
   return new Promise((resolve, reject) => {
     if (!isBrowser()) {
       reject(new Error("Image compression requires a browser."));
@@ -128,7 +154,7 @@ async function compressImageToBase64(
     }
 
     if (!file.type.startsWith("image/")) {
-      reject(new Error("Selected file is not an image."));
+      reject(new Error("Offline mode currently supports photos only. Videos are too large for safe offline storage."));
       return;
     }
 
@@ -137,20 +163,17 @@ async function compressImageToBase64(
 
     img.onload = () => {
       try {
-        const scale =
-          img.width > maxWidth
-            ? maxWidth / img.width
-            : 1;
-
-        const width = Math.round(img.width * scale);
-        const height = Math.round(img.height * scale);
+        const originalWidth = img.naturalWidth || img.width;
+        const originalHeight = img.naturalHeight || img.height;
+        const scale = Math.min(1, maxWidth / Math.max(originalWidth, originalHeight));
+        const width = Math.max(1, Math.round(originalWidth * scale));
+        const height = Math.max(1, Math.round(originalHeight * scale));
 
         const canvas = document.createElement("canvas");
         canvas.width = width;
         canvas.height = height;
 
         const ctx = canvas.getContext("2d");
-
         if (!ctx) {
           URL.revokeObjectURL(objectUrl);
           reject(new Error("Could not prepare image compression."));
@@ -161,17 +184,12 @@ async function compressImageToBase64(
 
         const outputType = "image/jpeg";
         const base64 = canvas.toDataURL(outputType, quality);
-
         URL.revokeObjectURL(objectUrl);
-
-        const approximateSize = Math.round(
-          (base64.length * 3) / 4
-        );
 
         resolve({
           base64,
           type: outputType,
-          size: approximateSize,
+          size: Math.round((base64.length * 3) / 4),
         });
       } catch (error) {
         URL.revokeObjectURL(objectUrl);
@@ -188,18 +206,21 @@ async function compressImageToBase64(
   });
 }
 
-export async function filesToOfflinePhotos(
-  files: File[]
-): Promise<OfflinePhotoPayload[]> {
+export async function filesToOfflinePhotos(files: File[]): Promise<OfflinePhotoPayload[]> {
+  const safeFiles = files.filter((file) => file.type.startsWith("image/")).slice(0, MAX_PHOTOS_PER_ITEM);
+
+  if (files.some((file) => !file.type.startsWith("image/"))) {
+    throw new Error("Offline mode only supports photos. Videos must be uploaded when you are online.");
+  }
+
+  if (files.length > MAX_PHOTOS_PER_ITEM) {
+    throw new Error(`Offline mode supports up to ${MAX_PHOTOS_PER_ITEM} photos per saved item to keep the app fast.`);
+  }
+
   const photos: OfflinePhotoPayload[] = [];
 
-  for (const file of files) {
-    const compressed = await compressImageToBase64(
-      file,
-      1600,
-      0.7
-    );
-
+  for (const file of safeFiles) {
+    const compressed = await compressImageToBase64(file);
     const cleanName = file.name
       ? file.name.replace(/\.[^/.]+$/, "") + "-offline.jpg"
       : "offline-photo.jpg";
@@ -222,46 +243,49 @@ export async function processOfflineQueue({
   onItemSynced?: (item: OfflineQueueItem) => void;
   onItemFailed?: (item: OfflineQueueItem, error: any) => void;
 } = {}) {
-  if (!isOnline()) return;
+  if (!isOnline() || syncInProgress) return;
 
-  const queue = getOfflineQueue();
+  syncInProgress = true;
 
-  for (const item of queue) {
-    try {
-      const res = await fetch("/api/offline-ai-sync", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(item),
-      });
+  try {
+    const queue = getOfflineQueue();
 
-      const data = await res.json();
+    for (const item of queue) {
+      try {
+        const res = await fetch("/api/offline-ai-sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(item),
+        });
 
-      if (!res.ok) {
-        throw new Error(
-          data.error || "Offline sync failed."
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          throw new Error(data.error || "Offline sync failed.");
+        }
+
+        removeOfflineQueueItem(item.id);
+        onItemSynced?.(item);
+      } catch (error: any) {
+        const message = error?.message || "Offline sync failed.";
+        const currentQueue = getOfflineQueue();
+
+        saveOfflineQueue(
+          currentQueue.map((queuedItem) =>
+            queuedItem.id === item.id
+              ? {
+                  ...queuedItem,
+                  attempts: (queuedItem.attempts || 0) + 1,
+                  lastError: message,
+                }
+              : queuedItem
+          )
         );
+
+        onItemFailed?.(item, error);
       }
-
-      removeOfflineQueueItem(item.id);
-      onItemSynced?.(item);
-    } catch (error) {
-      const currentQueue = getOfflineQueue();
-
-      saveOfflineQueue(
-        currentQueue.map((queuedItem) =>
-          queuedItem.id === item.id
-            ? {
-                ...queuedItem,
-                attempts:
-                  (queuedItem.attempts || 0) + 1,
-              }
-            : queuedItem
-        )
-      );
-
-      onItemFailed?.(item, error);
     }
+  } finally {
+    syncInProgress = false;
   }
 }
