@@ -1,20 +1,25 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "../lib/supabaseClient";
+import {
+  addOfflineQueueItem,
+  filesToOfflinePhotos,
+  getOfflineQueue,
+  isOnline,
+  processOfflineQueue,
+} from "../lib/offlineSyncQueue";
 
-type OfflineDraft = {
+type LocalDraft = {
   id: string;
-  inspectionId: string;
+  queueItemId: string;
   title: string;
   section: string;
   severity: string;
   observation: string;
   implication: string;
   recommendation: string;
+  photoCount: number;
   createdAt: string;
-  syncedAt?: string | null;
-  syncError?: string | null;
 };
 
 const SECTIONS = [
@@ -46,13 +51,15 @@ export default function OfflineFieldMode({
 }: {
   inspectionId: string;
 }) {
-  const storageKey = useMemo(
+  const draftStorageKey = useMemo(
     () => `offline-field-drafts-${inspectionId}`,
     [inspectionId]
   );
 
-  const [isOnline, setIsOnline] = useState(true);
+  const [online, setOnline] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [queueCount, setQueueCount] = useState(0);
 
   const [title, setTitle] = useState("");
   const [section, setSection] = useState("Exterior");
@@ -60,143 +67,183 @@ export default function OfflineFieldMode({
   const [observation, setObservation] = useState("");
   const [implication, setImplication] = useState("");
   const [recommendation, setRecommendation] = useState("");
+  const [photos, setPhotos] = useState<File[]>([]);
 
-  const [drafts, setDrafts] = useState<OfflineDraft[]>([]);
+  const [drafts, setDrafts] = useState<LocalDraft[]>([]);
 
-  const unsyncedDrafts = drafts.filter((draft) => !draft.syncedAt);
+  function refreshStatus() {
+    setOnline(isOnline());
+    setQueueCount(getOfflineQueue().length);
+  }
+
+  function loadDrafts() {
+    try {
+      const saved = localStorage.getItem(draftStorageKey);
+      if (!saved) {
+        setDrafts([]);
+        return;
+      }
+
+      const parsed = JSON.parse(saved);
+      setDrafts(Array.isArray(parsed) ? parsed : []);
+    } catch {
+      setDrafts([]);
+    }
+  }
+
+  function saveDraftList(nextDrafts: LocalDraft[]) {
+    setDrafts(nextDrafts);
+    localStorage.setItem(draftStorageKey, JSON.stringify(nextDrafts));
+  }
 
   useEffect(() => {
-    setIsOnline(navigator.onLine);
+    refreshStatus();
+    loadDrafts();
 
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
+    const handleOnline = () => {
+      refreshStatus();
+      syncNow();
+    };
+
+    const handleOffline = () => refreshStatus();
+    const handleQueueChange = () => refreshStatus();
 
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
-
-    const saved = localStorage.getItem(storageKey);
-
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        setDrafts(Array.isArray(parsed) ? parsed : []);
-      } catch {
-        setDrafts([]);
-      }
-    }
+    window.addEventListener("on-point-offline-queue-change", handleQueueChange);
 
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
+      window.removeEventListener(
+        "on-point-offline-queue-change",
+        handleQueueChange
+      );
     };
-  }, [storageKey]);
-
-  useEffect(() => {
-    localStorage.setItem(storageKey, JSON.stringify(drafts));
-  }, [drafts, storageKey]);
-
-  useEffect(() => {
-    if (isOnline && unsyncedDrafts.length > 0 && !syncing) {
-      syncDrafts();
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOnline, drafts.length]);
+  }, [draftStorageKey]);
 
-  function saveDraft() {
+  async function saveOfflineFinding() {
     if (
       !title.trim() &&
       !observation.trim() &&
       !implication.trim() &&
-      !recommendation.trim()
+      !recommendation.trim() &&
+      photos.length === 0
     ) {
-      alert("Add a title or finding details before saving.");
+      alert("Add a title, note, or photo before saving.");
       return;
     }
 
-    const newDraft: OfflineDraft = {
-      id: crypto.randomUUID(),
-      inspectionId,
-      title: title.trim() || "Untitled Finding",
-      section,
-      severity,
-      observation: observation.trim(),
-      implication: implication.trim(),
-      recommendation: recommendation.trim(),
-      createdAt: new Date().toISOString(),
-      syncedAt: null,
-      syncError: null,
-    };
+    setSaving(true);
 
-    setDrafts((current) => [newDraft, ...current]);
+    try {
+      const offlinePhotos =
+        photos.length > 0 ? await filesToOfflinePhotos(photos) : [];
 
-    setTitle("");
-    setSection("Exterior");
-    setSeverity("Recommended Repair");
-    setObservation("");
-    setImplication("");
-    setRecommendation("");
+      const queueItem = addOfflineQueueItem({
+        type: "finding",
+        payload: {
+          inspection_id: inspectionId,
+          title: title.trim() || "Offline Field Finding",
+          section,
+          severity,
+          observation: observation.trim(),
+          implication: implication.trim(),
+          recommendation: recommendation.trim(),
+          photos: offlinePhotos,
+        },
+      });
+
+      const localDraft: LocalDraft = {
+        id: crypto.randomUUID(),
+        queueItemId: queueItem.id,
+        title: title.trim() || "Offline Field Finding",
+        section,
+        severity,
+        observation: observation.trim(),
+        implication: implication.trim(),
+        recommendation: recommendation.trim(),
+        photoCount: offlinePhotos.length,
+        createdAt: new Date().toISOString(),
+      };
+
+      saveDraftList([localDraft, ...drafts]);
+
+      setTitle("");
+      setSection("Exterior");
+      setSeverity("Recommended Repair");
+      setObservation("");
+      setImplication("");
+      setRecommendation("");
+      setPhotos([]);
+
+      refreshStatus();
+
+      if (isOnline()) {
+        await syncNow();
+      }
+    } catch (error: any) {
+      alert(error?.message || "Failed to save offline finding.");
+    } finally {
+      setSaving(false);
+    }
   }
 
-  function deleteDraft(id: string) {
-    setDrafts((current) => current.filter((draft) => draft.id !== id));
-  }
-
-  function clearSynced() {
-    setDrafts((current) => current.filter((draft) => !draft.syncedAt));
-  }
-
-  function clearAll() {
-    if (!confirm("Clear all offline findings for this report?")) return;
-    setDrafts([]);
-    localStorage.removeItem(storageKey);
-  }
-
-  async function syncDrafts() {
-    if (!navigator.onLine) {
-      setIsOnline(false);
+  async function syncNow() {
+    if (!isOnline()) {
+      setOnline(false);
       return;
     }
-
-    const pending = drafts.filter((draft) => !draft.syncedAt);
-    if (pending.length === 0) return;
 
     setSyncing(true);
 
-    const updatedDrafts = [...drafts];
+    try {
+      await processOfflineQueue({
+        onItemSynced: (item) => {
+          if (item.type === "finding") {
+            const saved = localStorage.getItem(draftStorageKey);
+            if (!saved) return;
 
-    for (const draft of pending) {
-      const index = updatedDrafts.findIndex((item) => item.id === draft.id);
-      if (index === -1) continue;
+            const parsed = JSON.parse(saved);
+            if (!Array.isArray(parsed)) return;
 
-      try {
-        const { error } = await supabase.from("findings").insert({
-          inspection_id: draft.inspectionId,
-          title: draft.title,
-          section: draft.section,
-          severity: draft.severity,
-          observation: draft.observation,
-          implication: draft.implication,
-          recommendation: draft.recommendation,
-        });
+            const nextDrafts = parsed.filter(
+              (draft: LocalDraft) => draft.queueItemId !== item.id
+            );
 
-        if (error) throw error;
+            saveDraftList(nextDrafts);
+          }
+        },
+      });
 
-        updatedDrafts[index] = {
-          ...updatedDrafts[index],
-          syncedAt: new Date().toISOString(),
-          syncError: null,
-        };
-      } catch (error: any) {
-        updatedDrafts[index] = {
-          ...updatedDrafts[index],
-          syncError: error?.message || "Sync failed.",
-        };
-      }
-
-      setDrafts([...updatedDrafts]);
+      refreshStatus();
+    } catch (error: any) {
+      alert(error?.message || "Offline sync failed.");
+    } finally {
+      setSyncing(false);
     }
+  }
 
-    setSyncing(false);
+  function removeLocalDraft(id: string) {
+    const draft = drafts.find((item) => item.id === id);
+
+    if (!draft) return;
+
+    const nextDrafts = drafts.filter((item) => item.id !== id);
+    saveDraftList(nextDrafts);
+
+    const queue = getOfflineQueue();
+    const nextQueue = queue.filter((item) => item.id !== draft.queueItemId);
+
+    localStorage.setItem("on_point_offline_sync_queue", JSON.stringify(nextQueue));
+    window.dispatchEvent(new CustomEvent("on-point-offline-queue-change"));
+    refreshStatus();
+  }
+
+  function clearLocalDrafts() {
+    if (!confirm("Clear local offline finding list?")) return;
+    saveDraftList([]);
   }
 
   return (
@@ -208,24 +255,24 @@ export default function OfflineFieldMode({
           </h2>
 
           <p className="mt-2 text-slate-300">
-            Save findings locally during weak signal. Unsynced findings upload
-            automatically when connection returns.
+            Save findings and photos during weak signal. They sync through the
+            On Point offline queue when connection returns.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap gap-2">
           <div
             className={`rounded-full border px-4 py-2 text-sm font-bold ${
-              isOnline
+              online
                 ? "border-green-500/40 bg-green-500/20 text-green-300"
                 : "border-red-500/40 bg-red-500/20 text-red-300"
             }`}
           >
-            {isOnline ? "ONLINE" : "OFFLINE"}
+            {online ? "ONLINE" : "OFFLINE"}
           </div>
 
           <div className="rounded-full border border-slate-600 bg-slate-950 px-4 py-2 text-sm font-bold text-slate-300">
-            {unsyncedDrafts.length} UNSYNCED
+            {queueCount} QUEUED
           </div>
         </div>
       </div>
@@ -280,48 +327,62 @@ export default function OfflineFieldMode({
         placeholder="What should the client do?"
       />
 
+      <label className="mt-5 block">
+        <p className="mb-2 text-sm font-bold uppercase tracking-wide text-slate-400">
+          Offline Photos
+        </p>
+
+        <input
+          type="file"
+          accept="image/*"
+          multiple
+          capture="environment"
+          onChange={(event) =>
+            setPhotos(Array.from(event.target.files || []))
+          }
+          className="block w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-sm text-slate-300 file:mr-4 file:rounded-lg file:border-0 file:bg-teal-500 file:px-4 file:py-2 file:font-bold file:text-black"
+        />
+
+        {photos.length > 0 && (
+          <p className="mt-2 text-sm text-slate-400">
+            {photos.length} photo{photos.length === 1 ? "" : "s"} selected.
+          </p>
+        )}
+      </label>
+
       <div className="mt-5 flex flex-wrap gap-3">
         <button
           type="button"
-          onClick={saveDraft}
-          className="rounded-xl bg-teal-500 px-5 py-3 font-bold text-black transition hover:bg-teal-400"
+          onClick={saveOfflineFinding}
+          disabled={saving}
+          className="rounded-xl bg-teal-500 px-5 py-3 font-bold text-black transition hover:bg-teal-400 disabled:opacity-50"
         >
-          Save Offline Finding
+          {saving ? "Saving..." : "Save Offline Finding"}
         </button>
 
         <button
           type="button"
-          onClick={syncDrafts}
-          disabled={!isOnline || syncing || unsyncedDrafts.length === 0}
+          onClick={syncNow}
+          disabled={!online || syncing || queueCount === 0}
           className="rounded-xl border border-green-500 px-5 py-3 font-bold text-green-300 transition hover:bg-green-500/10 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {syncing ? "Syncing..." : "Sync Now"}
         </button>
-
-        {drafts.some((draft) => draft.syncedAt) && (
-          <button
-            type="button"
-            onClick={clearSynced}
-            className="rounded-xl border border-slate-600 px-5 py-3 font-bold text-slate-300 transition hover:bg-slate-800"
-          >
-            Clear Synced
-          </button>
-        )}
       </div>
 
       {drafts.length > 0 && (
         <div className="mt-8">
           <div className="mb-4 flex items-center justify-between gap-3">
             <h3 className="text-xl font-bold text-white">
-              Offline Findings
+              Local Offline Findings
             </h3>
 
             <button
               type="button"
-              onClick={clearAll}
+              onClick={clearLocalDrafts}
               className="rounded-lg border border-red-500/40 px-3 py-2 text-sm font-bold text-red-300 hover:bg-red-500/10"
             >
-              Clear All
+              Clear Local List
             </button>
           </div>
 
@@ -342,29 +403,22 @@ export default function OfflineFieldMode({
                       {new Date(draft.createdAt).toLocaleString()}
                     </p>
 
-                    <p
-                      className={`mt-2 inline-flex rounded-full border px-2 py-1 text-xs font-bold ${
-                        draft.syncedAt
-                          ? "border-green-500/40 bg-green-500/10 text-green-300"
-                          : draft.syncError
-                          ? "border-red-500/40 bg-red-500/10 text-red-300"
-                          : "border-yellow-500/40 bg-yellow-500/10 text-yellow-300"
-                      }`}
-                    >
-                      {draft.syncedAt
-                        ? `Synced ${new Date(draft.syncedAt).toLocaleString()}`
-                        : draft.syncError
-                        ? `Sync Error: ${draft.syncError}`
-                        : "Waiting to sync"}
+                    <p className="mt-2 inline-flex rounded-full border border-yellow-500/40 bg-yellow-500/10 px-2 py-1 text-xs font-bold text-yellow-300">
+                      Waiting in offline queue
+                      {draft.photoCount > 0
+                        ? ` • ${draft.photoCount} photo${
+                            draft.photoCount === 1 ? "" : "s"
+                          }`
+                        : ""}
                     </p>
                   </div>
 
                   <button
                     type="button"
-                    onClick={() => deleteDraft(draft.id)}
+                    onClick={() => removeLocalDraft(draft.id)}
                     className="rounded-lg border border-slate-600 px-3 py-2 text-sm font-bold text-slate-300 hover:bg-slate-800"
                   >
-                    Delete
+                    Remove
                   </button>
                 </div>
 
