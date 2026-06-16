@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
+import crypto from "crypto";
+import http2 from "http2";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,6 +12,13 @@ const OWNER_EMAILS = [
   "jeffshockey90@gmail.com",
   "jeff@onpointhomeinspect.com",
 ];
+
+type PushPayload = {
+  title: string;
+  body: string;
+  url: string;
+  eventType: string;
+};
 
 async function createUserClient() {
   const cookieStore = await cookies();
@@ -41,7 +50,54 @@ function createAdminClient() {
   );
 }
 
-async function sendWebPush(subscription: any, payload: any) {
+function base64Url(input: Buffer | string) {
+  return Buffer.from(input)
+    .toString("base64")
+    .replace(/=/g, "")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_");
+}
+
+function getApnsPrivateKey() {
+  const key = process.env.APPLE_APNS_PRIVATE_KEY || "";
+
+  return key.replace(/\\n/g, "\n").trim();
+}
+
+function createApnsJwt() {
+  const teamId = process.env.APPLE_TEAM_ID;
+  const keyId = process.env.APPLE_APNS_KEY_ID;
+  const privateKey = getApnsPrivateKey();
+
+  if (!teamId || !keyId || !privateKey) {
+    throw new Error(
+      "Missing Apple APNs credentials. Set APPLE_TEAM_ID, APPLE_APNS_KEY_ID, and APPLE_APNS_PRIVATE_KEY."
+    );
+  }
+
+  const header = {
+    alg: "ES256",
+    kid: keyId,
+  };
+
+  const payload = {
+    iss: teamId,
+    iat: Math.floor(Date.now() / 1000),
+  };
+
+  const encodedHeader = base64Url(JSON.stringify(header));
+  const encodedPayload = base64Url(JSON.stringify(payload));
+  const signingInput = `${encodedHeader}.${encodedPayload}`;
+
+  const signature = crypto.sign("sha256", Buffer.from(signingInput), {
+    key: privateKey,
+    dsaEncoding: "ieee-p1363",
+  });
+
+  return `${signingInput}.${base64Url(signature)}`;
+}
+
+async function sendWebPush(subscription: any, payload: PushPayload) {
   const webpush = await import("web-push");
 
   const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
@@ -61,6 +117,115 @@ async function sendWebPush(subscription: any, payload: any) {
     subscription,
     JSON.stringify(payload)
   );
+}
+
+function getApnsHost() {
+  const useSandbox = String(process.env.APPLE_APNS_USE_SANDBOX || "")
+    .toLowerCase()
+    .trim();
+
+  return useSandbox === "true" || useSandbox === "1"
+    ? "https://api.sandbox.push.apple.com"
+    : "https://api.push.apple.com";
+}
+
+function getApnsTopic() {
+  const topic = process.env.APPLE_BUNDLE_ID || process.env.NEXT_PUBLIC_IOS_BUNDLE_ID;
+
+  if (!topic) {
+    throw new Error("Missing APPLE_BUNDLE_ID for APNs topic.");
+  }
+
+  return topic;
+}
+
+async function sendNativeApns(token: string, payload: PushPayload) {
+  const jwt = createApnsJwt();
+  const topic = getApnsTopic();
+  const host = getApnsHost();
+
+  const apnsPayload = JSON.stringify({
+    aps: {
+      alert: {
+        title: payload.title,
+        body: payload.body,
+      },
+      sound: "default",
+    },
+    url: payload.url,
+    eventType: payload.eventType,
+  });
+
+  return await new Promise<{ status: number; body: string }>((resolve, reject) => {
+    const client = http2.connect(host);
+
+    const cleanup = () => {
+      try {
+        client.close();
+      } catch {}
+    };
+
+    client.on("error", (error) => {
+      cleanup();
+      reject(error);
+    });
+
+    const request = client.request({
+      ":method": "POST",
+      ":path": `/3/device/${token}`,
+      authorization: `bearer ${jwt}`,
+      "apns-topic": topic,
+      "apns-push-type": "alert",
+      "apns-priority": "10",
+      "content-type": "application/json",
+    });
+
+    let responseBody = "";
+    let status = 0;
+
+    request.on("response", (headers) => {
+      status = Number(headers[":status"] || 0);
+    });
+
+    request.setEncoding("utf8");
+
+    request.on("data", (chunk) => {
+      responseBody += chunk;
+    });
+
+    request.on("end", () => {
+      cleanup();
+
+      if (status >= 200 && status < 300) {
+        resolve({ status, body: responseBody });
+        return;
+      }
+
+      const error: any = new Error(
+        responseBody || `APNs send failed with status ${status}.`
+      );
+      error.statusCode = status;
+      error.body = responseBody;
+      reject(error);
+    });
+
+    request.on("error", (error) => {
+      cleanup();
+      reject(error);
+    });
+
+    request.write(apnsPayload);
+    request.end();
+  });
+}
+
+function shouldDisableNativeToken(error: any) {
+  const statusCode = Number(error?.statusCode || 0);
+  const body = String(error?.body || error?.message || "");
+
+  return (
+    statusCode === 400 && body.includes("BadDeviceToken")
+  ) || statusCode === 410 || body.includes("Unregistered");
 }
 
 export async function POST(req: Request) {
@@ -98,44 +263,74 @@ export async function POST(req: Request) {
       body.eventType || body.event_type || "manual"
     );
 
+    const targetUserId = String(body.targetUserId || body.user_id || "").trim();
+    const targetUserEmail = String(body.targetUserEmail || body.user_email || "")
+      .toLowerCase()
+      .trim();
+
+    const payload: PushPayload = {
+      title,
+      body: message,
+      url,
+      eventType,
+    };
+
     const admin = createAdminClient();
 
-    const { data: subscriptions, error } = await admin
+    let webQuery = admin
       .from("app_push_subscriptions")
       .select("*")
       .eq("enabled", true);
 
-    if (error) {
-      console.error("Push subscription load error:", error);
+    let nativeQuery = admin
+      .from("app_native_push_tokens")
+      .select("*")
+      .eq("enabled", true);
+
+    if (targetUserId) {
+      webQuery = webQuery.eq("user_id", targetUserId);
+      nativeQuery = nativeQuery.eq("user_id", targetUserId);
+    }
+
+    if (targetUserEmail) {
+      webQuery = webQuery.eq("user_email", targetUserEmail);
+      nativeQuery = nativeQuery.eq("user_email", targetUserEmail);
+    }
+
+    const [webResult, nativeResult] = await Promise.all([webQuery, nativeQuery]);
+
+    if (webResult.error) {
+      console.error("Push subscription load error:", webResult.error);
 
       return NextResponse.json(
-        { error: error.message },
+        { error: webResult.error.message },
         { status: 500 }
       );
     }
 
-    let sent = 0;
-    let failed = 0;
+    if (nativeResult.error) {
+      console.error("Native push token load error:", nativeResult.error);
 
-    for (const row of subscriptions || []) {
+      return NextResponse.json(
+        { error: nativeResult.error.message },
+        { status: 500 }
+      );
+    }
+
+    let webSent = 0;
+    let webFailed = 0;
+    let nativeSent = 0;
+    let nativeFailed = 0;
+
+    for (const row of webResult.data || []) {
       try {
-        await sendWebPush(row.subscription, {
-          title,
-          body: message,
-          url,
-          eventType,
-        });
-
-        sent += 1;
+        await sendWebPush(row.subscription, payload);
+        webSent += 1;
       } catch (error: any) {
-        failed += 1;
+        webFailed += 1;
+        console.error("Web push send error:", error);
 
-        console.error("Push send error:", error);
-
-        if (
-          error?.statusCode === 404 ||
-          error?.statusCode === 410
-        ) {
+        if (error?.statusCode === 404 || error?.statusCode === 410) {
           await admin
             .from("app_push_subscriptions")
             .update({
@@ -146,6 +341,29 @@ export async function POST(req: Request) {
         }
       }
     }
+
+    for (const row of nativeResult.data || []) {
+      try {
+        await sendNativeApns(row.token, payload);
+        nativeSent += 1;
+      } catch (error: any) {
+        nativeFailed += 1;
+        console.error("Native APNs send error:", error);
+
+        if (shouldDisableNativeToken(error)) {
+          await admin
+            .from("app_native_push_tokens")
+            .update({
+              enabled: false,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("token", row.token);
+        }
+      }
+    }
+
+    const sent = webSent + nativeSent;
+    const failed = webFailed + nativeFailed;
 
     await admin.from("app_notification_logs").insert({
       title,
@@ -161,6 +379,10 @@ export async function POST(req: Request) {
       ok: true,
       sent,
       failed,
+      webSent,
+      webFailed,
+      nativeSent,
+      nativeFailed,
     });
   } catch (error: any) {
     console.error("Push send route error:", error);
