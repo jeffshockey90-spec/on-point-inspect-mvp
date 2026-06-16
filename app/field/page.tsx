@@ -63,6 +63,10 @@ function isNativeCapacitorApp() {
   return Boolean(capacitor?.isNativePlatform?.());
 }
 
+function safeSectionFolder(section: string) {
+  return section.replace(/[^a-zA-Z0-9-_]/g, "-").replace(/-+/g, "-").slice(0, 50);
+}
+
 function FieldPageContent() {
   const searchParams = useSearchParams();
   const reportFromUrl =
@@ -84,9 +88,13 @@ function FieldPageContent() {
   const [takingNativePhoto, setTakingNativePhoto] = useState(false);
   const [online, setOnline] = useState(true);
   const [message, setMessage] = useState("");
+  const [queueTick, setQueueTick] = useState(0);
 
   const nativeApp = useMemo(() => isNativeCapacitorApp(), []);
-  const offlineSummary = useMemo(() => getOfflineQueueSummary(), [message, photos.length, online]);
+  const offlineSummary = useMemo(
+    () => getOfflineQueueSummary(),
+    [message, photos.length, online, queueTick]
+  );
 
   useEffect(() => {
     setOnline(isOnline());
@@ -94,21 +102,26 @@ function FieldPageContent() {
 
     function handleOnline() {
       setOnline(true);
+      setQueueTick((current) => current + 1);
     }
 
     function handleOffline() {
       setOnline(false);
+      setQueueTick((current) => current + 1);
+    }
+
+    function handleQueueChange() {
+      setQueueTick((current) => current + 1);
     }
 
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
+    window.addEventListener("on-point-offline-queue-change", handleQueueChange);
 
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
-      photos.forEach((photo: any) => {
-        if (photo.previewUrl) URL.revokeObjectURL(photo.previewUrl);
-      });
+      window.removeEventListener("on-point-offline-queue-change", handleQueueChange);
     };
   }, []);
 
@@ -136,6 +149,7 @@ function FieldPageContent() {
     setImplication("");
     setRecommendation("");
     setPhotos([]);
+    setQueueTick((current) => current + 1);
   }
 
   function useComment(comment: any) {
@@ -146,10 +160,33 @@ function FieldPageContent() {
     setObservation(comment.observation || "");
     setImplication(comment.implication || "");
     setRecommendation(comment.recommendation || "");
+    setMessage("Comment loaded into the field form.");
+  }
+
+  function setReferencePhotoMode() {
+    setPhotoType("reference_photo");
+    setTitle("");
+    setSeverity("Informational");
+    setObservation("");
+    setImplication("");
+    setRecommendation("");
+    setMessage("Reference photo mode selected. Add photo(s), choose a section, and save.");
   }
 
   function addFiles(nextFiles: File[]) {
-    const validFiles = nextFiles.filter((file) => file.type.startsWith("image/") || file.type.startsWith("video/"));
+    const validFiles = nextFiles.filter((file) => {
+      if (photoType === "reference_photo") return file.type.startsWith("image/");
+      return file.type.startsWith("image/") || file.type.startsWith("video/");
+    });
+
+    if (validFiles.length !== nextFiles.length) {
+      setMessage(
+        photoType === "reference_photo"
+          ? "Reference photos must be images. Videos can be saved as finding media."
+          : "Some files were skipped because they were not supported media."
+      );
+    }
+
     setPhotos((current) => [...current, ...validFiles].slice(0, 6));
   }
 
@@ -194,7 +231,11 @@ function FieldPageContent() {
       });
 
       addFiles([file]);
-      setMessage("Photo added and saved to your phone gallery.");
+      setMessage(
+        photoType === "reference_photo"
+          ? "Reference photo added and saved to your phone gallery."
+          : "Photo added and saved to your phone gallery."
+      );
     } catch (error: any) {
       setMessage(error?.message || "Could not take native photo.");
     } finally {
@@ -253,7 +294,9 @@ function FieldPageContent() {
 
   async function uploadPhotoFile(photo: File, folder: string): Promise<UploadedPhoto> {
     const safeName = photo.name.replace(/[^a-zA-Z0-9.\-_]/g, "-").slice(0, 80);
-    const fileName = `${selectedReport}/${folder}/${Date.now()}-${safeName}`;
+    const fileName = `${selectedReport}/${folder}/${Date.now()}-${Math.random()
+      .toString(36)
+      .slice(2)}-${safeName}`;
 
     const { error: uploadError } = await supabase.storage
       .from("inspection-photos")
@@ -287,7 +330,7 @@ function FieldPageContent() {
     let saved = 0;
 
     for (const photo of imagePhotos) {
-      const uploaded = await uploadPhotoFile(photo, `reference-photos/${section.replace(/[^a-zA-Z0-9-_]/g, "-")}`);
+      const uploaded = await uploadPhotoFile(photo, `reference-photos/${safeSectionFolder(section)}`);
 
       const { error } = await supabase.from("section_reference_photos").insert({
         inspection_id: selectedReport,
@@ -355,8 +398,8 @@ function FieldPageContent() {
       return;
     }
 
-    if (photoType === "finding" && !title.trim() && !note.trim() && !observation.trim()) {
-      setMessage("Add a title, observation, or inspector note before saving.");
+    if (photoType === "finding" && !title.trim() && !note.trim() && !observation.trim() && photos.length === 0) {
+      setMessage("Add a title, observation, inspector note, or media before saving.");
       return;
     }
 
@@ -392,7 +435,9 @@ function FieldPageContent() {
         resetForm();
         const summary = getOfflineQueueSummary();
         setMessage(
-          `Saved offline. Queue: ${summary.count + 1} item(s). It will sync when service returns.`
+          photoType === "reference_photo"
+            ? `Saved reference photo offline. Queue: ${summary.count} item(s). It will sync when service returns.`
+            : `Saved finding offline. Queue: ${summary.count} item(s). It will sync when service returns.`
         );
         return;
       }
@@ -419,10 +464,12 @@ function FieldPageContent() {
     <main className="min-h-screen bg-[#0f172a] p-4 text-white">
       <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[1fr_380px]">
         <div className="rounded-2xl bg-[#111827] p-5 shadow-2xl">
-          <h1 className="mb-2 text-3xl font-bold text-teal-400">On Point Field Workflow</h1>
+          <h1 className="mb-2 text-3xl font-bold text-teal-400">
+            On Point Field Workflow
+          </h1>
 
           <p className="mb-4 text-slate-400">
-            Capture photos, notes, findings, and reference photos in the field. If service drops, items save locally and sync when you are back online.
+            Capture findings, defect media, and section reference photos in the field. If service drops, items save locally and sync when you are back online.
           </p>
 
           <div className="mb-4 rounded-xl border border-slate-700 bg-black/40 p-4 text-sm text-slate-300">
@@ -431,7 +478,7 @@ function FieldPageContent() {
                 {online ? "Online" : "Offline Mode"}
               </span>
               <span>
-                Queue: {offlineSummary.count} item(s), about {offlineSummary.megabytes} MB
+                Queue: {offlineSummary.count} item(s), {offlineSummary.referencePhotoCount} reference, {offlineSummary.findingCount} finding, about {offlineSummary.megabytes} MB
               </span>
             </div>
             <p className="mt-2 text-xs text-slate-500">
@@ -466,40 +513,64 @@ function FieldPageContent() {
               </select>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <label className="mb-2 block font-bold">Item Type</label>
-                <select
-                  value={photoType}
-                  onChange={(e) => setPhotoType(e.target.value as PhotoType)}
-                  className="w-full rounded-xl border border-slate-700 bg-black p-4 text-white"
-                >
-                  <option value="finding">Finding / Defect</option>
-                  <option value="reference_photo">Section Reference Photo</option>
-                </select>
-              </div>
+            <div className="grid gap-3 md:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => setPhotoType("finding")}
+                className={`rounded-xl border p-4 text-left transition active:scale-[0.98] [touch-action:manipulation] ${
+                  photoType === "finding"
+                    ? "border-teal-400 bg-teal-500/20 text-teal-200"
+                    : "border-slate-700 bg-black text-slate-300 hover:bg-slate-900"
+                }`}
+              >
+                <span className="block text-lg font-black">Finding / Defect</span>
+                <span className="mt-1 block text-xs text-slate-400">
+                  Creates a report finding and can include photos or video.
+                </span>
+              </button>
 
-              <div>
-                <label className="mb-2 block font-bold">Section</label>
-                <select
-                  value={section}
-                  onChange={(e) => setSection(e.target.value)}
-                  className="w-full rounded-xl border border-slate-700 bg-black p-4 text-white"
-                >
-                  {SECTIONS.map((item) => (
-                    <option key={item} value={item}>{item}</option>
-                  ))}
-                </select>
-              </div>
+              <button
+                type="button"
+                onClick={setReferencePhotoMode}
+                className={`rounded-xl border p-4 text-left transition active:scale-[0.98] [touch-action:manipulation] ${
+                  photoType === "reference_photo"
+                    ? "border-cyan-400 bg-cyan-500/20 text-cyan-200"
+                    : "border-slate-700 bg-black text-slate-300 hover:bg-slate-900"
+                }`}
+              >
+                <span className="block text-lg font-black">Section Reference Photo</span>
+                <span className="mt-1 block text-xs text-slate-400">
+                  Saves photos to Section Reference Photos only, not defects.
+                </span>
+              </button>
             </div>
 
             <div>
-              <label className="mb-2 block font-bold">Quick Inspector Note</label>
+              <label className="mb-2 block font-bold">Section</label>
+              <select
+                value={section}
+                onChange={(e) => setSection(e.target.value)}
+                className="w-full rounded-xl border border-slate-700 bg-black p-4 text-white"
+              >
+                {SECTIONS.map((item) => (
+                  <option key={item} value={item}>{item}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-2 block font-bold">
+                {photoType === "reference_photo" ? "Reference Photo Caption" : "Quick Inspector Note"}
+              </label>
               <textarea
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 rows={4}
-                placeholder="Example: double tapped neutral in main panel, recommend electrician"
+                placeholder={
+                  photoType === "reference_photo"
+                    ? "Example: Main electrical panel overview, attic insulation overview, front elevation..."
+                    : "Example: double tapped neutral in main panel, recommend electrician"
+                }
                 className="w-full rounded-xl border border-slate-700 bg-black p-4 leading-7 text-white"
               />
             </div>
@@ -543,11 +614,23 @@ function FieldPageContent() {
               </>
             )}
 
+            {photoType === "reference_photo" && (
+              <div className="rounded-xl border border-cyan-500/40 bg-cyan-950/20 p-4 text-sm leading-6 text-cyan-100">
+                <p className="font-black text-cyan-300">Reference Photo Mode</p>
+                <p className="mt-1">
+                  Photos saved here will appear under Section Reference Photos in the report/share/client views. They are not counted as findings, defects, or repair request items.
+                </p>
+              </div>
+            )}
+
             <div>
-              <label className="mb-2 block font-bold">Media</label>
+              <label className="mb-2 block font-bold">
+                {photoType === "reference_photo" ? "Reference Photos" : "Media"}
+              </label>
               <MediaUploadButtons
                 nativeApp={nativeApp}
                 takingNativePhoto={takingNativePhoto}
+                photoType={photoType}
                 onNativeTakePhoto={takeNativePhotoAndSaveToGallery}
                 onChange={(e) => {
                   addFiles(Array.from(e.target.files || []));
@@ -572,14 +655,18 @@ function FieldPageContent() {
               type="button"
               onClick={saveFieldItem}
               disabled={saving}
-              className="w-full rounded-xl bg-white p-4 text-lg font-bold text-black transition active:scale-[0.98] hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
+              className={`w-full rounded-xl p-4 text-lg font-bold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation] ${
+                photoType === "reference_photo"
+                  ? "bg-cyan-400 text-black hover:bg-cyan-300"
+                  : "bg-white text-black hover:bg-slate-200"
+              }`}
             >
               {saving
                 ? "Saving..."
                 : photoType === "reference_photo"
                   ? online
-                    ? "Save Reference Photo"
-                    : "Save Reference Photo Offline"
+                    ? "Save Section Reference Photo"
+                    : "Save Section Reference Photo Offline"
                   : online
                     ? "Save Finding to Report"
                     : "Save Finding Offline"}
@@ -588,7 +675,7 @@ function FieldPageContent() {
             {selectedReport && (
               <a
                 href={`/reports/${selectedReport}`}
-                className="block rounded-xl border border-teal-500 p-4 text-center font-bold text-teal-400 transition hover:bg-teal-500 hover:text-black"
+                className="block rounded-xl border border-teal-500 p-4 text-center font-bold text-teal-400 transition active:scale-[0.98] hover:bg-teal-500 hover:text-black [touch-action:manipulation]"
               >
                 Open This Report
               </a>
@@ -607,14 +694,18 @@ function FieldPageContent() {
 function MediaUploadButtons({
   nativeApp,
   takingNativePhoto,
+  photoType,
   onNativeTakePhoto,
   onChange,
 }: {
   nativeApp: boolean;
   takingNativePhoto: boolean;
+  photoType: PhotoType;
   onNativeTakePhoto: () => void;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }) {
+  const referenceMode = photoType === "reference_photo";
+
   return (
     <div className="grid gap-3 md:grid-cols-3">
       {nativeApp ? (
@@ -624,24 +715,30 @@ function MediaUploadButtons({
           disabled={takingNativePhoto}
           className="rounded-xl border border-teal-500 bg-teal-500/10 p-4 text-center font-bold text-teal-300 transition active:scale-[0.98] hover:bg-teal-500 hover:text-black disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
         >
-          {takingNativePhoto ? "Opening Camera..." : "📷 Take Photo + Save to Gallery"}
+          {takingNativePhoto
+            ? "Opening Camera..."
+            : referenceMode
+              ? "📷 Take Reference + Save Gallery"
+              : "📷 Take Photo + Save Gallery"}
         </button>
       ) : (
         <label className="cursor-pointer rounded-xl border border-teal-500 bg-teal-500/10 p-4 text-center font-bold text-teal-300 transition active:scale-[0.98] hover:bg-teal-500 hover:text-black [touch-action:manipulation]">
-          📷 Take Photos
+          {referenceMode ? "📷 Take Reference Photos" : "📷 Take Photos"}
           <input type="file" accept="image/*" capture="environment" multiple onChange={onChange} className="hidden" />
         </label>
       )}
 
       <label className="cursor-pointer rounded-xl border border-cyan-500 bg-cyan-500/10 p-4 text-center font-bold text-cyan-300 transition active:scale-[0.98] hover:bg-cyan-500 hover:text-black [touch-action:manipulation]">
-        🖼 Choose Photos
+        {referenceMode ? "🖼 Choose Reference Photos" : "🖼 Choose Photos"}
         <input type="file" accept="image/*" multiple onChange={onChange} className="hidden" />
       </label>
 
-      <label className="cursor-pointer rounded-xl border border-purple-500 bg-purple-500/10 p-4 text-center font-bold text-purple-300 transition active:scale-[0.98] hover:bg-purple-500 hover:text-white [touch-action:manipulation]">
-        🎥 Choose Videos
-        <input type="file" accept="video/*" multiple onChange={onChange} className="hidden" />
-      </label>
+      {!referenceMode && (
+        <label className="cursor-pointer rounded-xl border border-purple-500 bg-purple-500/10 p-4 text-center font-bold text-purple-300 transition active:scale-[0.98] hover:bg-purple-500 hover:text-white [touch-action:manipulation]">
+          🎥 Choose Videos
+          <input type="file" accept="video/*" multiple onChange={onChange} className="hidden" />
+        </label>
+      )}
     </div>
   );
 }
@@ -666,7 +763,7 @@ function MediaPreview({ file, onRemove }: { file: File; onRemove: () => void }) 
       <button
         type="button"
         onClick={onRemove}
-        className="w-full border-t border-slate-700 px-3 py-2 text-xs font-black text-red-300 transition hover:bg-red-500/10"
+        className="w-full border-t border-slate-700 px-3 py-2 text-xs font-black text-red-300 transition active:scale-[0.98] hover:bg-red-500/10 [touch-action:manipulation]"
       >
         Remove
       </button>

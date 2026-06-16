@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import {
   clearOfflineQueue,
   getOfflineQueue,
+  getOfflineQueueSummary,
   isOnline,
   processOfflineQueue,
 } from "../lib/offlineSyncQueue";
@@ -11,12 +12,21 @@ import {
 export default function OfflineSyncStatus() {
   const [online, setOnline] = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
+  const [findingCount, setFindingCount] = useState(0);
+  const [referencePhotoCount, setReferencePhotoCount] = useState(0);
+  const [megabytes, setMegabytes] = useState(0);
   const [syncing, setSyncing] = useState(false);
   const [lastSynced, setLastSynced] = useState("");
+  const [lastError, setLastError] = useState("");
 
   function refreshStatus() {
+    const summary = getOfflineQueueSummary();
+
     setOnline(isOnline());
     setPendingCount(getOfflineQueue().length);
+    setFindingCount(summary.findingCount);
+    setReferencePhotoCount(summary.referencePhotoCount);
+    setMegabytes(summary.megabytes);
   }
 
   async function syncNow() {
@@ -26,14 +36,22 @@ export default function OfflineSyncStatus() {
     }
 
     setSyncing(true);
+    setLastError("");
 
     try {
-      await processOfflineQueue({
+      const result = await processOfflineQueue({
         onItemSynced: () => {
           setLastSynced(new Date().toLocaleTimeString());
           refreshStatus();
         },
+        onItemFailed: (_item, error) => {
+          setLastError(error?.message || "One item failed to sync.");
+        },
       });
+
+      if (result.failed > 0) {
+        setLastError(`${result.failed} item${result.failed === 1 ? "" : "s"} failed to sync.`);
+      }
 
       refreshStatus();
     } finally {
@@ -64,17 +82,11 @@ export default function OfflineSyncStatus() {
       handleQueueChange
     );
 
-    const interval = window.setInterval(
-      refreshStatus,
-      5000
-    );
+    const interval = window.setInterval(refreshStatus, 5000);
 
     return () => {
       window.removeEventListener("online", handleOnline);
-      window.removeEventListener(
-        "offline",
-        handleOffline
-      );
+      window.removeEventListener("offline", handleOffline);
       window.removeEventListener(
         "on-point-offline-queue-change",
         handleQueueChange
@@ -103,9 +115,23 @@ export default function OfflineSyncStatus() {
               : "Everything is synced."}
           </p>
 
+          {pendingCount > 0 && (
+            <p className="mt-1 text-xs text-slate-400">
+              {findingCount} finding{findingCount === 1 ? "" : "s"} •{" "}
+              {referencePhotoCount} reference photo
+              {referencePhotoCount === 1 ? "" : "s"} • about {megabytes} MB
+            </p>
+          )}
+
           {lastSynced && (
             <p className="mt-1 text-xs text-slate-400">
               Last synced: {lastSynced}
+            </p>
+          )}
+
+          {lastError && (
+            <p className="mt-1 text-xs font-bold text-red-300">
+              {lastError}
             </p>
           )}
         </div>
@@ -114,8 +140,8 @@ export default function OfflineSyncStatus() {
           <button
             type="button"
             onClick={syncNow}
-            disabled={syncing || !online}
-            className="rounded-xl bg-teal-500 px-4 py-2 font-bold text-black hover:bg-teal-400 disabled:opacity-50"
+            disabled={syncing || !online || pendingCount === 0}
+            className="rounded-xl bg-teal-500 px-4 py-2 font-bold text-black transition active:scale-[0.98] hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
           >
             {syncing ? "Syncing..." : "Sync Now"}
           </button>
@@ -133,7 +159,7 @@ export default function OfflineSyncStatus() {
                 clearOfflineQueue();
                 refreshStatus();
               }}
-              className="rounded-xl border border-red-500 px-4 py-2 font-bold text-red-300 hover:bg-red-500/10"
+              className="rounded-xl border border-red-500 px-4 py-2 font-bold text-red-300 transition active:scale-[0.98] hover:bg-red-500/10 [touch-action:manipulation]"
             >
               Clear Queue
             </button>
