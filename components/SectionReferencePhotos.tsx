@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
+import { isNativeApp, takeNativePhotoSavedToGallery } from "../lib/nativePhoto";
 
 const PHOTO_BUCKET = "inspection-photos";
 
@@ -184,7 +185,7 @@ export default function SectionReferencePhotos({
     }
   }
 
-  async function uploadPhoto(file: File | undefined) {
+  async function uploadPhoto(file: File | undefined, savedToGallery = false) {
     if (!file || !inspectionId || !section) return;
 
     if (!file.type.startsWith("image/")) {
@@ -193,7 +194,7 @@ export default function SectionReferencePhotos({
     }
 
     setUploading(true);
-    setUploadLabel("Preparing Photo...");
+    setUploadLabel(savedToGallery ? "Saving Gallery Photo..." : "Preparing Photo...");
 
     try {
       const uploadFile = await createFullImageForUpload(file);
@@ -281,10 +282,37 @@ export default function SectionReferencePhotos({
       ]);
 
       setCaption("");
-      setUploadLabel("Uploaded!");
+      setUploadLabel(savedToGallery ? "Saved to Gallery + Uploaded!" : "Uploaded!");
     } catch (error: any) {
       setUploadLabel("Failed");
       alert(error?.message || "Failed to upload reference photo.");
+    } finally {
+      window.setTimeout(() => {
+        setUploading(false);
+        setUploadLabel("Uploading...");
+      }, 700);
+    }
+  }
+
+  async function takeNativeReferencePhoto() {
+    if (uploading) return;
+
+    setUploading(true);
+    setUploadLabel("Opening Camera...");
+
+    try {
+      const file = await takeNativePhotoSavedToGallery();
+
+      if (!file) {
+        setUploadLabel("No Photo Selected");
+        return;
+      }
+
+      setUploading(false);
+      await uploadPhoto(file, true);
+    } catch (error: any) {
+      setUploadLabel("Failed");
+      alert(error?.message || "Camera failed.");
     } finally {
       window.setTimeout(() => {
         setUploading(false);
@@ -332,8 +360,12 @@ export default function SectionReferencePhotos({
 
       if (error) throw error;
 
-      if (photo.file_path) {
-        await supabase.storage.from(PHOTO_BUCKET).remove([photo.file_path]);
+      const pathsToRemove = [photo.file_path, photo.thumbnail_path].filter(
+        Boolean
+      ) as string[];
+
+      if (pathsToRemove.length > 0) {
+        await supabase.storage.from(PHOTO_BUCKET).remove(pathsToRemove);
       }
 
       setPhotos((prev) => prev.filter((item) => item.id !== photo.id));
@@ -418,7 +450,21 @@ export default function SectionReferencePhotos({
               className="mt-4 w-full rounded-xl border border-slate-700 bg-[#020617] px-4 py-3 text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
             />
 
-            <div className="mt-4 grid gap-3 md:grid-cols-2">
+            <div className="mt-4 grid gap-3 md:grid-cols-3">
+              {isNativeApp() && (
+                <button
+                  type="button"
+                  onClick={takeNativeReferencePhoto}
+                  disabled={uploading}
+                  className="rounded-xl border border-emerald-500 bg-emerald-500/10 p-4 text-center font-black text-emerald-300 transition active:scale-[0.98] hover:bg-emerald-500 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
+                >
+                  <span className="inline-flex items-center justify-center gap-2">
+                    {uploading && <SmallSpinner />}
+                    {uploading ? uploadLabel : "📷 Take + Save Gallery"}
+                  </span>
+                </button>
+              )}
+
               <label
                 className={`rounded-xl border border-cyan-500 bg-cyan-500/10 p-4 text-center font-black text-cyan-300 transition active:scale-[0.98] hover:bg-cyan-500 hover:text-slate-950 [touch-action:manipulation] ${
                   uploading ? "cursor-not-allowed opacity-60" : "cursor-pointer"
@@ -464,6 +510,12 @@ export default function SectionReferencePhotos({
                 />
               </label>
             </div>
+
+            {isNativeApp() && (
+              <p className="mt-3 text-xs text-slate-400">
+                Use “Take + Save Gallery” to save a copy to the device Photos app.
+              </p>
+            )}
           </div>
 
           {photos.length === 0 ? (
