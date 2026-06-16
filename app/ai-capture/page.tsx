@@ -63,6 +63,7 @@ function AICaptureContent() {
   const [title, setTitle] = useState("");
   const [section, setSection] = useState("Exterior");
   const [severity, setSeverity] = useState("Recommended Repair");
+  const [photoType, setPhotoType] = useState<"finding" | "reference">("finding");
   const [observation, setObservation] = useState("");
   const [implication, setImplication] = useState("");
   const [recommendation, setRecommendation] = useState("");
@@ -203,16 +204,116 @@ function AICaptureContent() {
       return;
     }
 
-    if (!title.trim()) {
+    if (photoType === "finding" && !title.trim()) {
       showMessage("error", "Finding title is required.");
       return;
     }
 
+    if (photoType === "reference") {
+      if (!file) {
+        showMessage("error", "Please select a reference photo first.");
+        return;
+      }
+
+      if (!file.type.startsWith("image/")) {
+        showMessage("error", "Reference photos must be images.");
+        return;
+      }
+    }
+
     setSaving(true);
     clearMessage();
-    setSaveLabel(file ? "Preparing Media..." : "Saving Finding...");
+    setSaveLabel(
+      photoType === "reference"
+        ? "Preparing Reference Photo..."
+        : file
+          ? "Preparing Media..."
+          : "Saving Finding...",
+    );
 
     try {
+      if (photoType === "reference") {
+        if (!file || !file.type.startsWith("image/")) {
+          throw new Error("Reference photos require an image.");
+        }
+
+        setSaveLabel("Optimizing Reference Photo...");
+        const uploadFile = await createFullImageForUpload(file);
+
+        setSaveLabel("Creating Thumbnail...");
+        const thumbnailFile = await createThumbnailForUpload(file);
+
+        const safeSection = section
+          .replace(/[^a-zA-Z0-9-_]/g, "-")
+          .slice(0, 50);
+
+        const safeName = uploadFile.name
+          .replace(/\.[^/.]+$/, "")
+          .replace(/[^a-zA-Z0-9-_]/g, "-")
+          .slice(0, 40);
+
+        const baseName = `${Date.now()}-${crypto.randomUUID()}-${safeName}`;
+        const filePath = `${inspectionId}/reference-photos/${safeSection}/${baseName}.jpg`;
+        const thumbnailPath = `${inspectionId}/reference-photos/${safeSection}/thumbnails/${baseName}-thumb.jpg`;
+
+        setSaveLabel("Uploading Reference Photo...");
+
+        const { error: uploadError } = await supabase.storage
+          .from("inspection-photos")
+          .upload(filePath, uploadFile, {
+            cacheControl: "31536000",
+            upsert: false,
+            contentType: uploadFile.type || "image/jpeg",
+          });
+
+        if (uploadError) throw uploadError;
+
+        const { data: publicData } = supabase.storage
+          .from("inspection-photos")
+          .getPublicUrl(filePath);
+
+        let thumbnailUrl = "";
+
+        setSaveLabel("Uploading Thumbnail...");
+
+        const { error: thumbnailUploadError } = await supabase.storage
+          .from("inspection-photos")
+          .upload(thumbnailPath, thumbnailFile, {
+            cacheControl: "31536000",
+            upsert: false,
+            contentType: "image/jpeg",
+          });
+
+        if (!thumbnailUploadError) {
+          const { data: thumbnailData } = supabase.storage
+            .from("inspection-photos")
+            .getPublicUrl(thumbnailPath);
+
+          thumbnailUrl = thumbnailData.publicUrl;
+        }
+
+        setSaveLabel("Saving Reference Photo...");
+
+        const { error: referenceError } = await supabase
+          .from("section_reference_photos")
+          .insert({
+            inspection_id: inspectionId,
+            section,
+            caption: inspectorNote.trim() || title.trim() || null,
+            file_path: filePath,
+            public_url: publicData.publicUrl,
+            thumbnail_path: thumbnailUrl ? thumbnailPath : null,
+            thumbnail_url: thumbnailUrl || null,
+          });
+
+        if (referenceError) throw referenceError;
+
+        setSaveLabel("Opening Report...");
+        showMessage("success", "Reference photo saved. Opening report...");
+        window.location.assign(`/reports/${inspectionId}`);
+        return;
+      }
+
       let imageUrl = "";
       let filePath = "";
 
@@ -339,11 +440,21 @@ function AICaptureContent() {
       window.location.assign(`/reports/${inspectionId}`);
     } catch (error: any) {
       setSaveLabel("Failed");
-      showMessage("error", error.message || "Failed to save finding.");
+      showMessage(
+        "error",
+        error.message ||
+          (photoType === "reference"
+            ? "Failed to save reference photo."
+            : "Failed to save finding."),
+      );
 
       window.setTimeout(() => {
         setSaving(false);
-        setSaveLabel("Save Finding to Report");
+        setSaveLabel(
+          photoType === "reference"
+            ? "Save Reference Photo"
+            : "Save Finding to Report",
+        );
       }, 700);
     }
   }
@@ -450,7 +561,7 @@ function AICaptureContent() {
         </section>
 
         <section className="rounded-2xl border border-slate-800 bg-[#0b1220] p-6">
-          <h2 className="mb-5 text-2xl font-bold text-teal-400">AI Finding</h2>
+          <h2 className="mb-5 text-2xl font-bold text-teal-400">AI Finding / Reference Photo</h2>
 
           <div className="grid gap-4 md:grid-cols-2">
             <input
@@ -472,44 +583,79 @@ function AICaptureContent() {
               ))}
             </select>
 
-            <select
-              value={severity}
-              onChange={(e) => setSeverity(e.target.value)}
-              disabled={saving}
-              className="rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400 md:col-span-2"
-            >
-              {SEVERITIES.map((item) => (
-                <option key={item}>{item}</option>
-              ))}
-            </select>
+            <label className="block md:col-span-2">
+              <p className="mb-2 text-sm font-bold uppercase tracking-wide text-slate-400">
+                Photo Type
+              </p>
+
+              <select
+                value={photoType}
+                onChange={(e) =>
+                  setPhotoType(e.target.value as "finding" | "reference")
+                }
+                disabled={saving}
+                className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <option value="finding">Finding / Defect</option>
+                <option value="reference">Section Reference Photo</option>
+              </select>
+
+              <p className="mt-2 text-sm text-slate-400">
+                Reference photos save to this section only and are not counted as defects.
+              </p>
+            </label>
+
+            {photoType === "finding" && (
+              <select
+                value={severity}
+                onChange={(e) => setSeverity(e.target.value)}
+                disabled={saving}
+                className="rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400 md:col-span-2"
+              >
+                {SEVERITIES.map((item) => (
+                  <option key={item}>{item}</option>
+                ))}
+              </select>
+            )}
           </div>
 
-          <TextArea
-            label="Observation"
-            value={observation}
-            onChange={setObservation}
-            disabled={saving}
-          />
+          {photoType === "finding" ? (
+            <>
+              <TextArea
+                label="Observation"
+                value={observation}
+                onChange={setObservation}
+                disabled={saving}
+              />
 
-          <TextArea
-            label="Implication"
-            value={implication}
-            onChange={setImplication}
-            disabled={saving}
-          />
+              <TextArea
+                label="Implication"
+                value={implication}
+                onChange={setImplication}
+                disabled={saving}
+              />
 
-          <TextArea
-            label="Recommendation"
-            value={recommendation}
-            onChange={setRecommendation}
-            disabled={saving}
-          />
+              <TextArea
+                label="Recommendation"
+                value={recommendation}
+                onChange={setRecommendation}
+                disabled={saving}
+              />
+            </>
+          ) : (
+            <div className="mt-5 rounded-xl border border-cyan-500/40 bg-cyan-950/20 p-4 text-sm font-bold text-cyan-200">
+              This will save the selected image as a section reference photo only.
+              It will not create a finding, defect, repair request item, or severity-counted issue.
+              Use the optional field note above as the caption.
+            </div>
+          )}
         </section>
 
-        <section className="rounded-2xl border border-slate-800 bg-[#0b1220] p-6">
-          <h2 className="mb-5 text-2xl font-bold text-teal-400">
-            Equipment Recognition
-          </h2>
+        {photoType === "finding" && (
+          <section className="rounded-2xl border border-slate-800 bg-[#0b1220] p-6">
+            <h2 className="mb-5 text-2xl font-bold text-teal-400">
+              Equipment Recognition
+            </h2>
 
           <div className="grid gap-4 md:grid-cols-2">
             <Input
@@ -554,7 +700,8 @@ function AICaptureContent() {
             onChange={setNotes}
             disabled={saving}
           />
-        </section>
+          </section>
+        )}
 
         <button
           type="button"
@@ -566,7 +713,11 @@ function AICaptureContent() {
           {saving && (
             <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
           )}
-          {saveLabel}
+          {saving
+            ? saveLabel
+            : photoType === "reference"
+              ? "Save Reference Photo"
+              : "Save Finding to Report"}
         </button>
       </div>
     </main>
