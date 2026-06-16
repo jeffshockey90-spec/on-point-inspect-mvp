@@ -48,26 +48,36 @@ export async function POST(req: Request) {
     const observation = String(body.observation || "").trim();
     const implication = String(body.implication || "").trim();
     const recommendation = String(body.recommendation || "").trim();
+    const tags = String(body.tags || "").trim();
+    const isFavorite = Boolean(body.is_favorite ?? body.isFavorite ?? false);
 
     if (!title) {
       return NextResponse.json({ error: "Missing title." }, { status: 400 });
     }
 
-    const { error } = await supabase.from("finding_templates").insert({
-      inspector_id: user.id,
-      title,
-      section,
-      severity,
-      observation,
-      implication,
-      recommendation,
-    });
+    const { data, error } = await supabase
+      .from("finding_templates")
+      .insert({
+        inspector_id: user.id,
+        title,
+        section,
+        severity,
+        observation,
+        implication,
+        recommendation,
+        tags: tags || null,
+        is_favorite: isFavorite,
+        usage_count: 0,
+        updated_at: new Date().toISOString(),
+      })
+      .select("*")
+      .single();
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, template: data });
   } catch (error: any) {
     return NextResponse.json(
       { error: error?.message || "Failed to save template." },

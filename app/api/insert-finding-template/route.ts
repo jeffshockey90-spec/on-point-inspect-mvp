@@ -36,31 +36,58 @@ export async function POST(req: Request) {
       );
     }
 
-    const { data: template } = await supabase
+    const { data: template, error: templateError } = await supabase
       .from("finding_templates")
       .select("*")
       .eq("id", templateId)
       .eq("inspector_id", user.id)
       .single();
 
-    if (!template) {
+    if (templateError || !template) {
       return NextResponse.json(
         { error: "Template not found" },
         { status: 404 }
       );
     }
 
-    await supabase.from("findings").insert({
-      inspection_id: inspectionId,
-      title: template.title || "Untitled Finding",
-      section: template.section || "Inspection Details",
-      severity: template.severity || "Recommended Repair",
-      observation: template.observation || "",
-      implication: template.implication || "",
-      recommendation: template.recommendation || "",
-    });
+    const { data: finding, error: insertError } = await supabase
+      .from("findings")
+      .insert({
+        inspection_id: inspectionId,
+        title: template.title || "Untitled Finding",
+        section: template.section || "Inspection Details",
+        severity: template.severity || "Recommended Repair",
+        observation: template.observation || "",
+        implication: template.implication || "",
+        recommendation: template.recommendation || "",
+      })
+      .select("*")
+      .single();
 
-    return NextResponse.json({ success: true });
+    if (insertError) {
+      return NextResponse.json(
+        { error: insertError.message || "Failed to insert template" },
+        { status: 500 }
+      );
+    }
+
+    const nextUsageCount = Number(template.usage_count || 0) + 1;
+
+    await supabase
+      .from("finding_templates")
+      .update({
+        usage_count: nextUsageCount,
+        last_used_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", template.id)
+      .eq("inspector_id", user.id);
+
+    return NextResponse.json({
+      success: true,
+      finding,
+      usage_count: nextUsageCount,
+    });
   } catch (error: any) {
     return NextResponse.json(
       { error: error?.message || "Failed to insert template" },

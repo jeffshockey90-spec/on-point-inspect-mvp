@@ -4,6 +4,50 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
 
 type FindingTemplate = Record<string, any>;
+type SortMode = "favorites" | "recent" | "used" | "newest";
+
+function templateMatches(template: FindingTemplate, search: string) {
+  const cleanSearch = search.trim().toLowerCase();
+  if (!cleanSearch) return true;
+
+  const text = `
+    ${template.title || ""}
+    ${template.section || ""}
+    ${template.severity || ""}
+    ${template.observation || ""}
+    ${template.implication || ""}
+    ${template.recommendation || ""}
+    ${template.tags || ""}
+  `.toLowerCase();
+
+  return text.includes(cleanSearch);
+}
+
+function sortTemplates(items: FindingTemplate[], sortMode: SortMode) {
+  const copy = [...items];
+
+  return copy.sort((a, b) => {
+    if (sortMode === "favorites") {
+      const favoriteDiff = Number(Boolean(b.is_favorite)) - Number(Boolean(a.is_favorite));
+      if (favoriteDiff !== 0) return favoriteDiff;
+    }
+
+    if (sortMode === "used") {
+      const usageDiff = Number(b.usage_count || 0) - Number(a.usage_count || 0);
+      if (usageDiff !== 0) return usageDiff;
+    }
+
+    if (sortMode === "recent") {
+      const recentA = new Date(a.last_used_at || a.updated_at || a.created_at || 0).getTime();
+      const recentB = new Date(b.last_used_at || b.updated_at || b.created_at || 0).getTime();
+      return recentB - recentA;
+    }
+
+    const createdA = new Date(a.created_at || 0).getTime();
+    const createdB = new Date(b.created_at || 0).getTime();
+    return createdB - createdA;
+  });
+}
 
 export default function InsertFavoriteFindingButton({
   inspectionId,
@@ -14,6 +58,8 @@ export default function InsertFavoriteFindingButton({
   const [open, setOpen] = useState(false);
   const [templates, setTemplates] = useState<FindingTemplate[]>([]);
   const [search, setSearch] = useState("");
+  const [sortMode, setSortMode] = useState<SortMode>("favorites");
+  const [favoritesOnly, setFavoritesOnly] = useState(true);
   const [loadingTemplates, setLoadingTemplates] = useState(false);
   const [insertingId, setInsertingId] = useState<string | null>(null);
   const [insertedId, setInsertedId] = useState<string | null>(null);
@@ -90,6 +136,18 @@ export default function InsertFavoriteFindingButton({
 
       setInsertedId(templateId);
 
+      setTemplates((current) =>
+        current.map((template) =>
+          String(template.id) === templateId
+            ? {
+                ...template,
+                usage_count: Number(template.usage_count || 0) + 1,
+                last_used_at: new Date().toISOString(),
+              }
+            : template
+        )
+      );
+
       startTransition(() => {
         router.refresh();
       });
@@ -106,20 +164,13 @@ export default function InsertFavoriteFindingButton({
   }
 
   const filtered = useMemo(() => {
-    const cleanSearch = search.trim().toLowerCase();
-
-    return templates.filter((template) => {
-      const text = `
-        ${template.title || ""}
-        ${template.section || ""}
-        ${template.observation || ""}
-        ${template.implication || ""}
-        ${template.recommendation || ""}
-      `.toLowerCase();
-
-      return !cleanSearch || text.includes(cleanSearch);
+    const matching = templates.filter((template) => {
+      if (favoritesOnly && !template.is_favorite) return false;
+      return templateMatches(template, search);
     });
-  }, [search, templates]);
+
+    return sortTemplates(matching, sortMode);
+  }, [favoritesOnly, search, sortMode, templates]);
 
   return (
     <>
@@ -137,9 +188,14 @@ export default function InsertFavoriteFindingButton({
           <div className="max-h-[85vh] w-full max-w-4xl overflow-hidden rounded-2xl border border-slate-700 bg-[#0f172a] shadow-2xl">
             <div className="border-b border-slate-700 p-5">
               <div className="flex items-center justify-between gap-4">
-                <h2 className="text-2xl font-black text-yellow-300">
-                  Insert Favorite Finding
-                </h2>
+                <div>
+                  <h2 className="text-2xl font-black text-yellow-300">
+                    Insert Favorite Finding
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-400">
+                    Search saved finding templates and insert one into this report.
+                  </p>
+                </div>
 
                 <button
                   type="button"
@@ -151,13 +207,40 @@ export default function InsertFavoriteFindingButton({
                 </button>
               </div>
 
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search findings..."
-                disabled={busy}
-                className="mt-4 w-full rounded-xl border border-slate-700 bg-[#020617] px-4 py-3 text-white outline-none focus:border-yellow-400 disabled:cursor-not-allowed disabled:opacity-60"
-              />
+              <div className="mt-4 grid gap-3 md:grid-cols-[1fr_0.5fr_auto]">
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search findings..."
+                  disabled={busy}
+                  className="w-full rounded-xl border border-slate-700 bg-[#020617] px-4 py-3 text-white outline-none focus:border-yellow-400 disabled:cursor-not-allowed disabled:opacity-60"
+                />
+
+                <select
+                  value={sortMode}
+                  onChange={(e) => setSortMode(e.target.value as SortMode)}
+                  disabled={busy}
+                  className="w-full rounded-xl border border-slate-700 bg-[#020617] px-4 py-3 text-white outline-none focus:border-yellow-400 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <option value="favorites">Favorites First</option>
+                  <option value="recent">Recently Used</option>
+                  <option value="used">Most Used</option>
+                  <option value="newest">Newest</option>
+                </select>
+
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => setFavoritesOnly((current) => !current)}
+                  className={`rounded-xl border px-4 py-3 text-sm font-black transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation] ${
+                    favoritesOnly
+                      ? "border-yellow-400 bg-yellow-400 text-slate-950"
+                      : "border-yellow-500/50 bg-yellow-500/10 text-yellow-300 hover:bg-yellow-500/20"
+                  }`}
+                >
+                  {favoritesOnly ? "★ Favorites" : "All Templates"}
+                </button>
+              </div>
             </div>
 
             <div className="max-h-[65vh] overflow-y-auto p-5">
@@ -176,20 +259,36 @@ export default function InsertFavoriteFindingButton({
                     return (
                       <div
                         key={templateId}
-                        className="rounded-2xl border border-slate-700 bg-[#071224] p-5"
+                        className={`rounded-2xl border p-5 ${
+                          template.is_favorite
+                            ? "border-yellow-500/60 bg-yellow-500/10"
+                            : "border-slate-700 bg-[#071224]"
+                        }`}
                       >
                         <div className="flex flex-wrap items-start justify-between gap-4">
                           <div className="min-w-0 flex-1">
-                            <p className="text-sm font-bold uppercase text-slate-400">
-                              {template.section || "Inspection Details"}
-                            </p>
+                            <div className="flex flex-wrap gap-2 text-xs font-bold">
+                              <span className="rounded-full border border-slate-600 px-2 py-1 uppercase text-slate-300">
+                                {template.section || "Inspection Details"}
+                              </span>
 
-                            <h3 className="mt-1 text-xl font-black text-white">
+                              {template.is_favorite && (
+                                <span className="rounded-full border border-yellow-400/60 bg-yellow-400/10 px-2 py-1 text-yellow-300">
+                                  ★ Favorite
+                                </span>
+                              )}
+
+                              <span className="rounded-full border border-slate-600 px-2 py-1 text-slate-300">
+                                Used {Number(template.usage_count || 0)}
+                              </span>
+                            </div>
+
+                            <h3 className="mt-3 text-xl font-black text-white">
                               {template.title || "Untitled Finding"}
                             </h3>
 
                             {template.observation && (
-                              <p className="mt-2 whitespace-pre-line text-sm text-slate-300">
+                              <p className="mt-2 line-clamp-4 whitespace-pre-line text-sm leading-6 text-slate-300">
                                 {template.observation}
                               </p>
                             )}

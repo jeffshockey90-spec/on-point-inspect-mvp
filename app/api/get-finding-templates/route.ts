@@ -30,11 +30,18 @@ export async function GET() {
     return NextResponse.json([], { status: 401 });
   }
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("finding_templates")
     .select("*")
     .eq("inspector_id", user.id)
+    .order("is_favorite", { ascending: false })
+    .order("last_used_at", { ascending: false, nullsFirst: false })
+    .order("usage_count", { ascending: false })
     .order("created_at", { ascending: false });
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 
   return NextResponse.json(data || []);
 }
