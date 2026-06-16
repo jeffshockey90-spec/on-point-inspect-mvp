@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import NativePushSetup from "./NativePushSetup";
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -15,6 +16,12 @@ function urlBase64ToUint8Array(base64String: string) {
   return outputArray;
 }
 
+function isNativeCapacitorApp() {
+  if (typeof window === "undefined") return false;
+  const capacitor = (window as any).Capacitor;
+  return Boolean(capacitor?.isNativePlatform?.());
+}
+
 export default function PushNotificationSetup() {
   const [supported, setSupported] = useState(false);
   const [permission, setPermission] = useState<NotificationPermission | "unknown">("unknown");
@@ -22,6 +29,8 @@ export default function PushNotificationSetup() {
   const [enabled, setEnabled] = useState(false);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"success" | "error" | "">("");
+
+  const nativeApp = useMemo(() => isNativeCapacitorApp(), []);
 
   const vapidPublicKey = useMemo(() => {
     return process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "";
@@ -38,6 +47,7 @@ export default function PushNotificationSetup() {
 
     if (isSupported) {
       setPermission(Notification.permission);
+
       navigator.serviceWorker.ready
         .then((registration) => registration.pushManager.getSubscription())
         .then((subscription) => setEnabled(Boolean(subscription)))
@@ -54,14 +64,14 @@ export default function PushNotificationSetup() {
     if (busy) return;
 
     if (!supported) {
-      showMessage("error", "Push notifications are not supported on this device/browser.");
+      showMessage("error", "Web push notifications are not supported on this device/browser.");
       return;
     }
 
     if (!vapidPublicKey) {
       showMessage(
         "error",
-        "Missing NEXT_PUBLIC_VAPID_PUBLIC_KEY. Add VAPID keys before enabling push notifications."
+        "Missing NEXT_PUBLIC_VAPID_PUBLIC_KEY. Add VAPID keys before enabling web push notifications."
       );
       return;
     }
@@ -109,9 +119,9 @@ export default function PushNotificationSetup() {
       }
 
       setEnabled(true);
-      showMessage("success", "Push notifications enabled for this device.");
+      showMessage("success", "Web push notifications enabled for this device.");
     } catch (error: any) {
-      showMessage("error", error?.message || "Failed to enable push notifications.");
+      showMessage("error", error?.message || "Failed to enable web push notifications.");
     } finally {
       setBusy(false);
     }
@@ -132,9 +142,11 @@ export default function PushNotificationSetup() {
         },
         body: JSON.stringify({
           title: "On Point Inspect",
-          body: "Test notification from Owner Dashboard.",
+          body: nativeApp
+            ? "Test notification from the iOS app."
+            : "Test notification from Owner Dashboard.",
           url: "/dashboard/owner",
-          eventType: "test",
+          eventType: nativeApp ? "native_owner_test" : "web_owner_test",
         }),
       });
 
@@ -144,7 +156,10 @@ export default function PushNotificationSetup() {
         throw new Error(data.error || "Failed to send test notification.");
       }
 
-      showMessage("success", `Test notification sent to ${data.sent || 0} device(s).`);
+      showMessage(
+        "success",
+        `Test sent. Total: ${data.sent || 0}, Web: ${data.webSent || 0}, Native: ${data.nativeSent || 0}, Failed: ${data.failed || 0}.`
+      );
     } catch (error: any) {
       showMessage("error", error?.message || "Failed to send test notification.");
     } finally {
@@ -153,47 +168,53 @@ export default function PushNotificationSetup() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
-        <p className="text-xs font-black uppercase tracking-wide text-slate-500">Status</p>
-        <p className="mt-2 text-lg font-black text-white">
-          {enabled ? "Enabled" : supported ? "Ready" : "Not Supported"}
-        </p>
-        <p className="mt-1 text-sm text-slate-400">Permission: {permission}</p>
-      </div>
+    <div className="space-y-5">
+      <NativePushSetup />
 
-      {message && (
-        <div
-          className={`rounded-xl border p-3 text-sm font-bold ${
-            messageType === "success"
-              ? "border-green-500/40 bg-green-950/30 text-green-300"
-              : "border-red-500/40 bg-red-950/30 text-red-300"
-          }`}
-        >
-          {message}
+      <div className="space-y-4 rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
+        <div>
+          <p className="text-xs font-black uppercase tracking-wide text-slate-500">
+            Web Push
+          </p>
+          <p className="mt-2 text-lg font-black text-white">
+            {enabled ? "Enabled" : supported ? "Ready" : "Not Supported"}
+          </p>
+          <p className="mt-1 text-sm text-slate-400">Permission: {permission}</p>
         </div>
-      )}
 
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <button
-          type="button"
-          onClick={enablePush}
-          disabled={busy || !supported}
-          aria-busy={busy}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-teal-500 px-5 py-3 font-black text-slate-950 transition active:scale-[0.98] hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
-        >
-          {busy && <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />}
-          {enabled ? "Re-Sync Device" : "Enable Push"}
-        </button>
+        {message && (
+          <div
+            className={`rounded-xl border p-3 text-sm font-bold ${
+              messageType === "success"
+                ? "border-green-500/40 bg-green-950/30 text-green-300"
+                : "border-red-500/40 bg-red-950/30 text-red-300"
+            }`}
+          >
+            {message}
+          </div>
+        )}
 
-        <button
-          type="button"
-          onClick={sendTestPush}
-          disabled={busy || !enabled}
-          className="inline-flex items-center justify-center rounded-xl border border-teal-500 px-5 py-3 font-black text-teal-300 transition active:scale-[0.98] hover:bg-teal-500/10 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
-        >
-          Send Test
-        </button>
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <button
+            type="button"
+            onClick={enablePush}
+            disabled={busy || !supported}
+            aria-busy={busy}
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-teal-500 px-5 py-3 font-black text-slate-950 transition active:scale-[0.98] hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
+          >
+            {busy && <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />}
+            {enabled ? "Re-Sync Web Device" : "Enable Web Push"}
+          </button>
+
+          <button
+            type="button"
+            onClick={sendTestPush}
+            disabled={busy || (!enabled && !nativeApp)}
+            className="inline-flex items-center justify-center rounded-xl border border-teal-500 px-5 py-3 font-black text-teal-300 transition active:scale-[0.98] hover:bg-teal-500/10 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
+          >
+            Send Test To All Devices
+          </button>
+        </div>
       </div>
     </div>
   );

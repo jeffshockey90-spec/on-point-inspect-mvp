@@ -20,13 +20,45 @@ function getSupabaseAdmin() {
   });
 }
 
+function cleanString(value: any, fallback: string, maxLength: number) {
+  const clean = String(value || fallback).trim();
+  return clean.slice(0, maxLength);
+}
+
+function getClientIp(req: Request) {
+  return (
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    req.headers.get("x-real-ip") ||
+    ""
+  );
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
-    const eventType = String(body.eventType || body.event_type || "page_view").slice(0, 80);
-    const path = String(body.path || "/").slice(0, 500);
-    const deviceId = String(body.deviceId || body.device_id || "unknown").slice(0, 160);
-    const userAgent = String(body.userAgent || body.user_agent || req.headers.get("user-agent") || "").slice(0, 1000);
+
+    const eventType = cleanString(
+      body.eventType || body.event_type,
+      "page_view",
+      80
+    );
+
+    const path = cleanString(body.path, "/", 500);
+    const deviceId = cleanString(
+      body.deviceId || body.device_id,
+      "unknown",
+      160
+    );
+
+    const userAgent = cleanString(
+      body.userAgent || body.user_agent || req.headers.get("user-agent"),
+      "",
+      1000
+    );
+
+    const platform = body.platform
+      ? cleanString(body.platform, "", 80)
+      : null;
 
     const supabase = getSupabaseAdmin();
 
@@ -35,10 +67,15 @@ export async function POST(req: Request) {
       path,
       device_id: deviceId,
       user_agent: userAgent,
-      platform: body.platform || null,
+      platform,
       standalone: body.standalone === true,
       metadata: {
         source: "app_analytics_tracker",
+        referrer: body.referrer || null,
+        screen: body.screen || null,
+        timezone: body.timezone || null,
+        app_version: body.appVersion || body.app_version || null,
+        ip_hint: getClientIp(req),
       },
     });
 

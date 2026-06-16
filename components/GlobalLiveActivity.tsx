@@ -36,6 +36,7 @@ function shouldShowEvent(log: LiveEvent) {
     "agreement_signed",
     "payment_received",
     "report_time_final",
+    "review_submitted",
   ].includes(getViewType(log));
 }
 
@@ -66,6 +67,7 @@ function getActivityTitle(log: LiveEvent) {
   if (type === "agreement_signed") return `${viewer} signed the agreement`;
   if (type === "payment_received") return "Payment received";
   if (type === "report_time_final") return `${viewer} finished reading the report`;
+  if (type === "review_submitted") return "Review submitted";
 
   return `${viewer} activity recorded`;
 }
@@ -82,6 +84,7 @@ function getActivityIcon(log: LiveEvent) {
   if (type === "agreement_signed") return "✅";
   if (type === "payment_received") return "💰";
   if (type === "report_time_final") return "⏱️";
+  if (type === "review_submitted") return "⭐";
 
   return "🔔";
 }
@@ -96,6 +99,27 @@ function formatMoney(value: any) {
     currency: "USD",
     maximumFractionDigits: 0,
   }).format(amount);
+}
+
+function maybeShowBrowserNotification(title: string, body: string, url: string) {
+  if (typeof window === "undefined") return;
+  if (!("Notification" in window)) return;
+  if (Notification.permission !== "granted") return;
+
+  try {
+    const notification = new Notification(title, {
+      body,
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+      data: { url },
+    });
+
+    notification.onclick = () => {
+      window.focus();
+      if (url) window.location.href = url;
+      notification.close();
+    };
+  } catch {}
 }
 
 export default function GlobalLiveActivity() {
@@ -226,7 +250,20 @@ export default function GlobalLiveActivity() {
           if (!inspectionId || !inspectionIds.includes(inspectionId)) return;
           if (!shouldShowEvent(event)) return;
 
+          const inspection = inspectionMap.get(inspectionId);
+          const address =
+            inspection?.property_address ||
+            inspection?.address ||
+            "Inspection report";
+
+          const title = getActivityTitle(event);
+
           playNotificationSound();
+          maybeShowBrowserNotification(
+            "On Point Inspect",
+            `${title} • ${address}`,
+            `/reports/${inspectionId}`
+          );
 
           setLatestEvent(event);
           setVisible(true);
@@ -235,7 +272,6 @@ export default function GlobalLiveActivity() {
           hideTimerRef.current = setTimeout(() => {
             setVisible(false);
           }, 7000);
-
         }
       )
       .subscribe();
@@ -244,7 +280,7 @@ export default function GlobalLiveActivity() {
       if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
       supabase.removeChannel(channel);
     };
-  }, [inspectionIds, router, supabase, soundEnabled]);
+  }, [inspectionIds, inspectionMap, router, supabase, soundEnabled]);
 
   if (!latestEvent || !visible) return null;
 

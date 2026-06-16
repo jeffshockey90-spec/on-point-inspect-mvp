@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type NativePushStatus =
   | "checking"
@@ -14,13 +14,27 @@ function isNativeCapacitorApp() {
   if (typeof window === "undefined") return false;
 
   const capacitor = (window as any).Capacitor;
-
   return Boolean(capacitor?.isNativePlatform?.());
 }
 
+function getNativePlatform() {
+  if (typeof window === "undefined") return "web";
+
+  const capacitor = (window as any).Capacitor;
+
+  try {
+    return capacitor?.getPlatform?.() || "ios";
+  } catch {
+    return "ios";
+  }
+}
+
 export default function NativePushSetup() {
+  const listenersReadyRef = useRef(false);
+
   const [status, setStatus] = useState<NativePushStatus>("checking");
   const [busy, setBusy] = useState(false);
+  const [testing, setTesting] = useState(false);
   const [token, setToken] = useState("");
   const [message, setMessage] = useState("");
 
@@ -33,6 +47,10 @@ export default function NativePushSetup() {
     }
 
     setStatus("ready");
+
+    return () => {
+      listenersReadyRef.current = false;
+    };
   }, [nativeApp]);
 
   async function saveNativeToken(deviceToken: string) {
@@ -43,7 +61,7 @@ export default function NativePushSetup() {
       },
       body: JSON.stringify({
         token: deviceToken,
-        platform: "ios",
+        platform: getNativePlatform(),
         userAgent: navigator.userAgent,
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       }),
@@ -56,6 +74,50 @@ export default function NativePushSetup() {
     }
 
     return data;
+  }
+
+  async function setupListeners(PushNotifications: any) {
+    if (listenersReadyRef.current) return;
+
+    listenersReadyRef.current = true;
+
+    await PushNotifications.removeAllListeners();
+
+    await PushNotifications.addListener("registration", async (registration: any) => {
+      const deviceToken = registration.value;
+
+      setToken(deviceToken);
+
+      try {
+        await saveNativeToken(deviceToken);
+        setStatus("registered");
+        setMessage("Native Apple push notifications are enabled for this device.");
+      } catch (error: any) {
+        setStatus("failed");
+        setMessage(error?.message || "Token received, but failed to save.");
+      } finally {
+        setBusy(false);
+      }
+    });
+
+    await PushNotifications.addListener("registrationError", (error: any) => {
+      console.error("Native push registration error:", error);
+      setStatus("failed");
+      setMessage(error?.error || "Native push registration failed.");
+      setBusy(false);
+    });
+
+    await PushNotifications.addListener("pushNotificationReceived", (notification: any) => {
+      console.log("Push received:", notification);
+    });
+
+    await PushNotifications.addListener("pushNotificationActionPerformed", (notification: any) => {
+      const url = notification.notification?.data?.url;
+
+      if (url && typeof window !== "undefined") {
+        window.location.href = url;
+      }
+    });
   }
 
   async function enableNativePush() {
@@ -74,45 +136,15 @@ export default function NativePushSetup() {
       const pushModule = await import("@capacitor/push-notifications");
       const { PushNotifications } = pushModule;
 
-      PushNotifications.removeAllListeners();
+      await setupListeners(PushNotifications);
 
-      await PushNotifications.addListener("registration", async (registration) => {
-        const deviceToken = registration.value;
+      const currentPermissions = await PushNotifications.checkPermissions();
 
-        setToken(deviceToken);
+      let permissions = currentPermissions;
 
-        try {
-          await saveNativeToken(deviceToken);
-          setStatus("registered");
-          setMessage("Native Apple push notifications are enabled for this device.");
-        } catch (error: any) {
-          setStatus("failed");
-          setMessage(error?.message || "Token received, but failed to save.");
-        } finally {
-          setBusy(false);
-        }
-      });
-
-      await PushNotifications.addListener("registrationError", (error) => {
-        console.error("Native push registration error:", error);
-        setStatus("failed");
-        setMessage(error?.error || "Native push registration failed.");
-        setBusy(false);
-      });
-
-      await PushNotifications.addListener("pushNotificationReceived", (notification) => {
-        console.log("Push received:", notification);
-      });
-
-      await PushNotifications.addListener("pushNotificationActionPerformed", (notification) => {
-        const url = notification.notification?.data?.url;
-
-        if (url && typeof window !== "undefined") {
-          window.location.href = url;
-        }
-      });
-
-      const permissions = await PushNotifications.requestPermissions();
+      if (currentPermissions.receive !== "granted") {
+        permissions = await PushNotifications.requestPermissions();
+      }
 
       if (permissions.receive !== "granted") {
         setStatus("permission_denied");
@@ -128,6 +160,42 @@ export default function NativePushSetup() {
       setStatus("failed");
       setMessage(error?.message || "Failed to enable native push notifications.");
       setBusy(false);
+    }
+  }
+
+  async function sendNativeTest() {
+    if (testing) return;
+
+    setTesting(true);
+    setMessage("");
+
+    try {
+      const res = await fetch("/api/push/send", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: "On Point Inspect",
+          body: "Native iOS push test from On Point Inspect.",
+          url: "/dashboard/owner",
+          eventType: "native_test",
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to send native test.");
+      }
+
+      setMessage(
+        `Test sent. Native: ${data.nativeSent || 0}, Web: ${data.webSent || 0}, Failed: ${data.failed || 0}.`
+      );
+    } catch (error: any) {
+      setMessage(error?.message || "Failed to send native test.");
+    } finally {
+      setTesting(false);
     }
   }
 
@@ -168,25 +236,41 @@ export default function NativePushSetup() {
           className={`rounded-xl border p-3 text-sm font-bold ${
             status === "registered"
               ? "border-green-500/40 bg-green-950/30 text-green-300"
-              : "border-yellow-500/40 bg-yellow-950/30 text-yellow-200"
+              : status === "failed" || status === "permission_denied"
+                ? "border-red-500/40 bg-red-950/30 text-red-300"
+                : "border-yellow-500/40 bg-yellow-950/30 text-yellow-200"
           }`}
         >
           {message}
         </div>
       )}
 
-      <button
-        type="button"
-        onClick={enableNativePush}
-        disabled={busy}
-        aria-busy={busy}
-        className="inline-flex items-center justify-center gap-2 rounded-xl bg-teal-500 px-5 py-3 font-black text-slate-950 transition active:scale-[0.98] hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
-      >
-        {busy && (
-          <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-        )}
-        {busy ? "Enabling..." : status === "registered" ? "Re-Sync Native Push" : "Enable Native iOS Push"}
-      </button>
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <button
+          type="button"
+          onClick={enableNativePush}
+          disabled={busy}
+          aria-busy={busy}
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-teal-500 px-5 py-3 font-black text-slate-950 transition active:scale-[0.98] hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
+        >
+          {busy && (
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+          )}
+          {busy ? "Enabling..." : status === "registered" ? "Re-Sync Native Push" : "Enable Native iOS Push"}
+        </button>
+
+        <button
+          type="button"
+          onClick={sendNativeTest}
+          disabled={testing || status !== "registered"}
+          className="inline-flex items-center justify-center gap-2 rounded-xl border border-teal-500 px-5 py-3 font-black text-teal-300 transition active:scale-[0.98] hover:bg-teal-500/10 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
+        >
+          {testing && (
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+          )}
+          {testing ? "Sending..." : "Send Native Test"}
+        </button>
+      </div>
     </div>
   );
 }

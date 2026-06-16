@@ -67,21 +67,24 @@ export async function POST(req: Request) {
 
     const admin = createAdminClient();
 
-    const { error } = await admin.from("app_native_push_tokens").upsert(
-      {
-        user_id: user.id,
-        user_email: user.email || null,
-        token,
-        platform,
-        user_agent: userAgent || null,
-        timezone: timezone || null,
-        enabled: true,
-        updated_at: new Date().toISOString(),
-      },
-      {
+    const row = {
+      user_id: user.id,
+      user_email: user.email || null,
+      token,
+      platform,
+      user_agent: userAgent || null,
+      timezone: timezone || null,
+      enabled: true,
+      updated_at: new Date().toISOString(),
+    };
+
+    const { data, error } = await admin
+      .from("app_native_push_tokens")
+      .upsert(row, {
         onConflict: "token",
-      }
-    );
+      })
+      .select("id, token, platform, enabled, updated_at")
+      .single();
 
     if (error) {
       console.error("Native push token save error:", error);
@@ -92,8 +95,27 @@ export async function POST(req: Request) {
       );
     }
 
+    try {
+      await admin.from("app_device_events").insert({
+        event_type: "native_push_token_saved",
+        path: "/api/push/native-subscribe",
+        device_id: token.slice(0, 64),
+        user_agent: userAgent || null,
+        platform,
+        standalone: true,
+        metadata: {
+          user_id: user.id,
+          user_email: user.email || null,
+          source: "native_push_setup",
+        },
+      });
+    } catch {
+      // Analytics tracking should not block native push token saving.
+    }
+
     return NextResponse.json({
       ok: true,
+      token: data,
       message: "Native push token saved.",
     });
   } catch (error: any) {
