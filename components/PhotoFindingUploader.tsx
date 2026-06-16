@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { supabase } from "../lib/supabaseClient";
+import { isNativeApp, takeNativePhotoSavedToGallery } from "../lib/nativePhoto";
 
 type Props = {
   inspectionId: string;
@@ -39,7 +40,27 @@ export default function PhotoFindingUploader({
     setMessageType("");
   }
 
-  async function handlePhotoUpload(file: File) {
+  async function handleNativeCamera() {
+    if (busy) return;
+
+    clearMessage();
+    showMessage("info", "Opening camera...");
+
+    try {
+      const file = await takeNativePhotoSavedToGallery();
+
+      if (!file) {
+        showMessage("error", "No photo was selected.");
+        return;
+      }
+
+      await handlePhotoUpload(file, true);
+    } catch (error: any) {
+      showMessage("error", error?.message || "Camera failed.");
+    }
+  }
+
+  async function handlePhotoUpload(file: File, savedToGallery = false) {
     if (busy) return;
 
     if (!inspectionId) {
@@ -59,7 +80,11 @@ export default function PhotoFindingUploader({
 
       const { error: uploadError } = await supabase.storage
         .from("inspection-photos")
-        .upload(fileName, file);
+        .upload(fileName, file, {
+          cacheControl: "31536000",
+          upsert: false,
+          contentType: file.type || "image/jpeg",
+        });
 
       if (uploadError) throw uploadError;
 
@@ -89,9 +114,17 @@ export default function PhotoFindingUploader({
       setObservation(aiData.observation || "");
       setImplication(aiData.implication || "");
       setRecommendation(aiData.recommendation || "");
-      showMessage("success", "AI finding drafted. Review it, then save it to the report.");
+      showMessage(
+        "success",
+        savedToGallery
+          ? "Photo saved to gallery and AI finding drafted. Review it, then save it to the report."
+          : "AI finding drafted. Review it, then save it to the report."
+      );
     } catch (error: any) {
-      showMessage("error", error?.message || "Failed to upload or analyze photo.");
+      showMessage(
+        "error",
+        error?.message || "Failed to upload or analyze photo."
+      );
     } finally {
       setLoading(false);
     }
@@ -179,6 +212,18 @@ export default function PhotoFindingUploader({
 
       <div>
         <label className="mb-1 block font-medium">Take or Upload Photo</label>
+
+        {isNativeApp() && (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={handleNativeCamera}
+            className="mb-3 inline-flex items-center justify-center gap-2 rounded-lg bg-teal-500 px-4 py-2 font-bold text-black transition active:scale-[0.98] hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
+          >
+            Take Photo + Save to Gallery
+          </button>
+        )}
+
         <input
           type="file"
           accept="image/*"
@@ -189,8 +234,14 @@ export default function PhotoFindingUploader({
             if (file) handlePhotoUpload(file);
             e.currentTarget.value = "";
           }}
-          className="disabled:cursor-not-allowed disabled:opacity-60"
+          className="block disabled:cursor-not-allowed disabled:opacity-60"
         />
+
+        {isNativeApp() && (
+          <p className="mt-2 text-xs text-slate-500">
+            Use the teal button to save a copy to the device Photos app.
+          </p>
+        )}
       </div>
 
       {loading && (
@@ -204,6 +255,8 @@ export default function PhotoFindingUploader({
         <img
           src={imageUrl}
           alt="Inspection finding"
+          loading="lazy"
+          decoding="async"
           className="w-full max-w-md rounded-lg border"
         />
       )}
