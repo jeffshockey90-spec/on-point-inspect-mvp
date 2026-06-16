@@ -6,6 +6,14 @@ import { createServerClient } from "@supabase/ssr";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+const ownerDashboardCard = {
+  title: "Owner Dashboard",
+  description:
+    "Owner-only system metrics, users, inspectors, reports, revenue, and app growth.",
+  href: "/dashboard/owner",
+  icon: "👑",
+};
+
 const cards = [
   {
     title: "New Inspection",
@@ -266,6 +274,9 @@ export default async function DashboardPage() {
 
   if (!user) redirect("/login");
 
+  const isOwner = String(user.email || "").toLowerCase() === "jeffshockey90@gmail.com";
+  const dashboardCards = isOwner ? [ownerDashboardCard, ...cards] : cards;
+
   const { data: inspectionsRaw, error: inspectionsError } = await supabase
     .from("inspections")
     .select("id, property_address, address, client_name, realtor_name, created_at")
@@ -484,7 +495,7 @@ export default async function DashboardPage() {
           </section>
 
           <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-            {cards.map((card) => (
+            {dashboardCards.map((card) => (
               <Link
                 key={card.href + card.title}
                 href={card.href}

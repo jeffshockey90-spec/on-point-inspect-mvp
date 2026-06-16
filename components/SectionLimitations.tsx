@@ -164,6 +164,18 @@ export default function SectionLimitations({
   const [saving, setSaving] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [uploadingForId, setUploadingForId] = useState<string | null>(null);
+  const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState<"success" | "error" | "">("");
+
+  function showMessage(type: "success" | "error", text: string) {
+    setMessageType(type);
+    setMessage(text);
+
+    window.setTimeout(() => {
+      setMessage("");
+      setMessageType("");
+    }, 3500);
+  }
 
   const options = useMemo(
     () => SECTION_LIMITATIONS[section] || DEFAULT_LIMITATIONS,
@@ -339,7 +351,7 @@ export default function SectionLimitations({
 
       if (data) setSaved((prev) => [...prev, data]);
     } catch (error: any) {
-      alert(error?.message || "Failed to save limitation.");
+      showMessage("error", error?.message || "Failed to save limitation.");
     } finally {
       setSaving(false);
     }
@@ -392,7 +404,7 @@ export default function SectionLimitations({
 
       if (data) setSaved((prev) => [...prev, data]);
     } catch (error: any) {
-      alert(error?.message || "Failed to use saved limitation template.");
+      showMessage("error", error?.message || "Failed to use saved limitation template.");
     } finally {
       setSaving(false);
     }
@@ -422,7 +434,7 @@ export default function SectionLimitations({
       if (data) setSaved((prev) => [...prev, data]);
       setCustomText("");
     } catch (error: any) {
-      alert(error?.message || "Failed to save custom limitation.");
+      showMessage("error", error?.message || "Failed to save custom limitation.");
     } finally {
       setSaving(false);
     }
@@ -453,7 +465,7 @@ export default function SectionLimitations({
         setGeneratedComment("");
       }
     } catch (error: any) {
-      alert(error?.message || "Failed to remove limitation.");
+      showMessage("error", error?.message || "Failed to remove limitation.");
     } finally {
       setSaving(false);
     }
@@ -511,7 +523,7 @@ export default function SectionLimitations({
         [limitation.id]: [...(prev[limitation.id] || []), savedPhoto],
       }));
     } catch (error: any) {
-      alert(error?.message || "Failed to upload limitation photo.");
+      showMessage("error", error?.message || "Failed to upload limitation photo.");
     } finally {
       setUploadingForId(null);
     }
@@ -543,7 +555,7 @@ export default function SectionLimitations({
         ),
       }));
     } catch (error: any) {
-      alert(error?.message || "Failed to delete limitation photo.");
+      showMessage("error", error?.message || "Failed to delete limitation photo.");
     }
   }
 
@@ -551,7 +563,7 @@ export default function SectionLimitations({
     const cleanNotes = aiNotes.trim();
 
     if (!cleanNotes) {
-      alert("Add a note for the AI first.");
+      showMessage("error", "Add a note for the AI first.");
       return;
     }
 
@@ -576,13 +588,13 @@ export default function SectionLimitations({
       const data = await res.json();
 
       if (!res.ok) {
-        alert(data.error || "Failed to generate limitation note.");
+        showMessage("error", data.error || "Failed to generate limitation note.");
         return;
       }
 
       setGeneratedComment(data.comment || "");
     } catch (error: any) {
-      alert(error?.message || "Failed to generate limitation note.");
+      showMessage("error", error?.message || "Failed to generate limitation note.");
     } finally {
       setGenerating(false);
     }
@@ -593,7 +605,7 @@ export default function SectionLimitations({
     const cleanComment = generatedComment.trim();
 
     if (!cleanComment) {
-      alert("No AI limitation comment to save.");
+      showMessage("error", "No AI limitation comment to save.");
       return;
     }
 
@@ -636,9 +648,9 @@ export default function SectionLimitations({
         if (data) setSaved((prev) => [...prev, data]);
       }
 
-      alert("Limitation note saved.");
+      showMessage("success", "Limitation note saved.");
     } catch (error: any) {
-      alert(error?.message || "Failed to save AI limitation note.");
+      showMessage("error", error?.message || "Failed to save AI limitation note.");
     } finally {
       setSaving(false);
     }
@@ -648,7 +660,7 @@ export default function SectionLimitations({
     const cleanComment = generatedComment.trim();
 
     if (!cleanComment) {
-      alert("Generate or enter a limitation comment first.");
+      showMessage("error", "Generate or enter a limitation comment first.");
       return;
     }
 
@@ -687,9 +699,9 @@ export default function SectionLimitations({
         await loadTemplates();
       }
 
-      alert("Limitation saved to library.");
+      showMessage("success", "Limitation saved to library.");
     } catch (error: any) {
-      alert(error?.message || "Failed to save limitation template.");
+      showMessage("error", error?.message || "Failed to save limitation template.");
     } finally {
       setSaving(false);
     }
@@ -757,6 +769,20 @@ export default function SectionLimitations({
                 AI Limitation Note ×
               </button>
             )}
+          </div>
+        </div>
+      )}
+
+      {message && (
+        <div className="border-t border-slate-700 px-5 pt-4">
+          <div
+            className={`rounded-xl border px-4 py-3 text-sm font-bold ${
+              messageType === "success"
+                ? "border-emerald-500 bg-emerald-950/30 text-emerald-300"
+                : "border-red-500 bg-red-950/30 text-red-300"
+            }`}
+          >
+            {message}
           </div>
         </div>
       )}

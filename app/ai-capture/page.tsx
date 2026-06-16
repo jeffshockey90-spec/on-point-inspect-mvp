@@ -2,7 +2,7 @@
 
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import Link from "next/link";
+import FastLinkButton from "../../components/FastLinkButton";
 import { supabase } from "../../lib/supabaseClient";
 
 const SECTIONS = [
@@ -55,6 +55,10 @@ function AICaptureContent() {
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [analyzeLabel, setAnalyzeLabel] = useState("Analyze Photo");
+  const [saveLabel, setSaveLabel] = useState("Save Finding to Report");
+  const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState<"success" | "error" | "">("");
 
   const [title, setTitle] = useState("");
   const [section, setSection] = useState("Exterior");
@@ -70,6 +74,16 @@ function AICaptureContent() {
   const [estimatedAge, setEstimatedAge] = useState("");
   const [notes, setNotes] = useState("");
 
+  function showMessage(type: "success" | "error", text: string) {
+    setMessageType(type);
+    setMessage(text);
+  }
+
+  function clearMessage() {
+    setMessageType("");
+    setMessage("");
+  }
+
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const selected = e.target.files?.[0];
 
@@ -80,32 +94,54 @@ function AICaptureContent() {
     }
 
     setFile(selected);
+    clearMessage();
     setPreviewUrl(URL.createObjectURL(selected));
 
     if (selected.type.startsWith("video/")) {
       setTitle((current) => current || "Video Attachment");
       setSeverity("Informational");
-      setObservation((current) => current || "Video media was added to document the condition observed at the time of inspection.");
-      setImplication((current) => current || "Video is provided for client reference and additional visual context.");
-      setRecommendation((current) => current || "Review the attached video along with the written finding. Further evaluation or repair should be performed by the appropriate qualified contractor if concerns are present.");
+      setObservation(
+        (current) =>
+          current ||
+          "Video media was added to document the condition observed at the time of inspection.",
+      );
+      setImplication(
+        (current) =>
+          current ||
+          "Video is provided for client reference and additional visual context.",
+      );
+      setRecommendation(
+        (current) =>
+          current ||
+          "Review the attached video along with the written finding. Further evaluation or repair should be performed by the appropriate qualified contractor if concerns are present.",
+      );
     }
   }
 
   async function analyzeImage() {
+    if (loading || saving) return;
+
     if (!file) {
-      alert("Please select a photo first.");
+      showMessage("error", "Please select a photo first.");
       return;
     }
 
     if (!file.type.startsWith("image/")) {
-      alert("AI analysis works with photos only. Videos can be saved to the report, but they cannot be analyzed yet.");
+      showMessage(
+        "error",
+        "AI analysis works with photos only. Videos can be saved to the report, but they cannot be analyzed yet.",
+      );
       return;
     }
 
     setLoading(true);
+    clearMessage();
+    setAnalyzeLabel("Preparing Photo...");
 
     try {
       const base64 = await fileToBase64(file);
+
+      setAnalyzeLabel("Analyzing...");
 
       const res = await fetch("/api/ai-photo-finding", {
         method: "POST",
@@ -139,25 +175,42 @@ function AICaptureContent() {
       setSerialNumber(data.serial_number || "");
       setEstimatedAge(data.estimated_age || "");
       setNotes(data.notes || "");
+      setAnalyzeLabel("Analysis Complete");
+      showMessage(
+        "success",
+        "AI analysis complete. Review the finding, then save it to the report.",
+      );
     } catch (error: any) {
-      alert(error.message || "Something went wrong.");
+      setAnalyzeLabel("Failed");
+      showMessage("error", error.message || "Something went wrong.");
     } finally {
       setLoading(false);
+
+      window.setTimeout(() => {
+        setAnalyzeLabel("Analyze Photo");
+      }, 900);
     }
   }
 
   async function saveFinding() {
+    if (saving || loading) return;
+
     if (!inspectionId) {
-      alert("Missing inspection ID. Open AI Capture from inside a report.");
+      showMessage(
+        "error",
+        "Missing inspection ID. Open AI Capture from inside a report.",
+      );
       return;
     }
 
     if (!title.trim()) {
-      alert("Finding title is required.");
+      showMessage("error", "Finding title is required.");
       return;
     }
 
     setSaving(true);
+    clearMessage();
+    setSaveLabel(file ? "Preparing Media..." : "Saving Finding...");
 
     try {
       let imageUrl = "";
@@ -168,10 +221,22 @@ function AICaptureContent() {
 
       if (file) {
         const isImageUpload = file.type.startsWith("image/");
-        const uploadFile = isImageUpload ? await createFullImageForUpload(file) : file;
-        const thumbnailFile = isImageUpload ? await createThumbnailForUpload(file) : null;
+        setSaveLabel(
+          isImageUpload ? "Optimizing Photo..." : "Preparing Video...",
+        );
+        const uploadFile = isImageUpload
+          ? await createFullImageForUpload(file)
+          : file;
+        setSaveLabel(
+          isImageUpload ? "Creating Thumbnail..." : "Preparing Video...",
+        );
+        const thumbnailFile = isImageUpload
+          ? await createThumbnailForUpload(file)
+          : null;
 
-        const fileExt = isImageUpload ? "jpg" : uploadFile.name.split(".").pop() || "mp4";
+        const fileExt = isImageUpload
+          ? "jpg"
+          : uploadFile.name.split(".").pop() || "mp4";
 
         const safeName = uploadFile.name
           .replace(/\.[^/.]+$/, "")
@@ -181,6 +246,8 @@ function AICaptureContent() {
         const baseName = `${Date.now()}-${crypto.randomUUID()}-${safeName}`;
 
         filePath = `${inspectionId}/${baseName}.${fileExt}`;
+
+        setSaveLabel("Uploading Media...");
 
         const { error: uploadError } = await supabase.storage
           .from("inspection-photos")
@@ -201,6 +268,8 @@ function AICaptureContent() {
         if (thumbnailFile) {
           thumbnailPath = `${inspectionId}/thumbnails/${baseName}-thumb.jpg`;
 
+          setSaveLabel("Uploading Thumbnail...");
+
           const { error: thumbnailUploadError } = await supabase.storage
             .from("inspection-photos")
             .upload(thumbnailPath, thumbnailFile, {
@@ -218,6 +287,8 @@ function AICaptureContent() {
           }
         }
       }
+
+      setSaveLabel("Saving Finding...");
 
       const fullRecommendation = [
         recommendation,
@@ -249,24 +320,31 @@ function AICaptureContent() {
       if (error) throw error;
 
       if (file && findingData) {
-        const { error: photoError } = await supabase
-          .from("photos")
-          .insert({
-            inspection_id: inspectionId,
-            finding_id: findingData.id,
-            public_url: imageUrl,
-            file_path: filePath,
-            thumbnail_url: thumbnailUrl || null,
-            thumbnail_path: thumbnailPath || null,
-          });
+        setSaveLabel("Attaching Media...");
+
+        const { error: photoError } = await supabase.from("photos").insert({
+          inspection_id: inspectionId,
+          finding_id: findingData.id,
+          public_url: imageUrl,
+          file_path: filePath,
+          thumbnail_url: thumbnailUrl || null,
+          thumbnail_path: thumbnailPath || null,
+        });
 
         if (photoError) throw photoError;
       }
 
+      setSaveLabel("Opening Report...");
+      showMessage("success", "Finding saved. Opening report...");
       window.location.assign(`/reports/${inspectionId}`);
     } catch (error: any) {
-      alert(error.message || "Failed to save finding.");
-      setSaving(false);
+      setSaveLabel("Failed");
+      showMessage("error", error.message || "Failed to save finding.");
+
+      window.setTimeout(() => {
+        setSaving(false);
+        setSaveLabel("Save Finding to Report");
+      }, 700);
     }
   }
 
@@ -279,34 +357,45 @@ function AICaptureContent() {
               On Point AI
             </p>
 
-            <h1 className="mt-2 text-4xl font-extrabold">
-              AI Capture
-            </h1>
+            <h1 className="mt-2 text-4xl font-extrabold">AI Capture</h1>
 
             <p className="mt-3 max-w-2xl text-slate-300">
-              Upload inspection photos, add your field note, and
-              generate report-ready findings.
+              Upload inspection photos, add your field note, and generate
+              report-ready findings.
             </p>
           </div>
 
-          <Link
-            href={
-              inspectionId
-                ? `/reports/${inspectionId}`
-                : "/reports"
-            }
+          <FastLinkButton
+            href={inspectionId ? `/reports/${inspectionId}` : "/reports"}
+            loadingText="Opening Report..."
             className="rounded-xl border border-slate-700 px-5 py-3 font-bold text-slate-200 hover:bg-slate-800"
           >
             Back To Report
-          </Link>
+          </FastLinkButton>
         </div>
+
+        {message && (
+          <div
+            role="status"
+            className={`rounded-xl border p-4 text-sm font-bold ${
+              messageType === "success"
+                ? "border-emerald-500 bg-emerald-950/30 text-emerald-300"
+                : "border-red-500 bg-red-950/30 text-red-300"
+            }`}
+          >
+            {message}
+          </div>
+        )}
 
         <section className="rounded-2xl border border-slate-800 bg-[#0b1220] p-6">
           <h2 className="mb-5 text-2xl font-bold text-teal-400">
             Upload Photo
           </h2>
 
-          <MediaUploadButtons onChange={handleFileChange} />
+          <MediaUploadButtons
+            onChange={handleFileChange}
+            disabled={loading || saving}
+          />
 
           {previewUrl && isImage && (
             <img
@@ -330,7 +419,10 @@ function AICaptureContent() {
 
           {file && (
             <p className="mt-3 rounded-xl border border-slate-700 bg-slate-950 p-3 text-sm text-slate-300">
-              Selected: {file.name} {isVideo ? "• Video will be saved as report media. AI analysis is photo-only." : ""}
+              Selected: {file.name}{" "}
+              {isVideo
+                ? "• Video will be saved as report media. AI analysis is photo-only."
+                : ""}
             </p>
           )}
 
@@ -338,28 +430,33 @@ function AICaptureContent() {
             value={inspectorNote}
             onChange={(e) => setInspectorNote(e.target.value)}
             rows={4}
+            disabled={loading || saving}
             placeholder="Optional note for AI... Example: loose toilet, damaged shingles, water staining under sink, missing GFCI, etc."
-            className="mt-5 w-full rounded-xl border border-slate-700 bg-slate-950 p-4 text-white outline-none focus:border-teal-400"
+            className="mt-5 w-full rounded-xl border border-slate-700 bg-slate-950 p-4 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
           />
 
           <button
+            type="button"
             onClick={analyzeImage}
-            disabled={loading}
-            className="mt-5 rounded-xl bg-teal-500 px-6 py-3 font-bold text-black transition hover:bg-teal-400 disabled:opacity-50"
+            disabled={loading || saving}
+            aria-busy={loading}
+            className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl bg-teal-500 px-6 py-3 font-bold text-black transition active:scale-[0.98] hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
           >
-            {loading ? "Analyzing..." : isVideo ? "Videos Cannot Be Analyzed" : "Analyze Photo"}
+            {loading && (
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            )}
+            {isVideo ? "Videos Cannot Be Analyzed" : analyzeLabel}
           </button>
         </section>
 
         <section className="rounded-2xl border border-slate-800 bg-[#0b1220] p-6">
-          <h2 className="mb-5 text-2xl font-bold text-teal-400">
-            AI Finding
-          </h2>
+          <h2 className="mb-5 text-2xl font-bold text-teal-400">AI Finding</h2>
 
           <div className="grid gap-4 md:grid-cols-2">
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              disabled={saving}
               placeholder="Finding title"
               className="rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
             />
@@ -367,6 +464,7 @@ function AICaptureContent() {
             <select
               value={section}
               onChange={(e) => setSection(e.target.value)}
+              disabled={saving}
               className="rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
             >
               {SECTIONS.map((item) => (
@@ -377,6 +475,7 @@ function AICaptureContent() {
             <select
               value={severity}
               onChange={(e) => setSeverity(e.target.value)}
+              disabled={saving}
               className="rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400 md:col-span-2"
             >
               {SEVERITIES.map((item) => (
@@ -389,18 +488,21 @@ function AICaptureContent() {
             label="Observation"
             value={observation}
             onChange={setObservation}
+            disabled={saving}
           />
 
           <TextArea
             label="Implication"
             value={implication}
             onChange={setImplication}
+            disabled={saving}
           />
 
           <TextArea
             label="Recommendation"
             value={recommendation}
             onChange={setRecommendation}
+            disabled={saving}
           />
         </section>
 
@@ -414,30 +516,35 @@ function AICaptureContent() {
               label="Equipment Type"
               value={equipmentType}
               onChange={setEquipmentType}
+              disabled={saving}
             />
 
             <Input
               label="Manufacturer"
               value={manufacturer}
               onChange={setManufacturer}
+              disabled={saving}
             />
 
             <Input
               label="Model Number"
               value={modelNumber}
               onChange={setModelNumber}
+              disabled={saving}
             />
 
             <Input
               label="Serial Number"
               value={serialNumber}
               onChange={setSerialNumber}
+              disabled={saving}
             />
 
             <Input
               label="Estimated Age"
               value={estimatedAge}
               onChange={setEstimatedAge}
+              disabled={saving}
             />
           </div>
 
@@ -445,56 +552,72 @@ function AICaptureContent() {
             label="Equipment Notes"
             value={notes}
             onChange={setNotes}
+            disabled={saving}
           />
         </section>
 
         <button
+          type="button"
           onClick={saveFinding}
-          disabled={saving}
-          className="w-full rounded-xl bg-teal-500 px-6 py-4 text-lg font-extrabold text-black transition hover:bg-teal-400 disabled:opacity-50"
+          disabled={saving || loading}
+          aria-busy={saving}
+          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-teal-500 px-6 py-4 text-lg font-extrabold text-black transition active:scale-[0.98] hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
         >
-          {saving ? "Saving..." : "Save Finding to Report"}
+          {saving && (
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+          )}
+          {saveLabel}
         </button>
       </div>
     </main>
   );
 }
 
-
 function MediaUploadButtons({
   onChange,
+  disabled = false,
 }: {
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  disabled?: boolean;
 }) {
   return (
     <div className="grid gap-3 md:grid-cols-3">
-      <label className="cursor-pointer rounded-xl border border-teal-500 bg-teal-500/10 p-4 text-center font-bold text-teal-300 hover:bg-teal-500 hover:text-black">
+      <label
+        className={`rounded-xl border border-teal-500 bg-teal-500/10 p-4 text-center font-bold text-teal-300 transition active:scale-[0.98] hover:bg-teal-500 hover:text-black [touch-action:manipulation] ${disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
+      >
         📷 Take Photo
         <input
           type="file"
           accept="image/*"
           capture="environment"
           onChange={onChange}
+          disabled={disabled}
           className="hidden"
         />
       </label>
 
-      <label className="cursor-pointer rounded-xl border border-cyan-500 bg-cyan-500/10 p-4 text-center font-bold text-cyan-300 hover:bg-cyan-500 hover:text-black">
+      <label
+        className={`rounded-xl border border-cyan-500 bg-cyan-500/10 p-4 text-center font-bold text-cyan-300 transition active:scale-[0.98] hover:bg-cyan-500 hover:text-black [touch-action:manipulation] ${disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
+      >
         🖼 Choose Photo
         <input
           type="file"
           accept="image/*"
           onChange={onChange}
+          disabled={disabled}
           className="hidden"
         />
       </label>
 
-      <label className="cursor-pointer rounded-xl border border-purple-500 bg-purple-500/10 p-4 text-center font-bold text-purple-300 hover:bg-purple-500 hover:text-white">
+      <label
+        className={`rounded-xl border border-purple-500 bg-purple-500/10 p-4 text-center font-bold text-purple-300 transition active:scale-[0.98] hover:bg-purple-500 hover:text-white [touch-action:manipulation] ${disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
+      >
         🎥 Choose Video
         <input
           type="file"
           accept="video/*"
           onChange={onChange}
+          disabled={disabled}
           className="hidden"
         />
       </label>
@@ -506,10 +629,12 @@ function Input({
   label,
   value,
   onChange,
+  disabled = false,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  disabled?: boolean;
 }) {
   return (
     <label className="block">
@@ -520,7 +645,8 @@ function Input({
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+        disabled={disabled}
+        className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
       />
     </label>
   );
@@ -530,10 +656,12 @@ function TextArea({
   label,
   value,
   onChange,
+  disabled = false,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  disabled?: boolean;
 }) {
   return (
     <label className="mt-5 block">
@@ -545,19 +673,18 @@ function TextArea({
         rows={5}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-xl border border-slate-700 bg-slate-950 p-4 text-white outline-none focus:border-teal-400"
+        disabled={disabled}
+        className="w-full rounded-xl border border-slate-700 bg-slate-950 p-4 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
       />
     </label>
   );
 }
 
-
-
 async function createImageVariantForUpload(
   file: File,
   maxDimension: number,
   quality: number,
-  suffix: string
+  suffix: string,
 ): Promise<File> {
   if (!file.type.startsWith("image/")) return file;
 
@@ -568,7 +695,10 @@ async function createImageVariantForUpload(
     const originalWidth = image.naturalWidth || image.width;
     const originalHeight = image.naturalHeight || image.height;
 
-    const scale = Math.min(1, maxDimension / Math.max(originalWidth, originalHeight));
+    const scale = Math.min(
+      1,
+      maxDimension / Math.max(originalWidth, originalHeight),
+    );
     const width = Math.max(1, Math.round(originalWidth * scale));
     const height = Math.max(1, Math.round(originalHeight * scale));
 
@@ -605,8 +735,6 @@ async function createThumbnailForUpload(file: File): Promise<File> {
   return createImageVariantForUpload(file, 480, 0.7, "thumb");
 }
 
-
-
 async function fileToBase64(file: File): Promise<string> {
   if (!file.type.startsWith("image/")) {
     throw new Error("Only photos can be analyzed by AI.");
@@ -624,18 +752,18 @@ async function fileToBase64(file: File): Promise<string> {
       maxDimension /
         Math.max(
           image.naturalWidth || image.width,
-          image.naturalHeight || image.height
-        )
+          image.naturalHeight || image.height,
+        ),
     );
 
     const width = Math.max(
       1,
-      Math.round((image.naturalWidth || image.width) * scale)
+      Math.round((image.naturalWidth || image.width) * scale),
     );
 
     const height = Math.max(
       1,
-      Math.round((image.naturalHeight || image.height) * scale)
+      Math.round((image.naturalHeight || image.height) * scale),
     );
 
     const canvas = document.createElement("canvas");
@@ -667,7 +795,7 @@ async function fileToBase64(file: File): Promise<string> {
     }
 
     throw new Error(
-      "This phone photo format could not be prepared for AI. Try taking a new photo inside the app or choose a JPG/PNG image."
+      "This phone photo format could not be prepared for AI. Try taking a new photo inside the app or choose a JPG/PNG image.",
     );
   }
 }

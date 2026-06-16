@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 
 export default function AgreementSignatureForm({
   inspectionId,
@@ -13,11 +14,22 @@ export default function AgreementSignatureForm({
   defaultClientName: string;
   defaultClientEmail: string;
 }) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+
   const [clientName, setClientName] = useState(defaultClientName);
   const [clientEmail, setClientEmail] = useState(defaultClientEmail);
   const [signature, setSignature] = useState("");
   const [accepted, setAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [signed, setSigned] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const isBusy = loading || isPending;
+
+  const canSubmit = useMemo(() => {
+    return accepted && clientName.trim().length > 0 && signature.trim().length > 0;
+  }, [accepted, clientName, signature]);
 
   useEffect(() => {
     async function trackAgreementView() {
@@ -47,13 +59,17 @@ export default function AgreementSignatureForm({
   }, [inspectionId, contactId, defaultClientEmail]);
 
   async function signAgreement() {
+    if (isBusy || signed) return;
+
+    setErrorMessage("");
+
     if (!accepted) {
-      alert("Please check the acceptance box.");
+      setErrorMessage("Please check the acceptance box.");
       return;
     }
 
     if (!clientName.trim() || !signature.trim()) {
-      alert("Client name and signature are required.");
+      setErrorMessage("Client name and signature are required.");
       return;
     }
 
@@ -68,22 +84,27 @@ export default function AgreementSignatureForm({
         body: JSON.stringify({
           inspectionId,
           contactId,
-          clientName,
-          clientEmail,
-          signature,
+          clientName: clientName.trim(),
+          clientEmail: clientEmail.trim(),
+          signature: signature.trim(),
           accepted,
         }),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
         throw new Error(data.error || "Failed to sign agreement.");
       }
 
-      window.location.reload();
+      setSigned(true);
+
+      startTransition(() => {
+        router.refresh();
+      });
     } catch (error: any) {
-      alert(error.message || "Failed to sign agreement.");
+      setSigned(false);
+      setErrorMessage(error?.message || "Failed to sign agreement.");
     } finally {
       setLoading(false);
     }
@@ -91,59 +112,71 @@ export default function AgreementSignatureForm({
 
   return (
     <div className="rounded-2xl border border-slate-800 bg-[#0b1220] p-6 shadow-xl">
-      <h2 className="text-2xl font-extrabold text-teal-300">
-        Sign Agreement
-      </h2>
+      <h2 className="text-2xl font-extrabold text-teal-300">Sign Agreement</h2>
 
       <p className="mt-2 text-slate-300">
         By signing below, you confirm that you have read, understood, and accepted the Residential Inspection Agreement.
       </p>
 
+      {signed ? (
+        <div className="mt-5 rounded-xl border border-teal-500/40 bg-teal-500/10 p-4 text-sm font-bold text-teal-200">
+          Agreement signed successfully. Updating the page...
+        </div>
+      ) : null}
+
+      {errorMessage ? (
+        <div className="mt-5 rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-sm font-bold text-red-200">
+          {errorMessage}
+        </div>
+      ) : null}
+
       <div className="mt-5 grid gap-4 md:grid-cols-2">
         <label>
-          <span className="mb-2 block text-sm font-bold text-slate-400">
-            Client Name
-          </span>
+          <span className="mb-2 block text-sm font-bold text-slate-400">Client Name</span>
 
           <input
             value={clientName}
             onChange={(e) => setClientName(e.target.value)}
-            className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+            disabled={isBusy || signed}
+            autoComplete="name"
+            className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none transition focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
           />
         </label>
 
         <label>
-          <span className="mb-2 block text-sm font-bold text-slate-400">
-            Client Email
-          </span>
+          <span className="mb-2 block text-sm font-bold text-slate-400">Client Email</span>
 
           <input
             value={clientEmail}
             onChange={(e) => setClientEmail(e.target.value)}
-            className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+            disabled={isBusy || signed}
+            type="email"
+            autoComplete="email"
+            className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none transition focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
           />
         </label>
       </div>
 
       <label className="mt-5 block">
-        <span className="mb-2 block text-sm font-bold text-slate-400">
-          Electronic Signature
-        </span>
+        <span className="mb-2 block text-sm font-bold text-slate-400">Electronic Signature</span>
 
         <input
           value={signature}
           onChange={(e) => setSignature(e.target.value)}
+          disabled={isBusy || signed}
           placeholder="Type full legal name"
-          className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+          autoComplete="name"
+          className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none transition focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
         />
       </label>
 
-      <label className="mt-5 flex items-start gap-3 rounded-xl border border-slate-700 bg-slate-950 p-4">
+      <label className="mt-5 flex cursor-pointer touch-manipulation items-start gap-3 rounded-xl border border-slate-700 bg-slate-950 p-4 transition active:scale-[0.99] has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-60">
         <input
           type="checkbox"
           checked={accepted}
           onChange={(e) => setAccepted(e.target.checked)}
-          className="mt-1"
+          disabled={isBusy || signed}
+          className="mt-1 h-4 w-4 cursor-pointer accent-teal-400 disabled:cursor-not-allowed"
         />
 
         <span className="text-sm leading-6 text-slate-300">
@@ -154,10 +187,13 @@ export default function AgreementSignatureForm({
       <button
         type="button"
         onClick={signAgreement}
-        disabled={loading}
-        className="mt-5 w-full rounded-xl bg-teal-500 px-6 py-4 text-lg font-extrabold text-slate-950 hover:bg-teal-400 disabled:opacity-50"
+        disabled={isBusy || signed || !canSubmit}
+        className="mt-5 flex w-full touch-manipulation items-center justify-center gap-3 rounded-xl bg-teal-500 px-6 py-4 text-lg font-extrabold text-slate-950 transition hover:bg-teal-400 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {loading ? "Signing..." : "Sign Agreement"}
+        {isBusy ? (
+          <span className="h-5 w-5 animate-spin rounded-full border-2 border-slate-950/30 border-t-slate-950" />
+        ) : null}
+        {signed ? "Agreement Signed" : isBusy ? "Signing..." : "Sign Agreement"}
       </button>
     </div>
   );

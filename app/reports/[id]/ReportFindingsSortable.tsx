@@ -584,7 +584,19 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
   const [movingPhotoId, setMovingPhotoId] = useState<string | null>(null);
   const [markupPhoto, setMarkupPhoto] = useState<any | null>(null);
   const [showMarkupEditor, setShowMarkupEditor] = useState(false);
+  const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState<"success" | "error" | "">("");
   const photos = getFindingPhotos(finding);
+
+  function showMessage(type: "success" | "error", text: string) {
+    setMessageType(type);
+    setMessage(text);
+
+    window.setTimeout(() => {
+      setMessage("");
+      setMessageType("");
+    }, 3500);
+  }
 
   async function uploadNewPhotosToFinding(fileList: FileList | null) {
     const files = Array.from(fileList || []);
@@ -594,7 +606,7 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
     const imageFiles = files.filter((file) => file.type.startsWith("image/"));
 
     if (!imageFiles.length) {
-      alert("Please choose image files only.");
+      showMessage("error", "Please choose image files only.");
       return;
     }
 
@@ -659,9 +671,10 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
       }
 
       setShowUploadPanel(false);
+      showMessage("success", "Photo added to finding.");
       router.refresh();
     } catch (error: any) {
-      alert(error?.message || "Failed to add photo to this finding.");
+      showMessage("error", error?.message || "Failed to add photo to this finding.");
     } finally {
       setUploadingPhotos(false);
     }
@@ -669,12 +682,12 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
 
   async function movePhotoToFinding(photo: any) {
     if (!photo?.id || photo.isLegacyImage) {
-      alert("This older image does not have a movable photo record.");
+      showMessage("error", "This older image does not have a movable photo record.");
       return;
     }
 
     if (String(photo.finding_id || photo.current_finding_id || "") === String(finding.id)) {
-      alert("This photo is already attached to this finding.");
+      showMessage("error", "This photo is already attached to this finding.");
       return;
     }
 
@@ -696,9 +709,10 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
       if (error) throw error;
 
       setShowPhotoPicker(false);
+      showMessage("success", "Photo moved to this finding.");
       router.refresh();
     } catch (error: any) {
-      alert(error?.message || "Failed to move photo.");
+      showMessage("error", error?.message || "Failed to move photo.");
     } finally {
       setMovingPhotoId(null);
     }
@@ -706,9 +720,7 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
 
   async function deletePhotoFromFinding(photo: any) {
     if (!photo?.id || photo.isLegacyImage) {
-      alert(
-        "This older image is stored directly on the finding. Edit the finding image field or delete the finding to remove it."
-      );
+      showMessage("error", "This older image is stored directly on the finding. Edit the finding image field or delete the finding to remove it.");
       return;
     }
 
@@ -729,9 +741,10 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
 
       if (error) throw error;
 
+      showMessage("success", "Photo deleted from finding.");
       router.refresh();
     } catch (error: any) {
-      alert(error?.message || "Failed to delete photo.");
+      showMessage("error", error?.message || "Failed to delete photo.");
     } finally {
       setMovingPhotoId(null);
     }
@@ -739,6 +752,9 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
 
   return (
     <article className="w-full max-w-full overflow-hidden rounded-2xl border border-slate-700 bg-[#071224] shadow-xl">
+      <div className="p-3 pb-0 sm:p-4 sm:pb-0">
+        <InlineStatusMessage type={messageType} message={message} />
+      </div>
       {photos.length > 0 && (
         <div className="border-b border-slate-700 bg-black p-3">
           <div
@@ -887,13 +903,13 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
                 }
 
                 if (!res.ok) {
-                  alert(data.error || "Failed to save template.");
+                  showMessage("error", data.error || "Failed to save template.");
                   return;
                 }
 
-                alert("Template saved!");
+                showMessage("success", "Template saved!");
               } catch {
-                alert("Failed to save template.");
+                showMessage("error", "Failed to save template.");
               }
             }}
             className="w-full rounded-xl border border-yellow-500 px-4 py-2 text-sm font-black text-yellow-300 hover:bg-yellow-500/10 sm:w-auto"
@@ -931,7 +947,7 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
               event.stopPropagation();
 
               if (!photos.length) {
-                alert("This finding has no photos.");
+                showMessage("error", "This finding has no photos.");
                 return;
               }
 
@@ -1109,11 +1125,11 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
                 });
 
                 if (error) {
-                  alert(error.message);
+                  showMessage("error", error.message);
                   return;
                 }
 
-                alert("Photo markup saved.");
+                showMessage("success", "Photo markup saved.");
                 setShowMarkupEditor(false);
                 setMarkupPhoto(null);
               }}
@@ -1145,6 +1161,30 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
         )}
       </div>
     </article>
+  );
+}
+
+function InlineStatusMessage({
+  type,
+  message,
+}: {
+  type: "success" | "error" | "";
+  message: string;
+}) {
+  if (!message) return null;
+
+  const isSuccess = type === "success";
+
+  return (
+    <div
+      className={`rounded-xl border p-3 text-sm font-bold ${
+        isSuccess
+          ? "border-emerald-500 bg-emerald-950/30 text-emerald-300"
+          : "border-red-500 bg-red-950/30 text-red-300"
+      }`}
+    >
+      {message}
+    </div>
   );
 }
 

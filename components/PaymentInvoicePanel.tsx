@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useMemo, useState, useTransition } from "react";
 import { supabase } from "../lib/supabaseClient";
 
 type InspectionRecord = Record<string, any>;
@@ -46,6 +47,7 @@ export default function PaymentInvoicePanel({
 }: {
   inspection: InspectionRecord;
 }) {
+  const router = useRouter();
   const inspectionId = String(inspection?.id || "");
 
   const [paymentStatus, setPaymentStatus] = useState(
@@ -75,16 +77,17 @@ export default function PaymentInvoicePanel({
   );
 
   const [saving, setSaving] = useState(false);
+  const [saveLabel, setSaveLabel] = useState("Save Payment Status");
+  const [isRefreshing, startTransition] = useTransition();
+
+  const busy = saving || isRefreshing;
 
   const invoiceAmountNumber = useMemo(
     () => getNumber(invoiceAmount),
     [invoiceAmount]
   );
 
-  const amountPaidNumber = useMemo(
-    () => getNumber(amountPaid),
-    [amountPaid]
-  );
+  const amountPaidNumber = useMemo(() => getNumber(amountPaid), [amountPaid]);
 
   const balanceDue = Math.max(0, invoiceAmountNumber - amountPaidNumber);
 
@@ -94,12 +97,15 @@ export default function PaymentInvoicePanel({
     balanceDue <= 0;
 
   async function savePaymentStatus() {
+    if (busy) return;
+
     if (!inspectionId) {
       alert("Missing inspection ID.");
       return;
     }
 
     setSaving(true);
+    setSaveLabel("Saving...");
 
     try {
       const { error } = await supabase
@@ -123,28 +129,46 @@ export default function PaymentInvoicePanel({
 
       if (error) throw error;
 
-      alert("Payment status saved.");
-      window.location.reload();
+      setSaveLabel("Saved!");
+
+      startTransition(() => {
+        router.refresh();
+      });
+
+      window.setTimeout(() => {
+        setSaveLabel("Save Payment Status");
+      }, 1100);
     } catch (error: any) {
+      setSaveLabel("Failed");
       alert(error?.message || "Failed to save payment status.");
+
+      window.setTimeout(() => {
+        setSaveLabel("Save Payment Status");
+      }, 1100);
     } finally {
       setSaving(false);
     }
   }
 
   function markPaid() {
+    if (busy) return;
     setPaymentStatus("Paid");
     setAmountPaid(String(invoiceAmountNumber || amountPaidNumber || 0));
+    setSaveLabel("Save Payment Status");
   }
 
   function markUnpaid() {
+    if (busy) return;
     setPaymentStatus("Unpaid");
     setAmountPaid("");
+    setSaveLabel("Save Payment Status");
   }
 
   function markWaived() {
+    if (busy) return;
     setPaymentStatus("Waived");
     setAmountPaid("0");
+    setSaveLabel("Save Payment Status");
   }
 
   return (
@@ -210,7 +234,8 @@ export default function PaymentInvoicePanel({
           <select
             value={paymentStatus}
             onChange={(event) => setPaymentStatus(event.target.value)}
-            className="box-border w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+            disabled={busy}
+            className="box-border w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {PAYMENT_STATUSES.map((status) => (
               <option key={status}>{status}</option>
@@ -227,7 +252,8 @@ export default function PaymentInvoicePanel({
             type="number"
             value={invoiceAmount}
             onChange={(event) => setInvoiceAmount(event.target.value)}
-            className="box-border w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+            disabled={busy}
+            className="box-border w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
           />
         </label>
 
@@ -240,7 +266,8 @@ export default function PaymentInvoicePanel({
             type="number"
             value={amountPaid}
             onChange={(event) => setAmountPaid(event.target.value)}
-            className="box-border w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+            disabled={busy}
+            className="box-border w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
           />
         </label>
 
@@ -253,7 +280,8 @@ export default function PaymentInvoicePanel({
             type="date"
             value={invoiceDueDate}
             onChange={(event) => setInvoiceDueDate(event.target.value)}
-            className="box-border w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+            disabled={busy}
+            className="box-border w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
           />
         </label>
       </div>
@@ -267,7 +295,8 @@ export default function PaymentInvoicePanel({
           <select
             value={paymentMethod}
             onChange={(event) => setPaymentMethod(event.target.value)}
-            className="box-border w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+            disabled={busy}
+            className="box-border w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {PAYMENT_METHODS.map((method) => (
               <option key={method} value={method}>
@@ -286,7 +315,8 @@ export default function PaymentInvoicePanel({
             value={paymentNotes}
             onChange={(event) => setPaymentNotes(event.target.value)}
             placeholder="Example: paid by check, invoice sent, waived, etc."
-            className="box-border w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+            disabled={busy}
+            className="box-border w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
           />
         </label>
       </div>
@@ -295,7 +325,8 @@ export default function PaymentInvoicePanel({
         <button
           type="button"
           onClick={markPaid}
-          className="w-full rounded-xl bg-emerald-500 px-5 py-3 font-black text-slate-950 hover:bg-emerald-400 sm:w-auto"
+          disabled={busy}
+          className="inline-flex w-full items-center justify-center rounded-xl bg-emerald-500 px-5 py-3 font-black text-slate-950 transition active:scale-[0.98] hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto [touch-action:manipulation]"
         >
           Mark Paid
         </button>
@@ -303,7 +334,8 @@ export default function PaymentInvoicePanel({
         <button
           type="button"
           onClick={markUnpaid}
-          className="w-full rounded-xl border border-orange-500 px-5 py-3 font-bold text-orange-300 hover:bg-orange-500/10 sm:w-auto"
+          disabled={busy}
+          className="inline-flex w-full items-center justify-center rounded-xl border border-orange-500 px-5 py-3 font-bold text-orange-300 transition active:scale-[0.98] hover:bg-orange-500/10 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto [touch-action:manipulation]"
         >
           Mark Unpaid
         </button>
@@ -311,7 +343,8 @@ export default function PaymentInvoicePanel({
         <button
           type="button"
           onClick={markWaived}
-          className="w-full rounded-xl border border-slate-600 px-5 py-3 font-bold text-slate-200 hover:bg-slate-800 sm:w-auto"
+          disabled={busy}
+          className="inline-flex w-full items-center justify-center rounded-xl border border-slate-600 px-5 py-3 font-bold text-slate-200 transition active:scale-[0.98] hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto [touch-action:manipulation]"
         >
           Waive Payment
         </button>
@@ -319,10 +352,14 @@ export default function PaymentInvoicePanel({
         <button
           type="button"
           onClick={savePaymentStatus}
-          disabled={saving}
-          className="w-full rounded-xl bg-teal-500 px-6 py-3 font-black text-slate-950 hover:bg-teal-400 disabled:opacity-50 sm:w-auto"
+          disabled={busy}
+          aria-busy={busy}
+          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-teal-500 px-6 py-3 font-black text-slate-950 transition active:scale-[0.98] hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto [touch-action:manipulation]"
         >
-          {saving ? "Saving..." : "Save Payment Status"}
+          {busy && (
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+          )}
+          {isRefreshing ? "Updating..." : saveLabel}
         </button>
       </div>
     </section>

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import DeleteInspectionButton from "../../components/DeleteInspectionButton";
+import FastLinkButton from "../../components/FastLinkButton";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -205,12 +206,13 @@ export default async function ReportsPage() {
             </p>
           </div>
 
-          <Link
+          <FastLinkButton
             href="/inspections/new"
+            loadingText="Opening..."
             className="rounded-xl bg-teal-500 px-6 py-3 font-bold text-black hover:bg-teal-400"
           >
             New Inspection
-          </Link>
+          </FastLinkButton>
         </div>
 
         {rows.length === 0 ? (
@@ -249,6 +251,8 @@ export default async function ReportsPage() {
                       <img
                         src={propertyPhoto}
                         alt="Property"
+                        loading="lazy"
+                        decoding="async"
                         className="h-full w-full object-cover"
                       />
                     ) : (
@@ -333,12 +337,13 @@ export default async function ReportsPage() {
                     </div>
 
                     <div className="mt-6 flex flex-col gap-3">
-                      <Link
+                      <FastLinkButton
                         href={`/reports/${inspection.id}`}
-                        className="inline-block rounded-xl bg-teal-500 px-5 py-3 text-center font-bold text-black hover:bg-teal-400"
+                        loadingText="Opening Report..."
+                        className="rounded-xl bg-teal-500 px-5 py-3 text-center font-bold text-black hover:bg-teal-400"
                       >
                         Open Report
-                      </Link>
+                      </FastLinkButton>
 
                       {isInspectorOwner && (
                         <DeleteInspectionButton inspectionId={inspection.id} />

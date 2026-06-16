@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
@@ -19,6 +18,8 @@ import PaymentInvoicePanel from "../../../components/PaymentInvoicePanel";
 import GenerateSummaryButton from "../../../components/GenerateSummaryButton";
 import SendReviewRequestButton from "../../../components/SendReviewRequestButton";
 import DeleteSummaryButton from "../../../components/DeleteSummaryButton";
+import FastLinkButton from "../../../components/FastLinkButton";
+import CreateDemoReportButton from "../../../components/CreateDemoReportButton";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -61,7 +62,7 @@ async function createSupabaseServerClient() {
           } catch {}
         },
       },
-    }
+    },
   );
 }
 
@@ -126,6 +127,59 @@ async function createSignedPhotoUrl(supabase: any, photo: any) {
   return data.signedUrl;
 }
 
+async function createSignedUrlMap(supabase: any, paths: string[]) {
+  const uniquePaths = Array.from(new Set(paths.filter(Boolean)));
+  const signedMap: Record<string, string> = {};
+
+  if (uniquePaths.length === 0) return signedMap;
+
+  const chunkSize = 50;
+
+  for (let index = 0; index < uniquePaths.length; index += chunkSize) {
+    const chunk = uniquePaths.slice(index, index + chunkSize);
+
+    const { data, error } = await supabase.storage
+      .from("inspection-photos")
+      .createSignedUrls(chunk, 60 * 60 * 24 * 7);
+
+    if (error) {
+      console.error("Batch signed photo URL error:", error);
+      continue;
+    }
+
+    (data || []).forEach((item: any, itemIndex: number) => {
+      const path = item?.path || chunk[itemIndex];
+
+      if (path && item?.signedUrl) {
+        signedMap[path] = item.signedUrl;
+      }
+    });
+  }
+
+  return signedMap;
+}
+
+function getPhotoStoragePath(photo: any) {
+  return (
+    photo?.file_path ||
+    photo?.storage_path ||
+    photo?.photo_path ||
+    getStoragePathFromUrl(photo?.public_url) ||
+    getStoragePathFromUrl(photo?.image_url) ||
+    getStoragePathFromUrl(photo?.photo_url) ||
+    ""
+  );
+}
+
+function getPhotoFallbackUrl(photo: any) {
+  return (
+    photo?.signed_url ||
+    photo?.public_url ||
+    photo?.image_url ||
+    photo?.photo_url ||
+    ""
+  );
+}
 
 function formatEmailStatusDate(value: any) {
   if (!value) return "N/A";
@@ -145,11 +199,12 @@ function formatEmailStatusDate(value: any) {
 
 function getLatestEmailLog(logs: any[], type: string) {
   return (logs || []).find((log: any) => {
-    const emailType = String(log.email_type || log.metadata?.type || "").toLowerCase();
+    const emailType = String(
+      log.email_type || log.metadata?.type || "",
+    ).toLowerCase();
     return emailType === type;
   });
 }
-
 
 function getLatestViewLog(logs: any[], type: string) {
   return (logs || []).find((log: any) => {
@@ -157,7 +212,6 @@ function getLatestViewLog(logs: any[], type: string) {
     return viewType === type;
   });
 }
-
 
 function getViewLogsByType(logs: any[], type: string) {
   const cleanType = String(type || "").toLowerCase();
@@ -174,7 +228,7 @@ function getFirstViewLog(logs: any[]) {
   return [...logs].sort(
     (a: any, b: any) =>
       new Date(a.created_at || 0).getTime() -
-      new Date(b.created_at || 0).getTime()
+      new Date(b.created_at || 0).getTime(),
   )[0];
 }
 
@@ -182,9 +236,13 @@ function getUniqueViewerCount(logs: any[]) {
   const viewers = new Set<string>();
 
   (logs || []).forEach((log: any) => {
-    const viewerEmail = String(log.viewer_email || "").trim().toLowerCase();
+    const viewerEmail = String(log.viewer_email || "")
+      .trim()
+      .toLowerCase();
     const contactId = String(log.contact_id || "").trim();
-    const viewerRole = String(log.viewer_role || "").trim().toLowerCase();
+    const viewerRole = String(log.viewer_role || "")
+      .trim()
+      .toLowerCase();
     const ipAddress = String(log.ip_address || "").trim();
 
     const key = viewerEmail || contactId || `${viewerRole}:${ipAddress}`;
@@ -193,7 +251,6 @@ function getUniqueViewerCount(logs: any[]) {
 
   return viewers.size;
 }
-
 
 function getDurationSeconds(log: any) {
   const seconds = Number(log?.metadata?.duration_seconds || 0);
@@ -209,7 +266,9 @@ function formatDuration(secondsValue: number) {
   const remainingSeconds = seconds % 60;
 
   if (minutes < 60) {
-    return remainingSeconds > 0 ? `${minutes}m ${remainingSeconds}s` : `${minutes}m`;
+    return remainingSeconds > 0
+      ? `${minutes}m ${remainingSeconds}s`
+      : `${minutes}m`;
   }
 
   const hours = Math.floor(minutes / 60);
@@ -239,11 +298,15 @@ function getViewerSummary(logs: any[]) {
 }
 
 function normalizeEmail(value: any) {
-  return String(value || "").trim().toLowerCase();
+  return String(value || "")
+    .trim()
+    .toLowerCase();
 }
 
 function isClientViewLog(log: any, clientEmail: string) {
-  const role = String(log?.viewer_role || "").trim().toLowerCase();
+  const role = String(log?.viewer_role || "")
+    .trim()
+    .toLowerCase();
   const email = normalizeEmail(log?.viewer_email);
 
   return (
@@ -254,7 +317,9 @@ function isClientViewLog(log: any, clientEmail: string) {
 }
 
 function isRealtorViewLog(log: any, realtorEmails: string[]) {
-  const role = String(log?.viewer_role || "").trim().toLowerCase();
+  const role = String(log?.viewer_role || "")
+    .trim()
+    .toLowerCase();
   const email = normalizeEmail(log?.viewer_email);
 
   return (
@@ -279,7 +344,7 @@ function getLatestViewLogFromList(logs: any[]) {
   return [...logs].sort(
     (a: any, b: any) =>
       new Date(b.created_at || 0).getTime() -
-      new Date(a.created_at || 0).getTime()
+      new Date(a.created_at || 0).getTime(),
   )[0];
 }
 
@@ -360,7 +425,7 @@ export default async function ReportPage({ params }: PageProps) {
       publishInspection?.service_mode ||
         publishInspection?.inspection_type ||
         publishInspection?.services ||
-        ""
+        "",
     ).toLowerCase();
 
     const isStandaloneEnvironmentalReport =
@@ -398,52 +463,75 @@ export default async function ReportPage({ params }: PageProps) {
 
   const executiveSummary = String(inspection.executive_summary || "").trim();
 
-  const { data: emailLogsRaw, error: emailLogsError } = await supabase
-    .from("email_logs")
-    .select("*")
-    .eq("inspection_id_bigint", Number(inspection.id))
-    .order("created_at", { ascending: false });
+  const [emailLogsResult, viewLogsResult, equipmentResult, findingsResult] =
+    await Promise.all([
+      supabase
+        .from("email_logs")
+        .select("*")
+        .eq("inspection_id_bigint", Number(inspection.id))
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("inspection_view_events")
+        .select("*")
+        .eq("inspection_id_bigint", Number(inspection.id))
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("equipment_inventory")
+        .select("*")
+        .eq("inspection_id", inspection.id)
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("findings")
+        .select("*")
+        .eq("inspection_id", inspection.id)
+        .order("created_at", { ascending: true }),
+    ]);
 
-  if (emailLogsError) {
-    console.error("Email logs load error:", emailLogsError);
+  if (emailLogsResult.error) {
+    console.error("Email logs load error:", emailLogsResult.error);
   }
 
-  const emailLogs = emailLogsRaw || [];
+  if (viewLogsResult.error) {
+    console.error("Inspection view logs load error:", viewLogsResult.error);
+  }
+
+  if (equipmentResult.error) {
+    console.error("Equipment inventory load error:", equipmentResult.error);
+  }
+
+  if (findingsResult.error) {
+    console.error("Findings load error:", findingsResult.error);
+  }
+
+  const emailLogs = emailLogsResult.data || [];
+  const viewLogs = viewLogsResult.data || [];
+  const equipmentInventoryRaw = equipmentResult.data || [];
+  const findingsRaw = findingsResult.data || [];
+
   const latestAgreementEmail = getLatestEmailLog(emailLogs, "agreement_email");
   const latestReportEmail =
     getLatestEmailLog(emailLogs, "inspection_report") ||
     getLatestEmailLog(emailLogs, "environmental_report");
 
-  const { data: viewLogsRaw, error: viewLogsError } = await supabase
-    .from("inspection_view_events")
-    .select("*")
-    .eq("inspection_id_bigint", Number(inspection.id))
-    .order("created_at", { ascending: false });
-
-  if (viewLogsError) {
-    console.error("Inspection view logs load error:", viewLogsError);
-  }
-
-  const viewLogs = viewLogsRaw || [];
   const agreementPageViews = getViewLogsByType(viewLogs, "agreement_page");
   const clientPortalViews = getViewLogsByType(viewLogs, "client_portal");
   const reportShareViews = getViewLogsByType(viewLogs, "report_share");
   const environmentalShareViews = getViewLogsByType(
     viewLogs,
-    "environmental_share"
+    "environmental_share",
   );
 
   const emailOpenViews = getViewLogsByType(viewLogs, "email_open");
   const emailClickViews = getViewLogsByType(viewLogs, "email_click");
   const reportTimeCheckpoints = getViewLogsByType(
     viewLogs,
-    "report_time_checkpoint"
+    "report_time_checkpoint",
   );
   const reportTimeFinals = getViewLogsByType(viewLogs, "report_time_final");
   const reportTimeEvents = [...reportTimeCheckpoints, ...reportTimeFinals];
   const totalReportTimeSeconds = reportTimeFinals.reduce(
     (sum: number, log: any) => sum + getDurationSeconds(log),
-    0
+    0,
   );
   const latestReportTimeEvent = reportTimeEvents[0] || null;
 
@@ -476,10 +564,10 @@ export default async function ReportPage({ params }: PageProps) {
   ].filter(Boolean);
 
   const clientEngagementViews = engagementViews.filter((log: any) =>
-    isClientViewLog(log, clientViewerEmail)
+    isClientViewLog(log, clientViewerEmail),
   );
   const realtorEngagementViews = engagementViews.filter((log: any) =>
-    isRealtorViewLog(log, realtorViewerEmails)
+    isRealtorViewLog(log, realtorViewerEmails),
   );
 
   const firstClientView = getFirstViewLog(clientEngagementViews);
@@ -489,35 +577,7 @@ export default async function ReportPage({ params }: PageProps) {
   const clientReadingSeconds = getFinalReadingSeconds(clientEngagementViews);
   const realtorReadingSeconds = getFinalReadingSeconds(realtorEngagementViews);
 
-  const { data: equipmentInventoryRaw, error: equipmentInventoryError } = await supabase
-    .from("equipment_inventory")
-    .select("*")
-    .eq("inspection_id", inspection.id)
-    .order("created_at", { ascending: true });
-
-  if (equipmentInventoryError) {
-    console.error("Equipment inventory load error:", equipmentInventoryError);
-  }
-
-  const equipmentInventory = await Promise.all(
-    (equipmentInventoryRaw || []).map(async (item: any) => ({
-      ...item,
-      signed_image_url: await createSignedPhotoUrl(supabase, {
-        file_path: item.file_path,
-        public_url: item.image_url,
-      }),
-    }))
-  );
-
-  const { data: findingsRaw, error: findingsError } = await supabase
-    .from("findings")
-    .select("*")
-    .eq("inspection_id", inspection.id)
-    .order("created_at", { ascending: true });
-
-  if (findingsError) console.error("Findings load error:", findingsError);
-
-  const findingIds = (findingsRaw || []).map((finding: any) => finding.id);
+  const findingIds = findingsRaw.map((finding: any) => finding.id);
 
   const { data: photosRaw, error: photosError } =
     findingIds.length > 0
@@ -526,12 +586,43 @@ export default async function ReportPage({ params }: PageProps) {
 
   if (photosError) console.error("Photos load error:", photosError);
 
-  const photosWithUrls = await Promise.all(
-    (photosRaw || []).map(async (photo: any) => ({
+  const equipmentPhotoPaths = equipmentInventoryRaw
+    .map((item: any) => item.file_path)
+    .filter(Boolean);
+
+  const photoStoragePaths = (photosRaw || [])
+    .map((photo: any) => getPhotoStoragePath(photo))
+    .filter(Boolean);
+
+  const oldFindingImagePaths = findingsRaw
+    .map((finding: any) => getStoragePathFromUrl(finding.image_url))
+    .filter(Boolean);
+
+  const signedPhotoUrlMap = await createSignedUrlMap(supabase, [
+    ...equipmentPhotoPaths,
+    ...photoStoragePaths,
+    ...oldFindingImagePaths,
+  ]);
+
+  const equipmentInventory = equipmentInventoryRaw.map((item: any) => ({
+    ...item,
+    signed_image_url:
+      (item.file_path && signedPhotoUrlMap[item.file_path]) ||
+      item.signed_image_url ||
+      item.image_url ||
+      item.public_url ||
+      "",
+  }));
+
+  const photosWithUrls = (photosRaw || []).map((photo: any) => {
+    const path = getPhotoStoragePath(photo);
+
+    return {
       ...photo,
-      signed_url: await createSignedPhotoUrl(supabase, photo),
-    }))
-  );
+      signed_url:
+        (path && signedPhotoUrlMap[path]) || getPhotoFallbackUrl(photo),
+    };
+  });
 
   const photosByFindingId = photosWithUrls.reduce(
     (acc: Record<string, any[]>, photo: any) => {
@@ -540,31 +631,26 @@ export default async function ReportPage({ params }: PageProps) {
       acc[photo.finding_id].push(photo);
       return acc;
     },
-    {}
+    {},
   );
 
-  const findings = await Promise.all(
-    (findingsRaw || []).map(async (finding: any) => {
-      let signedImageUrl = finding.image_url || "";
-      const oldImagePath = getStoragePathFromUrl(finding.image_url);
+  const findings = findingsRaw.map((finding: any) => {
+    const oldImagePath = getStoragePathFromUrl(finding.image_url);
+    const signedImageUrl =
+      (oldImagePath && signedPhotoUrlMap[oldImagePath]) ||
+      finding.signed_image_url ||
+      finding.public_image_url ||
+      finding.image_url ||
+      "";
 
-      if (oldImagePath) {
-        const { data, error } = await supabase.storage
-          .from("inspection-photos")
-          .createSignedUrl(oldImagePath, 60 * 60 * 24 * 7);
-
-        if (!error && data?.signedUrl) signedImageUrl = data.signedUrl;
-      }
-
-      return {
-        ...finding,
-        section: normalizeSection(finding.section),
-        signed_image_url: signedImageUrl || null,
-        image_url: signedImageUrl || finding.image_url || null,
-        photos: photosByFindingId[finding.id] || [],
-      };
-    })
-  );
+    return {
+      ...finding,
+      section: normalizeSection(finding.section),
+      signed_image_url: signedImageUrl || null,
+      image_url: signedImageUrl || finding.image_url || null,
+      photos: photosByFindingId[finding.id] || [],
+    };
+  });
 
   const groupedFindingsArray = SECTION_ORDER.map((section) => ({
     section,
@@ -590,7 +676,7 @@ export default async function ReportPage({ params }: PageProps) {
   const defectTotals = defectFindings.reduce(
     (acc: Record<string, number>, finding: any) => {
       const severity = String(
-        finding.severity || "Recommended Repair"
+        finding.severity || "Recommended Repair",
       ).toLowerCase();
 
       const isInformational =
@@ -623,7 +709,7 @@ export default async function ReportPage({ params }: PageProps) {
 
       return acc;
     },
-    { total: 0, safety: 0, repair: 0, maintenance: 0, information: 0 }
+    { total: 0, safety: 0, repair: 0, maintenance: 0, information: 0 },
   );
 
   const propertyPhoto =
@@ -645,7 +731,7 @@ export default async function ReportPage({ params }: PageProps) {
     inspection.service_mode ||
       inspection.inspection_type ||
       inspection.services ||
-      ""
+      "",
   ).toLowerCase();
 
   const isStandaloneEnvironmentalReport =
@@ -669,19 +755,21 @@ export default async function ReportPage({ params }: PageProps) {
               className="rounded-xl bg-black px-5 py-3 font-bold text-white hover:bg-slate-800"
             />
 
-            <Link
+            <FastLinkButton
               href={`/reports/${inspection.id}/print`}
+              loadingText="Opening PDF..."
               className="rounded-xl bg-white px-5 py-3 font-bold text-black hover:bg-slate-200"
             >
               Export PDF
-            </Link>
+            </FastLinkButton>
 
-            <Link
+            <FastLinkButton
               href={`/reports/${inspection.id}/summary`}
+              loadingText="Opening Summary..."
               className="rounded-xl border border-cyan-500 px-5 py-3 font-bold text-cyan-300 hover:bg-cyan-500/10"
             >
               Realtor Summary
-            </Link>
+            </FastLinkButton>
 
             <form action={publishReport}>
               <input type="hidden" name="inspection_id" value={inspection.id} />
@@ -697,28 +785,33 @@ export default async function ReportPage({ params }: PageProps) {
               </button>
             </form>
 
-            <Link
+            <FastLinkButton
               href={shareHref}
+              loadingText="Opening Share Page..."
               className="rounded-xl border border-cyan-500 px-5 py-3 font-bold text-cyan-300 hover:bg-cyan-500/10"
             >
               Copy Share Link
-            </Link>
+            </FastLinkButton>
+
+            <CreateDemoReportButton inspectionId={String(inspection.id)} />
 
             {isStandaloneEnvironmentalReport && (
-              <Link
+              <FastLinkButton
                 href={editableEnvironmentalHref}
+                loadingText="Opening Environmental Report..."
                 className="rounded-xl border border-lime-500 px-5 py-3 font-bold text-lime-300 hover:bg-lime-500/10"
               >
                 Environmental Report
-              </Link>
+              </FastLinkButton>
             )}
 
-            <Link
+            <FastLinkButton
               href={`/client-portal/${inspection.id}`}
+              loadingText="Opening Client Portal..."
               className="rounded-xl border border-emerald-500 px-5 py-3 font-bold text-emerald-300 hover:bg-emerald-500/10"
             >
               Client Portal
-            </Link>
+            </FastLinkButton>
 
             <SendFullReportButton
               inspectionId={String(inspection.id)}
@@ -732,62 +825,68 @@ export default async function ReportPage({ params }: PageProps) {
               reviewStatus={inspection.review_status}
             />
 
-            <Link
+            <FastLinkButton
               href={`/repair-request?inspection_id=${inspection.id}`}
+              loadingText="Opening Repair Request..."
               className="rounded-xl bg-orange-600 px-5 py-3 font-bold text-white hover:bg-orange-500"
             >
               Repair Request Builder
-            </Link>
+            </FastLinkButton>
 
             <SendAgreementButton inspectionId={String(inspection.id)} />
 
             <InsertFavoriteFindingButton inspectionId={String(inspection.id)} />
 
-            <Link
+            <FastLinkButton
               href={`/reports/${inspection.id}/templates`}
+              loadingText="Opening Library..."
               className="rounded-xl border border-yellow-500 px-5 py-3 font-bold text-yellow-300 hover:bg-yellow-500/10"
             >
               Favorite Findings Library
-            </Link>
+            </FastLinkButton>
 
             <OneTapAIFindingInsert inspectionId={String(inspection.id)} />
 
-            <Link
+            <FastLinkButton
               href={`/field?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`}
+              loadingText="Opening Field Tool..."
               className="rounded-xl border border-teal-500 bg-[#071224] px-5 py-3 font-bold text-teal-300 hover:bg-teal-500/10"
             >
               Field Tool
-            </Link>
+            </FastLinkButton>
 
-            <Link
+            <FastLinkButton
               href={`/ai-capture?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`}
+              loadingText="Opening AI Capture..."
               className="rounded-xl bg-teal-500 px-5 py-3 font-bold text-slate-950 hover:bg-teal-400"
             >
               Open Full AI Capture
-            </Link>
+            </FastLinkButton>
 
-            <Link
+            <FastLinkButton
               href={`/reports/${inspection.id}/bulk-ai-capture`}
+              loadingText="Opening Bulk AI..."
               className="rounded-xl bg-purple-600 px-5 py-3 font-bold text-white hover:bg-purple-500"
             >
               📸 Bulk AI Capture
-            </Link>
+            </FastLinkButton>
 
-            <Link
+            <FastLinkButton
               href={`/equipment-analyzer?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`}
+              loadingText="Opening Equipment Analyzer..."
               className="rounded-xl border border-blue-500 px-5 py-3 font-bold text-blue-300 hover:bg-blue-500/10"
             >
               Equipment Analyzer
-            </Link>
+            </FastLinkButton>
           </div>
 
           <div className="mb-8 rounded-2xl border border-yellow-500 bg-yellow-950/30 p-5 text-yellow-200">
             <h2 className="text-2xl font-black">Report Tools</h2>
             <p className="mt-2">
-              All report tools are enabled, including Send Report, Realtor Summary,
-              email, agreements, Copy Share Link, Favorite Findings Library,
-              Insert Favorite Finding, One-Tap AI, Field Tool, Full AI Capture,
-              Equipment Analyzer, repair requests, and findings.
+              All report tools are enabled, including Send Report, Realtor
+              Summary, email, agreements, Copy Share Link, Favorite Findings
+              Library, Insert Favorite Finding, One-Tap AI, Field Tool, Full AI
+              Capture, Equipment Analyzer, repair requests, and findings.
             </p>
           </div>
 
@@ -797,7 +896,9 @@ export default async function ReportPage({ params }: PageProps) {
             </h2>
 
             <p className="mt-1 text-sm text-slate-400">
-              Email delivery comes from Resend. Page-open tracking is recorded directly by On Point Inspect when the client/realtor opens the portal, agreement, shared report, or environmental report.
+              Email delivery comes from Resend. Page-open tracking is recorded
+              directly by On Point Inspect when the client/realtor opens the
+              portal, agreement, shared report, or environmental report.
             </p>
 
             <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
@@ -819,7 +920,7 @@ export default async function ReportPage({ params }: PageProps) {
                 helper={
                   latestReportTimeEvent
                     ? `Last session update: ${formatEmailStatusDate(
-                        latestReportTimeEvent.created_at
+                        latestReportTimeEvent.created_at,
                       )}`
                     : "No tracked reading time yet"
                 }
@@ -1001,7 +1102,9 @@ export default async function ReportPage({ params }: PageProps) {
             defaultClientName={inspection.client_name}
             defaultClientEmail={inspection.client_email}
             defaultRealtorName={inspection.realtor_name}
-            defaultRealtorEmail={inspection.realtor_email || inspection.agent_email}
+            defaultRealtorEmail={
+              inspection.realtor_email || inspection.agent_email
+            }
           />
 
           <AgreementSelector
@@ -1023,6 +1126,8 @@ export default async function ReportPage({ params }: PageProps) {
               <img
                 src={propertyPhoto}
                 alt="Property"
+                loading="lazy"
+                decoding="async"
                 className="h-56 w-full object-cover"
               />
             </div>
@@ -1043,7 +1148,8 @@ export default async function ReportPage({ params }: PageProps) {
               </h2>
 
               <p className="mt-1 text-sm text-slate-400">
-                Quick count of true defects. Informational items are tracked separately and are not included in Total Defects.
+                Quick count of true defects. Informational items are tracked
+                separately and are not included in Total Defects.
               </p>
             </div>
 
@@ -1076,7 +1182,6 @@ export default async function ReportPage({ params }: PageProps) {
             </div>
           </section>
 
-
           {equipmentInventory.length > 0 && (
             <section
               id="equipment-inventory"
@@ -1088,14 +1193,19 @@ export default async function ReportPage({ params }: PageProps) {
                 </h2>
 
                 <p className="mt-1 text-sm text-slate-400">
-                  Major equipment documented during the inspection. These inventory records are informational and are not counted as defects unless a separate finding is created.
+                  Major equipment documented during the inspection. These
+                  inventory records are informational and are not counted as
+                  defects unless a separate finding is created.
                 </p>
               </div>
 
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {equipmentInventory.map((item: any) => {
                   const equipmentImage =
-                    item.signed_image_url || item.image_url || item.public_url || "";
+                    item.signed_image_url ||
+                    item.image_url ||
+                    item.public_url ||
+                    "";
 
                   return (
                     <div
@@ -1117,17 +1227,37 @@ export default async function ReportPage({ params }: PageProps) {
                       </p>
 
                       <h3 className="mt-2 text-xl font-black text-white">
-                        {[item.manufacturer, item.model].filter(Boolean).join(" ") || "Equipment Record"}
+                        {[item.manufacturer, item.model]
+                          .filter(Boolean)
+                          .join(" ") || "Equipment Record"}
                       </h3>
 
                       <div className="mt-4 grid gap-2 text-sm text-slate-300">
                         <InventoryLine label="Serial" value={item.serial} />
-                        <InventoryLine label="Manufacture Year" value={item.manufacture_year} />
-                        <InventoryLine label="Estimated Age" value={item.estimated_age} />
-                        <InventoryLine label="Expected Life" value={item.expected_service_life} />
-                        <InventoryLine label="Life Remaining" value={item.estimated_life_remaining} />
-                        <InventoryLine label="Refrigerant" value={item.refrigerant} />
-                        <InventoryLine label="Condition" value={item.condition} />
+                        <InventoryLine
+                          label="Manufacture Year"
+                          value={item.manufacture_year}
+                        />
+                        <InventoryLine
+                          label="Estimated Age"
+                          value={item.estimated_age}
+                        />
+                        <InventoryLine
+                          label="Expected Life"
+                          value={item.expected_service_life}
+                        />
+                        <InventoryLine
+                          label="Life Remaining"
+                          value={item.estimated_life_remaining}
+                        />
+                        <InventoryLine
+                          label="Refrigerant"
+                          value={item.refrigerant}
+                        />
+                        <InventoryLine
+                          label="Condition"
+                          value={item.condition}
+                        />
                       </div>
                     </div>
                   );
@@ -1242,7 +1372,9 @@ function EngagementStatCard({
 
       <p className="mt-2 text-2xl font-black text-white">{value}</p>
 
-      {helper && <p className="mt-2 text-xs leading-5 text-slate-400">{helper}</p>}
+      {helper && (
+        <p className="mt-2 text-xs leading-5 text-slate-400">{helper}</p>
+      )}
     </div>
   );
 }
@@ -1393,7 +1525,6 @@ function EmailStatusCard({
     </div>
   );
 }
-
 
 function ViewStatusCard({
   title,

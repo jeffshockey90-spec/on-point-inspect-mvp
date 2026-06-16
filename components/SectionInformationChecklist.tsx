@@ -1067,6 +1067,15 @@ export default function SectionInformationChecklist({
   const [editingOption, setEditingOption] = useState<{ groupTitle: string; optionLabel: string; nextLabel: string } | null>(null);
   const [addingOptionGroup, setAddingOptionGroup] = useState("");
   const [newOptionLabel, setNewOptionLabel] = useState("");
+  const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState<"success" | "error" | "">("");
+
+
+
+  function showMessage(type: "success" | "error", text: string) {
+    setMessageType(type);
+    setMessage(text);
+  }
 
   const baseGroups = useMemo(() => CHECKLIST_LIBRARY[section] || [], [section]);
 
@@ -1143,7 +1152,7 @@ export default function SectionInformationChecklist({
       if (error) throw error;
       if (data) setSelections((prev) => [...prev, data]);
     } catch (error: any) {
-      alert(error?.message || "Failed to save checklist selection.");
+      showMessage("error", error?.message || "Failed to save checklist selection.");
     } finally {
       setSaving(false);
     }
@@ -1175,7 +1184,7 @@ export default function SectionInformationChecklist({
         if (data) setSelections((prev) => [...prev, data]);
       }
     } catch (error: any) {
-      alert(error?.message || "Failed to save checklist value.");
+      showMessage("error", error?.message || "Failed to save checklist value.");
     } finally {
       setSaving(false);
     }
@@ -1196,7 +1205,7 @@ export default function SectionInformationChecklist({
       if (data) setSelections((prev) => [...prev, data]);
       setOtherTextByGroup((prev) => ({ ...prev, [groupTitle]: "" }));
     } catch (error: any) {
-      alert(error?.message || "Failed to add OTHER item.");
+      showMessage("error", error?.message || "Failed to add OTHER item.");
     } finally {
       setSaving(false);
     }
@@ -1210,7 +1219,7 @@ export default function SectionInformationChecklist({
       if (error) throw error;
       setSelections((prev) => prev.filter((item) => item.id !== id));
     } catch (error: any) {
-      alert(error?.message || "Failed to remove checklist item.");
+      showMessage("error", error?.message || "Failed to remove checklist item.");
     } finally {
       setSaving(false);
     }
@@ -1232,7 +1241,7 @@ export default function SectionInformationChecklist({
       setNewOptionLabel("");
       setAddingOptionGroup("");
     } catch (error: any) {
-      alert(error?.message || "Failed to add checklist option.");
+      showMessage("error", error?.message || "Failed to add checklist option.");
     } finally {
       setSaving(false);
     }
@@ -1267,7 +1276,7 @@ export default function SectionInformationChecklist({
       }
       setEditingOption(null);
     } catch (error: any) {
-      alert(error?.message || "Failed to edit checklist option.");
+      showMessage("error", error?.message || "Failed to edit checklist option.");
     } finally {
       setSaving(false);
     }
@@ -1287,7 +1296,7 @@ export default function SectionInformationChecklist({
       if (error) throw error;
       if (data) setOptionOverrides((prev) => [...prev, data]);
     } catch (error: any) {
-      alert(error?.message || "Failed to delete checklist option.");
+      showMessage("error", error?.message || "Failed to delete checklist option.");
     } finally {
       setSaving(false);
     }
@@ -1312,6 +1321,20 @@ export default function SectionInformationChecklist({
           {open ? "Hide" : "Show"}
         </span>
       </button>
+
+
+
+      {message && (
+        <div
+          className={`border-t border-slate-700 px-5 py-3 text-sm font-bold ${
+            messageType === "success"
+              ? "bg-emerald-950/30 text-emerald-300"
+              : "bg-red-950/30 text-red-300"
+          }`}
+        >
+          {message}
+        </div>
+      )}
 
       {selectedCount > 0 && (
         <div className="border-t border-slate-700 px-5 py-3">

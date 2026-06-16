@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 
 export const runtime = "nodejs";
@@ -27,6 +28,19 @@ async function createSupabaseServerClient() {
   );
 }
 
+function createAdminClient() {
+  return createServiceClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    }
+  );
+}
+
 function escapeHtml(value: any) {
   return String(value || "")
     .replaceAll("&", "&amp;")
@@ -34,6 +48,90 @@ function escapeHtml(value: any) {
     .replaceAll(">", "&gt;")
     .replaceAll("\"", "&quot;")
     .replaceAll("'", "&#039;");
+}
+
+function getPropertyLabel(inspection: any) {
+  return (
+    inspection?.property_address ||
+    inspection?.address ||
+    inspection?.street_address ||
+    "Inspection report"
+  );
+}
+
+async function sendOwnerPushNotification({
+  title,
+  body,
+  url,
+  eventType,
+  metadata = {},
+}: {
+  title: string;
+  body: string;
+  url: string;
+  eventType: string;
+  metadata?: Record<string, any>;
+}) {
+  try {
+    const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+    const privateKey = process.env.VAPID_PRIVATE_KEY;
+    const subject =
+      process.env.VAPID_SUBJECT || "mailto:jeff@onpointhomeinspect.com";
+
+    if (!publicKey || !privateKey) {
+      console.warn("Owner push skipped: missing VAPID keys.");
+      return;
+    }
+
+    const admin = createAdminClient();
+    const { data: subscriptions, error } = await admin
+      .from("app_push_subscriptions")
+      .select("*")
+      .eq("enabled", true);
+
+    if (error) {
+      console.error("Owner push subscription load error:", error);
+      return;
+    }
+
+    const webpush = await import("web-push");
+    webpush.default.setVapidDetails(subject, publicKey, privateKey);
+
+    let sent = 0;
+    let failed = 0;
+
+    for (const row of subscriptions || []) {
+      try {
+        await webpush.default.sendNotification(
+          row.subscription,
+          JSON.stringify({ title, body, url, eventType })
+        );
+        sent += 1;
+      } catch (error: any) {
+        failed += 1;
+        console.error("Owner push send error:", error);
+
+        if (error?.statusCode === 404 || error?.statusCode === 410) {
+          await admin
+            .from("app_push_subscriptions")
+            .update({ enabled: false, updated_at: new Date().toISOString() })
+            .eq("endpoint", row.endpoint);
+        }
+      }
+    }
+
+    await admin.from("app_notification_logs").insert({
+      title,
+      body,
+      event_type: eventType,
+      target_url: url,
+      sent_count: sent,
+      failed_count: failed,
+      metadata,
+    });
+  } catch (error) {
+    console.error("Owner push notification error:", error);
+  }
 }
 
 async function logEmailEvent(
@@ -184,10 +282,7 @@ export async function POST(req: Request) {
       inspection.address ||
       "your inspected property";
 
-    const clientName =
-      inspection.client_name ||
-      inspection.client ||
-      "there";
+    const clientName = inspection.client_name || inspection.client || "there";
 
     const subject = `Thank you for choosing On Point Home Inspections`;
 
@@ -300,6 +395,20 @@ export async function POST(req: Request) {
       userId: user.id,
       inspectionId,
       recipient: contactEmail,
+    });
+
+    await sendOwnerPushNotification({
+      title: "Review Request Sent",
+      body: `Review request sent to ${contactEmail} for ${getPropertyLabel(
+        inspection
+      )}.`,
+      url: `/reports/${inspectionId}`,
+      eventType: "review_request_sent",
+      metadata: {
+        inspection_id: inspectionId,
+        recipient: contactEmail,
+        property: getPropertyLabel(inspection),
+      },
     });
 
     return NextResponse.json({
