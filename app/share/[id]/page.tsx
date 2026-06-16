@@ -461,6 +461,9 @@ export default async function PublicSharePage({
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const inspectionId = resolvedParams.id;
 
+  const isDemo =
+    resolvedSearchParams?.role === "demo";
+
   const requestedDefectFilter = String(
     resolvedSearchParams?.defect_filter || "all"
   ).toLowerCase();
@@ -493,13 +496,15 @@ export default async function PublicSharePage({
     );
   }
 
-  await recordInspectionView({
-    inspectionId,
-    viewType: "report_share",
-    contactId: resolvedSearchParams?.contact || null,
-    viewerRole: resolvedSearchParams?.role || null,
-    viewerEmail: resolvedSearchParams?.email || null,
-  });
+  if (!isDemo) {
+    await recordInspectionView({
+      inspectionId,
+      viewType: "report_share",
+      contactId: resolvedSearchParams?.contact || null,
+      viewerRole: resolvedSearchParams?.role || null,
+      viewerEmail: resolvedSearchParams?.email || null,
+    });
+  }
 
   const { data: findingsRaw, error: findingsError } = await supabase
     .from("findings")
@@ -806,12 +811,14 @@ export default async function PublicSharePage({
 
   return (
     <main className="min-h-screen bg-[#020617] p-4 text-white md:p-8">
-      <ReportTimeTracker
-        inspectionId={String(inspectionId)}
-        viewerRole={resolvedSearchParams?.role || null}
-        viewerEmail={resolvedSearchParams?.email || null}
-        path={`/share/${inspectionId}`}
-      />
+      {!isDemo && (
+        <ReportTimeTracker
+          inspectionId={String(inspectionId)}
+          viewerRole={resolvedSearchParams?.role || null}
+          viewerEmail={resolvedSearchParams?.email || null}
+          path={`/share/${inspectionId}`}
+        />
+      )}
 
       <div className="mx-auto max-w-7xl overflow-hidden rounded-3xl border border-slate-800 bg-[#0f172a] shadow-2xl">
         <section className="relative overflow-hidden border-b border-slate-800 bg-[#020617]">
@@ -853,29 +860,44 @@ export default async function PublicSharePage({
         </section>
 
         <div className="p-5 md:p-10">
+          {isDemo && (
+            <div className="mb-8 rounded-2xl border border-fuchsia-500/40 bg-fuchsia-950/30 p-5 text-fuchsia-100 print:hidden">
+              <p className="text-xs font-black uppercase tracking-[0.3em] text-fuchsia-300">
+                Demo Report
+              </p>
+              <p className="mt-2 text-sm leading-6 text-fuchsia-100/90">
+                This is a public sample report. Client, realtor, agreement, payment, and editable report actions are hidden.
+              </p>
+            </div>
+          )}
+
           <div className="mb-8 flex flex-wrap gap-3 print:hidden">
             <PdfExportButton />
 
-            <Link
-              href={`/reports/${inspectionId}/summary`}
-              className="rounded-xl border border-teal-500 px-5 py-3 font-bold text-teal-400 transition hover:bg-teal-500 hover:text-black"
-            >
-              Report Summary
-            </Link>
+            {!isDemo && (
+              <>
+                <Link
+                  href={`/reports/${inspectionId}/summary`}
+                  className="rounded-xl border border-teal-500 px-5 py-3 font-bold text-teal-400 transition hover:bg-teal-500 hover:text-black"
+                >
+                  Report Summary
+                </Link>
 
-            <Link
-              href={`/client-portal/${inspectionId}`}
-              className="rounded-xl border border-emerald-500 px-5 py-3 font-bold text-emerald-300 transition hover:bg-emerald-500/10"
-            >
-              Client Portal
-            </Link>
+                <Link
+                  href={`/client-portal/${inspectionId}`}
+                  className="rounded-xl border border-emerald-500 px-5 py-3 font-bold text-emerald-300 transition hover:bg-emerald-500/10"
+                >
+                  Client Portal
+                </Link>
 
-            <Link
-              href={`/reports/${inspectionId}`}
-              className="rounded-xl border border-slate-600 px-5 py-3 font-bold text-white transition hover:bg-slate-800"
-            >
-              Full Editable Report
-            </Link>
+                <Link
+                  href={`/reports/${inspectionId}`}
+                  className="rounded-xl border border-slate-600 px-5 py-3 font-bold text-white transition hover:bg-slate-800"
+                >
+                  Full Editable Report
+                </Link>
+              </>
+            )}
           </div>
 
           <section className="rounded-2xl border border-slate-700 bg-[#071224] p-6 shadow-xl">
@@ -909,28 +931,28 @@ export default async function PublicSharePage({
                 label="Safety / Major"
                 value={defectTotals.safety}
                 tone="red"
-                href={`/share/${inspectionId}?defect_filter=safety#inspection-findings`}
+                href={isDemo ? `/demo/${inspectionId}?defect_filter=safety#inspection-findings` : `/share/${inspectionId}?defect_filter=safety#inspection-findings`}
                 active={activeDefectFilter === "safety"}
               />
               <DefectSummaryCard
                 label="Recommended Repair"
                 value={defectTotals.repair}
                 tone="teal"
-                href={`/share/${inspectionId}?defect_filter=repair#inspection-findings`}
+                href={isDemo ? `/demo/${inspectionId}?defect_filter=repair#inspection-findings` : `/share/${inspectionId}?defect_filter=repair#inspection-findings`}
                 active={activeDefectFilter === "repair"}
               />
               <DefectSummaryCard
                 label="Maintenance / Monitor"
                 value={defectTotals.maintenance}
                 tone="yellow"
-                href={`/share/${inspectionId}?defect_filter=maintenance#inspection-findings`}
+                href={isDemo ? `/demo/${inspectionId}?defect_filter=maintenance#inspection-findings` : `/share/${inspectionId}?defect_filter=maintenance#inspection-findings`}
                 active={activeDefectFilter === "maintenance"}
               />
               <DefectSummaryCard
                 label="Informational"
                 value={defectTotals.information}
                 tone="blue"
-                href={`/share/${inspectionId}?defect_filter=information#inspection-findings`}
+                href={isDemo ? `/demo/${inspectionId}?defect_filter=information#inspection-findings` : `/share/${inspectionId}?defect_filter=information#inspection-findings`}
                 active={activeDefectFilter === "information"}
               />
             </div>
@@ -939,7 +961,7 @@ export default async function PublicSharePage({
               <span>Click a defect type above to filter the findings list.</span>
               {activeDefectFilter !== "all" && (
                 <Link
-                  href={`/share/${inspectionId}#inspection-findings`}
+                  href={isDemo ? `/demo/${inspectionId}#inspection-findings` : `/share/${inspectionId}#inspection-findings`}
                   className="rounded-full border border-slate-600 px-3 py-1 font-bold text-white hover:bg-slate-800"
                 >
                   Clear filter: {activeDefectFilterLabel[activeDefectFilter]}
@@ -991,8 +1013,12 @@ export default async function PublicSharePage({
                   inspection.zip || ""
                 }`}
               />
-              <Info label="Client" value={inspection.client_name} />
-              <Info label="Realtor" value={inspection.realtor_name} />
+              {!isDemo && (
+                <>
+                  <Info label="Client" value={inspection.client_name} />
+                  <Info label="Realtor" value={inspection.realtor_name} />
+                </>
+              )}
               <Info label="Inspection Date" value={inspection.inspection_date} />
               <Info label="Inspection Time" value={inspection.inspection_time} />
               <Info label="Year Built" value={inspection.year_built} />
