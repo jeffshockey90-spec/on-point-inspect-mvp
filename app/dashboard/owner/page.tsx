@@ -648,6 +648,34 @@ export default async function OwnerDashboardPage() {
               </Link>
 
               <Link
+                href="/dashboard/owner/push"
+                className="rounded-xl border border-yellow-500 px-5 py-3 font-black text-yellow-300 transition hover:bg-yellow-500/10"
+              >
+                🔔 Push Center
+              </Link>
+
+              <Link
+                href="/dashboard/owner/inspectors"
+                className="rounded-xl border border-orange-500 px-5 py-3 font-black text-orange-300 transition hover:bg-orange-500/10"
+              >
+                🧑‍🔧 Inspectors
+              </Link>
+
+              <Link
+                href="/dashboard/owner/live"
+                className="rounded-xl border border-blue-500 px-5 py-3 font-black text-blue-300 transition hover:bg-blue-500/10"
+              >
+                ⚡ Live Activity
+              </Link>
+
+              <Link
+                href="/dashboard/owner/system"
+                className="rounded-xl border border-slate-500 px-5 py-3 font-black text-slate-200 transition hover:bg-slate-700/30"
+              >
+                🩺 System Health
+              </Link>
+
+              <Link
                 href="/dashboard"
                 className="rounded-xl border border-teal-500 px-5 py-3 font-black text-teal-300 transition hover:bg-teal-500/10"
               >

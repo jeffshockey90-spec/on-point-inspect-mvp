@@ -20,6 +20,8 @@ type PushPayload = {
   eventType: string;
 };
 
+type PushTarget = "all" | "native" | "web" | "user";
+
 async function createUserClient() {
   const cookieStore = await cookies();
 
@@ -50,6 +52,11 @@ function createAdminClient() {
   );
 }
 
+function cleanString(value: any, fallback: string, maxLength: number) {
+  const clean = String(value || fallback).trim();
+  return clean.slice(0, maxLength);
+}
+
 function base64Url(input: Buffer | string) {
   return Buffer.from(input)
     .toString("base64")
@@ -60,7 +67,6 @@ function base64Url(input: Buffer | string) {
 
 function getApnsPrivateKey() {
   const key = process.env.APPLE_APNS_PRIVATE_KEY || "";
-
   return key.replace(/\\n/g, "\n").trim();
 }
 
@@ -130,7 +136,8 @@ function getApnsHost() {
 }
 
 function getApnsTopic() {
-  const topic = process.env.APPLE_BUNDLE_ID || process.env.NEXT_PUBLIC_IOS_BUNDLE_ID;
+  const topic =
+    process.env.APPLE_BUNDLE_ID || process.env.NEXT_PUBLIC_IOS_BUNDLE_ID;
 
   if (!topic) {
     throw new Error("Missing APPLE_BUNDLE_ID for APNs topic.");
@@ -156,67 +163,69 @@ async function sendNativeApns(token: string, payload: PushPayload) {
     eventType: payload.eventType,
   });
 
-  return await new Promise<{ status: number; body: string }>((resolve, reject) => {
-    const client = http2.connect(host);
+  return await new Promise<{ status: number; body: string }>(
+    (resolve, reject) => {
+      const client = http2.connect(host);
 
-    const cleanup = () => {
-      try {
-        client.close();
-      } catch {}
-    };
+      const cleanup = () => {
+        try {
+          client.close();
+        } catch {}
+      };
 
-    client.on("error", (error) => {
-      cleanup();
-      reject(error);
-    });
+      client.on("error", (error) => {
+        cleanup();
+        reject(error);
+      });
 
-    const request = client.request({
-      ":method": "POST",
-      ":path": `/3/device/${token}`,
-      authorization: `bearer ${jwt}`,
-      "apns-topic": topic,
-      "apns-push-type": "alert",
-      "apns-priority": "10",
-      "content-type": "application/json",
-    });
+      const request = client.request({
+        ":method": "POST",
+        ":path": `/3/device/${token}`,
+        authorization: `bearer ${jwt}`,
+        "apns-topic": topic,
+        "apns-push-type": "alert",
+        "apns-priority": "10",
+        "content-type": "application/json",
+      });
 
-    let responseBody = "";
-    let status = 0;
+      let responseBody = "";
+      let status = 0;
 
-    request.on("response", (headers) => {
-      status = Number(headers[":status"] || 0);
-    });
+      request.on("response", (headers) => {
+        status = Number(headers[":status"] || 0);
+      });
 
-    request.setEncoding("utf8");
+      request.setEncoding("utf8");
 
-    request.on("data", (chunk) => {
-      responseBody += chunk;
-    });
+      request.on("data", (chunk) => {
+        responseBody += chunk;
+      });
 
-    request.on("end", () => {
-      cleanup();
+      request.on("end", () => {
+        cleanup();
 
-      if (status >= 200 && status < 300) {
-        resolve({ status, body: responseBody });
-        return;
-      }
+        if (status >= 200 && status < 300) {
+          resolve({ status, body: responseBody });
+          return;
+        }
 
-      const error: any = new Error(
-        responseBody || `APNs send failed with status ${status}.`
-      );
-      error.statusCode = status;
-      error.body = responseBody;
-      reject(error);
-    });
+        const error: any = new Error(
+          responseBody || `APNs send failed with status ${status}.`
+        );
+        error.statusCode = status;
+        error.body = responseBody;
+        reject(error);
+      });
 
-    request.on("error", (error) => {
-      cleanup();
-      reject(error);
-    });
+      request.on("error", (error) => {
+        cleanup();
+        reject(error);
+      });
 
-    request.write(apnsPayload);
-    request.end();
-  });
+      request.write(apnsPayload);
+      request.end();
+    }
+  );
 }
 
 function shouldDisableNativeToken(error: any) {
@@ -224,8 +233,43 @@ function shouldDisableNativeToken(error: any) {
   const body = String(error?.body || error?.message || "");
 
   return (
-    statusCode === 400 && body.includes("BadDeviceToken")
-  ) || statusCode === 410 || body.includes("Unregistered");
+    (statusCode === 400 && body.includes("BadDeviceToken")) ||
+    statusCode === 410 ||
+    body.includes("Unregistered")
+  );
+}
+
+function isExpiredWebPush(error: any) {
+  const statusCode = Number(error?.statusCode || error?.status || 0);
+  return statusCode === 404 || statusCode === 410;
+}
+
+function matchesTarget(row: any, targetUserId: string, targetUserEmail: string) {
+  if (!targetUserId && !targetUserEmail) return true;
+
+  const rowUserId = String(row?.user_id || "");
+  const rowEmail = String(row?.user_email || "").toLowerCase();
+
+  return (
+    Boolean(targetUserId && rowUserId === targetUserId) ||
+    Boolean(targetUserEmail && rowEmail === targetUserEmail)
+  );
+}
+
+async function trackPushEvent(admin: any, data: any) {
+  try {
+    await admin.from("app_device_events").insert({
+      event_type: data.event_type || "owner_push_sent",
+      path: data.path || "/api/push/send",
+      device_id: data.device_id || "owner_push",
+      user_agent: data.user_agent || null,
+      platform: data.platform || "server",
+      standalone: true,
+      metadata: data.metadata || {},
+    });
+  } catch (error) {
+    console.error("Push analytics tracking failed:", error);
+  }
 }
 
 export async function POST(req: Request) {
@@ -246,27 +290,34 @@ export async function POST(req: Request) {
     const userEmail = String(user.email || "").toLowerCase();
 
     if (!OWNER_EMAILS.includes(userEmail)) {
-      return NextResponse.json(
-        { error: "Owner only." },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: "Owner only." }, { status: 403 });
     }
 
     const body = await req.json().catch(() => ({}));
 
-    const title = String(body.title || "On Point Inspect");
-    const message = String(
-      body.body || body.message || "New activity recorded."
+    const title = cleanString(body.title, "On Point Inspect", 120);
+    const message = cleanString(
+      body.body || body.message,
+      "New activity recorded.",
+      300
     );
-    const url = String(body.url || "/dashboard/owner");
-    const eventType = String(
-      body.eventType || body.event_type || "manual"
+    const url = cleanString(body.url, "/dashboard/owner", 500);
+    const eventType = cleanString(
+      body.eventType || body.event_type,
+      "manual",
+      80
     );
-
-    const targetUserId = String(body.targetUserId || body.user_id || "").trim();
-    const targetUserEmail = String(body.targetUserEmail || body.user_email || "")
-      .toLowerCase()
-      .trim();
+    const target = cleanString(body.target, "all", 40) as PushTarget;
+    const targetUserId = cleanString(
+      body.targetUserId || body.user_id,
+      "",
+      160
+    );
+    const targetUserEmail = cleanString(
+      body.targetUserEmail || body.user_email,
+      "",
+      254
+    ).toLowerCase();
 
     const payload: PushPayload = {
       title,
@@ -277,60 +328,52 @@ export async function POST(req: Request) {
 
     const admin = createAdminClient();
 
-    let webQuery = admin
+    const { data: webRows, error: webError } = await admin
       .from("app_push_subscriptions")
       .select("*")
       .eq("enabled", true);
 
-    let nativeQuery = admin
+    const { data: nativeRows, error: nativeError } = await admin
       .from("app_native_push_tokens")
       .select("*")
       .eq("enabled", true);
 
-    if (targetUserId) {
-      webQuery = webQuery.eq("user_id", targetUserId);
-      nativeQuery = nativeQuery.eq("user_id", targetUserId);
+    if (webError) {
+      console.error("Web push lookup error:", webError);
     }
 
-    if (targetUserEmail) {
-      webQuery = webQuery.eq("user_email", targetUserEmail);
-      nativeQuery = nativeQuery.eq("user_email", targetUserEmail);
+    if (nativeError) {
+      console.error("Native push lookup error:", nativeError);
     }
 
-    const [webResult, nativeResult] = await Promise.all([webQuery, nativeQuery]);
+    const webSubscriptions = (webRows || []).filter((row: any) => {
+      if (target === "native") return false;
+      return matchesTarget(row, targetUserId, targetUserEmail);
+    });
 
-    if (webResult.error) {
-      console.error("Push subscription load error:", webResult.error);
-
-      return NextResponse.json(
-        { error: webResult.error.message },
-        { status: 500 }
-      );
-    }
-
-    if (nativeResult.error) {
-      console.error("Native push token load error:", nativeResult.error);
-
-      return NextResponse.json(
-        { error: nativeResult.error.message },
-        { status: 500 }
-      );
-    }
+    const nativeTokens = (nativeRows || []).filter((row: any) => {
+      if (target === "web") return false;
+      return matchesTarget(row, targetUserId, targetUserEmail);
+    });
 
     let webSent = 0;
-    let webFailed = 0;
     let nativeSent = 0;
-    let nativeFailed = 0;
+    let failed = 0;
+    const failures: any[] = [];
 
-    for (const row of webResult.data || []) {
+    for (const row of webSubscriptions) {
       try {
         await sendWebPush(row.subscription, payload);
         webSent += 1;
       } catch (error: any) {
-        webFailed += 1;
-        console.error("Web push send error:", error);
+        failed += 1;
+        failures.push({
+          type: "web",
+          endpoint: String(row?.endpoint || "").slice(0, 120),
+          error: error?.message || "Web push failed.",
+        });
 
-        if (error?.statusCode === 404 || error?.statusCode === 410) {
+        if (isExpiredWebPush(error)) {
           await admin
             .from("app_push_subscriptions")
             .update({
@@ -342,13 +385,17 @@ export async function POST(req: Request) {
       }
     }
 
-    for (const row of nativeResult.data || []) {
+    for (const row of nativeTokens) {
       try {
         await sendNativeApns(row.token, payload);
         nativeSent += 1;
       } catch (error: any) {
-        nativeFailed += 1;
-        console.error("Native APNs send error:", error);
+        failed += 1;
+        failures.push({
+          type: "native",
+          token: String(row?.token || "").slice(0, 18),
+          error: error?.message || "Native push failed.",
+        });
 
         if (shouldDisableNativeToken(error)) {
           await admin
@@ -363,36 +410,42 @@ export async function POST(req: Request) {
     }
 
     const sent = webSent + nativeSent;
-    const failed = webFailed + nativeFailed;
 
-    await admin.from("app_notification_logs").insert({
-      title,
-      body: message,
-      event_type: eventType,
-      target_url: url,
-      sent_count: sent,
-      failed_count: failed,
-      created_by: user.id,
+    await trackPushEvent(admin, {
+      event_type: "owner_push_sent",
+      path: url,
+      device_id: "owner_push_broadcast",
+      platform: "server",
+      metadata: {
+        owner_email: user.email || null,
+        target,
+        target_user_id: targetUserId || null,
+        target_user_email: targetUserEmail || null,
+        title,
+        event_type: eventType,
+        web_targets: webSubscriptions.length,
+        native_targets: nativeTokens.length,
+        web_sent: webSent,
+        native_sent: nativeSent,
+        failed,
+      },
     });
 
     return NextResponse.json({
       ok: true,
       sent,
-      failed,
       webSent,
-      webFailed,
       nativeSent,
-      nativeFailed,
+      failed,
+      webTargets: webSubscriptions.length,
+      nativeTargets: nativeTokens.length,
+      failures: failures.slice(0, 20),
     });
   } catch (error: any) {
     console.error("Push send route error:", error);
 
     return NextResponse.json(
-      {
-        error:
-          error?.message ||
-          "Failed to send push notification.",
-      },
+      { error: error?.message || "Failed to send push notification." },
       { status: 500 }
     );
   }
