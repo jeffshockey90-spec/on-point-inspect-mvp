@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import OwnerAccountActions from "../../../../components/OwnerAccountActions";
+import OwnerInspectorBillingControls from "../../../../components/OwnerInspectorBillingControls";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -353,6 +354,15 @@ export default async function OwnerInspectorsPage() {
         nativePush,
         webPush,
         active30: isAfter(latestDevice?.created_at || latestReport, thirtyDaysAgo),
+        subscriptionStatus: row.subscription_status,
+        subscriptionRequired: row.subscription_required,
+        subscriptionExempt: row.subscription_exempt,
+        subscriptionExemptReason: row.subscription_exempt_reason,
+        subscriptionPriceOverrideCents: row.subscription_price_override_cents,
+        subscriptionPriceOverrideReason: row.subscription_price_override_reason,
+        freeInspectionLimit: row.free_inspection_limit,
+        freeInspectionsUsed: row.free_inspections_used ?? inspectorInspections.length,
+        foundingMember: row.founding_member,
       };
     })
     .sort((a, b) => b.revenue - a.revenue || b.reports30 - a.reports30 || b.reports - a.reports);
@@ -417,6 +427,19 @@ export default async function OwnerInspectorsPage() {
                         <td className="px-4 py-4">
                           <p className="font-black text-white">{row.name}</p>
                           <p className="mt-1 text-xs text-slate-400">{row.email || "No email"}</p>
+                          <OwnerInspectorBillingControls
+                            userId={row.id}
+                            email={row.email}
+                            subscriptionStatus={row.subscriptionStatus}
+                            subscriptionRequired={row.subscriptionRequired}
+                            subscriptionExempt={row.subscriptionExempt}
+                            subscriptionExemptReason={row.subscriptionExemptReason}
+                            subscriptionPriceOverrideCents={row.subscriptionPriceOverrideCents}
+                            subscriptionPriceOverrideReason={row.subscriptionPriceOverrideReason}
+                            freeInspectionLimit={row.freeInspectionLimit}
+                            freeInspectionsUsed={row.freeInspectionsUsed}
+                            foundingMember={row.foundingMember}
+                          />
                         </td>
                         <td className="px-4 py-4 text-right font-black text-white">{row.reports}</td>
                         <td className="px-4 py-4 text-right font-black text-teal-300">{row.reports7}</td>
