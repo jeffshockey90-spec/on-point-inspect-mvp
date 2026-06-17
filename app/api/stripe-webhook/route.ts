@@ -2,9 +2,16 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
+import crypto from "crypto";
+import http2 from "http2";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+const OWNER_EMAILS = [
+  "jeffshockey90@gmail.com",
+  "jeff@onpointhomeinspect.com",
+];
 
 function getStripe() {
   const key = process.env.STRIPE_SECRET_KEY;
@@ -146,6 +153,157 @@ function getPropertyLabel(inspection: any) {
   );
 }
 
+
+function base64Url(input: Buffer | string) {
+  return Buffer.from(input)
+    .toString("base64")
+    .replace(/=/g, "")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_");
+}
+
+function getApnsPrivateKey() {
+  const key = process.env.APPLE_APNS_PRIVATE_KEY || "";
+  return key.replace(/\\n/g, "\n").trim();
+}
+
+function createApnsJwt() {
+  const teamId = process.env.APPLE_TEAM_ID;
+  const keyId = process.env.APPLE_APNS_KEY_ID;
+  const privateKey = getApnsPrivateKey();
+
+  if (!teamId || !keyId || !privateKey) {
+    throw new Error(
+      "Missing Apple APNs credentials. Set APPLE_TEAM_ID, APPLE_APNS_KEY_ID, and APPLE_APNS_PRIVATE_KEY."
+    );
+  }
+
+  const header = { alg: "ES256", kid: keyId };
+  const payload = { iss: teamId, iat: Math.floor(Date.now() / 1000) };
+  const encodedHeader = base64Url(JSON.stringify(header));
+  const encodedPayload = base64Url(JSON.stringify(payload));
+  const signingInput = `${encodedHeader}.${encodedPayload}`;
+
+  const signature = crypto.sign("sha256", Buffer.from(signingInput), {
+    key: privateKey,
+    dsaEncoding: "ieee-p1363",
+  });
+
+  return `${signingInput}.${base64Url(signature)}`;
+}
+
+function getApnsHost() {
+  const useSandbox = String(process.env.APPLE_APNS_USE_SANDBOX || "")
+    .toLowerCase()
+    .trim();
+
+  return useSandbox === "true" || useSandbox === "1"
+    ? "https://api.sandbox.push.apple.com"
+    : "https://api.push.apple.com";
+}
+
+function getApnsTopic() {
+  const topic = process.env.APPLE_BUNDLE_ID || process.env.NEXT_PUBLIC_IOS_BUNDLE_ID;
+
+  if (!topic) {
+    throw new Error("Missing APPLE_BUNDLE_ID for APNs topic.");
+  }
+
+  return topic;
+}
+
+async function sendNativeApns(
+  token: string,
+  payload: { title: string; body: string; url: string; eventType: string }
+) {
+  const jwt = createApnsJwt();
+  const topic = getApnsTopic();
+  const host = getApnsHost();
+
+  const apnsPayload = JSON.stringify({
+    aps: {
+      alert: {
+        title: payload.title,
+        body: payload.body,
+      },
+      sound: "default",
+    },
+    url: payload.url,
+    eventType: payload.eventType,
+  });
+
+  return await new Promise<{ status: number; body: string }>((resolve, reject) => {
+    const client = http2.connect(host);
+
+    const cleanup = () => {
+      try {
+        client.close();
+      } catch {}
+    };
+
+    client.on("error", (error) => {
+      cleanup();
+      reject(error);
+    });
+
+    const request = client.request({
+      ":method": "POST",
+      ":path": `/3/device/${token}`,
+      authorization: `bearer ${jwt}`,
+      "apns-topic": topic,
+      "apns-push-type": "alert",
+      "apns-priority": "10",
+      "content-type": "application/json",
+    });
+
+    let responseBody = "";
+    let status = 0;
+
+    request.on("response", (headers) => {
+      status = Number(headers[":status"] || 0);
+    });
+
+    request.setEncoding("utf8");
+
+    request.on("data", (chunk) => {
+      responseBody += chunk;
+    });
+
+    request.on("end", () => {
+      cleanup();
+
+      if (status >= 200 && status < 300) {
+        resolve({ status, body: responseBody });
+        return;
+      }
+
+      const error: any = new Error(responseBody || `APNs send failed with status ${status}.`);
+      error.statusCode = status;
+      error.body = responseBody;
+      reject(error);
+    });
+
+    request.on("error", (error) => {
+      cleanup();
+      reject(error);
+    });
+
+    request.write(apnsPayload);
+    request.end();
+  });
+}
+
+function shouldDisableNativeToken(error: any) {
+  const statusCode = Number(error?.statusCode || 0);
+  const body = String(error?.body || error?.message || "");
+
+  return (
+    (statusCode === 400 && body.includes("BadDeviceToken")) ||
+    statusCode === 410 ||
+    body.includes("Unregistered")
+  );
+}
+
 async function sendOwnerPushNotification(
   supabase: any,
   {
@@ -163,48 +321,72 @@ async function sendOwnerPushNotification(
   }
 ) {
   try {
-    const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-    const privateKey = process.env.VAPID_PRIVATE_KEY;
-    const subject =
-      process.env.VAPID_SUBJECT || "mailto:jeff@onpointhomeinspect.com";
-
-    if (!publicKey || !privateKey) {
-      console.warn("Owner push skipped: missing VAPID keys.");
-      return;
-    }
-
-    const { data: subscriptions, error } = await supabase
-      .from("app_push_subscriptions")
-      .select("*")
-      .eq("enabled", true);
-
-    if (error) {
-      console.error("Owner push subscription load error:", error);
-      return;
-    }
-
-    const webpush = await import("web-push");
-    webpush.default.setVapidDetails(subject, publicKey, privateKey);
-
-    let sent = 0;
+    const payload = { title, body, url, eventType };
+    let webSent = 0;
+    let nativeSent = 0;
     let failed = 0;
 
-    for (const row of subscriptions || []) {
+    const { data: webSubscriptions, error: webError } = await supabase
+      .from("app_push_subscriptions")
+      .select("*")
+      .eq("enabled", true)
+      .in("user_email", OWNER_EMAILS);
+
+    if (webError) {
+      console.error("Owner web push subscription load error:", webError);
+    }
+
+    const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+    const privateKey = process.env.VAPID_PRIVATE_KEY;
+    const subject = process.env.VAPID_SUBJECT || "mailto:jeff@onpointhomeinspect.com";
+
+    if (publicKey && privateKey) {
+      const webpush = await import("web-push");
+      webpush.default.setVapidDetails(subject, publicKey, privateKey);
+
+      for (const row of webSubscriptions || []) {
+        try {
+          await webpush.default.sendNotification(row.subscription, JSON.stringify(payload));
+          webSent += 1;
+        } catch (error: any) {
+          failed += 1;
+          console.error("Owner web push send error:", error);
+
+          if (error?.statusCode === 404 || error?.statusCode === 410) {
+            await supabase
+              .from("app_push_subscriptions")
+              .update({ enabled: false, updated_at: new Date().toISOString() })
+              .eq("endpoint", row.endpoint);
+          }
+        }
+      }
+    } else {
+      console.warn("Owner web push skipped: missing VAPID keys.");
+    }
+
+    const { data: nativeTokens, error: nativeError } = await supabase
+      .from("app_native_push_tokens")
+      .select("*")
+      .eq("enabled", true)
+      .in("user_email", OWNER_EMAILS);
+
+    if (nativeError) {
+      console.error("Owner native push token load error:", nativeError);
+    }
+
+    for (const row of nativeTokens || []) {
       try {
-        await webpush.default.sendNotification(
-          row.subscription,
-          JSON.stringify({ title, body, url, eventType })
-        );
-        sent += 1;
+        await sendNativeApns(row.token, payload);
+        nativeSent += 1;
       } catch (error: any) {
         failed += 1;
-        console.error("Owner push send error:", error);
+        console.error("Owner native push send error:", error);
 
-        if (error?.statusCode === 404 || error?.statusCode === 410) {
+        if (shouldDisableNativeToken(error)) {
           await supabase
-            .from("app_push_subscriptions")
+            .from("app_native_push_tokens")
             .update({ enabled: false, updated_at: new Date().toISOString() })
-            .eq("endpoint", row.endpoint);
+            .eq("token", row.token);
         }
       }
     }
@@ -214,9 +396,15 @@ async function sendOwnerPushNotification(
       body,
       event_type: eventType,
       target_url: url,
-      sent_count: sent,
+      sent_count: webSent + nativeSent,
       failed_count: failed,
-      metadata,
+      metadata: {
+        ...metadata,
+        target: "owner",
+        owner_emails: OWNER_EMAILS,
+        web_sent: webSent,
+        native_sent: nativeSent,
+      },
     });
   } catch (error) {
     console.error("Owner push notification error:", error);
@@ -507,145 +695,351 @@ export async function POST(req: Request) {
   try {
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
-
-      const inspectionId =
-        session.metadata?.inspection_id || session.client_reference_id;
-
-      if (!inspectionId) {
-        return NextResponse.json(
-          { error: "Missing inspection ID on Stripe session." },
-          { status: 400 }
-        );
-      }
-
-      const totalCharged = session.amount_total ? session.amount_total / 100 : 0;
-
-      const portalProcessingFee = Number(
-        session.metadata?.portal_processing_fee || 0
-      );
-
-      const amountPaid =
-        Number(session.metadata?.invoice_balance_due || 0) ||
-        Math.max(0, totalCharged - portalProcessingFee);
-
-      const paidAt = new Date().toISOString();
       const supabase = getSupabaseAdmin();
 
-      const { data: existingInspection } = await supabase
-        .from("inspections")
-        .select("*")
-        .eq("id", inspectionId)
-        .single();
+      if (session.mode === "subscription") {
+        const profileId = session.metadata?.profile_id || session.metadata?.user_id;
+        const userId = session.metadata?.user_id || profileId;
+        const subscriptionId =
+          typeof session.subscription === "string" ? session.subscription : session.subscription?.id || null;
+        const customerId =
+          typeof session.customer === "string" ? session.customer : session.customer?.id || null;
+        const customerEmail =
+          session.customer_details?.email || session.customer_email || session.metadata?.email || "Inspector";
+        const amount = session.amount_total ? session.amount_total / 100 : 0;
 
-      const { error } = await supabase
-        .from("inspections")
-        .update({
-          payment_status: "Paid",
-          invoice_status: "Paid",
-          amount_paid: amountPaid,
-          balance_due: 0,
-          payment_method: "Stripe",
-          payment_notes: `Stripe payment completed. Inspection balance paid: ${money(
-            amountPaid
-          )}. Online payment fee: ${money(
-            portalProcessingFee
-          )}. Total charged online: ${money(totalCharged)}. Session: ${session.id}`,
-          invoice_notes: `Stripe payment completed. Inspection balance paid: ${money(
-            amountPaid
-          )}. Online payment fee: ${money(
-            portalProcessingFee
-          )}. Total charged online: ${money(totalCharged)}. Session: ${session.id}`,
-          stripe_payment_intent_id:
-            typeof session.payment_intent === "string" ? session.payment_intent : null,
-          stripe_checkout_session_id: session.id,
-          paid_at: paidAt,
-        })
-        .eq("id", inspectionId);
+        if (profileId) {
+          await supabase
+            .from("profiles")
+            .update({
+              stripe_customer_id: customerId,
+              stripe_subscription_id: subscriptionId,
+              subscription_status: "active",
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", profileId);
+        } else if (customerId) {
+          await supabase
+            .from("profiles")
+            .update({
+              stripe_customer_id: customerId,
+              stripe_subscription_id: subscriptionId,
+              subscription_status: "active",
+              updated_at: new Date().toISOString(),
+            })
+            .eq("stripe_customer_id", customerId);
+        }
 
-      if (error) {
-        console.error("Supabase payment update error:", error);
+        await logAuditEvent(supabase, {
+          action: "subscription_checkout_completed",
+          resourceType: "profile",
+          resourceId: profileId || userId || customerId || session.id,
+          metadata: {
+            session_id: session.id,
+            subscription_id: subscriptionId,
+            customer_id: customerId,
+            customer_email: customerEmail,
+            amount,
+            event_id: event.id,
+          },
+        });
 
-        return NextResponse.json(
-          { error: "Failed to update inspection payment." },
-          { status: 500 }
-        );
+        await sendOwnerPushNotification(supabase, {
+          title: "🎉 New Subscription",
+          body: `${customerEmail} started an On Point Inspect subscription${amount ? ` for ${money(amount)}/month` : ""}.`,
+          url: "/dashboard/owner/revenue",
+          eventType: "subscription_created",
+          metadata: {
+            session_id: session.id,
+            subscription_id: subscriptionId,
+            customer_id: customerId,
+            customer_email: customerEmail,
+            profile_id: profileId || null,
+            user_id: userId || null,
+            amount,
+          },
+        });
+      } else {
+      const inspectionId =
+                session.metadata?.inspection_id || session.client_reference_id;
+        
+              if (!inspectionId) {
+                return NextResponse.json(
+                  { error: "Missing inspection ID on Stripe session." },
+                  { status: 400 }
+                );
+              }
+        
+              const totalCharged = session.amount_total ? session.amount_total / 100 : 0;
+        
+              const portalProcessingFee = Number(
+                session.metadata?.portal_processing_fee || 0
+              );
+        
+              const amountPaid =
+                Number(session.metadata?.invoice_balance_due || 0) ||
+                Math.max(0, totalCharged - portalProcessingFee);
+        
+              const paidAt = new Date().toISOString();
+              const supabase = getSupabaseAdmin();
+        
+              const { data: existingInspection } = await supabase
+                .from("inspections")
+                .select("*")
+                .eq("id", inspectionId)
+                .single();
+        
+              const { error } = await supabase
+                .from("inspections")
+                .update({
+                  payment_status: "Paid",
+                  invoice_status: "Paid",
+                  amount_paid: amountPaid,
+                  balance_due: 0,
+                  payment_method: "Stripe",
+                  payment_notes: `Stripe payment completed. Inspection balance paid: ${money(
+                    amountPaid
+                  )}. Online payment fee: ${money(
+                    portalProcessingFee
+                  )}. Total charged online: ${money(totalCharged)}. Session: ${session.id}`,
+                  invoice_notes: `Stripe payment completed. Inspection balance paid: ${money(
+                    amountPaid
+                  )}. Online payment fee: ${money(
+                    portalProcessingFee
+                  )}. Total charged online: ${money(totalCharged)}. Session: ${session.id}`,
+                  stripe_payment_intent_id:
+                    typeof session.payment_intent === "string" ? session.payment_intent : null,
+                  stripe_checkout_session_id: session.id,
+                  paid_at: paidAt,
+                })
+                .eq("id", inspectionId);
+        
+              if (error) {
+                console.error("Supabase payment update error:", error);
+        
+                return NextResponse.json(
+                  { error: "Failed to update inspection payment." },
+                  { status: 500 }
+                );
+              }
+        
+              await logStripeEvent(supabase, {
+                inspectionId,
+                paymentIntentId:
+                  typeof session.payment_intent === "string" ? session.payment_intent : null,
+                amount: totalCharged,
+                status: "payment_completed",
+                metadata: {
+                  sessionId: session.id,
+                  eventId: event.id,
+                  amountPaid,
+                  portalProcessingFee,
+                  totalCharged,
+                  paidAt,
+                },
+              });
+        
+              await logAuditEvent(supabase, {
+                action: "stripe_payment_completed",
+                resourceType: "inspection",
+                resourceId: inspectionId,
+                metadata: {
+                  sessionId: session.id,
+                  eventId: event.id,
+                  amountPaid,
+                  portalProcessingFee,
+                  totalCharged,
+                  paidAt,
+                },
+              });
+        
+              await supabase.from("inspection_view_events").insert({
+                inspection_id_bigint: Number(inspectionId),
+                view_type: "payment_received",
+                viewer_role: "system",
+                viewer_email: null,
+                path: "/payment",
+                metadata: {
+                  source: "stripe_webhook",
+                  amount_paid: amountPaid,
+                  total_charged: totalCharged,
+                  portal_processing_fee: portalProcessingFee,
+                  session_id: session.id,
+                  paid_at: paidAt,
+                },
+              });
+        
+              await sendOwnerPushNotification(supabase, {
+                title: "Payment Received",
+                body: `${money(totalCharged)} received for ${getPropertyLabel(
+                  existingInspection
+                )}.`,
+                url: `/reports/${inspectionId}`,
+                eventType: "payment_received",
+                metadata: {
+                  inspection_id: inspectionId,
+                  amount_paid: amountPaid,
+                  total_charged: totalCharged,
+                  portal_processing_fee: portalProcessingFee,
+                  session_id: session.id,
+                  property: getPropertyLabel(existingInspection),
+                },
+              });
+        
+              if (existingInspection) {
+                await sendReceiptEmail({
+                  supabase,
+                  inspection: existingInspection,
+                  session,
+                  amountPaid,
+                  balanceDue: 0,
+                  paidAt,
+                  portalProcessingFee,
+                  totalCharged,
+                });
+              }
+        
+      }
+    }
+
+    if (event.type === "invoice.paid") {
+      const invoice = event.data.object as any;
+      const supabase = getSupabaseAdmin();
+
+      const subscriptionId =
+        typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription?.id || null;
+      const customerId =
+        typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id || null;
+      const customerEmail = invoice.customer_email || invoice.customer_details?.email || "Inspector";
+      const amountPaid = Number(invoice.amount_paid || 0) / 100;
+
+      if (customerId) {
+        await supabase
+          .from("profiles")
+          .update({
+            stripe_customer_id: customerId,
+            stripe_subscription_id: subscriptionId,
+            subscription_status: "active",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("stripe_customer_id", customerId);
       }
 
-      await logStripeEvent(supabase, {
-        inspectionId,
-        paymentIntentId:
-          typeof session.payment_intent === "string" ? session.payment_intent : null,
-        amount: totalCharged,
-        status: "payment_completed",
-        metadata: {
-          sessionId: session.id,
-          eventId: event.id,
-          amountPaid,
-          portalProcessingFee,
-          totalCharged,
-          paidAt,
-        },
-      });
-
       await logAuditEvent(supabase, {
-        action: "stripe_payment_completed",
-        resourceType: "inspection",
-        resourceId: inspectionId,
+        action: "subscription_payment_received",
+        resourceType: "stripe_invoice",
+        resourceId: invoice.id,
         metadata: {
-          sessionId: session.id,
-          eventId: event.id,
-          amountPaid,
-          portalProcessingFee,
-          totalCharged,
-          paidAt,
-        },
-      });
-
-      await supabase.from("inspection_view_events").insert({
-        inspection_id_bigint: Number(inspectionId),
-        view_type: "payment_received",
-        viewer_role: "system",
-        viewer_email: null,
-        path: "/payment",
-        metadata: {
-          source: "stripe_webhook",
+          invoice_id: invoice.id,
+          subscription_id: subscriptionId,
+          customer_id: customerId,
+          customer_email: customerEmail,
           amount_paid: amountPaid,
-          total_charged: totalCharged,
-          portal_processing_fee: portalProcessingFee,
-          session_id: session.id,
-          paid_at: paidAt,
+          event_id: event.id,
         },
       });
 
       await sendOwnerPushNotification(supabase, {
-        title: "Payment Received",
-        body: `${money(totalCharged)} received for ${getPropertyLabel(
-          existingInspection
-        )}.`,
-        url: `/reports/${inspectionId}`,
-        eventType: "payment_received",
+        title: "💰 Subscription Payment",
+        body: `${money(amountPaid)} subscription payment received${customerEmail ? ` from ${customerEmail}` : ""}.`,
+        url: "/dashboard/owner/revenue",
+        eventType: "subscription_payment_received",
         metadata: {
-          inspection_id: inspectionId,
+          invoice_id: invoice.id,
+          subscription_id: subscriptionId,
+          customer_id: customerId,
+          customer_email: customerEmail,
           amount_paid: amountPaid,
-          total_charged: totalCharged,
-          portal_processing_fee: portalProcessingFee,
-          session_id: session.id,
-          property: getPropertyLabel(existingInspection),
+        },
+      });
+    }
+
+    if (event.type === "invoice.payment_failed") {
+      const invoice = event.data.object as any;
+      const supabase = getSupabaseAdmin();
+
+      const subscriptionId =
+        typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription?.id || null;
+      const customerId =
+        typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id || null;
+      const customerEmail = invoice.customer_email || invoice.customer_details?.email || "Inspector";
+
+      if (customerId) {
+        await supabase
+          .from("profiles")
+          .update({
+            subscription_status: "past_due",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("stripe_customer_id", customerId);
+      }
+
+      await logAuditEvent(supabase, {
+        action: "subscription_payment_failed",
+        resourceType: "stripe_invoice",
+        resourceId: invoice.id,
+        metadata: {
+          invoice_id: invoice.id,
+          subscription_id: subscriptionId,
+          customer_id: customerId,
+          customer_email: customerEmail,
+          event_id: event.id,
         },
       });
 
-      if (existingInspection) {
-        await sendReceiptEmail({
-          supabase,
-          inspection: existingInspection,
-          session,
-          amountPaid,
-          balanceDue: 0,
-          paidAt,
-          portalProcessingFee,
-          totalCharged,
-        });
+      await sendOwnerPushNotification(supabase, {
+        title: "⚠️ Subscription Payment Failed",
+        body: `A subscription payment failed${customerEmail ? ` for ${customerEmail}` : ""}.`,
+        url: "/dashboard/owner/revenue",
+        eventType: "subscription_payment_failed",
+        metadata: {
+          invoice_id: invoice.id,
+          subscription_id: subscriptionId,
+          customer_id: customerId,
+          customer_email: customerEmail,
+        },
+      });
+    }
+
+    if (event.type === "customer.subscription.deleted") {
+      const subscription = event.data.object as any;
+      const supabase = getSupabaseAdmin();
+
+      const subscriptionId = subscription.id || null;
+      const customerId =
+        typeof subscription.customer === "string" ? subscription.customer : subscription.customer?.id || null;
+
+      if (customerId) {
+        await supabase
+          .from("profiles")
+          .update({
+            subscription_status: "canceled",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("stripe_customer_id", customerId);
       }
+
+      await logAuditEvent(supabase, {
+        action: "subscription_cancelled",
+        resourceType: "stripe_subscription",
+        resourceId: subscriptionId || customerId || "unknown",
+        metadata: {
+          subscription_id: subscriptionId,
+          customer_id: customerId,
+          event_id: event.id,
+        },
+      });
+
+      await sendOwnerPushNotification(supabase, {
+        title: "❌ Subscription Canceled",
+        body: "An inspector subscription was canceled.",
+        url: "/dashboard/owner/revenue",
+        eventType: "subscription_cancelled",
+        metadata: {
+          subscription_id: subscriptionId,
+          customer_id: customerId,
+        },
+      });
     }
 
     return NextResponse.json({ received: true });
