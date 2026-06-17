@@ -280,6 +280,26 @@ function Badge({ children, tone }: { children: React.ReactNode; tone: Tone }) {
   return <span className={`rounded-full border px-2 py-1 text-xs font-black ${classes[tone]}`}>{children}</span>;
 }
 
+function MiniStat({ label, value, tone }: { label: string; value: string; tone: "white" | Tone }) {
+  const valueClass: Record<"white" | Tone, string> = {
+    white: "text-white",
+    teal: "text-teal-300",
+    green: "text-green-300",
+    blue: "text-blue-300",
+    purple: "text-purple-300",
+    orange: "text-orange-300",
+    yellow: "text-yellow-300",
+    red: "text-red-300",
+  };
+
+  return (
+    <div className="rounded-xl border border-slate-700 bg-slate-950/60 p-3">
+      <p className="text-[11px] font-black uppercase tracking-wide text-slate-500">{label}</p>
+      <p className={`mt-1 text-lg font-black ${valueClass[tone]}`}>{value}</p>
+    </div>
+  );
+}
+
 export default async function OwnerInspectorsPage() {
   const owner = await requireOwner();
 
@@ -401,65 +421,75 @@ export default async function OwnerInspectorsPage() {
           <MetricCard label="Reports 30 Days" value={String(rows.reduce((sum, row) => sum + row.reports30, 0))} helper="Monthly report production." tone="blue" />
         </section>
 
-        <Panel title="Inspector Table" subtitle="Sorted by revenue, 30-day production, and total reports.">
+        <Panel title="Inspector Management" subtitle="Inspector production, billing controls, push status, and account actions.">
           {rows.length === 0 ? (
             <EmptyState text="No inspectors found yet." />
           ) : (
-            <div className="overflow-hidden rounded-2xl border border-slate-700">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-slate-800 text-sm">
-                  <thead className="bg-[#020817] text-left text-xs uppercase tracking-wide text-slate-400">
-                    <tr>
-                      <th className="px-4 py-3">Inspector</th>
-                      <th className="px-4 py-3 text-right">Reports</th>
-                      <th className="px-4 py-3 text-right">7d</th>
-                      <th className="px-4 py-3 text-right">30d</th>
-                      <th className="px-4 py-3 text-right">Revenue</th>
-                      <th className="px-4 py-3 text-right">Avg</th>
-                      <th className="px-4 py-3">Push</th>
-                      <th className="px-4 py-3">Last Activity</th>
-                      <th className="px-4 py-3">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-800 bg-[#020817]/60">
-                    {rows.map((row) => (
-                      <tr key={row.id} className="hover:bg-slate-900/70">
-                        <td className="px-4 py-4">
-                          <p className="font-black text-white">{row.name}</p>
-                          <p className="mt-1 text-xs text-slate-400">{row.email || "No email"}</p>
-                          <OwnerInspectorBillingControls
-                            userId={row.id}
-                            email={row.email}
-                            subscriptionStatus={row.subscriptionStatus}
-                            subscriptionRequired={row.subscriptionRequired}
-                            subscriptionExempt={row.subscriptionExempt}
-                            subscriptionExemptReason={row.subscriptionExemptReason}
-                            subscriptionPriceOverrideCents={row.subscriptionPriceOverrideCents}
-                            subscriptionPriceOverrideReason={row.subscriptionPriceOverrideReason}
-                            freeInspectionLimit={row.freeInspectionLimit}
-                            freeInspectionsUsed={row.freeInspectionsUsed}
-                            foundingMember={row.foundingMember}
-                          />
-                        </td>
-                        <td className="px-4 py-4 text-right font-black text-white">{row.reports}</td>
-                        <td className="px-4 py-4 text-right font-black text-teal-300">{row.reports7}</td>
-                        <td className="px-4 py-4 text-right font-black text-blue-300">{row.reports30}</td>
-                        <td className="px-4 py-4 text-right font-black text-green-300">{money(row.revenue)}</td>
-                        <td className="px-4 py-4 text-right font-black text-slate-300">{money(row.average)}</td>
-                        <td className="px-4 py-4">
-                          <div className="flex flex-wrap gap-1">
+            <div className="space-y-5">
+              {rows.map((row) => (
+                <article
+                  key={row.id}
+                  className="rounded-2xl border border-slate-700 bg-[#020817]/70 p-5 shadow-xl"
+                >
+                  <div className="grid gap-5 xl:grid-cols-[1.2fr_1fr_1fr]">
+                    <div className="space-y-4">
+                      <div>
+                        <p className="text-xs font-black uppercase tracking-wide text-slate-500">
+                          Inspector
+                        </p>
+                        <h3 className="mt-1 text-2xl font-black text-white">{row.name}</h3>
+                        <p className="mt-1 break-all text-sm text-slate-400">{row.email || "No email"}</p>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                        <MiniStat label="Reports" value={String(row.reports)} tone="white" />
+                        <MiniStat label="7 Days" value={String(row.reports7)} tone="teal" />
+                        <MiniStat label="30 Days" value={String(row.reports30)} tone="blue" />
+                        <MiniStat label="Revenue" value={money(row.revenue)} tone="green" />
+                        <MiniStat label="Average" value={money(row.average)} tone="orange" />
+                        <div className="rounded-xl border border-slate-700 bg-slate-950/60 p-3">
+                          <p className="text-[11px] font-black uppercase tracking-wide text-slate-500">Push</p>
+                          <div className="mt-2 flex flex-wrap gap-1">
                             {row.nativePush && <Badge tone="purple">Native</Badge>}
                             {row.webPush && <Badge tone="teal">Web</Badge>}
                             {!row.nativePush && !row.webPush && <Badge tone="red">Off</Badge>}
                           </div>
-                        </td>
-                        <td className="px-4 py-4 text-slate-300">{formatDateTime(row.lastActivity)}</td>
-                        <td className="px-4 py-4"><OwnerAccountActions userId={row.id} email={row.email} currentRole="inspector" compact /></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                        </div>
+                      </div>
+
+                      <div className="rounded-xl border border-slate-700 bg-slate-950/60 p-3">
+                        <p className="text-[11px] font-black uppercase tracking-wide text-slate-500">
+                          Last Activity
+                        </p>
+                        <p className="mt-1 text-sm font-bold text-slate-200">{formatDateTime(row.lastActivity)}</p>
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-700 bg-slate-950/40 p-4">
+                      <OwnerInspectorBillingControls
+                        userId={row.id}
+                        email={row.email}
+                        subscriptionStatus={row.subscriptionStatus}
+                        subscriptionRequired={row.subscriptionRequired}
+                        subscriptionExempt={row.subscriptionExempt}
+                        subscriptionExemptReason={row.subscriptionExemptReason}
+                        subscriptionPriceOverrideCents={row.subscriptionPriceOverrideCents}
+                        subscriptionPriceOverrideReason={row.subscriptionPriceOverrideReason}
+                        freeInspectionLimit={row.freeInspectionLimit}
+                        freeInspectionsUsed={row.freeInspectionsUsed}
+                        foundingMember={row.foundingMember}
+                      />
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-700 bg-slate-950/40 p-4">
+                      <p className="mb-3 text-xs font-black uppercase tracking-wide text-slate-500">
+                        Account Actions
+                      </p>
+                      <OwnerAccountActions userId={row.id} email={row.email} currentRole="inspector" />
+                    </div>
+                  </div>
+                </article>
+              ))}
             </div>
           )}
         </Panel>
