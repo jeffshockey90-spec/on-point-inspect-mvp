@@ -20,7 +20,7 @@ type PushPayload = {
   eventType: string;
 };
 
-type PushTarget = "all" | "native" | "web" | "user";
+type PushTarget = "all" | "native" | "web" | "user" | "inspectors" | "users";
 
 async function createUserClient() {
   const cookieStore = await cookies();
@@ -256,6 +256,35 @@ function matchesTarget(row: any, targetUserId: string, targetUserEmail: string) 
   );
 }
 
+function getRole(row: any) {
+  return String(row?.role || row?.account_type || row?.user_role || (row?.inspector_id ? "inspector" : "") || "").toLowerCase();
+}
+function getUserId(row: any) { return String(row?.id || row?.user_id || row?.auth_user_id || row?.inspector_id || ""); }
+function getEmail(row: any) { return String(row?.email || row?.user_email || row?.owner_email || row?.auth_email || "").toLowerCase(); }
+async function getInspectorTargetSets(admin: any) {
+  const ids = new Set<string>();
+  const emails = new Set<string>();
+  for (const table of ["profiles", "company_users", "inspector_profiles"]) {
+    try {
+      const { data } = await admin.from(table).select("*");
+      (data || []).forEach((row: any) => {
+        const isInspector = getRole(row).includes("inspector") || row?.is_inspector === true || row?.inspector === true || Boolean(row?.inspector_id);
+        if (!isInspector) return;
+        const id = getUserId(row); const email = getEmail(row);
+        if (id) ids.add(id); if (email) emails.add(email);
+      });
+    } catch {}
+  }
+  try { const { data } = await admin.from("inspections").select("inspector_id,user_id"); (data || []).forEach((row: any) => { const id = String(row?.inspector_id || row?.user_id || ""); if (id) ids.add(id); }); } catch {}
+  return { ids, emails };
+}
+function matchesGroup(row: any, ids: Set<string>, emails: Set<string>, mode: "inspectors" | "users") {
+  const rowUserId = String(row?.user_id || "");
+  const rowEmail = String(row?.user_email || "").toLowerCase();
+  const isInspector = Boolean(rowUserId && ids.has(rowUserId)) || Boolean(rowEmail && emails.has(rowEmail));
+  return mode === "inspectors" ? isInspector : !isInspector;
+}
+
 async function trackPushEvent(admin: any, data: any) {
   try {
     await admin.from("app_device_events").insert({
@@ -346,13 +375,24 @@ export async function POST(req: Request) {
       console.error("Native push lookup error:", nativeError);
     }
 
+    const groupTargets =
+      target === "inspectors" || target === "users"
+        ? await getInspectorTargetSets(admin)
+        : { ids: new Set<string>(), emails: new Set<string>() };
+
     const webSubscriptions = (webRows || []).filter((row: any) => {
       if (target === "native") return false;
+      if (target === "inspectors" || target === "users") {
+        return matchesGroup(row, groupTargets.ids, groupTargets.emails, target);
+      }
       return matchesTarget(row, targetUserId, targetUserEmail);
     });
 
     const nativeTokens = (nativeRows || []).filter((row: any) => {
       if (target === "web") return false;
+      if (target === "inspectors" || target === "users") {
+        return matchesGroup(row, groupTargets.ids, groupTargets.emails, target);
+      }
       return matchesTarget(row, targetUserId, targetUserEmail);
     });
 

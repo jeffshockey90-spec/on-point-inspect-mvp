@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
+import OwnerAccountActions from "../../../../components/OwnerAccountActions";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -625,6 +626,7 @@ export default async function OwnerUsersPage() {
                     <th className="px-4 py-3">Platform</th>
                     <th className="px-4 py-3">Version</th>
                     <th className="px-4 py-3">Last Activity</th>
+                    <th className="px-4 py-3">Actions</th>
                   </tr>
                 </thead>
 
@@ -670,12 +672,13 @@ export default async function OwnerUsersPage() {
                       <td className="px-4 py-4 text-slate-300">{row.platform}</td>
                       <td className="px-4 py-4 text-slate-300">{row.appVersion}</td>
                       <td className="px-4 py-4 text-slate-300">{formatDateTime(row.lastActivity || row.createdAt)}</td>
+                      <td className="px-4 py-4"><OwnerAccountActions userId={row.id} email={row.email} currentRole={row.role} compact /></td>
                     </tr>
                   ))}
 
                   {userRows.length === 0 && (
                     <tr>
-                      <td colSpan={12} className="px-4 py-10 text-center text-slate-400">
+                      <td colSpan={13} className="px-4 py-10 text-center text-slate-400">
                         No users found yet.
                       </td>
                     </tr>

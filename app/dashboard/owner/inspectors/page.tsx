@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
+import OwnerAccountActions from "../../../../components/OwnerAccountActions";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -407,6 +408,7 @@ export default async function OwnerInspectorsPage() {
                       <th className="px-4 py-3 text-right">Avg</th>
                       <th className="px-4 py-3">Push</th>
                       <th className="px-4 py-3">Last Activity</th>
+                      <th className="px-4 py-3">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800 bg-[#020817]/60">
@@ -429,6 +431,7 @@ export default async function OwnerInspectorsPage() {
                           </div>
                         </td>
                         <td className="px-4 py-4 text-slate-300">{formatDateTime(row.lastActivity)}</td>
+                        <td className="px-4 py-4"><OwnerAccountActions userId={row.id} email={row.email} currentRole="inspector" compact /></td>
                       </tr>
                     ))}
                   </tbody>
