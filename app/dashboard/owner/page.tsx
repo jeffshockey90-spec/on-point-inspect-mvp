@@ -9,7 +9,7 @@ import DeleteDemoReportButton from "../../../components/DeleteDemoReportButton";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-const OWNER_EMAIL = "jeff@onpointhomeinspect.com";
+const OWNER_EMAILS = ["jeff@onpointhomeinspect.com", "jeffshockey90@gmail.com"];
 
 type Tone = "teal" | "green" | "blue" | "purple" | "orange" | "yellow" | "red";
 
@@ -348,7 +348,7 @@ export default async function OwnerDashboardPage() {
   if (!user) redirect("/login");
 
   const userEmail = String(user.email || "").toLowerCase();
-  if (userEmail !== OWNER_EMAIL) {
+  if (!OWNER_EMAILS.includes(userEmail)) {
     return (
       <main className="min-h-screen bg-[#020617] px-6 py-10 text-white">
         <div className="mx-auto max-w-3xl rounded-3xl border border-red-500/40 bg-red-950/20 p-8 shadow-2xl">
@@ -368,14 +368,20 @@ export default async function OwnerDashboardPage() {
   const sevenDaysAgo = new Date(now.getTime() - 1000 * 60 * 60 * 24 * 7);
   const thirtyDaysAgo = new Date(now.getTime() - 1000 * 60 * 60 * 24 * 30);
 
-  const [profiles, inspectorProfiles, companyUsers, inspections, events, pushSubscriptions, deviceEvents] = await Promise.all([
+  const [profiles, inspectorProfiles, companyUsers, inspections, events, pushSubscriptions, nativePushTokens, deviceEvents, findings, photos, agreements, invoices, templates] = await Promise.all([
     safeSelect(admin.from("profiles").select("*"), "profiles"),
     safeSelect(admin.from("inspector_profiles").select("*"), "inspector_profiles"),
     safeSelect(admin.from("company_users").select("*"), "company_users"),
     safeSelect(admin.from("inspections").select("*"), "inspections"),
     safeSelect(admin.from("inspection_view_events").select("*").order("created_at", { ascending: false }).limit(500), "inspection_view_events"),
     safeSelect(admin.from("app_push_subscriptions").select("*").order("created_at", { ascending: false }), "app_push_subscriptions"),
-    safeSelect(admin.from("app_device_events").select("*").order("created_at", { ascending: false }).limit(1000), "app_device_events"),
+    safeSelect(admin.from("app_native_push_tokens").select("*").order("updated_at", { ascending: false }), "app_native_push_tokens"),
+    safeSelect(admin.from("app_device_events").select("*").order("created_at", { ascending: false }).limit(2000), "app_device_events"),
+    safeSelect(admin.from("findings").select("*"), "findings"),
+    safeSelect(admin.from("photos").select("*"), "photos"),
+    safeSelect(admin.from("inspection_agreements").select("*"), "inspection_agreements"),
+    safeSelect(admin.from("invoices").select("*"), "invoices"),
+    safeSelect(admin.from("finding_templates").select("*"), "finding_templates"),
   ]);
 
   const allUserRows = profiles.length > 0 ? profiles : companyUsers;
@@ -508,6 +514,104 @@ export default async function OwnerDashboardPage() {
   const recentEvents = events.slice(0, 12);
   const recentUsers = newSignups.slice(0, 10);
 
+  const liveInspectionIds = new Set(liveInspections.map((inspection: any) => String(inspection.id)));
+
+  const liveFindings = findings.filter((finding: any) =>
+    liveInspectionIds.has(String(finding.inspection_id || finding.report_id || ""))
+  );
+
+  const livePhotos = photos.filter((photo: any) =>
+    liveInspectionIds.has(String(photo.inspection_id || photo.report_id || ""))
+  );
+
+  const signedAgreementRows = agreements.filter((agreement: any) => {
+    const status = String(agreement?.status || agreement?.agreement_status || "").toLowerCase();
+    return Boolean(agreement?.signed_at) || status.includes("signed");
+  });
+
+  const invoicesPaid = invoices.filter((invoice: any) => {
+    const status = String(invoice?.status || invoice?.invoice_status || invoice?.payment_status || "").toLowerCase();
+    return status === "paid" || Boolean(invoice?.paid_at);
+  });
+
+  const nativePushEnabled = nativePushTokens.filter((row: any) => row?.enabled !== false);
+  const webPushEnabled = pushSubscriptions.filter((row: any) => row?.enabled !== false);
+  const totalPushDevices = nativePushEnabled.length + webPushEnabled.length;
+
+  const newDevices7 = new Set(
+    deviceEvents
+      .filter((event: any) => isAfter(event?.created_at, sevenDaysAgo))
+      .map((event: any) => event?.device_id || event?.user_agent || event?.id)
+      .filter(Boolean)
+  );
+
+  const newDevices30 = new Set(
+    deviceEvents
+      .filter((event: any) => isAfter(event?.created_at, thirtyDaysAgo))
+      .map((event: any) => event?.device_id || event?.user_agent || event?.id)
+      .filter(Boolean)
+  );
+
+  const iosDeviceEvents = deviceEvents.filter((event: any) => {
+    const platform = String(event?.platform || "").toLowerCase();
+    const ua = String(event?.user_agent || "").toLowerCase();
+    return platform.includes("ios") || platform.includes("iphone") || ua.includes("iphone") || ua.includes("ipad");
+  });
+
+  const webDeviceEvents = deviceEvents.filter((event: any) => {
+    const platform = String(event?.platform || "").toLowerCase();
+    const ua = String(event?.user_agent || "").toLowerCase();
+    return !platform.includes("ios") && !platform.includes("iphone") && !ua.includes("iphone") && !ua.includes("ipad");
+  });
+
+  const appVersionCounts = new Map<string, number>();
+  deviceEvents.forEach((event: any) => {
+    const version =
+      event?.metadata?.app_version ||
+      event?.metadata?.appVersion ||
+      "Unknown";
+    appVersionCounts.set(String(version), (appVersionCounts.get(String(version)) || 0) + 1);
+  });
+
+  const appVersionRows = [...appVersionCounts.entries()]
+    .map(([version, count]) => ({ version, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 8);
+
+  const sectionCounts = new Map<string, number>();
+  liveFindings.forEach((finding: any) => {
+    const section = String(finding?.section || "Uncategorized");
+    sectionCounts.set(section, (sectionCounts.get(section) || 0) + 1);
+  });
+
+  const topSectionRows = [...sectionCounts.entries()]
+    .map(([section, count]) => ({ section, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 8);
+
+  const severityCounts = new Map<string, number>();
+  liveFindings.forEach((finding: any) => {
+    const severity = String(finding?.severity || "Uncategorized");
+    severityCounts.set(severity, (severityCounts.get(severity) || 0) + 1);
+  });
+
+  const severityRows = [...severityCounts.entries()]
+    .map(([severity, count]) => ({ severity, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 8);
+
+  const templateUsageRows = templates
+    .map((template: any) => ({
+      title: template?.title || "Untitled Template",
+      section: template?.section || "N/A",
+      count: getNumber(template?.usage_count || template?.used_count || template?.insert_count),
+    }))
+    .sort((a: any, b: any) => b.count - a.count)
+    .slice(0, 8);
+
+  const averageInspectionPrice =
+    paidInspections.length > 0 ? Math.round(revenue / paidInspections.length) : 0;
+
   return (
     <main className="min-h-screen bg-[#020617] px-4 py-8 text-white md:px-6 md:py-10">
       <div className="mx-auto max-w-7xl space-y-8">
@@ -545,6 +649,20 @@ export default async function OwnerDashboardPage() {
           <MetricCard label="Downloads / Installs" value={String(downloads)} helper="Internal install/first-open tracking. App Store Connect must be checked separately for official downloads." tone="blue" />
           <MetricCard label="Active Devices" value={String(activeDevices.size)} helper="Unique devices active in the last 30 days." tone="teal" />
           <MetricCard label="Retention" value={`${retentionRate}%`} helper="Devices with install/first-open and recent activity." tone="purple" />
+        </section>
+
+        <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+          <MetricCard label="Total Findings" value={String(liveFindings.length)} helper="Findings across live, non-demo reports." tone="orange" />
+          <MetricCard label="Total Photos" value={String(livePhotos.length)} helper="Report photos connected to live inspections." tone="blue" />
+          <MetricCard label="Average Paid Report" value={money(averageInspectionPrice)} helper="Average revenue from paid inspections." tone="green" />
+          <MetricCard label="Invoices Paid" value={String(invoicesPaid.length)} helper="Paid invoice records detected." tone="green" />
+        </section>
+
+        <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+          <MetricCard label="Native Push Devices" value={String(nativePushEnabled.length)} helper="Enabled iOS native APNs tokens." tone="purple" />
+          <MetricCard label="Web Push Devices" value={String(webPushEnabled.length)} helper="Enabled browser push subscriptions." tone="teal" />
+          <MetricCard label="Total Push Devices" value={String(totalPushDevices)} helper="Native plus web push endpoints." tone="blue" />
+          <MetricCard label="New Devices 7 Days" value={String(newDevices7.size)} helper={`${newDevices30.size} active/new devices in 30 days.`} tone="yellow" />
         </section>
 
         <section className="grid gap-5 md:grid-cols-3">
@@ -693,6 +811,78 @@ export default async function OwnerDashboardPage() {
           </Panel>
         </section>
 
+        <section className="grid gap-6 xl:grid-cols-3">
+          <Panel title="Device Breakdown" subtitle="Internal usage by platform and app version.">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <MiniStat label="iOS Events" value={String(iosDeviceEvents.length)} />
+              <MiniStat label="Web Events" value={String(webDeviceEvents.length)} />
+            </div>
+
+            <div className="mt-5 space-y-3">
+              {appVersionRows.length === 0 ? (
+                <EmptyState text="No app version data yet." />
+              ) : (
+                appVersionRows.map((row) => (
+                  <SimpleRow key={row.version} label={`Version ${row.version}`} value={String(row.count)} />
+                ))
+              )}
+            </div>
+          </Panel>
+
+          <Panel title="Top Sections Flagged" subtitle="Most common report sections with findings.">
+            {topSectionRows.length === 0 ? (
+              <EmptyState text="No finding section data yet." />
+            ) : (
+              <div className="space-y-3">
+                {topSectionRows.map((row) => (
+                  <SimpleRow key={row.section} label={row.section} value={String(row.count)} />
+                ))}
+              </div>
+            )}
+          </Panel>
+
+          <Panel title="Severity Breakdown" subtitle="Finding severity counts across live reports.">
+            {severityRows.length === 0 ? (
+              <EmptyState text="No severity data yet." />
+            ) : (
+              <div className="space-y-3">
+                {severityRows.map((row) => (
+                  <SimpleRow key={row.severity} label={row.severity} value={String(row.count)} />
+                ))}
+              </div>
+            )}
+          </Panel>
+        </section>
+
+        <section className="grid gap-6 xl:grid-cols-2">
+          <Panel title="Most Used Templates" subtitle="Favorite/comment template usage when tracking is available.">
+            {templateUsageRows.length === 0 ? (
+              <EmptyState text="No template usage data yet." />
+            ) : (
+              <div className="space-y-3">
+                {templateUsageRows.map((row) => (
+                  <SimpleRow
+                    key={`${row.title}-${row.section}`}
+                    label={row.title}
+                    value={row.count > 0 ? String(row.count) : row.section}
+                  />
+                ))}
+              </div>
+            )}
+          </Panel>
+
+          <Panel title="Push Device Health" subtitle="Native APNs and browser push endpoint status.">
+            <div className="grid gap-4 sm:grid-cols-3">
+              <MiniStat label="Native" value={String(nativePushEnabled.length)} />
+              <MiniStat label="Web" value={String(webPushEnabled.length)} />
+              <MiniStat label="Total" value={String(totalPushDevices)} />
+            </div>
+            <p className="mt-4 text-sm leading-6 text-slate-400">
+              Native push device counts will increase after users install the iOS build with native push enabled and tap Enable Native iOS Push.
+            </p>
+          </Panel>
+        </section>
+
         <section className="grid gap-6 xl:grid-cols-2">
           <Panel title="Recent Signups" subtitle="Newest users from profiles/company user records.">
             {recentUsers.length === 0 ? (
@@ -783,6 +973,24 @@ function Panel({ title, subtitle, children }: { title: string; subtitle: string;
 
 function EmptyState({ text }: { text: string }) {
   return <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-6 text-center text-slate-400">{text}</div>;
+}
+
+function MiniStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
+      <p className="text-xs font-black uppercase tracking-wide text-slate-500">{label}</p>
+      <p className="mt-2 text-3xl font-black text-white">{value}</p>
+    </div>
+  );
+}
+
+function SimpleRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-4 rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
+      <p className="min-w-0 truncate font-bold text-slate-200">{label}</p>
+      <p className="shrink-0 rounded-full border border-teal-500/30 bg-teal-500/10 px-3 py-1 text-xs font-black text-teal-300">{value}</p>
+    </div>
+  );
 }
 
 function GrowthBar({ label, value, max, tone, display }: { label: string; value: number; max: number; tone: "teal" | "blue" | "green"; display?: string }) {
