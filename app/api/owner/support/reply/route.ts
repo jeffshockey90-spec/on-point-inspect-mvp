@@ -11,6 +11,13 @@ export const dynamic = "force-dynamic";
 
 const OWNER_EMAILS = ["jeff@onpointhomeinspect.com", "jeffshockey90@gmail.com"];
 
+type PushPayload = {
+  title: string;
+  body: string;
+  url: string;
+  eventType: string;
+};
+
 async function createUserClient() {
   const cookieStore = await cookies();
 
@@ -33,27 +40,38 @@ function createAdminClient() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     {
-      auth: { persistSession: false, autoRefreshToken: false },
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
     }
   );
 }
 
 async function requireOwner() {
   const userClient = await createUserClient();
+
   const {
     data: { user },
   } = await userClient.auth.getUser();
 
   if (!user) return null;
+
   return OWNER_EMAILS.includes(String(user.email || "").toLowerCase()) ? user : null;
 }
 
 function base64Url(input: Buffer | string) {
-  return Buffer.from(input).toString("base64").replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+  return Buffer.from(input)
+    .toString("base64")
+    .replace(/=/g, "")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_");
 }
 
 function getApnsPrivateKey() {
-  return String(process.env.APPLE_APNS_PRIVATE_KEY || "").replace(/\\n/g, "\n").trim();
+  return String(process.env.APPLE_APNS_PRIVATE_KEY || "")
+    .replace(/\\n/g, "\n")
+    .trim();
 }
 
 function createApnsJwt() {
@@ -61,11 +79,16 @@ function createApnsJwt() {
   const keyId = process.env.APPLE_APNS_KEY_ID;
   const privateKey = getApnsPrivateKey();
 
-  if (!teamId || !keyId || !privateKey) throw new Error("Missing APNs credentials.");
+  if (!teamId || !keyId || !privateKey) {
+    throw new Error("Missing APNs credentials.");
+  }
 
   const encodedHeader = base64Url(JSON.stringify({ alg: "ES256", kid: keyId }));
-  const encodedPayload = base64Url(JSON.stringify({ iss: teamId, iat: Math.floor(Date.now() / 1000) }));
+  const encodedPayload = base64Url(
+    JSON.stringify({ iss: teamId, iat: Math.floor(Date.now() / 1000) })
+  );
   const signingInput = `${encodedHeader}.${encodedPayload}`;
+
   const signature = crypto.sign("sha256", Buffer.from(signingInput), {
     key: privateKey,
     dsaEncoding: "ieee-p1363",
@@ -74,21 +97,48 @@ function createApnsJwt() {
   return `${signingInput}.${base64Url(signature)}`;
 }
 
-async function sendNativeApns(token: string, payload: { title: string; body: string; url: string; eventType: string }) {
-  const host = String(process.env.APPLE_APNS_USE_SANDBOX || "").toLowerCase() === "true" ? "https://api.sandbox.push.apple.com" : "https://api.push.apple.com";
+function getApnsHost() {
+  const sandbox = String(process.env.APPLE_APNS_USE_SANDBOX || "")
+    .toLowerCase()
+    .trim();
+
+  return sandbox === "true" || sandbox === "1"
+    ? "https://api.sandbox.push.apple.com"
+    : "https://api.push.apple.com";
+}
+
+async function sendNativeApns(token: string, payload: PushPayload) {
   const topic = process.env.APPLE_BUNDLE_ID || process.env.NEXT_PUBLIC_IOS_BUNDLE_ID;
   if (!topic) throw new Error("Missing APNs topic.");
 
   const jwt = createApnsJwt();
+
   const apnsPayload = JSON.stringify({
-    aps: { alert: { title: payload.title, body: payload.body }, sound: "default" },
+    aps: {
+      alert: {
+        title: payload.title,
+        body: payload.body,
+      },
+      sound: "default",
+    },
     url: payload.url,
     eventType: payload.eventType,
   });
 
   return await new Promise<void>((resolve, reject) => {
-    const client = http2.connect(host);
-    client.on("error", reject);
+    const client = http2.connect(getApnsHost());
+
+    const cleanup = () => {
+      try {
+        client.close();
+      } catch {}
+    };
+
+    client.on("error", (error) => {
+      cleanup();
+      reject(error);
+    });
+
     const request = client.request({
       ":method": "POST",
       ":path": `/3/device/${token}`,
@@ -98,26 +148,68 @@ async function sendNativeApns(token: string, payload: { title: string; body: str
       "apns-priority": "10",
       "content-type": "application/json",
     });
+
     let status = 0;
     let responseBody = "";
-    request.on("response", (headers) => { status = Number(headers[":status"] || 0); });
-    request.setEncoding("utf8");
-    request.on("data", (chunk) => { responseBody += chunk; });
-    request.on("end", () => {
-      try { client.close(); } catch {}
-      if (status >= 200 && status < 300) resolve();
-      else reject(new Error(responseBody || `APNs failed ${status}`));
+
+    request.on("response", (headers) => {
+      status = Number(headers[":status"] || 0);
     });
-    request.on("error", reject);
+
+    request.setEncoding("utf8");
+
+    request.on("data", (chunk) => {
+      responseBody += chunk;
+    });
+
+    request.on("end", () => {
+      cleanup();
+
+      if (status >= 200 && status < 300) {
+        resolve();
+        return;
+      }
+
+      const error: any = new Error(responseBody || `APNs failed ${status}`);
+      error.statusCode = status;
+      error.body = responseBody;
+      reject(error);
+    });
+
+    request.on("error", (error) => {
+      cleanup();
+      reject(error);
+    });
+
     request.write(apnsPayload);
     request.end();
   });
 }
 
-async function sendInspectorPush(admin: any, inspectorId: string, inspectorEmail: string, message: string) {
-  const payload = {
+function shouldDisableNativeToken(error: any) {
+  const statusCode = Number(error?.statusCode || 0);
+  const body = String(error?.body || error?.message || "");
+
+  return (
+    (statusCode === 400 && body.includes("BadDeviceToken")) ||
+    statusCode === 410 ||
+    body.includes("Unregistered")
+  );
+}
+
+function cleanPreview(message: string) {
+  return message.replace(/\s+/g, " ").trim().slice(0, 140);
+}
+
+async function sendInspectorPush(
+  admin: any,
+  inspectorId: string,
+  inspectorEmail: string,
+  message: string
+) {
+  const payload: PushPayload = {
     title: "💬 Owner Reply",
-    body: `Jeff replied: ${message.slice(0, 140)}`,
+    body: `Jeff replied: ${cleanPreview(message)}`,
     url: "/support",
     eventType: "support_reply",
   };
@@ -129,25 +221,38 @@ async function sendInspectorPush(admin: any, inspectorId: string, inspectorEmail
   try {
     const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
     const privateKey = process.env.VAPID_PRIVATE_KEY;
-    const subject = process.env.VAPID_SUBJECT || "mailto:jeff@onpointhomeinspect.com";
+    const subject =
+      process.env.VAPID_SUBJECT || "mailto:jeff@onpointhomeinspect.com";
 
     if (publicKey && privateKey) {
       webpush.setVapidDetails(subject, publicKey, privateKey);
+
       const { data: webRows } = await admin
         .from("app_push_subscriptions")
         .select("*")
         .eq("enabled", true);
 
       for (const row of webRows || []) {
-        const matches = String(row.user_id || "") === inspectorId || String(row.user_email || "").toLowerCase() === inspectorEmail.toLowerCase();
+        const matches =
+          String(row.user_id || "") === inspectorId ||
+          String(row.user_email || "").toLowerCase() === inspectorEmail.toLowerCase();
+
         if (!matches) continue;
+
         try {
           await webpush.sendNotification(row.subscription, JSON.stringify(payload));
           webSent += 1;
         } catch (error: any) {
           failed += 1;
+
           if (error?.statusCode === 404 || error?.statusCode === 410) {
-            await admin.from("app_push_subscriptions").update({ enabled: false }).eq("endpoint", row.endpoint);
+            await admin
+              .from("app_push_subscriptions")
+              .update({
+                enabled: false,
+                updated_at: new Date().toISOString(),
+              })
+              .eq("endpoint", row.endpoint);
           }
         }
       }
@@ -163,13 +268,27 @@ async function sendInspectorPush(admin: any, inspectorId: string, inspectorEmail
       .eq("enabled", true);
 
     for (const row of nativeRows || []) {
-      const matches = String(row.user_id || "") === inspectorId || String(row.user_email || "").toLowerCase() === inspectorEmail.toLowerCase();
+      const matches =
+        String(row.user_id || "") === inspectorId ||
+        String(row.user_email || "").toLowerCase() === inspectorEmail.toLowerCase();
+
       if (!matches) continue;
+
       try {
         await sendNativeApns(row.token, payload);
         nativeSent += 1;
-      } catch (error) {
+      } catch (error: any) {
         failed += 1;
+
+        if (shouldDisableNativeToken(error)) {
+          await admin
+            .from("app_native_push_tokens")
+            .update({
+              enabled: false,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("token", row.token);
+        }
       }
     }
   } catch (error) {
@@ -184,44 +303,74 @@ async function sendInspectorPush(admin: any, inspectorId: string, inspectorEmail
       target_url: payload.url,
       sent_count: webSent + nativeSent,
       failed_count: failed,
-      metadata: { inspector_id: inspectorId, inspector_email: inspectorEmail, web_sent: webSent, native_sent: nativeSent },
+      metadata: {
+        source: "support_chat",
+        target: "inspector",
+        inspector_id: inspectorId,
+        inspector_email: inspectorEmail,
+        web_sent: webSent,
+        native_sent: nativeSent,
+      },
     });
-  } catch {}
+  } catch (error) {
+    console.error("Support push log failed:", error);
+  }
 }
 
 export async function POST(req: Request) {
   try {
     const owner = await requireOwner();
-    if (!owner) return NextResponse.json({ error: "Owner access required." }, { status: 403 });
+
+    if (!owner) {
+      return NextResponse.json({ error: "Owner access required." }, { status: 403 });
+    }
 
     const body = await req.json().catch(() => ({}));
     const threadId = String(body.threadId || "").trim();
     const message = String(body.message || "").trim();
 
-    if (!threadId) return NextResponse.json({ error: "Missing thread ID." }, { status: 400 });
-    if (!message) return NextResponse.json({ error: "Message is required." }, { status: 400 });
-    if (message.length > 4000) return NextResponse.json({ error: "Message is too long." }, { status: 400 });
+    if (!threadId) {
+      return NextResponse.json({ error: "Missing thread ID." }, { status: 400 });
+    }
+
+    if (!message) {
+      return NextResponse.json({ error: "Message is required." }, { status: 400 });
+    }
+
+    if (message.length > 4000) {
+      return NextResponse.json({ error: "Message is too long." }, { status: 400 });
+    }
 
     const admin = createAdminClient();
+
     const { data: thread, error: threadError } = await admin
       .from("inspector_support_threads")
       .select("*")
       .eq("id", threadId)
       .single();
 
-    if (threadError || !thread) return NextResponse.json({ error: threadError?.message || "Thread not found." }, { status: 404 });
+    if (threadError || !thread) {
+      return NextResponse.json(
+        { error: threadError?.message || "Thread not found." },
+        { status: 404 }
+      );
+    }
 
-    const { error: messageError } = await admin.from("inspector_support_messages").insert({
-      thread_id: threadId,
-      sender_id: owner.id,
-      sender_email: owner.email || null,
-      sender_role: "owner",
-      message,
-      read_by_owner: true,
-      read_by_inspector: false,
-    });
+    const { error: messageError } = await admin
+      .from("inspector_support_messages")
+      .insert({
+        thread_id: threadId,
+        sender_id: owner.id,
+        sender_email: owner.email || null,
+        sender_role: "owner",
+        message,
+        read_by_owner: true,
+        read_by_inspector: false,
+      });
 
-    if (messageError) return NextResponse.json({ error: messageError.message }, { status: 500 });
+    if (messageError) {
+      return NextResponse.json({ error: messageError.message }, { status: 500 });
+    }
 
     await admin
       .from("inspector_support_threads")
@@ -233,10 +382,19 @@ export async function POST(req: Request) {
       })
       .eq("id", threadId);
 
-    await sendInspectorPush(admin, String(thread.inspector_id || ""), String(thread.inspector_email || ""), message);
+    await sendInspectorPush(
+      admin,
+      String(thread.inspector_id || ""),
+      String(thread.inspector_email || ""),
+      message
+    );
 
     return NextResponse.json({ ok: true });
   } catch (error: any) {
-    return NextResponse.json({ error: error?.message || "Could not send reply." }, { status: 500 });
+    console.error("Owner support reply error:", error);
+    return NextResponse.json(
+      { error: error?.message || "Could not send reply." },
+      { status: 500 }
+    );
   }
 }
