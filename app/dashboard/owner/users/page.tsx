@@ -609,43 +609,23 @@ export default async function OwnerUsersPage() {
             </p>
           </div>
 
-          <div className="mt-6 overflow-x-auto rounded-2xl border border-slate-700">
-            <div className="min-w-[1700px]">
-              <table className="w-full divide-y divide-slate-800 text-sm">
-                <thead className="bg-[#020817] text-left text-xs uppercase tracking-wide text-slate-400">
-                  <tr>
-                    <th className="px-4 py-3">User</th>
-                    <th className="px-4 py-3">Role</th>
-                    <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3 text-right">Reports</th>
-                    <th className="px-4 py-3 text-right">30d</th>
-                    <th className="px-4 py-3 text-right">Revenue</th>
-                    <th className="px-4 py-3 text-right">Findings</th>
-                    <th className="px-4 py-3 text-right">Photos</th>
-                    <th className="px-4 py-3">Push</th>
-                    <th className="px-4 py-3">Platform</th>
-                    <th className="px-4 py-3">Version</th>
-                    <th className="min-w-[130px] px-4 py-3">Last Activity</th>
-                    <th className="min-w-[190px] px-4 py-3">Actions</th>
-                  </tr>
-                </thead>
+          <div className="mt-6 space-y-4">
+            {userRows.length === 0 ? (
+              <EmptyState text="No users found yet." />
+            ) : (
+              userRows.map((row) => (
+                <div
+                  key={row.id}
+                  className="rounded-2xl border border-slate-700 bg-[#020817]/70 p-4 shadow-lg"
+                >
+                  <div className="grid gap-4 xl:grid-cols-[minmax(240px,1.25fr)_minmax(520px,2fr)_minmax(180px,0.8fr)] xl:items-center">
+                    <div className="min-w-0">
+                      <p className="truncate font-black text-white">{row.name}</p>
+                      <p className="mt-1 truncate text-xs text-slate-400">{row.email || "No email"}</p>
+                      <p className="mt-1 truncate text-[11px] text-slate-600">{row.source}</p>
 
-                <tbody className="divide-y divide-slate-800 bg-[#020817]/60">
-                  {userRows.map((row) => (
-                    <tr key={row.id} className="hover:bg-slate-900/70">
-                      <td className="px-4 py-4">
-                        <div className="max-w-[280px]">
-                          <p className="truncate font-black text-white">{row.name}</p>
-                          <p className="mt-1 truncate text-xs text-slate-400">{row.email || "No email"}</p>
-                          <p className="mt-1 truncate text-[11px] text-slate-600">{row.source}</p>
-                        </div>
-                      </td>
-
-                      <td className="px-4 py-4">
+                      <div className="mt-3 flex flex-wrap gap-2">
                         <Badge tone="teal">{row.role || "user"}</Badge>
-                      </td>
-
-                      <td className="px-4 py-4">
                         {row.active7 ? (
                           <Badge tone="green">Active 7d</Badge>
                         ) : row.active30 ? (
@@ -653,39 +633,48 @@ export default async function OwnerUsersPage() {
                         ) : (
                           <Badge tone="yellow">Inactive</Badge>
                         )}
-                      </td>
+                      </div>
+                    </div>
 
-                      <td className="px-4 py-4 text-right font-black text-white">{row.reports}</td>
-                      <td className="px-4 py-4 text-right font-black text-blue-300">{row.reports30}</td>
-                      <td className="px-4 py-4 text-right font-black text-green-300">{money(row.revenue)}</td>
-                      <td className="px-4 py-4 text-right font-black text-orange-300">{row.findings}</td>
-                      <td className="px-4 py-4 text-right font-black text-purple-300">{row.photos}</td>
-
-                      <td className="px-4 py-4">
-                        <div className="flex flex-wrap gap-1">
+                    <div className="grid grid-cols-2 gap-3 text-xs sm:grid-cols-3 lg:grid-cols-6">
+                      <MiniStat label="Reports" value={String(row.reports)} tone="white" />
+                      <MiniStat label="30d" value={String(row.reports30)} tone="blue" />
+                      <MiniStat label="Revenue" value={money(row.revenue)} tone="green" />
+                      <MiniStat label="Findings" value={String(row.findings)} tone="orange" />
+                      <MiniStat label="Photos" value={String(row.photos)} tone="purple" />
+                      <div className="rounded-xl border border-slate-800 bg-slate-950/50 p-3">
+                        <p className="text-[10px] font-black uppercase tracking-wide text-slate-500">Push</p>
+                        <div className="mt-2 flex flex-wrap gap-1">
                           {row.nativePush && <Badge tone="purple">Native</Badge>}
                           {row.webPush && <Badge tone="teal">Web</Badge>}
                           {!row.nativePush && !row.webPush && <Badge tone="red">Off</Badge>}
                         </div>
-                      </td>
+                      </div>
+                    </div>
 
-                      <td className="px-4 py-4 text-slate-300">{row.platform}</td>
-                      <td className="px-4 py-4 text-slate-300">{row.appVersion}</td>
-                      <td className="min-w-[130px] px-4 py-4 text-slate-300">{formatDateTime(row.lastActivity || row.createdAt)}</td>
-                      <td className="min-w-[190px] px-4 py-4 align-top"><OwnerAccountActions userId={row.id} email={row.email} currentRole={row.role} compact /></td>
-                    </tr>
-                  ))}
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-2 gap-3 text-xs xl:grid-cols-1">
+                        <div className="rounded-xl border border-slate-800 bg-slate-950/50 p-3">
+                          <p className="text-[10px] font-black uppercase tracking-wide text-slate-500">Platform</p>
+                          <p className="mt-1 font-black text-slate-200">{row.platform}</p>
+                          <p className="mt-1 text-slate-500">Version: {row.appVersion}</p>
+                        </div>
 
-                  {userRows.length === 0 && (
-                    <tr>
-                      <td colSpan={13} className="px-4 py-10 text-center text-slate-400">
-                        No users found yet.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                        <div className="rounded-xl border border-slate-800 bg-slate-950/50 p-3">
+                          <p className="text-[10px] font-black uppercase tracking-wide text-slate-500">Last Activity</p>
+                          <p className="mt-1 font-black text-slate-200">{formatDateTime(row.lastActivity || row.createdAt)}</p>
+                        </div>
+                      </div>
+
+                      <div className="rounded-xl border border-slate-800 bg-slate-950/50 p-3">
+                        <p className="mb-2 text-[10px] font-black uppercase tracking-wide text-slate-500">Actions</p>
+                        <OwnerAccountActions userId={row.id} email={row.email} currentRole={row.role} compact />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </section>
 
@@ -812,6 +801,36 @@ function Badge({
     <span className={`rounded-full border px-2 py-1 text-xs font-black ${classes[tone]}`}>
       {children}
     </span>
+  );
+}
+
+
+function MiniStat({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone: "white" | "blue" | "green" | "orange" | "purple";
+}) {
+  const classes = {
+    white: "text-white",
+    blue: "text-blue-300",
+    green: "text-green-300",
+    orange: "text-orange-300",
+    purple: "text-purple-300",
+  } as const;
+
+  return (
+    <div className="rounded-xl border border-slate-800 bg-slate-950/50 p-3">
+      <p className="text-[10px] font-black uppercase tracking-wide text-slate-500">
+        {label}
+      </p>
+      <p className={`mt-1 truncate text-sm font-black ${classes[tone]}`}>
+        {value}
+      </p>
+    </div>
   );
 }
 
