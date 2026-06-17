@@ -625,9 +625,21 @@ export default async function OwnerDashboardPage() {
               </p>
             </div>
 
-            <Link href="/dashboard" className="rounded-xl border border-teal-500 px-5 py-3 font-black text-teal-300 transition hover:bg-teal-500/10">
-              Back to Dashboard
-            </Link>
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href="/dashboard/owner/users"
+                className="rounded-xl border border-cyan-500 px-5 py-3 font-black text-cyan-300 transition hover:bg-cyan-500/10"
+              >
+                👥 User Management
+              </Link>
+
+              <Link
+                href="/dashboard"
+                className="rounded-xl border border-teal-500 px-5 py-3 font-black text-teal-300 transition hover:bg-teal-500/10"
+              >
+                Back to Dashboard
+              </Link>
+            </div>
           </div>
         </section>
 
