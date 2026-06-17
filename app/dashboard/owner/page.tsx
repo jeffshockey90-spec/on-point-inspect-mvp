@@ -669,6 +669,13 @@ export default async function OwnerDashboardPage() {
               </Link>
 
               <Link
+                href="/dashboard/owner/support"
+                className="rounded-xl border border-fuchsia-500 px-5 py-3 font-black text-fuchsia-300 transition hover:bg-fuchsia-500/10"
+              >
+                💬 Support Chat
+              </Link>
+
+              <Link
                 href="/dashboard/owner/system"
                 className="rounded-xl border border-slate-500 px-5 py-3 font-black text-slate-200 transition hover:bg-slate-700/30"
               >

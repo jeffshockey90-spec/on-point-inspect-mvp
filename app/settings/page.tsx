@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "../../utils/supabase/server";
@@ -253,6 +254,38 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
             </p>
           </div>
         )}
+
+        <section className="grid gap-4 md:grid-cols-2">
+          <Link
+            href="/support"
+            className="rounded-3xl border border-fuchsia-500/40 bg-fuchsia-950/20 p-5 transition hover:bg-fuchsia-500/10 sm:p-6"
+          >
+            <p className="text-xs font-black uppercase tracking-[0.25em] text-fuchsia-300">
+              Support Chat
+            </p>
+            <h2 className="mt-3 text-2xl font-black text-white">
+              Contact Owner Support
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-slate-300">
+              Send Jeff a message directly from the app for help with reports, billing, setup, or bugs.
+            </p>
+          </Link>
+
+          <Link
+            href="/billing"
+            className="rounded-3xl border border-teal-500/40 bg-teal-950/20 p-5 transition hover:bg-teal-500/10 sm:p-6"
+          >
+            <p className="text-xs font-black uppercase tracking-[0.25em] text-teal-300">
+              Billing
+            </p>
+            <h2 className="mt-3 text-2xl font-black text-white">
+              Manage Subscription
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-slate-300">
+              View trial status, free inspections, and activate the monthly On Point Inspect subscription.
+            </p>
+          </Link>
+        </section>
 
         <form action={saveCompanySettings} className="space-y-6">
           <section className="rounded-3xl border border-slate-800 bg-[#0b1220] p-5 sm:p-6 md:p-8">
