@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 
-const OWNER_EMAIL = "jeff@onpointhomeinspect.com";
+const OWNER_EMAILS = ["jeff@onpointhomeinspect.com", "jeffshockey90@gmail.com"];
 
 const navItems = [
   { title: "Dashboard", href: "/", icon: "🏠", mobileLabel: "Home" },
@@ -17,6 +17,7 @@ const navItems = [
   { title: "Templates", href: "/templates", icon: "📚", mobileLabel: "Templates" },
   { title: "Quotes", href: "/quotes", icon: "💬", mobileLabel: "Quotes" },
   { title: "Schedule", href: "/schedule", icon: "🗓️", mobileLabel: "Schedule" },
+  { title: "Support", href: "/support", icon: "💬", mobileLabel: "Support" },
   { title: "Settings", href: "/settings", icon: "⚙️", mobileLabel: "Settings" },
 ];
 
@@ -32,6 +33,7 @@ const mobileItems = [
   { title: "Reports", href: "/reports", icon: "📋", mobileLabel: "Reports" },
   { title: "New Inspection", href: "/inspections/new", icon: "➕", mobileLabel: "New" },
   { title: "AI Capture", href: "/ai-capture", icon: "✨", mobileLabel: "AI" },
+  { title: "Support", href: "/support", icon: "💬", mobileLabel: "Support" },
   { title: "Settings", href: "/settings", icon: "⚙️", mobileLabel: "Settings" },
 ];
 
@@ -54,7 +56,7 @@ export default function Navbar() {
         if (!active) return;
 
         const email = String(user?.email || "").toLowerCase();
-        setIsOwner(email === OWNER_EMAIL);
+        setIsOwner(OWNER_EMAILS.includes(email));
       } catch (error) {
         console.error("Owner nav check failed:", error);
         if (active) setIsOwner(false);
@@ -65,7 +67,7 @@ export default function Navbar() {
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       const email = String(session?.user?.email || "").toLowerCase();
-      setIsOwner(email === OWNER_EMAIL);
+      setIsOwner(OWNER_EMAILS.includes(email));
     });
 
     return () => {

@@ -101,6 +101,22 @@ export default async function BillingPage({
           <p className="mt-4 max-w-2xl text-slate-300">
             Your first {freeLimit} real inspections are free. After that, On Point Inspect is {dollars(priceCents)}/month unless the owner has set custom pricing or exempted your account.
           </p>
+
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link
+              href="/support"
+              className="rounded-xl border border-blue-500 px-5 py-3 font-black text-blue-300 transition hover:bg-blue-500/10"
+            >
+              💬 Need Help? Contact Support
+            </Link>
+
+            <Link
+              href="/settings"
+              className="rounded-xl border border-slate-600 px-5 py-3 font-black text-slate-200 transition hover:bg-slate-800"
+            >
+              Back to Settings
+            </Link>
+          </div>
         </section>
 
         {params.success && (
@@ -142,13 +158,22 @@ export default async function BillingPage({
               </p>
             </div>
 
-            {exempt || active ? (
-              <Link href="/dashboard" className="rounded-xl bg-teal-500 px-6 py-3 font-black text-slate-950 hover:bg-teal-400">
-                Go to Dashboard
+            <div className="flex flex-col gap-3 sm:flex-row">
+              {exempt || active ? (
+                <Link href="/dashboard" className="rounded-xl bg-teal-500 px-6 py-3 text-center font-black text-slate-950 hover:bg-teal-400">
+                  Go to Dashboard
+                </Link>
+              ) : (
+                <SubscriptionCheckoutButton priceLabel={`${dollars(priceCents)}/month`} />
+              )}
+
+              <Link
+                href="/support"
+                className="rounded-xl border border-blue-500 px-6 py-3 text-center font-black text-blue-300 hover:bg-blue-500/10"
+              >
+                Contact Support
               </Link>
-            ) : (
-              <SubscriptionCheckoutButton priceLabel={`${dollars(priceCents)}/month`} />
-            )}
+            </div>
           </div>
         </section>
       </div>
