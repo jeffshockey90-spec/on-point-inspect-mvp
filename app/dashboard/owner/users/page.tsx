@@ -609,9 +609,9 @@ export default async function OwnerUsersPage() {
             </p>
           </div>
 
-          <div className="mt-6 overflow-hidden rounded-2xl border border-slate-700">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-slate-800 text-sm">
+          <div className="mt-6 overflow-x-auto rounded-2xl border border-slate-700">
+            <div className="min-w-[1500px]">
+              <table className="w-full divide-y divide-slate-800 text-sm">
                 <thead className="bg-[#020817] text-left text-xs uppercase tracking-wide text-slate-400">
                   <tr>
                     <th className="px-4 py-3">User</th>
@@ -626,7 +626,7 @@ export default async function OwnerUsersPage() {
                     <th className="px-4 py-3">Platform</th>
                     <th className="px-4 py-3">Version</th>
                     <th className="px-4 py-3">Last Activity</th>
-                    <th className="px-4 py-3">Actions</th>
+                    <th className="px-4 py-3 min-w-[180px]">Actions</th>
                   </tr>
                 </thead>
 
@@ -672,7 +672,7 @@ export default async function OwnerUsersPage() {
                       <td className="px-4 py-4 text-slate-300">{row.platform}</td>
                       <td className="px-4 py-4 text-slate-300">{row.appVersion}</td>
                       <td className="px-4 py-4 text-slate-300">{formatDateTime(row.lastActivity || row.createdAt)}</td>
-                      <td className="px-4 py-4"><OwnerAccountActions userId={row.id} email={row.email} currentRole={row.role} compact /></td>
+                      <td className="px-4 py-4 min-w-[180px]"><OwnerAccountActions userId={row.id} email={row.email} currentRole={row.role} compact /></td>
                     </tr>
                   ))}
 
