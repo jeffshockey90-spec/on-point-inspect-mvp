@@ -297,6 +297,8 @@ export default function NewInspectionPage() {
 
   const [loadingProperty, setLoadingProperty] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [showBillingPopup, setShowBillingPopup] = useState(false);
+  const [billingMessage, setBillingMessage] = useState("");
 
   const quote = useMemo(
     () =>
@@ -508,6 +510,76 @@ export default function NewInspectionPage() {
     });
   }
 
+  async function checkSubscriptionAccess(userId: string) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select(
+        "subscription_status, subscription_exempt, subscription_required, free_inspection_limit, free_inspections_used"
+      )
+      .eq("id", userId)
+      .single();
+
+    if (!profile) {
+      return {
+        allowed: true,
+        profile: null as any,
+        used: 0,
+        limit: 3,
+      };
+    }
+
+    const { data: existingInspections } = await supabase
+      .from("inspections")
+      .select("id, is_demo")
+      .eq("inspector_id", userId);
+
+    const existingRealInspectionCount = (existingInspections || []).filter(
+      (inspection: any) => inspection?.is_demo !== true
+    ).length;
+
+    const used = Math.max(
+      Number(profile.free_inspections_used || 0),
+      existingRealInspectionCount
+    );
+
+    const limit = Number(profile.free_inspection_limit || 3);
+    const required = profile.subscription_required !== false;
+    const exempt = profile.subscription_exempt === true;
+    const status = String(profile.subscription_status || "").toLowerCase();
+
+    const active = status === "active" || status === "trialing";
+
+    if (!required || exempt || active) {
+      return {
+        allowed: true,
+        profile,
+        used,
+        limit,
+      };
+    }
+
+    if (used >= limit) {
+      setBillingMessage(
+        `You have used all ${limit} free inspections. Activate your On Point Inspect subscription to continue creating reports.`
+      );
+      setShowBillingPopup(true);
+
+      return {
+        allowed: false,
+        profile,
+        used,
+        limit,
+      };
+    }
+
+    return {
+      allowed: true,
+      profile,
+      used,
+      limit,
+    };
+  }
+
   async function scheduleInspection() {
     if (!clientName || !propertyAddress || !inspectionDate || !inspectionTime) {
       alert("Client name, address, date, and time are required.");
@@ -525,6 +597,12 @@ export default function NewInspectionPage() {
       if (userError || !user) {
         alert("You must be logged in to create an inspection.");
         router.push("/login");
+        return;
+      }
+
+      const billingAccess = await checkSubscriptionAccess(user.id);
+
+      if (!billingAccess.allowed) {
         return;
       }
 
@@ -621,6 +699,25 @@ export default function NewInspectionPage() {
       if (error) {
         alert(error.message);
         return;
+      }
+
+      if (billingAccess.profile) {
+        const nextFreeInspectionCount = Math.max(
+          Number(billingAccess.used || 0) + 1,
+          Number(billingAccess.profile.free_inspections_used || 0) + 1
+        );
+
+        const { error: freeInspectionUpdateError } = await supabase
+          .from("profiles")
+          .update({
+            free_inspections_used: nextFreeInspectionCount,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", user.id);
+
+        if (freeInspectionUpdateError) {
+          console.warn("Free inspection count was not updated.");
+        }
       }
 
       const defaultFindings = DEFAULT_INSPECTION_DETAILS_FINDINGS.map(
@@ -988,6 +1085,46 @@ export default function NewInspectionPage() {
           {saving ? "Creating..." : "Create Inspection"}
         </button>
       </div>
+
+      {showBillingPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
+          <div className="w-full max-w-lg rounded-2xl border border-teal-500 bg-[#0b1220] p-6 shadow-2xl">
+            <p className="text-sm font-black uppercase tracking-[0.2em] text-teal-400">
+              On Point Inspect Billing
+            </p>
+
+            <h2 className="mt-3 text-3xl font-black text-white">
+              Subscription Required
+            </h2>
+
+            <p className="mt-4 leading-7 text-zinc-300">
+              {billingMessage}
+            </p>
+
+            <p className="mt-3 text-sm leading-6 text-zinc-400">
+              Go to Billing to activate your subscription and continue creating inspections.
+            </p>
+
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => router.push("/billing")}
+                className="rounded-xl bg-teal-500 px-4 py-3 font-black text-black hover:bg-teal-400"
+              >
+                Go To Billing
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowBillingPopup(false)}
+                className="rounded-xl border border-zinc-700 px-4 py-3 font-black text-white hover:bg-zinc-800"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
