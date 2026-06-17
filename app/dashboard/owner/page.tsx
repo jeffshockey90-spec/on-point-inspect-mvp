@@ -634,6 +634,13 @@ export default async function OwnerDashboardPage() {
               </Link>
 
               <Link
+                href="/dashboard/owner/devices"
+                className="rounded-xl border border-purple-500 px-5 py-3 font-black text-purple-300 transition hover:bg-purple-500/10"
+              >
+                📱 Device Analytics
+              </Link>
+
+              <Link
                 href="/dashboard"
                 className="rounded-xl border border-teal-500 px-5 py-3 font-black text-teal-300 transition hover:bg-teal-500/10"
               >
