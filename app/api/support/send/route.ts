@@ -196,6 +196,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: messageError.message }, { status: 500 });
     }
 
+    const nextUnreadOwnerCount = Number(thread?.unread_owner_count || 0) + 1;
+
     await admin
       .from("inspector_support_threads")
       .update({
@@ -203,6 +205,7 @@ export async function POST(req: Request) {
         last_message: message,
         last_message_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+        unread_owner_count: nextUnreadOwnerCount,
       })
       .eq("id", thread.id);
 

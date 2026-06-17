@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
+import SupportUnreadBadge from "./SupportUnreadBadge";
 
 const OWNER_EMAILS = ["jeff@onpointhomeinspect.com", "jeffshockey90@gmail.com"];
 
@@ -77,11 +78,27 @@ export default function Navbar() {
   }, []);
 
   const visibleNavItems = useMemo(() => {
-    return isOwner ? [...navItems, ownerNavItem] : navItems;
+    const supportAwareItems = isOwner
+      ? navItems.map((item) =>
+          item.href === "/support"
+            ? { ...item, title: "Support Chat", href: "/dashboard/owner/support" }
+            : item
+        )
+      : navItems;
+
+    return isOwner ? [...supportAwareItems, ownerNavItem] : supportAwareItems;
   }, [isOwner]);
 
   const visibleMobileItems = useMemo(() => {
-    return isOwner ? [...mobileItems, ownerNavItem] : mobileItems;
+    const supportAwareItems = isOwner
+      ? mobileItems.map((item) =>
+          item.href === "/support"
+            ? { ...item, title: "Support Chat", href: "/dashboard/owner/support" }
+            : item
+        )
+      : mobileItems;
+
+    return isOwner ? [...supportAwareItems, ownerNavItem] : supportAwareItems;
   }, [isOwner]);
 
   function isActive(href: string) {
@@ -174,8 +191,9 @@ export default function Navbar() {
                   >
                     <NavSpinner active={opening} />
                     {!opening && <span className="text-base leading-none">{item.icon}</span>}
-                    <span className="whitespace-nowrap">
+                    <span className="flex items-center gap-1 whitespace-nowrap">
                       {opening ? "Opening..." : item.title}
+                      {!opening && item.mobileLabel === "Support" && <SupportUnreadBadge />}
                     </span>
                   </Link>
                 );
@@ -233,8 +251,9 @@ export default function Navbar() {
                     item.icon
                   )}
                 </span>
-                <span className="mt-1 block w-full text-center text-[10px] font-black leading-none whitespace-nowrap">
+                <span className="mt-1 flex w-full items-center justify-center gap-1 text-center text-[10px] font-black leading-none whitespace-nowrap">
                   {opening ? "Opening" : item.mobileLabel}
+                  {!opening && item.mobileLabel === "Support" && <SupportUnreadBadge className="min-h-4 min-w-4 px-1 text-[9px]" />}
                 </span>
               </Link>
             );

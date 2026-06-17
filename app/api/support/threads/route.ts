@@ -95,6 +95,13 @@ export async function GET() {
       .eq("thread_id", thread.id)
       .eq("sender_role", "owner");
 
+    try {
+      await admin
+        .from("inspector_support_threads")
+        .update({ unread_inspector_count: 0, updated_at: new Date().toISOString() })
+        .eq("id", thread.id);
+    } catch {}
+
     return NextResponse.json({ thread: { ...thread, messages: messages || [] } });
   } catch (error: any) {
     return NextResponse.json({ error: error?.message || "Could not load support thread." }, { status: 500 });

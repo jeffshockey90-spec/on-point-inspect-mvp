@@ -81,6 +81,13 @@ export async function GET() {
       .update({ read_by_owner: true })
       .eq("sender_role", "inspector");
 
+    try {
+      await admin
+        .from("inspector_support_threads")
+        .update({ unread_owner_count: 0, updated_at: new Date().toISOString() })
+        .in("id", threadIds);
+    } catch {}
+
     return NextResponse.json({ threads: fullThreads });
   } catch (error: any) {
     return NextResponse.json({ error: error?.message || "Could not load owner support threads." }, { status: 500 });

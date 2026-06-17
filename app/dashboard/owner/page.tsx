@@ -5,6 +5,7 @@ import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import PushNotificationSetup from "../../../components/PushNotificationSetup";
 import DeleteDemoReportButton from "../../../components/DeleteDemoReportButton";
+import SupportUnreadBadge from "../../../components/SupportUnreadBadge";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -670,9 +671,10 @@ export default async function OwnerDashboardPage() {
 
               <Link
                 href="/dashboard/owner/support"
-                className="rounded-xl border border-fuchsia-500 px-5 py-3 font-black text-fuchsia-300 transition hover:bg-fuchsia-500/10"
+                className="inline-flex items-center gap-2 rounded-xl border border-fuchsia-500 px-5 py-3 font-black text-fuchsia-300 transition hover:bg-fuchsia-500/10"
               >
                 💬 Support Chat
+                <SupportUnreadBadge />
               </Link>
 
               <Link

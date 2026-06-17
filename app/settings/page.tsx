@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "../../utils/supabase/server";
 import DeleteAccountSection from "./DeleteAccountSection";
 import PushNotificationSetup from "../../components/PushNotificationSetup";
+import SupportUnreadBadge from "../../components/SupportUnreadBadge";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -263,8 +264,9 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
             <p className="text-xs font-black uppercase tracking-[0.25em] text-fuchsia-300">
               Support Chat
             </p>
-            <h2 className="mt-3 text-2xl font-black text-white">
+            <h2 className="mt-3 flex items-center gap-2 text-2xl font-black text-white">
               Contact Owner Support
+              <SupportUnreadBadge />
             </h2>
             <p className="mt-2 text-sm leading-6 text-slate-300">
               Send Jeff a message directly from the app for help with reports, billing, setup, or bugs.
