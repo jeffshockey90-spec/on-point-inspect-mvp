@@ -641,6 +641,13 @@ export default async function OwnerDashboardPage() {
               </Link>
 
               <Link
+                href="/dashboard/owner/revenue"
+                className="rounded-xl border border-green-500 px-5 py-3 font-black text-green-300 transition hover:bg-green-500/10"
+              >
+                💰 Revenue Dashboard
+              </Link>
+
+              <Link
                 href="/dashboard"
                 className="rounded-xl border border-teal-500 px-5 py-3 font-black text-teal-300 transition hover:bg-teal-500/10"
               >
