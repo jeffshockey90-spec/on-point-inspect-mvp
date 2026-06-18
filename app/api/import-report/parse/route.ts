@@ -389,6 +389,37 @@ function mergeFindings(primary: ImportedFinding[], fallback: ImportedFinding[]) 
   return merged;
 }
 
+
+function splitRecommendation(text: string) {
+  const clean = cleanText(text);
+
+  const recommendationMarkers = [
+    "Recommend ",
+    "Recommendation:",
+    "Recommendation",
+    "Have ",
+    "Replace ",
+    "Repair ",
+    "Monitor ",
+  ];
+
+  for (const marker of recommendationMarkers) {
+    const index = clean.indexOf(marker);
+
+    if (index > 80) {
+      return {
+        observation: clean.slice(0, index).trim(),
+        recommendation: clean.slice(index).trim(),
+      };
+    }
+  }
+
+  return {
+    observation: clean,
+    recommendation: "",
+  };
+}
+
 function parseFindings(text: string): ImportedFinding[] {
   const lines = cleanText(text)
     .split("\n")
