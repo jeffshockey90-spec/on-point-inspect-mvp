@@ -518,15 +518,51 @@ function parseFindingsFromSpectoraPayload(payload: any): ImportedFinding[] {
 
 function getReportStorageCandidateUrls(inspectionId: string, reportId: string) {
   const encodedBase = `${inspectionId}%2Freports%2F${reportId}`;
-  const bucket = "https://firebasestorage.googleapis.com/v0/b/spectora-prod-processed-media/o";
 
-  return [
+  const firebaseBuckets = [
+    "https://firebasestorage.googleapis.com/v0/b/spectora-prod-processed-media/o",
+    "https://firebasestorage.googleapis.com/v0/b/spectora-prod-report-data/o",
+    "https://firebasestorage.googleapis.com/v0/b/spectora-prod-reports/o",
+  ];
+
+  const appUrls = [
+    // This is the request Chrome usually shows as: f382c123-...json?alt=media
+    `https://app.spectora.com/api/v1/public/reports/${reportId}.json?alt=media`,
+    `https://app.spectora.com/api/v1/public/reports/${reportId}/compiled?alt=media`,
+    `https://app.spectora.com/api/v1/public/reports/${reportId}/compiled.json?alt=media`,
+    `https://reports.spectora.com/reports/${reportId}.json?alt=media`,
+    `https://reports.spectora.com/v/reports/${reportId}.json?alt=media`,
+  ];
+
+  const firebaseUrls = firebaseBuckets.flatMap((bucket) => [
+    // Common compiled report locations used by Spectora's next-gen viewer.
+    `${bucket}/${reportId}.json?alt=media`,
+    `${bucket}/reports%2F${reportId}.json?alt=media`,
+    `${bucket}/inspections%2F${inspectionId}%2Freports%2F${reportId}.json?alt=media`,
     `${bucket}/${encodedBase}.json?alt=media`,
     `${bucket}/${encodedBase}%2F${reportId}.json?alt=media`,
     `${bucket}/${encodedBase}%2Freport.json?alt=media`,
     `${bucket}/${encodedBase}%2Fcompiled.json?alt=media`,
     `${bucket}/${encodedBase}%2Fcompiled%2F${reportId}.json?alt=media`,
+  ]);
+
+  const storageUrls = [
+    `https://storage.googleapis.com/spectora-prod-processed-media/${reportId}.json`,
+    `https://storage.googleapis.com/spectora-prod-processed-media/${inspectionId}/reports/${reportId}.json`,
+    `https://storage.googleapis.com/spectora-prod-processed-media/${inspectionId}/reports/${reportId}/${reportId}.json`,
+    `https://storage.googleapis.com/spectora-prod-processed-media/${inspectionId}/reports/${reportId}/report.json`,
+    `https://storage.googleapis.com/spectora-prod-processed-media/${inspectionId}/reports/${reportId}/compiled.json`,
   ];
+
+  return [...appUrls, ...firebaseUrls, ...storageUrls];
+}
+
+function hasSpectoraSections(payload: any) {
+  return Boolean(
+    payload?.report?.sections?.length ||
+      payload?.sections?.length ||
+      payload?.data?.report?.sections?.length
+  );
 }
 
 async function fetchCompiledSpectoraReport(inspectionId: string, reportId: string) {
@@ -537,11 +573,13 @@ async function fetchCompiledSpectoraReport(inspectionId: string, reportId: strin
   for (const url of urls) {
     const payload = await tryFetchJson(url);
 
-    if (payload?.report?.sections?.length || payload?.sections?.length) {
+    if (hasSpectoraSections(payload)) {
+      console.log("Spectora compiled report found:", url);
       return payload;
     }
   }
 
+  console.warn("Spectora compiled report was not found for", { inspectionId, reportId });
   return null;
 }
 
