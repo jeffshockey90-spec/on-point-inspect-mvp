@@ -462,6 +462,57 @@ export default async function ReportPage({ params }: PageProps) {
     redirect(`/reports/${inspectionId}#equipment-inventory`);
   }
 
+  async function updateEquipmentInventoryItem(formData: FormData) {
+    "use server";
+
+    const supabase = await createSupabaseServerClient();
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) redirect("/login");
+
+    const inspectionId = String(formData.get("inspection_id") || "");
+    const equipmentId = String(formData.get("equipment_id") || "");
+
+    const condition = String(formData.get("condition") || "").trim();
+    const inspectorNote = String(formData.get("inspector_note") || "").trim();
+    const maintenanceNote = String(formData.get("maintenance_note") || "").trim();
+
+    const { data: ownedInspection } = await supabase
+      .from("inspections")
+      .select("id")
+      .eq("id", inspectionId)
+      .eq("inspector_id", user.id)
+      .single();
+
+    if (!ownedInspection) {
+      redirect("/reports");
+    }
+
+    const { error } = await supabase
+      .from("equipment_inventory")
+      .update({
+        condition,
+        inspector_note: inspectorNote,
+        maintenance_note: maintenanceNote,
+      })
+      .eq("id", equipmentId)
+      .eq("inspection_id", inspectionId);
+
+    if (error) {
+      console.error("Update equipment inventory error:", error);
+      redirect(`/reports/${inspectionId}?equipment_update_error=1`);
+    }
+
+    revalidatePath(`/reports/${inspectionId}`);
+    revalidatePath(`/reports/${inspectionId}/print`);
+    revalidatePath(`/share/${inspectionId}`);
+    redirect(`/reports/${inspectionId}#equipment-inventory`);
+  }
+
+
   async function publishReport(formData: FormData) {
     "use server";
 
@@ -1341,6 +1392,62 @@ export default async function ReportPage({ params }: PageProps) {
 Service-life information is a general industry estimate only. Actual service life can vary based on installation quality, maintenance history, operating conditions, environment, and usage. This should not be treated as a prediction or guarantee of remaining equipment life.
                       </p>
 
+                      <details className="mt-4 rounded-xl border border-slate-700 bg-[#020817]/70 p-3">
+                        <summary className="cursor-pointer select-none text-sm font-black text-cyan-300">
+                          Edit Equipment Note
+                        </summary>
+
+                        <form action={updateEquipmentInventoryItem} className="mt-4 space-y-3">
+                          <input type="hidden" name="inspection_id" value={inspection.id} />
+                          <input type="hidden" name="equipment_id" value={item.id} />
+
+                          <div>
+                            <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-400">
+                              Condition
+                            </label>
+                            <input
+                              name="condition"
+                              defaultValue={getEquipmentConditionLabel(item.condition)}
+                              placeholder="No specific deficiency noted"
+                              className="w-full rounded-lg border border-slate-700 bg-[#020617] px-3 py-2 text-sm text-white outline-none focus:border-cyan-400"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-400">
+                              Inspector Note
+                            </label>
+                            <textarea
+                              name="inspector_note"
+                              defaultValue={getEquipmentInspectorNote(item)}
+                              placeholder="Example: Data plate documented. Unit operated normally at time of inspection."
+                              rows={3}
+                              className="w-full rounded-lg border border-slate-700 bg-[#020617] px-3 py-2 text-sm text-white outline-none focus:border-cyan-400"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-400">
+                              Maintenance Note
+                            </label>
+                            <textarea
+                              name="maintenance_note"
+                              defaultValue={getEquipmentMaintenanceNote(item)}
+                              placeholder="Example: Recommend routine HVAC servicing and filter maintenance."
+                              rows={3}
+                              className="w-full rounded-lg border border-slate-700 bg-[#020617] px-3 py-2 text-sm text-white outline-none focus:border-cyan-400"
+                            />
+                          </div>
+
+                          <button
+                            type="submit"
+                            className="w-full rounded-xl bg-cyan-500 px-4 py-2 text-sm font-black text-slate-950 hover:bg-cyan-400"
+                          >
+                            Save Equipment Note
+                          </button>
+                        </form>
+                      </details>
+
                       <form action={deleteEquipmentInventoryItem} className="mt-4">
                         <input type="hidden" name="inspection_id" value={inspection.id} />
                         <input type="hidden" name="equipment_id" value={item.id} />
@@ -1690,6 +1797,44 @@ function DefectCountCard({
       </p>
       <p className={`mt-2 text-3xl font-black ${tone}`}>{value}</p>
     </div>
+  );
+}
+
+
+function getEquipmentConditionLabel(value: any) {
+  const clean = String(value || "").trim();
+
+  if (!clean) return "No specific deficiency noted";
+
+  const lower = clean.toLowerCase();
+
+  if (
+    lower.includes("typical service life remaining") ||
+    lower.includes("service life remaining") ||
+    lower.includes("life remaining")
+  ) {
+    return "No specific deficiency noted";
+  }
+
+  return clean;
+}
+
+function getEquipmentInspectorNote(item: any) {
+  return (
+    item?.inspector_note ||
+    item?.inspection_note ||
+    item?.note ||
+    item?.notes ||
+    ""
+  );
+}
+
+function getEquipmentMaintenanceNote(item: any) {
+  return (
+    item?.maintenance_note ||
+    item?.maintenance ||
+    item?.service_note ||
+    ""
   );
 }
 
