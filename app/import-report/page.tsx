@@ -114,12 +114,150 @@ function photoSet(finding: ImportedFinding) {
 function isWorthShowingDetail(detail: ImportedFinding) {
   const title = cleanDisplayLabel(detail.title || "");
   const text = String(detail.observation || "").trim();
+  const lowerTitle = title.toLowerCase();
+  const lowerText = text.toLowerCase();
 
   if (!title && !text && !photoSet(detail).length) return false;
-  if (title.toLowerCase().includes("chimney disclaimer")) return false;
-  if (text.length > 500 && !photoSet(detail).length) return false;
+  if (lowerTitle.includes("chimney disclaimer")) return false;
+  if (lowerTitle.includes("not tested due to weather")) return false;
+  if (lowerText.includes("regular maintenance and annual professional servicing")) return false;
+  if (lowerText.includes("typical service life")) return false;
+  if (lowerText.includes("budgeting for eventual replacement")) return false;
+  if (text.length > 420 && !photoSet(detail).length) return false;
 
   return true;
+}
+
+function simplifyDetailObservation(detail: ImportedFinding) {
+  const text = String(detail.observation || "").trim();
+  const title = cleanDisplayLabel(detail.title || "");
+
+  if (!text) return "";
+
+  const normalized = text.replace(/\s+/g, " ").trim();
+
+  if (normalized.length > 220) {
+    if (title.toLowerCase().includes("brand")) {
+      const firstSentence = normalized.split(/(?<=[.!?])\s+/)[0] || normalized;
+      return firstSentence.slice(0, 180).trim();
+    }
+
+    return normalized.slice(0, 220).trim() + "…";
+  }
+
+  return normalized;
+}
+
+function samePhotoGroup(a: ImportedFinding, b: ImportedFinding) {
+  const aPhotos = photoSet(a);
+  const bPhotos = photoSet(b);
+
+  if (!aPhotos.length || !bPhotos.length) return false;
+
+  return aPhotos.some((photo) => bPhotos.includes(photo));
+}
+
+function detailMergeKey(detail: ImportedFinding) {
+  const section = String(detail.section || "").trim().toLowerCase();
+  const title = cleanDisplayLabel(detail.title || "").trim().toLowerCase();
+  const shortText = simplifyDetailObservation(detail).toLowerCase();
+
+  if (title.includes("brand") && photoSet(detail).length) {
+    return `${section}::equipment-brand::${photoSet(detail).sort().join("|")}`;
+  }
+
+  if (title.includes("garbage disposal") && photoSet(detail).length) {
+    return `${section}::garbage-disposal::${photoSet(detail).sort().join("|")}`;
+  }
+
+  if (title.includes("range") && photoSet(detail).length) {
+    return `${section}::range-oven::${photoSet(detail).sort().join("|")}`;
+  }
+
+  return `${section}::${title}::${shortText}`;
+}
+
+function dedupeImportedDetails(details: ImportedFinding[]) {
+  const byKey = new Map<string, ImportedFinding>();
+
+  for (const rawDetail of details) {
+    const detail = {
+      ...rawDetail,
+      observation: simplifyDetailObservation(rawDetail),
+      photos: photoSet(rawDetail),
+      image_url: photoSet(rawDetail)[0] || "",
+    };
+
+    const key = detailMergeKey(detail);
+    const existing = byKey.get(key);
+
+    if (!existing) {
+      byKey.set(key, detail);
+      continue;
+    }
+
+    const mergedPhotos = Array.from(new Set([...photoSet(existing), ...photoSet(detail)]));
+    const betterObservation =
+      String(existing.observation || "").length <= String(detail.observation || "").length
+        ? existing.observation
+        : detail.observation;
+
+    byKey.set(key, {
+      ...existing,
+      observation: betterObservation,
+      photos: mergedPhotos,
+      image_url: mergedPhotos[0] || "",
+    });
+  }
+
+  const merged = Array.from(byKey.values());
+  const output: ImportedFinding[] = [];
+
+  for (const detail of merged) {
+    const duplicateIndex = output.findIndex(
+      (existing) =>
+        String(existing.section || "").toLowerCase() === String(detail.section || "").toLowerCase() &&
+        samePhotoGroup(existing, detail)
+    );
+
+    if (duplicateIndex >= 0) {
+      const existing = output[duplicateIndex];
+      const mergedPhotos = Array.from(new Set([...photoSet(existing), ...photoSet(detail)]));
+      output[duplicateIndex] = {
+        ...existing,
+        photos: mergedPhotos,
+        image_url: mergedPhotos[0] || "",
+      };
+      continue;
+    }
+
+    output.push(detail);
+  }
+
+  return output;
+}
+
+function dedupeImportedFindings(findings: ImportedFinding[]) {
+  const seen = new Set<string>();
+  const output: ImportedFinding[] = [];
+
+  for (const finding of findings) {
+    const section = String(finding.section || "").trim().toLowerCase();
+    const title = String(finding.title || "").trim().toLowerCase();
+    const observation = String(finding.observation || "").trim().toLowerCase();
+    const photos = photoSet(finding).sort().join("|");
+    const key = `${section}::${title}::${observation.slice(0, 160)}::${photos}`;
+
+    if (seen.has(key)) continue;
+    seen.add(key);
+    output.push({
+      ...finding,
+      photos: photoSet(finding),
+      image_url: photoSet(finding)[0] || finding.image_url || "",
+    });
+  }
+
+  return output;
 }
 
 function normalizedDetailKey(detail: ImportedFinding) {
