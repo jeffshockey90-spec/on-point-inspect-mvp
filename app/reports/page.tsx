@@ -236,6 +236,16 @@ export default async function ReportsPage() {
 
               const propertyPhoto =
                 inspection.street_view_url ||
+                inspection.streetview_url ||
+                inspection.streetview_image ||
+                inspection.cover_photo_url ||
+                inspection.property_photo_url ||
+                inspection.property_image_url ||
+                inspection.image_url ||
+                inspection.photo_url ||
+                inspection.cover_image ||
+                inspection.hero_image ||
+                inspection.report_image ||
                 inspection.property_image ||
                 inspection.property_photo ||
                 "";
@@ -255,7 +265,7 @@ export default async function ReportsPage() {
                   key={inspection.id}
                   className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 shadow-xl"
                 >
-                  <div className="flex h-56 items-center justify-center overflow-hidden bg-slate-950 text-slate-500">
+                  <div className="relative flex h-56 items-center justify-center overflow-hidden bg-slate-950 text-slate-500">
                     {propertyPhoto ? (
                       <img
                         src={propertyPhoto}
@@ -266,6 +276,12 @@ export default async function ReportsPage() {
                       />
                     ) : (
                       <span>No Property Photo</span>
+                    )}
+
+                    {(inspection.is_demo || inspection.demo_enabled) && (
+                      <span className="absolute left-3 top-3 rounded-full border border-cyan-400/70 bg-cyan-500/20 px-3 py-1 text-xs font-black uppercase tracking-wide text-cyan-100 backdrop-blur">
+                        Demo
+                      </span>
                     )}
                   </div>
 
@@ -347,11 +363,11 @@ export default async function ReportsPage() {
 
                     <div className="mt-6 flex flex-col gap-3">
                       <FastLinkButton
-                        href={`/reports/${inspection.id}`}
+                        href={(inspection.is_demo || inspection.demo_enabled) ? `/demo/${inspection.id}` : `/reports/${inspection.id}`}
                         loadingText="Opening Report..."
                         className="rounded-xl bg-teal-500 px-5 py-3 text-center font-bold text-black hover:bg-teal-400"
                       >
-                        Open Report
+                        {(inspection.is_demo || inspection.demo_enabled) ? "Open Demo Report" : "Open Report"}
                       </FastLinkButton>
 
                       {isInspectorOwner && (
