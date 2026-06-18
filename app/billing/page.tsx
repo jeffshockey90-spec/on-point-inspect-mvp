@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import SubscriptionCheckoutButton from "../../components/SubscriptionCheckoutButton";
+import ManageSubscriptionButton from "../../components/ManageSubscriptionButton";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -159,10 +160,17 @@ export default async function BillingPage({
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row">
-              {exempt || active ? (
+              {exempt ? (
                 <Link href="/dashboard" className="rounded-xl bg-teal-500 px-6 py-3 text-center font-black text-slate-950 hover:bg-teal-400">
                   Go to Dashboard
                 </Link>
+              ) : active ? (
+                <>
+                  <Link href="/dashboard" className="rounded-xl bg-teal-500 px-6 py-3 text-center font-black text-slate-950 hover:bg-teal-400">
+                    Go to Dashboard
+                  </Link>
+                  <ManageSubscriptionButton />
+                </>
               ) : (
                 <SubscriptionCheckoutButton priceLabel={`${dollars(priceCents)}/month`} />
               )}
