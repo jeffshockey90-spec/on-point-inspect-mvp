@@ -2,22 +2,24 @@
 
 import { useEffect, useState } from "react";
 
-export default function SupportUnreadBadge({
-  className = "",
-}: {
+type Props = {
   className?: string;
-}) {
+  pollMs?: number;
+};
+
+export default function SupportUnreadBadge({ className = "", pollMs = 30000 }: Props) {
   const [count, setCount] = useState(0);
 
   async function loadCount() {
     try {
-      const res = await fetch("/api/support/unread-count", {
-        cache: "no-store",
-      });
+      const res = await fetch("/api/support/unread-count", { cache: "no-store" });
+      const data = await res.json().catch(() => ({}));
 
-      if (!res.ok) return;
+      if (!res.ok) {
+        setCount(0);
+        return;
+      }
 
-      const data = await res.json();
       setCount(Number(data?.count || 0));
     } catch {
       setCount(0);
@@ -26,17 +28,16 @@ export default function SupportUnreadBadge({
 
   useEffect(() => {
     loadCount();
-
-    const timer = window.setInterval(loadCount, 30000);
-
+    const timer = window.setInterval(loadCount, pollMs);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [pollMs]);
 
-  if (!count) return null;
+  if (count <= 0) return null;
 
   return (
     <span
-      className={`ml-2 inline-flex min-w-5 items-center justify-center rounded-full bg-red-500 px-2 py-0.5 text-xs font-black text-white ${className}`}
+      className={`inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[11px] font-black leading-none text-white shadow-lg shadow-red-500/30 ${className}`}
+      aria-label={`${count} unread support messages`}
     >
       {count > 99 ? "99+" : count}
     </span>
