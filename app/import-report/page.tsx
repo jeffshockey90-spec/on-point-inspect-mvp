@@ -704,11 +704,11 @@ export default function ImportReportPage() {
                     <div key={section} className="rounded-2xl border border-slate-700 bg-[#020617] p-4">
                       <h3 className="text-lg font-black text-white">{section}</h3>
 
-                      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                         {details.map((detail, index) => (
                           <div
                             key={`${detail.title}-${index}`}
-                            className="min-h-[92px] rounded-xl border border-slate-700 bg-[#0f172a] p-3"
+                            className="rounded-xl border border-slate-700 bg-[#0f172a] p-3"
                           >
                             <p className="text-[11px] font-black uppercase tracking-wide text-slate-400">
                               {cleanDisplayLabel(detail.title)}
@@ -771,52 +771,85 @@ export default function ImportReportPage() {
                 {activeFindings.map((finding, index) => (
                   <div
                     key={`${finding.title}-${index}`}
-                    className="rounded-2xl border border-slate-700 bg-[#020617] p-4"
+                    className="overflow-hidden rounded-2xl border border-slate-700 bg-[#020617]"
                   >
-                    <div className="mb-4 flex items-center justify-between gap-3">
-                      <p className="text-sm font-black uppercase tracking-wide text-amber-300">
-                        Imported Finding #{index + 1}
-                      </p>
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-700 bg-[#07111f] px-4 py-3">
+                      <div>
+                        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
+                          {finding.section || "Inspection Details"}
+                        </p>
 
-                      <button
-                        type="button"
-                        onClick={() => removeFinding(index)}
-                        className="rounded-lg border border-red-500/50 px-3 py-2 text-sm font-bold text-red-300 hover:bg-red-500/10"
-                      >
-                        Remove
-                      </button>
-                    </div>
-
-                    {photoSet(finding).length > 0 && (
-                      <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-                        {photoSet(finding).slice(0, 12).map((photoUrl, photoIndex) => (
-                          <a
-                            key={`${photoUrl}-${photoIndex}`}
-                            href={photoUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="rounded-xl border border-slate-700 bg-black p-2"
-                            title="Open full photo"
-                          >
-                            <img
-                              src={photoUrl}
-                              alt="Imported Spectora photo"
-                              className="mx-auto max-h-[420px] w-auto max-w-full rounded-lg object-contain"
-                            />
-                          </a>
-                        ))}
+                        <h3 className="mt-1 text-2xl font-black leading-tight text-teal-300">
+                          {finding.title || "Imported Finding"}
+                        </h3>
                       </div>
-                    )}
 
-                    <div className="grid gap-4 md:grid-cols-3">
-                      <Input label="Section" value={finding.section} onChange={(value) => updateFinding(index, "section", value)} />
-                      <Input label="Severity" value={finding.severity} onChange={(value) => updateFinding(index, "severity", value)} />
-                      <Input label="Title" value={finding.title} onChange={(value) => updateFinding(index, "title", value)} />
+                      <div className="flex items-center gap-3">
+                        <span className={`rounded-full border px-4 py-2 text-xs font-black uppercase tracking-wide ${severityBadgeClass(finding.severity)}`}>
+                          {finding.severity || "Recommended Repair"}
+                        </span>
+
+                        <button
+                          type="button"
+                          onClick={() => removeFinding(index)}
+                          className="rounded-lg border border-red-500/50 px-3 py-2 text-sm font-bold text-red-300 hover:bg-red-500/10"
+                        >
+                          Remove
+                        </button>
+                      </div>
                     </div>
 
-                    <Textarea label="Observation" value={finding.observation} onChange={(value) => updateFinding(index, "observation", value)} />
-                    <Textarea label="Implication" value={finding.implication} onChange={(value) => updateFinding(index, "implication", value)} />
-                    <Textarea label="Recommendation" value={finding.recommendation} onChange={(value) => updateFinding(index, "recommendation", value)} />
+                    <div className="p-4">
+                      {photoSet(finding).length > 0 && (
+                        <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+                          {photoSet(finding).slice(0, 8).map((photoUrl, photoIndex) => (
+                            <a
+                              key={`${photoUrl}-${photoIndex}`}
+                              href={photoUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="rounded-xl border border-slate-700 bg-black p-2"
+                              title="Open full photo"
+                            >
+                              <img
+                                src={photoUrl}
+                                alt="Imported Spectora photo"
+                                className="mx-auto max-h-[460px] w-auto max-w-full rounded-lg object-contain"
+                              />
+                            </a>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="mb-4 grid gap-4 md:grid-cols-3">
+                        <Input label="Section" value={finding.section} onChange={(value) => updateFinding(index, "section", value)} />
+                        <Input label="Severity" value={finding.severity} onChange={(value) => updateFinding(index, "severity", value)} />
+                        <Input label="Title" value={finding.title} onChange={(value) => updateFinding(index, "title", value)} />
+                      </div>
+
+                      <div className="grid gap-3 md:grid-cols-3">
+                        <NativeTextBox
+                          title="Observation"
+                          value={finding.observation}
+                          accent="blue"
+                          onChange={(value) => updateFinding(index, "observation", value)}
+                        />
+
+                        <NativeTextBox
+                          title="Implication"
+                          value={finding.implication}
+                          accent="amber"
+                          onChange={(value) => updateFinding(index, "implication", value)}
+                        />
+
+                        <NativeTextBox
+                          title="Recommendation"
+                          value={finding.recommendation}
+                          accent="teal"
+                          onChange={(value) => updateFinding(index, "recommendation", value)}
+                        />
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -825,6 +858,59 @@ export default function ImportReportPage() {
         )}
       </div>
     </main>
+  );
+}
+
+
+function severityBadgeClass(severity: string) {
+  const clean = String(severity || "").toLowerCase();
+
+  if (clean.includes("safety") || clean.includes("major")) {
+    return "border-red-400/70 bg-red-500/15 text-red-200";
+  }
+
+  if (clean.includes("maintenance") || clean.includes("monitor")) {
+    return "border-amber-400/70 bg-amber-500/15 text-amber-200";
+  }
+
+  if (clean.includes("information")) {
+    return "border-sky-400/70 bg-sky-500/15 text-sky-200";
+  }
+
+  return "border-teal-400/70 bg-teal-500/15 text-teal-200";
+}
+
+function NativeTextBox({
+  title,
+  value,
+  accent,
+  onChange,
+}: {
+  title: string;
+  value: string;
+  accent: "blue" | "amber" | "teal";
+  onChange: (value: string) => void;
+}) {
+  const accentClass =
+    accent === "blue"
+      ? "border-blue-500/50 bg-blue-500/10"
+      : accent === "amber"
+        ? "border-amber-500/50 bg-amber-500/10"
+        : "border-teal-500/50 bg-teal-500/10";
+
+  return (
+    <label className={`block rounded-xl border p-3 ${accentClass}`}>
+      <span className="mb-2 block text-[11px] font-black uppercase tracking-wide text-white">
+        {title}
+      </span>
+
+      <textarea
+        value={value || ""}
+        onChange={(event) => onChange(event.target.value)}
+        rows={6}
+        className="w-full resize-y bg-transparent text-sm font-semibold leading-6 text-white outline-none"
+      />
+    </label>
   );
 }
 
