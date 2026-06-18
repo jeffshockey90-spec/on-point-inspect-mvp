@@ -659,8 +659,11 @@ export default function ImportReportPage() {
             state: demoState,
             zip: demoZip,
 
-            property_photo_url: parsedReport.coverPhotoUrl || null,
             cover_photo_url: parsedReport.coverPhotoUrl || null,
+            property_photo_url: parsedReport.coverPhotoUrl || null,
+            property_image_url: parsedReport.coverPhotoUrl || null,
+            image_url: parsedReport.coverPhotoUrl || null,
+            photo_url: parsedReport.coverPhotoUrl || null,
 
             inspection_date: inspectionDate,
             inspection_time: "10:00",
