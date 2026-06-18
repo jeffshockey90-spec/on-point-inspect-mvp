@@ -145,6 +145,28 @@ function decodeManufactureYearFromSerial({
   return null;
 }
 
+
+function getStatusLifeMax(category: string, equipmentType: string) {
+  const cleanCategory = cleanText(category).toLowerCase();
+  const cleanType = cleanText(equipmentType).toLowerCase();
+  const combined = `${cleanCategory} ${cleanType}`;
+
+  if (combined.includes("water heater") || combined.includes("storage tank")) return 12;
+  if (combined.includes("tankless")) return 20;
+  if (combined.includes("heat pump")) return 15;
+  if (combined.includes("air conditioner") || combined.includes("condenser")) return 15;
+  if (combined.includes("air handler")) return 15;
+  if (combined.includes("furnace")) return 20;
+  if (combined.includes("boiler")) return 30;
+  if (combined.includes("electrical panel") || combined.includes("service panel")) return 40;
+  if (combined.includes("water softener")) return 15;
+  if (combined.includes("dishwasher")) return 12;
+  if (combined.includes("range") || combined.includes("oven") || combined.includes("stove")) return 15;
+  if (combined.includes("refrigerator")) return 15;
+
+  return null;
+}
+
 function getEquipmentStatus({
   condition,
   severity,
@@ -186,7 +208,7 @@ function getEquipmentStatus({
     return "⚠ Service Recommended";
   }
 
-  const maxLife = getLifeMax(category, equipmentType);
+  const maxLife = getStatusLifeMax(category, equipmentType);
   if (age !== null && maxLife) {
     if (age > maxLife) return "⚠ Monitor / Budget for Replacement";
     if (age >= maxLife - 2) return "⚠ Monitor";
@@ -213,7 +235,7 @@ function chooseSeverity({
 }) {
   if (problemPanel) return "Safety Concern";
 
-  const maxLife = getLifeMax(category, equipmentType);
+  const maxLife = getStatusLifeMax(category, equipmentType);
   if (maxLife && age !== null) {
     if (age >= maxLife) return "Recommended Repair";
     if (age >= maxLife - 3) return "Monitor";
