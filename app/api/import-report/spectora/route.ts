@@ -473,6 +473,7 @@ function isFindingObservation(value: any) {
   const answerType = String(value?.answer_type || "").toLowerCase();
   const name = cleanText(value?.name || "");
   const text = cleanText(value?.text || "");
+  const rawValue = cleanText(value?.value || "");
   const hasPhotos = Array.isArray(value?.photos) && value.photos.length > 0;
 
   if (!name) return false;
@@ -483,14 +484,22 @@ function isFindingObservation(value: any) {
   if (commentType === "safety") return true;
   if (commentType === "maintenance") return true;
 
+  // Import important Spectora informational data too, so the On Point draft
+  // carries property details, equipment details, reference photos, and section snapshot info.
+  if (commentType === "info") {
+    if (text.length > 20 || rawValue || hasPhotos) return true;
+  }
+
+  // Keep limitations as informational notes if they contain real narrative text.
+  if (commentType === "limit") {
+    if (text.length > 20 || hasPhotos) return true;
+  }
+
   // Some Spectora compiled payloads lose the defect type in nested nodes.
-  // Keep this conservative: only import "true" boolean items that have real narrative text or photos.
   if (
     answerType === "boolean" &&
     String(value?.value || "").toLowerCase() === "true" &&
-    (text.length > 25 || hasPhotos) &&
-    commentType !== "info" &&
-    commentType !== "limit"
+    (text.length > 25 || hasPhotos)
   ) {
     return true;
   }
@@ -505,23 +514,31 @@ function extractFindingFromObservation(
 ): ImportedFinding | null {
   if (!isFindingObservation(observation)) return null;
 
+  const commentType = String(observation?.comment_type || "").toLowerCase();
   const title = cleanText(observation?.name || fallbackItemName || "Imported Finding");
   const parsedText = parseHtmlFindingText(observation?.text || "");
+  const valueText = cleanText(observation?.value || "");
+  const unitText = cleanText(observation?.unit_type || "");
+  const itemName = cleanText(observation?.item_name || fallbackItemName || "");
 
   const photos = (observation?.photos || [])
     .map((photo: any) => getPhotoUrl(photo))
     .filter(Boolean);
 
+  const informationalObservation =
+    parsedText.observation ||
+    [valueText, unitText].filter(Boolean).join(" ") ||
+    "Imported from Spectora report. Review and edit this finding before publishing.";
+
   return {
     section: cleanText(sectionName || "Inspection Details"),
-    title,
-    observation:
-      parsedText.observation ||
-      "Imported from Spectora report. Review and edit this finding before publishing.",
+    title: itemName && itemName !== title ? `${itemName}: ${title}` : title,
+    observation: informationalObservation,
     implication: parsedText.implication,
     recommendation:
-      parsedText.recommendation ||
-      cleanText(observation?.recommendation || ""),
+      commentType === "info" || commentType === "limit"
+        ? parsedText.recommendation || ""
+        : parsedText.recommendation || cleanText(observation?.recommendation || ""),
     severity: normalizeSeverityFromSpectora(
       observation?.category,
       observation?.comment_type
@@ -684,12 +701,10 @@ function parseFindingsFromSpectoraPayload(payload: any): ImportedFinding[] {
     );
   }
 
-  const defectFindings = findings.filter(
-    (finding) => finding.severity !== "Informational"
-  );
-
-  // Prefer true findings. If a report only contains informational photos, keep those.
-  return defectFindings.length ? defectFindings : findings;
+  // Keep informational observations too. On Point Inspect already excludes
+  // Informational items from defect totals, and these are needed for imported
+  // property details, equipment details, and reference photos.
+  return findings;
 }
 
 function getReportStorageCandidateUrls(inspectionId: string, reportId: string) {
@@ -818,6 +833,7 @@ export async function POST(request: Request) {
         realtorPhone: buyingAgent?.phone || "",
         inspectionDate: pdfCoverInfo.inspectionDate || "",
 
+        propertyDetails: findings.filter((finding) => finding.severity === "Informational"),
         findings,
         rawTextPreview: pdfText.slice(0, 5000),
         importerStatus: compiledPayload

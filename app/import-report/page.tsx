@@ -13,6 +13,8 @@ type ImportedFinding = {
   implication: string;
   recommendation: string;
   severity: string;
+  image_url?: string;
+  photos?: string[];
 };
 
 type ParsedReport = {
@@ -35,6 +37,7 @@ type ParsedReport = {
   coverPhotoUrl?: string;
   spectoraReportId?: string;
   spectoraInspectionId?: string;
+  importerStatus?: string;
 };
 
 const EMPTY_PARSED_REPORT: ParsedReport = {
@@ -93,9 +96,20 @@ export default function ImportReportPage() {
         (finding) =>
           finding.title.trim() ||
           finding.observation.trim() ||
-          finding.recommendation.trim()
+          finding.recommendation.trim() ||
+          (finding.photos || []).length > 0
       ),
     [parsedReport.findings]
+  );
+
+  const photoCount = useMemo(
+    () =>
+      activeFindings.reduce(
+        (total, finding) =>
+          total + new Set([finding.image_url, ...(finding.photos || [])].filter(Boolean)).size,
+        0
+      ),
+    [activeFindings]
   );
 
   function updateReportField(field: keyof ParsedReport, value: string) {
@@ -153,6 +167,10 @@ export default function ImportReportPage() {
         implication: finding.implication || "",
         recommendation: finding.recommendation || "",
         severity: normalizeSeverity(finding.severity),
+        image_url: (finding as any).image_url || (finding as any).photos?.[0] || "",
+        photos: Array.from(
+          new Set([...(finding.photos || []), finding.image_url].filter(Boolean))
+        ) as string[],
       })),
     });
   }
@@ -241,6 +259,7 @@ export default function ImportReportPage() {
 
       const importNotes = [
         `Imported from ${parsedReport.reportType || "PDF"} report. Review all findings before publishing.`,
+        parsedReport.importerStatus || "",
         parsedReport.sourceUrl ? `Spectora source: ${parsedReport.sourceUrl}` : "",
         parsedReport.pdfUrl ? `Original PDF: ${parsedReport.pdfUrl}` : "",
         parsedReport.coverPhotoUrl ? `Cover photo: ${parsedReport.coverPhotoUrl}` : "",
@@ -311,15 +330,48 @@ export default function ImportReportPage() {
         implication: finding.implication || "",
         recommendation: finding.recommendation || "",
         severity: normalizeSeverity(finding.severity),
+        image_url: finding.image_url || finding.photos?.[0] || null,
       }));
 
+      let insertedFindings: any[] = [];
+
       if (findingsToInsert.length > 0) {
-        const { error: findingsError } = await supabase
+        const { data: findingsData, error: findingsError } = await supabase
           .from("findings")
-          .insert(findingsToInsert);
+          .insert(findingsToInsert)
+          .select("id, inspection_id, section, title, image_url");
 
         if (findingsError) {
           throw new Error(findingsError.message);
+        }
+
+        insertedFindings = findingsData || [];
+      }
+
+      const photoRows: any[] = [];
+
+      insertedFindings.forEach((insertedFinding, index) => {
+        const sourceFinding = activeFindings[index];
+        const urls = Array.from(
+          new Set([sourceFinding?.image_url, ...(sourceFinding?.photos || [])].filter(Boolean))
+        );
+
+        urls.forEach((url) => {
+          photoRows.push({
+            inspection_id: String(inspection.id),
+            finding_id: String(insertedFinding.id),
+            company_id: companyId,
+            public_url: url,
+            thumbnail_url: url,
+          });
+        });
+      });
+
+      if (photoRows.length > 0) {
+        const { error: photoError } = await supabase.from("photos").insert(photoRows);
+
+        if (photoError) {
+          console.warn("Imported Spectora photos were not inserted:", photoError.message);
         }
       }
 
@@ -449,7 +501,7 @@ export default function ImportReportPage() {
               </button>
 
               <p className="mt-3 text-sm text-slate-400">
-                This uses the public Spectora report link and the linked PDF to build a native On Point Inspect draft.
+                This uses the public Spectora report link to build a native On Point Inspect draft.
               </p>
             </div>
           ) : (
@@ -498,78 +550,25 @@ export default function ImportReportPage() {
                 </div>
               )}
 
+              {parsedReport.importerStatus && (
+                <p className="mt-4 rounded-xl border border-teal-500/40 bg-teal-500/10 p-3 text-sm text-teal-100">
+                  {parsedReport.importerStatus} Photos detected: {photoCount}.
+                </p>
+              )}
+
               <div className="mt-5 grid gap-4 md:grid-cols-2">
-                <Input
-                  label="Report Type"
-                  value={parsedReport.reportType}
-                  onChange={(value) => updateReportField("reportType", value)}
-                />
-
-                <Input
-                  label="Inspection Date"
-                  value={parsedReport.inspectionDate}
-                  onChange={(value) => updateReportField("inspectionDate", value)}
-                />
-
-                <Input
-                  label="Property Address"
-                  value={parsedReport.propertyAddress}
-                  onChange={(value) => updateReportField("propertyAddress", value)}
-                />
-
-                <Input
-                  label="City"
-                  value={parsedReport.city}
-                  onChange={(value) => updateReportField("city", value)}
-                />
-
-                <Input
-                  label="State"
-                  value={parsedReport.state}
-                  onChange={(value) => updateReportField("state", value)}
-                />
-
-                <Input
-                  label="Zip"
-                  value={parsedReport.zip}
-                  onChange={(value) => updateReportField("zip", value)}
-                />
-
-                <Input
-                  label="Client Name"
-                  value={parsedReport.clientName}
-                  onChange={(value) => updateReportField("clientName", value)}
-                />
-
-                <Input
-                  label="Client Email"
-                  value={parsedReport.clientEmail}
-                  onChange={(value) => updateReportField("clientEmail", value)}
-                />
-
-                <Input
-                  label="Client Phone"
-                  value={parsedReport.clientPhone}
-                  onChange={(value) => updateReportField("clientPhone", value)}
-                />
-
-                <Input
-                  label="Realtor Name"
-                  value={parsedReport.realtorName}
-                  onChange={(value) => updateReportField("realtorName", value)}
-                />
-
-                <Input
-                  label="Realtor Email"
-                  value={parsedReport.realtorEmail}
-                  onChange={(value) => updateReportField("realtorEmail", value)}
-                />
-
-                <Input
-                  label="Realtor Phone"
-                  value={parsedReport.realtorPhone}
-                  onChange={(value) => updateReportField("realtorPhone", value)}
-                />
+                <Input label="Report Type" value={parsedReport.reportType} onChange={(value) => updateReportField("reportType", value)} />
+                <Input label="Inspection Date" value={parsedReport.inspectionDate} onChange={(value) => updateReportField("inspectionDate", value)} />
+                <Input label="Property Address" value={parsedReport.propertyAddress} onChange={(value) => updateReportField("propertyAddress", value)} />
+                <Input label="City" value={parsedReport.city} onChange={(value) => updateReportField("city", value)} />
+                <Input label="State" value={parsedReport.state} onChange={(value) => updateReportField("state", value)} />
+                <Input label="Zip" value={parsedReport.zip} onChange={(value) => updateReportField("zip", value)} />
+                <Input label="Client Name" value={parsedReport.clientName} onChange={(value) => updateReportField("clientName", value)} />
+                <Input label="Client Email" value={parsedReport.clientEmail} onChange={(value) => updateReportField("clientEmail", value)} />
+                <Input label="Client Phone" value={parsedReport.clientPhone} onChange={(value) => updateReportField("clientPhone", value)} />
+                <Input label="Realtor Name" value={parsedReport.realtorName} onChange={(value) => updateReportField("realtorName", value)} />
+                <Input label="Realtor Email" value={parsedReport.realtorEmail} onChange={(value) => updateReportField("realtorEmail", value)} />
+                <Input label="Realtor Phone" value={parsedReport.realtorPhone} onChange={(value) => updateReportField("realtorPhone", value)} />
               </div>
             </section>
 
@@ -577,10 +576,10 @@ export default function ImportReportPage() {
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <h2 className="text-2xl font-bold text-teal-300">
-                    3. Review Findings
+                    3. Review Findings & Imported Details
                   </h2>
                   <p className="mt-1 text-slate-400">
-                    {activeFindings.length} finding{activeFindings.length === 1 ? "" : "s"} found. Edit or remove anything before creating the draft.
+                    {activeFindings.length} item{activeFindings.length === 1 ? "" : "s"} found. Photos detected: {photoCount}. Edit or remove anything before creating the draft.
                   </p>
                 </div>
 
@@ -602,7 +601,7 @@ export default function ImportReportPage() {
                   >
                     <div className="mb-4 flex items-center justify-between gap-3">
                       <p className="text-sm font-black uppercase tracking-wide text-amber-300">
-                        Imported Finding #{index + 1}
+                        Imported Item #{index + 1}
                       </p>
 
                       <button
@@ -614,43 +613,28 @@ export default function ImportReportPage() {
                       </button>
                     </div>
 
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <Input
-                        label="Section"
-                        value={finding.section}
-                        onChange={(value) => updateFinding(index, "section", value)}
-                      />
+                    {(finding.photos || []).length > 0 && (
+                      <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+                        {(finding.photos || []).slice(0, 8).map((photoUrl, photoIndex) => (
+                          <img
+                            key={`${photoUrl}-${photoIndex}`}
+                            src={photoUrl}
+                            alt="Imported Spectora photo"
+                            className="h-32 w-full rounded-xl border border-slate-700 object-cover"
+                          />
+                        ))}
+                      </div>
+                    )}
 
-                      <Input
-                        label="Severity"
-                        value={finding.severity}
-                        onChange={(value) => updateFinding(index, "severity", value)}
-                      />
-
-                      <Input
-                        label="Title"
-                        value={finding.title}
-                        onChange={(value) => updateFinding(index, "title", value)}
-                      />
+                    <div className="grid gap-4 md:grid-cols-3">
+                      <Input label="Section" value={finding.section} onChange={(value) => updateFinding(index, "section", value)} />
+                      <Input label="Severity" value={finding.severity} onChange={(value) => updateFinding(index, "severity", value)} />
+                      <Input label="Title" value={finding.title} onChange={(value) => updateFinding(index, "title", value)} />
                     </div>
 
-                    <Textarea
-                      label="Observation"
-                      value={finding.observation}
-                      onChange={(value) => updateFinding(index, "observation", value)}
-                    />
-
-                    <Textarea
-                      label="Implication"
-                      value={finding.implication}
-                      onChange={(value) => updateFinding(index, "implication", value)}
-                    />
-
-                    <Textarea
-                      label="Recommendation"
-                      value={finding.recommendation}
-                      onChange={(value) => updateFinding(index, "recommendation", value)}
-                    />
+                    <Textarea label="Observation" value={finding.observation} onChange={(value) => updateFinding(index, "observation", value)} />
+                    <Textarea label="Implication" value={finding.implication} onChange={(value) => updateFinding(index, "implication", value)} />
+                    <Textarea label="Recommendation" value={finding.recommendation} onChange={(value) => updateFinding(index, "recommendation", value)} />
                   </div>
                 ))}
               </div>
