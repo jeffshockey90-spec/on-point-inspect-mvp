@@ -111,6 +111,17 @@ function photoSet(finding: ImportedFinding) {
   ) as string[];
 }
 
+function isWorthShowingDetail(detail: ImportedFinding) {
+  const title = cleanDisplayLabel(detail.title || "");
+  const text = String(detail.observation || "").trim();
+
+  if (!title && !text && !photoSet(detail).length) return false;
+  if (title.toLowerCase().includes("chimney disclaimer")) return false;
+  if (text.length > 500 && !photoSet(detail).length) return false;
+
+  return true;
+}
+
 export default function ImportReportPage() {
   const router = useRouter();
   const supabase = createClient();
@@ -137,13 +148,15 @@ export default function ImportReportPage() {
   );
 
   const propertyDetails = useMemo(
-    () => (parsedReport.propertyDetails || []).filter((detail) => detail.title || detail.observation || (detail.photos || []).length),
+    () =>
+      (parsedReport.propertyDetails || [])
+        .map(normalizeImportedFinding)
+        .filter(isWorthShowingDetail),
     [parsedReport.propertyDetails]
   );
 
   const photoCount = useMemo(
-    () =>
-      activeFindings.reduce((total, finding) => total + photoSet(finding).length, 0),
+    () => activeFindings.reduce((total, finding) => total + photoSet(finding).length, 0),
     [activeFindings]
   );
 
@@ -590,13 +603,13 @@ export default function ImportReportPage() {
                   href={parsedReport.coverPhotoUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="mt-5 block overflow-hidden rounded-2xl border border-slate-700 bg-black"
+                  className="mt-5 block rounded-2xl border border-slate-700 bg-black p-3"
                   title="Open full cover photo"
                 >
                   <img
                     src={parsedReport.coverPhotoUrl}
                     alt="Imported property cover"
-                    className="max-h-[420px] w-full object-contain"
+                    className="mx-auto max-h-[420px] w-auto max-w-full rounded-xl object-contain"
                   />
                 </a>
               )}
@@ -633,18 +646,21 @@ export default function ImportReportPage() {
                   These are Spectora information/details items. They will be saved into the imported draft notes, not as defect findings.
                 </p>
 
-                <div className="mt-5 space-y-4">
+                <div className="mt-5 space-y-5">
                   {Object.entries(groupedPropertyDetails).map(([section, details]) => (
                     <div key={section} className="rounded-2xl border border-slate-700 bg-[#020617] p-4">
                       <h3 className="text-lg font-black text-white">{section}</h3>
 
-                      <div className="mt-4 grid gap-3 md:grid-cols-3">
+                      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                         {details.map((detail, index) => (
-                          <div key={`${detail.title}-${index}`} className="rounded-xl border border-slate-700 bg-[#0f172a] p-3">
-                            <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+                          <div
+                            key={`${detail.title}-${index}`}
+                            className="min-h-[92px] rounded-xl border border-slate-700 bg-[#0f172a] p-3"
+                          >
+                            <p className="text-[11px] font-black uppercase tracking-wide text-slate-400">
                               {cleanDisplayLabel(detail.title)}
                             </p>
-                            <p className="mt-1 whitespace-pre-wrap text-sm font-bold text-white">
+                            <p className="mt-1 whitespace-pre-wrap break-words text-sm font-bold leading-5 text-white">
                               {detail.observation || "Imported detail"}
                             </p>
 
@@ -662,7 +678,7 @@ export default function ImportReportPage() {
                                     <img
                                       src={photoUrl}
                                       alt="Imported detail photo"
-                                      className="h-28 w-full rounded-md object-contain"
+                                      className="mx-auto max-h-36 w-auto max-w-full rounded-md object-contain"
                                     />
                                   </a>
                                 ))}
@@ -719,7 +735,7 @@ export default function ImportReportPage() {
                     </div>
 
                     {photoSet(finding).length > 0 && (
-                      <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+                      <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
                         {photoSet(finding).slice(0, 12).map((photoUrl, photoIndex) => (
                           <a
                             key={`${photoUrl}-${photoIndex}`}
@@ -732,7 +748,7 @@ export default function ImportReportPage() {
                             <img
                               src={photoUrl}
                               alt="Imported Spectora photo"
-                              className="max-h-80 w-full rounded-lg object-contain"
+                              className="mx-auto max-h-[420px] w-auto max-w-full rounded-lg object-contain"
                             />
                           </a>
                         ))}
