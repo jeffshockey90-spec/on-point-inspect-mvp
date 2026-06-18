@@ -347,6 +347,33 @@ function getLatestViewLogFromList(logs: any[]) {
       new Date(a.created_at || 0).getTime(),
   )[0];
 }
+function getEquipmentServiceLifeNote(item: any) {
+  const condition = String(item?.condition || "").toLowerCase();
+  const remaining = String(item?.estimated_life_remaining || "").toLowerCase();
+
+  if (
+    condition.includes("beyond") ||
+    condition.includes("past") ||
+    remaining.includes("beyond") ||
+    remaining.includes("0-")
+  ) {
+    return "At or beyond the typical service-life range. Budgeting for replacement is recommended.";
+  }
+
+  if (
+    condition.includes("near end") ||
+    condition.includes("end of typical") ||
+    remaining.includes("near")
+  ) {
+    return "Near the typical service-life range. Plan and budget for future replacement.";
+  }
+
+  if (item?.estimated_age || item?.manufacture_year || item?.expected_service_life) {
+    return "Actual service life varies based on installation, maintenance, usage, environment, and operating conditions.";
+  }
+
+  return "Service-life information is informational only and can vary.";
+}
 
 export default async function ReportPage({ params }: PageProps) {
   const { id } = await params;
@@ -383,6 +410,53 @@ export default async function ReportPage({ params }: PageProps) {
       .eq("inspector_id", user.id);
 
     revalidatePath(`/reports/${inspectionId}`);
+  }
+
+
+  async function deleteEquipmentInventoryItem(formData: FormData) {
+    "use server";
+
+    const supabase = await createSupabaseServerClient();
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) redirect("/login");
+
+    const inspectionId = String(formData.get("inspection_id") || "");
+    const equipmentId = String(formData.get("equipment_id") || "");
+
+    if (!inspectionId || !equipmentId) {
+      redirect(`/reports/${inspectionId || id}`);
+    }
+
+    const { data: ownedInspection } = await supabase
+      .from("inspections")
+      .select("id")
+      .eq("id", inspectionId)
+      .eq("inspector_id", user.id)
+      .single();
+
+    if (!ownedInspection) {
+      redirect("/reports");
+    }
+
+    const { error } = await supabase
+      .from("equipment_inventory")
+      .delete()
+      .eq("id", equipmentId)
+      .eq("inspection_id", Number(inspectionId));
+
+    if (error) {
+      console.error("Delete equipment inventory error:", error);
+      redirect(`/reports/${inspectionId}?equipment_delete_error=1`);
+    }
+
+    revalidatePath(`/reports/${inspectionId}`);
+    revalidatePath(`/reports/${inspectionId}/print`);
+    revalidatePath(`/share/${inspectionId}`);
+    redirect(`/reports/${inspectionId}#equipment-inventory`);
   }
 
   async function publishReport(formData: FormData) {
@@ -1243,12 +1317,12 @@ export default async function ReportPage({ params }: PageProps) {
                           value={item.estimated_age}
                         />
                         <InventoryLine
-                          label="Expected Life"
+                          label="Typical Service Life"
                           value={item.expected_service_life}
                         />
                         <InventoryLine
-                          label="Life Remaining"
-                          value={item.estimated_life_remaining}
+                          label="Service Life Note"
+                          value={getEquipmentServiceLifeNote(item)}
                         />
                         <InventoryLine
                           label="Refrigerant"
@@ -1259,6 +1333,21 @@ export default async function ReportPage({ params }: PageProps) {
                           value={item.condition}
                         />
                       </div>
+
+                      <p className="mt-4 rounded-xl border border-slate-700 bg-slate-950 p-3 text-xs leading-5 text-slate-400">
+                        Service-life information is a general industry estimate only. Actual service life can vary based on installation quality, maintenance history, operating conditions, environment, and usage.
+                      </p>
+
+                      <form action={deleteEquipmentInventoryItem} className="mt-4">
+                        <input type="hidden" name="inspection_id" value={inspection.id} />
+                        <input type="hidden" name="equipment_id" value={item.id} />
+                        <button
+                          type="submit"
+                          className="w-full rounded-xl border border-red-500/50 bg-red-500/10 px-4 py-3 text-sm font-black text-red-300 transition hover:bg-red-500/20"
+                        >
+                          Delete Equipment
+                        </button>
+                      </form>
                     </div>
                   );
                 })}
