@@ -553,6 +553,187 @@ function estimateLifeRemaining(
   return "Industry estimate only";
 }
 
+
+function hasR22(parsed: EquipmentAnalysis) {
+  const combined = [
+    parsed.refrigerant,
+    parsed.clientSummary,
+    parsed.condition,
+    parsed.recommendation,
+    parsed.notes,
+  ]
+    .map((value) => cleanText(value).toLowerCase())
+    .join(" ");
+
+  return combined.includes("r-22") || combined.includes("r22");
+}
+
+function hasProblemPanel(parsed: EquipmentAnalysis) {
+  const combined = [
+    parsed.equipmentType,
+    parsed.equipmentCategory,
+    parsed.manufacturer,
+    parsed.model,
+    parsed.clientSummary,
+    parsed.condition,
+    parsed.recommendation,
+    parsed.notes,
+  ]
+    .map((value) => cleanText(value).toLowerCase())
+    .join(" ");
+
+  if (
+    combined.includes("federal pacific") ||
+    combined.includes("stab-lok") ||
+    combined.includes("zinsco") ||
+    combined.includes("sylvani") ||
+    combined.includes("challenger panel")
+  ) {
+    return "Panel brand/model may be associated with known safety concerns. Recommend evaluation by a qualified electrical contractor.";
+  }
+
+  return "";
+}
+
+function getAgeCondition(age: number | null, category: string, equipmentType: string) {
+  if (age === null || age === undefined || !Number.isFinite(age)) {
+    return "No specific deficiency noted";
+  }
+
+  const maxLife = getStatusLifeMax(category, equipmentType);
+
+  if (!maxLife) return "No specific deficiency noted";
+
+  if (age > maxLife) {
+    return "At or beyond typical industry range";
+  }
+
+  if (age >= maxLife - 2) {
+    return "Near upper end of typical industry range";
+  }
+
+  return "No specific deficiency noted";
+}
+
+function chooseSection(parsed: EquipmentAnalysis, category: string) {
+  const explicit = cleanText(parsed.section);
+  if (explicit) return explicit;
+
+  if (category === "water_heater" || category === "plumbing") return "Plumbing";
+  if (category === "electrical") return "Electrical";
+  if (category === "appliance") return "Built-in Appliances";
+  if (category === "hvac") {
+    const text = [
+      parsed.equipmentType,
+      parsed.equipmentCategory,
+      parsed.model,
+      parsed.clientSummary,
+    ]
+      .map((value) => cleanText(value).toLowerCase())
+      .join(" ");
+
+    if (
+      text.includes("air conditioner") ||
+      text.includes("condenser") ||
+      text.includes("cooling")
+    ) {
+      return "Cooling";
+    }
+
+    return "Heating";
+  }
+
+  return "Inspection Details";
+}
+
+: {
+  parsed: EquipmentAnalysis;
+  age: number | null;
+  category: string;
+  equipmentType: string;
+  problemPanel: string;
+  r22: boolean;
+}) {
+  const explicit = cleanText(parsed.severity);
+  if (explicit) return explicit;
+
+  const condition = cleanText(parsed.condition).toLowerCase();
+
+  if (problemPanel) return "Safety Concern";
+  if (r22) return "Monitor";
+
+  if (
+    condition.includes("failed") ||
+    condition.includes("not operating") ||
+    condition.includes("safety")
+  ) {
+    return "Recommended Repair";
+  }
+
+  const maxLife = getStatusLifeMax(category, equipmentType);
+  if (age !== null && maxLife && age > maxLife) {
+    return "Monitor";
+  }
+
+  if (
+    condition.includes("service") ||
+    condition.includes("repair") ||
+    condition.includes("defect")
+  ) {
+    return "Maintenance";
+  }
+
+  return "Informational";
+}
+
+: {
+  age: number | null;
+  category: string;
+  condition: string;
+  r22: boolean;
+  problemPanel: string;
+}) {
+  if (problemPanel) return "Specialist evaluation recommended";
+  if (r22) return "Elevated monitoring recommended";
+
+  const cleanCondition = cleanText(condition).toLowerCase();
+
+  if (
+    cleanCondition.includes("service") ||
+    cleanCondition.includes("repair") ||
+    cleanCondition.includes("near upper") ||
+    cleanCondition.includes("beyond")
+  ) {
+    return "Elevated monitoring recommended";
+  }
+
+  if (age !== null) {
+    const maxLife = getStatusLifeMax(category, "");
+    if (maxLife && age >= maxLife - 2) return "Elevated monitoring recommended";
+  }
+
+  return "Routine maintenance recommended";
+}
+
+) {
+  const age = result.age ?? null;
+  const category = result.category || "";
+  const equipmentType = result.equipmentType || "";
+  const condition = cleanText(result.condition).toLowerCase();
+
+  if (condition.includes("beyond") || condition.includes("failed")) {
+    return "Budget planning is recommended.";
+  }
+
+  if (age !== null) {
+    const maxLife = getStatusLifeMax(category, equipmentType);
+    if (maxLife && age > maxLife) return "Budget planning is recommended.";
+    if (maxLife && age >= maxLife - 2) return "Monitor and budget as needed.";
+  }
+
+  return "No immediate budget recommendation based on available data.";
+}
+
 function enhanceAnalysis(parsed: EquipmentAnalysis) {
   const category = inferEquipmentCategory(parsed);
   const manufacturer = normalizeManufacturer(parsed.manufacturer);
