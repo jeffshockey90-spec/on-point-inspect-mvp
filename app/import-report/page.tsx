@@ -418,7 +418,7 @@ export default function ImportReportPage() {
   const [spectoraUrl, setSpectoraUrl] = useState("");
   const [parsedReport, setParsedReport] = useState<ParsedReport>(EMPTY_PARSED_REPORT);
   const [parsing, setParsing] = useState(false);
-  const [creating, setCreating] = useState(false);
+  const [creating, setCreating] = useState<false | "draft" | "demo">(false);
   const [errorMessage, setErrorMessage] = useState("");
 
   const activeFindings = useMemo(
@@ -595,10 +595,10 @@ export default function ImportReportPage() {
     }
   }
 
-  async function createImportedInspection() {
+  async function createImportedInspection(saveAsDemo = false) {
     try {
       setErrorMessage("");
-      setCreating(true);
+      setCreating(saveAsDemo ? "demo" : "draft");
 
       const {
         data: { user },
@@ -619,6 +619,7 @@ export default function ImportReportPage() {
 
       const importNotes = [
         `Imported from ${parsedReport.reportType || "PDF"} report. Review all findings before publishing.`,
+        saveAsDemo ? "Saved as public demo/sample report." : "",
         parsedReport.importerStatus || "",
         detailsText ? `\nImported Inspection Information:\n${detailsText}` : "",
         parsedReport.sourceUrl ? `Spectora source: ${parsedReport.sourceUrl}` : "",
@@ -630,6 +631,11 @@ export default function ImportReportPage() {
         .filter(Boolean)
         .join("\n");
 
+      const demoAddress = parsedReport.propertyAddress || "Sample Demo Report";
+      const demoCity = parsedReport.city || null;
+      const demoState = parsedReport.state || null;
+      const demoZip = parsedReport.zip || null;
+
       const { data: inspection, error: inspectionError } = await supabase
         .from("inspections")
         .insert([
@@ -637,21 +643,21 @@ export default function ImportReportPage() {
             inspector_id: user.id,
             company_id: companyId,
 
-            client_name: parsedReport.clientName || "Imported Client",
-            client_email: parsedReport.clientEmail.trim().toLowerCase() || null,
-            client_phone: parsedReport.clientPhone || null,
+            client_name: saveAsDemo ? "Sample Client" : parsedReport.clientName || "Imported Client",
+            client_email: saveAsDemo ? null : parsedReport.clientEmail.trim().toLowerCase() || null,
+            client_phone: saveAsDemo ? null : parsedReport.clientPhone || null,
 
-            realtor_name: parsedReport.realtorName || null,
-            realtor_email: parsedReport.realtorEmail.trim().toLowerCase() || null,
-            realtor_phone: parsedReport.realtorPhone || null,
-            agent_name: parsedReport.realtorName || null,
-            agent_email: parsedReport.realtorEmail.trim().toLowerCase() || null,
+            realtor_name: saveAsDemo ? "Sample Realtor" : parsedReport.realtorName || null,
+            realtor_email: saveAsDemo ? null : parsedReport.realtorEmail.trim().toLowerCase() || null,
+            realtor_phone: saveAsDemo ? null : parsedReport.realtorPhone || null,
+            agent_name: saveAsDemo ? "Sample Realtor" : parsedReport.realtorName || null,
+            agent_email: saveAsDemo ? null : parsedReport.realtorEmail.trim().toLowerCase() || null,
 
-            property_address: parsedReport.propertyAddress || "Imported Report",
-            address: parsedReport.propertyAddress || "Imported Report",
-            city: parsedReport.city || null,
-            state: parsedReport.state || null,
-            zip: parsedReport.zip || null,
+            property_address: demoAddress,
+            address: demoAddress,
+            city: demoCity,
+            state: demoState,
+            zip: demoZip,
 
             inspection_date: inspectionDate,
             inspection_time: "10:00",
@@ -669,9 +675,11 @@ export default function ImportReportPage() {
             inspection_type: "Imported Report",
             notes: importNotes,
 
-            report_status: "Draft",
-            is_published: false,
-            published: false,
+            report_status: saveAsDemo ? "Demo" : "Draft",
+            is_published: saveAsDemo,
+            published: saveAsDemo,
+            is_demo: saveAsDemo,
+            demo_enabled: saveAsDemo,
           },
         ])
         .select()
@@ -736,7 +744,7 @@ export default function ImportReportPage() {
 
       const inspectionContacts = [];
 
-      if (parsedReport.clientEmail.trim()) {
+      if (!saveAsDemo && parsedReport.clientEmail.trim()) {
         inspectionContacts.push({
           inspection_id: inspection.id,
           inspector_id: user.id,
@@ -749,7 +757,7 @@ export default function ImportReportPage() {
         });
       }
 
-      if (parsedReport.realtorEmail.trim()) {
+      if (!saveAsDemo && parsedReport.realtorEmail.trim()) {
         inspectionContacts.push({
           inspection_id: inspection.id,
           inspector_id: user.id,
@@ -770,6 +778,11 @@ export default function ImportReportPage() {
         if (contactsError) {
           console.warn("Imported inspection contacts were not inserted.");
         }
+      }
+
+      if (saveAsDemo) {
+        router.push(`/demo/${inspection.id}`);
+        return;
       }
 
       router.push(`/reports/${inspection.id}`);
@@ -1059,14 +1072,25 @@ export default function ImportReportPage() {
                   </p>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={createImportedInspection}
-                  disabled={creating || activeFindings.length === 0}
-                  className="rounded-xl bg-teal-500 px-6 py-3 font-black text-black hover:bg-teal-400 disabled:opacity-50"
-                >
-                  {creating ? "Creating Draft..." : "Create Imported Draft"}
-                </button>
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={() => createImportedInspection(false)}
+                    disabled={!!creating || activeFindings.length === 0}
+                    className="rounded-xl bg-teal-500 px-6 py-3 font-black text-black hover:bg-teal-400 disabled:opacity-50"
+                  >
+                    {creating === "draft" ? "Creating Draft..." : "Create Imported Draft"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => createImportedInspection(true)}
+                    disabled={!!creating || activeFindings.length === 0}
+                    className="rounded-xl border border-cyan-400 bg-cyan-500/15 px-6 py-3 font-black text-cyan-100 hover:bg-cyan-500/25 disabled:opacity-50"
+                  >
+                    {creating === "demo" ? "Saving Demo..." : "Save as Demo Report"}
+                  </button>
+                </div>
               </div>
 
               <div className="mt-5 space-y-5">
