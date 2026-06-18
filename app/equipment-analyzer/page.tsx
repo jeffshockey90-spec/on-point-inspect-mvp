@@ -183,25 +183,127 @@ function cleanServiceLifeCondition(value: any) {
   return clean;
 }
 
+function isMeaningfulEquipmentValue(value: any) {
+  const clean = String(value || "").trim();
+  if (!clean) return false;
+
+  const lower = clean.toLowerCase();
+
+  if (
+    lower === "unknown" ||
+    lower === "n/a" ||
+    lower === "na" ||
+    lower === "none" ||
+    lower === "null" ||
+    lower === "undefined" ||
+    lower === "not visible" ||
+    lower === "not shown" ||
+    lower === "not readable" ||
+    lower === "unreadable" ||
+    lower === "unable to determine" ||
+    lower === "cannot determine"
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+function meaningfulEquipmentValue(value: any) {
+  return isMeaningfulEquipmentValue(value) ? String(value).trim() : "";
+}
+
+function getEquipmentTypeText(result: EquipmentResult) {
+  return String(result.equipmentType || result.equipmentCategory || "").toLowerCase();
+}
+
+function isWaterHeaterEquipment(result: EquipmentResult) {
+  const text = [
+    result.equipmentType,
+    result.equipmentCategory,
+    result.manufacturer,
+    result.model,
+    result.section,
+    result.clientSummary,
+  ]
+    .map((value) => String(value || "").toLowerCase())
+    .join(" ");
+
+  return (
+    text.includes("water heater") ||
+    text.includes("storage tank water heater") ||
+    text.includes("tankless") ||
+    text.includes("hot water")
+  );
+}
+
+function isHvacEquipment(result: EquipmentResult) {
+  const text = [
+    result.equipmentType,
+    result.equipmentCategory,
+    result.section,
+    result.clientSummary,
+  ]
+    .map((value) => String(value || "").toLowerCase())
+    .join(" ");
+
+  return (
+    text.includes("air handler") ||
+    text.includes("furnace") ||
+    text.includes("heat pump") ||
+    text.includes("condenser") ||
+    text.includes("air conditioner") ||
+    text.includes("cooling") ||
+    text.includes("heating")
+  );
+}
+
+function isElectricalPanelEquipment(result: EquipmentResult) {
+  const text = [
+    result.equipmentType,
+    result.equipmentCategory,
+    result.section,
+    result.clientSummary,
+  ]
+    .map((value) => String(value || "").toLowerCase())
+    .join(" ");
+
+  return (
+    text.includes("electrical panel") ||
+    text.includes("breaker panel") ||
+    text.includes("panelboard") ||
+    text.includes("service panel")
+  );
+}
+
+
 function getAiInspectorNote(result: EquipmentResult, optionalAiNote = "") {
   const cleanOptionalAiNote = String(optionalAiNote || "").trim();
 
+  const equipmentType = meaningfulEquipmentValue(result.equipmentType);
+  const manufacturer = meaningfulEquipmentValue(result.manufacturer);
+  const model = meaningfulEquipmentValue(result.model);
+  const serial = meaningfulEquipmentValue(result.serial);
+  const manufactureYear = meaningfulEquipmentValue(result.manufactureYear);
+  const estimatedAge = meaningfulEquipmentValue(result.estimatedAge);
+  const refrigerant = meaningfulEquipmentValue(result.refrigerant);
+  const capacity = meaningfulEquipmentValue(result.capacity || result.estimatedBTU);
+  const fuelType = meaningfulEquipmentValue(result.fuelType);
+  const clientSummary = meaningfulEquipmentValue(result.clientSummary);
+
   const parts = [
     cleanOptionalAiNote ? `Inspector-provided note: ${cleanOptionalAiNote}` : "",
-    result.equipmentType
-      ? `${result.equipmentType} data plate documented.`
-      : "Equipment data plate documented.",
-    result.manufacturer || result.model
-      ? `Identified as ${[result.manufacturer, result.model].filter(Boolean).join(" ")}.`
+    equipmentType ? `${equipmentType} data plate documented.` : "Equipment data plate documented.",
+    manufacturer || model
+      ? `Identified as ${[manufacturer, model].filter(Boolean).join(" ")}.`
       : "",
-    result.manufactureYear
-      ? `Manufacture year appears to be ${result.manufactureYear}.`
-      : "",
-    result.estimatedAge
-      ? `Estimated age is approximately ${result.estimatedAge}.`
-      : "",
-    result.refrigerant ? `Refrigerant identified as ${result.refrigerant}.` : "",
-    result.clientSummary ? result.clientSummary : "",
+    serial ? `Serial number documented as ${serial}.` : "",
+    manufactureYear ? `Manufacture year appears to be ${manufactureYear}.` : "",
+    estimatedAge ? `Estimated age is approximately ${estimatedAge}.` : "",
+    capacity ? `Capacity identified as ${capacity}.` : "",
+    fuelType ? `Fuel type identified as ${fuelType}.` : "",
+    refrigerant ? `Refrigerant identified as ${refrigerant}.` : "",
+    clientSummary,
   ]
     .filter(Boolean)
     .join(" ");
@@ -212,29 +314,27 @@ function getAiInspectorNote(result: EquipmentResult, optionalAiNote = "") {
 function getAiMaintenanceNote(result: EquipmentResult) {
   const condition = String(result.condition || "").toLowerCase();
   const remaining = String(result.estimatedLifeRemaining || "").toLowerCase();
-  const equipmentType = String(result.equipmentType || "equipment").toLowerCase();
 
-  if (
-    condition.includes("near end") ||
-    condition.includes("beyond") ||
-    condition.includes("end of typical") ||
-    remaining.includes("beyond") ||
-    remaining.includes("0-")
-  ) {
-    return "Recommend routine service by a qualified contractor and budgeting for future replacement due to age and typical service-life considerations.";
-  }
-
-  if (
-    equipmentType.includes("air") ||
-    equipmentType.includes("furnace") ||
-    equipmentType.includes("heat") ||
-    equipmentType.includes("condenser")
-  ) {
-    return "Recommend regular HVAC servicing, filter replacement, and maintenance in accordance with manufacturer recommendations.";
-  }
-
-  if (equipmentType.includes("water heater")) {
+  if (isWaterHeaterEquipment(result)) {
     return "Recommend routine water heater maintenance in accordance with manufacturer recommendations.";
+  }
+
+  if (isElectricalPanelEquipment(result)) {
+    return "Recommend periodic evaluation and maintenance by a qualified electrical contractor as needed.";
+  }
+
+  if (isHvacEquipment(result)) {
+    if (
+      condition.includes("near end") ||
+      condition.includes("beyond") ||
+      condition.includes("end of typical") ||
+      remaining.includes("beyond") ||
+      remaining.includes("0-")
+    ) {
+      return "Recommend routine service by a qualified HVAC contractor and budgeting for future replacement due to age and typical service-life considerations.";
+    }
+
+    return "Recommend regular HVAC servicing and filter maintenance in accordance with manufacturer recommendations.";
   }
 
   return "Recommend routine maintenance in accordance with manufacturer recommendations.";
@@ -428,22 +528,20 @@ function EquipmentTestContent() {
         result.equipmentType
           ? `\n\nEquipment Type: ${result.equipmentType}`
           : "",
-        result.manufacturer
-          ? `Manufacturer: ${result.manufacturer}`
+        meaningfulEquipmentValue(result.manufacturer)
+          ? `Manufacturer: ${meaningfulEquipmentValue(result.manufacturer)}`
           : "",
-        result.model ? `Model Number: ${result.model}` : "",
-        result.serial ? `Serial Number: ${result.serial}` : "",
-        result.manufactureYear
-          ? `Manufacture Year: ${result.manufactureYear}`
+        meaningfulEquipmentValue(result.model) ? `Model Number: ${meaningfulEquipmentValue(result.model)}` : "",
+        meaningfulEquipmentValue(result.serial) ? `Serial Number: ${meaningfulEquipmentValue(result.serial)}` : "",
+        meaningfulEquipmentValue(result.manufactureYear)
+          ? `Manufacture Year: ${meaningfulEquipmentValue(result.manufactureYear)}`
           : "",
-        result.estimatedAge
-          ? `Estimated Age: ${result.estimatedAge}`
+        meaningfulEquipmentValue(result.estimatedAge)
+          ? `Estimated Age: ${meaningfulEquipmentValue(result.estimatedAge)}`
           : "",
-        result.expectedServiceLife
-          ? `Expected Service Life: ${result.expectedServiceLife}`
-          : "",
-        result.expectedServiceLife
-          ? `Typical Industry Range: ${result.expectedServiceLife}`
+        
+        meaningfulEquipmentValue(result.expectedServiceLife)
+          ? `Typical Industry Range: ${meaningfulEquipmentValue(result.expectedServiceLife)}`
           : "",
         result.condition ? `Condition: ${cleanServiceLifeCondition(result.condition)}` : "",
         result.estimatedSEER ? `Estimated SEER/SEER2: ${result.estimatedSEER}` : "",
@@ -458,8 +556,8 @@ function EquipmentTestContent() {
           ? `Efficiency: ${result.efficiency}`
           : "",
         result.fuelType ? `Fuel Type: ${result.fuelType}` : "",
-        result.refrigerant
-          ? `Refrigerant: ${result.refrigerant}`
+        meaningfulEquipmentValue(result.refrigerant)
+          ? `Refrigerant: ${meaningfulEquipmentValue(result.refrigerant)}`
           : "",
       ]
         .filter(Boolean)
@@ -700,42 +798,58 @@ function EnhancedEquipmentIntelligence({ result }: { result: EquipmentResult }) 
       )}
 
       <div className="mt-5 grid gap-3 md:grid-cols-2">
-        <IntelligenceItem
-          label="Typical Industry Range"
-          value={result.expectedServiceLife || "Unknown"}
-        />
-        <IntelligenceItem
-          label="Service Life"
-          value="Industry estimate only"
-        />
-        <IntelligenceItem
-          label="Condition"
-          value={cleanServiceLifeCondition(result.condition)}
-        />
-        <IntelligenceItem
-          label="Estimated Efficiency"
-          value={result.estimatedSEER || result.estimatedAFUE || result.efficiency || "Unknown"}
-        />
-        <IntelligenceItem
-          label="Estimated Capacity"
-          value={result.estimatedBTU || result.capacity || "Unknown"}
-        />
+        {shouldShowIntelligenceValue(result.expectedServiceLife) && (
+          <IntelligenceItem
+            label="Typical Industry Range"
+            value={result.expectedServiceLife || ""}
+          />
+        )}
+        {shouldShowIntelligenceValue(result.expectedServiceLife) && (
+          <IntelligenceItem
+            label="Service Life"
+            value="Industry estimate only"
+          />
+        )}
+        {shouldShowIntelligenceValue(cleanServiceLifeCondition(result.condition)) && (
+          <IntelligenceItem
+            label="Condition"
+            value={cleanServiceLifeCondition(result.condition)}
+          />
+        )}
+        {shouldShowIntelligenceValue(result.estimatedSEER || result.estimatedAFUE || result.efficiency) && (
+          <IntelligenceItem
+            label="Estimated Efficiency"
+            value={result.estimatedSEER || result.estimatedAFUE || result.efficiency || ""}
+          />
+        )}
+        {shouldShowIntelligenceValue(result.estimatedBTU || result.capacity) && (
+          <IntelligenceItem
+            label="Estimated Capacity"
+            value={result.estimatedBTU || result.capacity || ""}
+          />
+        )}
         <IntelligenceItem
           label="Budget Planning"
           value={getBudgetPlanning(result)}
         />
-        <IntelligenceItem
-          label="Maintenance Level"
-          value={result.maintenanceLevel || "Unknown"}
-        />
-        <IntelligenceItem
-          label="Refrigerant"
-          value={result.refrigerant || "Unknown"}
-        />
-        <IntelligenceItem
-          label="Fuel Type"
-          value={result.fuelType || "Unknown"}
-        />
+        {shouldShowIntelligenceValue(result.maintenanceLevel) && (
+          <IntelligenceItem
+            label="Maintenance Level"
+            value={result.maintenanceLevel || ""}
+          />
+        )}
+        {shouldShowIntelligenceValue(result.refrigerant) && (
+          <IntelligenceItem
+            label="Refrigerant"
+            value={result.refrigerant || ""}
+          />
+        )}
+        {shouldShowIntelligenceValue(result.fuelType) && (
+          <IntelligenceItem
+            label="Fuel Type"
+            value={result.fuelType || ""}
+          />
+        )}
       </div>
 
       {result.intelligenceFlags?.r22Detected && (
@@ -751,6 +865,11 @@ function EnhancedEquipmentIntelligence({ result }: { result: EquipmentResult }) 
       )}
     </section>
   );
+}
+
+
+function shouldShowIntelligenceValue(value: any) {
+  return isMeaningfulEquipmentValue(value);
 }
 
 function IntelligenceItem({ label, value }: { label: string; value: string }) {
