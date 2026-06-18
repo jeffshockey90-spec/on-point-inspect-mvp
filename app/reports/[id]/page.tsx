@@ -1380,7 +1380,7 @@ export default async function ReportPage({ params }: PageProps) {
                 </p>
               </div>
 
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-4">
                 {equipmentInventory.map((item: any) => {
                   const equipmentImage =
                     item.signed_image_url ||
@@ -1413,7 +1413,7 @@ export default async function ReportPage({ params }: PageProps) {
                           .join(" ") || "Equipment Record"}
                       </h3>
 
-                      <div className="mt-4 grid gap-2 text-sm text-slate-300">
+                      <div className="mt-4 grid gap-3 text-sm text-slate-300 md:grid-cols-3">
                         <InventoryLine label="Serial" value={item.serial} />
                         <InventoryLine
                           label="Manufacture Year"
@@ -1926,15 +1926,26 @@ function EquipmentNoteBlock({
   value?: any;
 }) {
   const clean = String(value || "").trim();
+  const lower = clean.toLowerCase();
 
-  if (!clean) return null;
+  if (
+    !clean ||
+    lower === "unknown" ||
+    lower === "n/a" ||
+    lower === "na" ||
+    lower === "not visible" ||
+    lower === "unreadable" ||
+    lower === "unable to determine"
+  ) {
+    return null;
+  }
 
   return (
-    <div className="mt-4 rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
+    <div className="mt-4 w-full rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-4">
       <p className="text-xs font-black uppercase tracking-wide text-cyan-300">
         {label}
       </p>
-      <p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-200">
+      <p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-100">
         {clean}
       </p>
     </div>
