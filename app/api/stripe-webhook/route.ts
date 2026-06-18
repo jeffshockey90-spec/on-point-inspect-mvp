@@ -1001,6 +1001,79 @@ export async function POST(req: Request) {
       });
     }
 
+
+    if (event.type === "customer.subscription.updated") {
+      const subscription = event.data.object as any;
+      const supabase = getSupabaseAdmin();
+
+      const subscriptionId = subscription.id || null;
+      const customerId =
+        typeof subscription.customer === "string"
+          ? subscription.customer
+          : subscription.customer?.id || null;
+
+      const cancelAtPeriodEnd = subscription.cancel_at_period_end === true;
+      const currentPeriodEnd = subscription.current_period_end
+        ? new Date(subscription.current_period_end * 1000).toISOString()
+        : null;
+
+      const stripeStatus = String(subscription.status || "inactive").toLowerCase();
+
+      if (subscriptionId || customerId) {
+        const updatePayload = {
+          stripe_subscription_id: subscriptionId,
+          subscription_status: stripeStatus,
+          subscription_cancel_at_period_end: cancelAtPeriodEnd,
+          subscription_current_period_end: currentPeriodEnd,
+          updated_at: new Date().toISOString(),
+        };
+
+        if (subscriptionId) {
+          await supabase
+            .from("profiles")
+            .update(updatePayload)
+            .eq("stripe_subscription_id", subscriptionId);
+        }
+
+        if (customerId) {
+          await supabase
+            .from("profiles")
+            .update(updatePayload)
+            .eq("stripe_customer_id", customerId);
+        }
+      }
+
+      await logAuditEvent(supabase, {
+        action: cancelAtPeriodEnd
+          ? "subscription_cancel_at_period_end"
+          : "subscription_updated",
+        resourceType: "stripe_subscription",
+        resourceId: subscriptionId || customerId || "unknown",
+        metadata: {
+          subscription_id: subscriptionId,
+          customer_id: customerId,
+          status: stripeStatus,
+          cancel_at_period_end: cancelAtPeriodEnd,
+          current_period_end: currentPeriodEnd,
+          event_id: event.id,
+        },
+      });
+
+      if (cancelAtPeriodEnd) {
+        await sendOwnerPushNotification(supabase, {
+          title: "⚠️ Subscription Set To Cancel",
+          body: "An inspector scheduled their subscription to cancel at the end of the billing period.",
+          url: "/dashboard/owner/revenue",
+          eventType: "subscription_cancel_at_period_end",
+          metadata: {
+            subscription_id: subscriptionId,
+            customer_id: customerId,
+            current_period_end: currentPeriodEnd,
+          },
+        });
+      }
+    }
+
     if (event.type === "customer.subscription.deleted") {
       const subscription = event.data.object as any;
       const supabase = getSupabaseAdmin();
@@ -1014,6 +1087,8 @@ export async function POST(req: Request) {
           .from("profiles")
           .update({
             subscription_status: "canceled",
+            subscription_cancel_at_period_end: false,
+            subscription_current_period_end: null,
             updated_at: new Date().toISOString(),
           })
           .eq("stripe_customer_id", customerId);
