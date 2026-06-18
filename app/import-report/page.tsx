@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "../../utils/supabase/client";
 
+type ImportMode = "pdf" | "spectora";
+
 type ImportedFinding = {
   section: string;
   title: string;
@@ -28,6 +30,11 @@ type ParsedReport = {
   inspectionDate: string;
   findings: ImportedFinding[];
   rawTextPreview?: string;
+  sourceUrl?: string;
+  pdfUrl?: string;
+  coverPhotoUrl?: string;
+  spectoraReportId?: string;
+  spectoraInspectionId?: string;
 };
 
 const EMPTY_PARSED_REPORT: ParsedReport = {
@@ -72,7 +79,9 @@ export default function ImportReportPage() {
   const router = useRouter();
   const supabase = createClient();
 
+  const [importMode, setImportMode] = useState<ImportMode>("spectora");
   const [file, setFile] = useState<File | null>(null);
+  const [spectoraUrl, setSpectoraUrl] = useState("");
   const [parsedReport, setParsedReport] = useState<ParsedReport>(EMPTY_PARSED_REPORT);
   const [parsing, setParsing] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -133,7 +142,22 @@ export default function ImportReportPage() {
     return data.company_id;
   }
 
-  async function parseReport() {
+  function applyParsedReport(data: any) {
+    setParsedReport({
+      ...EMPTY_PARSED_REPORT,
+      ...data.report,
+      findings: (data.report?.findings || []).map((finding: ImportedFinding) => ({
+        section: finding.section || "Inspection Details",
+        title: finding.title || "Imported Finding",
+        observation: finding.observation || "",
+        implication: finding.implication || "",
+        recommendation: finding.recommendation || "",
+        severity: normalizeSeverity(finding.severity),
+      })),
+    });
+  }
+
+  async function parsePdfReport() {
     if (!file) {
       setErrorMessage("Choose a PDF report first.");
       return;
@@ -157,20 +181,41 @@ export default function ImportReportPage() {
         throw new Error(data?.error || "Could not parse report.");
       }
 
-      setParsedReport({
-        ...EMPTY_PARSED_REPORT,
-        ...data.report,
-        findings: (data.report?.findings || []).map((finding: ImportedFinding) => ({
-          section: finding.section || "Inspection Details",
-          title: finding.title || "Imported Finding",
-          observation: finding.observation || "",
-          implication: finding.implication || "",
-          recommendation: finding.recommendation || "",
-          severity: normalizeSeverity(finding.severity),
-        })),
-      });
+      applyParsedReport(data);
     } catch (error: any) {
       setErrorMessage(error?.message || "Could not parse report.");
+    } finally {
+      setParsing(false);
+    }
+  }
+
+  async function parseSpectoraReport() {
+    if (!spectoraUrl.trim()) {
+      setErrorMessage("Paste a Spectora report link first.");
+      return;
+    }
+
+    try {
+      setErrorMessage("");
+      setParsing(true);
+
+      const res = await fetch("/api/import-report/spectora", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ url: spectoraUrl.trim() }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data?.error || "Could not import Spectora report.");
+      }
+
+      applyParsedReport(data);
+    } catch (error: any) {
+      setErrorMessage(error?.message || "Could not import Spectora report.");
     } finally {
       setParsing(false);
     }
@@ -193,6 +238,17 @@ export default function ImportReportPage() {
 
       const companyId = await getCompanyIdForUser(user.id);
       const inspectionDate = parsedReport.inspectionDate || todayString();
+
+      const importNotes = [
+        `Imported from ${parsedReport.reportType || "PDF"} report. Review all findings before publishing.`,
+        parsedReport.sourceUrl ? `Spectora source: ${parsedReport.sourceUrl}` : "",
+        parsedReport.pdfUrl ? `Original PDF: ${parsedReport.pdfUrl}` : "",
+        parsedReport.coverPhotoUrl ? `Cover photo: ${parsedReport.coverPhotoUrl}` : "",
+        parsedReport.spectoraReportId ? `Spectora report ID: ${parsedReport.spectoraReportId}` : "",
+        parsedReport.spectoraInspectionId ? `Spectora inspection ID: ${parsedReport.spectoraInspectionId}` : "",
+      ]
+        .filter(Boolean)
+        .join("\n");
 
       const { data: inspection, error: inspectionError } = await supabase
         .from("inspections")
@@ -231,7 +287,7 @@ export default function ImportReportPage() {
             services: "Imported Report",
             service_mode: "home",
             inspection_type: "Imported Report",
-            notes: `Imported from ${parsedReport.reportType || "PDF"} report. Review all findings before publishing.`,
+            notes: importNotes,
 
             report_status: "Draft",
             is_published: false,
@@ -326,7 +382,7 @@ export default function ImportReportPage() {
           </h1>
 
           <p className="mt-3 max-w-3xl text-slate-300">
-            Upload a Spectora-style PDF or legacy PDF report and convert it into a new On Point Inspect draft. This is an optional importer and does not change your normal report workflow.
+            Upload a legacy PDF or paste a public Spectora report link and convert it into a new On Point Inspect draft. This optional importer does not change your normal report workflow.
           </p>
         </header>
 
@@ -338,23 +394,85 @@ export default function ImportReportPage() {
         </section>
 
         <section className="mt-6 rounded-2xl border border-slate-800 bg-[#0f172a] p-5">
-          <h2 className="text-2xl font-bold text-teal-300">1. Upload PDF</h2>
+          <div className="mb-5 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setImportMode("spectora");
+                setErrorMessage("");
+              }}
+              className={`rounded-xl border px-5 py-3 font-black ${
+                importMode === "spectora"
+                  ? "border-teal-400 bg-teal-500 text-black"
+                  : "border-slate-700 bg-black text-slate-200"
+              }`}
+            >
+              Import Spectora Link
+            </button>
 
-          <input
-            type="file"
-            accept="application/pdf"
-            onChange={(event) => setFile(event.target.files?.[0] || null)}
-            className="mt-4 w-full rounded-xl border border-slate-700 bg-black px-4 py-3 text-white"
-          />
+            <button
+              type="button"
+              onClick={() => {
+                setImportMode("pdf");
+                setErrorMessage("");
+              }}
+              className={`rounded-xl border px-5 py-3 font-black ${
+                importMode === "pdf"
+                  ? "border-amber-400 bg-amber-500 text-black"
+                  : "border-slate-700 bg-black text-slate-200"
+              }`}
+            >
+              Upload PDF
+            </button>
+          </div>
 
-          <button
-            type="button"
-            onClick={parseReport}
-            disabled={parsing || !file}
-            className="mt-4 rounded-xl bg-amber-500 px-6 py-3 font-black text-black hover:bg-amber-400 disabled:opacity-50"
-          >
-            {parsing ? "Reading PDF..." : "Parse Report"}
-          </button>
+          {importMode === "spectora" ? (
+            <div>
+              <h2 className="text-2xl font-bold text-teal-300">
+                1. Paste Spectora Report Link
+              </h2>
+
+              <input
+                value={spectoraUrl}
+                onChange={(event) => setSpectoraUrl(event.target.value)}
+                placeholder="https://reports.spectora.com/v/reports/..."
+                className="mt-4 w-full rounded-xl border border-slate-700 bg-black px-4 py-3 text-white outline-none focus:border-teal-400"
+              />
+
+              <button
+                type="button"
+                onClick={parseSpectoraReport}
+                disabled={parsing || !spectoraUrl.trim()}
+                className="mt-4 rounded-xl bg-teal-500 px-6 py-3 font-black text-black hover:bg-teal-400 disabled:opacity-50"
+              >
+                {parsing ? "Importing Spectora Report..." : "Import Spectora Report"}
+              </button>
+
+              <p className="mt-3 text-sm text-slate-400">
+                This uses the public Spectora report link and the linked PDF to build a native On Point Inspect draft.
+              </p>
+            </div>
+          ) : (
+            <div>
+              <h2 className="text-2xl font-bold text-amber-300">1. Upload PDF</h2>
+
+              <input
+                type="file"
+                accept="application/pdf"
+                onChange={(event) => setFile(event.target.files?.[0] || null)}
+                className="mt-4 w-full rounded-xl border border-slate-700 bg-black px-4 py-3 text-white"
+              />
+
+              <button
+                type="button"
+                onClick={parsePdfReport}
+                disabled={parsing || !file}
+                className="mt-4 rounded-xl bg-amber-500 px-6 py-3 font-black text-black hover:bg-amber-400 disabled:opacity-50"
+              >
+                {parsing ? "Reading PDF..." : "Parse PDF Report"}
+              </button>
+            </div>
+          )}
 
           {errorMessage && (
             <p className="mt-4 rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-red-200">
@@ -369,6 +487,16 @@ export default function ImportReportPage() {
               <h2 className="text-2xl font-bold text-teal-300">
                 2. Review Imported Inspection Info
               </h2>
+
+              {parsedReport.coverPhotoUrl && (
+                <div className="mt-5 overflow-hidden rounded-2xl border border-slate-700 bg-black">
+                  <img
+                    src={parsedReport.coverPhotoUrl}
+                    alt="Imported property cover"
+                    className="h-56 w-full object-cover"
+                  />
+                </div>
+              )}
 
               <div className="mt-5 grid gap-4 md:grid-cols-2">
                 <Input

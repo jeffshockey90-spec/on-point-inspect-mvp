@@ -31,6 +31,7 @@
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.106.1",
     "@tailwindcss/postcss": "^4.3.0",
+    "cheerio": "^1.2.0",
     "dotenv": "^17.4.2",
     "konva": "^10.3.0",
     "lucide-react": "latest",
