@@ -6,6 +6,7 @@ type EquipmentCardProps = {
     serial?: string;
     manufactureYear?: string | number;
     estimatedAge?: string | number;
+    expectedServiceLife?: string;
     efficiency?: string;
     capacity?: string;
     fuelType?: string;
@@ -17,37 +18,38 @@ type EquipmentCardProps = {
   };
 };
 
-function getServiceLifeNote(equipment: EquipmentCardProps["equipment"]) {
-  const condition = String(equipment.condition || "").toLowerCase();
-  const remaining = String(equipment.estimatedLifeRemaining || "").toLowerCase();
+function getTypicalIndustryRange(value: any) {
+  const clean = String(value || "").trim();
+  if (!clean) return "";
+
+  const numberMatch = clean.match(/\d+/);
+  if (!numberMatch) return clean;
+
+  const upper = Number(numberMatch[0]);
+  if (!Number.isFinite(upper) || upper <= 0) return clean;
+
+  const lower = Math.max(1, upper - 5);
+  return `${lower}–${upper} years`;
+}
+
+function getEquipmentConditionNote(value: any) {
+  const clean = String(value || "").trim();
+  const lower = clean.toLowerCase();
+
+  if (!clean) return "";
 
   if (
-    condition.includes("beyond") ||
-    condition.includes("past") ||
-    remaining.includes("beyond") ||
-    remaining.includes("0-")
+    lower.includes("remaining") ||
+    lower.includes("service life") ||
+    lower.includes("life remaining")
   ) {
-    return "At or beyond typical service-life range";
+    return "No specific deficiency noted";
   }
 
-  if (
-    condition.includes("near end") ||
-    condition.includes("end of typical") ||
-    remaining.includes("near")
-  ) {
-    return "Near typical service-life range";
-  }
-
-  if (equipment.estimatedAge || equipment.manufactureYear) {
-    return "Service life varies";
-  }
-
-  return "";
+  return clean;
 }
 
 export default function EquipmentCard({ equipment }: EquipmentCardProps) {
-  const serviceLifeNote = getServiceLifeNote(equipment);
-
   const rows = [
     ["Equipment Type", equipment.equipmentType],
     ["Manufacturer", equipment.manufacturer],
@@ -55,12 +57,13 @@ export default function EquipmentCard({ equipment }: EquipmentCardProps) {
     ["Serial Number", equipment.serial],
     ["Manufacture Year", equipment.manufactureYear],
     ["Estimated Age", equipment.estimatedAge],
+    ["Typical Industry Range", getTypicalIndustryRange(equipment.expectedServiceLife)],
+    ["Service Life", equipment.expectedServiceLife ? "Industry estimate only" : ""],
     ["Efficiency", equipment.efficiency],
     ["Capacity", equipment.capacity],
     ["Fuel Type", equipment.fuelType],
     ["Refrigerant", equipment.refrigerant],
-    ["Condition", equipment.condition],
-    ["Service Life Note", serviceLifeNote],
+    ["Condition", getEquipmentConditionNote(equipment.condition)],
     ["Report Section", equipment.section],
     ["Severity", equipment.severity],
   ];
@@ -77,13 +80,13 @@ export default function EquipmentCard({ equipment }: EquipmentCardProps) {
           .map(([label, value]) => (
             <div
               key={label}
-              className="flex flex-col gap-1 rounded-xl border border-slate-700 bg-slate-950 p-3 sm:flex-row sm:items-center sm:justify-between"
+              className="grid gap-1 rounded-xl border border-slate-700 bg-slate-950 p-3 sm:grid-cols-[170px_1fr] sm:items-center"
             >
               <span className="text-sm font-bold text-slate-400">
                 {label}
               </span>
 
-              <span className="text-slate-100">
+              <span className="text-left font-semibold text-slate-100 sm:text-right">
                 {String(value)}
               </span>
             </div>
@@ -91,7 +94,7 @@ export default function EquipmentCard({ equipment }: EquipmentCardProps) {
       </div>
 
       <p className="mt-4 rounded-xl border border-slate-700 bg-slate-950 p-3 text-xs leading-5 text-slate-400">
-        Service life information is a general industry estimate only. Actual service life can vary based on installation quality, maintenance history, operating conditions, environment, and usage.
+        Service-life information is a general industry estimate only. Actual service life can vary based on installation quality, maintenance history, operating conditions, environment, and usage. This should not be treated as a prediction or guarantee of remaining equipment life.
       </p>
     </div>
   );

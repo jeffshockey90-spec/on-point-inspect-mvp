@@ -347,32 +347,35 @@ function getLatestViewLogFromList(logs: any[]) {
       new Date(a.created_at || 0).getTime(),
   )[0];
 }
-function getEquipmentServiceLifeNote(item: any) {
-  const condition = String(item?.condition || "").toLowerCase();
-  const remaining = String(item?.estimated_life_remaining || "").toLowerCase();
+function getTypicalIndustryRange(value: any) {
+  const clean = String(value || "").trim();
+  if (!clean) return "";
+
+  const numberMatch = clean.match(/\d+/);
+  if (!numberMatch) return clean;
+
+  const upper = Number(numberMatch[0]);
+  if (!Number.isFinite(upper) || upper <= 0) return clean;
+
+  const lower = Math.max(1, upper - 5);
+  return `${lower}–${upper} years`;
+}
+
+function getEquipmentConditionNote(value: any) {
+  const clean = String(value || "").trim();
+  const lower = clean.toLowerCase();
+
+  if (!clean) return "";
 
   if (
-    condition.includes("beyond") ||
-    condition.includes("past") ||
-    remaining.includes("beyond") ||
-    remaining.includes("0-")
+    lower.includes("remaining") ||
+    lower.includes("service life") ||
+    lower.includes("life remaining")
   ) {
-    return "At or beyond the typical service-life range. Budgeting for replacement is recommended.";
+    return "No specific deficiency noted";
   }
 
-  if (
-    condition.includes("near end") ||
-    condition.includes("end of typical") ||
-    remaining.includes("near")
-  ) {
-    return "Near the typical service-life range. Plan and budget for future replacement.";
-  }
-
-  if (item?.estimated_age || item?.manufacture_year || item?.expected_service_life) {
-    return "Actual service life varies based on installation, maintenance, usage, environment, and operating conditions.";
-  }
-
-  return "Service-life information is informational only and can vary.";
+  return clean;
 }
 
 export default async function ReportPage({ params }: PageProps) {
@@ -1317,12 +1320,12 @@ export default async function ReportPage({ params }: PageProps) {
                           value={item.estimated_age}
                         />
                         <InventoryLine
-                          label="Typical Service Life"
-                          value={item.expected_service_life}
+                          label="Typical Industry Range"
+                          value={getTypicalIndustryRange(item.expected_service_life)}
                         />
                         <InventoryLine
-                          label="Service Life Note"
-                          value={getEquipmentServiceLifeNote(item)}
+                          label="Service Life"
+                          value="Industry estimate only"
                         />
                         <InventoryLine
                           label="Refrigerant"
@@ -1330,12 +1333,12 @@ export default async function ReportPage({ params }: PageProps) {
                         />
                         <InventoryLine
                           label="Condition"
-                          value={item.condition}
+                          value={getEquipmentConditionNote(item.condition)}
                         />
                       </div>
 
                       <p className="mt-4 rounded-xl border border-slate-700 bg-slate-950 p-3 text-xs leading-5 text-slate-400">
-                        Service-life information is a general industry estimate only. Actual service life can vary based on installation quality, maintenance history, operating conditions, environment, and usage.
+Service-life information is a general industry estimate only. Actual service life can vary based on installation quality, maintenance history, operating conditions, environment, and usage. This should not be treated as a prediction or guarantee of remaining equipment life.
                       </p>
 
                       <form action={deleteEquipmentInventoryItem} className="mt-4">
@@ -1694,7 +1697,7 @@ function InventoryLine({ label, value }: { label: string; value?: any }) {
   if (!value) return null;
 
   return (
-    <div className="flex justify-between gap-3 border-b border-slate-800 pb-1">
+    <div className="grid grid-cols-[150px_1fr] gap-3 border-b border-slate-800 pb-1">
       <span className="font-bold text-slate-500">{label}</span>
       <span className="text-right font-semibold text-slate-200">{value}</span>
     </div>
