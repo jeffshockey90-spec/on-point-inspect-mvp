@@ -224,6 +224,30 @@ function getEquipmentMaintenanceNote(item: any) {
   );
 }
 
+
+function PrintEquipmentNoteBlock({
+  label,
+  value,
+}: {
+  label: string;
+  value?: any;
+}) {
+  const clean = String(value || "").trim();
+
+  if (!isKnownEquipmentValue(clean)) return null;
+
+  return (
+    <div className="mt-4 rounded-xl border border-cyan-200 bg-cyan-50 p-4">
+      <p className="text-xs font-black uppercase tracking-wide text-cyan-800">
+        {label}
+      </p>
+      <p className="mt-2 whitespace-pre-wrap text-base leading-7 text-slate-800">
+        {clean}
+      </p>
+    </div>
+  );
+}
+
 export default async function PrintableReportPage({ params }: PageProps) {
   const { id } = await params;
   const supabase = await createSupabaseServerClient();
@@ -670,11 +694,21 @@ export default async function PrintableReportPage({ params }: PageProps) {
                       <InventoryLine label="Estimated Age" value={item.estimated_age} />
                       <InventoryLine label="Typical Industry Range" value={getTypicalIndustryRange(item.expected_service_life)} />
                       <InventoryLine label="Service Life" value={getTypicalIndustryRange(item.expected_service_life) ? "Industry estimate only" : ""} />
+                      <InventoryLine label="Capacity" value={item.capacity} />
+                      <InventoryLine label="Fuel Type" value={item.fuel_type} />
                       <InventoryLine label="Refrigerant" value={item.refrigerant} />
                       <InventoryLine label="Condition" value={getEquipmentConditionNote(item.condition)} />
-                      <InventoryLine label="Inspector Note" value={getEquipmentInspectorNote(item)} />
-                      <InventoryLine label="Maintenance Note" value={getEquipmentMaintenanceNote(item)} />
                     </div>
+
+                    <PrintEquipmentNoteBlock
+                      label="Inspector Note"
+                      value={getEquipmentInspectorNote(item)}
+                    />
+
+                    <PrintEquipmentNoteBlock
+                      label="Maintenance Note"
+                      value={getEquipmentMaintenanceNote(item)}
+                    />
                   </div>
                 );
               })}

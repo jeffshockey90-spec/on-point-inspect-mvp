@@ -554,9 +554,11 @@ function ShareEquipmentLine({ label, value }: { label: string; value?: any }) {
   if (!isKnownEquipmentValue(value)) return null;
 
   return (
-    <div className="grid gap-1 border-b border-slate-800 pb-2 sm:grid-cols-[150px_1fr]">
-      <span className="font-bold text-slate-500">{label}</span>
-      <span className="text-left font-semibold text-slate-100 sm:text-right">
+    <div className="flex flex-col gap-1 border-b border-slate-800 py-2 sm:flex-row sm:items-start sm:justify-between">
+      <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
+        {label}
+      </span>
+      <span className="whitespace-pre-line text-left text-sm font-semibold leading-6 text-slate-100 sm:max-w-[70%] sm:text-right">
         {String(value)}
       </span>
     </div>
@@ -1188,7 +1190,7 @@ export default async function PublicSharePage({
                 </div>
               </summary>
 
-              <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <div className="mt-5 grid gap-4 lg:grid-cols-2">
                 {equipmentInventory.map((item: any) => {
                   const equipmentImage =
                     item.signed_thumbnail_url || item.thumbnail_url || item.signed_image_url || item.image_url || item.public_url || "";
@@ -1217,15 +1219,36 @@ export default async function PublicSharePage({
                         {[item.manufacturer, item.model].filter(Boolean).join(" ") || "Equipment Record"}
                       </h3>
 
-                      <div className="mt-4 grid gap-2 text-sm text-slate-300">
+                      <div className="mt-4 space-y-2 text-sm text-slate-300">
                         <ShareEquipmentLine label="Serial" value={item.serial} />
                         <ShareEquipmentLine label="Manufacture Year" value={item.manufacture_year} />
                         <ShareEquipmentLine label="Estimated Age" value={item.estimated_age} />
-                        <ShareEquipmentLine label="Typical Industry Range" value={getTypicalIndustryRange(item.expected_service_life)} />
-                        <InventoryLine label="Service Life" value={getTypicalIndustryRange(item.expected_service_life) ? "Industry estimate only" : ""} />
+                        <ShareEquipmentLine
+                          label="Typical Industry Range"
+                          value={getTypicalIndustryRange(item.expected_service_life)}
+                        />
+                        <ShareEquipmentLine
+                          label="Service Life"
+                          value={getTypicalIndustryRange(item.expected_service_life) ? "Industry estimate only" : ""}
+                        />
+                        <ShareEquipmentLine label="Capacity" value={item.capacity} />
+                        <ShareEquipmentLine label="Fuel Type" value={item.fuel_type} />
                         <ShareEquipmentLine label="Refrigerant" value={item.refrigerant} />
-                        <ShareEquipmentLine label="Condition" value={getEquipmentConditionNote(item.condition)} />
+                        <ShareEquipmentLine
+                          label="Condition"
+                          value={getEquipmentConditionNote(item.condition)}
+                        />
                       </div>
+
+                      <ShareEquipmentNoteBlock
+                        label="Inspector Note"
+                        value={getEquipmentInspectorNote(item)}
+                      />
+
+                      <ShareEquipmentNoteBlock
+                        label="Maintenance Note"
+                        value={getEquipmentMaintenanceNote(item)}
+                      />
                     </div>
                   );
                 })}
