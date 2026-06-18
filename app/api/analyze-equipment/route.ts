@@ -504,6 +504,28 @@ function inferEquipmentCategory(parsed: EquipmentAnalysis) {
   return "general";
 }
 
+
+function getExpectedLife(category: string, equipmentType: string) {
+  const cleanCategory = cleanText(category).toLowerCase();
+  const cleanType = cleanText(equipmentType).toLowerCase();
+  const combined = `${cleanCategory} ${cleanType}`;
+
+  if (combined.includes("tankless")) return "15–20 years";
+  if (combined.includes("water heater") || combined.includes("storage tank")) return "8–12 years";
+  if (combined.includes("heat pump")) return "10–15 years";
+  if (combined.includes("air conditioner") || combined.includes("condenser")) return "10–15 years";
+  if (combined.includes("air handler")) return "10–15 years";
+  if (combined.includes("furnace")) return "15–20 years";
+  if (combined.includes("boiler")) return "20–30 years";
+  if (combined.includes("electrical panel") || combined.includes("service panel") || combined.includes("electrical")) return "30–40 years";
+  if (combined.includes("water softener")) return "10–15 years";
+  if (combined.includes("dishwasher")) return "9–12 years";
+  if (combined.includes("range") || combined.includes("oven") || combined.includes("stove")) return "13–15 years";
+  if (combined.includes("refrigerator")) return "10–15 years";
+
+  return "Typical service life varies";
+}
+
 function enhanceAnalysis(parsed: EquipmentAnalysis) {
   const category = inferEquipmentCategory(parsed);
   const manufacturer = normalizeManufacturer(parsed.manufacturer);
