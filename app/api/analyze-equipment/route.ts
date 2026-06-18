@@ -396,6 +396,48 @@ function getMaintenanceLevel({ age, category, condition, r22, problemPanel }: { 
 }
 
 
+
+function normalizeManufacturer(value: any) {
+  const clean = cleanText(value);
+  const lower = clean.toLowerCase();
+
+  if (!clean) return "";
+
+  if (
+    lower.includes("a.o. smith") ||
+    lower.includes("ao smith") ||
+    lower.includes("a o smith")
+  ) {
+    return "A.O. Smith";
+  }
+
+  if (lower.includes("rheem")) return "Rheem";
+  if (lower.includes("ruud")) return "Ruud";
+  if (lower.includes("bradford white")) return "Bradford White";
+  if (lower.includes("goodman")) return "Goodman";
+  if (lower.includes("amana")) return "Amana";
+  if (lower.includes("daikin")) return "Daikin";
+  if (lower.includes("carrier")) return "Carrier";
+  if (lower.includes("bryant")) return "Bryant";
+  if (lower.includes("trane")) return "Trane";
+  if (lower.includes("american standard")) return "American Standard";
+  if (lower.includes("lennox")) return "Lennox";
+  if (lower.includes("york")) return "York";
+  if (lower.includes("nordyne")) return "Nordyne";
+  if (lower.includes("intertherm")) return "Intertherm";
+  if (lower.includes("frigidaire")) return "Frigidaire";
+  if (lower.includes("whirlpool")) return "Whirlpool";
+  if (lower.includes("ge appliances") || lower === "ge") return "GE";
+  if (lower.includes("samsung")) return "Samsung";
+  if (lower.includes("lg")) return "LG";
+  if (lower.includes("siemens")) return "Siemens";
+  if (lower.includes("square d")) return "Square D";
+  if (lower.includes("eaton")) return "Eaton";
+  if (lower.includes("cutler")) return "Cutler-Hammer";
+
+  return clean;
+}
+
 function inferEquipmentCategory(parsed: EquipmentAnalysis) {
   const combined = [
     parsed.equipmentType,
