@@ -17,7 +17,37 @@ type EquipmentCardProps = {
   };
 };
 
+function getServiceLifeNote(equipment: EquipmentCardProps["equipment"]) {
+  const condition = String(equipment.condition || "").toLowerCase();
+  const remaining = String(equipment.estimatedLifeRemaining || "").toLowerCase();
+
+  if (
+    condition.includes("beyond") ||
+    condition.includes("past") ||
+    remaining.includes("beyond") ||
+    remaining.includes("0-")
+  ) {
+    return "At or beyond typical service-life range";
+  }
+
+  if (
+    condition.includes("near end") ||
+    condition.includes("end of typical") ||
+    remaining.includes("near")
+  ) {
+    return "Near typical service-life range";
+  }
+
+  if (equipment.estimatedAge || equipment.manufactureYear) {
+    return "Service life varies";
+  }
+
+  return "";
+}
+
 export default function EquipmentCard({ equipment }: EquipmentCardProps) {
+  const serviceLifeNote = getServiceLifeNote(equipment);
+
   const rows = [
     ["Equipment Type", equipment.equipmentType],
     ["Manufacturer", equipment.manufacturer],
@@ -30,7 +60,7 @@ export default function EquipmentCard({ equipment }: EquipmentCardProps) {
     ["Fuel Type", equipment.fuelType],
     ["Refrigerant", equipment.refrigerant],
     ["Condition", equipment.condition],
-    ["Estimated Life Remaining", equipment.estimatedLifeRemaining],
+    ["Service Life Note", serviceLifeNote],
     ["Report Section", equipment.section],
     ["Severity", equipment.severity],
   ];
@@ -59,6 +89,10 @@ export default function EquipmentCard({ equipment }: EquipmentCardProps) {
             </div>
           ))}
       </div>
+
+      <p className="mt-4 rounded-xl border border-slate-700 bg-slate-950 p-3 text-xs leading-5 text-slate-400">
+        Service life information is a general industry estimate only. Actual service life can vary based on installation quality, maintenance history, operating conditions, environment, and usage.
+      </p>
     </div>
   );
 }
