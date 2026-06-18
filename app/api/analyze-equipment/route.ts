@@ -351,7 +351,7 @@ function estimateBTU({ parsed, category }: { parsed: EquipmentAnalysis; category
   const visibleCapacity = cleanText(parsed.capacity);
   if (visibleCapacity && visibleCapacity.toLowerCase() !== "unknown") return visibleCapacity;
 
-  if (category === "cooling" || category === "heating") {
+  if (category === "hvac" || category === "heating") {
     const fromModel = parseTonnageFromModel(parsed.model);
     if (fromModel !== "Unknown") return fromModel;
   }
@@ -389,7 +389,7 @@ function getMaintenanceLevel({ age, category, condition, r22, problemPanel }: { 
   }
 
   if (category === "water_heater") return "Normal - recommend periodic inspection and maintenance";
-  if (category === "cooling" || category === "heating") return "Normal - recommend annual HVAC service";
+  if (category === "hvac" || category === "heating") return "Normal - recommend annual HVAC service";
   if (category === "appliance") return "Normal - maintain per manufacturer instructions";
 
   return "Normal";
@@ -508,10 +508,8 @@ function enhanceAnalysis(parsed: EquipmentAnalysis) {
   const category = inferEquipmentCategory(parsed);
   const manufacturer = normalizeManufacturer(parsed.manufacturer);
   const equipmentType = cleanText(parsed.equipmentType) ||
-    (category === "cooling"
-      ? "Cooling Equipment"
-      : category === "heating"
-      ? "Heating Equipment"
+    (category === "hvac"
+      ? "HVAC Equipment"
       : category === "water_heater"
       ? "Water Heater"
       : category === "electrical_panel"
