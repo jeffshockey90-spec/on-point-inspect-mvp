@@ -659,6 +659,9 @@ export default function ImportReportPage() {
             state: demoState,
             zip: demoZip,
 
+            property_photo_url: parsedReport.coverPhotoUrl || null,
+            cover_photo_url: parsedReport.coverPhotoUrl || null,
+
             inspection_date: inspectionDate,
             inspection_time: "10:00",
             inspection_status: "Imported Draft",
