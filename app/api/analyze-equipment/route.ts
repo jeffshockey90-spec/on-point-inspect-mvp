@@ -395,6 +395,73 @@ function getMaintenanceLevel({ age, category, condition, r22, problemPanel }: { 
   return "Normal";
 }
 
+
+function inferEquipmentCategory(parsed: EquipmentAnalysis) {
+  const combined = [
+    parsed.equipmentType,
+    parsed.equipmentCategory,
+    parsed.manufacturer,
+    parsed.model,
+    parsed.section,
+    parsed.clientSummary,
+  ]
+    .map((value) => cleanText(value).toLowerCase())
+    .join(" ");
+
+  if (
+    combined.includes("water heater") ||
+    combined.includes("storage tank") ||
+    combined.includes("tankless")
+  ) {
+    return "water_heater";
+  }
+
+  if (
+    combined.includes("heat pump") ||
+    combined.includes("air conditioner") ||
+    combined.includes("condenser") ||
+    combined.includes("air handler") ||
+    combined.includes("furnace") ||
+    combined.includes("hvac") ||
+    combined.includes("cooling") ||
+    combined.includes("heating")
+  ) {
+    return "hvac";
+  }
+
+  if (
+    combined.includes("electrical panel") ||
+    combined.includes("service panel") ||
+    combined.includes("breaker panel") ||
+    combined.includes("panelboard")
+  ) {
+    return "electrical";
+  }
+
+  if (
+    combined.includes("dishwasher") ||
+    combined.includes("range") ||
+    combined.includes("oven") ||
+    combined.includes("stove") ||
+    combined.includes("refrigerator") ||
+    combined.includes("microwave") ||
+    combined.includes("appliance")
+  ) {
+    return "appliance";
+  }
+
+  if (
+    combined.includes("water softener") ||
+    combined.includes("softener") ||
+    combined.includes("filter") ||
+    combined.includes("well pump")
+  ) {
+    return "plumbing";
+  }
+
+  return "general";
+}
+
 function enhanceAnalysis(parsed: EquipmentAnalysis) {
   const category = inferEquipmentCategory(parsed);
   const manufacturer = normalizeManufacturer(parsed.manufacturer);
