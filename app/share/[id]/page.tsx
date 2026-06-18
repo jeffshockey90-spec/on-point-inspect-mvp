@@ -1631,15 +1631,6 @@ export default async function PublicSharePage({
                           </div>
                         </div>
 
-                        <ShareEquipmentNoteBlock
-                          label="Inspector Note"
-                          value={getEquipmentLongNote(item, ["inspector_note", "inspection_note", "note", "notes"])}
-                        />
-
-                        <ShareEquipmentNoteBlock
-                          label="Maintenance Note"
-                          value={getEquipmentLongNote(item, ["maintenance_note", "maintenance", "service_note"])}
-                        />
                       )}
 
                       {group.findings.length === 0 && (
