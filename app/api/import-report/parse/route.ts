@@ -1,3 +1,4 @@
+import { createRequire } from "module";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -12,6 +13,8 @@ type ImportedFinding = {
   recommendation: string;
   severity: string;
 };
+
+const require = createRequire(import.meta.url);
 
 const KNOWN_SECTIONS = [
   "Inspection Details",
@@ -298,20 +301,81 @@ function parseFindings(text: string): ImportedFinding[] {
   });
 }
 
-async function readPdfText(buffer: Buffer) {
-  const pdfParseModule = await import("pdf-parse");
-  const pdfParse =
-    (pdfParseModule as any).default ||
-    (pdfParseModule as any).pdf ||
-    (pdfParseModule as any).parse ||
-    pdfParseModule;
+function readPdfText(buffer: Buffer): Promise<string> {
+  return new Promise((resolve, reject) => {
+    try {
+      const PDFParserModule = require("pdf2json");
+      const PDFParser = PDFParserModule.default || PDFParserModule;
+      const pdfParser = new PDFParser(null, 1);
 
-  if (typeof pdfParse !== "function") {
-    throw new Error("PDF parser is not available. Run: npm install pdf-parse@1.1.1");
-  }
+      pdfParser.on("pdfParser_dataError", (errorData: any) => {
+        reject(
+          new Error(
+            errorData?.parserError?.message ||
+              String(errorData?.parserError || "PDF parser failed.")
+          )
+        );
+      });
 
-  const result = await pdfParse(buffer);
-  return cleanText(result?.text || "");
+      pdfParser.on("pdfParser_dataReady", (pdfData: any) => {
+        try {
+          const pageTexts: string[] = [];
+
+          (pdfData?.Pages || []).forEach((page: any) => {
+            const items = (page?.Texts || [])
+              .map((item: any) => {
+                const decoded = (item?.R || [])
+                  .map((run: any) => {
+                    try {
+                      return decodeURIComponent(run?.T || "");
+                    } catch {
+                      return String(run?.T || "");
+                    }
+                  })
+                  .join("");
+
+                return {
+                  x: Number(item?.x || 0),
+                  y: Number(item?.y || 0),
+                  text: decoded,
+                };
+              })
+              .filter((item: any) => item.text.trim())
+              .sort((a: any, b: any) => {
+                if (Math.abs(a.y - b.y) > 0.25) return a.y - b.y;
+                return a.x - b.x;
+              });
+
+            let currentY: number | null = null;
+            let line = "";
+            const lines: string[] = [];
+
+            items.forEach((item: any) => {
+              if (currentY === null || Math.abs(item.y - currentY) <= 0.25) {
+                line += `${line ? " " : ""}${item.text}`;
+                currentY = currentY === null ? item.y : currentY;
+              } else {
+                if (line.trim()) lines.push(line.trim());
+                line = item.text;
+                currentY = item.y;
+              }
+            });
+
+            if (line.trim()) lines.push(line.trim());
+            pageTexts.push(lines.join("\n"));
+          });
+
+          resolve(cleanText(pageTexts.join("\n\n")));
+        } catch (error: any) {
+          reject(error);
+        }
+      });
+
+      pdfParser.parseBuffer(buffer);
+    } catch (error: any) {
+      reject(error);
+    }
+  });
 }
 
 export async function GET() {
