@@ -530,6 +530,116 @@ function getEquipmentMaintenanceNote(item: any) {
   );
 }
 
+
+function isKnownEquipmentValue(value: any) {
+  const clean = String(value ?? "").trim();
+  const lower = clean.toLowerCase();
+
+  if (!clean) return false;
+
+  return ![
+    "unknown",
+    "n/a",
+    "na",
+    "not available",
+    "not visible",
+    "not readable",
+    "unreadable",
+    "unable to determine",
+    "unable to confirm",
+    "cannot determine",
+    "not determined",
+    "none",
+    "null",
+    "undefined",
+  ].includes(lower);
+}
+
+function getTypicalIndustryRange(value: any) {
+  const clean = String(value || "").trim();
+  if (!isKnownEquipmentValue(clean)) return "";
+
+  const rangeMatch = clean.match(/(\d+)\s*[-–]\s*(\d+)/);
+  if (rangeMatch) {
+    return `${rangeMatch[1]}–${rangeMatch[2]} years`;
+  }
+
+  const numberMatch = clean.match(/\d+/);
+  if (!numberMatch) return clean;
+
+  const upper = Number(numberMatch[0]);
+  if (!Number.isFinite(upper) || upper <= 0) return clean;
+
+  const lower = Math.max(1, upper - 5);
+  return `${lower}–${upper} years`;
+}
+
+function getEquipmentConditionNote(value: any) {
+  const clean = String(value || "").trim();
+  const lower = clean.toLowerCase();
+
+  if (!isKnownEquipmentValue(clean)) return "";
+
+  if (
+    lower.includes("remaining") ||
+    lower.includes("service life") ||
+    lower.includes("life remaining")
+  ) {
+    return "No specific deficiency noted";
+  }
+
+  return clean;
+}
+
+function getEquipmentLongNote(item: any, keys: string[]) {
+  for (const key of keys) {
+    const value = item?.[key];
+    const clean = String(value || "").trim();
+
+    if (isKnownEquipmentValue(clean)) {
+      return clean;
+    }
+  }
+
+  return "";
+}
+
+function ShareEquipmentLine({ label, value }: { label: string; value?: any }) {
+  if (!isKnownEquipmentValue(value)) return null;
+
+  return (
+    <div className="grid gap-1 border-b border-slate-800 pb-2 sm:grid-cols-[150px_1fr]">
+      <span className="font-bold text-slate-500">{label}</span>
+      <span className="text-left font-semibold text-slate-100 sm:text-right">
+        {String(value)}
+      </span>
+    </div>
+  );
+}
+
+function ShareEquipmentNoteBlock({
+  label,
+  value,
+}: {
+  label: string;
+  value?: any;
+}) {
+  const clean = String(value || "").trim();
+
+  if (!isKnownEquipmentValue(clean)) return null;
+
+  return (
+    <div className="mt-4 rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-4">
+      <p className="text-xs font-black uppercase tracking-wide text-cyan-300">
+        {label}
+      </p>
+      <p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-100">
+        {clean}
+      </p>
+    </div>
+  );
+}
+
 export default async function PublicSharePage({
   params,
   searchParams,
@@ -1162,15 +1272,13 @@ export default async function PublicSharePage({
                       </h3>
 
                       <div className="mt-4 grid gap-2 text-sm text-slate-300">
-                        <InventoryLine label="Serial" value={item.serial} />
-                        <InventoryLine label="Manufacture Year" value={item.manufacture_year} />
-                        <InventoryLine label="Estimated Age" value={item.estimated_age} />
-                        <InventoryLine label="Typical Industry Range" value={getTypicalIndustryRange(item.expected_service_life)} />
+                        <ShareEquipmentLine label="Serial" value={item.serial} />
+                        <ShareEquipmentLine label="Manufacture Year" value={item.manufacture_year} />
+                        <ShareEquipmentLine label="Estimated Age" value={item.estimated_age} />
+                        <ShareEquipmentLine label="Typical Industry Range" value={getTypicalIndustryRange(item.expected_service_life)} />
                         <InventoryLine label="Service Life" value={getTypicalIndustryRange(item.expected_service_life) ? "Industry estimate only" : ""} />
-                        <InventoryLine label="Refrigerant" value={item.refrigerant} />
-                        <InventoryLine label="Condition" value={getEquipmentConditionNote(item.condition)} />
-                        <InventoryLine label="Inspector Note" value={getEquipmentInspectorNote(item)} />
-                        <InventoryLine label="Maintenance Note" value={getEquipmentMaintenanceNote(item)} />
+                        <ShareEquipmentLine label="Refrigerant" value={item.refrigerant} />
+                        <ShareEquipmentLine label="Condition" value={getEquipmentConditionNote(item.condition)} />
                       </div>
                     </div>
                   );
@@ -1324,7 +1432,7 @@ export default async function PublicSharePage({
                         {section}
                       </h3>
 
-                      <div className="grid gap-4 md:grid-cols-2">
+                      <div className="grid gap-4 lg:grid-cols-2">
                         {Object.entries(checklistBySection[section]).map(
                           ([groupTitle, rows]: any) => (
                             <div key={groupTitle}>
@@ -1522,6 +1630,16 @@ export default async function PublicSharePage({
                             })}
                           </div>
                         </div>
+
+                        <ShareEquipmentNoteBlock
+                          label="Inspector Note"
+                          value={getEquipmentLongNote(item, ["inspector_note", "inspection_note", "note", "notes"])}
+                        />
+
+                        <ShareEquipmentNoteBlock
+                          label="Maintenance Note"
+                          value={getEquipmentLongNote(item, ["maintenance_note", "maintenance", "service_note"])}
+                        />
                       )}
 
                       {group.findings.length === 0 && (
