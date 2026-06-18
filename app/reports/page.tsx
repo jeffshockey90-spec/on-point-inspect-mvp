@@ -206,13 +206,23 @@ export default async function ReportsPage() {
             </p>
           </div>
 
-          <FastLinkButton
-            href="/inspections/new"
-            loadingText="Opening..."
-            className="rounded-xl bg-teal-500 px-6 py-3 font-bold text-black hover:bg-teal-400"
-          >
-            New Inspection
-          </FastLinkButton>
+          <div className="flex flex-wrap gap-3">
+            <FastLinkButton
+              href="/inspections/new"
+              loadingText="Opening..."
+              className="rounded-xl bg-teal-500 px-6 py-3 font-bold text-black hover:bg-teal-400"
+            >
+              New Inspection
+            </FastLinkButton>
+
+            <FastLinkButton
+              href="/import-report"
+              loadingText="Opening Importer..."
+              className="rounded-xl border border-amber-500 bg-amber-500/10 px-6 py-3 font-bold text-amber-300 hover:bg-amber-500/20"
+            >
+              Import Report
+            </FastLinkButton>
+          </div>
         </div>
 
         {rows.length === 0 ? (
