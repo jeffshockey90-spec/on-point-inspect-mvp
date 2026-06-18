@@ -48,6 +48,19 @@ const SECTION_NUMBER_MAP: Record<string, string> = {
   "13": "Garage",
 };
 
+const NOISE_PATTERNS = [
+  /^1070\s+Gora/i,
+  /On Point Home Inspections LLC/i,
+  /^Page\s+\d+/i,
+  /^Video$/i,
+  /^\(click here to view on web\)$/i,
+  /^section-[a-z0-9-]+$/i,
+  /^SUMMARY$/i,
+  /^Information$/i,
+  /^Deficiencies$/i,
+  /^General$/i,
+];
+
 function cleanText(value: string) {
   return String(value || "")
     .replace(/\r/g, "\n")
@@ -71,7 +84,9 @@ function titleCase(value: string) {
     .replace(/\bGfci\b/g, "GFCI")
     .replace(/\bAfci\b/g, "AFCI")
     .replace(/\bHvac\b/g, "HVAC")
-    .replace(/\bOsb\b/g, "OSB");
+    .replace(/\bOsb\b/g, "OSB")
+    .replace(/\bPvc\b/g, "PVC")
+    .replace(/\bAo\b/g, "AO");
 }
 
 function extractEmail(text: string) {
@@ -121,6 +136,54 @@ function normalizeSection(value: string) {
   );
 
   return match || clean || "Inspection Details";
+}
+
+function sectionFromFindingNumber(line: string) {
+  const number = line.match(/^(\d+)\./)?.[1] || "";
+  return SECTION_NUMBER_MAP[number] || "Inspection Details";
+}
+
+function isFindingHeader(line: string) {
+  return /^\d+\.\d+\.\d+\s+/.test(line.trim());
+}
+
+function isSectionHeader(line: string) {
+  return /^\d+:\s+/.test(line.trim());
+}
+
+function isNoiseLine(line: string) {
+  const clean = String(line || "").trim();
+  return !clean || NOISE_PATTERNS.some((pattern) => pattern.test(clean));
+}
+
+function isLabelLine(line: string) {
+  return /:$/.test(line.trim()) || /^[A-Z][A-Za-z\s,&/-]+:\s+/.test(line.trim());
+}
+
+function isLikelyTitleLine(line: string) {
+  const clean = String(line || "").trim();
+
+  if (clean.length < 4) return false;
+  if (isNoiseLine(clean)) return false;
+  if (isFindingHeader(clean) || isSectionHeader(clean)) return false;
+  if (/^(recommendation|maintenance item|safety hazard|informational|information)$/i.test(clean)) return false;
+  if (isLabelLine(clean)) return false;
+
+  const letters = clean.replace(/[^A-Za-z]/g, "");
+  if (letters.length < 4) return false;
+
+  return clean === clean.toUpperCase();
+}
+
+function cleanImportedContent(lines: string[]) {
+  return lines
+    .map((line) => line.trim())
+    .filter((line) => !isNoiseLine(line))
+    .filter((line) => !/^Implication:?$/i.test(line))
+    .filter((line) => !/^Recommendation:?$/i.test(line))
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
 function extractCoverInfo(text: string) {
@@ -187,45 +250,30 @@ function extractCoverInfo(text: string) {
   };
 }
 
-function isFindingHeader(line: string) {
-  return /^\d+\.\d+\.\d+\s+/.test(line.trim());
-}
-
-function sectionFromFindingNumber(line: string) {
-  const number = line.match(/^(\d+)\./)?.[1] || "";
-  return SECTION_NUMBER_MAP[number] || "Inspection Details";
-}
-
-function parseSummaryFindingLine(line: string): ImportedFinding | null {
-  const clean = line.trim();
-
-  const match = clean.match(/^\d+\.\d+\.\d+\s+(.+?)\s+-\s+(.+?):\s+(.+)$/);
-  if (!match) return null;
-
-  return {
-    section: normalizeSection(match[1]),
-    title: titleCase(match[3]),
-    observation: "Imported from PDF report. Review and edit this finding before publishing.",
-    implication: "",
-    recommendation: "",
-    severity: "Recommended Repair",
-  };
-}
-
 function splitRecommendation(text: string) {
   const clean = cleanText(text);
 
-  const recommendationMarkers = [
+  const explicit = clean.match(/([\s\S]*?)(?:\n|^)(Recommend(?:ation)?[:\s][\s\S]*)$/i);
+  if (explicit && explicit[1].trim().length > 50) {
+    return {
+      observation: explicit[1].trim(),
+      recommendation: explicit[2].trim(),
+    };
+  }
+
+  const markers = [
     "Recommend ",
-    "Recommendation:",
-    "Recommendation",
     "Have ",
-    "Replace ",
     "Repair ",
+    "Replace ",
+    "Install ",
     "Monitor ",
+    "Secure ",
+    "Contact a qualified",
+    "Contact a qualifed",
   ];
 
-  for (const marker of recommendationMarkers) {
+  for (const marker of markers) {
     const index = clean.indexOf(marker);
 
     if (index > 80) {
@@ -242,6 +290,13 @@ function splitRecommendation(text: string) {
   };
 }
 
+function titleFromSummaryLine(line: string) {
+  const match = line.match(/^\d+\.\d+\.\d+\s+(.+?)\s+-\s+(.+?):\s+(.+)$/);
+  if (!match) return "";
+
+  return titleCase(match[3]);
+}
+
 function parseBodyFindings(lines: string[]) {
   const findings: ImportedFinding[] = [];
   const seen = new Set<string>();
@@ -255,32 +310,59 @@ function parseBodyFindings(lines: string[]) {
     if (!numberMatch) continue;
 
     const section = sectionFromFindingNumber(headerLine);
-    const summaryFinding = parseSummaryFindingLine(headerLine);
+    const summaryTitle = titleFromSummaryLine(headerLine);
 
-    let title = summaryFinding?.title || "";
+    let systemTitle = "";
+    let defectTitle = summaryTitle;
     let severity = "";
-    const contentLines: string[] = [];
+    let cursor = index + 1;
 
-    if (!title) {
-      title = titleCase(numberMatch[2]);
+    if (!defectTitle) {
+      for (; cursor < Math.min(lines.length, index + 10); cursor += 1) {
+        const line = lines[cursor];
+
+        if (isFindingHeader(line) || isSectionHeader(line)) break;
+        if (isNoiseLine(line)) continue;
+
+        if (/^(maintenance item|recommendation|safety hazard|informational|information)$/i.test(line)) {
+          severity = line;
+          continue;
+        }
+
+        if (!systemTitle && !isLikelyTitleLine(line)) {
+          systemTitle = line;
+          continue;
+        }
+
+        if (isLikelyTitleLine(line)) {
+          const titleParts = [line];
+          const next = lines[cursor + 1] || "";
+
+          if (isLikelyTitleLine(next)) {
+            titleParts.push(next);
+            cursor += 1;
+          }
+
+          defectTitle = titleCase(titleParts.join(" "));
+          cursor += 1;
+          break;
+        }
+      }
     }
 
-    for (let cursor = index + 1; cursor < lines.length; cursor += 1) {
-      const nextLine = lines[cursor];
+    if (!defectTitle) {
+      defectTitle = titleCase(systemTitle || numberMatch[2]);
+    }
+
+    const contentLines: string[] = [];
+
+    for (let contentCursor = cursor; contentCursor < lines.length; contentCursor += 1) {
+      const nextLine = lines[contentCursor];
 
       if (isFindingHeader(nextLine)) break;
-      if (/^\d+:\s+/.test(nextLine)) break;
-      if (/^Page\s+\d+/i.test(nextLine)) continue;
-      if (/^Video$/i.test(nextLine)) continue;
-      if (/^\(click here to view on web\)$/i.test(nextLine)) continue;
-      if (/^section-[a-z0-9-]+$/i.test(nextLine)) continue;
-      if (/On Point Home Inspections LLC/i.test(nextLine)) continue;
+      if (isSectionHeader(nextLine)) break;
 
-      if (
-        /^(maintenance item|recommendation|safety hazard|informational|information)$/i.test(
-          nextLine
-        )
-      ) {
+      if (/^(maintenance item|recommendation|safety hazard|informational|information)$/i.test(nextLine)) {
         severity = nextLine;
         continue;
       }
@@ -288,20 +370,17 @@ function parseBodyFindings(lines: string[]) {
       contentLines.push(nextLine);
     }
 
-    const rawContent = cleanText(contentLines.join("\n"));
+    const rawContent = cleanImportedContent(contentLines);
     const { observation, recommendation } = splitRecommendation(rawContent);
 
-    const key = `${section}:${title}`.toLowerCase();
+    const key = `${section}:${defectTitle}`.toLowerCase();
     if (seen.has(key)) continue;
     seen.add(key);
 
     findings.push({
       section,
-      title: title || "Imported Finding",
-      observation:
-        observation ||
-        summaryFinding?.observation ||
-        "Imported from PDF report. Review and edit this finding before publishing.",
+      title: defectTitle || "Imported Finding",
+      observation: observation || "Imported from PDF report. Review and edit this finding before publishing.",
       implication: "",
       recommendation,
       severity: normalizeSeverity(severity),
@@ -310,9 +389,13 @@ function parseBodyFindings(lines: string[]) {
 
   return findings.filter((finding) => {
     const title = finding.title.toLowerCase();
+    const observation = finding.observation.toLowerCase();
+
     if (title.includes("inspection details")) return false;
     if (title.includes("standards of practice")) return false;
     if (title === "information" || title === "deficiencies") return false;
+    if (observation.includes("summary 1070")) return false;
+
     return finding.title;
   });
 }
@@ -322,23 +405,25 @@ function parseSummaryFindings(lines: string[]) {
   const seen = new Set<string>();
 
   for (let index = 0; index < lines.length; index += 1) {
-    if (!isFindingHeader(lines[index])) continue;
+    const line = lines[index];
+    const title = titleFromSummaryLine(line);
+    if (!title) continue;
 
-    let combined = lines[index];
+    const match = line.match(/^\d+\.\d+\.\d+\s+(.+?)\s+-\s+(.+?):\s+(.+)$/);
+    if (!match) continue;
 
-    for (let cursor = index + 1; cursor < Math.min(lines.length, index + 4); cursor += 1) {
-      if (isFindingHeader(lines[cursor])) break;
-      if (/^\d+:\s+/.test(lines[cursor])) break;
-      combined += ` ${lines[cursor]}`;
-    }
-
-    const finding = parseSummaryFindingLine(combined);
-    if (!finding) continue;
+    const finding: ImportedFinding = {
+      section: normalizeSection(match[1]),
+      title,
+      observation: "Imported from PDF report. Review and edit this finding before publishing.",
+      implication: "",
+      recommendation: "",
+      severity: "Recommended Repair",
+    };
 
     const key = `${finding.section}:${finding.title}`.toLowerCase();
     if (seen.has(key)) continue;
     seen.add(key);
-
     findings.push(finding);
   }
 
@@ -370,9 +455,11 @@ function parseFindings(text: string): ImportedFinding[] {
   const bodyFindings = parseBodyFindings(lines);
   const summaryFindings = parseSummaryFindings(lines);
 
-  return bodyFindings.length >= 5
-    ? mergeFindings(bodyFindings, summaryFindings)
-    : mergeFindings(summaryFindings, bodyFindings);
+  if (bodyFindings.length > 0) {
+    return bodyFindings;
+  }
+
+  return summaryFindings;
 }
 
 async function readPdfText(buffer: Buffer): Promise<string> {
