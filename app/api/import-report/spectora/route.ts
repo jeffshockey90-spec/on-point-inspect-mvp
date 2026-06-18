@@ -97,6 +97,8 @@ function normalizeSeverityFromSpectora(category: any, commentType: string) {
 
   if (type === "info") return "Informational";
   if (type === "limit") return "Informational";
+  if (type === "maintenance") return "Maintenance";
+  if (type === "safety") return "Safety Concern";
 
   // Spectora commonly uses:
   // -1 = Maintenance Item, 0 = Recommendation, 1 = Safety Hazard
@@ -466,103 +468,246 @@ function parseHtmlFindingText(htmlText: string) {
   };
 }
 
-function parseFindingsFromSpectoraPayload(payload: any): ImportedFinding[] {
-  const sections = payload?.report?.sections || payload?.sections || payload?.data?.report?.sections || [];
-  const findings: ImportedFinding[] = [];
-  const seen = new Set<string>();
+function isFindingObservation(value: any) {
+  const commentType = String(value?.comment_type || "").toLowerCase();
+  const answerType = String(value?.answer_type || "").toLowerCase();
+  const name = cleanText(value?.name || "");
+  const text = cleanText(value?.text || "");
+  const hasPhotos = Array.isArray(value?.photos) && value.photos.length > 0;
 
-  for (const section of sections) {
-    const sectionName = cleanText(section?.name || "Inspection Details");
+  if (!name) return false;
+  if (String(value?.value || "").toLowerCase() === "false") return false;
 
-    for (const item of section?.items || []) {
-      const itemName = cleanText(item?.name || "");
+  if (commentType === "defect") return true;
+  if (commentType === "recommendation") return true;
+  if (commentType === "safety") return true;
+  if (commentType === "maintenance") return true;
 
-      for (const observation of item?.observations || []) {
-        const commentType = String(observation?.comment_type || "").toLowerCase();
-        const isDefect = commentType === "defect";
-        const isRecommendation =
-          commentType === "recommendation" || commentType === "safety" || commentType === "maintenance";
+  // Some Spectora compiled payloads lose the defect type in nested nodes.
+  // Keep this conservative: only import "true" boolean items that have real narrative text or photos.
+  if (
+    answerType === "boolean" &&
+    String(value?.value || "").toLowerCase() === "true" &&
+    (text.length > 25 || hasPhotos) &&
+    commentType !== "info" &&
+    commentType !== "limit"
+  ) {
+    return true;
+  }
 
-        if (!isDefect && !isRecommendation) continue;
-        if (String(observation?.value || "").toLowerCase() === "false") continue;
+  return false;
+}
 
-        const title = cleanText(observation?.name || itemName || "Imported Finding");
-        const parsedText = parseHtmlFindingText(observation?.text || "");
+function extractFindingFromObservation(
+  observation: any,
+  sectionName: string,
+  fallbackItemName: string
+): ImportedFinding | null {
+  if (!isFindingObservation(observation)) return null;
 
-        const photos = (observation?.photos || [])
-          .map((photo: any) => getPhotoUrl(photo))
-          .filter(Boolean);
+  const title = cleanText(observation?.name || fallbackItemName || "Imported Finding");
+  const parsedText = parseHtmlFindingText(observation?.text || "");
 
-        const key = `${sectionName}:${title}:${parsedText.observation.slice(0, 50)}`.toLowerCase();
-        if (seen.has(key)) continue;
-        seen.add(key);
+  const photos = (observation?.photos || [])
+    .map((photo: any) => getPhotoUrl(photo))
+    .filter(Boolean);
 
-        findings.push({
-          section: sectionName,
-          title,
-          observation:
-            parsedText.observation ||
-            "Imported from Spectora report. Review and edit this finding before publishing.",
-          implication: parsedText.implication,
-          recommendation: parsedText.recommendation || cleanText(observation?.recommendation || ""),
-          severity: normalizeSeverityFromSpectora(observation?.category, commentType),
-          image_url: photos[0] || "",
-          photos,
-        });
+  return {
+    section: cleanText(sectionName || "Inspection Details"),
+    title,
+    observation:
+      parsedText.observation ||
+      "Imported from Spectora report. Review and edit this finding before publishing.",
+    implication: parsedText.implication,
+    recommendation:
+      parsedText.recommendation ||
+      cleanText(observation?.recommendation || ""),
+    severity: normalizeSeverityFromSpectora(
+      observation?.category,
+      observation?.comment_type
+    ),
+    image_url: photos[0] || "",
+    photos,
+  };
+}
+
+function extractReferencePhotosFromObservation(
+  observation: any,
+  sectionName: string,
+  fallbackItemName: string
+): ImportedFinding[] {
+  const commentType = String(observation?.comment_type || "").toLowerCase();
+
+  if (commentType !== "info") return [];
+
+  const photos = (observation?.photos || [])
+    .map((photo: any) => getPhotoUrl(photo))
+    .filter(Boolean);
+
+  if (!photos.length) return [];
+
+  const title = cleanText(
+    observation?.name ||
+      fallbackItemName ||
+      `${sectionName || "Section"} Reference Photos`
+  );
+
+  return [
+    {
+      section: cleanText(sectionName || "Inspection Details"),
+      title,
+      observation:
+        cleanText(observation?.text || observation?.value || "") ||
+        "Imported Spectora reference photo. Review and keep as informational if needed.",
+      implication: "",
+      recommendation: "",
+      severity: "Informational",
+      image_url: photos[0] || "",
+      photos,
+    },
+  ];
+}
+
+function walkSpectoraTree(
+  node: any,
+  context: {
+    sectionName: string;
+    itemName: string;
+  },
+  findings: ImportedFinding[],
+  seen: Set<string>,
+  depth = 0
+) {
+  if (!node || depth > 30) return;
+
+  if (Array.isArray(node)) {
+    for (const child of node) {
+      walkSpectoraTree(child, context, findings, seen, depth + 1);
+    }
+    return;
+  }
+
+  if (typeof node !== "object") return;
+
+  const possibleSectionName =
+    node?.sections || node?.items || node?.observations
+      ? cleanText(node?.name || "")
+      : "";
+
+  const nextContext = {
+    sectionName:
+      node?.items || node?.sections
+        ? possibleSectionName || context.sectionName
+        : context.sectionName,
+    itemName:
+      node?.observations
+        ? cleanText(node?.name || context.itemName || "")
+        : context.itemName,
+  };
+
+  if (Array.isArray(node?.observations)) {
+    for (const observation of node.observations) {
+      const finding = extractFindingFromObservation(
+        observation,
+        nextContext.sectionName || context.sectionName,
+        cleanText(node?.name || nextContext.itemName || context.itemName)
+      );
+
+      if (finding) {
+        const key = `${finding.section}:${finding.title}:${finding.observation.slice(
+          0,
+          75
+        )}`.toLowerCase();
+
+        if (!seen.has(key)) {
+          seen.add(key);
+          findings.push(finding);
+        }
+      }
+
+      for (const referencePhotoFinding of extractReferencePhotosFromObservation(
+        observation,
+        nextContext.sectionName || context.sectionName,
+        cleanText(node?.name || nextContext.itemName || context.itemName)
+      )) {
+        const key = `${referencePhotoFinding.section}:${referencePhotoFinding.title}:${referencePhotoFinding.image_url}`.toLowerCase();
+
+        if (!seen.has(key)) {
+          seen.add(key);
+          findings.push(referencePhotoFinding);
+        }
       }
     }
   }
 
-  return findings;
+  const childKeys = [
+    "sections",
+    "items",
+    "subsections",
+    "children",
+    "components",
+    "defects",
+    "recommendations",
+    "comments",
+    "observations",
+  ];
+
+  for (const key of childKeys) {
+    if (Array.isArray(node?.[key])) {
+      walkSpectoraTree(node[key], nextContext, findings, seen, depth + 1);
+    }
+  }
+}
+
+function parseFindingsFromSpectoraPayload(payload: any): ImportedFinding[] {
+  const findings: ImportedFinding[] = [];
+  const seen = new Set<string>();
+
+  const candidateRoots = [
+    payload?.report,
+    payload?.report?.sections,
+    payload?.sections,
+    payload?.data?.report,
+    payload?.data?.report?.sections,
+    payload,
+  ].filter(Boolean);
+
+  for (const root of candidateRoots) {
+    walkSpectoraTree(
+      root,
+      {
+        sectionName: "Inspection Details",
+        itemName: "",
+      },
+      findings,
+      seen
+    );
+  }
+
+  const defectFindings = findings.filter(
+    (finding) => finding.severity !== "Informational"
+  );
+
+  // Prefer true findings. If a report only contains informational photos, keep those.
+  return defectFindings.length ? defectFindings : findings;
 }
 
 function getReportStorageCandidateUrls(inspectionId: string, reportId: string) {
-  const encodedBase = `${inspectionId}%2Freports%2F${reportId}`;
+  const encodedReportPath = `reports%2F${reportId}.json`;
+  const encodedInspectionReport = `${inspectionId}%2Freports%2F${reportId}`;
+  const bucket = "https://firebasestorage.googleapis.com/v0/b/spectora-prod-processed-media/o";
 
-  const firebaseBuckets = [
-    "https://firebasestorage.googleapis.com/v0/b/spectora-prod-processed-media/o",
-    "https://firebasestorage.googleapis.com/v0/b/spectora-prod-report-data/o",
-    "https://firebasestorage.googleapis.com/v0/b/spectora-prod-reports/o",
-  ];
-
-  const appUrls = [
-    // This is the request Chrome usually shows as: f382c123-...json?alt=media
-    `https://app.spectora.com/api/v1/public/reports/${reportId}.json?alt=media`,
-    `https://app.spectora.com/api/v1/public/reports/${reportId}/compiled?alt=media`,
-    `https://app.spectora.com/api/v1/public/reports/${reportId}/compiled.json?alt=media`,
-    `https://reports.spectora.com/reports/${reportId}.json?alt=media`,
-    `https://reports.spectora.com/v/reports/${reportId}.json?alt=media`,
-  ];
-
-  const firebaseUrls = firebaseBuckets.flatMap((bucket) => [
-    // Common compiled report locations used by Spectora's next-gen viewer.
+  return [
+    `${bucket}/${encodedReportPath}?alt=media`,
     `${bucket}/${reportId}.json?alt=media`,
-    `${bucket}/reports%2F${reportId}.json?alt=media`,
-    `${bucket}/inspections%2F${inspectionId}%2Freports%2F${reportId}.json?alt=media`,
-    `${bucket}/${encodedBase}.json?alt=media`,
-    `${bucket}/${encodedBase}%2F${reportId}.json?alt=media`,
-    `${bucket}/${encodedBase}%2Freport.json?alt=media`,
-    `${bucket}/${encodedBase}%2Fcompiled.json?alt=media`,
-    `${bucket}/${encodedBase}%2Fcompiled%2F${reportId}.json?alt=media`,
-  ]);
-
-  const storageUrls = [
-    `https://storage.googleapis.com/spectora-prod-processed-media/${reportId}.json`,
-    `https://storage.googleapis.com/spectora-prod-processed-media/${inspectionId}/reports/${reportId}.json`,
-    `https://storage.googleapis.com/spectora-prod-processed-media/${inspectionId}/reports/${reportId}/${reportId}.json`,
-    `https://storage.googleapis.com/spectora-prod-processed-media/${inspectionId}/reports/${reportId}/report.json`,
-    `https://storage.googleapis.com/spectora-prod-processed-media/${inspectionId}/reports/${reportId}/compiled.json`,
+    `${bucket}/${encodedInspectionReport}.json?alt=media`,
+    `${bucket}/${encodedInspectionReport}%2F${reportId}.json?alt=media`,
+    `${bucket}/${encodedInspectionReport}%2Freport.json?alt=media`,
+    `${bucket}/${encodedInspectionReport}%2Fcompiled.json?alt=media`,
+    `${bucket}/${encodedInspectionReport}%2Fcompiled%2F${reportId}.json?alt=media`,
+    `${bucket}/${encodedInspectionReport}%2Fpdf.json?alt=media`,
+    `${bucket}/${encodedInspectionReport}%2Fpdf_payload.json?alt=media`,
   ];
-
-  return [...appUrls, ...firebaseUrls, ...storageUrls];
-}
-
-function hasSpectoraSections(payload: any) {
-  return Boolean(
-    payload?.report?.sections?.length ||
-      payload?.sections?.length ||
-      payload?.data?.report?.sections?.length
-  );
 }
 
 async function fetchCompiledSpectoraReport(inspectionId: string, reportId: string) {
@@ -573,13 +718,16 @@ async function fetchCompiledSpectoraReport(inspectionId: string, reportId: strin
   for (const url of urls) {
     const payload = await tryFetchJson(url);
 
-    if (hasSpectoraSections(payload)) {
-      console.log("Spectora compiled report found:", url);
+    if (
+      payload?.report?.sections?.length ||
+      payload?.sections?.length ||
+      payload?.report?.inspection ||
+      payload?.filename
+    ) {
       return payload;
     }
   }
 
-  console.warn("Spectora compiled report was not found for", { inspectionId, reportId });
   return null;
 }
 
