@@ -260,6 +260,155 @@ function dedupeImportedFindings(findings: ImportedFinding[]) {
   return output;
 }
 
+
+type EquipmentGroup = {
+  section: string;
+  name: string;
+  fields: Record<string, string>;
+  photos: string[];
+};
+
+const EQUIPMENT_SECTION_NAMES = [
+  "Heating",
+  "Cooling",
+  "Plumbing",
+  "Electrical",
+  "Built-in Appliances",
+  "Garage",
+];
+
+function isEquipmentSection(section: string) {
+  return EQUIPMENT_SECTION_NAMES.some(
+    (name) => name.toLowerCase() === String(section || "").toLowerCase()
+  );
+}
+
+function equipmentTypeForDetail(detail: ImportedFinding) {
+  const section = String(detail.section || "");
+  const title = cleanDisplayLabel(detail.title || "").toLowerCase();
+  const text = String(detail.observation || "").toLowerCase();
+
+  if (section === "Heating") return "Heating Equipment";
+  if (section === "Cooling") return "Cooling Equipment";
+
+  if (section === "Plumbing") {
+    if (
+      title.includes("capacity") ||
+      title.includes("manufacturer") ||
+      title.includes("power source") ||
+      title.includes("energy source") ||
+      title.includes("fuel") ||
+      text.includes("gallon")
+    ) {
+      return "Water Heater";
+    }
+
+    return "Plumbing";
+  }
+
+  if (section === "Electrical") return "Electrical System";
+
+  if (section === "Built-in Appliances") {
+    if (title.includes("range") || title.includes("oven")) return "Range/Oven";
+    if (title.includes("garbage disposal")) return "Garbage Disposal";
+    if (title.includes("exhaust hood")) return "Exhaust Hood";
+    if (title.includes("dishwasher")) return "Dishwasher";
+    if (title.includes("brand")) return "Appliances";
+    return "Built-in Appliances";
+  }
+
+  if (section === "Garage") {
+    if (title.includes("opener")) return "Garage Door Opener";
+    return "Garage";
+  }
+
+  return section || "Equipment";
+}
+
+function normalizedFieldLabel(detail: ImportedFinding) {
+  const raw = cleanDisplayLabel(detail.title || "");
+  const lower = raw.toLowerCase();
+
+  if (lower.includes("range") && lower.includes("brand")) return "Range/Oven Brand";
+  if (lower.includes("garbage disposal")) return "Garbage Disposal";
+  if (lower.includes("exhaust hood")) return "Exhaust Hood Type";
+  if (lower.includes("power source")) return "Power Source";
+  if (lower.includes("energy source")) return "Energy Source";
+  if (lower.includes("supply material")) return "Water Supply Material";
+  if (lower.includes("distribution material")) return "Distribution Material";
+  if (lower.includes("drain size")) return "Drain Size";
+  if (lower.includes("water source")) return "Water Source";
+  if (lower.includes("fuel")) return "Fuel";
+  if (lower.includes("capacity")) return "Capacity";
+  if (lower.includes("manufacturer")) return "Manufacturer";
+  if (lower.includes("location")) return "Location";
+  if (lower.includes("seer")) return "SEER Rating";
+  if (lower.includes("afue")) return "AFUE Rating";
+  if (lower.includes("brand")) return "Brand";
+  if (lower.includes("material")) return "Material";
+  if (lower.includes("type")) return "Type";
+
+  return raw || "Detail";
+}
+
+function fieldValueForDetail(detail: ImportedFinding) {
+  const value = simplifyDetailObservation(detail);
+  const title = cleanDisplayLabel(detail.title || "");
+
+  if (!value) return "";
+
+  // Remove repeated title from values when Spectora text embeds it.
+  const escaped = title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return value.replace(new RegExp(`^${escaped}\\s*:?\\s*`, "i"), "").trim();
+}
+
+function groupEquipmentDetails(details: ImportedFinding[]) {
+  const groups = new Map<string, EquipmentGroup>();
+  const passthrough: ImportedFinding[] = [];
+
+  for (const detail of details) {
+    if (!isEquipmentSection(detail.section)) {
+      passthrough.push(detail);
+      continue;
+    }
+
+    const section = detail.section || "Equipment";
+    const name = equipmentTypeForDetail(detail);
+    const key = `${section}::${name}`;
+    const label = normalizedFieldLabel(detail);
+    const value = fieldValueForDetail(detail);
+    const photos = photoSet(detail);
+
+    if (!groups.has(key)) {
+      groups.set(key, {
+        section,
+        name,
+        fields: {},
+        photos: [],
+      });
+    }
+
+    const group = groups.get(key)!;
+
+    if (value) {
+      const existing = group.fields[label];
+
+      // Keep the shorter, cleaner duplicate value.
+      if (!existing || value.length < existing.length) {
+        group.fields[label] = value;
+      }
+    }
+
+    group.photos = Array.from(new Set([...group.photos, ...photos]));
+  }
+
+  return {
+    equipmentGroups: Array.from(groups.values()),
+    passthroughDetails: passthrough,
+  };
+}
+
+
 function normalizedDetailKey(detail: ImportedFinding) {
   const section = String(detail.section || "").trim().toLowerCase();
   const title = cleanDisplayLabel(detail.title || "").trim().toLowerCase();
@@ -346,17 +495,22 @@ export default function ImportReportPage() {
     [activeFindings]
   );
 
+  const { equipmentGroups, passthroughDetails } = useMemo(
+    () => groupEquipmentDetails(propertyDetails),
+    [propertyDetails]
+  );
+
   const groupedPropertyDetails = useMemo(() => {
     const groups: Record<string, ImportedFinding[]> = {};
 
-    for (const detail of propertyDetails) {
+    for (const detail of passthroughDetails) {
       const section = detail.section || "Inspection Details";
       if (!groups[section]) groups[section] = [];
       groups[section].push(detail);
     }
 
     return groups;
-  }, [propertyDetails]);
+  }, [passthroughDetails]);
 
   function updateReportField(field: keyof ParsedReport, value: string) {
     setParsedReport((current) => ({
@@ -838,6 +992,60 @@ export default function ImportReportPage() {
                 </p>
 
                 <div className="mt-5 space-y-5">
+                  {equipmentGroups.length > 0 && (
+                    <div className="rounded-2xl border border-teal-500/40 bg-[#020617] p-4">
+                      <h3 className="text-lg font-black text-teal-300">Equipment Inventory</h3>
+
+                      <div className="mt-4 grid gap-4 md:grid-cols-2">
+                        {equipmentGroups.map((group) => (
+                          <div
+                            key={`${group.section}-${group.name}`}
+                            className="rounded-2xl border border-slate-700 bg-[#0f172a] p-4"
+                          >
+                            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
+                              {group.section}
+                            </p>
+                            <h4 className="mt-1 text-xl font-black text-white">{group.name}</h4>
+
+                            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                              {Object.entries(group.fields).map(([label, value]) => (
+                                <div key={label} className="rounded-xl border border-slate-700 bg-black/30 p-3">
+                                  <p className="text-[11px] font-black uppercase tracking-wide text-slate-400">
+                                    {label}
+                                  </p>
+                                  <p className="mt-1 break-words text-sm font-bold text-white">
+                                    {value}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+
+                            {group.photos.length > 0 && (
+                              <div className="mt-4 grid grid-cols-2 gap-3">
+                                {group.photos.slice(0, 6).map((photoUrl, photoIndex) => (
+                                  <a
+                                    key={`${photoUrl}-${photoIndex}`}
+                                    href={photoUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="rounded-xl border border-slate-700 bg-black p-2"
+                                    title="Open full photo"
+                                  >
+                                    <img
+                                      src={photoUrl}
+                                      alt="Imported equipment photo"
+                                      className="mx-auto max-h-40 w-auto max-w-full rounded-lg object-contain"
+                                    />
+                                  </a>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {Object.entries(groupedPropertyDetails).map(([section, details]) => (
                     <div key={section} className="rounded-2xl border border-slate-700 bg-[#020617] p-4">
                       <h3 className="text-lg font-black text-white">{section}</h3>
