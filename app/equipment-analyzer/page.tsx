@@ -183,8 +183,11 @@ function cleanServiceLifeCondition(value: any) {
   return clean;
 }
 
-function getAiInspectorNote(result: EquipmentResult) {
+function getAiInspectorNote(result: EquipmentResult, optionalAiNote = "") {
+  const cleanOptionalAiNote = String(optionalAiNote || "").trim();
+
   const parts = [
+    cleanOptionalAiNote ? `Inspector-provided note: ${cleanOptionalAiNote}` : "",
     result.equipmentType
       ? `${result.equipmentType} data plate documented.`
       : "Equipment data plate documented.",
@@ -264,6 +267,7 @@ function EquipmentTestContent() {
   const [saveError, setSaveError] = useState("");
   const [analyzeLabel, setAnalyzeLabel] = useState("Analyze Equipment");
   const [saveLabel, setSaveLabel] = useState("Add To Report");
+  const [optionalAiNote, setOptionalAiNote] = useState("");
 
   async function analyzeEquipment() {
     if (!image || loading || saving) return;
@@ -276,6 +280,11 @@ function EquipmentTestContent() {
     try {
       const formData = new FormData();
       formData.append("image", image);
+
+      if (optionalAiNote.trim()) {
+        formData.append("note", optionalAiNote.trim());
+        formData.append("inspectorNote", optionalAiNote.trim());
+      }
 
       if (inspectionId) {
         formData.append("inspectionId", inspectionId);
@@ -366,7 +375,7 @@ function EquipmentTestContent() {
           estimated_life_remaining: result.estimatedLifeRemaining || "",
           refrigerant: result.refrigerant || "",
           condition: cleanServiceLifeCondition(result.condition),
-          inspector_note: getAiInspectorNote(result),
+          inspector_note: getAiInspectorNote(result, optionalAiNote),
           maintenance_note: getAiMaintenanceNote(result),
           image_url: imageUrl,
           file_path: filePath,
@@ -414,7 +423,7 @@ function EquipmentTestContent() {
         result.estimatedAFUE ? `Estimated AFUE: ${result.estimatedAFUE}` : "",
         result.estimatedBTU ? `Estimated Capacity: ${result.estimatedBTU}` : "",
         result.maintenanceLevel ? `Maintenance Level: ${result.maintenanceLevel}` : "",
-        `Inspector Note: ${getAiInspectorNote(result)}`,
+        `Inspector Note: ${getAiInspectorNote(result, optionalAiNote)}`,
         `Maintenance Note: ${getAiMaintenanceNote(result)}`,
         `Budget Planning: ${getBudgetPlanning(result)}`,
         result.capacity ? `Capacity: ${result.capacity}` : "",
@@ -531,6 +540,23 @@ function EquipmentTestContent() {
               className="mt-4 max-h-96 w-full rounded-xl object-contain"
             />
           )}
+
+          <div className="mt-4">
+            <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-400">
+              Optional note for AI
+            </label>
+            <textarea
+              value={optionalAiNote}
+              onChange={(event) => setOptionalAiNote(event.target.value)}
+              disabled={loading || saving}
+              rows={4}
+              placeholder="Optional note for AI... Example: older unit, noisy operation, rust, water stains, client reported issue, damaged cabinet, etc."
+              className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-sm text-slate-200 outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400 disabled:cursor-not-allowed disabled:opacity-60"
+            />
+            <p className="mt-2 text-xs text-slate-500">
+              This note is sent with the scan and saved into the AI Inspector Note so you can edit it later on the report.
+            </p>
+          </div>
 
           <button
             type="button"
