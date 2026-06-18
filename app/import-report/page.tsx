@@ -122,6 +122,50 @@ function isWorthShowingDetail(detail: ImportedFinding) {
   return true;
 }
 
+function normalizedDetailKey(detail: ImportedFinding) {
+  const section = String(detail.section || "").trim().toLowerCase();
+  const title = cleanDisplayLabel(detail.title || "").trim().toLowerCase();
+  const text = String(detail.observation || "").trim().toLowerCase();
+  const photos = photoSet(detail).sort().join("|");
+
+  // If same section, same title, and same value/photo, show it only once.
+  return `${section}::${title}::${text}::${photos}`;
+}
+
+function dedupeImportedDetails(details: ImportedFinding[]) {
+  const seen = new Set<string>();
+  const output: ImportedFinding[] = [];
+
+  for (const detail of details) {
+    const key = normalizedDetailKey(detail);
+
+    if (seen.has(key)) continue;
+    seen.add(key);
+    output.push(detail);
+  }
+
+  return output;
+}
+
+function dedupeImportedFindings(findings: ImportedFinding[]) {
+  const seen = new Set<string>();
+  const output: ImportedFinding[] = [];
+
+  for (const finding of findings) {
+    const section = String(finding.section || "").trim().toLowerCase();
+    const title = String(finding.title || "").trim().toLowerCase();
+    const observation = String(finding.observation || "").trim().toLowerCase();
+    const photos = photoSet(finding).sort().join("|");
+    const key = `${section}::${title}::${observation.slice(0, 120)}::${photos}`;
+
+    if (seen.has(key)) continue;
+    seen.add(key);
+    output.push(finding);
+  }
+
+  return output;
+}
+
 export default function ImportReportPage() {
   const router = useRouter();
   const supabase = createClient();
@@ -136,22 +180,26 @@ export default function ImportReportPage() {
 
   const activeFindings = useMemo(
     () =>
-      (parsedReport.findings || []).filter(
-        (finding) =>
-          normalizeSeverity(finding.severity) !== "Informational" &&
-          (finding.title.trim() ||
-            finding.observation.trim() ||
-            finding.recommendation.trim() ||
-            (finding.photos || []).length > 0)
+      dedupeImportedFindings(
+        (parsedReport.findings || []).filter(
+          (finding) =>
+            normalizeSeverity(finding.severity) !== "Informational" &&
+            (finding.title.trim() ||
+              finding.observation.trim() ||
+              finding.recommendation.trim() ||
+              (finding.photos || []).length > 0)
+        )
       ),
     [parsedReport.findings]
   );
 
   const propertyDetails = useMemo(
     () =>
-      (parsedReport.propertyDetails || [])
-        .map(normalizeImportedFinding)
-        .filter(isWorthShowingDetail),
+      dedupeImportedDetails(
+        (parsedReport.propertyDetails || [])
+          .map(normalizeImportedFinding)
+          .filter(isWorthShowingDetail)
+      ),
     [parsedReport.propertyDetails]
   );
 
@@ -219,8 +267,13 @@ export default function ImportReportPage() {
   }
 
   function applyParsedReport(data: any) {
-    const normalizedFindings = (data.report?.findings || []).map(normalizeImportedFinding);
-    const normalizedDetails = (data.report?.propertyDetails || []).map(normalizeImportedFinding);
+    const normalizedFindings = dedupeImportedFindings(
+      (data.report?.findings || []).map(normalizeImportedFinding)
+    );
+
+    const normalizedDetails = dedupeImportedDetails(
+      (data.report?.propertyDetails || []).map(normalizeImportedFinding)
+    );
 
     setParsedReport({
       ...EMPTY_PARSED_REPORT,
