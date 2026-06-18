@@ -531,65 +531,11 @@ function getEquipmentMaintenanceNote(item: any) {
 }
 
 
-function isKnownEquipmentValue(value: any) {
-  const clean = String(value ?? "").trim();
-  const lower = clean.toLowerCase();
 
-  if (!clean) return false;
 
-  return ![
-    "unknown",
-    "n/a",
-    "na",
-    "not available",
-    "not visible",
-    "not readable",
-    "unreadable",
-    "unable to determine",
-    "unable to confirm",
-    "cannot determine",
-    "not determined",
-    "none",
-    "null",
-    "undefined",
-  ].includes(lower);
-}
 
-function getTypicalIndustryRange(value: any) {
-  const clean = String(value || "").trim();
-  if (!isKnownEquipmentValue(clean)) return "";
 
-  const rangeMatch = clean.match(/(\d+)\s*[-–]\s*(\d+)/);
-  if (rangeMatch) {
-    return `${rangeMatch[1]}–${rangeMatch[2]} years`;
-  }
 
-  const numberMatch = clean.match(/\d+/);
-  if (!numberMatch) return clean;
-
-  const upper = Number(numberMatch[0]);
-  if (!Number.isFinite(upper) || upper <= 0) return clean;
-
-  const lower = Math.max(1, upper - 5);
-  return `${lower}–${upper} years`;
-}
-
-function getEquipmentConditionNote(value: any) {
-  const clean = String(value || "").trim();
-  const lower = clean.toLowerCase();
-
-  if (!isKnownEquipmentValue(clean)) return "";
-
-  if (
-    lower.includes("remaining") ||
-    lower.includes("service life") ||
-    lower.includes("life remaining")
-  ) {
-    return "No specific deficiency noted";
-  }
-
-  return clean;
-}
 
 function getEquipmentLongNote(item: any, keys: string[]) {
   for (const key of keys) {
