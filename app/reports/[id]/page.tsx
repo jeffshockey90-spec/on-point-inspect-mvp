@@ -347,6 +347,86 @@ function getLatestViewLogFromList(logs: any[]) {
       new Date(a.created_at || 0).getTime(),
   )[0];
 }
+
+function isKnownEquipmentValue(value: any) {
+  const clean = String(value ?? "").trim();
+  const lower = clean.toLowerCase();
+
+  if (!clean) return false;
+
+  return ![
+    "unknown",
+    "n/a",
+    "na",
+    "not available",
+    "not visible",
+    "not readable",
+    "unreadable",
+    "unable to determine",
+    "unable to confirm",
+    "cannot determine",
+    "not determined",
+    "none",
+    "null",
+    "undefined",
+  ].includes(lower);
+}
+
+function getTypicalIndustryRange(value: any) {
+  const clean = String(value || "").trim();
+  if (!isKnownEquipmentValue(clean)) return "";
+
+  const rangeMatch = clean.match(/(\d+)\s*[-–]\s*(\d+)/);
+  if (rangeMatch) {
+    return `${rangeMatch[1]}–${rangeMatch[2]} years`;
+  }
+
+  const numberMatch = clean.match(/\d+/);
+  if (!numberMatch) return clean;
+
+  const upper = Number(numberMatch[0]);
+  if (!Number.isFinite(upper) || upper <= 0) return clean;
+
+  const lower = Math.max(1, upper - 5);
+  return `${lower}–${upper} years`;
+}
+
+function getEquipmentConditionNote(value: any) {
+  const clean = String(value || "").trim();
+  const lower = clean.toLowerCase();
+
+  if (!isKnownEquipmentValue(clean)) return "";
+
+  if (
+    lower.includes("remaining") ||
+    lower.includes("service life") ||
+    lower.includes("life remaining")
+  ) {
+    return "No specific deficiency noted";
+  }
+
+  return clean;
+}
+
+function getEquipmentInspectorNote(item: any) {
+  return (
+    item?.inspector_note ||
+    item?.inspection_note ||
+    item?.note ||
+    item?.notes ||
+    ""
+  );
+}
+
+function getEquipmentMaintenanceNote(item: any) {
+  return (
+    item?.maintenance_note ||
+    item?.maintenance ||
+    item?.service_note ||
+    ""
+  );
+}
+
 function getTypicalIndustryRange(value: any) {
   const clean = String(value || "").trim();
   if (!clean) return "";
@@ -1388,6 +1468,25 @@ export default async function ReportPage({ params }: PageProps) {
                         />
                       </div>
 
+                      <EquipmentNoteBlock
+                        label="Inspector Note"
+                        value={getEquipmentLongNote(item, [
+                          "inspector_note",
+                          "inspection_note",
+                          "note",
+                          "notes",
+                        ])}
+                      />
+
+                      <EquipmentNoteBlock
+                        label="Maintenance Note"
+                        value={getEquipmentLongNote(item, [
+                          "maintenance_note",
+                          "maintenance",
+                          "service_note",
+                        ])}
+                      />
+
                       <p className="mt-4 rounded-xl border border-slate-700 bg-slate-950 p-3 text-xs leading-5 text-slate-400">
 Service-life information is a general industry estimate only. Actual service life can vary based on installation quality, maintenance history, operating conditions, environment, and usage. This should not be treated as a prediction or guarantee of remaining equipment life.
                       </p>
@@ -1804,7 +1903,7 @@ function DefectCountCard({
 function getEquipmentConditionLabel(value: any) {
   const clean = String(value || "").trim();
 
-  if (!clean) return "No specific deficiency noted";
+  if (!isKnownEquipmentValue(clean)) return "";
 
   const lower = clean.toLowerCase();
 
@@ -1838,8 +1937,54 @@ function getEquipmentMaintenanceNote(item: any) {
   );
 }
 
+
+function getEquipmentLongNote(item: any, keys: string[]) {
+  for (const key of keys) {
+    const value = item?.[key];
+    const clean = String(value || "").trim();
+    const lower = clean.toLowerCase();
+
+    if (
+      clean &&
+      lower !== "unknown" &&
+      lower !== "n/a" &&
+      lower !== "na" &&
+      lower !== "not visible" &&
+      lower !== "unreadable" &&
+      lower !== "unable to determine"
+    ) {
+      return clean;
+    }
+  }
+
+  return "";
+}
+
+function EquipmentNoteBlock({
+  label,
+  value,
+}: {
+  label: string;
+  value?: any;
+}) {
+  const clean = String(value || "").trim();
+
+  if (!clean) return null;
+
+  return (
+    <div className="mt-4 rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
+      <p className="text-xs font-black uppercase tracking-wide text-cyan-300">
+        {label}
+      </p>
+      <p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-200">
+        {clean}
+      </p>
+    </div>
+  );
+}
+
 function InventoryLine({ label, value }: { label: string; value?: any }) {
-  if (!value) return null;
+  if (!isKnownEquipmentValue(value)) return null;
 
   return (
     <div className="grid grid-cols-[150px_1fr] gap-3 border-b border-slate-800 pb-1">
