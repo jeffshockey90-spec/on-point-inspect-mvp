@@ -691,7 +691,6 @@ export default function ImportReportPage() {
 
       const findingsToInsert = activeFindings.map((finding) => ({
         inspection_id: inspection.id,
-        inspector_id: user.id,
         company_id: companyId,
         section: finding.section || "Inspection Details",
         title: finding.title || "Imported Finding",
