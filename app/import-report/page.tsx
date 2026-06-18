@@ -31,6 +31,7 @@ type ParsedReport = {
   realtorPhone: string;
   inspectionDate: string;
   findings: ImportedFinding[];
+  propertyDetails?: ImportedFinding[];
   rawTextPreview?: string;
   sourceUrl?: string;
   pdfUrl?: string;
@@ -54,6 +55,7 @@ const EMPTY_PARSED_REPORT: ParsedReport = {
   realtorPhone: "",
   inspectionDate: "",
   findings: [],
+  propertyDetails: [],
 };
 
 function todayString() {
@@ -78,6 +80,37 @@ function normalizeSeverity(value: string) {
   return "Recommended Repair";
 }
 
+function normalizeImportedFinding(finding: ImportedFinding): ImportedFinding {
+  const photos = Array.from(
+    new Set([...(finding.photos || []), finding.image_url].filter(Boolean))
+  ) as string[];
+
+  return {
+    section: finding.section || "Inspection Details",
+    title: finding.title || "Imported Finding",
+    observation: finding.observation || "",
+    implication: finding.implication || "",
+    recommendation: finding.recommendation || "",
+    severity: normalizeSeverity(finding.severity),
+    image_url: finding.image_url || photos?.[0] || "",
+    photos,
+  };
+}
+
+function cleanDisplayLabel(value: string) {
+  return String(value || "")
+    .replace(/^[^:]+:\s*/g, "")
+    .replace(/-/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase())
+    .trim();
+}
+
+function photoSet(finding: ImportedFinding) {
+  return Array.from(
+    new Set([finding.image_url, ...(finding.photos || [])].filter(Boolean))
+  ) as string[];
+}
+
 export default function ImportReportPage() {
   const router = useRouter();
   const supabase = createClient();
@@ -94,23 +127,37 @@ export default function ImportReportPage() {
     () =>
       (parsedReport.findings || []).filter(
         (finding) =>
-          finding.title.trim() ||
-          finding.observation.trim() ||
-          finding.recommendation.trim() ||
-          (finding.photos || []).length > 0
+          normalizeSeverity(finding.severity) !== "Informational" &&
+          (finding.title.trim() ||
+            finding.observation.trim() ||
+            finding.recommendation.trim() ||
+            (finding.photos || []).length > 0)
       ),
     [parsedReport.findings]
   );
 
+  const propertyDetails = useMemo(
+    () => (parsedReport.propertyDetails || []).filter((detail) => detail.title || detail.observation || (detail.photos || []).length),
+    [parsedReport.propertyDetails]
+  );
+
   const photoCount = useMemo(
     () =>
-      activeFindings.reduce(
-        (total, finding) =>
-          total + new Set([finding.image_url, ...(finding.photos || [])].filter(Boolean)).size,
-        0
-      ),
+      activeFindings.reduce((total, finding) => total + photoSet(finding).length, 0),
     [activeFindings]
   );
+
+  const groupedPropertyDetails = useMemo(() => {
+    const groups: Record<string, ImportedFinding[]> = {};
+
+    for (const detail of propertyDetails) {
+      const section = detail.section || "Inspection Details";
+      if (!groups[section]) groups[section] = [];
+      groups[section].push(detail);
+    }
+
+    return groups;
+  }, [propertyDetails]);
 
   function updateReportField(field: keyof ParsedReport, value: string) {
     setParsedReport((current) => ({
@@ -136,9 +183,11 @@ export default function ImportReportPage() {
   }
 
   function removeFinding(index: number) {
+    const findingToRemove = activeFindings[index];
+
     setParsedReport((current) => ({
       ...current,
-      findings: (current.findings || []).filter((_, itemIndex) => itemIndex !== index),
+      findings: (current.findings || []).filter((finding) => finding !== findingToRemove),
     }));
   }
 
@@ -157,21 +206,14 @@ export default function ImportReportPage() {
   }
 
   function applyParsedReport(data: any) {
+    const normalizedFindings = (data.report?.findings || []).map(normalizeImportedFinding);
+    const normalizedDetails = (data.report?.propertyDetails || []).map(normalizeImportedFinding);
+
     setParsedReport({
       ...EMPTY_PARSED_REPORT,
       ...data.report,
-      findings: (data.report?.findings || []).map((finding: ImportedFinding) => ({
-        section: finding.section || "Inspection Details",
-        title: finding.title || "Imported Finding",
-        observation: finding.observation || "",
-        implication: finding.implication || "",
-        recommendation: finding.recommendation || "",
-        severity: normalizeSeverity(finding.severity),
-        image_url: (finding as any).image_url || (finding as any).photos?.[0] || "",
-        photos: Array.from(
-          new Set([...(finding.photos || []), finding.image_url].filter(Boolean))
-        ) as string[],
-      })),
+      findings: normalizedFindings,
+      propertyDetails: normalizedDetails,
     });
   }
 
@@ -257,9 +299,14 @@ export default function ImportReportPage() {
       const companyId = await getCompanyIdForUser(user.id);
       const inspectionDate = parsedReport.inspectionDate || todayString();
 
+      const detailsText = propertyDetails
+        .map((detail) => `${detail.section} - ${detail.title}: ${detail.observation}`)
+        .join("\n");
+
       const importNotes = [
         `Imported from ${parsedReport.reportType || "PDF"} report. Review all findings before publishing.`,
         parsedReport.importerStatus || "",
+        detailsText ? `\nImported Inspection Information:\n${detailsText}` : "",
         parsedReport.sourceUrl ? `Spectora source: ${parsedReport.sourceUrl}` : "",
         parsedReport.pdfUrl ? `Original PDF: ${parsedReport.pdfUrl}` : "",
         parsedReport.coverPhotoUrl ? `Cover photo: ${parsedReport.coverPhotoUrl}` : "",
@@ -352,9 +399,7 @@ export default function ImportReportPage() {
 
       insertedFindings.forEach((insertedFinding, index) => {
         const sourceFinding = activeFindings[index];
-        const urls = Array.from(
-          new Set([sourceFinding?.image_url, ...(sourceFinding?.photos || [])].filter(Boolean))
-        );
+        const urls = photoSet(sourceFinding);
 
         urls.forEach((url) => {
           photoRows.push({
@@ -533,7 +578,7 @@ export default function ImportReportPage() {
           )}
         </section>
 
-        {(parsedReport.rawTextPreview || activeFindings.length > 0) && (
+        {(parsedReport.rawTextPreview || activeFindings.length > 0 || propertyDetails.length > 0) && (
           <>
             <section className="mt-6 rounded-2xl border border-slate-800 bg-[#0f172a] p-5">
               <h2 className="text-2xl font-bold text-teal-300">
@@ -541,18 +586,24 @@ export default function ImportReportPage() {
               </h2>
 
               {parsedReport.coverPhotoUrl && (
-                <div className="mt-5 overflow-hidden rounded-2xl border border-slate-700 bg-black">
+                <a
+                  href={parsedReport.coverPhotoUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-5 block overflow-hidden rounded-2xl border border-slate-700 bg-black"
+                  title="Open full cover photo"
+                >
                   <img
                     src={parsedReport.coverPhotoUrl}
                     alt="Imported property cover"
-                    className="h-56 w-full object-cover"
+                    className="max-h-[420px] w-full object-contain"
                   />
-                </div>
+                </a>
               )}
 
               {parsedReport.importerStatus && (
                 <p className="mt-4 rounded-xl border border-teal-500/40 bg-teal-500/10 p-3 text-sm text-teal-100">
-                  {parsedReport.importerStatus} Photos detected: {photoCount}.
+                  {parsedReport.importerStatus} Finding photos detected: {photoCount}. Section info items detected: {propertyDetails.length}.
                 </p>
               )}
 
@@ -572,14 +623,68 @@ export default function ImportReportPage() {
               </div>
             </section>
 
+            {propertyDetails.length > 0 && (
+              <section className="mt-6 rounded-2xl border border-slate-800 bg-[#0f172a] p-5">
+                <h2 className="text-2xl font-bold text-teal-300">
+                  Imported Section Information
+                </h2>
+
+                <p className="mt-1 text-sm text-slate-400">
+                  These are Spectora information/details items. They will be saved into the imported draft notes, not as defect findings.
+                </p>
+
+                <div className="mt-5 space-y-4">
+                  {Object.entries(groupedPropertyDetails).map(([section, details]) => (
+                    <div key={section} className="rounded-2xl border border-slate-700 bg-[#020617] p-4">
+                      <h3 className="text-lg font-black text-white">{section}</h3>
+
+                      <div className="mt-4 grid gap-3 md:grid-cols-3">
+                        {details.map((detail, index) => (
+                          <div key={`${detail.title}-${index}`} className="rounded-xl border border-slate-700 bg-[#0f172a] p-3">
+                            <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+                              {cleanDisplayLabel(detail.title)}
+                            </p>
+                            <p className="mt-1 whitespace-pre-wrap text-sm font-bold text-white">
+                              {detail.observation || "Imported detail"}
+                            </p>
+
+                            {photoSet(detail).length > 0 && (
+                              <div className="mt-3 grid grid-cols-2 gap-2">
+                                {photoSet(detail).slice(0, 4).map((photoUrl, photoIndex) => (
+                                  <a
+                                    key={`${photoUrl}-${photoIndex}`}
+                                    href={photoUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="rounded-lg border border-slate-700 bg-black p-1"
+                                    title="Open full photo"
+                                  >
+                                    <img
+                                      src={photoUrl}
+                                      alt="Imported detail photo"
+                                      className="h-28 w-full rounded-md object-contain"
+                                    />
+                                  </a>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
             <section className="mt-6 rounded-2xl border border-slate-800 bg-[#0f172a] p-5">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <h2 className="text-2xl font-bold text-teal-300">
-                    3. Review Findings & Imported Details
+                    3. Review Findings
                   </h2>
                   <p className="mt-1 text-slate-400">
-                    {activeFindings.length} item{activeFindings.length === 1 ? "" : "s"} found. Photos detected: {photoCount}. Edit or remove anything before creating the draft.
+                    {activeFindings.length} finding{activeFindings.length === 1 ? "" : "s"} found. Photos detected: {photoCount}. Click any photo to open the full image.
                   </p>
                 </div>
 
@@ -594,14 +699,14 @@ export default function ImportReportPage() {
               </div>
 
               <div className="mt-5 space-y-5">
-                {parsedReport.findings.map((finding, index) => (
+                {activeFindings.map((finding, index) => (
                   <div
                     key={`${finding.title}-${index}`}
                     className="rounded-2xl border border-slate-700 bg-[#020617] p-4"
                   >
                     <div className="mb-4 flex items-center justify-between gap-3">
                       <p className="text-sm font-black uppercase tracking-wide text-amber-300">
-                        Imported Item #{index + 1}
+                        Imported Finding #{index + 1}
                       </p>
 
                       <button
@@ -613,15 +718,23 @@ export default function ImportReportPage() {
                       </button>
                     </div>
 
-                    {(finding.photos || []).length > 0 && (
-                      <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
-                        {(finding.photos || []).slice(0, 8).map((photoUrl, photoIndex) => (
-                          <img
+                    {photoSet(finding).length > 0 && (
+                      <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+                        {photoSet(finding).slice(0, 12).map((photoUrl, photoIndex) => (
+                          <a
                             key={`${photoUrl}-${photoIndex}`}
-                            src={photoUrl}
-                            alt="Imported Spectora photo"
-                            className="h-32 w-full rounded-xl border border-slate-700 object-cover"
-                          />
+                            href={photoUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="rounded-xl border border-slate-700 bg-black p-2"
+                            title="Open full photo"
+                          >
+                            <img
+                              src={photoUrl}
+                              alt="Imported Spectora photo"
+                              className="max-h-80 w-full rounded-lg object-contain"
+                            />
+                          </a>
                         ))}
                       </div>
                     )}
