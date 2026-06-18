@@ -158,6 +158,86 @@ function getBudgetPlanning(result: EquipmentResult) {
   return "Routine maintenance recommended";
 }
 
+function cleanServiceLifeCondition(value: any) {
+  const clean = String(value || "").trim();
+  const lower = clean.toLowerCase();
+
+  if (!clean) return "No specific deficiency noted";
+
+  if (
+    lower.includes("typical service life remaining") ||
+    lower.includes("service life remaining") ||
+    lower.includes("life remaining")
+  ) {
+    return "No specific deficiency noted";
+  }
+
+  if (
+    lower.includes("near end") ||
+    lower.includes("end of typical service life") ||
+    lower.includes("beyond")
+  ) {
+    return "Older equipment. Monitor and budget for replacement as needed.";
+  }
+
+  return clean;
+}
+
+function getAiInspectorNote(result: EquipmentResult) {
+  const parts = [
+    result.equipmentType
+      ? `${result.equipmentType} data plate documented.`
+      : "Equipment data plate documented.",
+    result.manufacturer || result.model
+      ? `Identified as ${[result.manufacturer, result.model].filter(Boolean).join(" ")}.`
+      : "",
+    result.manufactureYear
+      ? `Manufacture year appears to be ${result.manufactureYear}.`
+      : "",
+    result.estimatedAge
+      ? `Estimated age is approximately ${result.estimatedAge}.`
+      : "",
+    result.refrigerant ? `Refrigerant identified as ${result.refrigerant}.` : "",
+    result.clientSummary ? result.clientSummary : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  return parts || "Equipment information was documented from the visible data plate during the inspection.";
+}
+
+function getAiMaintenanceNote(result: EquipmentResult) {
+  const condition = String(result.condition || "").toLowerCase();
+  const remaining = String(result.estimatedLifeRemaining || "").toLowerCase();
+  const equipmentType = String(result.equipmentType || "equipment").toLowerCase();
+
+  if (
+    condition.includes("near end") ||
+    condition.includes("beyond") ||
+    condition.includes("end of typical") ||
+    remaining.includes("beyond") ||
+    remaining.includes("0-")
+  ) {
+    return "Recommend routine service by a qualified contractor and budgeting for future replacement due to age and typical service-life considerations.";
+  }
+
+  if (
+    equipmentType.includes("air") ||
+    equipmentType.includes("furnace") ||
+    equipmentType.includes("heat") ||
+    equipmentType.includes("condenser")
+  ) {
+    return "Recommend regular HVAC servicing, filter replacement, and maintenance in accordance with manufacturer recommendations.";
+  }
+
+  if (equipmentType.includes("water heater")) {
+    return "Recommend routine water heater maintenance in accordance with manufacturer recommendations.";
+  }
+
+  return "Recommend routine maintenance in accordance with manufacturer recommendations.";
+}
+
+
 export default function EquipmentTestPage() {
   return (
     <Suspense
@@ -285,7 +365,9 @@ function EquipmentTestContent() {
           expected_service_life: result.expectedServiceLife || "",
           estimated_life_remaining: result.estimatedLifeRemaining || "",
           refrigerant: result.refrigerant || "",
-          condition: result.condition || "",
+          condition: cleanServiceLifeCondition(result.condition),
+          inspector_note: getAiInspectorNote(result),
+          maintenance_note: getAiMaintenanceNote(result),
           image_url: imageUrl,
           file_path: filePath,
         });
@@ -324,14 +406,16 @@ function EquipmentTestContent() {
         result.expectedServiceLife
           ? `Expected Service Life: ${result.expectedServiceLife}`
           : "",
-        result.estimatedLifeRemaining
-          ? `Estimated Life Remaining: ${result.estimatedLifeRemaining}`
+        result.expectedServiceLife
+          ? `Typical Industry Range: ${result.expectedServiceLife}`
           : "",
-        result.condition ? `Condition: ${result.condition}` : "",
+        result.condition ? `Condition: ${cleanServiceLifeCondition(result.condition)}` : "",
         result.estimatedSEER ? `Estimated SEER/SEER2: ${result.estimatedSEER}` : "",
         result.estimatedAFUE ? `Estimated AFUE: ${result.estimatedAFUE}` : "",
         result.estimatedBTU ? `Estimated Capacity: ${result.estimatedBTU}` : "",
         result.maintenanceLevel ? `Maintenance Level: ${result.maintenanceLevel}` : "",
+        `Inspector Note: ${getAiInspectorNote(result)}`,
+        `Maintenance Note: ${getAiMaintenanceNote(result)}`,
         `Budget Planning: ${getBudgetPlanning(result)}`,
         result.capacity ? `Capacity: ${result.capacity}` : "",
         result.efficiency
@@ -564,16 +648,16 @@ function EnhancedEquipmentIntelligence({ result }: { result: EquipmentResult }) 
 
       <div className="mt-5 grid gap-3 md:grid-cols-2">
         <IntelligenceItem
-          label="Expected Service Life"
+          label="Typical Industry Range"
           value={result.expectedServiceLife || "Unknown"}
         />
         <IntelligenceItem
-          label="Estimated Life Remaining"
-          value={result.estimatedLifeRemaining || "Unknown"}
+          label="Service Life"
+          value="Industry estimate only"
         />
         <IntelligenceItem
           label="Condition"
-          value={result.condition || "Unknown"}
+          value={cleanServiceLifeCondition(result.condition)}
         />
         <IntelligenceItem
           label="Estimated Efficiency"
