@@ -303,29 +303,15 @@ async function readPdfText(buffer: Buffer) {
   const pdfParse =
     (pdfParseModule as any).default ||
     (pdfParseModule as any).pdf ||
-    (pdfParseModule as any).parse;
+    (pdfParseModule as any).parse ||
+    pdfParseModule;
 
-  if (typeof pdfParse === "function") {
-    const result = await pdfParse(buffer);
-    return cleanText(result?.text || "");
+  if (typeof pdfParse !== "function") {
+    throw new Error("PDF parser is not available. Run: npm install pdf-parse@1.1.1");
   }
 
-  const PDFParse = (pdfParseModule as any).PDFParse;
-
-  if (PDFParse) {
-    const parser = new PDFParse({ data: buffer });
-
-    try {
-      const result = await parser.getText();
-      return cleanText(result?.text || "");
-    } finally {
-      if (typeof parser.destroy === "function") {
-        await parser.destroy();
-      }
-    }
-  }
-
-  throw new Error("PDF parser is not available in this environment.");
+  const result = await pdfParse(buffer);
+  return cleanText(result?.text || "");
 }
 
 export async function GET() {
