@@ -427,36 +427,9 @@ function getEquipmentMaintenanceNote(item: any) {
   );
 }
 
-function getTypicalIndustryRange(value: any) {
-  const clean = String(value || "").trim();
-  if (!clean) return "";
 
-  const numberMatch = clean.match(/\d+/);
-  if (!numberMatch) return clean;
 
-  const upper = Number(numberMatch[0]);
-  if (!Number.isFinite(upper) || upper <= 0) return clean;
 
-  const lower = Math.max(1, upper - 5);
-  return `${lower}–${upper} years`;
-}
-
-function getEquipmentConditionNote(value: any) {
-  const clean = String(value || "").trim();
-  const lower = clean.toLowerCase();
-
-  if (!clean) return "";
-
-  if (
-    lower.includes("remaining") ||
-    lower.includes("service life") ||
-    lower.includes("life remaining")
-  ) {
-    return "No specific deficiency noted";
-  }
-
-  return clean;
-}
 
 export default async function ReportPage({ params }: PageProps) {
   const { id } = await params;
@@ -1918,24 +1891,9 @@ function getEquipmentConditionLabel(value: any) {
   return clean;
 }
 
-function getEquipmentInspectorNote(item: any) {
-  return (
-    item?.inspector_note ||
-    item?.inspection_note ||
-    item?.note ||
-    item?.notes ||
-    ""
-  );
-}
 
-function getEquipmentMaintenanceNote(item: any) {
-  return (
-    item?.maintenance_note ||
-    item?.maintenance ||
-    item?.service_note ||
-    ""
-  );
-}
+
+
 
 
 function getEquipmentLongNote(item: any, keys: string[]) {
