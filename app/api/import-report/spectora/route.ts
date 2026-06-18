@@ -14,6 +14,8 @@ type ImportedFinding = {
   implication: string;
   recommendation: string;
   severity: string;
+  image_url?: string;
+  photos?: string[];
 };
 
 const SECTION_NUMBER_MAP: Record<string, string> = {
@@ -50,6 +52,16 @@ function cleanText(value: string) {
     .replace(/\r/g, "\n")
     .replace(/\u0000/g, "f")
     .replace(/\u00a0/g, " ")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>/gi, "\n")
+    .replace(/<li>/gi, "\n- ")
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
     .replace(/[ \t]+/g, " ")
     .replace(/\n[ \t]+/g, "\n")
     .replace(/[ \t]+\n/g, "\n")
@@ -76,6 +88,20 @@ function normalizeSeverity(value: string) {
   if (clean.includes("maintenance")) return "Maintenance";
   if (clean.includes("monitor")) return "Monitor";
   if (clean.includes("information") || clean.includes("informational")) return "Informational";
+
+  return "Recommended Repair";
+}
+
+function normalizeSeverityFromSpectora(category: any, commentType: string) {
+  const type = String(commentType || "").toLowerCase();
+
+  if (type === "info") return "Informational";
+  if (type === "limit") return "Informational";
+
+  // Spectora commonly uses:
+  // -1 = Maintenance Item, 0 = Recommendation, 1 = Safety Hazard
+  if (category === -1 || category === "-1") return "Maintenance";
+  if (category === 1 || category === "1") return "Safety Concern";
 
   return "Recommended Repair";
 }
@@ -125,6 +151,12 @@ function splitCityStateZip(fullAddress: string) {
   };
 }
 
+function withHttps(url: string) {
+  if (!url) return "";
+  if (url.startsWith("//")) return `https:${url}`;
+  return url;
+}
+
 async function fetchJson(url: string) {
   const response = await fetch(url, {
     method: "GET",
@@ -143,6 +175,14 @@ async function fetchJson(url: string) {
   }
 
   return response.json();
+}
+
+async function tryFetchJson(url: string) {
+  try {
+    return await fetchJson(url);
+  } catch {
+    return null;
+  }
 }
 
 async function readPdfTextFromUrl(pdfUrl: string) {
@@ -352,10 +392,157 @@ function parseFindingsFromPdfText(text: string): ImportedFinding[] {
   return findings;
 }
 
-function withHttps(url: string) {
-  if (!url) return "";
-  if (url.startsWith("//")) return `https:${url}`;
-  return url;
+function getPhotoUrl(photo: any) {
+  return withHttps(
+    photo?.edited_image_url ||
+      photo?.original_image_url ||
+      photo?.small_edited_image_url ||
+      photo?.small_image_url ||
+      photo?.image ||
+      photo?.photo ||
+      ""
+  );
+}
+
+function parseHtmlFindingText(htmlText: string) {
+  const text = cleanText(htmlText);
+
+  if (!text) {
+    return {
+      observation: "",
+      implication: "",
+      recommendation: "",
+    };
+  }
+
+  const lines = text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  let observation = "";
+  let implication = "";
+  let recommendation = "";
+
+  for (const line of lines) {
+    const lower = line.toLowerCase();
+
+    if (lower.startsWith("implication:")) {
+      implication = cleanText(line.replace(/^implication:\s*/i, ""));
+      continue;
+    }
+
+    if (
+      lower.startsWith("recommend") ||
+      lower.startsWith("repair ") ||
+      lower.startsWith("replace ") ||
+      lower.startsWith("install ") ||
+      lower.startsWith("contact ")
+    ) {
+      recommendation = cleanText([recommendation, line].filter(Boolean).join("\n"));
+      continue;
+    }
+
+    if (!observation) {
+      observation = line;
+    } else if (!implication && lower.includes("may ")) {
+      implication = cleanText([implication, line].filter(Boolean).join("\n"));
+    } else {
+      observation = cleanText([observation, line].filter(Boolean).join("\n"));
+    }
+  }
+
+  if (!recommendation) {
+    const split = splitFindingContent(text);
+    observation = split.observation;
+    implication = split.implication;
+    recommendation = split.recommendation;
+  }
+
+  return {
+    observation: cleanText(observation || text),
+    implication: cleanText(implication),
+    recommendation: cleanText(recommendation),
+  };
+}
+
+function parseFindingsFromSpectoraPayload(payload: any): ImportedFinding[] {
+  const sections = payload?.report?.sections || payload?.sections || payload?.data?.report?.sections || [];
+  const findings: ImportedFinding[] = [];
+  const seen = new Set<string>();
+
+  for (const section of sections) {
+    const sectionName = cleanText(section?.name || "Inspection Details");
+
+    for (const item of section?.items || []) {
+      const itemName = cleanText(item?.name || "");
+
+      for (const observation of item?.observations || []) {
+        const commentType = String(observation?.comment_type || "").toLowerCase();
+        const isDefect = commentType === "defect";
+        const isRecommendation =
+          commentType === "recommendation" || commentType === "safety" || commentType === "maintenance";
+
+        if (!isDefect && !isRecommendation) continue;
+        if (String(observation?.value || "").toLowerCase() === "false") continue;
+
+        const title = cleanText(observation?.name || itemName || "Imported Finding");
+        const parsedText = parseHtmlFindingText(observation?.text || "");
+
+        const photos = (observation?.photos || [])
+          .map((photo: any) => getPhotoUrl(photo))
+          .filter(Boolean);
+
+        const key = `${sectionName}:${title}:${parsedText.observation.slice(0, 50)}`.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+
+        findings.push({
+          section: sectionName,
+          title,
+          observation:
+            parsedText.observation ||
+            "Imported from Spectora report. Review and edit this finding before publishing.",
+          implication: parsedText.implication,
+          recommendation: parsedText.recommendation || cleanText(observation?.recommendation || ""),
+          severity: normalizeSeverityFromSpectora(observation?.category, commentType),
+          image_url: photos[0] || "",
+          photos,
+        });
+      }
+    }
+  }
+
+  return findings;
+}
+
+function getReportStorageCandidateUrls(inspectionId: string, reportId: string) {
+  const encodedBase = `${inspectionId}%2Freports%2F${reportId}`;
+  const bucket = "https://firebasestorage.googleapis.com/v0/b/spectora-prod-processed-media/o";
+
+  return [
+    `${bucket}/${encodedBase}.json?alt=media`,
+    `${bucket}/${encodedBase}%2F${reportId}.json?alt=media`,
+    `${bucket}/${encodedBase}%2Freport.json?alt=media`,
+    `${bucket}/${encodedBase}%2Fcompiled.json?alt=media`,
+    `${bucket}/${encodedBase}%2Fcompiled%2F${reportId}.json?alt=media`,
+  ];
+}
+
+async function fetchCompiledSpectoraReport(inspectionId: string, reportId: string) {
+  if (!inspectionId || !reportId) return null;
+
+  const urls = getReportStorageCandidateUrls(inspectionId, reportId);
+
+  for (const url of urls) {
+    const payload = await tryFetchJson(url);
+
+    if (payload?.report?.sections?.length || payload?.sections?.length) {
+      return payload;
+    }
+  }
+
+  return null;
 }
 
 export async function GET() {
@@ -382,11 +569,11 @@ export async function POST(request: Request) {
     const reportJson = await fetchJson(reportApiUrl);
     const reportAttrs = reportJson?.data?.attributes || {};
 
+    const inspectionId = String(reportAttrs.inspection_id || "");
     const pdfUrl = withHttps(reportAttrs.pdf_url || "");
     const coverPhotoUrl = withHttps(reportAttrs.image_url || reportAttrs.cover_photo_url || "");
 
     let pdfText = "";
-    let pdfFindings: ImportedFinding[] = [];
     let pdfCoverInfo = {
       propertyAddress: "",
       city: "",
@@ -397,34 +584,59 @@ export async function POST(request: Request) {
     };
 
     if (pdfUrl) {
-      pdfText = await readPdfTextFromUrl(pdfUrl);
-      pdfFindings = parseFindingsFromPdfText(pdfText);
-      pdfCoverInfo = extractCoverInfoFromPdfText(pdfText);
+      try {
+        pdfText = await readPdfTextFromUrl(pdfUrl);
+        pdfCoverInfo = extractCoverInfoFromPdfText(pdfText);
+      } catch (error) {
+        console.warn("Spectora PDF fallback text was not available.");
+      }
     }
+
+    const compiledPayload = await fetchCompiledSpectoraReport(inspectionId, reportId);
+    const nativeFindings = parseFindingsFromSpectoraPayload(compiledPayload || {});
+    const fallbackPdfFindings = nativeFindings.length ? [] : parseFindingsFromPdfText(pdfText);
+    const findings = nativeFindings.length ? nativeFindings : fallbackPdfFindings;
+
+    const report = compiledPayload?.report || {};
+    const inspection = report?.inspection || {};
+    const buyer = inspection?.buyer || report?.buyer || {};
+    const buyingAgent = report?.buying_agent || {};
+    const addressInfo = splitCityStateZip(inspection?.address || "");
 
     return NextResponse.json({
       report: {
         reportType: "Spectora Link",
         sourceUrl: spectoraUrl,
         spectoraReportId: reportId,
-        spectoraInspectionId: String(reportAttrs.inspection_id || ""),
+        spectoraInspectionId: inspectionId,
         pdfUrl,
-        coverPhotoUrl,
+        coverPhotoUrl: coverPhotoUrl || withHttps(report?.image_url || report?.image || ""),
 
-        propertyAddress: pdfCoverInfo.propertyAddress || "Imported Spectora Report",
-        city: pdfCoverInfo.city || "",
-        state: pdfCoverInfo.state || "",
-        zip: pdfCoverInfo.zip || "",
-        clientName: pdfCoverInfo.clientName || "",
-        clientEmail: "",
-        clientPhone: "",
-        realtorName: "",
-        realtorEmail: "",
-        realtorPhone: "",
+        propertyAddress:
+          inspection?.address1 ||
+          pdfCoverInfo.propertyAddress ||
+          addressInfo.propertyAddress ||
+          "Imported Spectora Report",
+        city: inspection?.city || pdfCoverInfo.city || addressInfo.city || "",
+        state: inspection?.state || pdfCoverInfo.state || addressInfo.state || "",
+        zip: inspection?.zip || pdfCoverInfo.zip || addressInfo.zip || "",
+        clientName:
+          buyer?.name ||
+          inspection?.buyer?.name ||
+          pdfCoverInfo.clientName ||
+          "",
+        clientEmail: buyer?.email || "",
+        clientPhone: buyer?.phone || "",
+        realtorName: buyingAgent?.name || "",
+        realtorEmail: buyingAgent?.email || "",
+        realtorPhone: buyingAgent?.phone || "",
         inspectionDate: pdfCoverInfo.inspectionDate || "",
 
-        findings: pdfFindings,
+        findings,
         rawTextPreview: pdfText.slice(0, 5000),
+        importerStatus: compiledPayload
+          ? `Imported ${findings.length} findings from Spectora report data.`
+          : `Imported ${findings.length} findings from Spectora PDF fallback.`,
       },
     });
   } catch (error: any) {
