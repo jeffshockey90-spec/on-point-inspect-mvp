@@ -18,9 +18,38 @@ type EquipmentCardProps = {
   };
 };
 
+function isKnownEquipmentValue(value: any) {
+  const clean = String(value ?? "").trim();
+  const lower = clean.toLowerCase();
+
+  if (!clean) return false;
+
+  return ![
+    "unknown",
+    "n/a",
+    "na",
+    "not available",
+    "not visible",
+    "not readable",
+    "unreadable",
+    "unable to determine",
+    "unable to confirm",
+    "cannot determine",
+    "not determined",
+    "none",
+    "null",
+    "undefined",
+  ].includes(lower);
+}
+
 function getTypicalIndustryRange(value: any) {
   const clean = String(value || "").trim();
-  if (!clean) return "";
+  if (!isKnownEquipmentValue(clean)) return "";
+
+  const rangeMatch = clean.match(/(\d+)\s*[-–]\s*(\d+)/);
+  if (rangeMatch) {
+    return `${rangeMatch[1]}–${rangeMatch[2]} years`;
+  }
 
   const numberMatch = clean.match(/\d+/);
   if (!numberMatch) return clean;
@@ -36,7 +65,7 @@ function getEquipmentConditionNote(value: any) {
   const clean = String(value || "").trim();
   const lower = clean.toLowerCase();
 
-  if (!clean) return "";
+  if (!isKnownEquipmentValue(clean)) return "";
 
   if (
     lower.includes("remaining") ||
@@ -50,6 +79,8 @@ function getEquipmentConditionNote(value: any) {
 }
 
 export default function EquipmentCard({ equipment }: EquipmentCardProps) {
+  const typicalRange = getTypicalIndustryRange(equipment.expectedServiceLife);
+
   const rows = [
     ["Equipment Type", equipment.equipmentType],
     ["Manufacturer", equipment.manufacturer],
@@ -57,8 +88,8 @@ export default function EquipmentCard({ equipment }: EquipmentCardProps) {
     ["Serial Number", equipment.serial],
     ["Manufacture Year", equipment.manufactureYear],
     ["Estimated Age", equipment.estimatedAge],
-    ["Typical Industry Range", getTypicalIndustryRange(equipment.expectedServiceLife)],
-    ["Service Life", equipment.expectedServiceLife ? "Industry estimate only" : ""],
+    ["Typical Industry Range", typicalRange],
+    ["Service Life", typicalRange ? "Industry estimate only" : ""],
     ["Efficiency", equipment.efficiency],
     ["Capacity", equipment.capacity],
     ["Fuel Type", equipment.fuelType],
@@ -76,7 +107,7 @@ export default function EquipmentCard({ equipment }: EquipmentCardProps) {
 
       <div className="space-y-3">
         {rows
-          .filter(([, value]) => value !== undefined && value !== null && value !== "")
+          .filter(([, value]) => isKnownEquipmentValue(value))
           .map(([label, value]) => (
             <div
               key={label}
@@ -93,9 +124,11 @@ export default function EquipmentCard({ equipment }: EquipmentCardProps) {
           ))}
       </div>
 
-      <p className="mt-4 rounded-xl border border-slate-700 bg-slate-950 p-3 text-xs leading-5 text-slate-400">
-        Service-life information is a general industry estimate only. Actual service life can vary based on installation quality, maintenance history, operating conditions, environment, and usage. This should not be treated as a prediction or guarantee of remaining equipment life.
-      </p>
+      {typicalRange && (
+        <p className="mt-4 rounded-xl border border-slate-700 bg-slate-950 p-3 text-xs leading-5 text-slate-400">
+          Service-life information is a general industry estimate only. Actual service life can vary based on installation quality, maintenance history, operating conditions, environment, and usage. This should not be treated as a prediction or guarantee of remaining equipment life.
+        </p>
+      )}
     </div>
   );
 }

@@ -241,6 +241,35 @@ function getAiMaintenanceNote(result: EquipmentResult) {
 }
 
 
+
+function isKnownEquipmentValue(value: any) {
+  const clean = String(value ?? "").trim();
+  const lower = clean.toLowerCase();
+
+  if (!clean) return false;
+
+  return ![
+    "unknown",
+    "n/a",
+    "na",
+    "not available",
+    "not visible",
+    "not readable",
+    "unreadable",
+    "unable to determine",
+    "unable to confirm",
+    "cannot determine",
+    "not determined",
+    "none",
+    "null",
+    "undefined",
+  ].includes(lower);
+}
+
+function cleanEquipmentValue(value: any) {
+  return isKnownEquipmentValue(value) ? String(value).trim() : "";
+}
+
 export default function EquipmentTestPage() {
   return (
     <Suspense
@@ -363,17 +392,15 @@ function EquipmentTestContent() {
         .from("equipment_inventory")
         .insert({
           inspection_id: Number(inspectionId),
-          equipment_type: result.equipmentType || "",
-          manufacturer: result.manufacturer || "",
-          model: result.model || "",
-          serial: result.serial || "",
-          manufacture_year: result.manufactureYear
-            ? String(result.manufactureYear)
-            : "",
-          estimated_age: result.estimatedAge ? String(result.estimatedAge) : "",
-          expected_service_life: result.expectedServiceLife || "",
-          estimated_life_remaining: result.estimatedLifeRemaining || "",
-          refrigerant: result.refrigerant || "",
+          equipment_type: cleanEquipmentValue(result.equipmentType),
+          manufacturer: cleanEquipmentValue(result.manufacturer),
+          model: cleanEquipmentValue(result.model),
+          serial: cleanEquipmentValue(result.serial),
+          manufacture_year: cleanEquipmentValue(result.manufactureYear),
+          estimated_age: cleanEquipmentValue(result.estimatedAge),
+          expected_service_life: cleanEquipmentValue(result.expectedServiceLife),
+          estimated_life_remaining: "",
+          refrigerant: cleanEquipmentValue(result.refrigerant),
           condition: cleanServiceLifeCondition(result.condition),
           inspector_note: getAiInspectorNote(result, optionalAiNote),
           maintenance_note: getAiMaintenanceNote(result),
@@ -391,8 +418,8 @@ function EquipmentTestContent() {
         return;
       }
 
-      const title = `${result.manufacturer || "Equipment"} ${
-        result.equipmentType || "Finding"
+      const title = `${cleanEquipmentValue(result.manufacturer) || "Equipment"} ${
+        cleanEquipmentValue(result.equipmentType) || "Finding"
       }`.trim();
 
       const recommendation = [

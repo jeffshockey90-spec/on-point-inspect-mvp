@@ -450,6 +450,86 @@ function groupLimitations(rows: any[], photosByLimitationId: Record<string, any[
   return grouped;
 }
 
+
+function isKnownEquipmentValue(value: any) {
+  const clean = String(value ?? "").trim();
+  const lower = clean.toLowerCase();
+
+  if (!clean) return false;
+
+  return ![
+    "unknown",
+    "n/a",
+    "na",
+    "not available",
+    "not visible",
+    "not readable",
+    "unreadable",
+    "unable to determine",
+    "unable to confirm",
+    "cannot determine",
+    "not determined",
+    "none",
+    "null",
+    "undefined",
+  ].includes(lower);
+}
+
+function getTypicalIndustryRange(value: any) {
+  const clean = String(value || "").trim();
+  if (!isKnownEquipmentValue(clean)) return "";
+
+  const rangeMatch = clean.match(/(\d+)\s*[-–]\s*(\d+)/);
+  if (rangeMatch) {
+    return `${rangeMatch[1]}–${rangeMatch[2]} years`;
+  }
+
+  const numberMatch = clean.match(/\d+/);
+  if (!numberMatch) return clean;
+
+  const upper = Number(numberMatch[0]);
+  if (!Number.isFinite(upper) || upper <= 0) return clean;
+
+  const lower = Math.max(1, upper - 5);
+  return `${lower}–${upper} years`;
+}
+
+function getEquipmentConditionNote(value: any) {
+  const clean = String(value || "").trim();
+  const lower = clean.toLowerCase();
+
+  if (!isKnownEquipmentValue(clean)) return "";
+
+  if (
+    lower.includes("remaining") ||
+    lower.includes("service life") ||
+    lower.includes("life remaining")
+  ) {
+    return "No specific deficiency noted";
+  }
+
+  return clean;
+}
+
+function getEquipmentInspectorNote(item: any) {
+  return (
+    item?.inspector_note ||
+    item?.inspection_note ||
+    item?.note ||
+    item?.notes ||
+    ""
+  );
+}
+
+function getEquipmentMaintenanceNote(item: any) {
+  return (
+    item?.maintenance_note ||
+    item?.maintenance ||
+    item?.service_note ||
+    ""
+  );
+}
+
 export default async function PublicSharePage({
   params,
   searchParams,
@@ -1085,10 +1165,12 @@ export default async function PublicSharePage({
                         <InventoryLine label="Serial" value={item.serial} />
                         <InventoryLine label="Manufacture Year" value={item.manufacture_year} />
                         <InventoryLine label="Estimated Age" value={item.estimated_age} />
-                        <InventoryLine label="Expected Life" value={item.expected_service_life} />
-                        <InventoryLine label="Life Remaining" value={item.estimated_life_remaining} />
+                        <InventoryLine label="Typical Industry Range" value={getTypicalIndustryRange(item.expected_service_life)} />
+                        <InventoryLine label="Service Life" value={getTypicalIndustryRange(item.expected_service_life) ? "Industry estimate only" : ""} />
                         <InventoryLine label="Refrigerant" value={item.refrigerant} />
-                        <InventoryLine label="Condition" value={item.condition} />
+                        <InventoryLine label="Condition" value={getEquipmentConditionNote(item.condition)} />
+                        <InventoryLine label="Inspector Note" value={getEquipmentInspectorNote(item)} />
+                        <InventoryLine label="Maintenance Note" value={getEquipmentMaintenanceNote(item)} />
                       </div>
                     </div>
                   );
@@ -1722,7 +1804,7 @@ function Info({ label, value }: { label: string; value?: any }) {
 }
 
 function InventoryLine({ label, value }: { label: string; value?: any }) {
-  if (!value) return null;
+  if (!isKnownEquipmentValue(value)) return null;
 
   return (
     <div className="flex justify-between gap-3 border-b border-slate-800 pb-1">
@@ -1741,7 +1823,7 @@ function FindingTextCard({
   value?: any;
   tone: "blue" | "yellow" | "teal" | "slate";
 }) {
-  if (!value) return null;
+  if (!isKnownEquipmentValue(value)) return null;
 
   const classes =
     tone === "blue"

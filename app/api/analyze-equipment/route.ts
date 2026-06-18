@@ -373,7 +373,7 @@ function buildClientSummary({
   const yearText = manufactureYear && manufactureYear !== "Unknown" ? `, with a manufacture year of ${manufactureYear}` : "";
   const modelText = model && model !== "Unknown" ? ` Model number: ${model}.` : "";
 
-  let summary = `The ${nameParts} was reviewed from the equipment photo. ${ageText}${yearText}. Typical expected service life is ${expectedLife}, and the estimated remaining life is ${lifeRemaining}.${modelText}`;
+  let summary = `The ${nameParts} was reviewed from the equipment photo. ${ageText}${yearText}. Typical industry service-life range is ${expectedLife}.${modelText}`;
 
   if (r22) {
     summary += " The system appears to use R-22 refrigerant, which is obsolete and can be expensive or difficult to service. Budgeting for future replacement should be considered.";
@@ -611,7 +611,7 @@ function enhanceAnalysis(parsed: EquipmentAnalysis) {
     fuelType: cleanText(parsed.fuelType) || "Unknown",
     refrigerant: refrigerantValue,
     condition,
-    estimatedLifeRemaining,
+    estimatedLifeRemaining: "",
     clientSummary,
     section,
     severity,
@@ -651,6 +651,13 @@ export async function POST(req: Request) {
     const formData = await req.formData();
 
     const image = formData.get("image") as File | null;
+    const inspectorNote = cleanText(
+      formData.get("note") ||
+        formData.get("inspectorNote") ||
+        formData.get("inspector_note") ||
+        ""
+    );
+
     inspectionId =
       (formData.get("inspectionId") as string | null) ||
       (formData.get("inspection_id") as string | null) ||
@@ -684,7 +691,7 @@ export async function POST(req: Request) {
         {
           role: "system",
           content:
-            "You are an expert home inspection equipment analyst. Return ONLY valid JSON. Be accurate, conservative, and use Unknown when information cannot be confirmed from the photo. Never invent serial numbers or model numbers.",
+            "You are an expert home inspection equipment analyst and data-plate reader. Return ONLY valid JSON. Be accurate and conservative, but work hard before using Unknown. Carefully read visible labels, model numbers, serial numbers, capacity codes, refrigerant markings, manufacture dates, and brand/manufacturer markings. Use known HVAC, water heater, appliance, and electrical data-plate conventions when they are strongly supported. Never invent a serial number, model number, manufacture year, refrigerant, capacity, or fuel type. If a value cannot be confirmed or strongly inferred, use Unknown.",
         },
         {
           role: "user",
@@ -693,6 +700,8 @@ export async function POST(req: Request) {
               type: "text",
               text: `
 Analyze this equipment photo.
+
+Inspector-provided context, if any: ${inspectorNote || "None"}
 
 Return ONLY valid JSON in this exact format:
 
@@ -752,13 +761,13 @@ Enhanced intelligence rules:
   - Tank water heater: 8-12 years
   - Tankless water heater: 15-20 years
   - Built-in appliances: 8-15 years
-- Estimate remaining life only when age is reasonably known.
+- Do not estimate exact remaining life. Use typical industry service-life ranges only. Never promise or predict remaining life.
 - Estimate SEER/SEER2 only conservatively from visible label information or equipment age. If not visible, state approximate/verify.
 - Estimate AFUE only for gas/oil/propane heating equipment when reasonable. If not visible, state approximate/verify.
 - Estimate BTU/tonnage from visible capacity or model number only when supported. Common AC model numbers include 18=1.5 ton, 24=2 ton, 30=2.5 ton, 36=3 ton, 42=3.5 ton, 48=4 ton, 60=5 ton.
 - Do not provide dollar amounts or replacement cost ranges. Use budget planning language only, such as "Routine maintenance recommended", "Budget for replacement in the coming years", or "Replacement should be anticipated."
 - Provide maintenance level: Low, Normal, Elevated, or High with short reason.
-- If equipment is near or beyond expected service life, explain that budgeting for replacement is recommended.
+- If equipment appears near or beyond a typical industry service-life range, explain that budgeting for future replacement may be prudent without predicting exact remaining life.
 - If the photo shows Federal Pacific, FPE, Stab-Lok, Zinsco, Challenger, or Pushmatic electrical equipment, mark severity as Safety Concern and recommend electrician evaluation.
 - Recommendations should be clear, professional, and not overly alarmist.
 - Client summary should be easy for a homebuyer to understand.
