@@ -676,7 +676,7 @@ function walkSpectoraTree(
   }
 }
 
-function parseFindingsFromSpectoraPayload(payload: any): ImportedFinding[] {
+function parseAllSpectoraItems(payload: any): ImportedFinding[] {
   const findings: ImportedFinding[] = [];
   const seen = new Set<string>();
 
@@ -701,10 +701,19 @@ function parseFindingsFromSpectoraPayload(payload: any): ImportedFinding[] {
     );
   }
 
-  // Keep informational observations too. On Point Inspect already excludes
-  // Informational items from defect totals, and these are needed for imported
-  // property details, equipment details, and reference photos.
   return findings;
+}
+
+function parseFindingsFromSpectoraPayload(payload: any): ImportedFinding[] {
+  return parseAllSpectoraItems(payload).filter(
+    (finding) => finding.severity !== "Informational"
+  );
+}
+
+function parsePropertyDetailsFromSpectoraPayload(payload: any): ImportedFinding[] {
+  return parseAllSpectoraItems(payload).filter(
+    (finding) => finding.severity === "Informational"
+  );
 }
 
 function getReportStorageCandidateUrls(inspectionId: string, reportId: string) {
@@ -795,6 +804,7 @@ export async function POST(request: Request) {
 
     const compiledPayload = await fetchCompiledSpectoraReport(inspectionId, reportId);
     const nativeFindings = parseFindingsFromSpectoraPayload(compiledPayload || {});
+    const propertyDetails = parsePropertyDetailsFromSpectoraPayload(compiledPayload || {});
     const fallbackPdfFindings = nativeFindings.length ? [] : parseFindingsFromPdfText(pdfText);
     const findings = nativeFindings.length ? nativeFindings : fallbackPdfFindings;
 
@@ -833,7 +843,7 @@ export async function POST(request: Request) {
         realtorPhone: buyingAgent?.phone || "",
         inspectionDate: pdfCoverInfo.inspectionDate || "",
 
-        propertyDetails: findings.filter((finding) => finding.severity === "Informational"),
+        propertyDetails,
         findings,
         rawTextPreview: pdfText.slice(0, 5000),
         importerStatus: compiledPayload
