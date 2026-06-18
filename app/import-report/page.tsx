@@ -934,6 +934,37 @@ export default function ImportReportPage() {
                 </p>
               )}
 
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-700 bg-[#020617] p-4">
+                <div>
+                  <p className="text-sm font-black uppercase tracking-wide text-amber-300">
+                    Ready to save
+                  </p>
+                  <p className="mt-1 text-sm text-slate-400">
+                    Save this import as a normal draft or as a public demo/sample report.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={() => createImportedInspection(false)}
+                    disabled={!!creating || activeFindings.length === 0}
+                    className="rounded-xl bg-teal-500 px-6 py-3 font-black text-black hover:bg-teal-400 disabled:opacity-50"
+                  >
+                    {creating === "draft" ? "Creating Draft..." : "Create Imported Draft"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => createImportedInspection(true)}
+                    disabled={!!creating || activeFindings.length === 0}
+                    className="rounded-xl border border-cyan-400 bg-cyan-500/15 px-6 py-3 font-black text-cyan-100 hover:bg-cyan-500/25 disabled:opacity-50"
+                  >
+                    {creating === "demo" ? "Saving Demo..." : "Save as Demo Report"}
+                  </button>
+                </div>
+              </div>
+
               <div className="mt-5 grid gap-4 md:grid-cols-2">
                 <Input label="Report Type" value={parsedReport.reportType} onChange={(value) => updateReportField("reportType", value)} />
                 <Input label="Inspection Date" value={parsedReport.inspectionDate} onChange={(value) => updateReportField("inspectionDate", value)} />
