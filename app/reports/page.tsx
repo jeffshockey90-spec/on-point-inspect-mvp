@@ -158,6 +158,7 @@ export default async function ReportsPage() {
     .or(
       `inspector_id.eq.${user.id},client_email.eq.${userEmail},realtor_email.eq.${userEmail}`
     )
+    .or("is_demo.is.null,is_demo.eq.false")
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -212,6 +213,14 @@ export default async function ReportsPage() {
               className="rounded-xl bg-teal-500 px-6 py-3 font-bold text-black hover:bg-teal-400"
             >
               New Inspection
+            </FastLinkButton>
+
+            <FastLinkButton
+              href="/demo-reports"
+              loadingText="Opening Demos..."
+              className="rounded-xl border border-cyan-500 bg-cyan-500/10 px-6 py-3 font-bold text-cyan-300 hover:bg-cyan-500/20"
+            >
+              Demo Reports
             </FastLinkButton>
 
             <FastLinkButton
@@ -276,12 +285,6 @@ export default async function ReportsPage() {
                       />
                     ) : (
                       <span>No Property Photo</span>
-                    )}
-
-                    {(inspection.is_demo || inspection.demo_enabled) && (
-                      <span className="absolute left-3 top-3 rounded-full border border-cyan-400/70 bg-cyan-500/20 px-3 py-1 text-xs font-black uppercase tracking-wide text-cyan-100 backdrop-blur">
-                        Demo
-                      </span>
                     )}
                   </div>
 
@@ -363,11 +366,11 @@ export default async function ReportsPage() {
 
                     <div className="mt-6 flex flex-col gap-3">
                       <FastLinkButton
-                        href={(inspection.is_demo || inspection.demo_enabled) ? `/demo/${inspection.id}` : `/reports/${inspection.id}`}
+                        href={`/reports/${inspection.id}`}
                         loadingText="Opening Report..."
                         className="rounded-xl bg-teal-500 px-5 py-3 text-center font-bold text-black hover:bg-teal-400"
                       >
-                        {(inspection.is_demo || inspection.demo_enabled) ? "Open Demo Report" : "Open Report"}
+                        Open Report
                       </FastLinkButton>
 
                       {isInspectorOwner && (
