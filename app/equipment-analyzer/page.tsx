@@ -19,6 +19,7 @@ type EquipmentResult = {
   estimatedBTU?: string;
   equipmentCategory?: string;
   maintenanceLevel?: string;
+  equipmentStatus?: string;
   efficiency?: string;
   capacity?: string;
   fuelType?: string;
@@ -277,6 +278,65 @@ function isElectricalPanelEquipment(result: EquipmentResult) {
 }
 
 
+
+function stripMaintenanceLanguageFromInspectorNote(value: any) {
+  const clean = String(value || "").trim();
+  if (!clean) return "";
+
+  return clean
+    .split(/(?<=[.!?])\s+/)
+    .filter((sentence) => {
+      const lower = sentence.toLowerCase();
+      return !(
+        lower.includes("routine maintenance") ||
+        lower.includes("regular maintenance") ||
+        lower.includes("maintenance is recommended") ||
+        lower.includes("recommend maintenance") ||
+        lower.includes("servicing is recommended") ||
+        lower.includes("service is recommended")
+      );
+    })
+    .join(" ")
+    .trim();
+}
+
+function getEquipmentStatusLabel(result: EquipmentResult) {
+  const explicit = meaningfulEquipmentValue(result.equipmentStatus);
+  if (explicit) return explicit;
+
+  const condition = String(result.condition || "").toLowerCase();
+  const severity = String(result.severity || "").toLowerCase();
+  const maintenance = String(result.maintenanceLevel || "").toLowerCase();
+
+  if (
+    condition.includes("beyond") ||
+    condition.includes("near end") ||
+    severity.includes("repair") ||
+    severity.includes("monitor") ||
+    maintenance.includes("elevated")
+  ) {
+    return "⚠ Monitor / Budget for Replacement";
+  }
+
+  if (
+    condition.includes("service") ||
+    condition.includes("repair") ||
+    severity.includes("maintenance")
+  ) {
+    return "⚠ Service Recommended";
+  }
+
+  if (result.intelligenceFlags?.problemPanelDetected) {
+    return "⚠ Specialist Evaluation Recommended";
+  }
+
+  if (result.intelligenceFlags?.r22Detected) {
+    return "⚠ Service / Replacement Planning Recommended";
+  }
+
+  return "✓ No Specific Deficiency Noted";
+}
+
 function getAiInspectorNote(result: EquipmentResult, optionalAiNote = "") {
   const cleanOptionalAiNote = String(optionalAiNote || "").trim();
 
@@ -289,7 +349,8 @@ function getAiInspectorNote(result: EquipmentResult, optionalAiNote = "") {
   const refrigerant = meaningfulEquipmentValue(result.refrigerant);
   const capacity = meaningfulEquipmentValue(result.capacity || result.estimatedBTU);
   const fuelType = meaningfulEquipmentValue(result.fuelType);
-  const clientSummary = meaningfulEquipmentValue(result.clientSummary);
+  const condition = cleanServiceLifeCondition(result.condition);
+  const clientSummary = stripMaintenanceLanguageFromInspectorNote(result.clientSummary);
 
   const parts = [
     cleanOptionalAiNote ? `Inspector-provided note: ${cleanOptionalAiNote}` : "",
@@ -303,6 +364,7 @@ function getAiInspectorNote(result: EquipmentResult, optionalAiNote = "") {
     capacity ? `Capacity identified as ${capacity}.` : "",
     fuelType ? `Fuel type identified as ${fuelType}.` : "",
     refrigerant ? `Refrigerant identified as ${refrigerant}.` : "",
+    condition ? `Observed condition/status: ${condition}.` : "",
     clientSummary,
   ]
     .filter(Boolean)
@@ -504,6 +566,7 @@ function EquipmentTestContent() {
           condition: cleanServiceLifeCondition(result.condition),
           inspector_note: getAiInspectorNote(result, optionalAiNote),
           maintenance_note: getAiMaintenanceNote(result),
+          equipment_status: getEquipmentStatusLabel(result),
           image_url: imageUrl,
           file_path: filePath,
         });
@@ -548,6 +611,7 @@ function EquipmentTestContent() {
         result.estimatedAFUE ? `Estimated AFUE: ${result.estimatedAFUE}` : "",
         result.estimatedBTU ? `Estimated Capacity: ${result.estimatedBTU}` : "",
         result.maintenanceLevel ? `Maintenance Level: ${result.maintenanceLevel}` : "",
+        `Equipment Status: ${getEquipmentStatusLabel(result)}`,
         `Inspector Note: ${getAiInspectorNote(result, optionalAiNote)}`,
         `Maintenance Note: ${getAiMaintenanceNote(result)}`,
         `Budget Planning: ${getBudgetPlanning(result)}`,

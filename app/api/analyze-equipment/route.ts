@@ -22,6 +22,7 @@ type EquipmentAnalysis = {
   equipmentCategory?: string;
   budgetPlanning?: string;
   maintenanceLevel?: string;
+  equipmentStatus?: string;
   efficiency?: string;
   capacity?: string;
   fuelType?: string;
@@ -92,6 +93,107 @@ function getAgeFromYear(year: number | null) {
   if (!Number.isFinite(age) || age < 0 || age > 80) return null;
   return age;
 }
+
+function decodeManufactureYearFromSerial({
+  manufacturer,
+  serial,
+}: {
+  manufacturer: string;
+  serial: string;
+}) {
+  const brand = cleanText(manufacturer).toLowerCase();
+  const cleanSerial = cleanText(serial).toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const currentYear = getCurrentYear();
+  const currentTwoDigitYear = currentYear % 100;
+
+  if (!cleanSerial || cleanSerial.length < 4) return null;
+
+  // A.O. Smith / State / American / Reliance water heaters commonly use YYWW...
+  // Example: 1231A107021 = 31st week of 2012.
+  if (
+    brand.includes("a.o. smith") ||
+    brand.includes("ao smith") ||
+    brand.includes("a o smith") ||
+    brand.includes("state") ||
+    brand.includes("american water heater") ||
+    brand.includes("reliance")
+  ) {
+    const yy = Number(cleanSerial.slice(0, 2));
+    const ww = Number(cleanSerial.slice(2, 4));
+
+    if (Number.isFinite(yy) && Number.isFinite(ww) && ww >= 1 && ww <= 53) {
+      const year = yy <= currentTwoDigitYear + 1 ? 2000 + yy : 1900 + yy;
+      if (year >= 1980 && year <= currentYear + 1) return year;
+    }
+  }
+
+  // Goodman / Amana / Daikin often use YYMM... at the beginning of the serial.
+  if (
+    brand.includes("goodman") ||
+    brand.includes("amana") ||
+    brand.includes("daikin")
+  ) {
+    const yy = Number(cleanSerial.slice(0, 2));
+    const mm = Number(cleanSerial.slice(2, 4));
+
+    if (Number.isFinite(yy) && Number.isFinite(mm) && mm >= 1 && mm <= 12) {
+      const year = yy <= currentTwoDigitYear + 1 ? 2000 + yy : 1900 + yy;
+      if (year >= 1980 && year <= currentYear + 1) return year;
+    }
+  }
+
+  return null;
+}
+
+function getEquipmentStatus({
+  condition,
+  severity,
+  problemPanel,
+  r22,
+  age,
+  category,
+  equipmentType,
+}: {
+  condition: string;
+  severity: string;
+  problemPanel: string;
+  r22: boolean;
+  age: number | null;
+  category: string;
+  equipmentType: string;
+}) {
+  if (problemPanel) return "⚠ Specialist Evaluation Recommended";
+  if (r22) return "⚠ Service / Replacement Planning Recommended";
+
+  const cleanCondition = cleanText(condition).toLowerCase();
+  const cleanSeverity = cleanText(severity).toLowerCase();
+
+  if (
+    cleanSeverity.includes("safety") ||
+    cleanSeverity.includes("major") ||
+    cleanCondition.includes("beyond") ||
+    cleanCondition.includes("near end")
+  ) {
+    return "⚠ Monitor / Budget for Replacement";
+  }
+
+  const maxLife = getLifeMax(category, equipmentType);
+  if (age !== null && maxLife) {
+    if (age >= maxLife) return "⚠ Monitor / Budget for Replacement";
+    if (age >= maxLife - 3) return "⚠ Monitor";
+  }
+
+  if (
+    cleanCondition.includes("repair") ||
+    cleanCondition.includes("defect") ||
+    cleanCondition.includes("service recommended")
+  ) {
+    return "⚠ Service Recommended";
+  }
+
+  return "✓ No Specific Deficiency Noted";
+}
+
 
 function normalizeManufacturer(value: any) {
   const text = cleanText(value);
@@ -498,7 +600,11 @@ function enhanceAnalysis(parsed: EquipmentAnalysis) {
   const model = cleanText(parsed.model) || "Unknown";
   const serial = cleanText(parsed.serial) || "Unknown";
 
-  const manufactureYearNumber = getFirstYear(parsed.manufactureYear);
+  const serialYearNumber = decodeManufactureYearFromSerial({
+    manufacturer,
+    serial: cleanText(parsed.serial),
+  });
+  const manufactureYearNumber = getFirstYear(parsed.manufactureYear) ?? serialYearNumber;
   const ageFromYear = getAgeFromYear(manufactureYearNumber);
   const parsedAgeNumber = Number(cleanText(parsed.estimatedAge).replace(/[^0-9.-]/g, ""));
   const age = ageFromYear ?? (Number.isFinite(parsedAgeNumber) && parsedAgeNumber > 0 ? parsedAgeNumber : null);
@@ -524,6 +630,16 @@ function enhanceAnalysis(parsed: EquipmentAnalysis) {
     equipmentType,
     problemPanel,
     r22,
+  });
+
+  const equipmentStatus = cleanText(parsed.equipmentStatus) || getEquipmentStatus({
+    condition,
+    severity,
+    problemPanel,
+    r22,
+    age,
+    category,
+    equipmentType,
   });
 
   const estimatedBTU = estimateBTU({ parsed, category });
@@ -691,7 +807,7 @@ export async function POST(req: Request) {
         {
           role: "system",
           content:
-            "You are an expert home inspection equipment analyst and data-plate reader. Return ONLY valid JSON. Be accurate and conservative, but work hard before using Unknown. Carefully read visible labels, model numbers, serial numbers, capacity codes, refrigerant markings, manufacture dates, and brand/manufacturer markings. Use known HVAC, water heater, appliance, and electrical data-plate conventions when they are strongly supported. Never invent a serial number, model number, manufacture year, refrigerant, capacity, or fuel type. If a value cannot be confirmed or strongly inferred, use Unknown.",
+            "You are an expert home inspection equipment analyst and data-plate reader. Return ONLY valid JSON. Be accurate and conservative, but work hard before using Unknown. Carefully read visible labels, model numbers, serial numbers, capacity codes, refrigerant markings, manufacture dates, and brand/manufacturer markings. Use known HVAC, water heater, appliance, and electrical data-plate conventions when they are strongly supported. Never invent a serial number, model number, manufacture year, refrigerant, capacity, or fuel type. Work hard to decode visible serial/model patterns when supported by manufacturer conventions, but if a value cannot be confirmed or strongly inferred, use Unknown. Keep maintenance recommendations separate from identification notes.",
         },
         {
           role: "user",
@@ -719,6 +835,7 @@ Return ONLY valid JSON in this exact format:
   "equipmentCategory": "",
   "budgetPlanning": "",
   "maintenanceLevel": "",
+  "equipmentStatus": "",
   "efficiency": "",
   "capacity": "",
   "fuelType": "",
@@ -753,6 +870,7 @@ Enhanced intelligence rules:
 - Do not guess manufacture year unless the label, serial number pattern, or visible date clearly supports it.
 - If visible, identify refrigerant type, especially R-22, HCFC-22, R410A, R-410A, R32, or R454B.
 - Flag R-22 or HCFC-22 as obsolete refrigerant.
+- Equipment status should be client-friendly, such as: ✓ No Specific Deficiency Noted, ⚠ Monitor, ⚠ Service Recommended, ⚠ Monitor / Budget for Replacement, or ⚠ Specialist Evaluation Recommended.
 - Estimate expected service life conservatively:
   - Central AC condenser: 12-15 years
   - Heat pump: 10-15 years

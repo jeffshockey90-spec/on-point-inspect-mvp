@@ -588,6 +588,35 @@ function ShareEquipmentNoteBlock({
   );
 }
 
+
+function getEquipmentStatusValue(item: any) {
+  const explicit =
+    item?.equipment_status ||
+    item?.equipmentStatus ||
+    item?.status ||
+    "";
+
+  if (isKnownEquipmentValue(explicit)) return explicit;
+
+  const condition = String(item?.condition || "").toLowerCase();
+  const severity = String(item?.severity || "").toLowerCase();
+
+  if (
+    condition.includes("beyond") ||
+    condition.includes("near end") ||
+    severity.includes("repair") ||
+    severity.includes("monitor")
+  ) {
+    return "⚠ Monitor / Budget for Replacement";
+  }
+
+  if (condition.includes("service") || condition.includes("repair")) {
+    return "⚠ Service Recommended";
+  }
+
+  return "✓ No Specific Deficiency Noted";
+}
+
 export default async function PublicSharePage({
   params,
   searchParams,
@@ -1220,6 +1249,7 @@ export default async function PublicSharePage({
                       </h3>
 
                       <div className="mt-4 space-y-2 text-sm text-slate-300">
+                        <ShareEquipmentLine label="Equipment Status" value={getEquipmentStatusValue(item)} />
                         <ShareEquipmentLine label="Serial" value={item.serial} />
                         <ShareEquipmentLine label="Manufacture Year" value={item.manufacture_year} />
                         <ShareEquipmentLine label="Estimated Age" value={item.estimated_age} />
