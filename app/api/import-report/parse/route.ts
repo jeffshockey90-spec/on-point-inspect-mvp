@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { PDFParse } from "pdf-parse";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 type ImportedFinding = {
   section: string;
@@ -299,14 +299,40 @@ function parseFindings(text: string): ImportedFinding[] {
 }
 
 async function readPdfText(buffer: Buffer) {
-  const parser = new PDFParse({ data: buffer });
+  const pdfParseModule = await import("pdf-parse");
+  const pdfParse =
+    (pdfParseModule as any).default ||
+    (pdfParseModule as any).pdf ||
+    (pdfParseModule as any).parse;
 
-  try {
-    const result = await parser.getText();
+  if (typeof pdfParse === "function") {
+    const result = await pdfParse(buffer);
     return cleanText(result?.text || "");
-  } finally {
-    await parser.destroy();
   }
+
+  const PDFParse = (pdfParseModule as any).PDFParse;
+
+  if (PDFParse) {
+    const parser = new PDFParse({ data: buffer });
+
+    try {
+      const result = await parser.getText();
+      return cleanText(result?.text || "");
+    } finally {
+      if (typeof parser.destroy === "function") {
+        await parser.destroy();
+      }
+    }
+  }
+
+  throw new Error("PDF parser is not available in this environment.");
+}
+
+export async function GET() {
+  return NextResponse.json({
+    ok: true,
+    message: "Import parser is online. Upload a PDF from /import-report to use this endpoint.",
+  });
 }
 
 export async function POST(request: Request) {
@@ -354,7 +380,11 @@ export async function POST(request: Request) {
     console.error("Import report parse error:", error);
 
     return NextResponse.json(
-      { error: error?.message || "Import failed." },
+      {
+        error:
+          error?.message ||
+          "Import failed while reading the PDF. Try a different PDF or export the report as a standard PDF.",
+      },
       { status: 500 }
     );
   }
