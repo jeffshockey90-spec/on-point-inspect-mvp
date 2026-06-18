@@ -368,7 +368,7 @@ function getBudgetPlanning({ age, category, condition, r22, problemPanel }: { ag
   if (cond.includes("near end")) return "Budget for replacement in the coming years";
 
   if (age !== null) {
-    const maxLife = getLifeMax(category, "");
+    const maxLife = getStatusLifeMax(category, "");
     if (maxLife && age >= maxLife) return "Replacement should be anticipated";
     if (maxLife && age >= maxLife - 3) return "Budget for replacement in the coming years";
   }
@@ -384,7 +384,7 @@ function getMaintenanceLevel({ age, category, condition, r22, problemPanel }: { 
   if (cond.includes("beyond") || cond.includes("near end")) return "Elevated - monitor closely and budget for replacement";
 
   if (age !== null) {
-    const maxLife = getLifeMax(category, "");
+    const maxLife = getStatusLifeMax(category, "");
     if (maxLife && age >= maxLife - 3) return "Elevated - approaching typical service life";
   }
 
