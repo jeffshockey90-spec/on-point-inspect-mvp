@@ -526,6 +526,33 @@ function getExpectedLife(category: string, equipmentType: string) {
   return "Typical service life varies";
 }
 
+
+function estimateLifeRemaining(
+  age: number | null,
+  category: string,
+  equipmentType: string,
+) {
+  if (age === null || age === undefined || !Number.isFinite(age)) {
+    return "Industry estimate only";
+  }
+
+  const maxLife = getStatusLifeMax(category, equipmentType);
+
+  if (!maxLife) return "Industry estimate only";
+
+  const remaining = maxLife - age;
+
+  if (remaining <= 0) {
+    return "At or beyond typical industry range";
+  }
+
+  if (remaining <= 2) {
+    return "Near upper end of typical industry range";
+  }
+
+  return "Industry estimate only";
+}
+
 function enhanceAnalysis(parsed: EquipmentAnalysis) {
   const category = inferEquipmentCategory(parsed);
   const manufacturer = normalizeManufacturer(parsed.manufacturer);
