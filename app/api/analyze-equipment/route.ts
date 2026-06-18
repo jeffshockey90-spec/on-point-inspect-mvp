@@ -512,10 +512,10 @@ function enhanceAnalysis(parsed: EquipmentAnalysis) {
       ? "HVAC Equipment"
       : category === "water_heater"
       ? "Water Heater"
-      : category === "electrical_panel"
-      ? "Electrical Panel"
+      : category === "electrical"
+      ? "Electrical Equipment"
       : category === "appliance"
-      ? "Built-in Appliance"
+      ? "Appliance"
       : "Equipment");
 
   const model = cleanText(parsed.model) || "Unknown";
