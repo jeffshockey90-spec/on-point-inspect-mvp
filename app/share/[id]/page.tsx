@@ -617,6 +617,65 @@ function getEquipmentStatusValue(item: any) {
   return "✓ No Specific Deficiency Noted";
 }
 
+
+function isHvacEquipmentItem(item: any) {
+  const text = [
+    item?.equipment_type,
+    item?.equipmentType,
+    item?.section,
+    item?.manufacturer,
+    item?.model,
+  ]
+    .map((value) => String(value || "").toLowerCase())
+    .join(" ");
+
+  return (
+    text.includes("heat pump") ||
+    text.includes("air handler") ||
+    text.includes("condenser") ||
+    text.includes("air conditioner") ||
+    text.includes("ac condenser") ||
+    text.includes("cooling") ||
+    text.includes("furnace") ||
+    text.includes("hvac")
+  );
+}
+
+function getEquipmentStatusClass(value: any) {
+  const clean = String(value || "").toLowerCase();
+
+  if (clean.includes("no specific")) {
+    return "border-emerald-500/40 bg-emerald-500/10 text-emerald-300";
+  }
+
+  if (clean.includes("monitor / budget") || clean.includes("replacement")) {
+    return "border-red-500/50 bg-red-500/10 text-red-300";
+  }
+
+  if (clean.includes("service")) {
+    return "border-orange-500/50 bg-orange-500/10 text-orange-300";
+  }
+
+  if (clean.includes("monitor")) {
+    return "border-yellow-500/50 bg-yellow-500/10 text-yellow-300";
+  }
+
+  return "border-cyan-500/40 bg-cyan-500/10 text-cyan-300";
+}
+
+function EquipmentStatusBadge({ value }: { value?: any }) {
+  if (!isKnownEquipmentValue(value)) return null;
+
+  return (
+    <div className={`mb-4 rounded-xl border px-4 py-3 text-sm font-black ${getEquipmentStatusClass(value)}`}>
+      <span className="mr-2 text-xs uppercase tracking-wide opacity-80">
+        Equipment Status
+      </span>
+      {String(value)}
+    </div>
+  );
+}
+
 export default async function PublicSharePage({
   params,
   searchParams,
@@ -1248,8 +1307,9 @@ export default async function PublicSharePage({
                         {[item.manufacturer, item.model].filter(Boolean).join(" ") || "Equipment Record"}
                       </h3>
 
+                      <EquipmentStatusBadge value={getEquipmentStatusValue(item)} />
+
                       <div className="mt-4 space-y-2 text-sm text-slate-300">
-                        <ShareEquipmentLine label="Equipment Status" value={getEquipmentStatusValue(item)} />
                         <ShareEquipmentLine label="Serial" value={item.serial} />
                         <ShareEquipmentLine label="Manufacture Year" value={item.manufacture_year} />
                         <ShareEquipmentLine label="Estimated Age" value={item.estimated_age} />
@@ -1263,7 +1323,7 @@ export default async function PublicSharePage({
                         />
                         <ShareEquipmentLine label="Capacity" value={item.capacity} />
                         <ShareEquipmentLine label="Fuel Type" value={item.fuel_type} />
-                        <ShareEquipmentLine label="Refrigerant" value={item.refrigerant} />
+                        {isHvacEquipmentItem(item) && <ShareEquipmentLine label="Refrigerant" value={item.refrigerant} />}
                         <ShareEquipmentLine
                           label="Condition"
                           value={getEquipmentConditionNote(item.condition)}

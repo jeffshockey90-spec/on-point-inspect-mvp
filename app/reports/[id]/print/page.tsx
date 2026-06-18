@@ -277,6 +277,30 @@ function getEquipmentStatusValue(item: any) {
   return "✓ No Specific Deficiency Noted";
 }
 
+
+function isHvacEquipmentItem(item: any) {
+  const text = [
+    item?.equipment_type,
+    item?.equipmentType,
+    item?.section,
+    item?.manufacturer,
+    item?.model,
+  ]
+    .map((value) => String(value || "").toLowerCase())
+    .join(" ");
+
+  return (
+    text.includes("heat pump") ||
+    text.includes("air handler") ||
+    text.includes("condenser") ||
+    text.includes("air conditioner") ||
+    text.includes("ac condenser") ||
+    text.includes("cooling") ||
+    text.includes("furnace") ||
+    text.includes("hvac")
+  );
+}
+
 export default async function PrintableReportPage({ params }: PageProps) {
   const { id } = await params;
   const supabase = await createSupabaseServerClient();
@@ -726,7 +750,7 @@ export default async function PrintableReportPage({ params }: PageProps) {
                       <InventoryLine label="Service Life" value={getTypicalIndustryRange(item.expected_service_life) ? "Industry estimate only" : ""} />
                       <InventoryLine label="Capacity" value={item.capacity} />
                       <InventoryLine label="Fuel Type" value={item.fuel_type} />
-                      <InventoryLine label="Refrigerant" value={item.refrigerant} />
+                      {isHvacEquipmentItem(item) && <InventoryLine label="Refrigerant" value={item.refrigerant} />}
                       <InventoryLine label="Condition" value={getEquipmentConditionNote(item.condition)} />
                     </div>
 

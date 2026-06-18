@@ -308,12 +308,20 @@ function getEquipmentStatusLabel(result: EquipmentResult) {
   const severity = String(result.severity || "").toLowerCase();
   const maintenance = String(result.maintenanceLevel || "").toLowerCase();
 
+  if (result.intelligenceFlags?.problemPanelDetected) {
+    return "⚠ Specialist Evaluation Recommended";
+  }
+
+  if (result.intelligenceFlags?.r22Detected) {
+    return "⚠ Service / Replacement Planning Recommended";
+  }
+
   if (
     condition.includes("beyond") ||
-    condition.includes("near end") ||
-    severity.includes("repair") ||
-    severity.includes("monitor") ||
-    maintenance.includes("elevated")
+    condition.includes("failed") ||
+    condition.includes("not operating") ||
+    severity.includes("major") ||
+    severity.includes("safety")
   ) {
     return "⚠ Monitor / Budget for Replacement";
   }
@@ -326,12 +334,8 @@ function getEquipmentStatusLabel(result: EquipmentResult) {
     return "⚠ Service Recommended";
   }
 
-  if (result.intelligenceFlags?.problemPanelDetected) {
-    return "⚠ Specialist Evaluation Recommended";
-  }
-
-  if (result.intelligenceFlags?.r22Detected) {
-    return "⚠ Service / Replacement Planning Recommended";
+  if (maintenance.includes("elevated")) {
+    return "⚠ Monitor";
   }
 
   return "✓ No Specific Deficiency Noted";
@@ -349,7 +353,7 @@ function getAiInspectorNote(result: EquipmentResult, optionalAiNote = "") {
   const refrigerant = meaningfulEquipmentValue(result.refrigerant);
   const capacity = meaningfulEquipmentValue(result.capacity || result.estimatedBTU);
   const fuelType = meaningfulEquipmentValue(result.fuelType);
-  const condition = cleanServiceLifeCondition(result.condition);
+  const condition = meaningfulEquipmentValue(cleanServiceLifeCondition(result.condition));
   const clientSummary = stripMaintenanceLanguageFromInspectorNote(result.clientSummary);
 
   const parts = [
@@ -563,7 +567,7 @@ function EquipmentTestContent() {
           expected_service_life: cleanEquipmentValue(result.expectedServiceLife),
           estimated_life_remaining: "",
           refrigerant: cleanEquipmentValue(result.refrigerant),
-          condition: cleanServiceLifeCondition(result.condition),
+          condition: meaningfulEquipmentValue(cleanServiceLifeCondition(result.condition)),
           inspector_note: getAiInspectorNote(result, optionalAiNote),
           maintenance_note: getAiMaintenanceNote(result),
           equipment_status: getEquipmentStatusLabel(result),

@@ -172,6 +172,46 @@ function getEquipmentStatus({
     cleanSeverity.includes("safety") ||
     cleanSeverity.includes("major") ||
     cleanCondition.includes("beyond") ||
+    cleanCondition.includes("failed") ||
+    cleanCondition.includes("not operating")
+  ) {
+    return "⚠ Monitor / Budget for Replacement";
+  }
+
+  if (
+    cleanCondition.includes("repair") ||
+    cleanCondition.includes("defect") ||
+    cleanCondition.includes("service recommended")
+  ) {
+    return "⚠ Service Recommended";
+  }
+
+  const maxLife = getLifeMax(category, equipmentType);
+  if (age !== null && maxLife) {
+    if (age > maxLife) return "⚠ Monitor / Budget for Replacement";
+    if (age >= maxLife - 2) return "⚠ Monitor";
+  }
+
+  return "✓ No Specific Deficiency Noted";
+}: {
+  condition: string;
+  severity: string;
+  problemPanel: string;
+  r22: boolean;
+  age: number | null;
+  category: string;
+  equipmentType: string;
+}) {
+  if (problemPanel) return "⚠ Specialist Evaluation Recommended";
+  if (r22) return "⚠ Service / Replacement Planning Recommended";
+
+  const cleanCondition = cleanText(condition).toLowerCase();
+  const cleanSeverity = cleanText(severity).toLowerCase();
+
+  if (
+    cleanSeverity.includes("safety") ||
+    cleanSeverity.includes("major") ||
+    cleanCondition.includes("beyond") ||
     cleanCondition.includes("near end")
   ) {
     return "⚠ Monitor / Budget for Replacement";
