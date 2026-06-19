@@ -99,8 +99,6 @@ function decodeManufactureYearFromSerial({
   manufacturer,
   serial,
 
-}
-
 
 function getStatusLifeMax(category: string, equipmentType: string) {
   const cleanCategory = cleanText(category).toLowerCase();
@@ -141,6 +139,7 @@ function chooseSeverity({
   problemPanel,
   r22,
 
+
 function buildClientSummary({
   parsed,
   category,
@@ -153,6 +152,7 @@ function buildClientSummary({
   lifeRemaining,
   r22,
   problemPanel,
+
 
 function parseTonnageFromModel(modelValue: any) {
   const model = cleanText(modelValue).toUpperCase();
@@ -206,7 +206,7 @@ function estimateBTU({ parsed, category }: { parsed: EquipmentAnalysis; category
   const visibleCapacity = cleanText(parsed.capacity);
   if (visibleCapacity && visibleCapacity.toLowerCase() !== "unknown") return visibleCapacity;
 
-  if (category === "hvac") {
+  if (category === "hvac" || category === "hvac") {
     const fromModel = parseTonnageFromModel(parsed.model);
     if (fromModel !== "Unknown") return fromModel;
   }
@@ -244,7 +244,7 @@ function getMaintenanceLevel({ age, category, condition, r22, problemPanel }: { 
   }
 
   if (category === "water_heater") return "Normal - recommend periodic inspection and maintenance";
-  if (category === "hvac") return "Normal - recommend annual HVAC service";
+  if (category === "hvac" || category === "hvac") return "Normal - recommend annual HVAC service";
   if (category === "appliance") return "Normal - maintain per manufacturer instructions";
 
   return "Normal";
@@ -390,41 +390,6 @@ function chooseSection(parsed: EquipmentAnalysis, category: string) {
       text.includes("cooling")
 
 
-
-function isUsefulEquipmentText(value: any) {
-  const clean = cleanText(value);
-  if (!clean) return false;
-
-  const lower = clean.toLowerCase();
-
-  return ![
-    "unknown",
-    "n/a",
-    "na",
-    "none",
-    "null",
-    "undefined",
-    "not visible",
-    "not readable",
-    "unreadable",
-    "unable to determine",
-    "cannot determine",
-  ].includes(lower);
-}
-
-function buildNarrativeEquipmentSummary({
-  equipmentType,
-  manufacturer,
-  model,
-  manufactureYear,
-  capacity,
-  fuelType,
-  refrigerant,
-  category,
-  r22,
-  problemPanel,
-
-
 function enhanceAnalysis(parsed: EquipmentAnalysis) {
   const category = inferEquipmentCategory(parsed);
   const manufacturer = normalizeManufacturer(parsed.manufacturer);
@@ -502,15 +467,16 @@ function enhanceAnalysis(parsed: EquipmentAnalysis) {
       problemPanel,
     });
 
-  const clientSummary = buildNarrativeEquipmentSummary({
+  const clientSummary = buildClientSummary({
+    parsed,
+    category,
     equipmentType,
     manufacturer,
     model,
     manufactureYear,
-    capacity: estimatedBTU || cleanText(parsed.capacity),
-    fuelType: cleanText(parsed.fuelType),
-    refrigerant: refrigerantValue,
-    category,
+    age,
+    expectedLife: expectedServiceLife,
+    lifeRemaining: estimatedLifeRemaining,
     r22,
     problemPanel,
   });
