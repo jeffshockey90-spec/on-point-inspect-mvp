@@ -590,57 +590,32 @@ function ShareEquipmentNoteBlock({
 
 
 function getEquipmentStatusValue(item: any) {
-  const condition = String(item?.condition || "").toLowerCase();
-  const severity = String(item?.severity || "").toLowerCase();
-
   const explicit =
     item?.equipment_status ||
     item?.equipmentStatus ||
     item?.status ||
     "";
 
+  if (isKnownEquipmentValue(explicit)) return explicit;
+
+  const condition = String(item?.condition || "").toLowerCase();
+  const severity = String(item?.severity || "").toLowerCase();
+
   if (
-    condition.includes("older equipment") ||
-    condition.includes("monitor") ||
-    condition.includes("budget") ||
+    condition.includes("beyond") ||
     condition.includes("near end") ||
-    condition.includes("near upper") ||
-    condition.includes("beyond typical") ||
-    condition.includes("beyond")
+    severity.includes("repair") ||
+    severity.includes("monitor")
   ) {
-    return "⚠ Older Equipment – Monitor";
+    return "⚠ Monitor / Budget for Replacement";
   }
 
-  if (
-    condition.includes("failed") ||
-    condition.includes("not operating") ||
-    condition.includes("unsafe") ||
-    condition.includes("repair") ||
-    severity.includes("major") ||
-    severity.includes("safety")
-  ) {
+  if (condition.includes("service") || condition.includes("repair")) {
     return "⚠ Service Recommended";
-  }
-
-  if (isKnownEquipmentValue(explicit)) {
-    const lowerExplicit = String(explicit).toLowerCase();
-
-    if (
-      lowerExplicit.includes("no specific") ||
-      lowerExplicit.includes("operating normally")
-    ) {
-      return "✓ No Specific Deficiency Noted";
-    }
-
-    return explicit;
   }
 
   return "✓ No Specific Deficiency Noted";
 }
-
-
-
-
 
 
 function isHvacEquipmentItem(item: any) {
@@ -669,24 +644,24 @@ function isHvacEquipmentItem(item: any) {
 function getEquipmentStatusClass(value: any) {
   const clean = String(value || "").toLowerCase();
 
-  if (clean.includes("no specific") || clean.includes("operating normally")) {
+  if (clean.includes("no specific")) {
     return "border-emerald-500/40 bg-emerald-500/10 text-emerald-300";
   }
 
-  if (clean.includes("older equipment") || clean.includes("monitor")) {
-    return "border-yellow-500/50 bg-yellow-500/10 text-yellow-300";
+  if (clean.includes("monitor / budget") || clean.includes("replacement")) {
+    return "border-red-500/50 bg-red-500/10 text-red-300";
   }
 
-  if (clean.includes("service") || clean.includes("safety")) {
+  if (clean.includes("service")) {
     return "border-orange-500/50 bg-orange-500/10 text-orange-300";
+  }
+
+  if (clean.includes("monitor")) {
+    return "border-yellow-500/50 bg-yellow-500/10 text-yellow-300";
   }
 
   return "border-cyan-500/40 bg-cyan-500/10 text-cyan-300";
 }
-
-
-
-
 
 function EquipmentStatusBadge({ value }: { value?: any }) {
   if (!isKnownEquipmentValue(value)) return null;
@@ -700,69 +675,6 @@ function EquipmentStatusBadge({ value }: { value?: any }) {
     </div>
   );
 }
-
-
-function isEquipmentRecommendationDump(value: any) {
-  const clean = String(value || "").trim();
-  const lower = clean.toLowerCase();
-
-  if (!clean) return false;
-
-  const hits = [
-    "client summary",
-    "equipment type",
-    "manufacturer",
-    "model number",
-    "serial number",
-    "manufacture year",
-    "estimated age",
-    "typical industry range",
-    "equipment status",
-    "inspector note",
-    "maintenance note",
-    "budget planning",
-    "capacity",
-    "fuel type",
-    "refrigerant",
-  ].filter((term) => lower.includes(term)).length;
-
-  return hits >= 3 || clean.length > 450;
-}
-
-function getCleanFindingRecommendation(finding: any) {
-  const recommendation = String(finding?.recommendation || "").trim();
-  const severity = String(finding?.severity || "").toLowerCase();
-  const implication = String(finding?.implication || "").toLowerCase();
-  const observation = String(finding?.observation || "").toLowerCase();
-  const combined = `${recommendation} ${implication} ${observation}`;
-
-  if (!isEquipmentRecommendationDump(recommendation)) {
-    return recommendation;
-  }
-
-  if (
-    severity.includes("major") ||
-    severity.includes("safety") ||
-    combined.includes("failed") ||
-    combined.includes("not operating") ||
-    combined.includes("unsafe")
-  ) {
-    return "Further evaluation, repair, or replacement is recommended by a qualified contractor.";
-  }
-
-  if (
-    severity.includes("monitor") ||
-    combined.includes("older equipment") ||
-    combined.includes("service life") ||
-    combined.includes("monitor") ||
-    combined.includes("replacement")
-  ) {
-    return "Continue routine maintenance and monitor the equipment as it ages.";
-  }
-
-  return "Routine maintenance is recommended in accordance with manufacturer guidelines.";
-}
-
 
 export default async function PublicSharePage({
   params,
@@ -1899,7 +1811,7 @@ export default async function PublicSharePage({
 
                                     <FindingTextCard
                                       title="Recommendation"
-                                      value={getCleanFindingRecommendation(finding)}
+                                      value={finding.recommendation}
                                       tone="teal"
                                     />
 
@@ -1972,7 +1884,7 @@ export default async function PublicSharePage({
 
                                     <FindingTextCard
                                       title="Recommendation"
-                                      value={getCleanFindingRecommendation(finding)}
+                                      value={finding.recommendation}
                                       tone="teal"
                                     />
 
