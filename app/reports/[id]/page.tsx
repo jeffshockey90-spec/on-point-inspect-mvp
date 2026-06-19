@@ -431,6 +431,99 @@ function getEquipmentMaintenanceNote(item: any) {
 
 
 
+
+function getEquipmentStatusValue(item: any) {
+  const explicit =
+    item?.equipment_status ||
+    item?.equipmentStatus ||
+    item?.status ||
+    "";
+
+  if (isKnownEquipmentValue(explicit)) return explicit;
+
+  const condition = String(item?.condition || "").toLowerCase();
+  const severity = String(item?.severity || "").toLowerCase();
+  const ageText = String(item?.estimated_age || item?.estimatedAge || "");
+  const rangeText = String(item?.expected_service_life || item?.expectedServiceLife || "");
+
+  const ageNumber = Number(ageText.replace(/[^0-9.]/g, ""));
+  const rangeNumbers = rangeText.match(/\d+/g) || [];
+  const maxLife = rangeNumbers.length > 0 ? Number(rangeNumbers[rangeNumbers.length - 1]) : null;
+
+  if (severity.includes("safety") || condition.includes("failed") || condition.includes("not operating")) {
+    return "⚠ Service Recommended";
+  }
+
+  if (maxLife && Number.isFinite(ageNumber) && ageNumber >= maxLife - 2) {
+    return "⚠ Near End of Typical Service Life";
+  }
+
+  if (condition.includes("service") || condition.includes("repair")) {
+    return "⚠ Service Recommended";
+  }
+
+  return "✓ Operating Normally";
+}
+
+function getEquipmentStatusClass(value: any) {
+  const clean = String(value || "").toLowerCase();
+
+  if (clean.includes("operating normally") || clean.includes("no specific")) {
+    return "border-emerald-500/40 bg-emerald-500/10 text-emerald-300";
+  }
+
+  if (clean.includes("safety") || clean.includes("service recommended")) {
+    return "border-orange-500/50 bg-orange-500/10 text-orange-300";
+  }
+
+  if (clean.includes("near end") || clean.includes("monitor")) {
+    return "border-yellow-500/50 bg-yellow-500/10 text-yellow-300";
+  }
+
+  return "border-cyan-500/40 bg-cyan-500/10 text-cyan-300";
+}
+
+function formatEquipmentCapacity(item: any) {
+  const raw = String(
+    item?.capacity ||
+      item?.estimated_btu ||
+      item?.estimatedBTU ||
+      ""
+  ).trim();
+
+  if (!isKnownEquipmentValue(raw)) return "";
+
+  return raw;
+}
+
+function getEquipmentSeer(item: any) {
+  return (
+    item?.estimated_seer ||
+    item?.estimatedSEER ||
+    item?.seer ||
+    ""
+  );
+}
+
+function getEquipmentAfue(item: any) {
+  return (
+    item?.estimated_afue ||
+    item?.estimatedAFUE ||
+    item?.afue ||
+    ""
+  );
+}
+
+function getEquipmentHeatingEfficiency(item: any) {
+  return (
+    item?.estimated_heating_efficiency ||
+    item?.estimatedHeatingEfficiency ||
+    item?.hspf ||
+    item?.hspf2 ||
+    ""
+  );
+}
+
 export default async function ReportPage({ params }: PageProps) {
   const { id } = await params;
   const supabase = await createSupabaseServerClient();
@@ -532,6 +625,7 @@ export default async function ReportPage({ params }: PageProps) {
     const condition = String(formData.get("condition") || "").trim();
     const inspectorNote = String(formData.get("inspector_note") || "").trim();
     const maintenanceNote = String(formData.get("maintenance_note") || "").trim();
+    const equipmentStatus = String(formData.get("equipment_status") || "").trim();
 
     const { data: ownedInspection } = await supabase
       .from("inspections")
@@ -550,6 +644,7 @@ export default async function ReportPage({ params }: PageProps) {
         condition,
         inspector_note: inspectorNote,
         maintenance_note: maintenanceNote,
+        equipment_status: equipmentStatus || undefined,
       })
       .eq("id", equipmentId)
       .eq("inspection_id", inspectionId);

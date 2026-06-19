@@ -19,6 +19,7 @@ type EquipmentAnalysis = {
   estimatedSEER?: string;
   estimatedAFUE?: string;
   estimatedBTU?: string;
+  estimatedHeatingEfficiency?: string;
   equipmentCategory?: string;
   budgetPlanning?: string;
   maintenanceLevel?: string;
@@ -159,6 +160,175 @@ function decodeManufactureYearFromSerial({
   manufacturer,
   serial,
 }: {
+  manufacturer: string;
+  serial: string;
+}) {
+  const brand = cleanText(manufacturer).toLowerCase();
+  const cleanSerial = cleanText(serial).toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const currentYear = getCurrentYear();
+  const currentTwoDigitYear = currentYear % 100;
+
+  if (!cleanSerial || cleanSerial.length < 4) return null;
+
+  function yearFromTwoDigits(value: number) {
+    if (!Number.isFinite(value) || value < 0 || value > 99) return null;
+    const year = value <= currentTwoDigitYear + 1 ? 2000 + value : 1900 + value;
+    if (year < 1980 || year > currentYear + 1) return null;
+    return year;
+  }
+
+  function monthIsValid(value: number) {
+    return Number.isFinite(value) && value >= 1 && value <= 12;
+  }
+
+  function weekIsValid(value: number) {
+    return Number.isFinite(value) && value >= 1 && value <= 53;
+  }
+
+  // A.O. Smith / State / American / Reliance often use YYWW...
+  if (
+    brand.includes("a.o. smith") ||
+    brand.includes("ao smith") ||
+    brand.includes("a o smith") ||
+    brand.includes("state") ||
+    brand.includes("american water heater") ||
+    brand.includes("reliance")
+  ) {
+    const yy = Number(cleanSerial.slice(0, 2));
+    const ww = Number(cleanSerial.slice(2, 4));
+    const year = yearFromTwoDigits(yy);
+
+    if (year && weekIsValid(ww)) return year;
+  }
+
+  // Bradford White commonly uses letter year/month codes at the beginning.
+  // This is intentionally conservative because the code repeats on a 20-year cycle.
+  if (brand.includes("bradford white")) {
+    const yearCodeMap: Record<string, number[]> = {
+      A: [1984, 2004, 2024],
+      B: [1985, 2005, 2025],
+      C: [1986, 2006, 2026],
+      D: [1987, 2007],
+      E: [1988, 2008],
+      F: [1989, 2009],
+      G: [1990, 2010],
+      H: [1991, 2011],
+      J: [1992, 2012],
+      K: [1993, 2013],
+      L: [1994, 2014],
+      M: [1995, 2015],
+      N: [1996, 2016],
+      P: [1997, 2017],
+      S: [1998, 2018],
+      T: [1999, 2019],
+      W: [2000, 2020],
+      X: [2001, 2021],
+      Y: [2002, 2022],
+      Z: [2003, 2023],
+    };
+
+    const code = cleanSerial.charAt(0);
+    const possibleYears = yearCodeMap[code] || [];
+    const bestYear = possibleYears
+      .filter((year) => year <= currentYear + 1)
+      .sort((a, b) => b - a)[0];
+
+    if (bestYear) return bestYear;
+  }
+
+  // Goodman / Amana / Daikin commonly use YYMM...
+  if (
+    brand.includes("goodman") ||
+    brand.includes("amana") ||
+    brand.includes("daikin")
+  ) {
+    const yy = Number(cleanSerial.slice(0, 2));
+    const mm = Number(cleanSerial.slice(2, 4));
+    const year = yearFromTwoDigits(yy);
+
+    if (year && monthIsValid(mm)) return year;
+  }
+
+  // Rheem / Ruud commonly use MMYY near the beginning.
+  if (brand.includes("rheem") || brand.includes("ruud")) {
+    const mm = Number(cleanSerial.slice(0, 2));
+    const yy = Number(cleanSerial.slice(2, 4));
+    const year = yearFromTwoDigits(yy);
+
+    if (year && monthIsValid(mm)) return year;
+  }
+
+  // Carrier / Bryant / Payne often use WWYY at the beginning.
+  if (
+    brand.includes("carrier") ||
+    brand.includes("bryant") ||
+    brand.includes("payne")
+  ) {
+    const ww = Number(cleanSerial.slice(0, 2));
+    const yy = Number(cleanSerial.slice(2, 4));
+    const year = yearFromTwoDigits(yy);
+
+    if (year && weekIsValid(ww)) return year;
+  }
+
+  // Trane / American Standard often have a year character or YY near the beginning.
+  if (brand.includes("trane") || brand.includes("american standard")) {
+    const yy = Number(cleanSerial.slice(0, 2));
+    const year = yearFromTwoDigits(yy);
+    if (year) return year;
+
+    const first = cleanSerial.charAt(0);
+    const yearCodeMap: Record<string, number> = {
+      W: 2009,
+      X: 2010,
+      Y: 2011,
+      Z: 2012,
+      A: 2013,
+      B: 2014,
+      C: 2015,
+      D: 2016,
+      E: 2017,
+      F: 2018,
+      G: 2019,
+      H: 2020,
+      J: 2021,
+      K: 2022,
+      L: 2023,
+      M: 2024,
+      N: 2025,
+      P: 2026,
+    };
+
+    const codedYear = yearCodeMap[first];
+    if (codedYear && codedYear <= currentYear + 1) return codedYear;
+  }
+
+  // Lennox commonly starts with YY or uses a year/week pattern.
+  if (brand.includes("lennox")) {
+    const yy = Number(cleanSerial.slice(0, 2));
+    const year = yearFromTwoDigits(yy);
+    if (year) return year;
+
+    const yyAlt = Number(cleanSerial.slice(2, 4));
+    const yearAlt = yearFromTwoDigits(yyAlt);
+    if (yearAlt) return yearAlt;
+  }
+
+  // York often uses a letter code or embeds YY near beginning.
+  if (brand.includes("york")) {
+    const yy = Number(cleanSerial.slice(1, 3));
+    const year = yearFromTwoDigits(yy);
+    if (year) return year;
+
+    const yyAlt = Number(cleanSerial.slice(0, 2));
+    const yearAlt = yearFromTwoDigits(yyAlt);
+    if (yearAlt) return yearAlt;
+  }
+
+  return null;
+}
+
+: {
   manufacturer: string;
   serial: string;
 }) {
@@ -339,8 +509,10 @@ function parseTonnageFromModel(modelValue: any) {
   const btu = Number(match[1]) * 1000;
   const tons = btu / 12000;
 
-  return `${btu.toLocaleString()} BTU / ${tons} ton${tons === 1 ? "" : "s"}`;
+  return `${tons} Ton`;
 }
+
+
 
 function hasR22(parsed: EquipmentAnalysis) {
   const combined = [
@@ -453,6 +625,42 @@ function getEquipmentStatus({
   category,
   equipmentType,
 }: {
+  condition: string;
+  severity: string;
+  problemPanel: string;
+  r22: boolean;
+  age: number | null;
+  category: string;
+  equipmentType: string;
+}) {
+  if (problemPanel) return "⚠ Safety Concern";
+  if (r22) return "⚠ Service Recommended";
+
+  const cleanCondition = cleanText(condition).toLowerCase();
+  const cleanSeverity = cleanText(severity).toLowerCase();
+
+  if (
+    cleanSeverity.includes("safety") ||
+    cleanSeverity.includes("major") ||
+    cleanCondition.includes("failed") ||
+    cleanCondition.includes("not operating") ||
+    cleanCondition.includes("repair") ||
+    cleanCondition.includes("defect") ||
+    cleanCondition.includes("service recommended")
+  ) {
+    return "⚠ Service Recommended";
+  }
+
+  const maxLife = getLifeMax(category, equipmentType);
+
+  if (age !== null && maxLife && age >= maxLife - 2) {
+    return "⚠ Near End of Typical Service Life";
+  }
+
+  return "✓ Operating Normally";
+}
+
+: {
   condition: string;
   severity: string;
   problemPanel: string;
@@ -614,6 +822,23 @@ function estimateAFUE({ age, category, fuelType }: { age: number | null; categor
   return "Older/lower efficiency likely";
 }
 
+
+function estimateHeatingEfficiency({
+  category,
+  equipmentType,
+  fuelType,
+}: {
+  category: string;
+  equipmentType: string;
+  fuelType: string;
+}) {
+  const text = `${category} ${equipmentType} ${fuelType}`.toLowerCase();
+
+  if (!text.includes("heat pump")) return "Unknown";
+
+  return "Heat pump heating efficiency varies by model; verify equipment label/manual.";
+}
+
 function buildNarrativeEquipmentSummary({
   equipmentType,
   manufacturer,
@@ -626,6 +851,77 @@ function buildNarrativeEquipmentSummary({
   r22,
   problemPanel,
 }: {
+  equipmentType: string;
+  manufacturer: string;
+  model: string;
+  manufactureYear: string;
+  capacity: string;
+  fuelType: string;
+  refrigerant: string;
+  category: string;
+  r22: boolean;
+  problemPanel: string;
+}) {
+  if (problemPanel) {
+    return "Electrical panel equipment was documented from the visible data plate. Evaluation by a qualified electrical contractor is recommended due to the panel type/brand observed.";
+  }
+
+  const sentences: string[] = [];
+
+  const cleanManufacturer = isKnown(manufacturer) ? manufacturer : "";
+  const cleanType = isKnown(equipmentType) ? equipmentType : "Equipment";
+  const cleanModel = isKnown(model) ? model : "";
+  const cleanYear = isKnown(manufactureYear) ? manufactureYear : "";
+  const cleanCapacity = isKnown(capacity) ? capacity : "";
+  const cleanFuel = isKnown(fuelType) ? String(fuelType).toLowerCase() : "";
+  const cleanRefrigerant = isKnown(refrigerant) ? refrigerant : "";
+
+  const title = [cleanManufacturer, cleanType]
+    .filter(Boolean)
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  sentences.push(title ? `${title}.` : "Equipment data plate was documented.");
+
+  if (cleanModel && cleanYear) {
+    sentences.push(`Model ${cleanModel}, manufactured in ${cleanYear}.`);
+  } else if (cleanModel) {
+    sentences.push(`Model ${cleanModel}.`);
+  } else if (cleanYear) {
+    sentences.push(`Manufactured in ${cleanYear}.`);
+  }
+
+  const detailParts: string[] = [];
+
+  if (cleanCapacity && cleanFuel) {
+    detailParts.push(`${cleanCapacity} ${cleanFuel} unit`);
+  } else if (cleanCapacity) {
+    detailParts.push(`${cleanCapacity} capacity`);
+  } else if (cleanFuel) {
+    detailParts.push(`${cleanFuel} unit`);
+  }
+
+  if (cleanRefrigerant && category === "hvac") {
+    detailParts.push(`using ${cleanRefrigerant} refrigerant`);
+  }
+
+  if (detailParts.length > 0) {
+    sentences.push(
+      detailParts.join(" and ").replace(/\s+/g, " ").trim() + "."
+    );
+  }
+
+  if (r22) {
+    sentences.push("The system appears to use R-22 refrigerant.");
+  } else {
+    sentences.push("Unit appeared functional at the time of inspection.");
+  }
+
+  return sentences.join("\n\n");
+}
+
+: {
   equipmentType: string;
   manufacturer: string;
   model: string;
@@ -765,6 +1061,14 @@ function enhanceAnalysis(parsed: EquipmentAnalysis) {
     fuelType: cleanText(parsed.fuelType),
   });
 
+  const estimatedHeatingEfficiency =
+    cleanText(parsed.estimatedHeatingEfficiency) ||
+    estimateHeatingEfficiency({
+      category,
+      equipmentType,
+      fuelType: cleanText(parsed.fuelType),
+    });
+
   const equipmentCategory = cleanText(parsed.equipmentCategory) || category.replaceAll("_", " ");
 
   const budgetPlanning =
@@ -795,7 +1099,7 @@ function enhanceAnalysis(parsed: EquipmentAnalysis) {
   let recommendation = cleanText(parsed.recommendation);
 
   if (!observation || observation.toLowerCase() === "unknown") {
-    observation = `${manufacturer ? manufacturer + " " : ""}${equipmentType} was observed. Model: ${model}. Serial: ${serial}.`;
+    observation = `${manufacturer ? manufacturer + " " : ""}${equipmentType} data plate was documented.`;
   }
 
   if (problemPanel) {
@@ -812,11 +1116,21 @@ function enhanceAnalysis(parsed: EquipmentAnalysis) {
   }
 
   if (!implication || implication.toLowerCase() === "unknown") {
-    implication = "No immediate implication was determined from the available equipment information.";
+    const maxLife = getLifeMax(category, equipmentType);
+    if (age !== null && maxLife && age >= maxLife - 2) {
+      implication = `${equipmentType} is approximately ${age} years old and is near the upper end of its typical service-life range.`;
+    } else {
+      implication = "No significant deficiency was determined from the available equipment information.";
+    }
   }
 
   if (!recommendation || recommendation.toLowerCase() === "unknown") {
-    recommendation = "Recommend regular maintenance and review by the appropriate qualified contractor as needed.";
+    const maxLife = getLifeMax(category, equipmentType);
+    if (age !== null && maxLife && age >= maxLife - 2) {
+      recommendation = "Continue routine maintenance and monitor the equipment as it ages.";
+    } else {
+      recommendation = "Continue routine maintenance in accordance with manufacturer recommendations.";
+    }
   }
 
   const maintenanceLevel = cleanText(parsed.maintenanceLevel) || getMaintenanceLevel({
@@ -838,6 +1152,7 @@ function enhanceAnalysis(parsed: EquipmentAnalysis) {
     estimatedSEER,
     estimatedAFUE,
     estimatedBTU,
+    estimatedHeatingEfficiency,
     equipmentCategory,
     budgetPlanning,
     maintenanceLevel,
@@ -952,6 +1267,7 @@ Return ONLY valid JSON in this exact format:
   "estimatedSEER": "",
   "estimatedAFUE": "",
   "estimatedBTU": "",
+  "estimatedHeatingEfficiency": "",
   "equipmentCategory": "",
   "budgetPlanning": "",
   "maintenanceLevel": "",
@@ -981,6 +1297,9 @@ Rules:
 - If information is not visible, use "Unknown".
 - Equipment status should be client-friendly, such as: ✓ No Specific Deficiency Noted, ⚠ Monitor, ⚠ Service Recommended, ⚠ Older Equipment – Monitor, or ⚠ Specialist Evaluation Recommended.
 - Do not estimate exact remaining life. Use typical industry service-life ranges only.
+- Include estimatedSEER for AC condensers, heat pumps, and mini splits when it can be reasonably estimated or label information is visible.
+- Include estimatedAFUE for gas, oil, or propane furnaces/boilers when it applies. Do not provide AFUE for electric heat pumps.
+- Include estimatedHeatingEfficiency for heat pumps as label/manual verification language when exact HSPF/HSPF2 is not visible.
 - Do not provide dollar amounts or replacement cost ranges.
 - Keep identification notes short and narrative, not a database-style list.
 - Do not write phrases like "serial number documented", "capacity identified", "fuel type identified", or "observed condition/status" in client-facing summaries.
@@ -1030,6 +1349,7 @@ Rules:
         estimatedSEER: (enhanced as any)?.estimatedSEER,
         estimatedAFUE: (enhanced as any)?.estimatedAFUE,
         estimatedBTU: (enhanced as any)?.estimatedBTU,
+        estimatedHeatingEfficiency: (enhanced as any)?.estimatedHeatingEfficiency,
         budgetPlanning: (enhanced as any)?.budgetPlanning,
         maintenanceLevel: (enhanced as any)?.maintenanceLevel,
         equipmentStatus: (enhanced as any)?.equipmentStatus,

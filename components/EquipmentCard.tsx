@@ -7,7 +7,11 @@ type EquipmentCardProps = {
     manufactureYear?: string | number;
     estimatedAge?: string | number;
     expectedServiceLife?: string;
+    equipmentStatus?: string;
     efficiency?: string;
+    estimatedSEER?: string;
+    estimatedAFUE?: string;
+    estimatedHeatingEfficiency?: string;
     capacity?: string;
     fuelType?: string;
     refrigerant?: string;
@@ -78,8 +82,49 @@ function getEquipmentConditionNote(value: any) {
   return clean;
 }
 
+function getEquipmentStatus(equipment: EquipmentCardProps["equipment"]) {
+  const explicit = String(equipment.equipmentStatus || "").trim();
+  if (isKnownEquipmentValue(explicit)) return explicit;
+
+  const condition = String(equipment.condition || "").toLowerCase();
+  const ageText = String(equipment.estimatedAge || "");
+  const rangeText = String(equipment.expectedServiceLife || "");
+  const ageNumber = Number(ageText.replace(/[^0-9.]/g, ""));
+  const rangeNumbers = rangeText.match(/\d+/g) || [];
+  const maxLife = rangeNumbers.length > 0 ? Number(rangeNumbers[rangeNumbers.length - 1]) : null;
+
+  if (condition.includes("failed") || condition.includes("not operating") || condition.includes("repair")) {
+    return "⚠ Service Recommended";
+  }
+
+  if (maxLife && Number.isFinite(ageNumber) && ageNumber >= maxLife - 2) {
+    return "⚠ Near End of Typical Service Life";
+  }
+
+  return "✓ Operating Normally";
+}
+
+function getStatusClass(value: string) {
+  const clean = value.toLowerCase();
+
+  if (clean.includes("operating normally") || clean.includes("no specific")) {
+    return "border-emerald-500/40 bg-emerald-500/10 text-emerald-300";
+  }
+
+  if (clean.includes("service") || clean.includes("safety")) {
+    return "border-orange-500/50 bg-orange-500/10 text-orange-300";
+  }
+
+  if (clean.includes("near end") || clean.includes("monitor")) {
+    return "border-yellow-500/50 bg-yellow-500/10 text-yellow-300";
+  }
+
+  return "border-cyan-500/40 bg-cyan-500/10 text-cyan-300";
+}
+
 export default function EquipmentCard({ equipment }: EquipmentCardProps) {
   const typicalRange = getTypicalIndustryRange(equipment.expectedServiceLife);
+  const equipmentStatus = getEquipmentStatus(equipment);
 
   const rows = [
     ["Equipment Type", equipment.equipmentType],
@@ -90,6 +135,9 @@ export default function EquipmentCard({ equipment }: EquipmentCardProps) {
     ["Estimated Age", equipment.estimatedAge],
     ["Typical Industry Range", typicalRange],
     ["Service Life", typicalRange ? "Industry estimate only" : ""],
+    ["Estimated SEER", equipment.estimatedSEER],
+    ["Estimated AFUE", equipment.estimatedAFUE],
+    ["Heating Efficiency", equipment.estimatedHeatingEfficiency],
     ["Efficiency", equipment.efficiency],
     ["Capacity", equipment.capacity],
     ["Fuel Type", equipment.fuelType],
@@ -104,6 +152,15 @@ export default function EquipmentCard({ equipment }: EquipmentCardProps) {
       <h2 className="mb-4 text-xl font-bold text-teal-400">
         Equipment Details
       </h2>
+
+      {isKnownEquipmentValue(equipmentStatus) && (
+        <div className={`mb-4 rounded-xl border px-4 py-3 text-sm font-black ${getStatusClass(equipmentStatus)}`}>
+          <span className="mr-2 text-xs uppercase tracking-wide opacity-80">
+            Equipment Status
+          </span>
+          {equipmentStatus}
+        </div>
+      )}
 
       <div className="space-y-3">
         {rows
