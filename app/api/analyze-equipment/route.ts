@@ -98,53 +98,6 @@ function getAgeFromYear(year: number | null) {
 function decodeManufactureYearFromSerial({
   manufacturer,
   serial,
-}: {
-  manufacturer: string;
-  serial: string;
-}) {
-  const brand = cleanText(manufacturer).toLowerCase();
-  const cleanSerial = cleanText(serial).toUpperCase().replace(/[^A-Z0-9]/g, "");
-  const currentYear = getCurrentYear();
-  const currentTwoDigitYear = currentYear % 100;
-
-  if (!cleanSerial || cleanSerial.length < 4) return null;
-
-  // A.O. Smith / State / American / Reliance water heaters commonly use YYWW...
-  // Example: 1231A107021 = 31st week of 2012.
-  if (
-    brand.includes("a.o. smith") ||
-    brand.includes("ao smith") ||
-    brand.includes("a o smith") ||
-    brand.includes("state") ||
-    brand.includes("american water heater") ||
-    brand.includes("reliance")
-  ) {
-    const yy = Number(cleanSerial.slice(0, 2));
-    const ww = Number(cleanSerial.slice(2, 4));
-
-    if (Number.isFinite(yy) && Number.isFinite(ww) && ww >= 1 && ww <= 53) {
-      const year = yy <= currentTwoDigitYear + 1 ? 2000 + yy : 1900 + yy;
-      if (year >= 1980 && year <= currentYear + 1) return year;
-    }
-  }
-
-  // Goodman / Amana / Daikin often use YYMM... at the beginning of the serial.
-  if (
-    brand.includes("goodman") ||
-    brand.includes("amana") ||
-    brand.includes("daikin")
-  ) {
-    const yy = Number(cleanSerial.slice(0, 2));
-    const mm = Number(cleanSerial.slice(2, 4));
-
-    if (Number.isFinite(yy) && Number.isFinite(mm) && mm >= 1 && mm <= 12) {
-      const year = yy <= currentTwoDigitYear + 1 ? 2000 + yy : 1900 + yy;
-      if (year >= 1980 && year <= currentYear + 1) return year;
-    }
-  }
-
-  return null;
-}
 
 
 function getStatusLifeMax(category: string, equipmentType: string) {
@@ -176,47 +129,6 @@ function getEquipmentStatus({
   age,
   category,
   equipmentType,
-}: {
-  condition: string;
-  severity: string;
-  problemPanel: string;
-  r22: boolean;
-  age: number | null;
-  category: string;
-  equipmentType: string;
-}) {
-  if (problemPanel) return "⚠ Specialist Evaluation Recommended";
-  if (r22) return "⚠ Service / Replacement Planning Recommended";
-
-  const cleanCondition = cleanText(condition).toLowerCase();
-  const cleanSeverity = cleanText(severity).toLowerCase();
-
-  if (
-    cleanSeverity.includes("safety") ||
-    cleanSeverity.includes("major") ||
-    cleanCondition.includes("beyond") ||
-    cleanCondition.includes("failed") ||
-    cleanCondition.includes("not operating")
-  ) {
-    return "⚠ Monitor / Budget for Replacement";
-  }
-
-  if (
-    cleanCondition.includes("repair") ||
-    cleanCondition.includes("defect") ||
-    cleanCondition.includes("service recommended")
-  ) {
-    return "⚠ Service Recommended";
-  }
-
-  const maxLife = getStatusLifeMax(category, equipmentType);
-  if (age !== null && maxLife) {
-    if (age > maxLife) return "⚠ Monitor / Budget for Replacement";
-    if (age >= maxLife - 2) return "⚠ Monitor";
-  }
-
-  return "✓ No Specific Deficiency Noted";
-}
 
 
 function chooseSeverity({
@@ -226,29 +138,6 @@ function chooseSeverity({
   equipmentType,
   problemPanel,
   r22,
-}: {
-  parsed: EquipmentAnalysis;
-  age: number | null;
-  category: string;
-  equipmentType: string;
-  problemPanel: string;
-  r22: boolean;
-}) {
-  if (problemPanel) return "Safety Concern";
-
-  const maxLife = getStatusLifeMax(category, equipmentType);
-  if (maxLife && age !== null) {
-    if (age >= maxLife) return "Recommended Repair";
-    if (age >= maxLife - 3) return "Monitor";
-  }
-
-  if (r22) return "Monitor";
-
-  const proposed = cleanText(parsed.severity);
-  if (VALID_SEVERITIES.includes(proposed)) return proposed;
-
-  return "Informational";
-}
 
 
 function stripMaintenanceLanguage(value: any) {
@@ -284,118 +173,6 @@ function buildClientSummary({
   lifeRemaining,
   r22,
   problemPanel,
-}: {
-  parsed: EquipmentAnalysis;
-  category: string;
-  equipmentType: string;
-  manufacturer: string;
-  model: string;
-  manufactureYear: string;
-  age: number | null;
-  expectedLife: string;
-  lifeRemaining: string;
-  r22: boolean;
-  problemPanel: string;
-}) {
-  const existing = stripMaintenanceLanguage(parsed.clientSummary);
-  if (existing && existing.toLowerCase() !== "unknown") return existing;
-
-  if (problemPanel) {
-    return "Electrical panel equipment was documented from the visible data plate. Evaluation by a qualified electrical contractor is recommended due to the panel type/brand observed.";
-  }
-
-  const cleanManufacturer = manufacturer && manufacturer !== "Unknown" ? manufacturer : "";
-  const cleanType = equipmentType && equipmentType !== "Unknown" ? equipmentType : "equipment";
-  const cleanModel = model && model !== "Unknown" ? model : "";
-  const cleanYear = manufactureYear && manufactureYear !== "Unknown" ? manufactureYear : "";
-  const cleanCapacity = cleanText(parsed.capacity || parsed.estimatedBTU);
-  const cleanFuel = cleanText(parsed.fuelType);
-  const cleanRefrigerant = cleanText(parsed.refrigerant);
-
-  const firstSentence = [cleanManufacturer, cleanType]
-    .filter(Boolean)
-    .join(" ")
-    .replace(/\s+/g, " ")
-    .trim();
-
-  const sentences: string[] = [];
-
-  if (firstSentence) {
-    sentences.push(`${firstSentence}.`);
-  } else {
-    sentences.push("Equipment data plate was documented.");
-  }
-
-  if (cleanModel && cleanYear) {
-    sentences.push(`Model ${cleanModel} manufactured in ${cleanYear}.`);
-  } else if (cleanModel) {
-    sentences.push(`Model ${cleanModel}.`);
-  } else if (cleanYear) {
-    sentences.push(`Manufactured in ${cleanYear}.`);
-  }
-
-  const details: string[] = [];
-  if (cleanCapacity && cleanCapacity.toLowerCase() !== "unknown") {
-    details.push(`${cleanCapacity} capacity`);
-  }
-  if (cleanFuel && cleanFuel.toLowerCase() !== "unknown") {
-    details.push(`${cleanFuel} fuel type`);
-  }
-  if (
-    cleanRefrigerant &&
-    cleanRefrigerant.toLowerCase() !== "unknown" &&
-    category === "hvac"
-  ) {
-    details.push(`${cleanRefrigerant} refrigerant`);
-  }
-
-  if (details.length > 0) {
-    sentences.push(`The unit has ${details.join(" and ")}.`);
-  }
-
-  if (r22) {
-    sentences.push("The system appears to use R-22 refrigerant.");
-  } else {
-    sentences.push("No significant deficiencies were observed from the available equipment information.");
-  }
-
-  return sentences.join(" ");
-}: {
-  parsed: EquipmentAnalysis;
-  category: string;
-  equipmentType: string;
-  manufacturer: string;
-  model: string;
-  manufactureYear: string;
-  age: number | null;
-  expectedLife: string;
-  lifeRemaining: string;
-  r22: boolean;
-  problemPanel: string;
-}) {
-  const existing = cleanText(parsed.clientSummary);
-  if (existing && existing.toLowerCase() !== "unknown") return existing;
-
-  const nameParts = [manufacturer !== "Unknown" ? manufacturer : "", equipmentType || "equipment"]
-    .filter(Boolean)
-    .join(" ");
-
-  if (problemPanel) {
-    return `The electrical panel appears to be a ${problemPanel} type panel. These panels are commonly considered a concern in residential inspections, and evaluation by a qualified electrical contractor is recommended.`;
-  }
-
-  const ageText = age !== null ? `It appears to be approximately ${age} years old` : "The exact age could not be confirmed from the photo";
-  const yearText = manufactureYear && manufactureYear !== "Unknown" ? `, with a manufacture year of ${manufactureYear}` : "";
-  const modelText = model && model !== "Unknown" ? ` Model number: ${model}.` : "";
-
-  let summary = `The ${nameParts} was reviewed from the equipment photo. ${ageText}${yearText}. Typical industry service-life range is ${expectedLife}.${modelText}`;
-
-  if (r22) {
-    summary += " The system appears to use R-22 refrigerant, which is obsolete and can be expensive or difficult to service. Budgeting for future replacement should be considered.";
-  }
-
-  return summary;
-}
 
 
 function parseTonnageFromModel(modelValue: any) {
