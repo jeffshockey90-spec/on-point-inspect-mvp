@@ -250,6 +250,28 @@ function chooseSeverity({
   return "Informational";
 }
 
+
+function stripMaintenanceLanguage(value: any) {
+  const clean = cleanText(value);
+  if (!clean) return "";
+
+  return clean
+    .split(/(?<=[.!?])\s+/)
+    .filter((sentence) => {
+      const lower = sentence.toLowerCase();
+      return !(
+        lower.includes("routine maintenance") ||
+        lower.includes("regular maintenance") ||
+        lower.includes("maintenance is recommended") ||
+        lower.includes("recommend maintenance") ||
+        lower.includes("servicing is recommended") ||
+        lower.includes("service is recommended")
+      );
+    })
+    .join(" ")
+    .trim();
+}
+
 function buildClientSummary({
   parsed,
   category,
@@ -262,6 +284,82 @@ function buildClientSummary({
   lifeRemaining,
   r22,
   problemPanel,
+}: {
+  parsed: EquipmentAnalysis;
+  category: string;
+  equipmentType: string;
+  manufacturer: string;
+  model: string;
+  manufactureYear: string;
+  age: number | null;
+  expectedLife: string;
+  lifeRemaining: string;
+  r22: boolean;
+  problemPanel: string;
+}) {
+  const existing = stripMaintenanceLanguage(parsed.clientSummary);
+  if (existing && existing.toLowerCase() !== "unknown") return existing;
+
+  if (problemPanel) {
+    return "Electrical panel equipment was documented from the visible data plate. Evaluation by a qualified electrical contractor is recommended due to the panel type/brand observed.";
+  }
+
+  const cleanManufacturer = manufacturer && manufacturer !== "Unknown" ? manufacturer : "";
+  const cleanType = equipmentType && equipmentType !== "Unknown" ? equipmentType : "equipment";
+  const cleanModel = model && model !== "Unknown" ? model : "";
+  const cleanYear = manufactureYear && manufactureYear !== "Unknown" ? manufactureYear : "";
+  const cleanCapacity = cleanText(parsed.capacity || parsed.estimatedBTU);
+  const cleanFuel = cleanText(parsed.fuelType);
+  const cleanRefrigerant = cleanText(parsed.refrigerant);
+
+  const firstSentence = [cleanManufacturer, cleanType]
+    .filter(Boolean)
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const sentences: string[] = [];
+
+  if (firstSentence) {
+    sentences.push(`${firstSentence}.`);
+  } else {
+    sentences.push("Equipment data plate was documented.");
+  }
+
+  if (cleanModel && cleanYear) {
+    sentences.push(`Model ${cleanModel} manufactured in ${cleanYear}.`);
+  } else if (cleanModel) {
+    sentences.push(`Model ${cleanModel}.`);
+  } else if (cleanYear) {
+    sentences.push(`Manufactured in ${cleanYear}.`);
+  }
+
+  const details: string[] = [];
+  if (cleanCapacity && cleanCapacity.toLowerCase() !== "unknown") {
+    details.push(`${cleanCapacity} capacity`);
+  }
+  if (cleanFuel && cleanFuel.toLowerCase() !== "unknown") {
+    details.push(`${cleanFuel} fuel type`);
+  }
+  if (
+    cleanRefrigerant &&
+    cleanRefrigerant.toLowerCase() !== "unknown" &&
+    category === "hvac"
+  ) {
+    details.push(`${cleanRefrigerant} refrigerant`);
+  }
+
+  if (details.length > 0) {
+    sentences.push(`The unit has ${details.join(" and ")}.`);
+  }
+
+  if (r22) {
+    sentences.push("The system appears to use R-22 refrigerant.");
+  } else {
+    sentences.push("No significant deficiencies were observed from the available equipment information.");
+  }
+
+  return sentences.join(" ");
 }: {
   parsed: EquipmentAnalysis;
   category: string;
@@ -958,6 +1056,10 @@ Enhanced intelligence rules:
 - If the photo shows Federal Pacific, FPE, Stab-Lok, Zinsco, Challenger, or Pushmatic electrical equipment, mark severity as Safety Concern and recommend electrician evaluation.
 - Recommendations should be clear, professional, and not overly alarmist.
 - Client summary should be easy for a homebuyer to understand.
+- Keep identification notes short and narrative, not a database-style list.
+- Do not write phrases like "serial number documented", "capacity identified", "fuel type identified", or "observed condition/status" in client-facing summaries.
+- Do not repeat routine maintenance language inside identification/client summary text. Maintenance belongs in maintenance recommendations only.
+- Inspector-style equipment notes should be 2-4 short sentences in plain language.
               `,
             },
             {

@@ -347,34 +347,70 @@ function getAiInspectorNote(result: EquipmentResult, optionalAiNote = "") {
   const equipmentType = meaningfulEquipmentValue(result.equipmentType);
   const manufacturer = meaningfulEquipmentValue(result.manufacturer);
   const model = meaningfulEquipmentValue(result.model);
-  const serial = meaningfulEquipmentValue(result.serial);
   const manufactureYear = meaningfulEquipmentValue(result.manufactureYear);
-  const estimatedAge = meaningfulEquipmentValue(result.estimatedAge);
   const refrigerant = meaningfulEquipmentValue(result.refrigerant);
   const capacity = meaningfulEquipmentValue(result.capacity || result.estimatedBTU);
   const fuelType = meaningfulEquipmentValue(result.fuelType);
   const condition = meaningfulEquipmentValue(cleanServiceLifeCondition(result.condition));
-  const clientSummary = stripMaintenanceLanguageFromInspectorNote(result.clientSummary);
 
-  const parts = [
-    cleanOptionalAiNote ? `Inspector-provided note: ${cleanOptionalAiNote}` : "",
-    equipmentType ? `${equipmentType} data plate documented.` : "Equipment data plate documented.",
-    manufacturer || model
-      ? `Identified as ${[manufacturer, model].filter(Boolean).join(" ")}.`
-      : "",
-    serial ? `Serial number documented as ${serial}.` : "",
-    manufactureYear ? `Manufacture year appears to be ${manufactureYear}.` : "",
-    estimatedAge ? `Estimated age is approximately ${estimatedAge}.` : "",
-    capacity ? `Capacity identified as ${capacity}.` : "",
-    fuelType ? `Fuel type identified as ${fuelType}.` : "",
-    refrigerant ? `Refrigerant identified as ${refrigerant}.` : "",
-    condition ? `Observed condition/status: ${condition}.` : "",
-    clientSummary,
-  ]
+  const sentences: string[] = [];
+
+  if (cleanOptionalAiNote) {
+    sentences.push(`Inspector note: ${cleanOptionalAiNote}.`);
+  }
+
+  const equipmentName = [manufacturer, equipmentType]
     .filter(Boolean)
-    .join(" ");
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
 
-  return parts || "Equipment information was documented from the visible data plate during the inspection.";
+  if (equipmentName) {
+    sentences.push(`${equipmentName}.`);
+  } else {
+    sentences.push("Equipment data plate was documented.");
+  }
+
+  if (model && manufactureYear) {
+    sentences.push(`Model ${model} manufactured in ${manufactureYear}.`);
+  } else if (model) {
+    sentences.push(`Model ${model}.`);
+  } else if (manufactureYear) {
+    sentences.push(`Manufactured in ${manufactureYear}.`);
+  }
+
+  const detailParts: string[] = [];
+
+  if (capacity) {
+    detailParts.push(`${capacity} capacity`);
+  }
+
+  if (fuelType) {
+    detailParts.push(`${fuelType} fuel type`);
+  }
+
+  if (refrigerant && isHvacEquipment(result)) {
+    detailParts.push(`${refrigerant} refrigerant`);
+  }
+
+  if (detailParts.length > 0) {
+    sentences.push(`The unit has ${detailParts.join(" and ")}.`);
+  }
+
+  if (
+    condition &&
+    condition.toLowerCase() !== "no specific deficiency noted" &&
+    !condition.toLowerCase().includes("industry estimate")
+  ) {
+    sentences.push(condition.endsWith(".") ? condition : `${condition}.`);
+  } else {
+    sentences.push("No significant deficiencies were observed at the time of inspection.");
+  }
+
+  return sentences
+    .map((sentence) => sentence.replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .join("\n\n");
 }
 
 function getAiMaintenanceNote(result: EquipmentResult) {
@@ -567,7 +603,7 @@ function EquipmentTestContent() {
           expected_service_life: cleanEquipmentValue(result.expectedServiceLife),
           estimated_life_remaining: "",
           refrigerant: cleanEquipmentValue(result.refrigerant),
-          condition: meaningfulEquipmentValue(cleanServiceLifeCondition(result.condition)),
+          condition: cleanServiceLifeCondition(result.condition),
           inspector_note: getAiInspectorNote(result, optionalAiNote),
           maintenance_note: getAiMaintenanceNote(result),
           equipment_status: getEquipmentStatusLabel(result),
@@ -866,6 +902,7 @@ function EnhancedEquipmentIntelligence({ result }: { result: EquipmentResult }) 
       )}
 
       <div className="mt-5 grid gap-3 md:grid-cols-2">
+        <IntelligenceItem label="Equipment Status" value={getEquipmentStatusLabel(result)} />
         {shouldShowIntelligenceValue(result.expectedServiceLife) && (
           <IntelligenceItem
             label="Typical Industry Range"
