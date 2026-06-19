@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import ScheduleCalendar from "../../components/ScheduleCalendar";
+import ScheduleReminderSettings from "../../components/ScheduleReminderSettings";
 
 type InspectionRow = Record<string, any>;
 
@@ -237,6 +238,8 @@ export default async function SchedulePage() {
             </p>
           </div>
         </div>
+
+        <ScheduleReminderSettings />
 
         <div className="mb-8">
           <ScheduleCalendar inspections={scheduledRows} />

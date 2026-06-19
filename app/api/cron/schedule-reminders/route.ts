@@ -344,6 +344,31 @@ function getInspectionEmails(row: InspectionRow) {
     .map((value) => String(value).toLowerCase());
 }
 
+async function getReminderSettingsForInspection(admin: any, row: InspectionRow) {
+  const ids = getInspectionOwnerIds(row);
+
+  if (ids.length === 0) {
+    return {
+      enabled: true,
+      reminder_24h_enabled: true,
+      reminder_2h_enabled: true,
+    };
+  }
+
+  const { data } = await admin
+    .from("schedule_reminder_settings")
+    .select("*")
+    .in("user_id", ids)
+    .limit(1)
+    .maybeSingle();
+
+  return {
+    enabled: data?.enabled !== false,
+    reminder_24h_enabled: data?.reminder_24h_enabled !== false,
+    reminder_2h_enabled: data?.reminder_2h_enabled !== false,
+  };
+}
+
 function inReminderWindow(
   inspectionStart: Date,
   now: Date,
@@ -532,10 +557,7 @@ function isAuthorized(req: Request) {
   const authHeader = req.headers.get("authorization") || "";
   const cronHeader = req.headers.get("x-cron-secret") || "";
 
-  return (
-    authHeader === `Bearer ${secret}` ||
-    cronHeader === secret
-  );
+  return authHeader === `Bearer ${secret}` || cronHeader === secret;
 }
 
 export async function GET(req: Request) {
@@ -579,6 +601,20 @@ export async function GET(req: Request) {
 
       for (const kind of ["24h", "2h"] as ReminderKind[]) {
         if (!inReminderWindow(start, now, kind)) {
+          continue;
+        }
+
+        const settings = await getReminderSettingsForInspection(admin, row);
+
+        if (!settings.enabled) {
+          continue;
+        }
+
+        if (kind === "24h" && !settings.reminder_24h_enabled) {
+          continue;
+        }
+
+        if (kind === "2h" && !settings.reminder_2h_enabled) {
           continue;
         }
 
