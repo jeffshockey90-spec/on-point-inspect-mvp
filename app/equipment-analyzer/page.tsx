@@ -152,11 +152,11 @@ function getBudgetPlanning(result: EquipmentResult) {
     remaining.includes("beyond") ||
     remaining.includes("0-")
   ) {
-    return "Budget for replacement";
+    return "Monitor and budget for eventual replacement";
   }
 
   if (condition.includes("near end")) {
-    return "Plan and budget for future replacement";
+    return "Plan for future replacement as the equipment ages";
   }
 
   return "Routine maintenance recommended";
@@ -333,7 +333,7 @@ function getEquipmentStatusLabel(result: EquipmentResult) {
     condition.includes("budget for replacement") ||
     condition.includes("beyond")
   ) {
-    return "⚠ Older Equipment – Monitor";
+    return "⚠ Monitor";
   }
 
   if (
@@ -503,6 +503,108 @@ export default function EquipmentTestPage() {
   );
 }
 
+
+function getFindingTitlePrefix(result: EquipmentResult) {
+  const condition = String(result.condition || "").toLowerCase();
+  const severity = String(result.severity || "").toLowerCase();
+
+  if (
+    condition.includes("unsafe") ||
+    severity.includes("safety")
+  ) {
+    return "Safety Concern";
+  }
+
+  if (
+    condition.includes("failed") ||
+    condition.includes("not operating")
+  ) {
+    return "Defective";
+  }
+
+  if (
+    condition.includes("older equipment") ||
+    condition.includes("near end") ||
+    condition.includes("service life") ||
+    condition.includes("budget for replacement") ||
+    condition.includes("beyond")
+  ) {
+    return "Older Equipment";
+  }
+
+  return "";
+}
+
+function getCalmFindingObservation(result: EquipmentResult) {
+  const condition = String(result.condition || "").toLowerCase();
+  const observation = String(result.observation || "").trim();
+
+  if (
+    condition.includes("older equipment") ||
+    condition.includes("near end") ||
+    condition.includes("service life") ||
+    condition.includes("budget for replacement") ||
+    condition.includes("beyond")
+  ) {
+    if (
+      !observation ||
+      observation.toLowerCase().includes("no visible leaks") ||
+      observation.toLowerCase().includes("no visible damage") ||
+      observation.toLowerCase().includes("no specific")
+    ) {
+      return "The equipment was operating at the time of inspection, and no active leakage or immediate visible deficiency was observed.";
+    }
+  }
+
+  return observation || "Equipment condition was documented during the inspection.";
+}
+
+function getCalmFindingImplication(result: EquipmentResult) {
+  const condition = String(result.condition || "").toLowerCase();
+  const implication = String(result.implication || "").trim();
+
+  if (
+    condition.includes("older equipment") ||
+    condition.includes("near end") ||
+    condition.includes("service life") ||
+    condition.includes("budget for replacement") ||
+    condition.includes("beyond")
+  ) {
+    return "The equipment is older and may require increased maintenance over time. This does not mean failure is imminent, but budgeting for eventual replacement is prudent.";
+  }
+
+  return implication || "Deferred maintenance or component wear may affect reliable operation over time.";
+}
+
+function getCalmFindingRecommendation(result: EquipmentResult) {
+  const condition = String(result.condition || "").toLowerCase();
+  const severity = String(result.severity || "").toLowerCase();
+  const recommendation = String(result.recommendation || "").trim();
+
+  if (
+    condition.includes("failed") ||
+    condition.includes("not operating") ||
+    condition.includes("unsafe") ||
+    severity.includes("safety") ||
+    severity.includes("major")
+  ) {
+    return recommendation || "Further evaluation, repair, or replacement is recommended by a qualified contractor.";
+  }
+
+  if (
+    condition.includes("older equipment") ||
+    condition.includes("near end") ||
+    condition.includes("service life") ||
+    condition.includes("budget for replacement") ||
+    condition.includes("beyond")
+  ) {
+    return "Continue routine maintenance and monitor performance. Budget for eventual replacement as the equipment continues to age.";
+  }
+
+  return recommendation || "Routine maintenance is recommended in accordance with manufacturer guidelines.";
+}
+
+
 function EquipmentTestContent() {
   const searchParams = useSearchParams();
   const inspectionId = searchParams.get("inspection_id") || "";
@@ -642,38 +744,15 @@ function EquipmentTestContent() {
         cleanEquipmentValue(result.equipmentType) || "Finding"
       }`.trim();
 
-      const titleCondition = String(result.condition || "").toLowerCase();
-      const titleSeverity = String(result.severity || "").toLowerCase();
+      const titlePrefix = getFindingTitlePrefix(result);
 
-      if (
-        titleCondition.includes("older equipment") ||
-        titleCondition.includes("near end") ||
-        titleCondition.includes("service life") ||
-        titleCondition.includes("budget for replacement") ||
-        titleCondition.includes("beyond")
-      ) {
-        title = `Older Equipment – ${title}`;
+      if (titlePrefix && !title.toLowerCase().startsWith(titlePrefix.toLowerCase())) {
+        title = `${titlePrefix} – ${title}`;
       }
 
-      if (
-        titleCondition.includes("failed") ||
-        titleCondition.includes("not operating")
-      ) {
-        title = `Defective – ${title}`;
-      }
-
-      if (
-        titleCondition.includes("unsafe") ||
-        titleSeverity.includes("safety")
-      ) {
-        title = `Safety Concern – ${title}`;
-      }
-
-      const recommendation =
-        result.recommendation ||
-        (title.toLowerCase().includes("older equipment")
-          ? "Continue routine maintenance and monitor the equipment as it ages."
-          : "Routine maintenance is recommended in accordance with manufacturer guidelines.");
+      const observation = getCalmFindingObservation(result);
+      const implication = getCalmFindingImplication(result);
+      const recommendation = getCalmFindingRecommendation(result);
 
       setSaveLabel("Creating Finding...");
 
@@ -684,8 +763,8 @@ function EquipmentTestContent() {
           section: result.section || "Heating",
           severity: result.severity || "Informational",
           title,
-          observation: result.observation || "",
-          implication: result.implication || "",
+          observation,
+          implication,
           recommendation,
           image_url: imageUrl,
         })
@@ -859,7 +938,7 @@ function EquipmentTestContent() {
                 </h3>
 
                 <p className="mt-1 text-slate-200">
-                  {result.observation}
+                  {getCalmFindingObservation(result)}
                 </p>
               </div>
 
@@ -869,7 +948,7 @@ function EquipmentTestContent() {
                 </h3>
 
                 <p className="mt-1 text-slate-200">
-                  {result.implication}
+                  {getCalmFindingImplication(result)}
                 </p>
               </div>
 
@@ -879,7 +958,7 @@ function EquipmentTestContent() {
                 </h3>
 
                 <p className="mt-1 text-slate-200">
-                  {result.recommendation}
+                  {getCalmFindingRecommendation(result)}
                 </p>
               </div>
             </div>
