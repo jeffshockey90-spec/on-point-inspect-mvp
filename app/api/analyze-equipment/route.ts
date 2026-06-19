@@ -99,6 +99,8 @@ function decodeManufactureYearFromSerial({
   manufacturer,
   serial,
 
+}
+
 
 function getStatusLifeMax(category: string, equipmentType: string) {
   const cleanCategory = cleanText(category).toLowerCase();
