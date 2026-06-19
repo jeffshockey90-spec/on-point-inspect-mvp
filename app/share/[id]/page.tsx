@@ -596,26 +596,58 @@ function getEquipmentStatusValue(item: any) {
     item?.status ||
     "";
 
-  if (isKnownEquipmentValue(explicit)) return explicit;
-
   const condition = String(item?.condition || "").toLowerCase();
   const severity = String(item?.severity || "").toLowerCase();
+  const ageText = String(item?.estimated_age || item?.estimatedAge || "");
+  const rangeText = String(item?.expected_service_life || item?.expectedServiceLife || "");
+  const ageNumber = Number(ageText.replace(/[^0-9.]/g, ""));
+  const rangeNumbers = rangeText.match(/\d+/g) || [];
+  const maxLife =
+    rangeNumbers.length > 0 ? Number(rangeNumbers[rangeNumbers.length - 1]) : null;
 
+  // Condition should override a stale saved green status.
   if (
-    condition.includes("beyond") ||
-    condition.includes("near end") ||
-    severity.includes("repair") ||
-    severity.includes("monitor")
+    condition.includes("older equipment") ||
+    condition.includes("monitor") ||
+    condition.includes("budget") ||
+    condition.includes("near upper") ||
+    condition.includes("beyond typical") ||
+    condition.includes("end of typical")
   ) {
-    return "⚠ Monitor / Budget for Replacement";
-  }
-
-  if (condition.includes("service") || condition.includes("repair")) {
     return "⚠ Service Recommended";
   }
 
-  return "✓ No Specific Deficiency Noted";
+  if (
+    condition.includes("failed") ||
+    condition.includes("not operating") ||
+    condition.includes("repair") ||
+    severity.includes("major") ||
+    severity.includes("safety")
+  ) {
+    return "⚠ Service Recommended";
+  }
+
+  if (maxLife && Number.isFinite(ageNumber) && ageNumber >= maxLife - 2) {
+    return "⚠ Service Recommended";
+  }
+
+  if (isKnownEquipmentValue(explicit)) {
+    const lowerExplicit = String(explicit).toLowerCase();
+
+    if (
+      lowerExplicit.includes("no specific") ||
+      lowerExplicit.includes("operating normally")
+    ) {
+      return "✓ Operating Normally";
+    }
+
+    return explicit;
+  }
+
+  return "✓ Operating Normally";
 }
+
+
 
 
 function isHvacEquipmentItem(item: any) {
@@ -644,24 +676,22 @@ function isHvacEquipmentItem(item: any) {
 function getEquipmentStatusClass(value: any) {
   const clean = String(value || "").toLowerCase();
 
-  if (clean.includes("no specific")) {
+  if (clean.includes("operating normally") || clean.includes("no specific")) {
     return "border-emerald-500/40 bg-emerald-500/10 text-emerald-300";
   }
 
-  if (clean.includes("monitor / budget") || clean.includes("replacement")) {
-    return "border-red-500/50 bg-red-500/10 text-red-300";
-  }
-
-  if (clean.includes("service")) {
+  if (clean.includes("service") || clean.includes("safety")) {
     return "border-orange-500/50 bg-orange-500/10 text-orange-300";
   }
 
-  if (clean.includes("monitor")) {
+  if (clean.includes("near end") || clean.includes("monitor")) {
     return "border-yellow-500/50 bg-yellow-500/10 text-yellow-300";
   }
 
   return "border-cyan-500/40 bg-cyan-500/10 text-cyan-300";
 }
+
+
 
 function EquipmentStatusBadge({ value }: { value?: any }) {
   if (!isKnownEquipmentValue(value)) return null;

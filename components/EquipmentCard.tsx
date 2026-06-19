@@ -84,21 +84,52 @@ function getEquipmentConditionNote(value: any) {
 
 function getEquipmentStatus(equipment: EquipmentCardProps["equipment"]) {
   const explicit = String(equipment.equipmentStatus || "").trim();
-  if (isKnownEquipmentValue(explicit)) return explicit;
-
   const condition = String(equipment.condition || "").toLowerCase();
+  const severity = String(equipment.severity || "").toLowerCase();
   const ageText = String(equipment.estimatedAge || "");
   const rangeText = String(equipment.expectedServiceLife || "");
   const ageNumber = Number(ageText.replace(/[^0-9.]/g, ""));
   const rangeNumbers = rangeText.match(/\d+/g) || [];
-  const maxLife = rangeNumbers.length > 0 ? Number(rangeNumbers[rangeNumbers.length - 1]) : null;
+  const maxLife =
+    rangeNumbers.length > 0 ? Number(rangeNumbers[rangeNumbers.length - 1]) : null;
 
-  if (condition.includes("failed") || condition.includes("not operating") || condition.includes("repair")) {
+  // Condition should override a stale saved green status.
+  if (
+    condition.includes("older equipment") ||
+    condition.includes("monitor") ||
+    condition.includes("budget") ||
+    condition.includes("near upper") ||
+    condition.includes("beyond typical") ||
+    condition.includes("end of typical")
+  ) {
+    return "⚠ Service Recommended";
+  }
+
+  if (
+    condition.includes("failed") ||
+    condition.includes("not operating") ||
+    condition.includes("repair") ||
+    severity.includes("major") ||
+    severity.includes("safety")
+  ) {
     return "⚠ Service Recommended";
   }
 
   if (maxLife && Number.isFinite(ageNumber) && ageNumber >= maxLife - 2) {
-    return "⚠ Near End of Typical Service Life";
+    return "⚠ Service Recommended";
+  }
+
+  if (isKnownEquipmentValue(explicit)) {
+    const lowerExplicit = explicit.toLowerCase();
+
+    if (
+      lowerExplicit.includes("no specific") ||
+      lowerExplicit.includes("operating normally")
+    ) {
+      return "✓ Operating Normally";
+    }
+
+    return explicit;
   }
 
   return "✓ Operating Normally";
