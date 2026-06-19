@@ -5,12 +5,19 @@ import { createServerClient } from "@supabase/ssr";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+type InspectionRow = Record<string, any>;
+
+function hasColumn(row: InspectionRow | null, column: string) {
+  return !!row && Object.prototype.hasOwnProperty.call(row, column);
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+
     const inspectionId = body.inspectionId;
     const inspectionDate = body.inspection_date;
-    const inspectionTime = body.inspection_time;
+    const inspectionTime = body.inspection_time || "09:00";
     const status = body.status;
 
     if (!inspectionId || !inspectionDate) {
@@ -43,31 +50,80 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const updatePayload: Record<string, any> = {
-      inspection_date: inspectionDate,
-      scheduled_date: inspectionDate,
-      date: inspectionDate,
-      inspection_time: inspectionTime || "09:00",
-      scheduled_time: inspectionTime || "09:00",
-      time: inspectionTime || "09:00",
-      updated_at: new Date().toISOString(),
-    };
+    const { data: existingInspection, error: readError } = await supabase
+      .from("inspections")
+      .select("*")
+      .eq("id", inspectionId)
+      .single();
+
+    if (readError || !existingInspection) {
+      return NextResponse.json(
+        { error: readError?.message || "Inspection not found" },
+        { status: 404 }
+      );
+    }
+
+    const updatePayload: Record<string, any> = {};
+
+    if (hasColumn(existingInspection, "inspection_date")) {
+      updatePayload.inspection_date = inspectionDate;
+    } else if (hasColumn(existingInspection, "scheduled_date")) {
+      updatePayload.scheduled_date = inspectionDate;
+    } else if (hasColumn(existingInspection, "date")) {
+      updatePayload.date = inspectionDate;
+    } else if (hasColumn(existingInspection, "start_date")) {
+      updatePayload.start_date = inspectionDate;
+    } else {
+      return NextResponse.json(
+        {
+          error:
+            "No supported schedule date column found. Expected inspection_date, scheduled_date, date, or start_date.",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (hasColumn(existingInspection, "inspection_time")) {
+      updatePayload.inspection_time = inspectionTime;
+    } else if (hasColumn(existingInspection, "scheduled_time")) {
+      updatePayload.scheduled_time = inspectionTime;
+    } else if (hasColumn(existingInspection, "time")) {
+      updatePayload.time = inspectionTime;
+    } else if (hasColumn(existingInspection, "start_time")) {
+      updatePayload.start_time = inspectionTime;
+    }
 
     if (status) {
-      updatePayload.status = status;
-      updatePayload.inspection_status = status;
+      if (hasColumn(existingInspection, "status")) {
+        updatePayload.status = status;
+      } else if (hasColumn(existingInspection, "inspection_status")) {
+        updatePayload.inspection_status = status;
+      }
     }
 
-    const { error } = await supabase
+    if (hasColumn(existingInspection, "updated_at")) {
+      updatePayload.updated_at = new Date().toISOString();
+    }
+
+    const { data: updatedInspection, error: updateError } = await supabase
       .from("inspections")
       .update(updatePayload)
-      .eq("id", inspectionId);
+      .eq("id", inspectionId)
+      .select("*")
+      .single();
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+    if (updateError) {
+      return NextResponse.json(
+        { error: updateError.message, updatePayload },
+        { status: 500 }
+      );
     }
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({
+      ok: true,
+      inspection: updatedInspection,
+      updated: updatePayload,
+    });
   } catch (error: any) {
     return NextResponse.json(
       { error: error?.message || "Schedule update failed" },
