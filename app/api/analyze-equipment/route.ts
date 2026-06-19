@@ -139,28 +139,6 @@ function chooseSeverity({
   problemPanel,
   r22,
 
-
-function stripMaintenanceLanguage(value: any) {
-  const clean = cleanText(value);
-  if (!clean) return "";
-
-  return clean
-    .split(/(?<=[.!?])\s+/)
-    .filter((sentence) => {
-      const lower = sentence.toLowerCase();
-      return !(
-        lower.includes("routine maintenance") ||
-        lower.includes("regular maintenance") ||
-        lower.includes("maintenance is recommended") ||
-        lower.includes("recommend maintenance") ||
-        lower.includes("servicing is recommended") ||
-        lower.includes("service is recommended")
-      );
-    })
-    .join(" ")
-    .trim();
-}
-
 function buildClientSummary({
   parsed,
   category,
@@ -173,7 +151,6 @@ function buildClientSummary({
   lifeRemaining,
   r22,
   problemPanel,
-
 
 function parseTonnageFromModel(modelValue: any) {
   const model = cleanText(modelValue).toUpperCase();
@@ -227,7 +204,7 @@ function estimateBTU({ parsed, category }: { parsed: EquipmentAnalysis; category
   const visibleCapacity = cleanText(parsed.capacity);
   if (visibleCapacity && visibleCapacity.toLowerCase() !== "unknown") return visibleCapacity;
 
-  if (category === "hvac" || category === "hvac") {
+  if (category === "hvac") {
     const fromModel = parseTonnageFromModel(parsed.model);
     if (fromModel !== "Unknown") return fromModel;
   }
@@ -265,7 +242,7 @@ function getMaintenanceLevel({ age, category, condition, r22, problemPanel }: { 
   }
 
   if (category === "water_heater") return "Normal - recommend periodic inspection and maintenance";
-  if (category === "hvac" || category === "hvac") return "Normal - recommend annual HVAC service";
+  if (category === "hvac") return "Normal - recommend annual HVAC service";
   if (category === "appliance") return "Normal - maintain per manufacturer instructions";
 
   return "Normal";
@@ -283,36 +260,7 @@ function normalizeManufacturer(value: any) {
     lower.includes("a.o. smith") ||
     lower.includes("ao smith") ||
     lower.includes("a o smith")
-  ) {
-    return "A.O. Smith";
-  }
 
-  if (lower.includes("rheem")) return "Rheem";
-  if (lower.includes("ruud")) return "Ruud";
-  if (lower.includes("bradford white")) return "Bradford White";
-  if (lower.includes("goodman")) return "Goodman";
-  if (lower.includes("amana")) return "Amana";
-  if (lower.includes("daikin")) return "Daikin";
-  if (lower.includes("carrier")) return "Carrier";
-  if (lower.includes("bryant")) return "Bryant";
-  if (lower.includes("trane")) return "Trane";
-  if (lower.includes("american standard")) return "American Standard";
-  if (lower.includes("lennox")) return "Lennox";
-  if (lower.includes("york")) return "York";
-  if (lower.includes("nordyne")) return "Nordyne";
-  if (lower.includes("intertherm")) return "Intertherm";
-  if (lower.includes("frigidaire")) return "Frigidaire";
-  if (lower.includes("whirlpool")) return "Whirlpool";
-  if (lower.includes("ge appliances") || lower === "ge") return "GE";
-  if (lower.includes("samsung")) return "Samsung";
-  if (lower.includes("lg")) return "LG";
-  if (lower.includes("siemens")) return "Siemens";
-  if (lower.includes("square d")) return "Square D";
-  if (lower.includes("eaton")) return "Eaton";
-  if (lower.includes("cutler")) return "Cutler-Hammer";
-
-  return clean;
-}
 
 function inferEquipmentCategory(parsed: EquipmentAnalysis) {
   const combined = [
@@ -330,55 +278,6 @@ function inferEquipmentCategory(parsed: EquipmentAnalysis) {
     combined.includes("water heater") ||
     combined.includes("storage tank") ||
     combined.includes("tankless")
-  ) {
-    return "water_heater";
-  }
-
-  if (
-    combined.includes("heat pump") ||
-    combined.includes("air conditioner") ||
-    combined.includes("condenser") ||
-    combined.includes("air handler") ||
-    combined.includes("furnace") ||
-    combined.includes("hvac") ||
-    combined.includes("cooling") ||
-    combined.includes("heating")
-  ) {
-    return "hvac";
-  }
-
-  if (
-    combined.includes("electrical panel") ||
-    combined.includes("service panel") ||
-    combined.includes("breaker panel") ||
-    combined.includes("panelboard")
-  ) {
-    return "electrical";
-  }
-
-  if (
-    combined.includes("dishwasher") ||
-    combined.includes("range") ||
-    combined.includes("oven") ||
-    combined.includes("stove") ||
-    combined.includes("refrigerator") ||
-    combined.includes("microwave") ||
-    combined.includes("appliance")
-  ) {
-    return "appliance";
-  }
-
-  if (
-    combined.includes("water softener") ||
-    combined.includes("softener") ||
-    combined.includes("filter") ||
-    combined.includes("well pump")
-  ) {
-    return "plumbing";
-  }
-
-  return "general";
-}
 
 
 function getExpectedLife(category: string, equipmentType: string) {
@@ -407,27 +306,6 @@ function estimateLifeRemaining(
   age: number | null,
   category: string,
   equipmentType: string,
-) {
-  if (age === null || age === undefined || !Number.isFinite(age)) {
-    return "Industry estimate only";
-  }
-
-  const maxLife = getStatusLifeMax(category, equipmentType);
-
-  if (!maxLife) return "Industry estimate only";
-
-  const remaining = maxLife - age;
-
-  if (remaining <= 0) {
-    return "At or beyond typical industry range";
-  }
-
-  if (remaining <= 2) {
-    return "Near upper end of typical industry range";
-  }
-
-  return "Industry estimate only";
-}
 
 
 function hasR22(parsed: EquipmentAnalysis) {
@@ -464,12 +342,7 @@ function hasProblemPanel(parsed: EquipmentAnalysis) {
     combined.includes("zinsco") ||
     combined.includes("sylvani") ||
     combined.includes("challenger panel")
-  ) {
-    return "Panel brand/model may be associated with known safety concerns. Recommend evaluation by a qualified electrical contractor.";
-  }
 
-  return "";
-}
 
 function getAgeCondition(age: number | null, category: string, equipmentType: string) {
   if (age === null || age === undefined || !Number.isFinite(age)) {
@@ -513,15 +386,41 @@ function chooseSection(parsed: EquipmentAnalysis, category: string) {
       text.includes("air conditioner") ||
       text.includes("condenser") ||
       text.includes("cooling")
-    ) {
-      return "Cooling";
-    }
 
-    return "Heating";
-  }
 
-  return "General";
+
+function isUsefulEquipmentText(value: any) {
+  const clean = cleanText(value);
+  if (!clean) return false;
+
+  const lower = clean.toLowerCase();
+
+  return ![
+    "unknown",
+    "n/a",
+    "na",
+    "none",
+    "null",
+    "undefined",
+    "not visible",
+    "not readable",
+    "unreadable",
+    "unable to determine",
+    "cannot determine",
+  ].includes(lower);
 }
+
+function buildNarrativeEquipmentSummary({
+  equipmentType,
+  manufacturer,
+  model,
+  manufactureYear,
+  capacity,
+  fuelType,
+  refrigerant,
+  category,
+  r22,
+  problemPanel,
 
 
 function enhanceAnalysis(parsed: EquipmentAnalysis) {
@@ -601,16 +500,15 @@ function enhanceAnalysis(parsed: EquipmentAnalysis) {
       problemPanel,
     });
 
-  const clientSummary = buildClientSummary({
-    parsed,
-    category,
+  const clientSummary = buildNarrativeEquipmentSummary({
     equipmentType,
     manufacturer,
     model,
     manufactureYear,
-    age,
-    expectedLife: expectedServiceLife,
-    lifeRemaining: estimatedLifeRemaining,
+    capacity: estimatedBTU || cleanText(parsed.capacity),
+    fuelType: cleanText(parsed.fuelType),
+    refrigerant: refrigerantValue,
+    category,
     r22,
     problemPanel,
   });
