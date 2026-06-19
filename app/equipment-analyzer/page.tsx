@@ -130,8 +130,11 @@ function shouldCreateFinding(result: EquipmentResult) {
   }
 
   if (
+    condition.includes("older equipment") ||
     condition.includes("near end") ||
     condition.includes("beyond") ||
+    condition.includes("service life") ||
+    condition.includes("budget for replacement") ||
     condition.includes("end of typical service life")
   ) {
     return true;
@@ -317,13 +320,27 @@ function getEquipmentStatusLabel(result: EquipmentResult) {
   }
 
   if (
-    condition.includes("beyond") ||
     condition.includes("failed") ||
-    condition.includes("not operating") ||
+    condition.includes("not operating")
+  ) {
+    return "⚠ Service Recommended";
+  }
+
+  if (
+    condition.includes("older equipment") ||
+    condition.includes("near end") ||
+    condition.includes("service life") ||
+    condition.includes("budget for replacement") ||
+    condition.includes("beyond")
+  ) {
+    return "⚠ Older Equipment – Monitor";
+  }
+
+  if (
     severity.includes("major") ||
     severity.includes("safety")
   ) {
-    return "⚠ Monitor / Budget for Replacement";
+    return "⚠ Specialist Evaluation Recommended";
   }
 
   if (
@@ -621,51 +638,42 @@ function EquipmentTestContent() {
         return;
       }
 
-      const title = `${cleanEquipmentValue(result.manufacturer) || "Equipment"} ${
+      let title = `${cleanEquipmentValue(result.manufacturer) || "Equipment"} ${
         cleanEquipmentValue(result.equipmentType) || "Finding"
       }`.trim();
 
-      const recommendation = [
-        result.recommendation || "",
-        result.clientSummary ? `\n\nClient Summary: ${result.clientSummary}` : "",
-        result.equipmentType
-          ? `\n\nEquipment Type: ${result.equipmentType}`
-          : "",
-        meaningfulEquipmentValue(result.manufacturer)
-          ? `Manufacturer: ${meaningfulEquipmentValue(result.manufacturer)}`
-          : "",
-        meaningfulEquipmentValue(result.model) ? `Model Number: ${meaningfulEquipmentValue(result.model)}` : "",
-        meaningfulEquipmentValue(result.serial) ? `Serial Number: ${meaningfulEquipmentValue(result.serial)}` : "",
-        meaningfulEquipmentValue(result.manufactureYear)
-          ? `Manufacture Year: ${meaningfulEquipmentValue(result.manufactureYear)}`
-          : "",
-        meaningfulEquipmentValue(result.estimatedAge)
-          ? `Estimated Age: ${meaningfulEquipmentValue(result.estimatedAge)}`
-          : "",
-        
-        meaningfulEquipmentValue(result.expectedServiceLife)
-          ? `Typical Industry Range: ${meaningfulEquipmentValue(result.expectedServiceLife)}`
-          : "",
-        result.condition ? `Condition: ${cleanServiceLifeCondition(result.condition)}` : "",
-        result.estimatedSEER ? `Estimated SEER/SEER2: ${result.estimatedSEER}` : "",
-        result.estimatedAFUE ? `Estimated AFUE: ${result.estimatedAFUE}` : "",
-        result.estimatedBTU ? `Estimated Capacity: ${result.estimatedBTU}` : "",
-        result.maintenanceLevel ? `Maintenance Level: ${result.maintenanceLevel}` : "",
-        `Equipment Status: ${getEquipmentStatusLabel(result)}`,
-        `Inspector Note: ${getAiInspectorNote(result, optionalAiNote)}`,
-        `Maintenance Note: ${getAiMaintenanceNote(result)}`,
-        `Budget Planning: ${getBudgetPlanning(result)}`,
-        result.capacity ? `Capacity: ${result.capacity}` : "",
-        result.efficiency
-          ? `Efficiency: ${result.efficiency}`
-          : "",
-        result.fuelType ? `Fuel Type: ${result.fuelType}` : "",
-        meaningfulEquipmentValue(result.refrigerant)
-          ? `Refrigerant: ${meaningfulEquipmentValue(result.refrigerant)}`
-          : "",
-      ]
-        .filter(Boolean)
-        .join("\n");
+      const titleCondition = String(result.condition || "").toLowerCase();
+      const titleSeverity = String(result.severity || "").toLowerCase();
+
+      if (
+        titleCondition.includes("older equipment") ||
+        titleCondition.includes("near end") ||
+        titleCondition.includes("service life") ||
+        titleCondition.includes("budget for replacement") ||
+        titleCondition.includes("beyond")
+      ) {
+        title = `Older Equipment – ${title}`;
+      }
+
+      if (
+        titleCondition.includes("failed") ||
+        titleCondition.includes("not operating")
+      ) {
+        title = `Defective – ${title}`;
+      }
+
+      if (
+        titleCondition.includes("unsafe") ||
+        titleSeverity.includes("safety")
+      ) {
+        title = `Safety Concern – ${title}`;
+      }
+
+      const recommendation =
+        result.recommendation ||
+        (title.toLowerCase().includes("older equipment")
+          ? "Continue routine maintenance and monitor the equipment as it ages."
+          : "Routine maintenance is recommended in accordance with manufacturer guidelines.");
 
       setSaveLabel("Creating Finding...");
 
