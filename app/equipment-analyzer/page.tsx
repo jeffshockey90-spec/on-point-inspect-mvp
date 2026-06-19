@@ -130,8 +130,11 @@ function shouldCreateFinding(result: EquipmentResult) {
   }
 
   if (
+    condition.includes("older equipment") ||
     condition.includes("near end") ||
     condition.includes("beyond") ||
+    condition.includes("service life") ||
+    condition.includes("budget for replacement") ||
     condition.includes("end of typical service life")
   ) {
     return true;
@@ -149,11 +152,11 @@ function getBudgetPlanning(result: EquipmentResult) {
     remaining.includes("beyond") ||
     remaining.includes("0-")
   ) {
-    return "Budget for replacement";
+    return "Monitor and budget for eventual replacement";
   }
 
   if (condition.includes("near end")) {
-    return "Plan and budget for future replacement";
+    return "Plan for future replacement as the equipment ages";
   }
 
   return "Routine maintenance recommended";
@@ -301,12 +304,10 @@ function stripMaintenanceLanguageFromInspectorNote(value: any) {
 }
 
 function getEquipmentStatusLabel(result: EquipmentResult) {
-  const explicit = meaningfulEquipmentValue(result.equipmentStatus);
-  if (explicit) return explicit;
-
   const condition = String(result.condition || "").toLowerCase();
   const severity = String(result.severity || "").toLowerCase();
   const maintenance = String(result.maintenanceLevel || "").toLowerCase();
+  const explicit = meaningfulEquipmentValue(result.equipmentStatus);
 
   if (result.intelligenceFlags?.problemPanelDetected) {
     return "⚠ Specialist Evaluation Recommended";
@@ -317,13 +318,27 @@ function getEquipmentStatusLabel(result: EquipmentResult) {
   }
 
   if (
-    condition.includes("beyond") ||
     condition.includes("failed") ||
-    condition.includes("not operating") ||
+    condition.includes("not operating")
+  ) {
+    return "⚠ Service Recommended";
+  }
+
+  if (
+    condition.includes("older equipment") ||
+    condition.includes("near end") ||
+    condition.includes("service life") ||
+    condition.includes("budget for replacement") ||
+    condition.includes("beyond")
+  ) {
+    return "⚠ Monitor Due To Age";
+  }
+
+  if (
     severity.includes("major") ||
     severity.includes("safety")
   ) {
-    return "⚠ Monitor / Budget for Replacement";
+    return "⚠ Specialist Evaluation Recommended";
   }
 
   if (
@@ -336,6 +351,26 @@ function getEquipmentStatusLabel(result: EquipmentResult) {
 
   if (maintenance.includes("elevated")) {
     return "⚠ Monitor";
+  }
+
+  if (explicit) {
+    const lowerExplicit = explicit.toLowerCase();
+
+    if (
+      lowerExplicit.includes("older equipment") ||
+      lowerExplicit.includes("monitor")
+    ) {
+      return "⚠ Monitor Due To Age";
+    }
+
+    if (
+      lowerExplicit.includes("no specific") ||
+      lowerExplicit.includes("operating normally")
+    ) {
+      return "✓ No Specific Deficiency Noted";
+    }
+
+    return explicit;
   }
 
   return "✓ No Specific Deficiency Noted";
@@ -356,25 +391,79 @@ function getAiInspectorNote(result: EquipmentResult, optionalAiNote = "") {
   const condition = meaningfulEquipmentValue(cleanServiceLifeCondition(result.condition));
   const clientSummary = stripMaintenanceLanguageFromInspectorNote(result.clientSummary);
 
-  const parts = [
-    cleanOptionalAiNote ? `Inspector-provided note: ${cleanOptionalAiNote}` : "",
-    equipmentType ? `${equipmentType} data plate documented.` : "Equipment data plate documented.",
-    manufacturer || model
-      ? `Identified as ${[manufacturer, model].filter(Boolean).join(" ")}.`
-      : "",
-    serial ? `Serial number documented as ${serial}.` : "",
-    manufactureYear ? `Manufacture year appears to be ${manufactureYear}.` : "",
-    estimatedAge ? `Estimated age is approximately ${estimatedAge}.` : "",
-    capacity ? `Capacity identified as ${capacity}.` : "",
-    fuelType ? `Fuel type identified as ${fuelType}.` : "",
-    refrigerant ? `Refrigerant identified as ${refrigerant}.` : "",
-    condition ? `Observed condition/status: ${condition}.` : "",
-    clientSummary,
-  ]
-    .filter(Boolean)
-    .join(" ");
+  const sentences: string[] = [];
 
-  return parts || "Equipment information was documented from the visible data plate during the inspection.";
+  if (cleanOptionalAiNote) {
+    sentences.push(`Inspector note: ${cleanOptionalAiNote}.`);
+  }
+
+  const equipmentName = [manufacturer, equipmentType]
+    .filter(Boolean)
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (equipmentName) {
+    sentences.push(`${equipmentName}.`);
+  } else {
+    sentences.push("Equipment data plate was documented.");
+  }
+
+  if (model && manufactureYear) {
+    sentences.push(`Model ${model} manufactured in ${manufactureYear}.`);
+  } else if (model) {
+    sentences.push(`Model ${model}.`);
+  } else if (manufactureYear) {
+    sentences.push(`Manufactured in ${manufactureYear}.`);
+  }
+
+  const detailParts: string[] = [];
+
+  if (capacity) {
+    const capacityText = capacity
+      .replace(/(\d+)\s*gallons?/i, "$1-gallon")
+      .replace(/\s+capacity$/i, "");
+    detailParts.push(capacityText);
+  }
+
+  if (fuelType) {
+    detailParts.push(`${fuelType.toLowerCase()} unit`);
+  }
+
+  if (refrigerant && isHvacEquipment(result)) {
+    detailParts.push(`${refrigerant} refrigerant`);
+  }
+
+  if (detailParts.length > 0) {
+    sentences.push(detailParts.join(" ").replace(/\s+/g, " ").trim() + ".");
+  }
+
+  if (
+    condition &&
+    condition.toLowerCase() !== "no specific deficiency noted" &&
+    !condition.toLowerCase().includes("industry estimate")
+  ) {
+    const lowerCondition = condition.toLowerCase();
+
+    if (
+      lowerCondition.includes("older equipment") ||
+      lowerCondition.includes("monitor") ||
+      lowerCondition.includes("budget")
+    ) {
+      sentences.push(
+        "Older equipment. The unit was operating at the time of inspection. Monitor performance and budget for future replacement as part of normal ownership planning."
+      );
+    } else {
+      sentences.push(condition.endsWith(".") ? condition : `${condition}.`);
+    }
+  } else {
+    sentences.push("No significant deficiencies were observed at the time of inspection.");
+  }
+
+  return sentences
+    .map((sentence) => sentence.replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .join("\n\n");
 }
 
 function getAiMaintenanceNote(result: EquipmentResult) {
@@ -449,6 +538,109 @@ export default function EquipmentTestPage() {
     </Suspense>
   );
 }
+
+
+function getFindingTitlePrefix(result: EquipmentResult) {
+  const condition = String(result.condition || "").toLowerCase();
+  const severity = String(result.severity || "").toLowerCase();
+
+  if (
+    condition.includes("unsafe") ||
+    severity.includes("safety")
+  ) {
+    return "Safety Concern";
+  }
+
+  if (
+    condition.includes("failed") ||
+    condition.includes("not operating")
+  ) {
+    return "Defective";
+  }
+
+  if (
+    condition.includes("older equipment") ||
+    condition.includes("near end") ||
+    condition.includes("service life") ||
+    condition.includes("budget for replacement") ||
+    condition.includes("beyond")
+  ) {
+    return "Older Equipment";
+  }
+
+  return "";
+}
+
+function getCalmFindingObservation(result: EquipmentResult) {
+  const condition = String(result.condition || "").toLowerCase();
+  const observation = String(result.observation || "").trim();
+
+  if (
+    condition.includes("older equipment") ||
+    condition.includes("near end") ||
+    condition.includes("service life") ||
+    condition.includes("budget for replacement") ||
+    condition.includes("beyond")
+  ) {
+    if (
+      !observation ||
+      observation.toLowerCase().includes("no visible leaks") ||
+      observation.toLowerCase().includes("no visible damage") ||
+      observation.toLowerCase().includes("no specific") ||
+      observation.toLowerCase().includes("operational")
+    ) {
+      return "Equipment appeared functional at the time of inspection with no significant visible deficiencies noted.";
+    }
+  }
+
+  return observation || "Equipment condition was documented during the inspection.";
+}
+
+function getCalmFindingImplication(result: EquipmentResult) {
+  const condition = String(result.condition || "").toLowerCase();
+  const implication = String(result.implication || "").trim();
+
+  if (
+    condition.includes("older equipment") ||
+    condition.includes("near end") ||
+    condition.includes("service life") ||
+    condition.includes("budget for replacement") ||
+    condition.includes("beyond")
+  ) {
+    return "The equipment is older and may require increased maintenance over time. While functional at the time of inspection, budgeting for eventual replacement is prudent.";
+  }
+
+  return implication || "Deferred maintenance or component wear may affect reliable operation over time.";
+}
+
+function getCalmFindingRecommendation(result: EquipmentResult) {
+  const condition = String(result.condition || "").toLowerCase();
+  const severity = String(result.severity || "").toLowerCase();
+  const recommendation = String(result.recommendation || "").trim();
+
+  if (
+    condition.includes("failed") ||
+    condition.includes("not operating") ||
+    condition.includes("unsafe") ||
+    severity.includes("safety") ||
+    severity.includes("major")
+  ) {
+    return recommendation || "Further evaluation, repair, or replacement is recommended by a qualified contractor.";
+  }
+
+  if (
+    condition.includes("older equipment") ||
+    condition.includes("near end") ||
+    condition.includes("service life") ||
+    condition.includes("budget for replacement") ||
+    condition.includes("beyond")
+  ) {
+    return "Continue routine maintenance and monitor performance. Budgeting for future replacement should be anticipated as the equipment continues to age.";
+  }
+
+  return recommendation || "Routine maintenance is recommended in accordance with manufacturer guidelines.";
+}
+
 
 function EquipmentTestContent() {
   const searchParams = useSearchParams();
@@ -585,51 +777,23 @@ function EquipmentTestContent() {
         return;
       }
 
-      const title = `${cleanEquipmentValue(result.manufacturer) || "Equipment"} ${
+      let title = `${cleanEquipmentValue(result.manufacturer) || "Equipment"} ${
         cleanEquipmentValue(result.equipmentType) || "Finding"
       }`.trim();
 
-      const recommendation = [
-        result.recommendation || "",
-        result.clientSummary ? `\n\nClient Summary: ${result.clientSummary}` : "",
-        result.equipmentType
-          ? `\n\nEquipment Type: ${result.equipmentType}`
-          : "",
-        meaningfulEquipmentValue(result.manufacturer)
-          ? `Manufacturer: ${meaningfulEquipmentValue(result.manufacturer)}`
-          : "",
-        meaningfulEquipmentValue(result.model) ? `Model Number: ${meaningfulEquipmentValue(result.model)}` : "",
-        meaningfulEquipmentValue(result.serial) ? `Serial Number: ${meaningfulEquipmentValue(result.serial)}` : "",
-        meaningfulEquipmentValue(result.manufactureYear)
-          ? `Manufacture Year: ${meaningfulEquipmentValue(result.manufactureYear)}`
-          : "",
-        meaningfulEquipmentValue(result.estimatedAge)
-          ? `Estimated Age: ${meaningfulEquipmentValue(result.estimatedAge)}`
-          : "",
-        
-        meaningfulEquipmentValue(result.expectedServiceLife)
-          ? `Typical Industry Range: ${meaningfulEquipmentValue(result.expectedServiceLife)}`
-          : "",
-        result.condition ? `Condition: ${cleanServiceLifeCondition(result.condition)}` : "",
-        result.estimatedSEER ? `Estimated SEER/SEER2: ${result.estimatedSEER}` : "",
-        result.estimatedAFUE ? `Estimated AFUE: ${result.estimatedAFUE}` : "",
-        result.estimatedBTU ? `Estimated Capacity: ${result.estimatedBTU}` : "",
-        result.maintenanceLevel ? `Maintenance Level: ${result.maintenanceLevel}` : "",
-        `Equipment Status: ${getEquipmentStatusLabel(result)}`,
-        `Inspector Note: ${getAiInspectorNote(result, optionalAiNote)}`,
-        `Maintenance Note: ${getAiMaintenanceNote(result)}`,
-        `Budget Planning: ${getBudgetPlanning(result)}`,
-        result.capacity ? `Capacity: ${result.capacity}` : "",
-        result.efficiency
-          ? `Efficiency: ${result.efficiency}`
-          : "",
-        result.fuelType ? `Fuel Type: ${result.fuelType}` : "",
-        meaningfulEquipmentValue(result.refrigerant)
-          ? `Refrigerant: ${meaningfulEquipmentValue(result.refrigerant)}`
-          : "",
-      ]
-        .filter(Boolean)
-        .join("\n");
+      const titlePrefix = getFindingTitlePrefix(result);
+
+      if (titlePrefix && !title.toLowerCase().startsWith(titlePrefix.toLowerCase())) {
+        title = `${titlePrefix} – ${title}`;
+      }
+
+      const observation = getCalmFindingObservation(result);
+      const implication = getCalmFindingImplication(result);
+      const recommendation = getCalmFindingRecommendation(result);
+      const findingSeverity =
+        titlePrefix === "Older Equipment"
+          ? "Monitor"
+          : result.severity || "Informational";
 
       setSaveLabel("Creating Finding...");
 
@@ -638,10 +802,10 @@ function EquipmentTestContent() {
         .insert({
           inspection_id: inspectionId,
           section: result.section || "Heating",
-          severity: result.severity || "Informational",
+          severity: findingSeverity,
           title,
-          observation: result.observation || "",
-          implication: result.implication || "",
+          observation,
+          implication,
           recommendation,
           image_url: imageUrl,
         })
@@ -815,7 +979,7 @@ function EquipmentTestContent() {
                 </h3>
 
                 <p className="mt-1 text-slate-200">
-                  {result.observation}
+                  {getCalmFindingObservation(result)}
                 </p>
               </div>
 
@@ -825,7 +989,7 @@ function EquipmentTestContent() {
                 </h3>
 
                 <p className="mt-1 text-slate-200">
-                  {result.implication}
+                  {getCalmFindingImplication(result)}
                 </p>
               </div>
 
@@ -835,7 +999,7 @@ function EquipmentTestContent() {
                 </h3>
 
                 <p className="mt-1 text-slate-200">
-                  {result.recommendation}
+                  {getCalmFindingRecommendation(result)}
                 </p>
               </div>
             </div>
