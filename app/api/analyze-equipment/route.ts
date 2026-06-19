@@ -515,6 +515,42 @@ function getEquipmentStatus({
   category: string;
   equipmentType: string;
 }) {
+  if (problemPanel) {
+    return "⚠ Specialist Evaluation Recommended";
+  }
+
+  if (r22) {
+    return "⚠ Older Equipment – Monitor";
+  }
+
+  const cleanCondition = cleanText(condition).toLowerCase();
+
+  if (
+    cleanCondition.includes("failed") ||
+    cleanCondition.includes("not operating") ||
+    cleanCondition.includes("unsafe")
+  ) {
+    return "⚠ Service Recommended";
+  }
+
+  const maxLife = getLifeMax(category, equipmentType);
+
+  if (age !== null && maxLife && age >= maxLife - 2) {
+    return "⚠ Older Equipment – Monitor";
+  }
+
+  return "✓ No Specific Deficiency Noted";
+}
+
+: {
+  condition: string;
+  severity: string;
+  problemPanel: string;
+  r22: boolean;
+  age: number | null;
+  category: string;
+  equipmentType: string;
+}) {
   if (problemPanel) return "⚠ Safety Concern";
   if (r22) return "⚠ Service Recommended";
 
@@ -622,8 +658,8 @@ function getBudgetPlanning({
 
   if (age !== null) {
     const maxLife = getLifeMax(category, "");
-    if (maxLife && age > maxLife) return "Budget planning is recommended";
-    if (maxLife && age >= maxLife - 2) return "Monitor and budget as needed";
+    if (maxLife && age > maxLife) return "Monitor and budget as needed";
+    if (maxLife && age >= maxLife - 2) return "Monitor as the equipment ages";
   }
 
   return "Routine maintenance recommended";
@@ -884,7 +920,7 @@ function buildCleanRecommendation({
   }
 
   if (age !== null && maxLife && age >= maxLife - 2) {
-    return "Continued monitoring and routine maintenance are recommended due to equipment age.";
+    return "Continue routine maintenance and monitor the equipment as it ages.";
   }
 
   return "Routine maintenance is recommended in accordance with manufacturer guidelines.";
@@ -1202,7 +1238,7 @@ Informational, Monitor, Maintenance, Recommended Repair, Safety Concern, Major C
 Rules:
 - Carefully extract manufacturer, model, and serial only when visible.
 - If information is not visible, use "Unknown".
-- Equipment status should be client-friendly, such as: ✓ No Specific Deficiency Noted, ⚠ Monitor, ⚠ Service Recommended, ⚠ Older Equipment – Monitor, or ⚠ Specialist Evaluation Recommended.
+- Equipment status should be client-friendly, such as: ✓ No Specific Deficiency Noted, ⚠ Older Equipment – Monitor, ⚠ Service Recommended, or ⚠ Specialist Evaluation Recommended. Age alone should use ⚠ Older Equipment – Monitor, not Service Recommended. Severity should be Monitor for older equipment near or beyond typical service life.
 - Do not estimate exact remaining life. Use typical industry service-life ranges only.
 - Include estimatedSEER for AC condensers, heat pumps, and mini splits when it can be reasonably estimated or label information is visible.
 - Include estimatedAFUE for gas, oil, or propane furnaces/boilers when it applies. Do not provide AFUE for electric heat pumps.
