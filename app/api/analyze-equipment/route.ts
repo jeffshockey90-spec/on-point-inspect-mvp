@@ -98,7 +98,50 @@ function getAgeFromYear(year: number | null) {
 function decodeManufactureYearFromSerial({
   manufacturer,
   serial,
+}: {
+  manufacturer: string;
+  serial: string;
+}) {
+  const brand = cleanText(manufacturer).toLowerCase();
+  const cleanSerial = cleanText(serial).toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const currentYear = getCurrentYear();
+  const currentTwoDigitYear = currentYear % 100;
 
+  if (!cleanSerial || cleanSerial.length < 4) return null;
+
+  if (
+    brand.includes("a.o. smith") ||
+    brand.includes("ao smith") ||
+    brand.includes("a o smith") ||
+    brand.includes("state") ||
+    brand.includes("american water heater") ||
+    brand.includes("reliance")
+  ) {
+    const yy = Number(cleanSerial.slice(0, 2));
+    const ww = Number(cleanSerial.slice(2, 4));
+
+    if (Number.isFinite(yy) && Number.isFinite(ww) && ww >= 1 && ww <= 53) {
+      const year = yy <= currentTwoDigitYear + 1 ? 2000 + yy : 1900 + yy;
+      if (year >= 1980 && year <= currentYear + 1) return year;
+    }
+  }
+
+  if (
+    brand.includes("goodman") ||
+    brand.includes("amana") ||
+    brand.includes("daikin")
+  ) {
+    const yy = Number(cleanSerial.slice(0, 2));
+    const mm = Number(cleanSerial.slice(2, 4));
+
+    if (Number.isFinite(yy) && Number.isFinite(mm) && mm >= 1 && mm <= 12) {
+      const year = yy <= currentTwoDigitYear + 1 ? 2000 + yy : 1900 + yy;
+      if (year >= 1980 && year <= currentYear + 1) return year;
+    }
+  }
+
+  return null;
+}
 
 function getStatusLifeMax(category: string, equipmentType: string) {
   const cleanCategory = cleanText(category).toLowerCase();
