@@ -764,6 +764,133 @@ function buildNarrativeEquipmentSummary({
 }
 
 
+
+function isEquipmentMetadataDump(value: any) {
+  const clean = cleanText(value);
+  const lower = clean.toLowerCase();
+
+  if (!clean) return false;
+
+  const metadataHits = [
+    "equipment type",
+    "manufacturer",
+    "model number",
+    "model:",
+    "serial number",
+    "serial:",
+    "manufacture year",
+    "estimated age",
+    "typical industry range",
+    "estimated seer",
+    "estimated afue",
+    "estimated btu",
+    "equipment status",
+    "inspector note",
+    "maintenance note",
+    "fuel type",
+    "capacity",
+    "refrigerant",
+  ].filter((term) => lower.includes(term)).length;
+
+  return metadataHits >= 3 || clean.length > 450;
+}
+
+function buildCleanObservation({
+  manufacturer,
+  equipmentType,
+}: {
+  manufacturer: string;
+  equipmentType: string;
+}) {
+  const name = [manufacturer, equipmentType]
+    .filter((value) => isKnown(value))
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return name ? `${name} data plate was documented.` : "Equipment data plate was documented.";
+}
+
+function buildCleanImplication({
+  age,
+  category,
+  equipmentType,
+  severity,
+  condition,
+}: {
+  age: number | null;
+  category: string;
+  equipmentType: string;
+  severity: string;
+  condition: string;
+}) {
+  const cleanSeverity = cleanText(severity).toLowerCase();
+  const cleanCondition = cleanText(condition).toLowerCase();
+  const maxLife = getLifeMax(category, equipmentType);
+
+  if (
+    cleanSeverity.includes("major") ||
+    cleanSeverity.includes("safety") ||
+    cleanCondition.includes("failed") ||
+    cleanCondition.includes("not operating")
+  ) {
+    return "Potential impact to normal operation or safety.";
+  }
+
+  if (age !== null && maxLife && age >= maxLife - 2) {
+    return `${equipmentType} is approximately ${age} years old and is near the upper end of its typical service-life range.`;
+  }
+
+  return "No significant deficiency was determined from the available equipment information.";
+}
+
+function buildCleanRecommendation({
+  age,
+  category,
+  equipmentType,
+  severity,
+  condition,
+  r22,
+  problemPanel,
+}: {
+  age: number | null;
+  category: string;
+  equipmentType: string;
+  severity: string;
+  condition: string;
+  r22: boolean;
+  problemPanel: string;
+}) {
+  const cleanSeverity = cleanText(severity).toLowerCase();
+  const cleanCondition = cleanText(condition).toLowerCase();
+  const maxLife = getLifeMax(category, equipmentType);
+
+  if (problemPanel) {
+    return "Evaluation by a qualified electrical contractor is recommended.";
+  }
+
+  if (r22) {
+    return "Recommend servicing by a qualified HVAC contractor and budgeting for future replacement due to obsolete refrigerant.";
+  }
+
+  if (
+    cleanSeverity.includes("major") ||
+    cleanSeverity.includes("safety") ||
+    cleanCondition.includes("failed") ||
+    cleanCondition.includes("not operating") ||
+    cleanCondition.includes("repair")
+  ) {
+    return "Further evaluation, repair, or replacement is recommended by a qualified contractor.";
+  }
+
+  if (age !== null && maxLife && age >= maxLife - 2) {
+    return "Continued monitoring and routine maintenance are recommended due to equipment age.";
+  }
+
+  return "Routine maintenance is recommended in accordance with manufacturer guidelines.";
+}
+
+
 function enhanceAnalysis(parsed: EquipmentAnalysis) {
   const category = inferCategory(parsed);
   const manufacturer = normalizeManufacturer(parsed.manufacturer);
@@ -877,42 +1004,41 @@ function enhanceAnalysis(parsed: EquipmentAnalysis) {
 
   let observation = cleanText(parsed.observation);
   let implication = cleanText(parsed.implication);
-  let recommendation = cleanText(parsed.recommendation);
 
-  if (!observation || observation.toLowerCase() === "unknown") {
-    observation = `${manufacturer ? manufacturer + " " : ""}${equipmentType} data plate was documented.`;
+  if (
+    !observation ||
+    observation.toLowerCase() === "unknown" ||
+    isEquipmentMetadataDump(observation)
+  ) {
+    observation = buildCleanObservation({
+      manufacturer,
+      equipmentType,
+    });
   }
 
-  if (problemPanel) {
-    observation = "Problematic electrical panel type/brand was observed.";
-    implication = "These panels may be associated with reliability or safety concerns.";
-    recommendation = "Recommend evaluation by a qualified electrical contractor.";
-  } else if (r22) {
-    implication = implication || "R-22 refrigerant is obsolete and can be expensive or difficult to service.";
-    recommendation = recommendation || "Recommend servicing by a qualified HVAC contractor and budgeting for future system replacement due to the obsolete refrigerant type.";
-  } else if (severity === "Recommended Repair" && !recommendation) {
-    recommendation = "Recommend further evaluation by the appropriate qualified contractor.";
-  } else if (severity === "Monitor" && !recommendation) {
-    recommendation = "Recommend monitoring the equipment and maintaining regular service.";
+  if (
+    !implication ||
+    implication.toLowerCase() === "unknown" ||
+    isEquipmentMetadataDump(implication)
+  ) {
+    implication = buildCleanImplication({
+      age,
+      category,
+      equipmentType,
+      severity,
+      condition,
+    });
   }
 
-  if (!implication || implication.toLowerCase() === "unknown") {
-    const maxLife = getLifeMax(category, equipmentType);
-    if (age !== null && maxLife && age >= maxLife - 2) {
-      implication = `${equipmentType} is approximately ${age} years old and is near the upper end of its typical service-life range.`;
-    } else {
-      implication = "No significant deficiency was determined from the available equipment information.";
-    }
-  }
-
-  if (!recommendation || recommendation.toLowerCase() === "unknown") {
-    const maxLife = getLifeMax(category, equipmentType);
-    if (age !== null && maxLife && age >= maxLife - 2) {
-      recommendation = "Continue routine maintenance and monitor the equipment as it ages.";
-    } else {
-      recommendation = "Continue routine maintenance in accordance with manufacturer recommendations.";
-    }
-  }
+  const recommendation = buildCleanRecommendation({
+    age,
+    category,
+    equipmentType,
+    severity,
+    condition,
+    r22,
+    problemPanel,
+  });
 
   const maintenanceLevel = cleanText(parsed.maintenanceLevel) || getMaintenanceLevel({
     age,
@@ -1085,6 +1211,8 @@ Rules:
 - Keep identification notes short and narrative, not a database-style list.
 - Do not write phrases like "serial number documented", "capacity identified", "fuel type identified", or "observed condition/status" in client-facing summaries.
 - Do not repeat routine maintenance language inside identification/client summary text.
+- Observation, implication, and recommendation must be short client-facing report text only.
+- Do not include equipment metadata lists inside recommendation. Do not include equipment type, manufacturer, model, serial, manufacture year, capacity, fuel type, refrigerant, status, inspector note, or maintenance note in recommendation.
               `,
             },
             {
