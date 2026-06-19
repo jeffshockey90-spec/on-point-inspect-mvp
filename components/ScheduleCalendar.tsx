@@ -146,6 +146,14 @@ function todayKey() {
   return `${year}-${month}-${day}`;
 }
 
+function localDateKey(date: Date) {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
 function typeColors(type: string, status: string) {
   const lowerStatus = status.toLowerCase();
   const lowerType = type.toLowerCase();
@@ -375,7 +383,7 @@ export default function ScheduleCalendar({
                       time: props.time,
                     });
                   }}
-                  className="w-full rounded-xl border border-zinc-700 bg-zinc-950 p-3 text-left transition hover:border-teal-400/40 hover:bg-zinc-800"
+                  className="w-full rounded-xl border border-zinc-700 bg-zinc-950 p-4 text-left transition hover:border-teal-400/40 hover:bg-zinc-800 active:scale-[0.99]"
                 >
                   <p className="text-sm font-black text-teal-200">
                     {event.extendedProps.displayTime}
@@ -427,6 +435,11 @@ export default function ScheduleCalendar({
           nowIndicator={true}
           editable={true}
           eventStartEditable={true}
+          eventDragMinDistance={1}
+          longPressDelay={100}
+          eventLongPressDelay={100}
+          selectLongPressDelay={100}
+          dragScroll={true}
           dayMaxEvents={6}
           navLinks={true}
           stickyHeaderDates={true}
@@ -452,7 +465,7 @@ export default function ScheduleCalendar({
               return;
             }
 
-            const date = start.toISOString().split("T")[0];
+            const date = localDateKey(start);
             const time = start.toTimeString().slice(0, 5);
 
             try {
@@ -710,10 +723,17 @@ export default function ScheduleCalendar({
         }
 
         .schedule-calendar .fc-event {
-          cursor: pointer;
+          cursor: grab;
           border-radius: 0.6rem;
-          padding: 2px 4px;
+          padding: 5px 6px;
+          min-height: 34px;
+          touch-action: none;
+          user-select: none;
           transition: transform 0.12s ease, opacity 0.12s ease;
+        }
+
+        .schedule-calendar .fc-event:active {
+          cursor: grabbing;
         }
 
         .schedule-calendar .fc-event:hover {
