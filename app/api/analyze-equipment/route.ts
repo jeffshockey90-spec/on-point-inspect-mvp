@@ -35,6 +35,7 @@ type EquipmentAnalysis = {
   observation?: string;
   implication?: string;
   recommendation?: string;
+  notes?: string;
   error?: string;
   raw?: string;
 };
