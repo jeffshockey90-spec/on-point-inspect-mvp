@@ -590,44 +590,36 @@ function ShareEquipmentNoteBlock({
 
 
 function getEquipmentStatusValue(item: any) {
+  const condition = String(item?.condition || "").toLowerCase();
+  const severity = String(item?.severity || "").toLowerCase();
+
   const explicit =
     item?.equipment_status ||
     item?.equipmentStatus ||
     item?.status ||
     "";
 
-  const condition = String(item?.condition || "").toLowerCase();
-  const severity = String(item?.severity || "").toLowerCase();
-  const ageText = String(item?.estimated_age || item?.estimatedAge || "");
-  const rangeText = String(item?.expected_service_life || item?.expectedServiceLife || "");
-  const ageNumber = Number(ageText.replace(/[^0-9.]/g, ""));
-  const rangeNumbers = rangeText.match(/\d+/g) || [];
-  const maxLife =
-    rangeNumbers.length > 0 ? Number(rangeNumbers[rangeNumbers.length - 1]) : null;
-
-  // Condition should override a stale saved green status.
+  // Older equipment should override stale saved green statuses.
   if (
     condition.includes("older equipment") ||
     condition.includes("monitor") ||
     condition.includes("budget") ||
+    condition.includes("near end") ||
     condition.includes("near upper") ||
     condition.includes("beyond typical") ||
-    condition.includes("end of typical")
+    condition.includes("beyond")
   ) {
-    return "⚠ Service Recommended";
+    return "⚠ Older Equipment – Monitor";
   }
 
   if (
     condition.includes("failed") ||
     condition.includes("not operating") ||
+    condition.includes("unsafe") ||
     condition.includes("repair") ||
     severity.includes("major") ||
     severity.includes("safety")
   ) {
-    return "⚠ Service Recommended";
-  }
-
-  if (maxLife && Number.isFinite(ageNumber) && ageNumber >= maxLife - 2) {
     return "⚠ Service Recommended";
   }
 
@@ -638,14 +630,16 @@ function getEquipmentStatusValue(item: any) {
       lowerExplicit.includes("no specific") ||
       lowerExplicit.includes("operating normally")
     ) {
-      return "✓ Operating Normally";
+      return "✓ No Specific Deficiency Noted";
     }
 
     return explicit;
   }
 
-  return "✓ Operating Normally";
+  return "✓ No Specific Deficiency Noted";
 }
+
+
 
 
 
@@ -676,20 +670,22 @@ function isHvacEquipmentItem(item: any) {
 function getEquipmentStatusClass(value: any) {
   const clean = String(value || "").toLowerCase();
 
-  if (clean.includes("operating normally") || clean.includes("no specific")) {
+  if (clean.includes("no specific") || clean.includes("operating normally")) {
     return "border-emerald-500/40 bg-emerald-500/10 text-emerald-300";
+  }
+
+  if (clean.includes("older equipment") || clean.includes("monitor")) {
+    return "border-yellow-500/50 bg-yellow-500/10 text-yellow-300";
   }
 
   if (clean.includes("service") || clean.includes("safety")) {
     return "border-orange-500/50 bg-orange-500/10 text-orange-300";
   }
 
-  if (clean.includes("near end") || clean.includes("monitor")) {
-    return "border-yellow-500/50 bg-yellow-500/10 text-yellow-300";
-  }
-
   return "border-cyan-500/40 bg-cyan-500/10 text-cyan-300";
 }
+
+
 
 
 
