@@ -190,8 +190,8 @@ export default async function SchedulePage() {
             </h1>
 
             <p className="mt-3 max-w-2xl text-sm text-zinc-400 sm:text-base">
-              View your full inspection schedule on the calendar. Switch between
-              month, week, and day views. Click any appointment to open the report.
+              Manage the full inspection schedule from the calendar. Drag appointments
+              to reschedule, click an appointment to edit, delete, or open the report.
             </p>
           </div>
 
