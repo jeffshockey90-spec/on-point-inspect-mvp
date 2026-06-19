@@ -542,42 +542,6 @@ function getEquipmentStatus({
   return "✓ No Specific Deficiency Noted";
 }
 
-: {
-  condition: string;
-  severity: string;
-  problemPanel: string;
-  r22: boolean;
-  age: number | null;
-  category: string;
-  equipmentType: string;
-}) {
-  if (problemPanel) return "⚠ Safety Concern";
-  if (r22) return "⚠ Service Recommended";
-
-  const cleanCondition = cleanText(condition).toLowerCase();
-  const cleanSeverity = cleanText(severity).toLowerCase();
-
-  if (
-    cleanSeverity.includes("safety") ||
-    cleanSeverity.includes("major") ||
-    cleanCondition.includes("failed") ||
-    cleanCondition.includes("not operating") ||
-    cleanCondition.includes("repair") ||
-    cleanCondition.includes("defect") ||
-    cleanCondition.includes("service recommended")
-  ) {
-    return "⚠ Service Recommended";
-  }
-
-  const maxLife = getLifeMax(category, equipmentType);
-
-  if (age !== null && maxLife && age >= maxLife - 2) {
-    return "⚠ Near End of Typical Service Life";
-  }
-
-  return "✓ Operating Normally";
-}
-
 
 function getMaintenanceLevel({
   age,
