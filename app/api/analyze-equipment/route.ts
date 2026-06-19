@@ -313,7 +313,7 @@ function parseTonnageFromModel(modelValue: any) {
 }
 
 function estimateSEER({ age, refrigerant, category }: { age: number | null; refrigerant: string; category: string }) {
-  if (category !== "cooling") return "Unknown";
+  if (category !== "hvac") return "Unknown";
 
   const ref = refrigerant.toLowerCase();
 
@@ -332,7 +332,7 @@ function estimateSEER({ age, refrigerant, category }: { age: number | null; refr
 }
 
 function estimateAFUE({ age, category, fuelType }: { age: number | null; category: string; fuelType: string }) {
-  if (category !== "heating") return "Unknown";
+  if (category !== "hvac") return "Unknown";
 
   const fuel = fuelType.toLowerCase();
   if (!fuel.includes("gas") && !fuel.includes("oil") && !fuel.includes("propane")) {
@@ -351,7 +351,7 @@ function estimateBTU({ parsed, category }: { parsed: EquipmentAnalysis; category
   const visibleCapacity = cleanText(parsed.capacity);
   if (visibleCapacity && visibleCapacity.toLowerCase() !== "unknown") return visibleCapacity;
 
-  if (category === "hvac" || category === "heating") {
+  if (category === "hvac" || category === "hvac") {
     const fromModel = parseTonnageFromModel(parsed.model);
     if (fromModel !== "Unknown") return fromModel;
   }
@@ -389,7 +389,7 @@ function getMaintenanceLevel({ age, category, condition, r22, problemPanel }: { 
   }
 
   if (category === "water_heater") return "Normal - recommend periodic inspection and maintenance";
-  if (category === "hvac" || category === "heating") return "Normal - recommend annual HVAC service";
+  if (category === "hvac" || category === "hvac") return "Normal - recommend annual HVAC service";
   if (category === "appliance") return "Normal - maintain per manufacturer instructions";
 
   return "Normal";
@@ -617,11 +617,12 @@ function getAgeCondition(age: number | null, category: string, equipmentType: st
 
 function chooseSection(parsed: EquipmentAnalysis, category: string) {
   const explicit = cleanText(parsed.section);
-  if (explicit) return explicit;
+  if (VALID_SECTIONS.includes(explicit)) return explicit;
 
   if (category === "water_heater" || category === "plumbing") return "Plumbing";
   if (category === "electrical") return "Electrical";
   if (category === "appliance") return "Built-in Appliances";
+
   if (category === "hvac") {
     const text = [
       parsed.equipmentType,
@@ -643,10 +644,17 @@ function chooseSection(parsed: EquipmentAnalysis, category: string) {
     return "Heating";
   }
 
-  return "Inspection Details";
+  return "General";
 }
 
-: {
+function chooseSeverity({
+  parsed,
+  age,
+  category,
+  equipmentType,
+  problemPanel,
+  r22,
+}: {
   parsed: EquipmentAnalysis;
   age: number | null;
   category: string;
@@ -654,25 +662,28 @@ function chooseSection(parsed: EquipmentAnalysis, category: string) {
   problemPanel: string;
   r22: boolean;
 }) {
-  const explicit = cleanText(parsed.severity);
-  if (explicit) return explicit;
+  if (problemPanel) return "Safety Concern";
+
+  const proposed = cleanText(parsed.severity);
+  if (VALID_SEVERITIES.includes(proposed)) return proposed;
 
   const condition = cleanText(parsed.condition).toLowerCase();
-
-  if (problemPanel) return "Safety Concern";
-  if (r22) return "Monitor";
 
   if (
     condition.includes("failed") ||
     condition.includes("not operating") ||
-    condition.includes("safety")
+    condition.includes("safety") ||
+    condition.includes("major")
   ) {
     return "Recommended Repair";
   }
 
+  if (r22) return "Monitor";
+
   const maxLife = getStatusLifeMax(category, equipmentType);
-  if (age !== null && maxLife && age > maxLife) {
-    return "Monitor";
+  if (maxLife && age !== null) {
+    if (age > maxLife) return "Monitor";
+    if (age >= maxLife - 2) return "Monitor";
   }
 
   if (
@@ -686,7 +697,64 @@ function chooseSection(parsed: EquipmentAnalysis, category: string) {
   return "Informational";
 }
 
-: {
+function getMaintenanceLevel({
+  age,
+  category,
+  condition,
+  r22,
+  problemPanel,
+}: {
+  age: number | null;
+  category: string;
+  condition: string;
+  r22: boolean;
+  problemPanel: string;
+}) {
+  if (problemPanel) return "High - specialist evaluation recommended";
+  if (r22) return "Elevated - obsolete refrigerant may increase service cost";
+
+  const cond = cleanText(condition).toLowerCase();
+
+  if (
+    cond.includes("beyond") ||
+    cond.includes("failed") ||
+    cond.includes("not operating") ||
+    cond.includes("near upper") ||
+    cond.includes("service") ||
+    cond.includes("repair")
+  ) {
+    return "Elevated - monitor and service as needed";
+  }
+
+  if (age !== null) {
+    const maxLife = getStatusLifeMax(category, "");
+    if (maxLife && age >= maxLife - 2) {
+      return "Elevated - approaching upper end of typical industry range";
+    }
+  }
+
+  if (category === "water_heater") {
+    return "Normal - recommend routine water heater maintenance";
+  }
+
+  if (category === "hvac") {
+    return "Normal - recommend routine HVAC service";
+  }
+
+  if (category === "appliance") {
+    return "Normal - maintain per manufacturer instructions";
+  }
+
+  return "Normal - routine maintenance recommended";
+}
+
+function getBudgetPlanning({
+  age,
+  category,
+  condition,
+  r22,
+  problemPanel,
+}: {
   age: number | null;
   category: string;
   condition: string;
@@ -694,50 +762,32 @@ function chooseSection(parsed: EquipmentAnalysis, category: string) {
   problemPanel: string;
 }) {
   if (problemPanel) return "Specialist evaluation recommended";
-  if (r22) return "Elevated monitoring recommended";
+  if (r22) return "Budget planning may be prudent due to obsolete refrigerant";
 
-  const cleanCondition = cleanText(condition).toLowerCase();
+  const cond = cleanText(condition).toLowerCase();
 
   if (
-    cleanCondition.includes("service") ||
-    cleanCondition.includes("repair") ||
-    cleanCondition.includes("near upper") ||
-    cleanCondition.includes("beyond")
+    cond.includes("beyond") ||
+    cond.includes("failed") ||
+    cond.includes("not operating")
   ) {
-    return "Elevated monitoring recommended";
+    return "Budget planning is recommended";
   }
 
   if (age !== null) {
     const maxLife = getStatusLifeMax(category, "");
-    if (maxLife && age >= maxLife - 2) return "Elevated monitoring recommended";
+    if (maxLife && age > maxLife) return "Budget planning is recommended";
+    if (maxLife && age >= maxLife - 2) return "Monitor and budget as needed";
   }
 
   return "Routine maintenance recommended";
 }
 
-) {
-  const age = result.age ?? null;
-  const category = result.category || "";
-  const equipmentType = result.equipmentType || "";
-  const condition = cleanText(result.condition).toLowerCase();
-
-  if (condition.includes("beyond") || condition.includes("failed")) {
-    return "Budget planning is recommended.";
-  }
-
-  if (age !== null) {
-    const maxLife = getStatusLifeMax(category, equipmentType);
-    if (maxLife && age > maxLife) return "Budget planning is recommended.";
-    if (maxLife && age >= maxLife - 2) return "Monitor and budget as needed.";
-  }
-
-  return "No immediate budget recommendation based on available data.";
-}
-
 function enhanceAnalysis(parsed: EquipmentAnalysis) {
   const category = inferEquipmentCategory(parsed);
   const manufacturer = normalizeManufacturer(parsed.manufacturer);
-  const equipmentType = cleanText(parsed.equipmentType) ||
+  const equipmentType =
+    cleanText(parsed.equipmentType) ||
     (category === "hvac"
       ? "HVAC Equipment"
       : category === "water_heater"
@@ -746,6 +796,8 @@ function enhanceAnalysis(parsed: EquipmentAnalysis) {
       ? "Electrical Equipment"
       : category === "appliance"
       ? "Appliance"
+      : category === "plumbing"
+      ? "Plumbing Equipment"
       : "Equipment");
 
   const model = cleanText(parsed.model) || "Unknown";
