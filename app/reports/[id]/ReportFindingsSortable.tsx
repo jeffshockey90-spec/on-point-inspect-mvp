@@ -327,8 +327,97 @@ function AddSectionFindingForm({
   const [observation, setObservation] = useState("");
   const [implication, setImplication] = useState("");
   const [recommendation, setRecommendation] = useState("");
+  const [aiNote, setAiNote] = useState("");
+  const [generatingAi, setGeneratingAi] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+
+  function pickAiValue(source: any, keys: string[]) {
+    for (const key of keys) {
+      const value = source?.[key];
+      if (typeof value === "string" && value.trim()) return value.trim();
+    }
+
+    return "";
+  }
+
+  async function generateFromAiNote() {
+    if (generatingAi || saving) return;
+
+    const cleanNote = aiNote.trim();
+
+    if (!cleanNote) {
+      setMessage("Add an inspector note for AI to turn into a finding.");
+      return;
+    }
+
+    setGeneratingAi(true);
+    setMessage("");
+
+    const requestBody = {
+      note: cleanNote,
+      inspector_note: cleanNote,
+      prompt: cleanNote,
+      section,
+      severity,
+      inspection_id: inspectionId,
+    };
+
+    const endpoints = [
+      "/api/ai-suggest-finding",
+      "/api/generate-finding",
+      "/api/ai/finding",
+    ];
+
+    try {
+      let data: any = null;
+      let lastError = "";
+
+      for (const endpoint of endpoints) {
+        try {
+          const response = await fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(requestBody),
+          });
+
+          const nextData = await response.json().catch(() => ({}));
+
+          if (response.ok) {
+            data = nextData?.finding || nextData?.result || nextData?.suggestion || nextData;
+            break;
+          }
+
+          lastError = nextData?.error || response.statusText || endpoint;
+        } catch (error: any) {
+          lastError = error?.message || endpoint;
+        }
+      }
+
+      if (!data) {
+        setMessage(lastError || "AI could not generate a finding from this note.");
+        return;
+      }
+
+      const nextTitle = pickAiValue(data, ["title", "finding_title", "defect_title", "name"]);
+      const nextSeverity = pickAiValue(data, ["severity", "priority", "category"]);
+      const nextObservation = pickAiValue(data, ["observation", "description", "comment", "summary"]);
+      const nextImplication = pickAiValue(data, ["implication", "impact", "why_it_matters"]);
+      const nextRecommendation = pickAiValue(data, ["recommendation", "recommended_action", "action"]);
+
+      setTitle(nextTitle || cleanNote.slice(0, 80));
+      setSeverity(SEVERITIES.includes(nextSeverity) ? nextSeverity : severity);
+      setObservation(nextObservation || cleanNote);
+      setImplication(nextImplication);
+      setRecommendation(nextRecommendation);
+      setOpen(true);
+      setMessage("AI note filled in. Review and save the defect.");
+    } catch (error: any) {
+      setMessage(error?.message || "Failed to generate from AI note.");
+    } finally {
+      setGeneratingAi(false);
+    }
+  }
 
   async function createFinding() {
     if (saving) return;
@@ -362,6 +451,7 @@ function AddSectionFindingForm({
       setObservation("");
       setImplication("");
       setRecommendation("");
+      setAiNote("");
       setSeverity("Recommended Repair");
       setOpen(false);
       router.refresh();
@@ -375,13 +465,23 @@ function AddSectionFindingForm({
   return (
     <div className="rounded-xl border border-slate-700 bg-[#071224] p-4">
       {!open ? (
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-cyan-500 px-5 py-3 text-sm font-black text-slate-950 transition active:scale-[0.98] hover:bg-cyan-400 sm:w-auto [touch-action:manipulation]"
-        >
-          ➕ Add Defect
-        </button>
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-cyan-500 px-5 py-3 text-sm font-black text-slate-950 transition active:scale-[0.98] hover:bg-cyan-400 sm:w-auto [touch-action:manipulation]"
+          >
+            ➕ Add Defect
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-purple-500 bg-purple-500/10 px-5 py-3 text-sm font-black text-purple-300 transition active:scale-[0.98] hover:bg-purple-500 hover:text-white sm:w-auto [touch-action:manipulation]"
+          >
+            🤖 AI Note Inspector
+          </button>
+        </div>
       ) : (
         <div className="space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -405,10 +505,43 @@ function AddSectionFindingForm({
           </div>
 
           {message && (
-            <div className="rounded-xl border border-red-500/60 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-200">
+            <div className={`rounded-xl border px-4 py-3 text-sm font-bold ${message.includes("filled in") ? "border-emerald-500/60 bg-emerald-500/10 text-emerald-200" : "border-red-500/60 bg-red-500/10 text-red-200"}`}>
               {message}
             </div>
           )}
+
+          <div className="rounded-xl border border-purple-500/50 bg-purple-500/10 p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h4 className="text-base font-black text-purple-300">
+                  🤖 AI Note Inspector
+                </h4>
+                <p className="mt-1 text-sm text-slate-300">
+                  Type a rough field note and AI will turn it into a clean defect. Review before saving.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={generateFromAiNote}
+                disabled={generatingAi || saving}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-purple-500 px-4 py-2 text-sm font-black text-white transition active:scale-[0.98] hover:bg-purple-400 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto [touch-action:manipulation]"
+              >
+                {generatingAi && (
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                )}
+                {generatingAi ? "Writing..." : "Generate From Note"}
+              </button>
+            </div>
+
+            <textarea
+              value={aiNote}
+              onChange={(event) => setAiNote(event.target.value)}
+              disabled={generatingAi || saving}
+              placeholder="Example: garage GFCI kept tripping, recommend electrician evaluate and repair as needed"
+              className="mt-4 min-h-[90px] w-full rounded-xl border border-purple-500/40 bg-slate-950 px-4 py-3 text-white outline-none focus:border-purple-300 disabled:cursor-not-allowed disabled:opacity-60"
+            />
+          </div>
 
           <div className="grid gap-3 md:grid-cols-2">
             <input
