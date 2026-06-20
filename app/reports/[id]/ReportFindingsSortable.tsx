@@ -1,906 +1,1359 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 import EditableFinding from "../../../components/EditableFinding";
+import SectionLimitations from "../../../components/SectionLimitations";
+import ReportDisclaimers from "../../../components/ReportDisclaimers";
+import SectionInformationChecklist from "../../../components/SectionInformationChecklist";
+import SectionReferencePhotos from "../../../components/SectionReferencePhotos";
+import PhotoMarkupEditor from "../../../components/PhotoMarkupEditor";
+import { supabase } from "../../../lib/supabaseClient";
 
-const SECTION_CHECKLISTS: Record<string, any[]> = {
-  "Inspection Details": [
-    {
-      title: "In Attendance",
-      type: "checkbox",
-      options: ["Client", "Listing Agent", "Home Owner", "Client's Agent", "Inspector"],
-      defaults: ["Client", "Inspector"],
-    },
-    {
-      title: "Occupancy",
-      type: "checkbox",
-      options: ["Furnished", "Occupied", "Vacant", "Utilities Off"],
-      defaults: ["Vacant"],
-    },
-    {
-      title: "Style",
-      type: "checkbox",
-      options: [
-        "Manufactured",
-        "Rambler",
-        "Modular",
-        "Ranch",
-        "Modern",
-        "Multi-level",
-        "Bungalow",
-        "Contemporary",
-        "Victorian",
-        "Colonial",
-        "Row House",
-        "Townhouse",
-      ],
-      defaults: ["Ranch"],
-    },
-    {
-      title: "Temperature",
-      type: "temperature",
-      options: ["Fahrenheit (F)", "Celsius (C)"],
-      defaults: ["Fahrenheit (F)"],
-    },
-    {
-      title: "Type of Building",
-      type: "checkbox",
-      options: ["Multi-Family", "Attached", "Single Family", "Condominium / Townhouse", "Detached"],
-      defaults: ["Single Family"],
-    },
-    {
-      title: "Weather Conditions",
-      type: "checkbox",
-      options: ["Snow", "Dry", "Cloudy", "Hot", "Heavy Rain", "Clear", "Light Rain", "Humid", "Recent Rain"],
-      defaults: ["Recent Rain"],
-    },
-  ],
+const PHOTO_BUCKET = "inspection-photos";
 
-  Exterior: [
-    {
-      title: "Inspection Method",
-      type: "checkbox",
-      options: ["Visual", "Infrared", "Attic Access", "Crawlspace Access"],
-      defaults: ["Visual"],
-    },
-    {
-      title: "Exterior Wall Covering",
-      type: "checkbox",
-      options: ["Brick Veneer", "Stone Veneer", "Stucco", "Vinyl Siding", "Wood Siding", "Fiber Cement Siding", "Aluminum Siding"],
-      defaults: [],
-    },
-    {
-      title: "Driveway",
-      type: "checkbox",
-      options: ["Concrete", "Asphalt", "Gravel", "Pavers"],
-      defaults: [],
-    },
-    {
-      title: "Walkways",
-      type: "checkbox",
-      options: ["Concrete", "Pavers", "Brick", "Flagstone", "Gravel"],
-      defaults: [],
-    },
-    {
-      title: "Patio / Deck",
-      type: "checkbox",
-      options: ["Wood", "Composite", "Concrete", "Pavers", "Brick"],
-      defaults: [],
-    },
-    {
-      title: "Fencing",
-      type: "checkbox",
-      options: ["Wood", "Vinyl", "Chain Link", "Wrought Iron", "None"],
-      defaults: [],
-    },
-  ],
-
-  Roof: [
-    {
-      title: "Inspection Method",
-      type: "checkbox",
-      options: ["Walked Roof", "From Ground", "From Ladder", "Drone", "Binoculars", "Limited Visibility"],
-      defaults: [],
-    },
-    {
-      title: "Roof Covering",
-      type: "checkbox",
-      options: ["Asphalt Shingles", "Architectural Shingles", "3-Tab Shingles", "Metal", "Standing Seam Metal", "Rubber / EPDM", "Rolled Roofing", "Slate", "Tile", "Wood Shakes"],
-      defaults: [],
-    },
-    {
-      title: "Roof Style",
-      type: "checkbox",
-      options: ["Gable", "Hip", "Flat / Low Slope", "Mansard", "Gambrel", "Shed", "Combination"],
-      defaults: [],
-    },
-    {
-      title: "Roof Drainage",
-      type: "checkbox",
-      options: ["Gutters Present", "Downspouts Present", "No Gutters", "Underground Drains", "Splash Blocks", "Extensions Present"],
-      defaults: [],
-    },
-    {
-      title: "Flashing / Penetrations",
-      type: "checkbox",
-      options: ["Plumbing Vent Boots", "Chimney Flashing", "Wall Flashing", "Skylight Flashing", "Roof Vents", "Satellite / Antenna Mounts"],
-      defaults: [],
-    },
-    {
-      title: "Roof Limitations",
-      type: "checkbox",
-      options: ["Steep Roof", "Wet Roof", "Snow Covered", "Height Limitation", "Unsafe Access", "Viewed From Ground Only", "Drone Only"],
-      defaults: [],
-    },
-  ],
-
-  "Basement, Foundation, Crawlspace & Structure": [
-    {
-      title: "Foundation Type",
-      type: "checkbox",
-      options: ["Basement", "Crawlspace", "Slab on Grade", "Pier and Beam", "Combination", "Not Visible"],
-      defaults: [],
-    },
-    {
-      title: "Foundation Material",
-      type: "checkbox",
-      options: ["Poured Concrete", "Concrete Block", "Stone", "Brick", "Wood", "Not Visible"],
-      defaults: [],
-    },
-    {
-      title: "Floor Structure",
-      type: "checkbox",
-      options: ["Wood Joists", "Engineered Joists", "Trusses", "Steel Framing", "Concrete", "Not Visible"],
-      defaults: [],
-    },
-    {
-      title: "Wall Structure",
-      type: "checkbox",
-      options: ["Wood Framing", "Masonry", "Steel Framing", "Concrete", "Not Visible"],
-      defaults: [],
-    },
-    {
-      title: "Crawlspace Conditions",
-      type: "checkbox",
-      options: ["Accessible", "Limited Access", "Vapor Barrier Present", "No Vapor Barrier", "Insulated", "Ventilated", "Conditioned Crawlspace"],
-      defaults: [],
-    },
-    {
-      title: "Limitations",
-      type: "checkbox",
-      options: ["Finished Areas", "Stored Belongings", "Limited Access", "Low Clearance", "Unsafe Access", "Not Accessible"],
-      defaults: [],
-    },
-  ],
-
-  Heating: [
-    {
-      title: "Heating System Type",
-      type: "checkbox",
-      options: ["Forced Air Furnace", "Heat Pump", "Boiler", "Electric Baseboard", "Radiant Heat", "Mini Split", "None Observed"],
-      defaults: [],
-    },
-    {
-      title: "Energy Source",
-      type: "checkbox",
-      options: ["Natural Gas", "Propane", "Oil", "Electric", "Wood", "Solar", "Unknown"],
-      defaults: [],
-    },
-    {
-      title: "Distribution",
-      type: "checkbox",
-      options: ["Ductwork", "Radiators", "Baseboards", "Radiant Floor", "Wall Units", "Not Visible"],
-      defaults: [],
-    },
-    {
-      title: "Thermostat",
-      type: "checkbox",
-      options: ["Present", "Digital", "Programmable", "Smart Thermostat", "Not Operated", "Not Located"],
-      defaults: [],
-    },
-    {
-      title: "Filter",
-      type: "checkbox",
-      options: ["Disposable", "Reusable", "Electronic Air Cleaner", "Not Located", "Dirty", "Clean"],
-      defaults: [],
-    },
-    {
-      title: "Limitations",
-      type: "checkbox",
-      options: ["System Not Operated", "Temperature Restrictions", "Access Limited", "Panel Restricted", "Stored Belongings"],
-      defaults: [],
-    },
-  ],
-
-  Cooling: [
-    {
-      title: "Cooling System Type",
-      type: "checkbox",
-      options: ["Central AC", "Heat Pump", "Mini Split", "Window Unit", "Evaporative Cooler", "None Observed"],
-      defaults: [],
-    },
-    {
-      title: "Condenser Location",
-      type: "checkbox",
-      options: ["Exterior Ground", "Roof Mounted", "Wall Mounted", "Not Located", "Multiple Units"],
-      defaults: [],
-    },
-    {
-      title: "Distribution",
-      type: "checkbox",
-      options: ["Ductwork", "Ductless Heads", "Window Unit", "Not Visible"],
-      defaults: [],
-    },
-    {
-      title: "Thermostat",
-      type: "checkbox",
-      options: ["Present", "Digital", "Programmable", "Smart Thermostat", "Not Operated", "Not Located"],
-      defaults: [],
-    },
-    {
-      title: "Condensate",
-      type: "checkbox",
-      options: ["Gravity Drain", "Condensate Pump", "Secondary Drain Pan", "Not Visible", "Not Applicable"],
-      defaults: [],
-    },
-    {
-      title: "Limitations",
-      type: "checkbox",
-      options: ["Low Outdoor Temperature", "System Not Operated", "Access Limited", "Panel Restricted", "Stored Belongings"],
-      defaults: [],
-    },
-  ],
-
-  Plumbing: [
-    {
-      title: "Water Supply",
-      type: "checkbox",
-      options: ["Public", "Private Well", "Shared Well", "Unknown", "Water Off"],
-      defaults: [],
-    },
-    {
-      title: "Supply Piping",
-      type: "checkbox",
-      options: ["Copper", "PEX", "CPVC", "Galvanized", "Polybutylene", "Not Visible", "Mixed Materials"],
-      defaults: [],
-    },
-    {
-      title: "Drain / Waste / Vent",
-      type: "checkbox",
-      options: ["PVC", "ABS", "Cast Iron", "Galvanized", "Copper", "Not Visible", "Mixed Materials"],
-      defaults: [],
-    },
-    {
-      title: "Water Heater Type",
-      type: "checkbox",
-      options: ["Tank", "Tankless", "Electric", "Gas", "Oil", "Heat Pump Water Heater", "Not Located"],
-      defaults: [],
-    },
-    {
-      title: "Fuel Shutoffs / Main Shutoff",
-      type: "checkbox",
-      options: ["Main Water Shutoff Located", "Gas Shutoff Located", "Not Located", "Limited Access"],
-      defaults: [],
-    },
-    {
-      title: "Limitations",
-      type: "checkbox",
-      options: ["Water Off", "Fixtures Not Operated", "Access Limited", "Stored Belongings", "Finished Areas"],
-      defaults: [],
-    },
-  ],
-
-  Electrical: [
-    {
-      title: "Service Type",
-      type: "checkbox",
-      options: ["Overhead Service", "Underground Service", "Not Visible", "Unknown"],
-      defaults: [],
-    },
-    {
-      title: "Main Panel",
-      type: "checkbox",
-      options: ["Breaker Panel", "Fuse Panel", "Subpanel", "Main Disconnect Present", "Panel Not Accessible"],
-      defaults: [],
-    },
-    {
-      title: "Service Amperage",
-      type: "checkbox",
-      options: ["60 Amp", "100 Amp", "150 Amp", "200 Amp", "400 Amp", "Unable to Determine"],
-      defaults: [],
-    },
-    {
-      title: "Branch Wiring",
-      type: "checkbox",
-      options: ["Copper", "Aluminum", "Knob and Tube", "Cloth Wiring", "NM Cable", "Conduit", "Not Visible"],
-      defaults: [],
-    },
-    {
-      title: "Safety Devices",
-      type: "checkbox",
-      options: ["GFCI Present", "AFCI Present", "Smoke Alarms Present", "CO Alarms Present", "Surge Protection Present"],
-      defaults: [],
-    },
-    {
-      title: "Limitations",
-      type: "checkbox",
-      options: ["Panel Blocked", "Panel Cover Not Removed", "Limited Access", "Power Off", "Stored Belongings"],
-      defaults: [],
-    },
-  ],
-
-  "Attic, Insulation & Ventilation": [
-    {
-      title: "Attic Access",
-      type: "checkbox",
-      options: ["Scuttle Access", "Pull Down Stairs", "Walk-Up", "No Access", "Limited Access"],
-      defaults: [],
-    },
-    {
-      title: "Inspection Method",
-      type: "checkbox",
-      options: ["Entered Attic", "Viewed From Access", "Drone / Camera Pole", "Not Accessible", "Limited Visibility"],
-      defaults: [],
-    },
-    {
-      title: "Insulation Type",
-      type: "checkbox",
-      options: ["Fiberglass Batt", "Blown Fiberglass", "Cellulose", "Spray Foam", "Mineral Wool", "None Observed", "Not Visible"],
-      defaults: [],
-    },
-    {
-      title: "Ventilation",
-      type: "checkbox",
-      options: ["Soffit Vents", "Ridge Vent", "Gable Vents", "Box Vents", "Powered Fan", "No Visible Ventilation"],
-      defaults: [],
-    },
-    {
-      title: "Exhaust Venting",
-      type: "checkbox",
-      options: ["Bathroom Fan Vented Exterior", "Kitchen Exhaust Vented Exterior", "Dryer Vent Visible", "Not Visible"],
-      defaults: [],
-    },
-    {
-      title: "Limitations",
-      type: "checkbox",
-      options: ["No Flooring", "Limited Access", "Stored Belongings", "Low Clearance", "Unsafe Access", "Insulation Covered Components"],
-      defaults: [],
-    },
-  ],
-
-  "Doors, Windows & Interior": [
-    {
-      title: "Interior Rooms",
-      type: "checkbox",
-      options: ["Bedrooms", "Bathrooms", "Kitchen", "Living Areas", "Laundry", "Basement", "Finished Areas"],
-      defaults: [],
-    },
-    {
-      title: "Wall / Ceiling Finishes",
-      type: "checkbox",
-      options: ["Drywall", "Plaster", "Paneling", "Tile", "Wood", "Not Visible"],
-      defaults: [],
-    },
-    {
-      title: "Floor Coverings",
-      type: "checkbox",
-      options: ["Carpet", "Hardwood", "Laminate", "Vinyl", "Tile", "Concrete", "Mixed"],
-      defaults: [],
-    },
-    {
-      title: "Windows",
-      type: "checkbox",
-      options: ["Single Hung", "Double Hung", "Casement", "Sliding", "Fixed", "Vinyl", "Wood", "Aluminum"],
-      defaults: [],
-    },
-    {
-      title: "Doors",
-      type: "checkbox",
-      options: ["Hinged Doors", "Sliding Doors", "French Doors", "Pocket Doors", "Storm Doors", "Exterior Doors"],
-      defaults: [],
-    },
-    {
-      title: "Limitations",
-      type: "checkbox",
-      options: ["Occupied Home", "Furnished Areas", "Stored Belongings", "Window Treatments", "Limited Access", "Personal Items"],
-      defaults: [],
-    },
-  ],
-
-  "Built-in Appliances": [
-    {
-      title: "Appliances Present",
-      type: "checkbox",
-      options: ["Range / Oven", "Cooktop", "Dishwasher", "Microwave", "Garbage Disposal", "Refrigerator", "Washer", "Dryer"],
-      defaults: [],
-    },
-    {
-      title: "Range / Oven Energy",
-      type: "checkbox",
-      options: ["Electric", "Gas", "Propane", "Not Determined", "Not Present"],
-      defaults: [],
-    },
-    {
-      title: "Dishwasher",
-      type: "checkbox",
-      options: ["Present", "Operated", "Not Operated", "Not Present", "Limited Access"],
-      defaults: [],
-    },
-    {
-      title: "Microwave",
-      type: "checkbox",
-      options: ["Built-in", "Over-the-Range", "Countertop", "Not Present", "Operated"],
-      defaults: [],
-    },
-    {
-      title: "Laundry Appliances",
-      type: "checkbox",
-      options: ["Washer Present", "Dryer Present", "Gas Dryer", "Electric Dryer", "Not Operated", "Not Present"],
-      defaults: [],
-    },
-    {
-      title: "Limitations",
-      type: "checkbox",
-      options: ["Appliances Not Moved", "Personal Property Present", "Not Operated", "Utilities Off", "Limited Access"],
-      defaults: [],
-    },
-  ],
-
-  Garage: [
-    {
-      title: "Garage Type",
-      type: "checkbox",
-      options: ["Attached", "Detached", "Built-in", "Carport", "No Garage", "One Car", "Two Car", "Three Car"],
-      defaults: [],
-    },
-    {
-      title: "Vehicle Door",
-      type: "checkbox",
-      options: ["Manual", "Automatic Opener", "Sectional Door", "Roll-up Door", "Not Operated", "Not Present"],
-      defaults: [],
-    },
-    {
-      title: "Auto-Reverse Safety",
-      type: "checkbox",
-      options: ["Photo Eyes Present", "Pressure Reverse Tested", "Not Tested", "Not Present", "Unable to Verify"],
-      defaults: [],
-    },
-    {
-      title: "Fire Separation",
-      type: "checkbox",
-      options: ["Drywall Present", "Self-Closing Door", "Fire-Rated Door", "Not Visible", "Not Applicable"],
-      defaults: [],
-    },
-    {
-      title: "Garage Interior",
-      type: "checkbox",
-      options: ["Concrete Slab", "Finished Walls", "Unfinished Walls", "Storage Present", "Utilities Present"],
-      defaults: [],
-    },
-    {
-      title: "Limitations",
-      type: "checkbox",
-      options: ["Vehicles Present", "Stored Belongings", "Door Not Operated", "Limited Access", "Power Off"],
-      defaults: [],
-    },
-  ],
-};
-
-const SECTION_ORDER = [
-  "Inspection Details",
-  "Exterior",
-  "Roof",
-  "Basement, Foundation, Crawlspace & Structure",
-  "Heating",
-  "Cooling",
-  "Plumbing",
-  "Electrical",
-  "Attic, Insulation & Ventilation",
-  "Doors, Windows & Interior",
-  "Built-in Appliances",
-  "Garage",
+const SEVERITIES = [
+  "Informational",
+  "Monitor",
+  "Maintenance",
+  "Recommended Repair",
+  "Safety Concern",
+  "Major Concern",
 ];
 
-export default function ReportFindingsSortable({
-  groupedFindings,
-  inspectionId,
-}: any) {
-  const hiddenSectionsKey = `hidden-sections-${inspectionId}`;
-  const renamedSectionsKey = `renamed-sections-${inspectionId}`;
+export default function ReportFindingsSortable({ groupedFindings }: any) {
+  const params = useParams();
+  const router = useRouter();
+  const inspectionId = String(params?.id || "");
 
-  const [hiddenSections, setHiddenSections] = useState<string[]>([]);
-  const [renamedSections, setRenamedSections] = useState<Record<string, string>>(
-    {}
+  function getAllSectionsClosed(groups: any[]) {
+    const next: Record<string, boolean> = {};
+
+    (groups || []).forEach((group: any) => {
+      next[group.section] = true;
+    });
+
+    return next;
+  }
+
+  const [closedSections, setClosedSections] = useState<Record<string, boolean>>(
+    () => getAllSectionsClosed(groupedFindings || [])
   );
 
+  const [orderedGroups, setOrderedGroups] = useState<any[]>(groupedFindings || []);
+  const [draggingSection, setDraggingSection] = useState<string | null>(null);
+
   useEffect(() => {
-    const savedHidden = localStorage.getItem(hiddenSectionsKey);
-    const savedRenamed = localStorage.getItem(renamedSectionsKey);
+    const nextGroups = groupedFindings || [];
 
-    if (savedHidden) setHiddenSections(JSON.parse(savedHidden));
-    if (savedRenamed) setRenamedSections(JSON.parse(savedRenamed));
-  }, [hiddenSectionsKey, renamedSectionsKey]);
+    setOrderedGroups(nextGroups);
+    setClosedSections(getAllSectionsClosed(nextGroups));
+  }, [groupedFindings]);
 
-  function hideSection(section: string) {
-    const confirmed = confirm(
-      `Hide "${renamedSections[section] || section}" from this report view? This will not delete your findings.`
+  const allFindings = useMemo(() => {
+    return (orderedGroups || []).flatMap((group: any) => group.findings || []);
+  }, [orderedGroups]);
+
+  const allPhotos = useMemo(() => {
+    const seen = new Set<string>();
+    const photos: any[] = [];
+
+    (allFindings || []).forEach((finding: any) => {
+      (finding.photos || []).forEach((photo: any) => {
+        const key = String(photo.id || photo.file_path || photo.public_url || photo.signed_url || "");
+        if (!key || seen.has(key)) return;
+
+        seen.add(key);
+        photos.push({
+          ...photo,
+          current_finding_id: photo.finding_id || finding.id,
+          current_finding_title:
+            finding.title ||
+            finding.finding_title ||
+            finding.defect_title ||
+            finding.name ||
+            "Untitled Finding",
+          current_section: finding.section || "Inspection Details",
+        });
+      });
+    });
+
+    return photos;
+  }, [allFindings]);
+
+  function toggleSection(section: string) {
+    setClosedSections((prev) => ({
+      ...prev,
+      [section]: !prev[section],
+    }));
+  }
+
+  function expandAll() {
+    setClosedSections({});
+  }
+
+  function collapseAll() {
+    const next: Record<string, boolean> = {};
+
+    (orderedGroups || []).forEach((group: any) => {
+      next[group.section] = true;
+    });
+
+    setClosedSections(next);
+  }
+
+  function moveSection(fromIndex: number, toIndex: number) {
+    if (toIndex < 0 || toIndex >= orderedGroups.length) return;
+
+    setOrderedGroups((prev) => {
+      const next = [...prev];
+      const [moved] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, moved);
+      return next;
+    });
+  }
+
+  function handleDragStart(section: string) {
+    setDraggingSection(section);
+  }
+
+  function handleDragOver(event: React.DragEvent) {
+    event.preventDefault();
+  }
+
+  function handleDrop(targetSection: string) {
+    if (!draggingSection || draggingSection === targetSection) {
+      setDraggingSection(null);
+      return;
+    }
+
+    setOrderedGroups((prev) => {
+      const next = [...prev];
+
+      const fromIndex = next.findIndex(
+        (group: any) => group.section === draggingSection
+      );
+
+      const toIndex = next.findIndex(
+        (group: any) => group.section === targetSection
+      );
+
+      if (fromIndex === -1 || toIndex === -1) return prev;
+
+      const [moved] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, moved);
+
+      return next;
+    });
+
+    setDraggingSection(null);
+  }
+
+  return (
+    <div className="w-full max-w-full space-y-6 overflow-hidden">
+      <div className="flex w-full flex-col gap-3 rounded-2xl border border-slate-700 bg-[#0f172a] p-4 sm:flex-row sm:flex-wrap">
+        <button
+          type="button"
+          onClick={expandAll}
+          className="w-full rounded-xl bg-teal-500 px-4 py-2 text-sm font-black text-slate-950 hover:bg-teal-400 sm:w-auto"
+        >
+          Expand All
+        </button>
+
+        <button
+          type="button"
+          onClick={collapseAll}
+          className="w-full rounded-xl border border-slate-600 px-4 py-2 text-sm font-black text-slate-200 hover:bg-slate-800 sm:w-auto"
+        >
+          Collapse All
+        </button>
+
+        <div className="w-full rounded-xl border border-slate-700 px-4 py-2 text-sm font-bold text-slate-400 sm:w-auto">
+          Drag section headers to reorder
+        </div>
+      </div>
+
+      {(orderedGroups || []).map((group: any, index: number) => {
+        const findings = group.findings || [];
+        const isClosed = !!closedSections[group.section];
+        const isDragging = draggingSection === group.section;
+
+        return (
+          <section
+            key={group.section}
+            draggable
+            onDragStart={() => handleDragStart(group.section)}
+            onDragOver={handleDragOver}
+            onDrop={() => handleDrop(group.section)}
+            onDragEnd={() => setDraggingSection(null)}
+            className={`w-full max-w-full overflow-hidden rounded-2xl border border-slate-700 bg-[#0f172a] shadow-xl transition ${
+              isDragging ? "opacity-50 ring-2 ring-teal-400" : ""
+            }`}
+          >
+            <div className="flex min-w-0 items-stretch border-b border-slate-700">
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => toggleSection(group.section)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    toggleSection(group.section);
+                  }
+                }}
+                className="flex min-w-0 flex-1 cursor-pointer flex-col items-stretch gap-3 px-4 py-4 text-left transition hover:bg-slate-800/60 focus:outline-none focus:ring-2 focus:ring-teal-400 sm:flex-row sm:items-center sm:justify-between sm:px-6"
+              >
+                <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+                  <span className="cursor-grab select-none text-2xl text-slate-500 active:cursor-grabbing">
+                    ⋮⋮
+                  </span>
+
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-teal-500/50 bg-teal-500/10 text-2xl font-black text-teal-300">
+                    {isClosed ? "+" : "−"}
+                  </span>
+
+                  <div className="min-w-0">
+                    <h2 className="break-words text-xl font-bold text-teal-400 sm:text-2xl">
+                      {group.section}
+                    </h2>
+
+                    <p className="mt-1 text-sm text-slate-400">
+                      {findings.length} finding
+                      {findings.length === 1 ? "" : "s"}
+                    </p>
+                  </div>
+                </div>
+
+                <span className="w-full rounded-xl border border-slate-600 px-4 py-2 text-center text-sm font-black text-slate-200 sm:w-auto sm:shrink-0">
+                  {isClosed ? "Open" : "Close"}
+                </span>
+              </div>
+
+              <div className="flex shrink-0 flex-col border-l border-slate-700">
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    moveSection(index, index - 1);
+                  }}
+                  disabled={index === 0}
+                  className="flex h-1/2 min-h-[36px] items-center justify-center px-3 text-sm font-black text-slate-300 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-30"
+                  title="Move section up"
+                >
+                  ↑
+                </button>
+
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    moveSection(index, index + 1);
+                  }}
+                  disabled={index === orderedGroups.length - 1}
+                  className="flex h-1/2 min-h-[36px] items-center justify-center border-t border-slate-700 px-3 text-sm font-black text-slate-300 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-30"
+                  title="Move section down"
+                >
+                  ↓
+                </button>
+              </div>
+            </div>
+
+            {!isClosed && (
+              <div className="w-full max-w-full space-y-5 overflow-hidden p-3 sm:p-5">
+                <SectionInformationChecklist
+                  inspectionId={inspectionId}
+                  section={group.section}
+                />
+
+                {group.section === "Inspection Details" && (
+                  <ReportDisclaimers inspectionId={inspectionId} />
+                )}
+
+                <SectionLimitations
+                  inspectionId={inspectionId}
+                  section={group.section}
+                />
+
+                <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)]">
+                  <AddSectionFindingForm
+                    inspectionId={inspectionId}
+                    section={group.section}
+                    router={router}
+                  />
+
+                  <SectionReferencePhotos
+                    inspectionId={inspectionId}
+                    section={group.section}
+                  />
+                </div>
+
+                {findings.length === 0 && (
+                  <div className="rounded-xl border border-slate-700 bg-[#071224] p-5 text-slate-400">
+                    No findings in this section.
+                  </div>
+                )}
+
+                {findings.map((finding: any) => (
+                  <FindingCard
+                    key={finding.id}
+                    finding={finding}
+                    inspectionId={inspectionId}
+                    allPhotos={allPhotos}
+                    router={router}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
+
+function AddSectionFindingForm({
+  inspectionId,
+  section,
+  router,
+}: {
+  inspectionId: string;
+  section: string;
+  router: any;
+}) {
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState("");
+  const [severity, setSeverity] = useState("Recommended Repair");
+  const [observation, setObservation] = useState("");
+  const [implication, setImplication] = useState("");
+  const [recommendation, setRecommendation] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
+
+  async function createFinding() {
+    if (saving) return;
+
+    const cleanTitle = title.trim();
+    const cleanObservation = observation.trim();
+
+    if (!cleanTitle && !cleanObservation) {
+      setMessage("Add a title or observation before saving.");
+      return;
+    }
+
+    setSaving(true);
+    setMessage("");
+
+    try {
+      const { error } = await supabase.from("findings").insert({
+        inspection_id: inspectionId,
+        section,
+        severity,
+        title: cleanTitle || cleanObservation.slice(0, 80) || "New Defect",
+        observation: cleanObservation,
+        implication: implication.trim(),
+        recommendation: recommendation.trim(),
+        image_url: null,
+      });
+
+      if (error) throw error;
+
+      setTitle("");
+      setObservation("");
+      setImplication("");
+      setRecommendation("");
+      setSeverity("Recommended Repair");
+      setOpen(false);
+      router.refresh();
+    } catch (error: any) {
+      setMessage(error?.message || "Failed to add defect.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="rounded-xl border border-slate-700 bg-[#071224] p-4">
+      {!open ? (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-cyan-500 px-5 py-3 text-sm font-black text-slate-950 transition active:scale-[0.98] hover:bg-cyan-400 sm:w-auto [touch-action:manipulation]"
+        >
+          ➕ Add Defect
+        </button>
+      ) : (
+        <div className="space-y-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="text-lg font-black text-cyan-300">
+                Add Defect To {section}
+              </h3>
+              <p className="mt-1 text-sm text-slate-400">
+                Create a normal finding without using AI Capture, Field Tool, Voice Tool, or Equipment Analyzer. Photos can be added after saving.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              disabled={saving}
+              className="rounded-xl border border-slate-600 px-4 py-2 text-sm font-black text-slate-200 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Cancel
+            </button>
+          </div>
+
+          {message && (
+            <div className="rounded-xl border border-red-500/60 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-200">
+              {message}
+            </div>
+          )}
+
+          <div className="grid gap-3 md:grid-cols-2">
+            <input
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              disabled={saving}
+              placeholder="Defect title"
+              className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
+            />
+
+            <select
+              value={severity}
+              onChange={(event) => setSeverity(event.target.value)}
+              disabled={saving}
+              className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {SEVERITIES.map((item) => (
+                <option key={item}>{item}</option>
+              ))}
+            </select>
+
+            <textarea
+              value={observation}
+              onChange={(event) => setObservation(event.target.value)}
+              disabled={saving}
+              placeholder="Observation"
+              className="min-h-[110px] w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60 md:col-span-2"
+            />
+
+            <textarea
+              value={implication}
+              onChange={(event) => setImplication(event.target.value)}
+              disabled={saving}
+              placeholder="Implication / why it matters"
+              className="min-h-[90px] w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
+            />
+
+            <textarea
+              value={recommendation}
+              onChange={(event) => setRecommendation(event.target.value)}
+              disabled={saving}
+              placeholder="Recommendation"
+              className="min-h-[90px] w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={createFinding}
+            disabled={saving}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-teal-500 px-5 py-3 text-sm font-black text-slate-950 transition active:scale-[0.98] hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto [touch-action:manipulation]"
+          >
+            {saving && (
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            )}
+            {saving ? "Saving..." : "Save Defect"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function getSeverityStyle(severity: string | null | undefined) {
+  const clean = String(severity || "Recommended Repair").toLowerCase();
+
+  if (
+    clean.includes("safety") ||
+    clean.includes("hazard") ||
+    clean.includes("major")
+  ) {
+    return "border-red-500/60 bg-red-500/10 text-red-300";
+  }
+
+  if (
+    clean.includes("maintenance") ||
+    clean.includes("monitor") ||
+    clean.includes("minor")
+  ) {
+    return "border-yellow-500/60 bg-yellow-500/10 text-yellow-300";
+  }
+
+  if (
+    clean.includes("information") ||
+    clean.includes("info") ||
+    clean.includes("client")
+  ) {
+    return "border-blue-500/60 bg-blue-500/10 text-blue-300";
+  }
+
+  return "border-teal-500/60 bg-teal-500/10 text-teal-300";
+}
+
+function getPhotoUrl(photo: any) {
+  return (
+    photo?.signed_url ||
+    photo?.public_url ||
+    photo?.image_url ||
+    photo?.photo_url ||
+    photo?.url ||
+    ""
+  );
+}
+
+function getPhotoPreviewUrl(photo: any) {
+  return (
+    photo?.signed_thumbnail_url ||
+    photo?.thumbnail_url ||
+    getPhotoUrl(photo)
+  );
+}
+
+function isVideoMedia(photo: any) {
+  const url = String(getPhotoUrl(photo) || "").toLowerCase();
+  const path = String(
+    photo?.file_path ||
+      photo?.storage_path ||
+      photo?.photo_path ||
+      photo?.image_path ||
+      ""
+  ).toLowerCase();
+  const type = String(
+    photo?.mime_type ||
+      photo?.media_type ||
+      photo?.content_type ||
+      photo?.file_type ||
+      ""
+  ).toLowerCase();
+  const title = String(
+    photo?.title ||
+      photo?.current_finding_title ||
+      photo?.finding_title ||
+      photo?.caption ||
+      ""
+  ).toLowerCase();
+
+  return (
+    Boolean(photo?.is_video) ||
+    Boolean(photo?.video_url) ||
+    type.startsWith("video/") ||
+    type.includes("quicktime") ||
+    path.match(/\.(mp4|mov|m4v|webm|avi|quicktime)$/) !== null ||
+    url.match(/\.(mp4|mov|m4v|webm|avi|quicktime)(\?|$)/) !== null ||
+    title.includes("video")
+  );
+}
+
+function normalizePhotoKey(value: any) {
+  if (!value) return "";
+
+  let clean = String(value).trim();
+
+  if (!clean) return "";
+
+  try {
+    clean = decodeURIComponent(clean);
+  } catch {}
+
+  clean = clean.split("?")[0];
+
+  const storageMarker = "/inspection-photos/";
+  const storageIndex = clean.indexOf(storageMarker);
+
+  if (storageIndex !== -1) {
+    return clean.substring(storageIndex + storageMarker.length);
+  }
+
+  const publicMarker = "/object/public/inspection-photos/";
+  const publicIndex = clean.indexOf(publicMarker);
+
+  if (publicIndex !== -1) {
+    return clean.substring(publicIndex + publicMarker.length);
+  }
+
+  const signedMarker = "/object/sign/inspection-photos/";
+  const signedIndex = clean.indexOf(signedMarker);
+
+  if (signedIndex !== -1) {
+    return clean.substring(signedIndex + signedMarker.length);
+  }
+
+  return clean;
+}
+
+function getPhotoKeys(photo: any) {
+  return [
+    photo?.file_path,
+    photo?.storage_path,
+    photo?.photo_path,
+    photo?.signed_url,
+    photo?.public_url,
+    photo?.image_url,
+    photo?.photo_url,
+    photo?.url,
+  ]
+    .map(normalizePhotoKey)
+    .filter(Boolean);
+}
+
+function hasSeenPhoto(seen: Set<string>, photo: any) {
+  const keys = getPhotoKeys(photo);
+  return keys.some((key) => seen.has(key));
+}
+
+function markPhotoSeen(seen: Set<string>, photo: any) {
+  getPhotoKeys(photo).forEach((key) => seen.add(key));
+}
+
+function getFindingPhotos(finding: any) {
+  const photos: any[] = [];
+  const seen = new Set<string>();
+
+  (finding.photos || []).forEach((photo: any) => {
+    const url = getPhotoUrl(photo);
+    const previewUrl = getPhotoPreviewUrl(photo);
+
+    if (!url || hasSeenPhoto(seen, photo)) return;
+
+    markPhotoSeen(seen, photo);
+    photos.push(photo);
+  });
+
+  const legacyImage =
+    finding.signed_image_url ||
+    finding.image_url ||
+    finding.public_image_url ||
+    "";
+
+  const legacyPhoto = {
+    id: `legacy-${finding.id}`,
+    signed_url: legacyImage,
+    public_url: legacyImage,
+    image_url: legacyImage,
+    file_path:
+      finding.file_path ||
+      finding.storage_path ||
+      finding.photo_path ||
+      finding.image_path ||
+      "",
+    mime_type:
+      finding.mime_type ||
+      finding.media_type ||
+      finding.content_type ||
+      finding.file_type ||
+      "",
+    title:
+      finding.title ||
+      finding.finding_title ||
+      finding.defect_title ||
+      finding.name ||
+      "",
+    is_video: finding.is_video || finding.media_type === "video",
+    isLegacyImage: true,
+  };
+
+  if (legacyImage && !hasSeenPhoto(seen, legacyPhoto)) {
+    photos.unshift(legacyPhoto);
+  }
+
+  return photos;
+}
+
+
+async function readFileAsDataUrl(file: File): Promise<string> {
+  return await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        resolve(reader.result);
+        return;
+      }
+
+      reject(new Error("Unable to read image file."));
+    };
+
+    reader.onerror = () => reject(new Error("Unable to read image file."));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function loadImageFromDataUrl(dataUrl: string): Promise<HTMLImageElement> {
+  return await new Promise((resolve, reject) => {
+    const image = new Image();
+
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("Unable to load image."));
+    image.src = dataUrl;
+  });
+}
+
+
+async function createImageVariantForUpload(
+  file: File,
+  maxDimension: number,
+  quality: number,
+  suffix: string
+): Promise<File> {
+  if (!file.type.startsWith("image/")) return file;
+
+  try {
+    const originalDataUrl = await readFileAsDataUrl(file);
+    const image = await loadImageFromDataUrl(originalDataUrl);
+
+    const originalWidth = image.naturalWidth || image.width;
+    const originalHeight = image.naturalHeight || image.height;
+
+    const scale = Math.min(1, maxDimension / Math.max(originalWidth, originalHeight));
+    const width = Math.max(1, Math.round(originalWidth * scale));
+    const height = Math.max(1, Math.round(originalHeight * scale));
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return file;
+
+    ctx.drawImage(image, 0, 0, width, height);
+
+    const blob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob(resolve, "image/jpeg", quality);
+    });
+
+    if (!blob) return file;
+
+    const originalName = file.name.replace(/\.[^/.]+$/, "");
+    return new File([blob], `${originalName}-${suffix}.jpg`, {
+      type: "image/jpeg",
+      lastModified: Date.now(),
+    });
+  } catch {
+    return file;
+  }
+}
+
+async function createFullImageForUpload(file: File): Promise<File> {
+  return createImageVariantForUpload(file, 1800, 0.8, "optimized");
+}
+
+async function createThumbnailForUpload(file: File): Promise<File> {
+  return createImageVariantForUpload(file, 480, 0.7, "thumb");
+}
+
+
+
+function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
+  const [showPhotoPicker, setShowPhotoPicker] = useState(false);
+  const [showUploadPanel, setShowUploadPanel] = useState(false);
+  const [uploadingPhotos, setUploadingPhotos] = useState(false);
+  const [movingPhotoId, setMovingPhotoId] = useState<string | null>(null);
+  const [markupPhoto, setMarkupPhoto] = useState<any | null>(null);
+  const [showMarkupEditor, setShowMarkupEditor] = useState(false);
+  const [draggingOver, setDraggingOver] = useState(false);
+  const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState<"success" | "error" | "">("");
+  const photos = getFindingPhotos(finding);
+
+  function showMessage(type: "success" | "error", text: string) {
+    setMessageType(type);
+    setMessage(text);
+
+    window.setTimeout(() => {
+      setMessage("");
+      setMessageType("");
+    }, 3500);
+  }
+
+  async function uploadNewPhotosToFinding(fileList: FileList | null) {
+    const files = Array.from(fileList || []);
+
+    if (!files.length) return;
+
+    const imageFiles = files.filter((file) => file.type.startsWith("image/"));
+
+    if (!imageFiles.length) {
+      showMessage("error", "Please choose image files only.");
+      return;
+    }
+
+    setUploadingPhotos(true);
+
+    try {
+      for (const file of imageFiles) {
+        const uploadFile = await createFullImageForUpload(file);
+        const thumbnailFile = await createThumbnailForUpload(file);
+        const fileExt = "jpg";
+        const safeName = uploadFile.name
+          .replace(/\.[^/.]+$/, "")
+          .replace(/[^a-zA-Z0-9-_]/g, "-")
+          .slice(0, 50);
+
+        const baseName = `${Date.now()}-${crypto.randomUUID()}-${safeName}`;
+        const filePath = `${inspectionId}/finding-photos/${finding.id}/${baseName}.${fileExt}`;
+        const thumbnailPath = `${inspectionId}/finding-photos/${finding.id}/thumbnails/${baseName}-thumb.jpg`;
+
+        const { error: uploadError } = await supabase.storage
+          .from(PHOTO_BUCKET)
+          .upload(filePath, uploadFile, {
+            cacheControl: "31536000",
+            upsert: false,
+            contentType: uploadFile.type || "image/jpeg",
+          });
+
+        if (uploadError) throw uploadError;
+
+        const { data: publicData } = supabase.storage
+          .from(PHOTO_BUCKET)
+          .getPublicUrl(filePath);
+
+        let thumbnailUrl = "";
+
+        const { error: thumbnailUploadError } = await supabase.storage
+          .from(PHOTO_BUCKET)
+          .upload(thumbnailPath, thumbnailFile, {
+            cacheControl: "31536000",
+            upsert: false,
+            contentType: "image/jpeg",
+          });
+
+        if (!thumbnailUploadError) {
+          const { data: thumbnailData } = supabase.storage
+            .from(PHOTO_BUCKET)
+            .getPublicUrl(thumbnailPath);
+
+          thumbnailUrl = thumbnailData.publicUrl;
+        }
+
+        const { error: insertError } = await supabase.from("photos").insert({
+          inspection_id: inspectionId,
+          finding_id: finding.id,
+          file_path: filePath,
+          public_url: publicData.publicUrl,
+          thumbnail_path: thumbnailUrl ? thumbnailPath : null,
+          thumbnail_url: thumbnailUrl || null,
+        });
+
+        if (insertError) throw insertError;
+      }
+
+      setShowUploadPanel(false);
+      showMessage("success", imageFiles.length === 1 ? "Photo added to finding." : "Photos added to finding.");
+      router.refresh();
+    } catch (error: any) {
+      showMessage("error", error?.message || "Failed to add photo to this finding.");
+    } finally {
+      setUploadingPhotos(false);
+    }
+  }
+
+  async function handleFindingDrop(event: React.DragEvent<HTMLElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    setDraggingOver(false);
+
+    if (uploadingPhotos) return;
+
+    await uploadNewPhotosToFinding(event.dataTransfer?.files || null);
+  }
+
+  async function movePhotoToFinding(photo: any) {
+    if (!photo?.id || photo.isLegacyImage) {
+      showMessage("error", "This older image does not have a movable photo record.");
+      return;
+    }
+
+    if (String(photo.finding_id || photo.current_finding_id || "") === String(finding.id)) {
+      showMessage("error", "This photo is already attached to this finding.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Move this photo to this finding? It will no longer appear under the previous finding."
     );
 
     if (!confirmed) return;
 
-    const updated = [...hiddenSections, section].filter(
-      (item, index, array) => array.indexOf(item) === index
-    );
+    setMovingPhotoId(String(photo.id));
 
-    setHiddenSections(updated);
-    localStorage.setItem(hiddenSectionsKey, JSON.stringify(updated));
+    try {
+      const { error } = await supabase
+        .from("photos")
+        .update({ finding_id: finding.id })
+        .eq("id", photo.id)
+        .eq("inspection_id", inspectionId);
+
+      if (error) throw error;
+
+      setShowPhotoPicker(false);
+      showMessage("success", "Photo moved to this finding.");
+      router.refresh();
+    } catch (error: any) {
+      showMessage("error", error?.message || "Failed to move photo.");
+    } finally {
+      setMovingPhotoId(null);
+    }
   }
 
-  function renameSection(section: string, newName: string) {
-    const updated = {
-      ...renamedSections,
-      [section]: newName,
-    };
-
-    setRenamedSections(updated);
-    localStorage.setItem(renamedSectionsKey, JSON.stringify(updated));
-  }
-
-  function restoreAllSections() {
-    setHiddenSections([]);
-    localStorage.setItem(hiddenSectionsKey, JSON.stringify([]));
-  }
-
-  const orderedGroups = useMemo(() => {
-    const groups = groupedFindings || [];
-
-    return SECTION_ORDER.map((section) => {
-      const existing = groups.find((group: any) => group.section === section);
-
-      return {
-        section,
-        findings: existing?.findings || [],
-      };
-    }).filter((group) => !hiddenSections.includes(group.section));
-  }, [groupedFindings, hiddenSections]);
-
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap gap-3">
-        <Link
-          href={`/field-tool?inspection_id=${inspectionId}`}
-          className="rounded-xl border border-emerald-500 px-5 py-3 font-bold text-emerald-300 transition hover:bg-emerald-500 hover:text-slate-950"
-        >
-          Field Tool
-        </Link>
-      </div>
-
-      {hiddenSections.length > 0 && (
-        <div className="rounded-xl border border-slate-700 bg-[#071224] p-4">
-          <button
-            type="button"
-            onClick={restoreAllSections}
-            className="rounded-xl border border-teal-500 px-4 py-2 text-sm font-bold text-teal-300 hover:bg-teal-500/10"
-          >
-            Restore Hidden Sections
-          </button>
-        </div>
-      )}
-
-      {orderedGroups.map((group: any) => (
-        <SectionBlock
-          key={group.section}
-          group={group}
-          inspectionId={inspectionId}
-          displayName={renamedSections[group.section] || group.section}
-          onRename={renameSection}
-          onHide={hideSection}
-        />
-      ))}
-    </div>
-  );
-}
-
-function SectionBlock({
-  group,
-  inspectionId,
-  displayName,
-  onRename,
-  onHide,
-}: any) {
-  const checklist = SECTION_CHECKLISTS[group.section] || [];
-
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [draftName, setDraftName] = useState(displayName);
-
-  useEffect(() => {
-    setDraftName(displayName);
-  }, [displayName]);
-
-  const normalFindings =
-    group.findings?.filter(
-      (finding: any) =>
-        !checklist.some((item: any) => item.title === finding.title)
-    ) || [];
-
-  function saveName() {
-    const cleaned = draftName.trim();
-
-    if (!cleaned) {
-      setDraftName(displayName);
-      setIsEditingName(false);
+  async function deletePhotoFromFinding(photo: any) {
+    if (!photo?.id || photo.isLegacyImage) {
+      showMessage("error", "This older image is stored directly on the finding. Edit the finding image field or delete the finding to remove it.");
       return;
     }
 
-    onRename(group.section, cleaned);
-    setIsEditingName(false);
-  }
-
-  return (
-    <section className="overflow-hidden rounded-2xl border border-slate-700 bg-[#071224] shadow-xl">
-      <div className="border-b border-slate-700 bg-slate-800/80 px-6 py-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          {isEditingName ? (
-            <div className="flex flex-1 flex-wrap gap-2">
-              <input
-                value={draftName}
-                onChange={(e) => setDraftName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") saveName();
-
-                  if (e.key === "Escape") {
-                    setDraftName(displayName);
-                    setIsEditingName(false);
-                  }
-                }}
-                autoFocus
-                className="min-w-[260px] flex-1 rounded-xl border border-slate-700 bg-[#020817] px-4 py-2 text-white outline-none focus:border-teal-400"
-              />
-
-              <button
-                type="button"
-                onClick={saveName}
-                className="rounded-xl bg-teal-400 px-4 py-2 text-sm font-bold text-slate-900 hover:bg-teal-300"
-              >
-                Save
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setDraftName(displayName);
-                  setIsEditingName(false);
-                }}
-                className="rounded-xl border border-slate-600 px-4 py-2 text-sm font-bold text-slate-200 hover:bg-slate-700"
-              >
-                Cancel
-              </button>
-            </div>
-          ) : (
-            <h2 className="text-2xl font-bold text-teal-400">{displayName}</h2>
-          )}
-
-          {!isEditingName && (
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setIsEditingName(true)}
-                className="rounded-xl border border-slate-600 px-3 py-2 text-xs font-bold text-slate-200 hover:bg-slate-700"
-              >
-                Edit Name
-              </button>
-
-              <button
-                type="button"
-                onClick={() => onHide(group.section)}
-                className="rounded-xl border border-red-500/50 px-3 py-2 text-xs font-bold text-red-300 hover:bg-red-500/10"
-              >
-                Hide Section
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="space-y-5 p-5">
-        {checklist.map((item: any) => (
-          <ChecklistCard
-            key={item.title}
-            item={item}
-            section={group.section}
-            inspectionId={inspectionId}
-          />
-        ))}
-
-        {normalFindings.map((finding: any) => (
-          <NormalFindingCard key={finding.id} finding={finding} />
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function ChecklistCard({ item, section, inspectionId }: any) {
-  const storageKey = `inspection-${inspectionId}-${section}-${item.title}`;
-  const customKey = `custom-options-${section}-${item.title}`;
-  const temperatureKey = `temperature-${inspectionId}-${section}-${item.title}`;
-
-  const [selected, setSelected] = useState<string[]>(item.defaults || []);
-  const [customOptions, setCustomOptions] = useState<string[]>([]);
-  const [showInput, setShowInput] = useState(false);
-  const [otherText, setOtherText] = useState("");
-  const [temperature, setTemperature] = useState("");
-
-  useEffect(() => {
-    const saved = localStorage.getItem(storageKey);
-    const savedCustom = localStorage.getItem(customKey);
-    const savedTemp = localStorage.getItem(temperatureKey);
-
-    if (saved) setSelected(JSON.parse(saved));
-    if (savedCustom) setCustomOptions(JSON.parse(savedCustom));
-    if (savedTemp) setTemperature(savedTemp);
-  }, [storageKey, customKey, temperatureKey]);
-
-  const allOptions = [...item.options, ...customOptions].filter(
-    (option, index, array) => array.indexOf(option) === index
-  );
-
-  function toggleOption(option: string) {
-    let updated: string[];
-
-    if (item.type === "temperature") {
-      updated = [option];
-    } else {
-      updated = selected.includes(option)
-        ? selected.filter((o) => o !== option)
-        : [...selected, option];
-    }
-
-    setSelected(updated);
-    localStorage.setItem(storageKey, JSON.stringify(updated));
-  }
-
-  function saveOther() {
-    const cleaned = otherText.trim();
-
-    if (!cleaned) {
-      setShowInput(false);
-      setOtherText("");
-      return;
-    }
-
-    const updatedCustom = [...customOptions, cleaned].filter(
-      (option, index, array) => array.indexOf(option) === index
+    const confirmed = window.confirm(
+      "Delete this photo from the report? This removes the photo record from this finding. The original storage file is left alone for safety."
     );
 
-    setCustomOptions(updatedCustom);
-    localStorage.setItem(customKey, JSON.stringify(updatedCustom));
+    if (!confirmed) return;
 
-    const selectedUpdated = selected.includes(cleaned)
-      ? selected
-      : [...selected, cleaned];
+    setMovingPhotoId(String(photo.id));
 
-    setSelected(selectedUpdated);
-    localStorage.setItem(storageKey, JSON.stringify(selectedUpdated));
+    try {
+      const { error } = await supabase
+        .from("photos")
+        .delete()
+        .eq("id", photo.id)
+        .eq("inspection_id", inspectionId);
 
-    setOtherText("");
-    setShowInput(false);
+      if (error) throw error;
+
+      showMessage("success", "Photo deleted from finding.");
+      router.refresh();
+    } catch (error: any) {
+      showMessage("error", error?.message || "Failed to delete photo.");
+    } finally {
+      setMovingPhotoId(null);
+    }
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-700 bg-[#0b1730]">
-      <div className="border-b border-slate-700 bg-slate-800/70 px-6 py-3">
-        <h3 className="text-lg font-bold text-teal-300">{item.title}</h3>
-      </div>
-
-      <div className="p-6">
-        {item.type === "temperature" && (
-          <input
-            value={temperature}
-            onChange={(e) => {
-              setTemperature(e.target.value);
-              localStorage.setItem(temperatureKey, e.target.value);
-            }}
-            placeholder="Enter temperature"
-            className="mb-6 w-full rounded-xl border border-slate-700 bg-[#020817] px-4 py-3 text-white outline-none focus:border-teal-400"
-          />
-        )}
-
-        <div className="flex flex-wrap gap-x-14 gap-y-6">
-          {allOptions.map((option: string) => {
-            const checked = selected.includes(option);
-
-            return (
-              <label
-                key={option}
-                className="flex min-w-[210px] items-center gap-4 text-white"
-              >
-                <input
-                  type={item.type === "temperature" ? "radio" : "checkbox"}
-                  checked={checked}
-                  onChange={() => toggleOption(option)}
-                  className="h-5 w-5 accent-teal-400"
-                />
-
-                <span className="text-lg">{option}</span>
-              </label>
-            );
-          })}
-        </div>
-
-        {showInput ? (
-          <div className="mt-6 flex gap-3">
-            <input
-              value={otherText}
-              onChange={(e) => setOtherText(e.target.value)}
-              onBlur={() => {
-                if (!otherText.trim()) {
-                  setShowInput(false);
-                  setOtherText("");
-                }
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") saveOther();
-                if (e.key === "Escape") {
-                  setShowInput(false);
-                  setOtherText("");
-                }
-              }}
-              autoFocus
-              placeholder="Add other option..."
-              className="flex-1 rounded-xl border border-slate-700 bg-[#020817] px-4 py-3 text-white outline-none focus:border-teal-400"
-            />
-
-            <button
-              type="button"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={saveOther}
-              className="rounded-xl bg-teal-400 px-5 py-3 font-bold text-slate-900 hover:bg-teal-300"
-            >
-              Save
-            </button>
+    <article
+      onDragOver={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        if (!uploadingPhotos) setDraggingOver(true);
+      }}
+      onDragLeave={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        setDraggingOver(false);
+      }}
+      onDrop={handleFindingDrop}
+      className={`w-full max-w-full overflow-hidden rounded-2xl border bg-[#071224] shadow-xl transition ${
+        draggingOver
+          ? "border-teal-400 ring-2 ring-teal-400/40"
+          : "border-slate-700"
+      }`}
+    >
+      <div className="p-3 pb-0 sm:p-4 sm:pb-0">
+        <InlineStatusMessage type={messageType} message={message} />
+        {draggingOver && (
+          <div className="mt-3 rounded-xl border border-teal-400 bg-teal-500/10 px-4 py-3 text-sm font-black text-teal-200">
+            Drop photos here to attach them to this defect.
           </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setShowInput(true)}
-            className="mt-6 text-lg font-semibold text-teal-300 hover:text-teal-200"
-          >
-            + OTHER
-          </button>
         )}
       </div>
-    </div>
-  );
-}
+      {photos.length > 0 && (
+        <div className="border-b border-slate-700 bg-black p-3">
+          <div
+            className={
+              photos.length === 1
+                ? "grid gap-3"
+                : "grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
+            }
+          >
+            {photos.map((photo: any, index: number) => {
+              const url = getPhotoUrl(photo);
+    const previewUrl = getPhotoPreviewUrl(photo);
+              const isBusy = movingPhotoId === String(photo.id);
 
-function NormalFindingCard({ finding }: any) {
-  const firstPhoto = finding.photos?.[0];
+              return (
+                <div
+                  key={String(photo.id || photo.file_path || url || index)}
+                  className="w-full max-w-full overflow-hidden rounded-xl border border-slate-700 bg-slate-950"
+                >
+                  {isVideoMedia(photo) ? (
+                    <video
+                      src={previewUrl || url}
+                      controls
+                      playsInline
+                      preload="metadata"
+                      className={
+                        photos.length === 1
+                          ? "max-h-[650px] w-full bg-black object-contain"
+                          : "h-56 w-full bg-black object-contain"
+                      }
+                    >
+                      Your browser does not support video playback.
+                    </video>
+                  ) : (
+                    <a href={url} target="_blank" rel="noreferrer" className="block">
+                      <img
+                        src={previewUrl || url}
+                        alt={`Finding photo ${index + 1}`}
+                        loading="lazy"
+                decoding="async"
+                fetchPriority="low"
+                className={
+                          photos.length === 1
+                            ? "max-h-[650px] w-full object-contain"
+                            : "h-56 w-full object-contain transition hover:scale-[1.02]"
+                        }
+                      />
+                    </a>
+                  )}
 
-  const image =
-    finding.signed_image_url ||
-    finding.image_url ||
-    finding.public_image_url ||
-    firstPhoto?.signed_url ||
-    firstPhoto?.public_url ||
-    firstPhoto?.image_url ||
-    "";
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-800 px-3 py-2 text-xs font-bold text-slate-400">
+                    <span>Photo {index + 1}</span>
 
-  return (
-    <article className="overflow-hidden rounded-2xl border border-slate-700 bg-[#071224] shadow-xl">
-      {image && (
-        <div className="border-b border-slate-700 bg-black">
-          <img
-            src={image}
-            alt="Finding"
-            className="max-h-[650px] w-full object-contain"
-          />
+                    <div className="flex flex-wrap gap-2">
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="rounded-lg border border-slate-600 px-3 py-1 text-slate-200 hover:bg-slate-800"
+                      >
+                        Open
+                      </a>
+
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          deletePhotoFromFinding(photo);
+                        }}
+                        disabled={isBusy}
+                        className="rounded-lg border border-red-600 px-3 py-1 font-black text-red-300 hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {isBusy ? "Working..." : "Delete"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
-      <div className="p-6">
-        <EditableFinding finding={finding} />
+      <div className="w-full max-w-full overflow-hidden p-4 sm:p-6">
+        <div className="mb-4 flex flex-wrap items-center gap-3">
+          <span
+            className={`rounded-full border px-3 py-1 text-xs font-extrabold uppercase tracking-wide ${getSeverityStyle(
+              finding.severity
+            )}`}
+          >
+            {finding.severity || "Recommended Repair"}
+          </span>
+
+          {finding.section && (
+            <span className="rounded-full border border-slate-600 bg-slate-900/70 px-3 py-1 text-xs font-bold uppercase tracking-wide text-slate-300">
+              {finding.section}
+            </span>
+          )}
+
+          {photos.length > 0 && (
+            <span className="rounded-full border border-cyan-600 bg-cyan-950/40 px-3 py-1 text-xs font-bold uppercase tracking-wide text-cyan-300">
+              {photos.length} photo{photos.length === 1 ? "" : "s"}
+            </span>
+          )}
+        </div>
+
+        <h3 className="mb-4 break-words text-2xl font-black text-white">
+          {finding.title ||
+            finding.finding_title ||
+            finding.defect_title ||
+            finding.name ||
+            "Untitled Finding"}
+        </h3>
+
+        <div className="mb-5 flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap">
+          <button
+            type="button"
+            onClick={async (event) => {
+              event.stopPropagation();
+
+              try {
+                const res = await fetch("/api/save-finding-template", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    title:
+                      finding.title ||
+                      finding.finding_title ||
+                      finding.defect_title ||
+                      finding.name ||
+                      "Untitled Finding",
+                    section: finding.section || "Inspection Details",
+                    severity: finding.severity || "Recommended Repair",
+                    observation: finding.observation || "",
+                    implication: finding.implication || "",
+                    recommendation: finding.recommendation || "",
+                  }),
+                });
+
+                let data: any = {};
+
+                try {
+                  data = await res.json();
+                } catch {
+                  data = {};
+                }
+
+                if (!res.ok) {
+                  showMessage("error", data.error || "Failed to save template.");
+                  return;
+                }
+
+                showMessage("success", "Template saved!");
+              } catch {
+                showMessage("error", "Failed to save template.");
+              }
+            }}
+            className="w-full rounded-xl border border-yellow-500 px-4 py-2 text-sm font-black text-yellow-300 hover:bg-yellow-500/10 sm:w-auto"
+          >
+            ⭐ Save as Template
+          </button>
+
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              setShowUploadPanel((prev) => !prev);
+              setShowPhotoPicker(false);
+            }}
+            className="w-full rounded-xl border border-teal-500 px-4 py-2 text-sm font-black text-teal-300 hover:bg-teal-500/10 sm:w-auto"
+          >
+            📷 Add Pictures
+          </button>
+
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              setShowPhotoPicker((prev) => !prev);
+              setShowUploadPanel(false);
+            }}
+            className="w-full rounded-xl border border-cyan-500 px-4 py-2 text-sm font-black text-cyan-300 hover:bg-cyan-500/10 sm:w-auto"
+          >
+            📎 Move Existing Photo
+          </button>
+
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+
+              if (!photos.length) {
+                showMessage("error", "This finding has no photos.");
+                return;
+              }
+
+              setMarkupPhoto(photos[0]);
+              setShowMarkupEditor(true);
+            }}
+            className="w-full rounded-xl border border-purple-500 px-4 py-2 text-sm font-black text-purple-300 hover:bg-purple-500/10 sm:w-auto"
+          >
+            ✏️ Markup Photo
+          </button>
+        </div>
+
+        {showUploadPanel && (
+          <div className="mb-5 w-full max-w-full overflow-hidden rounded-xl border border-teal-700 bg-teal-950/20 p-4">
+            <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h4 className="text-lg font-black text-teal-300">
+                  Add Pictures To This Defect
+                </h4>
+                <p className="mt-1 text-sm text-slate-300">
+                  These photos save to this existing finding only. They do not create a new defect and they do not affect section reference photos. You can also drag and drop photos onto this defect card.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowUploadPanel(false)}
+                className="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm font-bold text-slate-200 hover:bg-slate-800 sm:w-auto"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              <label className="cursor-pointer rounded-xl border border-teal-500 bg-teal-500/10 p-4 text-center font-black text-teal-300 hover:bg-teal-500 hover:text-slate-950">
+                {uploadingPhotos ? "Uploading..." : "📷 Take Photo"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  multiple
+                  disabled={uploadingPhotos}
+                  onChange={async (event) => {
+                    await uploadNewPhotosToFinding(event.target.files);
+                    event.currentTarget.value = "";
+                  }}
+                  className="hidden"
+                />
+              </label>
+
+              <label className="cursor-pointer rounded-xl border border-cyan-500 bg-cyan-500/10 p-4 text-center font-black text-cyan-300 hover:bg-cyan-500 hover:text-slate-950">
+                {uploadingPhotos ? "Uploading..." : "🖼 Choose Photo"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  disabled={uploadingPhotos}
+                  onChange={async (event) => {
+                    await uploadNewPhotosToFinding(event.target.files);
+                    event.currentTarget.value = "";
+                  }}
+                  className="hidden"
+                />
+              </label>
+            </div>
+          </div>
+        )}
+
+        {showPhotoPicker && (
+          <div className="mb-5 w-full max-w-full overflow-hidden rounded-xl border border-cyan-700 bg-cyan-950/20 p-4">
+            <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h4 className="text-lg font-black text-cyan-300">
+                  Add Existing Photo To This Finding
+                </h4>
+                <p className="mt-1 text-sm text-slate-300">
+                  Select a photo from this report. It will be moved from its current finding to this one.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowPhotoPicker(false)}
+                className="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm font-bold text-slate-200 hover:bg-slate-800 sm:w-auto"
+              >
+                Close
+              </button>
+            </div>
+
+            {allPhotos.length === 0 ? (
+              <p className="rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-sm text-slate-400">
+                No movable photo records were found in this report yet.
+              </p>
+            ) : (
+              <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {allPhotos.map((photo: any, index: number) => {
+                  const url = getPhotoUrl(photo);
+    const previewUrl = getPhotoPreviewUrl(photo);
+                  const alreadyAttached =
+                    String(photo.finding_id || photo.current_finding_id || "") ===
+                    String(finding.id);
+
+                  return (
+                    <div
+                      key={String(photo.id || photo.file_path || index)}
+                      className="w-full max-w-full overflow-hidden rounded-xl border border-slate-700 bg-slate-950"
+                    >
+                      {url ? (
+                        isVideoMedia(photo) ? (
+                          <video
+                            src={url}
+                            controls
+                            playsInline
+                            preload="metadata"
+                            className="h-36 w-full bg-black object-contain"
+                          />
+                        ) : (
+                          <img
+                            src={previewUrl || url}
+                            alt={`Report photo ${index + 1}`}
+                            loading="lazy"
+                decoding="async"
+                fetchPriority="low"
+                className="h-36 w-full object-contain"
+                          />
+                        )
+                      ) : (
+                        <div className="flex h-36 items-center justify-center text-sm text-slate-500">
+                          No preview
+                        </div>
+                      )}
+
+                      <div className="space-y-2 border-t border-slate-800 p-3">
+                        <p className="line-clamp-2 text-xs font-bold text-slate-300">
+                          {photo.current_section} · {photo.current_finding_title}
+                        </p>
+
+                        <button
+                          type="button"
+                          onClick={() => movePhotoToFinding(photo)}
+                          disabled={alreadyAttached || movingPhotoId === String(photo.id)}
+                          className="w-full rounded-lg bg-cyan-500 px-3 py-2 text-xs font-black text-slate-950 hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {alreadyAttached
+                            ? "Already Here"
+                            : movingPhotoId === String(photo.id)
+                            ? "Moving..."
+                            : "Move Here"}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {showMarkupEditor && markupPhoto && (
+          <div className="mb-5 rounded-xl border border-purple-700 bg-purple-950/20 p-4">
+            <PhotoMarkupEditor
+              imageUrl={getPhotoUrl(markupPhoto)}
+              severity={finding.severity}
+              onCancel={() => {
+                setShowMarkupEditor(false);
+                setMarkupPhoto(null);
+              }}
+              onSave={async (items) => {
+                const { error } = await supabase.from("photo_annotations").insert({
+                  inspection_id: Number(inspectionId),
+                  finding_id: finding.id,
+                  photo_id: markupPhoto.id || null,
+                  image_url: getPhotoUrl(markupPhoto),
+                  annotation_json: items,
+                });
+
+                if (error) {
+                  showMessage("error", error.message);
+                  return;
+                }
+
+                showMessage("success", "Photo markup saved.");
+                setShowMarkupEditor(false);
+                setMarkupPhoto(null);
+              }}
+            />
+          </div>
+        )}
+
+        <div
+          onClick={(event) => event.stopPropagation()}
+          className="mb-5 w-full max-w-full overflow-hidden rounded-xl border border-slate-700 bg-slate-950/40 p-3 sm:p-4"
+        >
+          <EditableFinding finding={finding} />
+        </div>
 
         {finding.observation && (
           <ReportBlock title="Observation" text={finding.observation} />
@@ -922,13 +1375,37 @@ function NormalFindingCard({ finding }: any) {
   );
 }
 
+function InlineStatusMessage({
+  type,
+  message,
+}: {
+  type: "success" | "error" | "";
+  message: string;
+}) {
+  if (!message) return null;
+
+  const isSuccess = type === "success";
+
+  return (
+    <div
+      className={`rounded-xl border p-3 text-sm font-bold ${
+        isSuccess
+          ? "border-emerald-500 bg-emerald-950/30 text-emerald-300"
+          : "border-red-500 bg-red-950/30 text-red-300"
+      }`}
+    >
+      {message}
+    </div>
+  );
+}
+
 function ReportBlock({ title, text }: any) {
   return (
     <div className="mt-5">
       <h4 className="mb-2 text-lg font-bold text-white">{title}</h4>
 
-      <div className="rounded-xl border border-slate-700 bg-slate-900/60 p-4">
-        <p className="whitespace-pre-line text-sm leading-7 text-slate-200">
+      <div className="w-full max-w-full overflow-hidden rounded-xl border border-slate-700 bg-slate-900/60 p-4">
+        <p className="whitespace-pre-line break-words text-sm leading-7 text-slate-200">
           {text}
         </p>
       </div>
