@@ -12,6 +12,15 @@ import { supabase } from "../../../lib/supabaseClient";
 
 const PHOTO_BUCKET = "inspection-photos";
 
+const SEVERITIES = [
+  "Informational",
+  "Monitor",
+  "Maintenance",
+  "Recommended Repair",
+  "Safety Concern",
+  "Major Concern",
+];
+
 export default function ReportFindingsSortable({ groupedFindings }: any) {
   const params = useParams();
   const router = useRouter();
@@ -265,10 +274,18 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
                   section={group.section}
                 />
 
-                <SectionReferencePhotos
-                  inspectionId={inspectionId}
-                  section={group.section}
-                />
+                <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)]">
+                  <AddSectionFindingForm
+                    inspectionId={inspectionId}
+                    section={group.section}
+                    router={router}
+                  />
+
+                  <SectionReferencePhotos
+                    inspectionId={inspectionId}
+                    section={group.section}
+                  />
+                </div>
 
                 {findings.length === 0 && (
                   <div className="rounded-xl border border-slate-700 bg-[#071224] p-5 text-slate-400">
@@ -290,6 +307,167 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
           </section>
         );
       })}
+    </div>
+  );
+}
+
+
+function AddSectionFindingForm({
+  inspectionId,
+  section,
+  router,
+}: {
+  inspectionId: string;
+  section: string;
+  router: any;
+}) {
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState("");
+  const [severity, setSeverity] = useState("Recommended Repair");
+  const [observation, setObservation] = useState("");
+  const [implication, setImplication] = useState("");
+  const [recommendation, setRecommendation] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
+
+  async function createFinding() {
+    if (saving) return;
+
+    const cleanTitle = title.trim();
+    const cleanObservation = observation.trim();
+
+    if (!cleanTitle && !cleanObservation) {
+      setMessage("Add a title or observation before saving.");
+      return;
+    }
+
+    setSaving(true);
+    setMessage("");
+
+    try {
+      const { error } = await supabase.from("findings").insert({
+        inspection_id: inspectionId,
+        section,
+        severity,
+        title: cleanTitle || cleanObservation.slice(0, 80) || "New Defect",
+        observation: cleanObservation,
+        implication: implication.trim(),
+        recommendation: recommendation.trim(),
+        image_url: null,
+      });
+
+      if (error) throw error;
+
+      setTitle("");
+      setObservation("");
+      setImplication("");
+      setRecommendation("");
+      setSeverity("Recommended Repair");
+      setOpen(false);
+      router.refresh();
+    } catch (error: any) {
+      setMessage(error?.message || "Failed to add defect.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="rounded-xl border border-slate-700 bg-[#071224] p-4">
+      {!open ? (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-cyan-500 px-5 py-3 text-sm font-black text-slate-950 transition active:scale-[0.98] hover:bg-cyan-400 sm:w-auto [touch-action:manipulation]"
+        >
+          ➕ Add Defect
+        </button>
+      ) : (
+        <div className="space-y-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="text-lg font-black text-cyan-300">
+                Add Defect To {section}
+              </h3>
+              <p className="mt-1 text-sm text-slate-400">
+                Create a normal finding without using AI Capture, Field Tool, Voice Tool, or Equipment Analyzer. Photos can be added after saving.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              disabled={saving}
+              className="rounded-xl border border-slate-600 px-4 py-2 text-sm font-black text-slate-200 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Cancel
+            </button>
+          </div>
+
+          {message && (
+            <div className="rounded-xl border border-red-500/60 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-200">
+              {message}
+            </div>
+          )}
+
+          <div className="grid gap-3 md:grid-cols-2">
+            <input
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              disabled={saving}
+              placeholder="Defect title"
+              className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
+            />
+
+            <select
+              value={severity}
+              onChange={(event) => setSeverity(event.target.value)}
+              disabled={saving}
+              className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {SEVERITIES.map((item) => (
+                <option key={item}>{item}</option>
+              ))}
+            </select>
+
+            <textarea
+              value={observation}
+              onChange={(event) => setObservation(event.target.value)}
+              disabled={saving}
+              placeholder="Observation"
+              className="min-h-[110px] w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60 md:col-span-2"
+            />
+
+            <textarea
+              value={implication}
+              onChange={(event) => setImplication(event.target.value)}
+              disabled={saving}
+              placeholder="Implication / why it matters"
+              className="min-h-[90px] w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
+            />
+
+            <textarea
+              value={recommendation}
+              onChange={(event) => setRecommendation(event.target.value)}
+              disabled={saving}
+              placeholder="Recommendation"
+              className="min-h-[90px] w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={createFinding}
+            disabled={saving}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-teal-500 px-5 py-3 text-sm font-black text-slate-950 transition active:scale-[0.98] hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto [touch-action:manipulation]"
+          >
+            {saving && (
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            )}
+            {saving ? "Saving..." : "Save Defect"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -584,6 +762,7 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
   const [movingPhotoId, setMovingPhotoId] = useState<string | null>(null);
   const [markupPhoto, setMarkupPhoto] = useState<any | null>(null);
   const [showMarkupEditor, setShowMarkupEditor] = useState(false);
+  const [draggingOver, setDraggingOver] = useState(false);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"success" | "error" | "">("");
   const photos = getFindingPhotos(finding);
@@ -671,13 +850,23 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
       }
 
       setShowUploadPanel(false);
-      showMessage("success", "Photo added to finding.");
+      showMessage("success", imageFiles.length === 1 ? "Photo added to finding." : "Photos added to finding.");
       router.refresh();
     } catch (error: any) {
       showMessage("error", error?.message || "Failed to add photo to this finding.");
     } finally {
       setUploadingPhotos(false);
     }
+  }
+
+  async function handleFindingDrop(event: React.DragEvent<HTMLElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    setDraggingOver(false);
+
+    if (uploadingPhotos) return;
+
+    await uploadNewPhotosToFinding(event.dataTransfer?.files || null);
   }
 
   async function movePhotoToFinding(photo: any) {
@@ -751,9 +940,31 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
   }
 
   return (
-    <article className="w-full max-w-full overflow-hidden rounded-2xl border border-slate-700 bg-[#071224] shadow-xl">
+    <article
+      onDragOver={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        if (!uploadingPhotos) setDraggingOver(true);
+      }}
+      onDragLeave={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        setDraggingOver(false);
+      }}
+      onDrop={handleFindingDrop}
+      className={`w-full max-w-full overflow-hidden rounded-2xl border bg-[#071224] shadow-xl transition ${
+        draggingOver
+          ? "border-teal-400 ring-2 ring-teal-400/40"
+          : "border-slate-700"
+      }`}
+    >
       <div className="p-3 pb-0 sm:p-4 sm:pb-0">
         <InlineStatusMessage type={messageType} message={message} />
+        {draggingOver && (
+          <div className="mt-3 rounded-xl border border-teal-400 bg-teal-500/10 px-4 py-3 text-sm font-black text-teal-200">
+            Drop photos here to attach them to this defect.
+          </div>
+        )}
       </div>
       {photos.length > 0 && (
         <div className="border-b border-slate-700 bg-black p-3">
@@ -968,7 +1179,7 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
                   Add Pictures To This Defect
                 </h4>
                 <p className="mt-1 text-sm text-slate-300">
-                  These photos save to this existing finding only. They do not create a new defect and they do not affect section reference photos.
+                  These photos save to this existing finding only. They do not create a new defect and they do not affect section reference photos. You can also drag and drop photos onto this defect card.
                 </p>
               </div>
 

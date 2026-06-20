@@ -123,6 +123,7 @@ export default function SectionReferencePhotos({
   const [uploadLabel, setUploadLabel] = useState("Uploading...");
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [loadingPhotos, setLoadingPhotos] = useState(false);
+  const [draggingOver, setDraggingOver] = useState(false);
 
   useEffect(() => {
     loadPhotos();
@@ -386,34 +387,92 @@ export default function SectionReferencePhotos({
     }
   }
 
+  async function handleReferenceDrop(event: React.DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    setDraggingOver(false);
+
+    if (uploading) return;
+
+    const files = event.dataTransfer?.files || null;
+    await uploadSelectedPhotos(files);
+    setOpen(true);
+  }
+
   return (
-    <div className="rounded-2xl border border-slate-700 bg-[#071224]">
-      <button
-        type="button"
-        onClick={() => setOpen((prev) => !prev)}
-        className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left transition active:scale-[0.99] hover:bg-slate-800/50 [touch-action:manipulation]"
-      >
-        <div>
+    <div
+      onDragOver={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        if (!uploading) setDraggingOver(true);
+      }}
+      onDragLeave={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        setDraggingOver(false);
+      }}
+      onDrop={handleReferenceDrop}
+      className={`rounded-2xl border bg-[#071224] transition ${
+        draggingOver
+          ? "border-cyan-400 ring-2 ring-cyan-400/40"
+          : "border-slate-700"
+      }`}
+    >
+      <div className="flex w-full flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <button
+          type="button"
+          onClick={() => setOpen((prev) => !prev)}
+          className="min-w-0 flex-1 text-left transition active:scale-[0.99] [touch-action:manipulation]"
+        >
           <h3 className="text-xl font-black text-cyan-300">
             Section Reference Photos
           </h3>
 
           <p className="mt-1 text-sm text-slate-400">
-            {loadingPhotos
-              ? "Loading reference photos..."
-              : photos.length > 0
-                ? `${photos.length} reference photo${
-                    photos.length === 1 ? "" : "s"
-                  } added`
-                : "Add photos to this section without creating a defect"}
+            {draggingOver
+              ? "Drop photos here to add them to this section"
+              : loadingPhotos
+                ? "Loading reference photos..."
+                : photos.length > 0
+                  ? `${photos.length} reference photo${
+                      photos.length === 1 ? "" : "s"
+                    } added`
+                  : "Add photos to this section without creating a defect"}
           </p>
-        </div>
+        </button>
 
-        <span className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-600 px-4 py-2 text-sm font-black text-slate-200">
-          {loadingPhotos && <SmallSpinner />}
-          {open ? "Hide" : "Show"}
-        </span>
-      </button>
+        <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
+          <label
+            className={`inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-cyan-500 px-4 py-2 text-sm font-black text-cyan-300 transition active:scale-[0.98] hover:bg-cyan-500 hover:text-slate-950 [touch-action:manipulation] ${
+              uploading ? "cursor-not-allowed opacity-60" : ""
+            }`}
+          >
+            {uploading && <SmallSpinner />}
+            {uploading ? uploadLabel : "➕ Add Photo"}
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              disabled={uploading}
+              onChange={async (event) => {
+                await uploadSelectedPhotos(event.target.files);
+                event.currentTarget.value = "";
+                setOpen(true);
+              }}
+              className="hidden"
+            />
+          </label>
+
+          <button
+            type="button"
+            onClick={() => setOpen((prev) => !prev)}
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-600 px-4 py-2 text-sm font-black text-slate-200 transition active:scale-[0.98] hover:bg-slate-800 [touch-action:manipulation]"
+          >
+            {loadingPhotos && <SmallSpinner />}
+            {open ? "Hide" : "Show"}
+          </button>
+        </div>
+      </div>
 
       {photos.length > 0 && !open && (
         <div className="border-t border-slate-700 px-5 py-3">
@@ -440,6 +499,7 @@ export default function SectionReferencePhotos({
             <p className="mt-1 text-sm text-slate-300">
               These photos are for section documentation only. They are not
               findings, defects, repair request items, or severity-counted issues.
+              You can also drag and drop photos onto this panel.
             </p>
 
             <input
