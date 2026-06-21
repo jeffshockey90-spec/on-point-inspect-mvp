@@ -21,6 +21,8 @@ const SEVERITIES = [
   "Major Concern",
 ];
 
+const AUTO_PREVIEW_PHOTO_LIMIT = 3;
+
 export default function ReportFindingsSortable({ groupedFindings }: any) {
   const params = useParams();
   const router = useRouter();
@@ -890,6 +892,7 @@ async function createThumbnailForUpload(file: File): Promise<File> {
 
 function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
   const [showPhotoPicker, setShowPhotoPicker] = useState(false);
+  const [showAllPhotos, setShowAllPhotos] = useState(false);
   const [showUploadPanel, setShowUploadPanel] = useState(false);
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [movingPhotoId, setMovingPhotoId] = useState<string | null>(null);
@@ -899,6 +902,10 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"success" | "error" | "">("");
   const photos = getFindingPhotos(finding);
+  const hiddenPhotoCount = Math.max(0, photos.length - AUTO_PREVIEW_PHOTO_LIMIT);
+  const visiblePhotos = showAllPhotos
+    ? photos
+    : photos.slice(0, AUTO_PREVIEW_PHOTO_LIMIT);
 
   function showMessage(type: "success" | "error", text: string) {
     setMessageType(type);
@@ -1085,7 +1092,7 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
         setDraggingOver(false);
       }}
       onDrop={handleFindingDrop}
-      className={`w-full max-w-full overflow-hidden rounded-2xl border bg-[#071224] shadow-xl transition ${
+      className={`w-full max-w-full overflow-hidden rounded-2xl border bg-[#071224] shadow-xl transition [content-visibility:auto] [contain-intrinsic-size:900px] ${
         draggingOver
           ? "border-teal-400 ring-2 ring-teal-400/40"
           : "border-slate-700"
@@ -1103,12 +1110,12 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
         <div className="border-b border-slate-700 bg-black p-3">
           <div
             className={
-              photos.length === 1
+              visiblePhotos.length === 1
                 ? "grid gap-3"
                 : "grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
             }
           >
-            {photos.map((photo: any, index: number) => {
+            {visiblePhotos.map((photo: any, index: number) => {
               const url = getPhotoUrl(photo);
     const previewUrl = getPhotoPreviewUrl(photo);
               const isBusy = movingPhotoId === String(photo.id);
@@ -1125,7 +1132,7 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
                       playsInline
                       preload="metadata"
                       className={
-                        photos.length === 1
+                        visiblePhotos.length === 1
                           ? "max-h-[650px] w-full bg-black object-contain"
                           : "h-56 w-full bg-black object-contain"
                       }
@@ -1138,10 +1145,13 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
                         src={previewUrl || url}
                         alt={`Finding photo ${index + 1}`}
                         loading="lazy"
-                decoding="async"
-                fetchPriority="low"
-                className={
-                          photos.length === 1
+                        decoding="async"
+                        fetchPriority={index === 0 ? "auto" : "low"}
+                        width={900}
+                        height={600}
+                        sizes="(max-width: 640px) 94vw, (max-width: 1024px) 48vw, 33vw"
+                        className={
+                          visiblePhotos.length === 1
                             ? "max-h-[650px] w-full object-contain"
                             : "h-56 w-full object-contain transition hover:scale-[1.02]"
                         }
@@ -1179,6 +1189,26 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
               );
             })}
           </div>
+
+          {hiddenPhotoCount > 0 && !showAllPhotos && (
+            <button
+              type="button"
+              onClick={() => setShowAllPhotos(true)}
+              className="mt-3 w-full rounded-xl border border-cyan-500/50 bg-cyan-500/10 px-4 py-3 text-sm font-black text-cyan-300 transition hover:bg-cyan-500/20"
+            >
+              Load {hiddenPhotoCount} more photo{hiddenPhotoCount === 1 ? "" : "s"}
+            </button>
+          )}
+
+          {showAllPhotos && photos.length > AUTO_PREVIEW_PHOTO_LIMIT && (
+            <button
+              type="button"
+              onClick={() => setShowAllPhotos(false)}
+              className="mt-3 w-full rounded-xl border border-slate-600 px-4 py-2 text-sm font-black text-slate-300 transition hover:bg-slate-800"
+            >
+              Show fewer photos
+            </button>
+          )}
         </div>
       )}
 
@@ -1413,9 +1443,12 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
                             src={previewUrl || url}
                             alt={`Report photo ${index + 1}`}
                             loading="lazy"
-                decoding="async"
-                fetchPriority="low"
-                className="h-36 w-full object-contain"
+                            decoding="async"
+                            fetchPriority="low"
+                            width={480}
+                            height={320}
+                            sizes="(max-width: 640px) 94vw, (max-width: 1024px) 48vw, 25vw"
+                            className="h-36 w-full object-contain"
                           />
                         )
                       ) : (
