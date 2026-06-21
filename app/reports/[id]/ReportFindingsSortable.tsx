@@ -1,2075 +1,1580 @@
-import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
-import { revalidatePath } from "next/cache";
-import { createServerClient } from "@supabase/ssr";
+"use client";
 
-import PrintButton from "../../../components/PrintButton";
-import ReportFindingsSortable from "./ReportFindingsSortable";
-import SendReportEmailButtons from "../../../components/SendReportEmailButtons";
-import InspectionContactsManager from "../../../components/InspectionContactsManager";
-import AgreementSelector from "../../../components/AgreementSelector";
-import AgreementStatusPanel from "../../../components/AgreementStatusPanel";
-import ReportDeliveryGuard from "../../../components/ReportDeliveryGuard";
-import SendAgreementButton from "../../../components/SendAgreementButton";
-import SendFullReportButton from "../../../components/SendFullReportButton";
-import InsertFavoriteFindingButton from "../../../components/InsertFavoriteFindingButton";
-import OneTapAIFindingInsert from "../../../components/OneTapAIFindingInsert";
-import PaymentInvoicePanel from "../../../components/PaymentInvoicePanel";
-import GenerateSummaryButton from "../../../components/GenerateSummaryButton";
-import SendReviewRequestButton from "../../../components/SendReviewRequestButton";
-import DeleteSummaryButton from "../../../components/DeleteSummaryButton";
-import FastLinkButton from "../../../components/FastLinkButton";
-import CreateDemoReportButton from "../../../components/CreateDemoReportButton";
+import { useEffect, useMemo, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import EditableFinding from "../../../components/EditableFinding";
+import SectionLimitations from "../../../components/SectionLimitations";
+import ReportDisclaimers from "../../../components/ReportDisclaimers";
+import SectionInformationChecklist from "../../../components/SectionInformationChecklist";
+import SectionReferencePhotos from "../../../components/SectionReferencePhotos";
+import PhotoMarkupEditor from "../../../components/PhotoMarkupEditor";
+import { supabase } from "../../../lib/supabaseClient";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+const PHOTO_BUCKET = "inspection-photos";
 
-type PageProps = {
-  params: Promise<{ id: string }>;
-};
-
-const SECTION_ORDER = [
-  "Inspection Details",
-  "Exterior",
-  "Roof",
-  "Basement, Foundation, Crawlspace & Structure",
-  "Heating",
-  "Cooling",
-  "Plumbing",
-  "Electrical",
-  "Attic, Insulation & Ventilation",
-  "Doors, Windows & Interior",
-  "Built-in Appliances",
-  "Garage",
+const SEVERITIES = [
+  "Informational",
+  "Monitor",
+  "Maintenance",
+  "Recommended Repair",
+  "Safety Concern",
+  "Major Concern",
 ];
 
-async function createSupabaseServerClient() {
-  const cookieStore = await cookies();
+const AUTO_PREVIEW_PHOTO_LIMIT = 3;
 
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options);
-            });
-          } catch {}
-        },
-      },
-    },
+export default function ReportFindingsSortable({ groupedFindings }: any) {
+  const params = useParams();
+  const router = useRouter();
+  const inspectionId = String(params?.id || "");
+
+  function getAllSectionsClosed(groups: any[]) {
+    const next: Record<string, boolean> = {};
+
+    (groups || []).forEach((group: any) => {
+      next[group.section] = true;
+    });
+
+    return next;
+  }
+
+  const [closedSections, setClosedSections] = useState<Record<string, boolean>>(
+    () => getAllSectionsClosed(groupedFindings || [])
   );
-}
 
-function normalizeSection(section: string | null | undefined) {
-  if (!section) return "Inspection Details";
+  const [orderedGroups, setOrderedGroups] = useState<any[]>(groupedFindings || []);
+  const [draggingSection, setDraggingSection] = useState<string | null>(null);
 
-  const clean = section.trim();
+  useEffect(() => {
+    const nextGroups = groupedFindings || [];
 
-  const aliases: Record<string, string> = {
-    General: "Inspection Details",
-    Safety: "Inspection Details",
-    "Basement/Foundation/Crawlspace & Structure":
-      "Basement, Foundation, Crawlspace & Structure",
-    "Basement, Foundation, Crawlspace and Structure":
-      "Basement, Foundation, Crawlspace & Structure",
-    "Attic/Insulation & Ventilation": "Attic, Insulation & Ventilation",
-    "Attic, Insulation and Ventilation": "Attic, Insulation & Ventilation",
-    "Doors/Windows & Interior": "Doors, Windows & Interior",
-    "Doors, Windows and Interior": "Doors, Windows & Interior",
-    Appliances: "Built-in Appliances",
-    "Built In Appliances": "Built-in Appliances",
-  };
+    setOrderedGroups(nextGroups);
+    setClosedSections(getAllSectionsClosed(nextGroups));
+  }, [groupedFindings]);
 
-  return aliases[clean] || clean;
-}
+  const allFindings = useMemo(() => {
+    return (orderedGroups || []).flatMap((group: any) => group.findings || []);
+  }, [orderedGroups]);
 
-function getStoragePathFromUrl(url: string | null | undefined) {
-  if (!url) return "";
+  const allPhotos = useMemo(() => {
+    const seen = new Set<string>();
+    const photos: any[] = [];
 
-  const marker = "/inspection-photos/";
-  const index = url.indexOf(marker);
+    (allFindings || []).forEach((finding: any) => {
+      (finding.photos || []).forEach((photo: any) => {
+        const key = String(photo.id || photo.file_path || photo.public_url || photo.signed_url || "");
+        if (!key || seen.has(key)) return;
 
-  if (index === -1) return "";
+        seen.add(key);
+        photos.push({
+          ...photo,
+          current_finding_id: photo.finding_id || finding.id,
+          current_finding_title:
+            finding.title ||
+            finding.finding_title ||
+            finding.defect_title ||
+            finding.name ||
+            "Untitled Finding",
+          current_section: finding.section || "Inspection Details",
+        });
+      });
+    });
 
-  return decodeURIComponent(url.substring(index + marker.length));
-}
+    return photos;
+  }, [allFindings]);
 
-async function createSignedPhotoUrl(supabase: any, photo: any) {
-  const existing =
-    photo?.signed_url ||
-    photo?.public_url ||
-    photo?.image_url ||
-    photo?.photo_url ||
-    null;
+  function toggleSection(section: string) {
+    setClosedSections((prev) => ({
+      ...prev,
+      [section]: !prev[section],
+    }));
+  }
 
-  const filePath =
-    photo?.file_path ||
-    photo?.storage_path ||
-    photo?.photo_path ||
-    getStoragePathFromUrl(photo?.public_url) ||
-    getStoragePathFromUrl(photo?.image_url) ||
-    getStoragePathFromUrl(photo?.photo_url);
+  function expandAll() {
+    setClosedSections({});
+  }
 
-  if (!filePath) return existing;
+  function collapseAll() {
+    const next: Record<string, boolean> = {};
 
-  const { data, error } = await supabase.storage
-    .from("inspection-photos")
-    .createSignedUrl(filePath, 60 * 60 * 24 * 7);
+    (orderedGroups || []).forEach((group: any) => {
+      next[group.section] = true;
+    });
 
-  if (error || !data?.signedUrl) return existing;
+    setClosedSections(next);
+  }
 
-  return data.signedUrl;
-}
+  function moveSection(fromIndex: number, toIndex: number) {
+    if (toIndex < 0 || toIndex >= orderedGroups.length) return;
 
-async function createSignedUrlMap(supabase: any, paths: string[]) {
-  const uniquePaths = Array.from(new Set(paths.filter(Boolean)));
-  const signedMap: Record<string, string> = {};
-
-  if (uniquePaths.length === 0) return signedMap;
-
-  const chunkSize = 50;
-
-  for (let index = 0; index < uniquePaths.length; index += chunkSize) {
-    const chunk = uniquePaths.slice(index, index + chunkSize);
-
-    const { data, error } = await supabase.storage
-      .from("inspection-photos")
-      .createSignedUrls(chunk, 60 * 60 * 24 * 7);
-
-    if (error) {
-      console.error("Batch signed photo URL error:", error);
-      continue;
-    }
-
-    (data || []).forEach((item: any, itemIndex: number) => {
-      const path = item?.path || chunk[itemIndex];
-
-      if (path && item?.signedUrl) {
-        signedMap[path] = item.signedUrl;
-      }
+    setOrderedGroups((prev) => {
+      const next = [...prev];
+      const [moved] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, moved);
+      return next;
     });
   }
 
-  return signedMap;
-}
+  function handleDragStart(section: string) {
+    setDraggingSection(section);
+  }
 
-function getPhotoStoragePath(photo: any) {
+  function handleDragOver(event: React.DragEvent) {
+    event.preventDefault();
+  }
+
+  function handleDrop(targetSection: string) {
+    if (!draggingSection || draggingSection === targetSection) {
+      setDraggingSection(null);
+      return;
+    }
+
+    setOrderedGroups((prev) => {
+      const next = [...prev];
+
+      const fromIndex = next.findIndex(
+        (group: any) => group.section === draggingSection
+      );
+
+      const toIndex = next.findIndex(
+        (group: any) => group.section === targetSection
+      );
+
+      if (fromIndex === -1 || toIndex === -1) return prev;
+
+      const [moved] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, moved);
+
+      return next;
+    });
+
+    setDraggingSection(null);
+  }
+
   return (
-    photo?.file_path ||
-    photo?.storage_path ||
-    photo?.photo_path ||
-    getStoragePathFromUrl(photo?.public_url) ||
-    getStoragePathFromUrl(photo?.image_url) ||
-    getStoragePathFromUrl(photo?.photo_url) ||
-    ""
+    <div className="w-full max-w-full space-y-6 overflow-hidden">
+      <div className="flex w-full flex-col gap-3 rounded-2xl border border-slate-700 bg-[#0f172a] p-4 sm:flex-row sm:flex-wrap">
+        <button
+          type="button"
+          onClick={expandAll}
+          className="w-full rounded-xl bg-teal-500 px-4 py-2 text-sm font-black text-slate-950 hover:bg-teal-400 sm:w-auto"
+        >
+          Expand All
+        </button>
+
+        <button
+          type="button"
+          onClick={collapseAll}
+          className="w-full rounded-xl border border-slate-600 px-4 py-2 text-sm font-black text-slate-200 hover:bg-slate-800 sm:w-auto"
+        >
+          Collapse All
+        </button>
+
+        <div className="w-full rounded-xl border border-slate-700 px-4 py-2 text-sm font-bold text-slate-400 sm:w-auto">
+          Drag section headers to reorder
+        </div>
+      </div>
+
+      {(orderedGroups || []).map((group: any, index: number) => {
+        const findings = group.findings || [];
+        const isClosed = !!closedSections[group.section];
+        const isDragging = draggingSection === group.section;
+
+        return (
+          <section
+            key={group.section}
+            draggable
+            onDragStart={() => handleDragStart(group.section)}
+            onDragOver={handleDragOver}
+            onDrop={() => handleDrop(group.section)}
+            onDragEnd={() => setDraggingSection(null)}
+            className={`w-full max-w-full overflow-hidden rounded-2xl border border-slate-700 bg-[#0f172a] shadow-xl transition ${
+              isDragging ? "opacity-50 ring-2 ring-teal-400" : ""
+            }`}
+          >
+            <div className="flex min-w-0 items-stretch border-b border-slate-700">
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => toggleSection(group.section)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    toggleSection(group.section);
+                  }
+                }}
+                className="flex min-w-0 flex-1 cursor-pointer flex-col items-stretch gap-3 px-4 py-4 text-left transition hover:bg-slate-800/60 focus:outline-none focus:ring-2 focus:ring-teal-400 sm:flex-row sm:items-center sm:justify-between sm:px-6"
+              >
+                <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+                  <span className="cursor-grab select-none text-2xl text-slate-500 active:cursor-grabbing">
+                    ⋮⋮
+                  </span>
+
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-teal-500/50 bg-teal-500/10 text-2xl font-black text-teal-300">
+                    {isClosed ? "+" : "−"}
+                  </span>
+
+                  <div className="min-w-0">
+                    <h2 className="break-words text-xl font-bold text-teal-400 sm:text-2xl">
+                      {group.section}
+                    </h2>
+
+                    <p className="mt-1 text-sm text-slate-400">
+                      {findings.length} finding
+                      {findings.length === 1 ? "" : "s"}
+                    </p>
+                  </div>
+                </div>
+
+                <span className="w-full rounded-xl border border-slate-600 px-4 py-2 text-center text-sm font-black text-slate-200 sm:w-auto sm:shrink-0">
+                  {isClosed ? "Open" : "Close"}
+                </span>
+              </div>
+
+              <div className="flex shrink-0 flex-col border-l border-slate-700">
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    moveSection(index, index - 1);
+                  }}
+                  disabled={index === 0}
+                  className="flex h-1/2 min-h-[36px] items-center justify-center px-3 text-sm font-black text-slate-300 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-30"
+                  title="Move section up"
+                >
+                  ↑
+                </button>
+
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    moveSection(index, index + 1);
+                  }}
+                  disabled={index === orderedGroups.length - 1}
+                  className="flex h-1/2 min-h-[36px] items-center justify-center border-t border-slate-700 px-3 text-sm font-black text-slate-300 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-30"
+                  title="Move section down"
+                >
+                  ↓
+                </button>
+              </div>
+            </div>
+
+            {!isClosed && (
+              <div className="w-full max-w-full space-y-5 overflow-hidden p-3 sm:p-5">
+                <SectionInformationChecklist
+                  inspectionId={inspectionId}
+                  section={group.section}
+                />
+
+                {group.section === "Inspection Details" && (
+                  <ReportDisclaimers inspectionId={inspectionId} />
+                )}
+
+                <SectionLimitations
+                  inspectionId={inspectionId}
+                  section={group.section}
+                />
+
+                <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)]">
+                  <AddSectionFindingForm
+                    inspectionId={inspectionId}
+                    section={group.section}
+                    router={router}
+                  />
+
+                  <SectionReferencePhotos
+                    inspectionId={inspectionId}
+                    section={group.section}
+                  />
+                </div>
+
+                {findings.length === 0 && (
+                  <div className="rounded-xl border border-slate-700 bg-[#071224] p-5 text-slate-400">
+                    No findings in this section.
+                  </div>
+                )}
+
+                {findings.map((finding: any) => (
+                  <FindingCard
+                    key={finding.id}
+                    finding={finding}
+                    inspectionId={inspectionId}
+                    allPhotos={allPhotos}
+                    router={router}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+        );
+      })}
+    </div>
   );
 }
 
-function getPhotoFallbackUrl(photo: any) {
+
+function AddSectionFindingForm({
+  inspectionId,
+  section,
+  router,
+}: {
+  inspectionId: string;
+  section: string;
+  router: any;
+}) {
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState("");
+  const [severity, setSeverity] = useState("Recommended Repair");
+  const [observation, setObservation] = useState("");
+  const [implication, setImplication] = useState("");
+  const [recommendation, setRecommendation] = useState("");
+  const [aiNote, setAiNote] = useState("");
+  const [generatingAi, setGeneratingAi] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
+
+  function pickAiValue(source: any, keys: string[]) {
+    for (const key of keys) {
+      const value = source?.[key];
+      if (typeof value === "string" && value.trim()) return value.trim();
+    }
+
+    return "";
+  }
+
+  async function generateFromAiNote() {
+    if (generatingAi || saving) return;
+
+    const cleanNote = aiNote.trim();
+
+    if (!cleanNote) {
+      setMessage("Add an inspector note for AI to turn into a finding.");
+      return;
+    }
+
+    setGeneratingAi(true);
+    setMessage("");
+
+    const requestBody = {
+      note: cleanNote,
+      inspector_note: cleanNote,
+      prompt: cleanNote,
+      section,
+      severity,
+      inspection_id: inspectionId,
+    };
+
+    const endpoints = [
+      "/api/ai-suggest-finding",
+      "/api/generate-finding",
+      "/api/ai/finding",
+    ];
+
+    try {
+      let data: any = null;
+      let lastError = "";
+
+      for (const endpoint of endpoints) {
+        try {
+          const response = await fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(requestBody),
+          });
+
+          const nextData = await response.json().catch(() => ({}));
+
+          if (response.ok) {
+            data = nextData?.finding || nextData?.result || nextData?.suggestion || nextData;
+            break;
+          }
+
+          lastError = nextData?.error || response.statusText || endpoint;
+        } catch (error: any) {
+          lastError = error?.message || endpoint;
+        }
+      }
+
+      if (!data) {
+        setMessage(lastError || "AI could not generate a finding from this note.");
+        return;
+      }
+
+      const nextTitle = pickAiValue(data, ["title", "finding_title", "defect_title", "name"]);
+      const nextSeverity = pickAiValue(data, ["severity", "priority", "category"]);
+      const nextObservation = pickAiValue(data, ["observation", "description", "comment", "summary"]);
+      const nextImplication = pickAiValue(data, ["implication", "impact", "why_it_matters"]);
+      const nextRecommendation = pickAiValue(data, ["recommendation", "recommended_action", "action"]);
+
+      setTitle(nextTitle || cleanNote.slice(0, 80));
+      setSeverity(SEVERITIES.includes(nextSeverity) ? nextSeverity : severity);
+      setObservation(nextObservation || cleanNote);
+      setImplication(nextImplication);
+      setRecommendation(nextRecommendation);
+      setOpen(true);
+      setMessage("AI note filled in. Review and save the defect.");
+    } catch (error: any) {
+      setMessage(error?.message || "Failed to generate from AI note.");
+    } finally {
+      setGeneratingAi(false);
+    }
+  }
+
+  async function createFinding() {
+    if (saving) return;
+
+    const cleanTitle = title.trim();
+    const cleanObservation = observation.trim();
+
+    if (!cleanTitle && !cleanObservation) {
+      setMessage("Add a title or observation before saving.");
+      return;
+    }
+
+    setSaving(true);
+    setMessage("");
+
+    try {
+      const { error } = await supabase.from("findings").insert({
+        inspection_id: inspectionId,
+        section,
+        severity,
+        title: cleanTitle || cleanObservation.slice(0, 80) || "New Defect",
+        observation: cleanObservation,
+        implication: implication.trim(),
+        recommendation: recommendation.trim(),
+        image_url: null,
+      });
+
+      if (error) throw error;
+
+      setTitle("");
+      setObservation("");
+      setImplication("");
+      setRecommendation("");
+      setAiNote("");
+      setSeverity("Recommended Repair");
+      setOpen(false);
+      router.refresh();
+    } catch (error: any) {
+      setMessage(error?.message || "Failed to add defect.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="rounded-xl border border-slate-700 bg-[#071224] p-4">
+      {!open ? (
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-cyan-500 px-5 py-3 text-sm font-black text-slate-950 transition active:scale-[0.98] hover:bg-cyan-400 sm:w-auto [touch-action:manipulation]"
+          >
+            ➕ Add Defect
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-purple-500 bg-purple-500/10 px-5 py-3 text-sm font-black text-purple-300 transition active:scale-[0.98] hover:bg-purple-500 hover:text-white sm:w-auto [touch-action:manipulation]"
+          >
+            🤖 AI Note Inspector
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="text-lg font-black text-cyan-300">
+                Add Defect To {section}
+              </h3>
+              <p className="mt-1 text-sm text-slate-400">
+                Create a normal finding without using AI Capture, Field Tool, Voice Tool, or Equipment Analyzer. Photos can be added after saving.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              disabled={saving}
+              className="rounded-xl border border-slate-600 px-4 py-2 text-sm font-black text-slate-200 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Cancel
+            </button>
+          </div>
+
+          {message && (
+            <div className={`rounded-xl border px-4 py-3 text-sm font-bold ${message.includes("filled in") ? "border-emerald-500/60 bg-emerald-500/10 text-emerald-200" : "border-red-500/60 bg-red-500/10 text-red-200"}`}>
+              {message}
+            </div>
+          )}
+
+          <div className="rounded-xl border border-purple-500/50 bg-purple-500/10 p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h4 className="text-base font-black text-purple-300">
+                  🤖 AI Note Inspector
+                </h4>
+                <p className="mt-1 text-sm text-slate-300">
+                  Type a rough field note and AI will turn it into a clean defect. Review before saving.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={generateFromAiNote}
+                disabled={generatingAi || saving}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-purple-500 px-4 py-2 text-sm font-black text-white transition active:scale-[0.98] hover:bg-purple-400 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto [touch-action:manipulation]"
+              >
+                {generatingAi && (
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                )}
+                {generatingAi ? "Writing..." : "Generate From Note"}
+              </button>
+            </div>
+
+            <textarea
+              value={aiNote}
+              onChange={(event) => setAiNote(event.target.value)}
+              disabled={generatingAi || saving}
+              placeholder="Example: garage GFCI kept tripping, recommend electrician evaluate and repair as needed"
+              className="mt-4 min-h-[90px] w-full rounded-xl border border-purple-500/40 bg-slate-950 px-4 py-3 text-white outline-none focus:border-purple-300 disabled:cursor-not-allowed disabled:opacity-60"
+            />
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2">
+            <input
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              disabled={saving}
+              placeholder="Defect title"
+              className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
+            />
+
+            <select
+              value={severity}
+              onChange={(event) => setSeverity(event.target.value)}
+              disabled={saving}
+              className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {SEVERITIES.map((item) => (
+                <option key={item}>{item}</option>
+              ))}
+            </select>
+
+            <textarea
+              value={observation}
+              onChange={(event) => setObservation(event.target.value)}
+              disabled={saving}
+              placeholder="Observation"
+              className="min-h-[110px] w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60 md:col-span-2"
+            />
+
+            <textarea
+              value={implication}
+              onChange={(event) => setImplication(event.target.value)}
+              disabled={saving}
+              placeholder="Implication / why it matters"
+              className="min-h-[90px] w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
+            />
+
+            <textarea
+              value={recommendation}
+              onChange={(event) => setRecommendation(event.target.value)}
+              disabled={saving}
+              placeholder="Recommendation"
+              className="min-h-[90px] w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={createFinding}
+            disabled={saving}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-teal-500 px-5 py-3 text-sm font-black text-slate-950 transition active:scale-[0.98] hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto [touch-action:manipulation]"
+          >
+            {saving && (
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            )}
+            {saving ? "Saving..." : "Save Defect"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function getSeverityStyle(severity: string | null | undefined) {
+  const clean = String(severity || "Recommended Repair").toLowerCase();
+
+  if (
+    clean.includes("safety") ||
+    clean.includes("hazard") ||
+    clean.includes("major")
+  ) {
+    return "border-red-500/60 bg-red-500/10 text-red-300";
+  }
+
+  if (
+    clean.includes("maintenance") ||
+    clean.includes("monitor") ||
+    clean.includes("minor")
+  ) {
+    return "border-yellow-500/60 bg-yellow-500/10 text-yellow-300";
+  }
+
+  if (
+    clean.includes("information") ||
+    clean.includes("info") ||
+    clean.includes("client")
+  ) {
+    return "border-blue-500/60 bg-blue-500/10 text-blue-300";
+  }
+
+  return "border-teal-500/60 bg-teal-500/10 text-teal-300";
+}
+
+function getPhotoUrl(photo: any) {
   return (
     photo?.signed_url ||
     photo?.public_url ||
     photo?.image_url ||
     photo?.photo_url ||
+    photo?.url ||
     ""
   );
 }
 
-function formatEmailStatusDate(value: any) {
-  if (!value) return "N/A";
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) return String(value);
-
-  return date.toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
-
-function getLatestEmailLog(logs: any[], type: string) {
-  return (logs || []).find((log: any) => {
-    const emailType = String(
-      log.email_type || log.metadata?.type || "",
-    ).toLowerCase();
-    return emailType === type;
-  });
-}
-
-function getLatestViewLog(logs: any[], type: string) {
-  return (logs || []).find((log: any) => {
-    const viewType = String(log.view_type || "").toLowerCase();
-    return viewType === type;
-  });
-}
-
-function getViewLogsByType(logs: any[], type: string) {
-  const cleanType = String(type || "").toLowerCase();
-
-  return (logs || []).filter((log: any) => {
-    const viewType = String(log.view_type || "").toLowerCase();
-    return viewType === cleanType;
-  });
-}
-
-function getFirstViewLog(logs: any[]) {
-  if (!logs || logs.length === 0) return null;
-
-  return [...logs].sort(
-    (a: any, b: any) =>
-      new Date(a.created_at || 0).getTime() -
-      new Date(b.created_at || 0).getTime(),
-  )[0];
-}
-
-function getUniqueViewerCount(logs: any[]) {
-  const viewers = new Set<string>();
-
-  (logs || []).forEach((log: any) => {
-    const viewerEmail = String(log.viewer_email || "")
-      .trim()
-      .toLowerCase();
-    const contactId = String(log.contact_id || "").trim();
-    const viewerRole = String(log.viewer_role || "")
-      .trim()
-      .toLowerCase();
-    const ipAddress = String(log.ip_address || "").trim();
-
-    const key = viewerEmail || contactId || `${viewerRole}:${ipAddress}`;
-    if (key && key !== ":") viewers.add(key);
-  });
-
-  return viewers.size;
-}
-
-function getDurationSeconds(log: any) {
-  const seconds = Number(log?.metadata?.duration_seconds || 0);
-  return Number.isFinite(seconds) ? seconds : 0;
-}
-
-function formatDuration(secondsValue: number) {
-  const seconds = Math.max(0, Math.round(secondsValue || 0));
-
-  if (seconds < 60) return `${seconds}s`;
-
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = seconds % 60;
-
-  if (minutes < 60) {
-    return remainingSeconds > 0
-      ? `${minutes}m ${remainingSeconds}s`
-      : `${minutes}m`;
-  }
-
-  const hours = Math.floor(minutes / 60);
-  const remainingMinutes = minutes % 60;
-
-  return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
-}
-
-function getViewerSummary(logs: any[]) {
-  const viewers: string[] = [];
-  const seen = new Set<string>();
-
-  (logs || []).forEach((log: any) => {
-    const viewerEmail = String(log.viewer_email || "").trim();
-    const viewerRole = String(log.viewer_role || "").trim();
-
-    const label = viewerEmail || viewerRole || "Unknown viewer";
-    const key = label.toLowerCase();
-
-    if (!seen.has(key)) {
-      seen.add(key);
-      viewers.push(label);
-    }
-  });
-
-  return viewers;
-}
-
-function normalizeEmail(value: any) {
-  return String(value || "")
-    .trim()
-    .toLowerCase();
-}
-
-function isClientViewLog(log: any, clientEmail: string) {
-  const role = String(log?.viewer_role || "")
-    .trim()
-    .toLowerCase();
-  const email = normalizeEmail(log?.viewer_email);
-
+function getPhotoPreviewUrl(photo: any) {
   return (
-    role.includes("client") ||
-    role.includes("buyer") ||
-    Boolean(clientEmail && email && email === clientEmail)
+    photo?.signed_thumbnail_url ||
+    photo?.thumbnail_url ||
+    getPhotoUrl(photo)
   );
 }
 
-function isRealtorViewLog(log: any, realtorEmails: string[]) {
-  const role = String(log?.viewer_role || "")
-    .trim()
-    .toLowerCase();
-  const email = normalizeEmail(log?.viewer_email);
+function isVideoMedia(photo: any) {
+  const url = String(getPhotoUrl(photo) || "").toLowerCase();
+  const path = String(
+    photo?.file_path ||
+      photo?.storage_path ||
+      photo?.photo_path ||
+      photo?.image_path ||
+      ""
+  ).toLowerCase();
+  const type = String(
+    photo?.mime_type ||
+      photo?.media_type ||
+      photo?.content_type ||
+      photo?.file_type ||
+      ""
+  ).toLowerCase();
+  const title = String(
+    photo?.title ||
+      photo?.current_finding_title ||
+      photo?.finding_title ||
+      photo?.caption ||
+      ""
+  ).toLowerCase();
 
   return (
-    role.includes("realtor") ||
-    role.includes("agent") ||
-    role.includes("transaction") ||
-    Boolean(email && realtorEmails.includes(email))
+    Boolean(photo?.is_video) ||
+    Boolean(photo?.video_url) ||
+    type.startsWith("video/") ||
+    type.includes("quicktime") ||
+    path.match(/\.(mp4|mov|m4v|webm|avi|quicktime)$/) !== null ||
+    url.match(/\.(mp4|mov|m4v|webm|avi|quicktime)(\?|$)/) !== null ||
+    title.includes("video")
   );
 }
 
-function getFinalReadingSeconds(logs: any[]) {
-  return (logs || []).reduce((sum: number, log: any) => {
-    const viewType = String(log?.view_type || "").toLowerCase();
-    if (viewType !== "report_time_final") return sum;
-    return sum + getDurationSeconds(log);
-  }, 0);
-}
+function normalizePhotoKey(value: any) {
+  if (!value) return "";
 
-function getLatestViewLogFromList(logs: any[]) {
-  if (!logs || logs.length === 0) return null;
+  let clean = String(value).trim();
 
-  return [...logs].sort(
-    (a: any, b: any) =>
-      new Date(b.created_at || 0).getTime() -
-      new Date(a.created_at || 0).getTime(),
-  )[0];
-}
+  if (!clean) return "";
 
-function isKnownEquipmentValue(value: any) {
-  const clean = String(value ?? "").trim();
-  const lower = clean.toLowerCase();
+  try {
+    clean = decodeURIComponent(clean);
+  } catch {}
 
-  if (!clean) return false;
+  clean = clean.split("?")[0];
 
-  return ![
-    "unknown",
-    "n/a",
-    "na",
-    "not available",
-    "not visible",
-    "not readable",
-    "unreadable",
-    "unable to determine",
-    "unable to confirm",
-    "cannot determine",
-    "not determined",
-    "none",
-    "null",
-    "undefined",
-  ].includes(lower);
-}
+  const storageMarker = "/inspection-photos/";
+  const storageIndex = clean.indexOf(storageMarker);
 
-function getTypicalIndustryRange(value: any) {
-  const clean = String(value || "").trim();
-  if (!isKnownEquipmentValue(clean)) return "";
-
-  const rangeMatch = clean.match(/(\d+)\s*[-–]\s*(\d+)/);
-  if (rangeMatch) {
-    return `${rangeMatch[1]}–${rangeMatch[2]} years`;
+  if (storageIndex !== -1) {
+    return clean.substring(storageIndex + storageMarker.length);
   }
 
-  const numberMatch = clean.match(/\d+/);
-  if (!numberMatch) return clean;
+  const publicMarker = "/object/public/inspection-photos/";
+  const publicIndex = clean.indexOf(publicMarker);
 
-  const upper = Number(numberMatch[0]);
-  if (!Number.isFinite(upper) || upper <= 0) return clean;
+  if (publicIndex !== -1) {
+    return clean.substring(publicIndex + publicMarker.length);
+  }
 
-  const lower = Math.max(1, upper - 5);
-  return `${lower}–${upper} years`;
-}
+  const signedMarker = "/object/sign/inspection-photos/";
+  const signedIndex = clean.indexOf(signedMarker);
 
-function getEquipmentConditionNote(value: any) {
-  const clean = String(value || "").trim();
-  const lower = clean.toLowerCase();
-
-  if (!isKnownEquipmentValue(clean)) return "";
-
-  if (
-    lower.includes("remaining") ||
-    lower.includes("service life") ||
-    lower.includes("life remaining")
-  ) {
-    return "No specific deficiency noted";
+  if (signedIndex !== -1) {
+    return clean.substring(signedIndex + signedMarker.length);
   }
 
   return clean;
 }
 
-function getEquipmentInspectorNote(item: any) {
-  return (
-    item?.inspector_note ||
-    item?.inspection_note ||
-    item?.note ||
-    item?.notes ||
-    ""
-  );
+function getPhotoKeys(photo: any) {
+  return [
+    photo?.file_path,
+    photo?.storage_path,
+    photo?.photo_path,
+    photo?.signed_url,
+    photo?.public_url,
+    photo?.image_url,
+    photo?.photo_url,
+    photo?.url,
+  ]
+    .map(normalizePhotoKey)
+    .filter(Boolean);
 }
 
-function getEquipmentMaintenanceNote(item: any) {
-  return (
-    item?.maintenance_note ||
-    item?.maintenance ||
-    item?.service_note ||
-    ""
-  );
+function hasSeenPhoto(seen: Set<string>, photo: any) {
+  const keys = getPhotoKeys(photo);
+  return keys.some((key) => seen.has(key));
 }
 
+function markPhotoSeen(seen: Set<string>, photo: any) {
+  getPhotoKeys(photo).forEach((key) => seen.add(key));
+}
 
+function getFindingPhotos(finding: any) {
+  const photos: any[] = [];
+  const seen = new Set<string>();
 
+  (finding.photos || []).forEach((photo: any) => {
+    const url = getPhotoUrl(photo);
+    const previewUrl = getPhotoPreviewUrl(photo);
 
+    if (!url || hasSeenPhoto(seen, photo)) return;
 
+    markPhotoSeen(seen, photo);
+    photos.push(photo);
+  });
 
-function getEquipmentStatusValue(item: any) {
-  const explicit =
-    item?.equipment_status ||
-    item?.equipmentStatus ||
-    item?.status ||
+  const legacyImage =
+    finding.signed_image_url ||
+    finding.image_url ||
+    finding.public_image_url ||
     "";
 
-  if (isKnownEquipmentValue(explicit)) return explicit;
-
-  const condition = String(item?.condition || "").toLowerCase();
-  const severity = String(item?.severity || "").toLowerCase();
-  const ageText = String(item?.estimated_age || item?.estimatedAge || "");
-  const rangeText = String(item?.expected_service_life || item?.expectedServiceLife || "");
-
-  const ageNumber = Number(ageText.replace(/[^0-9.]/g, ""));
-  const rangeNumbers = rangeText.match(/\d+/g) || [];
-  const maxLife = rangeNumbers.length > 0 ? Number(rangeNumbers[rangeNumbers.length - 1]) : null;
-
-  if (severity.includes("safety") || condition.includes("failed") || condition.includes("not operating")) {
-    return "⚠ Service Recommended";
-  }
-
-  if (maxLife && Number.isFinite(ageNumber) && ageNumber >= maxLife - 2) {
-    return "⚠ Near End of Typical Service Life";
-  }
-
-  if (condition.includes("service") || condition.includes("repair")) {
-    return "⚠ Service Recommended";
-  }
-
-  return "✓ Operating Normally";
-}
-
-function getEquipmentStatusClass(value: any) {
-  const clean = String(value || "").toLowerCase();
-
-  if (clean.includes("operating normally") || clean.includes("no specific")) {
-    return "border-emerald-500/40 bg-emerald-500/10 text-emerald-300";
-  }
-
-  if (clean.includes("safety") || clean.includes("service recommended")) {
-    return "border-orange-500/50 bg-orange-500/10 text-orange-300";
-  }
-
-  if (clean.includes("near end") || clean.includes("monitor")) {
-    return "border-yellow-500/50 bg-yellow-500/10 text-yellow-300";
-  }
-
-  return "border-cyan-500/40 bg-cyan-500/10 text-cyan-300";
-}
-
-function formatEquipmentCapacity(item: any) {
-  const raw = String(
-    item?.capacity ||
-      item?.estimated_btu ||
-      item?.estimatedBTU ||
-      ""
-  ).trim();
-
-  if (!isKnownEquipmentValue(raw)) return "";
-
-  return raw;
-}
-
-function getEquipmentSeer(item: any) {
-  return (
-    item?.estimated_seer ||
-    item?.estimatedSEER ||
-    item?.seer ||
-    ""
-  );
-}
-
-function getEquipmentAfue(item: any) {
-  return (
-    item?.estimated_afue ||
-    item?.estimatedAFUE ||
-    item?.afue ||
-    ""
-  );
-}
-
-function getEquipmentHeatingEfficiency(item: any) {
-  return (
-    item?.estimated_heating_efficiency ||
-    item?.estimatedHeatingEfficiency ||
-    item?.hspf ||
-    item?.hspf2 ||
-    ""
-  );
-}
-
-export default async function ReportPage({ params }: PageProps) {
-  const { id } = await params;
-  const supabase = await createSupabaseServerClient();
-
-  async function updateInspectionDetails(formData: FormData) {
-    "use server";
-
-    const supabase = await createSupabaseServerClient();
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) redirect("/login");
-
-    const inspectionId = String(formData.get("inspection_id") || "");
-
-    await supabase
-      .from("inspections")
-      .update({
-        address: String(formData.get("address") || ""),
-        client_name: String(formData.get("client_name") || ""),
-        client_email: String(formData.get("client_email") || ""),
-        realtor_name: String(formData.get("realtor_name") || ""),
-        inspection_date: String(formData.get("inspection_date") || ""),
-        square_feet: String(formData.get("square_feet") || ""),
-        year_built: String(formData.get("year_built") || ""),
-        city: String(formData.get("city") || ""),
-        state: String(formData.get("state") || ""),
-        zip: String(formData.get("zip") || ""),
-      })
-      .eq("id", inspectionId)
-      .eq("inspector_id", user.id);
-
-    revalidatePath(`/reports/${inspectionId}`);
-  }
-
-
-  async function deleteEquipmentInventoryItem(formData: FormData) {
-    "use server";
-
-    const supabase = await createSupabaseServerClient();
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) redirect("/login");
-
-    const inspectionId = String(formData.get("inspection_id") || "");
-    const equipmentId = String(formData.get("equipment_id") || "");
-
-    if (!inspectionId || !equipmentId) {
-      redirect(`/reports/${inspectionId || id}`);
-    }
-
-    const { data: ownedInspection } = await supabase
-      .from("inspections")
-      .select("id")
-      .eq("id", inspectionId)
-      .eq("inspector_id", user.id)
-      .single();
-
-    if (!ownedInspection) {
-      redirect("/reports");
-    }
-
-    const { error } = await supabase
-      .from("equipment_inventory")
-      .delete()
-      .eq("id", equipmentId)
-      .eq("inspection_id", Number(inspectionId));
-
-    if (error) {
-      console.error("Delete equipment inventory error:", error);
-      redirect(`/reports/${inspectionId}?equipment_delete_error=1`);
-    }
-
-    revalidatePath(`/reports/${inspectionId}`);
-    revalidatePath(`/reports/${inspectionId}/print`);
-    revalidatePath(`/share/${inspectionId}`);
-    redirect(`/reports/${inspectionId}#equipment-inventory`);
-  }
-
-  async function updateEquipmentInventoryItem(formData: FormData) {
-    "use server";
-
-    const supabase = await createSupabaseServerClient();
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) redirect("/login");
-
-    const inspectionId = String(formData.get("inspection_id") || "");
-    const equipmentId = String(formData.get("equipment_id") || "");
-
-    const condition = String(formData.get("condition") || "").trim();
-    const inspectorNote = String(formData.get("inspector_note") || "").trim();
-    const maintenanceNote = String(formData.get("maintenance_note") || "").trim();
-    const equipmentStatus = String(formData.get("equipment_status") || "").trim();
-
-    const { data: ownedInspection } = await supabase
-      .from("inspections")
-      .select("id")
-      .eq("id", inspectionId)
-      .eq("inspector_id", user.id)
-      .single();
-
-    if (!ownedInspection) {
-      redirect("/reports");
-    }
-
-    const { error } = await supabase
-      .from("equipment_inventory")
-      .update({
-        condition,
-        inspector_note: inspectorNote,
-        maintenance_note: maintenanceNote,
-        equipment_status: equipmentStatus || undefined,
-      })
-      .eq("id", equipmentId)
-      .eq("inspection_id", inspectionId);
-
-    if (error) {
-      console.error("Update equipment inventory error:", error);
-      redirect(`/reports/${inspectionId}?equipment_update_error=1`);
-    }
-
-    revalidatePath(`/reports/${inspectionId}`);
-    revalidatePath(`/reports/${inspectionId}/print`);
-    revalidatePath(`/share/${inspectionId}`);
-    redirect(`/reports/${inspectionId}#equipment-inventory`);
-  }
-
-
-  async function publishReport(formData: FormData) {
-    "use server";
-
-    const supabase = await createSupabaseServerClient();
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) redirect("/login");
-
-    const inspectionId = String(formData.get("inspection_id") || "");
-    const now = new Date().toISOString();
-
-    const { error } = await supabase
-      .from("inspections")
-      .update({
-        report_status: "Published",
-        published: true,
-        published_at: now,
-      })
-      .eq("id", inspectionId)
-      .eq("inspector_id", user.id);
-
-    if (error) {
-      console.error("Publish report error:", error);
-      redirect(`/reports/${inspectionId}?publish_error=1`);
-    }
-
-    const { data: publishInspection } = await supabase
-      .from("inspections")
-      .select("service_mode, inspection_type, services")
-      .eq("id", inspectionId)
-      .eq("inspector_id", user.id)
-      .single();
-
-    const serviceType = String(
-      publishInspection?.service_mode ||
-        publishInspection?.inspection_type ||
-        publishInspection?.services ||
-        "",
-    ).toLowerCase();
-
-    const isStandaloneEnvironmentalReport =
-      serviceType.includes("radon_only") ||
-      serviceType.includes("mold_only") ||
-      serviceType.includes("radon_mold");
-
-    revalidatePath(`/reports/${inspectionId}`);
-    revalidatePath(`/share/${inspectionId}`);
-    revalidatePath(`/client-portal/${inspectionId}`);
-    revalidatePath(`/environmental-share/${inspectionId}`);
-    revalidatePath(`/environmental-report/${inspectionId}`);
-
-    if (isStandaloneEnvironmentalReport) {
-      redirect(`/environmental-share/${inspectionId}`);
-    }
-
-    redirect(`/share/${inspectionId}`);
-  }
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) redirect("/login");
-
-  const { data: inspection, error: inspectionError } = await supabase
-    .from("inspections")
-    .select("*")
-    .eq("id", id)
-    .eq("inspector_id", user.id)
-    .single();
-
-  if (inspectionError || !inspection) redirect("/reports");
-
-  const executiveSummary = String(inspection.executive_summary || "").trim();
-
-  const [emailLogsResult, viewLogsResult, equipmentResult, findingsResult] =
-    await Promise.all([
-      supabase
-        .from("email_logs")
-        .select("*")
-        .eq("inspection_id_bigint", Number(inspection.id))
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("inspection_view_events")
-        .select("*")
-        .eq("inspection_id_bigint", Number(inspection.id))
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("equipment_inventory")
-        .select("*")
-        .eq("inspection_id", inspection.id)
-        .order("created_at", { ascending: true }),
-      supabase
-        .from("findings")
-        .select("*")
-        .eq("inspection_id", inspection.id)
-        .order("created_at", { ascending: true }),
-    ]);
-
-  if (emailLogsResult.error) {
-    console.error("Email logs load error:", emailLogsResult.error);
-  }
-
-  if (viewLogsResult.error) {
-    console.error("Inspection view logs load error:", viewLogsResult.error);
-  }
-
-  if (equipmentResult.error) {
-    console.error("Equipment inventory load error:", equipmentResult.error);
-  }
-
-  if (findingsResult.error) {
-    console.error("Findings load error:", findingsResult.error);
-  }
-
-  const emailLogs = emailLogsResult.data || [];
-  const viewLogs = viewLogsResult.data || [];
-  const equipmentInventoryRaw = equipmentResult.data || [];
-  const findingsRaw = findingsResult.data || [];
-
-  const latestAgreementEmail = getLatestEmailLog(emailLogs, "agreement_email");
-  const latestReportEmail =
-    getLatestEmailLog(emailLogs, "inspection_report") ||
-    getLatestEmailLog(emailLogs, "environmental_report");
-
-  const agreementPageViews = getViewLogsByType(viewLogs, "agreement_page");
-  const clientPortalViews = getViewLogsByType(viewLogs, "client_portal");
-  const reportShareViews = getViewLogsByType(viewLogs, "report_share");
-  const environmentalShareViews = getViewLogsByType(
-    viewLogs,
-    "environmental_share",
-  );
-
-  const emailOpenViews = getViewLogsByType(viewLogs, "email_open");
-  const emailClickViews = getViewLogsByType(viewLogs, "email_click");
-  const reportTimeCheckpoints = getViewLogsByType(
-    viewLogs,
-    "report_time_checkpoint",
-  );
-  const reportTimeFinals = getViewLogsByType(viewLogs, "report_time_final");
-  const reportTimeEvents = [...reportTimeCheckpoints, ...reportTimeFinals];
-  const totalReportTimeSeconds = reportTimeFinals.reduce(
-    (sum: number, log: any) => sum + getDurationSeconds(log),
-    0,
-  );
-  const latestReportTimeEvent = reportTimeEvents[0] || null;
-
-  const latestAgreementPageView = agreementPageViews[0] || null;
-  const latestClientPortalView = clientPortalViews[0] || null;
-  const latestReportShareView = reportShareViews[0] || null;
-  const latestEnvironmentalShareView = environmentalShareViews[0] || null;
-  const latestEmailOpenView = emailOpenViews[0] || null;
-  const latestEmailClickView = emailClickViews[0] || null;
-
-  const engagementViews = [
-    ...emailOpenViews,
-    ...emailClickViews,
-    ...reportTimeEvents,
-    ...agreementPageViews,
-    ...clientPortalViews,
-    ...reportShareViews,
-    ...environmentalShareViews,
-  ];
-
-  const firstEngagementView = getFirstViewLog(engagementViews);
-  const latestEngagementView = engagementViews[0] || null;
-  const uniqueViewerCount = getUniqueViewerCount(engagementViews);
-  const viewerSummary = getViewerSummary(engagementViews);
-
-  const clientViewerEmail = normalizeEmail(inspection.client_email);
-  const realtorViewerEmails = [
-    normalizeEmail(inspection.realtor_email),
-    normalizeEmail(inspection.agent_email),
-  ].filter(Boolean);
-
-  const clientEngagementViews = engagementViews.filter((log: any) =>
-    isClientViewLog(log, clientViewerEmail),
-  );
-  const realtorEngagementViews = engagementViews.filter((log: any) =>
-    isRealtorViewLog(log, realtorViewerEmails),
-  );
-
-  const firstClientView = getFirstViewLog(clientEngagementViews);
-  const latestClientView = getLatestViewLogFromList(clientEngagementViews);
-  const firstRealtorView = getFirstViewLog(realtorEngagementViews);
-  const latestRealtorView = getLatestViewLogFromList(realtorEngagementViews);
-  const clientReadingSeconds = getFinalReadingSeconds(clientEngagementViews);
-  const realtorReadingSeconds = getFinalReadingSeconds(realtorEngagementViews);
-
-  const findingIds = findingsRaw.map((finding: any) => finding.id);
-
-  const { data: photosRaw, error: photosError } =
-    findingIds.length > 0
-      ? await supabase.from("photos").select("*").in("finding_id", findingIds)
-      : { data: [], error: null };
-
-  if (photosError) console.error("Photos load error:", photosError);
-
-  // Performance note:
-  // The internal report edit page must stay fast with large reports.
-  // Do NOT create signed Supabase URLs for every photo during initial page render.
-  // New uploads already save public_url + thumbnail_url, so use those immediately.
-  // Full-size signed URLs are still available through the storage path when needed elsewhere
-  // such as print/share flows, but this edit page should not block on signing hundreds of images.
-
-  const equipmentInventory = equipmentInventoryRaw.map((item: any) => ({
-    ...item,
-    signed_image_url:
-      item.signed_image_url ||
-      item.thumbnail_url ||
-      item.image_url ||
-      item.public_url ||
+  const legacyPhoto = {
+    id: `legacy-${finding.id}`,
+    signed_url: legacyImage,
+    public_url: legacyImage,
+    image_url: legacyImage,
+    file_path:
+      finding.file_path ||
+      finding.storage_path ||
+      finding.photo_path ||
+      finding.image_path ||
       "",
-  }));
-
-  const photosWithUrls = (photosRaw || []).map((photo: any) => ({
-    ...photo,
-    signed_url: getPhotoFallbackUrl(photo),
-    signed_thumbnail_url:
-      photo.signed_thumbnail_url ||
-      photo.thumbnail_url ||
-      photo.thumbnail_public_url ||
-      photo.thumbnail ||
+    mime_type:
+      finding.mime_type ||
+      finding.media_type ||
+      finding.content_type ||
+      finding.file_type ||
       "",
-  }));
+    title:
+      finding.title ||
+      finding.finding_title ||
+      finding.defect_title ||
+      finding.name ||
+      "",
+    is_video: finding.is_video || finding.media_type === "video",
+    isLegacyImage: true,
+  };
 
-  const photosByFindingId = photosWithUrls.reduce(
-    (acc: Record<string, any[]>, photo: any) => {
-      if (!photo.finding_id) return acc;
-      if (!acc[photo.finding_id]) acc[photo.finding_id] = [];
-      acc[photo.finding_id].push(photo);
-      return acc;
-    },
-    {},
-  );
+  if (legacyImage && !hasSeenPhoto(seen, legacyPhoto)) {
+    photos.unshift(legacyPhoto);
+  }
 
-  const findings = findingsRaw.map((finding: any) => {
-    const signedImageUrl =
-      finding.signed_image_url ||
-      finding.public_image_url ||
-      finding.image_url ||
-      "";
+  return photos;
+}
 
-    return {
-      ...finding,
-      section: normalizeSection(finding.section),
-      signed_image_url: signedImageUrl || null,
-      image_url: signedImageUrl || finding.image_url || null,
-      photos: photosByFindingId[finding.id] || [],
+
+async function readFileAsDataUrl(file: File): Promise<string> {
+  return await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        resolve(reader.result);
+        return;
+      }
+
+      reject(new Error("Unable to read image file."));
     };
+
+    reader.onerror = () => reject(new Error("Unable to read image file."));
+    reader.readAsDataURL(file);
   });
+}
 
-  const groupedFindingsArray = SECTION_ORDER.map((section) => ({
-    section,
-    findings: findings.filter((finding: any) => finding.section === section),
-  }));
+async function loadImageFromDataUrl(dataUrl: string): Promise<HTMLImageElement> {
+  return await new Promise((resolve, reject) => {
+    const image = new Image();
 
-  const defectFindings = findings.filter((finding: any) => {
-    const section = String(finding.section || "").toLowerCase();
-    const title = String(finding.title || "").toLowerCase();
-
-    if (section === "inspection details") return false;
-    if (section === "disclaimers") return false;
-    if (title === "in attendance") return false;
-    if (title === "occupancy") return false;
-    if (title === "style") return false;
-    if (title === "temperature") return false;
-    if (title === "type of building") return false;
-    if (title === "weather conditions") return false;
-
-    return true;
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("Unable to load image."));
+    image.src = dataUrl;
   });
+}
 
-  const defectTotals = defectFindings.reduce(
-    (acc: Record<string, number>, finding: any) => {
-      const severity = String(
-        finding.severity || "Recommended Repair",
-      ).toLowerCase();
 
-      const isInformational =
-        severity.includes("information") ||
-        severity.includes("info") ||
-        severity.includes("client");
+async function createImageVariantForUpload(
+  file: File,
+  maxDimension: number,
+  quality: number,
+  suffix: string
+): Promise<File> {
+  if (!file.type.startsWith("image/")) return file;
 
-      if (isInformational) {
-        acc.information += 1;
-        return acc;
+  try {
+    const originalDataUrl = await readFileAsDataUrl(file);
+    const image = await loadImageFromDataUrl(originalDataUrl);
+
+    const originalWidth = image.naturalWidth || image.width;
+    const originalHeight = image.naturalHeight || image.height;
+
+    const scale = Math.min(1, maxDimension / Math.max(originalWidth, originalHeight));
+    const width = Math.max(1, Math.round(originalWidth * scale));
+    const height = Math.max(1, Math.round(originalHeight * scale));
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return file;
+
+    ctx.drawImage(image, 0, 0, width, height);
+
+    const blob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob(resolve, "image/jpeg", quality);
+    });
+
+    if (!blob) return file;
+
+    const originalName = file.name.replace(/\.[^/.]+$/, "");
+    return new File([blob], `${originalName}-${suffix}.jpg`, {
+      type: "image/jpeg",
+      lastModified: Date.now(),
+    });
+  } catch {
+    return file;
+  }
+}
+
+async function createFullImageForUpload(file: File): Promise<File> {
+  return createImageVariantForUpload(file, 1800, 0.8, "optimized");
+}
+
+async function createThumbnailForUpload(file: File): Promise<File> {
+  return createImageVariantForUpload(file, 480, 0.7, "thumb");
+}
+
+
+
+function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
+  const [showPhotoPicker, setShowPhotoPicker] = useState(false);
+  const [showAllPhotos, setShowAllPhotos] = useState(false);
+  const [showUploadPanel, setShowUploadPanel] = useState(false);
+  const [uploadingPhotos, setUploadingPhotos] = useState(false);
+  const [movingPhotoId, setMovingPhotoId] = useState<string | null>(null);
+  const [markupPhoto, setMarkupPhoto] = useState<any | null>(null);
+  const [showMarkupEditor, setShowMarkupEditor] = useState(false);
+  const [draggingOver, setDraggingOver] = useState(false);
+  const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState<"success" | "error" | "">("");
+  const photos = getFindingPhotos(finding);
+  const hiddenPhotoCount = Math.max(0, photos.length - AUTO_PREVIEW_PHOTO_LIMIT);
+  const visiblePhotos = showAllPhotos
+    ? photos
+    : photos.slice(0, AUTO_PREVIEW_PHOTO_LIMIT);
+
+  function showMessage(type: "success" | "error", text: string) {
+    setMessageType(type);
+    setMessage(text);
+
+    window.setTimeout(() => {
+      setMessage("");
+      setMessageType("");
+    }, 3500);
+  }
+
+  async function uploadNewPhotosToFinding(fileList: FileList | null) {
+    const files = Array.from(fileList || []);
+
+    if (!files.length) return;
+
+    const imageFiles = files.filter((file) => file.type.startsWith("image/"));
+
+    if (!imageFiles.length) {
+      showMessage("error", "Please choose image files only.");
+      return;
+    }
+
+    setUploadingPhotos(true);
+
+    try {
+      for (const file of imageFiles) {
+        const uploadFile = await createFullImageForUpload(file);
+        const thumbnailFile = await createThumbnailForUpload(file);
+        const fileExt = "jpg";
+        const safeName = uploadFile.name
+          .replace(/\.[^/.]+$/, "")
+          .replace(/[^a-zA-Z0-9-_]/g, "-")
+          .slice(0, 50);
+
+        const baseName = `${Date.now()}-${crypto.randomUUID()}-${safeName}`;
+        const filePath = `${inspectionId}/finding-photos/${finding.id}/${baseName}.${fileExt}`;
+        const thumbnailPath = `${inspectionId}/finding-photos/${finding.id}/thumbnails/${baseName}-thumb.jpg`;
+
+        const { error: uploadError } = await supabase.storage
+          .from(PHOTO_BUCKET)
+          .upload(filePath, uploadFile, {
+            cacheControl: "31536000",
+            upsert: false,
+            contentType: uploadFile.type || "image/jpeg",
+          });
+
+        if (uploadError) throw uploadError;
+
+        const { data: publicData } = supabase.storage
+          .from(PHOTO_BUCKET)
+          .getPublicUrl(filePath);
+
+        let thumbnailUrl = "";
+
+        const { error: thumbnailUploadError } = await supabase.storage
+          .from(PHOTO_BUCKET)
+          .upload(thumbnailPath, thumbnailFile, {
+            cacheControl: "31536000",
+            upsert: false,
+            contentType: "image/jpeg",
+          });
+
+        if (!thumbnailUploadError) {
+          const { data: thumbnailData } = supabase.storage
+            .from(PHOTO_BUCKET)
+            .getPublicUrl(thumbnailPath);
+
+          thumbnailUrl = thumbnailData.publicUrl;
+        }
+
+        const { error: insertError } = await supabase.from("photos").insert({
+          inspection_id: inspectionId,
+          finding_id: finding.id,
+          file_path: filePath,
+          public_url: publicData.publicUrl,
+          thumbnail_path: thumbnailUrl ? thumbnailPath : null,
+          thumbnail_url: thumbnailUrl || null,
+        });
+
+        if (insertError) throw insertError;
       }
 
-      acc.total += 1;
+      setShowUploadPanel(false);
+      showMessage("success", imageFiles.length === 1 ? "Photo added to finding." : "Photos added to finding.");
+      router.refresh();
+    } catch (error: any) {
+      showMessage("error", error?.message || "Failed to add photo to this finding.");
+    } finally {
+      setUploadingPhotos(false);
+    }
+  }
 
-      if (
-        severity.includes("safety") ||
-        severity.includes("hazard") ||
-        severity.includes("major")
-      ) {
-        acc.safety += 1;
-      } else if (
-        severity.includes("maintenance") ||
-        severity.includes("monitor") ||
-        severity.includes("minor")
-      ) {
-        acc.maintenance += 1;
-      } else {
-        acc.repair += 1;
-      }
+  async function handleFindingDrop(event: React.DragEvent<HTMLElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    setDraggingOver(false);
 
-      return acc;
-    },
-    { total: 0, safety: 0, repair: 0, maintenance: 0, information: 0 },
-  );
+    if (uploadingPhotos) return;
 
-  const propertyPhoto =
-    inspection.property_image ||
-    inspection.street_view_url ||
-    inspection.cover_photo_url ||
-    inspection.google_photo_url ||
-    inspection.property_photo_url ||
-    inspection.place_photo_url ||
-    inspection.photo_url ||
-    inspection.image_url ||
-    "";
+    await uploadNewPhotosToFinding(event.dataTransfer?.files || null);
+  }
 
-  const reportIsPublished =
-    inspection.published === true ||
-    String(inspection.report_status || "").toLowerCase() === "published";
+  async function movePhotoToFinding(photo: any) {
+    if (!photo?.id || photo.isLegacyImage) {
+      showMessage("error", "This older image does not have a movable photo record.");
+      return;
+    }
 
-  const serviceType = String(
-    inspection.service_mode ||
-      inspection.inspection_type ||
-      inspection.services ||
-      "",
-  ).toLowerCase();
+    if (String(photo.finding_id || photo.current_finding_id || "") === String(finding.id)) {
+      showMessage("error", "This photo is already attached to this finding.");
+      return;
+    }
 
-  const isStandaloneEnvironmentalReport =
-    serviceType.includes("radon_only") ||
-    serviceType.includes("mold_only") ||
-    serviceType.includes("radon_mold");
+    const confirmed = window.confirm(
+      "Move this photo to this finding? It will no longer appear under the previous finding."
+    );
 
-  const shareHref = isStandaloneEnvironmentalReport
-    ? `/environmental-share/${inspection.id}`
-    : `/share/${inspection.id}`;
+    if (!confirmed) return;
 
-  const editableEnvironmentalHref = `/environmental-report/${inspection.id}`;
+    setMovingPhotoId(String(photo.id));
+
+    try {
+      const { error } = await supabase
+        .from("photos")
+        .update({ finding_id: finding.id })
+        .eq("id", photo.id)
+        .eq("inspection_id", inspectionId);
+
+      if (error) throw error;
+
+      setShowPhotoPicker(false);
+      showMessage("success", "Photo moved to this finding.");
+      router.refresh();
+    } catch (error: any) {
+      showMessage("error", error?.message || "Failed to move photo.");
+    } finally {
+      setMovingPhotoId(null);
+    }
+  }
+
+  async function deletePhotoFromFinding(photo: any) {
+    if (!photo?.id || photo.isLegacyImage) {
+      showMessage("error", "This older image is stored directly on the finding. Edit the finding image field or delete the finding to remove it.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Delete this photo from the report? This removes the photo record from this finding. The original storage file is left alone for safety."
+    );
+
+    if (!confirmed) return;
+
+    setMovingPhotoId(String(photo.id));
+
+    try {
+      const { error } = await supabase
+        .from("photos")
+        .delete()
+        .eq("id", photo.id)
+        .eq("inspection_id", inspectionId);
+
+      if (error) throw error;
+
+      showMessage("success", "Photo deleted from finding.");
+      router.refresh();
+    } catch (error: any) {
+      showMessage("error", error?.message || "Failed to delete photo.");
+    } finally {
+      setMovingPhotoId(null);
+    }
+  }
 
   return (
-    <main className="min-h-screen bg-[#020617] text-white">
-      <div className="mx-auto w-full max-w-none px-3 py-4 sm:px-4 md:px-6 lg:max-w-7xl lg:py-8">
-        <div className="mb-6 overflow-hidden rounded-3xl border border-slate-800 bg-[#0f172a] p-3 shadow-xl sm:p-5 md:p-6">
-          <div className="mb-6 flex max-w-full flex-wrap gap-3 overflow-hidden">
-            <PrintButton
-              label="Print / Save PDF"
-              className="rounded-xl bg-black px-5 py-3 font-bold text-white hover:bg-slate-800"
-            />
-
-            <FastLinkButton
-              href={`/reports/${inspection.id}/print`}
-              loadingText="Opening PDF..."
-              className="rounded-xl bg-white px-5 py-3 font-bold text-black hover:bg-slate-200"
-            >
-              Export PDF
-            </FastLinkButton>
-
-            <FastLinkButton
-              href={`/reports/${inspection.id}/summary`}
-              loadingText="Opening Summary..."
-              className="rounded-xl border border-cyan-500 px-5 py-3 font-bold text-cyan-300 hover:bg-cyan-500/10"
-            >
-              Realtor Summary
-            </FastLinkButton>
-
-            <form action={publishReport}>
-              <input type="hidden" name="inspection_id" value={inspection.id} />
-              <button
-                type="submit"
-                className={`rounded-xl px-5 py-3 font-bold ${
-                  reportIsPublished
-                    ? "bg-green-700 text-white hover:bg-green-600"
-                    : "bg-green-500 text-slate-950 hover:bg-green-400"
-                }`}
-              >
-                {reportIsPublished ? "Report Published" : "Publish Report"}
-              </button>
-            </form>
-
-            <FastLinkButton
-              href={shareHref}
-              loadingText="Opening Share Page..."
-              className="rounded-xl border border-cyan-500 px-5 py-3 font-bold text-cyan-300 hover:bg-cyan-500/10"
-            >
-              Copy Share Link
-            </FastLinkButton>
-
-            <CreateDemoReportButton inspectionId={String(inspection.id)} />
-
-            {isStandaloneEnvironmentalReport && (
-              <FastLinkButton
-                href={editableEnvironmentalHref}
-                loadingText="Opening Environmental Report..."
-                className="rounded-xl border border-lime-500 px-5 py-3 font-bold text-lime-300 hover:bg-lime-500/10"
-              >
-                Environmental Report
-              </FastLinkButton>
-            )}
-
-            <FastLinkButton
-              href={`/client-portal/${inspection.id}`}
-              loadingText="Opening Client Portal..."
-              className="rounded-xl border border-emerald-500 px-5 py-3 font-bold text-emerald-300 hover:bg-emerald-500/10"
-            >
-              Client Portal
-            </FastLinkButton>
-
-            <SendFullReportButton
-              inspectionId={String(inspection.id)}
-              clientEmail={inspection.client_email}
-              realtorEmail={inspection.realtor_email || inspection.agent_email}
-            />
-
-            <SendReviewRequestButton
-              inspectionId={String(inspection.id)}
-              clientEmail={inspection.client_email}
-              reviewStatus={inspection.review_status}
-            />
-
-            <FastLinkButton
-              href={`/repair-request?inspection_id=${inspection.id}`}
-              loadingText="Opening Repair Request..."
-              className="rounded-xl bg-orange-600 px-5 py-3 font-bold text-white hover:bg-orange-500"
-            >
-              Repair Request Builder
-            </FastLinkButton>
-
-            <SendAgreementButton inspectionId={String(inspection.id)} />
-
-            <InsertFavoriteFindingButton inspectionId={String(inspection.id)} />
-
-            <FastLinkButton
-              href={`/reports/${inspection.id}/templates`}
-              loadingText="Opening Library..."
-              className="rounded-xl border border-yellow-500 px-5 py-3 font-bold text-yellow-300 hover:bg-yellow-500/10"
-            >
-              Favorite Findings Library
-            </FastLinkButton>
-
-            <OneTapAIFindingInsert inspectionId={String(inspection.id)} />
-
-            <FastLinkButton
-              href={`/field?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`}
-              loadingText="Opening Field Tool..."
-              className="rounded-xl border border-teal-500 bg-[#071224] px-5 py-3 font-bold text-teal-300 hover:bg-teal-500/10"
-            >
-              Field Tool
-            </FastLinkButton>
-
-            <FastLinkButton
-              href={`/ai-capture?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`}
-              loadingText="Opening AI Capture..."
-              className="rounded-xl bg-teal-500 px-5 py-3 font-bold text-slate-950 hover:bg-teal-400"
-            >
-              Open Full AI Capture
-            </FastLinkButton>
-
-            <FastLinkButton
-              href={`/reports/${inspection.id}/bulk-ai-capture`}
-              loadingText="Opening Bulk AI..."
-              className="rounded-xl bg-purple-600 px-5 py-3 font-bold text-white hover:bg-purple-500"
-            >
-              📸 Bulk AI Capture
-            </FastLinkButton>
-
-            <FastLinkButton
-              href={`/equipment-analyzer?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`}
-              loadingText="Opening Equipment Analyzer..."
-              className="rounded-xl border border-blue-500 px-5 py-3 font-bold text-blue-300 hover:bg-blue-500/10"
-            >
-              Equipment Analyzer
-            </FastLinkButton>
+    <article
+      onDragOver={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        if (!uploadingPhotos) setDraggingOver(true);
+      }}
+      onDragLeave={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        setDraggingOver(false);
+      }}
+      onDrop={handleFindingDrop}
+      className={`w-full max-w-full overflow-hidden rounded-2xl border bg-[#071224] shadow-xl transition [content-visibility:auto] [contain-intrinsic-size:900px] ${
+        draggingOver
+          ? "border-teal-400 ring-2 ring-teal-400/40"
+          : "border-slate-700"
+      }`}
+    >
+      <div className="p-3 pb-0 sm:p-4 sm:pb-0">
+        <InlineStatusMessage type={messageType} message={message} />
+        {draggingOver && (
+          <div className="mt-3 rounded-xl border border-teal-400 bg-teal-500/10 px-4 py-3 text-sm font-black text-teal-200">
+            Drop photos here to attach them to this defect.
           </div>
-
-          <div className="mb-8 rounded-2xl border border-yellow-500 bg-yellow-950/30 p-5 text-yellow-200">
-            <h2 className="text-2xl font-black">Report Tools</h2>
-            <p className="mt-2">
-              All report tools are enabled, including Send Report, Realtor
-              Summary, email, agreements, Copy Share Link, Favorite Findings
-              Library, Insert Favorite Finding, One-Tap AI, Field Tool, Full AI
-              Capture, Equipment Analyzer, repair requests, and findings.
-            </p>
-          </div>
-
-          <section className="mb-8 rounded-2xl border border-slate-700 bg-[#071224] p-5">
-            <h2 className="text-2xl font-bold text-teal-300">
-              Report Engagement
-            </h2>
-
-            <p className="mt-1 text-sm text-slate-400">
-              Email delivery comes from Resend. Page-open tracking is recorded
-              directly by On Point Inspect when the client/realtor opens the
-              portal, agreement, shared report, or environmental report.
-            </p>
-
-            <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-              <EngagementStatCard
-                label="Total Views"
-                value={String(engagementViews.length)}
-                helper="All tracked report, portal, agreement, and environmental opens"
-              />
-
-              <EngagementStatCard
-                label="Unique Viewers"
-                value={String(uniqueViewerCount)}
-                helper="Based on available email, contact, role, or IP data"
-              />
-
-              <EngagementStatCard
-                label="Time Spent"
-                value={formatDuration(totalReportTimeSeconds)}
-                helper={
-                  latestReportTimeEvent
-                    ? `Last session update: ${formatEmailStatusDate(
-                        latestReportTimeEvent.created_at,
-                      )}`
-                    : "No tracked reading time yet"
-                }
-              />
-
-              <EngagementStatCard
-                label="First Viewed"
-                value={formatEmailStatusDate(firstEngagementView?.created_at)}
-                helper={firstEngagementView?.view_type || "No views yet"}
-              />
-
-              <EngagementStatCard
-                label="Last Viewed"
-                value={formatEmailStatusDate(latestEngagementView?.created_at)}
-                helper={latestEngagementView?.view_type || "No views yet"}
-              />
-            </div>
-
-            <div className="mt-5 grid gap-4 md:grid-cols-2">
-              <ViewerRoleStatusCard
-                title="Client Viewed"
-                viewed={clientEngagementViews.length > 0}
-                firstView={firstClientView}
-                latestView={latestClientView}
-                totalViews={clientEngagementViews.length}
-                totalReadTimeSeconds={clientReadingSeconds}
-                viewerEmail={inspection.client_email}
-                emptyText="Client has not opened the report or portal yet"
-              />
-
-              <ViewerRoleStatusCard
-                title="Realtor Viewed"
-                viewed={realtorEngagementViews.length > 0}
-                firstView={firstRealtorView}
-                latestView={latestRealtorView}
-                totalViews={realtorEngagementViews.length}
-                totalReadTimeSeconds={realtorReadingSeconds}
-                viewerEmail={inspection.realtor_email || inspection.agent_email}
-                emptyText="Realtor has not opened the report or portal yet"
-              />
-            </div>
-
-            <div className="mt-5 grid gap-4 md:grid-cols-2">
-              <EmailStatusCard
-                title="Agreement Email"
-                log={latestAgreementEmail}
-                emptyText="Not sent yet"
-              />
-
-              <EmailStatusCard
-                title="Report Email"
-                log={latestReportEmail}
-                emptyText="Not sent yet"
-              />
-            </div>
-
-            <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <ViewStatusCard
-                title="Email Opens"
-                log={latestEmailOpenView}
-                count={emailOpenViews.length}
-                emptyText="Not opened yet"
-              />
-
-              <ViewStatusCard
-                title="Email Link Clicks"
-                log={latestEmailClickView}
-                count={emailClickViews.length}
-                emptyText="No clicks yet"
-              />
-
-              <ViewStatusCard
-                title="Reading Time"
-                log={latestReportTimeEvent}
-                count={reportTimeFinals.length}
-                emptyText="No reading time yet"
-              />
-
-              <ViewStatusCard
-                title="Agreement Opens"
-                log={latestAgreementPageView}
-                count={agreementPageViews.length}
-                emptyText="Not opened yet"
-              />
-
-              <ViewStatusCard
-                title="Client Portal Opens"
-                log={latestClientPortalView}
-                count={clientPortalViews.length}
-                emptyText="Not opened yet"
-              />
-
-              <ViewStatusCard
-                title="Report Opens"
-                log={latestReportShareView}
-                count={reportShareViews.length}
-                emptyText="Not opened yet"
-              />
-
-              <ViewStatusCard
-                title="Environmental Report Opens"
-                log={latestEnvironmentalShareView}
-                count={environmentalShareViews.length}
-                emptyText="Not opened yet"
-              />
-            </div>
-
-            {viewerSummary.length > 0 && (
-              <div className="mt-5 rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
-                <p className="text-sm font-black uppercase tracking-wide text-slate-400">
-                  Viewers Detected
-                </p>
-
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {viewerSummary.map((viewer) => (
-                    <span
-                      key={viewer}
-                      className="rounded-full border border-teal-500/40 bg-teal-500/10 px-3 py-1 text-xs font-bold text-teal-300"
-                    >
-                      {viewer}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </section>
-
-          <section className="mb-8 rounded-2xl border border-purple-500/40 bg-[#071224] p-5 shadow-xl">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <h2 className="text-2xl font-bold text-purple-300">
-                  Executive Summary
-                </h2>
-
-                <p className="mt-1 text-sm text-slate-400">
-                  AI-generated client-friendly overview saved from this report.
-                </p>
-              </div>
-
-              <span
-                className={`rounded-full border px-3 py-1 text-xs font-black ${
-                  executiveSummary
-                    ? "border-green-500/40 bg-green-500/10 text-green-300"
-                    : "border-yellow-500/40 bg-yellow-500/10 text-yellow-300"
-                }`}
-              >
-                {executiveSummary ? "Saved" : "Not Generated Yet"}
-              </span>
-            </div>
-
-            <div className="mt-5 flex flex-wrap gap-3">
-              <GenerateSummaryButton inspectionId={String(inspection.id)} />
-
-              {executiveSummary && (
-                <DeleteSummaryButton inspectionId={String(inspection.id)} />
-              )}
-            </div>
-
-            <div className="mt-4 whitespace-pre-line rounded-xl border border-slate-700 bg-[#020817]/70 p-5 text-sm leading-7 text-slate-100">
-              {executiveSummary ||
-                "Click Generate AI Summary to create and save the executive summary for this report."}
-            </div>
-          </section>
-
-          <div className="mb-8 rounded-2xl border border-slate-700 bg-[#071224] p-5">
-            <h2 className="mb-4 text-2xl font-bold text-teal-300">
-              Email Report
-            </h2>
-
-            <SendReportEmailButtons
-              inspectionId={String(inspection.id)}
-              clientEmail={inspection.client_email}
-              realtorEmail={inspection.realtor_email || inspection.agent_email}
-            />
-          </div>
-
-          <InspectionContactsManager
-            inspectionId={String(inspection.id)}
-            defaultClientName={inspection.client_name}
-            defaultClientEmail={inspection.client_email}
-            defaultRealtorName={inspection.realtor_name}
-            defaultRealtorEmail={
-              inspection.realtor_email || inspection.agent_email
+        )}
+      </div>
+      {photos.length > 0 && (
+        <div className="border-b border-slate-700 bg-black p-3">
+          <div
+            className={
+              visiblePhotos.length === 1
+                ? "grid gap-3"
+                : "grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
             }
-          />
+          >
+            {visiblePhotos.map((photo: any, index: number) => {
+              const url = getPhotoUrl(photo);
+    const previewUrl = getPhotoPreviewUrl(photo);
+              const isBusy = movingPhotoId === String(photo.id);
 
-          <AgreementSelector
-            inspectionId={String(inspection.id)}
-            initialAgreementState={inspection.agreement_state}
-            initialAgreementTemplateId={inspection.agreement_template_id}
-            initialAgreementTemplateIds={inspection.agreement_template_ids}
-            propertyState={inspection.state}
-          />
+              return (
+                <div
+                  key={String(photo.id || photo.file_path || url || index)}
+                  className="w-full max-w-full overflow-hidden rounded-xl border border-slate-700 bg-slate-950"
+                >
+                  {isVideoMedia(photo) ? (
+                    <video
+                      src={previewUrl || url}
+                      controls
+                      playsInline
+                      preload="metadata"
+                      className={
+                        visiblePhotos.length === 1
+                          ? "max-h-[650px] w-full bg-black object-contain"
+                          : "h-56 w-full bg-black object-contain"
+                      }
+                    >
+                      Your browser does not support video playback.
+                    </video>
+                  ) : (
+                    <a href={url} target="_blank" rel="noreferrer" className="block">
+                      <img
+                        src={previewUrl || url}
+                        alt={`Finding photo ${index + 1}`}
+                        loading="lazy"
+                        decoding="async"
+                        fetchPriority={index === 0 ? "auto" : "low"}
+                        width={900}
+                        height={600}
+                        sizes="(max-width: 640px) 94vw, (max-width: 1024px) 48vw, 33vw"
+                        className={
+                          visiblePhotos.length === 1
+                            ? "max-h-[650px] w-full object-contain"
+                            : "h-56 w-full object-contain transition hover:scale-[1.02]"
+                        }
+                      />
+                    </a>
+                  )}
 
-          <AgreementStatusPanel inspectionId={String(inspection.id)} />
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-800 px-3 py-2 text-xs font-bold text-slate-400">
+                    <span>Photo {index + 1}</span>
 
-          <ReportDeliveryGuard inspectionId={String(inspection.id)} />
+                    <div className="flex flex-wrap gap-2">
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="rounded-lg border border-slate-600 px-3 py-1 text-slate-200 hover:bg-slate-800"
+                      >
+                        Open
+                      </a>
 
-          <PaymentInvoicePanel inspection={inspection} />
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          deletePhotoFromFinding(photo);
+                        }}
+                        disabled={isBusy}
+                        className="rounded-lg border border-red-600 px-3 py-1 font-black text-red-300 hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {isBusy ? "Working..." : "Delete"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
 
-          {propertyPhoto && (
-            <div className="mb-6 overflow-hidden rounded-2xl border border-slate-700 bg-black">
-              <img
-                src={propertyPhoto}
-                alt="Property"
-                loading="lazy"
-                decoding="async"
-                className="h-56 w-full object-cover"
-              />
-            </div>
+          {hiddenPhotoCount > 0 && !showAllPhotos && (
+            <button
+              type="button"
+              onClick={() => setShowAllPhotos(true)}
+              className="mt-3 w-full rounded-xl border border-cyan-500/50 bg-cyan-500/10 px-4 py-3 text-sm font-black text-cyan-300 transition hover:bg-cyan-500/20"
+            >
+              Load {hiddenPhotoCount} more photo{hiddenPhotoCount === 1 ? "" : "s"}
+            </button>
           )}
 
-          <h1 className="text-5xl font-extrabold text-teal-400">
-            On Point Home Inspections
-          </h1>
-
-          <p className="mt-3 text-xl text-slate-200">
-            Residential Home Inspection Report
-          </p>
-
-          <section className="mt-6 rounded-2xl border border-slate-700 bg-[#071224] p-5">
-            <div className="mb-4">
-              <h2 className="text-2xl font-extrabold text-teal-300">
-                Defect Totals
-              </h2>
-
-              <p className="mt-1 text-sm text-slate-400">
-                Quick count of true defects. Informational items are tracked
-                separately and are not included in Total Defects.
-              </p>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-              <DefectCountCard
-                label="Total Defects"
-                value={defectTotals.total}
-                tone="text-white"
-              />
-              <DefectCountCard
-                label="Safety / Major"
-                value={defectTotals.safety}
-                tone="text-red-300"
-              />
-              <DefectCountCard
-                label="Recommended Repair"
-                value={defectTotals.repair}
-                tone="text-teal-300"
-              />
-              <DefectCountCard
-                label="Maintenance / Monitor"
-                value={defectTotals.maintenance}
-                tone="text-yellow-300"
-              />
-              <DefectCountCard
-                label="Informational"
-                value={defectTotals.information}
-                tone="text-blue-300"
-              />
-            </div>
-          </section>
-
-          {equipmentInventory.length > 0 && (
-            <section
-              id="equipment-inventory"
-              className="mt-6 rounded-2xl border border-cyan-500/40 bg-cyan-950/20 p-5"
+          {showAllPhotos && photos.length > AUTO_PREVIEW_PHOTO_LIMIT && (
+            <button
+              type="button"
+              onClick={() => setShowAllPhotos(false)}
+              className="mt-3 w-full rounded-xl border border-slate-600 px-4 py-2 text-sm font-black text-slate-300 transition hover:bg-slate-800"
             >
-              <div className="mb-4">
-                <h2 className="text-2xl font-extrabold text-cyan-300">
-                  Equipment Inventory
-                </h2>
+              Show fewer photos
+            </button>
+          )}
+        </div>
+      )}
 
-                <p className="mt-1 text-sm text-slate-400">
-                  Major equipment documented during the inspection. These
-                  inventory records are informational and are not counted as
-                  defects unless a separate finding is created.
+      <div className="w-full max-w-full overflow-hidden p-4 sm:p-6">
+        <div className="mb-4 flex flex-wrap items-center gap-3">
+          <span
+            className={`rounded-full border px-3 py-1 text-xs font-extrabold uppercase tracking-wide ${getSeverityStyle(
+              finding.severity
+            )}`}
+          >
+            {finding.severity || "Recommended Repair"}
+          </span>
+
+          {finding.section && (
+            <span className="rounded-full border border-slate-600 bg-slate-900/70 px-3 py-1 text-xs font-bold uppercase tracking-wide text-slate-300">
+              {finding.section}
+            </span>
+          )}
+
+          {photos.length > 0 && (
+            <span className="rounded-full border border-cyan-600 bg-cyan-950/40 px-3 py-1 text-xs font-bold uppercase tracking-wide text-cyan-300">
+              {photos.length} photo{photos.length === 1 ? "" : "s"}
+            </span>
+          )}
+        </div>
+
+        <h3 className="mb-4 break-words text-2xl font-black text-white">
+          {finding.title ||
+            finding.finding_title ||
+            finding.defect_title ||
+            finding.name ||
+            "Untitled Finding"}
+        </h3>
+
+        <div className="mb-5 flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap">
+          <button
+            type="button"
+            onClick={async (event) => {
+              event.stopPropagation();
+
+              try {
+                const res = await fetch("/api/save-finding-template", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    title:
+                      finding.title ||
+                      finding.finding_title ||
+                      finding.defect_title ||
+                      finding.name ||
+                      "Untitled Finding",
+                    section: finding.section || "Inspection Details",
+                    severity: finding.severity || "Recommended Repair",
+                    observation: finding.observation || "",
+                    implication: finding.implication || "",
+                    recommendation: finding.recommendation || "",
+                  }),
+                });
+
+                let data: any = {};
+
+                try {
+                  data = await res.json();
+                } catch {
+                  data = {};
+                }
+
+                if (!res.ok) {
+                  showMessage("error", data.error || "Failed to save template.");
+                  return;
+                }
+
+                showMessage("success", "Template saved!");
+              } catch {
+                showMessage("error", "Failed to save template.");
+              }
+            }}
+            className="w-full rounded-xl border border-yellow-500 px-4 py-2 text-sm font-black text-yellow-300 hover:bg-yellow-500/10 sm:w-auto"
+          >
+            ⭐ Save as Template
+          </button>
+
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              setShowUploadPanel((prev) => !prev);
+              setShowPhotoPicker(false);
+            }}
+            className="w-full rounded-xl border border-teal-500 px-4 py-2 text-sm font-black text-teal-300 hover:bg-teal-500/10 sm:w-auto"
+          >
+            📷 Add Pictures
+          </button>
+
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              setShowPhotoPicker((prev) => !prev);
+              setShowUploadPanel(false);
+            }}
+            className="w-full rounded-xl border border-cyan-500 px-4 py-2 text-sm font-black text-cyan-300 hover:bg-cyan-500/10 sm:w-auto"
+          >
+            📎 Move Existing Photo
+          </button>
+
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+
+              if (!photos.length) {
+                showMessage("error", "This finding has no photos.");
+                return;
+              }
+
+              setMarkupPhoto(photos[0]);
+              setShowMarkupEditor(true);
+            }}
+            className="w-full rounded-xl border border-purple-500 px-4 py-2 text-sm font-black text-purple-300 hover:bg-purple-500/10 sm:w-auto"
+          >
+            ✏️ Markup Photo
+          </button>
+        </div>
+
+        {showUploadPanel && (
+          <div className="mb-5 w-full max-w-full overflow-hidden rounded-xl border border-teal-700 bg-teal-950/20 p-4">
+            <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h4 className="text-lg font-black text-teal-300">
+                  Add Pictures To This Defect
+                </h4>
+                <p className="mt-1 text-sm text-slate-300">
+                  These photos save to this existing finding only. They do not create a new defect and they do not affect section reference photos. You can also drag and drop photos onto this defect card.
                 </p>
               </div>
 
-              <div className="grid gap-4">
-                {equipmentInventory.map((item: any) => {
-                  const equipmentImage =
-                    item.signed_image_url ||
-                    item.image_url ||
-                    item.public_url ||
-                    "";
+              <button
+                type="button"
+                onClick={() => setShowUploadPanel(false)}
+                className="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm font-bold text-slate-200 hover:bg-slate-800 sm:w-auto"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              <label className="cursor-pointer rounded-xl border border-teal-500 bg-teal-500/10 p-4 text-center font-black text-teal-300 hover:bg-teal-500 hover:text-slate-950">
+                {uploadingPhotos ? "Uploading..." : "📷 Take Photo"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  multiple
+                  disabled={uploadingPhotos}
+                  onChange={async (event) => {
+                    await uploadNewPhotosToFinding(event.target.files);
+                    event.currentTarget.value = "";
+                  }}
+                  className="hidden"
+                />
+              </label>
+
+              <label className="cursor-pointer rounded-xl border border-cyan-500 bg-cyan-500/10 p-4 text-center font-black text-cyan-300 hover:bg-cyan-500 hover:text-slate-950">
+                {uploadingPhotos ? "Uploading..." : "🖼 Choose Photo"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  disabled={uploadingPhotos}
+                  onChange={async (event) => {
+                    await uploadNewPhotosToFinding(event.target.files);
+                    event.currentTarget.value = "";
+                  }}
+                  className="hidden"
+                />
+              </label>
+            </div>
+          </div>
+        )}
+
+        {showPhotoPicker && (
+          <div className="mb-5 w-full max-w-full overflow-hidden rounded-xl border border-cyan-700 bg-cyan-950/20 p-4">
+            <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h4 className="text-lg font-black text-cyan-300">
+                  Add Existing Photo To This Finding
+                </h4>
+                <p className="mt-1 text-sm text-slate-300">
+                  Select a photo from this report. It will be moved from its current finding to this one.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowPhotoPicker(false)}
+                className="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm font-bold text-slate-200 hover:bg-slate-800 sm:w-auto"
+              >
+                Close
+              </button>
+            </div>
+
+            {allPhotos.length === 0 ? (
+              <p className="rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-sm text-slate-400">
+                No movable photo records were found in this report yet.
+              </p>
+            ) : (
+              <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {allPhotos.map((photo: any, index: number) => {
+                  const url = getPhotoUrl(photo);
+    const previewUrl = getPhotoPreviewUrl(photo);
+                  const alreadyAttached =
+                    String(photo.finding_id || photo.current_finding_id || "") ===
+                    String(finding.id);
 
                   return (
                     <div
-                      key={item.id}
-                      className="rounded-xl border border-slate-700 bg-[#020817]/80 p-4"
+                      key={String(photo.id || photo.file_path || index)}
+                      className="w-full max-w-full overflow-hidden rounded-xl border border-slate-700 bg-slate-950"
                     >
-                      {equipmentImage && (
-                        <img
-                          src={equipmentImage}
-                          alt={item.equipment_type || "Equipment"}
-                          loading="lazy"
-                          decoding="async"
-                          className="mb-4 max-h-56 w-full rounded-xl border border-slate-700 object-contain"
-                        />
+                      {url ? (
+                        isVideoMedia(photo) ? (
+                          <video
+                            src={url}
+                            controls
+                            playsInline
+                            preload="metadata"
+                            className="h-36 w-full bg-black object-contain"
+                          />
+                        ) : (
+                          <img
+                            src={previewUrl || url}
+                            alt={`Report photo ${index + 1}`}
+                            loading="lazy"
+                            decoding="async"
+                            fetchPriority="low"
+                            width={480}
+                            height={320}
+                            sizes="(max-width: 640px) 94vw, (max-width: 1024px) 48vw, 25vw"
+                            className="h-36 w-full object-contain"
+                          />
+                        )
+                      ) : (
+                        <div className="flex h-36 items-center justify-center text-sm text-slate-500">
+                          No preview
+                        </div>
                       )}
 
-                      <p className="text-xs font-black uppercase tracking-wide text-cyan-300">
-                        {item.equipment_type || "Equipment"}
-                      </p>
+                      <div className="space-y-2 border-t border-slate-800 p-3">
+                        <p className="line-clamp-2 text-xs font-bold text-slate-300">
+                          {photo.current_section} · {photo.current_finding_title}
+                        </p>
 
-                      <h3 className="mt-2 text-xl font-black text-white">
-                        {[item.manufacturer, item.model]
-                          .filter(Boolean)
-                          .join(" ") || "Equipment Record"}
-                      </h3>
-
-                      <div className="mt-4 grid gap-3 text-sm text-slate-300 md:grid-cols-3">
-                        <InventoryLine label="Serial" value={item.serial} />
-                        <InventoryLine
-                          label="Manufacture Year"
-                          value={item.manufacture_year}
-                        />
-                        <InventoryLine
-                          label="Estimated Age"
-                          value={item.estimated_age}
-                        />
-                        <InventoryLine
-                          label="Typical Industry Range"
-                          value={getTypicalIndustryRange(item.expected_service_life)}
-                        />
-                        <InventoryLine
-                          label="Service Life"
-                          value="Industry estimate only"
-                        />
-                        <InventoryLine
-                          label="Refrigerant"
-                          value={item.refrigerant}
-                        />
-                        <InventoryLine
-                          label="Condition"
-                          value={getEquipmentConditionNote(item.condition)}
-                        />
-                      </div>
-
-                      <EquipmentNoteBlock
-                        label="Inspector Note"
-                        value={getEquipmentLongNote(item, [
-                          "inspector_note",
-                          "inspection_note",
-                          "note",
-                          "notes",
-                        ])}
-                      />
-
-                      <EquipmentNoteBlock
-                        label="Maintenance Note"
-                        value={getEquipmentLongNote(item, [
-                          "maintenance_note",
-                          "maintenance",
-                          "service_note",
-                        ])}
-                      />
-
-                      <p className="mt-4 rounded-xl border border-slate-700 bg-slate-950 p-3 text-xs leading-5 text-slate-400">
-Service-life information is a general industry estimate only. Actual service life can vary based on installation quality, maintenance history, operating conditions, environment, and usage. This should not be treated as a prediction or guarantee of remaining equipment life.
-                      </p>
-
-                      <details className="mt-4 rounded-xl border border-slate-700 bg-[#020817]/70 p-3">
-                        <summary className="cursor-pointer select-none text-sm font-black text-cyan-300">
-                          Edit Equipment Note
-                        </summary>
-
-                        <form action={updateEquipmentInventoryItem} className="mt-4 space-y-3">
-                          <input type="hidden" name="inspection_id" value={inspection.id} />
-                          <input type="hidden" name="equipment_id" value={item.id} />
-
-                          <div>
-                            <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-400">
-                              Condition
-                            </label>
-                            <input
-                              name="condition"
-                              defaultValue={getEquipmentConditionLabel(item.condition)}
-                              placeholder="No specific deficiency noted"
-                              className="w-full rounded-lg border border-slate-700 bg-[#020617] px-3 py-2 text-sm text-white outline-none focus:border-cyan-400"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-400">
-                              Inspector Note
-                            </label>
-                            <textarea
-                              name="inspector_note"
-                              defaultValue={getEquipmentInspectorNote(item)}
-                              placeholder="Example: Data plate documented. Unit operated normally at time of inspection."
-                              rows={3}
-                              className="w-full rounded-lg border border-slate-700 bg-[#020617] px-3 py-2 text-sm text-white outline-none focus:border-cyan-400"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-400">
-                              Maintenance Note
-                            </label>
-                            <textarea
-                              name="maintenance_note"
-                              defaultValue={getEquipmentMaintenanceNote(item)}
-                              placeholder="Example: Recommend routine HVAC servicing and filter maintenance."
-                              rows={3}
-                              className="w-full rounded-lg border border-slate-700 bg-[#020617] px-3 py-2 text-sm text-white outline-none focus:border-cyan-400"
-                            />
-                          </div>
-
-                          <button
-                            type="submit"
-                            className="w-full rounded-xl bg-cyan-500 px-4 py-2 text-sm font-black text-slate-950 hover:bg-cyan-400"
-                          >
-                            Save Equipment Note
-                          </button>
-                        </form>
-                      </details>
-
-                      <form action={deleteEquipmentInventoryItem} className="mt-4">
-                        <input type="hidden" name="inspection_id" value={inspection.id} />
-                        <input type="hidden" name="equipment_id" value={item.id} />
                         <button
-                          type="submit"
-                          className="w-full rounded-xl border border-red-500/50 bg-red-500/10 px-4 py-3 text-sm font-black text-red-300 transition hover:bg-red-500/20"
+                          type="button"
+                          onClick={() => movePhotoToFinding(photo)}
+                          disabled={alreadyAttached || movingPhotoId === String(photo.id)}
+                          className="w-full rounded-lg bg-cyan-500 px-3 py-2 text-xs font-black text-slate-950 hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-50"
                         >
-                          Delete Equipment
+                          {alreadyAttached
+                            ? "Already Here"
+                            : movingPhotoId === String(photo.id)
+                            ? "Moving..."
+                            : "Move Here"}
                         </button>
-                      </form>
+                      </div>
                     </div>
                   );
                 })}
               </div>
-            </section>
-          )}
+            )}
+          </div>
+        )}
 
-          <form
-            action={updateInspectionDetails}
-            className="mt-8 border-t border-slate-700 pt-8"
-          >
-            <input type="hidden" name="inspection_id" value={inspection.id} />
+        {showMarkupEditor && markupPhoto && (
+          <div className="mb-5 rounded-xl border border-purple-700 bg-purple-950/20 p-4">
+            <PhotoMarkupEditor
+              imageUrl={getPhotoUrl(markupPhoto)}
+              severity={finding.severity}
+              onCancel={() => {
+                setShowMarkupEditor(false);
+                setMarkupPhoto(null);
+              }}
+              onSave={async (items) => {
+                const { error } = await supabase.from("photo_annotations").insert({
+                  inspection_id: Number(inspectionId),
+                  finding_id: finding.id,
+                  photo_id: markupPhoto.id || null,
+                  image_url: getPhotoUrl(markupPhoto),
+                  annotation_json: items,
+                });
 
-            <div className="mb-6 flex items-center justify-between gap-4">
-              <h2 className="text-2xl font-bold text-teal-400">
-                Inspection Details
-              </h2>
+                if (error) {
+                  showMessage("error", error.message);
+                  return;
+                }
 
-              <button
-                type="submit"
-                className="rounded-xl bg-teal-500 px-5 py-3 font-bold text-slate-950 hover:bg-teal-400"
-              >
-                Save Inspection Details
-              </button>
-            </div>
+                showMessage("success", "Photo markup saved.");
+                setShowMarkupEditor(false);
+                setMarkupPhoto(null);
+              }}
+            />
+          </div>
+        )}
 
-            <div className="grid gap-6 md:grid-cols-2">
-              <div>
-                <h3 className="mb-4 text-xl font-bold text-teal-300">
-                  Inspection Information
-                </h3>
-
-                <EditItem
-                  label="Property Address"
-                  name="address"
-                  value={inspection.address}
-                />
-                <EditItem
-                  label="Client"
-                  name="client_name"
-                  value={inspection.client_name}
-                />
-                <EditItem
-                  label="Client Email"
-                  name="client_email"
-                  value={inspection.client_email}
-                />
-                <EditItem
-                  label="Realtor"
-                  name="realtor_name"
-                  value={inspection.realtor_name}
-                />
-                <EditItem
-                  label="Inspection Date"
-                  name="inspection_date"
-                  value={inspection.inspection_date}
-                  type="date"
-                />
-              </div>
-
-              <div>
-                <h3 className="mb-4 text-xl font-bold text-teal-300">
-                  Property / Site Information
-                </h3>
-
-                <EditItem
-                  label="Square Feet"
-                  name="square_feet"
-                  value={inspection.square_feet}
-                />
-                <EditItem
-                  label="Year Built"
-                  name="year_built"
-                  value={inspection.year_built}
-                />
-
-                <div className="grid grid-cols-3 gap-3">
-                  <EditItem label="City" name="city" value={inspection.city} />
-                  <EditItem
-                    label="State"
-                    name="state"
-                    value={inspection.state}
-                  />
-                  <EditItem label="Zip" name="zip" value={inspection.zip} />
-                </div>
-              </div>
-            </div>
-          </form>
+        <div
+          onClick={(event) => event.stopPropagation()}
+          className="mb-5 w-full max-w-full overflow-hidden rounded-xl border border-slate-700 bg-slate-950/40 p-3 sm:p-4"
+        >
+          <EditableFinding finding={finding} />
         </div>
 
-        <ReportFindingsSortable groupedFindings={groupedFindingsArray} />
+        {finding.observation && (
+          <ReportBlock title="Observation" text={finding.observation} />
+        )}
+
+        {finding.implication && (
+          <ReportBlock title="Implication" text={finding.implication} />
+        )}
+
+        {finding.recommendation && (
+          <ReportBlock title="Recommendation" text={finding.recommendation} />
+        )}
+
+        {finding.comment && (
+          <ReportBlock title="Additional Notes" text={finding.comment} />
+        )}
       </div>
-    </main>
+    </article>
   );
 }
 
-function EngagementStatCard({
-  label,
-  value,
-  helper,
+function InlineStatusMessage({
+  type,
+  message,
 }: {
-  label: string;
-  value: string;
-  helper?: string;
+  type: "success" | "error" | "";
+  message: string;
 }) {
-  return (
-    <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
-      <p className="text-xs font-black uppercase tracking-wide text-slate-400">
-        {label}
-      </p>
+  if (!message) return null;
 
-      <p className="mt-2 text-2xl font-black text-white">{value}</p>
+  const isSuccess = type === "success";
 
-      {helper && (
-        <p className="mt-2 text-xs leading-5 text-slate-400">{helper}</p>
-      )}
-    </div>
-  );
-}
-
-function ViewerRoleStatusCard({
-  title,
-  viewed,
-  firstView,
-  latestView,
-  totalViews,
-  totalReadTimeSeconds,
-  viewerEmail,
-  emptyText,
-}: {
-  title: string;
-  viewed: boolean;
-  firstView: any;
-  latestView: any;
-  totalViews: number;
-  totalReadTimeSeconds: number;
-  viewerEmail?: string | null;
-  emptyText: string;
-}) {
   return (
     <div
-      className={`rounded-xl border p-4 ${
-        viewed
-          ? "border-green-500/40 bg-green-500/10"
-          : "border-yellow-500/40 bg-yellow-500/10"
+      className={`rounded-xl border p-3 text-sm font-bold ${
+        isSuccess
+          ? "border-emerald-500 bg-emerald-950/30 text-emerald-300"
+          : "border-red-500 bg-red-950/30 text-red-300"
       }`}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-sm font-black uppercase tracking-wide text-slate-300">
-            {title}
-          </p>
-
-          <p
-            className={`mt-2 text-2xl font-black ${
-              viewed ? "text-green-300" : "text-yellow-300"
-            }`}
-          >
-            {viewed ? "Yes" : "No"}
-          </p>
-        </div>
-
-        <span
-          className={`rounded-full border px-3 py-1 text-xs font-black ${
-            viewed
-              ? "border-green-500/40 bg-green-500/10 text-green-300"
-              : "border-yellow-500/40 bg-yellow-500/10 text-yellow-300"
-          }`}
-        >
-          {totalViews} view{totalViews === 1 ? "" : "s"}
-        </span>
-      </div>
-
-      {!viewed ? (
-        <p className="mt-3 text-sm leading-5 text-slate-300">{emptyText}</p>
-      ) : (
-        <div className="mt-4 space-y-2 text-sm text-slate-300">
-          {viewerEmail && (
-            <p>
-              <span className="font-bold text-white">Expected Viewer:</span>{" "}
-              <span className="break-all">{viewerEmail}</span>
-            </p>
-          )}
-
-          <p>
-            <span className="font-bold text-white">First Viewed:</span>{" "}
-            {formatEmailStatusDate(firstView?.created_at)}
-          </p>
-
-          <p>
-            <span className="font-bold text-white">Last Viewed:</span>{" "}
-            {formatEmailStatusDate(latestView?.created_at)}
-          </p>
-
-          <p>
-            <span className="font-bold text-white">Read Time:</span>{" "}
-            {formatDuration(totalReadTimeSeconds)}
-          </p>
-        </div>
-      )}
+      {message}
     </div>
   );
 }
 
-function EmailStatusCard({
-  title,
-  log,
-  emptyText,
-}: {
-  title: string;
-  log: any;
-  emptyText: string;
-}) {
-  const sentAt = log?.sent_at || log?.created_at;
-  const deliveredAt = log?.delivered_at;
-  const openedAt = log?.opened_at;
-  const clickedAt = log?.clicked_at;
-  const failedAt = log?.failed_at || log?.bounced_at;
-
+function ReportBlock({ title, text }: any) {
   return (
-    <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
-      <p className="text-sm font-black uppercase tracking-wide text-slate-400">
-        {title}
-      </p>
+    <div className="mt-5">
+      <h4 className="mb-2 text-lg font-bold text-white">{title}</h4>
 
-      {!log ? (
-        <p className="mt-2 text-lg font-bold text-yellow-300">{emptyText}</p>
-      ) : (
-        <div className="mt-3 space-y-2 text-sm text-slate-300">
-          <p>
-            <span className="font-bold text-white">Status:</span>{" "}
-            {log.status || "sent"}
-          </p>
-          <p>
-            <span className="font-bold text-white">Recipient:</span>{" "}
-            {log.recipient_email || log.recipient || "N/A"}
-          </p>
-          <p>
-            <span className="font-bold text-white">Sent:</span>{" "}
-            {formatEmailStatusDate(sentAt)}
-          </p>
-          {deliveredAt && (
-            <p className="text-green-300">
-              Delivered: {formatEmailStatusDate(deliveredAt)}
-            </p>
-          )}
-          {openedAt && (
-            <p className="text-blue-300">
-              Opened: {formatEmailStatusDate(openedAt)}
-            </p>
-          )}
-          {clickedAt && (
-            <p className="text-teal-300">
-              Link Clicked: {formatEmailStatusDate(clickedAt)}
-            </p>
-          )}
-          {failedAt && (
-            <p className="text-red-300">
-              Failed/Bounced: {formatEmailStatusDate(failedAt)}
-            </p>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function ViewStatusCard({
-  title,
-  log,
-  count = 0,
-  emptyText,
-}: {
-  title: string;
-  log: any;
-  count?: number;
-  emptyText: string;
-}) {
-  return (
-    <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
-      <div className="flex items-start justify-between gap-3">
-        <p className="text-sm font-black uppercase tracking-wide text-slate-400">
-          {title}
+      <div className="w-full max-w-full overflow-hidden rounded-xl border border-slate-700 bg-slate-900/60 p-4">
+        <p className="whitespace-pre-line break-words text-sm leading-7 text-slate-200">
+          {text}
         </p>
-
-        <span className="rounded-full border border-teal-500/40 bg-teal-500/10 px-2 py-1 text-xs font-black text-teal-300">
-          {count}
-        </span>
       </div>
-
-      {!log ? (
-        <p className="mt-2 text-lg font-bold text-yellow-300">{emptyText}</p>
-      ) : (
-        <div className="mt-3 space-y-2 text-sm text-slate-300">
-          <p className="text-green-300">
-            Opened: {formatEmailStatusDate(log.created_at)}
-          </p>
-
-          {getDurationSeconds(log) > 0 && (
-            <p className="text-purple-300">
-              Time: {formatDuration(getDurationSeconds(log))}
-            </p>
-          )}
-
-          {log.viewer_email && (
-            <p>
-              <span className="font-bold text-white">Viewer:</span>{" "}
-              {log.viewer_email}
-            </p>
-          )}
-
-          {log.viewer_role && (
-            <p>
-              <span className="font-bold text-white">Role:</span>{" "}
-              {log.viewer_role}
-            </p>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function DefectCountCard({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: number;
-  tone: string;
-}) {
-  return (
-    <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
-      <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
-        {label}
-      </p>
-      <p className={`mt-2 text-3xl font-black ${tone}`}>{value}</p>
-    </div>
-  );
-}
-
-
-function getEquipmentConditionLabel(value: any) {
-  const clean = String(value || "").trim();
-
-  if (!isKnownEquipmentValue(clean)) return "";
-
-  const lower = clean.toLowerCase();
-
-  if (
-    lower.includes("typical service life remaining") ||
-    lower.includes("service life remaining") ||
-    lower.includes("life remaining")
-  ) {
-    return "No specific deficiency noted";
-  }
-
-  return clean;
-}
-
-
-
-
-
-
-function getEquipmentLongNote(item: any, keys: string[]) {
-  for (const key of keys) {
-    const value = item?.[key];
-    const clean = String(value || "").trim();
-    const lower = clean.toLowerCase();
-
-    if (
-      clean &&
-      lower !== "unknown" &&
-      lower !== "n/a" &&
-      lower !== "na" &&
-      lower !== "not visible" &&
-      lower !== "unreadable" &&
-      lower !== "unable to determine"
-    ) {
-      return clean;
-    }
-  }
-
-  return "";
-}
-
-function EquipmentNoteBlock({
-  label,
-  value,
-}: {
-  label: string;
-  value?: any;
-}) {
-  const clean = String(value || "").trim();
-  const lower = clean.toLowerCase();
-
-  if (
-    !clean ||
-    lower === "unknown" ||
-    lower === "n/a" ||
-    lower === "na" ||
-    lower === "not visible" ||
-    lower === "unreadable" ||
-    lower === "unable to determine"
-  ) {
-    return null;
-  }
-
-  return (
-    <div className="mt-4 w-full rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-4">
-      <p className="text-xs font-black uppercase tracking-wide text-cyan-300">
-        {label}
-      </p>
-      <p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-100">
-        {clean}
-      </p>
-    </div>
-  );
-}
-
-function InventoryLine({ label, value }: { label: string; value?: any }) {
-  if (!isKnownEquipmentValue(value)) return null;
-
-  return (
-    <div className="grid grid-cols-[150px_1fr] gap-3 border-b border-slate-800 pb-1">
-      <span className="font-bold text-slate-500">{label}</span>
-      <span className="text-right font-semibold text-slate-200">{value}</span>
-    </div>
-  );
-}
-
-function EditItem({
-  label,
-  name,
-  value,
-  type = "text",
-}: {
-  label: string;
-  name: string;
-  value: any;
-  type?: string;
-}) {
-  return (
-    <div className="mb-4">
-      <label className="mb-1 block text-sm font-bold text-slate-400">
-        {label}
-      </label>
-
-      <input
-        type={type}
-        name={name}
-        defaultValue={value || ""}
-        placeholder="Not entered"
-        className="w-full rounded-lg border border-slate-700 bg-[#020617] px-4 py-3 text-white outline-none focus:border-teal-400"
-      />
     </div>
   );
 }
