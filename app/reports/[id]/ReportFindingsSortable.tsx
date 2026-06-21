@@ -899,6 +899,7 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
   const [markupPhoto, setMarkupPhoto] = useState<any | null>(null);
   const [showMarkupEditor, setShowMarkupEditor] = useState(false);
   const [draggingOver, setDraggingOver] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"success" | "error" | "">("");
   const photos = getFindingPhotos(finding);
@@ -1079,6 +1080,110 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
     }
   }
 
+  const findingTitle =
+    finding.title ||
+    finding.finding_title ||
+    finding.defect_title ||
+    finding.name ||
+    "Untitled Finding";
+
+  const primaryPhoto = photos[0] || null;
+  const primaryPhotoUrl = primaryPhoto ? getPhotoUrl(primaryPhoto) : "";
+  const primaryPreviewUrl = primaryPhoto ? getPhotoPreviewUrl(primaryPhoto) : "";
+
+  if (!expanded) {
+    return (
+      <article
+        onDragOver={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          if (!uploadingPhotos) setDraggingOver(true);
+        }}
+        onDragLeave={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          setDraggingOver(false);
+        }}
+        onDrop={handleFindingDrop}
+        className={`w-full max-w-full overflow-hidden rounded-2xl border bg-[#071224] shadow-xl transition ${
+          draggingOver
+            ? "border-teal-400 ring-2 ring-teal-400/40"
+            : "border-slate-700"
+        }`}
+      >
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          className="flex w-full min-w-0 gap-3 p-3 text-left transition hover:bg-slate-800/40 sm:gap-4 sm:p-4 [touch-action:manipulation]"
+        >
+          <div className="h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-slate-700 bg-black sm:h-28 sm:w-32">
+            {primaryPhotoUrl ? (
+              isVideoMedia(primaryPhoto) ? (
+                <div className="flex h-full w-full items-center justify-center bg-black text-xs font-black uppercase tracking-wide text-cyan-300">
+                  Video
+                </div>
+              ) : (
+                <img
+                  src={primaryPreviewUrl || primaryPhotoUrl}
+                  alt={findingTitle}
+                  loading="lazy"
+                  decoding="async"
+                  fetchPriority="low"
+                  width={320}
+                  height={240}
+                  sizes="128px"
+                  className="h-full w-full object-cover"
+                />
+              )
+            ) : (
+              <div className="flex h-full w-full items-center justify-center px-2 text-center text-[10px] font-black uppercase tracking-wide text-slate-500">
+                No Photo
+              </div>
+            )}
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              <span
+                className={`rounded-full border px-3 py-1 text-[10px] font-extrabold uppercase tracking-wide ${getSeverityStyle(
+                  finding.severity
+                )}`}
+              >
+                {finding.severity || "Recommended Repair"}
+              </span>
+
+              {photos.length > 0 && (
+                <span className="rounded-full border border-cyan-600 bg-cyan-950/40 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-cyan-300">
+                  {photos.length} photo{photos.length === 1 ? "" : "s"}
+                </span>
+              )}
+            </div>
+
+            <h3 className="line-clamp-2 break-words text-lg font-black leading-tight text-white sm:text-xl">
+              {findingTitle}
+            </h3>
+
+            {finding.observation && (
+              <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-300">
+                {finding.observation}
+              </p>
+            )}
+
+            <p className="mt-3 text-sm font-black text-cyan-300">
+              Open / Edit Finding →
+            </p>
+          </div>
+        </button>
+
+        {draggingOver && (
+          <div className="mx-3 mb-3 rounded-xl border border-teal-400 bg-teal-500/10 px-4 py-3 text-sm font-black text-teal-200">
+            Drop photos here to attach them to this defect.
+          </div>
+        )}
+      </article>
+    );
+  }
+
   return (
     <article
       onDragOver={(event) => {
@@ -1100,6 +1205,15 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
     >
       <div className="p-3 pb-0 sm:p-4 sm:pb-0">
         <InlineStatusMessage type={messageType} message={message} />
+        <div className="mb-3 flex justify-end">
+          <button
+            type="button"
+            onClick={() => setExpanded(false)}
+            className="rounded-xl border border-slate-600 px-4 py-2 text-sm font-black text-slate-300 hover:bg-slate-800"
+          >
+            Collapse Finding
+          </button>
+        </div>
         {draggingOver && (
           <div className="mt-3 rounded-xl border border-teal-400 bg-teal-500/10 px-4 py-3 text-sm font-black text-teal-200">
             Drop photos here to attach them to this defect.
@@ -1236,11 +1350,7 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
         </div>
 
         <h3 className="mb-4 break-words text-2xl font-black text-white">
-          {finding.title ||
-            finding.finding_title ||
-            finding.defect_title ||
-            finding.name ||
-            "Untitled Finding"}
+{findingTitle}
         </h3>
 
         <div className="mb-5 flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap">
