@@ -690,8 +690,53 @@ function getVideoPosterUrl(photo: any) {
   return previewUrl;
 }
 
+function isLikelyVideoUrl(value: any) {
+  const clean = String(value || "").toLowerCase().split("?")[0];
+  return /\.(mp4|mov|m4v|webm|avi|quicktime)$/.test(clean);
+}
+
+function getVideoUrl(photo: any) {
+  const candidates = [
+    photo?.signed_video_url,
+    photo?.signedVideoUrl,
+    photo?.video_url,
+    photo?.videoUrl,
+    photo?.video_public_url,
+    photo?.videoPublicUrl,
+    photo?.public_url,
+    photo?.publicUrl,
+    photo?.photo_url,
+    photo?.photoUrl,
+    photo?.url,
+    photo?.signed_url,
+    photo?.signedUrl,
+  ];
+
+  for (const candidate of candidates) {
+    const clean = String(candidate || "").trim();
+    if (clean && isLikelyVideoUrl(clean)) return clean;
+  }
+
+  const type = String(
+    photo?.mime_type ||
+      photo?.media_type ||
+      photo?.content_type ||
+      photo?.file_type ||
+      ""
+  ).toLowerCase();
+
+  if (type.startsWith("video/") || type.includes("quicktime")) {
+    for (const candidate of candidates) {
+      const clean = String(candidate || "").trim();
+      if (clean) return clean;
+    }
+  }
+
+  return "";
+}
+
 function isVideoMedia(photo: any) {
-  const url = String(getPhotoUrl(photo) || "").toLowerCase();
+  const url = String(getVideoUrl(photo) || getPhotoUrl(photo) || "").toLowerCase();
   const path = String(
     photo?.file_path ||
       photo?.storage_path ||
@@ -1288,7 +1333,8 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
           >
             {visiblePhotos.map((photo: any, index: number) => {
               const url = getPhotoUrl(photo);
-    const previewUrl = getPhotoPreviewUrl(photo);
+              const videoUrl = getVideoUrl(photo);
+              const previewUrl = getPhotoPreviewUrl(photo);
               const isBusy = movingPhotoId === String(photo.id);
 
               return (
@@ -1298,7 +1344,7 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
                 >
                   {isVideoMedia(photo) ? (
                     <video
-                      src={url}
+                      src={videoUrl || url}
                       poster={getVideoPosterUrl(photo) || undefined}
                       controls
                       playsInline
@@ -1312,7 +1358,7 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
                       Your browser does not support video playback.
                     </video>
                   ) : (
-                    <a href={url} target="_blank" rel="noreferrer" className="block">
+                    <a href={isVideoMedia(photo) ? videoUrl || url : url} target="_blank" rel="noreferrer" className="block">
                       <img
                         src={previewUrl || url}
                         alt={`Finding photo ${index + 1}`}
@@ -1336,7 +1382,7 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
 
                     <div className="flex flex-wrap gap-2">
                       <a
-                        href={url}
+                        href={isVideoMedia(photo) ? videoUrl || url : url}
                         target="_blank"
                         rel="noreferrer"
                         className="rounded-lg border border-slate-600 px-3 py-1 text-slate-200 hover:bg-slate-800"
@@ -1587,7 +1633,8 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
               <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 {allPhotos.map((photo: any, index: number) => {
                   const url = getPhotoUrl(photo);
-    const previewUrl = getPhotoPreviewUrl(photo);
+                  const videoUrl = getVideoUrl(photo);
+                  const previewUrl = getPhotoPreviewUrl(photo);
                   const alreadyAttached =
                     String(photo.finding_id || photo.current_finding_id || "") ===
                     String(finding.id);
@@ -1600,7 +1647,7 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
                       {url ? (
                         isVideoMedia(photo) ? (
                           <video
-                            src={url}
+                            src={videoUrl || url}
                             poster={getVideoPosterUrl(photo) || undefined}
                             controls
                             playsInline
