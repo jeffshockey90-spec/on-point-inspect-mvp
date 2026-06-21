@@ -639,6 +639,10 @@ function getSeverityStyle(severity: string | null | undefined) {
 
 function getPhotoUrl(photo: any) {
   return (
+    photo?.signed_video_url ||
+    photo?.signedVideoUrl ||
+    photo?.video_url ||
+    photo?.videoUrl ||
     photo?.signed_url ||
     photo?.signedUrl ||
     photo?.public_url ||
@@ -660,6 +664,12 @@ function getPhotoPreviewUrl(photo: any) {
     photo?.thumbnailUrl ||
     photo?.thumbnail_public_url ||
     photo?.thumbnailPublicUrl ||
+    photo?.poster_url ||
+    photo?.posterUrl ||
+    photo?.signed_poster_url ||
+    photo?.signedPosterUrl ||
+    photo?.preview_url ||
+    photo?.previewUrl ||
     photo?.public_url ||
     photo?.publicUrl ||
     photo?.image_url ||
@@ -669,6 +679,15 @@ function getPhotoPreviewUrl(photo: any) {
     photo?.url ||
     ""
   );
+}
+
+function getVideoPosterUrl(photo: any) {
+  const previewUrl = getPhotoPreviewUrl(photo);
+  const fullUrl = getPhotoUrl(photo);
+
+  if (!previewUrl || previewUrl === fullUrl) return "";
+
+  return previewUrl;
 }
 
 function isVideoMedia(photo: any) {
@@ -748,6 +767,9 @@ function getPhotoKeys(photo: any) {
     photo?.file_path,
     photo?.storage_path,
     photo?.photo_path,
+    photo?.video_path,
+    photo?.signed_video_url,
+    photo?.video_url,
     photo?.signed_url,
     photo?.public_url,
     photo?.image_url,
@@ -790,6 +812,8 @@ function getFindingPhotos(finding: any) {
   const legacyPhoto = {
     id: `legacy-${finding.id}`,
     signed_url: legacyImage,
+    signed_video_url: finding.signed_video_url || finding.video_url || "",
+    video_url: finding.video_url || "",
     public_url: legacyImage,
     image_url: legacyImage,
     file_path:
@@ -797,6 +821,7 @@ function getFindingPhotos(finding: any) {
       finding.storage_path ||
       finding.photo_path ||
       finding.image_path ||
+      finding.video_path ||
       "",
     mime_type:
       finding.mime_type ||
@@ -810,7 +835,7 @@ function getFindingPhotos(finding: any) {
       finding.defect_title ||
       finding.name ||
       "",
-    is_video: finding.is_video || finding.media_type === "video",
+    is_video: finding.is_video || finding.media_type === "video" || Boolean(finding.video_url),
     isLegacyImage: true,
   };
 
@@ -1134,9 +1159,26 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
           <div className="h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-slate-700 bg-black sm:h-28 sm:w-32">
             {primaryPhotoUrl ? (
               isVideoMedia(primaryPhoto) ? (
-                <div className="flex h-full w-full items-center justify-center bg-black text-xs font-black uppercase tracking-wide text-cyan-300">
-                  Video
-                </div>
+                getVideoPosterUrl(primaryPhoto) ? (
+                  <div className="relative h-full w-full bg-black">
+                    <img
+                      src={getVideoPosterUrl(primaryPhoto)}
+                      alt={findingTitle}
+                      loading="lazy"
+                      decoding="async"
+                      fetchPriority="low"
+                      width={320}
+                      height={240}
+                      sizes="128px"
+                      className="h-full w-full object-cover"
+                    />
+                    <span className="absolute inset-0 flex items-center justify-center bg-black/25 text-3xl text-white">▶</span>
+                  </div>
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-black text-xs font-black uppercase tracking-wide text-cyan-300">
+                    ▶ Video
+                  </div>
+                )
               ) : (
                 <img
                   src={primaryPreviewUrl || primaryPhotoUrl}
@@ -1256,7 +1298,8 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
                 >
                   {isVideoMedia(photo) ? (
                     <video
-                      src={previewUrl || url}
+                      src={url}
+                      poster={getVideoPosterUrl(photo) || undefined}
                       controls
                       playsInline
                       preload="metadata"
@@ -1558,6 +1601,7 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
                         isVideoMedia(photo) ? (
                           <video
                             src={url}
+                            poster={getVideoPosterUrl(photo) || undefined}
                             controls
                             playsInline
                             preload="metadata"
