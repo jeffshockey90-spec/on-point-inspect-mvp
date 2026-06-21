@@ -869,43 +869,30 @@ export default async function ReportPage({ params }: PageProps) {
 
   if (photosError) console.error("Photos load error:", photosError);
 
-  const equipmentPhotoPaths = equipmentInventoryRaw
-    .map((item: any) => item.file_path)
-    .filter(Boolean);
-
-  const photoStoragePaths = (photosRaw || [])
-    .map((photo: any) => getPhotoStoragePath(photo))
-    .filter(Boolean);
-
-  const oldFindingImagePaths = findingsRaw
-    .map((finding: any) => getStoragePathFromUrl(finding.image_url))
-    .filter(Boolean);
-
-  const signedPhotoUrlMap = await createSignedUrlMap(supabase, [
-    ...equipmentPhotoPaths,
-    ...photoStoragePaths,
-    ...oldFindingImagePaths,
-  ]);
-
+  // IMPORTANT PERFORMANCE FIX:
+  // Do not create signed URLs for every report photo during the initial report load.
+  // Large reports can have hundreds of photos, and signing them all here makes the
+  // internal report page feel extremely slow even when the share report is fast.
+  // The report editor should use the already-saved public/thumbnail URLs first.
+  // Full-size signing can be handled only when a user opens a private image.
   const equipmentInventory = equipmentInventoryRaw.map((item: any) => ({
     ...item,
     signed_image_url:
-      (item.file_path && signedPhotoUrlMap[item.file_path]) ||
       item.signed_image_url ||
       item.image_url ||
       item.public_url ||
       "",
   }));
 
-  const photosWithUrls = (photosRaw || []).map((photo: any) => {
-    const path = getPhotoStoragePath(photo);
-
-    return {
-      ...photo,
-      signed_url:
-        (path && signedPhotoUrlMap[path]) || getPhotoFallbackUrl(photo),
-    };
-  });
+  const photosWithUrls = (photosRaw || []).map((photo: any) => ({
+    ...photo,
+    signed_url: getPhotoFallbackUrl(photo),
+    signed_thumbnail_url:
+      photo.signed_thumbnail_url ||
+      photo.thumbnail_url ||
+      photo.thumbnail_public_url ||
+      "",
+  }));
 
   const photosByFindingId = photosWithUrls.reduce(
     (acc: Record<string, any[]>, photo: any) => {
@@ -918,9 +905,7 @@ export default async function ReportPage({ params }: PageProps) {
   );
 
   const findings = findingsRaw.map((finding: any) => {
-    const oldImagePath = getStoragePathFromUrl(finding.image_url);
-    const signedImageUrl =
-      (oldImagePath && signedPhotoUrlMap[oldImagePath]) ||
+    const imageUrl =
       finding.signed_image_url ||
       finding.public_image_url ||
       finding.image_url ||
@@ -929,8 +914,8 @@ export default async function ReportPage({ params }: PageProps) {
     return {
       ...finding,
       section: normalizeSection(finding.section),
-      signed_image_url: signedImageUrl || null,
-      image_url: signedImageUrl || finding.image_url || null,
+      signed_image_url: imageUrl || null,
+      image_url: imageUrl || finding.image_url || null,
       photos: photosByFindingId[finding.id] || [],
     };
   });
