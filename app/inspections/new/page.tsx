@@ -259,6 +259,7 @@ export default function NewInspectionPage() {
   const router = useRouter();
   const supabase = createClient();
   const addressInputRef = useRef<HTMLInputElement | null>(null);
+  const propertyLookupRequestId = useRef(0);
 
   const [clientName, setClientName] = useState("");
   const [clientEmail, setClientEmail] = useState("");
@@ -296,6 +297,7 @@ export default function NewInspectionPage() {
   const [propertyImage, setPropertyImage] = useState("");
 
   const [loadingProperty, setLoadingProperty] = useState(false);
+  const [propertyLookupStatus, setPropertyLookupStatus] = useState("");
   const [saving, setSaving] = useState(false);
   const [showBillingPopup, setShowBillingPopup] = useState(false);
   const [billingMessage, setBillingMessage] = useState("");
@@ -383,14 +385,47 @@ export default function NewInspectionPage() {
     document.body.appendChild(script);
   }
 
+  function clearPropertyAutofill() {
+    setSquareFeet("");
+    setYearBuilt("");
+    setPropertyStyle("");
+    setRoofStyle("");
+    setPropertyImage("");
+    setPropertyLookupStatus("");
+  }
+
+  function handleAddressInputChange(value: string) {
+    setPropertyAddress(value);
+    propertyLookupRequestId.current += 1;
+    clearPropertyAutofill();
+  }
+
+  async function runManualPropertyLookup() {
+    if (!propertyAddress.trim()) {
+      setPropertyLookupStatus("Enter an address first.");
+      return;
+    }
+
+    await autofillPropertyDetails(
+      propertyAddress,
+      city,
+      stateValue || "MD",
+      zip
+    );
+  }
+
   async function autofillPropertyDetails(
     address: string,
     cityName: string,
     stateName: string,
     zipCode: string
   ) {
+    const lookupId = propertyLookupRequestId.current + 1;
+    propertyLookupRequestId.current = lookupId;
+
     try {
       setLoadingProperty(true);
+      setPropertyLookupStatus("Looking up property info...");
 
       const res = await fetch("/api/property-lookup", {
         method: "POST",
@@ -408,6 +443,8 @@ export default function NewInspectionPage() {
       if (!res.ok) return;
 
       const data = await res.json();
+
+      if (lookupId !== propertyLookupRequestId.current) return;
 
       const sqft =
         data.square_feet ||
@@ -439,10 +476,22 @@ export default function NewInspectionPage() {
       const roof = data.roof_style || data.roofStyle || "";
 
       if (roof) setRoofStyle(String(roof));
+
+      const foundData = Boolean(sqft || built || style || roof);
+      if (foundData) {
+        setPropertyLookupStatus("Property info found. Please verify before creating the inspection.");
+      } else if (image) {
+        setPropertyLookupStatus("No saved property details found yet. Street View loaded; enter details manually and On Point will remember them next time.");
+      } else {
+        setPropertyLookupStatus("No saved property details found yet. Enter details manually and On Point will remember them next time.");
+      }
     } catch (error) {
       console.log("Property autofill skipped:", error);
+      setPropertyLookupStatus("Property lookup was skipped. You can still enter the details manually.");
     } finally {
-      setLoadingProperty(false);
+      if (lookupId === propertyLookupRequestId.current) {
+        setLoadingProperty(false);
+      }
     }
   }
 
@@ -496,6 +545,7 @@ export default function NewInspectionPage() {
       const streetAddress = `${streetNumber} ${route}`.trim();
       const finalAddress = streetAddress || place.formatted_address || "";
 
+      clearPropertyAutofill();
       setPropertyAddress(finalAddress);
       setCity(locality);
       setStateValue(adminArea || "MD");
@@ -581,6 +631,8 @@ export default function NewInspectionPage() {
   }
 
   async function scheduleInspection() {
+    if (saving) return;
+
     if (!clientName || !propertyAddress || !inspectionDate || !inspectionTime) {
       alert("Client name, address, date, and time are required.");
       return;
@@ -699,6 +751,42 @@ export default function NewInspectionPage() {
       if (error) {
         alert(error.message);
         return;
+      }
+
+      // Save every completed inspection's property details into On Point's
+      // property cache so future inspections can auto-fill instantly.
+      // IMPORTANT: this matches the exact properties table columns:
+      // property_image_url exists, property_image does not.
+      const { data: propertyCacheData, error: propertyCacheError } = await supabase
+        .from("properties")
+        .insert({
+          address: propertyAddress,
+          city: city || null,
+          state: stateValue || null,
+          zip: zip || null,
+
+          square_feet: quote.includesHome && squareFeet ? String(squareFeet) : null,
+          year_built: yearBuilt || null,
+          bedrooms: null,
+          bathrooms: null,
+
+          property_type: propertyStyle || null,
+          property_style: propertyStyle || null,
+          house_style: propertyStyle || null,
+          roof_type: null,
+          roof_style: roofStyle || null,
+
+          property_image_url: finalPropertyImage || null,
+          source: "inspection_created",
+          updated_at: new Date().toISOString(),
+        })
+        .select();
+
+      if (propertyCacheError) {
+        console.warn("Property cache was not saved:", propertyCacheError.message);
+        alert(`Property cache was not saved: ${propertyCacheError.message}`);
+      } else {
+        console.log("Property cache saved:", propertyCacheData);
       }
 
       if (billingAccess.profile) {
@@ -872,45 +960,69 @@ export default function NewInspectionPage() {
           </Card>
 
           <Card title="Property Info">
-            <input
-              ref={addressInputRef}
-              value={propertyAddress}
-              onChange={(e) => setPropertyAddress(e.target.value)}
-              placeholder="Start typing property address..."
-              className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white"
-            />
+            <div>
+              <label className="mb-2 block text-sm font-bold text-zinc-300">
+                Property Address
+              </label>
+              <input
+                ref={addressInputRef}
+                value={propertyAddress}
+                onChange={(e) => handleAddressInputChange(e.target.value)}
+                placeholder="Start typing property address..."
+                className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white"
+              />
+            </div>
 
             <div className="grid gap-4 md:grid-cols-3">
-              <Input value={city} onChange={setCity} placeholder="City" />
+              <LabeledInput label="City" value={city} onChange={setCity} placeholder="City" />
 
-              <Input
+              <LabeledInput
+                label="State"
                 value={stateValue}
                 onChange={setStateValue}
                 placeholder="State"
               />
 
-              <Input value={zip} onChange={setZip} placeholder="Zip" />
+              <LabeledInput label="Zip" value={zip} onChange={setZip} placeholder="Zip" />
             </div>
 
             <div className="grid gap-4 md:grid-cols-3">
-              <Input
+              <LabeledInput
+                label="Year Built"
                 value={yearBuilt}
                 onChange={setYearBuilt}
                 placeholder="Year Built"
               />
 
-              <Input
+              <LabeledInput
+                label="House Type / Style"
                 value={propertyStyle}
                 onChange={setPropertyStyle}
                 placeholder="House Type / Style"
               />
 
-              <Input
+              <LabeledInput
+                label="Roof Style"
                 value={roofStyle}
                 onChange={setRoofStyle}
                 placeholder="Roof Style"
               />
             </div>
+
+            <button
+              type="button"
+              onClick={runManualPropertyLookup}
+              disabled={loadingProperty || !propertyAddress.trim()}
+              className="w-full rounded-xl border border-teal-500/60 bg-teal-500/10 px-4 py-3 font-black text-teal-300 hover:bg-teal-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {loadingProperty ? "Looking Up Property..." : "Lookup Property Info"}
+            </button>
+
+            {propertyLookupStatus && (
+              <p className="rounded-xl border border-zinc-800 bg-black/40 px-4 py-3 text-sm text-zinc-300">
+                {propertyLookupStatus}
+              </p>
+            )}
 
             {propertyImage && (
               <img
@@ -999,10 +1111,11 @@ export default function NewInspectionPage() {
               </select>
             </div>
 
-            <Input value={price} onChange={setPrice} placeholder="Price" />
+            <LabeledInput label="Price" value={price} onChange={setPrice} placeholder="Price" />
 
             {quote.includesHome && (
-              <Input
+              <LabeledInput
+                label="Square Feet"
                 value={squareFeet}
                 onChange={setSquareFeet}
                 placeholder={
@@ -1013,7 +1126,8 @@ export default function NewInspectionPage() {
               />
             )}
 
-            <Input
+            <LabeledInput
+              label="Travel Fee"
               value={travelFee}
               onChange={setTravelFee}
               placeholder="Travel Fee"
@@ -1021,13 +1135,15 @@ export default function NewInspectionPage() {
 
             {quote.includesMold && (
               <>
-                <Input
+                <LabeledInput
+                  label="Mold Air Samples"
                   value={moldAirSamples}
                   onChange={setMoldAirSamples}
                   placeholder="Mold Air Samples"
                 />
 
-                <Input
+                <LabeledInput
+                  label="Mold Surface/Tape/Swab Samples"
                   value={moldSurfaceSamples}
                   onChange={setMoldSurfaceSamples}
                   placeholder="Mold Surface/Tape/Swab Samples"
@@ -1035,7 +1151,8 @@ export default function NewInspectionPage() {
               </>
             )}
 
-            <Input
+            <LabeledInput
+              label="Discount"
               value={discount}
               onChange={setDiscount}
               placeholder="Discount"
@@ -1080,7 +1197,7 @@ export default function NewInspectionPage() {
         <button
           onClick={scheduleInspection}
           disabled={saving}
-          className="mt-6 w-full rounded-xl bg-teal-500 px-5 py-4 text-lg font-black text-black hover:bg-teal-400 disabled:opacity-50"
+          className="mt-6 w-full rounded-xl bg-teal-500 px-5 py-4 text-lg font-black text-black transition active:scale-[0.99] hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {saving ? "Creating..." : "Create Inspection"}
         </button>
@@ -1140,6 +1257,29 @@ function Card({
     <div className="rounded-2xl border border-zinc-800 bg-[#0b1220] p-5">
       <h2 className="mb-4 text-xl font-bold text-teal-400">{title}</h2>
       <div className="space-y-4">{children}</div>
+    </div>
+  );
+}
+
+function LabeledInput({
+  label,
+  value,
+  onChange,
+  placeholder,
+  className = "",
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  className?: string;
+}) {
+  return (
+    <div className={className}>
+      <label className="mb-2 block text-sm font-bold text-zinc-300">
+        {label}
+      </label>
+      <Input value={value} onChange={onChange} placeholder={placeholder} />
     </div>
   );
 }

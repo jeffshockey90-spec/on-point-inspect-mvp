@@ -2,6 +2,31 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+type AgreementTemplate = Record<string, any>;
+
+function formatServiceType(value: string) {
+  return String(value || "home_inspection")
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function Badge({ children, tone = "slate" }: { children: React.ReactNode; tone?: "teal" | "green" | "yellow" | "slate" }) {
+  const classes =
+    tone === "teal"
+      ? "border-teal-500/40 bg-teal-500/10 text-teal-300"
+      : tone === "green"
+        ? "border-green-500/40 bg-green-500/10 text-green-300"
+        : tone === "yellow"
+          ? "border-yellow-500/40 bg-yellow-500/10 text-yellow-300"
+          : "border-slate-600 bg-slate-800/60 text-slate-300";
+
+  return (
+    <span className={`inline-flex max-w-full items-center rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-wide ${classes}`}>
+      {children}
+    </span>
+  );
+}
+
 export default function AgreementSelector({
   inspectionId,
   initialAgreementState,
@@ -15,8 +40,7 @@ export default function AgreementSelector({
   initialAgreementTemplateIds?: string[] | null;
   propertyState?: string | null;
 }) {
-  const defaultState =
-    (initialAgreementState || propertyState || "MD").toUpperCase();
+  const defaultState = (initialAgreementState || propertyState || "MD").toUpperCase();
 
   const startingTemplateIds =
     initialAgreementTemplateIds && initialAgreementTemplateIds.length > 0
@@ -26,29 +50,26 @@ export default function AgreementSelector({
         : [];
 
   const [agreementState, setAgreementState] = useState(defaultState);
-  const [selectedTemplateIds, setSelectedTemplateIds] =
-    useState<string[]>(startingTemplateIds);
-  const [templates, setTemplates] = useState<any[]>([]);
+  const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>(startingTemplateIds);
+  const [templates, setTemplates] = useState<AgreementTemplate[]>([]);
   const [saving, setSaving] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const [savedLabel, setSavedLabel] = useState("Save Agreement Selection");
 
   useEffect(() => {
     loadTemplates(agreementState);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [agreementState]);
 
   async function loadTemplates(state: string) {
-    const res = await fetch(
-      `/api/agreement-templates?state=${state}&activeOnly=true`
-    );
-
+    const res = await fetch(`/api/agreement-templates?state=${state}&activeOnly=true`);
     const data = await res.json();
     const loadedTemplates = data.templates || [];
 
     setTemplates(loadedTemplates);
 
     if (selectedTemplateIds.length === 0) {
-      const defaultTemplates = loadedTemplates.filter(
-        (template: any) => template.is_default
-      );
+      const defaultTemplates = loadedTemplates.filter((template: any) => template.is_default);
 
       if (defaultTemplates.length > 0) {
         setSelectedTemplateIds(defaultTemplates.map((template: any) => template.id));
@@ -58,23 +79,19 @@ export default function AgreementSelector({
     }
   }
 
-  async function saveAgreementSelection(
-    nextState = agreementState,
-    nextTemplateIds = selectedTemplateIds
-  ) {
+  async function saveAgreementSelection(nextState = agreementState, nextTemplateIds = selectedTemplateIds) {
     if (nextTemplateIds.length === 0) {
       alert("Please select at least one agreement.");
       return;
     }
 
     setSaving(true);
+    setSavedLabel("Saving...");
 
     try {
       const res = await fetch("/api/update-agreement-state", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           inspectionId,
           agreementState: nextState,
@@ -84,20 +101,16 @@ export default function AgreementSelector({
 
       const data = await res.json();
 
-      if (!res.ok) {
-        throw new Error(
-          data.error ||
-            "Failed to save agreement selection."
-        );
-      }
+      if (!res.ok) throw new Error(data.error || "Failed to save agreement selection.");
 
       setAgreementState(data.agreement_state);
       setSelectedTemplateIds(data.agreement_template_ids || []);
+      setSavedLabel("Saved!");
+      window.setTimeout(() => setSavedLabel("Save Agreement Selection"), 1200);
     } catch (error: any) {
-      alert(
-        error.message ||
-          "Failed to save agreement selection."
-      );
+      setSavedLabel("Failed");
+      alert(error.message || "Failed to save agreement selection.");
+      window.setTimeout(() => setSavedLabel("Save Agreement Selection"), 1200);
     } finally {
       setSaving(false);
     }
@@ -106,172 +119,167 @@ export default function AgreementSelector({
   function handleStateChange(nextState: string) {
     setAgreementState(nextState);
     setSelectedTemplateIds([]);
+    setExpanded(true);
   }
 
   function toggleTemplate(templateId: string) {
-    setSelectedTemplateIds((current) => {
-      if (current.includes(templateId)) {
-        return current.filter((id) => id !== templateId);
-      }
-
-      return [...current, templateId];
-    });
+    setSelectedTemplateIds((current) =>
+      current.includes(templateId)
+        ? current.filter((id) => id !== templateId)
+        : [...current, templateId]
+    );
   }
 
   const selectedTemplates = useMemo(
-    () =>
-      templates.filter((template) =>
-        selectedTemplateIds.includes(template.id)
-      ),
+    () => templates.filter((template) => selectedTemplateIds.includes(template.id)),
     [templates, selectedTemplateIds]
   );
 
   const templatesByServiceType = useMemo(() => {
-    return templates.reduce((acc: Record<string, any[]>, template) => {
+    return templates.reduce((acc: Record<string, AgreementTemplate[]>, template) => {
       const key = template.service_type || "home_inspection";
-
-      if (!acc[key]) {
-        acc[key] = [];
-      }
-
+      if (!acc[key]) acc[key] = [];
       acc[key].push(template);
-
       return acc;
     }, {});
   }, [templates]);
 
   return (
-    <section className="mb-8 w-full max-w-full overflow-hidden rounded-2xl border border-slate-700 bg-[#071224] p-4 sm:p-5">
-      <div className="mb-4 flex flex-col items-stretch gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-teal-300">
-            Agreement Selection
-          </h2>
+    <section className="mb-6 w-full max-w-full overflow-hidden rounded-3xl border border-slate-700 bg-[#071224] shadow-2xl shadow-black/20">
+      <div className="border-b border-slate-800 bg-gradient-to-r from-[#0f172a] via-[#0b1628] to-[#071224] p-4 sm:p-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0">
+            <p className="text-xs font-black uppercase tracking-[0.28em] text-teal-400">Agreements</p>
+            <h2 className="mt-2 text-2xl font-black text-white">Selected Agreements</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-400">
+              See exactly which agreements are selected without the large empty agreement preview blocks.
+            </p>
+          </div>
 
-          <p className="mt-1 text-sm text-slate-400">
-            Select one or more agreements for this inspection. Use this for home inspection plus radon, mold, or future add-ons.
-          </p>
+          <a
+            href="/agreements"
+            className="inline-flex w-full items-center justify-center rounded-2xl border border-teal-500/70 bg-teal-500/10 px-5 py-3 text-sm font-black text-teal-300 transition hover:bg-teal-500 hover:text-slate-950 sm:w-auto"
+          >
+            Agreement Library
+          </a>
         </div>
-
-        <a
-          href="/agreements"
-          className="w-full rounded-xl border border-teal-500 px-4 py-2 text-center font-bold text-teal-300 hover:bg-teal-500/10 sm:w-auto"
-        >
-          Manage Agreement Library
-        </a>
       </div>
 
-      <div className="grid w-full max-w-full grid-cols-1 gap-3 md:grid-cols-3">
-        {["MD", "WV", "PA"].map((state) => {
-          const active = state === agreementState;
+      <div className="p-4 sm:p-5">
+        <div className="rounded-2xl border border-slate-700 bg-[#020817]/80 p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <div className="flex flex-wrap gap-2">
+                <Badge tone="teal">{agreementState}</Badge>
+                <Badge tone={selectedTemplateIds.length > 0 ? "green" : "yellow"}>
+                  {selectedTemplateIds.length} Selected
+                </Badge>
+              </div>
 
-          return (
-            <button
-              key={state}
-              type="button"
-              onClick={() => handleStateChange(state)}
-              className={`w-full rounded-2xl border p-4 text-left transition ${
-                active
-                  ? "border-teal-400 bg-teal-500/15"
-                  : "border-slate-700 bg-slate-950 hover:border-teal-500"
-              }`}
-            >
-              <p
-                className={`font-extrabold ${
-                  active ? "text-teal-300" : "text-white"
-                }`}
-              >
-                {state} Agreements
-              </p>
-
-              {active && (
-                <p className="mt-3 text-xs font-bold uppercase tracking-wide text-teal-300">
-                  State Selected
-                </p>
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="mt-5 w-full max-w-full space-y-5">
-        {Object.entries(templatesByServiceType).map(
-          ([serviceType, serviceTemplates]) => (
-            <div
-              key={serviceType}
-              className="w-full max-w-full overflow-hidden rounded-2xl border border-slate-700 bg-slate-950 p-4"
-            >
-              <h3 className="text-lg font-extrabold text-teal-300">
-                {serviceType
-                  .replace(/_/g, " ")
-                  .replace(/\b\w/g, (letter) => letter.toUpperCase())}
-              </h3>
-
-              <div className="mt-3 grid w-full max-w-full grid-cols-1 gap-3 md:grid-cols-2">
-                {serviceTemplates.map((template: any) => {
-                  const checked = selectedTemplateIds.includes(template.id);
-
-                  return (
-                    <label
-                      key={template.id}
-                      className={`block w-full min-w-0 cursor-pointer rounded-xl border p-4 transition ${
-                        checked
-                          ? "border-teal-400 bg-teal-500/10"
-                          : "border-slate-700 bg-[#071224] hover:border-teal-500"
-                      }`}
-                    >
-                      <div className="flex min-w-0 items-start gap-3">
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => toggleTemplate(template.id)}
-                          className="mt-1"
-                        />
-
-                        <div className="min-w-0">
-                          <p className="break-words font-bold text-white">
-                            {template.title}
-                          </p>
-
-                          <p className="mt-1 text-sm text-slate-400">
-                            {template.version}
-                            {template.is_default ? " • Default" : ""}
-                          </p>
+              <div className="mt-3 space-y-2">
+                {selectedTemplates.length > 0 ? (
+                  selectedTemplates.map((template) => (
+                    <div key={template.id} className="rounded-xl border border-slate-700 bg-[#071224] px-4 py-3">
+                      <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <p className="min-w-0 break-words text-sm font-black text-white">{template.title}</p>
+                        <div className="flex flex-wrap gap-2">
+                          <Badge tone="green">Selected</Badge>
+                          {template.is_default && <Badge tone="teal">Default</Badge>}
                         </div>
                       </div>
-                    </label>
-                  );
-                })}
+                      {template.version && <p className="mt-1 text-xs text-slate-400">{template.version}</p>}
+                    </div>
+                  ))
+                ) : (
+                  <p className="rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 text-sm font-bold text-yellow-300">
+                    No agreement selected yet.
+                  </p>
+                )}
               </div>
             </div>
-          )
-        )}
-      </div>
 
-      {selectedTemplates.length > 0 && (
-        <div className="mt-4 w-full max-w-full overflow-hidden rounded-xl border border-slate-700 bg-slate-950 p-4">
-          <p className="font-bold text-white">
-            Selected Agreements:
-          </p>
-
-          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-300 [overflow-wrap:anywhere]">
-            {selectedTemplates.map((template) => (
-              <li key={template.id}>
-                {template.title} — {template.version}
-              </li>
-            ))}
-          </ul>
+            <button
+              type="button"
+              onClick={() => setExpanded((current) => !current)}
+              className="w-full shrink-0 rounded-2xl border border-slate-600 px-5 py-3 text-sm font-black text-slate-200 transition hover:bg-slate-800 sm:w-auto"
+            >
+              {expanded ? "Hide Options" : "Manage Agreements"}
+            </button>
+          </div>
         </div>
-      )}
 
-      <button
-        type="button"
-        onClick={() => saveAgreementSelection()}
-        disabled={saving || selectedTemplateIds.length === 0}
-        className="mt-4 w-full rounded-xl bg-teal-500 px-5 py-3 font-bold text-slate-950 hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-      >
-        {saving ? "Saving..." : "Save Agreement Selection"}
-      </button>
+        {expanded && (
+          <div className="mt-4 space-y-4">
+            <div className="grid w-full grid-cols-3 gap-2">
+              {["MD", "WV", "PA"].map((state) => {
+                const active = state === agreementState;
+                return (
+                  <button
+                    key={state}
+                    type="button"
+                    onClick={() => handleStateChange(state)}
+                    className={`rounded-2xl border px-3 py-3 text-center text-sm font-black transition ${
+                      active
+                        ? "border-teal-400 bg-teal-500/15 text-teal-300"
+                        : "border-slate-700 bg-slate-950 text-white hover:border-teal-500"
+                    }`}
+                  >
+                    {state}
+                  </button>
+                );
+              })}
+            </div>
+
+            {Object.entries(templatesByServiceType).map(([serviceType, serviceTemplates]) => (
+              <div key={serviceType} className="rounded-2xl border border-slate-700 bg-slate-950 p-4">
+                <h3 className="text-base font-black text-teal-300">{formatServiceType(serviceType)}</h3>
+
+                <div className="mt-3 grid w-full grid-cols-1 gap-3 md:grid-cols-2">
+                  {serviceTemplates.map((template: any) => {
+                    const checked = selectedTemplateIds.includes(template.id);
+                    return (
+                      <label
+                        key={template.id}
+                        className={`block w-full min-w-0 cursor-pointer rounded-xl border p-4 transition ${
+                          checked
+                            ? "border-teal-400 bg-teal-500/10"
+                            : "border-slate-700 bg-[#071224] hover:border-teal-500"
+                        }`}
+                      >
+                        <div className="flex min-w-0 items-start gap-3">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleTemplate(template.id)}
+                            className="mt-1 h-5 w-5 shrink-0 accent-teal-400"
+                          />
+                          <div className="min-w-0">
+                            <p className="break-words font-bold text-white">{template.title}</p>
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {template.version && <Badge>{template.version}</Badge>}
+                              {template.is_default && <Badge tone="teal">Default</Badge>}
+                              {checked && <Badge tone="green">Selected</Badge>}
+                            </div>
+                          </div>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={() => saveAgreementSelection()}
+          disabled={saving || selectedTemplateIds.length === 0}
+          className="mt-4 inline-flex w-full items-center justify-center rounded-2xl bg-teal-500 px-5 py-3 text-sm font-black text-slate-950 transition active:scale-[0.98] hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto [touch-action:manipulation]"
+        >
+          {savedLabel}
+        </button>
+      </div>
     </section>
   );
 }

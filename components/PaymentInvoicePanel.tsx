@@ -11,102 +11,63 @@ const PAYMENT_METHODS = ["", "Cash", "Check", "Card", "ACH", "Zelle", "Venmo", "
 
 function getNumber(value: any) {
   if (typeof value === "number" && Number.isFinite(value)) return value;
-
   if (typeof value === "string") {
-    const cleaned = value.replace(/[^0-9.-]/g, "");
-    const parsed = Number(cleaned);
-
+    const parsed = Number(value.replace(/[^0-9.-]/g, ""));
     if (Number.isFinite(parsed)) return parsed;
   }
-
   return 0;
 }
 
 function money(value: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(value || 0);
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(value || 0);
 }
 
 function getInitialInvoiceAmount(inspection: InspectionRecord) {
-  return (
-    getNumber(inspection.invoice_amount) ||
-    getNumber(inspection.total_price) ||
-    getNumber(inspection.total) ||
-    getNumber(inspection.price) ||
-    getNumber(inspection.inspection_price) ||
-    getNumber(inspection.inspection_fee) ||
-    0
-  );
+  return getNumber(inspection.invoice_amount) || getNumber(inspection.total_price) || getNumber(inspection.total) || getNumber(inspection.price) || getNumber(inspection.inspection_price) || getNumber(inspection.inspection_fee) || 0;
 }
 
-export default function PaymentInvoicePanel({
-  inspection,
-}: {
-  inspection: InspectionRecord;
-}) {
+function Badge({ children, tone }: { children: React.ReactNode; tone: "green" | "orange" | "yellow" | "slate" }) {
+  const classes =
+    tone === "green"
+      ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+      : tone === "orange"
+        ? "border-orange-500/50 bg-orange-500/10 text-orange-300"
+        : tone === "yellow"
+          ? "border-yellow-500/50 bg-yellow-500/10 text-yellow-300"
+          : "border-slate-600 bg-slate-800/60 text-slate-300";
+  return <span className={`rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-wide ${classes}`}>{children}</span>;
+}
+
+export default function PaymentInvoicePanel({ inspection }: { inspection: InspectionRecord }) {
   const router = useRouter();
   const inspectionId = String(inspection?.id || "");
 
-  const [paymentStatus, setPaymentStatus] = useState(
-    inspection.payment_status || inspection.invoice_status || "Unpaid"
-  );
-
-  const [invoiceAmount, setInvoiceAmount] = useState(
-    String(getInitialInvoiceAmount(inspection) || "")
-  );
-
-  const [amountPaid, setAmountPaid] = useState(
-    inspection.amount_paid !== null && inspection.amount_paid !== undefined
-      ? String(inspection.amount_paid)
-      : ""
-  );
-
-  const [paymentMethod, setPaymentMethod] = useState(
-    inspection.payment_method || ""
-  );
-
-  const [invoiceDueDate, setInvoiceDueDate] = useState(
-    inspection.invoice_due_date || ""
-  );
-
-  const [paymentNotes, setPaymentNotes] = useState(
-    inspection.payment_notes || inspection.invoice_notes || ""
-  );
-
+  const [paymentStatus, setPaymentStatus] = useState(inspection.payment_status || inspection.invoice_status || "Unpaid");
+  const [invoiceAmount, setInvoiceAmount] = useState(String(getInitialInvoiceAmount(inspection) || ""));
+  const [amountPaid, setAmountPaid] = useState(inspection.amount_paid !== null && inspection.amount_paid !== undefined ? String(inspection.amount_paid) : "");
+  const [paymentMethod, setPaymentMethod] = useState(inspection.payment_method || "");
+  const [invoiceDueDate, setInvoiceDueDate] = useState(inspection.invoice_due_date || "");
+  const [paymentNotes, setPaymentNotes] = useState(inspection.payment_notes || inspection.invoice_notes || "");
   const [saving, setSaving] = useState(false);
   const [saveLabel, setSaveLabel] = useState("Save Payment Status");
+  const [expanded, setExpanded] = useState(false);
   const [isRefreshing, startTransition] = useTransition();
 
   const busy = saving || isRefreshing;
-
-  const invoiceAmountNumber = useMemo(
-    () => getNumber(invoiceAmount),
-    [invoiceAmount]
-  );
-
+  const invoiceAmountNumber = useMemo(() => getNumber(invoiceAmount), [invoiceAmount]);
   const amountPaidNumber = useMemo(() => getNumber(amountPaid), [amountPaid]);
-
   const balanceDue = Math.max(0, invoiceAmountNumber - amountPaidNumber);
-
-  const isPaid =
-    paymentStatus === "Paid" ||
-    paymentStatus === "Waived" ||
-    balanceDue <= 0;
+  const isPaid = paymentStatus === "Paid" || paymentStatus === "Waived" || balanceDue <= 0;
+  const isPartial = !isPaid && amountPaidNumber > 0;
 
   async function savePaymentStatus() {
     if (busy) return;
-
     if (!inspectionId) {
       alert("Missing inspection ID.");
       return;
     }
-
     setSaving(true);
     setSaveLabel("Saving...");
-
     try {
       const { error } = await supabase
         .from("inspections")
@@ -120,31 +81,17 @@ export default function PaymentInvoicePanel({
           invoice_due_date: invoiceDueDate || null,
           payment_notes: paymentNotes || null,
           invoice_notes: paymentNotes || null,
-          paid_at:
-            paymentStatus === "Paid" || paymentStatus === "Waived"
-              ? new Date().toISOString()
-              : null,
+          paid_at: paymentStatus === "Paid" || paymentStatus === "Waived" ? new Date().toISOString() : null,
         })
         .eq("id", inspectionId);
-
       if (error) throw error;
-
       setSaveLabel("Saved!");
-
-      startTransition(() => {
-        router.refresh();
-      });
-
-      window.setTimeout(() => {
-        setSaveLabel("Save Payment Status");
-      }, 1100);
+      startTransition(() => router.refresh());
+      window.setTimeout(() => setSaveLabel("Save Payment Status"), 1100);
     } catch (error: any) {
       setSaveLabel("Failed");
       alert(error?.message || "Failed to save payment status.");
-
-      window.setTimeout(() => {
-        setSaveLabel("Save Payment Status");
-      }, 1100);
+      window.setTimeout(() => setSaveLabel("Save Payment Status"), 1100);
     } finally {
       setSaving(false);
     }
@@ -156,14 +103,12 @@ export default function PaymentInvoicePanel({
     setAmountPaid(String(invoiceAmountNumber || amountPaidNumber || 0));
     setSaveLabel("Save Payment Status");
   }
-
   function markUnpaid() {
     if (busy) return;
     setPaymentStatus("Unpaid");
     setAmountPaid("");
     setSaveLabel("Save Payment Status");
   }
-
   function markWaived() {
     if (busy) return;
     setPaymentStatus("Waived");
@@ -171,196 +116,75 @@ export default function PaymentInvoicePanel({
     setSaveLabel("Save Payment Status");
   }
 
+  const fieldClass = "box-border w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60";
+
   return (
-    <section
-      className={`mb-8 w-full max-w-full overflow-hidden rounded-2xl border p-4 sm:p-5 ${
-        isPaid
-          ? "border-emerald-600 bg-emerald-950/20"
-          : "border-orange-600 bg-orange-950/20"
-      }`}
-    >
-      <div className="mb-5 flex flex-col items-stretch gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h2
-            className={`text-2xl font-black ${
-              isPaid ? "text-emerald-300" : "text-orange-300"
-            }`}
-          >
-            Invoice / Payment Status
-          </h2>
+    <section className={`mb-6 w-full max-w-full overflow-hidden rounded-3xl border shadow-2xl shadow-black/20 ${isPaid ? "border-emerald-600/70 bg-emerald-950/20" : "border-orange-600/70 bg-orange-950/20"}`}>
+      <div className="border-b border-slate-800 bg-gradient-to-r from-[#0f172a] via-[#0b1628] to-[#071224] p-4 sm:p-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <p className="text-xs font-black uppercase tracking-[0.28em] text-teal-400">Invoice / Payment</p>
+            <h2 className={`mt-2 text-2xl font-black ${isPaid ? "text-emerald-300" : "text-orange-300"}`}>{isPaid ? "Payment Complete" : "Payment Required"}</h2>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Badge tone={isPaid ? "green" : isPartial ? "yellow" : "orange"}>{paymentStatus}</Badge>
+              <Badge tone="slate">Invoice {money(invoiceAmountNumber)}</Badge>
+              <Badge tone="slate">Paid {money(amountPaidNumber)}</Badge>
+              <Badge tone={isPaid ? "green" : "orange"}>Due {money(balanceDue)}</Badge>
+            </div>
+          </div>
 
-          <p className="mt-2 text-sm text-slate-300">
-            Track whether this inspection has been paid before final delivery.
-            Stripe checkout can be added after this manual workflow is verified.
-          </p>
-        </div>
-
-        <div
-          className={`w-full rounded-xl border px-4 py-3 text-left sm:w-auto sm:text-right ${
-            isPaid
-              ? "border-emerald-500 bg-emerald-950/40"
-              : "border-orange-500 bg-orange-950/40"
-          }`}
-        >
-          <p className="text-xs font-black uppercase tracking-wide text-slate-400">
-            Balance Due
-          </p>
-
-          <p
-            className={`text-3xl font-black ${
-              isPaid ? "text-emerald-300" : "text-orange-300"
-            }`}
-          >
-            {money(balanceDue)}
-          </p>
+          <button type="button" onClick={() => setExpanded((current) => !current)} className="w-full rounded-2xl border border-slate-600 px-5 py-3 text-sm font-black text-slate-200 transition hover:bg-slate-800 sm:w-auto">
+            {expanded ? "Hide Details" : "Edit Payment"}
+          </button>
         </div>
       </div>
 
-      {!isPaid && (
-        <div className="mb-5 rounded-xl border border-orange-500 bg-orange-950/30 p-4">
-          <p className="font-bold text-orange-200">
-            Payment is not marked complete. Confirm payment before final report
-            delivery unless payment is waived.
-          </p>
+      <div className="p-4 sm:p-5">
+        {!isPaid && (
+          <div className="mb-4 rounded-2xl border border-orange-500/50 bg-orange-500/10 p-4 text-sm font-bold leading-6 text-orange-200">
+            Payment is not marked complete. Confirm payment before final report delivery unless payment is waived.
+          </div>
+        )}
+
+        <div className="grid grid-cols-3 gap-3 text-center">
+          <div className="rounded-2xl border border-slate-700 bg-[#020817]/80 p-3">
+            <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">Invoice</p>
+            <p className="mt-1 text-xl font-black text-white">{money(invoiceAmountNumber)}</p>
+          </div>
+          <div className="rounded-2xl border border-slate-700 bg-[#020817]/80 p-3">
+            <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">Paid</p>
+            <p className="mt-1 text-xl font-black text-emerald-300">{money(amountPaidNumber)}</p>
+          </div>
+          <div className="rounded-2xl border border-slate-700 bg-[#020817]/80 p-3">
+            <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">Due</p>
+            <p className={`mt-1 text-xl font-black ${isPaid ? "text-emerald-300" : "text-orange-300"}`}>{money(balanceDue)}</p>
+          </div>
         </div>
-      )}
 
-      <div className="grid w-full grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <label className="block">
-          <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
-            Payment Status
-          </p>
+        {expanded && (
+          <div className="mt-5 rounded-2xl border border-slate-700 bg-[#020817]/80 p-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <label><p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">Payment Status</p><select value={paymentStatus} onChange={(e) => setPaymentStatus(e.target.value)} disabled={busy} className={fieldClass}>{PAYMENT_STATUSES.map((status) => <option key={status}>{status}</option>)}</select></label>
+              <label><p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">Invoice Amount</p><input type="number" value={invoiceAmount} onChange={(e) => setInvoiceAmount(e.target.value)} disabled={busy} className={fieldClass} /></label>
+              <label><p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">Amount Paid</p><input type="number" value={amountPaid} onChange={(e) => setAmountPaid(e.target.value)} disabled={busy} className={fieldClass} /></label>
+              <label><p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">Due Date</p><input type="date" value={invoiceDueDate} onChange={(e) => setInvoiceDueDate(e.target.value)} disabled={busy} className={fieldClass} /></label>
+            </div>
+            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+              <label><p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">Payment Method</p><select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} disabled={busy} className={fieldClass}>{PAYMENT_METHODS.map((method) => <option key={method} value={method}>{method || "Not selected"}</option>)}</select></label>
+              <label><p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">Notes</p><input value={paymentNotes} onChange={(e) => setPaymentNotes(e.target.value)} placeholder="Example: paid by check, waived, etc." disabled={busy} className={fieldClass} /></label>
+            </div>
+          </div>
+        )}
 
-          <select
-            value={paymentStatus}
-            onChange={(event) => setPaymentStatus(event.target.value)}
-            disabled={busy}
-            className="box-border w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {PAYMENT_STATUSES.map((status) => (
-              <option key={status}>{status}</option>
-            ))}
-          </select>
-        </label>
-
-        <label className="block">
-          <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
-            Invoice Amount
-          </p>
-
-          <input
-            type="number"
-            value={invoiceAmount}
-            onChange={(event) => setInvoiceAmount(event.target.value)}
-            disabled={busy}
-            className="box-border w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
-          />
-        </label>
-
-        <label className="block">
-          <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
-            Amount Paid
-          </p>
-
-          <input
-            type="number"
-            value={amountPaid}
-            onChange={(event) => setAmountPaid(event.target.value)}
-            disabled={busy}
-            className="box-border w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
-          />
-        </label>
-
-        <label className="block">
-          <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
-            Due Date
-          </p>
-
-          <input
-            type="date"
-            value={invoiceDueDate}
-            onChange={(event) => setInvoiceDueDate(event.target.value)}
-            disabled={busy}
-            className="box-border w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
-          />
-        </label>
-      </div>
-
-      <div className="mt-4 grid w-full grid-cols-1 gap-4 md:grid-cols-2">
-        <label className="block">
-          <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
-            Payment Method
-          </p>
-
-          <select
-            value={paymentMethod}
-            onChange={(event) => setPaymentMethod(event.target.value)}
-            disabled={busy}
-            className="box-border w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {PAYMENT_METHODS.map((method) => (
-              <option key={method} value={method}>
-                {method || "Not selected"}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="block">
-          <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
-            Notes
-          </p>
-
-          <input
-            value={paymentNotes}
-            onChange={(event) => setPaymentNotes(event.target.value)}
-            placeholder="Example: paid by check, invoice sent, waived, etc."
-            disabled={busy}
-            className="box-border w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
-          />
-        </label>
-      </div>
-
-      <div className="mt-5 flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap">
-        <button
-          type="button"
-          onClick={markPaid}
-          disabled={busy}
-          className="inline-flex w-full items-center justify-center rounded-xl bg-emerald-500 px-5 py-3 font-black text-slate-950 transition active:scale-[0.98] hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto [touch-action:manipulation]"
-        >
-          Mark Paid
-        </button>
-
-        <button
-          type="button"
-          onClick={markUnpaid}
-          disabled={busy}
-          className="inline-flex w-full items-center justify-center rounded-xl border border-orange-500 px-5 py-3 font-bold text-orange-300 transition active:scale-[0.98] hover:bg-orange-500/10 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto [touch-action:manipulation]"
-        >
-          Mark Unpaid
-        </button>
-
-        <button
-          type="button"
-          onClick={markWaived}
-          disabled={busy}
-          className="inline-flex w-full items-center justify-center rounded-xl border border-slate-600 px-5 py-3 font-bold text-slate-200 transition active:scale-[0.98] hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto [touch-action:manipulation]"
-        >
-          Waive Payment
-        </button>
-
-        <button
-          type="button"
-          onClick={savePaymentStatus}
-          disabled={busy}
-          aria-busy={busy}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-teal-500 px-6 py-3 font-black text-slate-950 transition active:scale-[0.98] hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto [touch-action:manipulation]"
-        >
-          {busy && (
-            <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-          )}
-          {isRefreshing ? "Updating..." : saveLabel}
-        </button>
+        <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:flex lg:flex-wrap">
+          <button type="button" onClick={markPaid} disabled={busy} className="inline-flex items-center justify-center rounded-xl bg-emerald-500 px-5 py-3 font-black text-slate-950 transition active:scale-[0.98] hover:bg-emerald-400 disabled:opacity-50 [touch-action:manipulation]">Mark Paid</button>
+          <button type="button" onClick={markUnpaid} disabled={busy} className="inline-flex items-center justify-center rounded-xl border border-orange-500 px-5 py-3 font-bold text-orange-300 transition active:scale-[0.98] hover:bg-orange-500/10 disabled:opacity-50 [touch-action:manipulation]">Mark Unpaid</button>
+          <button type="button" onClick={markWaived} disabled={busy} className="inline-flex items-center justify-center rounded-xl border border-slate-600 px-5 py-3 font-bold text-slate-200 transition active:scale-[0.98] hover:bg-slate-800 disabled:opacity-50 [touch-action:manipulation]">Waive</button>
+          <button type="button" onClick={savePaymentStatus} disabled={busy} aria-busy={busy} className="inline-flex items-center justify-center gap-2 rounded-xl bg-teal-500 px-6 py-3 font-black text-slate-950 transition active:scale-[0.98] hover:bg-teal-400 disabled:opacity-50 [touch-action:manipulation]">
+            {busy && <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />}
+            {isRefreshing ? "Updating..." : saveLabel}
+          </button>
+        </div>
       </div>
     </section>
   );

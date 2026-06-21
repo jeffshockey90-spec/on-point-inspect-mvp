@@ -1023,9 +1023,9 @@ export default async function ReportPage({ params }: PageProps) {
 
   return (
     <main className="min-h-screen bg-[#020617] text-white">
-      <div className="mx-auto max-w-7xl px-6 py-8">
-        <div className="mb-8 rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
-          <div className="mb-8 flex flex-wrap gap-3">
+      <div className="mx-auto w-full max-w-none px-3 py-4 sm:px-4 md:px-6 lg:max-w-7xl lg:py-8">
+        <div className="mb-6 overflow-hidden rounded-3xl border border-slate-800 bg-[#0f172a] p-3 shadow-xl sm:p-5 md:p-6">
+          <div className="mb-6 flex max-w-full flex-wrap gap-3 overflow-hidden">
             <PrintButton
               label="Print / Save PDF"
               className="rounded-xl bg-black px-5 py-3 font-bold text-white hover:bg-slate-800"
