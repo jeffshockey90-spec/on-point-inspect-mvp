@@ -924,14 +924,65 @@ export default async function ReportPage({ params }: PageProps) {
     createSignedRawUrlMap(supabase, fullPhotoPaths),
   ]);
 
-  const equipmentInventory = equipmentInventoryRaw.map((item: any) => ({
-    ...item,
-    signed_image_url:
+  const getEquipmentStoragePath = (item: any) =>
+    item?.file_path ||
+    item?.storage_path ||
+    item?.photo_path ||
+    item?.image_path ||
+    getStoragePathFromUrl(item?.image_url) ||
+    getStoragePathFromUrl(item?.public_url) ||
+    getStoragePathFromUrl(item?.photo_url) ||
+    "";
+
+  const getEquipmentThumbnailPath = (item: any) =>
+    item?.thumbnail_path ||
+    item?.thumbnail_storage_path ||
+    getStoragePathFromUrl(item?.thumbnail_url) ||
+    getStoragePathFromUrl(item?.thumbnail_public_url) ||
+    "";
+
+  const equipmentImagePaths = equipmentInventoryRaw
+    .map((item: any) => getEquipmentStoragePath(item))
+    .filter(Boolean);
+
+  const equipmentThumbnailPaths = equipmentInventoryRaw
+    .map((item: any) => getEquipmentThumbnailPath(item))
+    .filter(Boolean);
+
+  const [equipmentSignedImageMap, equipmentSignedThumbnailMap] = await Promise.all([
+    createSignedRawUrlMap(supabase, equipmentImagePaths),
+    createSignedRawUrlMap(supabase, equipmentThumbnailPaths),
+  ]);
+
+  const equipmentInventory = equipmentInventoryRaw.map((item: any) => {
+    const imagePath = getEquipmentStoragePath(item);
+    const thumbnailPath = getEquipmentThumbnailPath(item);
+
+    const existingImageUrl =
       item.signed_image_url ||
       item.image_url ||
       item.public_url ||
-      "",
-  }));
+      item.photo_url ||
+      "";
+
+    const existingThumbnailUrl =
+      item.signed_thumbnail_url ||
+      item.thumbnail_url ||
+      item.thumbnail_public_url ||
+      "";
+
+    return {
+      ...item,
+      signed_thumbnail_url:
+        equipmentSignedThumbnailMap[thumbnailPath] ||
+        existingThumbnailUrl ||
+        "",
+      signed_image_url:
+        equipmentSignedImageMap[imagePath] ||
+        existingImageUrl ||
+        "",
+    };
+  });
 
   const photosWithUrls = rawPhotos.map((photo: any) => {
     const fullPath = getPhotoStoragePath(photo);
@@ -1534,9 +1585,13 @@ export default async function ReportPage({ params }: PageProps) {
               <div className="grid gap-4">
                 {equipmentInventory.map((item: any) => {
                   const equipmentImage =
+                    item.signed_thumbnail_url ||
+                    item.thumbnail_url ||
+                    item.thumbnail_public_url ||
                     item.signed_image_url ||
                     item.image_url ||
                     item.public_url ||
+                    item.photo_url ||
                     "";
 
                   return (
