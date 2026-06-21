@@ -100,6 +100,13 @@ function getStoragePathFromUrl(url: string | null | undefined) {
   return decodeURIComponent(url.substring(index + marker.length));
 }
 
+const REPORT_IMAGE_TRANSFORM_OPTIONS = {
+  transform: {
+    width: 1400,
+    resize: "contain",
+  },
+};
+
 async function createSignedPhotoUrl(supabase: any, photo: any) {
   const existing =
     photo?.signed_url ||
@@ -120,7 +127,7 @@ async function createSignedPhotoUrl(supabase: any, photo: any) {
 
   const { data, error } = await supabase.storage
     .from("inspection-photos")
-    .createSignedUrl(filePath, 60 * 60 * 24 * 7);
+    .createSignedUrl(filePath, 60 * 60 * 24 * 7, REPORT_IMAGE_TRANSFORM_OPTIONS);
 
   if (error || !data?.signedUrl) return existing;
 
@@ -140,7 +147,7 @@ async function createSignedUrlMap(supabase: any, paths: string[]) {
 
     const { data, error } = await supabase.storage
       .from("inspection-photos")
-      .createSignedUrls(chunk, 60 * 60 * 24 * 7);
+      .createSignedUrls(chunk, 60 * 60 * 24 * 7, REPORT_IMAGE_TRANSFORM_OPTIONS);
 
     if (error) {
       console.error("Batch signed photo URL error:", error);
@@ -1024,7 +1031,7 @@ export default async function ReportPage({ params }: PageProps) {
   return (
     <main className="min-h-screen bg-[#020617] text-white">
       <div className="mx-auto w-full max-w-none px-2 py-3 sm:px-3 md:px-6 lg:max-w-7xl lg:py-8">
-        <div className="mb-6 overflow-hidden rounded-3xl border border-slate-800 bg-[#0f172a] p-2 shadow-xl sm:p-4 md:p-6">
+        <div className="mb-5 overflow-hidden rounded-3xl border border-slate-800 bg-[#0f172a] p-2 shadow-xl sm:p-4 md:p-6">
           <div className="mb-6 flex max-w-full flex-wrap gap-3 overflow-hidden">
             <PrintButton
               label="Print / Save PDF"
@@ -1156,7 +1163,7 @@ export default async function ReportPage({ params }: PageProps) {
             </FastLinkButton>
           </div>
 
-          <div className="mb-8 rounded-2xl border border-yellow-500 bg-yellow-950/30 p-4 sm:p-5 text-yellow-200">
+          <div className="mb-8 rounded-2xl border border-yellow-500 bg-yellow-950/30 p-4 text-yellow-200">
             <h2 className="text-2xl font-black">Report Tools</h2>
             <p className="mt-2">
               All report tools are enabled, including Send Report, Realtor
@@ -1166,7 +1173,7 @@ export default async function ReportPage({ params }: PageProps) {
             </p>
           </div>
 
-          <section className="mb-8 rounded-2xl border border-slate-700 bg-[#071224] p-4 sm:p-5">
+          <section className="mb-8 rounded-2xl border border-slate-700 bg-[#071224] p-4">
             <h2 className="text-2xl font-bold text-teal-300">
               Report Engagement
             </h2>
@@ -1324,7 +1331,7 @@ export default async function ReportPage({ params }: PageProps) {
             )}
           </section>
 
-          <section className="mb-8 rounded-2xl border border-purple-500/40 bg-[#071224] p-4 sm:p-5 shadow-xl">
+          <section className="mb-8 rounded-2xl border border-purple-500/40 bg-[#071224] p-4 shadow-xl">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <h2 className="text-2xl font-bold text-purple-300">
@@ -1355,13 +1362,13 @@ export default async function ReportPage({ params }: PageProps) {
               )}
             </div>
 
-            <div className="mt-4 whitespace-pre-line rounded-xl border border-slate-700 bg-[#020817]/70 p-5 text-sm leading-7 text-slate-100">
+            <div className="mt-4 whitespace-pre-line rounded-xl border border-slate-700 bg-[#020817]/70 p-4 text-sm leading-7 text-slate-100">
               {executiveSummary ||
                 "Click Generate AI Summary to create and save the executive summary for this report."}
             </div>
           </section>
 
-          <div className="mb-8 rounded-2xl border border-slate-700 bg-[#071224] p-4 sm:p-5">
+          <div className="mb-8 rounded-2xl border border-slate-700 bg-[#071224] p-4">
             <h2 className="mb-4 text-2xl font-bold text-teal-300">
               Email Report
             </h2>
@@ -1409,7 +1416,7 @@ export default async function ReportPage({ params }: PageProps) {
             </div>
           )}
 
-          <h1 className="text-5xl font-extrabold text-teal-400">
+          <h1 className="break-words text-4xl font-extrabold text-teal-400 sm:text-5xl">
             On Point Home Inspections
           </h1>
 
@@ -1417,7 +1424,7 @@ export default async function ReportPage({ params }: PageProps) {
             Residential Home Inspection Report
           </p>
 
-          <section className="mt-6 rounded-2xl border border-slate-700 bg-[#071224] p-4 sm:p-5">
+          <section className="mt-6 rounded-2xl border border-slate-700 bg-[#071224] p-4">
             <div className="mb-4">
               <h2 className="text-2xl font-extrabold text-teal-300">
                 Defect Totals
@@ -1461,7 +1468,7 @@ export default async function ReportPage({ params }: PageProps) {
           {equipmentInventory.length > 0 && (
             <section
               id="equipment-inventory"
-              className="mt-6 rounded-2xl border border-cyan-500/40 bg-cyan-950/20 p-4 sm:p-5"
+              className="mt-6 rounded-2xl border border-cyan-500/40 bg-cyan-950/20 p-4"
             >
               <div className="mb-4">
                 <h2 className="text-2xl font-extrabold text-cyan-300">
@@ -1634,7 +1641,7 @@ Service-life information is a general industry estimate only. Actual service lif
 
           <form
             action={updateInspectionDetails}
-            className="mt-8 border-t border-slate-700 pt-8"
+            className="mt-8 border-t border-slate-700 pt-6"
           >
             <input type="hidden" name="inspection_id" value={inspection.id} />
 
@@ -2051,9 +2058,9 @@ function InventoryLine({ label, value }: { label: string; value?: any }) {
   if (!isKnownEquipmentValue(value)) return null;
 
   return (
-    <div className="grid grid-cols-[150px_1fr] gap-3 border-b border-slate-800 pb-1">
+    <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-3 border-b border-slate-800 pb-1">
       <span className="font-bold text-slate-500">{label}</span>
-      <span className="text-right font-semibold text-slate-200">{value}</span>
+      <span className="min-w-0 break-words text-right font-semibold text-slate-200">{value}</span>
     </div>
   );
 }
