@@ -640,9 +640,13 @@ function getSeverityStyle(severity: string | null | undefined) {
 function getPhotoUrl(photo: any) {
   return (
     photo?.signed_url ||
+    photo?.signedUrl ||
     photo?.public_url ||
+    photo?.publicUrl ||
     photo?.image_url ||
+    photo?.imageUrl ||
     photo?.photo_url ||
+    photo?.photoUrl ||
     photo?.url ||
     ""
   );
@@ -651,8 +655,19 @@ function getPhotoUrl(photo: any) {
 function getPhotoPreviewUrl(photo: any) {
   return (
     photo?.signed_thumbnail_url ||
+    photo?.signedThumbnailUrl ||
     photo?.thumbnail_url ||
-    getPhotoUrl(photo)
+    photo?.thumbnailUrl ||
+    photo?.thumbnail_public_url ||
+    photo?.thumbnailPublicUrl ||
+    photo?.public_url ||
+    photo?.publicUrl ||
+    photo?.image_url ||
+    photo?.imageUrl ||
+    photo?.photo_url ||
+    photo?.photoUrl ||
+    photo?.url ||
+    ""
   );
 }
 
