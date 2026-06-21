@@ -220,94 +220,6 @@ function getPhotoFallbackUrl(photo: any) {
   );
 }
 
-
-function getEquipmentStoragePath(item: any) {
-  return (
-    item?.file_path ||
-    item?.storage_path ||
-    item?.photo_path ||
-    item?.image_path ||
-    item?.video_path ||
-    getStoragePathFromUrl(item?.public_url) ||
-    getStoragePathFromUrl(item?.image_url) ||
-    getStoragePathFromUrl(item?.photo_url) ||
-    getStoragePathFromUrl(item?.video_url) ||
-    ""
-  );
-}
-
-function getEquipmentThumbnailPath(item: any) {
-  return (
-    item?.thumbnail_path ||
-    item?.thumbnail_storage_path ||
-    item?.thumb_path ||
-    getStoragePathFromUrl(item?.thumbnail_url) ||
-    getStoragePathFromUrl(item?.thumbnail_public_url) ||
-    ""
-  );
-}
-
-function getEquipmentFallbackUrl(item: any) {
-  return (
-    item?.signed_image_url ||
-    item?.signed_url ||
-    item?.public_url ||
-    item?.image_url ||
-    item?.photo_url ||
-    item?.video_url ||
-    item?.url ||
-    ""
-  );
-}
-
-function getEquipmentThumbnailFallbackUrl(item: any) {
-  return (
-    item?.signed_thumbnail_url ||
-    item?.thumbnail_url ||
-    item?.thumbnail_public_url ||
-    item?.thumb_url ||
-    ""
-  );
-}
-
-function isVideoMediaValue(item: any, mediaUrl?: string) {
-  const url = String(
-    mediaUrl ||
-      item?.video_url ||
-      item?.public_url ||
-      item?.image_url ||
-      item?.photo_url ||
-      item?.url ||
-      ""
-  ).toLowerCase();
-
-  const path = String(
-    item?.video_path ||
-      item?.file_path ||
-      item?.storage_path ||
-      item?.photo_path ||
-      item?.image_path ||
-      ""
-  ).toLowerCase();
-
-  const type = String(
-    item?.mime_type ||
-      item?.media_type ||
-      item?.content_type ||
-      item?.file_type ||
-      ""
-  ).toLowerCase();
-
-  return (
-    Boolean(item?.is_video) ||
-    Boolean(item?.video_url) ||
-    type.startsWith("video/") ||
-    type.includes("quicktime") ||
-    path.match(/\.(mp4|mov|m4v|webm|avi|quicktime)$/) !== null ||
-    url.match(/\.(mp4|mov|m4v|webm|avi|quicktime)(\?|$)/) !== null
-  );
-}
-
 function formatEmailStatusDate(value: any) {
   if (!value) return "N/A";
 
@@ -1000,59 +912,26 @@ export default async function ReportPage({ params }: PageProps) {
     .map((photo: any) => photo.thumbnail_path || photo.thumbnail_storage_path || "")
     .filter(Boolean);
 
-  const fullPhotoPaths = rawPhotos.map((photo: any) => getPhotoStoragePath(photo));
-
-  const fallbackFullPhotoPaths = rawPhotos
-    .filter((photo: any) => !(photo.thumbnail_path || photo.thumbnail_storage_path))
+  const fullPhotoPaths = rawPhotos
     .map((photo: any) => getPhotoStoragePath(photo))
     .filter(Boolean);
 
-  const equipmentImagePaths = equipmentInventoryRaw
-    .map((item: any) => getEquipmentStoragePath(item))
-    .filter(Boolean);
-
-  const equipmentThumbnailPaths = equipmentInventoryRaw
-    .map((item: any) => getEquipmentThumbnailPath(item))
-    .filter(Boolean);
-
-  const [
-    signedThumbnailMap,
-    signedFallbackFullMap,
-    signedEquipmentImageMap,
-    signedEquipmentThumbnailMap,
-  ] = await Promise.all([
+  // IMPORTANT: sign the original media paths WITHOUT image transforms.
+  // Image transforms break video playback because Supabase transform URLs are for images only.
+  // The share page works because it signs raw storage paths. Do the same here.
+  const [signedThumbnailMap, signedFullMediaMap] = await Promise.all([
     createSignedRawUrlMap(supabase, thumbnailPaths),
-    createSignedUrlMap(supabase, fallbackFullPhotoPaths),
-    createSignedRawUrlMap(supabase, equipmentImagePaths),
-    createSignedRawUrlMap(supabase, equipmentThumbnailPaths),
+    createSignedRawUrlMap(supabase, fullPhotoPaths),
   ]);
 
-  const equipmentInventory = equipmentInventoryRaw.map((item: any) => {
-    const equipmentPath = getEquipmentStoragePath(item);
-    const equipmentThumbnailPath = getEquipmentThumbnailPath(item);
-    const existingEquipmentUrl = getEquipmentFallbackUrl(item);
-    const existingEquipmentThumbnailUrl = getEquipmentThumbnailFallbackUrl(item);
-
-    const signedImageUrl =
-      signedEquipmentImageMap[equipmentPath] ||
+  const equipmentInventory = equipmentInventoryRaw.map((item: any) => ({
+    ...item,
+    signed_image_url:
       item.signed_image_url ||
-      item.signed_url ||
-      existingEquipmentUrl ||
-      "";
-
-    const signedThumbnailUrl =
-      signedEquipmentThumbnailMap[equipmentThumbnailPath] ||
-      item.signed_thumbnail_url ||
-      existingEquipmentThumbnailUrl ||
-      "";
-
-    return {
-      ...item,
-      signed_thumbnail_url: signedThumbnailUrl,
-      signed_image_url: signedImageUrl,
-      is_video: isVideoMediaValue(item, signedImageUrl),
-    };
-  });
+      item.image_url ||
+      item.public_url ||
+      "",
+  }));
 
   const photosWithUrls = rawPhotos.map((photo: any) => {
     const fullPath = getPhotoStoragePath(photo);
@@ -1067,13 +946,12 @@ export default async function ReportPage({ params }: PageProps) {
     return {
       ...photo,
       signed_url:
-        signedFallbackFullMap[fullPath] ||
+        signedFullMediaMap[fullPath] ||
         photo.signed_url ||
         existingFullUrl ||
         "",
       signed_thumbnail_url:
         signedThumbnailMap[thumbnailPath] ||
-        signedFallbackFullMap[fullPath] ||
         existingThumbnailUrl ||
         existingFullUrl ||
         "",
@@ -1655,47 +1533,25 @@ export default async function ReportPage({ params }: PageProps) {
 
               <div className="grid gap-4">
                 {equipmentInventory.map((item: any) => {
-                  const equipmentMedia =
+                  const equipmentImage =
                     item.signed_image_url ||
                     item.image_url ||
                     item.public_url ||
-                    item.video_url ||
                     "";
-
-                  const equipmentThumbnail =
-                    item.signed_thumbnail_url ||
-                    item.thumbnail_url ||
-                    item.thumbnail_public_url ||
-                    "";
-
-                  const equipmentIsVideo = isVideoMediaValue(item, equipmentMedia);
 
                   return (
                     <div
                       key={item.id}
                       className="rounded-xl border border-slate-700 bg-[#020817]/80 p-4"
                     >
-                      {equipmentMedia && (
-                        equipmentIsVideo ? (
-                          <video
-                            src={equipmentMedia}
-                            poster={equipmentThumbnail || undefined}
-                            controls
-                            playsInline
-                            preload="metadata"
-                            className="mb-4 max-h-56 w-full rounded-xl border border-slate-700 bg-black object-contain"
-                          >
-                            Your browser does not support video playback.
-                          </video>
-                        ) : (
-                          <img
-                            src={equipmentThumbnail || equipmentMedia}
-                            alt={item.equipment_type || "Equipment"}
-                            loading="lazy"
-                            decoding="async"
-                            className="mb-4 max-h-56 w-full rounded-xl border border-slate-700 object-contain"
-                          />
-                        )
+                      {equipmentImage && (
+                        <img
+                          src={equipmentImage}
+                          alt={item.equipment_type || "Equipment"}
+                          loading="lazy"
+                          decoding="async"
+                          className="mb-4 max-h-56 w-full rounded-xl border border-slate-700 object-contain"
+                        />
                       )}
 
                       <p className="text-xs font-black uppercase tracking-wide text-cyan-300">
