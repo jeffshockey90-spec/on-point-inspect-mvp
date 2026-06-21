@@ -166,6 +166,38 @@ async function createSignedUrlMap(supabase: any, paths: string[]) {
   return signedMap;
 }
 
+async function createSignedRawUrlMap(supabase: any, paths: string[]) {
+  const uniquePaths = Array.from(new Set(paths.filter(Boolean)));
+  const signedMap: Record<string, string> = {};
+
+  if (uniquePaths.length === 0) return signedMap;
+
+  const chunkSize = 50;
+
+  for (let index = 0; index < uniquePaths.length; index += chunkSize) {
+    const chunk = uniquePaths.slice(index, index + chunkSize);
+
+    const { data, error } = await supabase.storage
+      .from("inspection-photos")
+      .createSignedUrls(chunk, 60 * 60 * 24 * 7);
+
+    if (error) {
+      console.error("Batch signed raw photo URL error:", error);
+      continue;
+    }
+
+    (data || []).forEach((item: any, itemIndex: number) => {
+      const path = item?.path || chunk[itemIndex];
+
+      if (path && item?.signedUrl) {
+        signedMap[path] = item.signedUrl;
+      }
+    });
+  }
+
+  return signedMap;
+}
+
 function getPhotoStoragePath(photo: any) {
   return (
     photo?.file_path ||
@@ -869,12 +901,29 @@ export default async function ReportPage({ params }: PageProps) {
 
   if (photosError) console.error("Photos load error:", photosError);
 
-  // IMPORTANT PERFORMANCE FIX:
-  // Do not create signed URLs for every report photo during the initial report load.
-  // Large reports can have hundreds of photos, and signing them all here makes the
-  // internal report page feel extremely slow even when the share report is fast.
-  // The report editor should use the already-saved public/thumbnail URLs first.
-  // Full-size signing can be handled only when a user opens a private image.
+  // PERFORMANCE + IMAGE FIX:
+  // The editable report uses a private Supabase storage bucket in some installs.
+  // Public-looking URLs can fail in the editor, which causes broken thumbnails.
+  // Sign thumbnail paths in small batches so cards show images immediately without
+  // forcing the page to transform/sign every full-size photo before render.
+  const rawPhotos = photosRaw || [];
+
+  const thumbnailPaths = rawPhotos
+    .map((photo: any) => photo.thumbnail_path || photo.thumbnail_storage_path || "")
+    .filter(Boolean);
+
+  const fullPhotoPaths = rawPhotos.map((photo: any) => getPhotoStoragePath(photo));
+
+  const fallbackFullPhotoPaths = rawPhotos
+    .filter((photo: any) => !(photo.thumbnail_path || photo.thumbnail_storage_path))
+    .map((photo: any) => getPhotoStoragePath(photo))
+    .filter(Boolean);
+
+  const [signedThumbnailMap, signedFallbackFullMap] = await Promise.all([
+    createSignedRawUrlMap(supabase, thumbnailPaths),
+    createSignedUrlMap(supabase, fallbackFullPhotoPaths),
+  ]);
+
   const equipmentInventory = equipmentInventoryRaw.map((item: any) => ({
     ...item,
     signed_image_url:
@@ -884,15 +933,31 @@ export default async function ReportPage({ params }: PageProps) {
       "",
   }));
 
-  const photosWithUrls = (photosRaw || []).map((photo: any) => ({
-    ...photo,
-    signed_url: getPhotoFallbackUrl(photo),
-    signed_thumbnail_url:
+  const photosWithUrls = rawPhotos.map((photo: any) => {
+    const fullPath = getPhotoStoragePath(photo);
+    const thumbnailPath = photo.thumbnail_path || photo.thumbnail_storage_path || "";
+    const existingFullUrl = getPhotoFallbackUrl(photo);
+    const existingThumbnailUrl =
       photo.signed_thumbnail_url ||
       photo.thumbnail_url ||
       photo.thumbnail_public_url ||
-      "",
-  }));
+      "";
+
+    return {
+      ...photo,
+      signed_url:
+        signedFallbackFullMap[fullPath] ||
+        photo.signed_url ||
+        existingFullUrl ||
+        "",
+      signed_thumbnail_url:
+        signedThumbnailMap[thumbnailPath] ||
+        signedFallbackFullMap[fullPath] ||
+        existingThumbnailUrl ||
+        existingFullUrl ||
+        "",
+    };
+  });
 
   const photosByFindingId = photosWithUrls.reduce(
     (acc: Record<string, any[]>, photo: any) => {
