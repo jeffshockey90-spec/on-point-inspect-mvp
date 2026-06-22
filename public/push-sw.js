@@ -21,21 +21,38 @@ self.addEventListener("push", (event) => {
     data.deep_link ||
     "/";
 
-  self.registration.showNotification(data.title || "On Point Inspect", {
-    body: data.body || "",
-    icon: "/icons/icon-192.png",
-    badge: "/icons/icon-192.png",
-    data: {
-      url,
-      eventType: data.eventType || data.event_type || "push",
-    },
-  });
+  const eventType =
+    data.eventType ||
+    data.event_type ||
+    "push";
+
+  console.log("On Point push payload:", data);
+  console.log("On Point push URL:", url);
+
+  event.waitUntil(
+    self.registration.showNotification(
+      data.title || "On Point Inspect",
+      {
+        body: data.body || "",
+        icon: "/icons/icon-192.png",
+        badge: "/icons/icon-192.png",
+        data: {
+          url,
+          eventType,
+        },
+      }
+    )
+  );
 });
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
-  let targetUrl = event.notification?.data?.url || "/";
+  let targetUrl =
+    event.notification?.data?.url ||
+    "/";
+
+  console.log("On Point notification click URL:", targetUrl);
 
   try {
     if (
@@ -44,7 +61,11 @@ self.addEventListener("notificationclick", (event) => {
         targetUrl.startsWith("https://"))
     ) {
       const parsed = new URL(targetUrl);
-      targetUrl = `${parsed.pathname}${parsed.search}${parsed.hash}`;
+
+      targetUrl =
+        parsed.pathname +
+        parsed.search +
+        parsed.hash;
     }
   } catch (error) {
     console.error("Push URL parse error:", error);
@@ -63,20 +84,21 @@ self.addEventListener("notificationclick", (event) => {
       })
       .then((clientList) => {
         for (const client of clientList) {
-          const clientUrl = new URL(client.url);
+          try {
+            const clientUrl = new URL(client.url);
 
-          if (
-            clientUrl.origin === self.location.origin &&
-            "focus" in client
-          ) {
-            client.focus();
+            if (
+              clientUrl.origin === self.location.origin
+            ) {
+              if ("focus" in client) {
+                client.focus();
+              }
 
-            if ("navigate" in client) {
-              return client.navigate(targetUrl);
+              if ("navigate" in client) {
+                return client.navigate(targetUrl);
+              }
             }
-
-            return;
-          }
+          } catch {}
         }
 
         return clients.openWindow(targetUrl);
