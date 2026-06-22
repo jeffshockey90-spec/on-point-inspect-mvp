@@ -29,6 +29,12 @@ export default function BookingRequestActions({ requestId }: Props) {
         throw new Error(result?.error || "Booking request update failed.");
       }
 
+      if (action === "confirm" && result?.inspectionId) {
+        router.push(`/reports/${result.inspectionId}`);
+        router.refresh();
+        return;
+      }
+
       router.refresh();
     } catch (err: any) {
       setError(err?.message || "Booking request update failed.");
@@ -46,7 +52,7 @@ export default function BookingRequestActions({ requestId }: Props) {
           disabled={!!loadingAction}
           className="rounded-xl bg-teal-400 px-4 py-2 text-sm font-black text-black transition hover:bg-teal-300 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {loadingAction === "confirm" ? "Confirming..." : "Confirm"}
+          {loadingAction === "confirm" ? "Creating Inspection..." : "Confirm + Create Inspection"}
         </button>
 
         <button
