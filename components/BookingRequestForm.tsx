@@ -26,7 +26,7 @@ type Option = string | { label: string; value: string };
 
 declare global {
   interface Window {
-    google?: any;
+    google: any;
     __onPointGoogleMapsPromise?: Promise<void>;
   }
 }
