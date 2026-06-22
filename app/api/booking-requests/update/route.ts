@@ -1,11 +1,25 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
+import { createClient as createServiceClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 type AnyRow = Record<string, any>;
+
+function createAdminClient() {
+  return createServiceClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    }
+  );
+}
 
 function cleanText(value: any) {
   return String(value || "").trim();
@@ -29,8 +43,7 @@ function requesterIsRealtor(request: AnyRow) {
   return cleanText(request.requester_role).toLowerCase().includes("realtor");
 }
 
-function getInspectionPayload(request: AnyRow, userId: string) {
-  const serviceType = requestedServices(request);
+function getContactValues(request: AnyRow) {
   const clientName =
     cleanText(request.client_name) || cleanText(request.requester_name);
   const clientEmail =
@@ -49,6 +62,27 @@ function getInspectionPayload(request: AnyRow, userId: string) {
   const realtorPhone =
     cleanText(request.realtor_phone) ||
     (requesterIsRealtor(request) ? cleanText(request.requester_phone) : "");
+
+  return {
+    clientName,
+    clientEmail,
+    clientPhone,
+    realtorName,
+    realtorEmail,
+    realtorPhone,
+  };
+}
+
+function getInspectionPayload(request: AnyRow, userId: string) {
+  const serviceType = requestedServices(request);
+  const {
+    clientName,
+    clientEmail,
+    clientPhone,
+    realtorName,
+    realtorEmail,
+    realtorPhone,
+  } = getContactValues(request);
 
   const address = cleanText(request.property_address);
 
@@ -158,7 +192,10 @@ async function insertInspectionWithSchemaFallback(
 
     const missingColumn = getMissingColumnName(error);
 
-    if (missingColumn && Object.prototype.hasOwnProperty.call(payload, missingColumn)) {
+    if (
+      missingColumn &&
+      Object.prototype.hasOwnProperty.call(payload, missingColumn)
+    ) {
       delete payload[missingColumn];
       removedColumns.push(missingColumn);
       continue;
@@ -172,10 +209,105 @@ async function insertInspectionWithSchemaFallback(
   }
 
   throw {
-    error: new Error("Could not create inspection after removing unsupported columns."),
+    error: new Error(
+      "Could not create inspection after removing unsupported columns."
+    ),
     attemptedPayload: payload,
     removedColumns,
   };
+}
+
+async function upsertBookingContacts(
+  admin: any,
+  bookingRequest: AnyRow,
+  inspectionId: string,
+  inspectorId: string
+) {
+  const {
+    clientName,
+    clientEmail,
+    clientPhone,
+    realtorName,
+    realtorEmail,
+    realtorPhone,
+  } = getContactValues(bookingRequest);
+
+  const contactPayloads: AnyRow[] = [];
+
+  if (clientName && clientEmail) {
+    contactPayloads.push({
+      inspection_id: inspectionId,
+      inspector_id: inspectorId,
+      name: clientName,
+      email: clientEmail,
+      phone: clientPhone || null,
+      role: "client",
+      agreement_required: true,
+      portal_access: true,
+      updated_at: new Date().toISOString(),
+    });
+  }
+
+  if (realtorName && realtorEmail) {
+    contactPayloads.push({
+      inspection_id: inspectionId,
+      inspector_id: inspectorId,
+      name: realtorName,
+      email: realtorEmail,
+      phone: realtorPhone || null,
+      role: "realtor",
+      agreement_required: false,
+      portal_access: true,
+      updated_at: new Date().toISOString(),
+    });
+  }
+
+  if (contactPayloads.length === 0) {
+    return { inserted: 0, skipped: true };
+  }
+
+  let inserted = 0;
+  const errors: string[] = [];
+
+  for (const contact of contactPayloads) {
+    const { data: existing, error: existingError } = await admin
+      .from("inspection_contacts")
+      .select("id")
+      .eq("inspection_id", inspectionId)
+      .eq("email", contact.email)
+      .maybeSingle();
+
+    if (existingError) {
+      errors.push(existingError.message);
+      continue;
+    }
+
+    if (existing?.id) {
+      const { error: updateError } = await admin
+        .from("inspection_contacts")
+        .update(contact)
+        .eq("id", existing.id);
+
+      if (updateError) {
+        errors.push(updateError.message);
+      }
+
+      continue;
+    }
+
+    const { error: insertError } = await admin
+      .from("inspection_contacts")
+      .insert(contact);
+
+    if (insertError) {
+      errors.push(insertError.message);
+      continue;
+    }
+
+    inserted += 1;
+  }
+
+  return { inserted, skipped: false, errors };
 }
 
 function compactUpdatePayload(payload: AnyRow) {
@@ -220,7 +352,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { data: bookingRequest, error: readError } = await supabase
+    const admin = createAdminClient();
+
+    const { data: bookingRequest, error: readError } = await admin
       .from("booking_requests")
       .select("*")
       .eq("id", requestId)
@@ -234,7 +368,7 @@ export async function POST(request: Request) {
     }
 
     if (action === "decline") {
-      const { data, error } = await supabase
+      const { data, error } = await admin
         .from("booking_requests")
         .update(
           compactUpdatePayload({
@@ -263,7 +397,7 @@ export async function POST(request: Request) {
 
       try {
         const result = await insertInspectionWithSchemaFallback(
-          supabase,
+          admin,
           payload
         );
 
@@ -284,7 +418,14 @@ export async function POST(request: Request) {
       }
     }
 
-    const { data: updatedRequest, error: updateError } = await supabase
+    const contacts = await upsertBookingContacts(
+      admin,
+      bookingRequest,
+      String(inspectionId),
+      user.id
+    );
+
+    const { data: updatedRequest, error: updateError } = await admin
       .from("booking_requests")
       .update(
         compactUpdatePayload({
@@ -311,6 +452,7 @@ export async function POST(request: Request) {
       ok: true,
       request: updatedRequest,
       inspectionId,
+      contacts,
       removedColumns,
     });
   } catch (error: any) {
