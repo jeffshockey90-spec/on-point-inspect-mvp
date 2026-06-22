@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 type NativePushStatus =
   | "checking"
@@ -9,8 +10,6 @@ type NativePushStatus =
   | "permission_denied"
   | "registered"
   | "failed";
-
-const APP_ORIGIN = "https://on-point-inspect-mvp.vercel.app";
 
 function isNativeCapacitorApp() {
   if (typeof window === "undefined") return false;
@@ -31,41 +30,59 @@ function getNativePlatform() {
   }
 }
 
-function normalizeAppRoute(input: any) {
-  const raw = String(input || "").trim();
+function normalizeDeepLink(rawUrl: any) {
+  if (!rawUrl || typeof rawUrl !== "string") return "";
 
-  if (!raw) return "";
+  const appBase =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    "https://on-point-inspect-mvp.vercel.app";
 
   try {
-    if (raw.startsWith("http://") || raw.startsWith("https://")) {
-      const url = new URL(raw);
+    if (rawUrl.startsWith("http://") || rawUrl.startsWith("https://")) {
+      const parsed = new URL(rawUrl);
+      const base = new URL(appBase);
 
-      if (url.origin === APP_ORIGIN) {
-        return `${url.pathname}${url.search}${url.hash}` || "/";
+      if (parsed.host === base.host) {
+        return `${parsed.pathname}${parsed.search}${parsed.hash}`;
       }
 
-      return raw;
+      return rawUrl;
     }
-  } catch {}
 
-  if (raw.startsWith("/")) return raw;
+    if (rawUrl.startsWith("/")) return rawUrl;
 
-  return `/${raw}`;
+    return `/${rawUrl}`;
+  } catch {
+    return rawUrl.startsWith("/") ? rawUrl : `/${rawUrl}`;
+  }
 }
 
-function openInAppRoute(input: any) {
-  if (typeof window === "undefined") return;
+function getPushUrl(event: any) {
+  const notification = event?.notification || event || {};
+  const data = notification?.data || {};
+  const extra = notification?.extra || {};
 
-  const route = normalizeAppRoute(input);
-
-  if (!route) return;
-
-  window.location.href = route;
+  return (
+    data?.url ||
+    data?.link ||
+    data?.deepLink ||
+    data?.deep_link ||
+    data?.route ||
+    extra?.url ||
+    extra?.link ||
+    extra?.deepLink ||
+    extra?.deep_link ||
+    extra?.route ||
+    notification?.url ||
+    notification?.link ||
+    ""
+  );
 }
 
 export default function NativePushSetup() {
+  const router = useRouter();
   const listenersReadyRef = useRef(false);
-  const appLinkReadyRef = useRef(false);
 
   const [status, setStatus] = useState<NativePushStatus>("checking");
   const [busy, setBusy] = useState(false);
@@ -75,6 +92,25 @@ export default function NativePushSetup() {
 
   const nativeApp = useMemo(() => isNativeCapacitorApp(), []);
 
+  function openDeepLink(rawUrl: any) {
+    const route = normalizeDeepLink(rawUrl);
+    if (!route || typeof window === "undefined") return;
+
+    if (route.startsWith("/")) {
+      router.push(route);
+      setTimeout(() => {
+        window.dispatchEvent(
+          new CustomEvent("onpoint:native-deeplink", {
+            detail: { url: route },
+          })
+        );
+      }, 250);
+      return;
+    }
+
+    window.location.href = route;
+  }
+
   useEffect(() => {
     if (!nativeApp) {
       setStatus("not_native");
@@ -83,37 +119,33 @@ export default function NativePushSetup() {
 
     setStatus("ready");
 
-    return () => {
-      listenersReadyRef.current = false;
-      appLinkReadyRef.current = false;
-    };
-  }, [nativeApp]);
+    let appListener: any;
 
-  useEffect(() => {
-    if (!nativeApp || appLinkReadyRef.current) return;
-
-    appLinkReadyRef.current = true;
-
-    let removeListener: any;
-
-    async function setupAppLinks() {
+    async function setupAppLinkListener() {
       try {
         const appModule = await import("@capacitor/app");
         const { App } = appModule;
 
-        removeListener = await App.addListener("appUrlOpen", (event: any) => {
-          openInAppRoute(event?.url);
+        appListener = await App.addListener("appUrlOpen", (event: any) => {
+          openDeepLink(event?.url);
         });
+
+        const launchUrl = await App.getLaunchUrl().catch(() => null);
+        if (launchUrl?.url) {
+          openDeepLink(launchUrl.url);
+        }
       } catch (error) {
-        console.warn("App link listener not available:", error);
+        console.warn("Capacitor App link listener unavailable:", error);
       }
     }
 
-    setupAppLinks();
+    setupAppLinkListener();
 
     return () => {
+      listenersReadyRef.current = false;
+
       try {
-        removeListener?.remove?.();
+        appListener?.remove?.();
       } catch {}
     };
   }, [nativeApp]);
@@ -176,11 +208,9 @@ export default function NativePushSetup() {
       console.log("Push received:", notification);
     });
 
-    await PushNotifications.addListener("pushNotificationActionPerformed", (notification: any) => {
-      const data = notification?.notification?.data || {};
-      const url = data.url || data.link || data.path;
-
-      openInAppRoute(url);
+    await PushNotifications.addListener("pushNotificationActionPerformed", (event: any) => {
+      console.log("Push action performed:", event);
+      openDeepLink(getPushUrl(event));
     });
   }
 
@@ -242,7 +272,7 @@ export default function NativePushSetup() {
         body: JSON.stringify({
           title: "On Point Inspect",
           body: "Native iOS push test from On Point Inspect.",
-          url: "/dashboard/owner",
+          url: "/schedule",
           eventType: "native_test",
         }),
       });
