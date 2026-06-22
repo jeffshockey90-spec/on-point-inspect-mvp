@@ -10,6 +10,8 @@ type NativePushStatus =
   | "registered"
   | "failed";
 
+const APP_ORIGIN = "https://on-point-inspect-mvp.vercel.app";
+
 function isNativeCapacitorApp() {
   if (typeof window === "undefined") return false;
 
@@ -29,8 +31,41 @@ function getNativePlatform() {
   }
 }
 
+function normalizeAppRoute(input: any) {
+  const raw = String(input || "").trim();
+
+  if (!raw) return "";
+
+  try {
+    if (raw.startsWith("http://") || raw.startsWith("https://")) {
+      const url = new URL(raw);
+
+      if (url.origin === APP_ORIGIN) {
+        return `${url.pathname}${url.search}${url.hash}` || "/";
+      }
+
+      return raw;
+    }
+  } catch {}
+
+  if (raw.startsWith("/")) return raw;
+
+  return `/${raw}`;
+}
+
+function openInAppRoute(input: any) {
+  if (typeof window === "undefined") return;
+
+  const route = normalizeAppRoute(input);
+
+  if (!route) return;
+
+  window.location.href = route;
+}
+
 export default function NativePushSetup() {
   const listenersReadyRef = useRef(false);
+  const appLinkReadyRef = useRef(false);
 
   const [status, setStatus] = useState<NativePushStatus>("checking");
   const [busy, setBusy] = useState(false);
@@ -50,6 +85,36 @@ export default function NativePushSetup() {
 
     return () => {
       listenersReadyRef.current = false;
+      appLinkReadyRef.current = false;
+    };
+  }, [nativeApp]);
+
+  useEffect(() => {
+    if (!nativeApp || appLinkReadyRef.current) return;
+
+    appLinkReadyRef.current = true;
+
+    let removeListener: any;
+
+    async function setupAppLinks() {
+      try {
+        const appModule = await import("@capacitor/app");
+        const { App } = appModule;
+
+        removeListener = await App.addListener("appUrlOpen", (event: any) => {
+          openInAppRoute(event?.url);
+        });
+      } catch (error) {
+        console.warn("App link listener not available:", error);
+      }
+    }
+
+    setupAppLinks();
+
+    return () => {
+      try {
+        removeListener?.remove?.();
+      } catch {}
     };
   }, [nativeApp]);
 
@@ -112,11 +177,10 @@ export default function NativePushSetup() {
     });
 
     await PushNotifications.addListener("pushNotificationActionPerformed", (notification: any) => {
-      const url = notification.notification?.data?.url;
+      const data = notification?.notification?.data || {};
+      const url = data.url || data.link || data.path;
 
-      if (url && typeof window !== "undefined") {
-        window.location.href = url;
-      }
+      openInAppRoute(url);
     });
   }
 
