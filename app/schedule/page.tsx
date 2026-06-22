@@ -4,8 +4,11 @@ import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import ScheduleCalendar from "../../components/ScheduleCalendar";
 import ScheduleReminderSettings from "../../components/ScheduleReminderSettings";
+import BookingRequestActions from "../../components/BookingRequestActions";
+import InspectorAvailabilitySettings from "../../components/InspectorAvailabilitySettings";
 
 type InspectionRow = Record<string, any>;
+type BookingRequestRow = Record<string, any>;
 
 function getInspectionDate(row: InspectionRow) {
   return (
@@ -117,6 +120,23 @@ function formatTime(value: string) {
   return clean;
 }
 
+
+function formatBookingDate(value: any) {
+  if (!value) return "Date not entered";
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function getBookingAddress(row: BookingRequestRow) {
+  return [row.property_address, row.city, row.state, row.zip].filter(Boolean).join(", ") || "Address not entered";
+}
+
 function statusClass(status: string) {
   const lower = status.toLowerCase();
 
@@ -176,13 +196,24 @@ export default async function SchedulePage() {
       ascending: false,
     });
 
+  const { data: bookingRequestsRaw, error: bookingRequestsError } = await supabase
+    .from("booking_requests")
+    .select("*")
+    .order("created_at", {
+      ascending: false,
+    });
+
   const rows = inspections ?? [];
+  const bookingRequests = bookingRequestsRaw ?? [];
+  const pendingBookingRequests = bookingRequests.filter(
+    (request: BookingRequestRow) => String(request.status || "pending").toLowerCase() === "pending"
+  );
   const scheduledRows = rows.filter((row) => getInspectionDate(row));
   const unscheduledRows = rows.filter((row) => !getInspectionDate(row));
   const sortedRows = sortScheduleRows(scheduledRows);
 
   return (
-    <main className="min-h-screen bg-black p-4 text-white sm:p-6">
+    <main className="min-h-screen bg-[#020617] p-4 text-white sm:p-6">
       <div className="mx-auto max-w-7xl">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
@@ -190,7 +221,7 @@ export default async function SchedulePage() {
               Inspection Schedule
             </h1>
 
-            <p className="mt-3 max-w-2xl text-sm text-zinc-400 sm:text-base">
+            <p className="mt-3 max-w-2xl text-sm text-slate-400 sm:text-base">
               Manage the full inspection schedule from the calendar. Drag appointments
               to reschedule, click an appointment to edit, delete, or open the report.
             </p>
@@ -210,9 +241,15 @@ export default async function SchedulePage() {
           </div>
         ) : null}
 
-        <div className="mb-6 grid gap-3 sm:grid-cols-3">
-          <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4">
-            <p className="text-xs font-bold uppercase tracking-widest text-zinc-500">
+        {bookingRequestsError ? (
+          <div className="mb-6 rounded-2xl border border-yellow-500/40 bg-yellow-950/30 p-5 text-yellow-100">
+            Booking requests could not load. If this is your first install, run the booking SQL migration first. {bookingRequestsError.message}
+          </div>
+        ) : null}
+
+        <div className="mb-6 grid gap-3 sm:grid-cols-4">
+          <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-4">
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
               Scheduled
             </p>
             <p className="mt-2 text-3xl font-bold text-white">
@@ -220,8 +257,8 @@ export default async function SchedulePage() {
             </p>
           </div>
 
-          <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4">
-            <p className="text-xs font-bold uppercase tracking-widest text-zinc-500">
+          <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-4">
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
               Unscheduled
             </p>
             <p className="mt-2 text-3xl font-bold text-yellow-200">
@@ -229,17 +266,105 @@ export default async function SchedulePage() {
             </p>
           </div>
 
-          <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4">
-            <p className="text-xs font-bold uppercase tracking-widest text-zinc-500">
+          <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-4">
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
               Total Reports
             </p>
             <p className="mt-2 text-3xl font-bold text-teal-300">
               {rows.length}
             </p>
           </div>
+
+          <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-4">
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
+              Booking Requests
+            </p>
+            <p className="mt-2 text-3xl font-bold text-teal-300">
+              {pendingBookingRequests.length}
+            </p>
+          </div>
         </div>
 
         <ScheduleReminderSettings />
+        <InspectorAvailabilitySettings />
+
+        <section className="mb-8 rounded-2xl border border-slate-800 bg-[#0f172a] p-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h2 className="text-xl font-black text-teal-300">Pending Booking Requests</h2>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
+                Public and realtor requests land here first. Confirming a request creates a scheduled inspection from the requested date, time, client, realtor, and property details.
+              </p>
+            </div>
+
+            <Link
+              href="/book"
+              className="rounded-xl border border-teal-500/40 bg-teal-500/10 px-4 py-3 text-center text-sm font-black text-teal-200 transition hover:bg-teal-500/20"
+            >
+              Open Booking Page
+            </Link>
+          </div>
+
+          {pendingBookingRequests.length === 0 ? (
+            <div className="mt-5 rounded-xl border border-slate-700 bg-[#020817]/70 p-5 text-sm text-slate-400">
+              No pending booking requests right now.
+            </div>
+          ) : (
+            <div className="mt-5 grid gap-4">
+              {pendingBookingRequests.map((request: BookingRequestRow) => (
+                <article key={request.id} className="rounded-2xl border border-slate-700 bg-[#020817]/70 p-5">
+                  <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-wide text-teal-300">
+                        {request.requester_role || "Requester"}
+                      </p>
+                      <h3 className="mt-1 text-lg font-black text-white">
+                        {request.realtor_name || request.requester_name || "Name not entered"}
+                      </h3>
+                      <p className="mt-1 break-all text-sm text-slate-400">
+                        {[request.realtor_phone || request.requester_phone, request.realtor_email || request.requester_email].filter(Boolean).join(" • ") || "No contact"}
+                      </p>
+                    </div>
+
+                    <span className="rounded-full border border-yellow-400/40 bg-yellow-500/10 px-3 py-1 text-xs font-black text-yellow-200">
+                      Pending
+                    </span>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+                    <div className="rounded-xl border border-slate-700 bg-slate-950/70 p-3">
+                      <p className="text-xs font-black uppercase tracking-wide text-slate-500">Requested Time</p>
+                      <p className="mt-1 font-bold text-white">{formatBookingDate(request.preferred_date)}</p>
+                      <p className="text-slate-400">{formatTime(request.preferred_time || "")}</p>
+                    </div>
+
+                    <div className="rounded-xl border border-slate-700 bg-slate-950/70 p-3">
+                      <p className="text-xs font-black uppercase tracking-wide text-slate-500">Client</p>
+                      <p className="mt-1 font-bold text-white">{request.client_name || "Not entered"}</p>
+                      <p className="break-all text-slate-400">{[request.client_phone, request.client_email].filter(Boolean).join(" • ") || "No contact"}</p>
+                    </div>
+
+                    <div className="rounded-xl border border-slate-700 bg-slate-950/70 p-3 sm:col-span-2">
+                      <p className="text-xs font-black uppercase tracking-wide text-slate-500">Property</p>
+                      <p className="mt-1 font-bold text-teal-100">{getBookingAddress(request)}</p>
+                      <p className="mt-1 text-slate-400">{Array.isArray(request.services) ? request.services.join(" • ") : request.services || request.service_type || "Home Inspection"}</p>
+                    </div>
+                  </div>
+
+                  {request.notes ? (
+                    <p className="mt-4 rounded-xl border border-slate-700 bg-slate-950/70 p-3 text-sm leading-6 text-slate-300">
+                      {request.notes}
+                    </p>
+                  ) : null}
+
+                  <div className="mt-5">
+                    <BookingRequestActions requestId={String(request.id)} />
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
 
         <div className="mb-8">
           <ScheduleCalendar inspections={scheduledRows} />
@@ -265,7 +390,7 @@ export default async function SchedulePage() {
                   <p className="text-sm font-bold text-white">
                     {getAddress(inspection)}
                   </p>
-                  <p className="mt-1 text-xs text-zinc-400">
+                  <p className="mt-1 text-xs text-slate-400">
                     {getClient(inspection)}
                   </p>
                 </Link>
@@ -275,18 +400,18 @@ export default async function SchedulePage() {
         ) : null}
 
         {rows.length === 0 && !error ? (
-          <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
+          <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6">
             <h2 className="text-xl font-bold text-white">
               No inspections scheduled yet
             </h2>
 
-            <p className="mt-2 text-zinc-400">
+            <p className="mt-2 text-slate-400">
               Once inspections are created, they will show here with the date,
               time, address, client, realtor, and status.
             </p>
           </div>
         ) : sortedRows.length > 0 ? (
-          <details className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900">
+          <details className="overflow-hidden rounded-2xl border border-slate-800 bg-[#0f172a]">
             <summary className="cursor-pointer bg-zinc-950 px-5 py-4 text-sm font-bold text-teal-300 transition hover:bg-zinc-900">
               Show inspection list
             </summary>
@@ -316,7 +441,7 @@ export default async function SchedulePage() {
                         {formatDate(date)}
                       </p>
 
-                      <p className="mt-1 text-sm text-zinc-400">
+                      <p className="mt-1 text-sm text-slate-400">
                         {time || "Time not entered"}
                       </p>
                     </div>
@@ -327,7 +452,7 @@ export default async function SchedulePage() {
                       </p>
 
                       {(inspection.inspection_type || inspection.type) && (
-                        <p className="mt-1 text-xs text-zinc-500">
+                        <p className="mt-1 text-xs text-slate-500">
                           {inspection.inspection_type || inspection.type}
                         </p>
                       )}
