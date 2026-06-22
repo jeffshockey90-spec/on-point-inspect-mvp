@@ -25,6 +25,26 @@ function cleanText(value: any) {
   return String(value || "").trim();
 }
 
+function getNumber(value: any) {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+
+  if (typeof value === "string") {
+    const parsed = Number(value.replace(/[^0-9.-]/g, ""));
+    if (Number.isFinite(parsed)) return parsed;
+  }
+
+  return 0;
+}
+
+function calculatePriceFromSqft(squareFeet: any) {
+  const sqft = getNumber(squareFeet);
+
+  if (!sqft || sqft <= 0) return 0;
+  if (sqft <= 2000) return 500;
+
+  return 500 + Math.ceil((sqft - 2000) / 1000) * 50;
+}
+
 function requestedServices(request: AnyRow) {
   if (
     Array.isArray(request.services_requested) &&
@@ -85,12 +105,17 @@ function getInspectionPayload(request: AnyRow, userId: string) {
   } = getContactValues(request);
 
   const address = cleanText(request.property_address);
+  const squareFeet = cleanText(request.square_feet);
+  const calculatedPrice = calculatePriceFromSqft(squareFeet);
 
   /*
     This payload intentionally includes multiple common column names because
     different On Point Inspect builds have used slightly different inspection
     schema names. The insert helper below removes unsupported columns if the
     Supabase schema cache says they do not exist.
+
+    Pricing is calculated from estimated square footage for the inspector/report
+    side only. The public booking page does not show the price.
   */
   return {
     inspector_id: userId,
@@ -106,8 +131,22 @@ function getInspectionPayload(request: AnyRow, userId: string) {
     zip: cleanText(request.zip),
     zip_code: cleanText(request.zip),
 
-    square_feet: cleanText(request.square_feet) || null,
-    sqft: cleanText(request.square_feet) || null,
+    square_feet: squareFeet || null,
+    sqft: squareFeet || null,
+
+    price: calculatedPrice || null,
+    invoice_amount: calculatedPrice || null,
+    total_price: calculatedPrice || null,
+    total: calculatedPrice || null,
+    inspection_price: calculatedPrice || null,
+    inspection_fee: calculatedPrice || null,
+    quote_amount: calculatedPrice || null,
+    quoted_price: calculatedPrice || null,
+    subtotal: calculatedPrice || null,
+    balance_due: calculatedPrice || null,
+    amount_paid: 0,
+    payment_status: calculatedPrice ? "unpaid" : null,
+    invoice_status: calculatedPrice ? "unpaid" : null,
 
     client_name: clientName,
     client_email: clientEmail,
@@ -179,7 +218,7 @@ async function insertInspectionWithSchemaFallback(
   let payload = { ...initialPayload };
   const removedColumns: string[] = [];
 
-  for (let attempt = 0; attempt < 40; attempt += 1) {
+  for (let attempt = 0; attempt < 60; attempt += 1) {
     const { data, error } = await supabase
       .from("inspections")
       .insert(payload)
@@ -454,6 +493,7 @@ export async function POST(request: Request) {
       inspectionId,
       contacts,
       removedColumns,
+      calculatedPrice: calculatePriceFromSqft(bookingRequest.square_feet),
     });
   } catch (error: any) {
     return NextResponse.json(
