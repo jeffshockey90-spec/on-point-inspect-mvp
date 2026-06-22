@@ -406,32 +406,107 @@ function buildEmailHtml(booking: any, request: Request) {
 }
 
 async function sendOwnerEmail(booking: any, request: Request) {
-  const to = (process.env.BOOKING_ALERT_EMAILS || OWNER_EMAILS.join(","))
-    .split(",")
-    .map((email) => email.trim())
-    .filter(Boolean);
-
-  if (to.length === 0) {
-    return { sent: 0, skipped: true, reason: "No alert email recipients configured." };
-  }
-
+  const to = OWNER_EMAILS;
   const subject = `New Booking Request - ${booking.client_name || "Inspection"}`;
   const html = buildEmailHtml(booking, request);
+  const text = `New Booking Request\n\nClient: ${booking.client_name || ""}\nClient Phone: ${booking.client_phone || ""}\nClient Email: ${booking.client_email || ""}\nRealtor: ${booking.realtor_name || ""}\nRealtor Phone: ${booking.realtor_phone || ""}\nRealtor Email: ${booking.realtor_email || ""}\nProperty: ${[booking.property_address, booking.city, booking.state, booking.zip].filter(Boolean).join(", ")}\nServices: ${Array.isArray(booking.services_requested) ? booking.services_requested.join(", ") : booking.service_type || ""}\nPreferred: ${formatDate(booking.preferred_date)} at ${formatTime(booking.preferred_time)}\n\nOpen schedule: ${getBaseUrl(request)}/schedule`;
+
+  if (to.length === 0) {
+    return { sent: 0, skipped: true, reason: "No owner alert email configured." };
+  }
+
+  const resendApiKey = process.env.RESEND_API_KEY;
+  const resendFrom =
+    process.env.RESEND_FROM_EMAIL ||
+    process.env.EMAIL_FROM ||
+    process.env.SMTP_FROM ||
+    "On Point Inspect <notifications@onpointhomeinspect.com>";
+
+  if (resendApiKey) {
+    try {
+      const response = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${resendApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: resendFrom,
+          to,
+          subject,
+          html,
+          text,
+        }),
+      });
+
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(result?.message || result?.error || `Resend failed with ${response.status}`);
+      }
+
+      return { sent: to.length, skipped: false, provider: "resend", result };
+    } catch (error: any) {
+      console.error("Booking Resend email failed:", error);
+      return {
+        sent: 0,
+        skipped: false,
+        provider: "resend",
+        error: error?.message || "Booking alert email failed with Resend.",
+      };
+    }
+  }
 
   try {
     const nodemailer = eval("require")("nodemailer");
 
-    const host = process.env.SMTP_HOST;
-    const port = Number(process.env.SMTP_PORT || 587);
-    const user = process.env.SMTP_USER || process.env.SMTP_USERNAME;
-    const pass = process.env.SMTP_PASS || process.env.SMTP_PASSWORD;
-    const from = process.env.SMTP_FROM || process.env.EMAIL_FROM || user;
+    const host =
+      process.env.SMTP_HOST ||
+      process.env.EMAIL_SERVER_HOST ||
+      process.env.MAIL_HOST;
+
+    const port = Number(
+      process.env.SMTP_PORT ||
+        process.env.EMAIL_SERVER_PORT ||
+        process.env.MAIL_PORT ||
+        587
+    );
+
+    const user =
+      process.env.SMTP_USER ||
+      process.env.SMTP_USERNAME ||
+      process.env.EMAIL_SERVER_USER ||
+      process.env.MAIL_USER ||
+      process.env.GMAIL_USER;
+
+    const pass =
+      process.env.SMTP_PASS ||
+      process.env.SMTP_PASSWORD ||
+      process.env.EMAIL_SERVER_PASSWORD ||
+      process.env.MAIL_PASS ||
+      process.env.GMAIL_APP_PASSWORD;
+
+    const from =
+      process.env.SMTP_FROM ||
+      process.env.EMAIL_FROM ||
+      process.env.MAIL_FROM ||
+      (user ? `On Point Inspect <${user}>` : "");
 
     if (!host || !user || !pass || !from) {
+      const missing = [
+        !host ? "SMTP_HOST or EMAIL_SERVER_HOST" : "",
+        !user ? "SMTP_USER or EMAIL_SERVER_USER" : "",
+        !pass ? "SMTP_PASS or EMAIL_SERVER_PASSWORD" : "",
+        !from ? "SMTP_FROM or EMAIL_FROM" : "",
+      ].filter(Boolean);
+
+      console.error("Booking email skipped. Missing env vars:", missing.join(", "));
+
       return {
         sent: 0,
         skipped: true,
-        reason: "SMTP email env vars are missing.",
+        provider: "smtp",
+        reason: `Missing email env vars: ${missing.join(", ")}`,
       };
     }
 
@@ -447,15 +522,17 @@ async function sendOwnerEmail(booking: any, request: Request) {
       to,
       subject,
       html,
-      text: `New Booking Request\n\nClient: ${booking.client_name || ""}\nClient Phone: ${booking.client_phone || ""}\nClient Email: ${booking.client_email || ""}\nRealtor: ${booking.realtor_name || ""}\nRealtor Phone: ${booking.realtor_phone || ""}\nRealtor Email: ${booking.realtor_email || ""}\nProperty: ${[booking.property_address, booking.city, booking.state, booking.zip].filter(Boolean).join(", ")}\nServices: ${Array.isArray(booking.services_requested) ? booking.services_requested.join(", ") : booking.service_type || ""}\nPreferred: ${formatDate(booking.preferred_date)} at ${formatTime(booking.preferred_time)}\n\nOpen schedule: ${getBaseUrl(request)}/schedule`,
+      text,
+      replyTo: booking.realtor_email || booking.client_email || undefined,
     });
 
-    return { sent: to.length, skipped: false };
+    return { sent: to.length, skipped: false, provider: "smtp" };
   } catch (error: any) {
-    console.error("Booking email failed:", error);
+    console.error("Booking SMTP email failed:", error);
     return {
       sent: 0,
       skipped: false,
+      provider: "smtp",
       error: error?.message || "Booking alert email failed.",
     };
   }
