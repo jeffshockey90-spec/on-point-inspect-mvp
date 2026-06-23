@@ -616,102 +616,21 @@ function FieldPageContent() {
               </button>
             </div>
 
-            <div>
-              <label className="mb-2 block font-bold">Section</label>
-              <select
-                value={section}
-                onChange={(e) => setSection(e.target.value)}
-                className="w-full rounded-xl border border-slate-700 bg-black p-4 text-white"
-              >
-                {SECTIONS.map((item) => (
-                  <option key={item} value={item}>{item}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="mb-2 block font-bold">
-                {photoType === "reference_photo" ? "Reference Photo Caption" : "Quick Inspector Note"}
-              </label>
-              <textarea
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                rows={4}
-                placeholder={
-                  photoType === "reference_photo"
-                    ? "Example: Main electrical panel overview, attic insulation overview, front elevation..."
-                    : "Example: double tapped neutral in main panel, recommend electrician"
-                }
-                className="w-full rounded-xl border border-slate-700 bg-black p-4 leading-7 text-white"
-              />
-            </div>
-
-            <div className="grid gap-3 md:grid-cols-2">
-              <button
-                type="button"
-                onClick={generateWithAI}
-                disabled={generating || analyzingPhoto || saving || !online || photoType === "reference_photo"}
-                className="w-full rounded-xl bg-teal-500 p-4 text-lg font-bold text-black transition active:scale-[0.98] hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
-              >
-                {generating ? "Generating AI Finding..." : online ? "Generate From Note" : "AI Available When Back Online"}
-              </button>
-
-              <button
-                type="button"
-                onClick={analyzePhotoWithAI}
-                disabled={analyzingPhoto || generating || saving || !online || photoType === "reference_photo" || !photos.some((photo) => photo.type.startsWith("image/"))}
-                className="w-full rounded-xl border border-purple-500 bg-purple-500/10 p-4 text-lg font-bold text-purple-200 transition active:scale-[0.98] hover:bg-purple-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
-              >
-                {analyzingPhoto ? "Analyzing Photo..." : "Analyze Photo"}
-              </button>
-            </div>
-
-            {photoType === "finding" && photos.some((photo) => photo.type.startsWith("video/")) && !photos.some((photo) => photo.type.startsWith("image/")) && (
-              <div className="rounded-xl border border-yellow-500/50 bg-yellow-500/10 p-4 text-sm font-bold leading-6 text-yellow-100">
-                Video is saved with the finding, but AI photo recognition needs at least one still photo. Add one photo if you want AI to write the defect from media.
-              </div>
-            )}
-
-            {photoType === "finding" && (
-              <>
+            <div className="rounded-2xl border border-slate-700 bg-black/30 p-4">
+              <div className="mb-3 flex items-center justify-between gap-3">
                 <div>
-                  <label className="mb-2 block font-bold">Title</label>
-                  <input
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    className="w-full rounded-xl border border-slate-700 bg-black p-4 text-white"
-                  />
+                  <p className="text-xs font-black uppercase tracking-[0.22em] text-teal-300">
+                    Step 1
+                  </p>
+                  <h2 className="text-xl font-black text-white">
+                    Capture Evidence First
+                  </h2>
                 </div>
-
-                <div>
-                  <label className="mb-2 block font-bold">Severity</label>
-                  <select
-                    value={severity}
-                    onChange={(e) => setSeverity(e.target.value)}
-                    className="w-full rounded-xl border border-slate-700 bg-black p-4 text-white"
-                  >
-                    {SEVERITIES.map((item) => (
-                      <option key={item} value={item}>{item}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <TextArea label="Observation" value={observation} onChange={setObservation} />
-                <TextArea label="Implication" value={implication} onChange={setImplication} />
-                <TextArea label="Recommendation" value={recommendation} onChange={setRecommendation} />
-              </>
-            )}
-
-            {photoType === "reference_photo" && (
-              <div className="rounded-xl border border-cyan-500/40 bg-cyan-950/20 p-4 text-sm leading-6 text-cyan-100">
-                <p className="font-black text-cyan-300">Reference Photo Mode</p>
-                <p className="mt-1">
-                  Photos saved here will appear under Section Reference Photos in the report/share/client views. They are not counted as findings, defects, or repair request items.
-                </p>
+                <span className="rounded-full border border-teal-500/50 bg-teal-500/10 px-3 py-1 text-xs font-black text-teal-200">
+                  Photo / Video
+                </span>
               </div>
-            )}
 
-            <div>
               <label className="mb-2 block font-bold">
                 {photoType === "reference_photo" ? "Reference Photos" : "Media"}
               </label>
@@ -725,17 +644,138 @@ function FieldPageContent() {
                   e.currentTarget.value = "";
                 }}
               />
+
+              {photos.length > 0 && (
+                <div className="mt-4 grid grid-cols-2 gap-4">
+                  {photos.map((photo, index) => (
+                    <MediaPreview
+                      key={`${photo.name}-${photo.lastModified}-${index}`}
+                      file={photo}
+                      onRemove={() => removePhoto(index)}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
 
-            {photos.length > 0 && (
-              <div className="grid grid-cols-2 gap-4">
-                {photos.map((photo, index) => (
-                  <MediaPreview
-                    key={`${photo.name}-${photo.lastModified}-${index}`}
-                    file={photo}
-                    onRemove={() => removePhoto(index)}
-                  />
-                ))}
+            <div className="rounded-2xl border border-purple-500/30 bg-purple-500/10 p-4">
+              <div className="mb-3">
+                <p className="text-xs font-black uppercase tracking-[0.22em] text-purple-300">
+                  Step 2
+                </p>
+                <h2 className="text-xl font-black text-white">
+                  Let AI Help Write It
+                </h2>
+                <p className="mt-1 text-sm text-slate-300">
+                  Take a photo first, then analyze it. Or type a rough note and generate from the note.
+                </p>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={analyzePhotoWithAI}
+                  disabled={analyzingPhoto || generating || saving || !online || photoType === "reference_photo" || !photos.some((photo) => photo.type.startsWith("image/"))}
+                  className="w-full rounded-xl border border-purple-500 bg-purple-500/10 p-4 text-lg font-bold text-purple-200 transition active:scale-[0.98] hover:bg-purple-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
+                >
+                  {analyzingPhoto ? "Analyzing Photo..." : "🤖 Analyze Photo(s)"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={generateWithAI}
+                  disabled={generating || analyzingPhoto || saving || !online || photoType === "reference_photo"}
+                  className="w-full rounded-xl bg-teal-500 p-4 text-lg font-bold text-black transition active:scale-[0.98] hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
+                >
+                  {generating ? "Generating AI Finding..." : online ? "✍️ Generate From Note" : "AI Available When Back Online"}
+                </button>
+              </div>
+            </div>
+
+            {photoType === "finding" && photos.some((photo) => photo.type.startsWith("video/")) && !photos.some((photo) => photo.type.startsWith("image/")) && (
+              <div className="rounded-xl border border-yellow-500/50 bg-yellow-500/10 p-4 text-sm font-bold leading-6 text-yellow-100">
+                Video is saved with the finding, but AI photo recognition needs at least one still photo. Add one photo if you want AI to write the defect from media.
+              </div>
+            )}
+
+            {photoType === "reference_photo" && (
+              <div className="rounded-xl border border-cyan-500/40 bg-cyan-950/20 p-4 text-sm leading-6 text-cyan-100">
+                <p className="font-black text-cyan-300">Reference Photo Mode</p>
+                <p className="mt-1">
+                  Photos saved here will appear under Section Reference Photos in the report/share/client views. They are not counted as findings, defects, or repair request items.
+                </p>
+              </div>
+            )}
+
+            <div className="rounded-2xl border border-slate-700 bg-black/20 p-4">
+              <p className="mb-3 text-xs font-black uppercase tracking-[0.22em] text-cyan-300">
+                Step 3
+              </p>
+
+              <div>
+                <label className="mb-2 block font-bold">Section</label>
+                <select
+                  value={section}
+                  onChange={(e) => setSection(e.target.value)}
+                  className="w-full rounded-xl border border-slate-700 bg-black p-4 text-white"
+                >
+                  {SECTIONS.map((item) => (
+                    <option key={item} value={item}>{item}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="mt-5">
+                <label className="mb-2 block font-bold">
+                  {photoType === "reference_photo" ? "Reference Photo Caption" : "Quick Inspector Note"}
+                </label>
+                <textarea
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  rows={4}
+                  placeholder={
+                    photoType === "reference_photo"
+                      ? "Example: Main electrical panel overview, attic insulation overview, front elevation..."
+                      : "Example: double tapped neutral in main panel, recommend electrician"
+                  }
+                  className="w-full rounded-xl border border-slate-700 bg-black p-4 leading-7 text-white"
+                />
+              </div>
+            </div>
+
+            {photoType === "finding" && (
+              <div className="rounded-2xl border border-slate-700 bg-black/20 p-4">
+                <p className="mb-3 text-xs font-black uppercase tracking-[0.22em] text-cyan-300">
+                  Step 4
+                </p>
+
+                <div className="space-y-5">
+                  <div>
+                    <label className="mb-2 block font-bold">Title</label>
+                    <input
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      className="w-full rounded-xl border border-slate-700 bg-black p-4 text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block font-bold">Severity</label>
+                    <select
+                      value={severity}
+                      onChange={(e) => setSeverity(e.target.value)}
+                      className="w-full rounded-xl border border-slate-700 bg-black p-4 text-white"
+                    >
+                      {SEVERITIES.map((item) => (
+                        <option key={item} value={item}>{item}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <TextArea label="Observation" value={observation} onChange={setObservation} />
+                  <TextArea label="Implication" value={implication} onChange={setImplication} />
+                  <TextArea label="Recommendation" value={recommendation} onChange={setRecommendation} />
+                </div>
               </div>
             )}
 
@@ -850,9 +890,23 @@ function MediaPreview({ file, onRemove }: { file: File; onRemove: () => void }) 
   return (
     <div className="overflow-hidden rounded-xl border border-slate-700 bg-black">
       {file.type.startsWith("video/") ? (
-        <video src={url} controls className="h-40 w-full bg-black object-contain" />
+        url ? (
+          <video
+            src={url}
+            controls
+            className="h-40 w-full bg-black object-contain"
+          />
+        ) : (
+          <div className="h-40 w-full bg-black" />
+        )
+      ) : url ? (
+        <img
+          src={url}
+          alt="Preview"
+          className="h-40 w-full object-cover"
+        />
       ) : (
-        <img src={url} alt="Preview" className="h-40 w-full object-cover" />
+        <div className="h-40 w-full bg-black" />
       )}
 
       <button
