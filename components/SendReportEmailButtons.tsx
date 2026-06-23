@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-type SendType = "client" | "realtor" | "custom";
+type SendType = "client" | "realtor" | "all" | "custom";
 type NoticeType = "success" | "error" | "info";
 
 export default function SendReportEmailButtons({
@@ -55,6 +55,7 @@ export default function SendReportEmailButtons({
 
   const finalClientEmail = clientEmail || contactClientEmail;
   const finalRealtorEmail = realtorEmail || contactRealtorEmail;
+  const hasAnyKnownRecipient = Boolean(finalClientEmail || finalRealtorEmail);
 
   function showNotice(type: NoticeType, message: string) {
     setNotice({ type, message });
@@ -96,10 +97,17 @@ export default function SendReportEmailButtons({
         ? finalClientEmail
         : type === "realtor"
           ? finalRealtorEmail
-          : customEmail.trim();
+          : type === "custom"
+            ? customEmail.trim()
+            : "";
 
-    if (!email) {
+    if (type !== "all" && !email) {
       showNotice("error", "No email address entered.");
+      return;
+    }
+
+    if (type === "all" && !hasAnyKnownRecipient) {
+      showNotice("error", "No client or realtor email found.");
       return;
     }
 
@@ -112,14 +120,19 @@ export default function SendReportEmailButtons({
 
       setStatusLabel("Sending...");
 
+      const payload: Record<string, any> = {
+        inspectionId,
+        recipientType: type,
+      };
+
+      if (type !== "all") {
+        payload.recipientEmail = email;
+      }
+
       const res = await fetch("/api/send-report-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          inspectionId,
-          recipientType: type,
-          recipientEmail: email,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
@@ -131,7 +144,21 @@ export default function SendReportEmailButtons({
       }
 
       setStatusLabel("Sent!");
-      showNotice("success", data.message || `Report email sent to ${email}.`);
+
+      if (type === "all") {
+        const sentCount = Array.isArray(data.sent) ? data.sent.length : 0;
+        const failedCount = Array.isArray(data.failed) ? data.failed.length : 0;
+
+        showNotice(
+          failedCount > 0 ? "info" : "success",
+          data.message ||
+            `Report sent to ${sentCount} recipient${sentCount === 1 ? "" : "s"}${
+              failedCount ? `, ${failedCount} failed` : ""
+            }.`
+        );
+      } else {
+        showNotice("success", data.message || `Report email sent to ${email}.`);
+      }
     } catch (error: any) {
       setStatusLabel("Failed");
       showNotice("error", error?.message || "Email failed to send.");
@@ -183,6 +210,22 @@ export default function SendReportEmailButtons({
           {getButtonText("realtor", "Email Realtor")}
         </button>
 
+        <button
+          type="button"
+          onClick={() => sendEmail("all")}
+          disabled={sending !== null || !hasAnyKnownRecipient}
+          aria-busy={sending === "all"}
+          className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-blue-500 bg-blue-500/10 px-5 py-3 font-bold text-blue-300 transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 hover:bg-blue-500/20 sm:w-auto [touch-action:manipulation]"
+          title={
+            hasAnyKnownRecipient
+              ? "Send report to client, co-client, realtor, agent, and transaction coordinator contacts"
+              : "No client or realtor email found"
+          }
+        >
+          <Spinner active={sending === "all"} />
+          {getButtonText("all", "Send to All")}
+        </button>
+
         <div className="flex w-full min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
           <input
             value={customEmail}
@@ -207,7 +250,7 @@ export default function SendReportEmailButtons({
 
       {notice && (
         <div
-          className={`mt-3 rounded-xl border px-4 py-3 text-sm font-bold ${
+          className={`mt-3 whitespace-pre-line rounded-xl border px-4 py-3 text-sm font-bold ${
             notice.type === "success"
               ? "border-emerald-500 bg-emerald-950/30 text-emerald-200"
               : notice.type === "error"
