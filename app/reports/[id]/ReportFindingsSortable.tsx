@@ -657,9 +657,15 @@ function getPhotoUrl(photo: any) {
 }
 
 function getPhotoPreviewUrl(photo: any) {
+  // Prefer signed URLs first. Public thumbnail URLs can fail in the inspector
+  // editor when the storage bucket is private, which causes broken image cards.
   return (
     photo?.signed_thumbnail_url ||
     photo?.signedThumbnailUrl ||
+    photo?.signed_url ||
+    photo?.signedUrl ||
+    photo?.signed_video_url ||
+    photo?.signedVideoUrl ||
     photo?.thumbnail_url ||
     photo?.thumbnailUrl ||
     photo?.thumbnail_public_url ||

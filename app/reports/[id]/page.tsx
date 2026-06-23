@@ -1008,6 +1008,8 @@ export default async function ReportPage({ params }: PageProps) {
   const photosWithUrls = rawPhotos.map((photo: any) => {
     const fullPath = getPhotoStoragePath(photo);
     const thumbnailPath = photo.thumbnail_path || photo.thumbnail_storage_path || "";
+    const signedFullUrl = signedFullMediaMap[fullPath] || "";
+    const signedThumbnailUrl = signedThumbnailMap[thumbnailPath] || "";
     const existingFullUrl = getPhotoFallbackUrl(photo);
     const existingThumbnailUrl =
       photo.signed_thumbnail_url ||
@@ -1015,15 +1017,26 @@ export default async function ReportPage({ params }: PageProps) {
       photo.thumbnail_public_url ||
       "";
 
+    const finalFullUrl = signedFullUrl || photo.signed_url || existingFullUrl || "";
+
     return {
       ...photo,
-      signed_url:
-        signedFullMediaMap[fullPath] ||
-        photo.signed_url ||
+      // Keep every signed variant because different report components look for
+      // different keys. The inspector editor should never have to rely on a
+      // public storage URL when a signed URL is available.
+      signed_url: finalFullUrl,
+      signedUrl: finalFullUrl,
+      signed_video_url: finalFullUrl,
+      signedVideoUrl: finalFullUrl,
+      signed_thumbnail_url:
+        signedThumbnailUrl ||
+        finalFullUrl ||
+        existingThumbnailUrl ||
         existingFullUrl ||
         "",
-      signed_thumbnail_url:
-        signedThumbnailMap[thumbnailPath] ||
+      signedThumbnailUrl:
+        signedThumbnailUrl ||
+        finalFullUrl ||
         existingThumbnailUrl ||
         existingFullUrl ||
         "",
