@@ -824,9 +824,9 @@ function FieldPageContent() {
       return;
     }
 
-    const image = getImagesForAi()[0];
+    const images = getImagesForAi();
 
-    if (!image) {
+    if (!images.length) {
       setMessage("Add or take at least one equipment photo before using Analyze Equipment.");
       return;
     }
@@ -837,7 +837,11 @@ function FieldPageContent() {
 
     try {
       const formData = new FormData();
-      formData.append("image", image);
+      images.forEach((image) => {
+        formData.append("images", image);
+      });
+      // Backward compatibility for older equipment analyzer routes.
+      formData.append("image", images[0]);
       formData.append("inspectionId", selectedReport || "");
       formData.append("inspection_id", selectedReport || "");
 
@@ -867,8 +871,8 @@ function FieldPageContent() {
       );
       setMessage(
         shouldCreateEquipmentFinding(data)
-          ? "Equipment analyzed. It will save to Equipment Inventory and create a finding because the analyzer found a reportable condition."
-          : "Equipment analyzed. This appears informational and will save to Equipment Inventory only."
+          ? `Equipment analyzed using ${images.length} photo${images.length === 1 ? "" : "s"}. It will save to Equipment Inventory and create a finding because the analyzer found a reportable condition.`
+          : `Equipment analyzed using ${images.length} photo${images.length === 1 ? "" : "s"}. This appears informational and will save to Equipment Inventory only.`
       );
     } catch (error: any) {
       setMessage(error?.message || "Equipment analysis failed.");
