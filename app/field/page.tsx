@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { supabase } from "../../lib/supabaseClient";
 import CommentLibrary from "../../components/CommentLibrary";
 import OfflineSyncStatus from "../../components/OfflineSyncStatus";
+import EquipmentCard from "../../components/EquipmentCard";
 import {
   addOfflineQueueItem,
   filesToOfflinePhotos,
@@ -42,6 +43,484 @@ type UploadedPhoto = {
   publicUrl: string;
   filePath: string;
 };
+
+
+type EquipmentResult = {
+  equipmentType?: string;
+  manufacturer?: string;
+  model?: string;
+  serial?: string;
+  manufactureYear?: string | number;
+  estimatedAge?: string | number;
+  expectedServiceLife?: string;
+  estimatedSEER?: string;
+  estimatedAFUE?: string;
+  estimatedBTU?: string;
+  equipmentCategory?: string;
+  maintenanceLevel?: string;
+  equipmentStatus?: string;
+  efficiency?: string;
+  capacity?: string;
+  fuelType?: string;
+  refrigerant?: string;
+  condition?: string;
+  estimatedLifeRemaining?: string;
+  clientSummary?: string;
+  section?: string;
+  severity?: string;
+  observation?: string;
+  implication?: string;
+  recommendation?: string;
+  intelligenceFlags?: {
+    category?: string;
+    r22Detected?: boolean;
+    problemPanelDetected?: boolean;
+    problemPanelType?: string | null;
+    ageBasedSeverityApplied?: boolean;
+  };
+  error?: string;
+  raw?: string;
+};
+
+function isKnownEquipmentValue(value: any) {
+  const clean = String(value ?? "").trim();
+  const lower = clean.toLowerCase();
+
+  if (!clean) return false;
+
+  return ![
+    "unknown",
+    "n/a",
+    "na",
+    "not available",
+    "not visible",
+    "not readable",
+    "unreadable",
+    "unable to determine",
+    "unable to confirm",
+    "cannot determine",
+    "not determined",
+    "none",
+    "null",
+    "undefined",
+  ].includes(lower);
+}
+
+function cleanEquipmentValue(value: any) {
+  return isKnownEquipmentValue(value) ? String(value).trim() : "";
+}
+
+function meaningfulEquipmentValue(value: any) {
+  return cleanEquipmentValue(value);
+}
+
+function shouldCreateEquipmentFinding(result: EquipmentResult) {
+  const severity = String(result.severity || "").toLowerCase();
+  const condition = String(result.condition || "").toLowerCase();
+
+  if (result.intelligenceFlags?.problemPanelDetected) return true;
+  if (result.intelligenceFlags?.r22Detected) return true;
+
+  if (
+    severity.includes("monitor") ||
+    severity.includes("maintenance") ||
+    severity.includes("repair") ||
+    severity.includes("safety") ||
+    severity.includes("major")
+  ) {
+    return true;
+  }
+
+  if (
+    condition.includes("older equipment") ||
+    condition.includes("near end") ||
+    condition.includes("beyond") ||
+    condition.includes("service life") ||
+    condition.includes("budget for replacement") ||
+    condition.includes("end of typical service life")
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+function cleanServiceLifeCondition(value: any) {
+  const clean = String(value || "").trim();
+  const lower = clean.toLowerCase();
+
+  if (!clean) return "No specific deficiency noted";
+
+  if (
+    lower.includes("typical service life remaining") ||
+    lower.includes("service life remaining") ||
+    lower.includes("life remaining")
+  ) {
+    return "No specific deficiency noted";
+  }
+
+  if (
+    lower.includes("near end") ||
+    lower.includes("end of typical service life") ||
+    lower.includes("beyond")
+  ) {
+    return "Older equipment. Monitor and budget for replacement as needed.";
+  }
+
+  return clean;
+}
+
+function isWaterHeaterEquipment(result: EquipmentResult) {
+  const text = [
+    result.equipmentType,
+    result.equipmentCategory,
+    result.manufacturer,
+    result.model,
+    result.section,
+    result.clientSummary,
+  ]
+    .map((value) => String(value || "").toLowerCase())
+    .join(" ");
+
+  return (
+    text.includes("water heater") ||
+    text.includes("storage tank water heater") ||
+    text.includes("tankless") ||
+    text.includes("hot water")
+  );
+}
+
+function isHvacEquipment(result: EquipmentResult) {
+  const text = [
+    result.equipmentType,
+    result.equipmentCategory,
+    result.section,
+    result.clientSummary,
+  ]
+    .map((value) => String(value || "").toLowerCase())
+    .join(" ");
+
+  return (
+    text.includes("air handler") ||
+    text.includes("furnace") ||
+    text.includes("heat pump") ||
+    text.includes("condenser") ||
+    text.includes("air conditioner") ||
+    text.includes("cooling") ||
+    text.includes("heating")
+  );
+}
+
+function isElectricalPanelEquipment(result: EquipmentResult) {
+  const text = [
+    result.equipmentType,
+    result.equipmentCategory,
+    result.section,
+    result.clientSummary,
+  ]
+    .map((value) => String(value || "").toLowerCase())
+    .join(" ");
+
+  return (
+    text.includes("electrical panel") ||
+    text.includes("breaker panel") ||
+    text.includes("panelboard") ||
+    text.includes("service panel")
+  );
+}
+
+function stripMaintenanceLanguageFromInspectorNote(value: any) {
+  const clean = String(value || "").trim();
+  if (!clean) return "";
+
+  return clean
+    .split(/(?<=[.!?])\s+/)
+    .filter((sentence) => {
+      const lower = sentence.toLowerCase();
+      return !(
+        lower.includes("routine maintenance") ||
+        lower.includes("regular maintenance") ||
+        lower.includes("maintenance is recommended") ||
+        lower.includes("recommend maintenance") ||
+        lower.includes("servicing is recommended") ||
+        lower.includes("service is recommended")
+      );
+    })
+    .join(" ")
+    .trim();
+}
+
+function getEquipmentStatusLabel(result: EquipmentResult) {
+  const condition = String(result.condition || "").toLowerCase();
+  const severity = String(result.severity || "").toLowerCase();
+  const maintenance = String(result.maintenanceLevel || "").toLowerCase();
+  const explicit = meaningfulEquipmentValue(result.equipmentStatus);
+
+  if (result.intelligenceFlags?.problemPanelDetected) {
+    return "⚠ Specialist Evaluation Recommended";
+  }
+
+  if (result.intelligenceFlags?.r22Detected) {
+    return "⚠ Service / Replacement Planning Recommended";
+  }
+
+  if (condition.includes("failed") || condition.includes("not operating")) {
+    return "⚠ Service Recommended";
+  }
+
+  if (
+    condition.includes("older equipment") ||
+    condition.includes("near end") ||
+    condition.includes("service life") ||
+    condition.includes("budget for replacement") ||
+    condition.includes("beyond")
+  ) {
+    return "⚠ Monitor Due To Age";
+  }
+
+  if (severity.includes("major") || severity.includes("safety")) {
+    return "⚠ Specialist Evaluation Recommended";
+  }
+
+  if (
+    condition.includes("service") ||
+    condition.includes("repair") ||
+    severity.includes("maintenance")
+  ) {
+    return "⚠ Service Recommended";
+  }
+
+  if (maintenance.includes("elevated")) {
+    return "⚠ Monitor";
+  }
+
+  if (explicit) {
+    const lowerExplicit = explicit.toLowerCase();
+
+    if (lowerExplicit.includes("older equipment") || lowerExplicit.includes("monitor")) {
+      return "⚠ Monitor Due To Age";
+    }
+
+    if (lowerExplicit.includes("no specific") || lowerExplicit.includes("operating normally")) {
+      return "✓ No Specific Deficiency Noted";
+    }
+
+    return explicit;
+  }
+
+  return "✓ No Specific Deficiency Noted";
+}
+
+function getAiInspectorNote(result: EquipmentResult, optionalAiNote = "") {
+  const cleanOptionalAiNote = String(optionalAiNote || "").trim();
+
+  const equipmentType = meaningfulEquipmentValue(result.equipmentType);
+  const manufacturer = meaningfulEquipmentValue(result.manufacturer);
+  const model = meaningfulEquipmentValue(result.model);
+  const manufactureYear = meaningfulEquipmentValue(result.manufactureYear);
+  const refrigerant = meaningfulEquipmentValue(result.refrigerant);
+  const capacity = meaningfulEquipmentValue(result.capacity || result.estimatedBTU);
+  const fuelType = meaningfulEquipmentValue(result.fuelType);
+  const condition = meaningfulEquipmentValue(cleanServiceLifeCondition(result.condition));
+
+  const sentences: string[] = [];
+
+  if (cleanOptionalAiNote) {
+    sentences.push(`Inspector note: ${cleanOptionalAiNote}.`);
+  }
+
+  const equipmentName = [manufacturer, equipmentType]
+    .filter(Boolean)
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (equipmentName) {
+    sentences.push(`${equipmentName}.`);
+  } else {
+    sentences.push("Equipment data plate was documented.");
+  }
+
+  if (model && manufactureYear) {
+    sentences.push(`Model ${model} manufactured in ${manufactureYear}.`);
+  } else if (model) {
+    sentences.push(`Model ${model}.`);
+  } else if (manufactureYear) {
+    sentences.push(`Manufactured in ${manufactureYear}.`);
+  }
+
+  const detailParts: string[] = [];
+
+  if (capacity) {
+    const capacityText = capacity
+      .replace(/(\d+)\s*gallons?/i, "$1-gallon")
+      .replace(/\s+capacity$/i, "");
+    detailParts.push(capacityText);
+  }
+
+  if (fuelType) {
+    detailParts.push(`${fuelType.toLowerCase()} unit`);
+  }
+
+  if (refrigerant && isHvacEquipment(result)) {
+    detailParts.push(`${refrigerant} refrigerant`);
+  }
+
+  if (detailParts.length > 0) {
+    sentences.push(detailParts.join(" ").replace(/\s+/g, " ").trim() + ".");
+  }
+
+  if (
+    condition &&
+    condition.toLowerCase() !== "no specific deficiency noted" &&
+    !condition.toLowerCase().includes("industry estimate")
+  ) {
+    const lowerCondition = condition.toLowerCase();
+
+    if (
+      lowerCondition.includes("older equipment") ||
+      lowerCondition.includes("monitor") ||
+      lowerCondition.includes("budget")
+    ) {
+      sentences.push(
+        "Older equipment. The unit was operating at the time of inspection. Monitor performance and budget for future replacement as part of normal ownership planning."
+      );
+    } else {
+      sentences.push(condition.endsWith(".") ? condition : `${condition}.`);
+    }
+  } else {
+    sentences.push("No significant deficiencies were observed at the time of inspection.");
+  }
+
+  return sentences
+    .map((sentence) => sentence.replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .join("\n\n");
+}
+
+function getAiMaintenanceNote(result: EquipmentResult) {
+  const condition = String(result.condition || "").toLowerCase();
+  const remaining = String(result.estimatedLifeRemaining || "").toLowerCase();
+
+  if (isWaterHeaterEquipment(result)) {
+    return "Recommend routine water heater maintenance in accordance with manufacturer recommendations.";
+  }
+
+  if (isElectricalPanelEquipment(result)) {
+    return "Recommend periodic evaluation and maintenance by a qualified electrical contractor as needed.";
+  }
+
+  if (isHvacEquipment(result)) {
+    if (
+      condition.includes("near end") ||
+      condition.includes("beyond") ||
+      condition.includes("end of typical") ||
+      remaining.includes("beyond") ||
+      remaining.includes("0-")
+    ) {
+      return "Recommend routine service by a qualified HVAC contractor and budgeting for future replacement due to age and typical service-life considerations.";
+    }
+
+    return "Recommend regular HVAC servicing and filter maintenance in accordance with manufacturer recommendations.";
+  }
+
+  return "Recommend routine maintenance in accordance with manufacturer recommendations.";
+}
+
+function getFindingTitlePrefix(result: EquipmentResult) {
+  const condition = String(result.condition || "").toLowerCase();
+  const severity = String(result.severity || "").toLowerCase();
+
+  if (condition.includes("unsafe") || severity.includes("safety")) {
+    return "Safety Concern";
+  }
+
+  if (condition.includes("failed") || condition.includes("not operating")) {
+    return "Defective";
+  }
+
+  if (
+    condition.includes("older equipment") ||
+    condition.includes("near end") ||
+    condition.includes("service life") ||
+    condition.includes("budget for replacement") ||
+    condition.includes("beyond")
+  ) {
+    return "Older Equipment";
+  }
+
+  return "";
+}
+
+function getCalmFindingObservation(result: EquipmentResult) {
+  const condition = String(result.condition || "").toLowerCase();
+  const observation = String(result.observation || "").trim();
+
+  if (
+    condition.includes("older equipment") ||
+    condition.includes("near end") ||
+    condition.includes("service life") ||
+    condition.includes("budget for replacement") ||
+    condition.includes("beyond")
+  ) {
+    if (
+      !observation ||
+      observation.toLowerCase().includes("no visible leaks") ||
+      observation.toLowerCase().includes("no visible damage") ||
+      observation.toLowerCase().includes("no specific") ||
+      observation.toLowerCase().includes("operational")
+    ) {
+      return "Equipment appeared functional at the time of inspection with no significant visible deficiencies noted.";
+    }
+  }
+
+  return observation || "Equipment condition was documented during the inspection.";
+}
+
+function getCalmFindingImplication(result: EquipmentResult) {
+  const condition = String(result.condition || "").toLowerCase();
+  const implication = String(result.implication || "").trim();
+
+  if (
+    condition.includes("older equipment") ||
+    condition.includes("near end") ||
+    condition.includes("service life") ||
+    condition.includes("budget for replacement") ||
+    condition.includes("beyond")
+  ) {
+    return "The equipment is older and may require increased maintenance over time. While functional at the time of inspection, budgeting for eventual replacement is prudent.";
+  }
+
+  return implication || "Deferred maintenance or component wear may affect reliable operation over time.";
+}
+
+function getCalmFindingRecommendation(result: EquipmentResult) {
+  const condition = String(result.condition || "").toLowerCase();
+  const severity = String(result.severity || "").toLowerCase();
+  const recommendation = String(result.recommendation || "").trim();
+
+  if (
+    condition.includes("failed") ||
+    condition.includes("not operating") ||
+    condition.includes("unsafe") ||
+    severity.includes("safety") ||
+    severity.includes("major")
+  ) {
+    return recommendation || "Further evaluation, repair, or replacement is recommended by a qualified contractor.";
+  }
+
+  if (
+    condition.includes("older equipment") ||
+    condition.includes("near end") ||
+    condition.includes("service life") ||
+    condition.includes("budget for replacement") ||
+    condition.includes("beyond")
+  ) {
+    return "Continue routine maintenance and monitor performance. Budgeting for future replacement should be anticipated as the equipment continues to age.";
+  }
+
+  return recommendation || "Routine maintenance is recommended in accordance with manufacturer guidelines.";
+}
 
 export default function FieldPage() {
   return (
@@ -85,6 +564,10 @@ function FieldPageContent() {
   const [photos, setPhotos] = useState<File[]>([]);
   const [generating, setGenerating] = useState(false);
   const [analyzingPhoto, setAnalyzingPhoto] = useState(false);
+  const [analyzingEquipment, setAnalyzingEquipment] = useState(false);
+  const [equipmentResult, setEquipmentResult] = useState<EquipmentResult | null>(null);
+  const [savingEquipment, setSavingEquipment] = useState(false);
+  const [equipmentSaveLabel, setEquipmentSaveLabel] = useState("Save To Equipment Inventory");
   const [saving, setSaving] = useState(false);
   const [takingNativePhoto, setTakingNativePhoto] = useState(false);
   const [online, setOnline] = useState(true);
@@ -150,6 +633,8 @@ function FieldPageContent() {
     setImplication("");
     setRecommendation("");
     setPhotos([]);
+    setEquipmentResult(null);
+    setEquipmentSaveLabel("Save To Equipment Inventory");
     setQueueTick((current) => current + 1);
   }
 
@@ -188,6 +673,7 @@ function FieldPageContent() {
       );
     }
 
+    setEquipmentResult(null);
     setPhotos((current) => [...current, ...validFiles].slice(0, 6));
   }
 
@@ -214,7 +700,7 @@ function FieldPageContent() {
   }
 
   async function analyzePhotoWithAI() {
-    if (analyzingPhoto || generating || saving) return;
+    if (analyzingPhoto || analyzingEquipment || generating || saving || savingEquipment) return;
 
     if (!online) {
       setMessage("Photo AI needs internet. Save the finding offline, then run AI when service returns.");
@@ -317,6 +803,208 @@ function FieldPageContent() {
       setMessage(error?.message || "Could not take native photo.");
     } finally {
       setTakingNativePhoto(false);
+    }
+  }
+
+  async function analyzeEquipmentWithAI() {
+    if (analyzingEquipment || analyzingPhoto || generating || saving || savingEquipment) return;
+
+    if (!selectedReport) {
+      setMessage("Select a report before analyzing equipment.");
+      return;
+    }
+
+    if (!online) {
+      setMessage("Equipment AI needs internet. Save photos offline, then analyze equipment when service returns.");
+      return;
+    }
+
+    if (photoType === "reference_photo") {
+      setMessage("Switch to Finding / Defect mode before analyzing equipment.");
+      return;
+    }
+
+    const image = getImagesForAi()[0];
+
+    if (!image) {
+      setMessage("Add or take at least one equipment photo before using Analyze Equipment.");
+      return;
+    }
+
+    setAnalyzingEquipment(true);
+    setEquipmentResult(null);
+    setMessage("");
+
+    try {
+      const formData = new FormData();
+      formData.append("image", image);
+      formData.append("inspectionId", selectedReport || "");
+      formData.append("inspection_id", selectedReport || "");
+
+      if (note.trim()) {
+        formData.append("note", note.trim());
+        formData.append("inspectorNote", note.trim());
+        formData.append("inspector_note", note.trim());
+      }
+
+      const res = await fetch("/api/analyze-equipment", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok || data?.error) {
+        setMessage(data.error || "Equipment analysis failed.");
+        return;
+      }
+
+      setEquipmentResult(data);
+      setEquipmentSaveLabel(
+        shouldCreateEquipmentFinding(data)
+          ? "Save Equipment + Create Finding"
+          : "Save To Equipment Inventory"
+      );
+      setMessage(
+        shouldCreateEquipmentFinding(data)
+          ? "Equipment analyzed. It will save to Equipment Inventory and create a finding because the analyzer found a reportable condition."
+          : "Equipment analyzed. This appears informational and will save to Equipment Inventory only."
+      );
+    } catch (error: any) {
+      setMessage(error?.message || "Equipment analysis failed.");
+    } finally {
+      setAnalyzingEquipment(false);
+    }
+  }
+
+  async function saveEquipmentFromFieldTool() {
+    if (!equipmentResult || savingEquipment || analyzingEquipment || saving) return;
+
+    if (!selectedReport) {
+      setMessage("Select a report before saving equipment.");
+      return;
+    }
+
+    if (!isOnline()) {
+      setMessage("Equipment inventory saving needs internet right now. Save the media offline, then add equipment when service returns.");
+      return;
+    }
+
+    setSavingEquipment(true);
+    setEquipmentSaveLabel(
+      shouldCreateEquipmentFinding(equipmentResult)
+        ? "Preparing Equipment + Finding..."
+        : "Preparing Equipment Save..."
+    );
+    setMessage("");
+
+    try {
+      const uploadedPhotos: UploadedPhoto[] = [];
+
+      for (const photo of photos) {
+        uploadedPhotos.push(await uploadPhotoFile(photo, "equipment-media"));
+      }
+
+      const mainImage = uploadedPhotos.find((photo) =>
+        String(photo.filePath || "").match(/\.(jpg|jpeg|png|webp|gif|heic)$/i)
+      );
+
+      setEquipmentSaveLabel("Saving Equipment Inventory...");
+
+      const { error: inventoryError } = await supabase
+        .from("equipment_inventory")
+        .insert({
+          inspection_id: Number(selectedReport),
+          equipment_type: cleanEquipmentValue(equipmentResult.equipmentType),
+          manufacturer: cleanEquipmentValue(equipmentResult.manufacturer),
+          model: cleanEquipmentValue(equipmentResult.model),
+          serial: cleanEquipmentValue(equipmentResult.serial),
+          manufacture_year: cleanEquipmentValue(equipmentResult.manufactureYear),
+          estimated_age: cleanEquipmentValue(equipmentResult.estimatedAge),
+          expected_service_life: cleanEquipmentValue(equipmentResult.expectedServiceLife),
+          estimated_life_remaining: "",
+          refrigerant: cleanEquipmentValue(equipmentResult.refrigerant),
+          condition: meaningfulEquipmentValue(cleanServiceLifeCondition(equipmentResult.condition)),
+          inspector_note: getAiInspectorNote(equipmentResult, note),
+          maintenance_note: getAiMaintenanceNote(equipmentResult),
+          equipment_status: getEquipmentStatusLabel(equipmentResult),
+          image_url: mainImage?.publicUrl || "",
+          file_path: mainImage?.filePath || "",
+        });
+
+      if (inventoryError) throw inventoryError;
+
+      const createFinding = shouldCreateEquipmentFinding(equipmentResult);
+
+      if (!createFinding) {
+        resetForm();
+        setMessage("Equipment saved to Equipment Inventory. It was not added as a defect.");
+        return;
+      }
+
+      let equipmentTitle = `${cleanEquipmentValue(equipmentResult.manufacturer) || "Equipment"} ${
+        cleanEquipmentValue(equipmentResult.equipmentType) || "Finding"
+      }`.trim();
+
+      const titlePrefix = getFindingTitlePrefix(equipmentResult);
+
+      if (titlePrefix && !equipmentTitle.toLowerCase().startsWith(titlePrefix.toLowerCase())) {
+        equipmentTitle = `${titlePrefix} – ${equipmentTitle}`;
+      }
+
+      const observationText = getCalmFindingObservation(equipmentResult);
+      const implicationText = getCalmFindingImplication(equipmentResult);
+      const recommendationText = getCalmFindingRecommendation(equipmentResult);
+      const findingSeverity =
+        titlePrefix === "Older Equipment"
+          ? "Monitor"
+          : equipmentResult.severity || "Informational";
+
+      setEquipmentSaveLabel("Creating Finding...");
+
+      const { data: findingData, error: findingError } = await supabase
+        .from("findings")
+        .insert({
+          inspection_id: selectedReport,
+          section: equipmentResult.section || "Heating",
+          severity: findingSeverity,
+          title: equipmentTitle,
+          observation: observationText,
+          implication: implicationText,
+          recommendation: recommendationText,
+          image_url: mainImage?.publicUrl || null,
+        })
+        .select()
+        .single();
+
+      if (findingError) throw findingError;
+
+      if (uploadedPhotos.length > 0 && findingData) {
+        setEquipmentSaveLabel("Attaching Media...");
+
+        const photoRows = uploadedPhotos.map((photo) => ({
+          inspection_id: selectedReport,
+          finding_id: findingData.id,
+          public_url: photo.publicUrl,
+          file_path: photo.filePath,
+        }));
+
+        const { error: photoError } = await supabase.from("photos").insert(photoRows);
+        if (photoError) throw photoError;
+      }
+
+      resetForm();
+      setMessage("Equipment saved to Equipment Inventory and a report finding was created.");
+    } catch (error: any) {
+      setMessage(error?.message || "Failed to save equipment.");
+    } finally {
+      setSavingEquipment(false);
+      setEquipmentSaveLabel(
+        equipmentResult && shouldCreateEquipmentFinding(equipmentResult)
+          ? "Save Equipment + Create Finding"
+          : "Save To Equipment Inventory"
+      );
+      setOnline(isOnline());
     }
   }
 
@@ -673,30 +1361,89 @@ function FieldPageContent() {
                   Let AI Help Write It
                 </h2>
                 <p className="mt-1 text-sm text-slate-300">
-                  Take a photo first, then analyze it. Or type a rough note and generate from the note.
+                  Take a photo first, then analyze it as a defect, scan it as equipment, or type a rough note and generate from the note.
                 </p>
               </div>
 
-              <div className="grid gap-3 md:grid-cols-2">
+              <div className="grid gap-3 md:grid-cols-3">
                 <button
                   type="button"
                   onClick={analyzePhotoWithAI}
-                  disabled={analyzingPhoto || generating || saving || !online || photoType === "reference_photo" || !photos.some((photo) => photo.type.startsWith("image/"))}
+                  disabled={analyzingPhoto || analyzingEquipment || generating || saving || savingEquipment || !online || photoType === "reference_photo" || !photos.some((photo) => photo.type.startsWith("image/"))}
                   className="w-full rounded-xl border border-purple-500 bg-purple-500/10 p-4 text-lg font-bold text-purple-200 transition active:scale-[0.98] hover:bg-purple-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
                 >
-                  {analyzingPhoto ? "Analyzing Photo..." : "🤖 Analyze Photo(s)"}
+                  {analyzingPhoto ? "Analyzing Defect..." : "🤖 Analyze Defect"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={analyzeEquipmentWithAI}
+                  disabled={analyzingEquipment || analyzingPhoto || generating || saving || savingEquipment || !online || photoType === "reference_photo" || !photos.some((photo) => photo.type.startsWith("image/"))}
+                  className="w-full rounded-xl border border-cyan-500 bg-cyan-500/10 p-4 text-lg font-bold text-cyan-200 transition active:scale-[0.98] hover:bg-cyan-500 hover:text-black disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
+                >
+                  {analyzingEquipment ? "Analyzing Equipment..." : "🔧 Analyze Equipment"}
                 </button>
 
                 <button
                   type="button"
                   onClick={generateWithAI}
-                  disabled={generating || analyzingPhoto || saving || !online || photoType === "reference_photo"}
+                  disabled={generating || analyzingPhoto || analyzingEquipment || saving || savingEquipment || !online || photoType === "reference_photo"}
                   className="w-full rounded-xl bg-teal-500 p-4 text-lg font-bold text-black transition active:scale-[0.98] hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
                 >
                   {generating ? "Generating AI Finding..." : online ? "✍️ Generate From Note" : "AI Available When Back Online"}
                 </button>
               </div>
             </div>
+
+            {equipmentResult && !equipmentResult.error && (
+              <div className="rounded-2xl border border-cyan-500/40 bg-cyan-950/20 p-4">
+                <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-300">
+                      Equipment Detected
+                    </p>
+                    <h2 className="mt-1 text-xl font-black text-white">
+                      {cleanEquipmentValue(equipmentResult.manufacturer) || "Equipment"} {cleanEquipmentValue(equipmentResult.equipmentType)}
+                    </h2>
+                    <p className="mt-1 text-sm text-slate-300">
+                      {shouldCreateEquipmentFinding(equipmentResult)
+                        ? "This will save to Equipment Inventory and create a report finding because the analyzer found a reportable condition."
+                        : "This will save to Equipment Inventory only and will not count as a defect."}
+                    </p>
+                  </div>
+
+                  <span className="rounded-full border border-cyan-400/50 bg-cyan-400/10 px-3 py-1 text-xs font-black text-cyan-200">
+                    {shouldCreateEquipmentFinding(equipmentResult) ? "Equipment + Finding" : "Inventory Only"}
+                  </span>
+                </div>
+
+                <EquipmentCard equipment={equipmentResult} />
+
+                {equipmentResult.clientSummary && (
+                  <div className="mt-4 rounded-xl border border-slate-700 bg-black/30 p-4 text-sm leading-6 text-slate-200">
+                    {equipmentResult.clientSummary}
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={saveEquipmentFromFieldTool}
+                  disabled={savingEquipment || analyzingEquipment || saving}
+                  className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-cyan-400 px-5 py-3 text-sm font-black text-black transition active:scale-[0.98] hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
+                >
+                  {savingEquipment && (
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  )}
+                  {savingEquipment ? equipmentSaveLabel : equipmentSaveLabel}
+                </button>
+              </div>
+            )}
+
+            {equipmentResult?.error && (
+              <div className="rounded-xl border border-red-500/60 bg-red-500/10 p-4 text-sm font-bold text-red-200">
+                {equipmentResult.error || "Equipment analysis failed."}
+              </div>
+            )}
 
             {photoType === "finding" && photos.some((photo) => photo.type.startsWith("video/")) && !photos.some((photo) => photo.type.startsWith("image/")) && (
               <div className="rounded-xl border border-yellow-500/50 bg-yellow-500/10 p-4 text-sm font-bold leading-6 text-yellow-100">
@@ -788,7 +1535,7 @@ function FieldPageContent() {
             <button
               type="button"
               onClick={saveFieldItem}
-              disabled={saving}
+              disabled={saving || savingEquipment}
               className={`w-full rounded-xl p-4 text-lg font-bold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation] ${
                 photoType === "reference_photo"
                   ? "bg-cyan-400 text-black hover:bg-cyan-300"
