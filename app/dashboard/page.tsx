@@ -125,6 +125,12 @@ const cards = [
     href: "/schedule",
     icon: "🗓️",
   },
+  {
+    title: "Public Profile",
+    description: "Manage and share your public inspector marketing page.",
+    href: "/settings#public-profile",
+    icon: "🌐",
+  },
 ];
 
 async function createSupabaseServerClient() {

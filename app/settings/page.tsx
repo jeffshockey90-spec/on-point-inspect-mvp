@@ -14,6 +14,37 @@ function getNumber(value: any) {
   return Number.isFinite(numberValue) ? numberValue : 0;
 }
 
+
+function slugifyProfile(value: any) {
+  return String(value || "")
+    .toLowerCase()
+    .trim()
+    .replace(/['"]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+}
+
+function getPublicProfileUrl(company: any) {
+  const slug = String(company?.profile_slug || "").trim();
+  if (!slug) return "";
+
+  const baseUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    "https://on-point-inspect-mvp.vercel.app";
+
+  return `${baseUrl.replace(/\/$/, "")}/inspectors/${slug}`;
+}
+
+function normalizeLines(value: any) {
+  return String(value || "")
+    .split(/\r?\n|,/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .join("\n");
+}
+
 async function getCompanyForUser(supabase: any, userId: string) {
   const { data: companyUser } = await supabase
     .from("company_users")
@@ -177,6 +208,32 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
         ).trim(),
         show_powered_by:
           String(formData.get("show_powered_by") || "") === "on",
+        public_profile_enabled:
+          String(formData.get("public_profile_enabled") || "") === "on",
+        profile_slug:
+          slugifyProfile(formData.get("profile_slug")) ||
+          slugifyProfile(formData.get("display_name")) ||
+          slugifyProfile(formData.get("name")) ||
+          String(company.id),
+        public_profile_headline: String(
+          formData.get("public_profile_headline") || ""
+        ).trim(),
+        public_profile_bio: String(
+          formData.get("public_profile_bio") || ""
+        ).trim(),
+        public_profile_photo_url: String(
+          formData.get("public_profile_photo_url") || ""
+        ).trim(),
+        service_areas: normalizeLines(formData.get("service_areas")),
+        certifications: normalizeLines(formData.get("certifications")),
+        services_offered: normalizeLines(formData.get("services_offered")),
+        google_review_url: String(
+          formData.get("google_review_url") || ""
+        ).trim(),
+        facebook_url: String(formData.get("facebook_url") || "").trim(),
+        public_booking_url: String(
+          formData.get("public_booking_url") || ""
+        ).trim(),
         online_payment_fee_enabled: onlinePaymentFeeEnabled,
         online_payment_fee_type: "flat",
         online_payment_fee_amount: feeAmount || 0,
@@ -193,6 +250,8 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
     company.online_payment_fee_amount !== undefined
       ? company.online_payment_fee_amount
       : 15;
+
+  const publicProfileUrl = getPublicProfileUrl(company);
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#050816] px-4 py-4 pb-28 text-white md:p-8 md:pb-10">
@@ -410,6 +469,189 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                   Show “Powered by On Point Inspect” on client-facing pages
                 </span>
               </label>
+            </div>
+          </section>
+
+          <section id="public-profile" className="rounded-3xl border border-slate-800 bg-[#0b1220] p-5 sm:p-6 md:p-8">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.25em] text-teal-300">
+                  Public Profile
+                </p>
+                <h2 className="mt-2 text-xl font-black text-white sm:text-2xl">
+                  Inspector Marketing Page
+                </h2>
+                <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">
+                  Create a public inspector profile that can be shared with clients, realtors, and partners.
+                </p>
+              </div>
+
+              {publicProfileUrl && (
+                <Link
+                  href={publicProfileUrl.replace(
+                    (process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || "https://on-point-inspect-mvp.vercel.app").replace(/\/$/, ""),
+                    ""
+                  )}
+                  className="rounded-xl border border-teal-500/60 px-4 py-3 text-center text-sm font-black text-teal-300 hover:bg-teal-500 hover:text-slate-950"
+                >
+                  View Public Profile →
+                </Link>
+              )}
+            </div>
+
+            <div className="mt-6 grid gap-4 md:grid-cols-2">
+              <label className="flex flex-col gap-3 rounded-xl border border-slate-700 bg-slate-950 p-4 md:col-span-2 sm:flex-row sm:items-start">
+                <input
+                  name="public_profile_enabled"
+                  type="checkbox"
+                  defaultChecked={company.public_profile_enabled === true}
+                  className="mt-0.5 h-5 w-5 shrink-0"
+                />
+                <span className="flex-1 text-sm font-bold leading-6 text-slate-200 break-words sm:text-base">
+                  Publish my inspector profile
+                </span>
+              </label>
+
+              <label className="block min-w-0">
+                <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
+                  Profile Slug
+                </p>
+                <input
+                  name="profile_slug"
+                  defaultValue={company.profile_slug || slugifyProfile(company.display_name || company.name)}
+                  placeholder="jeff-shockey"
+                  className="w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+                />
+                <p className="mt-2 text-xs text-slate-500">
+                  This creates /inspectors/your-profile-slug.
+                </p>
+              </label>
+
+              <label className="block min-w-0">
+                <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
+                  Profile Photo URL
+                </p>
+                <input
+                  name="public_profile_photo_url"
+                  defaultValue={company.public_profile_photo_url || ""}
+                  placeholder="Paste inspector headshot URL"
+                  className="w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+                />
+              </label>
+
+              <label className="block min-w-0 md:col-span-2">
+                <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
+                  Headline
+                </p>
+                <input
+                  name="public_profile_headline"
+                  defaultValue={company.public_profile_headline || ""}
+                  placeholder="Protecting Your Investment. One Inspection at a Time."
+                  className="w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+                />
+              </label>
+
+              <label className="block min-w-0 md:col-span-2">
+                <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
+                  About / Bio
+                </p>
+                <textarea
+                  name="public_profile_bio"
+                  defaultValue={company.public_profile_bio || ""}
+                  rows={5}
+                  placeholder="Tell clients and realtors what makes your inspection company different."
+                  className="w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+                />
+              </label>
+
+              <label className="block min-w-0">
+                <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
+                  Service Areas
+                </p>
+                <textarea
+                  name="service_areas"
+                  defaultValue={company.service_areas || ""}
+                  rows={5}
+                  placeholder={"Maryland\nWest Virginia\nPennsylvania"}
+                  className="w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+                />
+              </label>
+
+              <label className="block min-w-0">
+                <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
+                  Certifications
+                </p>
+                <textarea
+                  name="certifications"
+                  defaultValue={company.certifications || ""}
+                  rows={5}
+                  placeholder={"InterNACHI CPI\nFAA Part 107\nIAC2 Mold\nNRPP Radon"}
+                  className="w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+                />
+              </label>
+
+              <label className="block min-w-0 md:col-span-2">
+                <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
+                  Services Offered
+                </p>
+                <textarea
+                  name="services_offered"
+                  defaultValue={company.services_offered || ""}
+                  rows={4}
+                  placeholder={"Home Inspection\nRadon Testing\nMold Testing\nDrone Roof Inspection"}
+                  className="w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+                />
+              </label>
+
+              <label className="block min-w-0">
+                <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
+                  Google Review URL
+                </p>
+                <input
+                  name="google_review_url"
+                  defaultValue={company.google_review_url || ""}
+                  placeholder="Paste Google review/profile link"
+                  className="w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+                />
+              </label>
+
+              <label className="block min-w-0">
+                <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
+                  Facebook URL
+                </p>
+                <input
+                  name="facebook_url"
+                  defaultValue={company.facebook_url || ""}
+                  placeholder="Paste Facebook business page link"
+                  className="w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+                />
+              </label>
+
+              <label className="block min-w-0 md:col-span-2">
+                <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
+                  Booking URL Override
+                </p>
+                <input
+                  name="public_booking_url"
+                  defaultValue={company.public_booking_url || ""}
+                  placeholder="/book or your existing public booking link"
+                  className="w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+                />
+                <p className="mt-2 text-xs text-slate-500">
+                  Leave blank to use your On Point Inspect booking page.
+                </p>
+              </label>
+
+              {publicProfileUrl && (
+                <div className="rounded-2xl border border-teal-500/30 bg-teal-500/10 p-4 md:col-span-2">
+                  <p className="text-xs font-black uppercase tracking-wide text-teal-300">
+                    Public Profile Link
+                  </p>
+                  <p className="mt-2 break-all text-sm font-bold text-white">
+                    {publicProfileUrl}
+                  </p>
+                </div>
+              )}
             </div>
           </section>
 

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 import PdfExportButton from "../../../components/PdfExportButton";
 import ReportTimeTracker from "../../../components/ReportTimeTracker";
+import ClientSummaryAccordion from "../../../components/ClientSummaryAccordion";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -1000,6 +1001,49 @@ export default async function PublicSharePage({
   const propertyPhoto = getPropertyPhoto(inspection);
   const defectTotals = buildDefectTotals(findings);
 
+  const clientSummaryGroups = [
+    {
+      key: "safety",
+      title: "Safety / Major Concerns",
+      description: "Items that may involve safety, injury, fire, shock, fall, structural, or major system concerns.",
+      tone: "red" as const,
+      findings: findings.filter(
+        (finding: any) =>
+          isReportDefect(finding) && getSeverityBucket(finding.severity) === "safety"
+      ),
+    },
+    {
+      key: "repair",
+      title: "Recommended Repairs",
+      description: "Defects or damaged components where correction, repair, or further evaluation is recommended.",
+      tone: "teal" as const,
+      findings: findings.filter(
+        (finding: any) =>
+          isReportDefect(finding) && getSeverityBucket(finding.severity) === "repair"
+      ),
+    },
+    {
+      key: "maintenance",
+      title: "Maintenance / Monitor",
+      description: "Routine maintenance items, minor concerns, or conditions that should be watched over time.",
+      tone: "yellow" as const,
+      findings: findings.filter(
+        (finding: any) =>
+          isReportDefect(finding) && getSeverityBucket(finding.severity) === "maintenance"
+      ),
+    },
+    {
+      key: "information",
+      title: "Informational",
+      description: "Client awareness items that are documented but not counted as report defects.",
+      tone: "blue" as const,
+      findings: findings.filter(
+        (finding: any) =>
+          isReportDefect(finding) && getSeverityBucket(finding.severity) === "information"
+      ),
+    },
+  ].filter((group) => group.findings.length > 0);
+
   const displayFindings =
     activeDefectFilter === "all"
       ? findings
@@ -1209,6 +1253,71 @@ export default async function PublicSharePage({
               )}
             </div>
           </section>
+
+          {clientSummaryGroups.length > 0 && (
+            <section
+              id="client-summary"
+              className="mt-8 rounded-2xl border border-teal-500/40 bg-[#071224] p-6 shadow-xl"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm font-bold uppercase tracking-[0.3em] text-teal-400">
+                    Client Summary
+                  </p>
+                  <h2 className="mt-2 text-3xl font-black text-white">
+                    Key Findings Summary
+                  </h2>
+                  <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
+                    This summary highlights notable findings by severity so clients and agents can quickly review the most important report items. The full report below remains the complete inspection record.
+                  </p>
+                </div>
+
+                <a
+                  href="#inspection-findings"
+                  className="rounded-xl border border-teal-500 px-4 py-3 text-sm font-black text-teal-300 transition hover:bg-teal-500 hover:text-black"
+                >
+                  View Full Findings
+                </a>
+              </div>
+
+              <div className="mt-6 overflow-x-auto rounded-2xl border border-slate-700 bg-[#020617] p-2 print:hidden">
+                <div className="flex min-w-max gap-2">
+                  <a
+                    href="#client-summary"
+                    className="rounded-xl bg-slate-700 px-4 py-3 text-sm font-black text-white transition hover:bg-slate-600"
+                  >
+                    ☰ Summary
+                  </a>
+                  <a
+                    href="#client-summary-safety"
+                    className="rounded-xl border border-red-500/40 px-4 py-3 text-sm font-black text-red-300 transition hover:bg-red-500/10"
+                  >
+                    ⚠ Safety Hazards
+                  </a>
+                  <a
+                    href="#client-summary-repair"
+                    className="rounded-xl border border-teal-500/40 px-4 py-3 text-sm font-black text-teal-300 transition hover:bg-teal-500/10"
+                  >
+                    🔧 Recommendations
+                  </a>
+                  <a
+                    href="#client-summary-maintenance"
+                    className="rounded-xl border border-yellow-500/40 px-4 py-3 text-sm font-black text-yellow-300 transition hover:bg-yellow-500/10"
+                  >
+                    ⚙ Maintenance
+                  </a>
+                  <a
+                    href="#inspection-findings"
+                    className="rounded-xl border border-blue-500/40 px-4 py-3 text-sm font-black text-blue-300 transition hover:bg-blue-500/10"
+                  >
+                    📄 Full Report
+                  </a>
+                </div>
+              </div>
+
+              <ClientSummaryAccordion groups={clientSummaryGroups} />
+            </section>
+          )}
 
           {inspection.executive_summary && (
             <section className="mt-8 rounded-2xl border border-purple-500/40 bg-[#071224] p-6 shadow-xl">
@@ -1727,9 +1836,9 @@ export default async function PublicSharePage({
                               <details className="group overflow-hidden rounded-2xl border border-slate-700 bg-[#0f172a] shadow-xl md:hidden">
                                 <summary className="cursor-pointer list-none">
                                   <div className="flex gap-3 p-3">
-                                    <div className="h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-slate-700 bg-[#020617]">
-                                      {image ? (
-                                        isVideo ? (
+                                    {image && (
+                                      <div className="h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-slate-700 bg-[#020617]">
+                                        {isVideo ? (
                                           <div className="relative h-full w-full bg-black">
                                             <video
                                               src={image}
@@ -1751,13 +1860,9 @@ export default async function PublicSharePage({
                 fetchPriority="low"
                 className="h-full w-full object-cover"
                                           />
-                                        )
-                                      ) : (
-                                        <div className="flex h-full w-full items-center justify-center px-2 text-center text-[10px] font-black uppercase tracking-wide text-slate-500">
-                                          No Photo
-                                        </div>
-                                      )}
-                                    </div>
+                                        )}
+                                      </div>
+                                    )}
 
                                     <div className="min-w-0 flex-1">
                                       <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -1806,7 +1911,7 @@ export default async function PublicSharePage({
                                             controls
                                             playsInline
                                             preload="metadata"
-                                            className="max-h-[360px] w-full rounded-xl border border-slate-700 bg-black object-contain"
+                                            className="max-h-[520px] w-full rounded-xl border border-slate-700 bg-black object-contain"
                                           />
                                         ) : (
                                           <img
@@ -1816,7 +1921,7 @@ export default async function PublicSharePage({
                                             loading="lazy"
                                             decoding="async"
                                             fetchPriority="low"
-                                            className="max-h-[360px] w-full rounded-xl border border-slate-700 object-contain"
+                                            className="max-h-[520px] w-full rounded-xl border border-slate-700 object-contain"
                                           />
                                         );
                                       })}
@@ -1952,6 +2057,146 @@ export default async function PublicSharePage({
         </div>
       </div>
     </main>
+  );
+}
+
+function ClientSummaryFindingCard({
+  finding,
+  tone,
+}: {
+  finding: any;
+  tone: "red" | "teal" | "yellow" | "blue";
+}) {
+  const mediaList = getFindingMediaList(finding);
+  const media = mediaList[0] || getFindingPrimaryMedia(finding);
+  const mediaUrl = getMediaUrl(media);
+  const previewUrl = getMediaPreviewUrl(media);
+  const title = getFindingTitle(finding);
+  const summary = getFindingSummary(finding);
+  const video = isVideoMedia(media || finding, mediaUrl);
+
+  const toneClass =
+    tone === "red"
+      ? "border-red-500/40 bg-red-500/10"
+      : tone === "yellow"
+      ? "border-yellow-500/40 bg-yellow-500/10"
+      : tone === "blue"
+      ? "border-blue-500/40 bg-blue-500/10"
+      : "border-teal-500/40 bg-teal-500/10";
+
+  return (
+    <details
+      className={`group overflow-hidden rounded-2xl border bg-[#020617] transition hover:-translate-y-0.5 hover:border-white/40 open:md:col-span-2 open:hover:translate-y-0 ${toneClass}`}
+    >
+      <summary className="cursor-pointer list-none">
+        {mediaUrl && (
+          <div className="h-52 overflow-hidden border-b border-slate-800 bg-black">
+            {video ? (
+              <div className="relative h-full w-full">
+                <video
+                  src={mediaUrl}
+                  muted
+                  playsInline
+                  preload="metadata"
+                  className="h-full w-full object-cover opacity-80"
+                />
+                <span className="absolute inset-x-4 bottom-4 rounded-full border border-cyan-400 bg-black/75 px-3 py-2 text-center text-xs font-black uppercase tracking-wide text-cyan-300">
+                  Tap to Expand Video
+                </span>
+              </div>
+            ) : (
+              <img
+                src={previewUrl || mediaUrl}
+                alt={title}
+                loading="lazy"
+                decoding="async"
+                fetchPriority="low"
+                className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+              />
+            )}
+          </div>
+        )}
+
+        <div className="p-4">
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <span
+              className={`rounded-full border px-2 py-1 text-[10px] font-black uppercase tracking-wide ${getSeverityClass(
+                finding.severity
+              )}`}
+            >
+              {finding.severity || "Recommended Repair"}
+            </span>
+            <span className="rounded-full border border-slate-700 px-2 py-1 text-[10px] font-black uppercase tracking-wide text-slate-300">
+              {finding.section || "Report"}
+            </span>
+          </div>
+
+          <h4 className="line-clamp-2 text-lg font-black leading-tight text-white group-open:line-clamp-none">
+            {title}
+          </h4>
+
+          <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-300 group-open:line-clamp-none">
+            {summary}
+          </p>
+
+          <p className="mt-4 text-sm font-black text-cyan-300">
+            <span className="group-open:hidden">Tap to Expand →</span>
+            <span className="hidden group-open:inline">Expanded Details</span>
+          </p>
+        </div>
+      </summary>
+
+      <div className="border-t border-slate-800 p-4">
+        {mediaList.length > 0 && (
+          <div className="mb-4 grid gap-3">
+            {mediaList.map((item: any, mediaIndex: number) => {
+              const itemUrl = getMediaUrl(item);
+              const itemPreviewUrl = getMediaPreviewUrl(item);
+              const itemIsVideo = isVideoMedia(item, itemUrl);
+
+              if (!itemUrl) return null;
+
+              return itemIsVideo ? (
+                <video
+                  key={item.id || item.file_path || itemUrl || mediaIndex}
+                  src={itemUrl}
+                  controls
+                  playsInline
+                  preload="metadata"
+                  className="max-h-[360px] w-full rounded-xl border border-slate-700 bg-black object-contain"
+                />
+              ) : (
+                <img
+                  key={item.id || item.file_path || itemUrl || mediaIndex}
+                  src={itemPreviewUrl || itemUrl}
+                  alt={`Summary finding media ${mediaIndex + 1}`}
+                  loading="lazy"
+                  decoding="async"
+                  fetchPriority="low"
+                  className="max-h-[360px] w-full rounded-xl border border-slate-700 object-contain"
+                />
+              );
+            })}
+          </div>
+        )}
+
+        <div className="grid gap-3 lg:grid-cols-3">
+          <FindingTextCard title="Observation" value={finding.observation} tone="blue" />
+          <FindingTextCard title="Implication" value={finding.implication} tone="yellow" />
+          <FindingTextCard title="Recommendation" value={finding.recommendation} tone="teal" />
+          <FindingTextCard title="Additional Notes" value={finding.comment} tone="slate" />
+        </div>
+
+        <a
+          href={`#section-${String(finding.section || "other")
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")}`}
+          className="mt-4 inline-flex rounded-xl border border-cyan-500/50 px-4 py-3 text-sm font-black text-cyan-300 transition hover:bg-cyan-500 hover:text-black"
+        >
+          Open This Item In Full Report →
+        </a>
+      </div>
+    </details>
   );
 }
 
