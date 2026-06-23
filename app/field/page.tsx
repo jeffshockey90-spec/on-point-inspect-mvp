@@ -563,6 +563,7 @@ function FieldPageContent() {
   const [recommendation, setRecommendation] = useState("");
   const [photos, setPhotos] = useState<File[]>([]);
   const [generating, setGenerating] = useState(false);
+  const [dictating, setDictating] = useState(false);
   const [analyzingPhoto, setAnalyzingPhoto] = useState(false);
   const [analyzingEquipment, setAnalyzingEquipment] = useState(false);
   const [equipmentResult, setEquipmentResult] = useState<EquipmentResult | null>(null);
@@ -1012,14 +1013,16 @@ function FieldPageContent() {
     }
   }
 
-  async function generateWithAI() {
+  async function generateFindingFromNoteText(noteText: string, successMessage = "AI finding generated. Review it before saving.") {
+    const cleanNote = noteText.trim();
+
     if (!online) {
       setMessage("AI needs internet. Save your notes/photos offline, then run AI when service returns.");
       return;
     }
 
-    if (!note.trim()) {
-      setMessage("Enter a quick inspector note first.");
+    if (!cleanNote) {
+      setMessage("Enter or dictate a quick inspector note first.");
       return;
     }
 
@@ -1031,7 +1034,9 @@ function FieldPageContent() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          note,
+          note: cleanNote,
+          inspectionId: selectedReport || "",
+          inspection_id: selectedReport || "",
           title,
           observation,
           implication,
@@ -1041,7 +1046,7 @@ function FieldPageContent() {
         }),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
         setMessage(data.error || "AI failed");
@@ -1053,12 +1058,81 @@ function FieldPageContent() {
       setObservation(data.observation || "");
       setImplication(data.implication || "");
       setRecommendation(data.recommendation || "");
-      setSection(data.section || "Exterior");
-      setSeverity(data.severity || "Recommended Repair");
-      setMessage("AI finding generated. Review it before saving.");
+      setSection(SECTIONS.includes(data.section) ? data.section : "Exterior");
+      setSeverity(SEVERITIES.includes(data.severity) ? data.severity : "Recommended Repair");
+      setMessage(successMessage);
+    } catch (error: any) {
+      setMessage(error?.message || "AI failed");
     } finally {
       setGenerating(false);
     }
+  }
+
+  async function generateWithAI() {
+    await generateFindingFromNoteText(note);
+  }
+
+  function dictateFinding() {
+    if (dictating || generating || analyzingPhoto || analyzingEquipment || saving || savingEquipment) return;
+
+    if (photoType === "reference_photo") {
+      setMessage("Switch to Finding / Defect mode before dictating a finding.");
+      return;
+    }
+
+    if (!online) {
+      setMessage("Voice-to-finding needs internet for AI generation. Save notes offline, then generate when service returns.");
+      return;
+    }
+
+    if (typeof window === "undefined") return;
+
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      setMessage("Voice dictation is not supported in this browser. Use your keyboard microphone to dictate into the Quick Inspector Note, then tap Generate From Note.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = "en-US";
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    setDictating(true);
+    setPhotoType("finding");
+    setMessage("Listening... describe the finding, location, and recommendation.");
+
+    recognition.onresult = async (event: any) => {
+      const transcript = Array.from(event.results || [])
+        .map((result: any) => result?.[0]?.transcript || "")
+        .join(" ")
+        .trim();
+
+      if (!transcript) {
+        setMessage("No voice note was captured. Try again or type the note manually.");
+        return;
+      }
+
+      setNote(transcript);
+      setMessage("Voice note captured. Generating finding...");
+      await generateFindingFromNoteText(
+        transcript,
+        "Voice finding generated. Review and edit it before saving."
+      );
+    };
+
+    recognition.onerror = (event: any) => {
+      setMessage(event?.error ? `Voice dictation failed: ${event.error}` : "Voice dictation failed.");
+    };
+
+    recognition.onend = () => {
+      setDictating(false);
+    };
+
+    recognition.start();
   }
 
   async function uploadPhotoFile(photo: File, folder: string): Promise<UploadedPhoto> {
@@ -1365,15 +1439,15 @@ function FieldPageContent() {
                   Let AI Help Write It
                 </h2>
                 <p className="mt-1 text-sm text-slate-300">
-                  Take a photo first, then analyze it as a defect, scan it as equipment, or type a rough note and generate from the note.
+                  Take a photo first, analyze it as a defect, scan it as equipment, dictate a finding, or type a rough note and generate from the note.
                 </p>
               </div>
 
-              <div className="grid gap-3 md:grid-cols-3">
+              <div className="grid gap-3 md:grid-cols-4">
                 <button
                   type="button"
                   onClick={analyzePhotoWithAI}
-                  disabled={analyzingPhoto || analyzingEquipment || generating || saving || savingEquipment || !online || photoType === "reference_photo" || !photos.some((photo) => photo.type.startsWith("image/"))}
+                  disabled={analyzingPhoto || analyzingEquipment || generating || dictating || saving || savingEquipment || !online || photoType === "reference_photo" || !photos.some((photo) => photo.type.startsWith("image/"))}
                   className="w-full rounded-xl border border-purple-500 bg-purple-500/10 p-4 text-lg font-bold text-purple-200 transition active:scale-[0.98] hover:bg-purple-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
                 >
                   {analyzingPhoto ? "Analyzing Defect..." : "🤖 Analyze Defect"}
@@ -1382,7 +1456,7 @@ function FieldPageContent() {
                 <button
                   type="button"
                   onClick={analyzeEquipmentWithAI}
-                  disabled={analyzingEquipment || analyzingPhoto || generating || saving || savingEquipment || !online || photoType === "reference_photo" || !photos.some((photo) => photo.type.startsWith("image/"))}
+                  disabled={analyzingEquipment || analyzingPhoto || generating || dictating || saving || savingEquipment || !online || photoType === "reference_photo" || !photos.some((photo) => photo.type.startsWith("image/"))}
                   className="w-full rounded-xl border border-cyan-500 bg-cyan-500/10 p-4 text-lg font-bold text-cyan-200 transition active:scale-[0.98] hover:bg-cyan-500 hover:text-black disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
                 >
                   {analyzingEquipment ? "Analyzing Equipment..." : "🔧 Analyze Equipment"}
@@ -1390,8 +1464,17 @@ function FieldPageContent() {
 
                 <button
                   type="button"
+                  onClick={dictateFinding}
+                  disabled={dictating || generating || analyzingPhoto || analyzingEquipment || saving || savingEquipment || !online || photoType === "reference_photo"}
+                  className="w-full rounded-xl border border-emerald-500 bg-emerald-500/10 p-4 text-lg font-bold text-emerald-200 transition active:scale-[0.98] hover:bg-emerald-500 hover:text-black disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
+                >
+                  {dictating ? "Listening..." : "🎤 Dictate Finding"}
+                </button>
+
+                <button
+                  type="button"
                   onClick={generateWithAI}
-                  disabled={generating || analyzingPhoto || analyzingEquipment || saving || savingEquipment || !online || photoType === "reference_photo"}
+                  disabled={generating || dictating || analyzingPhoto || analyzingEquipment || saving || savingEquipment || !online || photoType === "reference_photo"}
                   className="w-full rounded-xl bg-teal-500 p-4 text-lg font-bold text-black transition active:scale-[0.98] hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
                 >
                   {generating ? "Generating AI Finding..." : online ? "✍️ Generate From Note" : "AI Available When Back Online"}
