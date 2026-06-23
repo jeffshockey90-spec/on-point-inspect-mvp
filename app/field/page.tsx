@@ -1210,14 +1210,15 @@ function FieldPageContent() {
       }
 
       const permission = await NativeSpeechRecognition.requestPermissions();
+      const permissionAny = permission as any;
       const speechGranted =
-        permission?.speechRecognition === "granted" ||
-        permission?.speechRecognition === "prompt" ||
-        permission?.speechRecognition === undefined;
+        permissionAny?.speechRecognition === "granted" ||
+        permissionAny?.speechRecognition === "prompt" ||
+        permissionAny?.speechRecognition === undefined;
       const microphoneGranted =
-        permission?.microphone === "granted" ||
-        permission?.microphone === "prompt" ||
-        permission?.microphone === undefined;
+        permissionAny?.microphone === "granted" ||
+        permissionAny?.microphone === "prompt" ||
+        permissionAny?.microphone === undefined;
 
       if (!speechGranted || !microphoneGranted) {
         finishVoiceDictation();
