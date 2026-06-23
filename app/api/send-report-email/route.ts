@@ -521,7 +521,7 @@ export async function POST(req: Request) {
           email: cleanEmail(recipientEmail),
           recipientType:
             recipientType === "client" || recipientType === "realtor"
-              ? recipientType
+              ? (recipientType as "client" | "realtor")
               : "custom",
           role: String(recipientType || "custom"),
         },
@@ -538,15 +538,15 @@ export async function POST(req: Request) {
       const fallbackRecipients: Recipient[] = [
         {
           email: cleanEmail(inspection.client_email),
-          recipientType: "client",
+          recipientType: "client" as const,
           role: "client",
         },
         {
           email: cleanEmail(inspection.realtor_email || inspection.agent_email),
-          recipientType: "realtor",
+          recipientType: "realtor" as const,
           role: "realtor",
         },
-      ].filter((recipient) => Boolean(recipient.email));
+      ].filter((recipient: Recipient) => Boolean(recipient.email));
 
       recipients = uniqueRecipients([...contactRecipients, ...fallbackRecipients]);
     } else if (recipientType === "client" || recipientType === "realtor") {
