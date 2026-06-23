@@ -2,11 +2,14 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
+import { Resend } from "resend";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 type AnyRow = Record<string, any>;
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 function createAdminClient() {
   return createServiceClient(
@@ -108,15 +111,6 @@ function getInspectionPayload(request: AnyRow, userId: string) {
   const squareFeet = cleanText(request.square_feet);
   const calculatedPrice = calculatePriceFromSqft(squareFeet);
 
-  /*
-    This payload intentionally includes multiple common column names because
-    different On Point Inspect builds have used slightly different inspection
-    schema names. The insert helper below removes unsupported columns if the
-    Supabase schema cache says they do not exist.
-
-    Pricing is calculated from estimated square footage for the inspector/report
-    side only. The public booking page does not show the price.
-  */
   return {
     inspector_id: userId,
     user_id: userId,
@@ -349,6 +343,250 @@ async function upsertBookingContacts(
   return { inserted, skipped: false, errors };
 }
 
+function getBaseUrl(request: Request) {
+  const envUrl =
+    process.env.NEXT_PUBLIC_BASE_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.VERCEL_URL;
+
+  if (envUrl) {
+    return envUrl.startsWith("http") ? envUrl : `https://${envUrl}`;
+  }
+
+  return new URL(request.url).origin;
+}
+
+function formatDate(value: any) {
+  if (!value) return "Date to be confirmed";
+
+  const date = new Date(`${value}T12:00:00`);
+  if (Number.isNaN(date.getTime())) return cleanText(value);
+
+  return date.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function formatTime(value: any) {
+  const clean = cleanText(value);
+  if (!clean) return "Time to be confirmed";
+
+  const [hoursRaw, minutesRaw] = clean.split(":");
+  const hours = Number(hoursRaw);
+  const minutes = Number((minutesRaw || "00").slice(0, 2));
+
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) return clean;
+
+  const date = new Date();
+  date.setHours(hours, minutes, 0, 0);
+
+  return date.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function escapeHtml(value: any) {
+  return cleanText(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
+async function sendAppointmentConfirmedEmails(
+  admin: any,
+  bookingRequest: AnyRow,
+  inspectionId: string,
+  request: Request
+) {
+  if (!process.env.RESEND_API_KEY) {
+    return {
+      sent: [],
+      failed: [],
+      skipped: true,
+      reason: "Missing RESEND_API_KEY.",
+    };
+  }
+
+  const contacts = await admin
+    .from("inspection_contacts")
+    .select("*")
+    .eq("inspection_id", inspectionId);
+
+  const rows = contacts?.data || [];
+  const recipients = rows
+    .filter((contact: any) => {
+      const role = cleanText(contact.role).toLowerCase();
+      return (
+        contact.email &&
+        (role === "client" ||
+          role === "co-client" ||
+          role === "realtor" ||
+          role === "transaction coordinator")
+      );
+    })
+    .map((contact: any) => ({
+      email: cleanText(contact.email).toLowerCase(),
+      name: cleanText(contact.name),
+      role: cleanText(contact.role).toLowerCase(),
+    }));
+
+  const uniqueRecipients = Array.from(
+    new Map(recipients.map((recipient) => [recipient.email, recipient])).values()
+  );
+
+  if (uniqueRecipients.length === 0) {
+    return { sent: [], failed: [], skipped: true, reason: "No contacts found." };
+  }
+
+  const address = [
+    bookingRequest.property_address,
+    bookingRequest.city,
+    bookingRequest.state,
+    bookingRequest.zip,
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  const services = requestedServices(bookingRequest);
+  const dateText = formatDate(bookingRequest.preferred_date);
+  const timeText = formatTime(bookingRequest.preferred_time);
+  const portalUrl = `${getBaseUrl(request)}/client-portal/${inspectionId}`;
+
+  const fromEmail =
+    process.env.RESEND_FROM_EMAIL ||
+    process.env.REPORT_EMAIL_FROM ||
+    "On Point Home Inspections <agreements@onpointhomeinspect.com>";
+
+  const sent: any[] = [];
+  const failed: any[] = [];
+
+  for (const recipient of uniqueRecipients) {
+    const isRealtor =
+      recipient.role.includes("realtor") || recipient.role.includes("transaction");
+
+    const subject = `Inspection Confirmed - ${address || "On Point Home Inspections"}`;
+
+    const greeting = recipient.name ? `Hi ${escapeHtml(recipient.name)},` : "Hello,";
+
+    const note = isRealtor
+      ? "This confirms the inspection request has been accepted and scheduled."
+      : "This confirms your inspection has been accepted and scheduled.";
+
+    const html = `
+      <div style="font-family:Arial,sans-serif;line-height:1.6;color:#0f172a;padding:24px;">
+        <h2 style="color:#0f766e;margin:0 0 16px;">On Point Home Inspections</h2>
+
+        <p>${greeting}</p>
+
+        <p>${note}</p>
+
+        <table cellpadding="6" cellspacing="0" style="border-collapse:collapse;width:100%;max-width:680px;">
+          <tr><td><strong>Property</strong></td><td>${escapeHtml(address)}</td></tr>
+          <tr><td><strong>Date</strong></td><td>${escapeHtml(dateText)}</td></tr>
+          <tr><td><strong>Time</strong></td><td>${escapeHtml(timeText)}</td></tr>
+          <tr><td><strong>Services</strong></td><td>${escapeHtml(services)}</td></tr>
+        </table>
+
+        <p style="margin-top:18px;">
+          Your inspection agreement and payment information may be sent separately if required.
+        </p>
+
+        <p>
+          <a href="${portalUrl}" style="display:inline-block;background:#14b8a6;color:#020617;font-weight:bold;padding:12px 18px;border-radius:10px;text-decoration:none;">
+            Open Client Portal
+          </a>
+        </p>
+
+        <p style="margin-top:30px;font-size:12px;color:#64748b;">
+          On Point Home Inspections<br />
+          Protecting Your Investment. One Inspection at a Time.
+        </p>
+      </div>
+    `;
+
+    const text = `${recipient.name ? `Hi ${recipient.name},` : "Hello,"}
+
+${isRealtor ? "This confirms the inspection request has been accepted and scheduled." : "This confirms your inspection has been accepted and scheduled."}
+
+Property: ${address}
+Date: ${dateText}
+Time: ${timeText}
+Services: ${services}
+
+Your inspection agreement and payment information may be sent separately if required.
+
+Client Portal:
+${portalUrl}
+
+On Point Home Inspections`;
+
+    try {
+      const result = await resend.emails.send({
+        from: fromEmail,
+        to: recipient.email,
+        subject,
+        html,
+        text,
+      });
+
+      sent.push({
+        email: recipient.email,
+        role: recipient.role,
+        resend_id: result?.data?.id || null,
+      });
+
+      await admin.from("email_logs").insert({
+        inspection_id_bigint: Number(inspectionId),
+        recipient: recipient.email,
+        recipient_email: recipient.email,
+        email_type: "appointment_confirmed",
+        subject,
+        message: portalUrl,
+        status: "sent",
+        resend_id: result?.data?.id || null,
+        sent_at: new Date().toISOString(),
+        metadata: {
+          type: "appointment_confirmed",
+          role: recipient.role,
+          portalUrl,
+        },
+      });
+    } catch (error: any) {
+      failed.push({
+        email: recipient.email,
+        role: recipient.role,
+        error: error?.message || "Failed to send appointment confirmation.",
+      });
+
+      await admin.from("email_logs").insert({
+        inspection_id_bigint: Number(inspectionId),
+        recipient: recipient.email,
+        recipient_email: recipient.email,
+        email_type: "appointment_confirmed",
+        subject,
+        message: portalUrl,
+        status: "failed",
+        resend_id: null,
+        sent_at: null,
+        metadata: {
+          type: "appointment_confirmed",
+          role: recipient.role,
+          portalUrl,
+          error: error?.message || "Failed to send appointment confirmation.",
+        },
+      });
+    }
+  }
+
+  return { sent, failed, skipped: false };
+}
+
 function compactUpdatePayload(payload: AnyRow) {
   return Object.fromEntries(
     Object.entries(payload).filter(([, value]) => value !== undefined)
@@ -464,6 +702,13 @@ export async function POST(request: Request) {
       user.id
     );
 
+    const confirmationEmails = await sendAppointmentConfirmedEmails(
+      admin,
+      bookingRequest,
+      String(inspectionId),
+      request
+    );
+
     const { data: updatedRequest, error: updateError } = await admin
       .from("booking_requests")
       .update(
@@ -492,6 +737,7 @@ export async function POST(request: Request) {
       request: updatedRequest,
       inspectionId,
       contacts,
+      confirmationEmails,
       removedColumns,
       calculatedPrice: calculatePriceFromSqft(bookingRequest.square_feet),
     });

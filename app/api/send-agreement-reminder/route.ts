@@ -25,6 +25,17 @@ function getBaseUrl(req: Request) {
   return `${url.protocol}//${url.host}`;
 }
 
+function isClientAgreementRecipient(contact: any) {
+  const role = String(contact?.role || "").toLowerCase().trim();
+
+  return (
+    Boolean(contact?.email) &&
+    Boolean(contact?.agreement_required) &&
+    !Boolean(contact?.agreement_signed) &&
+    (role === "client" || role === "co-client")
+  );
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -64,7 +75,8 @@ export async function POST(req: Request) {
       .select("*")
       .eq("inspection_id", inspectionId)
       .eq("agreement_required", true)
-      .eq("agreement_signed", false);
+      .eq("agreement_signed", false)
+      .in("role", ["client", "co-client"]);
 
     if (contactId) {
       query = query.eq("id", contactId);
@@ -74,11 +86,11 @@ export async function POST(req: Request) {
 
     if (contactsError) throw contactsError;
 
-    const recipients = contacts || [];
+    const recipients = (contacts || []).filter(isClientAgreementRecipient);
 
     if (recipients.length === 0) {
       return NextResponse.json(
-        { error: "No unsigned required agreement contacts found." },
+        { error: "No unsigned required client/co-client agreement contacts found." },
         { status: 400 }
       );
     }
@@ -164,7 +176,7 @@ On Point Home Inspections`;
       await supabase.from("client_portal_events").insert({
         inspection_id: inspectionId,
         event_type: "agreement_reminder_sent",
-        event_note: `Agreement reminder sent to ${contact.email}`,
+        event_note: `Agreement reminder sent to client contact ${contact.email}`,
       });
     }
 

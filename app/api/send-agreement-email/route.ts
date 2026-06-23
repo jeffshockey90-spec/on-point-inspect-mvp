@@ -19,6 +19,16 @@ function getBaseUrl(req: Request) {
   );
 }
 
+function isClientAgreementRecipient(contact: any) {
+  const role = String(contact?.role || "").toLowerCase().trim();
+
+  return (
+    Boolean(contact?.email) &&
+    Boolean(contact?.agreement_required) &&
+    (role === "client" || role === "co-client")
+  );
+}
+
 async function logEmailEvent({
   inspectionId,
   recipient,
@@ -50,8 +60,6 @@ async function logEmailEvent({
 
     if (error) {
       console.error("EMAIL LOG INSERT ERROR:", error);
-    } else {
-      console.log("EMAIL LOG INSERT SUCCESS");
     }
   } catch (error) {
     console.error("Email log insert failed:", error);
@@ -127,24 +135,19 @@ export async function POST(req: Request) {
 
     const contactEmails =
       contacts
-        ?.filter((contact: any) => {
-          const role = String(contact.role || "").toLowerCase();
-
-          return (
-            contact.email &&
-            (contact.agreement_required ||
-              role === "client" ||
-              role === "co-client")
-          );
-        })
+        ?.filter(isClientAgreementRecipient)
         .map((contact: any) => String(contact.email).trim().toLowerCase())
         .filter(Boolean) || [];
 
-    // Agreement emails stay client-only. Realtors still receive report/schedule
-    // emails, but are intentionally excluded from pre-inspection agreements.
-    const fallbackEmails = [inspection.client_email]
-      .filter(Boolean)
-      .map((email: string) => String(email).trim().toLowerCase());
+    // Strictly client-only. Realtors can have portal/report access, but they do
+    // not receive pre-inspection agreement emails unless they are explicitly
+    // stored as role "client" or "co-client" with agreement_required=true.
+    const fallbackEmails =
+      contacts && contacts.length > 0
+        ? []
+        : [inspection.client_email]
+            .filter(Boolean)
+            .map((email: string) => String(email).trim().toLowerCase());
 
     const recipients = Array.from(
       new Set([...contactEmails, ...fallbackEmails])
@@ -154,7 +157,7 @@ export async function POST(req: Request) {
       return NextResponse.json(
         {
           error:
-            "No recipient emails found. Add a client contact with an email and mark Agreement Required.",
+            "No client agreement recipients found. Add a client/co-client contact with an email and mark Agreement Required.",
         },
         { status: 400 }
       );
@@ -230,6 +233,7 @@ On Point Home Inspections`,
             type: "agreement_email",
             agreementUrl,
             portalUrl,
+            recipientRule: "client_or_co_client_only",
           },
         });
 
@@ -247,6 +251,7 @@ On Point Home Inspections`,
             type: "agreement_email",
             agreementUrl,
             portalUrl,
+            recipientRule: "client_or_co_client_only",
             error: error?.message || "Failed to send agreement email.",
           },
         });
@@ -270,6 +275,7 @@ On Point Home Inspections`,
           failed,
           agreementUrl,
           portalUrl,
+          recipientRule: "client_or_co_client_only",
         },
       });
     }
@@ -286,7 +292,7 @@ On Point Home Inspections`,
 
     return NextResponse.json({
       success: true,
-      message: `Agreement email sent to ${sent.length} recipient${
+      message: `Agreement email sent to ${sent.length} client recipient${
         sent.length === 1 ? "" : "s"
       }.`,
       sent,
