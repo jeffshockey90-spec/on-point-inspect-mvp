@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "../../lib/supabaseClient";
 import CommentLibrary from "../../components/CommentLibrary";
@@ -574,6 +574,8 @@ function FieldPageContent() {
   const [online, setOnline] = useState(true);
   const [message, setMessage] = useState("");
   const [queueTick, setQueueTick] = useState(0);
+  const voiceRecognitionRef = useRef<any>(null);
+  const voiceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const nativeApp = useMemo(() => isNativeCapacitorApp(), []);
   const offlineSummary = useMemo(
@@ -1072,8 +1074,33 @@ function FieldPageContent() {
     await generateFindingFromNoteText(note);
   }
 
+  function clearVoiceTimeout() {
+    if (voiceTimeoutRef.current) {
+      clearTimeout(voiceTimeoutRef.current);
+      voiceTimeoutRef.current = null;
+    }
+  }
+
+  function finishVoiceDictation() {
+    clearVoiceTimeout();
+    voiceRecognitionRef.current = null;
+    setDictating(false);
+  }
+
   function dictateFinding() {
-    if (dictating || generating || analyzingPhoto || analyzingEquipment || saving || savingEquipment) return;
+    if (dictating) {
+      try {
+        voiceRecognitionRef.current?.stop?.();
+      } catch {
+        // Ignore stop errors from browser speech recognition.
+      }
+
+      finishVoiceDictation();
+      setMessage("Voice dictation stopped.");
+      return;
+    }
+
+    if (generating || analyzingPhoto || analyzingEquipment || saving || savingEquipment) return;
 
     if (photoType === "reference_photo") {
       setMessage("Switch to Finding / Defect mode before dictating a finding.");
@@ -1101,11 +1128,31 @@ function FieldPageContent() {
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
 
+    let handledResultOrError = false;
+    voiceRecognitionRef.current = recognition;
+
     setDictating(true);
     setPhotoType("finding");
-    setMessage("Listening... describe the finding, location, and recommendation.");
+    setMessage("Listening... describe the finding, location, and recommendation. Tap Stop Listening when finished if needed.");
+
+    voiceTimeoutRef.current = setTimeout(() => {
+      if (handledResultOrError) return;
+      handledResultOrError = true;
+
+      try {
+        recognition.stop();
+      } catch {
+        // Ignore stop errors from browser speech recognition.
+      }
+
+      finishVoiceDictation();
+      setMessage("Voice dictation timed out. Try again, speak a little louder, or use your keyboard microphone in the Quick Inspector Note field.");
+    }, 15000);
 
     recognition.onresult = async (event: any) => {
+      handledResultOrError = true;
+      finishVoiceDictation();
+
       const transcript = Array.from(event.results || [])
         .map((result: any) => result?.[0]?.transcript || "")
         .join(" ")
@@ -1125,14 +1172,41 @@ function FieldPageContent() {
     };
 
     recognition.onerror = (event: any) => {
-      setMessage(event?.error ? `Voice dictation failed: ${event.error}` : "Voice dictation failed.");
+      handledResultOrError = true;
+      finishVoiceDictation();
+
+      const errorName = event?.error || "unknown";
+
+      if (errorName === "no-speech") {
+        setMessage("No voice was detected. Try again, speak a little louder, or use your keyboard microphone in the Quick Inspector Note field.");
+        return;
+      }
+
+      if (errorName === "not-allowed" || errorName === "service-not-allowed") {
+        setMessage("Microphone access was blocked. Allow microphone access for this site/app, then try Dictate Finding again.");
+        return;
+      }
+
+      setMessage(`Voice dictation failed: ${errorName}`);
     };
 
     recognition.onend = () => {
-      setDictating(false);
+      if (!handledResultOrError) {
+        finishVoiceDictation();
+        setMessage("No voice note was captured. Try again or type the note manually.");
+        return;
+      }
+
+      finishVoiceDictation();
     };
 
-    recognition.start();
+    try {
+      recognition.start();
+    } catch (error: any) {
+      handledResultOrError = true;
+      finishVoiceDictation();
+      setMessage(error?.message || "Voice dictation could not start.");
+    }
   }
 
   async function uploadPhotoFile(photo: File, folder: string): Promise<UploadedPhoto> {
@@ -1465,10 +1539,10 @@ function FieldPageContent() {
                 <button
                   type="button"
                   onClick={dictateFinding}
-                  disabled={dictating || generating || analyzingPhoto || analyzingEquipment || saving || savingEquipment || !online || photoType === "reference_photo"}
+                  disabled={generating || analyzingPhoto || analyzingEquipment || saving || savingEquipment || !online || photoType === "reference_photo"}
                   className="w-full rounded-xl border border-emerald-500 bg-emerald-500/10 p-4 text-lg font-bold text-emerald-200 transition active:scale-[0.98] hover:bg-emerald-500 hover:text-black disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
                 >
-                  {dictating ? "Listening..." : "🎤 Dictate Finding"}
+                  {dictating ? "⏹ Stop Listening" : "🎤 Dictate Finding"}
                 </button>
 
                 <button
