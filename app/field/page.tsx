@@ -195,8 +195,8 @@ function FieldPageContent() {
     setPhotos((current) => current.filter((_, itemIndex) => itemIndex !== index));
   }
 
-  function getFirstImageForAi() {
-    return photos.find((photo) => photo.type.startsWith("image/")) || null;
+  function getImagesForAi() {
+    return photos.filter((photo) => photo.type.startsWith("image/")).slice(0, 6);
   }
 
   function applyAiFinding(data: any) {
@@ -226,10 +226,10 @@ function FieldPageContent() {
       return;
     }
 
-    const image = getFirstImageForAi();
+    const images = getImagesForAi();
 
-    if (!image) {
-      setMessage("Add or take at least one photo before using Analyze Photo. Videos can still be saved, but AI needs a still photo to analyze.");
+    if (!images.length) {
+      setMessage("Add or take at least one photo before using Analyze Photo(s). Videos can still be saved, but AI needs at least one still photo to analyze.");
       return;
     }
 
@@ -238,7 +238,9 @@ function FieldPageContent() {
 
     try {
       const formData = new FormData();
-      formData.append("image", image);
+      images.forEach((image) => {
+        formData.append("images", image);
+      });
       formData.append("inspectionId", selectedReport || "");
       formData.append("note", note);
       formData.append("section", section);
@@ -257,7 +259,11 @@ function FieldPageContent() {
       }
 
       applyAiFinding(data);
-      setMessage("AI analyzed the photo. Review and edit the finding before saving.");
+      setMessage(
+        images.length === 1
+          ? "AI analyzed the photo. Review and edit the finding before saving."
+          : `AI analyzed ${images.length} photos together. Review and edit the finding before saving.`
+      );
     } catch (error: any) {
       setMessage(error?.message || "AI photo analysis failed.");
     } finally {
