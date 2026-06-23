@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { SpeechRecognition as NativeSpeechRecognition } from "@capacitor-community/speech-recognition";
 import { supabase } from "../../lib/supabaseClient";
 import CommentLibrary from "../../components/CommentLibrary";
 import OfflineSyncStatus from "../../components/OfflineSyncStatus";
@@ -1109,50 +1110,18 @@ function FieldPageContent() {
     );
   }
 
-  function dictateFinding() {
-    if (dictating) {
-      voiceStopRequestedRef.current = true;
-      setMessage("Stopping recording...");
-
-      const transcript = String(voiceTranscriptRef.current || note || "").trim();
-
-      try {
-        voiceRecognitionRef.current?.stop?.();
-      } catch {
-        // Ignore stop errors from browser speech recognition.
-      }
-
-      window.setTimeout(() => {
-        if (!dictating) return;
-        void finishDictationAndGenerate(transcript);
-      }, 700);
-
-      return;
-    }
-
-    if (generating || analyzingPhoto || analyzingEquipment || saving || savingEquipment) return;
-
-    if (photoType === "reference_photo") {
-      setMessage("Switch to Finding / Defect mode before dictating a finding.");
-      return;
-    }
-
-    if (!online) {
-      setMessage("Voice-to-finding needs internet for AI generation. Save notes offline, then generate when service returns.");
-      return;
-    }
-
+  async function startBrowserDictation() {
     if (typeof window === "undefined") return;
 
-    const SpeechRecognition =
+    const BrowserSpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
-    if (!SpeechRecognition) {
+    if (!BrowserSpeechRecognition) {
       setMessage("Voice dictation is not supported in this browser. Use your keyboard microphone to dictate into the Quick Inspector Note, then tap Generate From Note.");
       return;
     }
 
-    const recognition = new SpeechRecognition();
+    const recognition = new BrowserSpeechRecognition();
     recognition.lang = "en-US";
     recognition.continuous = true;
     recognition.interimResults = true;
@@ -1221,6 +1190,133 @@ function FieldPageContent() {
       voiceStopRequestedRef.current = false;
       setMessage(error?.message || "Voice dictation could not start.");
     }
+  }
+
+  async function startNativeDictation() {
+    try {
+      voiceTranscriptRef.current = "";
+      voiceStopRequestedRef.current = false;
+      voiceRecognitionRef.current = null;
+
+      setDictating(true);
+      setPhotoType("finding");
+      setMessage("Listening... describe the finding. Tap Stop Listening when you are done.");
+
+      const available = await NativeSpeechRecognition.available();
+      if (!available?.available) {
+        finishVoiceDictation();
+        setMessage("Native speech recognition is not available on this device. Use the keyboard microphone in the Quick Inspector Note field, then tap Generate From Note.");
+        return;
+      }
+
+      const permission = await NativeSpeechRecognition.requestPermissions();
+      const speechGranted =
+        permission?.speechRecognition === "granted" ||
+        permission?.speechRecognition === "prompt" ||
+        permission?.speechRecognition === undefined;
+      const microphoneGranted =
+        permission?.microphone === "granted" ||
+        permission?.microphone === "prompt" ||
+        permission?.microphone === undefined;
+
+      if (!speechGranted || !microphoneGranted) {
+        finishVoiceDictation();
+        setMessage("Speech or microphone permission was not granted. Allow microphone and speech recognition access, then try again.");
+        return;
+      }
+
+      await NativeSpeechRecognition.removeAllListeners();
+      await NativeSpeechRecognition.addListener("partialResults", (data: any) => {
+        const transcript = (data?.matches || [])
+          .join(" ")
+          .replace(/\s+/g, " ")
+          .trim();
+
+        if (transcript) {
+          voiceTranscriptRef.current = transcript;
+          setNote(transcript);
+        }
+      });
+
+      await NativeSpeechRecognition.start({
+        language: "en-US",
+        maxResults: 1,
+        partialResults: true,
+        popup: false,
+      });
+    } catch (error: any) {
+      try {
+        await NativeSpeechRecognition.stop();
+      } catch {
+        // Ignore stop errors.
+      }
+
+      await NativeSpeechRecognition.removeAllListeners().catch(() => undefined);
+      finishVoiceDictation();
+      voiceTranscriptRef.current = "";
+      voiceStopRequestedRef.current = false;
+      setMessage(error?.message || "Native voice dictation could not start.");
+    }
+  }
+
+  async function stopNativeDictation() {
+    voiceStopRequestedRef.current = true;
+    setMessage("Stopping recording...");
+
+    try {
+      await NativeSpeechRecognition.stop();
+    } catch {
+      // Ignore stop errors from native speech recognition.
+    }
+
+    await NativeSpeechRecognition.removeAllListeners().catch(() => undefined);
+    await finishDictationAndGenerate(voiceTranscriptRef.current);
+  }
+
+  async function dictateFinding() {
+    if (dictating) {
+      if (nativeApp) {
+        await stopNativeDictation();
+        return;
+      }
+
+      voiceStopRequestedRef.current = true;
+      setMessage("Stopping recording...");
+
+      const transcript = String(voiceTranscriptRef.current || note || "").trim();
+
+      try {
+        voiceRecognitionRef.current?.stop?.();
+      } catch {
+        // Ignore stop errors from browser speech recognition.
+      }
+
+      window.setTimeout(() => {
+        if (!dictating) return;
+        void finishDictationAndGenerate(transcript);
+      }, 700);
+
+      return;
+    }
+
+    if (generating || analyzingPhoto || analyzingEquipment || saving || savingEquipment) return;
+
+    if (photoType === "reference_photo") {
+      setMessage("Switch to Finding / Defect mode before dictating a finding.");
+      return;
+    }
+
+    if (!online) {
+      setMessage("Voice-to-finding needs internet for AI generation. Save notes offline, then generate when service returns.");
+      return;
+    }
+
+    if (nativeApp) {
+      await startNativeDictation();
+      return;
+    }
+
+    await startBrowserDictation();
   }
 
   async function uploadPhotoFile(photo: File, folder: string): Promise<UploadedPhoto> {
