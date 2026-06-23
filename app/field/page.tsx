@@ -84,6 +84,7 @@ function FieldPageContent() {
   const [recommendation, setRecommendation] = useState("");
   const [photos, setPhotos] = useState<File[]>([]);
   const [generating, setGenerating] = useState(false);
+  const [analyzingPhoto, setAnalyzingPhoto] = useState(false);
   const [saving, setSaving] = useState(false);
   const [takingNativePhoto, setTakingNativePhoto] = useState(false);
   const [online, setOnline] = useState(true);
@@ -192,6 +193,76 @@ function FieldPageContent() {
 
   function removePhoto(index: number) {
     setPhotos((current) => current.filter((_, itemIndex) => itemIndex !== index));
+  }
+
+  function getFirstImageForAi() {
+    return photos.find((photo) => photo.type.startsWith("image/")) || null;
+  }
+
+  function applyAiFinding(data: any) {
+    setPhotoType("finding");
+    setTitle(data.title || data.suggested_title || data.defect_title || "");
+    setObservation(data.observation || data.clientComment || data.client_comment || data.comment || "");
+    setImplication(data.implication || data.impact || data.why_it_matters || "");
+    setRecommendation(data.recommendation || data.recommended_action || data.action || "");
+
+    const nextSection = data.section || data.suggested_section || section || "Exterior";
+    const nextSeverity = data.severity || data.suggested_severity || severity || "Recommended Repair";
+
+    setSection(SECTIONS.includes(nextSection) ? nextSection : section);
+    setSeverity(SEVERITIES.includes(nextSeverity) ? nextSeverity : severity);
+  }
+
+  async function analyzePhotoWithAI() {
+    if (analyzingPhoto || generating || saving) return;
+
+    if (!online) {
+      setMessage("Photo AI needs internet. Save the finding offline, then run AI when service returns.");
+      return;
+    }
+
+    if (photoType === "reference_photo") {
+      setMessage("Switch to Finding / Defect mode before analyzing a defect photo.");
+      return;
+    }
+
+    const image = getFirstImageForAi();
+
+    if (!image) {
+      setMessage("Add or take at least one photo before using Analyze Photo. Videos can still be saved, but AI needs a still photo to analyze.");
+      return;
+    }
+
+    setAnalyzingPhoto(true);
+    setMessage("");
+
+    try {
+      const formData = new FormData();
+      formData.append("image", image);
+      formData.append("inspectionId", selectedReport || "");
+      formData.append("note", note);
+      formData.append("section", section);
+      formData.append("severity", severity);
+
+      const res = await fetch("/api/ai/defect-recognition", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setMessage(data.error || "AI photo analysis failed.");
+        return;
+      }
+
+      applyAiFinding(data);
+      setMessage("AI analyzed the photo. Review and edit the finding before saving.");
+    } catch (error: any) {
+      setMessage(error?.message || "AI photo analysis failed.");
+    } finally {
+      setAnalyzingPhoto(false);
+    }
   }
 
   async function takeNativePhotoAndSaveToGallery() {
@@ -482,7 +553,7 @@ function FieldPageContent() {
               </span>
             </div>
             <p className="mt-2 text-xs text-slate-500">
-              Native iOS camera captures will also save a copy to your phone gallery when allowed.
+              Native iOS photo captures save a copy to your phone gallery when allowed. Videos chosen from your phone stay in your gallery and are attached to the finding.
             </p>
           </div>
 
@@ -575,14 +646,31 @@ function FieldPageContent() {
               />
             </div>
 
-            <button
-              type="button"
-              onClick={generateWithAI}
-              disabled={generating || saving || !online || photoType === "reference_photo"}
-              className="w-full rounded-xl bg-teal-500 p-4 text-lg font-bold text-black transition active:scale-[0.98] hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
-            >
-              {generating ? "Generating AI Finding..." : online ? "Generate Finding with AI" : "AI Available When Back Online"}
-            </button>
+            <div className="grid gap-3 md:grid-cols-2">
+              <button
+                type="button"
+                onClick={generateWithAI}
+                disabled={generating || analyzingPhoto || saving || !online || photoType === "reference_photo"}
+                className="w-full rounded-xl bg-teal-500 p-4 text-lg font-bold text-black transition active:scale-[0.98] hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
+              >
+                {generating ? "Generating AI Finding..." : online ? "Generate From Note" : "AI Available When Back Online"}
+              </button>
+
+              <button
+                type="button"
+                onClick={analyzePhotoWithAI}
+                disabled={analyzingPhoto || generating || saving || !online || photoType === "reference_photo" || !photos.some((photo) => photo.type.startsWith("image/"))}
+                className="w-full rounded-xl border border-purple-500 bg-purple-500/10 p-4 text-lg font-bold text-purple-200 transition active:scale-[0.98] hover:bg-purple-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
+              >
+                {analyzingPhoto ? "Analyzing Photo..." : "Analyze Photo"}
+              </button>
+            </div>
+
+            {photoType === "finding" && photos.some((photo) => photo.type.startsWith("video/")) && !photos.some((photo) => photo.type.startsWith("image/")) && (
+              <div className="rounded-xl border border-yellow-500/50 bg-yellow-500/10 p-4 text-sm font-bold leading-6 text-yellow-100">
+                Video is saved with the finding, but AI photo recognition needs at least one still photo. Add one photo if you want AI to write the defect from media.
+              </div>
+            )}
 
             {photoType === "finding" && (
               <>
@@ -707,7 +795,7 @@ function MediaUploadButtons({
   const referenceMode = photoType === "reference_photo";
 
   return (
-    <div className="grid gap-3 md:grid-cols-3">
+    <div className="grid gap-3 md:grid-cols-4">
       {nativeApp ? (
         <button
           type="button"
@@ -734,10 +822,17 @@ function MediaUploadButtons({
       </label>
 
       {!referenceMode && (
-        <label className="cursor-pointer rounded-xl border border-purple-500 bg-purple-500/10 p-4 text-center font-bold text-purple-300 transition active:scale-[0.98] hover:bg-purple-500 hover:text-white [touch-action:manipulation]">
-          🎥 Choose Videos
-          <input type="file" accept="video/*" multiple onChange={onChange} className="hidden" />
-        </label>
+        <>
+          <label className="cursor-pointer rounded-xl border border-purple-500 bg-purple-500/10 p-4 text-center font-bold text-purple-300 transition active:scale-[0.98] hover:bg-purple-500 hover:text-white [touch-action:manipulation]">
+            🎥 Record Video
+            <input type="file" accept="video/*" capture="environment" onChange={onChange} className="hidden" />
+          </label>
+
+          <label className="cursor-pointer rounded-xl border border-purple-500 bg-purple-500/10 p-4 text-center font-bold text-purple-300 transition active:scale-[0.98] hover:bg-purple-500 hover:text-white [touch-action:manipulation]">
+            🎥 Choose Videos
+            <input type="file" accept="video/*" multiple onChange={onChange} className="hidden" />
+          </label>
+        </>
       )}
     </div>
   );
