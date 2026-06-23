@@ -19,6 +19,10 @@ function getBaseUrl(req: Request) {
   );
 }
 
+function cleanText(value: any) {
+  return String(value || "").trim();
+}
+
 function isClientAgreementRecipient(contact: any) {
   const role = String(contact?.role || "").toLowerCase().trim();
 
@@ -27,6 +31,88 @@ function isClientAgreementRecipient(contact: any) {
     Boolean(contact?.agreement_required) &&
     (role === "client" || role === "co-client")
   );
+}
+
+function getInspectionClient(inspection: any) {
+  const name =
+    cleanText(inspection?.client_name) ||
+    cleanText(inspection?.buyer_name) ||
+    cleanText(inspection?.customer_name) ||
+    "Client";
+
+  const email =
+    cleanText(inspection?.client_email) ||
+    cleanText(inspection?.customer_email) ||
+    cleanText(inspection?.buyer_email);
+
+  const phone =
+    cleanText(inspection?.client_phone) ||
+    cleanText(inspection?.customer_phone) ||
+    cleanText(inspection?.buyer_phone);
+
+  return { name, email, phone };
+}
+
+async function ensureClientContact({
+  inspection,
+  inspectionId,
+}: {
+  inspection: any;
+  inspectionId: any;
+}) {
+  const client = getInspectionClient(inspection);
+
+  if (!client.email) return null;
+
+  const { data: existing } = await supabase
+    .from("inspection_contacts")
+    .select("*")
+    .eq("inspection_id", inspectionId)
+    .eq("email", client.email.toLowerCase())
+    .maybeSingle();
+
+  if (existing?.id) {
+    const role = String(existing.role || "").toLowerCase();
+
+    if (role === "client" || role === "co-client") {
+      const { data: updated } = await supabase
+        .from("inspection_contacts")
+        .update({
+          agreement_required: true,
+          portal_access: true,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", existing.id)
+        .select("*")
+        .single();
+
+      return updated || existing;
+    }
+
+    return null;
+  }
+
+  const { data: inserted, error } = await supabase
+    .from("inspection_contacts")
+    .insert({
+      inspection_id: inspectionId,
+      inspector_id: inspection.inspector_id || inspection.user_id || null,
+      name: client.name,
+      email: client.email.toLowerCase(),
+      phone: client.phone || null,
+      role: "client",
+      agreement_required: true,
+      portal_access: true,
+    })
+    .select("*")
+    .single();
+
+  if (error) {
+    console.error("Auto-create client contact failed:", error);
+    return null;
+  }
+
+  return inserted;
 }
 
 async function logEmailEvent({
@@ -133,31 +219,34 @@ export async function POST(req: Request) {
       );
     }
 
-    const contactEmails =
-      contacts
-        ?.filter(isClientAgreementRecipient)
-        .map((contact: any) => String(contact.email).trim().toLowerCase())
-        .filter(Boolean) || [];
+    let clientContacts = (contacts || []).filter(isClientAgreementRecipient);
 
-    // Strictly client-only. Realtors can have portal/report access, but they do
-    // not receive pre-inspection agreement emails unless they are explicitly
-    // stored as role "client" or "co-client" with agreement_required=true.
-    const fallbackEmails =
-      contacts && contacts.length > 0
-        ? []
-        : [inspection.client_email]
-            .filter(Boolean)
-            .map((email: string) => String(email).trim().toLowerCase());
+    // If this report was created before booking contacts were auto-added,
+    // backfill the client contact from the inspection row and use that.
+    if (clientContacts.length === 0) {
+      const createdClientContact = await ensureClientContact({
+        inspection,
+        inspectionId,
+      });
+
+      if (createdClientContact && isClientAgreementRecipient(createdClientContact)) {
+        clientContacts = [createdClientContact];
+      }
+    }
 
     const recipients = Array.from(
-      new Set([...contactEmails, ...fallbackEmails])
+      new Set(
+        clientContacts
+          .map((contact: any) => String(contact.email).trim().toLowerCase())
+          .filter(Boolean)
+      )
     );
 
     if (!recipients.length) {
       return NextResponse.json(
         {
           error:
-            "No client agreement recipients found. Add a client/co-client contact with an email and mark Agreement Required.",
+            "No client agreement recipient found. Add a client/co-client contact with an email and mark Agreement Required.",
         },
         { status: 400 }
       );
