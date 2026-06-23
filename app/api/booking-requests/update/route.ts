@@ -419,7 +419,7 @@ async function sendAppointmentConfirmedEmails(
     .eq("inspection_id", inspectionId);
 
   const rows = contacts?.data || [];
-  const recipients = rows
+  const recipients: Array<{ email: string; name: string; role: string }> = rows
     .filter((contact: any) => {
       const role = cleanText(contact.role).toLowerCase();
       return (
@@ -436,8 +436,13 @@ async function sendAppointmentConfirmedEmails(
       role: cleanText(contact.role).toLowerCase(),
     }));
 
-  const uniqueRecipients = Array.from(
-    new Map(recipients.map((recipient) => [recipient.email, recipient])).values()
+  const uniqueRecipients: Array<{ email: string; name: string; role: string }> = Array.from(
+    new Map(
+      recipients.map((recipient: { email: string; name: string; role: string }) => [
+        recipient.email,
+        recipient,
+      ])
+    ).values()
   );
 
   if (uniqueRecipients.length === 0) {
