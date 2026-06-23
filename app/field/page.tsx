@@ -576,6 +576,8 @@ function FieldPageContent() {
   const [queueTick, setQueueTick] = useState(0);
   const voiceRecognitionRef = useRef<any>(null);
   const voiceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const voiceTranscriptRef = useRef("");
+  const voiceStopRequestedRef = useRef(false);
 
   const nativeApp = useMemo(() => isNativeCapacitorApp(), []);
   const offlineSummary = useMemo(
@@ -1087,16 +1089,44 @@ function FieldPageContent() {
     setDictating(false);
   }
 
+  async function finishDictationAndGenerate(transcriptValue?: string) {
+    const transcript = String(transcriptValue || voiceTranscriptRef.current || note || "").trim();
+
+    finishVoiceDictation();
+    voiceTranscriptRef.current = "";
+    voiceStopRequestedRef.current = false;
+
+    if (!transcript) {
+      setMessage("No voice note was captured. Try again or type the note manually.");
+      return;
+    }
+
+    setNote(transcript);
+    setMessage("Voice note captured. Generating finding...");
+    await generateFindingFromNoteText(
+      transcript,
+      "Voice finding generated. Review and edit it before saving."
+    );
+  }
+
   function dictateFinding() {
     if (dictating) {
+      voiceStopRequestedRef.current = true;
+      setMessage("Stopping recording...");
+
+      const transcript = String(voiceTranscriptRef.current || note || "").trim();
+
       try {
         voiceRecognitionRef.current?.stop?.();
       } catch {
         // Ignore stop errors from browser speech recognition.
       }
 
-      finishVoiceDictation();
-      setMessage("Voice dictation stopped.");
+      window.setTimeout(() => {
+        if (!dictating) return;
+        void finishDictationAndGenerate(transcript);
+      }, 700);
+
       return;
     }
 
@@ -1124,58 +1154,37 @@ function FieldPageContent() {
 
     const recognition = new SpeechRecognition();
     recognition.lang = "en-US";
-    recognition.continuous = false;
-    recognition.interimResults = false;
+    recognition.continuous = true;
+    recognition.interimResults = true;
     recognition.maxAlternatives = 1;
 
-    let handledResultOrError = false;
     voiceRecognitionRef.current = recognition;
+    voiceTranscriptRef.current = "";
+    voiceStopRequestedRef.current = false;
 
     setDictating(true);
     setPhotoType("finding");
-    setMessage("Listening... describe the finding, location, and recommendation. Tap Stop Listening when finished if needed.");
+    setMessage("Listening... describe the finding. Tap Stop Listening when you are done.");
 
-    voiceTimeoutRef.current = setTimeout(() => {
-      if (handledResultOrError) return;
-      handledResultOrError = true;
-
-      try {
-        recognition.stop();
-      } catch {
-        // Ignore stop errors from browser speech recognition.
-      }
-
-      finishVoiceDictation();
-      setMessage("Voice dictation timed out. Try again, speak a little louder, or use your keyboard microphone in the Quick Inspector Note field.");
-    }, 15000);
-
-    recognition.onresult = async (event: any) => {
-      handledResultOrError = true;
-      finishVoiceDictation();
-
+    recognition.onresult = (event: any) => {
       const transcript = Array.from(event.results || [])
         .map((result: any) => result?.[0]?.transcript || "")
         .join(" ")
+        .replace(/\s+/g, " ")
         .trim();
 
-      if (!transcript) {
-        setMessage("No voice note was captured. Try again or type the note manually.");
-        return;
+      if (transcript) {
+        voiceTranscriptRef.current = transcript;
+        setNote(transcript);
       }
-
-      setNote(transcript);
-      setMessage("Voice note captured. Generating finding...");
-      await generateFindingFromNoteText(
-        transcript,
-        "Voice finding generated. Review and edit it before saving."
-      );
     };
 
     recognition.onerror = (event: any) => {
-      handledResultOrError = true;
-      finishVoiceDictation();
-
       const errorName = event?.error || "unknown";
+
+      finishVoiceDictation();
+      voiceTranscriptRef.current = "";
+      voiceStopRequestedRef.current = false;
 
       if (errorName === "no-speech") {
         setMessage("No voice was detected. Try again, speak a little louder, or use your keyboard microphone in the Quick Inspector Note field.");
@@ -1191,20 +1200,25 @@ function FieldPageContent() {
     };
 
     recognition.onend = () => {
-      if (!handledResultOrError) {
-        finishVoiceDictation();
-        setMessage("No voice note was captured. Try again or type the note manually.");
+      const transcript = String(voiceTranscriptRef.current || "").trim();
+
+      if (voiceStopRequestedRef.current || transcript) {
+        void finishDictationAndGenerate(transcript);
         return;
       }
 
       finishVoiceDictation();
+      voiceTranscriptRef.current = "";
+      voiceStopRequestedRef.current = false;
+      setMessage("No voice note was captured. Try again or type the note manually.");
     };
 
     try {
       recognition.start();
     } catch (error: any) {
-      handledResultOrError = true;
       finishVoiceDictation();
+      voiceTranscriptRef.current = "";
+      voiceStopRequestedRef.current = false;
       setMessage(error?.message || "Voice dictation could not start.");
     }
   }
