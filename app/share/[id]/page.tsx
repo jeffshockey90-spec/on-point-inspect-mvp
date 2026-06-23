@@ -360,6 +360,20 @@ function getFindingPhotoUrl(finding: any) {
   return getMediaUrl(primaryMedia);
 }
 
+function getFindingMediaList(finding: any) {
+  const photos = Array.isArray(finding?.photos) ? finding.photos : [];
+
+  const usablePhotos = photos.filter((photo: any) => Boolean(getMediaUrl(photo)));
+
+  if (usablePhotos.length > 0) {
+    return usablePhotos;
+  }
+
+  const primaryMedia = getFindingPrimaryMedia(finding);
+
+  return primaryMedia && getMediaUrl(primaryMedia) ? [primaryMedia] : [];
+}
+
 function isVideoMedia(media: any, urlValue?: string) {
   const url = String(urlValue || "").toLowerCase();
   const path = String(
@@ -1700,7 +1714,8 @@ export default async function PublicSharePage({
 
                       <div className="space-y-3 md:space-y-6">
                         {group.findings.map((finding: any) => {
-                          const primaryMedia = getFindingPrimaryMedia(finding);
+                          const mediaList = getFindingMediaList(finding);
+                          const primaryMedia = mediaList[0] || getFindingPrimaryMedia(finding);
                           const image = getMediaUrl(primaryMedia);
                           const previewImage = getMediaPreviewUrl(primaryMedia);
                           const title = getFindingTitle(finding);
@@ -1775,25 +1790,37 @@ export default async function PublicSharePage({
                                 </summary>
 
                                 <div className="border-t border-slate-700 p-4">
-                                  {image && (
-                                    isVideo ? (
-                                      <video
-                                        src={image}
-                                        controls
-                                        playsInline
-                                        preload="metadata"
-                                        className="mb-4 max-h-[360px] w-full rounded-xl border border-slate-700 bg-black object-contain"
-                                      />
-                                    ) : (
-                                      <img
-                                        src={image}
-                                        alt="Inspection finding"
-                                        loading="lazy"
-                decoding="async"
-                fetchPriority="low"
-                className="mb-4 max-h-[360px] w-full rounded-xl border border-slate-700 object-contain"
-                                      />
-                                    )
+                                  {mediaList.length > 0 && (
+                                    <div className="mb-4 grid gap-3">
+                                      {mediaList.map((media: any, mediaIndex: number) => {
+                                        const mediaUrl = getMediaUrl(media);
+                                        const mediaPreviewUrl = getMediaPreviewUrl(media);
+                                        const mediaIsVideo = isVideoMedia(media, mediaUrl);
+
+                                        if (!mediaUrl) return null;
+
+                                        return mediaIsVideo ? (
+                                          <video
+                                            key={media.id || media.file_path || mediaUrl || mediaIndex}
+                                            src={mediaUrl}
+                                            controls
+                                            playsInline
+                                            preload="metadata"
+                                            className="max-h-[360px] w-full rounded-xl border border-slate-700 bg-black object-contain"
+                                          />
+                                        ) : (
+                                          <img
+                                            key={media.id || media.file_path || mediaUrl || mediaIndex}
+                                            src={mediaPreviewUrl || mediaUrl}
+                                            alt={`Inspection finding photo ${mediaIndex + 1}`}
+                                            loading="lazy"
+                                            decoding="async"
+                                            fetchPriority="low"
+                                            className="max-h-[360px] w-full rounded-xl border border-slate-700 object-contain"
+                                          />
+                                        );
+                                      })}
+                                    </div>
                                   )}
 
                                   <div className="grid gap-3">
@@ -1848,25 +1875,37 @@ export default async function PublicSharePage({
                                 </div>
 
                                 <div className="p-5">
-                                  {image && (
-                                    isVideo ? (
-                                      <video
-                                        src={image}
-                                        controls
-                                        playsInline
-                                        preload="metadata"
-                                        className="mb-5 max-h-[520px] w-full rounded-xl border border-slate-700 bg-black object-contain"
-                                      />
-                                    ) : (
-                                      <img
-                                        src={image}
-                                        alt="Inspection finding"
-                                        loading="lazy"
-                decoding="async"
-                fetchPriority="low"
-                className="mb-5 max-h-[520px] w-full rounded-xl border border-slate-700 object-contain"
-                                      />
-                                    )
+                                  {mediaList.length > 0 && (
+                                    <div className="mb-5 grid gap-4 md:grid-cols-2">
+                                      {mediaList.map((media: any, mediaIndex: number) => {
+                                        const mediaUrl = getMediaUrl(media);
+                                        const mediaPreviewUrl = getMediaPreviewUrl(media);
+                                        const mediaIsVideo = isVideoMedia(media, mediaUrl);
+
+                                        if (!mediaUrl) return null;
+
+                                        return mediaIsVideo ? (
+                                          <video
+                                            key={media.id || media.file_path || mediaUrl || mediaIndex}
+                                            src={mediaUrl}
+                                            controls
+                                            playsInline
+                                            preload="metadata"
+                                            className="max-h-[520px] w-full rounded-xl border border-slate-700 bg-black object-contain"
+                                          />
+                                        ) : (
+                                          <img
+                                            key={media.id || media.file_path || mediaUrl || mediaIndex}
+                                            src={mediaPreviewUrl || mediaUrl}
+                                            alt={`Inspection finding photo ${mediaIndex + 1}`}
+                                            loading="lazy"
+                                            decoding="async"
+                                            fetchPriority="low"
+                                            className="max-h-[520px] w-full rounded-xl border border-slate-700 object-contain"
+                                          />
+                                        );
+                                      })}
+                                    </div>
                                   )}
 
                                   <div className="grid gap-4">
