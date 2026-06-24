@@ -58,6 +58,16 @@ function normalizeExternalUrl(value: any) {
   return `https://${clean}`;
 }
 
+function cleanImageUrl(value: any) {
+  const clean = String(value || "").trim();
+  if (!clean) return "";
+
+  // Avoid rendering stale local/public asset placeholders as broken public profile images.
+  if (clean.startsWith("/logo") || clean.includes("localhost:")) return "";
+
+  return clean;
+}
+
 function getBookingHref(company: any) {
   const override = normalizeExternalUrl(company.public_booking_url);
   if (override) return override;
@@ -98,6 +108,8 @@ export default async function PublicInspectorProfilePage({ params }: PageProps) 
   const googleReviewHref = normalizeExternalUrl(company.google_review_url);
   const facebookHref = normalizeExternalUrl(company.facebook_url);
   const brandColor = company.brand_color || "#14b8a6";
+  const logoUrl = cleanImageUrl(company.logo_url);
+  const headshotUrl = cleanImageUrl(company.public_profile_photo_url);
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#020617] text-white">
@@ -107,30 +119,44 @@ export default async function PublicInspectorProfilePage({ params }: PageProps) 
         <div className="relative mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12">
           <div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
             <div className="rounded-3xl border border-slate-800 bg-[#0b1220]/90 p-5 shadow-2xl sm:p-8">
-              <div className="flex items-center gap-4">
-                {company.public_profile_photo_url ? (
-                  <img
-                    src={company.public_profile_photo_url}
-                    alt={companyName}
-                    className="h-24 w-24 rounded-3xl border border-slate-700 object-cover"
-                  />
-                ) : (
-                  <div
-                    className="flex h-24 w-24 items-center justify-center rounded-3xl text-3xl font-black text-slate-950"
-                    style={{ backgroundColor: brandColor }}
-                  >
-                    {getInitials(companyName)}
+              {headshotUrl ? (
+                <div className="mb-8 flex flex-wrap items-center gap-6">
+                  <div className="h-28 w-28 overflow-hidden rounded-full border-4 border-teal-500/30 bg-black/30 shadow-xl">
+                    <img
+                      src={headshotUrl}
+                      alt={companyName}
+                      className="h-full w-full object-cover"
+                    />
                   </div>
-                )}
 
-                {company.logo_url && (
-                  <img
-                    src={company.logo_url}
-                    alt={`${companyName} logo`}
-                    className="max-h-20 max-w-[150px] rounded-2xl border border-slate-700 bg-black/30 object-contain p-3"
-                  />
-                )}
-              </div>
+                  {logoUrl && (
+                    <div className="rounded-3xl border border-slate-700 bg-black/30 p-4 shadow-xl">
+                      <img
+                        src={logoUrl}
+                        alt={`${companyName} logo`}
+                        className="h-auto max-h-40 w-auto max-w-[420px] object-contain"
+                      />
+                    </div>
+                  )}
+                </div>
+              ) : logoUrl ? (
+                <div className="mb-8">
+                  <div className="inline-flex rounded-3xl border border-slate-700 bg-black/30 p-4 shadow-xl">
+                    <img
+                      src={logoUrl}
+                      alt={`${companyName} logo`}
+                      className="h-auto max-h-40 w-auto max-w-[420px] object-contain"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div
+                  className="mb-8 flex h-24 w-24 items-center justify-center rounded-3xl text-3xl font-black text-slate-950"
+                  style={{ backgroundColor: brandColor }}
+                >
+                  {getInitials(companyName)}
+                </div>
+              )}
 
               <p className="mt-6 text-xs font-black uppercase tracking-[0.35em] text-teal-300">
                 Public Inspector Profile
