@@ -5,6 +5,7 @@ import { createClient } from "../../utils/supabase/server";
 import DeleteAccountSection from "./DeleteAccountSection";
 import PushNotificationSetup from "../../components/PushNotificationSetup";
 import SupportUnreadBadge from "../../components/SupportUnreadBadge";
+import CompanyImageUploader from "./CompanyImageUploader";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -422,17 +423,16 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                 />
               </label>
 
-              <label className="block min-w-0 md:col-span-2">
-                <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
-                  Logo URL
-                </p>
-                <input
-                  name="logo_url"
-                  defaultValue={company.logo_url || ""}
-                  placeholder="Paste logo URL for now. Upload button can be added next."
-                  className="w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
-                />
-              </label>
+              <CompanyImageUploader
+                name="logo_url"
+                label="Company Logo"
+                helper="Upload your company logo. This is used on your public profile and anywhere your company logo URL is displayed."
+                companyId={String(company.id)}
+                initialUrl={company.logo_url || ""}
+                folder="company-logo"
+                buttonText="Upload Company Logo"
+                previewClassName="max-h-28 max-w-[220px] rounded-2xl border border-slate-700 bg-black/30 object-contain p-3"
+              />
 
               <label className="block min-w-0 md:col-span-2">
                 <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
@@ -527,17 +527,16 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                 </p>
               </label>
 
-              <label className="block min-w-0">
-                <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
-                  Profile Photo URL
-                </p>
-                <input
-                  name="public_profile_photo_url"
-                  defaultValue={company.public_profile_photo_url || ""}
-                  placeholder="Paste inspector headshot URL"
-                  className="w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
-                />
-              </label>
+              <CompanyImageUploader
+                name="public_profile_photo_url"
+                label="Inspector Headshot"
+                helper="Upload your headshot for the public inspector profile."
+                companyId={String(company.id)}
+                initialUrl={company.public_profile_photo_url || ""}
+                folder="inspector-headshot"
+                buttonText="Upload Headshot"
+                previewClassName="h-28 w-28 rounded-3xl border border-slate-700 object-cover"
+              />
 
               <label className="block min-w-0 md:col-span-2">
                 <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
