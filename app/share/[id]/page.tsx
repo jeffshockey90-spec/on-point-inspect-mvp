@@ -1094,7 +1094,7 @@ export default async function PublicSharePage({
     inspection.property_address || inspection.address || "Property Address Not Entered";
 
   return (
-    <main className="min-h-screen bg-[#020617] p-4 text-white md:p-8">
+    <main className="min-h-screen w-full overflow-x-hidden bg-[#020617] p-4 text-white md:p-8">
       {!isDemo && (
         <ReportTimeTracker
           inspectionId={String(inspectionId)}
@@ -1104,7 +1104,7 @@ export default async function PublicSharePage({
         />
       )}
 
-      <div className="mx-auto max-w-7xl overflow-hidden rounded-3xl border border-slate-800 bg-[#0f172a] shadow-2xl">
+      <div className="mx-auto w-full max-w-7xl overflow-x-hidden rounded-3xl border border-slate-800 bg-[#0f172a] shadow-2xl">
         <section className="relative overflow-hidden border-b border-slate-800 bg-[#020617]">
           {propertyPhoto ? (
             <>
@@ -1280,8 +1280,8 @@ export default async function PublicSharePage({
                 </a>
               </div>
 
-              <div className="mt-6 overflow-x-auto rounded-2xl border border-slate-700 bg-[#020617] p-2 print:hidden">
-                <div className="flex min-w-max gap-2">
+              <div className="mt-6 overflow-x-auto overscroll-x-contain rounded-2xl border border-slate-700 bg-[#020617] p-2 print:hidden">
+                <div className="flex w-max min-w-full gap-2">
                   <a
                     href="#client-summary"
                     className="rounded-xl bg-slate-700 px-4 py-3 text-sm font-black text-white transition hover:bg-slate-600"
