@@ -13,7 +13,6 @@ const navItems = [
   { title: "New Inspection", href: "/inspections/new", icon: "➕", mobileLabel: "New" },
   { title: "Reports", href: "/reports", icon: "📋", mobileLabel: "Reports" },
   { title: "Realtors", href: "/realtors", icon: "🏡", mobileLabel: "Realtors" },
-  { title: "Inspectors", href: "/inspectors", icon: "🌐", mobileLabel: "Inspectors" },
   { title: "Agreements", href: "/agreements", icon: "📄", mobileLabel: "Agreements" },
   { title: "AI Capture", href: "/ai-capture", icon: "✨", mobileLabel: "AI" },
   { title: "Templates", href: "/templates", icon: "📚", mobileLabel: "Templates" },
@@ -33,7 +32,6 @@ const ownerNavItem = {
 const mobileItems = [
   { title: "Dashboard", href: "/", icon: "🏠", mobileLabel: "Home" },
   { title: "Reports", href: "/reports", icon: "📋", mobileLabel: "Reports" },
-  { title: "Inspectors", href: "/inspectors", icon: "🌐", mobileLabel: "Inspectors" },
   { title: "New Inspection", href: "/inspections/new", icon: "➕", mobileLabel: "New" },
   { title: "AI Capture", href: "/ai-capture", icon: "✨", mobileLabel: "AI" },
   { title: "Support", href: "/support", icon: "💬", mobileLabel: "Support" },
