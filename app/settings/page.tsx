@@ -15,7 +15,6 @@ function getNumber(value: any) {
   return Number.isFinite(numberValue) ? numberValue : 0;
 }
 
-
 function slugifyProfile(value: any) {
   return String(value || "")
     .toLowerCase()
@@ -132,7 +131,9 @@ type SettingsPageProps = {
   }>;
 };
 
-export default async function SettingsPage({ searchParams }: SettingsPageProps) {
+export default async function SettingsPage({
+  searchParams,
+}: SettingsPageProps) {
   const params = await searchParams;
 
   const stripeError = getReadableMessage(params?.stripe_error);
@@ -205,36 +206,13 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
         license_info: String(formData.get("license_info") || "").trim(),
         brand_color: String(formData.get("brand_color") || "#14b8a6").trim(),
         report_footer_branding: String(
-          formData.get("report_footer_branding") || ""
+          formData.get("report_footer_branding") || "",
         ).trim(),
-        show_powered_by:
-          String(formData.get("show_powered_by") || "") === "on",
-        public_profile_enabled:
-          String(formData.get("public_profile_enabled") || "") === "on",
-        profile_slug:
-          slugifyProfile(formData.get("profile_slug")) ||
-          slugifyProfile(formData.get("display_name")) ||
-          slugifyProfile(formData.get("name")) ||
-          String(company.id),
-        public_profile_headline: String(
-          formData.get("public_profile_headline") || ""
-        ).trim(),
-        public_profile_bio: String(
-          formData.get("public_profile_bio") || ""
-        ).trim(),
-        public_profile_photo_url: String(
-          formData.get("public_profile_photo_url") || ""
-        ).trim(),
-        service_areas: normalizeLines(formData.get("service_areas")),
-        certifications: normalizeLines(formData.get("certifications")),
-        services_offered: normalizeLines(formData.get("services_offered")),
-        google_review_url: String(
-          formData.get("google_review_url") || ""
-        ).trim(),
-        facebook_url: String(formData.get("facebook_url") || "").trim(),
-        public_booking_url: String(
-          formData.get("public_booking_url") || ""
-        ).trim(),
+        show_powered_by: String(formData.get("show_powered_by") || "") === "on",
+        live_activity_enabled:
+          String(formData.get("live_activity_enabled") || "") === "on",
+        live_activity_sound_enabled:
+          String(formData.get("live_activity_sound_enabled") || "") === "on",
         online_payment_fee_enabled: onlinePaymentFeeEnabled,
         online_payment_fee_type: "flat",
         online_payment_fee_amount: feeAmount || 0,
@@ -267,8 +245,8 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
           </h1>
 
           <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300 sm:text-base">
-            Manage your company branding, Stripe payment setup, and client online
-            payment fee options.
+            Manage your company branding, Stripe payment setup, and client
+            online payment fee options.
           </p>
         </section>
 
@@ -316,40 +294,175 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
           </div>
         )}
 
-        <section className="grid gap-4 md:grid-cols-2">
+        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <Link
             href="/support"
-            className="rounded-3xl border border-fuchsia-500/40 bg-fuchsia-950/20 p-5 transition hover:bg-fuchsia-500/10 sm:p-6"
+            className="group rounded-2xl border border-slate-800 bg-[#0b1220] p-4 transition hover:border-fuchsia-400/70 hover:bg-fuchsia-500/10 sm:p-5"
           >
-            <p className="text-xs font-black uppercase tracking-[0.25em] text-fuchsia-300">
-              Support Chat
-            </p>
-            <h2 className="mt-3 flex items-center gap-2 text-2xl font-black text-white">
-              Contact Owner Support
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-fuchsia-500/10 text-2xl">
+                💬
+              </div>
               <SupportUnreadBadge />
+            </div>
+            <p className="mt-4 text-xs font-black uppercase tracking-[0.2em] text-fuchsia-300">
+              Support
+            </p>
+            <h2 className="mt-2 text-lg font-black text-white sm:text-xl">
+              Owner Support
             </h2>
-            <p className="mt-2 text-sm leading-6 text-slate-300">
-              Send Jeff a message directly from the app for help with reports, billing, setup, or bugs.
+            <p className="mt-2 text-sm leading-6 text-slate-400">
+              Message Jeff for setup, billing, reports, or bugs.
+            </p>
+            <p className="mt-4 text-sm font-black text-fuchsia-300 group-hover:text-fuchsia-200">
+              Open Support →
             </p>
           </Link>
 
           <Link
             href="/billing"
-            className="rounded-3xl border border-teal-500/40 bg-teal-950/20 p-5 transition hover:bg-teal-500/10 sm:p-6"
+            className="group rounded-2xl border border-slate-800 bg-[#0b1220] p-4 transition hover:border-teal-400/70 hover:bg-teal-500/10 sm:p-5"
           >
-            <p className="text-xs font-black uppercase tracking-[0.25em] text-teal-300">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-500/10 text-2xl">
+              💳
+            </div>
+            <p className="mt-4 text-xs font-black uppercase tracking-[0.2em] text-teal-300">
               Billing
             </p>
-            <h2 className="mt-3 text-2xl font-black text-white">
-              Manage Subscription
+            <h2 className="mt-2 text-lg font-black text-white sm:text-xl">
+              Subscription
             </h2>
-            <p className="mt-2 text-sm leading-6 text-slate-300">
-              View trial status, free inspections, and activate the monthly On Point Inspect subscription.
+            <p className="mt-2 text-sm leading-6 text-slate-400">
+              Manage trial status and monthly plan.
+            </p>
+            <p className="mt-4 text-sm font-black text-teal-300 group-hover:text-teal-200">
+              Manage Billing →
             </p>
           </Link>
+
+          <Link
+            href="/settings/public-profile"
+            className="group rounded-2xl border border-slate-800 bg-[#0b1220] p-4 transition hover:border-cyan-400/70 hover:bg-cyan-500/10 sm:p-5"
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-500/10 text-2xl">
+              🌐
+            </div>
+            <p className="mt-4 text-xs font-black uppercase tracking-[0.2em] text-cyan-300">
+              Public Profile
+            </p>
+            <h2 className="mt-2 text-lg font-black text-white sm:text-xl">
+              Marketing Page
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-slate-400">
+              Logo, headshot, services, and profile link.
+            </p>
+            <p className="mt-4 text-sm font-black text-cyan-300 group-hover:text-cyan-200">
+              Manage Profile →
+            </p>
+          </Link>
+
+          <a
+            href="#notifications"
+            className="group rounded-2xl border border-slate-800 bg-[#0b1220] p-4 transition hover:border-amber-400/70 hover:bg-amber-500/10 sm:p-5"
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/10 text-2xl">
+              🔔
+            </div>
+            <p className="mt-4 text-xs font-black uppercase tracking-[0.2em] text-amber-300">
+              Alerts
+            </p>
+            <h2 className="mt-2 text-lg font-black text-white sm:text-xl">
+              Live Activity
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-slate-400">
+              iPhone alerts, browser push, popups, and sounds.
+            </p>
+            <p className="mt-4 text-sm font-black text-amber-300 group-hover:text-amber-200">
+              Manage Alerts →
+            </p>
+          </a>
         </section>
 
         <form action={saveCompanySettings} className="space-y-6">
+          <section
+            id="notifications"
+            className="rounded-3xl border border-amber-500/30 bg-gradient-to-br from-[#0b1220] via-[#0b1220] to-amber-950/10 p-5 shadow-2xl shadow-black/20 sm:p-6 md:p-8"
+          >
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+              <div className="flex gap-4">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-amber-500/30 bg-amber-500/10 text-3xl">
+                  🔔
+                </div>
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.25em] text-amber-300">
+                    Notifications
+                  </p>
+                  <h2 className="mt-2 text-xl font-black text-white sm:text-2xl">
+                    Notification Center
+                  </h2>
+                  <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">
+                    Control native iPhone notifications, browser push alerts,
+                    live activity popups, and notification sounds from one place.
+                  </p>
+                </div>
+              </div>
+
+              <div
+                className={`w-full rounded-2xl border px-4 py-3 text-center text-sm font-black lg:w-auto ${
+                  company.live_activity_enabled === false
+                    ? "border-slate-600 bg-slate-900 text-slate-300"
+                    : "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+                }`}
+              >
+                {company.live_activity_enabled === false
+                  ? "Alerts Off"
+                  : "Alerts On"}
+              </div>
+            </div>
+
+            <div className="mt-6 grid gap-4 lg:grid-cols-2">
+              <label className="group flex cursor-pointer items-start gap-4 rounded-2xl border border-slate-700 bg-slate-950/80 p-4 transition hover:border-amber-400/70 hover:bg-slate-900 sm:p-5">
+                <input
+                  name="live_activity_enabled"
+                  type="checkbox"
+                  defaultChecked={company.live_activity_enabled !== false}
+                  className="mt-1 h-5 w-5 shrink-0 accent-teal-400"
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-base font-black text-white">
+                    Show live activity popups
+                  </span>
+                  <span className="mt-1 block text-sm leading-6 text-slate-400">
+                    Shows the floating alert card when someone views a report,
+                    signs an agreement, makes a payment, or submits a review.
+                  </span>
+                </span>
+              </label>
+
+              <label className="group flex cursor-pointer items-start gap-4 rounded-2xl border border-slate-700 bg-slate-950/80 p-4 transition hover:border-amber-400/70 hover:bg-slate-900 sm:p-5">
+                <input
+                  name="live_activity_sound_enabled"
+                  type="checkbox"
+                  defaultChecked={company.live_activity_sound_enabled !== false}
+                  className="mt-1 h-5 w-5 shrink-0 accent-teal-400"
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-base font-black text-white">
+                    Play notification sound
+                  </span>
+                  <span className="mt-1 block text-sm leading-6 text-slate-400">
+                    Keep alerts visible but mute the sound when this is turned
+                    off.
+                  </span>
+                </span>
+              </label>
+            </div>
+
+            <div className="mt-6 rounded-3xl border border-slate-700/80 bg-[#020817]/80 p-4 sm:p-5">
+              <PushNotificationSetup />
+            </div>
+          </section>
+
           <section className="rounded-3xl border border-slate-800 bg-[#0b1220] p-5 sm:p-6 md:p-8">
             <h2 className="text-xl font-black text-teal-300 sm:text-2xl">
               Company Profile
@@ -472,185 +585,128 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
             </div>
           </section>
 
-          <section id="public-profile" className="rounded-3xl border border-slate-800 bg-[#0b1220] p-5 sm:p-6 md:p-8">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-              <div>
-                <p className="text-xs font-black uppercase tracking-[0.25em] text-teal-300">
+          <section
+            id="public-profile"
+            className="overflow-hidden rounded-3xl border border-cyan-500/30 bg-[#0b1220] shadow-2xl shadow-black/20"
+          >
+            <div className="flex flex-col gap-5 border-b border-slate-800/90 p-5 sm:p-6 lg:flex-row lg:items-center lg:justify-between">
+              <div className="min-w-0">
+                <p className="text-xs font-black uppercase tracking-[0.25em] text-cyan-300">
                   Public Profile
                 </p>
-                <h2 className="mt-2 text-xl font-black text-white sm:text-2xl">
-                  Inspector Marketing Page
+                <h2 className="mt-2 text-2xl font-black tracking-tight text-white">
+                  Inspector Profile & Directory Listing
                 </h2>
                 <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">
-                  Create a public inspector profile that can be shared with clients, realtors, and partners.
+                  Give clients, realtors, and the public a clean page to learn about your company, services, credentials, and booking options.
                 </p>
               </div>
 
-              {publicProfileUrl && (
-                <Link
-                  href={publicProfileUrl.replace(
-                    (process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || "https://on-point-inspect-mvp.vercel.app").replace(/\/$/, ""),
-                    ""
-                  )}
-                  className="rounded-xl border border-teal-500/60 px-4 py-3 text-center text-sm font-black text-teal-300 hover:bg-teal-500 hover:text-slate-950"
-                >
-                  View Public Profile →
-                </Link>
-              )}
+              <span
+                className={`inline-flex rounded-full border px-4 py-2 text-xs font-black uppercase tracking-wide ${
+                  company.public_profile_enabled === true
+                    ? "border-teal-400/60 bg-teal-500/15 text-teal-300"
+                    : "border-slate-600 bg-slate-900 text-slate-400"
+                }`}
+              >
+                {company.public_profile_enabled === true ? "Published" : "Draft"}
+              </span>
             </div>
 
-            <div className="mt-6 grid gap-4 md:grid-cols-2">
-              <label className="flex flex-col gap-3 rounded-xl border border-slate-700 bg-slate-950 p-4 md:col-span-2 sm:flex-row sm:items-start">
-                <input
-                  name="public_profile_enabled"
-                  type="checkbox"
-                  defaultChecked={company.public_profile_enabled === true}
-                  className="mt-0.5 h-5 w-5 shrink-0"
-                />
-                <span className="flex-1 text-sm font-bold leading-6 text-slate-200 break-words sm:text-base">
-                  Publish my inspector profile
-                </span>
-              </label>
-
-              <label className="block min-w-0">
-                <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
-                  Profile Slug
+            <div className="grid gap-4 p-5 sm:p-6 lg:grid-cols-4">
+              <div className="rounded-2xl border border-slate-700/80 bg-[#020817] p-4">
+                <p className="text-xs font-black uppercase tracking-wide text-slate-500">
+                  Manage
                 </p>
-                <input
-                  name="profile_slug"
-                  defaultValue={company.profile_slug || slugifyProfile(company.display_name || company.name)}
-                  placeholder="jeff-shockey"
-                  className="w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
-                />
-                <p className="mt-2 text-xs text-slate-500">
-                  This creates /inspectors/your-profile-slug.
+                <h3 className="mt-2 text-xl font-black text-white">
+                  Edit Profile
+                </h3>
+                <p className="mt-2 text-sm leading-6 text-slate-400">
+                  Headshot, bio, certifications, services, service areas, social links, and booking link.
                 </p>
-              </label>
+                <Link
+                  href="/settings/public-profile"
+                  className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-cyan-500 px-4 py-3 text-sm font-black text-slate-950 hover:bg-cyan-400 sm:w-auto"
+                >
+                  Manage Public Profile →
+                </Link>
+              </div>
 
-              <CompanyImageUploader
-                name="public_profile_photo_url"
-                label="Inspector Headshot"
-                helper="Upload your headshot for the public inspector profile."
-                companyId={String(company.id)}
-                initialUrl={company.public_profile_photo_url || ""}
-                folder="inspector-headshot"
-                buttonText="Upload Headshot"
-                previewClassName="h-28 w-28 rounded-3xl border border-slate-700 object-cover"
-              />
-
-              <label className="block min-w-0 md:col-span-2">
-                <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
-                  Headline
+              <div className="rounded-2xl border border-slate-700/80 bg-[#020817] p-4">
+                <p className="text-xs font-black uppercase tracking-wide text-slate-500">
+                  Public Access
                 </p>
-                <input
-                  name="public_profile_headline"
-                  defaultValue={company.public_profile_headline || ""}
-                  placeholder="Protecting Your Investment. One Inspection at a Time."
-                  className="w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
-                />
-              </label>
-
-              <label className="block min-w-0 md:col-span-2">
-                <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
-                  About / Bio
+                <h3 className="mt-2 text-xl font-black text-white">
+                  Directory & Direct Link
+                </h3>
+                <p className="mt-2 text-sm leading-6 text-slate-400">
+                  People can find published profiles in the inspector directory or by opening your direct profile link.
                 </p>
-                <textarea
-                  name="public_profile_bio"
-                  defaultValue={company.public_profile_bio || ""}
-                  rows={5}
-                  placeholder="Tell clients and realtors what makes your inspection company different."
-                  className="w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
-                />
-              </label>
-
-              <label className="block min-w-0">
-                <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
-                  Service Areas
-                </p>
-                <textarea
-                  name="service_areas"
-                  defaultValue={company.service_areas || ""}
-                  rows={5}
-                  placeholder={"Maryland\nWest Virginia\nPennsylvania"}
-                  className="w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
-                />
-              </label>
-
-              <label className="block min-w-0">
-                <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
-                  Certifications
-                </p>
-                <textarea
-                  name="certifications"
-                  defaultValue={company.certifications || ""}
-                  rows={5}
-                  placeholder={"InterNACHI CPI\nFAA Part 107\nIAC2 Mold\nNRPP Radon"}
-                  className="w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
-                />
-              </label>
-
-              <label className="block min-w-0 md:col-span-2">
-                <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
-                  Services Offered
-                </p>
-                <textarea
-                  name="services_offered"
-                  defaultValue={company.services_offered || ""}
-                  rows={4}
-                  placeholder={"Home Inspection\nRadon Testing\nMold Testing\nDrone Roof Inspection"}
-                  className="w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
-                />
-              </label>
-
-              <label className="block min-w-0">
-                <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
-                  Google Review URL
-                </p>
-                <input
-                  name="google_review_url"
-                  defaultValue={company.google_review_url || ""}
-                  placeholder="Paste Google review/profile link"
-                  className="w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
-                />
-              </label>
-
-              <label className="block min-w-0">
-                <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
-                  Facebook URL
-                </p>
-                <input
-                  name="facebook_url"
-                  defaultValue={company.facebook_url || ""}
-                  placeholder="Paste Facebook business page link"
-                  className="w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
-                />
-              </label>
-
-              <label className="block min-w-0 md:col-span-2">
-                <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
-                  Booking URL Override
-                </p>
-                <input
-                  name="public_booking_url"
-                  defaultValue={company.public_booking_url || ""}
-                  placeholder="/book or your existing public booking link"
-                  className="w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
-                />
-                <p className="mt-2 text-xs text-slate-500">
-                  Leave blank to use your On Point Inspect booking page.
-                </p>
-              </label>
-
-              {publicProfileUrl && (
-                <div className="rounded-2xl border border-teal-500/30 bg-teal-500/10 p-4 md:col-span-2">
-                  <p className="text-xs font-black uppercase tracking-wide text-teal-300">
-                    Public Profile Link
-                  </p>
-                  <p className="mt-2 break-all text-sm font-bold text-white">
-                    {publicProfileUrl}
-                  </p>
+                <div className="mt-4 flex flex-col gap-2 sm:flex-row lg:flex-col xl:flex-row">
+                  <Link
+                    href="/inspectors"
+                    className="inline-flex items-center justify-center rounded-xl border border-slate-700 px-4 py-3 text-sm font-black text-slate-200 hover:border-cyan-400 hover:text-cyan-300"
+                  >
+                    Open Directory
+                  </Link>
+                  {publicProfileUrl && (
+                    <Link
+                      href={publicProfileUrl.replace(
+                        (process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || "https://on-point-inspect-mvp.vercel.app").replace(/\/$/, ""),
+                        ""
+                      )}
+                      className="inline-flex items-center justify-center rounded-xl border border-cyan-500/60 px-4 py-3 text-sm font-black text-cyan-300 hover:bg-cyan-500/10"
+                    >
+                      Preview Profile
+                    </Link>
+                  )}
                 </div>
-              )}
+              </div>
+
+              <div className="rounded-2xl border border-teal-500/30 bg-teal-500/10 p-4">
+                <p className="text-xs font-black uppercase tracking-wide text-teal-300">
+                  Share Link
+                </p>
+                <p className="mt-2 text-sm leading-6 text-slate-200">
+                  Add this link to emails, social media, business cards, and report footers.
+                </p>
+                <p className="mt-3 break-all rounded-xl border border-teal-500/30 bg-slate-950/80 p-3 text-xs font-bold text-white">
+                  {publicProfileUrl || "Save a profile slug to generate your public link."}
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-cyan-500/40 bg-cyan-500/10 p-4">
+                <p className="text-xs font-black uppercase tracking-wide text-cyan-300">
+                  QR Code
+                </p>
+                <h3 className="mt-2 text-xl font-black text-white">
+                  Scan to Open Profile
+                </h3>
+                <p className="mt-2 text-sm leading-6 text-slate-300">
+                  Use this on business cards, realtor flyers, signs, or social posts.
+                </p>
+
+                {publicProfileUrl ? (
+                  <div className="mt-4 rounded-2xl border border-cyan-500/30 bg-slate-950/80 p-4 text-center">
+                    <img
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(publicProfileUrl)}`}
+                      alt="Public profile QR code"
+                      className="mx-auto h-40 w-40 rounded-xl border border-slate-700 bg-white p-2"
+                    />
+                    <a
+                      href={`https://api.qrserver.com/v1/create-qr-code/?size=1000x1000&data=${encodeURIComponent(publicProfileUrl)}`}
+                      download="public-profile-qr-code.png"
+                      className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-cyan-500 px-4 py-3 text-sm font-black text-slate-950 hover:bg-cyan-400"
+                    >
+                      Download QR
+                    </a>
+                  </div>
+                ) : (
+                  <div className="mt-4 rounded-xl border border-slate-700 bg-slate-950/80 p-4 text-sm font-bold text-slate-400">
+                    Save a profile slug first to generate your QR code.
+                  </div>
+                )}
+              </div>
             </div>
           </section>
 
@@ -673,9 +729,9 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
 
                 <p className="mt-3 text-sm leading-6 text-slate-300">
                   Each inspector connects their own Stripe account once. Online
-                  inspection payments are blocked until Stripe setup is complete,
-                  so another inspector’s payment will never fall back to your
-                  account.
+                  inspection payments are blocked until Stripe setup is
+                  complete, so another inspector’s payment will never fall back
+                  to your account.
                 </p>
 
                 <div className="mt-5 flex flex-col gap-3 sm:flex-row">
@@ -745,8 +801,6 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
             </button>
           </div>
         </form>
-
-        <PushNotificationSetup />
 
         <DeleteAccountSection />
       </div>
