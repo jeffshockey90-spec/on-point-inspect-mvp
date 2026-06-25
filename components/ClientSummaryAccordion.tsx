@@ -303,60 +303,56 @@ function ExpandedSummaryPanel({ finding, tone }: { finding: any; tone: SummaryTo
 export default function ClientSummaryAccordion({ groups }: { groups: SummaryGroup[] }) {
   const [openId, setOpenId] = useState<string | number | null>(null);
 
-  const findingsById = useMemo(() => {
-    const map = new Map<string, { finding: any; tone: SummaryTone }>();
-    (groups || []).forEach((group) => {
-      (group.findings || []).forEach((finding: any) => {
-        const cardId = `${group.key}-${finding.id || finding.title}`;
-        map.set(cardId, { finding, tone: group.tone });
-      });
-    });
-    return map;
-  }, [groups]);
-
   if (!groups?.length) return null;
 
   return (
     <div className="mt-6 space-y-6">
-      {groups.map((group) => {
-        const openItem = openId ? findingsById.get(String(openId)) : null;
-        const groupHasOpenCard = Boolean(
-          openId && group.findings.some((finding: any) => `${group.key}-${finding.id || finding.title}` === openId),
-        );
-
-        return (
-          <section key={group.key} id={`client-summary-${group.key}`} className="scroll-mt-6 rounded-2xl border border-slate-700 bg-[#0f172a] p-5">
-            <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h3 className="text-2xl font-black text-white">{group.title}</h3>
-                {group.description && <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-400">{group.description}</p>}
-              </div>
-
-              <span className={`rounded-full border px-4 py-2 text-sm font-black ${toneCountClass(group.tone)}`}>
-                {group.findings.length} item{group.findings.length === 1 ? "" : "s"}
-              </span>
+      {groups.map((group) => (
+        <section
+          key={group.key}
+          id={`client-summary-${group.key}`}
+          className="scroll-mt-6 rounded-2xl border border-slate-700 bg-[#0f172a] p-5"
+        >
+          <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h3 className="text-2xl font-black text-white">{group.title}</h3>
+              {group.description && (
+                <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-400">
+                  {group.description}
+                </p>
+              )}
             </div>
 
-            <div className="grid items-start gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              {group.findings.map((finding: any) => {
-                const cardId = `${group.key}-${finding.id || finding.title}`;
-                const isOpen = openId === cardId;
-                return (
+            <span className={`rounded-full border px-4 py-2 text-sm font-black ${toneCountClass(group.tone)}`}>
+              {group.findings.length} item{group.findings.length === 1 ? "" : "s"}
+            </span>
+          </div>
+
+          <div className="grid items-start gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {group.findings.map((finding: any) => {
+              const cardId = `${group.key}-${finding.id || finding.title}`;
+              const isOpen = openId === cardId;
+
+              return (
+                <div key={cardId} className="contents">
                   <CollapsedSummaryCard
-                    key={cardId}
                     finding={finding}
                     tone={group.tone}
                     isOpen={isOpen}
                     onClick={() => setOpenId(isOpen ? null : cardId)}
                   />
-                );
-              })}
-            </div>
 
-            {groupHasOpenCard && openItem && <ExpandedSummaryPanel finding={openItem.finding} tone={openItem.tone} />}
-          </section>
-        );
-      })}
+                  {isOpen && (
+                    <div className="col-span-full">
+                      <ExpandedSummaryPanel finding={finding} tone={group.tone} />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      ))}
     </div>
   );
 }
