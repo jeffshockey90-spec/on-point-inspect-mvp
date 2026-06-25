@@ -15,7 +15,7 @@ async function createClient() {
         },
         setAll() {},
       },
-    }
+    },
   );
 }
 
@@ -107,11 +107,24 @@ function matchesService(company: any, service: string) {
 
 function uniqueSorted(values: string[]) {
   return Array.from(new Set(values.filter(Boolean))).sort((a, b) =>
-    a.localeCompare(b)
+    a.localeCompare(b),
   );
 }
 
-export default async function InspectorDirectoryPage({ searchParams }: PageProps) {
+function getCredentialLabel(certifications: string[]) {
+  const joined = certifications.join(" ").toLowerCase();
+  if (joined.includes("internachi") || joined.includes("cpi"))
+    return "InterNACHI CPI";
+  if (joined.includes("faa") || joined.includes("107")) return "FAA Certified";
+  if (joined.includes("nrpp") || joined.includes("radon"))
+    return "Radon Certified";
+  if (certifications.length > 0) return `${certifications.length} Credentials`;
+  return "Verified Profile";
+}
+
+export default async function InspectorDirectoryPage({
+  searchParams,
+}: PageProps) {
   const params = await searchParams;
   const query = String(params?.q || "").trim();
   const state = String(params?.state || "").trim();
@@ -122,7 +135,7 @@ export default async function InspectorDirectoryPage({ searchParams }: PageProps
   const { data: companiesRaw, error } = await supabase
     .from("companies")
     .select(
-      "id, name, display_name, email, phone, website, logo_url, license_info, brand_color, profile_slug, public_profile_enabled, public_profile_headline, public_profile_bio, public_profile_photo_url, service_areas, certifications, services_offered, google_review_url, facebook_url, public_booking_url"
+      "id, name, display_name, email, phone, website, logo_url, license_info, brand_color, profile_slug, public_profile_enabled, public_profile_headline, public_profile_bio, public_profile_photo_url, service_areas, certifications, services_offered, google_review_url, facebook_url, public_booking_url",
     )
     .eq("public_profile_enabled", true)
     .not("profile_slug", "is", null)
@@ -145,41 +158,54 @@ export default async function InspectorDirectoryPage({ searchParams }: PageProps
   const stateOptions = uniqueSorted(
     allCompanies.flatMap((company: any) =>
       splitLines(company.service_areas).filter((area) =>
-        ["maryland", "west virginia", "pennsylvania", "virginia", "delaware", "ohio"].includes(
-          area.toLowerCase()
-        )
-      )
-    )
+        [
+          "maryland",
+          "west virginia",
+          "pennsylvania",
+          "virginia",
+          "delaware",
+          "ohio",
+        ].includes(area.toLowerCase()),
+      ),
+    ),
   );
 
   const serviceOptions = uniqueSorted(
-    allCompanies.flatMap((company: any) => splitLines(company.services_offered))
+    allCompanies.flatMap((company: any) =>
+      splitLines(company.services_offered),
+    ),
   );
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#020617] text-white">
-      <section className="relative border-b border-slate-800">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(20,184,166,0.18),transparent_45%),radial-gradient(circle_at_bottom_right,rgba(59,130,246,0.12),transparent_40%)]" />
+      <section className="relative overflow-hidden border-b border-slate-800">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(20,184,166,0.22),transparent_45%),radial-gradient(circle_at_bottom_right,rgba(59,130,246,0.14),transparent_40%)]" />
+        <div className="absolute left-1/2 top-0 h-72 w-72 -translate-x-1/2 rounded-full bg-teal-500/10 blur-3xl" />
 
-        <div className="relative mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14">
-          <p className="text-xs font-black uppercase tracking-[0.35em] text-teal-300">
-            On Point Inspect
-          </p>
+        <div className="relative mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-16">
+          <div className="inline-flex items-center gap-2 rounded-full border border-teal-400/40 bg-teal-500/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.22em] text-teal-200">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-teal-400 text-[10px] text-slate-950">
+              ✓
+            </span>
+            Verified On Point Inspectors
+          </div>
 
-          <div className="mt-4 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="mt-5 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <h1 className="text-4xl font-black leading-tight text-white sm:text-6xl">
-                Inspector Directory
+                Inspector Portfolios
               </h1>
 
               <p className="mt-5 max-w-3xl text-base leading-8 text-slate-300 sm:text-lg">
-                Find public inspector profiles powered by On Point Inspect. Compare service areas, certifications, services, and booking options.
+                Browse public inspector portfolios with sample reports,
+                credentials, service areas, reputation links, and direct booking
+                options.
               </p>
             </div>
 
             <Link
               href="/book"
-              className="rounded-xl bg-teal-500 px-6 py-4 text-center font-black text-slate-950 transition hover:bg-teal-400"
+              className="rounded-xl bg-teal-500 px-6 py-4 text-center font-black text-slate-950 shadow-lg shadow-teal-500/20 transition hover:-translate-y-0.5 hover:bg-teal-400"
             >
               Request an Inspection
             </Link>
@@ -258,7 +284,8 @@ export default async function InspectorDirectoryPage({ searchParams }: PageProps
 
         <div className="mt-6 flex items-center justify-between gap-4">
           <p className="text-sm font-bold text-slate-400">
-            Showing {companies.length} inspector{companies.length === 1 ? "" : "s"}
+            Showing {companies.length} inspector
+            {companies.length === 1 ? "" : "s"}
           </p>
         </div>
 
@@ -277,51 +304,99 @@ export default async function InspectorDirectoryPage({ searchParams }: PageProps
               const companyName =
                 company.display_name || company.name || "Inspection Company";
               const logoUrl = cleanImageUrl(company.logo_url);
+              const headshotUrl = cleanImageUrl(
+                company.public_profile_photo_url,
+              );
               const headline =
                 company.public_profile_headline ||
                 "Protecting Your Investment. One Inspection at a Time.";
               const areas = splitLines(company.service_areas).slice(0, 5);
               const services = splitLines(company.services_offered).slice(0, 4);
+              const certifications = splitLines(
+                company.certifications || company.license_info,
+              );
               const bookingHref = getBookingHref(company);
               const profileHref = `/inspectors/${company.profile_slug}`;
               const brandColor = company.brand_color || "#14b8a6";
+              const credentialLabel = getCredentialLabel(certifications);
 
               return (
                 <article
                   key={company.id}
-                  className="flex h-full flex-col rounded-3xl border border-slate-800 bg-[#0b1220] p-5 shadow-xl transition hover:border-teal-500/60 sm:p-6"
+                  className="group flex h-full flex-col overflow-hidden rounded-3xl border border-slate-800 bg-[#0b1220] p-5 shadow-xl transition hover:-translate-y-1 hover:border-teal-500/70 sm:p-6"
                 >
                   <div className="flex items-start gap-4">
-                    {logoUrl ? (
-                      <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl border border-slate-700 bg-black/30 p-2">
-                        <img
-                          src={logoUrl}
-                          alt={`${companyName} logo`}
-                          className="max-h-full max-w-full object-contain"
-                        />
-                      </div>
-                    ) : (
-                      <div
-                        className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl text-2xl font-black text-slate-950"
-                        style={{ backgroundColor: brandColor }}
-                      >
-                        {getInitials(companyName)}
-                      </div>
-                    )}
+                    <div className="relative shrink-0">
+                      {logoUrl ? (
+                        <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-slate-700 bg-black/30 p-2">
+                          <img
+                            src={logoUrl}
+                            alt={`${companyName} logo`}
+                            className="max-h-full max-w-full object-contain"
+                          />
+                        </div>
+                      ) : (
+                        <div
+                          className="flex h-20 w-20 items-center justify-center rounded-2xl text-2xl font-black text-slate-950"
+                          style={{ backgroundColor: brandColor }}
+                        >
+                          {getInitials(companyName)}
+                        </div>
+                      )}
+
+                      {headshotUrl && (
+                        <div className="absolute -bottom-2 -right-2 h-9 w-9 overflow-hidden rounded-full border-2 border-[#0b1220] bg-slate-950">
+                          <img
+                            src={headshotUrl}
+                            alt={companyName}
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+                      )}
+                    </div>
 
                     <div className="min-w-0">
-                      <h2 className="text-2xl font-black leading-tight text-white">
+                      <div className="inline-flex items-center gap-1 rounded-full border border-teal-500/35 bg-teal-500/10 px-2 py-1 text-[10px] font-black uppercase tracking-wide text-teal-200">
+                        ✓ Verified
+                      </div>
+                      <h2 className="mt-2 text-2xl font-black leading-tight text-white">
                         {companyName}
                       </h2>
-                      <p className="mt-2 text-sm leading-6 text-slate-400">
+                      <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-400">
                         {headline}
                       </p>
                     </div>
                   </div>
 
+                  <div className="mt-5 grid grid-cols-3 gap-2">
+                    <MiniStat value="5★" label="Reputation" />
+                    <MiniStat value={services.length || "—"} label="Services" />
+                    <MiniStat
+                      value={certifications.length || "✓"}
+                      label="Credentials"
+                    />
+                  </div>
+
+                  <div className="mt-5 rounded-2xl border border-teal-500/25 bg-teal-500/10 p-4">
+                    <p className="text-xs font-black uppercase tracking-wide text-teal-300">
+                      Featured Credential
+                    </p>
+                    <p className="mt-1 font-black text-white">
+                      {credentialLabel}
+                    </p>
+                  </div>
+
                   <div className="mt-5 space-y-4">
-                    <TagList title="Service Areas" items={areas} empty="Areas coming soon." />
-                    <TagList title="Services" items={services} empty="Services coming soon." />
+                    <TagList
+                      title="Service Areas"
+                      items={areas}
+                      empty="Areas coming soon."
+                    />
+                    <TagList
+                      title="Services"
+                      items={services}
+                      empty="Services coming soon."
+                    />
                   </div>
 
                   <div className="mt-auto flex flex-col gap-3 pt-6 sm:flex-row">
@@ -329,7 +404,7 @@ export default async function InspectorDirectoryPage({ searchParams }: PageProps
                       href={profileHref}
                       className="flex-1 rounded-xl border border-teal-500/60 px-4 py-3 text-center font-black text-teal-300 transition hover:bg-teal-500 hover:text-slate-950"
                     >
-                      View Profile
+                      View Portfolio
                     </Link>
 
                     <Link
@@ -349,6 +424,17 @@ export default async function InspectorDirectoryPage({ searchParams }: PageProps
   );
 }
 
+function MiniStat({ value, label }: { value: number | string; label: string }) {
+  return (
+    <div className="rounded-2xl border border-slate-800 bg-slate-950 p-3 text-center">
+      <p className="text-lg font-black text-white">{value}</p>
+      <p className="mt-1 text-[9px] font-black uppercase tracking-wide text-slate-500">
+        {label}
+      </p>
+    </div>
+  );
+}
+
 function TagList({
   title,
   items,
@@ -365,9 +451,7 @@ function TagList({
       </p>
 
       {items.length === 0 ? (
-        <p className="mt-2 text-sm text-slate-500">
-          {empty}
-        </p>
+        <p className="mt-2 text-sm text-slate-500">{empty}</p>
       ) : (
         <div className="mt-2 flex flex-wrap gap-2">
           {items.map((item) => (
