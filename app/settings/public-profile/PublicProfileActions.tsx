@@ -59,7 +59,9 @@ export default function PublicProfileActions({
     const link = document.createElement("a");
     link.href = qrUrl;
     link.download = "public-profile-qr-code.png";
+    document.body.appendChild(link);
     link.click();
+    link.remove();
   }
 
   function printCard() {
