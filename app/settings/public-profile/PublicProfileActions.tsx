@@ -33,6 +33,23 @@ function svgToDataUrl(svg: string) {
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 }
 
+
+function addQrSource(value: string) {
+  const clean = String(value || "").trim();
+  if (!clean) return "";
+
+  try {
+    const parsed = new URL(clean);
+    if (!parsed.searchParams.has("source") && !parsed.searchParams.has("utm_source")) {
+      parsed.searchParams.set("source", "qr");
+    }
+    return parsed.toString();
+  } catch {
+    const separator = clean.includes("?") ? "&" : "?";
+    return `${clean}${separator}source=qr`;
+  }
+}
+
 export default function PublicProfileActions({
   profileUrl,
   logoUrl,
@@ -46,6 +63,7 @@ export default function PublicProfileActions({
   const fileBase = useMemo(() => cleanFilename(companyName), [companyName]);
   const centerLogo = String(logoUrl || "").trim();
   const hasCompanyLogo = centerLogo.length > 0;
+  const qrValue = useMemo(() => addQrSource(url), [url]);
 
   const usageBadges = [
     "Business Cards",
@@ -64,10 +82,10 @@ export default function PublicProfileActions({
       setError("");
       setSvgMarkup("");
 
-      if (!url) return;
+      if (!qrValue) return;
 
       try {
-        const svg = await QRCode.toString(url, {
+        const svg = await QRCode.toString(qrValue, {
           type: "svg",
           width: 420,
           margin: 2,
@@ -95,7 +113,7 @@ export default function PublicProfileActions({
     return () => {
       cancelled = true;
     };
-  }, [url]);
+  }, [qrValue]);
 
   async function copyLink() {
     if (!url) return;

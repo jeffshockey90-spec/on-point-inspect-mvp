@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import SharePublicSampleReportButton from "../../../components/SharePublicSampleReportButton";
+import PublicProfileAnalyticsTracker from "../../../components/PublicProfileAnalyticsTracker";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -266,6 +267,7 @@ export default async function PublicInspectorProfilePage({
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#020617] pb-24 text-white sm:pb-0">
+      <PublicProfileAnalyticsTracker companyId={company.id} profileSlug={slug} />
       <section className="relative overflow-hidden border-b border-slate-800">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(20,184,166,0.24),transparent_42%),radial-gradient(circle_at_bottom_right,rgba(59,130,246,0.16),transparent_42%)]" />
         <div className="absolute left-1/2 top-0 h-72 w-72 -translate-x-1/2 rounded-full bg-teal-500/10 blur-3xl" />
@@ -332,6 +334,7 @@ export default async function PublicInspectorProfilePage({
                 <div className="mt-7 flex flex-col gap-3 sm:flex-row">
                   <Link
                     href={bookingHref}
+                    data-public-profile-event="booking_click"
                     className="rounded-xl bg-teal-500 px-6 py-4 text-center font-black text-slate-950 shadow-lg shadow-teal-500/20 transition hover:-translate-y-0.5 hover:bg-teal-400"
                   >
                     Request Inspection
@@ -514,6 +517,7 @@ export default async function PublicInspectorProfilePage({
 
               <Link
                 href={bookingHref}
+                data-public-profile-event="booking_click"
                 className="rounded-xl bg-teal-500 px-6 py-4 text-center font-black text-slate-950 transition hover:bg-teal-400"
               >
                 Request Inspection
@@ -566,6 +570,7 @@ export default async function PublicInspectorProfilePage({
             {company.email && (
               <a
                 href={`mailto:${company.email}`}
+                data-public-profile-event="email_click"
                 className="block rounded-2xl border border-slate-700 bg-slate-950 p-4 font-bold text-slate-200 hover:border-teal-400 hover:text-teal-300"
               >
                 Email: {company.email}
@@ -575,6 +580,7 @@ export default async function PublicInspectorProfilePage({
             {company.phone && (
               <a
                 href={`tel:${company.phone}`}
+                data-public-profile-event="phone_click"
                 className="block rounded-2xl border border-slate-700 bg-slate-950 p-4 font-bold text-slate-200 hover:border-teal-400 hover:text-teal-300"
               >
                 Phone: {company.phone}
@@ -584,6 +590,7 @@ export default async function PublicInspectorProfilePage({
             {websiteHref && (
               <a
                 href={websiteHref}
+                data-public-profile-event="website_click"
                 target="_blank"
                 rel="noreferrer"
                 className="block rounded-2xl border border-slate-700 bg-slate-950 p-4 font-bold text-slate-200 hover:border-teal-400 hover:text-teal-300"
@@ -595,6 +602,7 @@ export default async function PublicInspectorProfilePage({
             {googleReviewHref && (
               <a
                 href={googleReviewHref}
+                data-public-profile-event="review_click"
                 target="_blank"
                 rel="noreferrer"
                 className="block rounded-2xl border border-yellow-500/40 bg-yellow-500/10 p-4 font-bold text-yellow-100 hover:border-yellow-300"
@@ -606,6 +614,7 @@ export default async function PublicInspectorProfilePage({
             {facebookHref && (
               <a
                 href={facebookHref}
+                data-public-profile-event="facebook_click"
                 target="_blank"
                 rel="noreferrer"
                 className="block rounded-2xl border border-blue-500/40 bg-blue-500/10 p-4 font-bold text-blue-100 hover:border-blue-300"
@@ -620,6 +629,7 @@ export default async function PublicInspectorProfilePage({
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-teal-500/25 bg-[#020617]/95 p-3 backdrop-blur sm:hidden">
         <Link
           href={bookingHref}
+          data-public-profile-event="booking_click"
           className="block rounded-xl bg-teal-500 px-5 py-4 text-center font-black text-slate-950 shadow-lg shadow-teal-500/20"
         >
           Request Inspection
@@ -717,6 +727,8 @@ function FeaturedSampleReport({
             {sampleHref && (
               <Link
                 href={sampleHref}
+                data-public-profile-event="sample_report_click"
+                data-sample-report-id={sample.id}
                 className="rounded-xl bg-teal-500 px-5 py-4 text-center font-black text-slate-950 transition hover:bg-teal-400"
               >
                 View Featured Report
@@ -725,6 +737,7 @@ function FeaturedSampleReport({
 
             <Link
               href={bookingHref}
+              data-public-profile-event="booking_click"
               className="rounded-xl border border-slate-700 px-5 py-4 text-center font-black text-slate-200 transition hover:border-teal-400 hover:text-teal-300"
             >
               Request Inspection
@@ -790,6 +803,8 @@ function SampleReportCard({ sample }: { sample: any }) {
           {sampleHref && (
             <Link
               href={sampleHref}
+              data-public-profile-event="sample_report_click"
+              data-sample-report-id={sample.id}
               className="rounded-xl bg-teal-500 px-5 py-3 text-center font-black text-slate-950 transition hover:bg-teal-400"
             >
               View Report
