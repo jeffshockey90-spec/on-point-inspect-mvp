@@ -272,7 +272,7 @@ export default function PublicProfileActions({
 
   return (
     <section className="w-full max-w-full overflow-hidden rounded-3xl border border-teal-500/35 bg-[#020817] shadow-xl">
-      <div className="grid min-w-0 gap-0 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="grid w-full min-w-0 gap-0 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="min-w-0 p-4 sm:p-6">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             <p className="text-xs font-black uppercase tracking-[0.25em] text-teal-300">
@@ -322,16 +322,16 @@ export default function PublicProfileActions({
             </p>
           )}
 
-          <div className="mt-6 max-w-full overflow-hidden rounded-2xl border border-slate-700 bg-slate-950 p-4">
+          <div className="mt-6 w-full overflow-hidden rounded-2xl border border-slate-700 bg-slate-950 p-4">
             <p className="text-xs font-black uppercase tracking-[0.22em] text-teal-300">
               Downloads
             </p>
-            <div className="mt-4 grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="mt-4 flex flex-col gap-3">
               <button
                 type="button"
                 onClick={downloadPng}
                 disabled={!ready}
-                className="w-full min-w-0 rounded-xl bg-teal-500 px-4 py-3 text-sm font-black text-slate-950 transition hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50"
+                className="block w-full max-w-full rounded-xl bg-teal-500 px-4 py-3 text-center text-sm font-black text-slate-950 transition hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Download PNG
               </button>
@@ -340,7 +340,7 @@ export default function PublicProfileActions({
                 type="button"
                 onClick={printQrCard}
                 disabled={!ready}
-                className="w-full min-w-0 rounded-xl border border-teal-500/60 px-4 py-3 text-sm font-black text-teal-300 transition hover:bg-teal-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+                className="block w-full max-w-full rounded-xl border border-teal-500/60 px-4 py-3 text-center text-sm font-black text-teal-300 transition hover:bg-teal-500/10 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Print Card
               </button>
@@ -348,7 +348,7 @@ export default function PublicProfileActions({
               <button
                 type="button"
                 onClick={copyLink}
-                className="w-full min-w-0 rounded-xl border border-slate-600 px-4 py-3 text-sm font-black text-slate-200 transition hover:border-cyan-400 hover:text-cyan-200 sm:col-span-2"
+                className="block w-full max-w-full rounded-xl border border-slate-600 px-4 py-3 text-center text-sm font-black text-slate-200 transition hover:border-cyan-400 hover:text-cyan-200"
               >
                 Copy Public Link
               </button>
@@ -356,7 +356,7 @@ export default function PublicProfileActions({
               <button
                 type="button"
                 onClick={shareProfile}
-                className="w-full min-w-0 rounded-xl border border-slate-600 px-4 py-3 text-sm font-black text-slate-200 transition hover:border-cyan-400 hover:text-cyan-200 sm:col-span-2"
+                className="block w-full max-w-full rounded-xl border border-slate-600 px-4 py-3 text-center text-sm font-black text-slate-200 transition hover:border-cyan-400 hover:text-cyan-200"
               >
                 Share Profile
               </button>
