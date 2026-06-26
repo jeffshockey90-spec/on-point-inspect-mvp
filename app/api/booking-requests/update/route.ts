@@ -1,59 +1,618 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
+import { createClient as createServiceClient } from "@supabase/supabase-js";
+import { Resend } from "resend";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type BookingRequest = Record<string, any>;
+type AnyRow = Record<string, any>;
 
-function requestedServices(request: BookingRequest) {
-  if (Array.isArray(request.services_requested) && request.services_requested.length) {
-    return request.services_requested.join(", ");
-  }
-  return request.service_type || "Buyer Home Inspection";
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+function createAdminClient() {
+  return createServiceClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    }
+  );
 }
 
-function getInspectionPayload(request: BookingRequest, userId: string) {
+function cleanText(value: any) {
+  return String(value || "").trim();
+}
+
+function getNumber(value: any) {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+
+  if (typeof value === "string") {
+    const parsed = Number(value.replace(/[^0-9.-]/g, ""));
+    if (Number.isFinite(parsed)) return parsed;
+  }
+
+  return 0;
+}
+
+function calculatePriceFromSqft(squareFeet: any) {
+  const sqft = getNumber(squareFeet);
+
+  if (!sqft || sqft <= 0) return 0;
+  if (sqft <= 2000) return 500;
+
+  return 500 + Math.ceil((sqft - 2000) / 1000) * 50;
+}
+
+function requestedServices(request: AnyRow) {
+  if (
+    Array.isArray(request.services_requested) &&
+    request.services_requested.length
+  ) {
+    return request.services_requested
+      .map((service: any) => cleanText(service))
+      .filter(Boolean)
+      .join(", ");
+  }
+
+  return cleanText(request.service_type) || "Buyer Home Inspection";
+}
+
+function requesterIsRealtor(request: AnyRow) {
+  return cleanText(request.requester_role).toLowerCase().includes("realtor");
+}
+
+function getContactValues(request: AnyRow) {
+  const clientName =
+    cleanText(request.client_name) || cleanText(request.requester_name);
+  const clientEmail =
+    cleanText(request.client_email) || cleanText(request.requester_email);
+  const clientPhone =
+    cleanText(request.client_phone) || cleanText(request.requester_phone);
+
+  const realtorName =
+    cleanText(request.realtor_name) ||
+    (requesterIsRealtor(request) ? cleanText(request.requester_name) : "");
+
+  const realtorEmail =
+    cleanText(request.realtor_email) ||
+    (requesterIsRealtor(request) ? cleanText(request.requester_email) : "");
+
+  const realtorPhone =
+    cleanText(request.realtor_phone) ||
+    (requesterIsRealtor(request) ? cleanText(request.requester_phone) : "");
+
+  return {
+    clientName,
+    clientEmail,
+    clientPhone,
+    realtorName,
+    realtorEmail,
+    realtorPhone,
+  };
+}
+
+function getInspectionPayload(request: AnyRow, userId: string) {
   const serviceType = requestedServices(request);
+  const {
+    clientName,
+    clientEmail,
+    clientPhone,
+    realtorName,
+    realtorEmail,
+    realtorPhone,
+  } = getContactValues(request);
+
+  const address = cleanText(request.property_address);
+  const squareFeet = cleanText(request.square_feet);
+  const calculatedPrice = calculatePriceFromSqft(squareFeet);
 
   return {
     inspector_id: userId,
     user_id: userId,
-    property_address: request.property_address,
-    address: request.property_address,
-    city: request.city,
-    state: request.state,
-    zip: request.zip,
-    square_feet: request.square_feet || null,
-    client_name: request.client_name || request.requester_name,
-    client_email: request.client_email || request.requester_email,
-    client_phone: request.client_phone || request.requester_phone,
-    realtor_name: request.realtor_name || (request.requester_role?.toLowerCase?.().includes("realtor") ? request.requester_name : null),
-    realtor_email: request.realtor_email || (request.requester_role?.toLowerCase?.().includes("realtor") ? request.requester_email : null),
-    realtor_phone: request.realtor_phone || (request.requester_role?.toLowerCase?.().includes("realtor") ? request.requester_phone : null),
+    owner_id: userId,
+    created_by: userId,
+
+    property_address: address,
+    address,
+    street: address,
+    city: cleanText(request.city),
+    state: cleanText(request.state).toUpperCase(),
+    zip: cleanText(request.zip),
+    zip_code: cleanText(request.zip),
+
+    square_feet: squareFeet || null,
+    sqft: squareFeet || null,
+
+    price: calculatedPrice || null,
+    invoice_amount: calculatedPrice || null,
+    total_price: calculatedPrice || null,
+    total: calculatedPrice || null,
+    inspection_price: calculatedPrice || null,
+    inspection_fee: calculatedPrice || null,
+    quote_amount: calculatedPrice || null,
+    quoted_price: calculatedPrice || null,
+    subtotal: calculatedPrice || null,
+    balance_due: calculatedPrice || null,
+    amount_paid: 0,
+    payment_status: calculatedPrice ? "unpaid" : null,
+    invoice_status: calculatedPrice ? "unpaid" : null,
+
+    client_name: clientName,
+    client_email: clientEmail,
+    client_phone: clientPhone,
+    buyer_name: clientName,
+    customer_name: clientName,
+    customer_email: clientEmail,
+    customer_phone: clientPhone,
+
+    realtor_name: realtorName || null,
+    realtor_email: realtorEmail || null,
+    realtor_phone: realtorPhone || null,
+    agent_name: realtorName || null,
+    agent_email: realtorEmail || null,
+    agent_phone: realtorPhone || null,
+
     inspection_type: serviceType,
     service_type: serviceType,
-    inspection_date: request.preferred_date,
-    inspection_time: request.preferred_time || "10:00",
+    type: serviceType,
+
+    inspection_date: cleanText(request.preferred_date),
+    scheduled_date: cleanText(request.preferred_date),
+    date: cleanText(request.preferred_date),
+    inspection_time: cleanText(request.preferred_time) || "10:00",
+    scheduled_time: cleanText(request.preferred_time) || "10:00",
+    time: cleanText(request.preferred_time) || "10:00",
+
     status: "Scheduled",
+    inspection_status: "Scheduled",
+    report_status: "draft",
+
     source: "booking_request",
     booking_request_id: request.id,
-    notes: request.notes || null,
+    notes: cleanText(request.notes) || null,
+    internal_notes: cleanText(request.notes) || null,
+
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   };
+}
+
+function getMissingColumnName(error: any) {
+  const text = String(
+    error?.message ||
+      error?.details ||
+      error?.hint ||
+      error?.code ||
+      ""
+  );
+
+  const patterns = [
+    /Could not find the '([^']+)' column/i,
+    /column "([^"]+)" of relation/i,
+    /record "([^"]+)"/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (match?.[1]) return match[1];
+  }
+
+  return "";
+}
+
+async function insertInspectionWithSchemaFallback(
+  supabase: any,
+  initialPayload: AnyRow
+) {
+  let payload = { ...initialPayload };
+  const removedColumns: string[] = [];
+
+  for (let attempt = 0; attempt < 60; attempt += 1) {
+    const { data, error } = await supabase
+      .from("inspections")
+      .insert(payload)
+      .select("*")
+      .single();
+
+    if (!error) {
+      return { inspection: data, removedColumns };
+    }
+
+    const missingColumn = getMissingColumnName(error);
+
+    if (
+      missingColumn &&
+      Object.prototype.hasOwnProperty.call(payload, missingColumn)
+    ) {
+      delete payload[missingColumn];
+      removedColumns.push(missingColumn);
+      continue;
+    }
+
+    throw {
+      error,
+      attemptedPayload: payload,
+      removedColumns,
+    };
+  }
+
+  throw {
+    error: new Error(
+      "Could not create inspection after removing unsupported columns."
+    ),
+    attemptedPayload: payload,
+    removedColumns,
+  };
+}
+
+async function upsertBookingContacts(
+  admin: any,
+  bookingRequest: AnyRow,
+  inspectionId: string,
+  inspectorId: string
+) {
+  const {
+    clientName,
+    clientEmail,
+    clientPhone,
+    realtorName,
+    realtorEmail,
+    realtorPhone,
+  } = getContactValues(bookingRequest);
+
+  const contactPayloads: AnyRow[] = [];
+
+  if (clientName && clientEmail) {
+    contactPayloads.push({
+      inspection_id: inspectionId,
+      inspector_id: inspectorId,
+      name: clientName,
+      email: clientEmail,
+      phone: clientPhone || null,
+      role: "client",
+      agreement_required: true,
+      portal_access: true,
+      updated_at: new Date().toISOString(),
+    });
+  }
+
+  if (realtorName && realtorEmail) {
+    contactPayloads.push({
+      inspection_id: inspectionId,
+      inspector_id: inspectorId,
+      name: realtorName,
+      email: realtorEmail,
+      phone: realtorPhone || null,
+      role: "realtor",
+      agreement_required: false,
+      portal_access: true,
+      updated_at: new Date().toISOString(),
+    });
+  }
+
+  if (contactPayloads.length === 0) {
+    return { inserted: 0, skipped: true };
+  }
+
+  let inserted = 0;
+  const errors: string[] = [];
+
+  for (const contact of contactPayloads) {
+    const { data: existing, error: existingError } = await admin
+      .from("inspection_contacts")
+      .select("id")
+      .eq("inspection_id", inspectionId)
+      .eq("email", contact.email)
+      .maybeSingle();
+
+    if (existingError) {
+      errors.push(existingError.message);
+      continue;
+    }
+
+    if (existing?.id) {
+      const { error: updateError } = await admin
+        .from("inspection_contacts")
+        .update(contact)
+        .eq("id", existing.id);
+
+      if (updateError) {
+        errors.push(updateError.message);
+      }
+
+      continue;
+    }
+
+    const { error: insertError } = await admin
+      .from("inspection_contacts")
+      .insert(contact);
+
+    if (insertError) {
+      errors.push(insertError.message);
+      continue;
+    }
+
+    inserted += 1;
+  }
+
+  return { inserted, skipped: false, errors };
+}
+
+function getBaseUrl(request: Request) {
+  const envUrl =
+    process.env.NEXT_PUBLIC_BASE_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.VERCEL_URL;
+
+  if (envUrl) {
+    return envUrl.startsWith("http") ? envUrl : `https://${envUrl}`;
+  }
+
+  return new URL(request.url).origin;
+}
+
+function formatDate(value: any) {
+  if (!value) return "Date to be confirmed";
+
+  const date = new Date(`${value}T12:00:00`);
+  if (Number.isNaN(date.getTime())) return cleanText(value);
+
+  return date.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function formatTime(value: any) {
+  const clean = cleanText(value);
+  if (!clean) return "Time to be confirmed";
+
+  const [hoursRaw, minutesRaw] = clean.split(":");
+  const hours = Number(hoursRaw);
+  const minutes = Number((minutesRaw || "00").slice(0, 2));
+
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) return clean;
+
+  const date = new Date();
+  date.setHours(hours, minutes, 0, 0);
+
+  return date.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function escapeHtml(value: any) {
+  return cleanText(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
+async function sendAppointmentConfirmedEmails(
+  admin: any,
+  bookingRequest: AnyRow,
+  inspectionId: string,
+  request: Request
+) {
+  if (!process.env.RESEND_API_KEY) {
+    return {
+      sent: [],
+      failed: [],
+      skipped: true,
+      reason: "Missing RESEND_API_KEY.",
+    };
+  }
+
+  const contacts = await admin
+    .from("inspection_contacts")
+    .select("*")
+    .eq("inspection_id", inspectionId);
+
+  const rows = contacts?.data || [];
+  const recipients: Array<{ email: string; name: string; role: string }> = rows
+    .filter((contact: any) => {
+      const role = cleanText(contact.role).toLowerCase();
+      return (
+        contact.email &&
+        (role === "client" ||
+          role === "co-client" ||
+          role === "realtor" ||
+          role === "transaction coordinator")
+      );
+    })
+    .map((contact: any) => ({
+      email: cleanText(contact.email).toLowerCase(),
+      name: cleanText(contact.name),
+      role: cleanText(contact.role).toLowerCase(),
+    }));
+
+  const uniqueRecipients: Array<{ email: string; name: string; role: string }> = Array.from(
+    new Map(
+      recipients.map((recipient: { email: string; name: string; role: string }) => [
+        recipient.email,
+        recipient,
+      ])
+    ).values()
+  );
+
+  if (uniqueRecipients.length === 0) {
+    return { sent: [], failed: [], skipped: true, reason: "No contacts found." };
+  }
+
+  const address = [
+    bookingRequest.property_address,
+    bookingRequest.city,
+    bookingRequest.state,
+    bookingRequest.zip,
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  const services = requestedServices(bookingRequest);
+  const dateText = formatDate(bookingRequest.preferred_date);
+  const timeText = formatTime(bookingRequest.preferred_time);
+  const portalUrl = `${getBaseUrl(request)}/client-portal/${inspectionId}`;
+
+  const fromEmail =
+    process.env.RESEND_FROM_EMAIL ||
+    process.env.REPORT_EMAIL_FROM ||
+    "On Point Home Inspections <agreements@onpointhomeinspect.com>";
+
+  const sent: any[] = [];
+  const failed: any[] = [];
+
+  for (const recipient of uniqueRecipients) {
+    const isRealtor =
+      recipient.role.includes("realtor") || recipient.role.includes("transaction");
+
+    const subject = `Inspection Confirmed - ${address || "On Point Home Inspections"}`;
+
+    const greeting = recipient.name ? `Hi ${escapeHtml(recipient.name)},` : "Hello,";
+
+    const note = isRealtor
+      ? "This confirms the inspection request has been accepted and scheduled."
+      : "This confirms your inspection has been accepted and scheduled.";
+
+    const html = `
+      <div style="font-family:Arial,sans-serif;line-height:1.6;color:#0f172a;padding:24px;">
+        <h2 style="color:#0f766e;margin:0 0 16px;">On Point Home Inspections</h2>
+
+        <p>${greeting}</p>
+
+        <p>${note}</p>
+
+        <table cellpadding="6" cellspacing="0" style="border-collapse:collapse;width:100%;max-width:680px;">
+          <tr><td><strong>Property</strong></td><td>${escapeHtml(address)}</td></tr>
+          <tr><td><strong>Date</strong></td><td>${escapeHtml(dateText)}</td></tr>
+          <tr><td><strong>Time</strong></td><td>${escapeHtml(timeText)}</td></tr>
+          <tr><td><strong>Services</strong></td><td>${escapeHtml(services)}</td></tr>
+        </table>
+
+        <p style="margin-top:18px;">
+          Your inspection agreement and payment information may be sent separately if required.
+        </p>
+
+        <p>
+          <a href="${portalUrl}" style="display:inline-block;background:#14b8a6;color:#020617;font-weight:bold;padding:12px 18px;border-radius:10px;text-decoration:none;">
+            Open Client Portal
+          </a>
+        </p>
+
+        <p style="margin-top:30px;font-size:12px;color:#64748b;">
+          On Point Home Inspections<br />
+          Protecting Your Investment. One Inspection at a Time.
+        </p>
+      </div>
+    `;
+
+    const text = `${recipient.name ? `Hi ${recipient.name},` : "Hello,"}
+
+${isRealtor ? "This confirms the inspection request has been accepted and scheduled." : "This confirms your inspection has been accepted and scheduled."}
+
+Property: ${address}
+Date: ${dateText}
+Time: ${timeText}
+Services: ${services}
+
+Your inspection agreement and payment information may be sent separately if required.
+
+Client Portal:
+${portalUrl}
+
+On Point Home Inspections`;
+
+    try {
+      const result = await resend.emails.send({
+        from: fromEmail,
+        to: recipient.email,
+        subject,
+        html,
+        text,
+      });
+
+      sent.push({
+        email: recipient.email,
+        role: recipient.role,
+        resend_id: result?.data?.id || null,
+      });
+
+      await admin.from("email_logs").insert({
+        inspection_id_bigint: Number(inspectionId),
+        recipient: recipient.email,
+        recipient_email: recipient.email,
+        email_type: "appointment_confirmed",
+        subject,
+        message: portalUrl,
+        status: "sent",
+        resend_id: result?.data?.id || null,
+        sent_at: new Date().toISOString(),
+        metadata: {
+          type: "appointment_confirmed",
+          role: recipient.role,
+          portalUrl,
+        },
+      });
+    } catch (error: any) {
+      failed.push({
+        email: recipient.email,
+        role: recipient.role,
+        error: error?.message || "Failed to send appointment confirmation.",
+      });
+
+      await admin.from("email_logs").insert({
+        inspection_id_bigint: Number(inspectionId),
+        recipient: recipient.email,
+        recipient_email: recipient.email,
+        email_type: "appointment_confirmed",
+        subject,
+        message: portalUrl,
+        status: "failed",
+        resend_id: null,
+        sent_at: null,
+        metadata: {
+          type: "appointment_confirmed",
+          role: recipient.role,
+          portalUrl,
+          error: error?.message || "Failed to send appointment confirmation.",
+        },
+      });
+    }
+  }
+
+  return { sent, failed, skipped: false };
+}
+
+function compactUpdatePayload(payload: AnyRow) {
+  return Object.fromEntries(
+    Object.entries(payload).filter(([, value]) => value !== undefined)
+  );
 }
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const requestId = body.requestId;
-    const action = String(body.action || "").toLowerCase();
+    const action = cleanText(body.action).toLowerCase();
 
     if (!requestId || !["confirm", "decline"].includes(action)) {
-      return NextResponse.json({ error: "Missing requestId or valid action." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing requestId or valid action." },
+        { status: 400 }
+      );
     }
 
     const cookieStore = await cookies();
+
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -75,65 +634,122 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { data: bookingRequest, error: readError } = await supabase
+    const admin = createAdminClient();
+
+    const { data: bookingRequest, error: readError } = await admin
       .from("booking_requests")
       .select("*")
       .eq("id", requestId)
       .single();
 
     if (readError || !bookingRequest) {
-      return NextResponse.json({ error: readError?.message || "Booking request not found." }, { status: 404 });
+      return NextResponse.json(
+        { error: readError?.message || "Booking request not found." },
+        { status: 404 }
+      );
     }
 
     if (action === "decline") {
-      const { data, error } = await supabase
+      const { data, error } = await admin
         .from("booking_requests")
-        .update({ status: "declined", reviewed_by: user.id, reviewed_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+        .update(
+          compactUpdatePayload({
+            status: "declined",
+            reviewed_by: user.id,
+            reviewed_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+        )
         .eq("id", requestId)
         .select("*")
         .single();
 
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
+
       return NextResponse.json({ ok: true, request: data });
     }
 
     let inspectionId = bookingRequest.inspection_id || null;
+    let removedColumns: string[] = [];
 
     if (!inspectionId) {
       const payload = getInspectionPayload(bookingRequest, user.id);
-      const { data: inspection, error: insertError } = await supabase
-        .from("inspections")
-        .insert(payload)
-        .select("*")
-        .single();
 
-      if (insertError) {
-        return NextResponse.json({ error: insertError.message, attemptedPayload: payload }, { status: 500 });
+      try {
+        const result = await insertInspectionWithSchemaFallback(
+          admin,
+          payload
+        );
+
+        inspectionId = result.inspection?.id;
+        removedColumns = result.removedColumns;
+      } catch (insertFailure: any) {
+        return NextResponse.json(
+          {
+            error:
+              insertFailure?.error?.message ||
+              insertFailure?.message ||
+              "Inspection could not be created.",
+            attemptedPayload: insertFailure?.attemptedPayload || payload,
+            removedColumns: insertFailure?.removedColumns || [],
+          },
+          { status: 500 }
+        );
       }
-
-      inspectionId = inspection.id;
     }
 
-    const { data: updatedRequest, error: updateError } = await supabase
+    const contacts = await upsertBookingContacts(
+      admin,
+      bookingRequest,
+      String(inspectionId),
+      user.id
+    );
+
+    const confirmationEmails = await sendAppointmentConfirmedEmails(
+      admin,
+      bookingRequest,
+      String(inspectionId),
+      request
+    );
+
+    const { data: updatedRequest, error: updateError } = await admin
       .from("booking_requests")
-      .update({
-        status: "confirmed",
-        inspection_id: inspectionId,
-        inspector_id: user.id,
-        reviewed_by: user.id,
-        reviewed_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
+      .update(
+        compactUpdatePayload({
+          status: "confirmed",
+          inspection_id: inspectionId,
+          inspector_id: user.id,
+          reviewed_by: user.id,
+          reviewed_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+      )
       .eq("id", requestId)
       .select("*")
       .single();
 
     if (updateError) {
-      return NextResponse.json({ error: updateError.message }, { status: 500 });
+      return NextResponse.json(
+        { error: updateError.message, inspectionId },
+        { status: 500 }
+      );
     }
 
-    return NextResponse.json({ ok: true, request: updatedRequest, inspectionId });
+    return NextResponse.json({
+      ok: true,
+      request: updatedRequest,
+      inspectionId,
+      contacts,
+      confirmationEmails,
+      removedColumns,
+      calculatedPrice: calculatePriceFromSqft(bookingRequest.square_feet),
+    });
   } catch (error: any) {
-    return NextResponse.json({ error: error?.message || "Booking request update failed." }, { status: 500 });
+    return NextResponse.json(
+      { error: error?.message || "Booking request update failed." },
+      { status: 500 }
+    );
   }
 }

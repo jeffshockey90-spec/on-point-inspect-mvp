@@ -137,13 +137,27 @@ function normalizeManufacturer(value: any) {
   if (lower.includes("daikin")) return "Daikin";
   if (lower.includes("carrier")) return "Carrier";
   if (lower.includes("bryant")) return "Bryant";
+  if (lower.includes("payne")) return "Payne";
+  if (lower.includes("tempstar")) return "Tempstar";
+  if (lower.includes("heil")) return "Heil";
+  if (lower.includes("comfortmaker")) return "Comfortmaker";
+  if (lower.includes("arcoaire")) return "Arcoaire";
+  if (lower.includes("keeprite") || lower.includes("keep rite")) return "KeepRite";
+  if (lower.includes("day & night") || lower.includes("day and night")) return "Day & Night";
+  if (lower.includes("international comfort products") || lower === "icp") return "ICP";
   if (lower.includes("trane")) return "Trane";
   if (lower.includes("american standard")) return "American Standard";
   if (lower.includes("lennox")) return "Lennox";
   if (lower.includes("york")) return "York";
+  if (lower.includes("coleman")) return "Coleman";
+  if (lower.includes("luxaire")) return "Luxaire";
   if (lower.includes("nordyne")) return "Nordyne";
+  if (lower.includes("nortek")) return "Nortek";
   if (lower.includes("intertherm")) return "Intertherm";
+  if (lower.includes("miller")) return "Miller";
+  if (lower.includes("gibson")) return "Gibson";
   if (lower.includes("frigidaire")) return "Frigidaire";
+  if (lower.includes("westinghouse")) return "Westinghouse";
   if (lower.includes("whirlpool")) return "Whirlpool";
   if (lower.includes("ge appliances") || lower === "ge") return "GE";
   if (lower.includes("samsung")) return "Samsung";
@@ -183,6 +197,18 @@ function decodeManufactureYearFromSerial({
 
   function weekIsValid(value: number) {
     return Number.isFinite(value) && value >= 1 && value <= 53;
+  }
+
+  function yearFromFourDigitsAt(startIndex: number) {
+    const year = Number(cleanSerial.slice(startIndex, startIndex + 4));
+    if (!Number.isFinite(year) || year < 1980 || year > currentYear + 1) return null;
+    return year;
+  }
+
+  // Some data plates include a plain four-digit manufacture year in or near the serial.
+  for (let index = 0; index <= cleanSerial.length - 4; index += 1) {
+    const possibleYear = yearFromFourDigitsAt(index);
+    if (possibleYear) return possibleYear;
   }
 
   if (
@@ -227,11 +253,30 @@ function decodeManufactureYearFromSerial({
     if (year && monthIsValid(mm)) return year;
   }
 
-  if (brand.includes("carrier") || brand.includes("bryant") || brand.includes("payne")) {
+  if (
+    brand.includes("carrier") ||
+    brand.includes("bryant") ||
+    brand.includes("payne") ||
+    brand.includes("tempstar") ||
+    brand.includes("heil") ||
+    brand.includes("comfortmaker") ||
+    brand.includes("arcoaire") ||
+    brand.includes("keeprite") ||
+    brand.includes("keep rite") ||
+    brand.includes("day & night") ||
+    brand.includes("day and night") ||
+    brand.includes("international comfort products") ||
+    brand === "icp"
+  ) {
+    // Carrier/Bryant/Payne commonly use WWYY. ICP-family brands may use WWYY or a plant letter followed by YY.
     const ww = Number(cleanSerial.slice(0, 2));
     const yy = Number(cleanSerial.slice(2, 4));
     const year = yearFromTwoDigits(yy);
     if (year && weekIsValid(ww)) return year;
+
+    const yyAfterPlantCode = Number(cleanSerial.slice(1, 3));
+    const plantCodeYear = yearFromTwoDigits(yyAfterPlantCode);
+    if (plantCodeYear) return plantCodeYear;
   }
 
   if (brand.includes("trane") || brand.includes("american standard")) {
@@ -246,10 +291,37 @@ function decodeManufactureYearFromSerial({
     if (year) return year;
   }
 
-  if (brand.includes("york")) {
+  if (brand.includes("york") || brand.includes("coleman") || brand.includes("luxaire")) {
+    // Many York/Coleman/Luxaire serials use a plant letter followed by a two-digit year.
     const yy = Number(cleanSerial.slice(1, 3));
     const year = yearFromTwoDigits(yy);
     if (year) return year;
+
+    const yyAtStart = Number(cleanSerial.slice(0, 2));
+    const fallbackYear = yearFromTwoDigits(yyAtStart);
+    if (fallbackYear) return fallbackYear;
+  }
+
+  if (
+    brand.includes("nordyne") ||
+    brand.includes("nortek") ||
+    brand.includes("intertherm") ||
+    brand.includes("miller") ||
+    brand.includes("gibson") ||
+    brand.includes("frigidaire") ||
+    brand.includes("westinghouse")
+  ) {
+    // Nortek/Nordyne family data plates commonly encode the year in the first two digits,
+    // and some use MMYY. Use only patterns that also contain a valid month when needed.
+    const yy = Number(cleanSerial.slice(0, 2));
+    const mm = Number(cleanSerial.slice(2, 4));
+    const year = yearFromTwoDigits(yy);
+    if (year && monthIsValid(mm)) return year;
+
+    const mmFirst = Number(cleanSerial.slice(0, 2));
+    const yySecond = Number(cleanSerial.slice(2, 4));
+    const mmYear = yearFromTwoDigits(yySecond);
+    if (mmYear && monthIsValid(mmFirst)) return mmYear;
   }
 
   return null;
@@ -1108,7 +1180,23 @@ export async function POST(req: Request) {
 
     const formData = await req.formData();
 
-    const image = formData.get("image") as File | null;
+    const imageInputFiles = [
+      ...(formData.getAll("images") as File[]),
+      ...((formData.get("image") ? [formData.get("image") as File] : []) as File[]),
+    ]
+      .filter((file) => file && typeof file.arrayBuffer === "function")
+      .filter((file) => !file.type || file.type.startsWith("image/"));
+
+    const seenImageKeys = new Set<string>();
+    const imageFiles = imageInputFiles
+      .filter((file) => {
+        const key = `${file.name || "image"}-${file.size || 0}-${file.lastModified || 0}`;
+        if (seenImageKeys.has(key)) return false;
+        seenImageKeys.add(key);
+        return true;
+      })
+      .slice(0, 6);
+
     const inspectorNote = cleanText(
       formData.get("note") ||
         formData.get("inspectorNote") ||
@@ -1121,7 +1209,7 @@ export async function POST(req: Request) {
       (formData.get("inspection_id") as string | null) ||
       null;
 
-    if (!image) {
+    if (imageFiles.length === 0) {
       await logAIEvent({
         inspectionId,
         tool: "equipment_analyzer",
@@ -1137,9 +1225,21 @@ export async function POST(req: Request) {
       );
     }
 
-    const bytes = await image.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    const base64Image = buffer.toString("base64");
+    const imageContent = await Promise.all(
+      imageFiles.map(async (image, index) => {
+        const bytes = await image.arrayBuffer();
+        const buffer = Buffer.from(bytes);
+        const base64Image = buffer.toString("base64");
+        const mimeType = image.type || "image/jpeg";
+
+        return {
+          type: "image_url" as const,
+          image_url: {
+            url: `data:${mimeType};base64,${base64Image}`,
+          },
+        };
+      })
+    );
 
     const result = await openai.chat.completions.create({
       model: "gpt-4o-mini",
@@ -1157,8 +1257,9 @@ export async function POST(req: Request) {
             {
               type: "text",
               text: `
-Analyze this equipment photo.
+Analyze these equipment photos together. Use all provided images as one equipment record. One photo may show the full unit, another may show the data plate, and another may show the serial/model label.
 
+Number of photos provided: ${imageFiles.length}
 Inspector-provided context, if any: ${inspectorNote || "None"}
 
 Return ONLY valid JSON in this exact format:
@@ -1200,7 +1301,8 @@ Severity must be one of:
 Informational, Monitor, Maintenance, Recommended Repair, Safety Concern, Major Concern.
 
 Rules:
-- Carefully extract manufacturer, model, and serial only when visible.
+- Carefully extract manufacturer, model, and serial only when visible across any of the provided photos.
+- Prefer the clearest data plate or serial label photo when multiple photos disagree.
 - If information is not visible, use "Unknown".
 - Equipment status should be client-friendly, such as: ✓ No Specific Deficiency Noted, ⚠ Older Equipment – Monitor, ⚠ Service Recommended, or ⚠ Specialist Evaluation Recommended. Age alone should use ⚠ Older Equipment – Monitor, not Service Recommended. Severity should be Monitor for older equipment near or beyond typical service life.
 - Do not estimate exact remaining life. Use typical industry service-life ranges only.
@@ -1215,13 +1317,8 @@ Rules:
 - Do not include equipment metadata lists inside recommendation. Do not include equipment type, manufacturer, model, serial, manufacture year, capacity, fuel type, refrigerant, status, inspector note, or maintenance note in recommendation.
               `,
             },
-            {
-              type: "image_url",
-              image_url: {
-                url: `data:${image.type};base64,${base64Image}`,
-              },
-            },
-          ],
+            ...imageContent,
+          ] as any,
         },
       ],
     });
@@ -1265,6 +1362,7 @@ Rules:
         section: enhanced?.section,
         severity: enhanced?.severity,
         intelligenceFlags: (enhanced as any)?.intelligenceFlags,
+        photoCount: imageFiles.length,
       },
       tokensUsed: result.usage?.total_tokens ?? null,
       status: parsed?.error ? "failed" : "success",

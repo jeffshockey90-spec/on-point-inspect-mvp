@@ -381,7 +381,7 @@ export default async function OwnerDashboardPage() {
     safeSelect(admin.from("findings").select("*"), "findings"),
     safeSelect(admin.from("photos").select("*"), "photos"),
     safeSelect(admin.from("inspection_agreements").select("*"), "inspection_agreements"),
-    safeSelect(admin.from("invoices").select("*"), "invoices"),
+    Promise.resolve([]),
     safeSelect(admin.from("finding_templates").select("*"), "finding_templates"),
   ]);
 

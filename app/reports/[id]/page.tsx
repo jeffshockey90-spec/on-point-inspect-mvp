@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { createServerClient } from "@supabase/ssr";
+import { createClient as createServiceClient } from "@supabase/supabase-js";
 
 import PrintButton from "../../../components/PrintButton";
 import ReportFindingsSortable from "./ReportFindingsSortable";
@@ -42,6 +43,21 @@ const SECTION_ORDER = [
   "Built-in Appliances",
   "Garage",
 ];
+
+
+function createSupabaseStorageClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!url || !serviceRoleKey) return null;
+
+  return createServiceClient(url, serviceRoleKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
+}
 
 async function createSupabaseServerClient() {
   const cookieStore = await cookies();
@@ -776,6 +792,11 @@ export default async function ReportPage({ params }: PageProps) {
 
   if (inspectionError || !inspection) redirect("/reports");
 
+  // Use the service-role storage client only after ownership is verified.
+  // This keeps the inspector editor private while signing every attached finding photo/video
+  // the same reliable way the public share report does.
+  const storageSupabase = createSupabaseStorageClient() || supabase;
+
   const executiveSummary = String(inspection.executive_summary || "").trim();
 
   const [emailLogsResult, viewLogsResult, equipmentResult, findingsResult] =
@@ -920,8 +941,8 @@ export default async function ReportPage({ params }: PageProps) {
   // Image transforms break video playback because Supabase transform URLs are for images only.
   // The share page works because it signs raw storage paths. Do the same here.
   const [signedThumbnailMap, signedFullMediaMap] = await Promise.all([
-    createSignedRawUrlMap(supabase, thumbnailPaths),
-    createSignedRawUrlMap(supabase, fullPhotoPaths),
+    createSignedRawUrlMap(storageSupabase, thumbnailPaths),
+    createSignedRawUrlMap(storageSupabase, fullPhotoPaths),
   ]);
 
   const getEquipmentStoragePath = (item: any) =>
@@ -950,8 +971,8 @@ export default async function ReportPage({ params }: PageProps) {
     .filter(Boolean);
 
   const [equipmentSignedImageMap, equipmentSignedThumbnailMap] = await Promise.all([
-    createSignedRawUrlMap(supabase, equipmentImagePaths),
-    createSignedRawUrlMap(supabase, equipmentThumbnailPaths),
+    createSignedRawUrlMap(storageSupabase, equipmentImagePaths),
+    createSignedRawUrlMap(storageSupabase, equipmentThumbnailPaths),
   ]);
 
   const equipmentInventory = equipmentInventoryRaw.map((item: any) => {
@@ -987,6 +1008,8 @@ export default async function ReportPage({ params }: PageProps) {
   const photosWithUrls = rawPhotos.map((photo: any) => {
     const fullPath = getPhotoStoragePath(photo);
     const thumbnailPath = photo.thumbnail_path || photo.thumbnail_storage_path || "";
+    const signedFullUrl = signedFullMediaMap[fullPath] || "";
+    const signedThumbnailUrl = signedThumbnailMap[thumbnailPath] || "";
     const existingFullUrl = getPhotoFallbackUrl(photo);
     const existingThumbnailUrl =
       photo.signed_thumbnail_url ||
@@ -994,15 +1017,26 @@ export default async function ReportPage({ params }: PageProps) {
       photo.thumbnail_public_url ||
       "";
 
+    const finalFullUrl = signedFullUrl || photo.signed_url || existingFullUrl || "";
+
     return {
       ...photo,
-      signed_url:
-        signedFullMediaMap[fullPath] ||
-        photo.signed_url ||
+      // Keep every signed variant because different report components look for
+      // different keys. The inspector editor should never have to rely on a
+      // public storage URL when a signed URL is available.
+      signed_url: finalFullUrl,
+      signedUrl: finalFullUrl,
+      signed_video_url: finalFullUrl,
+      signedVideoUrl: finalFullUrl,
+      signed_thumbnail_url:
+        signedThumbnailUrl ||
+        finalFullUrl ||
+        existingThumbnailUrl ||
         existingFullUrl ||
         "",
-      signed_thumbnail_url:
-        signedThumbnailMap[thumbnailPath] ||
+      signedThumbnailUrl:
+        signedThumbnailUrl ||
+        finalFullUrl ||
         existingThumbnailUrl ||
         existingFullUrl ||
         "",
