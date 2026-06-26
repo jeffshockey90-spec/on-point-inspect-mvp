@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "../../utils/supabase/server";
+import { createClient as createAdminClient } from "@supabase/supabase-js";
 import DeleteAccountSection from "./DeleteAccountSection";
 import PushNotificationSetup from "../../components/PushNotificationSetup";
 import SupportUnreadBadge from "../../components/SupportUnreadBadge";
@@ -151,25 +152,224 @@ export default async function SettingsPage({
 
   const company = await getCompanyForUser(supabase, user.id);
 
+  async function createMissingCompanyProfile(formData: FormData) {
+    "use server";
+
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) redirect("/login");
+
+    const existingCompany = await getCompanyForUser(supabase, user.id);
+    if (existingCompany) {
+      revalidatePath("/settings");
+      redirect("/settings?saved=1");
+    }
+
+    const businessName = String(formData.get("business_name") || "").trim();
+    const fullName = String(formData.get("full_name") || "").trim();
+    const email = String(formData.get("email") || user.email || "")
+      .trim()
+      .toLowerCase();
+    const phone = String(formData.get("phone") || "").trim();
+    const website = String(formData.get("website") || "").trim();
+
+    if (!businessName) {
+      redirect(
+        `/settings?error=${encodeURIComponent("Please enter your company name.")}`,
+      );
+    }
+
+    if (!email) {
+      redirect(
+        `/settings?error=${encodeURIComponent("Please enter your email address.")}`,
+      );
+    }
+
+    const supabaseAdmin = createAdminClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    );
+
+    const now = new Date().toISOString();
+    const baseSlug = slugifyProfile(businessName) || `inspector-${user.id.slice(0, 8)}`;
+    const profileSlug = `${baseSlug}-${user.id.slice(0, 6)}`;
+
+    const { error: profileError } = await supabaseAdmin.from("profiles").upsert({
+      id: user.id,
+      email,
+      full_name: fullName || user.user_metadata?.full_name || email,
+      role: "inspector",
+    });
+
+    if (profileError) {
+      redirect(`/settings?error=${encodeURIComponent(profileError.message)}`);
+    }
+
+    const { data: existingCompanyUser, error: existingError } = await supabaseAdmin
+      .from("company_users")
+      .select("company_id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (existingError) {
+      redirect(`/settings?error=${encodeURIComponent(existingError.message)}`);
+    }
+
+    if (existingCompanyUser?.company_id) {
+      revalidatePath("/settings");
+      redirect("/settings?saved=1");
+    }
+
+    const { data: company, error: companyError } = await supabaseAdmin
+      .from("companies")
+      .insert({
+        name: businessName,
+        display_name: businessName,
+        email,
+        phone,
+        website,
+        brand_color: "#14b8a6",
+        profile_slug: profileSlug,
+        public_profile_enabled: false,
+        created_at: now,
+      })
+      .select("id")
+      .single();
+
+    if (companyError) {
+      redirect(`/settings?error=${encodeURIComponent(companyError.message)}`);
+    }
+
+    const { error: companyUserError } = await supabaseAdmin
+      .from("company_users")
+      .insert({
+        company_id: company.id,
+        user_id: user.id,
+        role: "owner",
+        created_at: now,
+      });
+
+    if (companyUserError) {
+      redirect(`/settings?error=${encodeURIComponent(companyUserError.message)}`);
+    }
+
+    revalidatePath("/settings");
+    revalidatePath("/settings/public-profile");
+    redirect("/settings?saved=company_created");
+  }
+
   if (!company) {
+    const defaultName = String(
+      user.user_metadata?.full_name || user.email?.split("@")[0] || "",
+    );
+    const defaultBusinessName = String(user.user_metadata?.business_name || "");
+    const defaultEmail = String(user.email || "");
+
     return (
       <main className="min-h-screen bg-[#050816] px-4 py-4 pb-28 text-white md:p-8 md:pb-10">
-        <div className="mx-auto max-w-5xl rounded-3xl border border-red-500/40 bg-red-950/20 p-5 sm:p-8">
-          <h1 className="text-2xl font-black text-red-300 sm:text-3xl">
-            Company profile not found
-          </h1>
-
-          <p className="mt-3 text-sm leading-6 text-slate-300 sm:text-base">
-            Your user account is not linked to a company yet. If this is a new
-            inspector account, sign out and sign back in once. If it still
-            appears, the company setup step did not complete.
-          </p>
-
-          {pageError && (
-            <p className="mt-4 break-words rounded-xl border border-red-500/40 bg-red-950/30 p-4 text-sm text-red-200">
-              {pageError}
+        <div className="mx-auto max-w-5xl space-y-6">
+          <section className="rounded-3xl border border-teal-500/40 bg-[#0b1220] p-5 shadow-2xl shadow-black/20 sm:p-8">
+            <p className="text-xs font-black uppercase tracking-[0.25em] text-teal-300">
+              Company Setup Required
             </p>
-          )}
+            <h1 className="mt-3 text-3xl font-black tracking-tight text-white sm:text-4xl">
+              Create your company profile
+            </h1>
+            <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300 sm:text-base">
+              Your inspector account is active, but it is not connected to a company yet. This can happen with older inspector accounts created before company profiles were added. Create your company profile below and you will be taken back to Settings.
+            </p>
+
+            {pageError && (
+              <p className="mt-5 break-words rounded-xl border border-red-500/40 bg-red-950/30 p-4 text-sm text-red-200">
+                {pageError}
+              </p>
+            )}
+          </section>
+
+          <form
+            action={createMissingCompanyProfile}
+            className="rounded-3xl border border-slate-800 bg-[#0b1220] p-5 shadow-2xl shadow-black/20 sm:p-6 md:p-8"
+          >
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="block min-w-0 md:col-span-2">
+                <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
+                  Company Name *
+                </p>
+                <input
+                  name="business_name"
+                  required
+                  defaultValue={defaultBusinessName}
+                  placeholder="Your inspection company name"
+                  className="w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+                />
+              </label>
+
+              <label className="block min-w-0">
+                <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
+                  Your Name
+                </p>
+                <input
+                  name="full_name"
+                  defaultValue={defaultName}
+                  placeholder="Inspector name"
+                  className="w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+                />
+              </label>
+
+              <label className="block min-w-0">
+                <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
+                  Email *
+                </p>
+                <input
+                  name="email"
+                  type="email"
+                  required
+                  defaultValue={defaultEmail}
+                  className="w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+                />
+              </label>
+
+              <label className="block min-w-0">
+                <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
+                  Phone
+                </p>
+                <input
+                  name="phone"
+                  placeholder="Business phone"
+                  className="w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+                />
+              </label>
+
+              <label className="block min-w-0">
+                <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
+                  Website
+                </p>
+                <input
+                  name="website"
+                  placeholder="https://yourwebsite.com"
+                  className="w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+                />
+              </label>
+            </div>
+
+            <div className="mt-6 rounded-2xl border border-cyan-500/30 bg-cyan-500/10 p-4">
+              <h2 className="font-black text-cyan-200">What happens next?</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-300">
+                On Point Inspect will create your company record, link it to your inspector account as the owner, and unlock Settings, public profile management, QR code tools, payments, and branding.
+              </p>
+            </div>
+
+            <button
+              type="submit"
+              className="mt-6 w-full rounded-xl bg-teal-500 px-8 py-4 font-black text-slate-950 transition hover:bg-teal-400 sm:w-auto"
+            >
+              Create Company Profile
+            </button>
+          </form>
         </div>
       </main>
     );
