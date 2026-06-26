@@ -139,33 +139,33 @@ export default function Navbar() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 hidden border-b border-zinc-800 bg-[#050816]/95 backdrop-blur md:block">
-        <div className="mx-auto max-w-[1600px] px-5 py-3">
-          <div className="flex items-center gap-5 rounded-2xl border border-slate-800 bg-[#0b1220]/95 px-5 py-4 shadow-2xl shadow-black/20">
+      <header className="sticky top-0 z-50 hidden border-b border-zinc-800 bg-[#050816]/95 backdrop-blur lg:block">
+        <div className="mx-auto max-w-[1600px] px-4 py-2">
+          <div className="flex items-center gap-5 rounded-2xl border border-slate-800 bg-[#0b1220]/95 px-4 py-2 shadow-2xl shadow-black/20">
             <Link
               href="/"
               prefetch
               onPointerEnter={() => prefetchRoute("/")}
               onClick={() => handleNavClick("/")}
-              className="flex min-w-[265px] shrink-0 items-center gap-4 border-r border-slate-700/70 pr-5 transition active:scale-[0.98] [touch-action:manipulation]"
+              className="flex min-w-[220px] shrink-0 items-center gap-3 border-r border-slate-700/70 pr-5 transition active:scale-[0.98] [touch-action:manipulation]"
             >
               <img
                 src="/logo.jpg?v=2"
                 alt="On Point Logo"
-                className="h-16 w-16 shrink-0 rounded-full border border-teal-500/40 object-cover shadow-lg shadow-teal-500/10"
+                className="h-12 w-12 shrink-0 rounded-full border border-teal-500/40 object-cover shadow-lg shadow-teal-500/10"
               />
 
               <div className="min-w-0 leading-tight">
-                <div className="whitespace-nowrap text-2xl font-black text-teal-400">
+                <div className="whitespace-nowrap text-xl font-black text-teal-400">
                   On Point
                 </div>
-                <div className="whitespace-nowrap text-2xl font-black text-white">
+                <div className="whitespace-nowrap text-xl font-black text-white">
                   Inspect
                 </div>
               </div>
             </Link>
 
-            <nav className="flex min-w-0 flex-1 flex-wrap items-center gap-3">
+            <nav className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
               {visibleNavItems.map((item) => {
                 const active = isActive(item.href);
                 const opening = openingHref === item.href && !active;
@@ -179,7 +179,7 @@ export default function Navbar() {
                     onTouchStart={() => prefetchRoute(item.href)}
                     onClick={() => handleNavClick(item.href)}
                     aria-busy={opening}
-                    className={`inline-flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-extrabold transition active:scale-[0.98] [touch-action:manipulation] ${
+                    className={`inline-flex items-center justify-center gap-2 rounded-2xl border px-3 py-2 text-sm font-extrabold transition active:scale-[0.98] [touch-action:manipulation] ${
                       active
                         ? "border-white/40 bg-gradient-to-r from-cyan-400 to-teal-400 text-black shadow-2xl shadow-cyan-500/40"
                         : opening
@@ -205,7 +205,7 @@ export default function Navbar() {
               onClick={handleLogout}
               disabled={loggingOut}
               aria-busy={loggingOut}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-red-500 bg-red-950/30 px-4 py-3 text-sm font-extrabold text-red-300 transition active:scale-[0.98] hover:bg-red-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
+              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-red-500 bg-red-950/30 px-3 py-2 text-sm font-extrabold text-red-300 transition active:scale-[0.98] hover:bg-red-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
             >
               {loggingOut && (
                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -217,7 +217,7 @@ export default function Navbar() {
       </header>
 
       <nav
-        className="fixed bottom-0 left-0 right-0 z-50 border-t border-zinc-800 bg-[#0b1220]/95 shadow-2xl shadow-black/60 backdrop-blur md:hidden portrait:block landscape:hidden"
+        className="fixed bottom-0 left-0 right-0 z-50 border-t border-zinc-800 bg-[#0b1220]/95 shadow-2xl shadow-black/60 backdrop-blur lg:hidden"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         <div className="flex h-[78px] w-full flex-row flex-nowrap items-center justify-between">

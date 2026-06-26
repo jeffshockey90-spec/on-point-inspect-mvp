@@ -28,7 +28,6 @@ export const metadata = {
         type: "image/png",
       },
     ],
-
     apple: "/icons/icon-512.png",
   },
 };
@@ -38,6 +37,7 @@ export const viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -52,9 +52,9 @@ export default function RootLayout({
 
         <GlobalLiveActivity />
 
-        <div className="min-h-screen pb-28 md:pb-0">
+        <main className="min-h-screen overflow-x-hidden pb-[calc(env(safe-area-inset-bottom)+9rem)] pt-0 lg:pb-8">
           {children}
-        </div>
+        </main>
       </body>
     </html>
   );
