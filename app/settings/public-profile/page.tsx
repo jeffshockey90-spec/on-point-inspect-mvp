@@ -158,6 +158,62 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
     (completedPortfolioItems / portfolioChecklist.length) * 100,
   );
 
+  const analyticsSince30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const analyticsSince7 = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+  const { data: analyticsRowsRaw, error: analyticsError } = await supabase
+    .from("public_profile_analytics")
+    .select("event_type, created_at")
+    .eq("company_id", company.id)
+    .gte("created_at", analyticsSince30)
+    .order("created_at", { ascending: false })
+    .limit(5000);
+
+  if (analyticsError) {
+    console.error("Public profile analytics load error:", analyticsError);
+  }
+
+  const analyticsRows = analyticsError ? [] : analyticsRowsRaw || [];
+  const last7Rows = analyticsRows.filter((row: any) => {
+    const createdAt = String(row?.created_at || "");
+    return createdAt >= analyticsSince7;
+  });
+
+  function countEvents(rows: any[], eventType: string) {
+    return rows.filter((row) => row?.event_type === eventType).length;
+  }
+
+  const profileViews30 = countEvents(analyticsRows, "profile_view");
+  const qrScans30 = countEvents(analyticsRows, "qr_scan");
+  const sampleClicks30 = countEvents(analyticsRows, "sample_report_click");
+  const bookingClicks30 = countEvents(analyticsRows, "booking_click");
+  const contactClicks30 =
+    countEvents(analyticsRows, "phone_click") +
+    countEvents(analyticsRows, "email_click") +
+    countEvents(analyticsRows, "website_click");
+  const shareClicks30 = countEvents(analyticsRows, "share_click");
+
+  const profileViews7 = countEvents(last7Rows, "profile_view");
+  const qrScans7 = countEvents(last7Rows, "qr_scan");
+  const bookingClicks7 = countEvents(last7Rows, "booking_click");
+
+  const conversionRate30 =
+    profileViews30 > 0 ? Math.round((bookingClicks30 / profileViews30) * 100) : 0;
+
+  const analyticsSummary = {
+    profileViews30,
+    qrScans30,
+    sampleClicks30,
+    bookingClicks30,
+    contactClicks30,
+    shareClicks30,
+    profileViews7,
+    qrScans7,
+    bookingClicks7,
+    conversionRate30,
+    analyticsAvailable: !analyticsError,
+  };
+
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#050816] px-4 py-4 pb-28 text-white md:p-8 md:pb-10">
       <div className="mx-auto max-w-6xl space-y-6">
@@ -302,6 +358,8 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
             </p>
           </div>
         )}
+
+        <PublicProfileAnalyticsOverview analytics={analyticsSummary} />
 
         <section className="rounded-3xl border border-slate-800 bg-[#0b1220] p-5 shadow-xl sm:p-6 md:p-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -649,3 +707,161 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
     </main>
   );
 }
+
+type PublicProfileAnalyticsSummary = {
+  profileViews30: number;
+  qrScans30: number;
+  sampleClicks30: number;
+  bookingClicks30: number;
+  contactClicks30: number;
+  shareClicks30: number;
+  profileViews7: number;
+  qrScans7: number;
+  bookingClicks7: number;
+  conversionRate30: number;
+  analyticsAvailable: boolean;
+};
+
+function PublicProfileAnalyticsOverview({
+  analytics,
+}: {
+  analytics: PublicProfileAnalyticsSummary;
+}) {
+  const maxValue = Math.max(
+    analytics.profileViews30,
+    analytics.qrScans30,
+    analytics.sampleClicks30,
+    analytics.bookingClicks30,
+    analytics.contactClicks30,
+    analytics.shareClicks30,
+    1,
+  );
+
+  const funnelRows = [
+    { label: "Profile Views", value: analytics.profileViews30 },
+    { label: "QR Scans", value: analytics.qrScans30 },
+    { label: "Sample Report Clicks", value: analytics.sampleClicks30 },
+    { label: "Booking Clicks", value: analytics.bookingClicks30 },
+  ];
+
+  return (
+    <section className="rounded-3xl border border-teal-500/30 bg-[#0b1220] p-5 shadow-xl sm:p-6 md:p-8">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.25em] text-teal-300">
+            Analytics
+          </p>
+          <h2 className="mt-2 text-2xl font-black text-white">
+            Public profile performance
+          </h2>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">
+            Track how often your public profile, QR code, sample reports, and booking links are being used.
+          </p>
+        </div>
+
+        <div className="rounded-full border border-slate-700 bg-slate-950 px-4 py-2 text-xs font-black uppercase tracking-wide text-slate-300">
+          Last 30 Days
+        </div>
+      </div>
+
+      {!analytics.analyticsAvailable && (
+        <div className="mt-6 rounded-2xl border border-yellow-500/40 bg-yellow-950/20 p-4">
+          <p className="text-sm font-bold leading-6 text-yellow-100">
+            Analytics table is not available yet. Run the public_profile_analytics SQL, then visit your public profile to start collecting events.
+          </p>
+        </div>
+      )}
+
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <AnalyticsStatCard label="Profile Views" value={analytics.profileViews30} subValue={`${analytics.profileViews7} last 7 days`} />
+        <AnalyticsStatCard label="QR Scans" value={analytics.qrScans30} subValue={`${analytics.qrScans7} last 7 days`} />
+        <AnalyticsStatCard label="Sample Reports" value={analytics.sampleClicks30} subValue="Report opens" />
+        <AnalyticsStatCard label="Booking Clicks" value={analytics.bookingClicks30} subValue={`${analytics.bookingClicks7} last 7 days`} />
+        <AnalyticsStatCard label="Conversion" value={`${analytics.conversionRate30}%`} subValue="Bookings ÷ views" />
+      </div>
+
+      <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_0.75fr]">
+        <div className="rounded-2xl border border-slate-700 bg-slate-950/80 p-4 sm:p-5">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-xs font-black uppercase tracking-wide text-slate-500">
+                Engagement Funnel
+              </p>
+              <h3 className="mt-2 text-xl font-black text-white">
+                What visitors are doing
+              </h3>
+            </div>
+            <span className="rounded-full border border-teal-500/30 bg-teal-500/10 px-3 py-1 text-xs font-black text-teal-200">
+              30 days
+            </span>
+          </div>
+
+          <div className="mt-5 space-y-4">
+            {funnelRows.map((row) => {
+              const width = Math.max(6, Math.round((row.value / maxValue) * 100));
+              return (
+                <div key={row.label}>
+                  <div className="mb-2 flex items-center justify-between gap-3 text-sm">
+                    <span className="font-bold text-slate-300">{row.label}</span>
+                    <span className="font-black text-white">{row.value}</span>
+                  </div>
+                  <div className="h-3 overflow-hidden rounded-full bg-slate-800">
+                    <div
+                      className="h-full rounded-full bg-teal-400"
+                      style={{ width: `${width}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-700 bg-slate-950/80 p-4 sm:p-5">
+          <p className="text-xs font-black uppercase tracking-wide text-slate-500">
+            Other Actions
+          </p>
+          <h3 className="mt-2 text-xl font-black text-white">
+            Contact & sharing
+          </h3>
+
+          <div className="mt-5 space-y-3">
+            <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-[#020817] p-3">
+              <span className="text-sm font-bold text-slate-300">Contact Clicks</span>
+              <span className="text-lg font-black text-white">{analytics.contactClicks30}</span>
+            </div>
+            <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-[#020817] p-3">
+              <span className="text-sm font-bold text-slate-300">Share Clicks</span>
+              <span className="text-lg font-black text-white">{analytics.shareClicks30}</span>
+            </div>
+          </div>
+
+          <p className="mt-5 text-sm leading-6 text-slate-400">
+            These numbers update as clients, realtors, and homeowners interact with your public profile.
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function AnalyticsStatCard({
+  label,
+  value,
+  subValue,
+}: {
+  label: string;
+  value: number | string;
+  subValue: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-700 bg-slate-950/80 p-4 shadow-lg">
+      <p className="text-xs font-black uppercase tracking-wide text-slate-500">
+        {label}
+      </p>
+      <p className="mt-2 text-3xl font-black text-white">{value}</p>
+      <p className="mt-1 text-xs font-bold text-teal-300">{subValue}</p>
+    </div>
+  );
+}
+
