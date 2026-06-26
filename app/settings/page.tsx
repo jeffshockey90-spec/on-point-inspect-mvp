@@ -421,36 +421,36 @@ export default async function SettingsPage({
             </div>
 
             <div className="mt-6 grid gap-4 lg:grid-cols-2">
-              <label className="group flex cursor-pointer items-start gap-4 rounded-2xl border border-slate-700 bg-slate-950/80 p-4 transition hover:border-amber-400/70 hover:bg-slate-900 sm:p-5">
+              <label className="group grid w-full cursor-pointer grid-cols-[auto_minmax(0,1fr)] gap-4 rounded-2xl border border-slate-700 bg-slate-950/80 p-4 transition hover:border-amber-400/70 hover:bg-slate-900 sm:p-5">
                 <input
                   name="live_activity_enabled"
                   type="checkbox"
                   defaultChecked={company.live_activity_enabled !== false}
                   className="mt-1 h-5 w-5 shrink-0 accent-teal-400"
                 />
-                <span className="min-w-0 flex-1">
-                  <span className="block text-base font-black text-white">
+                <span className="min-w-0">
+                  <span className="block break-words text-base font-black leading-6 text-white">
                     Show live activity popups
                   </span>
-                  <span className="mt-1 block text-sm leading-6 text-slate-400">
+                  <span className="mt-1 block break-words text-sm leading-6 text-slate-400">
                     Shows the floating alert card when someone views a report,
                     signs an agreement, makes a payment, or submits a review.
                   </span>
                 </span>
               </label>
 
-              <label className="group flex cursor-pointer items-start gap-4 rounded-2xl border border-slate-700 bg-slate-950/80 p-4 transition hover:border-amber-400/70 hover:bg-slate-900 sm:p-5">
+              <label className="group grid w-full cursor-pointer grid-cols-[auto_minmax(0,1fr)] gap-4 rounded-2xl border border-slate-700 bg-slate-950/80 p-4 transition hover:border-amber-400/70 hover:bg-slate-900 sm:p-5">
                 <input
                   name="live_activity_sound_enabled"
                   type="checkbox"
                   defaultChecked={company.live_activity_sound_enabled !== false}
                   className="mt-1 h-5 w-5 shrink-0 accent-teal-400"
                 />
-                <span className="min-w-0 flex-1">
-                  <span className="block text-base font-black text-white">
+                <span className="min-w-0">
+                  <span className="block break-words text-base font-black leading-6 text-white">
                     Play notification sound
                   </span>
-                  <span className="mt-1 block text-sm leading-6 text-slate-400">
+                  <span className="mt-1 block break-words text-sm leading-6 text-slate-400">
                     Keep alerts visible but mute the sound when this is turned
                     off.
                   </span>
