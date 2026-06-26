@@ -27,7 +27,7 @@
 	<key>NSCameraUsageDescription</key>
 	<string>On Point Inspect uses the camera to capture inspection photos for reports.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>On Point Inspect uses the microphone only when recording inspection videos.</string>
+	<string>On Point Inspect uses the microphone to record inspection videos and dictate inspection findings.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>On Point Inspect uses speech recognition to convert dictated inspection notes into report findings.</string>
 	<key>LSApplicationCategoryType</key>
