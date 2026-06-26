@@ -613,7 +613,7 @@ export default async function SettingsPage({
               </span>
             </div>
 
-            <div className="grid gap-4 p-5 sm:p-6 lg:grid-cols-4">
+            <div className="grid gap-4 p-5 sm:p-6 lg:grid-cols-3">
               <div className="rounded-2xl border border-slate-700/80 bg-[#020817] p-4">
                 <p className="text-xs font-black uppercase tracking-wide text-slate-500">
                   Manage
@@ -622,7 +622,7 @@ export default async function SettingsPage({
                   Edit Profile
                 </h3>
                 <p className="mt-2 text-sm leading-6 text-slate-400">
-                  Headshot, bio, certifications, services, service areas, social links, and booking link.
+                  Headshot, bio, certifications, services, service areas, social links, booking link, and your branded QR marketing kit.
                 </p>
                 <Link
                   href="/settings/public-profile"
@@ -665,49 +665,24 @@ export default async function SettingsPage({
 
               <div className="rounded-2xl border border-teal-500/30 bg-teal-500/10 p-4">
                 <p className="text-xs font-black uppercase tracking-wide text-teal-300">
-                  Share Link
+                  QR & Marketing Kit
                 </p>
+                <h3 className="mt-2 text-xl font-black text-white">
+                  Branded QR Manager
+                </h3>
                 <p className="mt-2 text-sm leading-6 text-slate-200">
-                  Add this link to emails, social media, business cards, and report footers.
+                  Your personalized QR code, logo overlay, download PNG, print card, copy link, and share tools now live in the dedicated public profile manager.
                 </p>
                 <p className="mt-3 break-all rounded-xl border border-teal-500/30 bg-slate-950/80 p-3 text-xs font-bold text-white">
                   {publicProfileUrl || "Save a profile slug to generate your public link."}
                 </p>
+                <Link
+                  href="/settings/public-profile#qr-card"
+                  className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-teal-500 px-4 py-3 text-sm font-black text-slate-950 hover:bg-teal-400"
+                >
+                  Open QR Marketing Kit →
+                </Link>
               </div>
-
-              <div className="rounded-2xl border border-cyan-500/40 bg-cyan-500/10 p-4">
-                <p className="text-xs font-black uppercase tracking-wide text-cyan-300">
-                  QR Code
-                </p>
-                <h3 className="mt-2 text-xl font-black text-white">
-                  Scan to Open Profile
-                </h3>
-                <p className="mt-2 text-sm leading-6 text-slate-300">
-                  Use this on business cards, realtor flyers, signs, or social posts.
-                </p>
-
-                {publicProfileUrl ? (
-                  <div className="mt-4 rounded-2xl border border-cyan-500/30 bg-slate-950/80 p-4 text-center">
-                    <img
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(publicProfileUrl)}`}
-                      alt="Public profile QR code"
-                      className="mx-auto h-40 w-40 rounded-xl border border-slate-700 bg-white p-2"
-                    />
-                    <a
-                      href={`https://api.qrserver.com/v1/create-qr-code/?size=1000x1000&data=${encodeURIComponent(publicProfileUrl)}`}
-                      download="public-profile-qr-code.png"
-                      className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-cyan-500 px-4 py-3 text-sm font-black text-slate-950 hover:bg-cyan-400"
-                    >
-                      Download QR
-                    </a>
-                  </div>
-                ) : (
-                  <div className="mt-4 rounded-xl border border-slate-700 bg-slate-950/80 p-4 text-sm font-bold text-slate-400">
-                    Save a profile slug first to generate your QR code.
-                  </div>
-                )}
-              </div>
-            </div>
           </section>
 
           <section className="rounded-3xl border border-slate-800 bg-[#0b1220] p-5 sm:p-6 md:p-8">
