@@ -683,6 +683,7 @@ export default async function SettingsPage({
                   Open QR Marketing Kit →
                 </Link>
               </div>
+            </div>
           </section>
 
           <section className="rounded-3xl border border-slate-800 bg-[#0b1220] p-5 sm:p-6 md:p-8">
