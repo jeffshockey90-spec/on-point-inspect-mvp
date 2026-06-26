@@ -11,7 +11,6 @@ type PublicProfileActionsProps = {
 
 const TEAL = "#14b8a6";
 const DARK = "#020617";
-const FALLBACK_LOGO = "/logo.jpg?v=2";
 
 function cleanFilename(value: string) {
   return String(value || "inspector-profile")
@@ -45,7 +44,8 @@ export default function PublicProfileActions({
   const [error, setError] = useState("");
 
   const fileBase = useMemo(() => cleanFilename(companyName), [companyName]);
-  const centerLogo = String(logoUrl || FALLBACK_LOGO).trim();
+  const centerLogo = String(logoUrl || "").trim();
+  const hasCompanyLogo = centerLogo.length > 0;
 
   const usageBadges = [
     "Business Cards",
@@ -134,7 +134,7 @@ export default function PublicProfileActions({
   }
 
   async function downloadPng() {
-    if (!svgMarkup || !url) return;
+    if (!svgMarkup || !url || !hasCompanyLogo) return;
 
     const image = new Image();
     image.crossOrigin = "anonymous";
@@ -221,7 +221,7 @@ export default function PublicProfileActions({
   }
 
   function printQrCard() {
-    if (!svgMarkup || !url) return;
+    if (!svgMarkup || !url || !hasCompanyLogo) return;
 
     const logoHtml = centerLogo
       ? `<div class="logo-wrap"><img src="${escapeHtml(centerLogo)}" alt="Logo" /></div>`
@@ -322,6 +322,17 @@ export default function PublicProfileActions({
             </p>
           )}
 
+          {!hasCompanyLogo && (
+            <div className="mt-4 rounded-xl border border-amber-500/40 bg-amber-950/20 p-3">
+              <p className="text-sm font-bold text-amber-300">
+                Upload your company logo to create a branded QR code.
+              </p>
+              <p className="mt-1 text-xs leading-5 text-amber-100/80">
+                Download and print are disabled until a company logo is uploaded.
+              </p>
+            </div>
+          )}
+
           <div className="mt-6 w-full overflow-hidden rounded-2xl border border-slate-700 bg-slate-950 p-4">
             <p className="text-xs font-black uppercase tracking-[0.22em] text-teal-300">
               Downloads
@@ -330,7 +341,7 @@ export default function PublicProfileActions({
               <button
                 type="button"
                 onClick={downloadPng}
-                disabled={!ready}
+                disabled={!ready || !hasCompanyLogo}
                 className="block w-full max-w-full rounded-xl bg-teal-500 px-4 py-3 text-center text-sm font-black text-slate-950 transition hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Download PNG
@@ -339,7 +350,7 @@ export default function PublicProfileActions({
               <button
                 type="button"
                 onClick={printQrCard}
-                disabled={!ready}
+                disabled={!ready || !hasCompanyLogo}
                 className="block w-full max-w-full rounded-xl border border-teal-500/60 px-4 py-3 text-center text-sm font-black text-teal-300 transition hover:bg-teal-500/10 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Print Card
@@ -376,7 +387,7 @@ export default function PublicProfileActions({
                 <div className="aspect-square w-full rounded-2xl bg-white" />
               )}
 
-              {centerLogo && (
+              {hasCompanyLogo ? (
                 <div className="absolute left-1/2 top-1/2 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center overflow-hidden rounded-2xl border-4 border-teal-500 bg-[#020617] p-2 shadow-xl">
                   <img
                     src={centerLogo}
@@ -386,6 +397,14 @@ export default function PublicProfileActions({
                       event.currentTarget.style.display = "none";
                     }}
                   />
+                </div>
+              ) : (
+                <div className="absolute left-1/2 top-1/2 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-2xl border-4 border-amber-500 bg-[#020617] p-2 text-center shadow-xl">
+                  <span className="text-[9px] font-black uppercase leading-tight text-amber-300">
+                    Upload
+                    <br />
+                    Logo
+                  </span>
                 </div>
               )}
             </div>
@@ -402,6 +421,15 @@ export default function PublicProfileActions({
             <p className="mt-1 text-center text-xs leading-5 text-slate-400">
               Learn more and request an inspection.
             </p>
+
+            {!hasCompanyLogo && (
+              <div className="mt-4 rounded-xl border border-amber-500/40 bg-amber-950/20 p-3">
+                <p className="text-xs font-bold text-amber-300">
+                  Upload company logo to brand this QR.
+                </p>
+              </div>
+            )}
+
             <p className="mt-4 text-center text-[10px] font-black uppercase tracking-[0.28em] text-slate-500">
               Powered by On Point Inspect
             </p>
