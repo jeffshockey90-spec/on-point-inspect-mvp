@@ -120,7 +120,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
 
   if (!company) {
     return (
-      <main className="min-h-screen bg-[#050816] px-4 py-4 pb-28 text-white md:p-8 md:pb-10">
+      <main className="min-h-screen bg-[#050816] px-4 py-4 pb-72 text-white md:p-8 md:pb-72">
         <div className="mx-auto max-w-5xl rounded-3xl border border-red-500/40 bg-red-950/20 p-5 sm:p-8">
           <h1 className="text-2xl font-black text-red-300 sm:text-3xl">
             Company profile not found
@@ -195,7 +195,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
       : 15;
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[#050816] px-4 py-4 pb-28 text-white md:p-8 md:pb-10">
+    <main className="min-h-screen overflow-x-hidden bg-[#050816] px-4 py-4 pb-72 text-white md:p-8 md:pb-72">
       <div className="mx-auto max-w-6xl space-y-6">
         <section className="rounded-3xl border border-slate-800 bg-[#0b1220] p-5 shadow-2xl shadow-black/20 sm:p-6 md:p-8">
           <p className="text-xs font-black uppercase tracking-[0.25em] text-teal-300 sm:tracking-[0.35em]">
@@ -465,7 +465,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                 card payment fee to the client.
               </p>
 
-              <div className="mt-5 grid gap-4 md:grid-cols-2">
+              <div className="mt-5 grid gap-4 lg:grid-cols-2">
                 <label className="flex flex-col gap-3 rounded-xl border border-slate-700 bg-[#020617] p-4 sm:flex-row sm:items-start">
                   <input
                     name="online_payment_fee_enabled"
@@ -507,7 +507,9 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
 
         <PushNotificationSetup />
 
-        <DeleteAccountSection />
+        <div className="pb-80">
+          <DeleteAccountSection />
+        </div>
       </div>
     </main>
   );
