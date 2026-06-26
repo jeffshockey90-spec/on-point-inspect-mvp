@@ -544,14 +544,18 @@ function isNativeCapacitorApp() {
   try {
     if (Capacitor.isNativePlatform()) return true;
   } catch {
-    // Fall back to the runtime bridge check below.
+    // Fall back to the global Capacitor bridge below.
   }
 
   const capacitor = (window as any).Capacitor;
+  const platform = capacitor?.getPlatform?.();
+
   return Boolean(
     capacitor?.isNativePlatform?.() ||
-      capacitor?.getPlatform?.() === "ios" ||
-      capacitor?.getPlatform?.() === "android"
+      platform === "ios" ||
+      platform === "android" ||
+      platform === "iphone" ||
+      platform === "ipad"
   );
 }
 
@@ -587,19 +591,22 @@ function FieldPageContent() {
   const [online, setOnline] = useState(true);
   const [message, setMessage] = useState("");
   const [queueTick, setQueueTick] = useState(0);
-  const [nativeApp, setNativeApp] = useState(false);
   const voiceRecognitionRef = useRef<any>(null);
   const voiceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const voiceTranscriptRef = useRef("");
   const voiceStopRequestedRef = useRef(false);
 
+  const [nativeApp, setNativeApp] = useState(false);
+
+  useEffect(() => {
+    setNativeApp(isNativeCapacitorApp());
+  }, []);
   const offlineSummary = useMemo(
     () => getOfflineQueueSummary(),
     [message, photos.length, online, queueTick]
   );
 
   useEffect(() => {
-    setNativeApp(isNativeCapacitorApp());
     setOnline(isOnline());
     loadReports();
 
@@ -1213,12 +1220,21 @@ function FieldPageContent() {
 
       setDictating(true);
       setPhotoType("finding");
-      setMessage("Starting iPhone dictation...");
+      setMessage("Requesting microphone and speech recognition permission...");
 
-      const available = await NativeSpeechRecognition.available();
-      if (!available?.available) {
+      const platform = (() => {
+        try {
+          return Capacitor.getPlatform();
+        } catch {
+          return (window as any)?.Capacitor?.getPlatform?.() || "unknown";
+        }
+      })();
+
+      if (!isNativeCapacitorApp()) {
         finishVoiceDictation();
-        setMessage("Native speech recognition is not available on this device. Use the keyboard microphone in the Quick Inspector Note field, then tap Generate From Note.");
+        setMessage(
+          `Native speech was not started because this app is being detected as "${platform}" instead of iOS. This means the Capacitor native bridge is not available on this screen.`
+        );
         return;
       }
 
@@ -1235,11 +1251,25 @@ function FieldPageContent() {
 
       if (!speechGranted || !microphoneGranted) {
         finishVoiceDictation();
-        setMessage("Speech or microphone permission was not granted. Allow microphone and speech recognition access, then try again.");
+        setMessage(
+          `Speech or microphone permission was not granted. Current permission response: ${JSON.stringify(permissionAny)}`
+        );
+        return;
+      }
+
+      setMessage("Checking native speech recognition availability...");
+
+      const available = await NativeSpeechRecognition.available();
+      if (!available?.available) {
+        finishVoiceDictation();
+        setMessage(
+          "Native speech recognition is not available on this device. Make sure Siri & Dictation are enabled in iPhone Settings, then try again."
+        );
         return;
       }
 
       await NativeSpeechRecognition.removeAllListeners();
+
       await NativeSpeechRecognition.addListener("partialResults", (data: any) => {
         const transcript = (data?.matches || [])
           .join(" ")
@@ -1252,12 +1282,38 @@ function FieldPageContent() {
         }
       });
 
-      await NativeSpeechRecognition.start({
+      await NativeSpeechRecognition.addListener("listeningState", (data: any) => {
+        if (data?.status === "started") {
+          setMessage("Listening... describe the finding. Tap Stop Listening when you are done.");
+        }
+
+        if (data?.status === "stopped" && !voiceStopRequestedRef.current) {
+          const transcript = String(voiceTranscriptRef.current || "").trim();
+          if (transcript) {
+            void finishDictationAndGenerate(transcript);
+          } else {
+            finishVoiceDictation();
+            setMessage("Listening stopped, but no voice note was captured. Try again or type the note manually.");
+          }
+        }
+      });
+
+      const result = await NativeSpeechRecognition.start({
         language: "en-US",
         maxResults: 1,
         partialResults: true,
         popup: false,
       });
+
+      const immediateTranscript = (result?.matches || [])
+        .join(" ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+      if (immediateTranscript) {
+        voiceTranscriptRef.current = immediateTranscript;
+        setNote(immediateTranscript);
+      }
 
       setMessage("Listening... describe the finding. Tap Stop Listening when you are done.");
     } catch (error: any) {
@@ -1271,7 +1327,12 @@ function FieldPageContent() {
       finishVoiceDictation();
       voiceTranscriptRef.current = "";
       voiceStopRequestedRef.current = false;
-      setMessage(error?.message || "Native voice dictation could not start.");
+      setMessage(
+        error?.message ||
+          error?.errorMessage ||
+          JSON.stringify(error) ||
+          "Native voice dictation could not start."
+      );
     }
   }
 
@@ -1290,11 +1351,8 @@ function FieldPageContent() {
   }
 
   async function dictateFinding() {
-    const shouldUseNativeSpeech = nativeApp || isNativeCapacitorApp();
-
     if (dictating) {
-      if (shouldUseNativeSpeech) {
-        setNativeApp(true);
+      if (nativeApp) {
         await stopNativeDictation();
         return;
       }
@@ -1330,8 +1388,7 @@ function FieldPageContent() {
       return;
     }
 
-    if (shouldUseNativeSpeech) {
-      setNativeApp(true);
+    if (nativeApp) {
       await startNativeDictation();
       return;
     }
