@@ -130,6 +130,10 @@ export default function GlobalLiveActivity() {
   const [latestEvent, setLatestEvent] = useState<LiveEvent | null>(null);
   const [visible, setVisible] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(false);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
+  const [companyId, setCompanyId] = useState<string>("");
+  const [liveActivityEnabled, setLiveActivityEnabled] = useState(true);
+  const [liveActivitySoundEnabled, setLiveActivitySoundEnabled] = useState(true);
 
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const notificationSoundRef = useRef<HTMLAudioElement | null>(null);
@@ -155,6 +159,118 @@ export default function GlobalLiveActivity() {
     notificationSoundRef.current.preload = "auto";
     notificationSoundRef.current.volume = 0.65;
   }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadLiveActivitySettings() {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (!mounted) return;
+
+        if (!user) {
+          setSettingsLoaded(true);
+          setLiveActivityEnabled(false);
+          setLiveActivitySoundEnabled(false);
+          return;
+        }
+
+        const { data: companyUser } = await supabase
+          .from("company_users")
+          .select("company_id")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (!mounted) return;
+
+        if (!companyUser?.company_id) {
+          setSettingsLoaded(true);
+          setCompanyId("");
+          setLiveActivityEnabled(false);
+          setLiveActivitySoundEnabled(false);
+          return;
+        }
+
+        setCompanyId(String(companyUser.company_id));
+
+        const { data: company, error } = await supabase
+          .from("companies")
+          .select("live_activity_enabled, live_activity_sound_enabled")
+          .eq("id", companyUser.company_id)
+          .maybeSingle();
+
+        if (!mounted) return;
+
+        if (error) {
+          console.error("Live activity settings load error:", error);
+          setSettingsLoaded(true);
+          return;
+        }
+
+        const enabled = company?.live_activity_enabled !== false;
+        setLiveActivityEnabled(enabled);
+        setLiveActivitySoundEnabled(company?.live_activity_sound_enabled !== false);
+        setSettingsLoaded(true);
+
+        if (!enabled) {
+          setVisible(false);
+          setLatestEvent(null);
+        }
+      } catch (error) {
+        console.error("Live activity settings failed:", error);
+        if (mounted) setSettingsLoaded(true);
+      }
+    }
+
+    loadLiveActivitySettings();
+
+    window.addEventListener("focus", loadLiveActivitySettings);
+    document.addEventListener("visibilitychange", loadLiveActivitySettings);
+
+    return () => {
+      mounted = false;
+      window.removeEventListener("focus", loadLiveActivitySettings);
+      document.removeEventListener("visibilitychange", loadLiveActivitySettings);
+    };
+  }, [supabase]);
+
+  useEffect(() => {
+    if (!companyId) return;
+
+    const channel = supabase
+      .channel(`company-live-activity-settings-${companyId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "companies",
+          filter: `id=eq.${companyId}`,
+        },
+        (payload) => {
+          const company = payload.new as any;
+          const enabled = company?.live_activity_enabled !== false;
+
+          setLiveActivityEnabled(enabled);
+          setLiveActivitySoundEnabled(company?.live_activity_sound_enabled !== false);
+          setSettingsLoaded(true);
+
+          if (!enabled) {
+            setVisible(false);
+            setLatestEvent(null);
+            if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [companyId, supabase]);
 
   useEffect(() => {
     function unlockSound() {
@@ -184,7 +300,7 @@ export default function GlobalLiveActivity() {
   function playNotificationSound() {
     const audio = notificationSoundRef.current;
 
-    if (!audio || !soundEnabled) return;
+    if (!audio || !soundEnabled || !liveActivitySoundEnabled) return;
 
     try {
       audio.pause();
@@ -226,6 +342,11 @@ export default function GlobalLiveActivity() {
   }, [supabase]);
 
   useEffect(() => {
+    if (!settingsLoaded || !liveActivityEnabled) {
+      setVisible(false);
+      return;
+    }
+
     if (inspectionIds.length === 0) return;
 
     const channel = supabase
@@ -238,6 +359,8 @@ export default function GlobalLiveActivity() {
           table: "inspection_view_events",
         },
         (payload) => {
+          if (!liveActivityEnabled) return;
+
           const event = payload.new as LiveEvent;
 
           if (event.id && lastEventIdRef.current === event.id) return;
@@ -280,9 +403,19 @@ export default function GlobalLiveActivity() {
       if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
       supabase.removeChannel(channel);
     };
-  }, [inspectionIds, inspectionMap, router, supabase, soundEnabled]);
+  }, [
+    inspectionIds,
+    inspectionMap,
+    supabase,
+    soundEnabled,
+    settingsLoaded,
+    liveActivityEnabled,
+    liveActivitySoundEnabled,
+  ]);
 
-  if (!latestEvent || !visible) return null;
+  if (!settingsLoaded || !liveActivityEnabled || !latestEvent || !visible) {
+    return null;
+  }
 
   const inspectionId = String(
     latestEvent.inspection_id_bigint || latestEvent.inspection_id || ""
