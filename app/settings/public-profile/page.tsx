@@ -264,7 +264,7 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
                 </div>
               </div>
 
-              <div id="qr-card" className="min-w-0 overflow-hidden rounded-2xl border border-cyan-500/30 bg-cyan-500/10 p-4 sm:p-5">
+              <div id="qr-card" className="rounded-2xl border border-cyan-500/30 bg-cyan-500/10 p-4 sm:p-5">
                 <p className="text-xs font-black uppercase tracking-wide text-cyan-300">
                   QR Code & Sharing
                 </p>
@@ -274,7 +274,7 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
                 <p className="mt-2 text-sm leading-6 text-slate-300">
                   This is the QR/share area you were looking for. It appears here as soon as your profile has a public slug.
                 </p>
-                <div className="mt-4 min-w-0 overflow-hidden rounded-xl border border-slate-700 bg-slate-950/80 p-4">
+                <div className="mt-4 rounded-xl border border-slate-700 bg-slate-950/80 p-4">
                   <PublicProfileActions
                     profileUrl={publicProfileUrl}
                     logoUrl={company.logo_url || ""}
@@ -382,14 +382,14 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
             </div>
 
             <div className="mt-6 grid gap-4 md:grid-cols-2">
-              <label className="flex flex-col gap-3 rounded-2xl border border-cyan-500/40 bg-cyan-500/10 p-4 md:col-span-2 sm:flex-row sm:items-start">
+              <label className="grid grid-cols-[auto_minmax(0,1fr)] gap-4 overflow-hidden rounded-2xl border border-cyan-500/40 bg-cyan-500/10 p-4 md:col-span-2">
                 <input
                   name="public_profile_enabled"
                   type="checkbox"
                   defaultChecked={company.public_profile_enabled === true}
                   className="mt-1 h-5 w-5 shrink-0 accent-cyan-400"
                 />
-                <span className="min-w-0 flex-1">
+                <span className="min-w-0 break-words">
                   <span className="block break-words text-base font-black text-white">
                     Publish my inspector profile
                   </span>
