@@ -21,6 +21,7 @@ import SendReviewRequestButton from "../../../components/SendReviewRequestButton
 import DeleteSummaryButton from "../../../components/DeleteSummaryButton";
 import FastLinkButton from "../../../components/FastLinkButton";
 import CreateDemoReportButton from "../../../components/CreateDemoReportButton";
+import SampleReportManager from "../../../components/SampleReportManager";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -250,6 +251,40 @@ function formatEmailStatusDate(value: any) {
     hour: "numeric",
     minute: "2-digit",
   });
+}
+
+function getSampleReportTitle(inspection: any) {
+  return (
+    inspection?.address ||
+    inspection?.property_address ||
+    inspection?.client_name ||
+    "Sample Inspection Report"
+  );
+}
+
+function getSampleReportDescription(inspection: any) {
+  const service = String(
+    inspection?.service_mode ||
+      inspection?.inspection_type ||
+      inspection?.services ||
+      "Home Inspection"
+  ).trim();
+
+  return `${service || "Home Inspection"} sample report from On Point Inspect.`;
+}
+
+function getSampleReportCoverUrl(inspection: any) {
+  return (
+    inspection?.property_image ||
+    inspection?.street_view_url ||
+    inspection?.cover_photo_url ||
+    inspection?.google_photo_url ||
+    inspection?.property_photo_url ||
+    inspection?.place_photo_url ||
+    inspection?.photo_url ||
+    inspection?.image_url ||
+    ""
+  );
 }
 
 function getLatestEmailLog(logs: any[], type: string) {
@@ -777,6 +812,73 @@ export default async function ReportPage({ params }: PageProps) {
     redirect(`/share/${inspectionId}`);
   }
 
+  async function addSampleReportToPublicProfile(formData: FormData) {
+    "use server";
+
+    const supabase = await createSupabaseServerClient();
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) redirect("/login");
+
+    const inspectionId = String(formData.get("inspection_id") || "");
+    const shareUrl = String(formData.get("share_url") || "").trim();
+
+    if (!inspectionId || !shareUrl) {
+      redirect(`/reports/${inspectionId || id}?sample_error=missing`);
+    }
+
+    const { data: ownedInspection, error: ownedInspectionError } = await supabase
+      .from("inspections")
+      .select("*")
+      .eq("id", inspectionId)
+      .eq("inspector_id", user.id)
+      .single();
+
+    if (ownedInspectionError || !ownedInspection) {
+      redirect("/reports");
+    }
+
+    const { data: companyUser } = await supabase
+      .from("company_users")
+      .select("company_id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (!companyUser?.company_id) {
+      redirect(`/reports/${inspectionId}?sample_error=no_company`);
+    }
+
+    const serviceSupabase = createSupabaseStorageClient() || supabase;
+
+    const { error: sampleError } = await serviceSupabase
+      .from("public_sample_reports")
+      .upsert(
+        {
+          company_id: companyUser.company_id,
+          inspection_id: Number(inspectionId),
+          title: getSampleReportTitle(ownedInspection),
+          description: getSampleReportDescription(ownedInspection),
+          cover_image_url: getSampleReportCoverUrl(ownedInspection),
+          share_url: shareUrl,
+          is_enabled: true,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "company_id,inspection_id" },
+      );
+
+    if (sampleError) {
+      console.error("Add sample report error:", sampleError);
+      redirect(`/reports/${inspectionId}?sample_error=1`);
+    }
+
+    revalidatePath(`/reports/${inspectionId}`);
+    revalidatePath("/inspectors");
+    redirect(`/reports/${inspectionId}?sample_added=1`);
+  }
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -1161,6 +1263,14 @@ export default async function ReportPage({ params }: PageProps) {
     : `/share/${inspection.id}`;
 
   const editableEnvironmentalHref = `/environmental-report/${inspection.id}`;
+  const sampleShareTitle = getSampleReportTitle(inspection);
+  const sampleShareDescription = getSampleReportDescription(inspection);
+
+  const { data: existingSampleReport } = await supabase
+    .from("public_sample_reports")
+    .select("id, title, description, is_enabled")
+    .eq("inspection_id", inspection.id)
+    .maybeSingle();
 
   return (
     <main className="min-h-screen bg-[#020617] text-white">
@@ -1306,6 +1416,14 @@ export default async function ReportPage({ params }: PageProps) {
               Capture, Equipment Analyzer, repair requests, and findings.
             </p>
           </div>
+
+          <SampleReportManager
+            inspectionId={String(inspection.id)}
+            initialEnabled={existingSampleReport?.is_enabled === true}
+            initialTitle={existingSampleReport?.title || sampleShareTitle}
+            initialDescription={existingSampleReport?.description || sampleShareDescription}
+            shareUrl={shareHref}
+          />
 
           <section className="mb-8 rounded-2xl border border-slate-700 bg-[#071224] p-4">
             <h2 className="text-2xl font-bold text-teal-300">
