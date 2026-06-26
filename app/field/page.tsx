@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Capacitor } from "@capacitor/core";
-import { SpeechRecognition as NativeSpeechRecognition } from "@capacitor-community/speech-recognition";
+import { SpeechRecognition as NativeSpeechRecognition } from "@capgo/capacitor-speech-recognition";
 import { supabase } from "../../lib/supabaseClient";
 import CommentLibrary from "../../components/CommentLibrary";
 import OfflineSyncStatus from "../../components/OfflineSyncStatus";
@@ -1384,8 +1384,7 @@ function FieldPageContent() {
     }
 
     if (!online) {
-      setMessage("Voice-to-finding needs internet for AI generation. Save notes offline, then generate when service returns.");
-      return;
+      setMessage("Voice dictation can start now. AI generation will still need internet after the note is captured.");
     }
 
     if (nativeApp) {
@@ -1726,7 +1725,7 @@ function FieldPageContent() {
                 <button
                   type="button"
                   onClick={dictateFinding}
-                  disabled={generating || analyzingPhoto || analyzingEquipment || saving || savingEquipment || !online || photoType === "reference_photo"}
+                  disabled={generating || analyzingPhoto || analyzingEquipment || saving || savingEquipment || photoType === "reference_photo"}
                   className="w-full rounded-xl border border-emerald-500 bg-emerald-500/10 p-4 text-lg font-bold text-emerald-200 transition active:scale-[0.98] hover:bg-emerald-500 hover:text-black disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
                 >
                   {dictating ? "⏹ Stop Listening" : "🎤 Dictate Finding"}
