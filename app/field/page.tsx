@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { Capacitor } from "@capacitor/core";
 import { SpeechRecognition as NativeSpeechRecognition } from "@capacitor-community/speech-recognition";
 import { supabase } from "../../lib/supabaseClient";
 import CommentLibrary from "../../components/CommentLibrary";
@@ -539,8 +540,19 @@ export default function FieldPage() {
 
 function isNativeCapacitorApp() {
   if (typeof window === "undefined") return false;
+
+  try {
+    if (Capacitor.isNativePlatform()) return true;
+  } catch {
+    // Fall back to the runtime bridge check below.
+  }
+
   const capacitor = (window as any).Capacitor;
-  return Boolean(capacitor?.isNativePlatform?.());
+  return Boolean(
+    capacitor?.isNativePlatform?.() ||
+      capacitor?.getPlatform?.() === "ios" ||
+      capacitor?.getPlatform?.() === "android"
+  );
 }
 
 function safeSectionFolder(section: string) {
@@ -575,18 +587,19 @@ function FieldPageContent() {
   const [online, setOnline] = useState(true);
   const [message, setMessage] = useState("");
   const [queueTick, setQueueTick] = useState(0);
+  const [nativeApp, setNativeApp] = useState(false);
   const voiceRecognitionRef = useRef<any>(null);
   const voiceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const voiceTranscriptRef = useRef("");
   const voiceStopRequestedRef = useRef(false);
 
-  const nativeApp = useMemo(() => isNativeCapacitorApp(), []);
   const offlineSummary = useMemo(
     () => getOfflineQueueSummary(),
     [message, photos.length, online, queueTick]
   );
 
   useEffect(() => {
+    setNativeApp(isNativeCapacitorApp());
     setOnline(isOnline());
     loadReports();
 
@@ -1200,7 +1213,7 @@ function FieldPageContent() {
 
       setDictating(true);
       setPhotoType("finding");
-      setMessage("Listening... describe the finding. Tap Stop Listening when you are done.");
+      setMessage("Starting iPhone dictation...");
 
       const available = await NativeSpeechRecognition.available();
       if (!available?.available) {
@@ -1245,6 +1258,8 @@ function FieldPageContent() {
         partialResults: true,
         popup: false,
       });
+
+      setMessage("Listening... describe the finding. Tap Stop Listening when you are done.");
     } catch (error: any) {
       try {
         await NativeSpeechRecognition.stop();
@@ -1275,8 +1290,11 @@ function FieldPageContent() {
   }
 
   async function dictateFinding() {
+    const shouldUseNativeSpeech = nativeApp || isNativeCapacitorApp();
+
     if (dictating) {
-      if (nativeApp) {
+      if (shouldUseNativeSpeech) {
+        setNativeApp(true);
         await stopNativeDictation();
         return;
       }
@@ -1312,7 +1330,8 @@ function FieldPageContent() {
       return;
     }
 
-    if (nativeApp) {
+    if (shouldUseNativeSpeech) {
+      setNativeApp(true);
       await startNativeDictation();
       return;
     }
