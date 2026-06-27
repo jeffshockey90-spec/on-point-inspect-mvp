@@ -360,67 +360,106 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
           </div>
         )}
 
-        <PublicProfileAnalyticsOverview analytics={analyticsSummary} />
+        <div id="profile-analytics">
+          <PublicProfileAnalyticsOverview analytics={analyticsSummary} />
+        </div>
 
         <section className="rounded-3xl border border-slate-800 bg-[#0b1220] p-5 shadow-xl sm:p-6 md:p-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.25em] text-teal-300">
-                Portfolio Builder
+                Quick Actions
               </p>
               <h2 className="mt-2 text-2xl font-black text-white">
-                Finish the public marketing page
+                Public profile fast buttons
               </h2>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">
-                Work through these cards from top to bottom. Everything here feeds the public inspector portfolio and QR page.
+                Jump straight to the profile tools inspectors use most: identity, reviews, services, QR sharing, analytics, and preview.
               </p>
             </div>
 
             <Link
               href={publicProfileUrl || "/settings/public-profile"}
               target={publicProfileUrl ? "_blank" : undefined}
-              className="rounded-xl border border-teal-400/60 px-5 py-3 text-center font-black text-teal-200 transition hover:bg-teal-500 hover:text-slate-950"
+              className="rounded-xl border border-teal-400/60 px-5 py-3 text-center font-black text-teal-200 transition active:scale-[0.98] hover:bg-teal-500 hover:text-slate-950 [touch-action:manipulation]"
             >
               Preview Portfolio
             </Link>
           </div>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             <a
               href="#identity"
-              className="rounded-2xl border border-cyan-500/30 bg-cyan-500/10 p-4 transition hover:-translate-y-0.5 hover:border-cyan-300"
+              className="group flex min-h-[116px] items-center gap-4 rounded-2xl border border-cyan-500/30 bg-cyan-500/10 p-4 transition active:scale-[0.98] hover:-translate-y-0.5 hover:border-cyan-300 hover:bg-cyan-500/15 [touch-action:manipulation]"
             >
-              <p className="text-2xl">👤</p>
-              <h3 className="mt-3 font-black text-white">Identity</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-300">Logo, headshot, headline, contact info, and company bio.</p>
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-cyan-500/15 text-2xl">👤</span>
+              <span className="min-w-0">
+                <span className="block font-black text-white">Identity</span>
+                <span className="mt-1 block text-sm leading-5 text-slate-300">Logo, headshot, headline, contact info, and company bio.</span>
+                <span className="mt-2 block text-sm font-black text-cyan-300 group-hover:text-cyan-200">Open →</span>
+              </span>
+            </a>
+
+            <a
+              href="#google-business"
+              className="group flex min-h-[116px] items-center gap-4 rounded-2xl border border-yellow-500/30 bg-yellow-500/10 p-4 transition active:scale-[0.98] hover:-translate-y-0.5 hover:border-yellow-300 hover:bg-yellow-500/15 [touch-action:manipulation]"
+            >
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-yellow-500/15 text-2xl">⭐</span>
+              <span className="min-w-0">
+                <span className="block font-black text-white">Google Reviews</span>
+                <span className="mt-1 block text-sm leading-5 text-slate-300">Connect, sync, and preview Google rating and review snippets.</span>
+                <span className="mt-2 block text-sm font-black text-yellow-300 group-hover:text-yellow-200">Open →</span>
+              </span>
             </a>
 
             <a
               href="#services"
-              className="rounded-2xl border border-teal-500/30 bg-teal-500/10 p-4 transition hover:-translate-y-0.5 hover:border-teal-300"
+              className="group flex min-h-[116px] items-center gap-4 rounded-2xl border border-teal-500/30 bg-teal-500/10 p-4 transition active:scale-[0.98] hover:-translate-y-0.5 hover:border-teal-300 hover:bg-teal-500/15 [touch-action:manipulation]"
             >
-              <p className="text-2xl">🏅</p>
-              <h3 className="mt-3 font-black text-white">Services & Credentials</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-300">Service areas, certifications, services offered, and license info.</p>
-            </a>
-
-            <a
-              href="#external-links"
-              className="rounded-2xl border border-yellow-500/30 bg-yellow-500/10 p-4 transition hover:-translate-y-0.5 hover:border-yellow-300"
-            >
-              <p className="text-2xl">⭐</p>
-              <h3 className="mt-3 font-black text-white">Reputation</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-300">Google reviews, Facebook, website, and booking link.</p>
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-teal-500/15 text-2xl">🏅</span>
+              <span className="min-w-0">
+                <span className="block font-black text-white">Services & Credentials</span>
+                <span className="mt-1 block text-sm leading-5 text-slate-300">Service areas, certifications, services offered, and license info.</span>
+                <span className="mt-2 block text-sm font-black text-teal-300 group-hover:text-teal-200">Open →</span>
+              </span>
             </a>
 
             <a
               href="#qr-card"
-              className="rounded-2xl border border-fuchsia-500/30 bg-fuchsia-500/10 p-4 transition hover:-translate-y-0.5 hover:border-fuchsia-300"
+              className="group flex min-h-[116px] items-center gap-4 rounded-2xl border border-fuchsia-500/30 bg-fuchsia-500/10 p-4 transition active:scale-[0.98] hover:-translate-y-0.5 hover:border-fuchsia-300 hover:bg-fuchsia-500/15 [touch-action:manipulation]"
             >
-              <p className="text-2xl">▦</p>
-              <h3 className="mt-3 font-black text-white">QR & Sharing</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-300">Copy, share, download, and print the public profile QR card.</p>
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-fuchsia-500/15 text-2xl">▦</span>
+              <span className="min-w-0">
+                <span className="block font-black text-white">QR & Sharing</span>
+                <span className="mt-1 block text-sm leading-5 text-slate-300">Copy, share, download, and print the public profile QR card.</span>
+                <span className="mt-2 block text-sm font-black text-fuchsia-300 group-hover:text-fuchsia-200">Open →</span>
+              </span>
             </a>
+
+            <a
+              href="#profile-analytics"
+              className="group flex min-h-[116px] items-center gap-4 rounded-2xl border border-blue-500/30 bg-blue-500/10 p-4 transition active:scale-[0.98] hover:-translate-y-0.5 hover:border-blue-300 hover:bg-blue-500/15 [touch-action:manipulation]"
+            >
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-500/15 text-2xl">📊</span>
+              <span className="min-w-0">
+                <span className="block font-black text-white">Profile Analytics</span>
+                <span className="mt-1 block text-sm leading-5 text-slate-300">Views, QR scans, sample clicks, contact clicks, and bookings.</span>
+                <span className="mt-2 block text-sm font-black text-blue-300 group-hover:text-blue-200">Open →</span>
+              </span>
+            </a>
+
+            <Link
+              href={publicProfileUrl || "/settings/public-profile"}
+              target={publicProfileUrl ? "_blank" : undefined}
+              className="group flex min-h-[116px] items-center gap-4 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 transition active:scale-[0.98] hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-emerald-500/15 [touch-action:manipulation]"
+            >
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/15 text-2xl">👁️</span>
+              <span className="min-w-0">
+                <span className="block font-black text-white">Preview Portfolio</span>
+                <span className="mt-1 block text-sm leading-5 text-slate-300">Open the public profile exactly how clients and realtors see it.</span>
+                <span className="mt-2 block text-sm font-black text-emerald-300 group-hover:text-emerald-200">Open →</span>
+              </span>
+            </Link>
           </div>
         </section>
 
@@ -664,14 +703,16 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
               External Links
             </h2>
 
-            <GoogleBusinessConnect
-              initialName={company.google_place_name || company.display_name || company.name || ""}
+            <div id="google-business">
+              <GoogleBusinessConnect
+                initialName={company.google_place_name || company.display_name || company.name || ""}
               initialPlaceId={company.google_place_id || ""}
               initialRating={company.google_rating || null}
               initialReviewCount={company.google_review_count || 0}
               initialMapsUrl={company.google_maps_url || ""}
-              initialSyncedAt={company.google_reviews_synced_at || ""}
-            />
+                initialSyncedAt={company.google_reviews_synced_at || ""}
+              />
+            </div>
 
             <div className="mt-6 grid gap-4 md:grid-cols-2">
               <label className="block min-w-0">

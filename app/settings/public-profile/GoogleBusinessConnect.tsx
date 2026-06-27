@@ -11,6 +11,10 @@ type GooglePlaceResult = {
   googleMapsUrl?: string;
 };
 
+function FastSpinner() {
+  return <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />;
+}
+
 export default function GoogleBusinessConnect({
   initialName = "",
   initialPlaceId = "",
@@ -38,6 +42,9 @@ export default function GoogleBusinessConnect({
   const [syncing, setSyncing] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+
+  const fastButtonBase =
+    "inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-black transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]";
 
   async function searchGoogleBusiness() {
     if (loading) return;
@@ -153,13 +160,14 @@ export default function GoogleBusinessConnect({
           <p className="font-black text-white">{connectedName}</p>
           <p className="mt-1 break-all text-xs text-slate-500">Place ID: {connectedPlaceId}</p>
           {syncedAt && <p className="mt-2 text-xs text-slate-400">Last synced: {new Date(syncedAt).toLocaleString()}</p>}
-          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+          <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:flex lg:flex-wrap">
             <button
               type="button"
               onClick={syncGoogleReviews}
               disabled={syncing}
-              className="rounded-xl bg-yellow-300 px-4 py-3 text-sm font-black text-slate-950 transition hover:bg-yellow-200 disabled:opacity-60"
+              className={`${fastButtonBase} bg-yellow-300 text-slate-950 hover:bg-yellow-200`}
             >
+              {syncing && <FastSpinner />}
               {syncing ? "Syncing..." : "Sync Reviews"}
             </button>
             {mapsUrl && (
@@ -167,7 +175,7 @@ export default function GoogleBusinessConnect({
                 href={mapsUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="rounded-xl border border-yellow-300/50 px-4 py-3 text-center text-sm font-black text-yellow-100 transition hover:bg-yellow-300 hover:text-slate-950"
+                className={`${fastButtonBase} border border-yellow-300/50 text-yellow-100 hover:bg-yellow-300 hover:text-slate-950`}
               >
                 View on Google
               </a>
@@ -176,19 +184,20 @@ export default function GoogleBusinessConnect({
         </div>
       )}
 
-      <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+      <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
         <input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Example: On Point Home Inspections Halfway MD"
-          className="min-w-0 flex-1 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-yellow-300"
+          className="min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-yellow-300"
         />
         <button
           type="button"
           onClick={searchGoogleBusiness}
           disabled={loading || !query.trim()}
-          className="rounded-xl border border-yellow-300/50 px-5 py-3 font-black text-yellow-100 transition hover:bg-yellow-300 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
+          className={`${fastButtonBase} border border-yellow-300/50 text-yellow-100 hover:bg-yellow-300 hover:text-slate-950`}
         >
+          {loading && <FastSpinner />}
           {loading ? "Searching..." : "Search Google"}
         </button>
       </div>
@@ -209,8 +218,9 @@ export default function GoogleBusinessConnect({
                   type="button"
                   onClick={() => connectGoogleBusiness(place)}
                   disabled={syncing}
-                  className="rounded-xl bg-yellow-300 px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-yellow-200 disabled:opacity-60"
+                  className={`${fastButtonBase} bg-yellow-300 text-slate-950 hover:bg-yellow-200`}
                 >
+                  {syncing && <FastSpinner />}
                   {syncing ? "Connecting..." : "Connect"}
                 </button>
               </div>

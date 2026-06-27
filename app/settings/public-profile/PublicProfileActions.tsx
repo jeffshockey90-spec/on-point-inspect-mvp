@@ -360,7 +360,7 @@ export default function PublicProfileActions({
                 type="button"
                 onClick={downloadPng}
                 disabled={!ready || !hasCompanyLogo}
-                className="block w-full max-w-full rounded-xl bg-teal-500 px-4 py-3 text-center text-sm font-black text-slate-950 transition hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50"
+                className="block w-full max-w-full rounded-xl bg-teal-500 px-4 py-3 text-center text-sm font-black text-slate-950 transition active:scale-[0.98] hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
               >
                 Download PNG
               </button>
@@ -369,7 +369,7 @@ export default function PublicProfileActions({
                 type="button"
                 onClick={printQrCard}
                 disabled={!ready || !hasCompanyLogo}
-                className="block w-full max-w-full rounded-xl border border-teal-500/60 px-4 py-3 text-center text-sm font-black text-teal-300 transition hover:bg-teal-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+                className="block w-full max-w-full rounded-xl border border-teal-500/60 px-4 py-3 text-center text-sm font-black text-teal-300 transition active:scale-[0.98] hover:bg-teal-500/10 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
               >
                 Print Card
               </button>
@@ -377,7 +377,7 @@ export default function PublicProfileActions({
               <button
                 type="button"
                 onClick={copyLink}
-                className="block w-full max-w-full rounded-xl border border-slate-600 px-4 py-3 text-center text-sm font-black text-slate-200 transition hover:border-cyan-400 hover:text-cyan-200"
+                className="block w-full max-w-full rounded-xl border border-slate-600 px-4 py-3 text-center text-sm font-black text-slate-200 transition active:scale-[0.98] hover:border-cyan-400 hover:text-cyan-200 [touch-action:manipulation]"
               >
                 Copy Public Link
               </button>
@@ -385,7 +385,7 @@ export default function PublicProfileActions({
               <button
                 type="button"
                 onClick={shareProfile}
-                className="block w-full max-w-full rounded-xl border border-slate-600 px-4 py-3 text-center text-sm font-black text-slate-200 transition hover:border-cyan-400 hover:text-cyan-200"
+                className="block w-full max-w-full rounded-xl border border-slate-600 px-4 py-3 text-center text-sm font-black text-slate-200 transition active:scale-[0.98] hover:border-cyan-400 hover:text-cyan-200 [touch-action:manipulation]"
               >
                 Share Profile
               </button>

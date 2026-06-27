@@ -357,7 +357,7 @@ export default async function SettingsPage({
 
             <button
               type="submit"
-              className="mt-6 w-full rounded-xl bg-teal-500 px-8 py-4 font-black text-slate-950 transition hover:bg-teal-400 sm:w-auto"
+              className="mt-6 w-full rounded-xl bg-teal-500 px-8 py-4 font-black text-slate-950 transition active:scale-[0.98] hover:bg-teal-400 sm:w-auto"
             >
               Create Company Profile
             </button>
@@ -489,7 +489,7 @@ export default async function SettingsPage({
         <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <Link
             href="/support"
-            className="group rounded-2xl border border-slate-800 bg-[#0b1220] p-4 transition hover:border-fuchsia-400/70 hover:bg-fuchsia-500/10 sm:p-5"
+            className="group rounded-2xl border border-slate-800 bg-[#0b1220] p-4 transition active:scale-[0.98] hover:border-fuchsia-400/70 hover:bg-fuchsia-500/10 sm:p-5 [touch-action:manipulation]"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-fuchsia-500/10 text-2xl">
@@ -513,7 +513,7 @@ export default async function SettingsPage({
 
           <Link
             href="/billing"
-            className="group rounded-2xl border border-slate-800 bg-[#0b1220] p-4 transition hover:border-teal-400/70 hover:bg-teal-500/10 sm:p-5"
+            className="group rounded-2xl border border-slate-800 bg-[#0b1220] p-4 transition active:scale-[0.98] hover:border-teal-400/70 hover:bg-teal-500/10 sm:p-5 [touch-action:manipulation]"
           >
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-500/10 text-2xl">
               💳
@@ -534,7 +534,7 @@ export default async function SettingsPage({
 
           <Link
             href="/settings/public-profile"
-            className="group rounded-2xl border border-slate-800 bg-[#0b1220] p-4 transition hover:border-cyan-400/70 hover:bg-cyan-500/10 sm:p-5"
+            className="group rounded-2xl border border-slate-800 bg-[#0b1220] p-4 transition active:scale-[0.98] hover:border-cyan-400/70 hover:bg-cyan-500/10 sm:p-5 [touch-action:manipulation]"
           >
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-500/10 text-2xl">
               🌐
@@ -555,7 +555,7 @@ export default async function SettingsPage({
 
           <a
             href="#notifications"
-            className="group rounded-2xl border border-slate-800 bg-[#0b1220] p-4 transition hover:border-amber-400/70 hover:bg-amber-500/10 sm:p-5"
+            className="group rounded-2xl border border-slate-800 bg-[#0b1220] p-4 transition active:scale-[0.98] hover:border-amber-400/70 hover:bg-amber-500/10 sm:p-5 [touch-action:manipulation]"
           >
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/10 text-2xl">
               🔔
@@ -613,7 +613,7 @@ export default async function SettingsPage({
             </div>
 
             <div className="mt-6 grid gap-4 lg:grid-cols-2">
-              <label className="group grid w-full cursor-pointer grid-cols-[auto_minmax(0,1fr)] gap-4 rounded-2xl border border-slate-700 bg-slate-950/80 p-4 transition hover:border-amber-400/70 hover:bg-slate-900 sm:p-5">
+              <label className="group grid w-full cursor-pointer grid-cols-[auto_minmax(0,1fr)] gap-4 rounded-2xl border border-slate-700 bg-slate-950/80 p-4 transition active:scale-[0.98] hover:border-amber-400/70 hover:bg-slate-900 sm:p-5">
                 <input
                   name="live_activity_enabled"
                   type="checkbox"
@@ -631,7 +631,7 @@ export default async function SettingsPage({
                 </span>
               </label>
 
-              <label className="group grid w-full cursor-pointer grid-cols-[auto_minmax(0,1fr)] gap-4 rounded-2xl border border-slate-700 bg-slate-950/80 p-4 transition hover:border-amber-400/70 hover:bg-slate-900 sm:p-5">
+              <label className="group grid w-full cursor-pointer grid-cols-[auto_minmax(0,1fr)] gap-4 rounded-2xl border border-slate-700 bg-slate-950/80 p-4 transition active:scale-[0.98] hover:border-amber-400/70 hover:bg-slate-900 sm:p-5">
                 <input
                   name="live_activity_sound_enabled"
                   type="checkbox"
