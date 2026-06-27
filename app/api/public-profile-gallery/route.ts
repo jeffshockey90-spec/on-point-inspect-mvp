@@ -30,6 +30,22 @@ function getExtension(file: File) {
   return "jpg";
 }
 
+function getStoragePathFromPublicUrl(value: any) {
+  const clean = cleanText(value);
+  if (!clean) return "";
+
+  const marker = `/storage/v1/object/public/${GALLERY_BUCKET}/`;
+  const markerIndex = clean.indexOf(marker);
+
+  if (markerIndex === -1) return "";
+
+  try {
+    return decodeURIComponent(clean.slice(markerIndex + marker.length).split("?")[0]);
+  } catch {
+    return clean.slice(markerIndex + marker.length).split("?")[0];
+  }
+}
+
 async function getCompanyForCurrentUser(supabase: any) {
   const {
     data: { user },
@@ -183,6 +199,11 @@ export async function POST(request: Request) {
     });
 
     if (insertError) {
+      const storagePath = getStoragePathFromPublicUrl(imageUrl);
+      if (storagePath) {
+        await supabase.storage.from(GALLERY_BUCKET).remove([storagePath]);
+      }
+
       return NextResponse.json({ error: insertError.message }, { status: 500 });
     }
 
@@ -258,6 +279,21 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: "Missing gallery image ID." }, { status: 400 });
     }
 
+    const { data: image, error: imageError } = await supabase
+      .from("public_profile_gallery")
+      .select("id, image_url")
+      .eq("id", id)
+      .eq("company_id", company.id)
+      .maybeSingle();
+
+    if (imageError) {
+      return NextResponse.json({ error: imageError.message }, { status: 500 });
+    }
+
+    if (!image) {
+      return NextResponse.json({ error: "Gallery image not found." }, { status: 404 });
+    }
+
     const { error: deleteError } = await supabase
       .from("public_profile_gallery")
       .delete()
@@ -266,6 +302,11 @@ export async function DELETE(request: Request) {
 
     if (deleteError) {
       return NextResponse.json({ error: deleteError.message }, { status: 500 });
+    }
+
+    const storagePath = getStoragePathFromPublicUrl(image.image_url);
+    if (storagePath) {
+      await supabase.storage.from(GALLERY_BUCKET).remove([storagePath]);
     }
 
     revalidateProfile(company);
