@@ -1,0 +1,226 @@
+"use client";
+
+import { useState } from "react";
+
+type GooglePlaceResult = {
+  placeId: string;
+  name: string;
+  address: string;
+  rating?: number | null;
+  reviewCount?: number;
+  googleMapsUrl?: string;
+};
+
+export default function GoogleBusinessConnect({
+  initialName = "",
+  initialPlaceId = "",
+  initialRating = null,
+  initialReviewCount = 0,
+  initialMapsUrl = "",
+  initialSyncedAt = "",
+}: {
+  initialName?: string;
+  initialPlaceId?: string;
+  initialRating?: number | null;
+  initialReviewCount?: number;
+  initialMapsUrl?: string;
+  initialSyncedAt?: string;
+}) {
+  const [query, setQuery] = useState(initialName || "");
+  const [places, setPlaces] = useState<GooglePlaceResult[]>([]);
+  const [connectedName, setConnectedName] = useState(initialName);
+  const [connectedPlaceId, setConnectedPlaceId] = useState(initialPlaceId);
+  const [rating, setRating] = useState<number | null>(initialRating);
+  const [reviewCount, setReviewCount] = useState(initialReviewCount || 0);
+  const [mapsUrl, setMapsUrl] = useState(initialMapsUrl);
+  const [syncedAt, setSyncedAt] = useState(initialSyncedAt);
+  const [loading, setLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
+  async function searchGoogleBusiness() {
+    if (loading) return;
+
+    setLoading(true);
+    setMessage("");
+    setError("");
+    setPlaces([]);
+
+    try {
+      const res = await fetch("/api/google-business/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Google business search failed.");
+
+      setPlaces(data.places || []);
+      if (!data.places?.length) setMessage("No Google businesses found. Try adding your city and state.");
+    } catch (err: any) {
+      setError(err?.message || "Google business search failed.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function connectGoogleBusiness(place: GooglePlaceResult) {
+    if (syncing) return;
+
+    setSyncing(true);
+    setMessage("");
+    setError("");
+
+    try {
+      const res = await fetch("/api/google-business/connect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ placeId: place.placeId }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Unable to connect Google business.");
+
+      setConnectedName(data.googlePlaceName || place.name);
+      setConnectedPlaceId(data.googlePlaceId || place.placeId);
+      setRating(data.googleRating ?? place.rating ?? null);
+      setReviewCount(data.googleReviewCount ?? place.reviewCount ?? 0);
+      setMapsUrl(data.googleMapsUrl || place.googleMapsUrl || "");
+      setSyncedAt(new Date().toISOString());
+      setMessage(`Google Business connected. Synced ${data.syncedReviews || 0} review(s).`);
+      setPlaces([]);
+    } catch (err: any) {
+      setError(err?.message || "Unable to connect Google business.");
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  async function syncGoogleReviews() {
+    if (syncing) return;
+
+    setSyncing(true);
+    setMessage("");
+    setError("");
+
+    try {
+      const res = await fetch("/api/google-business/sync", { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Unable to sync Google reviews.");
+
+      setRating(data.googleRating ?? rating);
+      setReviewCount(data.googleReviewCount ?? reviewCount);
+      setSyncedAt(data.syncedAt || new Date().toISOString());
+      setMessage(`Google reviews synced. Updated ${data.syncedReviews || 0} review(s).`);
+    } catch (err: any) {
+      setError(err?.message || "Unable to sync Google reviews.");
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  return (
+    <div className="mb-6 rounded-2xl border border-yellow-400/30 bg-yellow-400/10 p-4 sm:p-5">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <p className="text-xs font-black uppercase tracking-wide text-yellow-300">
+            Google Business Profile
+          </p>
+          <h3 className="mt-2 text-xl font-black text-white">
+            {connectedPlaceId ? "Google Connected" : "Connect Google Reviews"}
+          </h3>
+          <p className="mt-2 text-sm leading-6 text-slate-300">
+            Search for your Google Business Profile, connect it, and On Point Inspect will display your rating and recent review snippets on your public profile.
+          </p>
+        </div>
+
+        {connectedPlaceId && (
+          <div className="rounded-2xl border border-yellow-300/40 bg-slate-950/70 px-4 py-3 text-center">
+            <p className="text-2xl font-black text-yellow-200">
+              ★ {rating || "—"}
+            </p>
+            <p className="text-xs font-bold text-slate-400">
+              {reviewCount || 0} Google Reviews
+            </p>
+          </div>
+        )}
+      </div>
+
+      {connectedPlaceId && (
+        <div className="mt-4 rounded-xl border border-slate-700 bg-slate-950/70 p-4 text-sm text-slate-300">
+          <p className="font-black text-white">{connectedName}</p>
+          <p className="mt-1 break-all text-xs text-slate-500">Place ID: {connectedPlaceId}</p>
+          {syncedAt && <p className="mt-2 text-xs text-slate-400">Last synced: {new Date(syncedAt).toLocaleString()}</p>}
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            <button
+              type="button"
+              onClick={syncGoogleReviews}
+              disabled={syncing}
+              className="rounded-xl bg-yellow-300 px-4 py-3 text-sm font-black text-slate-950 transition hover:bg-yellow-200 disabled:opacity-60"
+            >
+              {syncing ? "Syncing..." : "Sync Reviews"}
+            </button>
+            {mapsUrl && (
+              <a
+                href={mapsUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-xl border border-yellow-300/50 px-4 py-3 text-center text-sm font-black text-yellow-100 transition hover:bg-yellow-300 hover:text-slate-950"
+              >
+                View on Google
+              </a>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+        <input
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Example: On Point Home Inspections Halfway MD"
+          className="min-w-0 flex-1 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-yellow-300"
+        />
+        <button
+          type="button"
+          onClick={searchGoogleBusiness}
+          disabled={loading || !query.trim()}
+          className="rounded-xl border border-yellow-300/50 px-5 py-3 font-black text-yellow-100 transition hover:bg-yellow-300 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {loading ? "Searching..." : "Search Google"}
+        </button>
+      </div>
+
+      {places.length > 0 && (
+        <div className="mt-4 space-y-3">
+          {places.map((place) => (
+            <div key={place.placeId} className="rounded-xl border border-slate-700 bg-slate-950/80 p-4">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <p className="font-black text-white">{place.name}</p>
+                  <p className="mt-1 text-sm text-slate-400">{place.address}</p>
+                  <p className="mt-2 text-sm font-bold text-yellow-200">
+                    ★ {place.rating || "—"} · {place.reviewCount || 0} reviews
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => connectGoogleBusiness(place)}
+                  disabled={syncing}
+                  className="rounded-xl bg-yellow-300 px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-yellow-200 disabled:opacity-60"
+                >
+                  {syncing ? "Connecting..." : "Connect"}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {message && <p className="mt-4 rounded-xl border border-emerald-500/40 bg-emerald-950/30 p-3 text-sm font-bold text-emerald-300">{message}</p>}
+      {error && <p className="mt-4 rounded-xl border border-red-500/40 bg-red-950/30 p-3 text-sm font-bold text-red-300">{error}</p>}
+    </div>
+  );
+}

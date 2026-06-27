@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "../../../utils/supabase/server";
 import CompanyImageUploader from "../CompanyImageUploader";
 import PublicProfileActions from "./PublicProfileActions";
+import GoogleBusinessConnect from "./GoogleBusinessConnect";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -150,7 +151,7 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
     { label: "Service areas added", done: Boolean(company.service_areas) },
     { label: "Services listed", done: Boolean(company.services_offered) },
     { label: "Certifications added", done: Boolean(company.certifications || company.license_info) },
-    { label: "Review link added", done: Boolean(company.google_review_url) },
+    { label: "Google reviews connected", done: Boolean(company.google_place_id || company.google_review_url) },
   ];
 
   const completedPortfolioItems = portfolioChecklist.filter((item) => item.done).length;
@@ -497,6 +498,7 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
               Inspector & Company Info
             </h2>
 
+
             <div className="mt-6 grid gap-4 md:grid-cols-2">
               <label className="block min-w-0">
                 <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
@@ -661,6 +663,15 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
             <h2 className="mt-2 text-2xl font-black text-white">
               External Links
             </h2>
+
+            <GoogleBusinessConnect
+              initialName={company.google_place_name || company.display_name || company.name || ""}
+              initialPlaceId={company.google_place_id || ""}
+              initialRating={company.google_rating || null}
+              initialReviewCount={company.google_review_count || 0}
+              initialMapsUrl={company.google_maps_url || ""}
+              initialSyncedAt={company.google_reviews_synced_at || ""}
+            />
 
             <div className="mt-6 grid gap-4 md:grid-cols-2">
               <label className="block min-w-0">

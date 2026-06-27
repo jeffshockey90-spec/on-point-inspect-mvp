@@ -194,7 +194,7 @@ export default async function PublicInspectorProfilePage({
   const { data: company, error } = await supabase
     .from("companies")
     .select(
-      "id, name, display_name, email, phone, website, logo_url, license_info, brand_color, profile_slug, public_profile_enabled, public_profile_headline, public_profile_bio, public_profile_photo_url, service_areas, certifications, services_offered, google_review_url, facebook_url, public_booking_url",
+      "id, name, display_name, email, phone, website, logo_url, license_info, brand_color, profile_slug, public_profile_enabled, public_profile_headline, public_profile_bio, public_profile_photo_url, service_areas, certifications, services_offered, google_review_url, google_place_id, google_place_name, google_maps_url, google_rating, google_review_count, google_reviews_synced_at, facebook_url, public_booking_url",
     )
     .eq("profile_slug", slug)
     .eq("public_profile_enabled", true)
@@ -220,6 +220,20 @@ export default async function PublicInspectorProfilePage({
     console.error("Public sample reports load error:", sampleReportsError);
   }
 
+  const { data: googleReviewsRaw, error: googleReviewsError } = await supabase
+    .from("public_google_reviews")
+    .select("id, author_name, author_photo_url, rating, review_text, relative_publish_time_description, publish_time, google_maps_uri")
+    .eq("company_id", company.id)
+    .eq("is_enabled", true)
+    .order("publish_time", { ascending: false, nullsFirst: false })
+    .limit(5);
+
+  if (googleReviewsError) {
+    console.error("Public Google reviews load error:", googleReviewsError);
+  }
+
+  const googleReviews = googleReviewsError ? [] : googleReviewsRaw || [];
+
   const sampleReports = (sampleReportsRaw || []).map((sample: any) => ({
     ...sample,
     inspection_date: sample?.inspections?.inspection_date || "",
@@ -227,36 +241,6 @@ export default async function PublicInspectorProfilePage({
     service_mode: sample?.inspections?.service_mode || "",
     services: sample?.inspections?.services || "",
   }));
-
-  const { data: publicReviewsRaw, error: publicReviewsError } = await supabase
-    .from("public_profile_reviews")
-    .select(
-      "id, company_id, author_name, rating, review_text, review_date, relative_time_description, profile_photo_url, google_review_url, source, is_featured, display_order, created_at",
-    )
-    .eq("company_id", company.id)
-    .eq("is_enabled", true)
-    .order("is_featured", { ascending: false })
-    .order("display_order", { ascending: true })
-    .order("review_date", { ascending: false })
-    .limit(6);
-
-  if (publicReviewsError) {
-    console.error("Public profile reviews load error:", publicReviewsError);
-  }
-
-  const publicReviews = publicReviewsError ? [] : publicReviewsRaw || [];
-  const reviewCount = publicReviews.length;
-  const averageRating =
-    reviewCount > 0
-      ? Math.round(
-          (publicReviews.reduce(
-            (sum: number, review: any) => sum + Number(review.rating || 0),
-            0,
-          ) /
-            reviewCount) *
-            10,
-        ) / 10
-      : null;
 
   const companyName =
     company.display_name || company.name || "Inspection Company";
@@ -271,7 +255,8 @@ export default async function PublicInspectorProfilePage({
   const services = splitLines(company.services_offered);
   const bookingHref = getBookingHref(company);
   const websiteHref = normalizeExternalUrl(company.website);
-  const googleReviewHref = normalizeExternalUrl(company.google_review_url);
+  const googleMapsHref = normalizeExternalUrl(company.google_maps_url);
+  const googleReviewHref = normalizeExternalUrl(company.google_review_url || company.google_maps_url);
   const facebookHref = normalizeExternalUrl(company.facebook_url);
   const brandColor = company.brand_color || "#14b8a6";
   const logoUrl = cleanImageUrl(company.logo_url);
@@ -290,8 +275,10 @@ export default async function PublicInspectorProfilePage({
     .filter((item) => item.imageUrl)
     .slice(0, 6);
 
-  const ratingLabel = averageRating
-    ? `${averageRating.toFixed(1)} Star Reputation`
+  const googleRating = company.google_rating ? Number(company.google_rating).toFixed(1) : "";
+  const googleReviewCount = Number(company.google_review_count || 0);
+  const ratingLabel = googleRating
+    ? `${googleRating} Google Rating`
     : googleReviewHref
       ? "5-Star Reputation"
       : "Verified Reputation";
@@ -390,7 +377,7 @@ export default async function PublicInspectorProfilePage({
                     label="Reports"
                   />
                   <PortfolioStat
-                    value={averageRating ? `${averageRating.toFixed(1)}★` : googleReviewHref ? "5★" : "✓"}
+                    value={googleRating ? `${googleRating}★` : googleReviewHref ? "5★" : "✓"}
                     label="Reputation"
                   />
                   <PortfolioStat
@@ -413,16 +400,18 @@ export default async function PublicInspectorProfilePage({
                         ★★★★★ {ratingLabel}
                       </h2>
                       <p className="mt-3 text-sm leading-6 text-slate-300">
-                        Sample reports, credentials, service areas, and direct
-                        booking links are available before a client reaches out.
+                        {googleReviewCount > 0
+                          ? `${googleReviewCount} Google reviews synced to this public profile.`
+                          : "Sample reports, credentials, service areas, and direct booking links are available before a client reaches out."}
                       </p>
                     </div>
 
-                    {googleReviewHref && (
+                    {(googleMapsHref || googleReviewHref) && (
                       <a
-                        href={googleReviewHref}
+                        href={googleMapsHref || googleReviewHref}
                         target="_blank"
                         rel="noreferrer"
+                        data-public-profile-event="review_click"
                         className="shrink-0 rounded-xl border border-yellow-300/50 bg-yellow-400/10 px-5 py-3 text-center font-black text-yellow-100 transition hover:bg-yellow-300 hover:text-slate-950"
                       >
                         View Reviews →
@@ -465,23 +454,24 @@ export default async function PublicInspectorProfilePage({
         </div>
       </section>
 
+      {(googleReviews.length > 0 || googleRating || googleReviewHref) && (
+        <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12">
+          <GoogleReviewsSection
+            rating={googleRating}
+            reviewCount={googleReviewCount}
+            reviews={googleReviews}
+            googleMapsHref={googleMapsHref || googleReviewHref}
+            leaveReviewHref={googleReviewHref}
+          />
+        </section>
+      )}
+
       {featuredSample && (
         <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12">
           <FeaturedSampleReport
             sample={featuredSample}
             companyName={companyName}
             bookingHref={bookingHref}
-          />
-        </section>
-      )}
-
-      {(publicReviews.length > 0 || googleReviewHref) && (
-        <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12">
-          <PublicReviewsSection
-            reviews={publicReviews}
-            averageRating={averageRating}
-            googleReviewHref={googleReviewHref}
-            companyName={companyName}
           />
         </section>
       )}
@@ -682,6 +672,100 @@ export default async function PublicInspectorProfilePage({
   );
 }
 
+
+function GoogleReviewsSection({
+  rating,
+  reviewCount,
+  reviews,
+  googleMapsHref,
+  leaveReviewHref,
+}: {
+  rating: string;
+  reviewCount: number;
+  reviews: any[];
+  googleMapsHref: string;
+  leaveReviewHref: string;
+}) {
+  return (
+    <div className="rounded-3xl border border-yellow-400/30 bg-gradient-to-br from-[#0b1220] via-[#0b1220] to-yellow-950/20 p-5 shadow-2xl shadow-black/30 sm:p-8">
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.35em] text-yellow-300">
+            Google Reviews
+          </p>
+          <h2 className="mt-3 text-3xl font-black text-white sm:text-4xl">
+            ★★★★★ {rating ? `${rating} Rating` : "Verified Reputation"}
+          </h2>
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300 sm:text-base">
+            {reviewCount > 0
+              ? `${reviewCount} Google reviews help clients and realtors see this inspector's reputation before booking.`
+              : "Read recent Google reviews and see what clients say before requesting an inspection."}
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-3 sm:flex-row">
+          {googleMapsHref && (
+            <a
+              href={googleMapsHref}
+              target="_blank"
+              rel="noreferrer"
+              data-public-profile-event="review_click"
+              className="rounded-xl border border-yellow-300/50 px-5 py-3 text-center font-black text-yellow-100 transition hover:bg-yellow-300 hover:text-slate-950"
+            >
+              View on Google
+            </a>
+          )}
+          {leaveReviewHref && (
+            <a
+              href={leaveReviewHref}
+              target="_blank"
+              rel="noreferrer"
+              data-public-profile-event="review_click"
+              className="rounded-xl bg-yellow-300 px-5 py-3 text-center font-black text-slate-950 transition hover:bg-yellow-200"
+            >
+              Leave Review
+            </a>
+          )}
+        </div>
+      </div>
+
+      {reviews.length > 0 && (
+        <div className="mt-7 grid gap-4 lg:grid-cols-3">
+          {reviews.slice(0, 3).map((review) => (
+            <article key={review.id} className="rounded-2xl border border-slate-700 bg-slate-950/80 p-5 shadow-xl">
+              <div className="flex items-center gap-3">
+                {review.author_photo_url ? (
+                  <img src={review.author_photo_url} alt="" className="h-11 w-11 rounded-full object-cover" />
+                ) : (
+                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-yellow-300 text-sm font-black text-slate-950">
+                    {getInitials(review.author_name)}
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <p className="truncate font-black text-white">{review.author_name || "Google Reviewer"}</p>
+                  <p className="text-xs font-bold text-yellow-200">
+                    {"★".repeat(Math.max(0, Math.min(5, Number(review.rating || 5))))}
+                  </p>
+                </div>
+              </div>
+
+              {review.review_text && (
+                <p className="mt-4 line-clamp-5 text-sm leading-6 text-slate-300">
+                  “{review.review_text}”
+                </p>
+              )}
+
+              <p className="mt-4 text-xs font-bold text-slate-500">
+                {review.relative_publish_time_description || "Google review"}
+              </p>
+            </article>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PortfolioStat({
   value,
   label,
@@ -862,155 +946,6 @@ function SampleReportCard({ sample }: { sample: any }) {
         </div>
       </div>
     </article>
-  );
-}
-
-
-function formatReviewDate(value: any) {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value);
-
-  return date.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
-function ReviewStars({ rating }: { rating: number }) {
-  const cleanRating = Math.max(0, Math.min(5, Math.round(Number(rating || 0))));
-
-  return (
-    <span className="tracking-[0.12em] text-yellow-300">
-      {"★".repeat(cleanRating)}{"☆".repeat(5 - cleanRating)}
-    </span>
-  );
-}
-
-function PublicReviewsSection({
-  reviews,
-  averageRating,
-  googleReviewHref,
-  companyName,
-}: {
-  reviews: any[];
-  averageRating: number | null;
-  googleReviewHref: string;
-  companyName: string;
-}) {
-  return (
-    <div className="overflow-hidden rounded-3xl border border-yellow-400/30 bg-[#0b1220] p-5 shadow-2xl shadow-black/30 sm:p-8">
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <p className="text-xs font-black uppercase tracking-[0.35em] text-yellow-300">
-            Reviews
-          </p>
-          <h2 className="mt-3 text-3xl font-black text-white sm:text-4xl">
-            Trusted by Clients & Realtors
-          </h2>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300 sm:text-base">
-            Public reviews help clients and agents quickly understand what it is
-            like to work with {companyName}.
-          </p>
-        </div>
-
-        <div className="rounded-2xl border border-yellow-400/40 bg-yellow-400/10 px-5 py-4 text-center">
-          <p className="text-3xl font-black text-white">
-            {averageRating ? `${averageRating.toFixed(1)}★` : "★★★★★"}
-          </p>
-          <p className="mt-1 text-xs font-black uppercase tracking-wide text-yellow-200">
-            {reviews.length > 0 ? `${reviews.length} Featured Review${reviews.length === 1 ? "" : "s"}` : "Google Reviews"}
-          </p>
-        </div>
-      </div>
-
-      {reviews.length > 0 ? (
-        <div className="mt-7 grid gap-4 lg:grid-cols-3">
-          {reviews.map((review) => {
-            const reviewUrl = normalizeExternalUrl(
-              review.google_review_url || googleReviewHref,
-            );
-            const content = (
-              <article className="h-full rounded-3xl border border-slate-700 bg-slate-950/80 p-5 shadow-xl transition hover:-translate-y-0.5 hover:border-yellow-300/60">
-                <div className="flex items-start gap-3">
-                  {cleanImageUrl(review.profile_photo_url) ? (
-                    <img
-                      src={cleanImageUrl(review.profile_photo_url)}
-                      alt={review.author_name || "Reviewer"}
-                      loading="lazy"
-                      decoding="async"
-                      className="h-12 w-12 shrink-0 rounded-full border border-yellow-300/30 object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-yellow-300/30 bg-yellow-400/10 text-sm font-black text-yellow-200">
-                      {getInitials(review.author_name || "Reviewer")}
-                    </div>
-                  )}
-
-                  <div className="min-w-0">
-                    <p className="font-black text-white">
-                      {review.author_name || "Google Reviewer"}
-                    </p>
-                    <p className="mt-1 text-sm font-black text-yellow-300">
-                      <ReviewStars rating={Number(review.rating || 5)} />
-                    </p>
-                  </div>
-                </div>
-
-                {review.review_text && (
-                  <p className="mt-4 line-clamp-6 text-sm leading-6 text-slate-300">
-                    “{review.review_text}”
-                  </p>
-                )}
-
-                <p className="mt-4 text-xs font-bold text-slate-500">
-                  {review.relative_time_description || formatReviewDate(review.review_date || review.created_at)}
-                </p>
-              </article>
-            );
-
-            return reviewUrl ? (
-              <a
-                key={review.id}
-                href={reviewUrl}
-                target="_blank"
-                rel="noreferrer"
-                data-public-profile-event="review_click"
-              >
-                {content}
-              </a>
-            ) : (
-              <div key={review.id}>{content}</div>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="mt-7 rounded-3xl border border-dashed border-yellow-400/30 bg-yellow-400/10 p-6 text-center">
-          <p className="text-3xl">★★★★★</p>
-          <h3 className="mt-3 text-2xl font-black text-white">
-            View Google Reviews
-          </h3>
-          <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-300">
-            Reviews are connected through this inspector’s Google review link.
-          </p>
-        </div>
-      )}
-
-      {googleReviewHref && (
-        <div className="mt-6 flex justify-center">
-          <a
-            href={googleReviewHref}
-            target="_blank"
-            rel="noreferrer"
-            data-public-profile-event="review_click"
-            className="rounded-xl border border-yellow-300/50 bg-yellow-400/10 px-6 py-4 text-center font-black text-yellow-100 transition hover:bg-yellow-300 hover:text-slate-950"
-          >
-            View All Google Reviews →
-          </a>
-        </div>
-      )}
-    </div>
   );
 }
 
