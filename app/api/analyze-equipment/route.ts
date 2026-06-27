@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import OpenAI from "openai";
 import { logAIEvent } from "../../../lib/logging";
+import { getAIModel, getAIVersion } from "../../../lib/openai";
+import { inspectionBrain } from "../../../lib/ai";
 
 export const runtime = "nodejs";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const AI_EQUIPMENT_MODEL = getAIModel();
+const AI_EQUIPMENT_VERSION = getAIVersion("equipment-intelligence");
 
 type EquipmentAnalysis = {
   equipmentType?: string;
@@ -37,6 +37,14 @@ type EquipmentAnalysis = {
   implication?: string;
   recommendation?: string;
   notes?: string;
+  ocrQuality?: "Excellent" | "Good" | "Fair" | "Poor" | string;
+  confidenceScore?: number | string;
+  reviewRequired?: boolean;
+  aiReasoning?: string;
+  fieldConfidence?: Record<string, number | string>;
+  evidence?: Record<string, string[]>;
+  reviewFlags?: string[];
+  crossChecks?: string[];
   error?: string;
   raw?: string;
 };
@@ -962,8 +970,218 @@ function buildCleanRecommendation({
   return "Routine maintenance is recommended in accordance with manufacturer guidelines.";
 }
 
+function clampConfidence(value: any, fallback = 50) {
+  const number = Number(String(value ?? "").replace(/[^0-9.]/g, ""));
+  if (!Number.isFinite(number)) return fallback;
+  return Math.max(0, Math.min(100, Math.round(number)));
+}
 
-function enhanceAnalysis(parsed: EquipmentAnalysis) {
+function getOcrQualityLabel(parsed: EquipmentAnalysis, imageCount: number) {
+  const explicit = cleanText(parsed.ocrQuality);
+  if (["Excellent", "Good", "Fair", "Poor"].includes(explicit)) return explicit;
+
+  const knownCoreFields = [
+    parsed.manufacturer,
+    parsed.model,
+    parsed.serial,
+    parsed.manufactureYear,
+  ].filter(isKnown).length;
+
+  if (knownCoreFields >= 3 && imageCount > 1) return "Good";
+  if (knownCoreFields >= 3) return "Good";
+  if (knownCoreFields >= 2) return "Fair";
+  return "Poor";
+}
+
+function getFieldConfidence({
+  parsed,
+  manufacturer,
+  model,
+  serial,
+  manufactureYear,
+  serialYearNumber,
+  category,
+  imageCount,
+}: {
+  parsed: EquipmentAnalysis;
+  manufacturer: string;
+  model: string;
+  serial: string;
+  manufactureYear: string;
+  serialYearNumber: number | null;
+  category: string;
+  imageCount: number;
+}) {
+  const provided = parsed.fieldConfidence || {};
+  const baseBoost = imageCount > 1 ? 5 : 0;
+
+  const confidence = {
+    equipmentType: isKnown(parsed.equipmentType) || category !== "general" ? 82 + baseBoost : 45,
+    manufacturer: isKnown(manufacturer) ? 86 + baseBoost : 35,
+    model: isKnown(model) && model !== "Unknown" ? 82 + baseBoost : 30,
+    serial: isKnown(serial) && serial !== "Unknown" ? 82 + baseBoost : 30,
+    manufactureYear: isKnown(manufactureYear) && manufactureYear !== "Unknown" ? (serialYearNumber ? 93 : 78) : 25,
+    capacity: isKnown(parsed.capacity) || isKnown(parsed.estimatedBTU) ? 78 + baseBoost : 35,
+    refrigerant: isKnown(parsed.refrigerant) ? 76 + baseBoost : 35,
+    fuelType: isKnown(parsed.fuelType) ? 76 + baseBoost : 35,
+  };
+
+  return Object.fromEntries(
+    Object.entries(confidence).map(([key, value]) => [
+      key,
+      clampConfidence((provided as any)[key], Math.min(100, value)),
+    ])
+  );
+}
+
+function buildEvidence({
+  parsed,
+  manufacturer,
+  model,
+  serial,
+  manufactureYear,
+  serialYearNumber,
+  category,
+  r22,
+  problemPanel,
+}: {
+  parsed: EquipmentAnalysis;
+  manufacturer: string;
+  model: string;
+  serial: string;
+  manufactureYear: string;
+  serialYearNumber: number | null;
+  category: string;
+  r22: boolean;
+  problemPanel: string;
+}) {
+  const evidence: Record<string, string[]> = parsed.evidence || {};
+
+  function add(field: string, value: string) {
+    if (!evidence[field]) evidence[field] = [];
+    if (value && !evidence[field].includes(value)) evidence[field].push(value);
+  }
+
+  if (isKnown(manufacturer)) add("manufacturer", `Manufacturer normalized as ${manufacturer}.`);
+  if (isKnown(model) && model !== "Unknown") add("model", `Visible/parsed model value: ${model}.`);
+  if (isKnown(serial) && serial !== "Unknown") add("serial", `Visible/parsed serial value: ${serial}.`);
+  if (serialYearNumber) add("manufactureYear", `Serial number pattern decoded to ${serialYearNumber}.`);
+  if (isKnown(manufactureYear) && manufactureYear !== "Unknown") add("manufactureYear", `Final manufacture year set to ${manufactureYear}.`);
+  if (category !== "general") add("equipmentType", `Equipment category inferred as ${category.replaceAll("_", " ")}.`);
+  if (r22) add("refrigerant", "R-22/HCFC-22 language was detected.");
+  if (problemPanel) add("safety", problemPanel);
+
+  return evidence;
+}
+
+function buildCrossChecks({
+  manufacturer,
+  model,
+  serial,
+  manufactureYear,
+  serialYearNumber,
+  category,
+  estimatedBTU,
+}: {
+  manufacturer: string;
+  model: string;
+  serial: string;
+  manufactureYear: string;
+  serialYearNumber: number | null;
+  category: string;
+  estimatedBTU: string;
+}) {
+  const checks: string[] = [];
+
+  if (isKnown(manufacturer) && isKnown(model)) checks.push("Manufacturer and model were both available for comparison.");
+  if (isKnown(serial) && serialYearNumber) checks.push("Serial number supported the decoded manufacture year.");
+  if (isKnown(manufactureYear) && serialYearNumber && String(serialYearNumber) !== String(manufactureYear)) {
+    checks.push("AI-provided year and serial-decoded year differed; serial-decoded year was preferred.");
+  }
+  if (category === "hvac" && isKnown(estimatedBTU)) checks.push("HVAC capacity was checked against visible/parsed capacity or model tonnage clues.");
+  if (!isKnown(serial) || serial === "Unknown") checks.push("Serial number was not confidently readable; inspector review is recommended.");
+  if (!isKnown(model) || model === "Unknown") checks.push("Model number was not confidently readable; inspector review is recommended.");
+
+  return checks;
+}
+
+function buildReviewFlags({
+  ocrQuality,
+  fieldConfidence,
+  manufacturer,
+  model,
+  serial,
+  manufactureYear,
+  category,
+}: {
+  ocrQuality: string;
+  fieldConfidence: Record<string, number | string>;
+  manufacturer: string;
+  model: string;
+  serial: string;
+  manufactureYear: string;
+  category: string;
+}) {
+  const flags: string[] = [];
+
+  if (ocrQuality === "Poor") flags.push("Photo/data plate readability appears poor. Retake closer if possible.");
+  if (!isKnown(manufacturer)) flags.push("Manufacturer needs inspector review.");
+  if (!isKnown(model) || model === "Unknown") flags.push("Model number needs inspector review.");
+  if (!isKnown(serial) || serial === "Unknown") flags.push("Serial number needs inspector review.");
+  if (!isKnown(manufactureYear) || manufactureYear === "Unknown") flags.push("Manufacture year could not be confidently confirmed.");
+  if (category === "general") flags.push("Equipment category is uncertain.");
+
+  Object.entries(fieldConfidence).forEach(([field, value]) => {
+    const score = clampConfidence(value, 0);
+    if (score > 0 && score < 60) flags.push(`${field} confidence is low (${score}%).`);
+  });
+
+  return Array.from(new Set(flags));
+}
+
+function buildAiReasoning({
+  manufacturer,
+  model,
+  serial,
+  manufactureYear,
+  serialYearNumber,
+  category,
+  ocrQuality,
+  reviewFlags,
+}: {
+  manufacturer: string;
+  model: string;
+  serial: string;
+  manufactureYear: string;
+  serialYearNumber: number | null;
+  category: string;
+  ocrQuality: string;
+  reviewFlags: string[];
+}) {
+  const reasons: string[] = [];
+
+  reasons.push(`OCR/data plate quality was assessed as ${ocrQuality}.`);
+  if (isKnown(manufacturer)) reasons.push(`Manufacturer was normalized to ${manufacturer}.`);
+  if (isKnown(model) && model !== "Unknown") reasons.push(`Model was read as ${model}.`);
+  if (isKnown(serial) && serial !== "Unknown") reasons.push(`Serial was read as ${serial}.`);
+  if (serialYearNumber) reasons.push(`Manufacture year was decoded from the serial number as ${serialYearNumber}.`);
+  else if (isKnown(manufactureYear) && manufactureYear !== "Unknown") reasons.push(`Manufacture year was taken from visible/AI-parsed plate information as ${manufactureYear}.`);
+  if (category !== "general") reasons.push(`Equipment category was inferred as ${category.replaceAll("_", " ")}.`);
+  if (reviewFlags.length) reasons.push(`Inspector review flags: ${reviewFlags.join(" ")}`);
+
+  return reasons.join(" ");
+}
+
+function getOverallConfidence(fieldConfidence: Record<string, number | string>, reviewFlags: string[], ocrQuality: string) {
+  const values = Object.values(fieldConfidence).map((value) => clampConfidence(value, 0)).filter((value) => value > 0);
+  const average = values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 50;
+  const ocrPenalty = ocrQuality === "Poor" ? 18 : ocrQuality === "Fair" ? 8 : 0;
+  const reviewPenalty = Math.min(25, reviewFlags.length * 4);
+  return clampConfidence(average - ocrPenalty - reviewPenalty, 50);
+}
+
+
+function enhanceAnalysis(parsed: EquipmentAnalysis, imageCount = 1) {
   const category = inferCategory(parsed);
   const manufacturer = normalizeManufacturer(parsed.manufacturer);
   const equipmentType =
@@ -1120,6 +1338,59 @@ function enhanceAnalysis(parsed: EquipmentAnalysis) {
     problemPanel,
   });
 
+  const ocrQuality = getOcrQualityLabel(parsed, imageCount);
+  const fieldConfidence = getFieldConfidence({
+    parsed,
+    manufacturer,
+    model,
+    serial,
+    manufactureYear,
+    serialYearNumber,
+    category,
+    imageCount,
+  });
+  const evidence = buildEvidence({
+    parsed,
+    manufacturer,
+    model,
+    serial,
+    manufactureYear,
+    serialYearNumber,
+    category,
+    r22,
+    problemPanel,
+  });
+  const crossChecks = buildCrossChecks({
+    manufacturer,
+    model,
+    serial,
+    manufactureYear,
+    serialYearNumber,
+    category,
+    estimatedBTU,
+  });
+  const reviewFlags = buildReviewFlags({
+    ocrQuality,
+    fieldConfidence,
+    manufacturer,
+    model,
+    serial,
+    manufactureYear,
+    category,
+  });
+  const confidenceScore = getOverallConfidence(fieldConfidence, reviewFlags, ocrQuality);
+  const reviewRequired = confidenceScore < 75 || reviewFlags.length > 0;
+  const aiReasoning = cleanText(parsed.aiReasoning) || buildAiReasoning({
+    manufacturer,
+    model,
+    serial,
+    manufactureYear,
+    serialYearNumber,
+    category,
+    ocrQuality,
+    reviewFlags,
+  });
+
   return {
     equipmentType,
     manufacturer,
@@ -1148,6 +1419,16 @@ function enhanceAnalysis(parsed: EquipmentAnalysis) {
     observation,
     implication,
     recommendation,
+    ocrQuality,
+    confidenceScore,
+    reviewRequired,
+    aiReasoning,
+    fieldConfidence,
+    evidence,
+    reviewFlags,
+    crossChecks,
+    aiModel: AI_EQUIPMENT_MODEL,
+    aiVersion: AI_EQUIPMENT_VERSION,
     intelligenceFlags: {
       category,
       r22Detected: r22,
@@ -1241,22 +1522,10 @@ export async function POST(req: Request) {
       })
     );
 
-    const result = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      response_format: { type: "json_object" },
-      temperature: 0.1,
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are an expert home inspection equipment analyst and data-plate reader. Return ONLY valid JSON. Be accurate and conservative, but work hard before using Unknown. Carefully read visible labels, model numbers, serial numbers, capacity codes, refrigerant markings, manufacture dates, and brand/manufacturer markings. Use known HVAC, water heater, appliance, and electrical data-plate conventions when they are strongly supported. Never invent a serial number, model number, manufacture year, refrigerant, capacity, or fuel type. If a value cannot be confirmed or strongly inferred, use Unknown. Keep maintenance recommendations separate from identification notes.",
-        },
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: `
+    const systemPrompt =
+      "You are the On Point Inspect Equipment Intelligence Engine, an expert home inspection equipment analyst and data-plate reader. Return ONLY valid JSON. Think in passes: first read all visible text, then identify logos/brand marks, then identify equipment type, model, serial, manufacture date, capacity, fuel/refrigerant, and finally cross-check the result. Be accurate and conservative, but work hard before using Unknown. Carefully read visible labels, model numbers, serial numbers, capacity codes, refrigerant markings, manufacture dates, and brand/manufacturer markings. Use known HVAC, water heater, appliance, and electrical data-plate conventions only when strongly supported by visible evidence. Never invent a serial number, model number, manufacture year, refrigerant, capacity, or fuel type. If a value cannot be confirmed or strongly inferred, use Unknown. Include confidence scores and evidence for inspector review. Keep maintenance recommendations separate from identification notes.";
+
+    const userPrompt = `
 Analyze these equipment photos together. Use all provided images as one equipment record. One photo may show the full unit, another may show the data plate, and another may show the serial/model label.
 
 Number of photos provided: ${imageFiles.length}
@@ -1291,7 +1560,32 @@ Return ONLY valid JSON in this exact format:
   "severity": "",
   "observation": "",
   "implication": "",
-  "recommendation": ""
+  "recommendation": "",
+  "ocrQuality": "Excellent | Good | Fair | Poor",
+  "confidenceScore": 0,
+  "reviewRequired": false,
+  "aiReasoning": "",
+  "fieldConfidence": {
+    "equipmentType": 0,
+    "manufacturer": 0,
+    "model": 0,
+    "serial": 0,
+    "manufactureYear": 0,
+    "capacity": 0,
+    "refrigerant": 0,
+    "fuelType": 0
+  },
+  "evidence": {
+    "manufacturer": [],
+    "model": [],
+    "serial": [],
+    "manufactureYear": [],
+    "capacity": [],
+    "refrigerant": [],
+    "fuelType": []
+  },
+  "reviewFlags": [],
+  "crossChecks": []
 }
 
 Section must be one of:
@@ -1315,15 +1609,30 @@ Rules:
 - Do not repeat routine maintenance language inside identification/client summary text.
 - Observation, implication, and recommendation must be short client-facing report text only.
 - Do not include equipment metadata lists inside recommendation. Do not include equipment type, manufacturer, model, serial, manufacture year, capacity, fuel type, refrigerant, status, inspector note, or maintenance note in recommendation.
-              `,
-            },
-            ...imageContent,
-          ] as any,
-        },
-      ],
+- confidenceScore must be 0-100 and should reflect the full equipment record, not just one field.
+- fieldConfidence values must be 0-100. Use lower confidence for blurry plates, partial labels, conflicting photos, or inferred values.
+- evidence should explain what visual text, logo, serial pattern, model pattern, or plate marking supports each key value.
+- reviewFlags should be empty only when the result is strong enough for normal inspector review without extra caution.
+- crossChecks should explain consistency checks, conflicts, or why a decoded value was preferred.
+    `;
+
+    const brainResult = await inspectionBrain.run({
+      task: "equipment",
+      systemPrompt,
+      userPrompt,
+      images: imageFiles.map((image, index) => {
+        const imageUrl = (imageContent[index] as any)?.image_url?.url || "";
+        const base64 = imageUrl.split(",")[1] || "";
+        return {
+          mimeType: image.type || "image/jpeg",
+          base64,
+        };
+      }),
+      temperature: 0.1,
+      responseFormat: "json_object",
     });
 
-    const text = result.choices[0]?.message?.content || "{}";
+    const text = brainResult.text || "{}";
 
     let parsed: EquipmentAnalysis;
 
@@ -1336,7 +1645,7 @@ Rules:
       };
     }
 
-    const enhanced = parsed?.error ? parsed : enhanceAnalysis(parsed || {});
+    const enhanced = parsed?.error ? parsed : enhanceAnalysis(parsed || {}, imageFiles.length);
 
     await logAIEvent({
       inspectionId,
@@ -1361,10 +1670,16 @@ Rules:
         equipmentStatus: (enhanced as any)?.equipmentStatus,
         section: enhanced?.section,
         severity: enhanced?.severity,
+        confidenceScore: (enhanced as any)?.confidenceScore,
+        ocrQuality: (enhanced as any)?.ocrQuality,
+        reviewRequired: (enhanced as any)?.reviewRequired,
+        reviewFlags: (enhanced as any)?.reviewFlags,
         intelligenceFlags: (enhanced as any)?.intelligenceFlags,
+        aiModel: AI_EQUIPMENT_MODEL,
+        aiVersion: AI_EQUIPMENT_VERSION,
         photoCount: imageFiles.length,
       },
-      tokensUsed: result.usage?.total_tokens ?? null,
+      tokensUsed: brainResult.usage?.total_tokens ?? null,
       status: parsed?.error ? "failed" : "success",
     });
 

@@ -7,6 +7,11 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+const AI_MODEL =
+  process.env.OPENAI_SMARTEST_MODEL ||
+  process.env.OPENAI_VISION_MODEL ||
+  "gpt-4o";
+
 const VALID_SECTIONS = [
   "Exterior",
   "Roof",
@@ -58,8 +63,41 @@ const SECTION_HINTS: Record<string, string> = {
     "garage door, garage opener, auto reverse, firewall, garage receptacles, vehicle door, garage ceiling, garage walls",
 };
 
+type DefectRecognitionResult = {
+  title?: string;
+  section?: string;
+  severity?: string;
+  observation?: string;
+  implication?: string;
+  recommendation?: string;
+  confidence?: number;
+  confidenceScore?: number;
+  confidence_score?: number;
+  photoQuality?: string;
+  photo_quality?: string;
+  reviewRequired?: boolean;
+  review_required?: boolean;
+  detectedObjects?: string[];
+  detected_objects?: string[];
+  detectedMaterials?: string[];
+  detected_materials?: string[];
+  detectedConditions?: string[];
+  detected_conditions?: string[];
+  evidence?: string[];
+  reasoning?: string;
+  inspectorGuidance?: string;
+  inspector_guidance?: string;
+  flags?: string[];
+};
+
 function cleanText(value: any) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function clampConfidence(value: any, fallback = 75) {
+  const number = Number(String(value ?? "").replace(/[^0-9.]/g, ""));
+  if (!Number.isFinite(number)) return fallback;
+  return Math.max(0, Math.min(100, Math.round(number)));
 }
 
 function normalizeSection(value: any, fallback: string) {
@@ -72,12 +110,21 @@ function normalizeSeverity(value: any, fallback: string) {
   return VALID_SEVERITIES.includes(clean) ? clean : fallback;
 }
 
+function cleanStringArray(value: any) {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((item) => cleanText(item))
+    .filter(Boolean)
+    .slice(0, 12);
+}
+
 function inferSectionFromText(text: string, fallback: string) {
   const clean = text.toLowerCase();
 
   const rules: Array<[string, string[]]> = [
     ["Electrical", ["breaker", "panel", "gfci", "afci", "outlet", "receptacle", "wire", "wiring", "junction", "double tap", "double-tap", "neutral", "ground", "knockout", "service cable"]],
-    ["Roof", ["roof", "shingle", "flashing", "ridge", "valley", "skylight", "roof vent", "drip edge"]],
+    ["Roof", ["roof", "shingle", "flashing", "ridge", "valley", "skylight", "roof vent", "drip edge", "kickout"]],
     ["Plumbing", ["water heater", "pipe", "drain", "trap", "toilet", "sink", "faucet", "shower", "tub", "leak", "sump", "hose bib", "water supply"]],
     ["Heating", ["furnace", "boiler", "burner", "heat exchanger", "flue", "heater", "heating"]],
     ["Cooling", ["air conditioner", "a/c", "ac condenser", "condenser", "evaporator", "refrigerant", "cooling", "condensate"]],
@@ -86,8 +133,8 @@ function inferSectionFromText(text: string, fallback: string) {
     ["Attic, Insulation & Ventilation", ["attic", "insulation", "ventilation", "bath fan", "bathroom exhaust", "soffit vent", "gable vent"]],
     ["Basement, Foundation, Crawlspace & Structure", ["foundation", "crawlspace", "crawl space", "basement", "joist", "beam", "column", "structural", "settlement"]],
     ["Fireplace", ["fireplace", "firebox", "damper", "hearth", "wood stove", "gas logs"]],
-    ["Doors, Windows & Interior", ["window", "door", "interior", "wall", "ceiling", "floor", "stair", "handrail", "guardrail"]],
-    ["Exterior", ["siding", "trim", "grading", "downspout", "gutter", "soffit", "fascia", "deck", "porch", "walkway", "driveway"]],
+    ["Doors, Windows & Interior", ["window", "door", "interior", "wall", "ceiling", "floor", "stair", "handrail", "guardrail", "tread", "riser"]],
+    ["Exterior", ["siding", "trim", "grading", "grade", "downspout", "gutter", "soffit", "fascia", "deck", "porch", "walkway", "driveway"]],
   ];
 
   for (const [section, keywords] of rules) {
@@ -95,6 +142,47 @@ function inferSectionFromText(text: string, fallback: string) {
   }
 
   return fallback;
+}
+
+function inferPhotoQuality(confidence: number, parsedQuality: any) {
+  const clean = cleanText(parsedQuality);
+  const valid = ["Excellent", "Good", "Fair", "Poor"];
+  if (valid.includes(clean)) return clean;
+
+  if (confidence >= 90) return "Excellent";
+  if (confidence >= 78) return "Good";
+  if (confidence >= 60) return "Fair";
+  return "Poor";
+}
+
+function buildReviewFlags({
+  confidence,
+  photoQuality,
+  observation,
+  recommendation,
+  flags,
+}: {
+  confidence: number;
+  photoQuality: string;
+  observation: string;
+  recommendation: string;
+  flags: string[];
+}) {
+  const reviewFlags = [...flags];
+
+  if (confidence < 70) reviewFlags.push("Low AI confidence - inspector review required.");
+  if (photoQuality === "Poor") reviewFlags.push("Photo quality appears poor - consider retaking the image.");
+  if (!observation) reviewFlags.push("Observation is blank.");
+  if (!recommendation) reviewFlags.push("Recommendation is blank.");
+
+  return Array.from(new Set(reviewFlags)).slice(0, 8);
+}
+
+function defaultGuidance(confidence: number, photoQuality: string, flags: string[]) {
+  if (flags.length > 0) return flags[0];
+  if (photoQuality === "Poor") return "Photo quality appears limited. Move closer, reduce glare, and retake if needed.";
+  if (confidence < 70) return "Review carefully before saving. AI confidence is lower than normal.";
+  return "Review and edit before saving. Inspector has final say.";
 }
 
 export async function POST(req: Request) {
@@ -127,7 +215,7 @@ export async function POST(req: Request) {
     }
 
     const imageContents = await Promise.all(
-      images.map(async (image) => {
+      images.map(async (image, index) => {
         const bytes = await image.arrayBuffer();
         const buffer = Buffer.from(bytes);
         const base64Image = buffer.toString("base64");
@@ -143,33 +231,61 @@ export async function POST(req: Request) {
     );
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: AI_MODEL,
       response_format: { type: "json_object" },
+      temperature: 0.1,
       messages: [
         {
           role: "system",
           content: `
-You are a senior certified home inspector helping write a professional inspection report from field inspection photos.
+You are On Point Inspect's AI Defect Recognition Brain.
+You are acting like a senior certified home inspector reviewing field inspection photos.
 
 Return ONLY valid JSON.
 Do not use markdown.
 Do not invent hidden conditions.
 Do not overstate the defect.
-If the photo is not clear enough to confirm a defect, say that the condition should be reviewed by the inspector and use cautious wording.
-Use the inspector note as supporting context, but the photo(s) are the main source.
+Do not claim code violations unless a clear safety issue is visible and the wording remains general.
+Do not diagnose concealed conditions as fact.
+Use cautious wording when certainty is limited.
+The inspector has final authority.
+
+Your job is not just to write a finding. Your job is to inspect the visible evidence.
+
+Analyze the photos in this order:
+1. Identify the system/component shown.
+2. Identify visible materials.
+3. Identify the visible condition or defect.
+4. Determine whether multiple photos support the same finding or show unrelated conditions.
+5. Cross-check the inspector note against the images.
+6. Choose the best report section.
+7. Choose a conservative severity.
+8. Draft a professional finding.
+9. Provide confidence, evidence, and review flags.
+
+CRITICAL MULTI-PHOTO RULE:
+When multiple photos are provided, treat them as supporting views of one finding unless they clearly show unrelated issues.
+If unrelated issues are visible, choose the most reportable condition and mention that other visible items should be reviewed separately only in inspector guidance, not in the client-facing finding.
 
 CRITICAL SECTION RULE:
 You MUST choose the best matching section from the Valid sections list below.
 The "section" value must exactly match one of the Valid sections, character-for-character.
 Do not keep the current selected section unless it is truly the best match.
 Do not invent new section names.
-The inspector can still manually change the dropdown later, so your job is only to auto-select the best starting section.
 
 Valid sections:
 ${VALID_SECTIONS.map((section) => `- ${section}: ${SECTION_HINTS[section]}`).join("\n")}
 
 Valid severities:
 ${VALID_SEVERITIES.map((severity) => `- ${severity}`).join("\n")}
+
+Severity guidance:
+- Informational: descriptive only, no defect confirmed.
+- Monitor: minor condition or older/wear condition that should be watched.
+- Maintenance: routine maintenance or minor upkeep.
+- Recommended Repair: repair/correction or specialist evaluation recommended.
+- Safety Concern: clear shock, fire, fall, burn, CO, injury, or similar safety risk.
+- Major Concern: significant system failure, structural concern, major water intrusion, or potentially costly defect.
 
 Section examples:
 - Electrical panel, breakers, GFCI, outlet, wiring, junction box, double tapped conductors = Electrical
@@ -192,15 +308,32 @@ Return this exact JSON structure:
   "severity": "",
   "observation": "",
   "implication": "",
-  "recommendation": ""
+  "recommendation": "",
+  "confidence": 0,
+  "photoQuality": "Excellent | Good | Fair | Poor",
+  "detectedObjects": [],
+  "detectedMaterials": [],
+  "detectedConditions": [],
+  "evidence": [],
+  "reasoning": "",
+  "inspectorGuidance": "",
+  "flags": []
 }
 
-Writing style:
-- Clear, detailed, professional, and client-friendly.
-- Observation describes the visible condition.
+Client-facing writing rules:
+- Title should be short and specific.
+- Observation describes the visible condition only.
 - Implication explains why it matters.
 - Recommendation says who should evaluate/repair and what should be done.
-- Prefer conservative wording such as "appeared", "was observed", or "recommend evaluation" when certainty is limited.
+- Do not include confidence, evidence, or internal reasoning inside observation/implication/recommendation.
+- Do not mention "AI" in client-facing fields.
+- Do not use bullet points in client-facing fields.
+
+Confidence rules:
+- 90-100: clear photo evidence and strong agreement with note.
+- 75-89: condition likely visible, some limitation.
+- 60-74: condition possible but limited photo evidence.
+- Below 60: unclear photo, inspector review strongly needed.
           `,
         },
         {
@@ -210,13 +343,17 @@ Writing style:
               type: "text",
               text: `
 Analyze these field inspection photo(s) together and draft one finding that best represents the visible condition.
+
 Number of photos provided: ${images.length}
 Current selected section: ${currentSection}
 Current selected severity: ${currentSeverity}
 Inspector note, if any: ${note || "None"}
 
-Important: Auto-select the best report section from the valid list. Do not simply repeat the current selected section unless it is the correct section for the visible condition.
-When multiple photos are provided, use them as supporting angles of the same finding unless they clearly show unrelated conditions.
+Important:
+- Auto-select the best report section from the valid list.
+- Do not simply repeat the current selected section unless it is the correct section for the visible condition.
+- When multiple photos are provided, use them as supporting angles of the same finding unless they clearly show unrelated conditions.
+- The finding should sound like a professional home inspection report comment.
               `,
             },
             ...imageContents,
@@ -226,16 +363,62 @@ When multiple photos are provided, use them as supporting angles of the same fin
     });
 
     const raw = response.choices[0]?.message?.content || "{}";
-    const parsed = JSON.parse(raw);
+    let parsed: DefectRecognitionResult = {};
+
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      parsed = {
+        title: "AI Photo Finding",
+        section: currentSection,
+        severity: currentSeverity,
+        observation: "The submitted photo should be reviewed by the inspector before saving a finding.",
+        implication: "The photo analysis response could not be parsed reliably.",
+        recommendation: "Review the photo and enter the finding manually as needed.",
+        confidence: 35,
+        photoQuality: "Poor",
+        flags: ["AI response was not valid JSON."],
+      };
+    }
 
     const title = cleanText(parsed.title) || "AI Photo Finding";
     const observation = cleanText(parsed.observation);
     const implication = cleanText(parsed.implication);
     const recommendation = cleanText(parsed.recommendation);
 
-    const fallbackText = [title, observation, implication, recommendation, note].join(" ");
+    const fallbackText = [
+      title,
+      observation,
+      implication,
+      recommendation,
+      note,
+      ...cleanStringArray(parsed.detectedObjects || parsed.detected_objects),
+      ...cleanStringArray(parsed.detectedConditions || parsed.detected_conditions),
+    ].join(" ");
+
     const aiSection = normalizeSection(parsed.section, "");
     const finalSection = aiSection || inferSectionFromText(fallbackText, currentSection);
+    const confidence = clampConfidence(
+      parsed.confidence ?? parsed.confidenceScore ?? parsed.confidence_score,
+      observation && recommendation ? 78 : 55
+    );
+    const photoQuality = inferPhotoQuality(
+      confidence,
+      parsed.photoQuality || parsed.photo_quality
+    );
+    const initialFlags = cleanStringArray(parsed.flags);
+    const flags = buildReviewFlags({
+      confidence,
+      photoQuality,
+      observation,
+      recommendation,
+      flags: initialFlags,
+    });
+    const reviewRequired =
+      Boolean(parsed.reviewRequired || parsed.review_required) ||
+      confidence < 70 ||
+      photoQuality === "Poor" ||
+      flags.length > 0;
 
     return NextResponse.json({
       title,
@@ -244,6 +427,24 @@ When multiple photos are provided, use them as supporting angles of the same fin
       observation,
       implication,
       recommendation,
+
+      // AI Intelligence 2.0 metadata. Existing Field Tool fields still work as-is.
+      confidence,
+      confidenceScore: confidence,
+      photoQuality,
+      reviewRequired,
+      detectedObjects: cleanStringArray(parsed.detectedObjects || parsed.detected_objects),
+      detectedMaterials: cleanStringArray(parsed.detectedMaterials || parsed.detected_materials),
+      detectedConditions: cleanStringArray(parsed.detectedConditions || parsed.detected_conditions),
+      evidence: cleanStringArray(parsed.evidence),
+      reasoning: cleanText(parsed.reasoning),
+      inspectorGuidance:
+        cleanText(parsed.inspectorGuidance || parsed.inspector_guidance) ||
+        defaultGuidance(confidence, photoQuality, flags),
+      flags,
+      aiModel: AI_MODEL,
+      aiVersion: "defect-recognition-intelligence-2.0",
+      photoCount: images.length,
     });
   } catch (error: any) {
     console.error("AI defect recognition error", error);

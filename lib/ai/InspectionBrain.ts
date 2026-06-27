@@ -1,0 +1,82 @@
+import OpenAI from "openai";
+
+export type InspectionAIRequest = {
+  task:
+    | "equipment"
+    | "defect"
+    | "finding"
+    | "realtor_summary"
+    | "report_review"
+    | "maintenance";
+  systemPrompt: string;
+  userPrompt: string;
+  images?: Array<{ mimeType: string; base64: string }>;
+  temperature?: number;
+  responseFormat?: "json_object" | "text";
+};
+
+export class InspectionBrain {
+  private client: OpenAI;
+  private model: string;
+
+  constructor() {
+    this.client = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+
+    this.model =
+      process.env.OPENAI_SMARTEST_MODEL ||
+      process.env.OPENAI_DEFAULT_MODEL ||
+      "gpt-4o";
+  }
+
+  async run(request: InspectionAIRequest) {
+    const content: any[] = [
+      {
+        type: "text",
+        text:
+          "You are On Point AI, a professional home inspection assistant. " +
+          "Be accurate, conservative, explain uncertainty, and never invent defects.\\n\\n" +
+          request.userPrompt,
+      },
+    ];
+
+    if (request.images?.length) {
+      for (const image of request.images) {
+        content.push({
+          type: "image_url",
+          image_url: {
+            url: `data:${image.mimeType};base64,${image.base64}`,
+          },
+        });
+      }
+    }
+
+    const response = await this.client.chat.completions.create({
+      model: this.model,
+      temperature: request.temperature ?? 0.2,
+      response_format:
+        request.responseFormat === "json_object"
+          ? { type: "json_object" }
+          : undefined,
+      messages: [
+        {
+          role: "system",
+          content: request.systemPrompt,
+        },
+        {
+          role: "user",
+          content,
+        },
+      ],
+    });
+
+    return {
+      model: this.model,
+      text: response.choices[0]?.message?.content ?? "",
+      usage: response.usage,
+    };
+  }
+}
+
+export const inspectionBrain = new InspectionBrain();
