@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import SharePublicSampleReportButton from "../../../components/SharePublicSampleReportButton";
 import PublicProfileAnalyticsTracker from "../../../components/PublicProfileAnalyticsTracker";
+import PublicProfileGallery from "../../../components/PublicProfileGallery";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -518,62 +519,7 @@ export default async function PublicInspectorProfilePage({
         />
       </section>
 
-      {galleryImages.length > 0 && (
-        <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12">
-          <div className="rounded-3xl border border-slate-800 bg-[#0b1220] p-5 shadow-xl sm:p-8">
-            <p className="text-xs font-black uppercase tracking-[0.35em] text-teal-300">
-              Portfolio Gallery
-            </p>
-            <h2 className="mt-3 text-3xl font-black text-white sm:text-4xl">
-              Inspection Portfolio Gallery
-            </h2>
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300 sm:text-base">
-              A visual preview of inspection work, homes, systems, and report photography.
-            </p>
-
-            <div className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {galleryImages.map((image) => {
-                const content = (
-                  <div className="group overflow-hidden rounded-3xl border border-slate-700 bg-slate-950 shadow-xl transition hover:-translate-y-1 hover:border-teal-400/60">
-                    <img
-                      src={image.imageUrl}
-                      alt={image.title}
-                      loading="lazy"
-                      decoding="async"
-                      className="h-56 w-full object-cover transition duration-300 group-hover:scale-105"
-                    />
-                    <div className="p-4">
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="line-clamp-1 text-sm font-black text-white">
-                          {image.title}
-                        </p>
-                        {image.category && (
-                          <span className="shrink-0 rounded-full border border-teal-500/30 bg-teal-500/10 px-2 py-1 text-[10px] font-black uppercase tracking-wide text-teal-200">
-                            {image.category}
-                          </span>
-                        )}
-                      </div>
-                      {image.caption && (
-                        <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-400">
-                          {image.caption}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                );
-
-                return image.href ? (
-                  <Link key={image.id} href={image.href}>
-                    {content}
-                  </Link>
-                ) : (
-                  <div key={image.id}>{content}</div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-      )}
+      <PublicProfileGallery images={galleryImages} />
 
       {sampleReports.length > 0 && (
         <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12">
