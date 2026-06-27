@@ -22,6 +22,7 @@ import DeleteSummaryButton from "../../../components/DeleteSummaryButton";
 import FastLinkButton from "../../../components/FastLinkButton";
 import CreateDemoReportButton from "../../../components/CreateDemoReportButton";
 import SampleReportManager from "../../../components/SampleReportManager";
+import AIReportReviewPanel from "../../../components/AIReportReviewPanel";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -1416,6 +1417,8 @@ export default async function ReportPage({ params }: PageProps) {
               Capture, Equipment Analyzer, repair requests, and findings.
             </p>
           </div>
+
+          <AIReportReviewPanel inspectionId={String(inspection.id)} />
 
           <SampleReportManager
             inspectionId={String(inspection.id)}
