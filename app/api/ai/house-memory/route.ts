@@ -1,0 +1,76 @@
+import { NextResponse } from "next/server";
+import { createClient } from "../../../../utils/supabase/server";
+import { houseMemory } from "../../../../lib/ai";
+
+export async function POST(req: Request) {
+  try {
+    const body = await req.json().catch(() => ({}));
+    const inspectionId = body.inspectionId || body.inspection_id || body.id;
+
+    if (!inspectionId) {
+      return NextResponse.json(
+        { error: "inspectionId is required" },
+        { status: 400 }
+      );
+    }
+
+    const supabase = await createClient();
+
+    const { data: inspection, error: inspectionError } = await supabase
+      .from("inspections")
+      .select("*")
+      .eq("id", inspectionId)
+      .single();
+
+    if (inspectionError || !inspection) {
+      return NextResponse.json(
+        { error: inspectionError?.message || "Inspection not found" },
+        { status: 404 }
+      );
+    }
+
+    const { data: findings, error: findingsError } = await supabase
+      .from("findings")
+      .select("*")
+      .eq("inspection_id", inspectionId);
+
+    if (findingsError) {
+      console.error("House memory findings load error:", findingsError);
+    }
+
+    const { data: equipment, error: equipmentError } = await supabase
+      .from("equipment_inventory")
+      .select("*")
+      .eq("inspection_id", inspectionId);
+
+    if (equipmentError) {
+      console.error("House memory equipment load error:", equipmentError);
+    }
+
+    const normalizedFindings = (findings || []).map((finding: any) => ({
+      ...finding,
+      section: finding.section || finding.section_name || "General",
+    }));
+
+    const memory = houseMemory.buildFromInspection({
+      inspection,
+      findings: normalizedFindings,
+      equipment: equipment || [],
+    });
+
+    return NextResponse.json({
+      success: true,
+      memory,
+    });
+  } catch (error: any) {
+    console.error("HOUSE MEMORY ERROR:", error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: error?.message || "Unknown error",
+      },
+      { status: 500 }
+    );
+  }
+}

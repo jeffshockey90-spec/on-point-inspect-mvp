@@ -8,6 +8,7 @@ import { supabase } from "../../lib/supabaseClient";
 import CommentLibrary from "../../components/CommentLibrary";
 import OfflineSyncStatus from "../../components/OfflineSyncStatus";
 import EquipmentCard from "../../components/EquipmentCard";
+import AISecondInspector, { type AISuggestion } from "../../components/AISecondInspector";
 import {
   addOfflineQueueItem,
   filesToOfflinePhotos,
@@ -590,6 +591,7 @@ function FieldPageContent() {
   const [takingNativePhoto, setTakingNativePhoto] = useState(false);
   const [online, setOnline] = useState(true);
   const [message, setMessage] = useState("");
+  const [aiSuggestions, setAiSuggestions] = useState<AISuggestion[]>([]);
   const [queueTick, setQueueTick] = useState(0);
   const voiceRecognitionRef = useRef<any>(null);
   const voiceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -661,6 +663,7 @@ function FieldPageContent() {
     setPhotos([]);
     setEquipmentResult(null);
     setEquipmentSaveLabel("Save To Equipment Inventory");
+    setAiSuggestions([]);
     setQueueTick((current) => current + 1);
   }
 
@@ -725,6 +728,54 @@ function FieldPageContent() {
     setSeverity(SEVERITIES.includes(nextSeverity) ? nextSeverity : severity);
   }
 
+  function addAiSuggestion(suggestion: Omit<AISuggestion, "id" | "createdAt">) {
+    const id = `${suggestion.source}-${Date.now()}-${Math.random()
+      .toString(36)
+      .slice(2)}`;
+
+    setAiSuggestions((current) =>
+      [
+        {
+          ...suggestion,
+          id,
+          createdAt: Date.now(),
+        },
+        ...current,
+      ].slice(0, 6)
+    );
+  }
+
+  function ignoreAiSuggestion(suggestionId: string) {
+    setAiSuggestions((current) =>
+      current.filter((suggestion) => suggestion.id !== suggestionId)
+    );
+  }
+
+  function acceptAiSuggestion(suggestion: AISuggestion) {
+    setPhotoType("finding");
+
+    if (suggestion.title) setTitle(suggestion.title);
+
+    if (suggestion.section && SECTIONS.includes(suggestion.section)) {
+      setSection(suggestion.section);
+    }
+
+    if (suggestion.severity && SEVERITIES.includes(suggestion.severity)) {
+      setSeverity(suggestion.severity);
+    }
+
+    if (suggestion.summary && !observation.trim()) {
+      setObservation(suggestion.summary);
+    }
+
+    if (suggestion.recommendation && !recommendation.trim()) {
+      setRecommendation(suggestion.recommendation);
+    }
+
+    setMessage("AI suggestion accepted. Review and edit before saving.");
+    ignoreAiSuggestion(suggestion.id);
+  }
+
   async function analyzePhotoWithAI() {
     if (analyzingPhoto || analyzingEquipment || generating || saving || savingEquipment) return;
 
@@ -771,6 +822,26 @@ function FieldPageContent() {
       }
 
       applyAiFinding(data);
+
+      addAiSuggestion({
+        source: "defect",
+        title: data.title || "AI Photo Finding",
+        section: data.section || section,
+        severity: data.severity || severity,
+        confidence: Number(data.confidence || data.confidenceScore || 82),
+        summary:
+          data.observation ||
+          data.summary ||
+          "AI identified a possible report finding from the selected photo(s).",
+        reasoning: [
+          data.photoQuality ? `Photo quality: ${data.photoQuality}` : "",
+          data.reasoning || "",
+          ...(Array.isArray(data.evidence) ? data.evidence.slice(0, 2) : []),
+        ].filter(Boolean),
+        recommendation:
+          data.recommendation || "Review the AI finding and edit before saving.",
+      });
+
       setMessage(
         images.length === 1
           ? "AI analyzed the photo. Review and edit the finding before saving."
@@ -895,6 +966,40 @@ function FieldPageContent() {
           ? "Save Equipment + Create Finding"
           : "Save To Equipment Inventory"
       );
+
+      addAiSuggestion({
+        source: "equipment",
+        title: `${cleanEquipmentValue(data.manufacturer) || "Equipment"} ${
+          cleanEquipmentValue(data.equipmentType) || "Analyzed"
+        }`.trim(),
+        section: data.section || "Heating",
+        severity: shouldCreateEquipmentFinding(data)
+          ? data.severity || "Monitor"
+          : "Informational",
+        confidence: Number(data.confidenceScore || data.confidence || 86),
+        summary:
+          data.clientSummary ||
+          data.observation ||
+          "Equipment was analyzed and added to the AI review queue.",
+        reasoning: [
+          cleanEquipmentValue(data.manufacturer)
+            ? "Manufacturer was identified."
+            : "Manufacturer should be verified.",
+          cleanEquipmentValue(data.model)
+            ? "Model information was identified."
+            : "Model should be verified.",
+          cleanEquipmentValue(data.manufactureYear)
+            ? "Manufacture year was estimated or decoded."
+            : "",
+          shouldCreateEquipmentFinding(data)
+            ? "AI found a potentially reportable equipment condition."
+            : "AI considers this equipment inventory-only unless the inspector chooses otherwise.",
+        ].filter(Boolean),
+        recommendation: shouldCreateEquipmentFinding(data)
+          ? "Review and save as Equipment + Finding if the condition is confirmed."
+          : "Save to Equipment Inventory if the data is correct.",
+      });
+
       setMessage(
         shouldCreateEquipmentFinding(data)
           ? `Equipment analyzed using ${images.length} photo${images.length === 1 ? "" : "s"}. It will save to Equipment Inventory and create a finding because the analyzer found a reportable condition.`
@@ -1085,6 +1190,22 @@ function FieldPageContent() {
       setRecommendation(data.recommendation || "");
       setSection(SECTIONS.includes(data.section) ? data.section : "Exterior");
       setSeverity(SEVERITIES.includes(data.severity) ? data.severity : "Recommended Repair");
+
+      addAiSuggestion({
+        source: successMessage.toLowerCase().includes("voice") ? "voice" : "note",
+        title: data.title || "Generated Finding",
+        section: data.section || section,
+        severity: data.severity || severity,
+        confidence: Number(data.confidence || data.confidenceScore || 82),
+        summary: data.observation || "AI generated a finding from the inspector note.",
+        reasoning: [
+          "Inspector note was used as the primary source of truth.",
+          data.section ? `AI selected ${data.section}.` : "",
+          data.severity ? `AI selected ${data.severity}.` : "",
+        ].filter(Boolean),
+        recommendation: data.recommendation || "Review and edit before saving.",
+      });
+
       setMessage(successMessage);
     } catch (error: any) {
       setMessage(error?.message || "AI failed");
@@ -1911,7 +2032,14 @@ function FieldPageContent() {
           </div>
         </div>
 
-        <div className="lg:sticky lg:top-4 lg:self-start">
+        <div className="space-y-4 lg:sticky lg:top-4 lg:self-start">
+          <AISecondInspector
+            suggestions={aiSuggestions}
+            onAccept={acceptAiSuggestion}
+            onIgnore={ignoreAiSuggestion}
+            onClear={() => setAiSuggestions([])}
+          />
+
           <CommentLibrary onUseComment={useComment} />
         </div>
       </div>
