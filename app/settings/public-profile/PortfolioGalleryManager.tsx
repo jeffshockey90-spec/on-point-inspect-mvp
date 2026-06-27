@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 type PortfolioImage = {
   id: string;
@@ -35,8 +35,11 @@ export default function PortfolioGalleryManager({
 }: {
   initialImages?: PortfolioImage[];
 }) {
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [images, setImages] = useState<PortfolioImage[]>(initialImages || []);
-  const [imageUrl, setImageUrl] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState("");
+  const [dragging, setDragging] = useState(false);
   const [title, setTitle] = useState("");
   const [caption, setCaption] = useState("");
   const [category, setCategory] = useState("Exterior");
@@ -49,19 +52,41 @@ export default function PortfolioGalleryManager({
     [images],
   );
 
-  async function refreshGallery() {
-    const res = await fetch("/api/public-profile-gallery", { method: "GET" });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || "Unable to refresh gallery.");
-    setImages(data.images || []);
+  function chooseFile(file?: File | null) {
+    setError("");
+    setMessage("");
+
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setError("Please choose an image file.");
+      return;
+    }
+
+    if (file.size > 12 * 1024 * 1024) {
+      setError("Please choose an image smaller than 12 MB.");
+      return;
+    }
+
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+
+    setSelectedFile(file);
+    setPreviewUrl(URL.createObjectURL(file));
+
+    if (!title.trim()) {
+      const fallbackTitle = file.name
+        .replace(/\.[^/.]+$/, "")
+        .replace(/[-_]+/g, " ")
+        .trim();
+      setTitle(fallbackTitle);
+    }
   }
 
   async function addImage() {
     if (saving) return;
 
-    const cleanUrl = cleanText(imageUrl);
-    if (!cleanUrl) {
-      setError("Paste an image URL before adding it to the gallery.");
+    if (!selectedFile) {
+      setError("Choose a photo from your device before adding it to the gallery.");
       return;
     }
 
@@ -70,28 +95,31 @@ export default function PortfolioGalleryManager({
     setError("");
 
     try {
+      const formData = new FormData();
+      formData.append("image", selectedFile);
+      formData.append("title", title);
+      formData.append("caption", caption);
+      formData.append("category", category);
+      formData.append("displayOrder", String(images.length));
+      formData.append("isEnabled", "true");
+
       const res = await fetch("/api/public-profile-gallery", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          imageUrl: cleanUrl,
-          title,
-          caption,
-          category,
-          displayOrder: images.length,
-          isEnabled: true,
-        }),
+        body: formData,
       });
 
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Unable to add portfolio image.");
 
       setImages(data.images || []);
-      setImageUrl("");
+      setSelectedFile(null);
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      setPreviewUrl("");
       setTitle("");
       setCaption("");
       setCategory("Exterior");
-      setMessage("Portfolio image added to your public profile.");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      setMessage("Portfolio photo uploaded and added to your public profile.");
     } catch (err: any) {
       setError(err?.message || "Unable to add portfolio image.");
     } finally {
@@ -177,18 +205,67 @@ export default function PortfolioGalleryManager({
           <p className="text-xs font-black uppercase tracking-wide text-emerald-300">
             Add Photo
           </p>
+
           <div className="mt-4 grid gap-3">
-            <label className="block">
-              <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
-                Image URL
-              </p>
-              <input
-                value={imageUrl}
-                onChange={(event) => setImageUrl(event.target.value)}
-                placeholder="Paste a hosted image URL"
-                className="w-full rounded-xl border border-slate-700 bg-[#020817] p-3 text-white outline-none focus:border-emerald-400"
-              />
-            </label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(event) => chooseFile(event.target.files?.[0])}
+            />
+
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              onDragOver={(event) => {
+                event.preventDefault();
+                setDragging(true);
+              }}
+              onDragLeave={() => setDragging(false)}
+              onDrop={(event) => {
+                event.preventDefault();
+                setDragging(false);
+                chooseFile(event.dataTransfer.files?.[0]);
+              }}
+              className={`group overflow-hidden rounded-2xl border border-dashed p-5 text-center transition active:scale-[0.99] [touch-action:manipulation] ${
+                dragging
+                  ? "border-emerald-300 bg-emerald-400/15"
+                  : "border-emerald-500/50 bg-emerald-500/10 hover:border-emerald-300 hover:bg-emerald-500/15"
+              }`}
+            >
+              {previewUrl ? (
+                <div className="grid gap-4 sm:grid-cols-[160px_minmax(0,1fr)] sm:text-left">
+                  <img
+                    src={previewUrl}
+                    alt="Selected portfolio preview"
+                    className="mx-auto h-36 w-full max-w-[220px] rounded-2xl border border-slate-700 object-cover sm:mx-0"
+                  />
+                  <div className="flex flex-col justify-center">
+                    <p className="text-lg font-black text-white">Photo selected</p>
+                    <p className="mt-2 break-words text-sm text-slate-300">
+                      {selectedFile?.name}
+                    </p>
+                    <p className="mt-3 text-xs font-bold text-emerald-300">
+                      Click here to choose a different photo.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="py-6">
+                  <p className="text-4xl">📸</p>
+                  <h3 className="mt-3 text-xl font-black text-white">
+                    Upload Portfolio Photo
+                  </h3>
+                  <p className="mt-2 text-sm font-bold text-slate-300">
+                    Click to choose a photo or drag and drop one here.
+                  </p>
+                  <p className="mt-2 text-xs text-slate-500">
+                    On iPhone/iPad this opens Camera or Photo Library.
+                  </p>
+                </div>
+              )}
+            </button>
 
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="block">
@@ -235,10 +312,10 @@ export default function PortfolioGalleryManager({
             <button
               type="button"
               onClick={addImage}
-              disabled={saving || !imageUrl.trim()}
+              disabled={saving || !selectedFile}
               className="rounded-xl bg-emerald-400 px-5 py-3 font-black text-slate-950 transition active:scale-[0.98] hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
             >
-              {saving ? "Saving..." : "Add to Portfolio Gallery"}
+              {saving ? "Uploading..." : "Add to Portfolio Gallery"}
             </button>
           </div>
         </div>
