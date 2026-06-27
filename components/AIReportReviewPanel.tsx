@@ -28,7 +28,7 @@ type AIReportReviewResult = {
   aiVersion?: string;
 };
 
-function safeText(value: any) {
+function safeText(value: any): string {
   if (value === null || value === undefined) return "";
 
   if (typeof value === "string") return value.trim();
@@ -53,7 +53,7 @@ function safeText(value: any) {
   return String(value);
 }
 
-function safeList(value: any) {
+function safeList(value: any): string[] {
   if (!Array.isArray(value)) return [];
   return value.map(safeText).filter(Boolean);
 }
