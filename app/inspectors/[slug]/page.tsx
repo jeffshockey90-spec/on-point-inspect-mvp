@@ -234,6 +234,21 @@ export default async function PublicInspectorProfilePage({
 
   const googleReviews = googleReviewsError ? [] : googleReviewsRaw || [];
 
+  const { data: portfolioGalleryRaw, error: portfolioGalleryError } = await supabase
+    .from("public_profile_gallery")
+    .select("id, image_url, title, caption, category, display_order, created_at")
+    .eq("company_id", company.id)
+    .eq("is_enabled", true)
+    .order("display_order", { ascending: true })
+    .order("created_at", { ascending: false })
+    .limit(12);
+
+  if (portfolioGalleryError) {
+    console.error("Public portfolio gallery load error:", portfolioGalleryError);
+  }
+
+  const portfolioGallery = portfolioGalleryError ? [] : portfolioGalleryRaw || [];
+
   const sampleReports = (sampleReportsRaw || []).map((sample: any) => ({
     ...sample,
     inspection_date: sample?.inspections?.inspection_date || "",
@@ -265,15 +280,33 @@ export default async function PublicInspectorProfilePage({
   const otherSampleReports = featuredSample
     ? sampleReports.slice(1)
     : sampleReports;
-  const galleryImages = sampleReports
+  const sampleGalleryImages = sampleReports
     .map((sample: any) => ({
-      id: sample.id,
+      id: `sample-${sample.id}`,
       title: sample.title || "Inspection report photo",
+      caption: sample.description || "",
+      category: getSampleType(sample),
       imageUrl: cleanImageUrl(sample.cover_image_url),
       href: getSampleReportHref(sample),
     }))
     .filter((item) => item.imageUrl)
     .slice(0, 6);
+
+  const portfolioGalleryImages = portfolioGallery
+    .map((image: any) => ({
+      id: `portfolio-${image.id}`,
+      title: image.title || image.category || "Inspection portfolio photo",
+      caption: image.caption || "",
+      category: image.category || "Portfolio",
+      imageUrl: cleanImageUrl(image.image_url),
+      href: "",
+    }))
+    .filter((item) => item.imageUrl)
+    .slice(0, 12);
+
+  const galleryImages = portfolioGalleryImages.length > 0
+    ? portfolioGalleryImages
+    : sampleGalleryImages;
 
   const googleRating = company.google_rating ? Number(company.google_rating).toFixed(1) : "";
   const googleReviewCount = Number(company.google_review_count || 0);
@@ -492,10 +525,10 @@ export default async function PublicInspectorProfilePage({
               Portfolio Gallery
             </p>
             <h2 className="mt-3 text-3xl font-black text-white sm:text-4xl">
-              Homes & Reports Featured
+              Inspection Portfolio Gallery
             </h2>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300 sm:text-base">
-              A visual preview pulled from enabled public sample reports.
+              A visual preview of inspection work, homes, systems, and report photography.
             </p>
 
             <div className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -510,9 +543,21 @@ export default async function PublicInspectorProfilePage({
                       className="h-56 w-full object-cover transition duration-300 group-hover:scale-105"
                     />
                     <div className="p-4">
-                      <p className="line-clamp-1 text-sm font-black text-white">
-                        {image.title}
-                      </p>
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="line-clamp-1 text-sm font-black text-white">
+                          {image.title}
+                        </p>
+                        {image.category && (
+                          <span className="shrink-0 rounded-full border border-teal-500/30 bg-teal-500/10 px-2 py-1 text-[10px] font-black uppercase tracking-wide text-teal-200">
+                            {image.category}
+                          </span>
+                        )}
+                      </div>
+                      {image.caption && (
+                        <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-400">
+                          {image.caption}
+                        </p>
+                      )}
                     </div>
                   </div>
                 );

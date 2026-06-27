@@ -5,6 +5,7 @@ import { createClient } from "../../../utils/supabase/server";
 import CompanyImageUploader from "../CompanyImageUploader";
 import PublicProfileActions from "./PublicProfileActions";
 import GoogleBusinessConnect from "./GoogleBusinessConnect";
+import PortfolioGalleryManager from "./PortfolioGalleryManager";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -141,6 +142,20 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
   const profileSlug =
     company.profile_slug || slugifyProfile(company.display_name || company.name);
 
+  const { data: portfolioGalleryRaw, error: portfolioGalleryError } = await supabase
+    .from("public_profile_gallery")
+    .select("id, image_url, title, caption, category, display_order, is_featured, is_enabled, created_at")
+    .eq("company_id", company.id)
+    .order("display_order", { ascending: true })
+    .order("created_at", { ascending: false });
+
+  if (portfolioGalleryError) {
+    console.error("Portfolio gallery load error:", portfolioGalleryError);
+  }
+
+  const portfolioGallery = portfolioGalleryError ? [] : portfolioGalleryRaw || [];
+  (company as any).portfolio_gallery_count = portfolioGallery.filter((item: any) => item?.is_enabled !== false).length;
+
   const portfolioChecklist = [
     { label: "Profile published", done: company.public_profile_enabled === true },
     { label: "Public link created", done: Boolean(profileSlug) },
@@ -152,6 +167,7 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
     { label: "Services listed", done: Boolean(company.services_offered) },
     { label: "Certifications added", done: Boolean(company.certifications || company.license_info) },
     { label: "Google reviews connected", done: Boolean(company.google_place_id || company.google_review_url) },
+    { label: "Portfolio gallery started", done: Boolean((company as any).portfolio_gallery_count) },
   ];
 
   const completedPortfolioItems = portfolioChecklist.filter((item) => item.done).length;
@@ -413,6 +429,18 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
             </a>
 
             <a
+              href="#portfolio-gallery"
+              className="group flex min-h-[116px] items-center gap-4 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 transition active:scale-[0.98] hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-emerald-500/15 [touch-action:manipulation]"
+            >
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/15 text-2xl">📸</span>
+              <span className="min-w-0">
+                <span className="block font-black text-white">Portfolio Gallery</span>
+                <span className="mt-1 block text-sm leading-5 text-slate-300">Add photos of inspection work to your public profile.</span>
+                <span className="mt-2 block text-sm font-black text-emerald-300 group-hover:text-emerald-200">Open →</span>
+              </span>
+            </a>
+
+            <a
               href="#services"
               className="group flex min-h-[116px] items-center gap-4 rounded-2xl border border-teal-500/30 bg-teal-500/10 p-4 transition active:scale-[0.98] hover:-translate-y-0.5 hover:border-teal-300 hover:bg-teal-500/15 [touch-action:manipulation]"
             >
@@ -462,6 +490,10 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
             </Link>
           </div>
         </section>
+
+        <div id="portfolio-gallery">
+          <PortfolioGalleryManager initialImages={portfolioGallery} />
+        </div>
 
         <form action={savePublicProfile} className="space-y-6">
           <section className="rounded-3xl border border-slate-800 bg-[#0b1220] p-5 sm:p-6 md:p-8">
