@@ -6,13 +6,13 @@ type AIReportReviewResult = {
   score?: number;
   passed?: boolean;
   summary?: string;
-  criticalIssues?: string[];
-  warnings?: string[];
-  suggestions?: string[];
-  missingSystems?: string[];
-  duplicateConcerns?: string[];
-  sectionConcerns?: string[];
-  photoConcerns?: string[];
+  criticalIssues?: any[];
+  warnings?: any[];
+  suggestions?: any[];
+  missingSystems?: any[];
+  duplicateConcerns?: any[];
+  sectionConcerns?: any[];
+  photoConcerns?: any[];
   publishRecommendation?: string;
   baseIssues?: Array<{
     level?: string;
@@ -28,6 +28,36 @@ type AIReportReviewResult = {
   aiVersion?: string;
 };
 
+function safeText(value: any) {
+  if (value === null || value === undefined) return "";
+
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+
+  if (Array.isArray(value)) {
+    return value.map(safeText).filter(Boolean).join(", ");
+  }
+
+  if (typeof value === "object") {
+    return (
+      value.message ||
+      value.title ||
+      value.issue ||
+      value.concern ||
+      value.description ||
+      value.text ||
+      JSON.stringify(value)
+    );
+  }
+
+  return String(value);
+}
+
+function safeList(value: any) {
+  if (!Array.isArray(value)) return [];
+  return value.map(safeText).filter(Boolean);
+}
+
 function scoreTone(score: number) {
   if (score >= 90) return "border-emerald-500/50 bg-emerald-500/10 text-emerald-300";
   if (score >= 75) return "border-yellow-500/50 bg-yellow-500/10 text-yellow-300";
@@ -35,7 +65,7 @@ function scoreTone(score: number) {
 }
 
 function recommendationTone(value: string) {
-  const clean = value.toLowerCase();
+  const clean = safeText(value).toLowerCase();
 
   if (clean.includes("ready")) {
     return "border-emerald-500/50 bg-emerald-500/10 text-emerald-300";
@@ -55,11 +85,11 @@ function ReviewList({
   tone = "text-slate-200",
 }: {
   title: string;
-  items?: string[];
+  items?: any[];
   emptyText: string;
   tone?: string;
 }) {
-  const cleanItems = (items || []).filter(Boolean);
+  const cleanItems = safeList(items);
 
   return (
     <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
@@ -118,7 +148,7 @@ export default function AIReportReviewPanel({
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        setMessage(data.error || "AI report review failed.");
+        setMessage(safeText(data.error) || "AI report review failed.");
         return;
       }
 
@@ -137,7 +167,7 @@ export default function AIReportReviewPanel({
       : null;
 
   const publishRecommendation =
-    review?.publishRecommendation || "Run AI Review before publishing.";
+    safeText(review?.publishRecommendation) || "Run AI Review before publishing.";
 
   return (
     <section className="mb-8 rounded-2xl border border-purple-500/40 bg-purple-950/20 p-4 shadow-xl">
@@ -217,9 +247,9 @@ export default function AIReportReviewPanel({
         </div>
       </div>
 
-      {review?.summary && (
+      {safeText(review?.summary) && (
         <div className="mt-5 rounded-xl border border-slate-700 bg-[#020817]/70 p-4 text-sm leading-7 text-slate-100">
-          {review.summary}
+          {safeText(review?.summary)}
         </div>
       )}
 
@@ -282,7 +312,7 @@ export default function AIReportReviewPanel({
               <ul className="mt-3 space-y-2">
                 {review.baseIssues.slice(0, 8).map((issue, index) => (
                   <li key={index} className="text-sm leading-6 text-slate-300">
-                    {issue.message || "Quality check item"}
+                    {safeText(issue?.message || issue)}
                   </li>
                 ))}
               </ul>

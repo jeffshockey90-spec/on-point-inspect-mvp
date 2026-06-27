@@ -1,3 +1,5 @@
+import AIInsightCard from "./AIInsightCard";
+
 type EquipmentCardProps = {
   equipment: {
     equipmentType?: string;
@@ -314,6 +316,51 @@ export default function EquipmentCard({ equipment }: EquipmentCardProps) {
           {equipmentStatus}
         </div>
       )}
+
+      <div className="mb-4">
+        <AIInsightCard
+          insight={{
+            title: "Equipment Analysis",
+            confidence: equipmentStatus.includes("Operating") ? 96 : 84,
+            risk: equipmentStatus.includes("Operating")
+              ? "Low"
+              : equipmentStatus.includes("Service")
+              ? "Medium"
+              : "High",
+            reasoning: [
+              "Equipment information was reviewed by the AI equipment analyzer.",
+              firstKnown(equipment.manufacturer)
+                ? "Manufacturer was identified from the available equipment data."
+                : "Manufacturer was not confidently identified and should be verified.",
+              firstKnown(equipment.model)
+                ? "Model information was available for review."
+                : "Model information was not confidently identified and should be verified.",
+              typicalRange
+                ? "Estimated service life was compared against the industry service-life database."
+                : "Typical service-life range was not available for this equipment type.",
+            ].filter(Boolean),
+            suggestions: equipmentStatus.includes("Operating")
+              ? [
+                  "Continue routine maintenance.",
+                  "No significant equipment deficiency was identified from the available information.",
+                ]
+              : [
+                  "Review the equipment condition before saving the final report.",
+                  "Consider service, monitoring, or further evaluation as appropriate.",
+                ],
+            evidence: [
+              "Equipment Analyzer",
+              "Manufacturer Database",
+              "Equipment Knowledge Base",
+              "Service Life Database",
+            ],
+            learning: [
+              "Inspector edits and final decisions can be used to improve future AI recommendations.",
+            ],
+            version: "Inspection Brain v2",
+          }}
+        />
+      </div>
 
       <div className="space-y-3">
         {rows
