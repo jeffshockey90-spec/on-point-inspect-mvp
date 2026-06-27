@@ -228,6 +228,36 @@ export default async function PublicInspectorProfilePage({
     services: sample?.inspections?.services || "",
   }));
 
+  const { data: publicReviewsRaw, error: publicReviewsError } = await supabase
+    .from("public_profile_reviews")
+    .select(
+      "id, company_id, author_name, rating, review_text, review_date, relative_time_description, profile_photo_url, google_review_url, source, is_featured, display_order, created_at",
+    )
+    .eq("company_id", company.id)
+    .eq("is_enabled", true)
+    .order("is_featured", { ascending: false })
+    .order("display_order", { ascending: true })
+    .order("review_date", { ascending: false })
+    .limit(6);
+
+  if (publicReviewsError) {
+    console.error("Public profile reviews load error:", publicReviewsError);
+  }
+
+  const publicReviews = publicReviewsError ? [] : publicReviewsRaw || [];
+  const reviewCount = publicReviews.length;
+  const averageRating =
+    reviewCount > 0
+      ? Math.round(
+          (publicReviews.reduce(
+            (sum: number, review: any) => sum + Number(review.rating || 0),
+            0,
+          ) /
+            reviewCount) *
+            10,
+        ) / 10
+      : null;
+
   const companyName =
     company.display_name || company.name || "Inspection Company";
   const headline =
@@ -260,9 +290,11 @@ export default async function PublicInspectorProfilePage({
     .filter((item) => item.imageUrl)
     .slice(0, 6);
 
-  const ratingLabel = googleReviewHref
-    ? "5-Star Reputation"
-    : "Verified Reputation";
+  const ratingLabel = averageRating
+    ? `${averageRating.toFixed(1)} Star Reputation`
+    : googleReviewHref
+      ? "5-Star Reputation"
+      : "Verified Reputation";
   const shownCertifications = certifications.slice(0, 4);
 
   return (
@@ -358,7 +390,7 @@ export default async function PublicInspectorProfilePage({
                     label="Reports"
                   />
                   <PortfolioStat
-                    value={googleReviewHref ? "5★" : "✓"}
+                    value={averageRating ? `${averageRating.toFixed(1)}★` : googleReviewHref ? "5★" : "✓"}
                     label="Reputation"
                   />
                   <PortfolioStat
@@ -439,6 +471,17 @@ export default async function PublicInspectorProfilePage({
             sample={featuredSample}
             companyName={companyName}
             bookingHref={bookingHref}
+          />
+        </section>
+      )}
+
+      {(publicReviews.length > 0 || googleReviewHref) && (
+        <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12">
+          <PublicReviewsSection
+            reviews={publicReviews}
+            averageRating={averageRating}
+            googleReviewHref={googleReviewHref}
+            companyName={companyName}
           />
         </section>
       )}
@@ -819,6 +862,155 @@ function SampleReportCard({ sample }: { sample: any }) {
         </div>
       </div>
     </article>
+  );
+}
+
+
+function formatReviewDate(value: any) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function ReviewStars({ rating }: { rating: number }) {
+  const cleanRating = Math.max(0, Math.min(5, Math.round(Number(rating || 0))));
+
+  return (
+    <span className="tracking-[0.12em] text-yellow-300">
+      {"★".repeat(cleanRating)}{"☆".repeat(5 - cleanRating)}
+    </span>
+  );
+}
+
+function PublicReviewsSection({
+  reviews,
+  averageRating,
+  googleReviewHref,
+  companyName,
+}: {
+  reviews: any[];
+  averageRating: number | null;
+  googleReviewHref: string;
+  companyName: string;
+}) {
+  return (
+    <div className="overflow-hidden rounded-3xl border border-yellow-400/30 bg-[#0b1220] p-5 shadow-2xl shadow-black/30 sm:p-8">
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.35em] text-yellow-300">
+            Reviews
+          </p>
+          <h2 className="mt-3 text-3xl font-black text-white sm:text-4xl">
+            Trusted by Clients & Realtors
+          </h2>
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300 sm:text-base">
+            Public reviews help clients and agents quickly understand what it is
+            like to work with {companyName}.
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-yellow-400/40 bg-yellow-400/10 px-5 py-4 text-center">
+          <p className="text-3xl font-black text-white">
+            {averageRating ? `${averageRating.toFixed(1)}★` : "★★★★★"}
+          </p>
+          <p className="mt-1 text-xs font-black uppercase tracking-wide text-yellow-200">
+            {reviews.length > 0 ? `${reviews.length} Featured Review${reviews.length === 1 ? "" : "s"}` : "Google Reviews"}
+          </p>
+        </div>
+      </div>
+
+      {reviews.length > 0 ? (
+        <div className="mt-7 grid gap-4 lg:grid-cols-3">
+          {reviews.map((review) => {
+            const reviewUrl = normalizeExternalUrl(
+              review.google_review_url || googleReviewHref,
+            );
+            const content = (
+              <article className="h-full rounded-3xl border border-slate-700 bg-slate-950/80 p-5 shadow-xl transition hover:-translate-y-0.5 hover:border-yellow-300/60">
+                <div className="flex items-start gap-3">
+                  {cleanImageUrl(review.profile_photo_url) ? (
+                    <img
+                      src={cleanImageUrl(review.profile_photo_url)}
+                      alt={review.author_name || "Reviewer"}
+                      loading="lazy"
+                      decoding="async"
+                      className="h-12 w-12 shrink-0 rounded-full border border-yellow-300/30 object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-yellow-300/30 bg-yellow-400/10 text-sm font-black text-yellow-200">
+                      {getInitials(review.author_name || "Reviewer")}
+                    </div>
+                  )}
+
+                  <div className="min-w-0">
+                    <p className="font-black text-white">
+                      {review.author_name || "Google Reviewer"}
+                    </p>
+                    <p className="mt-1 text-sm font-black text-yellow-300">
+                      <ReviewStars rating={Number(review.rating || 5)} />
+                    </p>
+                  </div>
+                </div>
+
+                {review.review_text && (
+                  <p className="mt-4 line-clamp-6 text-sm leading-6 text-slate-300">
+                    “{review.review_text}”
+                  </p>
+                )}
+
+                <p className="mt-4 text-xs font-bold text-slate-500">
+                  {review.relative_time_description || formatReviewDate(review.review_date || review.created_at)}
+                </p>
+              </article>
+            );
+
+            return reviewUrl ? (
+              <a
+                key={review.id}
+                href={reviewUrl}
+                target="_blank"
+                rel="noreferrer"
+                data-public-profile-event="review_click"
+              >
+                {content}
+              </a>
+            ) : (
+              <div key={review.id}>{content}</div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="mt-7 rounded-3xl border border-dashed border-yellow-400/30 bg-yellow-400/10 p-6 text-center">
+          <p className="text-3xl">★★★★★</p>
+          <h3 className="mt-3 text-2xl font-black text-white">
+            View Google Reviews
+          </h3>
+          <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-300">
+            Reviews are connected through this inspector’s Google review link.
+          </p>
+        </div>
+      )}
+
+      {googleReviewHref && (
+        <div className="mt-6 flex justify-center">
+          <a
+            href={googleReviewHref}
+            target="_blank"
+            rel="noreferrer"
+            data-public-profile-event="review_click"
+            className="rounded-xl border border-yellow-300/50 bg-yellow-400/10 px-6 py-4 text-center font-black text-yellow-100 transition hover:bg-yellow-300 hover:text-slate-950"
+          >
+            View All Google Reviews →
+          </a>
+        </div>
+      )}
+    </div>
   );
 }
 
