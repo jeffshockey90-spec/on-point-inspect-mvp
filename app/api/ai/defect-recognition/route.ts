@@ -1,16 +1,11 @@
 import { NextResponse } from "next/server";
-import OpenAI from "openai";
+import { getAIModel, getAIVersion } from "../../../../lib/openai";
+import { inspectionBrain } from "../../../../lib/ai";
 
 export const runtime = "nodejs";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-const AI_MODEL =
-  process.env.OPENAI_SMARTEST_MODEL ||
-  process.env.OPENAI_VISION_MODEL ||
-  "gpt-4o";
+const AI_MODEL = getAIModel(process.env.OPENAI_VISION_MODEL);
+const AI_VERSION = getAIVersion("defect-recognition");
 
 const VALID_SECTIONS = [
   "Exterior",
@@ -230,14 +225,7 @@ export async function POST(req: Request) {
       })
     );
 
-    const response = await openai.chat.completions.create({
-      model: AI_MODEL,
-      response_format: { type: "json_object" },
-      temperature: 0.1,
-      messages: [
-        {
-          role: "system",
-          content: `
+    const systemPrompt = `
 You are On Point Inspect's AI Defect Recognition Brain.
 You are acting like a senior certified home inspector reviewing field inspection photos.
 
@@ -334,14 +322,9 @@ Confidence rules:
 - 75-89: condition likely visible, some limitation.
 - 60-74: condition possible but limited photo evidence.
 - Below 60: unclear photo, inspector review strongly needed.
-          `,
-        },
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: `
+          `;
+
+    const userPrompt = `
 Analyze these field inspection photo(s) together and draft one finding that best represents the visible condition.
 
 Number of photos provided: ${images.length}
@@ -354,15 +337,25 @@ Important:
 - Do not simply repeat the current selected section unless it is the correct section for the visible condition.
 - When multiple photos are provided, use them as supporting angles of the same finding unless they clearly show unrelated conditions.
 - The finding should sound like a professional home inspection report comment.
-              `,
-            },
-            ...imageContents,
-          ] as any[],
-        },
-      ],
+              `;
+
+    const brainResult = await inspectionBrain.run({
+      task: "defect",
+      systemPrompt,
+      userPrompt,
+      images: images.map((image, index) => {
+        const imageUrl = (imageContents[index] as any)?.image_url?.url || "";
+        const base64 = imageUrl.split(",")[1] || "";
+        return {
+          mimeType: image.type || "image/jpeg",
+          base64,
+        };
+      }),
+      temperature: 0.1,
+      responseFormat: "json_object",
     });
 
-    const raw = response.choices[0]?.message?.content || "{}";
+    const raw = brainResult.text || "{}";
     let parsed: DefectRecognitionResult = {};
 
     try {
@@ -443,7 +436,7 @@ Important:
         defaultGuidance(confidence, photoQuality, flags),
       flags,
       aiModel: AI_MODEL,
-      aiVersion: "defect-recognition-intelligence-2.0",
+      aiVersion: AI_VERSION,
       photoCount: images.length,
     });
   } catch (error: any) {

@@ -7,6 +7,10 @@ export { qualityControl, QualityControl } from "./QualityControl";
 export { visionBrain, VisionBrain } from "./VisionBrain";
 export { equipmentBrain, EquipmentBrain } from "./EquipmentBrain";
 
+// Knowledge Layer
+export { materialDatabase, MaterialDatabase } from "./knowledge/MaterialDatabase";
+export { defectDatabase, DefectDatabase } from "./knowledge/DefectDatabase";
+
 export type { InspectionAIRequest } from "./InspectionBrain";
 export type { PromptContext } from "./PromptEngine";
 export type { ConfidenceInput, ConfidenceResult } from "./ConfidenceEngine";
