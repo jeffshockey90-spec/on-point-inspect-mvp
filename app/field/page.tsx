@@ -9,6 +9,7 @@ import CommentLibrary from "../../components/CommentLibrary";
 import OfflineSyncStatus from "../../components/OfflineSyncStatus";
 import EquipmentCard from "../../components/EquipmentCard";
 import AISecondInspector, { type AISuggestion } from "../../components/AISecondInspector";
+import InspectionCopilotPanel from "../../components/InspectionCopilotPanel";
 import {
   addOfflineQueueItem,
   filesToOfflinePhotos,
@@ -2033,6 +2034,13 @@ function FieldPageContent() {
         </div>
 
         <div className="space-y-4 lg:sticky lg:top-4 lg:self-start">
+          {selectedReport && (
+            <InspectionCopilotPanel
+              inspectionId={String(selectedReport)}
+              compact
+            />
+          )}
+
           <AISecondInspector
             suggestions={aiSuggestions}
             onAccept={acceptAiSuggestion}

@@ -23,6 +23,8 @@ import FastLinkButton from "../../../components/FastLinkButton";
 import CreateDemoReportButton from "../../../components/CreateDemoReportButton";
 import SampleReportManager from "../../../components/SampleReportManager";
 import AIReportReviewPanel from "../../../components/AIReportReviewPanel";
+import LiveHouseIntelligencePanel from "../../../components/LiveHouseIntelligencePanel";
+import InspectionCopilotPanel from "../../../components/InspectionCopilotPanel";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -1419,6 +1421,14 @@ export default async function ReportPage({ params }: PageProps) {
           </div>
 
           <AIReportReviewPanel inspectionId={String(inspection.id)} />
+
+          <div className="mb-8">
+            <LiveHouseIntelligencePanel inspectionId={String(inspection.id)} />
+          </div>
+
+          <div className="mb-8">
+            <InspectionCopilotPanel inspectionId={String(inspection.id)} />
+          </div>
 
           <SampleReportManager
             inspectionId={String(inspection.id)}

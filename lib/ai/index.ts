@@ -6,9 +6,9 @@ export { learningEngine, LearningEngine } from "./LearningEngine";
 export { qualityControl, QualityControl } from "./QualityControl";
 export { visionBrain, VisionBrain } from "./VisionBrain";
 export { equipmentBrain, EquipmentBrain } from "./EquipmentBrain";
-
-// NEW
 export { houseMemory, HouseMemory } from "./HouseMemory";
+export { inspectionCompleteness, InspectionCompleteness } from "./InspectionCompleteness";
+export { inspectionCopilot, InspectionCopilot } from "./InspectionCopilot";
 
 // Knowledge Layer
 export { materialDatabase, MaterialDatabase } from "./knowledge/MaterialDatabase";
@@ -25,10 +25,18 @@ export type {
   VisionObservation,
   VisionAnalysisResult,
 } from "./VisionBrain";
-
-// NEW
 export type {
   HouseMemoryFact,
   HouseMemorySnapshot,
   HouseMemorySystem,
 } from "./HouseMemory";
+export type {
+  InspectionCompletenessResult,
+  InspectionIssue,
+} from "./InspectionCompleteness";
+
+export type {
+  InspectionCopilotResult,
+  CopilotIssue,
+  RelatedFindingCluster,
+} from "./InspectionCopilot";
