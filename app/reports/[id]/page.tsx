@@ -25,6 +25,7 @@ import SampleReportManager from "../../../components/SampleReportManager";
 import AIReportReviewPanel from "../../../components/AIReportReviewPanel";
 import LiveHouseIntelligencePanel from "../../../components/LiveHouseIntelligencePanel";
 import InspectionCopilotPanel from "../../../components/InspectionCopilotPanel";
+import HouseRelationshipPanel from "../../../components/HouseRelationshipPanel";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -1428,6 +1429,10 @@ export default async function ReportPage({ params }: PageProps) {
 
           <div className="mb-8">
             <InspectionCopilotPanel inspectionId={String(inspection.id)} />
+          </div>
+
+          <div className="mb-8">
+            <HouseRelationshipPanel inspectionId={String(inspection.id)} />
           </div>
 
           <SampleReportManager

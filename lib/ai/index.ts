@@ -9,6 +9,7 @@ export { equipmentBrain, EquipmentBrain } from "./EquipmentBrain";
 export { houseMemory, HouseMemory } from "./HouseMemory";
 export { inspectionCompleteness, InspectionCompleteness } from "./InspectionCompleteness";
 export { inspectionCopilot, InspectionCopilot } from "./InspectionCopilot";
+export { houseRelationshipEngine, HouseRelationshipEngine } from "./HouseRelationshipEngine";
 
 // Knowledge Layer
 export { materialDatabase, MaterialDatabase } from "./knowledge/MaterialDatabase";
@@ -34,9 +35,14 @@ export type {
   InspectionCompletenessResult,
   InspectionIssue,
 } from "./InspectionCompleteness";
-
 export type {
   InspectionCopilotResult,
   CopilotIssue,
   RelatedFindingCluster,
 } from "./InspectionCopilot";
+export type {
+  HouseRelationship,
+  HouseRelationshipFinding,
+  HouseRelationshipResult,
+  RelationshipSeverity,
+} from "./HouseRelationshipEngine";
