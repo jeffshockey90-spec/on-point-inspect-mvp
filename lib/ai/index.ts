@@ -10,6 +10,8 @@ export { houseMemory, HouseMemory } from "./HouseMemory";
 export { inspectionCompleteness, InspectionCompleteness } from "./InspectionCompleteness";
 export { inspectionCopilot, InspectionCopilot } from "./InspectionCopilot";
 export { houseRelationshipEngine, HouseRelationshipEngine } from "./HouseRelationshipEngine";
+export { inspectionTimelineEngine, InspectionTimelineEngine } from "./InspectionTimelineEngine";
+export { aiPublishGuard, AIPublishGuard } from "./AIPublishGuard";
 
 // Knowledge Layer
 export { materialDatabase, MaterialDatabase } from "./knowledge/MaterialDatabase";
@@ -46,3 +48,13 @@ export type {
   HouseRelationshipResult,
   RelationshipSeverity,
 } from "./HouseRelationshipEngine";
+export type {
+  InspectionTimelineEvent,
+  InspectionTimelineResult,
+  TimelineEventTone,
+} from "./InspectionTimelineEngine";
+export type {
+  AIPublishGuardResult,
+  PublishGuardIssue,
+  PublishGuardSeverity,
+} from "./AIPublishGuard";

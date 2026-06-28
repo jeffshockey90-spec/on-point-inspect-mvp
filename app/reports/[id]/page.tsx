@@ -26,6 +26,9 @@ import AIReportReviewPanel from "../../../components/AIReportReviewPanel";
 import LiveHouseIntelligencePanel from "../../../components/LiveHouseIntelligencePanel";
 import InspectionCopilotPanel from "../../../components/InspectionCopilotPanel";
 import HouseRelationshipPanel from "../../../components/HouseRelationshipPanel";
+import LiveInspectionTimelinePanel from "../../../components/LiveInspectionTimelinePanel";
+import AIPublishGuardPanel from "../../../components/AIPublishGuardPanel";
+import { aiPublishGuard } from "../../../lib/ai/AIPublishGuard";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -767,6 +770,73 @@ export default async function ReportPage({ params }: PageProps) {
     if (!user) redirect("/login");
 
     const inspectionId = String(formData.get("inspection_id") || "");
+
+    const [guardInspectionResult, guardFindingsResult, guardEquipmentResult] =
+      await Promise.all([
+        supabase
+          .from("inspections")
+          .select("*")
+          .eq("id", inspectionId)
+          .eq("inspector_id", user.id)
+          .single(),
+        supabase
+          .from("findings")
+          .select("*")
+          .eq("inspection_id", inspectionId)
+          .order("created_at", { ascending: true }),
+        supabase
+          .from("equipment_inventory")
+          .select("*")
+          .eq("inspection_id", inspectionId)
+          .order("created_at", { ascending: true }),
+      ]);
+
+    if (guardInspectionResult.error || !guardInspectionResult.data) {
+      console.error("Publish guard inspection load error:", guardInspectionResult.error);
+      redirect(`/reports/${inspectionId}?publish_guard_error=1`);
+    }
+
+    const guardFindings = guardFindingsResult.data || [];
+    const guardFindingIds = guardFindings.map((finding: any) => finding.id).filter(Boolean);
+
+    const { data: guardPhotos, error: guardPhotosError } =
+      guardFindingIds.length > 0
+        ? await supabase.from("photos").select("*").in("finding_id", guardFindingIds)
+        : { data: [], error: null };
+
+    if (guardPhotosError) {
+      console.error("Publish guard photos load error:", guardPhotosError);
+    }
+
+    const guardPhotosByFindingId = (guardPhotos || []).reduce(
+      (acc: Record<string, any[]>, photo: any) => {
+        const findingId = String(photo.finding_id || "");
+        if (!findingId) return acc;
+        if (!acc[findingId]) acc[findingId] = [];
+        acc[findingId].push(photo);
+        return acc;
+      },
+      {},
+    );
+
+    const guardNormalizedFindings = guardFindings.map((finding: any) => ({
+      ...finding,
+      section: normalizeSection(finding.section || finding.section_name),
+      photos: guardPhotosByFindingId[String(finding.id)] || [],
+    }));
+
+    const guardResult = aiPublishGuard.analyze({
+      inspection: guardInspectionResult.data,
+      findings: guardNormalizedFindings,
+      equipment: guardEquipmentResult.data || [],
+      photos: guardPhotos || [],
+    });
+
+    if (guardResult.blocked) {
+      console.warn("AI Publish Guard blocked publish:", guardResult);
+      redirect(`/reports/${inspectionId}?publish_guard=blocked`);
+    }
+
     const now = new Date().toISOString();
 
     const { error } = await supabase
@@ -1433,6 +1503,14 @@ export default async function ReportPage({ params }: PageProps) {
 
           <div className="mb-8">
             <HouseRelationshipPanel inspectionId={String(inspection.id)} />
+          </div>
+
+          <div className="mb-8">
+            <LiveInspectionTimelinePanel inspectionId={String(inspection.id)} />
+          </div>
+
+          <div className="mb-8">
+            <AIPublishGuardPanel inspectionId={String(inspection.id)} />
           </div>
 
           <SampleReportManager

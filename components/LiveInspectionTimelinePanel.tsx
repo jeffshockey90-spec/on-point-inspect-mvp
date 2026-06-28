@@ -1,0 +1,237 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+
+type TimelineEventTone = "info" | "success" | "warning" | "critical" | "ai";
+
+type InspectionTimelineEvent = {
+  id: string;
+  timestamp: string;
+  title: string;
+  description: string;
+  system?: string;
+  tone: TimelineEventTone;
+  source: "inspection" | "finding" | "equipment" | "photo" | "view" | "ai";
+};
+
+type TimelineResult = {
+  events: InspectionTimelineEvent[];
+  highlights: string[];
+  nextActions: string[];
+  findingCount: number;
+  equipmentCount: number;
+  photoCount: number;
+};
+
+function toneClass(tone: TimelineEventTone) {
+  if (tone === "critical") return "border-red-500/50 bg-red-500/10 text-red-200";
+  if (tone === "warning") return "border-yellow-500/50 bg-yellow-500/10 text-yellow-100";
+  if (tone === "success") return "border-emerald-500/50 bg-emerald-500/10 text-emerald-200";
+  if (tone === "ai") return "border-purple-500/50 bg-purple-500/10 text-purple-100";
+  return "border-cyan-500/40 bg-cyan-500/10 text-cyan-100";
+}
+
+function sourceIcon(source: InspectionTimelineEvent["source"]) {
+  if (source === "finding") return "📝";
+  if (source === "equipment") return "🏷️";
+  if (source === "photo") return "📷";
+  if (source === "view") return "👁️";
+  if (source === "ai") return "🧠";
+  return "🏠";
+}
+
+function formatTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Now";
+
+  return date.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function SmallStat({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-3">
+      <p className="text-[11px] font-black uppercase tracking-wide text-slate-400">
+        {label}
+      </p>
+      <p className="mt-1 text-xl font-black text-white">{value}</p>
+    </div>
+  );
+}
+
+export default function LiveInspectionTimelinePanel({
+  inspectionId,
+}: {
+  inspectionId: string;
+}) {
+  const [result, setResult] = useState<TimelineResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+
+  const loadTimeline = useCallback(async () => {
+    if (!inspectionId) return;
+
+    setLoading(true);
+    setMessage("");
+
+    try {
+      const res = await fetch("/api/ai/inspection-timeline", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+        body: JSON.stringify({
+          inspectionId,
+          inspection_id: inspectionId,
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setMessage(data?.error || "Inspection timeline failed.");
+        return;
+      }
+
+      setResult(data);
+    } catch (error: any) {
+      setMessage(error?.message || "Inspection timeline failed.");
+    } finally {
+      setLoading(false);
+    }
+  }, [inspectionId]);
+
+  useEffect(() => {
+    loadTimeline();
+
+    const interval = window.setInterval(() => {
+      loadTimeline();
+    }, 15000);
+
+    return () => window.clearInterval(interval);
+  }, [loadTimeline]);
+
+  const events = useMemo(() => result?.events || [], [result]);
+
+  return (
+    <section className="rounded-2xl border border-sky-500/40 bg-sky-950/20 p-4 shadow-xl">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.22em] text-sky-300">
+            Live Inspection Timeline
+          </p>
+          <h2 className="mt-1 text-2xl font-black text-white">
+            AI Activity Timeline
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-slate-300">
+            Tracks findings, equipment, media, report activity, and AI follow-up reminders as the inspection develops.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={loadTimeline}
+          disabled={loading || !inspectionId}
+          className="rounded-xl bg-sky-500 px-4 py-3 text-sm font-black text-slate-950 transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {loading ? "Updating..." : "Refresh Timeline"}
+        </button>
+      </div>
+
+      {message && (
+        <div className="mt-4 rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm font-bold text-red-200">
+          {message}
+        </div>
+      )}
+
+      <div className="mt-5 grid gap-3 sm:grid-cols-3">
+        <SmallStat label="Findings" value={result?.findingCount ?? "—"} />
+        <SmallStat label="Equipment" value={result?.equipmentCount ?? "—"} />
+        <SmallStat label="Media" value={result?.photoCount ?? "—"} />
+      </div>
+
+      {result?.highlights?.length ? (
+        <div className="mt-5 rounded-xl border border-slate-700 bg-[#020817]/70 p-3">
+          <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+            Timeline Highlights
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {result.highlights.map((item, index) => (
+              <span
+                key={index}
+                className="rounded-full border border-sky-500/40 bg-sky-500/10 px-3 py-2 text-xs font-black text-sky-200"
+              >
+                {item}
+              </span>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      <div className="mt-5 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+        <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-sm font-black uppercase tracking-wide text-slate-400">
+              Recent Timeline
+            </h3>
+            <span className="rounded-full border border-slate-600 bg-black/30 px-2 py-1 text-xs font-black text-slate-300">
+              {events.length}
+            </span>
+          </div>
+
+          {events.length === 0 ? (
+            <p className="mt-3 text-sm leading-6 text-slate-300">
+              Timeline will populate as findings, photos, equipment, and report activity are saved.
+            </p>
+          ) : (
+            <div className="mt-4 space-y-3">
+              {events.slice(0, 12).map((item) => (
+                <div
+                  key={item.id}
+                  className={`rounded-xl border p-3 ${toneClass(item.tone)}`}
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-black">
+                        {sourceIcon(item.source)} {item.title}
+                      </p>
+                      <p className="mt-1 text-xs leading-5 opacity-90">
+                        {item.description}
+                      </p>
+                    </div>
+
+                    <div className="text-right">
+                      <p className="text-xs font-black opacity-90">
+                        {formatTime(item.timestamp)}
+                      </p>
+                      {item.system && (
+                        <p className="mt-1 rounded-full border border-current/30 px-2 py-1 text-[10px] font-black opacity-90">
+                          {item.system}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
+          <h3 className="text-sm font-black uppercase tracking-wide text-slate-400">
+            AI Next Actions
+          </h3>
+
+          <ul className="mt-3 space-y-2 text-sm leading-6 text-slate-300">
+            {(result?.nextActions || [
+              "Continue inspecting and saving findings. AI will surface follow-up items as data is added.",
+            ]).map((item, index) => (
+              <li key={index}>✓ {item}</li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </section>
+  );
+}

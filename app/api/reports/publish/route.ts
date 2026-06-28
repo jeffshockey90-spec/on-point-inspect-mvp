@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 import { createClient } from "../../../../utils/supabase/server";
+import { aiPublishGuard } from "../../../../lib/ai";
 
 function makeToken() {
   return crypto.randomUUID();
@@ -101,9 +102,30 @@ async function sendReportEmail({
   });
 }
 
+function normalizeSection(value: any) {
+  const clean = String(value || "").trim();
+
+  const aliases: Record<string, string> = {
+    General: "Inspection Details",
+    Safety: "Inspection Details",
+    "Basement/Foundation/Crawlspace & Structure":
+      "Basement, Foundation, Crawlspace & Structure",
+    "Basement, Foundation, Crawlspace and Structure":
+      "Basement, Foundation, Crawlspace & Structure",
+    "Attic/Insulation & Ventilation": "Attic, Insulation & Ventilation",
+    "Attic, Insulation and Ventilation": "Attic, Insulation & Ventilation",
+    "Doors/Windows & Interior": "Doors, Windows & Interior",
+    "Doors, Windows and Interior": "Doors, Windows & Interior",
+    Appliances: "Built-in Appliances",
+    "Built In Appliances": "Built-in Appliances",
+  };
+
+  return aliases[clean] || clean || "General";
+}
+
 export async function POST(req: Request) {
   try {
-    const { inspectionId } = await req.json();
+    const { inspectionId, bypassPublishGuard = false } = await req.json();
 
     if (!inspectionId) {
       return NextResponse.json(
@@ -124,6 +146,74 @@ export async function POST(req: Request) {
           error: "Unauthorized. You must be logged in.",
         },
         { status: 401 }
+      );
+    }
+
+    const { data: guardInspection, error: guardInspectionError } = await supabase
+      .from("inspections")
+      .select("*")
+      .eq("id", inspectionId)
+      .single();
+
+    if (guardInspectionError || !guardInspection) {
+      return NextResponse.json(
+        { error: guardInspectionError?.message || "Inspection not found." },
+        { status: 404 }
+      );
+    }
+
+    const [findingsResult, equipmentResult] = await Promise.all([
+      supabase
+        .from("findings")
+        .select("*")
+        .eq("inspection_id", inspectionId)
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("equipment_inventory")
+        .select("*")
+        .eq("inspection_id", inspectionId)
+        .order("created_at", { ascending: true }),
+    ]);
+
+    const findings = findingsResult.data || [];
+    const findingIds = findings.map((finding: any) => finding.id).filter(Boolean);
+
+    const { data: photos } =
+      findingIds.length > 0
+        ? await supabase.from("photos").select("*").in("finding_id", findingIds)
+        : { data: [] as any[] };
+
+    const photosByFindingId = (photos || []).reduce(
+      (acc: Record<string, any[]>, photo: any) => {
+        const findingId = String(photo.finding_id || "");
+        if (!findingId) return acc;
+        if (!acc[findingId]) acc[findingId] = [];
+        acc[findingId].push(photo);
+        return acc;
+      },
+      {},
+    );
+
+    const normalizedFindings = findings.map((finding: any) => ({
+      ...finding,
+      section: normalizeSection(finding.section || finding.section_name),
+      photos: photosByFindingId[String(finding.id)] || [],
+    }));
+
+    const guardResult = aiPublishGuard.analyze({
+      inspection: guardInspection,
+      findings: normalizedFindings,
+      equipment: equipmentResult.data || [],
+      photos: photos || [],
+    });
+
+    if (guardResult.blocked && !bypassPublishGuard) {
+      return NextResponse.json(
+        {
+          error: "AI Publish Guard blocked publishing. Review the report before publishing.",
+          publishGuard: guardResult,
+        },
+        { status: 409 }
       );
     }
 
@@ -158,7 +248,7 @@ export async function POST(req: Request) {
       await sendReportEmail({
         to: inspection.client_email,
         name: inspection.client_name,
-        propertyAddress: inspection.property_address,
+        propertyAddress: inspection.property_address || inspection.address,
         reportLink,
       });
 
@@ -169,7 +259,7 @@ export async function POST(req: Request) {
       await sendReportEmail({
         to: inspection.realtor_email,
         name: inspection.realtor_name,
-        propertyAddress: inspection.property_address,
+        propertyAddress: inspection.property_address || inspection.address,
         reportLink,
       });
 
@@ -182,6 +272,7 @@ export async function POST(req: Request) {
           error:
             "Report was published, but no client_email or realtor_email was found.",
           reportLink,
+          publishGuard: guardResult,
         },
         { status: 400 }
       );
@@ -192,6 +283,7 @@ export async function POST(req: Request) {
       message: "Report published and emails sent successfully.",
       reportLink,
       sentEmails,
+      publishGuard: guardResult,
     });
   } catch (error: any) {
     return NextResponse.json(
