@@ -1440,6 +1440,19 @@ export default async function ReportPage({ params }: PageProps) {
     .eq("inspection_id", inspection.id)
     .maybeSingle();
 
+  const { data: signedAgreementsRaw, error: signedAgreementsError } = await supabase
+    .from("inspection_agreements")
+    .select("id, contact_id, client_name, client_email, signature_role, agreement_title, signed_at, signer_ip, signer_user_agent, status")
+    .eq("inspection_id", inspection.id)
+    .eq("status", "signed")
+    .order("signed_at", { ascending: false });
+
+  if (signedAgreementsError) {
+    console.error("Signed agreements load error:", signedAgreementsError);
+  }
+
+  const signedAgreements = signedAgreementsRaw || [];
+
   return (
     <main className="min-h-screen bg-[#020617] text-white">
       <div className="mx-auto w-full max-w-none px-2 py-3 sm:px-3 md:px-6 lg:max-w-7xl lg:py-8">
@@ -1841,6 +1854,63 @@ export default async function ReportPage({ params }: PageProps) {
           />
 
           <AgreementStatusPanel inspectionId={String(inspection.id)} />
+
+          <section className="mb-6 rounded-2xl border border-emerald-500/40 bg-[#071224] p-4 shadow-xl">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-bold text-emerald-300">
+                  Signed Agreements
+                </h2>
+
+                <p className="mt-1 text-sm leading-6 text-slate-400">
+                  View, print, or save a PDF copy of each signed client/co-client agreement.
+                </p>
+              </div>
+
+              <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-black uppercase tracking-wide text-emerald-300">
+                {signedAgreements.length} Signed
+              </span>
+            </div>
+
+            {signedAgreements.length === 0 ? (
+              <div className="mt-4 rounded-xl border border-slate-700 bg-[#020817]/80 p-4 text-sm leading-6 text-slate-400">
+                No signed agreements saved yet. Once a client or co-client signs, their signed copy will appear here.
+              </div>
+            ) : (
+              <div className="mt-4 grid gap-3">
+                {signedAgreements.map((agreement: any) => (
+                  <article
+                    key={agreement.id}
+                    className="rounded-xl border border-slate-700 bg-[#020817]/80 p-4"
+                  >
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="min-w-0">
+                        <p className="break-words text-base font-black text-white">
+                          {agreement.client_name || "Signed Client"}
+                        </p>
+
+                        <p className="mt-1 break-all text-sm text-slate-400">
+                          {agreement.client_email || "No email saved"}
+                        </p>
+
+                        <p className="mt-1 text-xs font-bold uppercase tracking-wide text-emerald-300">
+                          {agreement.signature_role || "client"} • Signed {formatEmailStatusDate(agreement.signed_at)}
+                        </p>
+                      </div>
+
+                      <FastLinkButton
+                        href={`/reports/${inspection.id}/signed-agreement/${agreement.id}`}
+                        loadingText="Opening Signed Agreement..."
+                        className="rounded-xl border border-emerald-500 bg-emerald-500/10 px-4 py-3 text-center text-sm font-black text-emerald-300 hover:bg-emerald-500 hover:text-slate-950"
+                      >
+                        View / Save Copy
+                      </FastLinkButton>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
 
           <ReportDeliveryGuard inspectionId={String(inspection.id)} />
 

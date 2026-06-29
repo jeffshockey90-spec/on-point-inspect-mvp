@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
+import PrintButton from "../../../components/PrintButton";
 import {
   getAgreementTemplatesForInspection,
   getAgreementTitle,
@@ -12,7 +13,6 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
-
 
 async function recordInspectionView({
   inspectionId,
@@ -42,6 +42,21 @@ async function recordInspectionView({
   } catch (error) {
     console.error("Agreement view tracking error:", error);
   }
+}
+
+function formatSignedDate(value: any) {
+  if (!value) return "N/A";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+
+  return date.toLocaleString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }
 
 type PageProps = {
@@ -116,8 +131,7 @@ export default async function ClientAgreementPage({
     );
   }
 
-  const { data: signedAgreement } =
-    await signedAgreementQuery.maybeSingle();
+  const { data: signedAgreement } = await signedAgreementQuery.maybeSingle();
 
   const state = normalizeAgreementState(
     inspection.agreement_state || inspection.state
@@ -132,16 +146,9 @@ export default async function ClientAgreementPage({
     mergeMultipleAgreementBodies({
       templates,
       state,
-      clientName:
-        selectedContact?.name ||
-        inspection.client_name,
-      propertyAddress:
-        inspection.address ||
-        inspection.property_address,
-      fee:
-        inspection.invoice_amount ||
-        inspection.fee ||
-        inspection.price,
+      clientName: selectedContact?.name || inspection.client_name,
+      propertyAddress: inspection.address || inspection.property_address,
+      fee: inspection.invoice_amount || inspection.fee || inspection.price,
       inspectorName: "On Point Home Inspections",
       inspectionDate: inspection.inspection_date,
     });
@@ -155,40 +162,34 @@ export default async function ClientAgreementPage({
   return (
     <main className="min-h-screen bg-[#020617] p-4 text-white md:p-8">
       <div className="mx-auto max-w-5xl space-y-6">
-        <div className="rounded-2xl border border-slate-800 bg-[#0b1220] p-6 shadow-xl">
-          <p className="text-sm font-bold uppercase tracking-[0.3em] text-teal-400">
+        <div className="rounded-2xl border border-slate-800 bg-[#0b1220] p-6 shadow-xl print:border-none print:bg-white print:text-black print:shadow-none">
+          <p className="text-sm font-bold uppercase tracking-[0.3em] text-teal-400 print:text-black">
             On Point Home Inspections
           </p>
 
-          <h1 className="mt-3 text-4xl font-extrabold text-white">
+          <h1 className="mt-3 text-4xl font-extrabold text-white print:text-black">
             {title}
           </h1>
 
-          <p className="mt-3 text-slate-300">
-            Property:{" "}
-            {inspection.address ||
-              inspection.property_address ||
-              "Inspection Property"}
+          <p className="mt-3 text-slate-300 print:text-black">
+            Property: {inspection.address || inspection.property_address || "Inspection Property"}
           </p>
 
-          <p className="mt-1 text-slate-400">
-            Client:{" "}
-            {selectedContact?.name ||
-              inspection.client_name ||
-              "Client"}
+          <p className="mt-1 text-slate-400 print:text-black">
+            Client: {selectedContact?.name || inspection.client_name || "Client"}
           </p>
 
-          <p className="mt-1 text-slate-400">
+          <p className="mt-1 text-slate-400 print:text-black">
             Agreement Selected: {state}
           </p>
 
-          {templates.length > 0 && (
-            <div className="mt-4 rounded-xl border border-slate-700 bg-slate-950 p-4">
-              <p className="font-bold text-teal-300">
+          {templates.length > 0 && !signedAgreement && (
+            <div className="mt-4 rounded-xl border border-slate-700 bg-slate-950 p-4 print:bg-white print:text-black">
+              <p className="font-bold text-teal-300 print:text-black">
                 Included Agreements:
               </p>
 
-              <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-300">
+              <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-300 print:text-black">
                 {templates.map((template) => (
                   <li key={template.id}>
                     {template.title} — {template.version}
@@ -198,7 +199,7 @@ export default async function ClientAgreementPage({
             </div>
           )}
 
-          <div className="mt-5 flex flex-wrap gap-3">
+          <div className="mt-5 flex flex-wrap gap-3 print:hidden">
             <Link
               href={`/client-portal/${id}`}
               className="rounded-xl border border-teal-500 px-4 py-2 font-bold text-teal-300 hover:bg-teal-500/10"
@@ -206,45 +207,53 @@ export default async function ClientAgreementPage({
               Back to Client Portal
             </Link>
 
+            {signedAgreement && <PrintButton label="Print / Save Signed Agreement" />}
+
             {signedAgreement && (
               <span className="rounded-xl bg-green-500 px-4 py-2 font-bold text-slate-950">
-                Signed
+                Signed Copy
               </span>
             )}
           </div>
         </div>
 
-        <div className="max-h-[65vh] overflow-y-auto whitespace-pre-wrap rounded-2xl border border-slate-800 bg-white p-6 leading-8 text-slate-950 shadow-xl">
+        <div className="max-h-[65vh] overflow-y-auto whitespace-pre-wrap rounded-2xl border border-slate-800 bg-white p-6 leading-8 text-slate-950 shadow-xl print:max-h-none print:overflow-visible print:border-none print:shadow-none">
           {agreementBody}
         </div>
 
         {signedAgreement ? (
-          <div className="rounded-2xl border border-green-700 bg-green-950/30 p-6">
-            <h2 className="text-2xl font-extrabold text-green-300">
+          <div className="rounded-2xl border border-green-700 bg-green-950/30 p-6 print:border-black print:bg-white print:text-black">
+            <h2 className="text-2xl font-extrabold text-green-300 print:text-black">
               Agreement Signed
             </h2>
 
-            <p className="mt-2 text-slate-300">
-              Signed by {signedAgreement.client_name} on{" "}
-              {new Date(
-                signedAgreement.signed_at
-              ).toLocaleString()}.
-            </p>
+            <div className="mt-3 grid gap-2 text-sm text-slate-300 print:text-black md:grid-cols-2">
+              <p>
+                <strong>Signed by:</strong> {signedAgreement.client_name || "Client"}
+              </p>
+              <p>
+                <strong>Email:</strong> {signedAgreement.client_email || "N/A"}
+              </p>
+              <p>
+                <strong>Role:</strong> {signedAgreement.signature_role || "client"}
+              </p>
+              <p>
+                <strong>Signed at:</strong> {formatSignedDate(signedAgreement.signed_at)}
+              </p>
+              <p>
+                <strong>IP Address:</strong> {signedAgreement.signer_ip || "N/A"}
+              </p>
+              <p className="break-all">
+                <strong>User Agent:</strong> {signedAgreement.signer_user_agent || "N/A"}
+              </p>
+            </div>
           </div>
         ) : (
           <AgreementSignatureForm
             inspectionId={id}
             contactId={selectedContact?.id || ""}
-            defaultClientName={
-              selectedContact?.name ||
-              inspection.client_name ||
-              ""
-            }
-            defaultClientEmail={
-              selectedContact?.email ||
-              inspection.client_email ||
-              ""
-            }
+            defaultClientName={selectedContact?.name || inspection.client_name || ""}
+            defaultClientEmail={selectedContact?.email || inspection.client_email || ""}
           />
         )}
       </div>
