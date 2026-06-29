@@ -29,6 +29,7 @@ function isClientAgreementRecipient(contact: any) {
   return (
     Boolean(contact?.email) &&
     Boolean(contact?.agreement_required) &&
+    !Boolean(contact?.agreement_signed) &&
     (role === "client" || role === "co-client")
   );
 }
@@ -210,7 +211,9 @@ export async function POST(req: Request) {
     const { data: contacts, error: contactsError } = await supabase
       .from("inspection_contacts")
       .select("*")
-      .eq("inspection_id", inspectionId);
+      .eq("inspection_id", inspectionId)
+      .eq("agreement_required", true)
+      .in("role", ["client", "co-client"]);
 
     if (contactsError) {
       return NextResponse.json(
@@ -221,8 +224,7 @@ export async function POST(req: Request) {
 
     let clientContacts = (contacts || []).filter(isClientAgreementRecipient);
 
-    // If this report was created before booking contacts were auto-added,
-    // backfill the client contact from the inspection row and use that.
+    // Backfill older reports that only have the primary client saved on the inspection row.
     if (clientContacts.length === 0) {
       const createdClientContact = await ensureClientContact({
         inspection,
@@ -234,26 +236,17 @@ export async function POST(req: Request) {
       }
     }
 
-    const recipients = Array.from(
-      new Set(
-        clientContacts
-          .map((contact: any) => String(contact.email).trim().toLowerCase())
-          .filter(Boolean)
-      )
-    );
-
-    if (!recipients.length) {
+    if (!clientContacts.length) {
       return NextResponse.json(
         {
           error:
-            "No client agreement recipient found. Add a client/co-client contact with an email and mark Agreement Required.",
+            "No unsigned client/co-client agreement recipient found. Add a client/co-client contact with an email and mark Agreement Required.",
         },
         { status: 400 }
       );
     }
 
     const baseUrl = getBaseUrl(req);
-    const agreementUrl = `${baseUrl}/client-agreement/${inspectionId}`;
     const portalUrl = `${baseUrl}/client-portal/${inspectionId}`;
 
     const property =
@@ -269,7 +262,13 @@ export async function POST(req: Request) {
     const sent: any[] = [];
     const failed: any[] = [];
 
-    for (const email of recipients) {
+    for (const contact of clientContacts) {
+      const email = String(contact.email || "").trim().toLowerCase();
+      if (!email) continue;
+
+      // IMPORTANT: every signer gets their own contact-specific agreement link.
+      // This prevents one client from signing for every client/co-client.
+      const agreementUrl = `${baseUrl}/client-agreement/${inspectionId}?contact=${contact.id}`;
       const subject = `Inspection Agreement - ${property}`;
 
       try {
@@ -280,6 +279,8 @@ export async function POST(req: Request) {
           html: `
             <div style="font-family:Arial,sans-serif;padding:24px;line-height:1.6;color:#0f172a;">
               <h2 style="color:#0f766e;">On Point Home Inspections</h2>
+
+              <p>Hi ${contact.name || "there"},</p>
 
               <p>Please review and sign your inspection agreement before the report is delivered.</p>
 
@@ -301,7 +302,9 @@ export async function POST(req: Request) {
               </p>
             </div>
           `,
-          text: `Please review and sign your inspection agreement for ${property}.
+          text: `Hi ${contact.name || "there"},
+
+Please review and sign your inspection agreement for ${property}.
 
 Agreement:
 ${agreementUrl}
@@ -322,12 +325,16 @@ On Point Home Inspections`,
             type: "agreement_email",
             agreementUrl,
             portalUrl,
-            recipientRule: "client_or_co_client_only",
+            contactId: contact.id,
+            contactRole: contact.role || "client",
+            recipientRule: "client_or_co_client_only_contact_specific",
           },
         });
 
         sent.push({
           email,
+          contact_id: contact.id,
+          role: contact.role,
           result,
         });
       } catch (error: any) {
@@ -340,13 +347,17 @@ On Point Home Inspections`,
             type: "agreement_email",
             agreementUrl,
             portalUrl,
-            recipientRule: "client_or_co_client_only",
+            contactId: contact.id,
+            contactRole: contact.role || "client",
+            recipientRule: "client_or_co_client_only_contact_specific",
             error: error?.message || "Failed to send agreement email.",
           },
         });
 
         failed.push({
           email,
+          contact_id: contact.id,
+          role: contact.role,
           error: error?.message || "Failed to send agreement email.",
         });
       }
@@ -360,11 +371,14 @@ On Point Home Inspections`,
         metadata: {
           sentCount: sent.length,
           failedCount: failed.length,
-          recipients: sent.map((item) => item.email),
+          recipients: sent.map((item) => ({
+            email: item.email,
+            contact_id: item.contact_id,
+            role: item.role,
+          })),
           failed,
-          agreementUrl,
           portalUrl,
-          recipientRule: "client_or_co_client_only",
+          recipientRule: "client_or_co_client_only_contact_specific",
         },
       });
     }
@@ -383,7 +397,7 @@ On Point Home Inspections`,
       success: true,
       message: `Agreement email sent to ${sent.length} client recipient${
         sent.length === 1 ? "" : "s"
-      }.`,
+      } with separate signing links.`,
       sent,
       failed,
     });

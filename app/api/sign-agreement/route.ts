@@ -26,6 +26,11 @@ function getPropertyLabel(inspection: any) {
   );
 }
 
+function isClientOrCoClient(contact: any) {
+  const role = String(contact?.role || "").toLowerCase().trim();
+  return role === "client" || role === "co-client";
+}
+
 async function sendOwnerPushNotification({
   title,
   body,
@@ -105,13 +110,14 @@ async function updateInspectionAgreementStatus(inspectionId: string) {
     .from("inspection_contacts")
     .select("*")
     .eq("inspection_id", inspectionId)
-    .eq("agreement_required", true);
+    .eq("agreement_required", true)
+    .in("role", ["client", "co-client"]);
 
   const requiredContacts = contacts || [];
 
   const allSigned =
     requiredContacts.length > 0 &&
-    requiredContacts.every((contact) => contact.agreement_signed);
+    requiredContacts.every((contact) => Boolean(contact.agreement_signed));
 
   await supabase
     .from("inspections")
@@ -132,6 +138,8 @@ async function findMatchingContact({
   clientEmail: string;
   clientName: string;
 }) {
+  // IMPORTANT: if a contact-specific URL is used, only that exact contact may sign.
+  // Do not fall back to another contact or one signer can accidentally sign for another.
   if (contactId) {
     const { data } = await supabase
       .from("inspection_contacts")
@@ -140,7 +148,7 @@ async function findMatchingContact({
       .eq("inspection_id", inspectionId)
       .maybeSingle();
 
-    if (data) return data;
+    return data || null;
   }
 
   const cleanEmail = clientEmail.trim().toLowerCase();
@@ -151,6 +159,7 @@ async function findMatchingContact({
       .select("*")
       .eq("inspection_id", inspectionId)
       .ilike("email", cleanEmail)
+      .in("role", ["client", "co-client"])
       .maybeSingle();
 
     if (data) return data;
@@ -164,6 +173,7 @@ async function findMatchingContact({
       .select("*")
       .eq("inspection_id", inspectionId)
       .ilike("name", cleanName)
+      .in("role", ["client", "co-client"])
       .maybeSingle();
 
     if (data) return data;
@@ -179,18 +189,7 @@ async function findMatchingContact({
     .limit(1)
     .maybeSingle();
 
-  if (firstRequiredClient) return firstRequiredClient;
-
-  const { data: firstRequired } = await supabase
-    .from("inspection_contacts")
-    .select("*")
-    .eq("inspection_id", inspectionId)
-    .eq("agreement_required", true)
-    .eq("agreement_signed", false)
-    .limit(1)
-    .maybeSingle();
-
-  return firstRequired || null;
+  return firstRequiredClient || null;
 }
 
 export async function POST(req: Request) {
@@ -245,6 +244,38 @@ export async function POST(req: Request) {
       clientName,
     });
 
+    if (contactId && !contact) {
+      return NextResponse.json(
+        { error: "This agreement signing link is no longer valid." },
+        { status: 404 }
+      );
+    }
+
+    if (contact && !isClientOrCoClient(contact)) {
+      return NextResponse.json(
+        { error: "Only clients and co-clients can sign this agreement." },
+        { status: 403 }
+      );
+    }
+
+    if (contact && !Boolean(contact.agreement_required)) {
+      return NextResponse.json(
+        { error: "This contact is not required to sign this agreement." },
+        { status: 400 }
+      );
+    }
+
+    if (contact && Boolean(contact.agreement_signed)) {
+      await updateInspectionAgreementStatus(inspectionId);
+
+      return NextResponse.json({
+        ok: true,
+        alreadySigned: true,
+        contactUpdated: true,
+        contactId: contact.id,
+      });
+    }
+
     const state = normalizeAgreementState(
       inspection.agreement_state || inspection.state
     );
@@ -286,6 +317,12 @@ export async function POST(req: Request) {
         ? templates.map((template) => template.version).join(" + ")
         : getAgreementVersion(state);
 
+    const signerEmail =
+      clientEmail.trim().toLowerCase() ||
+      contact?.email ||
+      inspection.client_email ||
+      null;
+
     const { data: agreement, error } = await supabase
       .from("inspection_agreements")
       .insert({
@@ -300,8 +337,7 @@ export async function POST(req: Request) {
         agreement_title: agreementTitle,
         agreement_body: agreementBody,
         client_name: clientName,
-        client_email:
-          clientEmail || contact?.email || inspection.client_email || null,
+        client_email: signerEmail,
         client_signature: signature,
         signed_at: new Date().toISOString(),
         signer_ip: signerIp,
@@ -320,9 +356,10 @@ export async function POST(req: Request) {
           agreement_signed: true,
           signed_at: new Date().toISOString(),
           name: contact.name || clientName,
-          email: contact.email || clientEmail || null,
+          email: contact.email || signerEmail,
         })
-        .eq("id", contact.id);
+        .eq("id", contact.id)
+        .eq("inspection_id", inspectionId);
     } else {
       await supabase
         .from("inspections")
@@ -347,12 +384,12 @@ export async function POST(req: Request) {
       view_type: "agreement_signed",
       contact_id: contact?.id || null,
       viewer_role: contact?.role || "client",
-      viewer_email:
-        clientEmail || contact?.email || inspection.client_email || null,
+      viewer_email: signerEmail,
       path: "/agreement",
       metadata: {
         source: "agreement_signing",
         signer_name: clientName,
+        contact_id: contact?.id || null,
       },
     });
 
@@ -366,8 +403,8 @@ export async function POST(req: Request) {
       metadata: {
         inspection_id: inspectionId,
         signer_name: clientName,
-        signer_email:
-          clientEmail || contact?.email || inspection.client_email || null,
+        signer_email: signerEmail,
+        contact_id: contact?.id || null,
         property,
       },
     });
