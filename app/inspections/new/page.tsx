@@ -303,6 +303,8 @@ export default function NewInspectionPage() {
   const [propertyStyle, setPropertyStyle] = useState("");
   const [roofStyle, setRoofStyle] = useState("");
   const [propertyImage, setPropertyImage] = useState("");
+  const [propertyPhotoUploading, setPropertyPhotoUploading] = useState(false);
+  const [propertyPhotoError, setPropertyPhotoError] = useState("");
 
   const [loadingProperty, setLoadingProperty] = useState(false);
   const [propertyLookupStatus, setPropertyLookupStatus] = useState("");
@@ -407,6 +409,43 @@ export default function NewInspectionPage() {
         phone: client.phone.trim(),
       }))
       .filter((client) => client.name || client.email || client.phone);
+  }
+
+  async function uploadPropertyPhoto(file: File | null) {
+    setPropertyPhotoError("");
+
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setPropertyPhotoError("Please upload an image file.");
+      return;
+    }
+
+    try {
+      setPropertyPhotoUploading(true);
+
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("context", "inspection-schedule");
+
+      const response = await fetch("/api/property-photo/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(result?.error || "Property photo upload failed.");
+      }
+
+      setPropertyImage(result.url || result.publicUrl || "");
+      setPropertyLookupStatus("Property photo updated. This photo will be used for the report.");
+    } catch (error: any) {
+      setPropertyPhotoError(error?.message || "Property photo upload failed.");
+    } finally {
+      setPropertyPhotoUploading(false);
+    }
   }
 
   function loadGooglePlaces() {
@@ -1153,13 +1192,71 @@ export default function NewInspectionPage() {
               </p>
             )}
 
-            {propertyImage && (
-              <img
-                src={propertyImage}
-                alt="Property preview"
-                className="max-h-80 w-full rounded-xl border border-zinc-700 object-cover"
-              />
-            )}
+            <div className="rounded-xl border border-zinc-800 bg-black/30 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-black uppercase tracking-wide text-teal-300">
+                    Property Photo
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-zinc-400">
+                    Use the lookup photo, or upload the correct house photo if the lookup pulls the wrong property.
+                  </p>
+                </div>
+
+                <label className="inline-flex cursor-pointer rounded-xl border border-teal-500/50 bg-teal-500/10 px-4 py-3 text-sm font-black text-teal-300 transition hover:bg-teal-500/20">
+                  {propertyPhotoUploading
+                    ? "Uploading..."
+                    : propertyImage
+                    ? "Change Property Photo"
+                    : "Upload Property Photo"}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    disabled={propertyPhotoUploading}
+                    onChange={(event) =>
+                      void uploadPropertyPhoto(event.target.files?.[0] || null)
+                    }
+                  />
+                </label>
+              </div>
+
+              {propertyImage ? (
+                <div className="mt-4 overflow-hidden rounded-xl border border-zinc-700 bg-black">
+                  <img
+                    src={propertyImage}
+                    alt="Property preview"
+                    className="max-h-80 w-full object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="mt-4 rounded-xl border border-dashed border-zinc-700 bg-black/40 p-4 text-sm leading-6 text-zinc-400">
+                  No property photo selected yet. Lookup may add one automatically, or you can upload one now.
+                </div>
+              )}
+
+              <div className="mt-3 flex flex-wrap gap-3">
+                {propertyImage ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPropertyImage("");
+                      setPropertyPhotoError("");
+                      setPropertyLookupStatus("Property photo removed. Street View may be used when the inspection is created.");
+                    }}
+                    className="rounded-xl border border-zinc-700 px-4 py-2 text-sm font-black text-zinc-300 transition hover:border-red-400 hover:text-red-200"
+                  >
+                    Remove Photo
+                  </button>
+                ) : null}
+              </div>
+
+              {propertyPhotoError ? (
+                <p className="mt-3 text-sm font-bold text-red-300">
+                  {propertyPhotoError}
+                </p>
+              ) : null}
+            </div>
           </Card>
         </section>
 
