@@ -366,9 +366,6 @@ export default async function ReportsPage() {
                         loading="lazy"
                         decoding="async"
                         className="relative z-10 h-full w-full object-cover"
-                        onError={(event) => {
-                          event.currentTarget.style.display = "none";
-                        }}
                       />
                     ) : null}
                   </div>
