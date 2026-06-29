@@ -5,42 +5,25 @@ export type AgreementState = "MD" | "WV" | "PA";
 export function normalizeAgreementState(
   state?: string | null
 ): AgreementState {
-  const clean = String(state || "MD")
-    .trim()
-    .toUpperCase();
+  const clean = String(state || "MD").trim().toUpperCase();
 
-  if (clean === "WV" || clean === "WEST VIRGINIA") {
-    return "WV";
-  }
-
-  if (clean === "PA" || clean === "PENNSYLVANIA") {
-    return "PA";
-  }
+  if (clean === "WV" || clean === "WEST VIRGINIA") return "WV";
+  if (clean === "PA" || clean === "PENNSYLVANIA") return "PA";
 
   return "MD";
 }
 
-export function getAgreementVersion(
-  state?: string | null
-) {
+export function getAgreementVersion(state?: string | null) {
   const normalized = normalizeAgreementState(state);
 
-  if (normalized === "MD") {
-    return "MD SOP Contract - V6";
-  }
-
-  if (normalized === "WV") {
-    return "WV SOP Contract - V5";
-  }
+  if (normalized === "MD") return "MD SOP Contract - V6";
+  if (normalized === "WV") return "WV SOP Contract - V5";
 
   return "PA InterNACHI Contract - V5";
 }
 
-export function getAgreementTitle(
-  state?: string | null
-) {
+export function getAgreementTitle(state?: string | null) {
   const normalized = normalizeAgreementState(state);
-
   return `${normalized} Residential Inspection Agreement`;
 }
 
@@ -50,64 +33,81 @@ function formatFee(fee?: string | number | null) {
   }
 
   const raw = String(fee).trim();
-
-  if (raw.startsWith("$")) {
-    return raw;
-  }
+  if (raw.startsWith("$")) return raw;
 
   return `$${raw}`;
 }
 
 function formatDate(date?: string | null) {
-  if (!date) {
-    return new Date().toLocaleDateString();
-  }
+  if (!date) return new Date().toLocaleDateString();
 
-  try {
-    return new Date(date).toLocaleDateString();
-  } catch {
-    return date;
-  }
+  const parsed = new Date(date);
+  if (Number.isNaN(parsed.getTime())) return date;
+
+  return parsed.toLocaleDateString();
+}
+
+function getLicenseNumber(state?: string | null) {
+  const normalized = normalizeAgreementState(state);
+
+  if (normalized === "MD") return "35912";
+  if (normalized === "WV") return "HI5277172-0226";
+
+  return "N/A";
+}
+
+function getLicenseLine(state?: string | null) {
+  const normalized = normalizeAgreementState(state);
+
+  if (normalized === "MD") return "MD Home Inspector License #35912";
+  if (normalized === "WV") return "WV Home Inspector License #HI5277172-0226";
+
+  return "Pennsylvania service area inspection performed under applicable Pennsylvania requirements and InterNACHI SOP.";
+}
+
+function fillBlankLine(label: string, value: string) {
+  return new RegExp(`${label}:\\s*(?:_+)?\\s*(?=\\n|$)`, "i");
 }
 
 export function applyAgreementMergeFields({
   templateBody,
   state,
   clientName,
+  coClientName,
   propertyAddress,
   fee,
   inspectorName,
   inspectionDate,
+  signedDate,
 }: {
   templateBody: string;
   state?: string | null;
   clientName?: string | null;
+  coClientName?: string | null;
   propertyAddress?: string | null;
   fee?: string | number | null;
   inspectorName?: string | null;
   inspectionDate?: string | null;
+  signedDate?: string | null;
 }) {
   const normalized = normalizeAgreementState(state);
 
   const displayClient = clientName || "Client";
-  const displayProperty =
-    propertyAddress || "Inspection Property";
+  const displayCoClient = coClientName || "";
+  const displayProperty = propertyAddress || "Inspection Property";
   const displayFee = formatFee(fee);
   const displayDate = formatDate(inspectionDate);
+  const displaySignedDate = formatDate(signedDate || inspectionDate);
 
   const inspectorCompany = "On Point Home Inspections";
   const inspectorOwner = "Jeff Shockey";
   const inspectorTitle = "Owner / Licensed Home Inspector";
   const inspectorDisplay =
-    inspectorName ||
-    `${inspectorCompany} — ${inspectorOwner}, ${inspectorTitle}`;
+    inspectorName || `${inspectorCompany} — ${inspectorOwner}, ${inspectorTitle}`;
 
-  const licenseInfo =
-    normalized === "MD"
-      ? "MD Home Inspector License #35912"
-      : normalized === "WV"
-        ? "WV Home Inspector License #HI5277172-0226"
-        : "Pennsylvania service area inspection performed under applicable Pennsylvania requirements and InterNACHI SOP.";
+  const inspectorLicense = getLicenseLine(normalized);
+  const inspectorLicenseNumber = getLicenseNumber(normalized);
+  const inspectorLicenseExpiration = "12-07-27";
 
   let body = templateBody || "";
 
@@ -116,18 +116,28 @@ export function applyAgreementMergeFields({
     "{{AGREEMENT_VERSION}}": getAgreementVersion(normalized),
     "{{AGREEMENT_DATE}}": displayDate,
     "{{INSPECTION_DATE}}": displayDate,
+    "{{SIGNED_DATE}}": displaySignedDate,
+
     "{{CLIENT_NAME}}": displayClient,
     "{{CLIENT}}": displayClient,
+    "{{CO_CLIENT_NAME}}": displayCoClient,
+    "{{COCLIENT_NAME}}": displayCoClient,
+
     "{{PROPERTY_ADDRESS}}": displayProperty,
     "{{COMMON_STREET_ADDRESS}}": displayProperty,
+
     "{{INSPECTION_FEE}}": displayFee,
     "{{FEE}}": displayFee,
+
     "{{INSPECTOR_NAME}}": inspectorDisplay,
     "{{INSPECTOR}}": inspectorDisplay,
     "{{INSPECTOR_COMPANY}}": inspectorCompany,
     "{{INSPECTOR_OWNER}}": inspectorOwner,
     "{{INSPECTOR_TITLE}}": inspectorTitle,
-    "{{INSPECTOR_LICENSE}}": licenseInfo,
+    "{{INSPECTOR_LICENSE}}": inspectorLicense,
+    "{{INSPECTOR_LICENSE_NUMBER}}": inspectorLicenseNumber,
+    "{{INSPECTOR_LICENSE_EXPIRATION}}": inspectorLicenseExpiration,
+    "{{LICENSE_EXPIRATION_DATE}}": inspectorLicenseExpiration,
   };
 
   for (const [key, value] of Object.entries(mergeFields)) {
@@ -135,38 +145,25 @@ export function applyAgreementMergeFields({
   }
 
   body = body.replace(
-    /This Agreement dated:\s*/i,
+    /This Agreement dated:\s*(?:_+)?\s*/i,
     `This Agreement dated: ${displayDate}\n\n`
   );
 
   body = body.replace(
-    /This Agreement dated\s*/i,
+    /This Agreement dated\s*(?:_+)?\s*/i,
     `This Agreement dated: ${displayDate}\n\n`
   );
 
-  body = body.replace(
-    /Client:\s*(?=\n|$)/i,
-    `Client: ${displayClient}\n`
-  );
+  body = body.replace(fillBlankLine("Client", displayClient), `Client: ${displayClient}\n`);
+  body = body.replace(fillBlankLine("Inspector", inspectorDisplay), `Inspector: ${inspectorDisplay}\n`);
+  body = body.replace(fillBlankLine("Common Street Address", displayProperty), `Common Street Address: ${displayProperty}\n`);
+  body = body.replace(fillBlankLine("Fee", displayFee), `Fee: ${displayFee}\n`);
+  body = body.replace(fillBlankLine("State License No\\.", inspectorLicense), `State License No.: ${inspectorLicense}\n`);
+  body = body.replace(fillBlankLine("License Expiration Date", inspectorLicenseExpiration), `License Expiration Date: ${inspectorLicenseExpiration}\n`);
 
   body = body.replace(
-    /Inspector:\s*(?=\n|$)/i,
-    `Inspector: ${inspectorDisplay}\n`
-  );
-
-  body = body.replace(
-    /Common Street Address:\s*(?=\n|$)/i,
-    `Common Street Address: ${displayProperty}\n`
-  );
-
-  body = body.replace(
-    /Fee:\s*(?=\n|$)/i,
-    `Fee: ${displayFee}\n`
-  );
-
-  body = body.replace(
-    /State License No\.:\s*(?=\n|$)/i,
-    `State License No.: ${licenseInfo}\n`
+    /Dated:\s*(?:_+)?\s*(?=\n|$)/i,
+    `Dated: ${displaySignedDate}\n`
   );
 
   return body;
@@ -176,24 +173,27 @@ export function mergeAgreementBody({
   templateBody,
   state,
   clientName,
+  coClientName,
   propertyAddress,
   fee,
   inspectorName,
   inspectionDate,
+  signedDate,
 }: {
   templateBody: string;
   state?: string | null;
   clientName?: string | null;
+  coClientName?: string | null;
   propertyAddress?: string | null;
   fee?: string | number | null;
   inspectorName?: string | null;
   inspectionDate?: string | null;
+  signedDate?: string | null;
 }) {
   const normalized = normalizeAgreementState(state);
 
   const displayClient = clientName || "Client";
-  const displayProperty =
-    propertyAddress || "Inspection Property";
+  const displayProperty = propertyAddress || "Inspection Property";
   const displayFee = formatFee(fee);
   const displayDate = formatDate(inspectionDate);
 
@@ -201,10 +201,12 @@ export function mergeAgreementBody({
     templateBody,
     state,
     clientName,
+    coClientName,
     propertyAddress,
     fee,
     inspectorName,
     inspectionDate,
+    signedDate,
   });
 
   return `AGREEMENT DETAILS
@@ -213,6 +215,7 @@ Agreement State: ${normalized}
 Agreement Version: ${getAgreementVersion(normalized)}
 Agreement Date: ${displayDate}
 Client: ${displayClient}
+${coClientName ? `Co-Client: ${coClientName}` : ""}
 Inspector: On Point Home Inspections — Jeff Shockey, Owner / Licensed Home Inspector
 Property: ${displayProperty}
 Fee: ${displayFee}
@@ -232,18 +235,22 @@ export function mergeMultipleAgreementBodies({
   templates,
   state,
   clientName,
+  coClientName,
   propertyAddress,
   fee,
   inspectorName,
   inspectionDate,
+  signedDate,
 }: {
   templates: any[];
   state?: string | null;
   clientName?: string | null;
+  coClientName?: string | null;
   propertyAddress?: string | null;
   fee?: string | number | null;
   inspectorName?: string | null;
   inspectionDate?: string | null;
+  signedDate?: string | null;
 }) {
   if (!templates || templates.length === 0) {
     return mergeAgreementBody({
@@ -251,26 +258,20 @@ export function mergeMultipleAgreementBodies({
         "Agreement template not found. Please contact the inspector.",
       state,
       clientName,
+      coClientName,
       propertyAddress,
       fee,
       inspectorName,
       inspectionDate,
+      signedDate,
     });
   }
 
   return templates
     .map((template, index) => {
-      const title =
-        template?.title ||
-        `Agreement ${index + 1}`;
-
-      const version =
-        template?.version ||
-        "v1";
-
-      const serviceType =
-        template?.service_type ||
-        "home_inspection";
+      const title = template?.title || `Agreement ${index + 1}`;
+      const version = template?.version || "v1";
+      const serviceType = template?.service_type || "home_inspection";
 
       return `AGREEMENT ${index + 1}: ${title}
 Version: ${version}
@@ -280,41 +281,47 @@ ${mergeAgreementBody({
   templateBody: template?.body || "",
   state,
   clientName,
+  coClientName,
   propertyAddress,
   fee,
   inspectorName,
   inspectionDate,
+  signedDate,
 })}`;
     })
-    .join(
-      "\n\n\n============================================================\n\n\n"
-    );
+    .join("\n\n\n============================================================\n\n\n");
 }
 
 export function buildAgreementBody({
   state,
   clientName,
+  coClientName,
   propertyAddress,
   fee,
   inspectorName,
   inspectionDate,
+  signedDate,
 }: {
   state?: string | null;
   clientName?: string | null;
+  coClientName?: string | null;
   propertyAddress?: string | null;
   fee?: string | number | null;
   inspectorName?: string | null;
   inspectionDate?: string | null;
+  signedDate?: string | null;
 }) {
   return mergeAgreementBody({
     templateBody:
       "Agreement template not loaded. Please select or create an agreement template in the Agreement Library.",
     state,
     clientName,
+    coClientName,
     propertyAddress,
     fee,
     inspectorName,
     inspectionDate,
+    signedDate,
   });
 }
 
@@ -340,9 +347,7 @@ export async function getAgreementTemplatesForInspection({
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-  const selectedIds: string[] = Array.isArray(
-    inspection.agreement_template_ids
-  )
+  const selectedIds: string[] = Array.isArray(inspection.agreement_template_ids)
     ? inspection.agreement_template_ids
     : inspection.agreement_template_id
       ? [inspection.agreement_template_id]
@@ -357,9 +362,7 @@ export async function getAgreementTemplatesForInspection({
     const templates = data || [];
 
     return selectedIds
-      .map((id) =>
-        templates.find((template) => template.id === id)
-      )
+      .map((id) => templates.find((template) => template.id === id))
       .filter(Boolean);
   }
 
@@ -376,9 +379,7 @@ export async function getAgreementTemplatesForInspection({
     .order("display_order", { ascending: true })
     .order("created_at", { ascending: false });
 
-  if (data && data.length > 0) {
-    return data;
-  }
+  if (data && data.length > 0) return data;
 
   const fallback = await supabase
     .from("agreement_templates")
