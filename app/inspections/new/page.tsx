@@ -29,6 +29,13 @@ type RealtorContact = {
   last_contact_date?: string | null;
 };
 
+type CoClient = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+};
+
 const serviceOptions: { value: ServiceMode; label: string }[] = [
   { value: "home", label: "Home Inspection" },
   { value: "radon_only", label: "Radon Only" },
@@ -264,6 +271,7 @@ export default function NewInspectionPage() {
   const [clientName, setClientName] = useState("");
   const [clientEmail, setClientEmail] = useState("");
   const [clientPhone, setClientPhone] = useState("");
+  const [coClients, setCoClients] = useState<CoClient[]>([]);
 
   const [realtorId, setRealtorId] = useState("");
   const [realtorName, setRealtorName] = useState("");
@@ -362,6 +370,43 @@ export default function NewInspectionPage() {
     setRealtorEmail(realtor.email || "");
     setRealtorPhone(realtor.phone || "");
     setShowRealtorMatches(false);
+  }
+
+  function addCoClient() {
+    setCoClients((current) => [
+      ...current,
+      {
+        id:
+          typeof crypto !== "undefined" && "randomUUID" in crypto
+            ? crypto.randomUUID()
+            : `${Date.now()}-${current.length}`,
+        name: "",
+        email: "",
+        phone: "",
+      },
+    ]);
+  }
+
+  function updateCoClient(id: string, field: keyof Omit<CoClient, "id">, value: string) {
+    setCoClients((current) =>
+      current.map((client) =>
+        client.id === id ? { ...client, [field]: value } : client
+      )
+    );
+  }
+
+  function removeCoClient(id: string) {
+    setCoClients((current) => current.filter((client) => client.id !== id));
+  }
+
+  function getCompletedCoClients() {
+    return coClients
+      .map((client) => ({
+        name: client.name.trim(),
+        email: client.email.trim().toLowerCase(),
+        phone: client.phone.trim(),
+      }))
+      .filter((client) => client.name || client.email || client.phone);
   }
 
   function loadGooglePlaces() {
@@ -638,6 +683,16 @@ export default function NewInspectionPage() {
       return;
     }
 
+    const completedCoClients = getCompletedCoClients();
+    const incompleteCoClient = completedCoClients.find(
+      (client) => !client.name || !client.email
+    );
+
+    if (incompleteCoClient) {
+      alert("Each co-client needs at least a name and email.");
+      return;
+    }
+
     try {
       setSaving(true);
 
@@ -843,6 +898,19 @@ export default function NewInspectionPage() {
         });
       }
 
+      completedCoClients.forEach((coClient) => {
+        inspectionContacts.push({
+          inspection_id: data.id,
+          inspector_id: user.id,
+          name: coClient.name,
+          email: coClient.email,
+          phone: coClient.phone || null,
+          role: "co-client",
+          agreement_required: true,
+          portal_access: true,
+        });
+      });
+
       if (realtorEmail.trim()) {
         inspectionContacts.push({
           inspection_id: data.id,
@@ -887,23 +955,84 @@ export default function NewInspectionPage() {
 
         <section className="grid gap-5 lg:grid-cols-2">
           <Card title="Client Info">
-            <Input
-              value={clientName}
-              onChange={setClientName}
-              placeholder="Client Name"
-            />
+            <div className="rounded-xl border border-zinc-800 bg-black/20 p-4">
+              <p className="mb-3 text-sm font-black uppercase tracking-wide text-teal-300">
+                Primary Client
+              </p>
 
-            <Input
-              value={clientEmail}
-              onChange={setClientEmail}
-              placeholder="Client Email"
-            />
+              <div className="space-y-4">
+                <Input
+                  value={clientName}
+                  onChange={setClientName}
+                  placeholder="Client Name"
+                />
 
-            <Input
-              value={clientPhone}
-              onChange={setClientPhone}
-              placeholder="Client Phone"
-            />
+                <Input
+                  value={clientEmail}
+                  onChange={setClientEmail}
+                  placeholder="Client Email"
+                />
+
+                <Input
+                  value={clientPhone}
+                  onChange={setClientPhone}
+                  placeholder="Client Phone"
+                />
+              </div>
+            </div>
+
+            {coClients.map((coClient, index) => (
+              <div
+                key={coClient.id}
+                className="rounded-xl border border-teal-500/30 bg-teal-500/5 p-4"
+              >
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <p className="text-sm font-black uppercase tracking-wide text-teal-300">
+                    Co-Client {index + 1}
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={() => removeCoClient(coClient.id)}
+                    className="rounded-lg border border-red-500/40 px-3 py-1 text-xs font-black text-red-300 hover:bg-red-500/10"
+                  >
+                    Remove
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  <Input
+                    value={coClient.name}
+                    onChange={(value) => updateCoClient(coClient.id, "name", value)}
+                    placeholder="Co-Client Name"
+                  />
+
+                  <Input
+                    value={coClient.email}
+                    onChange={(value) => updateCoClient(coClient.id, "email", value)}
+                    placeholder="Co-Client Email"
+                  />
+
+                  <Input
+                    value={coClient.phone}
+                    onChange={(value) => updateCoClient(coClient.id, "phone", value)}
+                    placeholder="Co-Client Phone"
+                  />
+                </div>
+              </div>
+            ))}
+
+            <button
+              type="button"
+              onClick={addCoClient}
+              className="w-full rounded-xl border border-teal-500/50 bg-teal-500/10 px-4 py-3 text-sm font-black text-teal-300 transition hover:bg-teal-500/20"
+            >
+              + Add Co-Client
+            </button>
+
+            <p className="text-sm leading-6 text-zinc-400">
+              Co-clients will be added as agreement-required contacts and will receive portal access.
+            </p>
           </Card>
 
           <Card title="Realtor Info">
