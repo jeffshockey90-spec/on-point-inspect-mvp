@@ -76,11 +76,17 @@ export default async function SignedAgreementPage({ params }: PageProps) {
     .from("inspection_agreements")
     .select("*")
     .eq("id", agreementId)
+    .eq("inspection_id", id)
     .eq("status", "signed")
-    .maybeSingle();
+    .single();
 
   if (agreementError || !agreement) {
-    redirect(`/reports/${id}`);
+    return (
+      <main style={{background:"#020617",color:"white",minHeight:"100vh",padding:40}}>
+        <h1>Agreement Lookup Failed</h1>
+        <pre>{JSON.stringify({agreementId,inspectionId:id,agreementError},null,2)}</pre>
+      </main>
+    );
   }
 
   const propertyAddress = inspection.address || inspection.property_address || "Inspection Property";
