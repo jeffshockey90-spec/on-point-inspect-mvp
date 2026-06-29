@@ -262,6 +262,29 @@ function calculateFullInspectionPrice({
   };
 }
 
+
+function cleanImageUrl(value: any) {
+  const text = String(value || "").trim();
+
+  if (!text) return "";
+
+  return text;
+}
+
+function getUploadImageUrl(result: any) {
+  return cleanImageUrl(
+    result?.url ||
+      result?.publicUrl ||
+      result?.public_url ||
+      result?.signedUrl ||
+      result?.signed_url ||
+      result?.propertyImageUrl ||
+      result?.property_image_url ||
+      result?.imageUrl ||
+      result?.image_url
+  );
+}
+
 export default function NewInspectionPage() {
   const router = useRouter();
   const supabase = createClient();
@@ -303,8 +326,11 @@ export default function NewInspectionPage() {
   const [propertyStyle, setPropertyStyle] = useState("");
   const [roofStyle, setRoofStyle] = useState("");
   const [propertyImage, setPropertyImage] = useState("");
+  const [propertyImagePreview, setPropertyImagePreview] = useState("");
+  const [propertyImageLoadError, setPropertyImageLoadError] = useState(false);
   const [propertyPhotoUploading, setPropertyPhotoUploading] = useState(false);
   const [propertyPhotoError, setPropertyPhotoError] = useState("");
+  const [propertyPhotoDragging, setPropertyPhotoDragging] = useState(false);
 
   const [loadingProperty, setLoadingProperty] = useState(false);
   const [propertyLookupStatus, setPropertyLookupStatus] = useState("");
@@ -421,6 +447,10 @@ export default function NewInspectionPage() {
       return;
     }
 
+    const localPreviewUrl = URL.createObjectURL(file);
+    setPropertyImagePreview(localPreviewUrl);
+    setPropertyImageLoadError(false);
+
     try {
       setPropertyPhotoUploading(true);
 
@@ -439,13 +469,51 @@ export default function NewInspectionPage() {
         throw new Error(result?.error || "Property photo upload failed.");
       }
 
-      setPropertyImage(result.url || result.publicUrl || "");
+      const uploadedUrl = getUploadImageUrl(result);
+
+      if (!uploadedUrl) {
+        throw new Error("Photo uploaded, but no image URL was returned.");
+      }
+
+      setPropertyImage(uploadedUrl);
+      setPropertyImageLoadError(false);
       setPropertyLookupStatus("Property photo updated. This photo will be used for the report.");
     } catch (error: any) {
       setPropertyPhotoError(error?.message || "Property photo upload failed.");
     } finally {
       setPropertyPhotoUploading(false);
     }
+  }
+
+  function handlePropertyPhotoDrop(event: React.DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    setPropertyPhotoDragging(false);
+
+    if (propertyPhotoUploading) return;
+
+    const file = event.dataTransfer.files?.[0] || null;
+    void uploadPropertyPhoto(file);
+  }
+
+  function handlePropertyPhotoDragOver(event: React.DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (!propertyPhotoUploading) {
+      setPropertyPhotoDragging(true);
+    }
+  }
+
+  function handlePropertyPhotoDragLeave(event: React.DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (event.currentTarget.contains(event.relatedTarget as Node | null)) {
+      return;
+    }
+
+    setPropertyPhotoDragging(false);
   }
 
   function loadGooglePlaces() {
@@ -475,6 +543,8 @@ export default function NewInspectionPage() {
     setPropertyStyle("");
     setRoofStyle("");
     setPropertyImage("");
+    setPropertyImagePreview("");
+    setPropertyImageLoadError(false);
     setPropertyLookupStatus("");
   }
 
@@ -542,7 +612,11 @@ export default function NewInspectionPage() {
 
       const image = data.property_image || data.image || data.photo || "";
 
-      if (image) setPropertyImage(image);
+      if (image) {
+        setPropertyImage(String(image));
+        setPropertyImagePreview("");
+        setPropertyImageLoadError(false);
+      }
 
       const built = data.year_built || data.yearBuilt || "";
 
@@ -1192,14 +1266,23 @@ export default function NewInspectionPage() {
               </p>
             )}
 
-            <div className="rounded-xl border border-zinc-800 bg-black/30 p-4">
+            <div
+              onDrop={handlePropertyPhotoDrop}
+              onDragOver={handlePropertyPhotoDragOver}
+              onDragLeave={handlePropertyPhotoDragLeave}
+              className={`rounded-xl border p-4 transition ${
+                propertyPhotoDragging
+                  ? "border-teal-400 bg-teal-500/10"
+                  : "border-zinc-800 bg-black/30"
+              }`}
+            >
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="text-sm font-black uppercase tracking-wide text-teal-300">
                     Property Photo
                   </p>
                   <p className="mt-1 text-xs leading-5 text-zinc-400">
-                    Use the lookup photo, or upload the correct house photo if the lookup pulls the wrong property.
+                    Use the lookup photo, upload the correct house photo, or drag and drop a photo here if the lookup pulls the wrong property.
                   </p>
                 </div>
 
@@ -1221,26 +1304,53 @@ export default function NewInspectionPage() {
                 </label>
               </div>
 
-              {propertyImage ? (
+              {(propertyImagePreview || propertyImage) && !propertyImageLoadError ? (
                 <div className="mt-4 overflow-hidden rounded-xl border border-zinc-700 bg-black">
                   <img
-                    src={propertyImage}
+                    src={propertyImagePreview || propertyImage}
                     alt="Property preview"
-                    className="max-h-80 w-full object-cover"
+                    className="h-56 w-full object-cover sm:h-72"
+                    onLoad={() => setPropertyImageLoadError(false)}
+                    onError={() => setPropertyImageLoadError(true)}
                   />
                 </div>
               ) : (
-                <div className="mt-4 rounded-xl border border-dashed border-zinc-700 bg-black/40 p-4 text-sm leading-6 text-zinc-400">
-                  No property photo selected yet. Lookup may add one automatically, or you can upload one now.
-                </div>
+                <label
+                  className={`mt-4 flex min-h-[190px] cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed p-5 text-center text-sm leading-6 transition ${
+                    propertyPhotoDragging
+                      ? "border-teal-400 bg-teal-500/10 text-teal-100"
+                      : "border-zinc-700 bg-black/40 text-zinc-400 hover:border-teal-500/50 hover:bg-teal-500/5"
+                  }`}
+                >
+                  <span className="text-3xl">📷</span>
+                  <span className="mt-2 block font-black text-teal-300">
+                    {propertyPhotoUploading ? "Uploading property photo..." : "Drop or upload property photo"}
+                  </span>
+                  <span className="mt-1 block text-xs text-zinc-400">
+                    {propertyImageLoadError
+                      ? "The selected photo could not be displayed. Upload a different image."
+                      : "Lookup may add one automatically, or you can choose the correct front photo."}
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    disabled={propertyPhotoUploading}
+                    onChange={(event) =>
+                      void uploadPropertyPhoto(event.target.files?.[0] || null)
+                    }
+                  />
+                </label>
               )}
 
               <div className="mt-3 flex flex-wrap gap-3">
-                {propertyImage ? (
+                {(propertyImagePreview || propertyImage) ? (
                   <button
                     type="button"
                     onClick={() => {
                       setPropertyImage("");
+                      setPropertyImagePreview("");
+                      setPropertyImageLoadError(false);
                       setPropertyPhotoError("");
                       setPropertyLookupStatus("Property photo removed. Street View may be used when the inspection is created.");
                     }}
