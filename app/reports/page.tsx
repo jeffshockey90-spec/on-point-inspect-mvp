@@ -54,6 +54,7 @@ function getStoragePathFromUrl(url: string | null | undefined) {
 
 function getInspectionPropertyPhoto(inspection: any) {
   return (
+    // Custom/uploaded property photo fields first
     inspection.property_photo_override ||
     inspection.property_photo_override_url ||
     inspection.custom_property_photo ||
@@ -63,6 +64,8 @@ function getInspectionPropertyPhoto(inspection: any) {
     inspection.property_photo_url ||
     inspection.property_photo ||
     inspection.cover_photo_url ||
+
+    // Lookup / fallback images after custom photos
     inspection.google_photo_url ||
     inspection.place_photo_url ||
     inspection.street_view_url ||
@@ -352,17 +355,22 @@ export default async function ReportsPage() {
                   className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 shadow-xl"
                 >
                   <div className="relative flex h-56 items-center justify-center overflow-hidden bg-slate-950 text-slate-500">
+                    <span className="absolute inset-0 flex items-center justify-center px-4 text-center text-sm font-bold text-slate-500">
+                      No Property Photo
+                    </span>
+
                     {propertyPhoto ? (
                       <img
                         src={propertyPhoto}
                         alt="Property"
                         loading="lazy"
                         decoding="async"
-                        className="h-full w-full object-cover"
+                        className="relative z-10 h-full w-full object-cover"
+                        onError={(event) => {
+                          event.currentTarget.style.display = "none";
+                        }}
                       />
-                    ) : (
-                      <span>No Property Photo</span>
-                    )}
+                    ) : null}
                   </div>
 
                   <div className="p-6">
