@@ -65,11 +65,25 @@ export async function POST(request: Request) {
       .from("inspection-photos")
       .getPublicUrl(path);
 
+    const { data: signedUrlData } = await admin.storage
+      .from("inspection-photos")
+      .createSignedUrl(path, 60 * 60 * 24 * 7);
+
+    const publicUrl = publicUrlData?.publicUrl || "";
+    const signedUrl = signedUrlData?.signedUrl || "";
+
     return NextResponse.json({
       ok: true,
-      url: publicUrlData?.publicUrl || "",
-      publicUrl: publicUrlData?.publicUrl || "",
+      url: publicUrl,
+      publicUrl,
+      public_url: publicUrl,
+      signedUrl,
+      signed_url: signedUrl,
+      displayUrl: signedUrl || publicUrl,
+      display_url: signedUrl || publicUrl,
       path,
+      storagePath: path,
+      storage_path: path,
     });
   } catch (error: any) {
     return NextResponse.json(

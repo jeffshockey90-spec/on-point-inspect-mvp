@@ -719,7 +719,11 @@ export default async function ReportPage({ params }: PageProps) {
 
     const { error: updateError } = await supabase
       .from("inspections")
-      .update({ property_image: publicUrl })
+      .update({
+        property_image: publicUrl,
+        street_view_url: publicUrl,
+        cover_photo_url: publicUrl,
+      })
       .eq("id", inspectionId)
       .eq("inspector_id", user.id);
 
@@ -1382,7 +1386,7 @@ export default async function ReportPage({ params }: PageProps) {
     { total: 0, safety: 0, repair: 0, maintenance: 0, information: 0 },
   );
 
-  const propertyPhoto =
+  const rawPropertyPhoto =
     inspection.property_image ||
     inspection.street_view_url ||
     inspection.cover_photo_url ||
@@ -1392,6 +1396,19 @@ export default async function ReportPage({ params }: PageProps) {
     inspection.photo_url ||
     inspection.image_url ||
     "";
+
+  let propertyPhoto = rawPropertyPhoto;
+  const propertyPhotoPath = getStoragePathFromUrl(rawPropertyPhoto);
+
+  if (propertyPhotoPath) {
+    const { data: signedPropertyPhoto } = await storageSupabase.storage
+      .from("inspection-photos")
+      .createSignedUrl(propertyPhotoPath, 60 * 60 * 24 * 7);
+
+    if (signedPropertyPhoto?.signedUrl) {
+      propertyPhoto = signedPropertyPhoto.signedUrl;
+    }
+  }
 
   const reportIsPublished =
     inspection.published === true ||
