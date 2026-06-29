@@ -41,6 +41,13 @@ const STATE_OPTIONS = ["MD", "WV", "PA"];
 
 type Option = string | { label: string; value: string };
 
+type AdditionalClient = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+};
+
 declare global {
   interface Window {
     google: any;
@@ -128,6 +135,7 @@ export default function BookingRequestForm() {
   const [photoUploading, setPhotoUploading] = useState(false);
   const [photoError, setPhotoError] = useState("");
   const [services, setServices] = useState<string[]>(["Buyer Home Inspection"]);
+  const [additionalClients, setAdditionalClients] = useState<AdditionalClient[]>([]);
   const [form, setForm] = useState({
     realtor_name: "",
     realtor_email: "",
@@ -199,6 +207,34 @@ export default function BookingRequestForm() {
     setForm((current) => ({ ...current, [name]: value }));
   }
 
+  function addAdditionalClient() {
+    setAdditionalClients((current) => [
+      ...current,
+      { id: crypto.randomUUID(), name: "", email: "", phone: "" },
+    ]);
+  }
+
+  function updateAdditionalClient(id: string, field: keyof Omit<AdditionalClient, "id">, value: string) {
+    setAdditionalClients((current) =>
+      current.map((client) =>
+        client.id === id ? { ...client, [field]: value } : client
+      )
+    );
+  }
+
+  function removeAdditionalClient(id: string) {
+    setAdditionalClients((current) => current.filter((client) => client.id !== id));
+  }
+
+  function cleanAdditionalClients() {
+    return additionalClients
+      .map((client) => ({
+        name: client.name.trim(),
+        email: client.email.trim(),
+        phone: client.phone.trim(),
+      }))
+      .filter((client) => client.name || client.email || client.phone);
+  }
 
   async function uploadPropertyPhoto(file: File | null) {
     setPhotoError("");
@@ -270,6 +306,7 @@ export default function BookingRequestForm() {
           requester_role: requesterRole,
           service_type: services.join(", "),
           services_requested: services,
+          additional_clients: cleanAdditionalClients(),
         }),
       });
 
@@ -281,6 +318,7 @@ export default function BookingRequestForm() {
 
       setSuccess(true);
       setServices(["Buyer Home Inspection"]);
+      setAdditionalClients([]);
       setForm((current) => ({
         ...current,
         realtor_name: "",
@@ -345,6 +383,53 @@ export default function BookingRequestForm() {
           <Field label="Client Name" value={form.client_name} onChange={(v) => update("client_name", v)} required />
           <Field label="Client Email" type="email" value={form.client_email} onChange={(v) => update("client_email", v)} />
           <Field label="Client Phone" value={form.client_phone} onChange={(v) => update("client_phone", v)} required />
+
+          {additionalClients.map((client, index) => (
+            <div
+              key={client.id}
+              className="xl:col-span-2 rounded-2xl border border-teal-500/20 bg-teal-500/5 p-4"
+            >
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <p className="text-xs font-black uppercase tracking-[0.22em] text-teal-300">
+                  Co-Client {index + 1}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => removeAdditionalClient(client.id)}
+                  className="rounded-lg border border-red-500/40 px-3 py-1 text-xs font-black text-red-200 transition hover:bg-red-500/10"
+                >
+                  Remove
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+                <Field
+                  label="Co-Client Name"
+                  value={client.name}
+                  onChange={(value) => updateAdditionalClient(client.id, "name", value)}
+                />
+                <Field
+                  label="Co-Client Email"
+                  type="email"
+                  value={client.email}
+                  onChange={(value) => updateAdditionalClient(client.id, "email", value)}
+                />
+                <Field
+                  label="Co-Client Phone"
+                  value={client.phone}
+                  onChange={(value) => updateAdditionalClient(client.id, "phone", value)}
+                />
+              </div>
+            </div>
+          ))}
+
+          <button
+            type="button"
+            onClick={addAdditionalClient}
+            className="xl:col-span-2 rounded-xl border border-teal-500/40 bg-teal-500/10 px-4 py-3 text-sm font-black text-teal-200 transition hover:bg-teal-500/20"
+          >
+            + Add Another Client
+          </button>
         </Section>
 
         <div className="overflow-hidden rounded-2xl border border-slate-700 bg-[#020817]/70 p-4 sm:p-5">

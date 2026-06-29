@@ -36,7 +36,41 @@ function getPropertyPhotoUrl(value: any) {
 function stripPropertyPhotoMarker(value: any) {
   return cleanText(value)
     .replace(/\[ON_POINT_PROPERTY_PHOTO:[^\]]+\]/g, "")
+    .replace(/\[ON_POINT_ADDITIONAL_CLIENTS:[^\]]+\]/g, "")
     .trim();
+}
+
+function normalizeAdditionalClients(value: any) {
+  const raw = Array.isArray(value) ? value : [];
+
+  return raw
+    .map((client: any) => ({
+      name: cleanText(client?.name || client?.client_name),
+      email: cleanText(client?.email || client?.client_email).toLowerCase(),
+      phone: cleanText(client?.phone || client?.client_phone),
+    }))
+    .filter((client) => client.name || client.email || client.phone);
+}
+
+function getAdditionalClientsFromNotes(value: any) {
+  const match = cleanText(value).match(/\[ON_POINT_ADDITIONAL_CLIENTS:([^\]]+)\]/);
+  if (!match?.[1]) return [];
+
+  try {
+    const parsed = JSON.parse(Buffer.from(match[1], "base64url").toString("utf8"));
+    return normalizeAdditionalClients(parsed);
+  } catch {
+    return [];
+  }
+}
+
+function getAdditionalClients(request: AnyRow) {
+  return normalizeAdditionalClients(request.additional_clients || request.co_clients).concat(
+    getAdditionalClientsFromNotes(request.notes)
+  ).filter((client, index, array) => {
+    const key = client.email || `${client.name}:${client.phone}`;
+    return key && array.findIndex((item) => (item.email || `${item.name}:${item.phone}`) === key) === index;
+  });
 }
 
 function getNumber(value: any) {
@@ -104,6 +138,7 @@ function getContactValues(request: AnyRow) {
     realtorName,
     realtorEmail,
     realtorPhone,
+    additionalClients: getAdditionalClients(request),
   };
 }
 
@@ -116,6 +151,7 @@ function getInspectionPayload(request: AnyRow, userId: string) {
     realtorName,
     realtorEmail,
     realtorPhone,
+    additionalClients,
   } = getContactValues(request);
 
   const address = cleanText(request.property_address);
@@ -127,6 +163,7 @@ function getInspectionPayload(request: AnyRow, userId: string) {
     cleanText(request.property_photo_url) ||
     cleanText(request.property_image);
   const cleanNotes = stripPropertyPhotoMarker(request.notes);
+  const firstAdditionalClient = additionalClients[0] || null;
 
   return {
     inspector_id: userId,
@@ -172,6 +209,12 @@ function getInspectionPayload(request: AnyRow, userId: string) {
     customer_name: clientName,
     customer_email: clientEmail,
     customer_phone: clientPhone,
+    co_client_name: firstAdditionalClient?.name || null,
+    co_client_email: firstAdditionalClient?.email || null,
+    co_client_phone: firstAdditionalClient?.phone || null,
+    secondary_client_name: firstAdditionalClient?.name || null,
+    secondary_client_email: firstAdditionalClient?.email || null,
+    secondary_client_phone: firstAdditionalClient?.phone || null,
 
     realtor_name: realtorName || null,
     realtor_email: realtorEmail || null,
@@ -286,6 +329,7 @@ async function upsertBookingContacts(
     realtorName,
     realtorEmail,
     realtorPhone,
+    additionalClients,
   } = getContactValues(bookingRequest);
 
   const contactPayloads: AnyRow[] = [];
@@ -298,6 +342,22 @@ async function upsertBookingContacts(
       email: clientEmail,
       phone: clientPhone || null,
       role: "client",
+      agreement_required: true,
+      portal_access: true,
+      updated_at: new Date().toISOString(),
+    });
+  }
+
+  for (const additionalClient of additionalClients) {
+    if (!additionalClient.name || !additionalClient.email) continue;
+
+    contactPayloads.push({
+      inspection_id: inspectionId,
+      inspector_id: inspectorId,
+      name: additionalClient.name,
+      email: additionalClient.email,
+      phone: additionalClient.phone || null,
+      role: "co-client",
       agreement_required: true,
       portal_access: true,
       updated_at: new Date().toISOString(),

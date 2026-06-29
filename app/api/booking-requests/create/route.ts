@@ -35,6 +35,7 @@ function cleanText(value: any) {
 }
 
 const PROPERTY_PHOTO_MARKER = "[ON_POINT_PROPERTY_PHOTO:";
+const ADDITIONAL_CLIENTS_MARKER = "[ON_POINT_ADDITIONAL_CLIENTS:";
 
 function withPropertyPhotoMarker(notes: any, propertyPhotoUrl: string) {
   const cleanNotes = cleanText(notes);
@@ -50,7 +51,31 @@ function withPropertyPhotoMarker(notes: any, propertyPhotoUrl: string) {
 function stripPropertyPhotoMarker(value: any) {
   return cleanText(value)
     .replace(/\[ON_POINT_PROPERTY_PHOTO:[^\]]+\]/g, "")
+    .replace(/\[ON_POINT_ADDITIONAL_CLIENTS:[^\]]+\]/g, "")
     .trim();
+}
+
+function normalizeAdditionalClients(value: any) {
+  const raw = Array.isArray(value) ? value : [];
+
+  return raw
+    .map((client: any) => ({
+      name: cleanText(client?.name || client?.client_name),
+      email: cleanText(client?.email || client?.client_email).toLowerCase(),
+      phone: cleanText(client?.phone || client?.client_phone),
+    }))
+    .filter((client) => client.name || client.email || client.phone);
+}
+
+function encodeAdditionalClientsMarker(clients: Array<{ name: string; email: string; phone: string }>) {
+  if (!clients.length) return "";
+  return `${ADDITIONAL_CLIENTS_MARKER}${Buffer.from(JSON.stringify(clients), "utf8").toString("base64url")}]`;
+}
+
+function withAdditionalClientsMarker(notes: any, clients: Array<{ name: string; email: string; phone: string }>) {
+  const cleanNotes = cleanText(notes);
+  const marker = encodeAdditionalClientsMarker(clients);
+  return [cleanNotes, marker].filter(Boolean).join("\n\n");
 }
 
 function validEmail(value: string) {
@@ -407,6 +432,7 @@ function buildEmailHtml(booking: any, request: Request) {
         <tr><td><strong>Client</strong></td><td>${booking.client_name || ""}</td></tr>
         <tr><td><strong>Client Phone</strong></td><td>${booking.client_phone || ""}</td></tr>
         <tr><td><strong>Client Email</strong></td><td>${booking.client_email || ""}</td></tr>
+        <tr><td><strong>Co-Clients</strong></td><td>${normalizeAdditionalClients(booking.additional_clients).map((client) => [client.name, client.email, client.phone].filter(Boolean).join(" / ")).join("<br />")}</td></tr>
         <tr><td><strong>Realtor</strong></td><td>${booking.realtor_name || ""}</td></tr>
         <tr><td><strong>Realtor Phone</strong></td><td>${booking.realtor_phone || ""}</td></tr>
         <tr><td><strong>Realtor Email</strong></td><td>${booking.realtor_email || ""}</td></tr>
@@ -519,6 +545,7 @@ export async function POST(request: Request) {
     const services = cleanServices(body);
     const serviceType = services.join(", ");
     const propertyImageUrl = cleanText(body.property_image_url || body.propertyPhotoUrl || body.property_image || body.property_photo_url);
+    const additionalClients = normalizeAdditionalClients(body.additional_clients || body.co_clients);
 
     if (!clientName || !clientPhone || !propertyAddress || !city || !state || !preferredDate) {
       return NextResponse.json(
@@ -527,7 +554,12 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!validEmail(requesterEmail) || !validEmail(clientEmail) || !validEmail(realtorEmail)) {
+    if (
+      !validEmail(requesterEmail) ||
+      !validEmail(clientEmail) ||
+      !validEmail(realtorEmail) ||
+      additionalClients.some((client) => !validEmail(client.email))
+    ) {
       return NextResponse.json({ error: "Please enter a valid email address." }, { status: 400 });
     }
 
@@ -558,7 +590,7 @@ export async function POST(request: Request) {
         preferred_time: preferredTime,
         alternate_date: cleanText(body.alternate_date) || null,
         alternate_time: body.alternate_time ? cleanTime(body.alternate_time, "14:00") : null,
-        notes: withPropertyPhotoMarker(body.notes, propertyImageUrl),
+        notes: withPropertyPhotoMarker(withAdditionalClientsMarker(body.notes, additionalClients), propertyImageUrl),
         source: "public_booking_page",
       })
       .select("*")
@@ -568,7 +600,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    const notifications = await notifyOwner(admin, data, request);
+    const bookingForNotifications = {
+      ...data,
+      additional_clients: additionalClients,
+      notes: stripPropertyPhotoMarker(data?.notes),
+    };
+
+    const notifications = await notifyOwner(admin, bookingForNotifications, request);
 
     return NextResponse.json({ ok: true, request: data, notifications });
   } catch (error: any) {
