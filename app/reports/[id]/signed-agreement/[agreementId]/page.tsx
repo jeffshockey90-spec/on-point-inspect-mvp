@@ -4,6 +4,7 @@ import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import PrintButton from "../../../../../components/PrintButton";
 import FastLinkButton from "../../../../../components/FastLinkButton";
+import SignedAgreementEditor from "./SignedAgreementEditor";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -184,97 +185,45 @@ export default async function SignedAgreementPage({ params }: PageProps) {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-slate-800 bg-[#0b1220] p-6 shadow-xl print:border-black print:bg-white print:text-black">
+        <section className="rounded-2xl border border-slate-800 bg-[#0b1220] p-6 shadow-xl print:hidden">
           <h2 className="text-2xl font-extrabold">
             Client Signature
           </h2>
 
-          <div className="mt-4 rounded-xl border border-slate-700 bg-white p-5 print:border-black">
+          <div className="mt-4 rounded-xl border border-slate-700 bg-white p-5">
             {renderSignature(signature)}
           </div>
 
-          <p className="mt-4 text-sm text-slate-400 print:text-black">
+          <p className="mt-4 text-sm text-slate-400">
             Electronically signed by {agreement.client_name || "Client"} on{" "}
             {formatSignedDate(agreement.signed_at)}.
           </p>
 
           {agreement.signer_ip && (
-            <p className="mt-1 text-xs text-slate-500 print:text-black">
+            <p className="mt-1 text-xs text-slate-500">
               Signer IP: {agreement.signer_ip}
             </p>
           )}
         </section>
 
-        <section className="whitespace-pre-wrap rounded-2xl border border-slate-800 bg-white p-6 text-slate-950 print:border-black">
-          {agreement.agreement_body || "No agreement body saved."}
+        <div className="rounded-2xl border border-teal-500 bg-[#0b1220] p-5 shadow-xl print:hidden">
+          <p className="text-xs font-black uppercase tracking-[0.25em] text-teal-300">
+            Signed Agreement Editor
+          </p>
+          <h2 className="mt-2 text-2xl font-black text-white">
+            Agreement Body
+          </h2>
+          <p className="mt-1 text-sm text-slate-400">
+            Use the Edit Signed Agreement button below to update this saved signed agreement snapshot.
+          </p>
+        </div>
 
-          <div className="mt-10 border-t border-slate-300 pt-6">
-            <p className="text-lg font-bold uppercase">
-              Electronic Signature Acknowledgement
-            </p>
-
-            <p className="mt-4">
-              By signing electronically, the Client confirms that they have read,
-              understood, and accepted this Residential Inspection Agreement.
-            </p>
-
-            <div className="mt-6 space-y-6">
-              {signedAgreements.map((signedAgreement: any) => {
-                const signedSignature = String(
-                  signedAgreement.client_signature || ""
-                ).trim();
-
-                return (
-                  <div
-                    key={signedAgreement.id}
-                    className="grid gap-6 border-t border-slate-200 pt-5 md:grid-cols-2"
-                  >
-                    <div>
-                      <p>
-                        <strong>Client:</strong>{" "}
-                        {signedAgreement.client_name || "N/A"}
-                      </p>
-                      <p>
-                        <strong>Dated:</strong>{" "}
-                        {formatSignedDate(signedAgreement.signed_at)}
-                      </p>
-
-                      <div className="mt-4 border-b border-slate-900 pb-2">
-                        {renderSignature(signedSignature)}
-                      </div>
-
-                      <p className="mt-2 text-xs">
-                        Electronically signed by{" "}
-                        {signedAgreement.client_name || "Client"}
-                      </p>
-                    </div>
-
-                    <div>
-                      <p>
-                        <strong>Email:</strong>{" "}
-                        {signedAgreement.client_email || "N/A"}
-                      </p>
-                      <p>
-                        <strong>Role:</strong>{" "}
-                        {signedAgreement.signature_role || "client"}
-                      </p>
-                      <p>
-                        <strong>Status:</strong> Signed electronically
-                      </p>
-
-                      {signedAgreement.signer_ip && (
-                        <p className="text-xs">
-                          <strong>Signer IP:</strong>{" "}
-                          {signedAgreement.signer_ip}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
+        <SignedAgreementEditor
+          agreementId={String(agreement.id)}
+          inspectionId={String(id)}
+          initialBody={agreement.agreement_body || ""}
+          signedAgreements={signedAgreements || []}
+        />
       </div>
     </main>
   );

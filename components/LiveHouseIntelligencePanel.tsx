@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import HouseIntelligencePanel, {
   type HouseMemorySnapshot,
 } from "./HouseIntelligencePanel";
@@ -12,10 +12,12 @@ export default function LiveHouseIntelligencePanel({
 }) {
   const [memory, setMemory] = useState<HouseMemorySnapshot | null>(null);
   const [loading, setLoading] = useState(false);
+  const inFlight = useRef(false);
 
   const loadMemory = useCallback(async () => {
-    if (!inspectionId) return;
+    if (!inspectionId || inFlight.current) return;
 
+    inFlight.current = true;
     setLoading(true);
 
     try {
@@ -26,14 +28,17 @@ export default function LiveHouseIntelligencePanel({
         body: JSON.stringify({ inspectionId }),
       });
 
+      if (!res.ok) return;
+
       const data = await res.json().catch(() => ({}));
 
-      if (res.ok && data?.memory) {
+      if (data?.memory) {
         setMemory(data.memory);
       }
-    } catch (error) {
-      console.error("Live House Intelligence load error:", error);
+    } catch {
+      // Quiet fail so this does not spam the console or break the report page.
     } finally {
+      inFlight.current = false;
       setLoading(false);
     }
   }, [inspectionId]);
@@ -41,9 +46,7 @@ export default function LiveHouseIntelligencePanel({
   useEffect(() => {
     loadMemory();
 
-    const interval = window.setInterval(() => {
-      loadMemory();
-    }, 15000);
+    const interval = window.setInterval(loadMemory, 30000);
 
     return () => window.clearInterval(interval);
   }, [loadMemory]);
