@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
+import { createClient as createServiceClient } from "@supabase/supabase-js";
 import DeleteInspectionButton from "../../components/DeleteInspectionButton";
 import FastLinkButton from "../../components/FastLinkButton";
 
@@ -22,6 +23,84 @@ async function createSupabaseServerClient() {
       },
     }
   );
+}
+
+
+function createSupabaseStorageClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!url || !serviceRoleKey) return null;
+
+  return createServiceClient(url, serviceRoleKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
+}
+
+function getStoragePathFromUrl(url: string | null | undefined) {
+  if (!url) return "";
+
+  const cleanUrl = String(url).split("?")[0];
+  const marker = "/inspection-photos/";
+  const index = cleanUrl.indexOf(marker);
+
+  if (index === -1) return "";
+
+  return decodeURIComponent(cleanUrl.substring(index + marker.length));
+}
+
+function getInspectionPropertyPhoto(inspection: any) {
+  return (
+    inspection.property_photo_override ||
+    inspection.property_photo_override_url ||
+    inspection.custom_property_photo ||
+    inspection.custom_photo_url ||
+    inspection.property_image ||
+    inspection.property_image_url ||
+    inspection.property_photo_url ||
+    inspection.property_photo ||
+    inspection.cover_photo_url ||
+    inspection.google_photo_url ||
+    inspection.place_photo_url ||
+    inspection.street_view_url ||
+    inspection.streetview_url ||
+    inspection.streetview_image ||
+    inspection.image_url ||
+    inspection.photo_url ||
+    inspection.cover_image ||
+    inspection.hero_image ||
+    inspection.report_image ||
+    ""
+  );
+}
+
+async function createSignedPropertyPhotoMap(supabase: any, paths: string[]) {
+  const uniquePaths = Array.from(new Set(paths.filter(Boolean)));
+  const signedMap: Record<string, string> = {};
+
+  if (uniquePaths.length === 0) return signedMap;
+
+  const { data, error } = await supabase.storage
+    .from("inspection-photos")
+    .createSignedUrls(uniquePaths, 60 * 60 * 24 * 7);
+
+  if (error) {
+    console.error("Reports property photo signing error:", error);
+    return signedMap;
+  }
+
+  (data || []).forEach((item: any, index: number) => {
+    const path = item?.path || uniquePaths[index];
+
+    if (path && item?.signedUrl) {
+      signedMap[path] = item.signedUrl;
+    }
+  });
+
+  return signedMap;
 }
 
 function getViewType(log: any) {
@@ -173,6 +252,15 @@ export default async function ReportsPage() {
   }
 
   const rows = inspections || [];
+  const storageSupabase = createSupabaseStorageClient() || supabase;
+  const propertyPhotoPaths = rows
+    .map((inspection: any) => getStoragePathFromUrl(getInspectionPropertyPhoto(inspection)))
+    .filter(Boolean);
+  const signedPropertyPhotoMap = await createSignedPropertyPhotoMap(
+    storageSupabase,
+    propertyPhotoPaths
+  );
+
   const inspectionIds = rows
     .map((inspection: any) => Number(inspection.id))
     .filter(Boolean);
@@ -243,21 +331,10 @@ export default async function ReportsPage() {
               const isInspectorOwner =
                 inspection.inspector_id && inspection.inspector_id === user.id;
 
+              const propertyPhotoRaw = getInspectionPropertyPhoto(inspection);
+              const propertyPhotoPath = getStoragePathFromUrl(propertyPhotoRaw);
               const propertyPhoto =
-                inspection.street_view_url ||
-                inspection.streetview_url ||
-                inspection.streetview_image ||
-                inspection.cover_photo_url ||
-                inspection.property_photo_url ||
-                inspection.property_image_url ||
-                inspection.image_url ||
-                inspection.photo_url ||
-                inspection.cover_image ||
-                inspection.hero_image ||
-                inspection.report_image ||
-                inspection.property_image ||
-                inspection.property_photo ||
-                "";
+                signedPropertyPhotoMap[propertyPhotoPath] || propertyPhotoRaw || "";
 
               const activity =
                 activityByInspectionId[String(inspection.id)] || {
