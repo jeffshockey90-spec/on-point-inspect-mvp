@@ -125,6 +125,8 @@ export default function BookingRequestForm() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoError, setPhotoError] = useState("");
   const [services, setServices] = useState<string[]>(["Buyer Home Inspection"]);
   const [form, setForm] = useState({
     realtor_name: "",
@@ -143,6 +145,7 @@ export default function BookingRequestForm() {
     alternate_date: "",
     alternate_time: "",
     notes: "",
+    property_image_url: "",
   });
 
   const addressInputRef = useRef<HTMLInputElement | null>(null);
@@ -194,6 +197,43 @@ export default function BookingRequestForm() {
 
   function update(name: string, value: string) {
     setForm((current) => ({ ...current, [name]: value }));
+  }
+
+
+  async function uploadPropertyPhoto(file: File | null) {
+    setPhotoError("");
+
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setPhotoError("Please upload an image file.");
+      return;
+    }
+
+    setPhotoUploading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("context", "booking-request");
+
+      const response = await fetch("/api/property-photo/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(result?.error || "Property photo upload failed.");
+      }
+
+      update("property_image_url", result.url || result.publicUrl || "");
+    } catch (err: any) {
+      setPhotoError(err?.message || "Property photo upload failed.");
+    } finally {
+      setPhotoUploading(false);
+    }
   }
 
   function toggleService(service: string) {
@@ -256,6 +296,7 @@ export default function BookingRequestForm() {
         preferred_date: "",
         alternate_date: "",
         notes: "",
+        property_image_url: "",
       }));
     } catch (err: any) {
       setError(err?.message || "Booking request could not be sent.");
@@ -349,6 +390,54 @@ export default function BookingRequestForm() {
           <div className="xl:col-span-2">
             <Field label="Property Address" value={form.property_address} onChange={(v) => update("property_address", v)} inputRef={addressInputRef} autoComplete="street-address" placeholder="Start typing the property address" required />
           </div>
+
+          <div className="xl:col-span-2">
+            <label className="block text-[11px] font-black uppercase tracking-[0.18em] text-zinc-400">
+              Property Photo Override
+            </label>
+
+            {form.property_image_url ? (
+              <div className="mt-2 overflow-hidden rounded-2xl border border-slate-700 bg-black">
+                <img
+                  src={form.property_image_url}
+                  alt="Selected property"
+                  className="h-44 w-full object-cover"
+                />
+              </div>
+            ) : (
+              <div className="mt-2 rounded-2xl border border-dashed border-slate-700 bg-[#020617] p-4 text-sm leading-6 text-zinc-400">
+                Optional. Upload the correct front photo if the lookup or Street View image is wrong.
+              </div>
+            )}
+
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <label className="inline-flex cursor-pointer rounded-xl border border-teal-500/40 bg-teal-500/10 px-4 py-3 text-sm font-black text-teal-200 transition hover:bg-teal-500/20">
+                {photoUploading ? "Uploading..." : form.property_image_url ? "Change Property Photo" : "Upload Property Photo"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  disabled={photoUploading}
+                  onChange={(event) => void uploadPropertyPhoto(event.target.files?.[0] || null)}
+                />
+              </label>
+
+              {form.property_image_url ? (
+                <button
+                  type="button"
+                  onClick={() => update("property_image_url", "")}
+                  className="rounded-xl border border-slate-700 px-4 py-3 text-sm font-black text-slate-300 transition hover:border-red-400 hover:text-red-200"
+                >
+                  Remove Photo
+                </button>
+              ) : null}
+            </div>
+
+            {photoError ? (
+              <p className="mt-2 text-xs font-bold text-red-300">{photoError}</p>
+            ) : null}
+          </div>
+
           <Field label="City" value={form.city} onChange={(v) => update("city", v)} required />
           <Select label="State" value={form.state} onChange={(v) => update("state", v)} options={STATE_OPTIONS} />
           <Field label="Zip" value={form.zip} onChange={(v) => update("zip", v)} />

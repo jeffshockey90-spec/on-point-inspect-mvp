@@ -658,6 +658,83 @@ export default async function ReportPage({ params }: PageProps) {
     revalidatePath(`/reports/${inspectionId}`);
   }
 
+  async function updatePropertyPhoto(formData: FormData) {
+    "use server";
+
+    const supabase = await createSupabaseServerClient();
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) redirect("/login");
+
+    const inspectionId = String(formData.get("inspection_id") || "");
+    const file = formData.get("property_photo") as File | null;
+
+    if (!inspectionId || !file || file.size === 0) {
+      redirect(`/reports/${inspectionId || id}?property_photo_error=missing`);
+    }
+
+    if (!String(file.type || "").startsWith("image/")) {
+      redirect(`/reports/${inspectionId}?property_photo_error=type`);
+    }
+
+    const { data: ownedInspection } = await supabase
+      .from("inspections")
+      .select("id")
+      .eq("id", inspectionId)
+      .eq("inspector_id", user.id)
+      .single();
+
+    if (!ownedInspection) redirect("/reports");
+
+    const storageSupabase = createSupabaseStorageClient() || supabase;
+    const extension =
+      file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") ||
+      "jpg";
+    const filePath = `property-photos/${inspectionId}/${Date.now()}.${extension}`;
+
+    const { error: uploadError } = await storageSupabase.storage
+      .from("inspection-photos")
+      .upload(filePath, file, {
+        contentType: file.type || "image/jpeg",
+        upsert: true,
+      });
+
+    if (uploadError) {
+      console.error("Property photo upload error:", uploadError);
+      redirect(`/reports/${inspectionId}?property_photo_error=upload`);
+    }
+
+    const { data: publicUrlData } = storageSupabase.storage
+      .from("inspection-photos")
+      .getPublicUrl(filePath);
+
+    const publicUrl = publicUrlData?.publicUrl || "";
+
+    if (!publicUrl) {
+      redirect(`/reports/${inspectionId}?property_photo_error=url`);
+    }
+
+    const { error: updateError } = await supabase
+      .from("inspections")
+      .update({ property_image: publicUrl })
+      .eq("id", inspectionId)
+      .eq("inspector_id", user.id);
+
+    if (updateError) {
+      console.error("Property photo save error:", updateError);
+      redirect(`/reports/${inspectionId}?property_photo_error=save`);
+    }
+
+    revalidatePath(`/reports/${inspectionId}`);
+    revalidatePath(`/reports/${inspectionId}/print`);
+    revalidatePath(`/share/${inspectionId}`);
+    revalidatePath(`/client-portal/${inspectionId}`);
+    redirect(`/reports/${inspectionId}?property_photo_updated=1`);
+  }
+
 
   async function deleteEquipmentInventoryItem(formData: FormData) {
     "use server";
@@ -1752,8 +1829,8 @@ export default async function ReportPage({ params }: PageProps) {
 
           <PaymentInvoicePanel inspection={inspection} />
 
-          {propertyPhoto && (
-            <div className="mb-6 overflow-hidden rounded-2xl border border-slate-700 bg-black">
+          <section className="mb-6 overflow-hidden rounded-2xl border border-slate-700 bg-[#071224]">
+            {propertyPhoto ? (
               <img
                 src={propertyPhoto}
                 alt="Property"
@@ -1761,8 +1838,41 @@ export default async function ReportPage({ params }: PageProps) {
                 decoding="async"
                 className="h-56 w-full object-cover"
               />
-            </div>
-          )}
+            ) : (
+              <div className="flex h-56 items-center justify-center bg-[#020817] px-4 text-center text-sm font-bold text-slate-400">
+                No property photo saved yet.
+              </div>
+            )}
+
+            <form action={updatePropertyPhoto} className="border-t border-slate-700 p-4">
+              <input type="hidden" name="inspection_id" value={inspection.id} />
+
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-black text-teal-300">Property Photo</p>
+                  <p className="mt-1 text-xs leading-5 text-slate-400">
+                    Upload the correct house photo if the lookup or Street View image is wrong.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <input
+                    type="file"
+                    name="property_photo"
+                    accept="image/*"
+                    className="max-w-full rounded-xl border border-slate-700 bg-[#020617] px-3 py-2 text-xs font-bold text-slate-300 file:mr-3 file:rounded-lg file:border-0 file:bg-teal-400 file:px-3 file:py-2 file:text-xs file:font-black file:text-black"
+                  />
+
+                  <button
+                    type="submit"
+                    className="rounded-xl bg-teal-400 px-4 py-3 text-sm font-black text-black transition hover:bg-teal-300"
+                  >
+                    Change Photo
+                  </button>
+                </div>
+              </div>
+            </form>
+          </section>
 
           <h1 className="break-words text-4xl font-extrabold text-teal-400 sm:text-5xl">
             On Point Home Inspections

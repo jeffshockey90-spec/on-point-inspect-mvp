@@ -28,6 +28,17 @@ function cleanText(value: any) {
   return String(value || "").trim();
 }
 
+function getPropertyPhotoUrl(value: any) {
+  const match = cleanText(value).match(/\[ON_POINT_PROPERTY_PHOTO:([^\]]+)\]/);
+  return match?.[1]?.trim() || "";
+}
+
+function stripPropertyPhotoMarker(value: any) {
+  return cleanText(value)
+    .replace(/\[ON_POINT_PROPERTY_PHOTO:[^\]]+\]/g, "")
+    .trim();
+}
+
 function getNumber(value: any) {
   if (typeof value === "number" && Number.isFinite(value)) return value;
 
@@ -110,6 +121,12 @@ function getInspectionPayload(request: AnyRow, userId: string) {
   const address = cleanText(request.property_address);
   const squareFeet = cleanText(request.square_feet);
   const calculatedPrice = calculatePriceFromSqft(squareFeet);
+  const propertyPhotoUrl =
+    getPropertyPhotoUrl(request.notes) ||
+    cleanText(request.property_image_url) ||
+    cleanText(request.property_photo_url) ||
+    cleanText(request.property_image);
+  const cleanNotes = stripPropertyPhotoMarker(request.notes);
 
   return {
     inspector_id: userId,
@@ -124,6 +141,12 @@ function getInspectionPayload(request: AnyRow, userId: string) {
     state: cleanText(request.state).toUpperCase(),
     zip: cleanText(request.zip),
     zip_code: cleanText(request.zip),
+
+    property_image: propertyPhotoUrl || null,
+    property_image_url: propertyPhotoUrl || null,
+    cover_photo_url: propertyPhotoUrl || null,
+    photo_url: propertyPhotoUrl || null,
+    image_url: propertyPhotoUrl || null,
 
     square_feet: squareFeet || null,
     sqft: squareFeet || null,
@@ -174,8 +197,8 @@ function getInspectionPayload(request: AnyRow, userId: string) {
 
     source: "booking_request",
     booking_request_id: request.id,
-    notes: cleanText(request.notes) || null,
-    internal_notes: cleanText(request.notes) || null,
+    notes: cleanNotes || null,
+    internal_notes: cleanNotes || null,
 
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),

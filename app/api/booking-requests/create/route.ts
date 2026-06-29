@@ -34,6 +34,25 @@ function cleanText(value: any) {
   return String(value || "").trim();
 }
 
+const PROPERTY_PHOTO_MARKER = "[ON_POINT_PROPERTY_PHOTO:";
+
+function withPropertyPhotoMarker(notes: any, propertyPhotoUrl: string) {
+  const cleanNotes = cleanText(notes);
+  const cleanUrl = cleanText(propertyPhotoUrl);
+
+  if (!cleanUrl) return cleanNotes;
+
+  return [cleanNotes, `${PROPERTY_PHOTO_MARKER}${cleanUrl}]`]
+    .filter(Boolean)
+    .join("\n\n");
+}
+
+function stripPropertyPhotoMarker(value: any) {
+  return cleanText(value)
+    .replace(/\[ON_POINT_PROPERTY_PHOTO:[^\]]+\]/g, "")
+    .trim();
+}
+
 function validEmail(value: string) {
   return !value || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
@@ -396,7 +415,7 @@ function buildEmailHtml(booking: any, request: Request) {
         <tr><td><strong>Services</strong></td><td>${services}</td></tr>
         <tr><td><strong>Preferred Time</strong></td><td>${formatDate(booking.preferred_date)} at ${formatTime(booking.preferred_time)}</td></tr>
         <tr><td><strong>Alternate Time</strong></td><td>${booking.alternate_date ? `${formatDate(booking.alternate_date)} at ${formatTime(booking.alternate_time)}` : ""}</td></tr>
-        <tr><td><strong>Notes</strong></td><td>${booking.notes || ""}</td></tr>
+        <tr><td><strong>Notes</strong></td><td>${stripPropertyPhotoMarker(booking.notes) || ""}</td></tr>
       </table>
       <p style="margin-top:18px">
         <a href="${scheduleUrl}" style="display:inline-block;background:#14b8a6;color:#020617;font-weight:bold;text-decoration:none;padding:12px 18px;border-radius:10px">Open Schedule</a>
@@ -499,6 +518,7 @@ export async function POST(request: Request) {
     const preferredTime = cleanTime(body.preferred_time, "10:00");
     const services = cleanServices(body);
     const serviceType = services.join(", ");
+    const propertyImageUrl = cleanText(body.property_image_url || body.propertyPhotoUrl || body.property_image || body.property_photo_url);
 
     if (!clientName || !clientPhone || !propertyAddress || !city || !state || !preferredDate) {
       return NextResponse.json(
@@ -538,7 +558,7 @@ export async function POST(request: Request) {
         preferred_time: preferredTime,
         alternate_date: cleanText(body.alternate_date) || null,
         alternate_time: body.alternate_time ? cleanTime(body.alternate_time, "14:00") : null,
-        notes: cleanText(body.notes),
+        notes: withPropertyPhotoMarker(body.notes, propertyImageUrl),
         source: "public_booking_page",
       })
       .select("*")
