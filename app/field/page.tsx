@@ -652,6 +652,7 @@ function FieldPageContent() {
   const voiceStopRequestedRef = useRef(false);
   const swipeStartXRef = useRef(0);
   const swipeStartYRef = useRef(0);
+  const swipeBackTriggeredRef = useRef(false);
 
   const [nativeApp, setNativeApp] = useState(false);
 
@@ -672,10 +673,13 @@ function FieldPageContent() {
 
       swipeStartXRef.current = touch.clientX;
       swipeStartYRef.current = touch.clientY;
+      swipeBackTriggeredRef.current = false;
     }
 
-    function handleTouchEnd(event: TouchEvent) {
-      const touch = event.changedTouches[0];
+    function handleTouchMove(event: TouchEvent) {
+      if (swipeBackTriggeredRef.current) return;
+
+      const touch = event.touches[0];
       if (!touch) return;
 
       const startX = swipeStartXRef.current;
@@ -684,22 +688,34 @@ function FieldPageContent() {
       const deltaY = touch.clientY - startY;
 
       const startedAtLeftEdge = startX <= 32;
-      const strongRightSwipe = deltaX > 110 && Math.abs(deltaX) > Math.abs(deltaY) * 1.8;
+      const strongRightSwipe =
+        deltaX > 85 &&
+        Math.abs(deltaY) < 60 &&
+        deltaX > Math.abs(deltaY) * 1.5;
 
       if (!startedAtLeftEdge || !strongRightSwipe) return;
 
       const target = returnToFromUrl || (selectedReport ? `/reports/${selectedReport}` : "");
       if (!target) return;
 
+      swipeBackTriggeredRef.current = true;
       window.location.href = target;
     }
 
+    function handleTouchEnd() {
+      swipeBackTriggeredRef.current = false;
+    }
+
     window.addEventListener("touchstart", handleTouchStart, { passive: true });
+    window.addEventListener("touchmove", handleTouchMove, { passive: true });
     window.addEventListener("touchend", handleTouchEnd, { passive: true });
+    window.addEventListener("touchcancel", handleTouchEnd, { passive: true });
 
     return () => {
       window.removeEventListener("touchstart", handleTouchStart);
+      window.removeEventListener("touchmove", handleTouchMove);
       window.removeEventListener("touchend", handleTouchEnd);
+      window.removeEventListener("touchcancel", handleTouchEnd);
     };
   }, [returnToFromUrl, selectedReport]);
 
