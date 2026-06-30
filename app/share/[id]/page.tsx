@@ -97,7 +97,9 @@ function getStoragePathFromUrl(url: string | null | undefined) {
 
   if (index === -1) return "";
 
-  return decodeURIComponent(url.substring(index + marker.length));
+  const rawPath = url.substring(index + marker.length).split("?")[0].split("#")[0];
+
+  return decodeURIComponent(rawPath);
 }
 
 function getPropertyPhoto(inspection: any) {
@@ -998,7 +1000,26 @@ export default async function PublicSharePage({
     (hasMoldService(inspection) && moldReportUrl) ||
     (hasRadonService(inspection) && radonReportUrl);
 
-  const propertyPhoto = getPropertyPhoto(inspection);
+  const rawPropertyPhoto = getPropertyPhoto(inspection);
+  let propertyPhoto = rawPropertyPhoto;
+
+  const propertyPhotoPath =
+    inspection?.property_photo_path ||
+    inspection?.property_photo_storage_path ||
+    inspection?.cover_photo_path ||
+    inspection?.storage_path ||
+    getStoragePathFromUrl(rawPropertyPhoto);
+
+  if (propertyPhotoPath) {
+    const { data: signedPropertyPhoto } = await supabase.storage
+      .from("inspection-photos")
+      .createSignedUrl(propertyPhotoPath, 60 * 60 * 24 * 7);
+
+    if (signedPropertyPhoto?.signedUrl) {
+      propertyPhoto = signedPropertyPhoto.signedUrl;
+    }
+  }
+
   const defectTotals = buildDefectTotals(findings);
 
   const clientSummaryGroups = [
