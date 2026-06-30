@@ -368,39 +368,56 @@ export default function MarketingImageStudio({
     const y = 24 * scale;
     const cx = x + size / 2;
     const cy = y + size / 2;
+    const radius = size / 2;
 
     ctx.save();
 
+    // Badge glow/background. The logo itself is clipped to a true circle below,
+    // so square logo files no longer show hard square corners.
     ctx.shadowColor = BRAND_TEAL;
     ctx.shadowBlur = 28 * scale;
     ctx.fillStyle = "#000000";
     ctx.beginPath();
-    ctx.arc(cx, cy, size / 2, 0, Math.PI * 2);
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.shadowBlur = 0;
     ctx.strokeStyle = "#050505";
     ctx.lineWidth = 7 * scale;
     ctx.beginPath();
-    ctx.arc(cx, cy, size / 2 - 2 * scale, 0, Math.PI * 2);
+    ctx.arc(cx, cy, radius - 2 * scale, 0, Math.PI * 2);
     ctx.stroke();
 
     if (activeLogo) {
       try {
         const logo = await loadImage(activeLogo);
-        const maxW = size * 0.84;
-        const maxH = size * 0.84;
-        const ratio = logo.width / logo.height;
 
-        let drawW = maxW;
-        let drawH = drawW / ratio;
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius - 7 * scale, 0, Math.PI * 2);
+        ctx.clip();
 
-        if (drawH > maxH) {
-          drawH = maxH;
-          drawW = drawH * ratio;
+        // Fill the circular badge with the inspector's uploaded logo.
+        // This removes the visible square thumbnail shape while keeping the exact logo art.
+        const sourceRatio = logo.width / logo.height;
+        const target = (size - 14 * scale);
+        let drawW = target;
+        let drawH = target;
+        let drawX = cx - target / 2;
+        let drawY = cy - target / 2;
+
+        if (sourceRatio > 1) {
+          drawH = target;
+          drawW = target * sourceRatio;
+          drawX = cx - drawW / 2;
+        } else {
+          drawW = target;
+          drawH = target / sourceRatio;
+          drawY = cy - drawH / 2;
         }
 
-        ctx.drawImage(logo, cx - drawW / 2, cy - drawH / 2, drawW, drawH);
+        ctx.drawImage(logo, drawX, drawY, drawW, drawH);
+        ctx.restore();
       } catch {
         drawFallbackLogo(ctx, cx, cy, scale);
       }
