@@ -18,25 +18,29 @@ async function recordInspectionView({
   inspectionId,
   contactId,
   viewerEmail,
+  source,
 }: {
   inspectionId: string | number;
   contactId?: string | null;
   viewerEmail?: string | null;
+  source?: string | null;
 }) {
   try {
     const numericInspectionId = Number(inspectionId);
 
     if (!numericInspectionId || !Number.isFinite(numericInspectionId)) return;
 
+    const isReminder = String(source || "").toLowerCase() === "reminder";
+
     await supabase.from("inspection_view_events").insert({
       inspection_id_bigint: numericInspectionId,
-      view_type: "agreement_page",
+      view_type: isReminder ? "agreement_reminder_page" : "agreement_page",
       contact_id: contactId || null,
       viewer_role: "client",
       viewer_email: viewerEmail || null,
       path: `/client-agreement/${inspectionId}`,
       metadata: {
-        source: "client_agreement_page",
+        source: isReminder ? "agreement_reminder_email" : "client_agreement_page",
       },
     });
   } catch (error) {
@@ -65,6 +69,7 @@ type PageProps = {
   }>;
   searchParams: Promise<{
     contact?: string;
+    source?: string;
   }>;
 };
 
@@ -73,7 +78,7 @@ export default async function ClientAgreementPage({
   searchParams,
 }: PageProps) {
   const { id } = await params;
-  const { contact } = await searchParams;
+  const { contact, source } = await searchParams;
 
   const { data: inspection } = await supabase
     .from("inspections")
@@ -114,6 +119,7 @@ export default async function ClientAgreementPage({
     inspectionId: id,
     contactId: selectedContact?.id || contact || null,
     viewerEmail: selectedContact?.email || inspection.client_email || null,
+    source,
   });
 
   let signedAgreementQuery = supabase

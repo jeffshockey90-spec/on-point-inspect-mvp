@@ -1107,6 +1107,10 @@ export default async function ReportPage({ params }: PageProps) {
     getLatestEmailLog(emailLogs, "environmental_report");
 
   const agreementPageViews = getViewLogsByType(viewLogs, "agreement_page");
+  const agreementReminderPageViews = getViewLogsByType(
+    viewLogs,
+    "agreement_reminder_page",
+  );
   const clientPortalViews = getViewLogsByType(viewLogs, "client_portal");
   const reportShareViews = getViewLogsByType(viewLogs, "report_share");
   const environmentalShareViews = getViewLogsByType(
@@ -1129,6 +1133,7 @@ export default async function ReportPage({ params }: PageProps) {
   const latestReportTimeEvent = reportTimeEvents[0] || null;
 
   const latestAgreementPageView = agreementPageViews[0] || null;
+  const latestAgreementReminderPageView = agreementReminderPageViews[0] || null;
   const latestClientPortalView = clientPortalViews[0] || null;
   const latestReportShareView = reportShareViews[0] || null;
   const latestEnvironmentalShareView = environmentalShareViews[0] || null;
@@ -1140,6 +1145,7 @@ export default async function ReportPage({ params }: PageProps) {
     ...emailClickViews,
     ...reportTimeEvents,
     ...agreementPageViews,
+    ...agreementReminderPageViews,
     ...clientPortalViews,
     ...reportShareViews,
     ...environmentalShareViews,
@@ -1643,7 +1649,7 @@ export default async function ReportPage({ params }: PageProps) {
               <EngagementStatCard
                 label="Total Views"
                 value={String(engagementViews.length)}
-                helper="All tracked report, portal, agreement, and environmental opens"
+                helper="All tracked report, portal, agreement, reminder, and environmental opens"
               />
 
               <EngagementStatCard
@@ -1742,6 +1748,13 @@ export default async function ReportPage({ params }: PageProps) {
                 log={latestAgreementPageView}
                 count={agreementPageViews.length}
                 emptyText="Not opened yet"
+              />
+
+              <ViewStatusCard
+                title="Reminder Agreement Views"
+                log={latestAgreementReminderPageView}
+                count={agreementReminderPageViews.length}
+                emptyText="No reminder agreement views yet"
               />
 
               <ViewStatusCard
