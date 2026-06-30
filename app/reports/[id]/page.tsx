@@ -35,6 +35,7 @@ export const revalidate = 0;
 
 type PageProps = {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
 const SECTION_ORDER = [
@@ -122,6 +123,56 @@ function getStoragePathFromUrl(url: string | null | undefined) {
   if (index === -1) return "";
 
   return decodeURIComponent(url.substring(index + marker.length));
+}
+
+function getSingleSearchParam(
+  params: Record<string, string | string[] | undefined> | undefined,
+  key: string,
+) {
+  const value = params?.[key];
+  return Array.isArray(value) ? value[0] || "" : String(value || "");
+}
+
+function getPropertyPhotoErrorMessage(code: string) {
+  switch (code) {
+    case "missing":
+      return "Choose a property photo before clicking Change Photo.";
+    case "type":
+      return "That file type is not supported. Use a JPG, PNG, or WebP image.";
+    case "size":
+      return "That image is too large. Use a photo that is 20MB or smaller.";
+    case "heic":
+      return "iPhone HEIC photos are not supported here yet. Please choose Most Compatible/JPG or send a screenshot/JPG version.";
+    case "upload":
+      return "The photo could not be uploaded. Try a smaller JPG photo.";
+    case "url":
+      return "The photo uploaded, but the app could not create the photo URL.";
+    case "save":
+      return "The photo uploaded, but the report could not be updated.";
+    default:
+      return "Property photo update failed. Try a smaller JPG photo.";
+  }
+}
+
+function getSafePropertyPhotoExtension(file: File) {
+  const type = String(file.type || "").toLowerCase();
+  const nameExtension =
+    file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "";
+
+  if (type.includes("jpeg") || type.includes("jpg")) return "jpg";
+  if (type.includes("png")) return "png";
+  if (type.includes("webp")) return "webp";
+
+  if (["jpg", "jpeg"].includes(nameExtension)) return "jpg";
+  if (["png", "webp"].includes(nameExtension)) return nameExtension;
+
+  return "jpg";
+}
+
+function getSafePropertyPhotoContentType(extension: string) {
+  if (extension === "png") return "image/png";
+  if (extension === "webp") return "image/webp";
+  return "image/jpeg";
 }
 
 const REPORT_IMAGE_TRANSFORM_OPTIONS = {
@@ -621,8 +672,11 @@ function getEquipmentHeatingEfficiency(item: any) {
   );
 }
 
-export default async function ReportPage({ params }: PageProps) {
+export default async function ReportPage({ params, searchParams }: PageProps) {
   const { id } = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const propertyPhotoUpdated = getSingleSearchParam(resolvedSearchParams, "property_photo_updated") === "1";
+  const propertyPhotoError = getSingleSearchParam(resolvedSearchParams, "property_photo_error");
   const supabase = await createSupabaseServerClient();
 
   async function updateInspectionDetails(formData: FormData) {
@@ -689,16 +743,34 @@ export default async function ReportPage({ params }: PageProps) {
 
     if (!ownedInspection) redirect("/reports");
 
+    const maxBytes = 20 * 1024 * 1024;
+
+    if (file.size > maxBytes) {
+      redirect(`/reports/${inspectionId}?property_photo_error=size`);
+    }
+
+    const rawType = String(file.type || "").toLowerCase();
+    const rawName = String(file.name || "").toLowerCase();
+    const isHeicOrHeif =
+      rawType.includes("heic") ||
+      rawType.includes("heif") ||
+      rawName.endsWith(".heic") ||
+      rawName.endsWith(".heif");
+
+    if (isHeicOrHeif) {
+      redirect(`/reports/${inspectionId}?property_photo_error=heic`);
+    }
+
     const storageSupabase = createSupabaseStorageClient() || supabase;
-    const extension =
-      file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") ||
-      "jpg";
-    const filePath = `property-photos/${inspectionId}/${Date.now()}.${extension}`;
+    const extension = getSafePropertyPhotoExtension(file);
+    const contentType = getSafePropertyPhotoContentType(extension);
+    const filePath = `property-photos/${inspectionId}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
+    const fileBuffer = Buffer.from(await file.arrayBuffer());
 
     const { error: uploadError } = await storageSupabase.storage
       .from("inspection-photos")
-      .upload(filePath, file, {
-        contentType: file.type || "image/jpeg",
+      .upload(filePath, fileBuffer, {
+        contentType,
         upsert: true,
       });
 
@@ -1930,6 +2002,18 @@ export default async function ReportPage({ params }: PageProps) {
           <PaymentInvoicePanel inspection={inspection} />
 
           <section className="mb-6 overflow-hidden rounded-2xl border border-slate-700 bg-[#071224]">
+            {propertyPhotoUpdated && (
+              <div className="border-b border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm font-bold text-emerald-300">
+                Property photo updated.
+              </div>
+            )}
+
+            {propertyPhotoError && (
+              <div className="border-b border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-200">
+                {getPropertyPhotoErrorMessage(propertyPhotoError)}
+              </div>
+            )}
+
             {propertyPhoto ? (
               <img
                 src={propertyPhoto}
@@ -1944,7 +2028,7 @@ export default async function ReportPage({ params }: PageProps) {
               </div>
             )}
 
-            <form action={updatePropertyPhoto} className="border-t border-slate-700 p-4">
+            <form action={updatePropertyPhoto} encType="multipart/form-data" className="border-t border-slate-700 p-4">
               <input type="hidden" name="inspection_id" value={inspection.id} />
 
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1959,7 +2043,7 @@ export default async function ReportPage({ params }: PageProps) {
                   <input
                     type="file"
                     name="property_photo"
-                    accept="image/*"
+                    accept="image/jpeg,image/png,image/webp"
                     className="max-w-full rounded-xl border border-slate-700 bg-[#020617] px-3 py-2 text-xs font-bold text-slate-300 file:mr-3 file:rounded-lg file:border-0 file:bg-teal-400 file:px-3 file:py-2 file:text-xs file:font-black file:text-black"
                   />
 
