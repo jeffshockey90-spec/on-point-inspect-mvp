@@ -620,6 +620,7 @@ function FieldPageContent() {
   const searchParams = useSearchParams();
   const reportFromUrl =
     searchParams.get("report") || searchParams.get("inspection_id") || "";
+  const returnToFromUrl = searchParams.get("return_to") || "";
 
   const [reports, setReports] = useState<any[]>([]);
   const [selectedReport, setSelectedReport] = useState(reportFromUrl || "");
@@ -649,6 +650,8 @@ function FieldPageContent() {
   const voiceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const voiceTranscriptRef = useRef("");
   const voiceStopRequestedRef = useRef(false);
+  const swipeStartXRef = useRef(0);
+  const swipeStartYRef = useRef(0);
 
   const [nativeApp, setNativeApp] = useState(false);
 
@@ -659,6 +662,46 @@ function FieldPageContent() {
     () => getOfflineQueueSummary(),
     [message, photos.length, online, queueTick]
   );
+
+
+
+  useEffect(() => {
+    function handleTouchStart(event: TouchEvent) {
+      const touch = event.touches[0];
+      if (!touch) return;
+
+      swipeStartXRef.current = touch.clientX;
+      swipeStartYRef.current = touch.clientY;
+    }
+
+    function handleTouchEnd(event: TouchEvent) {
+      const touch = event.changedTouches[0];
+      if (!touch) return;
+
+      const startX = swipeStartXRef.current;
+      const startY = swipeStartYRef.current;
+      const deltaX = touch.clientX - startX;
+      const deltaY = touch.clientY - startY;
+
+      const startedAtLeftEdge = startX <= 32;
+      const strongRightSwipe = deltaX > 110 && Math.abs(deltaX) > Math.abs(deltaY) * 1.8;
+
+      if (!startedAtLeftEdge || !strongRightSwipe) return;
+
+      const target = returnToFromUrl || (selectedReport ? `/reports/${selectedReport}` : "");
+      if (!target) return;
+
+      window.location.href = target;
+    }
+
+    window.addEventListener("touchstart", handleTouchStart, { passive: true });
+    window.addEventListener("touchend", handleTouchEnd, { passive: true });
+
+    return () => {
+      window.removeEventListener("touchstart", handleTouchStart);
+      window.removeEventListener("touchend", handleTouchEnd);
+    };
+  }, [returnToFromUrl, selectedReport]);
 
   useEffect(() => {
     setOnline(isOnline());
