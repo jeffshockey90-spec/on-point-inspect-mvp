@@ -2028,8 +2028,9 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
               </div>
             )}
 
-            <form action={updatePropertyPhoto} encType="multipart/form-data" className="border-t border-slate-700 p-4">
+            <form action="/api/property-photo/upload" method="post" encType="multipart/form-data" className="border-t border-slate-700 p-4">
               <input type="hidden" name="inspection_id" value={inspection.id} />
+              <input type="hidden" name="return_to" value={`/reports/${inspection.id}`} />
 
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
