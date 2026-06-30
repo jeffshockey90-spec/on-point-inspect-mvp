@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Capacitor } from "@capacitor/core";
 import { SpeechRecognition as NativeSpeechRecognition } from "@capgo/capacitor-speech-recognition";
 import { supabase } from "../../lib/supabaseClient";
@@ -617,6 +617,7 @@ function safeSectionFolder(section: string) {
 }
 
 function FieldPageContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const reportFromUrl =
     searchParams.get("report") || searchParams.get("inspection_id") || "";
@@ -699,7 +700,7 @@ function FieldPageContent() {
       if (!target) return;
 
       swipeBackTriggeredRef.current = true;
-      window.location.href = target;
+      router.push(target);
     }
 
     function handleTouchEnd() {
@@ -717,7 +718,7 @@ function FieldPageContent() {
       window.removeEventListener("touchend", handleTouchEnd);
       window.removeEventListener("touchcancel", handleTouchEnd);
     };
-  }, [returnToFromUrl, selectedReport]);
+  }, [returnToFromUrl, selectedReport, router]);
 
   useEffect(() => {
     setOnline(isOnline());
