@@ -423,6 +423,9 @@ export default async function SettingsPage({
       : 15;
 
   const publicProfileUrl = getPublicProfileUrl(company);
+  const isOnPointOwner =
+    String(user.email || "").trim().toLowerCase() ===
+    "jeff@onpointhomeinspect.com";
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#050816] px-4 py-4 pb-28 text-white md:p-8 md:pb-10">
@@ -552,6 +555,29 @@ export default async function SettingsPage({
               Manage Profile →
             </p>
           </Link>
+
+          {isOnPointOwner && (
+            <Link
+              href="/settings/marketing-images"
+              className="group rounded-2xl border border-teal-500/30 bg-[#0b1220] p-4 transition active:scale-[0.98] hover:border-teal-400/70 hover:bg-teal-500/10 sm:p-5 [touch-action:manipulation]"
+            >
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-500/10 text-2xl">
+                🏠
+              </div>
+              <p className="mt-4 text-xs font-black uppercase tracking-[0.2em] text-teal-300">
+                Owner Only
+              </p>
+              <h2 className="mt-2 text-lg font-black text-white sm:text-xl">
+                Marketing Images
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-slate-400">
+                Create inspected property graphics using your exact On Point template.
+              </p>
+              <p className="mt-4 text-sm font-black text-teal-300 group-hover:text-teal-200">
+                Open Template →
+              </p>
+            </Link>
+          )}
 
           <a
             href="#notifications"
