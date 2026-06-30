@@ -146,7 +146,6 @@ export default function PropertyPhotoUploader({
             type="file"
             name="property_photo"
             accept="image/*"
-            capture="environment"
             disabled={uploading}
             className="max-w-full rounded-xl border border-slate-700 bg-[#020617] px-3 py-2 text-xs font-bold text-slate-300 file:mr-3 file:rounded-lg file:border-0 file:bg-teal-400 file:px-3 file:py-2 file:text-xs file:font-black file:text-black disabled:opacity-60"
           />
