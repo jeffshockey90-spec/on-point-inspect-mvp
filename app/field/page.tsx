@@ -991,12 +991,18 @@ function FieldPageContent() {
     setMessage("");
 
     try {
+      setMessage("Preparing equipment photo for AI...");
+
+      const aiImages = await Promise.all(
+        images.map((image) => compressImageForAiUpload(image))
+      );
+
       const formData = new FormData();
-      images.forEach((image) => {
+      aiImages.forEach((image) => {
         formData.append("images", image);
       });
       // Backward compatibility for older equipment analyzer routes.
-      formData.append("image", images[0]);
+      formData.append("image", aiImages[0]);
       formData.append("inspectionId", selectedReport || "");
       formData.append("inspection_id", selectedReport || "");
 
