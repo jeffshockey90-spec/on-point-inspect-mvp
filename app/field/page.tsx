@@ -48,6 +48,57 @@ type UploadedPhoto = {
   filePath: string;
 };
 
+const AI_IMAGE_MAX_SIZE = 1400;
+const AI_IMAGE_QUALITY = 0.72;
+
+function loadImageForAiCompression(file: File) {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+    const objectUrl = URL.createObjectURL(file);
+
+    image.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(image);
+    };
+
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("AI could not read that photo. Try choosing a JPG photo."));
+    };
+
+    image.src = objectUrl;
+  });
+}
+
+async function compressImageForAiUpload(file: File) {
+  const image = await loadImageForAiCompression(file);
+  const longestSide = Math.max(image.width, image.height);
+  const scale = Math.min(1, AI_IMAGE_MAX_SIZE / longestSide);
+  const width = Math.max(1, Math.round(image.width * scale));
+  const height = Math.max(1, Math.round(image.height * scale));
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("AI could not prepare that photo.");
+
+  context.drawImage(image, 0, 0, width, height);
+
+  const blob = await new Promise<Blob | null>((resolve) => {
+    canvas.toBlob(resolve, "image/jpeg", AI_IMAGE_QUALITY);
+  });
+
+  if (!blob) throw new Error("AI could not compress that photo.");
+
+  return new File([blob], `ai-photo-${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`, {
+    type: "image/jpeg",
+    lastModified: Date.now(),
+  });
+}
+
+
 
 type EquipmentResult = {
   equipmentType?: string;
@@ -801,8 +852,14 @@ function FieldPageContent() {
     setMessage("");
 
     try {
+      setMessage("Preparing photo for AI...");
+
+      const aiImages = await Promise.all(
+        images.map((image) => compressImageForAiUpload(image))
+      );
+
       const formData = new FormData();
-      images.forEach((image) => {
+      aiImages.forEach((image) => {
         formData.append("images", image);
       });
       formData.append("inspectionId", selectedReport || "");
