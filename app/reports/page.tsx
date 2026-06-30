@@ -88,7 +88,12 @@ async function createSignedPropertyPhotoMap(supabase: any, paths: string[]) {
 
   const { data, error } = await supabase.storage
     .from("inspection-photos")
-    .createSignedUrls(uniquePaths, 60 * 60 * 24 * 7);
+    .createSignedUrls(uniquePaths, 60 * 60 * 24 * 7, {
+      transform: {
+        width: 700,
+        resize: "cover",
+      },
+    });
 
   if (error) {
     console.error("Reports property photo signing error:", error);
@@ -330,7 +335,7 @@ export default async function ReportsPage() {
           </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-            {rows.map((inspection: any) => {
+            {rows.map((inspection: any, index: number) => {
               const isInspectorOwner =
                 inspection.inspector_id && inspection.inspector_id === user.id;
 
@@ -355,16 +360,19 @@ export default async function ReportsPage() {
                   className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 shadow-xl"
                 >
                   <div className="relative flex h-56 items-center justify-center overflow-hidden bg-slate-950 text-slate-500">
-                    <span className="absolute inset-0 flex items-center justify-center px-4 text-center text-sm font-bold text-slate-500">
-                      No Property Photo
-                    </span>
+                    {!propertyPhoto ? (
+                      <span className="absolute inset-0 flex items-center justify-center px-4 text-center text-sm font-bold text-slate-500">
+                        No Property Photo
+                      </span>
+                    ) : null}
 
                     {propertyPhoto ? (
                       <img
                         src={propertyPhoto}
                         alt="Property"
-                        loading="lazy"
+                        loading={index < 8 ? "eager" : "lazy"}
                         decoding="async"
+                        fetchPriority={index < 4 ? "high" : "auto"}
                         className="relative z-10 h-full w-full object-cover"
                       />
                     ) : null}

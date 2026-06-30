@@ -10,11 +10,7 @@ type Props = {
 
 type MessageType = "success" | "error" | "warning" | "";
 
-export default function SendFullReportButton({
-  inspectionId,
-  clientEmail,
-  realtorEmail,
-}: Props) {
+export default function SendFullReportButton({ inspectionId }: Props) {
   const [sending, setSending] = useState(false);
   const [statusText, setStatusText] = useState("Send Report");
   const [message, setMessage] = useState("");
@@ -37,7 +33,7 @@ export default function SendFullReportButton({
       `/api/report-delivery-status?inspection_id=${inspectionId}`
     );
 
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
       throw new Error(data.error || "Could not check delivery requirements.");
@@ -48,78 +44,6 @@ export default function SendFullReportButton({
         `Report delivery is blocked until requirements are complete:\n\n${(
           data.blockers || []
         ).join("\n")}`
-      );
-    }
-
-    return data;
-  }
-
-  async function loadContactEmails() {
-    setStatusText("Loading Contacts...");
-
-    let finalClientEmail = clientEmail || "";
-    let finalRealtorEmail = realtorEmail || "";
-
-    try {
-      const res = await fetch(
-        `/api/inspection-contacts?inspection_id=${inspectionId}`
-      );
-
-      const data = await res.json();
-      const contacts = data.contacts || [];
-
-      if (!finalClientEmail) {
-        const client = contacts.find((contact: any) =>
-          ["client", "co-client"].includes(String(contact.role).toLowerCase())
-        );
-
-        finalClientEmail = client?.email || "";
-      }
-
-      if (!finalRealtorEmail) {
-        const realtor = contacts.find((contact: any) =>
-          ["realtor", "agent", "transaction coordinator"].includes(
-            String(contact.role).toLowerCase()
-          )
-        );
-
-        finalRealtorEmail = realtor?.email || "";
-      }
-    } catch (error) {
-      console.error("Could not load contacts for report delivery:", error);
-    }
-
-    return {
-      finalClientEmail,
-      finalRealtorEmail,
-    };
-  }
-
-  async function sendToRecipient(
-    recipientType: "client" | "realtor",
-    recipientEmail: string
-  ) {
-    setStatusText(
-      recipientType === "client" ? "Sending Client..." : "Sending Realtor..."
-    );
-
-    const res = await fetch("/api/send-report-email", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        inspectionId,
-        recipientType,
-        recipientEmail,
-      }),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      throw new Error(
-        data.error || `Failed to send report to ${recipientType}.`
       );
     }
 
@@ -142,49 +66,42 @@ export default function SendFullReportButton({
     try {
       await checkDeliveryRequirements();
 
-      const { finalClientEmail, finalRealtorEmail } =
-        await loadContactEmails();
+      setStatusText("Sending Everyone...");
 
-      if (!finalClientEmail && !finalRealtorEmail) {
-        setStatusText("No Email Found");
-        showMessage("warning", "No client or realtor email found.");
-        return;
+      const res = await fetch("/api/send-report-email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          inspectionId,
+          recipientType: "all",
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok || !data?.success) {
+        throw new Error(data.error || "Failed to send report.");
       }
 
-      const sentTo: string[] = [];
-      const failed: string[] = [];
-
-      if (finalClientEmail) {
-        try {
-          await sendToRecipient("client", finalClientEmail);
-          sentTo.push(`client: ${finalClientEmail}`);
-        } catch (error: any) {
-          failed.push(`client: ${error.message}`);
-        }
-      }
-
-      if (finalRealtorEmail) {
-        try {
-          await sendToRecipient("realtor", finalRealtorEmail);
-          sentTo.push(`realtor: ${finalRealtorEmail}`);
-        } catch (error: any) {
-          failed.push(`realtor: ${error.message}`);
-        }
-      }
+      const sent = Array.isArray(data.sent) ? data.sent : [];
+      const failed = Array.isArray(data.failed) ? data.failed : [];
 
       if (failed.length > 0) {
         setStatusText("Completed With Errors");
         showMessage(
           "error",
-          `Report delivery completed with errors. Sent: ${
-            sentTo.length ? sentTo.join(", ") : "None"
-          }. Failed: ${failed.join(", ")}`
+          `Report sent to ${sent.length} recipient${sent.length === 1 ? "" : "s"}, but ${failed.length} failed.`
         );
         return;
       }
 
       setStatusText("Sent!");
-      showMessage("success", `Report sent successfully to ${sentTo.join(", ")}.`);
+      showMessage(
+        "success",
+        `Report sent successfully to ${sent.length} recipient${sent.length === 1 ? "" : "s"}.`
+      );
     } catch (error: any) {
       setStatusText("Failed");
       showMessage("error", error?.message || "Failed to send report.");

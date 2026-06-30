@@ -220,7 +220,13 @@ export async function POST(request: Request) {
     const publicUrl = publicUrlData?.publicUrl || "";
     const signedUrl = signedUrlData?.signedUrl || "";
 
-    if (!publicUrl && !signedUrl) {
+    // IMPORTANT:
+    // Save the stable public URL first so report cards can cache it like Google/Street View images.
+    // Signed URLs are still returned as fallback/display values, but should not be stored as the main report image.
+    const savedUrl = publicUrl || signedUrl;
+    const displayUrl = publicUrl || signedUrl;
+
+    if (!displayUrl) {
       return sendResult(request, ajax, returnTo, false, "property_photo_error", "url", {
         error: "url",
       });
@@ -230,9 +236,9 @@ export async function POST(request: Request) {
       const { error: updateError } = await userSupabase
         .from("inspections")
         .update({
-          property_image: publicUrl || signedUrl,
-          street_view_url: publicUrl || signedUrl,
-          cover_photo_url: publicUrl || signedUrl,
+          property_image: savedUrl,
+          street_view_url: savedUrl,
+          cover_photo_url: savedUrl,
         })
         .eq("id", inspectionId)
         .eq("inspector_id", user.id);
@@ -250,13 +256,13 @@ export async function POST(request: Request) {
       revalidatePath(`/client-portal/${inspectionId}`);
 
       return sendResult(request, ajax, returnTo, true, "property_photo_updated", "1", {
-        url: publicUrl,
+        url: savedUrl,
         publicUrl,
         public_url: publicUrl,
         signedUrl,
         signed_url: signedUrl,
-        displayUrl: signedUrl || publicUrl,
-        display_url: signedUrl || publicUrl,
+        displayUrl,
+        display_url: displayUrl,
         path,
         storagePath: path,
         storage_path: path,
@@ -265,13 +271,13 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       ok: true,
-      url: publicUrl,
+      url: savedUrl,
       publicUrl,
       public_url: publicUrl,
       signedUrl,
       signed_url: signedUrl,
-      displayUrl: signedUrl || publicUrl,
-      display_url: signedUrl || publicUrl,
+      displayUrl,
+      display_url: displayUrl,
       path,
       storagePath: path,
       storage_path: path,

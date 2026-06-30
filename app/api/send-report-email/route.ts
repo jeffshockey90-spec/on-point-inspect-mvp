@@ -154,6 +154,7 @@ async function logEmailEvent(
   try {
     await supabase.from("email_logs").insert({
       inspection_id: Number(inspectionId),
+      inspection_id_bigint: Number(inspectionId),
       recipient,
       recipient_email: recipient,
       email_type: metadata?.type || "inspection_report",

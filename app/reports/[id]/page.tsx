@@ -118,12 +118,27 @@ function normalizeSection(section: string | null | undefined) {
 function getStoragePathFromUrl(url: string | null | undefined) {
   if (!url) return "";
 
-  const marker = "/inspection-photos/";
-  const index = url.indexOf(marker);
+  const cleanUrl = String(url || "").split("?")[0];
+  const markers = [
+    "/inspection-photos/",
+    "/object/public/inspection-photos/",
+    "/object/sign/inspection-photos/",
+    "/object/authenticated/inspection-photos/",
+  ];
 
-  if (index === -1) return "";
+  for (const marker of markers) {
+    const index = cleanUrl.indexOf(marker);
 
-  return decodeURIComponent(url.substring(index + marker.length));
+    if (index !== -1) {
+      return decodeURIComponent(cleanUrl.substring(index + marker.length));
+    }
+  }
+
+  if (cleanUrl.startsWith("property-photos/") || cleanUrl.startsWith("properties/")) {
+    return decodeURIComponent(cleanUrl);
+  }
+
+  return "";
 }
 
 function getSingleSearchParam(
@@ -426,24 +441,90 @@ function formatDuration(secondsValue: number) {
   return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
 }
 
-function getViewerSummary(logs: any[]) {
-  const viewers: string[] = [];
-  const seen = new Set<string>();
+function getViewerLabel(log: any) {
+  const viewerEmail = String(log?.viewer_email || "").trim();
+  const viewerRole = String(log?.viewer_role || "").trim();
+  const contactId = String(log?.contact_id || "").trim();
+
+  return viewerEmail || viewerRole || (contactId ? `Contact ${contactId}` : "Unknown viewer");
+}
+
+function getViewerKey(log: any) {
+  const viewerEmail = String(log?.viewer_email || "")
+    .trim()
+    .toLowerCase();
+  const contactId = String(log?.contact_id || "").trim();
+  const viewerRole = String(log?.viewer_role || "")
+    .trim()
+    .toLowerCase();
+  const ipAddress = String(log?.ip_address || "").trim();
+
+  return viewerEmail || contactId || `${viewerRole}:${ipAddress}` || "unknown";
+}
+
+function getViewerActivitySummary(logs: any[]) {
+  const map = new Map<string, any>();
 
   (logs || []).forEach((log: any) => {
-    const viewerEmail = String(log.viewer_email || "").trim();
-    const viewerRole = String(log.viewer_role || "").trim();
+    const key = getViewerKey(log);
+    if (!key || key === ":") return;
 
-    const label = viewerEmail || viewerRole || "Unknown viewer";
-    const key = label.toLowerCase();
+    const label = getViewerLabel(log);
+    const role = String(log?.viewer_role || "").trim();
+    const email = String(log?.viewer_email || "").trim();
+    const viewType = String(log?.view_type || "activity").trim();
+    const createdAt = log?.created_at || "";
+    const duration = getDurationSeconds(log);
 
-    if (!seen.has(key)) {
-      seen.add(key);
-      viewers.push(label);
+    const existing = map.get(key) || {
+      key,
+      label,
+      email,
+      role,
+      count: 0,
+      totalSeconds: 0,
+      latestAt: "",
+      types: new Map<string, number>(),
+    };
+
+    existing.count += 1;
+    existing.totalSeconds += duration;
+
+    if (email && !existing.email) existing.email = email;
+    if (role && !existing.role) existing.role = role;
+    if (label && existing.label === "Unknown viewer") existing.label = label;
+
+    existing.types.set(viewType, (existing.types.get(viewType) || 0) + 1);
+
+    if (
+      createdAt &&
+      (!existing.latestAt ||
+        new Date(createdAt).getTime() > new Date(existing.latestAt).getTime())
+    ) {
+      existing.latestAt = createdAt;
     }
+
+    map.set(key, existing);
   });
 
-  return viewers;
+  return Array.from(map.values()).sort(
+    (a: any, b: any) =>
+      new Date(b.latestAt || 0).getTime() - new Date(a.latestAt || 0).getTime(),
+  );
+}
+
+function getViewerActivityItems(logs: any[]) {
+  return getViewerActivitySummary(logs).slice(0, 8);
+}
+
+function formatViewType(value: any) {
+  const clean = String(value || "")
+    .replaceAll("_", " ")
+    .trim();
+
+  if (!clean) return "Activity";
+
+  return clean.replace(/\w/g, (letter) => letter.toUpperCase());
 }
 
 function normalizeEmail(value: any) {
@@ -670,6 +751,81 @@ function getEquipmentHeatingEfficiency(item: any) {
     item?.hspf ||
     item?.hspf2 ||
     ""
+  );
+}
+
+
+
+async function loadEmailLogs(supabase: any, inspectionId: any) {
+  const numericInspectionId = Number(inspectionId);
+
+  if (!numericInspectionId || !Number.isFinite(numericInspectionId)) {
+    return { data: [], error: null };
+  }
+
+  const byBigint = await supabase
+    .from("email_logs")
+    .select("*")
+    .eq("inspection_id_bigint", numericInspectionId)
+    .order("created_at", { ascending: false });
+
+  if (!byBigint.error) return byBigint;
+
+  const byInspectionId = await supabase
+    .from("email_logs")
+    .select("*")
+    .eq("inspection_id", numericInspectionId)
+    .order("created_at", { ascending: false });
+
+  if (!byInspectionId.error) return byInspectionId;
+
+  console.error("Email logs load failed for both inspection ID columns:", {
+    inspectionId: numericInspectionId,
+    bigintError: byBigint.error,
+    inspectionIdError: byInspectionId.error,
+  });
+
+  return { data: [], error: null };
+}
+
+function AttentionPanel({
+  title,
+  eyebrow = "AI Review",
+  badge,
+  helper,
+  defaultOpen = false,
+  children,
+}: any) {
+  return (
+    <details
+      open={defaultOpen}
+      className="mb-8 overflow-hidden rounded-2xl border border-slate-700 bg-[#071224] shadow-xl"
+    >
+      <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 border-b border-slate-800 px-4 py-4 hover:bg-slate-800/40">
+        <div>
+          <p className="text-[11px] font-black uppercase tracking-[0.22em] text-teal-300">
+            {eyebrow}
+          </p>
+          <h2 className="mt-1 text-lg font-black text-white">{title}</h2>
+          {helper ? (
+            <p className="mt-1 text-xs leading-5 text-slate-400">{helper}</p>
+          ) : null}
+        </div>
+
+        <div className="flex items-center gap-2">
+          {badge ? (
+            <span className="rounded-full border border-yellow-500/50 bg-yellow-500/10 px-3 py-1 text-xs font-black text-yellow-200">
+              {badge}
+            </span>
+          ) : null}
+          <span className="rounded-full border border-slate-600 bg-black/30 px-3 py-1 text-xs font-black text-slate-300">
+            Tap to open
+          </span>
+        </div>
+      </summary>
+
+      <div className="p-4">{children}</div>
+    </details>
   );
 }
 
@@ -1008,6 +1164,39 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
       redirect(`/reports/${inspectionId}?publish_error=1`);
     }
 
+    try {
+      const appUrl =
+        process.env.NEXT_PUBLIC_APP_URL ||
+        (process.env.VERCEL_URL
+          ? `https://${process.env.VERCEL_URL}`
+          : "http://localhost:3000");
+      const cookieStore = await cookies();
+      const cookieHeader = cookieStore
+        .getAll()
+        .map((cookie) => `${cookie.name}=${cookie.value}`)
+        .join("; ");
+
+      const reportEmailRes = await fetch(`${appUrl}/api/send-report-email`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: cookieHeader,
+        },
+        body: JSON.stringify({
+          inspectionId,
+          recipientType: "all",
+        }),
+        cache: "no-store",
+      });
+
+      if (!reportEmailRes.ok) {
+        const reportEmailData = await reportEmailRes.json().catch(() => ({}));
+        console.error("Publish report email send error:", reportEmailData);
+      }
+    } catch (sendError) {
+      console.error("Publish report email send failed:", sendError);
+    }
+
     const { data: publishInspection } = await supabase
       .from("inspections")
       .select("service_mode, inspection_type, services")
@@ -1131,11 +1320,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
 
   const [emailLogsResult, viewLogsResult, equipmentResult, findingsResult] =
     await Promise.all([
-      supabase
-        .from("email_logs")
-        .select("*")
-        .eq("inspection_id_bigint", Number(inspection.id))
-        .order("created_at", { ascending: false }),
+      loadEmailLogs(supabase, inspection.id),
       supabase
         .from("inspection_view_events")
         .select("*")
@@ -1174,7 +1359,10 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
   const equipmentInventoryRaw = equipmentResult.data || [];
   const findingsRaw = findingsResult.data || [];
 
-  const latestAgreementEmail = getLatestEmailLog(emailLogs, "agreement_email");
+  const latestAgreementEmail =
+    getLatestEmailLog(emailLogs, "agreement_email") ||
+    getLatestEmailLog(emailLogs, "agreement_reminder") ||
+    getLatestEmailLog(emailLogs, "agreement_reminder_email");
   const latestReportEmail =
     getLatestEmailLog(emailLogs, "inspection_report") ||
     getLatestEmailLog(emailLogs, "environmental_report");
@@ -1227,7 +1415,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
   const firstEngagementView = getFirstViewLog(engagementViews);
   const latestEngagementView = engagementViews[0] || null;
   const uniqueViewerCount = getUniqueViewerCount(engagementViews);
-  const viewerSummary = getViewerSummary(engagementViews);
+  const viewerActivitySummary = getViewerActivitySummary(engagementViews);
 
   const clientViewerEmail = normalizeEmail(inspection.client_email);
   const realtorViewerEmails = [
@@ -1477,12 +1665,22 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
     "";
 
   let propertyPhoto = rawPropertyPhoto;
-  const propertyPhotoPath = getStoragePathFromUrl(rawPropertyPhoto);
+  const propertyPhotoPath =
+    inspection.property_photo_path ||
+    inspection.property_image_path ||
+    inspection.cover_photo_path ||
+    inspection.street_view_path ||
+    inspection.storage_path ||
+    getStoragePathFromUrl(rawPropertyPhoto);
 
   if (propertyPhotoPath) {
-    const { data: signedPropertyPhoto } = await storageSupabase.storage
+    const { data: signedPropertyPhoto, error: signedPropertyPhotoError } = await storageSupabase.storage
       .from("inspection-photos")
       .createSignedUrl(propertyPhotoPath, 60 * 60 * 24 * 7);
+
+    if (signedPropertyPhotoError) {
+      console.error("Property photo signed URL error:", signedPropertyPhotoError);
+    }
 
     if (signedPropertyPhoto?.signedUrl) {
       propertyPhoto = signedPropertyPhoto.signedUrl;
@@ -1677,27 +1875,54 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
             </p>
           </div>
 
-          <AIReportReviewPanel inspectionId={String(inspection.id)} />
+          <AttentionPanel
+            title="AI Report Review"
+            badge={defectTotals.total > 0 ? `${defectTotals.total} defects` : "Ready"}
+            helper="Collapsed by default. Open when you want the full AI report safety review."
+          >
+            <AIReportReviewPanel inspectionId={String(inspection.id)} />
+          </AttentionPanel>
 
-          <div className="mb-8">
+          <AttentionPanel
+            title="House Intelligence"
+            badge="Memory"
+            helper="Property history, repeated concerns, and house-specific intelligence."
+          >
             <LiveHouseIntelligencePanel inspectionId={String(inspection.id)} />
-          </div>
+          </AttentionPanel>
 
-          <div className="mb-8">
+          <AttentionPanel
+            title="Live AI Inspector Assistant"
+            badge={defectTotals.safety > 0 ? `${defectTotals.safety} safety` : "AI checks"}
+            helper="Open this when the badge suggests missing items, contradictions, or publish-readiness concerns."
+          >
             <InspectionCopilotPanel inspectionId={String(inspection.id)} />
-          </div>
+          </AttentionPanel>
 
-          <div className="mb-8">
+          <AttentionPanel
+            title="Connected Finding Intelligence"
+            badge="Related findings"
+            helper="Possible relationships between defects, systems, and recommended next steps."
+          >
             <HouseRelationshipPanel inspectionId={String(inspection.id)} />
-          </div>
+          </AttentionPanel>
 
-          <div className="mb-8">
+          <AttentionPanel
+            title="AI Activity Timeline"
+            badge={`${findings.length} findings`}
+            helper="Live activity log. Open when you need to audit what changed during the inspection."
+          >
             <LiveInspectionTimelinePanel inspectionId={String(inspection.id)} />
-          </div>
+          </AttentionPanel>
 
-          <div className="mb-8">
+          <AttentionPanel
+            title="Final Publish Guard"
+            badge={reportIsPublished ? "Published" : "Check before publish"}
+            helper="This stays open before publishing because it can block delivery if something important is missing."
+            defaultOpen={!reportIsPublished}
+          >
             <AIPublishGuardPanel inspectionId={String(inspection.id)} />
-          </div>
+          </AttentionPanel>
 
           <SampleReportManager
             inspectionId={String(inspection.id)}
@@ -1798,6 +2023,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
               <ViewStatusCard
                 title="Email Opens"
                 log={latestEmailOpenView}
+                logs={emailOpenViews}
                 count={emailOpenViews.length}
                 emptyText="Not opened yet"
               />
@@ -1805,6 +2031,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
               <ViewStatusCard
                 title="Email Link Clicks"
                 log={latestEmailClickView}
+                logs={emailClickViews}
                 count={emailClickViews.length}
                 emptyText="No clicks yet"
               />
@@ -1812,6 +2039,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
               <ViewStatusCard
                 title="Reading Time"
                 log={latestReportTimeEvent}
+                logs={reportTimeEvents}
                 count={reportTimeFinals.length}
                 emptyText="No reading time yet"
               />
@@ -1819,6 +2047,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
               <ViewStatusCard
                 title="Agreement Opens"
                 log={latestAgreementPageView}
+                logs={agreementPageViews}
                 count={agreementPageViews.length}
                 emptyText="Not opened yet"
               />
@@ -1826,6 +2055,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
               <ViewStatusCard
                 title="Reminder Agreement Views"
                 log={latestAgreementReminderPageView}
+                logs={agreementReminderPageViews}
                 count={agreementReminderPageViews.length}
                 emptyText="No reminder agreement views yet"
               />
@@ -1833,6 +2063,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
               <ViewStatusCard
                 title="Client Portal Opens"
                 log={latestClientPortalView}
+                logs={clientPortalViews}
                 count={clientPortalViews.length}
                 emptyText="Not opened yet"
               />
@@ -1840,6 +2071,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
               <ViewStatusCard
                 title="Report Opens"
                 log={latestReportShareView}
+                logs={reportShareViews}
                 count={reportShareViews.length}
                 emptyText="Not opened yet"
               />
@@ -1847,25 +2079,76 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
               <ViewStatusCard
                 title="Environmental Report Opens"
                 log={latestEnvironmentalShareView}
+                logs={environmentalShareViews}
                 count={environmentalShareViews.length}
                 emptyText="Not opened yet"
               />
             </div>
 
-            {viewerSummary.length > 0 && (
+            {viewerActivitySummary.length > 0 && (
               <div className="mt-5 rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
-                <p className="text-sm font-black uppercase tracking-wide text-slate-400">
-                  Viewers Detected
-                </p>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-black uppercase tracking-wide text-slate-400">
+                      Viewers Detected
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-slate-500">
+                      Every person detected across email opens, link clicks, portal opens, report opens, agreement views, and reading-time events.
+                    </p>
+                  </div>
 
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {viewerSummary.map((viewer) => (
-                    <span
-                      key={viewer}
-                      className="rounded-full border border-teal-500/40 bg-teal-500/10 px-3 py-1 text-xs font-bold text-teal-300"
+                  <span className="rounded-full border border-teal-500/40 bg-teal-500/10 px-3 py-1 text-xs font-black text-teal-300">
+                    {viewerActivitySummary.length} viewer{viewerActivitySummary.length === 1 ? "" : "s"}
+                  </span>
+                </div>
+
+                <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  {viewerActivitySummary.map((viewer: any) => (
+                    <div
+                      key={viewer.key}
+                      className="rounded-xl border border-slate-700 bg-[#071224] p-3"
                     >
-                      {viewer}
-                    </span>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="break-all text-sm font-black text-teal-300">
+                            {viewer.email || viewer.label}
+                          </p>
+
+                          {viewer.role && (
+                            <p className="mt-1 text-xs font-bold uppercase tracking-wide text-slate-400">
+                              {viewer.role}
+                            </p>
+                          )}
+                        </div>
+
+                        <span className="shrink-0 rounded-full border border-teal-500/40 bg-teal-500/10 px-2 py-1 text-xs font-black text-teal-300">
+                          {viewer.count}
+                        </span>
+                      </div>
+
+                      <p className="mt-3 text-xs leading-5 text-slate-300">
+                        <span className="font-bold text-white">Last activity:</span>{" "}
+                        {formatEmailStatusDate(viewer.latestAt)}
+                      </p>
+
+                      {viewer.totalSeconds > 0 && (
+                        <p className="mt-1 text-xs leading-5 text-purple-300">
+                          <span className="font-bold text-white">Read time:</span>{" "}
+                          {formatDuration(viewer.totalSeconds)}
+                        </p>
+                      )}
+
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {Array.from(viewer.types.entries()).map(([type, count]: any) => (
+                          <span
+                            key={type}
+                            className="rounded-full border border-slate-600 bg-black/30 px-2 py-1 text-[10px] font-black text-slate-300"
+                          >
+                            {formatViewType(type)}: {count}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -2525,14 +2808,18 @@ function EmailStatusCard({
 function ViewStatusCard({
   title,
   log,
+  logs = [],
   count = 0,
   emptyText,
 }: {
   title: string;
   log: any;
+  logs?: any[];
   count?: number;
   emptyText: string;
 }) {
+  const viewers = getViewerActivityItems(logs || (log ? [log] : []));
+
   return (
     <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
       <div className="flex items-start justify-between gap-3">
@@ -2571,6 +2858,44 @@ function ViewStatusCard({
               <span className="font-bold text-white">Role:</span>{" "}
               {log.viewer_role}
             </p>
+          )}
+
+          {viewers.length > 0 && (
+            <div className="mt-3 border-t border-slate-800 pt-3">
+              <p className="text-xs font-black uppercase tracking-wide text-slate-500">
+                People detected
+              </p>
+
+              <div className="mt-2 space-y-2">
+                {viewers.map((viewer: any) => (
+                  <div
+                    key={viewer.key}
+                    className="rounded-lg border border-slate-700 bg-black/20 px-2 py-2"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="break-all text-xs font-black text-teal-300">
+                          {viewer.email || viewer.label}
+                        </p>
+                        {viewer.role && (
+                          <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-slate-500">
+                            {viewer.role}
+                          </p>
+                        )}
+                      </div>
+
+                      <span className="shrink-0 rounded-full border border-teal-500/40 bg-teal-500/10 px-2 py-0.5 text-[10px] font-black text-teal-300">
+                        {viewer.count}
+                      </span>
+                    </div>
+
+                    <p className="mt-1 text-[10px] text-slate-400">
+                      Last: {formatEmailStatusDate(viewer.latestAt)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
         </div>
       )}
