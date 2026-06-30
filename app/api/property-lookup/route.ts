@@ -21,7 +21,10 @@ const propertyDb =
 
 const openaiApiKey = process.env.OPENAI_API_KEY || "";
 const houseStyleModel = process.env.OPENAI_HOUSE_STYLE_MODEL || "gpt-4o-mini";
-
+const rentcastApiKey =
+  process.env.RENTCAST_API_KEY ||
+  process.env.NEXT_PUBLIC_RENTCAST_API_KEY ||
+  "";
 
 type PropertyLookupBody = {
   address?: string;
@@ -38,6 +41,8 @@ type NormalizedProperty = {
   square_feet?: string | number | null;
   sqft?: string | number | null;
   living_area?: string | number | null;
+  squareFootage?: string | number | null;
+  livingArea?: string | number | null;
   year_built?: string | number | null;
   yearBuilt?: string | number | null;
   property_type?: string | null;
@@ -54,6 +59,11 @@ type NormalizedProperty = {
   property_image?: string | null;
   street_view_url?: string | null;
   image?: string | null;
+  imageUrl?: string | null;
+  photoUrl?: string | null;
+  primaryPhotoUrl?: string | null;
+  primary_photo_url?: string | null;
+  photos?: any[] | null;
   SQFTSTRC?: string | number | null;
   YEARBLT?: string | number | null;
   DESCBLDG?: string | null;
@@ -103,7 +113,11 @@ function escapeSqlString(value: string) {
 }
 
 function getHouseNumber(address: string) {
-  return normalizeForCompare(address).split(" ")[0]?.replace(/[^0-9]/g, "") || "";
+  return (
+    normalizeForCompare(address)
+      .split(" ")[0]
+      ?.replace(/[^0-9]/g, "") || ""
+  );
 }
 
 function getStreetWords(address: string) {
@@ -113,7 +127,19 @@ function getStreetWords(address: string) {
     .slice(1)
     .filter(
       (part) =>
-        !["ST", "AVE", "RD", "DR", "CT", "LN", "BLVD", "PL", "CIR", "TER", "HWY"].includes(part)
+        ![
+          "ST",
+          "AVE",
+          "RD",
+          "DR",
+          "CT",
+          "LN",
+          "BLVD",
+          "PL",
+          "CIR",
+          "TER",
+          "HWY",
+        ].includes(part),
     );
 }
 
@@ -137,12 +163,20 @@ function buildStreetViewImage(fullAddress: string) {
   if (!googleMapsApiKey || !fullAddress) return "";
 
   return `https://maps.googleapis.com/maps/api/streetview?size=900x500&location=${encodeURIComponent(
-    fullAddress
+    fullAddress,
   )}&key=${googleMapsApiKey}`;
 }
 
 function getSquareFeet(property: NormalizedProperty | any) {
-  return property?.square_feet || property?.SQFTSTRC || property?.sqft || property?.living_area || "";
+  return (
+    property?.square_feet ||
+    property?.SQFTSTRC ||
+    property?.sqft ||
+    property?.living_area ||
+    property?.livingArea ||
+    property?.squareFootage ||
+    ""
+  );
 }
 
 function getYearBuilt(property: NormalizedProperty | any) {
@@ -179,8 +213,42 @@ function getLotSize(property: NormalizedProperty | any) {
   return property?.lot_size || property?.acres || property?.ACRES || "";
 }
 
+function getFirstImageFromArray(value: any) {
+  if (!Array.isArray(value)) return "";
+
+  for (const item of value) {
+    if (typeof item === "string" && item.trim()) return item.trim();
+
+    const url =
+      item?.url ||
+      item?.href ||
+      item?.imageUrl ||
+      item?.photoUrl ||
+      item?.largeUrl ||
+      item?.mediumUrl ||
+      item?.smallUrl ||
+      "";
+
+    if (String(url || "").trim()) return String(url).trim();
+  }
+
+  return "";
+}
+
 function getImage(property: NormalizedProperty | any, streetViewImage: string) {
-  return property?.property_image_url || property?.property_image || property?.street_view_url || property?.image || streetViewImage || "";
+  return (
+    property?.property_image_url ||
+    property?.property_image ||
+    property?.street_view_url ||
+    property?.image ||
+    property?.imageUrl ||
+    property?.photoUrl ||
+    property?.primaryPhotoUrl ||
+    property?.primary_photo_url ||
+    getFirstImageFromArray(property?.photos) ||
+    streetViewImage ||
+    ""
+  );
 }
 
 function responsePayload({
@@ -270,7 +338,9 @@ async function saveToPropertiesTable({
     city: city || property?.city || null,
     state: state || property?.state || null,
     zip: zip || property?.zip || null,
-    square_feet: squareFeet ? Number(String(squareFeet).replace(/[^0-9.]/g, "")) : null,
+    square_feet: squareFeet
+      ? Number(String(squareFeet).replace(/[^0-9.]/g, ""))
+      : null,
     year_built: yearBuilt ? String(yearBuilt) : null,
     property_type: propertyType || null,
     property_style: propertyStyle || propertyType || null,
@@ -280,22 +350,184 @@ async function saveToPropertiesTable({
     updated_at: new Date().toISOString(),
   };
 
-  let existingQuery = propertyDb.from("properties").select("id").eq("address", address);
+  let existingQuery = propertyDb
+    .from("properties")
+    .select("id")
+    .eq("address", address);
   if (zip) existingQuery = existingQuery.eq("zip", zip);
   if (state) existingQuery = existingQuery.eq("state", state);
 
-  const { data: existing, error: existingError } = await existingQuery.limit(1).maybeSingle();
+  const { data: existing, error: existingError } = await existingQuery
+    .limit(1)
+    .maybeSingle();
 
-  if (existingError) console.warn("Property cache lookup failed:", existingError.message);
+  if (existingError)
+    console.warn("Property cache lookup failed:", existingError.message);
 
   if (existing?.id) {
-    const { error } = await propertyDb.from("properties").update(payload).eq("id", existing.id);
+    const { error } = await propertyDb
+      .from("properties")
+      .update(payload)
+      .eq("id", existing.id);
     if (error) console.warn("Property cache update failed:", error.message);
     return;
   }
 
   const { error } = await propertyDb.from("properties").insert(payload);
   if (error) console.warn("Property cache insert failed:", error.message);
+}
+
+function getRentCastImage(property: any) {
+  return (
+    property?.property_image_url ||
+    property?.property_image ||
+    property?.imageUrl ||
+    property?.photoUrl ||
+    property?.primaryPhotoUrl ||
+    property?.primary_photo_url ||
+    getFirstImageFromArray(property?.photos) ||
+    getFirstImageFromArray(property?.images) ||
+    getFirstImageFromArray(property?.propertyPhotos) ||
+    getFirstImageFromArray(property?.listingPhotos) ||
+    ""
+  );
+}
+
+function parseRentCastRecord(record: any): NormalizedProperty | null {
+  if (!record) return null;
+
+  const squareFeet =
+    record.squareFootage ||
+    record.livingArea ||
+    record.living_area ||
+    record.lotAndBuilding?.livingArea ||
+    record.features?.livingArea ||
+    record.features?.squareFootage ||
+    "";
+
+  const yearBuilt =
+    record.yearBuilt ||
+    record.year_built ||
+    record.lotAndBuilding?.yearBuilt ||
+    record.features?.yearBuilt ||
+    "";
+
+  const propertyType =
+    record.propertyType ||
+    record.property_type ||
+    record.type ||
+    record.propertyUse ||
+    "";
+
+  const propertyStyle =
+    record.architectureType ||
+    record.architecture_type ||
+    record.propertyStyle ||
+    record.style ||
+    record.features?.architectureType ||
+    propertyType ||
+    "";
+
+  const lotSize =
+    record.lotSize || record.lot_size || record.lotAndBuilding?.lotSize || "";
+
+  const image = getRentCastImage(record);
+
+  if (
+    !squareFeet &&
+    !yearBuilt &&
+    !propertyType &&
+    !propertyStyle &&
+    !lotSize &&
+    !image
+  ) {
+    return null;
+  }
+
+  return {
+    address:
+      record.formattedAddress ||
+      record.addressLine1 ||
+      record.address ||
+      record.streetAddress ||
+      null,
+    city: record.city || null,
+    state: record.state || null,
+    zip: record.zipCode || record.zip || null,
+    square_feet: squareFeet || null,
+    squareFootage: squareFeet || null,
+    living_area: squareFeet || null,
+    livingArea: squareFeet || null,
+    year_built: yearBuilt || null,
+    yearBuilt: yearBuilt || null,
+    property_type: propertyType || null,
+    propertyType: propertyType || null,
+    property_style: propertyStyle || propertyType || null,
+    propertyStyle: propertyStyle || propertyType || null,
+    house_style: propertyStyle || propertyType || null,
+    style: propertyStyle || propertyType || null,
+    lot_size: lotSize || null,
+    acres: lotSize || null,
+    property_image_url: image || null,
+    property_image: image || null,
+    image: image || null,
+    imageUrl: image || null,
+  };
+}
+
+async function lookupRentCastProperty({
+  address,
+  city,
+  state,
+  zip,
+}: {
+  address: string;
+  city: string;
+  state: string;
+  zip: string;
+}) {
+  if (!rentcastApiKey || !address) return null;
+
+  const fullAddress = buildFullAddress({ address, city, state, zip });
+  const params = new URLSearchParams({
+    address: fullAddress,
+    limit: "1",
+  });
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+
+  try {
+    const response = await fetch(
+      `https://api.rentcast.io/v1/properties?${params.toString()}`,
+      {
+        method: "GET",
+        cache: "no-store",
+        signal: controller.signal,
+        headers: {
+          Accept: "application/json",
+          "X-Api-Key": rentcastApiKey,
+        },
+      },
+    );
+
+    if (!response.ok) {
+      console.warn("RentCast property lookup failed:", response.status);
+      return null;
+    }
+
+    const data = await response.json();
+    const record = Array.isArray(data)
+      ? data[0]
+      : data?.properties?.[0] || data?.data?.[0] || data;
+
+    return parseRentCastRecord(record);
+  } catch (error) {
+    console.warn("RentCast property lookup skipped:", error);
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 function parseMarylandRecord(attributes: any): NormalizedProperty | null {
@@ -308,7 +540,15 @@ function parseMarylandRecord(attributes: any): NormalizedProperty | null {
   const landUse = attributes.DESCLU || "";
   const acres = attributes.ACRES || "";
 
-  if (!squareFeet && !yearBuilt && !buildingType && !buildingStyle && !landUse && !acres) return null;
+  if (
+    !squareFeet &&
+    !yearBuilt &&
+    !buildingType &&
+    !buildingStyle &&
+    !landUse &&
+    !acres
+  )
+    return null;
 
   const builtAddress = `${attributes.PREMSNUM || attributes.STRTNUM || ""} ${
     attributes.PREMSDIR || attributes.STRTDIR || ""
@@ -332,7 +572,6 @@ function parseMarylandRecord(attributes: any): NormalizedProperty | null {
     acres: acres || null,
   };
 }
-
 
 type AiHouseStyleResult = {
   style: string;
@@ -361,7 +600,7 @@ function normalizeHouseStyle(value: unknown) {
   if (!raw) return "";
 
   const directMatch = HOUSE_STYLE_OPTIONS.find(
-    (option) => option.toLowerCase() === raw.toLowerCase()
+    (option) => option.toLowerCase() === raw.toLowerCase(),
   );
 
   if (directMatch) return directMatch;
@@ -428,10 +667,18 @@ async function detectHouseStyleFromStreetView({
 
   try {
     const publicRecordContext = [
-      getSquareFeet(publicRecord) ? `Square feet: ${getSquareFeet(publicRecord)}` : "",
-      getYearBuilt(publicRecord) ? `Year built: ${getYearBuilt(publicRecord)}` : "",
-      getPropertyType(publicRecord) ? `Public record building type: ${getPropertyType(publicRecord)}` : "",
-      getPropertyStyle(publicRecord) ? `Public record building style: ${getPropertyStyle(publicRecord)}` : "",
+      getSquareFeet(publicRecord)
+        ? `Square feet: ${getSquareFeet(publicRecord)}`
+        : "",
+      getYearBuilt(publicRecord)
+        ? `Year built: ${getYearBuilt(publicRecord)}`
+        : "",
+      getPropertyType(publicRecord)
+        ? `Public record building type: ${getPropertyType(publicRecord)}`
+        : "",
+      getPropertyStyle(publicRecord)
+        ? `Public record building style: ${getPropertyStyle(publicRecord)}`
+        : "",
     ]
       .filter(Boolean)
       .join("\n");
@@ -463,7 +710,7 @@ async function detectHouseStyleFromStreetView({
                   "Look at the image and identify the most likely architectural house style. " +
                   "Choose only one of these exact values: Ranch, Colonial, Cape Cod, Split Foyer, Split Level, Townhouse, Craftsman, Victorian, Contemporary, Traditional, Manufactured, Other. " +
                   "Do not use public-record wording like '1 Story With Basement' as the style. " +
-                  "Return JSON exactly like: {\"style\":\"Ranch\",\"confidence\":0.82,\"reason\":\"short reason\"}",
+                  'Return JSON exactly like: {"style":"Ranch","confidence":0.82,"reason":"short reason"}',
               },
               {
                 type: "image_url",
@@ -537,7 +784,11 @@ async function enrichWithAiHouseStyle({
     streetViewImage,
   });
 
-  if (!aiStyle?.style || aiStyle.style === "Other" || aiStyle.confidence < 0.45) {
+  if (
+    !aiStyle?.style ||
+    aiStyle.style === "Other" ||
+    aiStyle.confidence < 0.45
+  ) {
     return {
       property: publicRecord,
       source: "maryland_imap_public_records",
@@ -556,7 +807,6 @@ async function enrichWithAiHouseStyle({
   };
 }
 
-
 function marylandAddressFromAttributes(attributes: any) {
   return normalizeForCompare(
     attributes?.ADDRESS ||
@@ -564,7 +814,7 @@ function marylandAddressFromAttributes(attributes: any) {
         attributes?.PREMSDIR || attributes?.STRTDIR || ""
       } ${attributes?.PREMSNAM || attributes?.STRTNAM || ""} ${
         attributes?.PREMSTYP || attributes?.STRTTYP || ""
-      }`
+      }`,
   );
 }
 
@@ -576,7 +826,8 @@ function recordLooksLikeTargetAddress(attributes: any, targetAddress: string) {
   const targetHouseNumber = targetAddress.split(" ")[0];
   const recordHouseNumber = recordAddress.split(" ")[0];
 
-  if (!targetHouseNumber || targetHouseNumber !== recordHouseNumber) return false;
+  if (!targetHouseNumber || targetHouseNumber !== recordHouseNumber)
+    return false;
 
   const targetWords = getStreetWords(targetAddress);
   if (targetWords.length === 0) return false;
@@ -584,7 +835,10 @@ function recordLooksLikeTargetAddress(attributes: any, targetAddress: string) {
   return targetWords.every((word) => recordAddress.includes(word));
 }
 
-async function fetchMarylandFeatures(where: string, resultRecordCount = "1000") {
+async function fetchMarylandFeatures(
+  where: string,
+  resultRecordCount = "1000",
+) {
   const params = new URLSearchParams({
     f: "json",
     where,
@@ -594,10 +848,13 @@ async function fetchMarylandFeatures(where: string, resultRecordCount = "1000") 
     resultRecordCount,
   });
 
-  const res = await fetch(`${MARYLAND_PROPERTY_DATA_URL}?${params.toString()}`, {
-    method: "GET",
-    cache: "no-store",
-  });
+  const res = await fetch(
+    `${MARYLAND_PROPERTY_DATA_URL}?${params.toString()}`,
+    {
+      method: "GET",
+      cache: "no-store",
+    },
+  );
 
   if (!res.ok) return [];
 
@@ -629,21 +886,21 @@ async function lookupMarylandPublicRecords({
   // the old ZIP-only search only returned the first chunk of parcels.
   if (safeHouseNumber && safeZip) {
     whereAttempts.push(
-      `(STRTNUM=${safeHouseNumber} OR PREMSNUM='${safeHouseNumber}') AND (ZIPCODE='${safeZip}' OR PREMZIP='${safeZip}')`
+      `(STRTNUM=${safeHouseNumber} OR PREMSNUM='${safeHouseNumber}') AND (ZIPCODE='${safeZip}' OR PREMZIP='${safeZip}')`,
     );
   }
 
   // Next search: house number + city.
   if (safeHouseNumber && safeCity) {
     whereAttempts.push(
-      `(STRTNUM=${safeHouseNumber} OR PREMSNUM='${safeHouseNumber}') AND (UPPER(CITY)='${safeCity}' OR UPPER(PREMCITY)='${safeCity}')`
+      `(STRTNUM=${safeHouseNumber} OR PREMSNUM='${safeHouseNumber}') AND (UPPER(CITY)='${safeCity}' OR UPPER(PREMCITY)='${safeCity}')`,
     );
   }
 
   // Next search: street word + zip for records where the house number field is blank/weird.
   if (primaryStreetWord && safeZip) {
     whereAttempts.push(
-      `(UPPER(ADDRESS) LIKE '%${primaryStreetWord}%' OR UPPER(STRTNAM) LIKE '%${primaryStreetWord}%' OR UPPER(PREMSNAM) LIKE '%${primaryStreetWord}%') AND (ZIPCODE='${safeZip}' OR PREMZIP='${safeZip}')`
+      `(UPPER(ADDRESS) LIKE '%${primaryStreetWord}%' OR UPPER(STRTNAM) LIKE '%${primaryStreetWord}%' OR UPPER(PREMSNAM) LIKE '%${primaryStreetWord}%') AND (ZIPCODE='${safeZip}' OR PREMZIP='${safeZip}')`,
     );
   }
 
@@ -654,19 +911,23 @@ async function lookupMarylandPublicRecords({
 
   // Final fallback if ZIP was missing.
   if (!safeZip && safeCity) {
-    whereAttempts.push(`(UPPER(CITY)='${safeCity}' OR UPPER(PREMCITY)='${safeCity}')`);
+    whereAttempts.push(
+      `(UPPER(CITY)='${safeCity}' OR UPPER(PREMCITY)='${safeCity}')`,
+    );
   }
 
   for (const where of whereAttempts) {
     const features = await fetchMarylandFeatures(where, "1000");
-    const exactFeature = features.find((feature: any) => recordLooksLikeTargetAddress(feature?.attributes || {}, targetAddress));
+    const exactFeature = features.find((feature: any) =>
+      recordLooksLikeTargetAddress(feature?.attributes || {}, targetAddress),
+    );
 
-    if (exactFeature?.attributes) return parseMarylandRecord(exactFeature.attributes);
+    if (exactFeature?.attributes)
+      return parseMarylandRecord(exactFeature.attributes);
   }
 
   return null;
 }
-
 
 function getFirstValue(attributes: any, keys: string[]) {
   if (!attributes) return "";
@@ -730,10 +991,15 @@ function westVirginiaAddressFromAttributes(attributes: any) {
     "TYPE",
   ]);
 
-  return normalizeForCompare(`${houseNumber || ""} ${streetName || ""} ${streetType || ""}`);
+  return normalizeForCompare(
+    `${houseNumber || ""} ${streetName || ""} ${streetType || ""}`,
+  );
 }
 
-function westVirginiaRecordLooksLikeTargetAddress(attributes: any, targetAddress: string) {
+function westVirginiaRecordLooksLikeTargetAddress(
+  attributes: any,
+  targetAddress: string,
+) {
   const recordAddress = westVirginiaAddressFromAttributes(attributes);
   if (!recordAddress) return false;
   if (recordAddress === targetAddress) return true;
@@ -741,7 +1007,8 @@ function westVirginiaRecordLooksLikeTargetAddress(attributes: any, targetAddress
   const targetHouseNumber = targetAddress.split(" ")[0];
   const recordHouseNumber = recordAddress.split(" ")[0];
 
-  if (!targetHouseNumber || targetHouseNumber !== recordHouseNumber) return false;
+  if (!targetHouseNumber || targetHouseNumber !== recordHouseNumber)
+    return false;
 
   const targetWords = getStreetWords(targetAddress);
   if (targetWords.length === 0) return false;
@@ -834,7 +1101,14 @@ function parseWestVirginiaRecord(attributes: any): NormalizedProperty | null {
     "POSTCODE",
   ]);
 
-  if (!parsedAddress && !squareFeet && !yearBuilt && !propertyType && !propertyStyle && !acres) {
+  if (
+    !parsedAddress &&
+    !squareFeet &&
+    !yearBuilt &&
+    !propertyType &&
+    !propertyStyle &&
+    !acres
+  ) {
     return null;
   }
 
@@ -853,7 +1127,11 @@ function parseWestVirginiaRecord(attributes: any): NormalizedProperty | null {
   };
 }
 
-async function fetchWestVirginiaFeatures(url: string, where: string, resultRecordCount = "1000") {
+async function fetchWestVirginiaFeatures(
+  url: string,
+  where: string,
+  resultRecordCount = "1000",
+) {
   const params = new URLSearchParams({
     f: "json",
     where,
@@ -895,56 +1173,73 @@ async function lookupWestVirginiaPublicRecords({
 
   if (safeHouseNumber && primaryStreetWord && safeZip) {
     whereAttempts.push(
-      `(UPPER(FULLADDR) LIKE '%${safeHouseNumber}%' OR UPPER(ADDRESS) LIKE '%${safeHouseNumber}%' OR UPPER(SITEADDR) LIKE '%${safeHouseNumber}%') AND (UPPER(FULLADDR) LIKE '%${primaryStreetWord}%' OR UPPER(ADDRESS) LIKE '%${primaryStreetWord}%' OR UPPER(SITEADDR) LIKE '%${primaryStreetWord}%') AND (ZIP='${safeZip}' OR ZIPCODE='${safeZip}' OR ZIP_CODE='${safeZip}')`
+      `(UPPER(FULLADDR) LIKE '%${safeHouseNumber}%' OR UPPER(ADDRESS) LIKE '%${safeHouseNumber}%' OR UPPER(SITEADDR) LIKE '%${safeHouseNumber}%') AND (UPPER(FULLADDR) LIKE '%${primaryStreetWord}%' OR UPPER(ADDRESS) LIKE '%${primaryStreetWord}%' OR UPPER(SITEADDR) LIKE '%${primaryStreetWord}%') AND (ZIP='${safeZip}' OR ZIPCODE='${safeZip}' OR ZIP_CODE='${safeZip}')`,
     );
   }
 
   if (safeHouseNumber && primaryStreetWord && safeCity) {
     whereAttempts.push(
-      `(UPPER(FULLADDR) LIKE '%${safeHouseNumber}%' OR UPPER(ADDRESS) LIKE '%${safeHouseNumber}%' OR UPPER(SITEADDR) LIKE '%${safeHouseNumber}%') AND (UPPER(FULLADDR) LIKE '%${primaryStreetWord}%' OR UPPER(ADDRESS) LIKE '%${primaryStreetWord}%' OR UPPER(SITEADDR) LIKE '%${primaryStreetWord}%') AND (UPPER(CITY)='${safeCity}' OR UPPER(MUNICIPALITY)='${safeCity}' OR UPPER(POSTCOMM)='${safeCity}')`
+      `(UPPER(FULLADDR) LIKE '%${safeHouseNumber}%' OR UPPER(ADDRESS) LIKE '%${safeHouseNumber}%' OR UPPER(SITEADDR) LIKE '%${safeHouseNumber}%') AND (UPPER(FULLADDR) LIKE '%${primaryStreetWord}%' OR UPPER(ADDRESS) LIKE '%${primaryStreetWord}%' OR UPPER(SITEADDR) LIKE '%${primaryStreetWord}%') AND (UPPER(CITY)='${safeCity}' OR UPPER(MUNICIPALITY)='${safeCity}' OR UPPER(POSTCOMM)='${safeCity}')`,
     );
   }
 
   if (safeZip) {
-    whereAttempts.push(`(ZIP='${safeZip}' OR ZIPCODE='${safeZip}' OR ZIP_CODE='${safeZip}')`);
+    whereAttempts.push(
+      `(ZIP='${safeZip}' OR ZIPCODE='${safeZip}' OR ZIP_CODE='${safeZip}')`,
+    );
   }
 
   if (!safeZip && safeCity) {
-    whereAttempts.push(`(UPPER(CITY)='${safeCity}' OR UPPER(MUNICIPALITY)='${safeCity}' OR UPPER(POSTCOMM)='${safeCity}')`);
+    whereAttempts.push(
+      `(UPPER(CITY)='${safeCity}' OR UPPER(MUNICIPALITY)='${safeCity}' OR UPPER(POSTCOMM)='${safeCity}')`,
+    );
   }
 
   for (const where of whereAttempts) {
     const addressFeatures = await fetchWestVirginiaFeatures(
       WEST_VIRGINIA_SITE_ADDRESS_URL,
       where,
-      "1000"
+      "1000",
     );
 
     const addressMatch = addressFeatures.find((feature: any) =>
-      westVirginiaRecordLooksLikeTargetAddress(feature?.attributes || {}, targetAddress)
+      westVirginiaRecordLooksLikeTargetAddress(
+        feature?.attributes || {},
+        targetAddress,
+      ),
     );
 
     if (addressMatch?.attributes) {
-      const parsedAddressRecord = parseWestVirginiaRecord(addressMatch.attributes);
+      const parsedAddressRecord = parseWestVirginiaRecord(
+        addressMatch.attributes,
+      );
 
       // Try the parcel summary table too. Some WV services expose richer parcel
       // attributes there than on the address-point layer.
       const parcelFeatures = await fetchWestVirginiaFeatures(
         WEST_VIRGINIA_PARCEL_SUMMARY_URL,
         where,
-        "1000"
+        "1000",
       );
 
       const parcelMatch = parcelFeatures.find((feature: any) =>
-        westVirginiaRecordLooksLikeTargetAddress(feature?.attributes || {}, targetAddress)
+        westVirginiaRecordLooksLikeTargetAddress(
+          feature?.attributes || {},
+          targetAddress,
+        ),
       );
 
-      const parsedParcelRecord = parseWestVirginiaRecord(parcelMatch?.attributes || {});
+      const parsedParcelRecord = parseWestVirginiaRecord(
+        parcelMatch?.attributes || {},
+      );
 
       return {
         ...(parsedAddressRecord || {}),
         ...(parsedParcelRecord || {}),
-        address: parsedAddressRecord?.address || parsedParcelRecord?.address || address,
+        address:
+          parsedAddressRecord?.address ||
+          parsedParcelRecord?.address ||
+          address,
         city: parsedAddressRecord?.city || parsedParcelRecord?.city || city,
         state: "WV",
         zip: parsedAddressRecord?.zip || parsedParcelRecord?.zip || zip,
@@ -954,15 +1249,20 @@ async function lookupWestVirginiaPublicRecords({
     const parcelFeatures = await fetchWestVirginiaFeatures(
       WEST_VIRGINIA_PARCEL_SUMMARY_URL,
       where,
-      "1000"
+      "1000",
     );
 
     const parcelMatch = parcelFeatures.find((feature: any) =>
-      westVirginiaRecordLooksLikeTargetAddress(feature?.attributes || {}, targetAddress)
+      westVirginiaRecordLooksLikeTargetAddress(
+        feature?.attributes || {},
+        targetAddress,
+      ),
     );
 
     if (parcelMatch?.attributes) {
-      const parsedParcelRecord = parseWestVirginiaRecord(parcelMatch.attributes);
+      const parsedParcelRecord = parseWestVirginiaRecord(
+        parcelMatch.attributes,
+      );
 
       if (parsedParcelRecord) {
         return {
@@ -979,7 +1279,6 @@ async function lookupWestVirginiaPublicRecords({
   return null;
 }
 
-
 export async function POST(req: Request) {
   try {
     const body = (await req.json()) as PropertyLookupBody;
@@ -989,14 +1288,53 @@ export async function POST(req: Request) {
     const state = cleanText(body.state || "MD").toUpperCase();
     const zip = cleanZip(body.zip);
 
-    if (!address) return NextResponse.json({ error: "Missing address" }, { status: 400 });
+    if (!address)
+      return NextResponse.json({ error: "Missing address" }, { status: 400 });
 
     const fullAddress = buildFullAddress({ address, city, state, zip });
     const streetViewImage = buildStreetViewImage(fullAddress);
 
-    // 1) Public records first for Maryland. If found, save immediately.
+    // 1) RentCast first. This runs during scheduling/property lookup and can
+    // provide square footage and any available property image before falling
+    // back to public records, Google Street View, and On Point cache/history.
+    const rentCastProperty = await lookupRentCastProperty({
+      address,
+      city,
+      state,
+      zip,
+    });
+
+    if (rentCastProperty) {
+      await saveToPropertiesTable({
+        address,
+        city,
+        state,
+        zip,
+        property: rentCastProperty,
+        source: "rentcast_property_records",
+        streetViewImage,
+      });
+
+      return NextResponse.json(
+        responsePayload({
+          source: "rentcast_property_records",
+          property: rentCastProperty,
+          address,
+          city,
+          state,
+          zip,
+          streetViewImage,
+        }),
+      );
+    }
+
+    // 2) Public records for Maryland. If found, save immediately.
     if (state === "MD") {
-      const publicRecord = await lookupMarylandPublicRecords({ address, city, zip });
+      const publicRecord = await lookupMarylandPublicRecords({
+        address,
+        city,
+        zip,
+      });
 
       if (publicRecord) {
         const enriched = await enrichWithAiHouseStyle({
@@ -1027,16 +1365,20 @@ export async function POST(req: Request) {
             state,
             zip,
             streetViewImage,
-          })
+          }),
         );
       }
     }
 
-    // 2) Public records for West Virginia. This is best-effort because WV's
+    // 3) Public records for West Virginia. This is best-effort because WV's
     // statewide parcel/address service has less consistent building-detail
     // coverage than Maryland. If it finds a match, it still saves immediately.
     if (state === "WV") {
-      const publicRecord = await lookupWestVirginiaPublicRecords({ address, city, zip });
+      const publicRecord = await lookupWestVirginiaPublicRecords({
+        address,
+        city,
+        zip,
+      });
 
       if (publicRecord) {
         const enriched = await enrichWithAiHouseStyle({
@@ -1073,16 +1415,16 @@ export async function POST(req: Request) {
             state,
             zip,
             streetViewImage,
-          })
+          }),
         );
       }
     }
 
-    // 3) On Point property cache fallback. Exact match only.
+    // 4) On Point property cache fallback. Exact match only.
     let cacheQuery = propertyDb
       .from("properties")
       .select(
-        "address, city, state, zip, square_feet, year_built, property_type, property_style, roof_style, property_image_url, source, updated_at"
+        "address, city, state, zip, square_feet, year_built, property_type, property_style, roof_style, property_image_url, source, updated_at",
       )
       .eq("address", address);
 
@@ -1104,15 +1446,15 @@ export async function POST(req: Request) {
           state,
           zip,
           streetViewImage,
-        })
+        }),
       );
     }
 
-    // 4) Previous inspection fallback. Exact match only.
+    // 5) Previous inspection fallback. Exact match only.
     let inspectionQuery = supabase
       .from("inspections")
       .select(
-        "address, property_address, city, state, zip, square_feet, sqft, year_built, property_type, property_style, house_style, roof_style, property_image, property_image_url, street_view_url, created_at"
+        "address, property_address, city, state, zip, square_feet, sqft, year_built, property_type, property_style, house_style, roof_style, property_image, property_image_url, street_view_url, created_at",
       )
       .eq("address", address);
 
@@ -1128,7 +1470,7 @@ export async function POST(req: Request) {
       let legacyQuery = supabase
         .from("inspections")
         .select(
-          "address, property_address, city, state, zip, square_feet, sqft, year_built, property_type, property_style, house_style, roof_style, property_image, property_image_url, street_view_url, created_at"
+          "address, property_address, city, state, zip, square_feet, sqft, year_built, property_type, property_style, house_style, roof_style, property_image, property_image_url, street_view_url, created_at",
         )
         .eq("property_address", address);
 
@@ -1171,11 +1513,11 @@ export async function POST(req: Request) {
           state,
           zip,
           streetViewImage,
-        })
+        }),
       );
     }
 
-    // 5) Manual fallback.
+    // 6) Manual fallback.
     return NextResponse.json(
       responsePayload({
         source: "manual_needed_google_streetview_only",
@@ -1185,10 +1527,13 @@ export async function POST(req: Request) {
         state,
         zip,
         streetViewImage,
-      })
+      }),
     );
   } catch (error) {
     console.error("Property lookup failed:", error);
-    return NextResponse.json({ error: "Failed to look up property" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to look up property" },
+      { status: 500 },
+    );
   }
 }
