@@ -28,6 +28,7 @@ import InspectionCopilotPanel from "../../../components/InspectionCopilotPanel";
 import HouseRelationshipPanel from "../../../components/HouseRelationshipPanel";
 import LiveInspectionTimelinePanel from "../../../components/LiveInspectionTimelinePanel";
 import AIPublishGuardPanel from "../../../components/AIPublishGuardPanel";
+import PropertyPhotoUploader from "../../../components/PropertyPhotoUploader";
 import { aiPublishGuard } from "../../../lib/ai/AIPublishGuard";
 
 export const dynamic = "force-dynamic";
@@ -2028,35 +2029,10 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
               </div>
             )}
 
-            <form action="/api/property-photo/upload" method="post" encType="multipart/form-data" className="border-t border-slate-700 p-4">
-              <input type="hidden" name="inspection_id" value={inspection.id} />
-              <input type="hidden" name="return_to" value={`/reports/${inspection.id}`} />
-
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-black text-teal-300">Property Photo</p>
-                  <p className="mt-1 text-xs leading-5 text-slate-400">
-                    Upload the correct house photo if the lookup or Street View image is wrong.
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  <input
-                    type="file"
-                    name="property_photo"
-                    accept="image/jpeg,image/png,image/webp"
-                    className="max-w-full rounded-xl border border-slate-700 bg-[#020617] px-3 py-2 text-xs font-bold text-slate-300 file:mr-3 file:rounded-lg file:border-0 file:bg-teal-400 file:px-3 file:py-2 file:text-xs file:font-black file:text-black"
-                  />
-
-                  <button
-                    type="submit"
-                    className="rounded-xl bg-teal-400 px-4 py-3 text-sm font-black text-black transition hover:bg-teal-300"
-                  >
-                    Change Photo
-                  </button>
-                </div>
-              </div>
-            </form>
+            <PropertyPhotoUploader
+              inspectionId={String(inspection.id)}
+              returnTo={`/reports/${inspection.id}`}
+            />
           </section>
 
           <h1 className="break-words text-4xl font-extrabold text-teal-400 sm:text-5xl">

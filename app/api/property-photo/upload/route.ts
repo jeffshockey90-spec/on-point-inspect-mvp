@@ -51,10 +51,38 @@ function safeSegment(value: any) {
     .slice(0, 40);
 }
 
-function redirectBack(request: Request, returnTo: string, key: string, value: string) {
+function buildReturnUrl(request: Request, returnTo: string, key: string, value: string) {
   const baseUrl = new URL(request.url);
   const target = new URL(returnTo || "/reports", baseUrl.origin);
+  target.searchParams.delete("property_photo_error");
+  target.searchParams.delete("property_photo_updated");
   target.searchParams.set(key, value);
+  return target;
+}
+
+function sendResult(
+  request: Request,
+  ajax: boolean,
+  returnTo: string,
+  ok: boolean,
+  key: string,
+  value: string,
+  extra: Record<string, any> = {},
+) {
+  const target = buildReturnUrl(request, returnTo, key, value);
+
+  if (ajax) {
+    return NextResponse.json(
+      {
+        ok,
+        [key]: value,
+        redirectTo: `${target.pathname}${target.search}`,
+        ...extra,
+      },
+      { status: ok ? 200 : 400 },
+    );
+  }
+
   return NextResponse.redirect(target);
 }
 
@@ -77,18 +105,6 @@ function getContentType(extension: string) {
   return "image/jpeg";
 }
 
-function isHeic(file: File) {
-  const type = String(file.type || "").toLowerCase();
-  const name = String(file.name || "").toLowerCase();
-
-  return (
-    type.includes("heic") ||
-    type.includes("heif") ||
-    name.endsWith(".heic") ||
-    name.endsWith(".heif")
-  );
-}
-
 function isAllowedImage(file: File) {
   const type = String(file.type || "").toLowerCase();
   const name = String(file.name || "").toLowerCase();
@@ -98,41 +114,50 @@ function isAllowedImage(file: File) {
     name.endsWith(".jpg") ||
     name.endsWith(".jpeg") ||
     name.endsWith(".png") ||
-    name.endsWith(".webp") ||
-    name.endsWith(".heic") ||
-    name.endsWith(".heif")
+    name.endsWith(".webp")
   );
 }
 
 export async function POST(request: Request) {
   let returnTo = "/reports";
+  let ajax = false;
 
   try {
     const formData = await request.formData();
+
+    ajax = String(formData.get("ajax") || "") === "1";
 
     const file =
       (formData.get("property_photo") as File | null) ||
       (formData.get("file") as File | null);
 
     const inspectionId = String(formData.get("inspection_id") || "").trim();
-    returnTo = String(formData.get("return_to") || (inspectionId ? `/reports/${inspectionId}` : "/reports"));
-    const context = safeSegment(formData.get("context") || `inspection-${inspectionId || "property-photo"}`);
+    returnTo = String(
+      formData.get("return_to") || (inspectionId ? `/reports/${inspectionId}` : "/reports"),
+    );
+    const context = safeSegment(
+      formData.get("context") || `inspection-${inspectionId || "property-photo"}`,
+    );
 
     if (!file || file.size === 0) {
-      return redirectBack(request, returnTo, "property_photo_error", "missing");
+      return sendResult(request, ajax, returnTo, false, "property_photo_error", "missing", {
+        error: "missing",
+      });
     }
 
     if (!isAllowedImage(file)) {
-      return redirectBack(request, returnTo, "property_photo_error", "type");
+      return sendResult(request, ajax, returnTo, false, "property_photo_error", "type", {
+        error: "type",
+      });
     }
 
-    const maxBytes = 20 * 1024 * 1024;
+    // The client component compresses normal iPhone camera photos before this route is called.
+    // Keep this limit low enough that Vercel is not asked to process huge raw camera files.
+    const maxBytes = 4 * 1024 * 1024;
     if (file.size > maxBytes) {
-      return redirectBack(request, returnTo, "property_photo_error", "size");
-    }
-
-    if (isHeic(file)) {
-      return redirectBack(request, returnTo, "property_photo_error", "heic");
+      return sendResult(request, ajax, returnTo, false, "property_photo_error", "size", {
+        error: "size",
+      });
     }
 
     const userSupabase = await createSupabaseServerClient();
@@ -142,6 +167,9 @@ export async function POST(request: Request) {
     } = await userSupabase.auth.getUser();
 
     if (!user) {
+      if (ajax) {
+        return NextResponse.json({ ok: false, error: "auth", redirectTo: "/login" }, { status: 401 });
+      }
       return NextResponse.redirect(new URL("/login", request.url));
     }
 
@@ -154,6 +182,9 @@ export async function POST(request: Request) {
         .single();
 
       if (ownershipError || !ownedInspection) {
+        if (ajax) {
+          return NextResponse.json({ ok: false, error: "ownership", redirectTo: "/reports" }, { status: 403 });
+        }
         return NextResponse.redirect(new URL("/reports", request.url));
       }
     }
@@ -173,7 +204,9 @@ export async function POST(request: Request) {
 
     if (uploadError) {
       console.error("Property photo upload error:", uploadError);
-      return redirectBack(request, returnTo, "property_photo_error", "upload");
+      return sendResult(request, ajax, returnTo, false, "property_photo_error", "upload", {
+        error: "upload",
+      });
     }
 
     const { data: publicUrlData } = admin.storage
@@ -188,7 +221,9 @@ export async function POST(request: Request) {
     const signedUrl = signedUrlData?.signedUrl || "";
 
     if (!publicUrl && !signedUrl) {
-      return redirectBack(request, returnTo, "property_photo_error", "url");
+      return sendResult(request, ajax, returnTo, false, "property_photo_error", "url", {
+        error: "url",
+      });
     }
 
     if (inspectionId) {
@@ -204,7 +239,9 @@ export async function POST(request: Request) {
 
       if (updateError) {
         console.error("Property photo save error:", updateError);
-        return redirectBack(request, returnTo, "property_photo_error", "save");
+        return sendResult(request, ajax, returnTo, false, "property_photo_error", "save", {
+          error: "save",
+        });
       }
 
       revalidatePath(`/reports/${inspectionId}`);
@@ -212,7 +249,18 @@ export async function POST(request: Request) {
       revalidatePath(`/share/${inspectionId}`);
       revalidatePath(`/client-portal/${inspectionId}`);
 
-      return redirectBack(request, returnTo, "property_photo_updated", "1");
+      return sendResult(request, ajax, returnTo, true, "property_photo_updated", "1", {
+        url: publicUrl,
+        publicUrl,
+        public_url: publicUrl,
+        signedUrl,
+        signed_url: signedUrl,
+        displayUrl: signedUrl || publicUrl,
+        display_url: signedUrl || publicUrl,
+        path,
+        storagePath: path,
+        storage_path: path,
+      });
     }
 
     return NextResponse.json({
@@ -230,6 +278,8 @@ export async function POST(request: Request) {
     });
   } catch (error: any) {
     console.error("Property photo route crash:", error);
-    return redirectBack(request, returnTo, "property_photo_error", "upload");
+    return sendResult(request, ajax, returnTo, false, "property_photo_error", "upload", {
+      error: "upload",
+    });
   }
 }
