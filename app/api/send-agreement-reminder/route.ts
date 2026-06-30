@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 
+export const runtime = "nodejs";
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -15,14 +17,9 @@ function getBaseUrl(req: Request) {
     process.env.NEXT_PUBLIC_SITE_URL ||
     process.env.VERCEL_URL;
 
-  if (envUrl) {
-    return envUrl.startsWith("http")
-      ? envUrl
-      : `https://${envUrl}`;
-  }
+  if (envUrl) return envUrl.startsWith("http") ? envUrl : `https://${envUrl}`;
 
-  const url = new URL(req.url);
-  return `${url.protocol}//${url.host}`;
+  return new URL(req.url).origin;
 }
 
 function isClientAgreementRecipient(contact: any) {
@@ -44,17 +41,11 @@ export async function POST(req: Request) {
     const contactId = body.contactId ? String(body.contactId) : "";
 
     if (!inspectionId) {
-      return NextResponse.json(
-        { error: "Missing inspection ID." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Missing inspection ID." }, { status: 400 });
     }
 
     if (!process.env.RESEND_API_KEY) {
-      return NextResponse.json(
-        { error: "Missing RESEND_API_KEY." },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Missing RESEND_API_KEY." }, { status: 500 });
     }
 
     const { data: inspection, error: inspectionError } = await supabase
@@ -64,10 +55,7 @@ export async function POST(req: Request) {
       .single();
 
     if (inspectionError || !inspection) {
-      return NextResponse.json(
-        { error: "Inspection not found." },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Inspection not found." }, { status: 404 });
     }
 
     let query = supabase
@@ -78,17 +66,14 @@ export async function POST(req: Request) {
       .eq("agreement_signed", false)
       .in("role", ["client", "co-client"]);
 
-    if (contactId) {
-      query = query.eq("id", contactId);
-    }
+    if (contactId) query = query.eq("id", contactId);
 
     const { data: contacts, error: contactsError } = await query;
-
     if (contactsError) throw contactsError;
 
     const recipients = (contacts || []).filter(isClientAgreementRecipient);
 
-    if (recipients.length === 0) {
+    if (!recipients.length) {
       return NextResponse.json(
         { error: "No unsigned required client/co-client agreement contacts found." },
         { status: 400 }
@@ -104,43 +89,32 @@ export async function POST(req: Request) {
 
     const fromEmail =
       process.env.RESEND_FROM_EMAIL ||
-      "On Point Home Inspections <onboarding@resend.dev>";
+      "On Point Home Inspections <agreements@onpointhomeinspect.com>";
 
     const sent: any[] = [];
+    const failed: any[] = [];
 
     for (const contact of recipients) {
+      const email = String(contact.email || "").trim().toLowerCase();
+      if (!email) continue;
+
       const agreementUrl = `${baseUrl}/client-agreement/${inspectionId}?contact=${contact.id}`;
       const portalUrl = `${baseUrl}/client-portal/${inspectionId}`;
-
       const subject = `Reminder: Inspection Agreement for ${propertyAddress}`;
 
       const html = `
         <div style="font-family:Arial,sans-serif;line-height:1.6;color:#0f172a;">
           <h2 style="color:#0f766e;">On Point Home Inspections</h2>
-
           <p>Hi ${contact.name || "there"},</p>
-
-          <p>
-            This is a reminder to review and sign your residential inspection agreement for:
-          </p>
-
+          <p>This is a reminder to review and sign your residential inspection agreement for:</p>
           <p><strong>${propertyAddress}</strong></p>
-
           <p>
             <a href="${agreementUrl}" style="display:inline-block;background:#14b8a6;color:#020617;font-weight:bold;padding:12px 18px;border-radius:10px;text-decoration:none;">
               Review & Sign Agreement
             </a>
           </p>
-
-          <p>
-            Client Portal:<br />
-            <a href="${portalUrl}">${portalUrl}</a>
-          </p>
-
-          <p>
-            Thank you,<br />
-            On Point Home Inspections
-          </p>
+          <p>Client Portal:<br /><a href="${portalUrl}">${portalUrl}</a></p>
+          <p>Thank you,<br />On Point Home Inspections</p>
         </div>
       `;
 
@@ -161,37 +135,56 @@ On Point Home Inspections`;
 
       const result = await resend.emails.send({
         from: fromEmail,
-        to: contact.email,
+        to: email,
         subject,
         html,
         text,
       });
 
+      if (result.error) {
+        failed.push({
+          email,
+          contact_id: contact.id,
+          error: result.error.message,
+        });
+        continue;
+      }
+
       sent.push({
-        email: contact.email,
+        email,
         contact_id: contact.id,
-        result,
+        resend_id: result.data?.id || null,
       });
 
       await supabase.from("client_portal_events").insert({
         inspection_id: inspectionId,
         event_type: "agreement_reminder_sent",
-        event_note: `Agreement reminder sent to client contact ${contact.email}`,
+        event_note: `Agreement reminder sent to client contact ${email}`,
       });
     }
 
+    if (!sent.length) {
+      return NextResponse.json(
+        {
+          error: "Agreement reminder was not sent.",
+          failed,
+        },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json({
-      ok: true,
+      success: true,
+      message: `Agreement reminder sent to ${sent.length} client recipient${sent.length === 1 ? "" : "s"}.`,
       sent,
+      failed,
     });
   } catch (error: any) {
     console.error("Send agreement reminder error:", error);
 
     return NextResponse.json(
       {
-        error:
-          error.message ||
-          "Failed to send agreement reminder.",
+        error: error?.message || "Failed to send agreement reminder.",
       },
       { status: 500 }
     );
