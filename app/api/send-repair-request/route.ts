@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
+import { createClient as createSupabaseAdminClient } from "@supabase/supabase-js";
 
 async function createSupabaseServerClient() {
   const cookieStore = await cookies();
@@ -25,6 +26,23 @@ async function createSupabaseServerClient() {
   );
 }
 
+function createDatabaseClient(fallbackClient: any) {
+  if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return createSupabaseAdminClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      }
+    );
+  }
+
+  return fallbackClient;
+}
+
 type Recipient = {
   email: string;
   recipientType: "client" | "realtor" | "custom";
@@ -42,6 +60,11 @@ function escapeHtml(value: any) {
 
 function cleanEmail(value: any) {
   return String(value || "").trim().toLowerCase();
+}
+
+function looksLikeEmail(value: any) {
+  const email = cleanEmail(value);
+  return Boolean(email && email.includes("@") && email.includes("."));
 }
 
 function getRecipientTypeForRole(roleValue: any): "client" | "realtor" | "custom" {
@@ -65,7 +88,7 @@ function getRecipientTypeForRole(roleValue: any): "client" | "realtor" | "custom
 function shouldReceiveRepairRequest(contact: any) {
   const role = String(contact?.role || "").toLowerCase();
 
-  if (!contact?.email) return false;
+  if (!looksLikeEmail(contact?.email)) return false;
   if (contact.portal_access === false) return false;
 
   return (
@@ -86,7 +109,7 @@ function uniqueRecipients(recipients: Recipient[]) {
 
   recipients.forEach((recipient) => {
     const email = cleanEmail(recipient.email);
-    if (!email) return;
+    if (!looksLikeEmail(email)) return;
 
     if (!map.has(email)) {
       map.set(email, {
@@ -235,15 +258,111 @@ On Point Home Inspections LLC
 Protecting Your Investment. One Inspection at a Time.`;
 }
 
+function collectEmailsFromInspection(inspection: any, recipientType: string): Recipient[] {
+  const recipients: Recipient[] = [];
+
+  const clientFields = [
+    inspection?.client_email,
+    inspection?.clientEmail,
+    inspection?.buyer_email,
+    inspection?.buyerEmail,
+  ];
+
+  const realtorFields = [
+    inspection?.realtor_email,
+    inspection?.agent_email,
+    inspection?.realtorEmail,
+    inspection?.agentEmail,
+  ];
+
+  if (recipientType === "client" || recipientType === "all") {
+    clientFields.forEach((email) => {
+      if (looksLikeEmail(email)) {
+        recipients.push({ email: cleanEmail(email), recipientType: "client", role: "client" });
+      }
+    });
+  }
+
+  if (recipientType === "realtor" || recipientType === "all") {
+    realtorFields.forEach((email) => {
+      if (looksLikeEmail(email)) {
+        recipients.push({ email: cleanEmail(email), recipientType: "realtor", role: "realtor" });
+      }
+    });
+  }
+
+  return recipients;
+}
+
+function collectEmailsFromContacts(contacts: any[], recipientType: string): Recipient[] {
+  const cleanContacts = Array.isArray(contacts) ? contacts : [];
+
+  if (recipientType === "all") {
+    return cleanContacts
+      .filter(shouldReceiveRepairRequest)
+      .map((contact: any) => ({
+        email: cleanEmail(contact.email),
+        recipientType: getRecipientTypeForRole(contact.role),
+        role: String(contact.role || "contact"),
+      }));
+  }
+
+  if (recipientType === "client") {
+    return cleanContacts
+      .filter((contact: any) => {
+        const role = String(contact?.role || "").toLowerCase();
+        return looksLikeEmail(contact?.email) && contact.portal_access !== false && role.includes("client");
+      })
+      .map((contact: any) => ({
+        email: cleanEmail(contact.email),
+        recipientType: "client" as const,
+        role: String(contact.role || "client"),
+      }));
+  }
+
+  if (recipientType === "realtor") {
+    return cleanContacts
+      .filter((contact: any) => {
+        const role = String(contact?.role || "").toLowerCase();
+        return (
+          looksLikeEmail(contact?.email) &&
+          contact.portal_access !== false &&
+          (role.includes("realtor") || role.includes("agent") || role.includes("transaction"))
+        );
+      })
+      .map((contact: any) => ({
+        email: cleanEmail(contact.email),
+        recipientType: "realtor" as const,
+        role: String(contact.role || "realtor"),
+      }));
+  }
+
+  return [];
+}
+
 export async function POST(req: Request) {
+  let inspectionId: any = null;
+  let subject = "Repair Request Summary";
+  let supabaseForLogs: any = null;
+
   try {
+    const body = await req.json();
     const {
-      inspectionId,
+      inspectionId: incomingInspectionId,
       recipientType = "realtor",
       recipientEmail,
       selectedIds = [],
       summary = "",
-    } = await req.json();
+    } = body;
+
+    inspectionId = incomingInspectionId;
+
+    console.log("SEND REPAIR REQUEST START", {
+      inspectionId,
+      recipientType,
+      recipientEmail,
+      selectedIds,
+    });
 
     if (!inspectionId) {
       return NextResponse.json({ error: "Missing inspection ID." }, { status: 400 });
@@ -253,33 +372,36 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing RESEND_API_KEY." }, { status: 500 });
     }
 
-    const supabase = await createSupabaseServerClient();
+    const authClient = await createSupabaseServerClient();
+    const db = createDatabaseClient(authClient);
+    supabaseForLogs = db;
 
     const {
       data: { user },
-    } = await supabase.auth.getUser();
+    } = await authClient.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: "You must be logged in." }, { status: 401 });
     }
 
-    // IMPORTANT: Do not filter by inspector_id = user.id here.
-    // In this app, inspections.inspector_id is not always the Supabase auth user id.
-    // The page already requires login to send, and the selected recipient email is sent from the UI.
-    const { data: inspection, error } = await supabase
+    // IMPORTANT: do not filter by inspector_id = user.id.
+    // inspections.inspector_id in this app is the inspector profile id, not always Supabase auth user id.
+    const { data: inspection, error: inspectionError } = await db
       .from("inspections")
       .select("*")
       .eq("id", inspectionId)
-      .single();
+      .maybeSingle();
 
-    if (error || !inspection) {
+    if (inspectionError || !inspection) {
       return NextResponse.json({ error: "Inspection not found." }, { status: 404 });
     }
 
-    const { data: contacts } = await supabase
+    const { data: contactsRaw, error: contactsError } = await db
       .from("inspection_contacts")
-      .select("email, role, portal_access")
+      .select("*")
       .eq("inspection_id", inspectionId);
+
+    const contacts = contactsError ? [] : contactsRaw || [];
 
     const appUrl =
       process.env.NEXT_PUBLIC_APP_URL ||
@@ -289,60 +411,59 @@ export async function POST(req: Request) {
 
     let recipients: Recipient[] = [];
 
-    if (recipientEmail) {
-      recipients = [
-        {
-          email: cleanEmail(recipientEmail),
-          recipientType:
-            recipientType === "client" || recipientType === "realtor" ? recipientType : "custom",
-          role: String(recipientType || "custom"),
-        },
-      ];
-    } else if (recipientType === "all") {
-      const contactRecipients: Recipient[] = (contacts || [])
-        .filter(shouldReceiveRepairRequest)
-        .map((contact: any) => ({
-          email: cleanEmail(contact.email),
-          recipientType: getRecipientTypeForRole(contact.role),
-          role: String(contact.role || ""),
-        }));
-
-      const fallbackRecipients: Recipient[] = [
-        { email: cleanEmail(inspection.client_email || inspection.client), recipientType: "client" as const, role: "client" },
-        { email: cleanEmail(inspection.realtor_email || inspection.agent_email || inspection.realtor), recipientType: "realtor" as const, role: "realtor" },
-      ].filter((recipient: Recipient) => Boolean(recipient.email));
-
-      recipients = uniqueRecipients([...contactRecipients, ...fallbackRecipients]);
-    } else if (recipientType === "client" || recipientType === "realtor") {
-      const contact = (contacts || []).find((item: any) => {
-        const role = String(item.role || "").toLowerCase();
-        if (recipientType === "client") return role.includes("client") && item.email;
-        return (role.includes("realtor") || role.includes("agent") || role.includes("transaction")) && item.email;
+    // First priority: trust the email selected by the dropdown and sent by the page.
+    if (looksLikeEmail(recipientEmail)) {
+      recipients.push({
+        email: cleanEmail(recipientEmail),
+        recipientType:
+          recipientType === "client" || recipientType === "realtor" ? recipientType : "custom",
+        role: String(recipientType || "custom"),
       });
-
-      const finalRecipient =
-        contact?.email ||
-        (recipientType === "client"
-          ? inspection.client_email || inspection.client
-          : inspection.realtor_email || inspection.agent_email || inspection.realtor);
-
-      if (finalRecipient) {
-        recipients = [{ email: cleanEmail(finalRecipient), recipientType, role: recipientType }];
-      }
     }
 
-    recipients = uniqueRecipients(recipients).filter((recipient) => Boolean(recipient.email));
+    // Second priority: matching contacts for the selected role.
+    if (!recipients.length) {
+      recipients = collectEmailsFromContacts(contacts, recipientType);
+    }
+
+    // Third priority: email fields on the inspection record.
+    if (!recipients.length) {
+      recipients = collectEmailsFromInspection(inspection, recipientType);
+    }
+
+    // Final safety fallback: if this inspection only has one contact, use it.
+    if (!recipients.length && contacts.length === 1 && looksLikeEmail(contacts[0]?.email)) {
+      recipients = [
+        {
+          email: cleanEmail(contacts[0].email),
+          recipientType: getRecipientTypeForRole(contacts[0].role),
+          role: String(contacts[0].role || "contact"),
+        },
+      ];
+    }
+
+    recipients = uniqueRecipients(recipients);
 
     if (!recipients.length) {
       return NextResponse.json(
         {
           error: "No recipient email found.",
           debug: {
+            incomingBody: body,
             recipientType,
             recipientEmail,
-            client_email: inspection.client_email || inspection.client || null,
-            realtor_email: inspection.realtor_email || inspection.agent_email || inspection.realtor || null,
-            contacts: contacts || [],
+            inspectionId,
+            contactsError: contactsError?.message || null,
+            contacts,
+            inspectionEmailFields: {
+              client_email: inspection.client_email || null,
+              clientEmail: inspection.clientEmail || null,
+              buyer_email: inspection.buyer_email || null,
+              realtor_email: inspection.realtor_email || null,
+              agent_email: inspection.agent_email || null,
+              realtorEmail: inspection.realtorEmail || null,
+              agentEmail: inspection.agentEmail || null,
+            },
           },
         },
         { status: 400 }
@@ -354,7 +475,7 @@ export async function POST(req: Request) {
       : [];
 
     if (!finalSelectedIds.length) {
-      const { data: findingsRaw } = await supabase
+      const { data: findingsRaw } = await db
         .from("findings")
         .select("id, section, title")
         .eq("inspection_id", inspectionId);
@@ -382,7 +503,7 @@ export async function POST(req: Request) {
       selectedParam ? `&selected=${encodeURIComponent(selectedParam)}` : ""
     }`;
 
-    const subject = `Repair Request Summary - ${property}`;
+    subject = `Repair Request Summary - ${property}`;
     const from =
       process.env.REPORT_EMAIL_FROM ||
       process.env.RESEND_FROM_EMAIL ||
@@ -403,12 +524,6 @@ export async function POST(req: Request) {
         recipient.email
       )}&target=${encodeURIComponent(repairUrlWithViewer)}`;
 
-      const emailOpenPixelUrl = `${appUrl}/api/email-open?inspection_id=${encodeURIComponent(
-        String(inspectionId)
-      )}&recipient_type=${encodeURIComponent(recipient.recipientType)}&recipient_email=${encodeURIComponent(
-        recipient.email
-      )}`;
-
       const finalSummary =
         summary || "The selected inspection findings are ready for repair request review and negotiation.";
 
@@ -427,6 +542,7 @@ export async function POST(req: Request) {
       });
 
       console.log("Repair request email payload", {
+        from,
         to: recipient.email,
         subject,
         htmlLength: html.length,
@@ -441,7 +557,13 @@ export async function POST(req: Request) {
           Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ from, to: recipient.email, subject, html, text }),
+        body: JSON.stringify({
+          from,
+          to: recipient.email,
+          subject,
+          html,
+          text,
+        }),
       });
 
       const resendText = await resendRes.text();
@@ -461,7 +583,7 @@ export async function POST(req: Request) {
       });
 
       if (!resendRes.ok || !resendData?.id) {
-        await logEmailEvent(supabase, {
+        await logEmailEvent(db, {
           inspectionId,
           recipient: recipient.email,
           subject,
@@ -492,7 +614,7 @@ export async function POST(req: Request) {
         continue;
       }
 
-      await logEmailEvent(supabase, {
+      await logEmailEvent(db, {
         inspectionId,
         recipient: recipient.email,
         subject,
@@ -503,7 +625,6 @@ export async function POST(req: Request) {
           recipientType: recipient.recipientType,
           repairRequestUrl: baseRepairRequestUrl,
           trackedRepairRequestUrl,
-          emailOpenPixelUrl,
         },
       });
 
@@ -520,7 +641,7 @@ export async function POST(req: Request) {
     const sent = results.filter((item) => item.ok);
     const failed = results.filter((item) => !item.ok);
 
-    await logAuditEvent(supabase, {
+    await logAuditEvent(db, {
       userId: user.id,
       action: "repair_request_email_sent",
       resourceType: "inspection",
@@ -537,7 +658,11 @@ export async function POST(req: Request) {
 
     if (!sent.length && failed.length) {
       return NextResponse.json(
-        { error: "Repair request email failed to send.", sent, failed },
+        {
+          error: "Repair request email failed to send.",
+          sent,
+          failed,
+        },
         { status: 500 }
       );
     }
@@ -553,6 +678,21 @@ export async function POST(req: Request) {
       repairRequestUrl: baseRepairRequestUrl,
     });
   } catch (error: any) {
+    if (supabaseForLogs && inspectionId) {
+      try {
+        await logEmailEvent(supabaseForLogs, {
+          inspectionId,
+          recipient: "unknown",
+          subject,
+          status: "failed",
+          metadata: {
+            type: "repair_request",
+            error: error?.message || "Repair request email failed to send.",
+          },
+        });
+      } catch {}
+    }
+
     return NextResponse.json(
       { error: error?.message || "Repair request email failed to send." },
       { status: 500 }
