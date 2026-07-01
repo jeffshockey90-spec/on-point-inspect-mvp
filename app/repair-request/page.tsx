@@ -226,11 +226,21 @@ function RepairRequestContent() {
         .map((id) => id.trim())
         .filter(Boolean);
 
+      const validSelectedIds = selectedFromUrl.filter((id) =>
+        hydratedFindings.some((finding: any) => String(finding.id) === id)
+      );
+
+      const openedFromEmail = Boolean(
+        searchParams.get("role") || searchParams.get("email")
+      );
+
       setFindings(hydratedFindings);
       setSelectedIds(
-        selectedFromUrl.length
-          ? selectedFromUrl.filter((id) => hydratedFindings.some((finding: any) => String(finding.id) === id))
-          : []
+        validSelectedIds.length
+          ? validSelectedIds
+          : openedFromEmail
+            ? hydratedFindings.map((finding: any) => String(finding.id))
+            : []
       );
       setLoading(false);
     }
