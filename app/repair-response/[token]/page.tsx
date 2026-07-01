@@ -54,7 +54,6 @@ async function signedPhotoUrl(db: any, rawValue: any) {
   if (clean.startsWith("data:image/")) return clean;
 
   const path = getStoragePathFromUrl(clean);
-
   if (!path) return "";
 
   try {
@@ -103,7 +102,6 @@ async function loadPhotosForFindings(db: any, findingIds: string[]) {
     }
   }
 
-  // Main table used by most finding photo workflows.
   try {
     const { data } = await db
       .from("finding_photos")
@@ -114,7 +112,6 @@ async function loadPhotosForFindings(db: any, findingIds: string[]) {
     await addRows(data);
   } catch {}
 
-  // Fallback used in some earlier versions of this app.
   try {
     const { data } = await db
       .from("inspection_photos")
@@ -183,11 +180,18 @@ export default async function RepairResponsePage({ params }: PageProps) {
     orderedFindings.map((finding: any) => cleanText(finding.id))
   );
 
+  const propertyAddress =
+    inspection?.property_address ||
+    inspection?.address ||
+    inspection?.street_address ||
+    "Inspection property";
+
   const findings = orderedFindings.map((finding: any) => {
     const photos = photoMap.get(cleanText(finding.id)) || [];
 
     return {
       ...finding,
+      property_address: propertyAddress,
       photos,
     };
   });
@@ -198,15 +202,53 @@ export default async function RepairResponsePage({ params }: PageProps) {
     .eq("share_id", share.id);
 
   const responses = Array.isArray(responsesRaw) ? responsesRaw : [];
+  const alreadySubmitted =
+    String(share.status || "").toLowerCase() === "completed" ||
+    Boolean(share.responded_at);
 
   return (
     <main className="min-h-screen bg-[#020617] p-4 pb-20 text-white md:p-8">
+      <section className="mx-auto mb-5 max-w-5xl rounded-2xl border border-slate-700 bg-[#0f172a] p-5 md:p-6">
+        <p className="text-xs font-black uppercase tracking-[0.35em] text-teal-300">
+          On Point Home Inspections
+        </p>
+        <h1 className="mt-3 text-3xl font-black text-white">
+          Repair Request Response
+        </h1>
+        <p className="mt-2 text-slate-200">{propertyAddress}</p>
+
+        <div className="mt-5 grid gap-4 md:grid-cols-3">
+          <div className="rounded-xl border border-slate-700 bg-[#020617] p-4">
+            <p className="text-xs font-black uppercase text-blue-200">Selected Items</p>
+            <p className="mt-2 font-black text-white">{selectedIds.length}</p>
+          </div>
+          <div className="rounded-xl border border-slate-700 bg-[#020617] p-4">
+            <p className="text-xs font-black uppercase text-blue-200">Recipient</p>
+            <p className="mt-2 break-words font-black text-white">
+              {share.recipient_email || "Secure recipient"}
+            </p>
+          </div>
+          <div className="rounded-xl border border-slate-700 bg-[#020617] p-4">
+            <p className="text-xs font-black uppercase text-blue-200">Status</p>
+            <p className="mt-2 font-black text-white">
+              {alreadySubmitted ? "completed" : share.status || "sent"}
+            </p>
+          </div>
+        </div>
+
+        {share.summary ? (
+          <div className="mt-5 rounded-xl border border-slate-700 bg-[#020617] p-4">
+            <p className="text-xs font-black uppercase text-blue-200">Summary</p>
+            <p className="mt-3 whitespace-pre-line leading-7 text-white">{share.summary}</p>
+          </div>
+        ) : null}
+      </section>
+
       <RepairResponseForm
         token={cleanToken}
-        share={share}
-        inspection={inspection || null}
         findings={findings}
         existingResponses={responses}
+        alreadySubmitted={alreadySubmitted}
       />
     </main>
   );
