@@ -81,7 +81,9 @@ function buildPrintableRepairRequestHtml({
   requestIntro: string;
 }) {
   const property =
-    inspection?.property_address || inspection?.address || "Property address not entered";
+    inspection?.property_address ||
+    inspection?.address ||
+    "Property address not entered";
 
   const sectionsHtml = Object.entries(groupedFindings)
     .map(([section, items]) => {
@@ -119,14 +121,19 @@ function buildPrintableRepairRequestHtml({
               <div class="seller-box">
                 <p class="seller-title">Seller Response Section:</p>
                 <div class="seller-grid">
-                  ${["Completed", "Declined", "Credit Offered", "Receipt Provided"]
+                  ${[
+                    "Completed",
+                    "Declined",
+                    "Credit Offered",
+                    "Receipt Provided",
+                  ]
                     .map(
                       (label) => `
                         <label class="seller-card">
                           <span>${label}</span>
                           <input type="checkbox" />
                         </label>
-                      `
+                      `,
                     )
                     .join("")}
                 </div>
@@ -171,6 +178,7 @@ function buildPrintableRepairRequestHtml({
       max-width: 980px;
       margin: 18px auto 12px;
       display: flex;
+      flex-wrap: wrap;
       gap: 12px;
       padding: 0 12px;
     }
@@ -196,12 +204,68 @@ function buildPrintableRepairRequestHtml({
       padding: 22px;
       box-shadow: 0 14px 40px rgba(0,0,0,.18);
     }
+    .brand-bar {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      border-bottom: 3px solid #0f8f8f;
+      padding-bottom: 16px;
+      margin-bottom: 16px;
+    }
+    .eyebrow {
+      margin: 0 0 6px;
+      color: #0f8f8f;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: .24em;
+      text-transform: uppercase;
+    }
+    .badge {
+      flex-shrink: 0;
+      border: 1px solid #0f8f8f;
+      border-radius: 999px;
+      color: #0f8f8f;
+      padding: 8px 12px;
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
     .report-panel h1 {
-      margin: 0 0 12px;
-      font-size: 28px;
-      line-height: 1.1;
+      margin: 0 0 8px;
+      font-size: 30px;
+      line-height: 1.08;
       font-weight: 900;
       color: #020617;
+    }
+    .summary-strip {
+      display: grid;
+      grid-template-columns: 160px 1fr;
+      gap: 10px;
+      margin: 0 0 18px;
+    }
+    .summary-strip div {
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      background: #f8fafc;
+      padding: 10px 12px;
+    }
+    .summary-strip span {
+      display: block;
+      margin-bottom: 3px;
+      color: #64748b;
+      font-size: 9px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+    .summary-strip strong {
+      display: block;
+      color: #020617;
+      font-size: 12px;
+      font-weight: 900;
+      word-break: break-word;
     }
     .intro {
       margin: 0 0 24px;
@@ -372,15 +436,24 @@ function buildPrintableRepairRequestHtml({
   </div>
   <main class="pdf-shell">
     <section class="report-panel">
-      <h1>Requested Repairs / Corrections</h1>
-      <p class="property-line">${printSafe(property)}</p>
+      <div class="brand-bar">
+        <div>
+          <p class="eyebrow">On Point Home Inspections</p>
+          <h1>Requested Repairs / Corrections</h1>
+          <p class="property-line">${printSafe(property)}</p>
+        </div>
+        <div class="badge">Repair Request</div>
+      </div>
+
+      <div class="summary-strip">
+        <div><span>Selected Items</span><strong>${selectedFindings.length}</strong></div>
+        <div><span>Property</span><strong>${printSafe(property)}</strong></div>
+      </div>
+
       <p class="intro">${printSafe(requestIntro)}</p>
       ${sectionsHtml || `<p class="empty">No findings selected.</p>`}
     </section>
   </main>
-  <script>
-    setTimeout(function () { window.focus(); window.print(); }, 500);
-  </script>
 </body>
 </html>`;
 }
@@ -402,7 +475,7 @@ function RepairRequestContent() {
   const [customRecipientEmail, setCustomRecipientEmail] = useState("");
 
   const [requestIntro, setRequestIntro] = useState(
-    "The following items are requested for repair, correction, evaluation, or further review by qualified professionals prior to closing, unless otherwise negotiated by the parties involved."
+    "The following items are requested for repair, correction, evaluation, or further review by qualified professionals prior to closing, unless otherwise negotiated by the parties involved.",
   );
 
   useEffect(() => {
@@ -460,9 +533,12 @@ function RepairRequestContent() {
         if (roleFromUrl) query.set("role", roleFromUrl);
         if (emailFromUrl) query.set("email", emailFromUrl);
 
-        const response = await fetch(`/api/repair-request-public?${query.toString()}`, {
-          cache: "no-store",
-        });
+        const response = await fetch(
+          `/api/repair-request-public?${query.toString()}`,
+          {
+            cache: "no-store",
+          },
+        );
 
         const payload = await response.json().catch(() => ({}));
 
@@ -475,7 +551,7 @@ function RepairRequestContent() {
           : [];
 
         const validSelectedIds = selectedFromUrl.filter((id) =>
-          hydratedFindings.some((finding: any) => String(finding.id) === id)
+          hydratedFindings.some((finding: any) => String(finding.id) === id),
         );
 
         setInspection(payload?.inspection || null);
@@ -487,7 +563,7 @@ function RepairRequestContent() {
             ? validSelectedIds
             : openedFromEmail
               ? hydratedFindings.map((finding: any) => String(finding.id))
-              : []
+              : [],
         );
       } catch (error: any) {
         console.error("Repair request load error:", error);
@@ -505,17 +581,21 @@ function RepairRequestContent() {
   }, [inspectionId, searchParams]);
 
   const selectedFindings = useMemo(
-    () => findings.filter((finding) => selectedIds.includes(String(finding.id))),
-    [findings, selectedIds]
+    () =>
+      findings.filter((finding) => selectedIds.includes(String(finding.id))),
+    [findings, selectedIds],
   );
 
   const groupedFindings = useMemo(() => {
-    return selectedFindings.reduce((acc: Record<string, Finding[]>, finding) => {
-      const section = finding.section || "Other";
-      if (!acc[section]) acc[section] = [];
-      acc[section].push(finding);
-      return acc;
-    }, {});
+    return selectedFindings.reduce(
+      (acc: Record<string, Finding[]>, finding) => {
+        const section = finding.section || "Other";
+        if (!acc[section]) acc[section] = [];
+        acc[section].push(finding);
+        return acc;
+      },
+      {},
+    );
   }, [selectedFindings]);
 
   const realtorSummary = useMemo(() => {
@@ -533,7 +613,7 @@ function RepairRequestContent() {
     }).length;
 
     const sections = Array.from(
-      new Set(selectedFindings.map((finding) => finding.section || "Other"))
+      new Set(selectedFindings.map((finding) => finding.section || "Other")),
     ).join(", ");
 
     return `The buyer respectfully requests correction, repair, evaluation, or further negotiation of ${selectedFindings.length} inspection item(s) identified in the inspection report. ${
@@ -542,7 +622,6 @@ function RepairRequestContent() {
         : ""
     }The selected items are grouped under the following inspection sections: ${sections}. This repair request summary is intended to assist the parties in negotiating repairs, credits, licensed contractor evaluation, or other mutually agreed resolutions prior to closing.`;
   }, [selectedFindings]);
-
 
   const recipientOptions = useMemo(() => {
     const options: Array<{ value: string; label: string; email?: string }> = [];
@@ -554,7 +633,11 @@ function RepairRequestContent() {
 
     const realtor = contacts.find((contact) => {
       const role = String(contact.role || "").toLowerCase();
-      return role.includes("realtor") || role.includes("agent") || role.includes("transaction");
+      return (
+        role.includes("realtor") ||
+        role.includes("agent") ||
+        role.includes("transaction")
+      );
     });
 
     if (client?.email || inspection?.client_email) {
@@ -565,11 +648,18 @@ function RepairRequestContent() {
       });
     }
 
-    if (realtor?.email || inspection?.realtor_email || inspection?.agent_email) {
+    if (
+      realtor?.email ||
+      inspection?.realtor_email ||
+      inspection?.agent_email
+    ) {
       options.push({
         value: "realtor",
         label: `Realtor${realtor?.email || inspection?.realtor_email || inspection?.agent_email ? ` - ${realtor?.email || inspection?.realtor_email || inspection?.agent_email}` : ""}`,
-        email: realtor?.email || inspection?.realtor_email || inspection?.agent_email,
+        email:
+          realtor?.email ||
+          inspection?.realtor_email ||
+          inspection?.agent_email,
       });
     }
 
@@ -600,12 +690,16 @@ function RepairRequestContent() {
     });
   }, [contacts, inspection]);
 
-  const selectedRecipientOption = recipientOptions.find((option) => option.value === recipientType);
+  const selectedRecipientOption = recipientOptions.find(
+    (option) => option.value === recipientType,
+  );
 
   function toggleFinding(id: string) {
     const cleanId = String(id);
     setSelectedIds((prev) =>
-      prev.includes(cleanId) ? prev.filter((item) => item !== cleanId) : [...prev, cleanId]
+      prev.includes(cleanId)
+        ? prev.filter((item) => item !== cleanId)
+        : [...prev, cleanId],
     );
   }
 
@@ -628,13 +722,15 @@ function RepairRequestContent() {
     if (printingPdf) return;
 
     if (!selectedFindings.length) {
-      setPdfMessage("Select at least one finding before downloading the repair request.");
+      setPdfMessage(
+        "Select at least one finding before downloading the repair request.",
+      );
       return;
     }
 
     try {
       setPrintingPdf(true);
-      setPdfMessage("Opening printable repair request. Choose Save as PDF in the print window.");
+      setPdfMessage("Downloading repair request file...");
 
       const printableHtml = buildPrintableRepairRequestHtml({
         inspection,
@@ -643,41 +739,36 @@ function RepairRequestContent() {
         requestIntro,
       });
 
+      const property = String(
+        inspection?.property_address || inspection?.address || "repair-request",
+      )
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 70);
+
       const blob = new Blob([printableHtml], {
         type: "text/html;charset=utf-8",
       });
-
       const url = URL.createObjectURL(blob);
-      const printWindow = window.open(url, "_blank", "width=1100,height=900");
+      const downloadLink = document.createElement("a");
 
-      if (!printWindow) {
-        URL.revokeObjectURL(url);
-        setPdfMessage("Popup blocked. Allow popups for this site, then click Download / Print PDF again.");
-        setPrintingPdf(false);
-        return;
-      }
+      downloadLink.href = url;
+      downloadLink.download = `${property || "repair-request"}-repair-request.html`;
+      downloadLink.rel = "noopener";
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      downloadLink.remove();
 
-      const cleanup = () => {
-        URL.revokeObjectURL(url);
-        setPrintingPdf(false);
-      };
-
-      const printTimer = window.setTimeout(() => {
-        try {
-          printWindow.focus();
-          printWindow.print();
-        } catch {
-          // The printable page also has its own print button as a fallback.
-        }
-        cleanup();
-      }, 1200);
-
-      printWindow.addEventListener?.("beforeunload", () => {
-        window.clearTimeout(printTimer);
-        cleanup();
-      });
-    } catch {
-      setPdfMessage("Could not open printable copy. Try again or use your browser Print / Save as PDF option.");
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
+      setPdfMessage(
+        "Repair request file downloaded. Open the file to view, print, or save as PDF.",
+      );
+    } catch (error) {
+      console.error("Repair request download error:", error);
+      setPdfMessage("Could not download the repair request file. Try again.");
+    } finally {
       setPrintingPdf(false);
     }
   }
@@ -686,14 +777,20 @@ function RepairRequestContent() {
     if (emailingRepairRequest) return;
 
     if (!selectedIds.length) {
-      setEmailMessage("Select at least one finding before emailing the repair request.");
+      setEmailMessage(
+        "Select at least one finding before emailing the repair request.",
+      );
       return;
     }
 
-    const selectedOption = recipientOptions.find((option) => option.value === recipientType);
+    const selectedOption = recipientOptions.find(
+      (option) => option.value === recipientType,
+    );
     const isCustomContact = recipientType.startsWith("custom-contact-");
     const finalRecipientType =
-      recipientType === "client" || recipientType === "realtor" || recipientType === "all"
+      recipientType === "client" ||
+      recipientType === "realtor" ||
+      recipientType === "all"
         ? recipientType
         : "custom";
     const finalRecipientEmail =
@@ -701,7 +798,10 @@ function RepairRequestContent() {
         ? customRecipientEmail.trim()
         : String(selectedOption?.email || "").trim();
 
-    if ((recipientType === "custom" || isCustomContact) && !finalRecipientEmail) {
+    if (
+      (recipientType === "custom" || isCustomContact) &&
+      !finalRecipientEmail
+    ) {
       setEmailMessage("Enter or select an email address before sending.");
       return;
     }
@@ -727,7 +827,9 @@ function RepairRequestContent() {
       const payload = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        throw new Error(payload?.error || "Repair request email failed to send.");
+        throw new Error(
+          payload?.error || "Repair request email failed to send.",
+        );
       }
 
       setEmailMessage(payload?.message || "Repair request email sent.");
@@ -775,7 +877,7 @@ function RepairRequestContent() {
               disabled={printingPdf}
               className="min-h-[48px] w-full rounded-xl border border-teal-500 bg-[#020617] px-5 py-3 font-bold text-teal-300 transition hover:border-teal-400 hover:bg-teal-500/10 active:scale-[0.98] disabled:opacity-60"
             >
-              {printingPdf ? "Preparing PDF..." : "Download / Print PDF"}
+              {printingPdf ? "Downloading..." : "Download Fast File"}
             </button>
 
             <div className="grid w-full grid-cols-1 gap-3 rounded-xl border border-cyan-500 bg-[#020617] p-2 sm:grid-cols-[minmax(0,1fr)_auto] xl:col-span-2">
@@ -792,7 +894,10 @@ function RepairRequestContent() {
                   className="h-[48px] w-full rounded-lg border border-slate-700 bg-[#020617] px-3 text-sm font-bold text-white outline-none transition focus:border-cyan-400"
                 >
                   {recipientOptions.map((option) => (
-                    <option key={`${option.value}-${option.email || ""}`} value={option.value}>
+                    <option
+                      key={`${option.value}-${option.email || ""}`}
+                      value={option.value}
+                    >
                       {option.label}
                     </option>
                   ))}
@@ -811,7 +916,9 @@ function RepairRequestContent() {
               {recipientType === "custom" ? (
                 <input
                   value={customRecipientEmail}
-                  onChange={(event) => setCustomRecipientEmail(event.target.value)}
+                  onChange={(event) =>
+                    setCustomRecipientEmail(event.target.value)
+                  }
                   placeholder="email@example.com"
                   type="email"
                   className="h-[48px] w-full rounded-lg border border-slate-700 bg-[#020617] px-3 text-sm font-bold text-white outline-none transition focus:border-cyan-400 sm:col-span-2"
@@ -831,7 +938,9 @@ function RepairRequestContent() {
 
             <button
               type="button"
-              onClick={() => setSelectedIds(findings.map((finding) => String(finding.id)))}
+              onClick={() =>
+                setSelectedIds(findings.map((finding) => String(finding.id)))
+              }
               className="min-h-[48px] w-full rounded-xl border border-teal-500 bg-[#020617] px-5 py-3 font-bold text-teal-300 transition hover:border-teal-400 hover:bg-teal-500/10 active:scale-[0.98]"
             >
               Select All
@@ -945,7 +1054,7 @@ function RepairRequestContent() {
                       <div className="mb-2 flex max-w-full flex-wrap gap-2">
                         <span
                           className={`max-w-full break-words rounded-full border px-3 py-1 text-xs font-bold uppercase ${getSeverityStyle(
-                            finding.severity
+                            finding.severity,
                           )}`}
                         >
                           {finding.severity || "Recommended Repair"}
@@ -978,7 +1087,9 @@ function RepairRequestContent() {
             </h2>
 
             <p className="mb-6 break-words leading-7 text-slate-700">
-              Buyer requests that seller address the following inspection items by repair, licensed contractor evaluation, replacement, seller credit, or other mutually agreed resolution.
+              Buyer requests that seller address the following inspection items
+              by repair, licensed contractor evaluation, replacement, seller
+              credit, or other mutually agreed resolution.
             </p>
 
             <div className="space-y-4">
@@ -998,15 +1109,24 @@ function RepairRequestContent() {
                   </p>
                   <div className="mt-4 grid gap-3 md:grid-cols-3">
                     <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-300 p-3">
-                      <input type="checkbox" className="h-4 w-4 accent-teal-600" />
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 accent-teal-600"
+                      />
                       <span>Seller to Repair</span>
                     </label>
                     <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-300 p-3">
-                      <input type="checkbox" className="h-4 w-4 accent-teal-600" />
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 accent-teal-600"
+                      />
                       <span>Credit Offered</span>
                     </label>
                     <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-300 p-3">
-                      <input type="checkbox" className="h-4 w-4 accent-teal-600" />
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 accent-teal-600"
+                      />
                       <span>Further Evaluation</span>
                     </label>
                   </div>
@@ -1074,11 +1194,17 @@ function RepairRequestContent() {
                           )}
 
                           {finding.observation && (
-                            <ReportText title="Observation" text={finding.observation} />
+                            <ReportText
+                              title="Observation"
+                              text={finding.observation}
+                            />
                           )}
 
                           {finding.implication && (
-                            <ReportText title="Implication" text={finding.implication} />
+                            <ReportText
+                              title="Implication"
+                              text={finding.implication}
+                            />
                           )}
 
                           {finding.recommendation && (
@@ -1094,7 +1220,12 @@ function RepairRequestContent() {
                             </p>
 
                             <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                              {["Completed", "Declined", "Credit Offered", "Receipt Provided"].map((label) => (
+                              {[
+                                "Completed",
+                                "Declined",
+                                "Credit Offered",
+                                "Receipt Provided",
+                              ].map((label) => (
                                 <label
                                   key={label}
                                   className="flex min-h-[120px] cursor-pointer flex-col items-center justify-center rounded-xl border border-slate-300 bg-white p-5 text-center shadow-sm transition hover:border-teal-500 hover:bg-teal-50"
@@ -1153,7 +1284,9 @@ function Info({ label, value }: { label: string; value?: any }) {
       <p className="break-words text-xs font-bold uppercase tracking-wide text-slate-400">
         {label}
       </p>
-      <p className="mt-1 break-words font-bold text-white">{value === 0 ? 0 : value || "N/A"}</p>
+      <p className="mt-1 break-words font-bold text-white">
+        {value === 0 ? 0 : value || "N/A"}
+      </p>
     </div>
   );
 }
