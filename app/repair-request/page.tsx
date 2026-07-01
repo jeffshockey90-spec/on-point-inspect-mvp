@@ -798,30 +798,28 @@ function RepairRequestContent() {
                               Seller Response Section:
                             </p>
 
-                            <div className="mt-3 grid gap-2 text-sm text-slate-700 md:grid-cols-4">
-                              <label className="flex cursor-pointer items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2">
-                                <input type="checkbox" className="h-4 w-4 accent-teal-600" />
-                                <span>Completed</span>
-                              </label>
-                              <label className="flex cursor-pointer items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2">
-                                <input type="checkbox" className="h-4 w-4 accent-teal-600" />
-                                <span>Declined</span>
-                              </label>
-                              <label className="flex cursor-pointer items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2">
-                                <input type="checkbox" className="h-4 w-4 accent-teal-600" />
-                                <span>Credit Offered</span>
-                              </label>
-                              <label className="flex cursor-pointer items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2">
-                                <input type="checkbox" className="h-4 w-4 accent-teal-600" />
-                                <span>Receipt Provided</span>
-                              </label>
+                            <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                              {["Completed", "Declined", "Credit Offered", "Receipt Provided"].map((label) => (
+                                <label
+                                  key={label}
+                                  className="flex min-h-[120px] cursor-pointer flex-col items-center justify-center rounded-xl border border-slate-300 bg-white p-5 text-center shadow-sm transition hover:border-teal-500 hover:bg-teal-50"
+                                >
+                                  <span className="mb-4 text-base font-bold leading-5 text-slate-900">
+                                    {label}
+                                  </span>
+                                  <input
+                                    type="checkbox"
+                                    className="h-7 w-7 accent-teal-600"
+                                  />
+                                </label>
+                              ))}
                             </div>
 
                             <label className="mt-4 block font-bold text-slate-900">
                               Notes:
                               <textarea
                                 rows={3}
-                                className="mt-2 w-full rounded-lg border border-slate-300 bg-white p-3 text-sm font-normal text-slate-900 outline-none focus:border-teal-500 print:border-0"
+                                className="mt-2 w-full rounded-lg border border-slate-300 bg-white p-3 text-sm font-normal text-slate-900 outline-none focus:border-teal-500 print:border-slate-300"
                                 placeholder="Seller response notes..."
                               />
                             </label>
