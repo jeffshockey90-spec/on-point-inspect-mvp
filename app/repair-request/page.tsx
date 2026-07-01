@@ -344,9 +344,7 @@ function RepairRequestContent() {
     const finalRecipientEmail =
       recipientType === "custom"
         ? customRecipientEmail.trim()
-        : isCustomContact
-          ? String(selectedOption?.email || "").trim()
-          : "";
+        : String(selectedOption?.email || "").trim();
 
     if ((recipientType === "custom" || isCustomContact) && !finalRecipientEmail) {
       setEmailMessage("Enter or select an email address before sending.");
