@@ -53,12 +53,39 @@ function readImage(file: File): Promise<string> {
 }
 
 function loadImage(src: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const image = new Image();
-    image.crossOrigin = "anonymous";
-    image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error("Could not load image."));
-    image.src = src;
+  return new Promise(async (resolve, reject) => {
+    try {
+      let finalSrc = src;
+      let objectUrl = "";
+
+      // iPhone/Safari can fail drawing remote Supabase/report images onto canvas.
+      // Fetching the image as a blob first turns it into a local object URL and
+      // keeps preview, download, and share working with report photos and logos.
+      if (src.startsWith("http://") || src.startsWith("https://")) {
+        const response = await fetch(src, { cache: "no-store" });
+        if (!response.ok) throw new Error("Could not fetch image.");
+
+        const blob = await response.blob();
+        objectUrl = URL.createObjectURL(blob);
+        finalSrc = objectUrl;
+      }
+
+      const image = new Image();
+
+      image.onload = () => {
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
+        resolve(image);
+      };
+
+      image.onerror = () => {
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
+        reject(new Error("Could not load image."));
+      };
+
+      image.src = finalSrc;
+    } catch (error: any) {
+      reject(new Error(error?.message || "Could not load image."));
+    }
   });
 }
 
@@ -560,8 +587,8 @@ export default function MarketingImageStudio({
       setBusy(true);
       setError("");
       await draw(1);
-    } catch {
-      setError("Preview failed. Try another image.");
+    } catch (err: any) {
+      setError(err?.message || "Preview failed. Try another image.");
     } finally {
       setBusy(false);
     }
@@ -574,8 +601,8 @@ export default function MarketingImageStudio({
       const canvas = await draw(2);
       if (!canvas) return;
       downloadPng(canvas, `${fileNameFromAddress(address)}.png`);
-    } catch {
-      setError("Download failed. Try another image.");
+    } catch (err: any) {
+      setError(err?.message || "Download failed. Try another image.");
     } finally {
       setBusy(false);
     }
@@ -606,8 +633,8 @@ export default function MarketingImageStudio({
       } else {
         downloadPng(canvas, `${fileNameFromAddress(address)}.png`);
       }
-    } catch {
-      setError("Share was cancelled or is not supported.");
+    } catch (err: any) {
+      setError(err?.message || "Share was cancelled or is not supported.");
     } finally {
       setBusy(false);
     }
