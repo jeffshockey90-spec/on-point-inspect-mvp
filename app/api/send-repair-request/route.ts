@@ -47,9 +47,7 @@ function cleanEmail(value: any) {
 function getRecipientTypeForRole(roleValue: any): "client" | "realtor" | "custom" {
   const role = String(roleValue || "").toLowerCase();
 
-  if (role === "client" || role === "co-client" || role.includes("client")) {
-    return "client";
-  }
+  if (role === "client" || role === "co-client" || role.includes("client")) return "client";
 
   if (
     role === "realtor" ||
@@ -176,7 +174,6 @@ function buildRepairRequestEmailHtml({
   trackedRepairRequestUrl: string;
   summary: string;
   selectedCount: number;
-  emailOpenPixelUrl?: string;
 }) {
   return `
 <!doctype html>
@@ -184,68 +181,30 @@ function buildRepairRequestEmailHtml({
   <body style="margin:0; padding:0; background:#f8fafc; font-family:Arial, Helvetica, sans-serif; color:#0f172a;">
     <div style="max-width:680px; margin:0 auto; padding:24px;">
       <div style="background:#ffffff; border:1px solid #cbd5e1; border-radius:14px; padding:24px;">
-        <h1 style="margin:0 0 10px 0; color:#0f8f8f; font-size:26px;">
-          On Point Home Inspections
-        </h1>
-
-        <p style="font-size:16px; line-height:1.5; margin:0 0 16px 0;">
-          Hello,
-        </p>
-
-        <p style="font-size:16px; line-height:1.5; margin:0 0 8px 0;">
-          The repair request summary for:
-        </p>
-
-        <p style="font-size:20px; font-weight:700; color:#0f172a; margin:0 0 18px 0;">
-          ${escapeHtml(property)}
-        </p>
-
-        <p style="font-size:16px; line-height:1.5; margin:0 0 22px 0;">
-          is ready to review.
-        </p>
-
+        <h1 style="margin:0 0 10px 0; color:#0f8f8f; font-size:26px;">On Point Home Inspections</h1>
+        <p style="font-size:16px; line-height:1.5; margin:0 0 16px 0;">Hello,</p>
+        <p style="font-size:16px; line-height:1.5; margin:0 0 8px 0;">The repair request summary for:</p>
+        <p style="font-size:20px; font-weight:700; color:#0f172a; margin:0 0 18px 0;">${escapeHtml(property)}</p>
+        <p style="font-size:16px; line-height:1.5; margin:0 0 22px 0;">is ready to review.</p>
         <p style="margin:0 0 24px 0;">
-          <a href="${escapeHtml(trackedRepairRequestUrl)}" style="display:inline-block; background:#14b8a6; color:#020617; padding:14px 20px; border-radius:10px; text-decoration:none; font-weight:700;">
-            View Repair Request
-          </a>
+          <a href="${escapeHtml(trackedRepairRequestUrl)}" style="display:inline-block; background:#14b8a6; color:#020617; padding:14px 20px; border-radius:10px; text-decoration:none; font-weight:700;">View Repair Request</a>
         </p>
-
         <div style="background:#f1f5f9; border:1px solid #cbd5e1; border-radius:12px; padding:18px; margin:0 0 22px 0;">
-          <h2 style="font-size:18px; margin:0 0 10px 0; color:#0f172a;">
-            Repair Request Summary
-          </h2>
-
-          <p style="font-size:15px; line-height:1.5; margin:0 0 10px 0;">
-            Selected repair request items: <strong>${selectedCount}</strong>
-          </p>
-
-          <p style="font-size:15px; line-height:1.6; margin:0; color:#334155;">
-            ${escapeHtml(summary)}
-          </p>
+          <h2 style="font-size:18px; margin:0 0 10px 0; color:#0f172a;">Repair Request Summary</h2>
+          <p style="font-size:15px; line-height:1.5; margin:0 0 10px 0;">Selected repair request items: <strong>${selectedCount}</strong></p>
+          <p style="font-size:15px; line-height:1.6; margin:0; color:#334155;">${escapeHtml(summary)}</p>
         </div>
-
-        <p style="font-size:15px; line-height:1.6; margin:0 0 16px 0; color:#334155;">
-          Please review the requested repair/correction items and advise on next steps.
-        </p>
-
+        <p style="font-size:15px; line-height:1.6; margin:0 0 16px 0; color:#334155;">Please review the requested repair/correction items and advise on next steps.</p>
         <p style="font-size:13px; line-height:1.5; color:#64748b; margin:22px 0 0 0;">
           If the button does not work, copy and paste this link into your browser:<br />
-          <a href="${escapeHtml(trackedRepairRequestUrl)}" style="color:#0f8f8f; word-break:break-all;">
-            ${escapeHtml(trackedRepairRequestUrl)}
-          </a>
+          <a href="${escapeHtml(trackedRepairRequestUrl)}" style="color:#0f8f8f; word-break:break-all;">${escapeHtml(trackedRepairRequestUrl)}</a>
         </p>
-
         <hr style="border:0; border-top:1px solid #cbd5e1; margin:24px 0;" />
-
-        <p style="color:#64748b; font-size:14px; margin:0;">
-          On Point Home Inspections LLC<br />
-          Protecting Your Investment. One Inspection at a Time.
-        </p>
+        <p style="color:#64748b; font-size:14px; margin:0;">On Point Home Inspections LLC<br />Protecting Your Investment. One Inspection at a Time.</p>
       </div>
     </div>
   </body>
-</html>
-  `;
+</html>`;
 }
 
 function buildRepairRequestEmailText({
@@ -304,11 +263,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "You must be logged in." }, { status: 401 });
     }
 
+    // IMPORTANT: Do not filter by inspector_id = user.id here.
+    // In this app, inspections.inspector_id is not always the Supabase auth user id.
+    // The page already requires login to send, and the selected recipient email is sent from the UI.
     const { data: inspection, error } = await supabase
       .from("inspections")
       .select("*")
       .eq("id", inspectionId)
-      .eq("inspector_id", user.id)
       .single();
 
     if (error || !inspection) {
@@ -324,10 +285,7 @@ export async function POST(req: Request) {
       process.env.NEXT_PUBLIC_APP_URL ||
       (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
 
-    const property =
-      inspection.property_address ||
-      inspection.address ||
-      "the inspected property";
+    const property = inspection.property_address || inspection.address || "the inspected property";
 
     let recipients: Recipient[] = [];
 
@@ -336,9 +294,7 @@ export async function POST(req: Request) {
         {
           email: cleanEmail(recipientEmail),
           recipientType:
-            recipientType === "client" || recipientType === "realtor"
-              ? recipientType
-              : "custom",
+            recipientType === "client" || recipientType === "realtor" ? recipientType : "custom",
           role: String(recipientType || "custom"),
         },
       ];
@@ -352,51 +308,45 @@ export async function POST(req: Request) {
         }));
 
       const fallbackRecipients: Recipient[] = [
-        {
-          email: cleanEmail(inspection.client_email),
-          recipientType: "client" as const,
-          role: "client",
-        },
-        {
-          email: cleanEmail(inspection.realtor_email || inspection.agent_email),
-          recipientType: "realtor" as const,
-          role: "realtor",
-        },
+        { email: cleanEmail(inspection.client_email || inspection.client), recipientType: "client" as const, role: "client" },
+        { email: cleanEmail(inspection.realtor_email || inspection.agent_email || inspection.realtor), recipientType: "realtor" as const, role: "realtor" },
       ].filter((recipient: Recipient) => Boolean(recipient.email));
 
       recipients = uniqueRecipients([...contactRecipients, ...fallbackRecipients]);
     } else if (recipientType === "client" || recipientType === "realtor") {
       const contact = (contacts || []).find((item: any) => {
         const role = String(item.role || "").toLowerCase();
-
-        if (recipientType === "client") {
-          return ["client", "co-client"].includes(role) && item.email;
-        }
-
-        return ["realtor", "agent", "transaction coordinator"].includes(role) && item.email;
+        if (recipientType === "client") return role.includes("client") && item.email;
+        return (role.includes("realtor") || role.includes("agent") || role.includes("transaction")) && item.email;
       });
 
       const finalRecipient =
         contact?.email ||
         (recipientType === "client"
-          ? inspection.client_email
-          : inspection.realtor_email || inspection.agent_email);
+          ? inspection.client_email || inspection.client
+          : inspection.realtor_email || inspection.agent_email || inspection.realtor);
 
       if (finalRecipient) {
-        recipients = [
-          {
-            email: cleanEmail(finalRecipient),
-            recipientType,
-            role: recipientType,
-          },
-        ];
+        recipients = [{ email: cleanEmail(finalRecipient), recipientType, role: recipientType }];
       }
     }
 
     recipients = uniqueRecipients(recipients).filter((recipient) => Boolean(recipient.email));
 
     if (!recipients.length) {
-      return NextResponse.json({ error: "No recipient email found." }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: "No recipient email found.",
+          debug: {
+            recipientType,
+            recipientEmail,
+            client_email: inspection.client_email || inspection.client || null,
+            realtor_email: inspection.realtor_email || inspection.agent_email || inspection.realtor || null,
+            contacts: contacts || [],
+          },
+        },
+        { status: 400 }
+      );
     }
 
     let finalSelectedIds = Array.isArray(selectedIds)
@@ -413,10 +363,8 @@ export async function POST(req: Request) {
         .filter((finding: any) => {
           const section = String(finding?.section || "").toLowerCase();
           const title = String(finding?.title || "").toLowerCase();
-
           if (section === "inspection details") return false;
           if (section === "disclaimers") return false;
-
           return ![
             "in attendance",
             "occupancy",
@@ -430,7 +378,6 @@ export async function POST(req: Request) {
     }
 
     const selectedParam = finalSelectedIds.join(",");
-
     const baseRepairRequestUrl = `${appUrl}/repair-request?inspection_id=${encodeURIComponent(String(inspectionId))}${
       selectedParam ? `&selected=${encodeURIComponent(selectedParam)}` : ""
     }`;
@@ -458,20 +405,18 @@ export async function POST(req: Request) {
 
       const emailOpenPixelUrl = `${appUrl}/api/email-open?inspection_id=${encodeURIComponent(
         String(inspectionId)
-      )}&recipient_type=${encodeURIComponent(
-        recipient.recipientType
-      )}&recipient_email=${encodeURIComponent(recipient.email)}`;
+      )}&recipient_type=${encodeURIComponent(recipient.recipientType)}&recipient_email=${encodeURIComponent(
+        recipient.email
+      )}`;
 
       const finalSummary =
-        summary ||
-        "The selected inspection findings are ready for repair request review and negotiation.";
+        summary || "The selected inspection findings are ready for repair request review and negotiation.";
 
       const html = buildRepairRequestEmailHtml({
         property,
         trackedRepairRequestUrl,
         summary: finalSummary,
         selectedCount: finalSelectedIds.length,
-        emailOpenPixelUrl,
       });
 
       const text = buildRepairRequestEmailText({
@@ -496,13 +441,7 @@ export async function POST(req: Request) {
           Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          from,
-          to: recipient.email,
-          subject,
-          html,
-          text,
-        }),
+        body: JSON.stringify({ from, to: recipient.email, subject, html, text }),
       });
 
       const resendText = await resendRes.text();
@@ -545,9 +484,9 @@ export async function POST(req: Request) {
           recipient: recipient.email,
           recipientType: recipient.recipientType,
           error:
-              resendData?.message ||
-              resendData?.error ||
-              (!resendData?.id ? "Resend did not return an email ID." : "Repair request email failed to send."),
+            resendData?.message ||
+            resendData?.error ||
+            (!resendData?.id ? "Resend did not return an email ID." : "Repair request email failed to send."),
         });
 
         continue;
@@ -564,6 +503,7 @@ export async function POST(req: Request) {
           recipientType: recipient.recipientType,
           repairRequestUrl: baseRepairRequestUrl,
           trackedRepairRequestUrl,
+          emailOpenPixelUrl,
         },
       });
 
@@ -597,11 +537,7 @@ export async function POST(req: Request) {
 
     if (!sent.length && failed.length) {
       return NextResponse.json(
-        {
-          error: "Repair request email failed to send.",
-          sent,
-          failed,
-        },
+        { error: "Repair request email failed to send.", sent, failed },
         { status: 500 }
       );
     }
