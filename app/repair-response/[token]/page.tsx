@@ -28,101 +28,70 @@ function cleanText(value: any) {
 }
 
 function getStoragePathFromUrl(url: string | null | undefined) {
-  const clean = cleanText(url);
-  if (!clean) return "";
-
-  const markers = [
-    "/storage/v1/object/public/inspection-photos/",
-    "/storage/v1/object/sign/inspection-photos/",
-    "/inspection-photos/",
-  ];
-
-  for (const marker of markers) {
-    const index = clean.indexOf(marker);
-    if (index !== -1) {
-      return decodeURIComponent(clean.substring(index + marker.length).split("?")[0]);
-    }
-  }
-
-  return clean;
+  if (!url) return "";
+  const marker = "/inspection-photos/";
+  const index = url.indexOf(marker);
+  if (index === -1) return "";
+  return decodeURIComponent(url.substring(index + marker.length).split("?")[0]);
 }
 
-async function signedPhotoUrl(db: any, rawValue: any) {
-  const clean = cleanText(rawValue);
-  if (!clean) return "";
-
-  if (clean.startsWith("data:image/")) return clean;
-
-  const path = getStoragePathFromUrl(clean);
-  if (!path) return "";
-
-  try {
-    const { data } = await db.storage
-      .from("inspection-photos")
-      .createSignedUrl(path, 60 * 60 * 24);
-
-    if (data?.signedUrl) return data.signedUrl;
-  } catch {}
-
-  if (clean.startsWith("http://") || clean.startsWith("https://")) return clean;
-
-  return "";
-}
-
-async function loadPhotosForFindings(db: any, findingIds: string[]) {
+async function loadPhotosForFindings(admin: any, findingIds: string[]) {
   if (!findingIds.length) return new Map<string, any[]>();
 
-  const photoMap = new Map<string, any[]>();
+  const { data: photosRaw } = await admin
+    .from("photos")
+    .select("*")
+    .in("finding_id", findingIds);
 
-  async function addRows(rows: any[] | null | undefined) {
-    for (const row of rows || []) {
-      const findingId = cleanText(row.finding_id || row.findingId);
-      if (!findingId) continue;
+  const photosWithUrls = await Promise.all(
+    (photosRaw || []).map(async (photo: any) => {
+      const filePath =
+        photo.file_path ||
+        photo.storage_path ||
+        photo.photo_path ||
+        getStoragePathFromUrl(photo.public_url) ||
+        getStoragePathFromUrl(photo.image_url) ||
+        getStoragePathFromUrl(photo.photo_url);
 
-      const rawUrl =
-        row.signed_url ||
-        row.signedUrl ||
-        row.url ||
-        row.photo_url ||
-        row.image_url ||
-        row.storage_path ||
-        row.path ||
-        row.file_path;
+      if (!filePath) {
+        return {
+          ...photo,
+          signed_url:
+            photo.signed_url ||
+            photo.public_url ||
+            photo.image_url ||
+            photo.photo_url ||
+            "",
+        };
+      }
 
-      const signedUrl = await signedPhotoUrl(db, rawUrl);
-      if (!signedUrl) continue;
+      const { data } = await admin.storage
+        .from("inspection-photos")
+        .createSignedUrl(filePath, 60 * 60 * 24 * 7);
 
-      const current = photoMap.get(findingId) || [];
-      current.push({
-        ...row,
-        signed_url: signedUrl,
-        url: signedUrl,
-      });
-      photoMap.set(findingId, current);
-    }
-  }
+      return {
+        ...photo,
+        signed_url:
+          data?.signedUrl ||
+          photo.signed_url ||
+          photo.public_url ||
+          photo.image_url ||
+          photo.photo_url ||
+          "",
+      };
+    })
+  );
 
-  try {
-    const { data } = await db
-      .from("finding_photos")
-      .select("*")
-      .in("finding_id", findingIds)
-      .order("created_at", { ascending: true });
+  return photosWithUrls.reduce((acc: Map<string, any[]>, photo: any) => {
+    const findingId = cleanText(photo.finding_id);
+    if (!findingId) return acc;
 
-    await addRows(data);
-  } catch {}
+    const existing = acc.get(findingId) || [];
+    existing.push(photo);
+    acc.set(findingId, existing);
 
-  try {
-    const { data } = await db
-      .from("inspection_photos")
-      .select("*")
-      .in("finding_id", findingIds)
-      .order("created_at", { ascending: true });
-
-    await addRows(data);
-  } catch {}
-
-  return photoMap;
+    return acc;
+  }, new Map<string, any[]>());
 }
 
 function groupFindingsInSelectedOrder(findings: any[], selectedIds: string[]) {
@@ -136,9 +105,9 @@ function groupFindingsInSelectedOrder(findings: any[], selectedIds: string[]) {
 export default async function RepairResponsePage({ params }: PageProps) {
   const { token } = await params;
   const cleanToken = cleanText(token);
-  const db = createAdminClient();
+  const admin = createAdminClient();
 
-  const { data: share, error: shareError } = await db
+  const { data: share, error: shareError } = await admin
     .from("repair_request_shares")
     .select("*")
     .eq("token", cleanToken)
@@ -162,13 +131,13 @@ export default async function RepairResponsePage({ params }: PageProps) {
     ? share.selected_finding_ids.map((id: any) => cleanText(id)).filter(Boolean)
     : [];
 
-  const { data: inspection } = await db
+  const { data: inspection } = await admin
     .from("inspections")
     .select("*")
     .eq("id", inspectionId)
     .maybeSingle();
 
-  const { data: findingsRaw } = await db
+  const { data: findingsRaw } = await admin
     .from("findings")
     .select("*")
     .eq("inspection_id", inspectionId)
@@ -176,7 +145,7 @@ export default async function RepairResponsePage({ params }: PageProps) {
 
   const orderedFindings = groupFindingsInSelectedOrder(findingsRaw || [], selectedIds);
   const photoMap = await loadPhotosForFindings(
-    db,
+    admin,
     orderedFindings.map((finding: any) => cleanText(finding.id))
   );
 
@@ -186,17 +155,13 @@ export default async function RepairResponsePage({ params }: PageProps) {
     inspection?.street_address ||
     "Inspection property";
 
-  const findings = orderedFindings.map((finding: any) => {
-    const photos = photoMap.get(cleanText(finding.id)) || [];
+  const findings = orderedFindings.map((finding: any) => ({
+    ...finding,
+    property_address: propertyAddress,
+    photos: photoMap.get(cleanText(finding.id)) || [],
+  }));
 
-    return {
-      ...finding,
-      property_address: propertyAddress,
-      photos,
-    };
-  });
-
-  const { data: responsesRaw } = await db
+  const { data: responsesRaw } = await admin
     .from("repair_request_responses")
     .select("*")
     .eq("share_id", share.id);
