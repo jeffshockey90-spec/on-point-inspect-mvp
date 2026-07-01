@@ -3,9 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 export default async function proxy(request: NextRequest) {
   let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
+    request: { headers: request.headers },
   });
 
   const supabase = createServerClient(
@@ -22,9 +20,7 @@ export default async function proxy(request: NextRequest) {
           });
 
           response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
+            request: { headers: request.headers },
           });
 
           cookiesToSet.forEach(({ name, value, options }) => {
@@ -48,11 +44,14 @@ export default async function proxy(request: NextRequest) {
     pathname.startsWith("/api") ||
     pathname.startsWith("/share") ||
     pathname.startsWith("/environmental-share") ||
+    pathname.startsWith("/repair-request") ||
     pathname.startsWith("/client") ||
     pathname.startsWith("/client-portal") ||
     pathname.startsWith("/client-agreement") ||
     pathname.startsWith("/forgot-password") ||
     pathname.startsWith("/reset-password");
+
+  if (isPublicRoute) return response;
 
   const protectedRoutes = [
     "/dashboard",
@@ -63,7 +62,6 @@ export default async function proxy(request: NextRequest) {
     "/equipment-analyzer",
     "/field",
     "/field-tool",
-    "/repair-request",
     "/agreements",
     "/templates",
     "/schedule",
