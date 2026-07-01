@@ -171,68 +171,109 @@ function buildRepairRequestEmailHtml({
   trackedRepairRequestUrl,
   summary,
   selectedCount,
-  emailOpenPixelUrl,
 }: {
   property: string;
   trackedRepairRequestUrl: string;
   summary: string;
   selectedCount: number;
-  emailOpenPixelUrl: string;
+  emailOpenPixelUrl?: string;
 }) {
   return `
-    <div style="font-family: Arial, sans-serif; background:#020617; color:#f8fafc; padding:24px;">
-      <div style="max-width:640px; margin:auto; background:#0f172a; border:1px solid #1e293b; border-radius:16px; padding:24px;">
-        <h1 style="color:#2dd4bf; margin-top:0;">On Point Home Inspections</h1>
+<!doctype html>
+<html>
+  <body style="margin:0; padding:0; background:#f8fafc; font-family:Arial, Helvetica, sans-serif; color:#0f172a;">
+    <div style="max-width:680px; margin:0 auto; padding:24px;">
+      <div style="background:#ffffff; border:1px solid #cbd5e1; border-radius:14px; padding:24px;">
+        <h1 style="margin:0 0 10px 0; color:#0f8f8f; font-size:26px;">
+          On Point Home Inspections
+        </h1>
 
-        <p>Hello,</p>
+        <p style="font-size:16px; line-height:1.5; margin:0 0 16px 0;">
+          Hello,
+        </p>
 
-        <p>The repair request summary for:</p>
+        <p style="font-size:16px; line-height:1.5; margin:0 0 8px 0;">
+          The repair request summary for:
+        </p>
 
-        <p style="font-size:18px; font-weight:bold; color:#ffffff;">
+        <p style="font-size:20px; font-weight:700; color:#0f172a; margin:0 0 18px 0;">
           ${escapeHtml(property)}
         </p>
 
-        <p>is ready to review.</p>
+        <p style="font-size:16px; line-height:1.5; margin:0 0 22px 0;">
+          is ready to review.
+        </p>
 
-        <p style="margin:24px 0;">
-          <a href="${escapeHtml(trackedRepairRequestUrl)}" style="display:inline-block; background:#14b8a6; color:#020617; padding:12px 18px; border-radius:10px; text-decoration:none; font-weight:bold;">
+        <p style="margin:0 0 24px 0;">
+          <a href="${escapeHtml(trackedRepairRequestUrl)}" style="display:inline-block; background:#14b8a6; color:#020617; padding:14px 20px; border-radius:10px; text-decoration:none; font-weight:700;">
             View Repair Request
           </a>
         </p>
 
-        <div style="margin-top:22px; padding:18px; border:1px solid #334155; border-radius:14px; background:#020617;">
-          <h2 style="margin:0 0 12px 0; color:#2dd4bf; font-size:20px;">
+        <div style="background:#f1f5f9; border:1px solid #cbd5e1; border-radius:12px; padding:18px; margin:0 0 22px 0;">
+          <h2 style="font-size:18px; margin:0 0 10px 0; color:#0f172a;">
             Repair Request Summary
           </h2>
-          <p style="color:#cbd5e1; line-height:1.6; margin:0 0 12px 0;">
-            Selected repair request items: <strong style="color:#ffffff;">${selectedCount}</strong>
+
+          <p style="font-size:15px; line-height:1.5; margin:0 0 10px 0;">
+            Selected repair request items: <strong>${selectedCount}</strong>
           </p>
-          <p style="color:#cbd5e1; line-height:1.6; margin:0;">
+
+          <p style="font-size:15px; line-height:1.6; margin:0; color:#334155;">
             ${escapeHtml(summary)}
           </p>
         </div>
 
-        <p style="color:#cbd5e1; line-height:1.6; margin-top:22px;">
+        <p style="font-size:15px; line-height:1.6; margin:0 0 16px 0; color:#334155;">
           Please review the requested repair/correction items and advise on next steps.
         </p>
 
-        <img
-          src="${emailOpenPixelUrl}"
-          width="1"
-          height="1"
-          alt=""
-          style="display:none; opacity:0; width:1px; height:1px;"
-        />
+        <p style="font-size:13px; line-height:1.5; color:#64748b; margin:22px 0 0 0;">
+          If the button does not work, copy and paste this link into your browser:<br />
+          <a href="${escapeHtml(trackedRepairRequestUrl)}" style="color:#0f8f8f; word-break:break-all;">
+            ${escapeHtml(trackedRepairRequestUrl)}
+          </a>
+        </p>
 
-        <hr style="border:0; border-top:1px solid #334155; margin:24px 0;" />
+        <hr style="border:0; border-top:1px solid #cbd5e1; margin:24px 0;" />
 
-        <p style="color:#94a3b8; font-size:14px;">
+        <p style="color:#64748b; font-size:14px; margin:0;">
           On Point Home Inspections LLC<br />
           Protecting Your Investment. One Inspection at a Time.
         </p>
       </div>
     </div>
+  </body>
+</html>
   `;
+}
+
+function buildRepairRequestEmailText({
+  property,
+  repairRequestUrl,
+  summary,
+  selectedCount,
+}: {
+  property: string;
+  repairRequestUrl: string;
+  summary: string;
+  selectedCount: number;
+}) {
+  return `Hello,
+
+The repair request summary for ${property} is ready to review.
+
+View Repair Request:
+${repairRequestUrl}
+
+Selected repair request items: ${selectedCount}
+
+${summary}
+
+Please review the requested repair/correction items and advise on next steps.
+
+On Point Home Inspections LLC
+Protecting Your Investment. One Inspection at a Time.`;
 }
 
 export async function POST(req: Request) {
@@ -358,9 +399,37 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No recipient email found." }, { status: 400 });
     }
 
-    const selectedParam = Array.isArray(selectedIds)
-      ? selectedIds.map((id: any) => String(id)).filter(Boolean).join(",")
-      : "";
+    let finalSelectedIds = Array.isArray(selectedIds)
+      ? selectedIds.map((id: any) => String(id)).filter(Boolean)
+      : [];
+
+    if (!finalSelectedIds.length) {
+      const { data: findingsRaw } = await supabase
+        .from("findings")
+        .select("id, section, title")
+        .eq("inspection_id", inspectionId);
+
+      finalSelectedIds = (findingsRaw || [])
+        .filter((finding: any) => {
+          const section = String(finding?.section || "").toLowerCase();
+          const title = String(finding?.title || "").toLowerCase();
+
+          if (section === "inspection details") return false;
+          if (section === "disclaimers") return false;
+
+          return ![
+            "in attendance",
+            "occupancy",
+            "style",
+            "temperature",
+            "type of building",
+            "weather conditions",
+          ].includes(title);
+        })
+        .map((finding: any) => String(finding.id));
+    }
+
+    const selectedParam = finalSelectedIds.join(",");
 
     const baseRepairRequestUrl = `${appUrl}/repair-request?inspection_id=${encodeURIComponent(String(inspectionId))}${
       selectedParam ? `&selected=${encodeURIComponent(selectedParam)}` : ""
@@ -393,14 +462,32 @@ export async function POST(req: Request) {
         recipient.recipientType
       )}&recipient_email=${encodeURIComponent(recipient.email)}`;
 
+      const finalSummary =
+        summary ||
+        "The selected inspection findings are ready for repair request review and negotiation.";
+
       const html = buildRepairRequestEmailHtml({
         property,
         trackedRepairRequestUrl,
-        summary:
-          summary ||
-          "The selected inspection findings are ready for repair request review and negotiation.",
-        selectedCount: Array.isArray(selectedIds) ? selectedIds.length : 0,
+        summary: finalSummary,
+        selectedCount: finalSelectedIds.length,
         emailOpenPixelUrl,
+      });
+
+      const text = buildRepairRequestEmailText({
+        property,
+        repairRequestUrl: repairUrlWithViewer,
+        summary: finalSummary,
+        selectedCount: finalSelectedIds.length,
+      });
+
+      console.log("Repair request email payload", {
+        to: recipient.email,
+        subject,
+        htmlLength: html.length,
+        textLength: text.length,
+        repairUrlWithViewer,
+        trackedRepairRequestUrl,
       });
 
       const resendRes = await fetch("https://api.resend.com/emails", {
@@ -414,6 +501,7 @@ export async function POST(req: Request) {
           to: recipient.email,
           subject,
           html,
+          text,
         }),
       });
 
@@ -499,7 +587,7 @@ export async function POST(req: Request) {
       resourceId: inspectionId,
       metadata: {
         recipientType,
-        selectedIds,
+        selectedIds: finalSelectedIds,
         sent: sent.map((item) => item.recipient),
         failed,
         subject,

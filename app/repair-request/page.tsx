@@ -3,7 +3,6 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { createClient } from "../../utils/supabase/client";
 
 type Finding = Record<string, any>;
 type Inspection = Record<string, any>;
@@ -65,8 +64,6 @@ function isRepairFinding(finding: Finding) {
 function RepairRequestContent() {
   const searchParams = useSearchParams();
   const inspectionId = searchParams.get("inspection_id");
-  const supabase = createClient();
-
   const [inspection, setInspection] = useState<Inspection | null>(null);
   const [findings, setFindings] = useState<Finding[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -118,135 +115,70 @@ function RepairRequestContent() {
 
       setLoading(true);
 
-      const { data: inspectionData } = await supabase
-        .from("inspections")
-        .select("*")
-        .eq("id", inspectionId)
-        .single();
+      try {
+        const selectedFromUrl = String(searchParams.get("selected") || "")
+          .split(",")
+          .map((id) => id.trim())
+          .filter(Boolean);
 
-      setInspection(inspectionData || null);
+        const roleFromUrl = searchParams.get("role") || "";
+        const emailFromUrl = searchParams.get("email") || "";
+        const openedFromEmail = Boolean(roleFromUrl || emailFromUrl);
 
-      const { data: contactsRaw } = await supabase
-        .from("inspection_contacts")
-        .select("name, email, role, portal_access")
-        .eq("inspection_id", inspectionId);
+        const query = new URLSearchParams({
+          inspection_id: String(inspectionId),
+        });
 
-      const nextContacts = (contactsRaw || []).filter((contact: any) => {
-        if (!contact?.email) return false;
-        if (contact.portal_access === false) return false;
-        return true;
-      });
+        if (selectedFromUrl.length) {
+          query.set("selected", selectedFromUrl.join(","));
+        }
 
-      setContacts(nextContacts);
+        if (roleFromUrl) query.set("role", roleFromUrl);
+        if (emailFromUrl) query.set("email", emailFromUrl);
 
-      const preferredRealtor = nextContacts.find((contact: any) => {
-        const role = String(contact.role || "").toLowerCase();
-        return role.includes("realtor") || role.includes("agent") || role.includes("transaction");
-      });
+        const response = await fetch(`/api/repair-request-public?${query.toString()}`, {
+          cache: "no-store",
+        });
 
-      const preferredClient = nextContacts.find((contact: any) => {
-        const role = String(contact.role || "").toLowerCase();
-        return role.includes("client");
-      });
+        const payload = await response.json().catch(() => ({}));
 
-      if (!preferredRealtor && preferredClient) {
-        setRecipientType("client");
+        if (!response.ok) {
+          throw new Error(payload?.error || "Could not load repair request.");
+        }
+
+        const hydratedFindings = Array.isArray(payload?.findings)
+          ? payload.findings
+          : [];
+
+        const validSelectedIds = selectedFromUrl.filter((id) =>
+          hydratedFindings.some((finding: any) => String(finding.id) === id)
+        );
+
+        setInspection(payload?.inspection || null);
+        setContacts(Array.isArray(payload?.contacts) ? payload.contacts : []);
+        setFindings(hydratedFindings);
+
+        setSelectedIds(
+          validSelectedIds.length
+            ? validSelectedIds
+            : openedFromEmail
+              ? hydratedFindings.map((finding: any) => String(finding.id))
+              : []
+        );
+      } catch (error: any) {
+        console.error("Repair request load error:", error);
+        setEmailMessage(error?.message || "Could not load repair request.");
+        setInspection(null);
+        setContacts([]);
+        setFindings([]);
+        setSelectedIds([]);
+      } finally {
+        setLoading(false);
       }
-
-      const { data: findingsRaw } = await supabase
-        .from("findings")
-        .select("*")
-        .eq("inspection_id", inspectionId)
-        .order("created_at", { ascending: true });
-
-      const filteredFindings = (findingsRaw || []).filter(isRepairFinding);
-      const findingIds = filteredFindings.map((finding: any) => finding.id);
-
-      const { data: photosRaw } =
-        findingIds.length > 0
-          ? await supabase.from("photos").select("*").in("finding_id", findingIds)
-          : { data: [] };
-
-      const photosWithUrls = await Promise.all(
-        (photosRaw || []).map(async (photo: any) => {
-          const filePath =
-            photo.file_path ||
-            photo.storage_path ||
-            photo.photo_path ||
-            getStoragePathFromUrl(photo.public_url) ||
-            getStoragePathFromUrl(photo.image_url) ||
-            getStoragePathFromUrl(photo.photo_url);
-
-          if (!filePath) {
-            return {
-              ...photo,
-              signed_url:
-                photo.signed_url ||
-                photo.public_url ||
-                photo.image_url ||
-                photo.photo_url ||
-                "",
-            };
-          }
-
-          const { data } = await supabase.storage
-            .from("inspection-photos")
-            .createSignedUrl(filePath, 60 * 60 * 24 * 7);
-
-          return {
-            ...photo,
-            signed_url:
-              data?.signedUrl ||
-              photo.signed_url ||
-              photo.public_url ||
-              photo.image_url ||
-              photo.photo_url ||
-              "",
-          };
-        })
-      );
-
-      const photosByFindingId = photosWithUrls.reduce(
-        (acc: Record<string, any[]>, photo: any) => {
-          if (!photo.finding_id) return acc;
-          if (!acc[photo.finding_id]) acc[photo.finding_id] = [];
-          acc[photo.finding_id].push(photo);
-          return acc;
-        },
-        {}
-      );
-
-      const hydratedFindings = filteredFindings.map((finding: any) => ({
-        ...finding,
-        photos: photosByFindingId[finding.id] || [],
-      }));
-
-      const selectedFromUrl = String(searchParams.get("selected") || "")
-        .split(",")
-        .map((id) => id.trim())
-        .filter(Boolean);
-
-      const validSelectedIds = selectedFromUrl.filter((id) =>
-        hydratedFindings.some((finding: any) => String(finding.id) === id)
-      );
-
-      const openedFromEmail = Boolean(
-        searchParams.get("role") || searchParams.get("email")
-      );
-
-      setFindings(hydratedFindings);
-      setSelectedIds(
-        validSelectedIds.length
-          ? validSelectedIds
-          : openedFromEmail
-            ? hydratedFindings.map((finding: any) => String(finding.id))
-            : []
-      );
-      setLoading(false);
     }
 
     loadData();
-  }, [inspectionId, supabase, searchParams]);
+  }, [inspectionId, searchParams]);
 
   const selectedFindings = useMemo(
     () => findings.filter((finding) => selectedIds.includes(String(finding.id))),
@@ -868,7 +800,7 @@ function Info({ label, value }: { label: string; value?: any }) {
       <p className="break-words text-xs font-bold uppercase tracking-wide text-slate-400">
         {label}
       </p>
-      <p className="mt-1 break-words font-bold text-white">{value || "N/A"}</p>
+      <p className="mt-1 break-words font-bold text-white">{value === 0 ? 0 : value || "N/A"}</p>
     </div>
   );
 }
