@@ -4,6 +4,12 @@ import RepairResponseForm from "./RepairResponseForm";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+type PageProps = {
+  params: Promise<{
+    token: string;
+  }>;
+};
+
 function createAdminClient() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -17,56 +23,125 @@ function createAdminClient() {
   );
 }
 
-function getPropertyLabel(inspection: any) {
-  return (
-    inspection?.property_address ||
-    inspection?.address ||
-    inspection?.street_address ||
-    "Inspection report"
-  );
+function cleanText(value: any) {
+  return String(value || "").trim();
 }
 
-function normalizeIds(value: any) {
-  if (!Array.isArray(value)) return [];
-  return value.map((id) => String(id)).filter(Boolean);
-}
+function getStoragePathFromUrl(url: string | null | undefined) {
+  const clean = cleanText(url);
+  if (!clean) return "";
 
-function sortBySelectedIds(findings: any[], selectedIds: string[]) {
-  const order = new Map(selectedIds.map((id, index) => [String(id), index]));
-  return [...findings].sort((a, b) => {
-    return (order.get(String(a.id)) ?? 999999) - (order.get(String(b.id)) ?? 999999);
-  });
-}
+  const markers = [
+    "/storage/v1/object/public/inspection-photos/",
+    "/storage/v1/object/sign/inspection-photos/",
+    "/inspection-photos/",
+  ];
 
-function formatDate(value: any) {
-  if (!value) return "N/A";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "N/A";
-  return date.toLocaleDateString("en-US");
-}
-
-export default async function RepairResponsePage({
-  params,
-}: {
-  params: Promise<{ token: string }>;
-}) {
-  const { token } = await params;
-  const cleanToken = String(token || "").trim();
-
-  if (!cleanToken) {
-    return (
-      <main className="min-h-screen bg-[#020617] p-4 text-white md:p-8">
-        <section className="mx-auto max-w-4xl rounded-2xl border border-red-500/40 bg-red-500/10 p-6">
-          <h1 className="text-3xl font-black text-red-200">Invalid Link</h1>
-          <p className="mt-3 text-red-100">This repair request link is missing a token.</p>
-        </section>
-      </main>
-    );
+  for (const marker of markers) {
+    const index = clean.indexOf(marker);
+    if (index !== -1) {
+      return decodeURIComponent(clean.substring(index + marker.length).split("?")[0]);
+    }
   }
 
-  const supabase = createAdminClient();
+  return clean;
+}
 
-  const { data: share, error: shareError } = await supabase
+async function signedPhotoUrl(db: any, rawValue: any) {
+  const clean = cleanText(rawValue);
+  if (!clean) return "";
+
+  if (clean.startsWith("data:image/")) return clean;
+
+  const path = getStoragePathFromUrl(clean);
+
+  if (!path) return "";
+
+  try {
+    const { data } = await db.storage
+      .from("inspection-photos")
+      .createSignedUrl(path, 60 * 60 * 24);
+
+    if (data?.signedUrl) return data.signedUrl;
+  } catch {}
+
+  if (clean.startsWith("http://") || clean.startsWith("https://")) return clean;
+
+  return "";
+}
+
+async function loadPhotosForFindings(db: any, findingIds: string[]) {
+  if (!findingIds.length) return new Map<string, any[]>();
+
+  const photoMap = new Map<string, any[]>();
+
+  async function addRows(rows: any[] | null | undefined) {
+    for (const row of rows || []) {
+      const findingId = cleanText(row.finding_id || row.findingId);
+      if (!findingId) continue;
+
+      const rawUrl =
+        row.signed_url ||
+        row.signedUrl ||
+        row.url ||
+        row.photo_url ||
+        row.image_url ||
+        row.storage_path ||
+        row.path ||
+        row.file_path;
+
+      const signedUrl = await signedPhotoUrl(db, rawUrl);
+      if (!signedUrl) continue;
+
+      const current = photoMap.get(findingId) || [];
+      current.push({
+        ...row,
+        signed_url: signedUrl,
+        url: signedUrl,
+      });
+      photoMap.set(findingId, current);
+    }
+  }
+
+  // Main table used by most finding photo workflows.
+  try {
+    const { data } = await db
+      .from("finding_photos")
+      .select("*")
+      .in("finding_id", findingIds)
+      .order("created_at", { ascending: true });
+
+    await addRows(data);
+  } catch {}
+
+  // Fallback used in some earlier versions of this app.
+  try {
+    const { data } = await db
+      .from("inspection_photos")
+      .select("*")
+      .in("finding_id", findingIds)
+      .order("created_at", { ascending: true });
+
+    await addRows(data);
+  } catch {}
+
+  return photoMap;
+}
+
+function groupFindingsInSelectedOrder(findings: any[], selectedIds: string[]) {
+  const byId = new Map(findings.map((finding) => [cleanText(finding.id), finding]));
+
+  return selectedIds
+    .map((id) => byId.get(cleanText(id)))
+    .filter(Boolean);
+}
+
+export default async function RepairResponsePage({ params }: PageProps) {
+  const { token } = await params;
+  const cleanToken = cleanText(token);
+  const db = createAdminClient();
+
+  const { data: share, error: shareError } = await db
     .from("repair_request_shares")
     .select("*")
     .eq("token", cleanToken)
@@ -75,8 +150,8 @@ export default async function RepairResponsePage({
   if (shareError || !share) {
     return (
       <main className="min-h-screen bg-[#020617] p-4 text-white md:p-8">
-        <section className="mx-auto max-w-4xl rounded-2xl border border-red-500/40 bg-red-500/10 p-6">
-          <h1 className="text-3xl font-black text-red-200">Repair Request Not Found</h1>
+        <section className="mx-auto max-w-3xl rounded-2xl border border-red-500/40 bg-red-500/10 p-6">
+          <h1 className="text-2xl font-black text-red-200">Repair Request Not Found</h1>
           <p className="mt-3 text-red-100">
             This secure repair request link is invalid or no longer available.
           </p>
@@ -85,123 +160,54 @@ export default async function RepairResponsePage({
     );
   }
 
-  const selectedIds = normalizeIds(share.selected_finding_ids);
+  const inspectionId = share.inspection_id;
+  const selectedIds = Array.isArray(share.selected_finding_ids)
+    ? share.selected_finding_ids.map((id: any) => cleanText(id)).filter(Boolean)
+    : [];
 
-  const { data: inspection } = await supabase
+  const { data: inspection } = await db
     .from("inspections")
     .select("*")
-    .eq("id", share.inspection_id)
+    .eq("id", inspectionId)
     .maybeSingle();
 
-  let findings: any[] = [];
+  const { data: findingsRaw } = await db
+    .from("findings")
+    .select("*")
+    .eq("inspection_id", inspectionId)
+    .in("id", selectedIds.length ? selectedIds : ["__none__"]);
 
-  if (selectedIds.length) {
-    const { data: findingsRaw } = await supabase
-      .from("findings")
-      .select("*")
-      .eq("inspection_id", share.inspection_id)
-      .in("id", selectedIds);
+  const orderedFindings = groupFindingsInSelectedOrder(findingsRaw || [], selectedIds);
+  const photoMap = await loadPhotosForFindings(
+    db,
+    orderedFindings.map((finding: any) => cleanText(finding.id))
+  );
 
-    findings = sortBySelectedIds(findingsRaw || [], selectedIds);
-  }
+  const findings = orderedFindings.map((finding: any) => {
+    const photos = photoMap.get(cleanText(finding.id)) || [];
 
-  const { data: responsesRaw } = await supabase
+    return {
+      ...finding,
+      photos,
+    };
+  });
+
+  const { data: responsesRaw } = await db
     .from("repair_request_responses")
-    .select("finding_id, response_status, notes")
+    .select("*")
     .eq("share_id", share.id);
 
-  const answeredCount = Array.isArray(responsesRaw) ? responsesRaw.length : 0;
-  const property = getPropertyLabel(inspection);
-  const submitted = Boolean(share.responded_at);
+  const responses = Array.isArray(responsesRaw) ? responsesRaw : [];
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[#020617] p-4 pb-16 text-white md:p-8">
-      <div className="mx-auto max-w-5xl">
-        <section className="mb-6 rounded-2xl border border-slate-800 bg-[#0f172a] p-5 shadow-xl md:p-6">
-          <p className="break-words text-sm font-black uppercase tracking-[0.22em] text-teal-400 md:tracking-[0.3em]">
-            On Point Home Inspections
-          </p>
-
-          <h1 className="mt-3 break-words text-3xl font-black text-white md:text-4xl">
-            Repair Request Response
-          </h1>
-
-          <p className="mt-3 break-words text-slate-300">{property}</p>
-
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 md:grid-cols-4">
-            <Info label="Selected Items" value={findings.length} />
-            <Info label="Answered" value={`${answeredCount} / ${findings.length}`} />
-            <Info label="Status" value={submitted ? "Responded" : share.status || "sent"} />
-            <Info label="Sent" value={formatDate(share.created_at)} />
-          </div>
-
-          <div className="mt-5 grid gap-3 md:grid-cols-3">
-            <TimelineStep title="Created" value={formatDate(share.created_at)} active />
-            <TimelineStep title="Email Sent" value={formatDate(share.created_at)} active />
-            <TimelineStep
-              title="Response Submitted"
-              value={submitted ? formatDate(share.responded_at) : "Waiting"}
-              active={submitted}
-            />
-          </div>
-
-          {share.summary ? (
-            <div className="mt-5 rounded-xl border border-slate-700 bg-[#020617] p-4">
-              <p className="text-xs font-black uppercase tracking-wide text-slate-400">
-                Summary
-              </p>
-              <p className="mt-2 whitespace-pre-line break-words leading-7 text-slate-200">
-                {share.summary}
-              </p>
-            </div>
-          ) : null}
-        </section>
-
-        <RepairResponseForm
-          token={cleanToken}
-          findings={findings}
-          existingResponses={responsesRaw || []}
-          alreadySubmitted={submitted}
-        />
-      </div>
+    <main className="min-h-screen bg-[#020617] p-4 pb-20 text-white md:p-8">
+      <RepairResponseForm
+        token={cleanToken}
+        share={share}
+        inspection={inspection || null}
+        findings={findings}
+        existingResponses={responses}
+      />
     </main>
-  );
-}
-
-function Info({ label, value }: { label: string; value?: any }) {
-  return (
-    <div className="overflow-hidden rounded-xl border border-slate-700 bg-[#020617] p-4">
-      <p className="break-words text-xs font-bold uppercase tracking-wide text-slate-400">
-        {label}
-      </p>
-      <p className="mt-1 break-words font-bold text-white">
-        {value === 0 ? 0 : value || "N/A"}
-      </p>
-    </div>
-  );
-}
-
-function TimelineStep({
-  title,
-  value,
-  active,
-}: {
-  title: string;
-  value: string;
-  active?: boolean;
-}) {
-  return (
-    <div
-      className={`rounded-xl border p-4 ${
-        active
-          ? "border-teal-400/50 bg-teal-500/10"
-          : "border-slate-700 bg-[#020617]"
-      }`}
-    >
-      <p className="text-xs font-black uppercase tracking-wide text-slate-400">{title}</p>
-      <p className={active ? "mt-1 font-black text-teal-200" : "mt-1 font-black text-slate-300"}>
-        {value}
-      </p>
-    </div>
   );
 }
