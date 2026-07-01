@@ -643,21 +643,39 @@ function RepairRequestContent() {
         requestIntro,
       });
 
-      const printWindow = window.open("", "_blank", "noopener,noreferrer,width=1100,height=900");
+      const blob = new Blob([printableHtml], {
+        type: "text/html;charset=utf-8",
+      });
+
+      const url = URL.createObjectURL(blob);
+      const printWindow = window.open(url, "_blank", "width=1100,height=900");
 
       if (!printWindow) {
+        URL.revokeObjectURL(url);
         setPdfMessage("Popup blocked. Allow popups for this site, then click Download / Print PDF again.");
         setPrintingPdf(false);
         return;
       }
 
-      printWindow.document.open();
-      printWindow.document.write(printableHtml);
-      printWindow.document.close();
-
-      setTimeout(() => {
+      const cleanup = () => {
+        URL.revokeObjectURL(url);
         setPrintingPdf(false);
-      }, 1000);
+      };
+
+      const printTimer = window.setTimeout(() => {
+        try {
+          printWindow.focus();
+          printWindow.print();
+        } catch {
+          // The printable page also has its own print button as a fallback.
+        }
+        cleanup();
+      }, 1200);
+
+      printWindow.addEventListener?.("beforeunload", () => {
+        window.clearTimeout(printTimer);
+        cleanup();
+      });
     } catch {
       setPdfMessage("Could not open printable copy. Try again or use your browser Print / Save as PDF option.");
       setPrintingPdf(false);
