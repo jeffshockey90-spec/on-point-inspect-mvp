@@ -28,21 +28,72 @@ function getFindingText(finding: Finding) {
 }
 
 function getFirstPhotoUrl(finding: Finding) {
-  if (Array.isArray(finding.photos) && finding.photos[0]?.signed_url) {
-    return finding.photos[0].signed_url;
+  const photoCandidates = Array.isArray(finding.photos) ? finding.photos : [];
+
+  for (const photo of photoCandidates) {
+    const url =
+      photo?.signed_url ||
+      photo?.signedUrl ||
+      photo?.public_url ||
+      photo?.publicUrl ||
+      photo?.url ||
+      "";
+
+    if (String(url || "").trim()) return String(url).trim();
   }
 
-  if (Array.isArray(finding.photos) && finding.photos[0]?.url) {
-    return finding.photos[0].url;
-  }
-
-  return (
+  return String(
     finding.photo_url ||
-    finding.image_url ||
-    finding.imageUrl ||
-    finding.photo ||
-    ""
-  );
+      finding.photoUrl ||
+      finding.image_url ||
+      finding.imageUrl ||
+      finding.photo ||
+      ""
+  ).trim();
+}
+
+function responseLabel(value: string) {
+  return RESPONSE_OPTIONS.find((option) => option.value === value)?.label || "Not answered";
+}
+
+function getResponseStyle(value: string) {
+  if (value === "agree_to_repair" || value === "already_repaired") {
+    return "border-emerald-500/60 bg-emerald-500/10";
+  }
+
+  if (value === "credit_buyer") {
+    return "border-blue-500/60 bg-blue-500/10";
+  }
+
+  if (value === "decline") {
+    return "border-red-500/60 bg-red-500/10";
+  }
+
+  if (value === "needs_discussion") {
+    return "border-yellow-500/60 bg-yellow-500/10";
+  }
+
+  return "border-slate-700 bg-[#0f172a]";
+}
+
+function getResponseBadgeStyle(value: string) {
+  if (value === "agree_to_repair" || value === "already_repaired") {
+    return "border-emerald-400/60 bg-emerald-500/15 text-emerald-200";
+  }
+
+  if (value === "credit_buyer") {
+    return "border-blue-400/60 bg-blue-500/15 text-blue-200";
+  }
+
+  if (value === "decline") {
+    return "border-red-400/60 bg-red-500/15 text-red-200";
+  }
+
+  if (value === "needs_discussion") {
+    return "border-yellow-400/60 bg-yellow-500/15 text-yellow-100";
+  }
+
+  return "border-slate-600 bg-slate-900 text-slate-300";
 }
 
 export default function RepairResponseForm({
@@ -79,15 +130,28 @@ export default function RepairResponseForm({
 
   const [items, setItems] = useState(initialItems);
   const [message, setMessage] = useState(
-    alreadySubmitted ? "A response has already been submitted. You can update it below if needed." : ""
+    alreadySubmitted ? "Response submitted. This secure response is now locked." : ""
   );
   const [submitting, setSubmitting] = useState(false);
+  const [locked, setLocked] = useState(alreadySubmitted);
+  const [hiddenPhotos, setHiddenPhotos] = useState<Record<string, boolean>>({});
+
+  const answeredCount = findings.filter((finding) => {
+    const id = String(finding.id);
+    return Boolean(items[id]?.responseStatus);
+  }).length;
+
+  const progressPercent = findings.length
+    ? Math.round((answeredCount / findings.length) * 100)
+    : 0;
 
   function updateItem(
     findingId: string,
     field: "responseStatus" | "notes",
     value: string
   ) {
+    if (locked) return;
+
     setItems((prev) => ({
       ...prev,
       [findingId]: {
@@ -99,7 +163,7 @@ export default function RepairResponseForm({
   }
 
   async function submitResponse() {
-    if (submitting) return;
+    if (submitting || locked) return;
 
     const responses = findings.map((finding) => {
       const id = String(finding.id);
@@ -138,6 +202,7 @@ export default function RepairResponseForm({
         throw new Error(payload?.error || "Could not submit repair response.");
       }
 
+      setLocked(true);
       setMessage("Repair response submitted. Thank you.");
     } catch (error: any) {
       setMessage(error?.message || "Could not submit repair response.");
@@ -156,6 +221,35 @@ export default function RepairResponseForm({
 
   return (
     <section className="space-y-5">
+      <section className="rounded-2xl border border-slate-700 bg-[#0f172a] p-5 shadow-xl">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-teal-300">
+              Response Progress
+            </p>
+            <h2 className="mt-2 text-2xl font-black text-white">
+              {answeredCount} / {findings.length} Answered
+            </h2>
+          </div>
+          {locked ? (
+            <span className="w-fit rounded-full border border-emerald-400/60 bg-emerald-500/15 px-4 py-2 text-sm font-black text-emerald-200">
+              Response Submitted
+            </span>
+          ) : (
+            <span className="w-fit rounded-full border border-yellow-400/60 bg-yellow-500/15 px-4 py-2 text-sm font-black text-yellow-100">
+              Waiting for Submission
+            </span>
+          )}
+        </div>
+
+        <div className="mt-4 h-3 overflow-hidden rounded-full bg-[#020617] ring-1 ring-slate-700">
+          <div
+            className="h-full rounded-full bg-teal-400 transition-all"
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
+      </section>
+
       {message ? (
         <p className="rounded-xl border border-teal-500/40 bg-teal-500/10 px-4 py-3 text-sm font-bold text-teal-100">
           {message}
@@ -165,14 +259,16 @@ export default function RepairResponseForm({
       {findings.map((finding, index) => {
         const id = String(finding.id);
         const photoUrl = getFirstPhotoUrl(finding);
+        const currentStatus = items[id]?.responseStatus || "";
+        const hidePhoto = hiddenPhotos[id] || !photoUrl;
 
         return (
           <article
             key={id}
-            className="overflow-hidden rounded-2xl border border-slate-700 bg-[#0f172a] p-5 shadow-xl"
+            className={`overflow-hidden rounded-2xl border p-5 shadow-xl transition ${getResponseStyle(currentStatus)}`}
           >
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div>
+              <div className="min-w-0">
                 <p className="text-xs font-black uppercase tracking-[0.22em] text-teal-300">
                   Item {index + 1}
                 </p>
@@ -183,12 +279,22 @@ export default function RepairResponseForm({
                   {finding.section || "Other"} · {finding.severity || "Recommended Repair"}
                 </p>
               </div>
+
+              <span className={`w-fit rounded-full border px-3 py-1 text-xs font-black uppercase ${getResponseBadgeStyle(currentStatus)}`}>
+                {responseLabel(currentStatus)}
+              </span>
             </div>
 
-            {photoUrl ? (
+            {!hidePhoto ? (
               <img
                 src={photoUrl}
                 alt="Repair request item"
+                onError={() =>
+                  setHiddenPhotos((prev) => ({
+                    ...prev,
+                    [id]: true,
+                  }))
+                }
                 className="mb-4 max-h-[360px] w-full rounded-xl border border-slate-700 object-contain"
               />
             ) : null}
@@ -202,7 +308,7 @@ export default function RepairResponseForm({
               </p>
             </div>
 
-            <div className="mt-4 grid gap-4 md:grid-cols-[240px_minmax(0,1fr)]">
+            <div className="mt-4 grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
               <label>
                 <span className="mb-2 block text-sm font-black text-white">
                   Response
@@ -212,7 +318,8 @@ export default function RepairResponseForm({
                   onChange={(event) =>
                     updateItem(id, "responseStatus", event.target.value)
                   }
-                  className="h-[48px] w-full rounded-xl border border-slate-700 bg-[#020617] px-3 font-bold text-white outline-none focus:border-teal-400"
+                  disabled={locked}
+                  className="h-[52px] w-full rounded-xl border border-slate-700 bg-[#020617] px-3 font-bold text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   <option value="">Select response...</option>
                   {RESPONSE_OPTIONS.map((option) => (
@@ -231,8 +338,9 @@ export default function RepairResponseForm({
                   value={items[id]?.notes || ""}
                   onChange={(event) => updateItem(id, "notes", event.target.value)}
                   rows={3}
+                  disabled={locked}
                   placeholder="Add repair notes, credit details, timing, or explanation..."
-                  className="w-full rounded-xl border border-slate-700 bg-[#020617] p-3 text-white outline-none focus:border-teal-400"
+                  className="w-full rounded-xl border border-slate-700 bg-[#020617] p-3 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-70"
                 />
               </label>
             </div>
@@ -243,10 +351,10 @@ export default function RepairResponseForm({
       <button
         type="button"
         onClick={submitResponse}
-        disabled={submitting}
-        className="min-h-[52px] w-full rounded-xl border border-teal-500 bg-teal-500 px-5 py-3 text-lg font-black text-slate-950 transition hover:bg-teal-400 active:scale-[0.99] disabled:opacity-60"
+        disabled={submitting || locked}
+        className="min-h-[58px] w-full rounded-xl border border-teal-500 bg-teal-500 px-5 py-4 text-lg font-black text-slate-950 transition hover:bg-teal-400 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {submitting ? "Submitting..." : "Submit Repair Response"}
+        {locked ? "Response Submitted" : submitting ? "Submitting..." : "Submit Repair Request Response"}
       </button>
     </section>
   );

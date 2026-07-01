@@ -38,6 +38,13 @@ function sortBySelectedIds(findings: any[], selectedIds: string[]) {
   });
 }
 
+function formatDate(value: any) {
+  if (!value) return "N/A";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "N/A";
+  return date.toLocaleDateString("en-US");
+}
+
 export default async function RepairResponsePage({
   params,
 }: {
@@ -103,7 +110,9 @@ export default async function RepairResponsePage({
     .select("finding_id, response_status, notes")
     .eq("share_id", share.id);
 
+  const answeredCount = Array.isArray(responsesRaw) ? responsesRaw.length : 0;
   const property = getPropertyLabel(inspection);
+  const submitted = Boolean(share.responded_at);
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#020617] p-4 pb-16 text-white md:p-8">
@@ -121,15 +130,18 @@ export default async function RepairResponsePage({
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2 md:grid-cols-4">
             <Info label="Selected Items" value={findings.length} />
-            <Info label="Recipient" value={share.recipient_email || "N/A"} />
-            <Info label="Status" value={share.status || "sent"} />
-            <Info
-              label="Sent"
-              value={
-                share.created_at
-                  ? new Date(share.created_at).toLocaleDateString("en-US")
-                  : "N/A"
-              }
+            <Info label="Answered" value={`${answeredCount} / ${findings.length}`} />
+            <Info label="Status" value={submitted ? "Responded" : share.status || "sent"} />
+            <Info label="Sent" value={formatDate(share.created_at)} />
+          </div>
+
+          <div className="mt-5 grid gap-3 md:grid-cols-3">
+            <TimelineStep title="Created" value={formatDate(share.created_at)} active />
+            <TimelineStep title="Email Sent" value={formatDate(share.created_at)} active />
+            <TimelineStep
+              title="Response Submitted"
+              value={submitted ? formatDate(share.responded_at) : "Waiting"}
+              active={submitted}
             />
           </div>
 
@@ -149,7 +161,7 @@ export default async function RepairResponsePage({
           token={cleanToken}
           findings={findings}
           existingResponses={responsesRaw || []}
-          alreadySubmitted={Boolean(share.responded_at)}
+          alreadySubmitted={submitted}
         />
       </div>
     </main>
@@ -164,6 +176,31 @@ function Info({ label, value }: { label: string; value?: any }) {
       </p>
       <p className="mt-1 break-words font-bold text-white">
         {value === 0 ? 0 : value || "N/A"}
+      </p>
+    </div>
+  );
+}
+
+function TimelineStep({
+  title,
+  value,
+  active,
+}: {
+  title: string;
+  value: string;
+  active?: boolean;
+}) {
+  return (
+    <div
+      className={`rounded-xl border p-4 ${
+        active
+          ? "border-teal-400/50 bg-teal-500/10"
+          : "border-slate-700 bg-[#020617]"
+      }`}
+    >
+      <p className="text-xs font-black uppercase tracking-wide text-slate-400">{title}</p>
+      <p className={active ? "mt-1 font-black text-teal-200" : "mt-1 font-black text-slate-300"}>
+        {value}
       </p>
     </div>
   );
