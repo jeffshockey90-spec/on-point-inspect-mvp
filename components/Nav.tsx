@@ -8,7 +8,7 @@ import SupportUnreadBadge from "./SupportUnreadBadge";
 
 const OWNER_EMAILS = ["jeff@onpointhomeinspect.com", "jeffshockey90@gmail.com"];
 
-const navItems = [
+const baseNavItems = [
   { title: "Dashboard", href: "/", icon: "🏠", mobileLabel: "Home" },
   { title: "New Inspection", href: "/inspections/new", icon: "➕", mobileLabel: "New" },
   { title: "Reports", href: "/reports", icon: "📋", mobileLabel: "Reports" },
@@ -29,7 +29,7 @@ const ownerNavItem = {
   mobileLabel: "Owner",
 };
 
-const mobileItems = [
+const baseMobileItems = [
   { title: "Dashboard", href: "/", icon: "🏠", mobileLabel: "Home" },
   { title: "Reports", href: "/reports", icon: "📋", mobileLabel: "Reports" },
   { title: "New Inspection", href: "/inspections/new", icon: "➕", mobileLabel: "New" },
@@ -44,31 +44,69 @@ export default function Navbar() {
   const [loggingOut, setLoggingOut] = useState(false);
   const [openingHref, setOpeningHref] = useState("");
   const [isOwner, setIsOwner] = useState(false);
+  const [isRealtor, setIsRealtor] = useState(false);
+  const [isInspector, setIsInspector] = useState(true);
+  const [reportsHref, setReportsHref] = useState("/reports");
+  const [dashboardHref, setDashboardHref] = useState("/");
 
   useEffect(() => {
     let active = true;
 
-    async function loadOwnerStatus() {
+    async function loadAccountRouting(fallbackEmail?: string) {
       try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
+        const response = await fetch("/api/account-routing", {
+          cache: "no-store",
+        });
+
+        const payload = await response.json().catch(() => ({}));
 
         if (!active) return;
 
-        const email = String(user?.email || "").toLowerCase();
+        if (response.ok && payload?.authenticated) {
+          const owner = Boolean(payload.isOwner);
+          const realtor = Boolean(payload.isRealtor);
+          const inspector = payload.isInspector !== false;
+
+          setIsOwner(owner);
+          setIsRealtor(realtor);
+          setIsInspector(inspector);
+          setReportsHref(payload.reportsHref || (realtor && !inspector ? "/realtor-portal" : "/reports"));
+          setDashboardHref(payload.dashboardHref === "/dashboard" ? "/" : payload.dashboardHref || "/");
+          return;
+        }
+
+        const email = String(fallbackEmail || "").toLowerCase();
         setIsOwner(OWNER_EMAILS.includes(email));
+        setIsRealtor(false);
+        setIsInspector(true);
+        setReportsHref("/reports");
+        setDashboardHref("/");
       } catch (error) {
-        console.error("Owner nav check failed:", error);
-        if (active) setIsOwner(false);
+        console.error("Account routing nav check failed:", error);
+
+        if (!active) return;
+
+        const email = String(fallbackEmail || "").toLowerCase();
+        setIsOwner(OWNER_EMAILS.includes(email));
+        setIsRealtor(false);
+        setIsInspector(true);
+        setReportsHref("/reports");
+        setDashboardHref("/");
       }
     }
 
-    loadOwnerStatus();
+    async function loadInitialUser() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      await loadAccountRouting(user?.email || "");
+    }
+
+    loadInitialUser();
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      const email = String(session?.user?.email || "").toLowerCase();
-      setIsOwner(OWNER_EMAILS.includes(email));
+      loadAccountRouting(session?.user?.email || "");
     });
 
     return () => {
@@ -78,28 +116,67 @@ export default function Navbar() {
   }, []);
 
   const visibleNavItems = useMemo(() => {
+    let items = baseNavItems.map((item) => {
+      if (item.href === "/") return { ...item, href: dashboardHref };
+      if (item.href === "/reports") return { ...item, href: reportsHref };
+      return item;
+    });
+
+    if (isRealtor && !isInspector) {
+      items = items.filter((item) =>
+        ["Dashboard", "Reports", "Support", "Settings"].includes(item.title)
+      );
+
+      items = items.map((item) => {
+        if (item.title === "Dashboard") {
+          return { ...item, href: "/realtor-portal", title: "Portal", mobileLabel: "Portal" };
+        }
+
+        if (item.title === "Reports") {
+          return { ...item, href: "/realtor-portal" };
+        }
+
+        return item;
+      });
+    }
+
     const supportAwareItems = isOwner
-      ? navItems.map((item) =>
+      ? items.map((item) =>
           item.href === "/support"
             ? { ...item, title: "Support Chat", href: "/dashboard/owner/support" }
             : item
         )
-      : navItems;
+      : items;
 
     return isOwner ? [...supportAwareItems, ownerNavItem] : supportAwareItems;
-  }, [isOwner]);
+  }, [dashboardHref, reportsHref, isOwner, isRealtor, isInspector]);
 
   const visibleMobileItems = useMemo(() => {
+    let items = baseMobileItems.map((item) => {
+      if (item.href === "/") return { ...item, href: dashboardHref };
+      if (item.href === "/reports") return { ...item, href: reportsHref };
+      return item;
+    });
+
+    if (isRealtor && !isInspector) {
+      items = [
+        { title: "Portal", href: "/realtor-portal", icon: "🏡", mobileLabel: "Portal" },
+        { title: "Reports", href: "/realtor-portal", icon: "📋", mobileLabel: "Reports" },
+        { title: "Support", href: "/support", icon: "💬", mobileLabel: "Support" },
+        { title: "Settings", href: "/settings", icon: "⚙️", mobileLabel: "Settings" },
+      ];
+    }
+
     const supportAwareItems = isOwner
-      ? mobileItems.map((item) =>
+      ? items.map((item) =>
           item.href === "/support"
             ? { ...item, title: "Support Chat", href: "/dashboard/owner/support" }
             : item
         )
-      : mobileItems;
+      : items;
 
     return isOwner ? [...supportAwareItems, ownerNavItem] : supportAwareItems;
-  }, [isOwner]);
+  }, [dashboardHref, reportsHref, isOwner, isRealtor, isInspector]);
 
   function isActive(href: string) {
     if (href === "/") return pathname === "/";
@@ -143,10 +220,10 @@ export default function Navbar() {
         <div className="mx-auto max-w-[1600px] px-5 py-3">
           <div className="flex items-center gap-5 rounded-2xl border border-slate-800 bg-[#0b1220]/95 px-5 py-4 shadow-2xl shadow-black/20">
             <Link
-              href="/"
+              href={dashboardHref}
               prefetch
-              onPointerEnter={() => prefetchRoute("/")}
-              onClick={() => handleNavClick("/")}
+              onPointerEnter={() => prefetchRoute(dashboardHref)}
+              onClick={() => handleNavClick(dashboardHref)}
               className="flex min-w-[265px] shrink-0 items-center gap-4 border-r border-slate-700/70 pr-5 transition active:scale-[0.98] [touch-action:manipulation]"
             >
               <img
@@ -172,7 +249,7 @@ export default function Navbar() {
 
                 return (
                   <Link
-                    key={item.href}
+                    key={`${item.title}-${item.href}`}
                     href={item.href}
                     prefetch
                     onPointerEnter={() => prefetchRoute(item.href)}
@@ -216,8 +293,6 @@ export default function Navbar() {
         </div>
       </header>
 
-      
-
       <nav
         className="fixed bottom-0 left-0 right-0 z-50 border-t border-zinc-800 bg-[#0b1220]/95 shadow-2xl shadow-black/60 backdrop-blur md:hidden portrait:block landscape:hidden"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
@@ -229,7 +304,7 @@ export default function Navbar() {
 
             return (
               <Link
-                key={item.href}
+                key={`${item.title}-${item.href}`}
                 href={item.href}
                 prefetch
                 onTouchStart={() => prefetchRoute(item.href)}

@@ -15,6 +15,25 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
+  async function getRedirectAfterLogin() {
+    try {
+      const response = await fetch("/api/account-routing", {
+        cache: "no-store",
+      });
+
+      const payload = await response.json().catch(() => ({}));
+
+      if (response.ok && payload?.authenticated) {
+        if (payload?.dashboardHref) return payload.dashboardHref;
+        if (payload?.isRealtor && !payload?.isInspector) return "/realtor-portal";
+      }
+    } catch (error) {
+      console.error("Login routing check failed:", error);
+    }
+
+    return "/dashboard";
+  }
+
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
 
@@ -32,7 +51,9 @@ export default function LoginPage() {
       return;
     }
 
-    router.push("/dashboard");
+    const redirectTo = await getRedirectAfterLogin();
+
+    router.push(redirectTo === "/dashboard" ? "/dashboard" : redirectTo);
     router.refresh();
   }
 
