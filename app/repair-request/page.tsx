@@ -7,6 +7,7 @@ import { createClient } from "../../utils/supabase/client";
 
 type Finding = Record<string, any>;
 type Inspection = Record<string, any>;
+type Contact = Record<string, any>;
 
 function getSeverityStyle(severity: string) {
   const clean = String(severity || "Recommended Repair").toLowerCase();
@@ -68,9 +69,16 @@ function RepairRequestContent() {
 
   const [inspection, setInspection] = useState<Inspection | null>(null);
   const [findings, setFindings] = useState<Finding[]>([]);
+  const [contacts, setContacts] = useState<Contact[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddendum, setShowAddendum] = useState(false);
+  const [pdfMessage, setPdfMessage] = useState("");
+  const [printingPdf, setPrintingPdf] = useState(false);
+  const [emailMessage, setEmailMessage] = useState("");
+  const [emailingRepairRequest, setEmailingRepairRequest] = useState(false);
+  const [recipientType, setRecipientType] = useState("realtor");
+  const [customRecipientEmail, setCustomRecipientEmail] = useState("");
 
   const [requestIntro, setRequestIntro] = useState(
     "The following items are requested for repair, correction, evaluation, or further review by qualified professionals prior to closing, unless otherwise negotiated by the parties involved."
@@ -117,6 +125,33 @@ function RepairRequestContent() {
         .single();
 
       setInspection(inspectionData || null);
+
+      const { data: contactsRaw } = await supabase
+        .from("inspection_contacts")
+        .select("name, email, role, portal_access")
+        .eq("inspection_id", inspectionId);
+
+      const nextContacts = (contactsRaw || []).filter((contact: any) => {
+        if (!contact?.email) return false;
+        if (contact.portal_access === false) return false;
+        return true;
+      });
+
+      setContacts(nextContacts);
+
+      const preferredRealtor = nextContacts.find((contact: any) => {
+        const role = String(contact.role || "").toLowerCase();
+        return role.includes("realtor") || role.includes("agent") || role.includes("transaction");
+      });
+
+      const preferredClient = nextContacts.find((contact: any) => {
+        const role = String(contact.role || "").toLowerCase();
+        return role.includes("client");
+      });
+
+      if (!preferredRealtor && preferredClient) {
+        setRecipientType("client");
+      }
 
       const { data: findingsRaw } = await supabase
         .from("findings")
@@ -186,16 +221,25 @@ function RepairRequestContent() {
         photos: photosByFindingId[finding.id] || [],
       }));
 
+      const selectedFromUrl = String(searchParams.get("selected") || "")
+        .split(",")
+        .map((id) => id.trim())
+        .filter(Boolean);
+
       setFindings(hydratedFindings);
-      setSelectedIds([]);
+      setSelectedIds(
+        selectedFromUrl.length
+          ? selectedFromUrl.filter((id) => hydratedFindings.some((finding: any) => String(finding.id) === id))
+          : []
+      );
       setLoading(false);
     }
 
     loadData();
-  }, [inspectionId, supabase]);
+  }, [inspectionId, supabase, searchParams]);
 
   const selectedFindings = useMemo(
-    () => findings.filter((finding) => selectedIds.includes(finding.id)),
+    () => findings.filter((finding) => selectedIds.includes(String(finding.id))),
     [findings, selectedIds]
   );
 
@@ -233,9 +277,69 @@ function RepairRequestContent() {
     }The selected items are grouped under the following inspection sections: ${sections}. This repair request summary is intended to assist the parties in negotiating repairs, credits, licensed contractor evaluation, or other mutually agreed resolutions prior to closing.`;
   }, [selectedFindings]);
 
+
+  const recipientOptions = useMemo(() => {
+    const options: Array<{ value: string; label: string; email?: string }> = [];
+
+    const client = contacts.find((contact) => {
+      const role = String(contact.role || "").toLowerCase();
+      return role.includes("client");
+    });
+
+    const realtor = contacts.find((contact) => {
+      const role = String(contact.role || "").toLowerCase();
+      return role.includes("realtor") || role.includes("agent") || role.includes("transaction");
+    });
+
+    if (client?.email || inspection?.client_email) {
+      options.push({
+        value: "client",
+        label: `Client${client?.email || inspection?.client_email ? ` - ${client?.email || inspection?.client_email}` : ""}`,
+        email: client?.email || inspection?.client_email,
+      });
+    }
+
+    if (realtor?.email || inspection?.realtor_email || inspection?.agent_email) {
+      options.push({
+        value: "realtor",
+        label: `Realtor${realtor?.email || inspection?.realtor_email || inspection?.agent_email ? ` - ${realtor?.email || inspection?.realtor_email || inspection?.agent_email}` : ""}`,
+        email: realtor?.email || inspection?.realtor_email || inspection?.agent_email,
+      });
+    }
+
+    if (contacts.length > 1) {
+      options.push({ value: "all", label: "All report contacts" });
+    }
+
+    contacts.forEach((contact, index) => {
+      const email = String(contact.email || "").trim();
+      if (!email) return;
+      const role = String(contact.role || "contact").trim();
+      const name = String(contact.name || "").trim();
+      options.push({
+        value: `custom-contact-${index}`,
+        label: `${name ? `${name} - ` : ""}${role} - ${email}`,
+        email,
+      });
+    });
+
+    options.push({ value: "custom", label: "Custom email address" });
+
+    const seen = new Set<string>();
+    return options.filter((option) => {
+      const key = `${option.value}:${option.email || ""}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [contacts, inspection]);
+
+  const selectedRecipientOption = recipientOptions.find((option) => option.value === recipientType);
+
   function toggleFinding(id: string) {
+    const cleanId = String(id);
     setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+      prev.includes(cleanId) ? prev.filter((item) => item !== cleanId) : [...prev, cleanId]
     );
   }
 
@@ -249,20 +353,94 @@ function RepairRequestContent() {
           severity.includes("major")
         );
       })
-      .map((finding) => finding.id);
+      .map((finding) => String(finding.id));
 
     setSelectedIds(safetyIds);
   }
 
-  function emailRepairRequest() {
-    const property =
-      inspection?.property_address || inspection?.address || "Inspection Property";
-    const subject = encodeURIComponent(`Repair Request Summary - ${property}`);
-    const body = encodeURIComponent(
-      `Hello,\n\nAttached/linked is the repair request summary for ${property}.\n\n${realtorSummary}\n\nPlease review the requested repair/correction items and advise on next steps.\n\nOn Point Home Inspections LLC`
-    );
+  async function shareRepairRequestPdf() {
+    if (printingPdf) return;
 
-    window.location.href = `mailto:?subject=${subject}&body=${body}`;
+    try {
+      setPrintingPdf(true);
+      setPdfMessage("Preparing repair request PDF...");
+
+      // Let the button state render before opening the print/share sheet.
+      await new Promise((resolve) => setTimeout(resolve, 250));
+
+      window.focus();
+      window.print();
+
+      setTimeout(() => {
+        setPdfMessage(
+          "If the PDF window did not open, use your browser share button and choose Print / Save to PDF."
+        );
+        setPrintingPdf(false);
+      }, 900);
+    } catch {
+      setPdfMessage(
+        "PDF sharing is not supported in this browser. Open this page in Safari/Chrome and choose Print / Save to PDF."
+      );
+      setPrintingPdf(false);
+    }
+  }
+
+  async function emailRepairRequest() {
+    if (emailingRepairRequest) return;
+
+    if (!selectedIds.length) {
+      setEmailMessage("Select at least one finding before emailing the repair request.");
+      return;
+    }
+
+    const selectedOption = recipientOptions.find((option) => option.value === recipientType);
+    const isCustomContact = recipientType.startsWith("custom-contact-");
+    const finalRecipientType =
+      recipientType === "client" || recipientType === "realtor" || recipientType === "all"
+        ? recipientType
+        : "custom";
+    const finalRecipientEmail =
+      recipientType === "custom"
+        ? customRecipientEmail.trim()
+        : isCustomContact
+          ? String(selectedOption?.email || "").trim()
+          : "";
+
+    if ((recipientType === "custom" || isCustomContact) && !finalRecipientEmail) {
+      setEmailMessage("Enter or select an email address before sending.");
+      return;
+    }
+
+    try {
+      setEmailingRepairRequest(true);
+      setEmailMessage("Sending repair request...");
+
+      const response = await fetch("/api/send-repair-request", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          inspectionId,
+          recipientType: finalRecipientType,
+          recipientEmail: finalRecipientEmail || undefined,
+          selectedIds,
+          summary: realtorSummary,
+        }),
+      });
+
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(payload?.error || "Repair request email failed to send.");
+      }
+
+      setEmailMessage(payload?.message || "Repair request email sent.");
+    } catch (error: any) {
+      setEmailMessage(error?.message || "Repair request email failed to send.");
+    } finally {
+      setEmailingRepairRequest(false);
+    }
   }
 
   if (!inspectionId) {
@@ -287,62 +465,112 @@ function RepairRequestContent() {
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#020617] p-4 pb-32 text-white md:p-8 md:pb-8">
       <div className="mx-auto max-w-7xl overflow-hidden">
-        <div className="mb-6 grid grid-cols-1 gap-3 print:hidden sm:grid-cols-2 lg:flex lg:flex-wrap">
-          <Link
-            href={`/reports/${inspectionId}`}
-            className="w-full rounded-xl border border-slate-600 px-5 py-3 text-center font-bold text-white hover:bg-slate-800 lg:w-auto"
-          >
-            Back to Report
-          </Link>
+        <div className="mb-6 space-y-3 print:hidden">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <Link
+              href={`/reports/${inspectionId}`}
+              className="flex min-h-[48px] w-full items-center justify-center rounded-xl border border-slate-600 bg-[#020617] px-5 py-3 text-center font-bold text-white transition hover:border-slate-300 hover:bg-slate-900 active:scale-[0.98]"
+            >
+              Back to Report
+            </Link>
 
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="w-full rounded-xl bg-teal-500 px-5 py-3 font-bold text-slate-950 hover:bg-teal-400 lg:w-auto"
-          >
-            Share Repair Request PDF
-          </button>
+            <button
+              type="button"
+              onClick={shareRepairRequestPdf}
+              disabled={printingPdf}
+              className="min-h-[48px] w-full rounded-xl border border-teal-500 bg-[#020617] px-5 py-3 font-bold text-teal-300 transition hover:border-teal-400 hover:bg-teal-500/10 active:scale-[0.98] disabled:opacity-60"
+            >
+              {printingPdf ? "Preparing PDF..." : "Share Repair Request PDF"}
+            </button>
 
-          <button
-            type="button"
-            onClick={emailRepairRequest}
-            className="w-full rounded-xl border border-cyan-500 px-5 py-3 font-bold text-cyan-300 hover:bg-cyan-500/10 lg:w-auto"
-          >
-            Email Repair Request
-          </button>
+            <div className="grid w-full grid-cols-1 gap-3 rounded-xl border border-cyan-500 bg-[#020617] p-2 sm:grid-cols-[minmax(0,1fr)_auto] xl:col-span-2">
+              <label className="min-w-0">
+                <span className="mb-1 block px-1 text-[10px] font-black uppercase tracking-wide text-cyan-300">
+                  Send To
+                </span>
+                <select
+                  value={recipientType}
+                  onChange={(event) => {
+                    setRecipientType(event.target.value);
+                    setEmailMessage("");
+                  }}
+                  className="h-[48px] w-full rounded-lg border border-slate-700 bg-[#020617] px-3 text-sm font-bold text-white outline-none transition focus:border-cyan-400"
+                >
+                  {recipientOptions.map((option) => (
+                    <option key={`${option.value}-${option.email || ""}`} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
 
-          <button
-            type="button"
-            onClick={() => setShowAddendum(!showAddendum)}
-            className="w-full rounded-xl border border-purple-500 px-5 py-3 font-bold text-purple-300 hover:bg-purple-500/10 lg:w-auto"
-          >
-            {showAddendum ? "Hide Addendum" : "Export Negotiation Addendum"}
-          </button>
+              <button
+                type="button"
+                onClick={emailRepairRequest}
+                disabled={emailingRepairRequest}
+                className="min-h-[48px] w-full rounded-xl border border-cyan-500 bg-[#020617] px-5 py-3 font-bold text-cyan-300 transition hover:border-cyan-400 hover:bg-cyan-500/10 active:scale-[0.98] disabled:opacity-60 sm:mt-[18px] sm:w-auto"
+              >
+                {emailingRepairRequest ? "Sending..." : "Email Repair Request"}
+              </button>
 
-          <button
-            type="button"
-            onClick={() => setSelectedIds(findings.map((finding) => finding.id))}
-            className="w-full rounded-xl border border-teal-500 px-5 py-3 font-bold text-teal-300 hover:bg-teal-500/10 lg:w-auto"
-          >
-            Select All
-          </button>
+              {recipientType === "custom" ? (
+                <input
+                  value={customRecipientEmail}
+                  onChange={(event) => setCustomRecipientEmail(event.target.value)}
+                  placeholder="email@example.com"
+                  type="email"
+                  className="h-[48px] w-full rounded-lg border border-slate-700 bg-[#020617] px-3 text-sm font-bold text-white outline-none transition focus:border-cyan-400 sm:col-span-2"
+                />
+              ) : null}
+            </div>
+          </div>
 
-          <button
-            type="button"
-            onClick={() => setSelectedIds([])}
-            className="w-full rounded-xl border border-red-500 px-5 py-3 font-bold text-red-300 hover:bg-red-500/10 lg:w-auto"
-          >
-            Clear All
-          </button>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <button
+              type="button"
+              onClick={() => setShowAddendum(!showAddendum)}
+              className="min-h-[48px] w-full rounded-xl border border-purple-500 bg-[#020617] px-5 py-3 font-bold text-purple-300 transition hover:border-purple-400 hover:bg-purple-500/10 active:scale-[0.98]"
+            >
+              {showAddendum ? "Hide Addendum" : "Export Negotiation Addendum"}
+            </button>
 
-          <button
-            type="button"
-            onClick={selectSafetyOnly}
-            className="w-full rounded-xl border border-orange-500 px-5 py-3 font-bold text-orange-300 hover:bg-orange-500/10 lg:w-auto"
-          >
-            Safety Only
-          </button>
+            <button
+              type="button"
+              onClick={() => setSelectedIds(findings.map((finding) => String(finding.id)))}
+              className="min-h-[48px] w-full rounded-xl border border-teal-500 bg-[#020617] px-5 py-3 font-bold text-teal-300 transition hover:border-teal-400 hover:bg-teal-500/10 active:scale-[0.98]"
+            >
+              Select All
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSelectedIds([])}
+              className="min-h-[48px] w-full rounded-xl border border-red-500 bg-[#020617] px-5 py-3 font-bold text-red-300 transition hover:border-red-400 hover:bg-red-500/10 active:scale-[0.98]"
+            >
+              Clear All
+            </button>
+
+            <button
+              type="button"
+              onClick={selectSafetyOnly}
+              className="min-h-[48px] w-full rounded-xl border border-orange-500 bg-[#020617] px-5 py-3 font-bold text-orange-300 transition hover:border-orange-400 hover:bg-orange-500/10 active:scale-[0.98]"
+            >
+              Safety Only
+            </button>
+          </div>
         </div>
+
+        {pdfMessage ? (
+          <p className="mb-6 rounded-xl border border-teal-500/40 bg-teal-500/10 px-4 py-3 text-sm font-bold text-teal-200 print:hidden">
+            {pdfMessage}
+          </p>
+        ) : null}
+
+        {emailMessage ? (
+          <p className="mb-6 rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-4 py-3 text-sm font-bold text-cyan-200 print:hidden">
+            {emailMessage}
+          </p>
+        ) : null}
 
         <section className="mb-8 overflow-hidden rounded-2xl border border-slate-800 bg-[#0f172a] p-5 shadow-xl md:p-6">
           <p className="break-words text-sm font-bold uppercase tracking-[0.22em] text-teal-400 md:tracking-[0.3em]">
@@ -399,7 +627,7 @@ function RepairRequestContent() {
 
           <div className="space-y-3">
             {findings.map((finding) => {
-              const selected = selectedIds.includes(finding.id);
+              const selected = selectedIds.includes(String(finding.id));
 
               return (
                 <label
@@ -414,7 +642,7 @@ function RepairRequestContent() {
                     <input
                       type="checkbox"
                       checked={selected}
-                      onChange={() => toggleFinding(finding.id)}
+                      onChange={() => toggleFinding(String(finding.id))}
                       className="h-6 w-6 shrink-0 accent-teal-400"
                     />
 
@@ -474,15 +702,18 @@ function RepairRequestContent() {
                       "Further evaluation/repair requested."}
                   </p>
                   <div className="mt-4 grid gap-3 md:grid-cols-3">
-                    <div className="rounded-lg border border-slate-300 p-3">
-                      Seller to Repair ☐
-                    </div>
-                    <div className="rounded-lg border border-slate-300 p-3">
-                      Credit Offered ☐
-                    </div>
-                    <div className="rounded-lg border border-slate-300 p-3">
-                      Further Evaluation ☐
-                    </div>
+                    <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-300 p-3">
+                      <input type="checkbox" className="h-4 w-4 accent-teal-600" />
+                      <span>Seller to Repair</span>
+                    </label>
+                    <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-300 p-3">
+                      <input type="checkbox" className="h-4 w-4 accent-teal-600" />
+                      <span>Credit Offered</span>
+                    </label>
+                    <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-300 p-3">
+                      <input type="checkbox" className="h-4 w-4 accent-teal-600" />
+                      <span>Further Evaluation</span>
+                    </label>
                   </div>
                 </div>
               ))}
@@ -568,16 +799,32 @@ function RepairRequestContent() {
                             </p>
 
                             <div className="mt-3 grid gap-2 text-sm text-slate-700 md:grid-cols-4">
-                              <span>Completed ☐</span>
-                              <span>Declined ☐</span>
-                              <span>Credit Offered ☐</span>
-                              <span>Receipt Provided ☐</span>
+                              <label className="flex cursor-pointer items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2">
+                                <input type="checkbox" className="h-4 w-4 accent-teal-600" />
+                                <span>Completed</span>
+                              </label>
+                              <label className="flex cursor-pointer items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2">
+                                <input type="checkbox" className="h-4 w-4 accent-teal-600" />
+                                <span>Declined</span>
+                              </label>
+                              <label className="flex cursor-pointer items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2">
+                                <input type="checkbox" className="h-4 w-4 accent-teal-600" />
+                                <span>Credit Offered</span>
+                              </label>
+                              <label className="flex cursor-pointer items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2">
+                                <input type="checkbox" className="h-4 w-4 accent-teal-600" />
+                                <span>Receipt Provided</span>
+                              </label>
                             </div>
 
-                            <p className="mt-4 font-bold text-slate-900">
+                            <label className="mt-4 block font-bold text-slate-900">
                               Notes:
-                            </p>
-                            <div className="mt-10 border-b border-slate-400" />
+                              <textarea
+                                rows={3}
+                                className="mt-2 w-full rounded-lg border border-slate-300 bg-white p-3 text-sm font-normal text-slate-900 outline-none focus:border-teal-500 print:border-0"
+                                placeholder="Seller response notes..."
+                              />
+                            </label>
                           </div>
                         </article>
                       );
