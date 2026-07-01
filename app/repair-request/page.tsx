@@ -60,6 +60,330 @@ function isRepairFinding(finding: Finding) {
 
   return !excluded.includes(title);
 }
+function printSafe(value: any) {
+  return String(value || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function buildPrintableRepairRequestHtml({
+  inspection,
+  selectedFindings,
+  groupedFindings,
+  requestIntro,
+}: {
+  inspection: Inspection | null;
+  selectedFindings: Finding[];
+  groupedFindings: Record<string, Finding[]>;
+  requestIntro: string;
+}) {
+  const property =
+    inspection?.property_address || inspection?.address || "Property address not entered";
+
+  const sectionsHtml = Object.entries(groupedFindings)
+    .map(([section, items]) => {
+      const itemsHtml = items
+        .map((finding, index) => {
+          const firstPhoto = finding.photos?.[0];
+          const photoHtml = firstPhoto?.signed_url
+            ? `<div class="photo-frame"><img src="${printSafe(firstPhoto.signed_url)}" alt="Finding photo" class="finding-photo" /></div>`
+            : "";
+
+          const observationHtml = finding.observation
+            ? `<div class="report-text"><p class="label">Observation:</p><p>${printSafe(finding.observation)}</p></div>`
+            : "";
+
+          const implicationHtml = finding.implication
+            ? `<div class="report-text"><p class="label">Implication:</p><p>${printSafe(finding.implication)}</p></div>`
+            : "";
+
+          const recommendationHtml = finding.recommendation
+            ? `<div class="report-text"><p class="label">Requested Action:</p><p>${printSafe(finding.recommendation)}</p></div>`
+            : "";
+
+          return `
+            <article class="finding-card">
+              <div class="finding-head">
+                <h4>${index + 1}. ${printSafe(finding.title || "Untitled Finding")}</h4>
+                <span>${printSafe(finding.severity || "Recommended Repair")}</span>
+              </div>
+
+              ${photoHtml}
+              ${observationHtml}
+              ${implicationHtml}
+              ${recommendationHtml}
+
+              <div class="seller-box">
+                <p class="seller-title">Seller Response Section:</p>
+                <div class="seller-grid">
+                  ${["Completed", "Declined", "Credit Offered", "Receipt Provided"]
+                    .map(
+                      (label) => `
+                        <label class="seller-card">
+                          <span>${label}</span>
+                          <input type="checkbox" />
+                        </label>
+                      `
+                    )
+                    .join("")}
+                </div>
+
+                <label class="notes-wrap">
+                  <span>Notes:</span>
+                  <textarea placeholder="Seller response notes..."></textarea>
+                </label>
+              </div>
+            </article>
+          `;
+        })
+        .join("");
+
+      return `
+        <section class="section-block">
+          <h3>${printSafe(section)}</h3>
+          <div class="section-items">${itemsHtml}</div>
+        </section>
+      `;
+    })
+    .join("");
+
+  return `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Repair Request Summary - ${printSafe(property)}</title>
+  <style>
+    * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    @page { size: letter; margin: 0.42in; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      background: #020617;
+      color: #020617;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .screen-actions {
+      max-width: 980px;
+      margin: 18px auto 12px;
+      display: flex;
+      gap: 12px;
+      padding: 0 12px;
+    }
+    .screen-actions button {
+      min-height: 46px;
+      border: 1px solid #14b8a6;
+      border-radius: 12px;
+      background: #020617;
+      color: #5eead4;
+      padding: 10px 16px;
+      font-weight: 900;
+      cursor: pointer;
+    }
+    .pdf-shell {
+      max-width: 980px;
+      margin: 0 auto 28px;
+      padding: 12px;
+    }
+    .report-panel {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 14px;
+      padding: 22px;
+      box-shadow: 0 14px 40px rgba(0,0,0,.18);
+    }
+    .report-panel h1 {
+      margin: 0 0 12px;
+      font-size: 28px;
+      line-height: 1.1;
+      font-weight: 900;
+      color: #020617;
+    }
+    .intro {
+      margin: 0 0 24px;
+      color: #334155;
+      line-height: 1.65;
+    }
+    .property-line {
+      margin: -4px 0 16px;
+      font-size: 12px;
+      color: #475569;
+      font-weight: 700;
+    }
+    .section-block { margin-top: 26px; }
+    .section-block:first-of-type { margin-top: 18px; }
+    .section-block h3 {
+      margin: 0 0 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #cbd5e1;
+      color: #020617;
+      font-size: 18px;
+      line-height: 1.2;
+      font-weight: 900;
+    }
+    .section-items { display: grid; gap: 16px; }
+    .finding-card {
+      break-inside: avoid;
+      page-break-inside: avoid;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      background: #ffffff;
+      padding: 14px;
+    }
+    .finding-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .finding-head h4 {
+      margin: 0;
+      color: #020617;
+      font-size: 13px;
+      line-height: 1.25;
+      font-weight: 900;
+    }
+    .finding-head span {
+      flex-shrink: 0;
+      max-width: 210px;
+      border: 1px solid #94a3b8;
+      border-radius: 999px;
+      padding: 4px 9px;
+      color: #334155;
+      font-size: 9px;
+      font-weight: 900;
+      text-transform: uppercase;
+      text-align: center;
+      white-space: normal;
+    }
+    .photo-frame {
+      margin: 8px 0 14px;
+      min-height: 150px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      background: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .finding-photo {
+      display: block;
+      max-width: 100%;
+      max-height: 245px;
+      object-fit: contain;
+    }
+    .report-text { margin-top: 9px; }
+    .label {
+      margin: 0 0 3px;
+      color: #020617;
+      font-size: 12px;
+      font-weight: 900;
+    }
+    .report-text p:not(.label) {
+      margin: 0;
+      color: #334155;
+      font-size: 11px;
+      line-height: 1.55;
+      white-space: pre-line;
+    }
+    .seller-box {
+      margin-top: 14px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      background: #f8fafc;
+      padding: 13px;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+    .seller-title {
+      margin: 0 0 10px;
+      color: #020617;
+      font-size: 12px;
+      font-weight: 900;
+    }
+    .seller-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .seller-card {
+      min-height: 66px;
+      border: 1px solid #cbd5e1;
+      border-radius: 7px;
+      background: #ffffff;
+      padding: 9px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      text-align: center;
+      color: #020617;
+      font-size: 10px;
+      font-weight: 900;
+    }
+    .seller-card input {
+      width: 14px;
+      height: 14px;
+      margin: 0;
+      accent-color: #0f8f8f;
+    }
+    .notes-wrap {
+      display: block;
+      margin-top: 12px;
+      color: #020617;
+      font-size: 12px;
+      font-weight: 900;
+    }
+    .notes-wrap textarea {
+      display: block;
+      width: 100%;
+      min-height: 64px;
+      margin-top: 7px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      background: #020617;
+      color: #ffffff;
+      padding: 9px;
+      resize: vertical;
+      font-size: 11px;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    .notes-wrap textarea::placeholder { color: #94a3b8; }
+    .empty { margin: 0; color: #334155; }
+    @media print {
+      body { background: #ffffff; }
+      .screen-actions { display: none; }
+      .pdf-shell { max-width: none; margin: 0; padding: 0; }
+      .report-panel { border-radius: 0; border: 0; box-shadow: none; padding: 0; }
+      .finding-card { margin-bottom: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="screen-actions">
+    <button onclick="window.print()">Print / Save as PDF</button>
+  </div>
+  <main class="pdf-shell">
+    <section class="report-panel">
+      <h1>Requested Repairs / Corrections</h1>
+      <p class="property-line">${printSafe(property)}</p>
+      <p class="intro">${printSafe(requestIntro)}</p>
+      ${sectionsHtml || `<p class="empty">No findings selected.</p>`}
+    </section>
+  </main>
+  <script>
+    setTimeout(function () { window.focus(); window.print(); }, 500);
+  </script>
+</body>
+</html>`;
+}
 
 function RepairRequestContent() {
   const searchParams = useSearchParams();
@@ -303,26 +627,39 @@ function RepairRequestContent() {
   async function shareRepairRequestPdf() {
     if (printingPdf) return;
 
+    if (!selectedFindings.length) {
+      setPdfMessage("Select at least one finding before downloading the repair request.");
+      return;
+    }
+
     try {
       setPrintingPdf(true);
-      setPdfMessage("Preparing repair request PDF...");
+      setPdfMessage("Opening printable repair request. Choose Save as PDF in the print window.");
 
-      // Let the button state render before opening the print/share sheet.
-      await new Promise((resolve) => setTimeout(resolve, 250));
+      const printableHtml = buildPrintableRepairRequestHtml({
+        inspection,
+        selectedFindings,
+        groupedFindings,
+        requestIntro,
+      });
 
-      window.focus();
-      window.print();
+      const printWindow = window.open("", "_blank", "noopener,noreferrer,width=1100,height=900");
+
+      if (!printWindow) {
+        setPdfMessage("Popup blocked. Allow popups for this site, then click Download / Print PDF again.");
+        setPrintingPdf(false);
+        return;
+      }
+
+      printWindow.document.open();
+      printWindow.document.write(printableHtml);
+      printWindow.document.close();
 
       setTimeout(() => {
-        setPdfMessage(
-          "If the PDF window did not open, use your browser share button and choose Print / Save to PDF."
-        );
         setPrintingPdf(false);
-      }, 900);
+      }, 1000);
     } catch {
-      setPdfMessage(
-        "PDF sharing is not supported in this browser. Open this page in Safari/Chrome and choose Print / Save to PDF."
-      );
+      setPdfMessage("Could not open printable copy. Try again or use your browser Print / Save as PDF option.");
       setPrintingPdf(false);
     }
   }
@@ -420,7 +757,7 @@ function RepairRequestContent() {
               disabled={printingPdf}
               className="min-h-[48px] w-full rounded-xl border border-teal-500 bg-[#020617] px-5 py-3 font-bold text-teal-300 transition hover:border-teal-400 hover:bg-teal-500/10 active:scale-[0.98] disabled:opacity-60"
             >
-              {printingPdf ? "Preparing PDF..." : "Share Repair Request PDF"}
+              {printingPdf ? "Preparing PDF..." : "Download / Print PDF"}
             </button>
 
             <div className="grid w-full grid-cols-1 gap-3 rounded-xl border border-cyan-500 bg-[#020617] p-2 sm:grid-cols-[minmax(0,1fr)_auto] xl:col-span-2">
