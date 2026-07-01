@@ -1,4 +1,5 @@
 import Link from "next/link";
+import FastLinkButton from "../../../components/FastLinkButton";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
@@ -356,9 +357,9 @@ export default async function OwnerDashboardPage() {
           <p className="text-sm font-black uppercase tracking-[0.35em] text-red-300">Owner Only</p>
           <h1 className="mt-4 text-4xl font-black">Access Restricted</h1>
           <p className="mt-4 text-slate-300">This dashboard is only available to the On Point Inspect owner account.</p>
-          <Link href="/dashboard" className="mt-6 inline-flex rounded-xl border border-red-400 px-5 py-3 font-black text-red-300 hover:bg-red-500/10">
+          <FastLinkButton href="/dashboard" className="mt-6 inline-flex rounded-xl border border-red-400 px-5 py-3 font-black text-red-300 hover:bg-red-500/10">
             Back to Dashboard
-          </Link>
+          </FastLinkButton>
         </div>
       </main>
     );
@@ -627,69 +628,69 @@ export default async function OwnerDashboardPage() {
             </div>
 
             <div className="flex flex-wrap gap-3">
-              <Link
+              <FastLinkButton
                 href="/dashboard/owner/users"
                 className="rounded-xl border border-cyan-500 px-5 py-3 font-black text-cyan-300 transition hover:bg-cyan-500/10"
               >
                 👥 User Management
-              </Link>
+              </FastLinkButton>
 
-              <Link
+              <FastLinkButton
                 href="/dashboard/owner/devices"
                 className="rounded-xl border border-purple-500 px-5 py-3 font-black text-purple-300 transition hover:bg-purple-500/10"
               >
                 📱 Device Analytics
-              </Link>
+              </FastLinkButton>
 
-              <Link
+              <FastLinkButton
                 href="/dashboard/owner/revenue"
                 className="rounded-xl border border-green-500 px-5 py-3 font-black text-green-300 transition hover:bg-green-500/10"
               >
                 💰 Revenue Dashboard
-              </Link>
+              </FastLinkButton>
 
-              <Link
+              <FastLinkButton
                 href="/dashboard/owner/push"
                 className="rounded-xl border border-yellow-500 px-5 py-3 font-black text-yellow-300 transition hover:bg-yellow-500/10"
               >
                 🔔 Push Center
-              </Link>
+              </FastLinkButton>
 
-              <Link
+              <FastLinkButton
                 href="/dashboard/owner/inspectors"
                 className="rounded-xl border border-orange-500 px-5 py-3 font-black text-orange-300 transition hover:bg-orange-500/10"
               >
                 🧑‍🔧 Inspectors
-              </Link>
+              </FastLinkButton>
 
-              <Link
+              <FastLinkButton
                 href="/dashboard/owner/live"
                 className="rounded-xl border border-blue-500 px-5 py-3 font-black text-blue-300 transition hover:bg-blue-500/10"
               >
                 ⚡ Live Activity
-              </Link>
+              </FastLinkButton>
 
-              <Link
+              <FastLinkButton
                 href="/dashboard/owner/support"
                 className="inline-flex items-center gap-2 rounded-xl border border-fuchsia-500 px-5 py-3 font-black text-fuchsia-300 transition hover:bg-fuchsia-500/10"
               >
                 💬 Support Chat
                 <SupportUnreadBadge />
-              </Link>
+              </FastLinkButton>
 
-              <Link
+              <FastLinkButton
                 href="/dashboard/owner/system"
                 className="rounded-xl border border-slate-500 px-5 py-3 font-black text-slate-200 transition hover:bg-slate-700/30"
               >
                 🩺 System Health
-              </Link>
+              </FastLinkButton>
 
-              <Link
+              <FastLinkButton
                 href="/dashboard"
                 className="rounded-xl border border-teal-500 px-5 py-3 font-black text-teal-300 transition hover:bg-teal-500/10"
               >
                 Back to Dashboard
-              </Link>
+              </FastLinkButton>
             </div>
           </div>
         </section>
@@ -768,12 +769,12 @@ export default async function OwnerDashboardPage() {
                     </div>
 
                     <div className="mt-4 flex flex-wrap gap-2">
-                      <Link
+                      <FastLinkButton
                         href={demoUrl}
                         className="rounded-lg border border-teal-500 px-3 py-2 text-xs font-black text-teal-300 transition hover:bg-teal-500/10"
                       >
                         View Demo
-                      </Link>
+                      </FastLinkButton>
 
                       <Link
                         href={demoUrl}

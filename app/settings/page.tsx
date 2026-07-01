@@ -1,4 +1,4 @@
-import Link from "next/link";
+import FastLinkButton from "../../components/FastLinkButton";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "../../utils/supabase/server";
@@ -490,9 +490,9 @@ export default async function SettingsPage({
         )}
 
         <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <Link
+          <FastLinkButton
             href="/support"
-            className="group rounded-2xl border border-slate-800 bg-[#0b1220] p-4 transition active:scale-[0.98] hover:border-fuchsia-400/70 hover:bg-fuchsia-500/10 sm:p-5 [touch-action:manipulation]"
+            className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-slate-800 bg-[#0b1220] p-4 transition active:scale-[0.98] hover:border-fuchsia-400/70 hover:bg-fuchsia-500/10 sm:p-5 [touch-action:manipulation]"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-fuchsia-500/10 text-2xl">
@@ -512,11 +512,11 @@ export default async function SettingsPage({
             <p className="mt-4 text-sm font-black text-fuchsia-300 group-hover:text-fuchsia-200">
               Open Support →
             </p>
-          </Link>
+          </FastLinkButton>
 
-          <Link
+          <FastLinkButton
             href="/billing"
-            className="group rounded-2xl border border-slate-800 bg-[#0b1220] p-4 transition active:scale-[0.98] hover:border-teal-400/70 hover:bg-teal-500/10 sm:p-5 [touch-action:manipulation]"
+            className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-slate-800 bg-[#0b1220] p-4 transition active:scale-[0.98] hover:border-teal-400/70 hover:bg-teal-500/10 sm:p-5 [touch-action:manipulation]"
           >
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-500/10 text-2xl">
               💳
@@ -533,11 +533,11 @@ export default async function SettingsPage({
             <p className="mt-4 text-sm font-black text-teal-300 group-hover:text-teal-200">
               Manage Billing →
             </p>
-          </Link>
+          </FastLinkButton>
 
-          <Link
+          <FastLinkButton
             href="/settings/public-profile"
-            className="group rounded-2xl border border-slate-800 bg-[#0b1220] p-4 transition active:scale-[0.98] hover:border-cyan-400/70 hover:bg-cyan-500/10 sm:p-5 [touch-action:manipulation]"
+            className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-slate-800 bg-[#0b1220] p-4 transition active:scale-[0.98] hover:border-cyan-400/70 hover:bg-cyan-500/10 sm:p-5 [touch-action:manipulation]"
           >
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-500/10 text-2xl">
               🌐
@@ -554,12 +554,12 @@ export default async function SettingsPage({
             <p className="mt-4 text-sm font-black text-cyan-300 group-hover:text-cyan-200">
               Manage Profile →
             </p>
-          </Link>
+          </FastLinkButton>
 
           {isOnPointOwner && (
-            <Link
+            <FastLinkButton
               href="/settings/marketing-images"
-              className="group rounded-2xl border border-teal-500/30 bg-[#0b1220] p-4 transition active:scale-[0.98] hover:border-teal-400/70 hover:bg-teal-500/10 sm:p-5 [touch-action:manipulation]"
+              className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-teal-500/30 bg-[#0b1220] p-4 transition active:scale-[0.98] hover:border-teal-400/70 hover:bg-teal-500/10 sm:p-5 [touch-action:manipulation]"
             >
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-500/10 text-2xl">
                 🏠
@@ -576,12 +576,12 @@ export default async function SettingsPage({
               <p className="mt-4 text-sm font-black text-teal-300 group-hover:text-teal-200">
                 Open Template →
               </p>
-            </Link>
+            </FastLinkButton>
           )}
 
           <a
             href="#notifications"
-            className="group rounded-2xl border border-slate-800 bg-[#0b1220] p-4 transition active:scale-[0.98] hover:border-amber-400/70 hover:bg-amber-500/10 sm:p-5 [touch-action:manipulation]"
+            className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-slate-800 bg-[#0b1220] p-4 transition active:scale-[0.98] hover:border-amber-400/70 hover:bg-amber-500/10 sm:p-5 [touch-action:manipulation]"
           >
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/10 text-2xl">
               🔔
@@ -842,12 +842,12 @@ export default async function SettingsPage({
                 <p className="mt-2 text-sm leading-6 text-slate-400">
                   Headshot, bio, certifications, services, service areas, social links, booking link, and your branded QR marketing kit.
                 </p>
-                <Link
+                <FastLinkButton
                   href="/settings/public-profile"
                   className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-cyan-500 px-4 py-3 text-sm font-black text-slate-950 hover:bg-cyan-400 sm:w-auto"
                 >
                   Manage Public Profile →
-                </Link>
+                </FastLinkButton>
               </div>
 
               <div className="rounded-2xl border border-slate-700/80 bg-[#020817] p-4">
@@ -861,14 +861,14 @@ export default async function SettingsPage({
                   People can find published profiles in the inspector directory or by opening your direct profile link.
                 </p>
                 <div className="mt-4 flex flex-col gap-2 sm:flex-row lg:flex-col xl:flex-row">
-                  <Link
+                  <FastLinkButton
                     href="/inspectors"
                     className="inline-flex items-center justify-center rounded-xl border border-slate-700 px-4 py-3 text-sm font-black text-slate-200 hover:border-cyan-400 hover:text-cyan-300"
                   >
                     Open Directory
-                  </Link>
+                  </FastLinkButton>
                   {publicProfileUrl && (
-                    <Link
+                    <FastLinkButton
                       href={publicProfileUrl.replace(
                         (process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || "https://on-point-inspect-mvp.vercel.app").replace(/\/$/, ""),
                         ""
@@ -876,7 +876,7 @@ export default async function SettingsPage({
                       className="inline-flex items-center justify-center rounded-xl border border-cyan-500/60 px-4 py-3 text-sm font-black text-cyan-300 hover:bg-cyan-500/10"
                     >
                       Preview Profile
-                    </Link>
+                    </FastLinkButton>
                   )}
                 </div>
               </div>
@@ -894,12 +894,12 @@ export default async function SettingsPage({
                 <p className="mt-3 break-all rounded-xl border border-teal-500/30 bg-slate-950/80 p-3 text-xs font-bold text-white">
                   {publicProfileUrl || "Save a profile slug to generate your public link."}
                 </p>
-                <Link
+                <FastLinkButton
                   href="/settings/public-profile#qr-card"
                   className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-teal-500 px-4 py-3 text-sm font-black text-slate-950 hover:bg-teal-400"
                 >
                   Open QR Marketing Kit →
-                </Link>
+                </FastLinkButton>
               </div>
             </div>
           </section>
