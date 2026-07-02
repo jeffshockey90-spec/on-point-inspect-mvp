@@ -109,6 +109,45 @@ function SmallSpinner() {
   );
 }
 
+async function createSignedUrlMap(paths: string[]) {
+  const uniquePaths = Array.from(new Set(paths.filter(Boolean)));
+  const signedMap: Record<string, string> = {};
+
+  if (uniquePaths.length === 0) return signedMap;
+
+  const chunkSize = 50;
+
+  await Promise.all(
+    Array.from({ length: Math.ceil(uniquePaths.length / chunkSize) }).map(
+      async (_, chunkIndex) => {
+        const chunk = uniquePaths.slice(
+          chunkIndex * chunkSize,
+          chunkIndex * chunkSize + chunkSize,
+        );
+
+        const { data, error } = await supabase.storage
+          .from(PHOTO_BUCKET)
+          .createSignedUrls(chunk, 60 * 60 * 24 * 7);
+
+        if (error) {
+          console.error("Reference photo batch signed URL error:", error);
+          return;
+        }
+
+        (data || []).forEach((item: any, index: number) => {
+          const path = item?.path || chunk[index];
+
+          if (path && item?.signedUrl) {
+            signedMap[path] = item.signedUrl;
+          }
+        });
+      },
+    ),
+  );
+
+  return signedMap;
+}
+
 export default function SectionReferencePhotos({
   inspectionId,
   section,
@@ -147,38 +186,30 @@ export default function SectionReferencePhotos({
         return;
       }
 
-      const withSignedUrls = await Promise.all(
-        (data || []).map(async (photo: ReferencePhoto) => {
-          if (!photo.file_path) {
-            return {
-              ...photo,
-              signed_url: photo.signed_url || photo.public_url || "",
-            };
-          }
+      const rows = data || [];
+      const fullPaths = rows.map((photo: ReferencePhoto) => photo.file_path || "").filter(Boolean);
+      const thumbnailPaths = rows.map((photo: ReferencePhoto) => photo.thumbnail_path || "").filter(Boolean);
 
-          const { data: signedData } = await supabase.storage
-            .from(PHOTO_BUCKET)
-            .createSignedUrl(photo.file_path, 60 * 60 * 24 * 7);
+      const [signedFullMap, signedThumbnailMap] = await Promise.all([
+        createSignedUrlMap(fullPaths),
+        createSignedUrlMap(thumbnailPaths),
+      ]);
 
-          let signedThumbnailUrl = photo.thumbnail_url || "";
-
-          if (photo.thumbnail_path) {
-            const { data: signedThumbnailData } = await supabase.storage
-              .from(PHOTO_BUCKET)
-              .createSignedUrl(photo.thumbnail_path, 60 * 60 * 24 * 7);
-
-            signedThumbnailUrl =
-              signedThumbnailData?.signedUrl || photo.thumbnail_url || "";
-          }
-
-          return {
-            ...photo,
-            signed_url:
-              signedData?.signedUrl || photo.signed_url || photo.public_url || "",
-            signed_thumbnail_url: signedThumbnailUrl,
-          };
-        })
-      );
+      const withSignedUrls = rows.map((photo: ReferencePhoto) => ({
+        ...photo,
+        signed_url:
+          (photo.file_path && signedFullMap[photo.file_path]) ||
+          photo.signed_url ||
+          photo.public_url ||
+          "",
+        signed_thumbnail_url:
+          (photo.thumbnail_path && signedThumbnailMap[photo.thumbnail_path]) ||
+          photo.thumbnail_url ||
+          (photo.file_path && signedFullMap[photo.file_path]) ||
+          photo.signed_url ||
+          photo.public_url ||
+          "",
+      }));
 
       setPhotos(withSignedUrls);
     } finally {
@@ -267,16 +298,21 @@ export default function SectionReferencePhotos({
 
       if (error) throw error;
 
-      const { data: signedData } = await supabase.storage
-        .from(PHOTO_BUCKET)
-        .createSignedUrl(filePath, 60 * 60 * 24 * 7);
+      const [signedFullMap, signedThumbnailMap] = await Promise.all([
+        createSignedUrlMap([filePath]),
+        thumbnailUrl ? createSignedUrlMap([thumbnailPath]) : Promise.resolve({} as Record<string, string>),
+      ]);
 
       setPhotos((prev) => [
         ...prev,
         {
           ...data,
-          signed_url: signedData?.signedUrl || publicData.publicUrl,
-          signed_thumbnail_url: thumbnailUrl,
+          signed_url: signedFullMap[filePath] || publicData.publicUrl,
+          signed_thumbnail_url:
+            signedThumbnailMap[thumbnailPath] ||
+            thumbnailUrl ||
+            signedFullMap[filePath] ||
+            publicData.publicUrl,
           thumbnail_path: thumbnailUrl ? thumbnailPath : null,
           thumbnail_url: thumbnailUrl || null,
         },
@@ -585,12 +621,13 @@ export default function SectionReferencePhotos({
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {photos.map((photo, index) => {
-                const photoUrl =
+                const previewUrl =
                   photo.signed_thumbnail_url ||
                   photo.thumbnail_url ||
                   photo.signed_url ||
                   photo.public_url ||
                   "";
+                const fullUrl = photo.signed_url || photo.public_url || previewUrl;
                 const isDeleting = deletingId === photo.id;
 
                 return (
@@ -598,10 +635,10 @@ export default function SectionReferencePhotos({
                     key={photo.id}
                     className="overflow-hidden rounded-xl border border-slate-700 bg-[#020617]"
                   >
-                    {photoUrl ? (
-                      <a href={photoUrl} target="_blank" rel="noreferrer">
+                    {previewUrl ? (
+                      <a href={fullUrl} target="_blank" rel="noreferrer">
                         <img
-                          src={photoUrl}
+                          src={previewUrl}
                           alt={photo.caption || `Reference photo ${index + 1}`}
                           loading="lazy"
                           decoding="async"
@@ -627,9 +664,9 @@ export default function SectionReferencePhotos({
                       />
 
                       <div className="flex flex-wrap justify-between gap-2 text-xs font-bold">
-                        {photoUrl && (
+                        {previewUrl && (
                           <a
-                            href={photoUrl}
+                            href={fullUrl}
                             target="_blank"
                             rel="noreferrer"
                             className="rounded-lg border border-slate-600 px-3 py-2 text-slate-200 transition active:scale-[0.98] hover:bg-slate-800 [touch-action:manipulation]"

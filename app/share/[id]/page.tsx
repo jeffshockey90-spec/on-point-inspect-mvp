@@ -984,12 +984,6 @@ export default async function PublicSharePage({
     .map((photo: any) => photo.thumbnail_path)
     .filter(Boolean);
 
-  const photoImagePreviewPaths = (photosRaw || [])
-    .map((photo: any) => {
-      const path = getPhotoStoragePath(photo);
-      return path && !isVideoPathOrPhoto(photo, path) ? path : "";
-    })
-    .filter(Boolean);
 
   const oldFindingImagePaths = (findingsRaw || [])
     .map((finding: any) => getStoragePathFromUrl(finding.image_url))
@@ -1001,7 +995,6 @@ export default async function PublicSharePage({
   ]);
 
   const signedThumbnailUrlMap = await createSignedUrlMap(photoThumbnailPaths);
-  const signedPreviewUrlMap = await createSignedImagePreviewUrlMap(photoImagePreviewPaths);
 
   const photosWithUrls = (photosRaw || []).map((photo: any) => {
     const path = getPhotoStoragePath(photo);
@@ -1012,9 +1005,10 @@ export default async function PublicSharePage({
       ...photo,
       signed_url: (path && signedUrlMap[path]) || fastUrl || "",
       signed_thumbnail_url:
-        (path && signedUrlMap[path]) ||
         (photo.thumbnail_path && signedThumbnailUrlMap[photo.thumbnail_path]) ||
         photo.thumbnail_url ||
+        (path && signedUrlMap[path]) ||
+        fastUrl ||
         "",
     };
   });
@@ -1090,9 +1084,11 @@ export default async function PublicSharePage({
       photo.public_url ||
       "",
     signed_thumbnail_url:
-      (photo.file_path && limitationSignedUrlMap[photo.file_path]) ||
       (photo.thumbnail_path && limitationThumbnailSignedUrlMap[photo.thumbnail_path]) ||
       photo.thumbnail_url ||
+      (photo.file_path && limitationSignedUrlMap[photo.file_path]) ||
+      photo.signed_url ||
+      photo.public_url ||
       "",
   }));
 
@@ -1139,9 +1135,11 @@ export default async function PublicSharePage({
         photo.public_url ||
         "",
       signed_thumbnail_url:
-        (photo.file_path && referenceSignedUrlMap[photo.file_path]) ||
         (photo.thumbnail_path && referenceThumbnailSignedUrlMap[photo.thumbnail_path]) ||
         photo.thumbnail_url ||
+        (photo.file_path && referenceSignedUrlMap[photo.file_path]) ||
+        photo.signed_url ||
+        photo.public_url ||
         "",
     })
   );
@@ -1192,9 +1190,12 @@ export default async function PublicSharePage({
       item.public_url ||
       "",
     signed_thumbnail_url:
-      (item.file_path && equipmentSignedUrlMap[item.file_path]) ||
       (item.thumbnail_path && equipmentThumbnailSignedUrlMap[item.thumbnail_path]) ||
       item.thumbnail_url ||
+      (item.file_path && equipmentSignedUrlMap[item.file_path]) ||
+      item.signed_image_url ||
+      item.image_url ||
+      item.public_url ||
       "",
   }));
 
