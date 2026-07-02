@@ -36,6 +36,7 @@ export default function FastLinkButton({
 
   const [opening, setOpening] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const linkRef = useRef<HTMLAnchorElement | null>(null);
 
   const isExternal =
     href.startsWith("http://") ||
@@ -90,9 +91,7 @@ export default function FastLinkButton({
 
     setOpening(true);
 
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
     timeoutRef.current = setTimeout(() => {
       clearOpening();
@@ -104,6 +103,16 @@ export default function FastLinkButton({
   }, [pathname, searchParamsText]);
 
   useEffect(() => {
+    function handleAnyPointerDown(event: PointerEvent) {
+      const target = event.target as Node | null;
+
+      if (!target || !linkRef.current) return;
+
+      if (!linkRef.current.contains(target)) {
+        clearOpening();
+      }
+    }
+
     function handlePageShow() {
       clearOpening();
     }
@@ -112,11 +121,19 @@ export default function FastLinkButton({
       if (document.visibilityState === "visible") clearOpening();
     }
 
+    function handleFocus() {
+      clearOpening();
+    }
+
+    document.addEventListener("pointerdown", handleAnyPointerDown, true);
     window.addEventListener("pageshow", handlePageShow);
+    window.addEventListener("focus", handleFocus);
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
+      document.removeEventListener("pointerdown", handleAnyPointerDown, true);
       window.removeEventListener("pageshow", handlePageShow);
+      window.removeEventListener("focus", handleFocus);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
@@ -124,6 +141,7 @@ export default function FastLinkButton({
 
   return (
     <Link
+      ref={linkRef}
       href={href}
       prefetch={prefetch && !isExternal}
       title={title}
@@ -134,6 +152,7 @@ export default function FastLinkButton({
       onClick={handleClick}
       aria-busy={opening}
       data-fast-click="true"
+      data-fast-link-href={href}
       className={`${className} inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl transition duration-150 active:scale-[0.98] active:opacity-90 [touch-action:manipulation] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 ${
         opening ? `pointer-events-none opacity-80 ${activeClassName}` : ""
       }`}
