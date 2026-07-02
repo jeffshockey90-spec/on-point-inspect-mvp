@@ -243,7 +243,6 @@ export default async function RealtorPortalPage() {
       .from("repair_request_shares")
       .select("*")
       .in("inspection_id", inspectionIds)
-      .ilike("recipient_email", userEmail)
       .order("created_at", { ascending: false });
 
     repairShares = data || [];
