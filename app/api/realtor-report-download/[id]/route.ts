@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
+import QRCode from "qrcode";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -208,6 +209,13 @@ function formatDate(value: any) {
   return date.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 }
 
+function onlineReportUrlForInspection(inspectionId: any) {
+  const appUrl = cleanText(process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL);
+  const cleanId = cleanText(inspectionId);
+  if (!appUrl || !cleanId) return "";
+  return `${appUrl.replace(/\/$/, "")}/share/${encodeURIComponent(cleanId)}`;
+}
+
 function getStoragePathFromUrl(url: string | null | undefined) {
   if (!url) return "";
   const cleanUrl = String(url).split("?")[0].split("#")[0];
@@ -381,20 +389,201 @@ async function loadPhotos(admin: any, inspectionId: string, findingIds: string[]
   return Array.from(byId.values());
 }
 
+function pickFirstUrl(...values: any[]) {
+  for (const value of values) {
+    const clean = cleanText(value);
+    if (clean && clean !== "null" && clean !== "undefined") return clean;
+  }
+
+  return "";
+}
+
+function pickFirstText(...values: any[]) {
+  for (const value of values) {
+    const clean = cleanText(value);
+    if (clean && clean !== "null" && clean !== "undefined") return clean;
+  }
+
+  return "";
+}
+
+async function maybeSingleOrNull(query: any) {
+  const { data, error } = await query.maybeSingle();
+  if (error) return null;
+  return data || null;
+}
+
+async function findCompanyById(admin: any, companyId: any) {
+  const id = cleanText(companyId);
+  if (!id) return null;
+
+  return maybeSingleOrNull(admin.from("companies").select("*").eq("id", id));
+}
+
+async function loadCompanyBranding(admin: any, inspection: any, fallbackEmail = "") {
+  let company: any = null;
+  let inspector: any = null;
+
+  const companyId =
+    inspection?.company_id ||
+    inspection?.companyId ||
+    inspection?.company ||
+    inspection?.company_uuid ||
+    "";
+
+  company = await findCompanyById(admin, companyId);
+
+  const inspectorIds = [
+    inspection?.inspector_id,
+    inspection?.inspector_user_id,
+    inspection?.user_id,
+    inspection?.owner_id,
+    inspection?.created_by,
+    inspection?.auth_user_id,
+  ]
+    .map((value) => cleanText(value))
+    .filter(Boolean);
+
+  for (const inspectorId of inspectorIds) {
+    if (!inspector) {
+      inspector =
+        (await maybeSingleOrNull(admin.from("inspectors").select("*").eq("id", inspectorId))) ||
+        (await maybeSingleOrNull(admin.from("inspectors").select("*").eq("user_id", inspectorId))) ||
+        (await maybeSingleOrNull(admin.from("inspectors").select("*").eq("owner_id", inspectorId))) ||
+        (await maybeSingleOrNull(admin.from("inspectors").select("*").eq("auth_user_id", inspectorId)));
+    }
+
+    if (!company) {
+      const companyUser = await maybeSingleOrNull(
+        admin.from("company_users").select("company_id, role").eq("user_id", inspectorId)
+      );
+
+      company = await findCompanyById(admin, companyUser?.company_id);
+    }
+
+    if (company) break;
+  }
+
+  const inspectorEmail = cleanEmail(
+    inspection?.inspector_email ||
+      inspection?.owner_email ||
+      inspection?.created_by_email ||
+      fallbackEmail
+  );
+
+  if (!inspector && inspectorEmail) {
+    inspector =
+      (await maybeSingleOrNull(admin.from("inspectors").select("*").ilike("email", inspectorEmail))) ||
+      (await maybeSingleOrNull(admin.from("inspectors").select("*").ilike("owner_email", inspectorEmail)));
+  }
+
+  if (!company && inspector?.company_id) {
+    company = await findCompanyById(admin, inspector.company_id);
+  }
+
+  if (!company && inspectorEmail) {
+    company =
+      (await maybeSingleOrNull(admin.from("companies").select("*").ilike("email", inspectorEmail))) ||
+      (await maybeSingleOrNull(admin.from("companies").select("*").ilike("owner_email", inspectorEmail)));
+  }
+
+  const companyName = pickFirstText(
+    company?.display_name,
+    company?.name,
+    inspection?.company_name,
+    inspection?.inspection_company,
+    "On Point Home Inspections LLC"
+  );
+
+  const companyEmail = pickFirstText(
+    company?.email,
+    inspection?.company_email,
+    inspection?.inspector_email,
+    fallbackEmail
+  );
+
+  const companyPhone = pickFirstText(company?.phone, inspection?.company_phone, inspection?.inspector_phone);
+  const companyWebsite = pickFirstText(company?.website, inspection?.company_website);
+
+  const logoUrl = pickFirstUrl(
+    company?.logo_url,
+    company?.company_logo_url,
+    company?.profile_logo_url,
+    company?.public_logo_url,
+    company?.brand_logo_url,
+    company?.logo,
+    company?.image_url,
+    company?.avatar_url,
+    inspector?.company_logo_url,
+    inspector?.logo_url,
+    inspector?.profile_logo_url,
+    inspector?.brand_logo_url,
+    inspector?.logo,
+    inspector?.image_url,
+    inspection?.company_logo_url,
+    inspection?.logo_url
+  );
+
+  const brandColor = pickFirstText(company?.brand_color, inspection?.brand_color, "#0f8f8f");
+  const licenseInfo = pickFirstText(company?.license_info, inspector?.license_info, inspection?.license_info);
+  const footerBranding = pickFirstText(
+    company?.report_footer_branding,
+    "Protecting Your Investment. One Inspection at a Time."
+  );
+
+  return {
+    company,
+    inspector,
+    companyName,
+    companyEmail,
+    companyPhone,
+    companyWebsite,
+    logoUrl,
+    brandColor,
+    licenseInfo,
+    footerBranding,
+  };
+}
+
+function buildLogoHtml(branding: any, variant: "cover" | "header" = "header") {
+  const logoUrl = cleanText(branding?.logoUrl);
+
+  if (logoUrl) {
+    return `<img class="${variant === "cover" ? "cover-logo-img" : "header-logo-img"}" src="${escapeHtml(logoUrl)}" alt="${escapeHtml(branding?.companyName || "Company Logo")}" />`;
+  }
+
+  return `<div class="${variant === "cover" ? "cover-logo-fallback" : "header-logo-fallback"}">${escapeHtml(branding?.companyName || "Company")}</div>`;
+}
+
+function getSectionAnchor(section: any) {
+  return cleanText(section)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function severityKey(value: any) {
+  return getSeverityBucket(value).toLowerCase().replace(/[^a-z]+/g, "-");
+}
+
 function buildAgentReportHtml({
   inspection,
   findings,
   reportMode,
   propertyPhotoUrl,
+  branding,
+  qrCodeDataUrl,
 }: {
   inspection: any;
   findings: any[];
   reportMode: "agent" | "full";
   propertyPhotoUrl?: string;
+  branding: any;
+  qrCodeDataUrl?: string;
 }) {
   const property = getPropertyAddress(inspection);
-  const defects = reportMode === "full" ? findings.filter(isReportDefect) : findings.filter(isReportDefect);
   const isFull = reportMode === "full";
+  const defects = findings.filter(isReportDefect);
 
   const counts = defects.reduce(
     (acc: Record<string, number>, finding: any) => {
@@ -410,53 +599,191 @@ function buildAgentReportHtml({
     findings: defects.filter((finding) => normalizeSection(finding.section) === section),
   })).filter((group) => group.findings.length > 0);
 
-  const otherFindings = defects.filter((finding) => !SECTION_ORDER.includes(normalizeSection(finding.section)));
+  const otherFindings = defects.filter(
+    (finding) => !SECTION_ORDER.includes(normalizeSection(finding.section))
+  );
+
   if (otherFindings.length) grouped.push({ section: "Other", findings: otherFindings });
 
-  const sectionsHtml = grouped.map((group) => {
+  const clientName = inspection.client_name || inspection.client || "N/A";
+  const realtorName = inspection.realtor_name || inspection.agent_name || inspection.buyer_agent_name || "N/A";
+  const inspectorName = inspection.inspector_name || inspection.inspector || "Jeff Shockey";
+  const inspectionDate = formatDate(inspection.inspection_date || inspection.scheduled_date || inspection.created_at);
+  const cityStateZip = [inspection.city, inspection.state, inspection.zip].filter(Boolean).join(", ");
+  const reportId = inspection.report_number || inspection.id || "";
+  const onlineReportUrl = onlineReportUrlForInspection(inspection.id);
+  const companyName = branding?.companyName || "On Point Home Inspections LLC";
+  const companyEmail = branding?.companyEmail || "";
+  const companyPhone = branding?.companyPhone || "";
+  const companyWebsite = branding?.companyWebsite || "";
+  const licenseInfo = branding?.licenseInfo || "";
+  const footerBranding = branding?.footerBranding || "Protecting Your Investment. One Inspection at a Time.";
+  const coverLogoHtml = buildLogoHtml(branding, "cover");
+  const headerLogoHtml = buildLogoHtml(branding, "header");
+  const qrLogoUrl = cleanText(branding?.logoUrl);
+  const qrHtml = qrCodeDataUrl
+    ? `
+      <div class="qr-card">
+        <div class="qr-frame">
+          <img class="qr-image" src="${escapeHtml(qrCodeDataUrl)}" alt="Scan QR code to view report" />
+          ${
+            qrLogoUrl
+              ? `
+                <div class="qr-logo">
+                  <img src="${escapeHtml(qrLogoUrl)}" alt="${escapeHtml(companyName)} logo" />
+                </div>
+              `
+              : ""
+          }
+        </div>
+
+        <div class="qr-title">SCAN TO VIEW REPORT</div>
+        <div class="qr-description">View the interactive inspection report with photos, videos, repair requests and more.</div>
+        <div class="qr-powered">POWERED BY ON POINT INSPECT</div>
+      </div>
+    `
+    : `<div class="qr-card"><div class="qr-title">QR CODE UNAVAILABLE</div></div>`;
+
+  const coverPhotoHtml = propertyPhotoUrl
+    ? `<img class="cover-photo" src="${escapeHtml(propertyPhotoUrl)}" alt="Property photo" />`
+    : `<div class="cover-photo no-photo">Property photo not available</div>`;
+
+  const tocHtml = grouped.map((group) => {
     const sectionNumber = getSectionNumber(group.section);
-    const itemsHtml = group.findings.map((finding: any, index: number) => {
+    return `
+      <div class="toc-row">
+        <span class="toc-num">${escapeHtml(String(sectionNumber))}</span>
+        <span class="toc-name">${escapeHtml(group.section)}</span>
+        <span class="toc-dots"></span>
+        <span class="toc-count">${group.findings.length} item${group.findings.length === 1 ? "" : "s"}</span>
+      </div>
+    `;
+  }).join("");
+
+  const keyFindingsHtml = defects.map((finding: any, index: number) => {
+    const section = normalizeSection(finding.section);
+    const sectionNumber = getSectionNumber(section);
+    const bucket = getSeverityBucket(finding.severity);
+    return `
+      <li>
+        <span class="key-dot ${severityKey(finding.severity)}"></span>
+        <span><strong>${escapeHtml(`${sectionNumber}.${index + 1}`)}</strong> ${escapeHtml(section)} — ${escapeHtml(getFindingTitle(finding))}</span>
+        <em>${escapeHtml(bucket)}</em>
+      </li>
+    `;
+  }).join("");
+
+  const summaryCards = `
+    <div class="summary-cards">
+      <div class="summary-card safety-major">
+        <div class="summary-icon">!</div>
+        <strong>${counts["Safety / Major"] || 0}</strong>
+        <span>Safety / Major</span>
+      </div>
+      <div class="summary-card recommended-repair">
+        <div class="summary-icon">✓</div>
+        <strong>${counts["Recommended Repair"] || 0}</strong>
+        <span>Recommended Repair</span>
+      </div>
+      <div class="summary-card maintenance-monitor">
+        <div class="summary-icon">•</div>
+        <strong>${counts["Maintenance / Monitor"] || 0}</strong>
+        <span>Maintenance / Monitor</span>
+      </div>
+      <div class="summary-card informational">
+        <div class="summary-icon">i</div>
+        <strong>${counts["Informational"] || 0}</strong>
+        <span>Informational</span>
+      </div>
+    </div>
+  `;
+
+  const pagesHtml = grouped.map((group) => {
+    const sectionNumber = getSectionNumber(group.section);
+
+    const findingsHtml = group.findings.map((finding: any, index: number) => {
+      const sectionItemNumber = `${sectionNumber}.${index + 1}`;
       const photos = Array.isArray(finding.photos)
-        ? finding.photos.slice(0, isFull ? 8 : 2)
+        ? finding.photos.slice(0, isFull ? 4 : 2)
         : [];
+
       const photoHtml = photos.length
-        ? `<div class="photos">${photos.map((photo: any) => `<img src="${escapeHtml(photo.download_url)}" alt="Finding photo" />`).join("")}</div>`
+        ? `<div class="finding-photos">${photos.map((photo: any) => `<img src="${escapeHtml(photo.download_url)}" alt="Finding photo" />`).join("")}</div>`
         : "";
 
-      const observationHtml = isFull && finding.observation
-        ? `<p class="finding-sub"><strong>Observation:</strong> ${escapeHtml(finding.observation)}</p>`
+      const observationHtml = finding.observation
+        ? `<div class="finding-note"><b>Observation</b><p>${escapeHtml(finding.observation)}</p></div>`
         : "";
-      const implicationHtml = isFull && finding.implication
-        ? `<p class="finding-sub"><strong>Implication:</strong> ${escapeHtml(finding.implication)}</p>`
+
+      const implicationHtml = finding.implication
+        ? `<div class="finding-note"><b>Implication</b><p>${escapeHtml(finding.implication)}</p></div>`
         : "";
-      const recommendationHtml = isFull && finding.recommendation
-        ? `<p class="finding-sub"><strong>Recommendation:</strong> ${escapeHtml(finding.recommendation)}</p>`
-        : `<p class="finding-text">${escapeHtml(getFindingText(finding))}</p>`;
+
+      const recommendationHtml = finding.recommendation
+        ? `<div class="finding-note recommendation"><b>Recommendation</b><p>${escapeHtml(finding.recommendation)}</p></div>`
+        : `<div class="finding-note recommendation"><b>Recommendation</b><p>${escapeHtml(getFindingText(finding))}</p></div>`;
 
       return `
-        <article class="finding">
-          <div class="finding-head">
-            <div>
-              <p class="item-number">Item #${sectionNumber}.1.${index + 1}</p>
-              <h3>${escapeHtml(getFindingTitle(finding))}</h3>
-              <p class="section-line">${escapeHtml(group.section)} · ${escapeHtml(getSeverityBucket(finding.severity))}</p>
+        <article class="finding-row">
+          <div class="finding-main">
+            <div class="finding-title-row">
+              <span class="finding-num">${escapeHtml(sectionItemNumber)}</span>
+              <div>
+                <h3>${escapeHtml(getFindingTitle(finding))}</h3>
+                <p>${escapeHtml(group.section)} · ${escapeHtml(getSeverityBucket(finding.severity))}</p>
+              </div>
+              <span class="pill ${severityKey(finding.severity)}">${escapeHtml(getSeverityBucket(finding.severity))}</span>
             </div>
-            <span class="severity">${escapeHtml(getSeverityBucket(finding.severity))}</span>
+
+            <div class="finding-body">
+              <div class="finding-copy">
+                ${observationHtml}
+                ${implicationHtml}
+                ${recommendationHtml}
+              </div>
+              ${photoHtml}
+            </div>
           </div>
-          ${photoHtml}
-          ${observationHtml}
-          ${implicationHtml}
-          ${recommendationHtml}
         </article>
       `;
     }).join("");
 
-    return `<section class="report-section"><h2>${escapeHtml(group.section)}</h2>${itemsHtml}</section>`;
-  }).join("");
+    return `
+      <section class="page report-page" id="${escapeHtml(getSectionAnchor(group.section))}">
+        <header class="page-header">
+          <div class="mini-brand">
+            ${headerLogoHtml}
+          </div>
+          <div class="header-address">
+            ${escapeHtml(property)}<br/>
+            ${escapeHtml(cityStateZip)}
+          </div>
+        </header>
 
-  const coverPhotoHtml = propertyPhotoUrl
-    ? `<div class="cover-photo"><img src="${escapeHtml(propertyPhotoUrl)}" alt="Property photo" /></div>`
-    : `<div class="cover-photo empty"><span>No property photo available</span></div>`;
+        <div class="section-banner">
+          <span>${escapeHtml(String(sectionNumber))}</span>
+          <div>
+            <p>Inspection Section</p>
+            <h2>${escapeHtml(group.section)}</h2>
+          </div>
+        </div>
+
+        <div class="section-info-strip">
+          <div><b>Documented Items</b><span>${group.findings.length}</span></div>
+          <div><b>Report Type</b><span>${isFull ? "Full Report" : "Agent Summary"}</span></div>
+          <div><b>Inspection Date</b><span>${escapeHtml(inspectionDate)}</span></div>
+        </div>
+
+        <h4 class="findings-label">Findings</h4>
+        ${findingsHtml}
+
+        <footer class="black-footer">
+          <span>${escapeHtml(companyName)}</span>
+          <span>${escapeHtml(group.section)}</span>
+        </footer>
+      </section>
+    `;
+  }).join("");
 
   return `<!doctype html>
 <html>
@@ -466,66 +793,231 @@ function buildAgentReportHtml({
   <title>${isFull ? "Full Report" : "Agent Report"} - ${escapeHtml(property)}</title>
   <style>
     * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    @page { size: letter; margin: .45in; }
-    body { margin: 0; background: #020617; color: #0f172a; font-family: Arial, Helvetica, sans-serif; font-size: 12px; line-height: 1.45; }
-    .screen-actions { max-width: 980px; margin: 18px auto 12px; padding: 0 12px; display: flex; gap: 10px; flex-wrap: wrap; }
+    @page { size: letter; margin: 0; }
+    html, body { margin: 0; padding: 0; }
+    body { background: #0b1120; color: #0f172a; font-family: Arial, Helvetica, sans-serif; font-size: 12px; line-height: 1.45; }
+    a { color: #0f8f8f; text-decoration: none; }
+
+    .screen-actions { max-width: 816px; margin: 18px auto 12px; padding: 0 12px; display: flex; gap: 10px; flex-wrap: wrap; }
     .screen-actions button { min-height: 44px; border: 1px solid #14b8a6; border-radius: 12px; background: #020617; color: #5eead4; padding: 10px 16px; font-weight: 900; cursor: pointer; }
-    .shell { max-width: 980px; margin: 0 auto 28px; padding: 12px; }
-    .paper { background: #fff; border: 1px solid #cbd5e1; border-radius: 14px; padding: 24px; box-shadow: 0 14px 40px rgba(0,0,0,.18); }
-    .brand { display: flex; justify-content: space-between; gap: 18px; border-bottom: 3px solid #0f8f8f; padding-bottom: 16px; margin-bottom: 16px; }
-    .eyebrow { margin: 0 0 6px; color: #0f8f8f; font-size: 11px; font-weight: 900; letter-spacing: .24em; text-transform: uppercase; }
-    h1 { margin: 0 0 8px; font-size: 30px; line-height: 1.08; font-weight: 900; color: #020617; }
-    .property { margin: 0; color: #475569; font-weight: 800; }
-    .badge { height: fit-content; border: 1px solid #0f8f8f; border-radius: 999px; color: #0f8f8f; padding: 8px 12px; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; }
-    .cover-photo { height: 245px; margin: 16px 0 18px; overflow: hidden; border: 1px solid #cbd5e1; border-radius: 13px; background: #f8fafc; display: flex; align-items: center; justify-content: center; }
-    .cover-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .cover-photo.empty span { color: #64748b; font-weight: 900; }
-    .summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 18px 0; }
-    .summary div { border: 1px solid #cbd5e1; border-radius: 10px; background: #f8fafc; padding: 10px 12px; }
-    .summary span { display: block; margin-bottom: 3px; color: #64748b; font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; }
-    .summary strong { display: block; color: #020617; font-size: 13px; font-weight: 900; word-break: break-word; }
-    .report-section { margin-top: 26px; }
-    .report-section h2 { margin: 0 0 12px; padding-bottom: 8px; border-bottom: 1px solid #cbd5e1; color: #020617; font-size: 18px; font-weight: 900; }
-    .finding { break-inside: avoid; page-break-inside: avoid; border: 1px solid #cbd5e1; border-radius: 12px; padding: 14px; margin-top: 14px; }
-    .finding-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
-    .item-number { display: inline-block; margin: 0 0 8px; border: 1px solid #0f8f8f; border-radius: 999px; background: #ecfeff; color: #0f766e; padding: 4px 9px; font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; }
-    h3 { margin: 0; font-size: 15px; color: #020617; line-height: 1.25; }
-    .section-line { margin: 5px 0 0; color: #64748b; font-size: 11px; font-weight: 800; }
-    .severity { flex-shrink: 0; border: 1px solid #0f8f8f; border-radius: 999px; background: #ecfeff; color: #0f766e; padding: 5px 9px; font-size: 9px; font-weight: 900; text-transform: uppercase; }
-    .finding-text, .finding-sub { margin: 10px 0 0; color: #334155; white-space: pre-line; }
-    .photos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
-    .photos img { width: 100%; max-height: ${isFull ? "320px" : "210px"}; object-fit: contain; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; }
-    .note { margin-top: 16px; color: #64748b; font-size: 11px; }
-    @media (max-width: 760px) { .summary, .photos { grid-template-columns: 1fr; } .brand { flex-direction: column; } }
-    @media print { body { background: #fff; } .screen-actions { display: none; } .shell { max-width: none; margin: 0; padding: 0; } .paper { border: 0; box-shadow: none; border-radius: 0; padding: 0; } }
+
+    .document { width: 816px; margin: 0 auto 30px; background: #e5e7eb; box-shadow: 0 20px 50px rgba(0,0,0,.35); }
+    .page { position: relative; width: 816px; min-height: 1056px; overflow: hidden; background: #fff; padding: 42px 46px 62px; break-after: page; page-break-after: always; border-bottom: 10px solid #0b1120; }
+    .page:last-child { break-after: auto; page-break-after: auto; }
+
+    .page-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; border-bottom: 3px solid #0f8f8f; padding-bottom: 14px; margin-bottom: 24px; }
+    .mini-brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .header-logo-img { width: 155px; max-height: 48px; object-fit: contain; object-position: left center; display: block; }
+    .header-logo-fallback { min-height: 42px; max-width: 230px; display: flex; align-items: center; color: #020617; font-size: 18px; font-weight: 900; line-height: 1.05; text-transform: uppercase; }
+    .header-address { text-align: right; font-size: 10px; color: #334155; font-weight: 800; line-height: 1.35; }
+
+    .cover-page { text-align: center; }
+    .cover-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; margin-bottom: 28px; }
+    .cover-logo-img { width: 210px; max-height: 92px; object-fit: contain; object-position: left center; display: block; }
+    .cover-logo-fallback { width: 210px; min-height: 72px; display: flex; align-items: center; color: #020617; font-size: 21px; font-weight: 900; line-height: 1.05; text-align: left; text-transform: uppercase; }
+    .company { text-align: right; color: #334155; font-size: 10px; line-height: 1.5; }
+    .company strong { color: #020617; font-size: 13px; }
+    .cover-photo { width: 610px; height: 330px; object-fit: cover; display: block; margin: 0 auto 28px; border: 1px solid #cbd5e1; border-radius: 4px; }
+    .cover-photo.no-photo { background: #f1f5f9; color: #64748b; display: flex; align-items: center; justify-content: center; font-weight: 900; }
+    .cover-eyebrow { color: #0f8f8f; font-weight: 900; text-transform: uppercase; letter-spacing: .16em; margin: 0 0 8px; }
+    h1 { margin: 0; color: #020617; font-size: 34px; line-height: 1.08; text-transform: uppercase; }
+    .cover-address { margin: 8px 0 0; color: #334155; font-weight: 900; font-size: 15px; }
+    .cover-rule { width: 520px; border: 0; border-top: 3px solid #0f8f8f; margin: 28px auto 20px; }
+    .cover-details { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 22px; }
+    .detail-card { border: 1px solid #cbd5e1; border-radius: 12px; background: #f8fafc; padding: 14px; min-height: 88px; }
+    .detail-card span { display: block; color: #64748b; font-size: 9px; text-transform: uppercase; letter-spacing: .12em; font-weight: 900; }
+    .detail-card strong { display: block; margin-top: 8px; color: #020617; font-size: 14px; }
+
+    .toc-title, .summary-title { margin: 10px 0 30px; color: #020617; font-size: 26px; text-transform: uppercase; letter-spacing: .06em; }
+    .toc-row { display: grid; grid-template-columns: 34px auto 1fr 90px; align-items: end; gap: 9px; padding: 10px 0; border-bottom: 1px dotted #94a3b8; }
+    .toc-num { color: #0f8f8f; font-weight: 900; }
+    .toc-name { color: #020617; font-weight: 800; text-transform: uppercase; }
+    .toc-count { color: #64748b; text-align: right; font-size: 10px; }
+
+    .summary-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin: 28px 0 34px; }
+    .summary-card { border-radius: 10px; overflow: hidden; border: 1px solid #cbd5e1; background: #fff; text-align: center; min-height: 148px; }
+    .summary-icon { height: 46px; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 900; }
+    .summary-card strong { display: block; font-size: 34px; margin-top: 18px; color: #020617; }
+    .summary-card span { display: block; color: #64748b; font-size: 9px; font-weight: 900; text-transform: uppercase; padding: 0 8px; }
+    .summary-card.safety-major .summary-icon { background: #ef4444; }
+    .summary-card.recommended-repair .summary-icon { background: #f97316; }
+    .summary-card.maintenance-monitor .summary-icon { background: #0f8f8f; }
+    .summary-card.informational .summary-icon { background: #2563eb; }
+
+    .key-findings { margin: 0; padding: 0; list-style: none; }
+    .key-findings li { display: grid; grid-template-columns: 14px 1fr auto; gap: 10px; align-items: center; border-bottom: 1px solid #e2e8f0; padding: 8px 0; color: #334155; }
+    .key-dot { width: 11px; height: 11px; border-radius: 999px; background: #f97316; }
+    .key-dot.safety-major { background: #ef4444; }
+    .key-dot.maintenance-monitor { background: #0f8f8f; }
+    .key-dot.informational { background: #2563eb; }
+    .key-findings em { color: #64748b; font-style: normal; font-size: 9px; text-transform: uppercase; font-weight: 900; }
+
+    .section-banner { display: flex; align-items: center; gap: 18px; margin: 8px 0 22px; }
+    .section-banner > span { width: 74px; height: 58px; background: #0f8f8f; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 900; clip-path: polygon(0 0, 82% 0, 100% 50%, 82% 100%, 0 100%); }
+    .section-banner p { margin: 0; color: #64748b; font-size: 10px; text-transform: uppercase; font-weight: 900; letter-spacing: .12em; }
+    .section-banner h2 { margin: 2px 0 0; color: #020617; font-size: 28px; text-transform: uppercase; }
+    .section-info-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; border-top: 1px solid #cbd5e1; border-bottom: 1px solid #cbd5e1; padding: 12px 0; margin-bottom: 18px; }
+    .section-info-strip b { display: block; color: #0f8f8f; font-size: 9px; text-transform: uppercase; letter-spacing: .1em; }
+    .section-info-strip span { display: block; color: #334155; font-weight: 800; margin-top: 3px; }
+    .findings-label { color: #020617; text-transform: uppercase; letter-spacing: .12em; margin: 14px 0 6px; font-size: 12px; border-bottom: 2px solid #0f8f8f; padding-bottom: 7px; }
+
+    .finding-row { break-inside: avoid; page-break-inside: avoid; padding: 12px 0 16px; border-bottom: 1px solid #e2e8f0; }
+    .finding-title-row { display: grid; grid-template-columns: 48px 1fr auto; gap: 12px; align-items: start; margin-bottom: 10px; }
+    .finding-num { background: #0f8f8f; color: #fff; border-radius: 4px; padding: 7px 6px; text-align: center; font-weight: 900; font-size: 11px; }
+    h3 { margin: 0; color: #020617; font-size: 15px; line-height: 1.25; }
+    .finding-title-row p { margin: 4px 0 0; color: #64748b; font-size: 10px; font-weight: 800; }
+    .pill { border-radius: 4px; padding: 6px 8px; color: #fff; background: #f97316; font-size: 9px; font-weight: 900; text-transform: uppercase; white-space: nowrap; }
+    .pill.safety-major { background: #ef4444; }
+    .pill.maintenance-monitor { background: #0f8f8f; }
+    .pill.informational { background: #2563eb; }
+    .finding-body { display: grid; grid-template-columns: 1fr 225px; gap: 16px; align-items: start; }
+    .finding-copy { display: grid; gap: 8px; }
+    .finding-note { border-left: 3px solid #0f8f8f; padding-left: 10px; }
+    .finding-note b { display: block; color: #0f8f8f; font-size: 9px; text-transform: uppercase; letter-spacing: .08em; }
+    .finding-note p { margin: 3px 0 0; color: #334155; white-space: pre-line; }
+    .finding-note.recommendation { border-left-color: #f97316; }
+    .finding-note.recommendation b { color: #f97316; }
+    .finding-photos { display: grid; gap: 8px; }
+    .finding-photos img { width: 100%; max-height: 174px; object-fit: contain; border: 1px solid #cbd5e1; background: #fff; }
+
+    .interactive-card { margin: 120px auto 0; max-width: 420px; text-align: center; }
+    .interactive-icon { width: 90px; height: 90px; margin: 0 auto 18px; border-radius: 999px; background: #0f8f8f; color: white; display: flex; align-items: center; justify-content: center; font-size: 34px; font-weight: 900; }
+    .qr-card { width: 300px; margin: 34px auto 0; background: #07111f; border: 1px solid #24344d; border-radius: 24px; padding: 20px 18px 22px; text-align: center; box-shadow: 0 14px 34px rgba(2, 6, 23, .34); }
+    .qr-frame { width: 190px; height: 190px; margin: 0 auto 18px; background: #fff; border-radius: 20px; padding: 13px; position: relative; }
+    .qr-image { width: 100%; height: 100%; object-fit: contain; display: block; }
+    .qr-logo { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 60px; height: 60px; background: #07111f; border: 3px solid #0f172a; border-radius: 16px; display: flex; justify-content: center; align-items: center; overflow: hidden; box-shadow: 0 4px 14px rgba(0,0,0,.45); }
+    .qr-logo img { width: 46px; height: 46px; object-fit: contain; display: block; }
+    .qr-title { color: #18d6c6; font-size: 13px; font-weight: 900; letter-spacing: .18em; text-transform: uppercase; }
+    .qr-description { margin: 8px auto 0; max-width: 230px; color: #b9c7d9; font-size: 10px; line-height: 1.45; }
+    .qr-powered { margin-top: 18px; color: #7186a4; font-size: 9px; font-weight: 900; letter-spacing: .32em; text-transform: uppercase; line-height: 1.35; }
+    .online-link { color: #0f8f8f; overflow-wrap: anywhere; font-weight: 800; font-size: 9px; }
+
+    .black-footer { position: absolute; left: 0; right: 0; bottom: 0; height: 36px; background: #020617; color: #cbd5e1; display: flex; align-items: center; justify-content: space-between; padding: 0 46px; font-size: 9px; }
+    .teal-line { position: absolute; left: 46px; right: 46px; bottom: 42px; border-top: 1px solid #0f8f8f; }
+
+    @media (max-width: 840px) {
+      .document, .page { width: 100%; }
+      .page { min-height: auto; overflow: visible; padding: 24px 20px 70px; break-after: auto; page-break-after: auto; }
+      .cover-photo { width: 100%; height: auto; max-height: 320px; }
+      .cover-details, .summary-cards, .section-info-strip { grid-template-columns: 1fr; }
+      .finding-body, .finding-title-row { grid-template-columns: 1fr; }
+      .black-footer { padding: 0 20px; }
+    }
+
+    @media print {
+      body { background: #fff; }
+      .screen-actions { display: none; }
+      .document { width: 8.5in; margin: 0; box-shadow: none; background: #fff; }
+      .page { width: 8.5in; min-height: 11in; overflow: hidden; }
+    }
   </style>
 </head>
 <body>
-  <div class="screen-actions"><button onclick="window.print()">Print / Save PDF</button></div>
-  <main class="shell">
-    <section class="paper">
-      <div class="brand">
-        <div>
-          <p class="eyebrow">On Point Home Inspections</p>
-          <h1>${isFull ? "Full Report Download" : "Agent Report Download"}</h1>
-          <p class="property">${escapeHtml(property)}</p>
+  <div class="screen-actions">
+    <button onclick="window.print()">Print / Save PDF</button>
+  </div>
+
+  <main class="document">
+    <section class="page cover-page">
+      <div class="cover-top">
+        ${coverLogoHtml}
+        <div class="company">
+          <strong>${escapeHtml(companyName)}</strong><br/>
+          ${companyPhone ? `${escapeHtml(companyPhone)}<br/>` : ""}
+          ${companyEmail ? `${escapeHtml(companyEmail)}<br/>` : ""}
+          ${companyWebsite ? `${escapeHtml(companyWebsite)}<br/>` : ""}
+          ${licenseInfo ? `<span>${escapeHtml(licenseInfo)}</span>` : ""}
         </div>
-        <div class="badge">${isFull ? "Full Report" : "Agent Report"}</div>
       </div>
+
       ${coverPhotoHtml}
-      <div class="summary">
-        <div><span>Inspection Date</span><strong>${escapeHtml(formatDate(inspection.inspection_date || inspection.scheduled_date || inspection.created_at))}</strong></div>
-        <div><span>Client</span><strong>${escapeHtml(inspection.client_name || inspection.client || "N/A")}</strong></div>
-        <div><span>Defects</span><strong>${defects.length}</strong></div>
-        <div><span>Report Type</span><strong>${isFull ? "Full" : "Agent Friendly"}</strong></div>
-        <div><span>Safety / Major</span><strong>${counts["Safety / Major"] || 0}</strong></div>
-        <div><span>Recommended Repair</span><strong>${counts["Recommended Repair"] || 0}</strong></div>
-        <div><span>Maintenance / Monitor</span><strong>${counts["Maintenance / Monitor"] || 0}</strong></div>
-        <div><span>Informational</span><strong>${counts["Informational"] || 0}</strong></div>
+
+      <p class="cover-eyebrow">${isFull ? "Residential Inspection Report" : "Agent Friendly Report"}</p>
+      <h1>${escapeHtml(property)}</h1>
+      <p class="cover-address">${escapeHtml(cityStateZip || "Inspection Location")}</p>
+      <hr class="cover-rule" />
+
+      <div class="cover-details">
+        <div class="detail-card"><span>Inspector</span><strong>${escapeHtml(inspectorName)}</strong></div>
+        <div class="detail-card"><span>Client</span><strong>${escapeHtml(clientName)}</strong></div>
+        <div class="detail-card"><span>Realtor</span><strong>${escapeHtml(realtorName)}</strong></div>
+        <div class="detail-card"><span>Inspection Date</span><strong>${escapeHtml(inspectionDate)}</strong></div>
+        <div class="detail-card"><span>Report Type</span><strong>${isFull ? "Full Report" : "Agent Report"}</strong></div>
+        <div class="detail-card"><span>Report ID</span><strong>${escapeHtml(reportId || "N/A")}</strong></div>
       </div>
-      <p class="note">${isFull ? "This report includes documented findings with available photos." : "This lightweight report is designed for realtor review and smaller downloads. It focuses on documented findings and uses small linked photos instead of embedding large image files."}</p>
-      ${sectionsHtml || `<p>No report findings were found.</p>`}
+
+      <div class="teal-line"></div>
+      <footer class="black-footer">
+        <span>${escapeHtml(footerBranding)}</span>
+        <span>${escapeHtml(companyName)}</span>
+      </footer>
     </section>
+
+    ${isFull ? `
+    <section class="page">
+      <header class="page-header">
+        <div class="mini-brand">${headerLogoHtml}</div>
+        <div class="header-address">${escapeHtml(property)}<br/>${escapeHtml(cityStateZip)}</div>
+      </header>
+      <h2 class="toc-title">Table of Contents</h2>
+      ${tocHtml || "<p>No sections with findings.</p>"}
+      <footer class="black-footer"><span>${escapeHtml(companyName)}</span><span>Table of Contents</span></footer>
+    </section>
+    ` : ""}
+
+    <section class="page">
+      <header class="page-header">
+        <div class="mini-brand">${headerLogoHtml}</div>
+        <div class="header-address">${escapeHtml(property)}<br/>${escapeHtml(cityStateZip)}</div>
+      </header>
+
+      <h2 class="summary-title">Summary</h2>
+      ${summaryCards}
+
+      <h2 class="summary-title">Key Findings</h2>
+      <ul class="key-findings">
+        ${keyFindingsHtml || "<li>No report findings were found.</li>"}
+      </ul>
+
+      <footer class="black-footer">
+        <span>Summary</span>
+        <span>${defects.length} documented finding${defects.length === 1 ? "" : "s"}</span>
+      </footer>
+    </section>
+
+    ${pagesHtml || `
+      <section class="page">
+        <header class="page-header">
+          <div class="mini-brand">${headerLogoHtml}</div>
+          <div class="header-address">${escapeHtml(property)}</div>
+        </header>
+        <h2>No Findings</h2>
+        <p>No report findings were found.</p>
+        <footer class="black-footer"><span>${escapeHtml(companyName)}</span><span>No Findings</span></footer>
+      </section>
+    `}
+
+    ${isFull && onlineReportUrl ? `
+    <section class="page">
+      <header class="page-header">
+        <div class="mini-brand">${headerLogoHtml}</div>
+        <div class="header-address">${escapeHtml(property)}<br/>${escapeHtml(cityStateZip)}</div>
+      </header>
+
+      <div class="interactive-card">
+        <div class="interactive-icon">↗</div>
+        <h2 class="summary-title">Interactive Online Report</h2>
+        <p>View the complete online report with photos, videos, repair requests, addenda, and client-friendly tools.</p>
+        ${qrHtml}
+        <p class="online-link">${escapeHtml(onlineReportUrl)}</p>
+      </div>
+
+      <footer class="black-footer">
+        <span>Interactive Report</span>
+        <span>${escapeHtml(companyName)}</span>
+      </footer>
+    </section>
+    ` : ""}
   </main>
 </body>
 </html>`;
@@ -661,7 +1153,29 @@ export async function GET(req: Request, { params }: RouteProps) {
       rawPropertyPhoto ||
       "";
 
-    const html = buildAgentReportHtml({ inspection, findings, reportMode, propertyPhotoUrl });
+    const branding = await loadCompanyBranding(admin, inspection, userEmail);
+
+    const qrCodeDataUrl =
+      reportMode === "full" && onlineReportUrlForInspection(inspection.id)
+        ? await QRCode.toDataURL(onlineReportUrlForInspection(inspection.id), {
+            errorCorrectionLevel: "H",
+            margin: 1,
+            width: 420,
+            color: {
+              dark: "#18c8bf",
+              light: "#ffffff",
+            },
+          })
+        : "";
+
+    const html = buildAgentReportHtml({
+      inspection,
+      findings,
+      reportMode,
+      propertyPhotoUrl,
+      branding,
+      qrCodeDataUrl,
+    });
     const property = getPropertyAddress(inspection);
 
     return new NextResponse(html, {
