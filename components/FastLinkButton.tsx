@@ -2,51 +2,94 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+
+type FastLinkButtonProps = {
+  href: string;
+  children: React.ReactNode;
+  loadingText?: string;
+  className?: string;
+  activeClassName?: string;
+  title?: string;
+  target?: string;
+  rel?: string;
+  prefetch?: boolean;
+  onClick?: () => void;
+};
 
 export default function FastLinkButton({
   href,
   children,
   loadingText = "Opening...",
   className = "",
-}: {
-  href: string;
-  children: React.ReactNode;
-  loadingText?: string;
-  className?: string;
-}) {
+  activeClassName = "",
+  title,
+  target,
+  rel,
+  prefetch = true,
+  onClick,
+}: FastLinkButtonProps) {
   const router = useRouter();
   const [opening, setOpening] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isExternal = href.startsWith("http://") || href.startsWith("https://") || href.startsWith("mailto:") || href.startsWith("tel:");
 
-  function handlePointerEnter() {
-    router.prefetch(href);
+  function prefetchHref() {
+    if (!prefetch || isExternal) return;
+
+    try {
+      router.prefetch(href);
+    } catch {}
   }
 
-  function handleTouchStart() {
-    router.prefetch(href);
-  }
+  function handleClick(event: React.MouseEvent<HTMLAnchorElement>) {
+    onClick?.();
 
-  function handleClick() {
-    if (opening) return;
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || target === "_blank") {
+      return;
+    }
+
+    if (opening) {
+      event.preventDefault();
+      return;
+    }
+
     setOpening(true);
   }
+
+  useEffect(() => {
+    if (!opening) return;
+
+    timeoutRef.current = setTimeout(() => {
+      setOpening(false);
+    }, 8000);
+
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, [opening]);
 
   return (
     <Link
       href={href}
-      prefetch
-      onPointerEnter={handlePointerEnter}
-      onTouchStart={handleTouchStart}
+      prefetch={prefetch && !isExternal}
+      title={title}
+      target={target}
+      rel={rel || (target === "_blank" ? "noreferrer" : undefined)}
+      onPointerEnter={prefetchHref}
+      onTouchStart={prefetchHref}
+      onFocus={prefetchHref}
       onClick={handleClick}
       aria-busy={opening}
-      className={`${className} inline-flex items-center justify-center gap-2 transition active:scale-[0.98] [touch-action:manipulation] ${
-        opening ? "pointer-events-none opacity-80" : ""
+      data-fast-click="true"
+      className={`${className} inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl transition duration-150 active:scale-[0.98] active:opacity-90 [touch-action:manipulation] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 ${
+        opening ? `pointer-events-none opacity-80 ${activeClassName}` : ""
       }`}
     >
-      {opening && (
-        <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-      )}
-      {opening ? loadingText : children}
+      {opening ? (
+        <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent" />
+      ) : null}
+      <span>{opening ? loadingText : children}</span>
     </Link>
   );
 }

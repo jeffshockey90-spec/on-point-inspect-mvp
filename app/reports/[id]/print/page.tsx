@@ -66,6 +66,89 @@ function normalizeSection(section: string | null | undefined) {
   return aliases[clean] || clean;
 }
 
+function getReportFindingTitle(finding: any) {
+  return (
+    finding?.title ||
+    finding?.finding_title ||
+    finding?.defect_title ||
+    finding?.name ||
+    "Untitled Finding"
+  );
+}
+
+function isNumberedReportFinding(finding: any) {
+  const section = String(finding?.section || "").toLowerCase().trim();
+  const title = String(getReportFindingTitle(finding) || "").toLowerCase().trim();
+
+  if (section === "inspection details") return false;
+  if (section === "disclaimers") return false;
+  if (
+    [
+      "in attendance",
+      "occupancy",
+      "style",
+      "temperature",
+      "type of building",
+      "weather conditions",
+    ].includes(title)
+  ) {
+    return false;
+  }
+  if (title.includes("section reference photo")) return false;
+  if (title.includes("reference photo")) return false;
+
+  return true;
+}
+
+function buildFindingItemNumbers(findings: any[]) {
+  const titleIndexesBySection = new Map<string, Map<string, number>>();
+  const itemCountersBySectionTitle = new Map<string, Map<number, number>>();
+
+  return (findings || []).map((finding: any) => {
+    const section = normalizeSection(finding?.section);
+
+    if (!isNumberedReportFinding({ ...finding, section })) {
+      return { ...finding, section };
+    }
+
+    const sectionIndex = SECTION_ORDER.indexOf(section);
+    const sectionNumber = sectionIndex >= 0 ? sectionIndex + 1 : SECTION_ORDER.length + 1;
+    const titleKey = String(getReportFindingTitle(finding) || "Untitled Finding")
+      .toLowerCase()
+      .replace(/\s+/g, " ")
+      .trim();
+
+    if (!titleIndexesBySection.has(section)) {
+      titleIndexesBySection.set(section, new Map<string, number>());
+    }
+
+    if (!itemCountersBySectionTitle.has(section)) {
+      itemCountersBySectionTitle.set(section, new Map<number, number>());
+    }
+
+    const titleIndexes = titleIndexesBySection.get(section)!;
+
+    if (!titleIndexes.has(titleKey)) {
+      titleIndexes.set(titleKey, titleIndexes.size + 1);
+    }
+
+    const titleNumber = titleIndexes.get(titleKey)!;
+    const itemCounters = itemCountersBySectionTitle.get(section)!;
+    const itemNumber = (itemCounters.get(titleNumber) || 0) + 1;
+    itemCounters.set(titleNumber, itemNumber);
+
+    return {
+      ...finding,
+      section,
+      report_item_number: `${sectionNumber}.${titleNumber}.${itemNumber}`,
+    };
+  });
+}
+
+function getFindingItemNumber(finding: any) {
+  return String(finding?.report_item_number || finding?.item_number || finding?.repair_item_number || "").trim();
+}
+
 function getStoragePathFromUrl(url: string | null | undefined) {
   if (!url) return "";
 
@@ -506,7 +589,9 @@ export default async function PrintableReportPage({ params }: PageProps) {
     }))
   );
 
-  const defectFindings = findings.filter((finding: any) => {
+  const numberedFindings = buildFindingItemNumbers(findings);
+
+  const defectFindings = numberedFindings.filter((finding: any) => {
     const section = String(finding.section || "").toLowerCase();
     const title = String(finding.title || "").toLowerCase();
 
@@ -567,7 +652,7 @@ export default async function PrintableReportPage({ params }: PageProps) {
 
   const groupedFindingsArray = SECTION_ORDER.map((section) => ({
     section,
-    findings: findings.filter((finding: any) => finding.section === section),
+    findings: numberedFindings.filter((finding: any) => finding.section === section),
   }));
 
   const propertyPhoto =
@@ -603,6 +688,23 @@ export default async function PrintableReportPage({ params }: PageProps) {
           .avoid-break {
             break-inside: avoid;
             page-break-inside: avoid;
+          }
+
+          .section-print-block {
+            break-inside: auto;
+            page-break-inside: auto;
+          }
+
+          .finding-card-print {
+            break-inside: avoid;
+            page-break-inside: avoid;
+            margin-bottom: 0.22in;
+          }
+
+          .finding-photo-print {
+            max-height: 3.1in !important;
+            object-fit: contain !important;
+            background: #ffffff;
           }
 
           .print-footer {
@@ -957,7 +1059,7 @@ export default async function PrintableReportPage({ params }: PageProps) {
               if (group.findings.length === 0) return null;
 
               return (
-                <section key={group.section} className="space-y-5">
+                <section key={group.section} className="section-print-block space-y-5">
                   <h3 className="border-b-4 border-teal-600 pb-2 text-3xl font-black text-teal-800">
                     {group.section}
                   </h3>
@@ -965,14 +1067,21 @@ export default async function PrintableReportPage({ params }: PageProps) {
                   {group.findings.map((finding: any) => (
                     <article
                       key={finding.id}
-                      className="avoid-break overflow-hidden rounded-2xl border border-slate-300 bg-white"
+                      className="finding-card-print avoid-break overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-sm print:shadow-none"
                     >
                       <div className="border-b border-slate-300 bg-slate-100 p-5">
                         <div className="flex flex-wrap items-start justify-between gap-4">
                           <div>
-                            <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                              {finding.section}
-                            </p>
+                            <div className="flex flex-wrap items-center gap-2">
+                              {getFindingItemNumber(finding) && (
+                                <span className="rounded-full border border-orange-500 bg-orange-100 px-3 py-1 text-xs font-black uppercase tracking-wide text-orange-800">
+                                  Item #{getFindingItemNumber(finding)}
+                                </span>
+                              )}
+                              <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                                {finding.section}
+                              </span>
+                            </div>
 
                             <h4 className="mt-1 text-2xl font-black text-slate-950">
                               {finding.title || "Untitled Finding"}
@@ -994,12 +1103,12 @@ export default async function PrintableReportPage({ params }: PageProps) {
                       <div className="p-6">
                         {(finding.image_url ||
                           (finding.photos && finding.photos.length > 0)) && (
-                          <div className="mb-6 grid gap-4 md:grid-cols-2">
+                          <div className="mb-6 grid gap-4 md:grid-cols-2 print:grid-cols-2">
                             {finding.image_url && (
                               <img
                                 src={finding.image_url}
                                 alt={finding.title || "Finding photo"} loading="lazy" decoding="async" fetchPriority="low"
-                              className="max-h-[360px] w-full rounded-xl border object-cover"
+                              className="finding-photo-print max-h-[360px] w-full rounded-xl border object-contain"
                               />
                             )}
 
@@ -1008,7 +1117,7 @@ export default async function PrintableReportPage({ params }: PageProps) {
                                 key={photo.id}
                                 src={photo.signed_url}
                                 alt={finding.title || "Finding photo"}
-                              className="max-h-[360px] w-full rounded-xl border object-cover"
+                              className="finding-photo-print max-h-[360px] w-full rounded-xl border object-contain"
                               />
                             ))}
                           </div>

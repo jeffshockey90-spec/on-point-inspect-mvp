@@ -30,6 +30,20 @@ function cleanStatus(value: any) {
   return allowed.has(status) ? status : "";
 }
 
+function parseMoneyValue(value: any) {
+  const number = Number(String(value || "").replace(/[^0-9.-]/g, ""));
+  return Number.isFinite(number) ? number : 0;
+}
+
+function formatMoney(value: any) {
+  const number = parseMoneyValue(value);
+  return number.toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  });
+}
+
 function getPropertyLabel(inspection: any) {
   return (
     inspection?.property_address ||
@@ -37,6 +51,16 @@ function getPropertyLabel(inspection: any) {
     inspection?.street_address ||
     "Inspection report"
   );
+}
+
+function buildNotesWithCredit(notes: string, creditAmount: number) {
+  const cleanNotes = String(notes || "").trim();
+
+  if (creditAmount <= 0) return cleanNotes || null;
+
+  const creditLine = `Seller Credit Offered: ${formatMoney(creditAmount)}`;
+
+  return cleanNotes ? `${creditLine}\n\n${cleanNotes}` : creditLine;
 }
 
 async function sendOwnerPushNotification({
@@ -142,10 +166,13 @@ export async function POST(req: Request) {
       ? share.selected_finding_ids.map((id: any) => String(id))
       : [];
 
-    const rows = responses
+    const now = new Date().toISOString();
+
+    const baseRows = responses
       .map((item: any) => {
         const findingId = String(item?.findingId || "").trim();
         const responseStatus = cleanStatus(item?.responseStatus);
+        const creditAmount = parseMoneyValue(item?.creditAmount);
 
         if (!findingId || !responseStatus) return null;
         if (selectedIds.length && !selectedIds.includes(findingId)) return null;
@@ -154,38 +181,86 @@ export async function POST(req: Request) {
           share_id: share.id,
           finding_id: findingId,
           response_status: responseStatus,
-          notes: String(item?.notes || "").trim() || null,
-          updated_at: new Date().toISOString(),
+          notes: buildNotesWithCredit(String(item?.notes || ""), creditAmount),
+          updated_at: now,
+          seller_credit_amount: creditAmount,
+          credit_amount: creditAmount,
+          metadata: {
+            item_number: item?.itemNumber || null,
+            seller_credit_amount: creditAmount,
+          },
         };
       })
-      .filter(Boolean);
+      .filter(Boolean) as any[];
 
-    if (!rows.length || rows.length !== selectedIds.length) {
+    if (!baseRows.length || rowsLengthMismatch(baseRows.length, selectedIds.length)) {
       return NextResponse.json(
         { error: "Choose a valid response for every repair request item." },
         { status: 400 }
       );
     }
 
-    const { error: upsertError } = await supabase
+    let upsertError: any = null;
+
+    const { error: extendedUpsertError } = await supabase
       .from("repair_request_responses")
-      .upsert(rows, {
+      .upsert(baseRows, {
         onConflict: "share_id,finding_id",
       });
+
+    if (extendedUpsertError) {
+      const fallbackRows = baseRows.map(
+        ({
+          seller_credit_amount,
+          credit_amount,
+          metadata,
+          ...row
+        }: any) => row
+      );
+
+      const { error: fallbackError } = await supabase
+        .from("repair_request_responses")
+        .upsert(fallbackRows, {
+          onConflict: "share_id,finding_id",
+        });
+
+      upsertError = fallbackError;
+    }
 
     if (upsertError) {
       return NextResponse.json({ error: upsertError.message }, { status: 500 });
     }
 
     const submittedAt = new Date().toISOString();
+    const sellerCreditTotal = baseRows.reduce(
+      (sum, row: any) => sum + parseMoneyValue(row.seller_credit_amount),
+      0
+    );
 
-    await supabase
+    const shareUpdateWithCredits = {
+      status: "responded",
+      responded_at: submittedAt,
+      seller_credit_total: sellerCreditTotal,
+      metadata: {
+        ...(share?.metadata && typeof share.metadata === "object" && !Array.isArray(share.metadata) ? share.metadata : {}),
+        seller_credit_total: sellerCreditTotal,
+      },
+    };
+
+    let shareUpdate = await supabase
       .from("repair_request_shares")
-      .update({
-        status: "responded",
-        responded_at: submittedAt,
-      })
+      .update(shareUpdateWithCredits)
       .eq("id", share.id);
+
+    if (shareUpdate.error) {
+      shareUpdate = await supabase
+        .from("repair_request_shares")
+        .update({
+          status: "responded",
+          responded_at: submittedAt,
+        })
+        .eq("id", share.id);
+    }
 
     const { data: inspection } = await supabase
       .from("inspections")
@@ -204,7 +279,8 @@ export async function POST(req: Request) {
         metadata: {
           inspection_id: share.inspection_id,
           recipient_email: share.recipient_email,
-          response_count: rows.length,
+          response_count: baseRows.length,
+          seller_credit_total: sellerCreditTotal,
           submitted_at: submittedAt,
         },
       });
@@ -214,20 +290,22 @@ export async function POST(req: Request) {
 
     await sendOwnerPushNotification({
       title: "Repair Response Received",
-      body: `${property}: ${rows.length} item${rows.length === 1 ? "" : "s"} answered.`,
+      body: `${property}: ${baseRows.length} item${baseRows.length === 1 ? "" : "s"} answered. Seller credit: ${formatMoney(sellerCreditTotal)}.`,
       url: `/repair-response/${token}`,
       eventType: "repair_request_response_submitted",
       metadata: {
         inspection_id: share.inspection_id,
         repair_request_share_id: share.id,
         recipient_email: share.recipient_email,
-        response_count: rows.length,
+        response_count: baseRows.length,
+        seller_credit_total: sellerCreditTotal,
       },
     });
 
     return NextResponse.json({
       success: true,
       message: "Repair response submitted.",
+      sellerCreditTotal,
     });
   } catch (error: any) {
     return NextResponse.json(
@@ -235,4 +313,8 @@ export async function POST(req: Request) {
       { status: 500 }
     );
   }
+}
+
+function rowsLengthMismatch(rowCount: number, selectedCount: number) {
+  return Boolean(selectedCount && rowCount !== selectedCount);
 }

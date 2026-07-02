@@ -278,7 +278,7 @@ export default function EquipmentCard({ equipment }: EquipmentCardProps) {
   ];
 
   return (
-    <div className="rounded-2xl border border-slate-700 bg-slate-900 p-5">
+    <div className="rounded-2xl border border-slate-700 bg-slate-900 p-5 transition duration-150 active:scale-[0.995]">
       <h2 className="mb-4 text-xl font-bold text-teal-400">
         Equipment Details
       </h2>
@@ -295,7 +295,7 @@ export default function EquipmentCard({ equipment }: EquipmentCardProps) {
               className="max-h-72 w-full bg-black object-contain"
             />
           ) : (
-            <a href={imageUrl} target="_blank" rel="noreferrer" className="block">
+            <a href={imageUrl} target="_blank" rel="noreferrer" data-fast-click="true" className="block transition duration-150 active:scale-[0.99]">
               <img
                 src={imageUrl}
                 alt={firstKnown(equipment.equipmentType, equipment.equipment_type) || "Equipment"}
@@ -368,7 +368,7 @@ export default function EquipmentCard({ equipment }: EquipmentCardProps) {
           .map(([label, value]) => (
             <div
               key={label}
-              className="grid gap-1 rounded-xl border border-slate-700 bg-slate-950 p-3 sm:grid-cols-[170px_1fr] sm:items-center"
+              className="grid gap-1 rounded-xl border border-slate-700 bg-slate-950 p-3 transition duration-150 active:scale-[0.995] sm:grid-cols-[170px_1fr] sm:items-center"
             >
               <span className="text-sm font-bold text-slate-400">
                 {label}

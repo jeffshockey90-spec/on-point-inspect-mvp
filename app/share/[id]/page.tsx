@@ -272,6 +272,78 @@ function getSeverityClass(severityValue: any) {
   return "border-teal-500/50 bg-teal-500/15 text-teal-200";
 }
 
+function getRepairNumberTitle(finding: any) {
+  const rawTitle = String(
+    finding?.title ||
+      finding?.finding_title ||
+      finding?.defect_title ||
+      finding?.name ||
+      "Untitled Finding"
+  ).trim();
+
+  return rawTitle.replace(/^\d+\.\d+\.\d+\s*[-–—:]\s*/g, "");
+}
+
+function getRepairItemGroupLabel(finding: any) {
+  return String(
+    finding?.component ||
+      finding?.subsection ||
+      finding?.category ||
+      finding?.system ||
+      finding?.group_title ||
+      finding?.item_group ||
+      "General"
+  ).trim() || "General";
+}
+
+function addRepairItemNumbers(findings: any[]) {
+  const sectionGroupMap = new Map<string, number>();
+  const sectionGroupCounts = new Map<string, number>();
+
+  return (findings || []).map((finding: any) => {
+    const section = normalizeSection(finding?.section);
+    const sectionNumberRaw = SECTION_ORDER.indexOf(section) + 1;
+    const sectionNumber = sectionNumberRaw > 0 ? sectionNumberRaw : SECTION_ORDER.length + 1;
+    const groupLabel = getRepairItemGroupLabel(finding).toLowerCase();
+    const sectionGroupKey = `${sectionNumber}:${groupLabel}`;
+
+    if (!sectionGroupMap.has(sectionGroupKey)) {
+      const existingGroupsForSection = Array.from(sectionGroupMap.keys()).filter((key) =>
+        key.startsWith(`${sectionNumber}:`)
+      ).length;
+
+      sectionGroupMap.set(sectionGroupKey, existingGroupsForSection + 1);
+    }
+
+    const groupNumber = sectionGroupMap.get(sectionGroupKey) || 1;
+    const countKey = `${sectionNumber}.${groupNumber}`;
+    const nextCount = (sectionGroupCounts.get(countKey) || 0) + 1;
+    sectionGroupCounts.set(countKey, nextCount);
+
+    const repairItemNumber =
+      finding?.repair_item_number ||
+      finding?.item_number ||
+      finding?.finding_number ||
+      `${sectionNumber}.${groupNumber}.${nextCount}`;
+
+    return {
+      ...finding,
+      section,
+      original_title: getRepairNumberTitle(finding),
+      item_number: repairItemNumber,
+      repair_item_number: repairItemNumber,
+    };
+  });
+}
+
+function getNumberedFindingTitle(finding: any) {
+  const itemNumber = String(finding?.repair_item_number || finding?.item_number || "").trim();
+  const title = getRepairNumberTitle(finding);
+
+  return itemNumber ? `${itemNumber} - ${title}` : title;
+}
+
+
 
 function getFindingTitle(finding: any) {
   return (
@@ -404,6 +476,9 @@ function isVideoMedia(media: any, urlValue?: string) {
   );
 }
 
+const signedUrlCache = new Map<string, { url: string; expiresAt: number }>();
+const SIGNED_URL_CACHE_TTL_MS = 1000 * 60 * 45;
+
 async function createSignedUrlMap(paths: string[]) {
   const uniquePaths = Array.from(
     new Set(paths.filter((path) => Boolean(path)))
@@ -413,27 +488,54 @@ async function createSignedUrlMap(paths: string[]) {
 
   if (uniquePaths.length === 0) return signedMap;
 
-  const chunkSize = 50;
+  const now = Date.now();
+  const missingPaths: string[] = [];
 
-  for (let i = 0; i < uniquePaths.length; i += chunkSize) {
-    const chunk = uniquePaths.slice(i, i + chunkSize);
+  uniquePaths.forEach((path) => {
+    const cached = signedUrlCache.get(path);
 
-    const { data, error } = await supabase.storage
-      .from("inspection-photos")
-      .createSignedUrls(chunk, 60 * 60 * 24 * 7);
-
-    if (error) {
-      console.error("Share batch signed photo error:", error);
-      continue;
+    if (cached && cached.expiresAt > now) {
+      signedMap[path] = cached.url;
+      return;
     }
 
-    (data || []).forEach((item: any, index: number) => {
-      const path = item?.path || chunk[index];
-      if (path && item?.signedUrl) {
-        signedMap[path] = item.signedUrl;
+    missingPaths.push(path);
+  });
+
+  if (missingPaths.length === 0) return signedMap;
+
+  const chunkSize = 50;
+
+  await Promise.all(
+    Array.from({ length: Math.ceil(missingPaths.length / chunkSize) }).map(
+      async (_, chunkIndex) => {
+        const chunk = missingPaths.slice(
+          chunkIndex * chunkSize,
+          chunkIndex * chunkSize + chunkSize
+        );
+
+        const { data, error } = await supabase.storage
+          .from("inspection-photos")
+          .createSignedUrls(chunk, 60 * 60 * 24 * 7);
+
+        if (error) {
+          console.error("Share batch signed photo error:", error);
+          return;
+        }
+
+        (data || []).forEach((item: any, index: number) => {
+          const path = item?.path || chunk[index];
+          if (path && item?.signedUrl) {
+            signedMap[path] = item.signedUrl;
+            signedUrlCache.set(path, {
+              url: item.signedUrl,
+              expiresAt: now + SIGNED_URL_CACHE_TTL_MS,
+            });
+          }
+        });
       }
-    });
-  }
+    )
+  );
 
   return signedMap;
 }
@@ -836,6 +938,8 @@ export default async function PublicSharePage({
     };
   });
 
+  const numberedFindings = addRepairItemNumbers(findings);
+
   const { data: checklistRows } = await supabase
     .from("section_checklist_selections")
     .select("*")
@@ -1011,16 +1115,11 @@ export default async function PublicSharePage({
     getStoragePathFromUrl(rawPropertyPhoto);
 
   if (propertyPhotoPath) {
-    const { data: signedPropertyPhoto } = await supabase.storage
-      .from("inspection-photos")
-      .createSignedUrl(propertyPhotoPath, 60 * 60 * 24 * 7);
-
-    if (signedPropertyPhoto?.signedUrl) {
-      propertyPhoto = signedPropertyPhoto.signedUrl;
-    }
+    const propertyPhotoSignedMap = await createSignedUrlMap([propertyPhotoPath]);
+    propertyPhoto = propertyPhotoSignedMap[propertyPhotoPath] || propertyPhoto;
   }
 
-  const defectTotals = buildDefectTotals(findings);
+  const defectTotals = buildDefectTotals(numberedFindings);
 
   const clientSummaryGroups = [
     {
@@ -1028,7 +1127,7 @@ export default async function PublicSharePage({
       title: "Safety / Major Concerns",
       description: "Items that may involve safety, injury, fire, shock, fall, structural, or major system concerns.",
       tone: "red" as const,
-      findings: findings.filter(
+      findings: numberedFindings.filter(
         (finding: any) =>
           isReportDefect(finding) && getSeverityBucket(finding.severity) === "safety"
       ),
@@ -1038,7 +1137,7 @@ export default async function PublicSharePage({
       title: "Recommended Repairs",
       description: "Defects or damaged components where correction, repair, or further evaluation is recommended.",
       tone: "teal" as const,
-      findings: findings.filter(
+      findings: numberedFindings.filter(
         (finding: any) =>
           isReportDefect(finding) && getSeverityBucket(finding.severity) === "repair"
       ),
@@ -1048,7 +1147,7 @@ export default async function PublicSharePage({
       title: "Maintenance / Monitor",
       description: "Routine maintenance items, minor concerns, or conditions that should be watched over time.",
       tone: "yellow" as const,
-      findings: findings.filter(
+      findings: numberedFindings.filter(
         (finding: any) =>
           isReportDefect(finding) && getSeverityBucket(finding.severity) === "maintenance"
       ),
@@ -1058,7 +1157,7 @@ export default async function PublicSharePage({
       title: "Informational",
       description: "Client awareness items that are documented but not counted as report defects.",
       tone: "blue" as const,
-      findings: findings.filter(
+      findings: numberedFindings.filter(
         (finding: any) =>
           isReportDefect(finding) && getSeverityBucket(finding.severity) === "information"
       ),
@@ -1067,8 +1166,8 @@ export default async function PublicSharePage({
 
   const displayFindings =
     activeDefectFilter === "all"
-      ? findings
-      : findings.filter(
+      ? numberedFindings
+      : numberedFindings.filter(
           (finding: any) =>
             isReportDefect(finding) &&
             getSeverityBucket(finding.severity) === activeDefectFilter
@@ -1101,11 +1200,11 @@ export default async function PublicSharePage({
 
   const sectionStats = SECTION_ORDER.map((section) => ({
     section,
-    defectCount: findings.filter(
+    defectCount: numberedFindings.filter(
       (finding: any) =>
         finding.section === section && isReportDefect(finding)
     ).length,
-    findingCount: findings.filter(
+    findingCount: numberedFindings.filter(
       (finding: any) => finding.section === section
     ).length,
     referenceCount: referencePhotosBySection[section]?.length || 0,
@@ -1887,6 +1986,11 @@ export default async function PublicSharePage({
 
                                     <div className="min-w-0 flex-1">
                                       <div className="mb-2 flex flex-wrap items-center gap-2">
+                                        {finding.item_number && (
+                                          <span className="rounded-full border border-cyan-500/50 bg-cyan-500/10 px-2 py-1 text-[10px] font-black uppercase tracking-wide text-cyan-200">
+                                            Item #{finding.item_number}
+                                          </span>
+                                        )}
                                         <span
                                           className={`rounded-full border px-2 py-1 text-[10px] font-black uppercase tracking-wide ${getSeverityClass(
                                             finding.severity
@@ -1981,11 +2085,18 @@ export default async function PublicSharePage({
                                 <div className="border-b border-slate-700 bg-[#020817] p-5">
                                   <div className="flex flex-wrap items-start justify-between gap-4">
                                     <div>
-                                      <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                                        {finding.section}
-                                      </p>
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        {finding.item_number && (
+                                          <span className="rounded-full border border-cyan-500/50 bg-cyan-500/10 px-3 py-1 text-xs font-black uppercase tracking-wide text-cyan-200">
+                                            Item #{finding.item_number}
+                                          </span>
+                                        )}
+                                        <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                                          {finding.section}
+                                        </span>
+                                      </div>
 
-                                      <h4 className="mt-1 text-2xl font-black text-teal-300">
+                                      <h4 className="mt-2 text-2xl font-black text-teal-300">
                                         {title}
                                       </h4>
                                     </div>
@@ -2140,6 +2251,11 @@ function ClientSummaryFindingCard({
 
         <div className="p-4">
           <div className="mb-3 flex flex-wrap items-center gap-2">
+            {finding.item_number && (
+              <span className="rounded-full border border-cyan-500/50 bg-cyan-500/10 px-2 py-1 text-[10px] font-black uppercase tracking-wide text-cyan-200">
+                Item #{finding.item_number}
+              </span>
+            )}
             <span
               className={`rounded-full border px-2 py-1 text-[10px] font-black uppercase tracking-wide ${getSeverityClass(
                 finding.severity

@@ -10,6 +10,22 @@ type PageProps = {
   }>;
 };
 
+const SECTION_ORDER = [
+  "Inspection Details",
+  "Exterior",
+  "Roof",
+  "Basement, Foundation, Crawlspace & Structure",
+  "Heating",
+  "Cooling",
+  "Plumbing",
+  "Electrical",
+  "Attic, Insulation & Ventilation",
+  "Doors, Windows & Interior",
+  "Built-in Appliances",
+  "Garage",
+  "Disclaimers",
+];
+
 function createAdminClient() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -25,6 +41,64 @@ function createAdminClient() {
 
 function cleanText(value: any) {
   return String(value || "").trim();
+}
+
+function normalizeSection(section: any) {
+  const clean = cleanText(section) || "Inspection Details";
+
+  const aliases: Record<string, string> = {
+    General: "Inspection Details",
+    Safety: "Inspection Details",
+    "Basement/Foundation/Crawlspace & Structure":
+      "Basement, Foundation, Crawlspace & Structure",
+    "Basement, Foundation, Crawlspace and Structure":
+      "Basement, Foundation, Crawlspace & Structure",
+    "Attic/Insulation & Ventilation": "Attic, Insulation & Ventilation",
+    "Attic, Insulation and Ventilation": "Attic, Insulation & Ventilation",
+    "Doors/Windows & Interior": "Doors, Windows & Interior",
+    "Doors, Windows and Interior": "Doors, Windows & Interior",
+    Appliances: "Built-in Appliances",
+    "Built In Appliances": "Built-in Appliances",
+  };
+
+  return aliases[clean] || clean;
+}
+
+function getSectionNumber(sectionValue: any) {
+  const section = normalizeSection(sectionValue);
+  const index = SECTION_ORDER.findIndex(
+    (item) => item.toLowerCase() === section.toLowerCase()
+  );
+
+  return index >= 0 ? index + 1 : SECTION_ORDER.length + 1;
+}
+
+function getFindingNumber(finding: any, fallbackIndex = 0) {
+  const existing =
+    finding?.item_number ||
+    finding?.finding_number ||
+    finding?.repair_item_number ||
+    finding?.report_item_number ||
+    finding?.reference_number;
+
+  if (existing) return String(existing);
+
+  const sectionNumber = getSectionNumber(finding?.section);
+  return `${sectionNumber}.1.${fallbackIndex + 1}`;
+}
+
+function parseMoneyValue(value: any) {
+  const number = Number(String(value || "").replace(/[^0-9.-]/g, ""));
+  return Number.isFinite(number) ? number : 0;
+}
+
+function formatMoney(value: any) {
+  const number = parseMoneyValue(value);
+  return number.toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  });
 }
 
 function getStoragePathFromUrl(url: string | null | undefined) {
@@ -102,6 +176,29 @@ function groupFindingsInSelectedOrder(findings: any[], selectedIds: string[]) {
     .filter(Boolean);
 }
 
+function getRequestedCreditsFromShare(share: any) {
+  const direct = share?.requested_credits;
+  const metadata = share?.metadata?.requested_credits;
+
+  if (direct && typeof direct === "object" && !Array.isArray(direct)) return direct;
+  if (metadata && typeof metadata === "object" && !Array.isArray(metadata)) return metadata;
+
+  return {};
+}
+
+function getRequestedCreditTotalFromShare(share: any, findings: any[]) {
+  const direct = parseMoneyValue(share?.requested_credit_total);
+  const metadata = parseMoneyValue(share?.metadata?.requested_credit_total);
+
+  if (direct > 0) return direct;
+  if (metadata > 0) return metadata;
+
+  return findings.reduce(
+    (sum, finding) => sum + parseMoneyValue(finding?.requested_credit_amount),
+    0
+  );
+}
+
 export default async function RepairResponsePage({ params }: PageProps) {
   const { token } = await params;
   const cleanToken = cleanText(token);
@@ -155,11 +252,27 @@ export default async function RepairResponsePage({ params }: PageProps) {
     inspection?.street_address ||
     "Inspection property";
 
-  const findings = orderedFindings.map((finding: any) => ({
-    ...finding,
-    property_address: propertyAddress,
-    photos: photoMap.get(cleanText(finding.id)) || [],
-  }));
+  const requestedCredits = getRequestedCreditsFromShare(share);
+
+  const findings = orderedFindings.map((finding: any, index: number) => {
+    const itemNumber = getFindingNumber(finding, index);
+    const requestedCredit = requestedCredits[cleanText(finding.id)] || "";
+
+    return {
+      ...finding,
+      section: normalizeSection(finding.section),
+      item_number: itemNumber,
+      finding_number: itemNumber,
+      repair_item_number: itemNumber,
+      report_item_number: itemNumber,
+      requested_credit_amount: requestedCredit,
+      requested_credit_display: formatMoney(requestedCredit),
+      property_address: propertyAddress,
+      photos: photoMap.get(cleanText(finding.id)) || [],
+    };
+  });
+
+  const requestedCreditTotal = getRequestedCreditTotalFromShare(share, findings);
 
   const { data: responsesRaw } = await admin
     .from("repair_request_responses")
@@ -182,10 +295,14 @@ export default async function RepairResponsePage({ params }: PageProps) {
         </h1>
         <p className="mt-2 text-slate-200">{propertyAddress}</p>
 
-        <div className="mt-5 grid gap-4 md:grid-cols-3">
+        <div className="mt-5 grid gap-4 md:grid-cols-4">
           <div className="rounded-xl border border-slate-700 bg-[#020617] p-4">
             <p className="text-xs font-black uppercase text-blue-200">Selected Items</p>
             <p className="mt-2 font-black text-white">{selectedIds.length}</p>
+          </div>
+          <div className="rounded-xl border border-slate-700 bg-[#020617] p-4">
+            <p className="text-xs font-black uppercase text-blue-200">Requested Credit</p>
+            <p className="mt-2 font-black text-white">{formatMoney(requestedCreditTotal)}</p>
           </div>
           <div className="rounded-xl border border-slate-700 bg-[#020617] p-4">
             <p className="text-xs font-black uppercase text-blue-200">Recipient</p>
@@ -200,6 +317,24 @@ export default async function RepairResponsePage({ params }: PageProps) {
             </p>
           </div>
         </div>
+
+        {findings.length > 0 ? (
+          <div className="mt-5 rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-4">
+            <p className="text-xs font-black uppercase tracking-wide text-cyan-300">
+              Repair Items
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {findings.map((finding: any) => (
+                <span
+                  key={finding.id}
+                  className="rounded-full border border-cyan-400/50 bg-[#020617] px-3 py-1 text-xs font-black text-cyan-200"
+                >
+                  Item #{finding.item_number}
+                </span>
+              ))}
+            </div>
+          </div>
+        ) : null}
 
         {share.summary ? (
           <div className="mt-5 rounded-xl border border-slate-700 bg-[#020617] p-4">

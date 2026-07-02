@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import EditableFinding from "../../../components/EditableFinding";
+import dynamic from "next/dynamic";
 import SectionLimitations from "../../../components/SectionLimitations";
 import ReportDisclaimers from "../../../components/ReportDisclaimers";
 import SectionInformationChecklist from "../../../components/SectionInformationChecklist";
 import SectionReferencePhotos from "../../../components/SectionReferencePhotos";
-import PhotoMarkupEditor from "../../../components/PhotoMarkupEditor";
 import { supabase } from "../../../lib/supabaseClient";
 
 const PHOTO_BUCKET = "inspection-photos";
@@ -22,6 +21,26 @@ const SEVERITIES = [
 ];
 
 const AUTO_PREVIEW_PHOTO_LIMIT = 3;
+
+const EditableFinding = dynamic(() => import("../../../components/EditableFinding"), {
+  ssr: false,
+  loading: () => (
+    <div className="rounded-xl border border-slate-700 bg-slate-950/50 p-4 text-sm font-bold text-slate-400">
+      Loading editor...
+    </div>
+  ),
+});
+
+const PhotoMarkupEditor = dynamic(() => import("../../../components/PhotoMarkupEditor"), {
+  ssr: false,
+  loading: () => (
+    <div className="rounded-xl border border-purple-700 bg-purple-950/20 p-4 text-sm font-bold text-purple-200">
+      Loading photo markup...
+    </div>
+  ),
+});
+
+const PHOTO_PICKER_PAGE_SIZE = 48;
 
 export default function ReportFindingsSortable({ groupedFindings }: any) {
   const params = useParams();
@@ -44,6 +63,7 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
 
   const [orderedGroups, setOrderedGroups] = useState<any[]>(groupedFindings || []);
   const [draggingSection, setDraggingSection] = useState<string | null>(null);
+  const [photoPickerLoaded, setPhotoPickerLoaded] = useState(false);
 
   useEffect(() => {
     const nextGroups = groupedFindings || [];
@@ -57,6 +77,8 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
   }, [orderedGroups]);
 
   const allPhotos = useMemo(() => {
+    if (!photoPickerLoaded) return [];
+
     const seen = new Set<string>();
     const photos: any[] = [];
 
@@ -81,7 +103,7 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
     });
 
     return photos;
-  }, [allFindings]);
+  }, [allFindings, photoPickerLoaded]);
 
   function toggleSection(section: string) {
     setClosedSections((prev) => ({
@@ -301,6 +323,7 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
                     finding={finding}
                     inspectionId={inspectionId}
                     allPhotos={allPhotos}
+                    onNeedPhotoPicker={() => setPhotoPickerLoaded(true)}
                     router={router}
                   />
                 ))}
@@ -957,8 +980,9 @@ async function createThumbnailForUpload(file: File): Promise<File> {
 
 
 
-function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
+function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, router }: any) {
   const [showPhotoPicker, setShowPhotoPicker] = useState(false);
+  const [photoPickerLimit, setPhotoPickerLimit] = useState(PHOTO_PICKER_PAGE_SIZE);
   const [showAllPhotos, setShowAllPhotos] = useState(false);
   const [showUploadPanel, setShowUploadPanel] = useState(false);
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
@@ -1502,6 +1526,8 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
             type="button"
             onClick={(event) => {
               event.stopPropagation();
+              onNeedPhotoPicker?.();
+              setPhotoPickerLimit(PHOTO_PICKER_PAGE_SIZE);
               setShowPhotoPicker((prev) => !prev);
               setShowUploadPanel(false);
             }}
@@ -1611,70 +1637,82 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
                 No movable photo records were found in this report yet.
               </p>
             ) : (
-              <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                {allPhotos.map((photo: any, index: number) => {
-                  const url = getPhotoUrl(photo);
+              <>
+                <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  {allPhotos.slice(0, photoPickerLimit).map((photo: any, index: number) => {
+                    const url = getPhotoUrl(photo);
     const previewUrl = getPhotoPreviewUrl(photo);
-                  const alreadyAttached =
-                    String(photo.finding_id || photo.current_finding_id || "") ===
-                    String(finding.id);
+                    const alreadyAttached =
+                      String(photo.finding_id || photo.current_finding_id || "") ===
+                      String(finding.id);
 
-                  return (
-                    <div
-                      key={String(photo.id || photo.file_path || index)}
-                      className="w-full max-w-full overflow-hidden rounded-xl border border-slate-700 bg-slate-950"
-                    >
-                      {url ? (
-                        isVideoMedia(photo) ? (
-                          <video
-                            src={url}
-                            poster={getVideoPosterUrl(photo) || undefined}
-                            controls
-                            playsInline
-                            preload="metadata"
-                            className="h-36 w-full bg-black object-contain"
-                          />
+                    return (
+                      <div
+                        key={String(photo.id || photo.file_path || index)}
+                        className="w-full max-w-full overflow-hidden rounded-xl border border-slate-700 bg-slate-950"
+                      >
+                        {url ? (
+                          isVideoMedia(photo) ? (
+                            <video
+                              src={url}
+                              poster={getVideoPosterUrl(photo) || undefined}
+                              controls
+                              playsInline
+                              preload="metadata"
+                              className="h-36 w-full bg-black object-contain"
+                            />
+                          ) : (
+                            <img
+                              src={previewUrl || url}
+                              alt={`Report photo ${index + 1}`}
+                              loading="lazy"
+                              decoding="async"
+                              fetchPriority="low"
+                              width={480}
+                              height={320}
+                              sizes="(max-width: 640px) 94vw, (max-width: 1024px) 48vw, 25vw"
+                              className="h-36 w-full object-contain"
+                            />
+                          )
                         ) : (
-                          <img
-                            src={previewUrl || url}
-                            alt={`Report photo ${index + 1}`}
-                            loading="lazy"
-                            decoding="async"
-                            fetchPriority="low"
-                            width={480}
-                            height={320}
-                            sizes="(max-width: 640px) 94vw, (max-width: 1024px) 48vw, 25vw"
-                            className="h-36 w-full object-contain"
-                          />
-                        )
-                      ) : (
-                        <div className="flex h-36 items-center justify-center text-sm text-slate-500">
-                          No preview
+                          <div className="flex h-36 items-center justify-center text-sm text-slate-500">
+                            No preview
+                          </div>
+                        )}
+
+                        <div className="space-y-2 border-t border-slate-800 p-3">
+                          <p className="line-clamp-2 text-xs font-bold text-slate-300">
+                            {photo.current_section} · {photo.current_finding_title}
+                          </p>
+
+                          <button
+                            type="button"
+                            onClick={() => movePhotoToFinding(photo)}
+                            disabled={alreadyAttached || movingPhotoId === String(photo.id)}
+                            className="w-full rounded-lg bg-cyan-500 px-3 py-2 text-xs font-black text-slate-950 hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {alreadyAttached
+                              ? "Already Here"
+                              : movingPhotoId === String(photo.id)
+                              ? "Moving..."
+                              : "Move Here"}
+                          </button>
                         </div>
-                      )}
-
-                      <div className="space-y-2 border-t border-slate-800 p-3">
-                        <p className="line-clamp-2 text-xs font-bold text-slate-300">
-                          {photo.current_section} · {photo.current_finding_title}
-                        </p>
-
-                        <button
-                          type="button"
-                          onClick={() => movePhotoToFinding(photo)}
-                          disabled={alreadyAttached || movingPhotoId === String(photo.id)}
-                          className="w-full rounded-lg bg-cyan-500 px-3 py-2 text-xs font-black text-slate-950 hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          {alreadyAttached
-                            ? "Already Here"
-                            : movingPhotoId === String(photo.id)
-                            ? "Moving..."
-                            : "Move Here"}
-                        </button>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+
+                {allPhotos.length > photoPickerLimit && (
+                  <button
+                    type="button"
+                    onClick={() => setPhotoPickerLimit((prev) => prev + PHOTO_PICKER_PAGE_SIZE)}
+                    className="mt-3 w-full rounded-xl border border-cyan-500/50 bg-cyan-500/10 px-4 py-3 text-sm font-black text-cyan-300 transition hover:bg-cyan-500/20"
+                  >
+                    Load {Math.min(PHOTO_PICKER_PAGE_SIZE, allPhotos.length - photoPickerLimit)} more photos
+                  </button>
+                )}
+              </>
             )}
           </div>
         )}
@@ -1736,6 +1774,9 @@ function FindingCard({ finding, inspectionId, allPhotos, router }: any) {
     </article>
   );
 }
+
+const FindingCard = memo(FindingCardBase);
+
 
 function InlineStatusMessage({
   type,

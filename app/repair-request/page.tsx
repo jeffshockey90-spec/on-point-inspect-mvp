@@ -1,12 +1,117 @@
 "use client";
 
 import { Suspense, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import FastLinkButton from "../../components/FastLinkButton";
 import { useSearchParams } from "next/navigation";
 
 type Finding = Record<string, any>;
 type Inspection = Record<string, any>;
 type Contact = Record<string, any>;
+
+const SECTION_ORDER = [
+  "Inspection Details",
+  "Exterior",
+  "Roof",
+  "Basement, Foundation, Crawlspace & Structure",
+  "Heating",
+  "Cooling",
+  "Plumbing",
+  "Electrical",
+  "Attic, Insulation & Ventilation",
+  "Doors, Windows & Interior",
+  "Built-in Appliances",
+  "Garage",
+  "Disclaimers",
+];
+
+function normalizeSectionName(section: any) {
+  const clean = String(section || "Other").trim();
+
+  const aliases: Record<string, string> = {
+    General: "Inspection Details",
+    Safety: "Inspection Details",
+    "Basement/Foundation/Crawlspace & Structure":
+      "Basement, Foundation, Crawlspace & Structure",
+    "Basement, Foundation, Crawlspace and Structure":
+      "Basement, Foundation, Crawlspace & Structure",
+    "Attic/Insulation & Ventilation": "Attic, Insulation & Ventilation",
+    "Attic, Insulation and Ventilation": "Attic, Insulation & Ventilation",
+    "Doors/Windows & Interior": "Doors, Windows & Interior",
+    "Doors, Windows and Interior": "Doors, Windows & Interior",
+    Appliances: "Built-in Appliances",
+    "Built In Appliances": "Built-in Appliances",
+  };
+
+  return aliases[clean] || clean;
+}
+
+function getSectionNumber(section: any) {
+  const clean = normalizeSectionName(section);
+  const index = SECTION_ORDER.findIndex((item) => item === clean);
+  return index >= 0 ? index + 1 : SECTION_ORDER.length + 1;
+}
+
+function getFindingNumber(finding: Finding, fallbackIndex = 0) {
+  const existing =
+    finding?.item_number ||
+    finding?.finding_number ||
+    finding?.reference_number ||
+    finding?.display_number ||
+    finding?.report_item_number;
+
+  if (existing) return String(existing);
+
+  const sectionNumber = getSectionNumber(finding?.section);
+  const sectionItemIndex = Number(finding?.section_item_index || finding?.sectionIndex || 1);
+  const itemIndex = Number(finding?.item_index || finding?.itemIndex || fallbackIndex + 1);
+
+  return `${sectionNumber}.${Number.isFinite(sectionItemIndex) && sectionItemIndex > 0 ? sectionItemIndex : 1}.${Number.isFinite(itemIndex) && itemIndex > 0 ? itemIndex : fallbackIndex + 1}`;
+}
+
+function parseMoneyValue(value: any) {
+  const number = Number(String(value || "").replace(/[^0-9.-]/g, ""));
+  return Number.isFinite(number) ? number : 0;
+}
+
+function formatMoney(value: any) {
+  const number = parseMoneyValue(value);
+  return number.toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  });
+}
+
+function getFindingCredit(
+  finding: Finding,
+  requestedCredits: Record<string, string | number>,
+) {
+  const id = String(finding?.id || "");
+  return requestedCredits[id] ?? finding?.requested_credit_amount ?? finding?.requestedCreditAmount ?? "";
+}
+
+function addFindingNumbers(findings: Finding[]) {
+  const sectionCounts: Record<string, number> = {};
+
+  return findings.map((finding) => {
+    const section = normalizeSectionName(finding.section);
+    sectionCounts[section] = (sectionCounts[section] || 0) + 1;
+    const sectionIndex = sectionCounts[section];
+
+    const numberedFinding = {
+      ...finding,
+      section,
+      item_number:
+        finding.item_number ||
+        finding.finding_number ||
+        finding.reference_number ||
+        finding.display_number ||
+        `${getSectionNumber(section)}.1.${sectionIndex}`,
+    };
+
+    return numberedFinding;
+  });
+}
 
 function getSeverityStyle(severity: string) {
   const clean = String(severity || "Recommended Repair").toLowerCase();
@@ -85,6 +190,11 @@ function buildPrintableRepairRequestHtml({
     inspection?.address ||
     "Property address not entered";
 
+  const requestedCreditTotal = selectedFindings.reduce(
+    (sum, finding) => sum + parseMoneyValue(finding.requested_credit_amount),
+    0,
+  );
+
   const sectionsHtml = Object.entries(groupedFindings)
     .map(([section, items]) => {
       const itemsHtml = items
@@ -108,8 +218,10 @@ function buildPrintableRepairRequestHtml({
 
           return `
             <article class="finding-card">
+              <div class="finding-number">Item #${printSafe(getFindingNumber(finding, index))}</div>
+              <div class="credit-line">Requested Credit: ${printSafe(formatMoney(finding.requested_credit_amount || 0))}</div>
               <div class="finding-head">
-                <h4>${index + 1}. ${printSafe(finding.title || "Untitled Finding")}</h4>
+                <h4>${printSafe(getFindingNumber(finding, index))}. ${printSafe(finding.title || "Untitled Finding")}</h4>
                 <span>${printSafe(finding.severity || "Recommended Repair")}</span>
               </div>
 
@@ -241,7 +353,7 @@ function buildPrintableRepairRequestHtml({
     }
     .summary-strip {
       display: grid;
-      grid-template-columns: 160px 1fr;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
       gap: 10px;
       margin: 0 0 18px;
     }
@@ -290,6 +402,18 @@ function buildPrintableRepairRequestHtml({
       font-weight: 900;
     }
     .section-items { display: grid; gap: 16px; }
+    .credit-line {
+      display: inline-block;
+      margin: 0 0 10px;
+      border: 1px solid #0f8f8f;
+      border-radius: 999px;
+      background: #ecfeff;
+      color: #0f766e;
+      padding: 5px 9px;
+      font-size: 10px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
     .finding-card {
       break-inside: avoid;
       page-break-inside: avoid;
@@ -297,6 +421,19 @@ function buildPrintableRepairRequestHtml({
       border-radius: 10px;
       background: #ffffff;
       padding: 14px;
+    }
+    .finding-number {
+      display: inline-block;
+      margin-bottom: 8px;
+      border: 1px solid #0f8f8f;
+      border-radius: 999px;
+      background: #ecfeff;
+      color: #0f766e;
+      padding: 4px 9px;
+      font-size: 9px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .08em;
     }
     .finding-head {
       display: flex;
@@ -447,6 +584,7 @@ function buildPrintableRepairRequestHtml({
 
       <div class="summary-strip">
         <div><span>Selected Items</span><strong>${selectedFindings.length}</strong></div>
+        <div><span>Requested Credit</span><strong>${printSafe(formatMoney(requestedCreditTotal))}</strong></div>
         <div><span>Property</span><strong>${printSafe(property)}</strong></div>
       </div>
 
@@ -465,6 +603,7 @@ function RepairRequestContent() {
   const [findings, setFindings] = useState<Finding[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [requestedCredits, setRequestedCredits] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [showAddendum, setShowAddendum] = useState(false);
   const [pdfMessage, setPdfMessage] = useState("");
@@ -546,9 +685,9 @@ function RepairRequestContent() {
           throw new Error(payload?.error || "Could not load repair request.");
         }
 
-        const hydratedFindings = Array.isArray(payload?.findings)
-          ? payload.findings
-          : [];
+        const hydratedFindings = addFindingNumbers(
+          Array.isArray(payload?.findings) ? payload.findings : [],
+        );
 
         const validSelectedIds = selectedFromUrl.filter((id) =>
           hydratedFindings.some((finding: any) => String(finding.id) === id),
@@ -585,6 +724,19 @@ function RepairRequestContent() {
       findings.filter((finding) => selectedIds.includes(String(finding.id))),
     [findings, selectedIds],
   );
+
+  const selectedCreditTotal = useMemo(() => {
+    return selectedFindings.reduce((sum, finding) => {
+      return sum + parseMoneyValue(getFindingCredit(finding, requestedCredits));
+    }, 0);
+  }, [selectedFindings, requestedCredits]);
+
+  function updateRequestedCredit(findingId: string, value: string) {
+    setRequestedCredits((prev) => ({
+      ...prev,
+      [String(findingId)]: value,
+    }));
+  }
 
   const groupedFindings = useMemo(() => {
     return selectedFindings.reduce(
@@ -732,10 +884,27 @@ function RepairRequestContent() {
       setPrintingPdf(true);
       setPdfMessage("Downloading repair request file...");
 
+      const selectedFindingsWithCredits: Finding[] = selectedFindings.map(
+        (finding: Finding) => ({
+          ...finding,
+          requested_credit_amount: getFindingCredit(finding, requestedCredits),
+        }),
+      );
+
+      const groupedFindingsWithCredits = selectedFindingsWithCredits.reduce(
+        (acc: Record<string, Finding[]>, finding: Finding) => {
+          const section = finding.section || "Other";
+          if (!acc[section]) acc[section] = [];
+          acc[section].push(finding);
+          return acc;
+        },
+        {} as Record<string, Finding[]>,
+      );
+
       const printableHtml = buildPrintableRepairRequestHtml({
         inspection,
-        selectedFindings,
-        groupedFindings,
+        selectedFindings: selectedFindingsWithCredits,
+        groupedFindings: groupedFindingsWithCredits,
         requestIntro,
       });
 
@@ -820,6 +989,8 @@ function RepairRequestContent() {
           recipientType: finalRecipientType,
           recipientEmail: finalRecipientEmail || undefined,
           selectedIds,
+          requestedCredits,
+          requestedCreditTotal: selectedCreditTotal,
           summary: realtorSummary,
         }),
       });
@@ -864,20 +1035,21 @@ function RepairRequestContent() {
       <div className="mx-auto max-w-7xl overflow-hidden">
         <div className="mb-6 space-y-3 print:hidden">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <Link
+            <FastLinkButton
               href={`/reports/${inspectionId}`}
+              loadingText="Opening Report..."
               className="flex min-h-[48px] w-full items-center justify-center rounded-xl border border-slate-600 bg-[#020617] px-5 py-3 text-center font-bold text-white transition hover:border-slate-300 hover:bg-slate-900 active:scale-[0.98]"
             >
               Back to Report
-            </Link>
+            </FastLinkButton>
 
             <button
               type="button"
               onClick={shareRepairRequestPdf}
               disabled={printingPdf}
-              className="min-h-[48px] w-full rounded-xl border border-teal-500 bg-[#020617] px-5 py-3 font-bold text-teal-300 transition hover:border-teal-400 hover:bg-teal-500/10 active:scale-[0.98] disabled:opacity-60"
+              data-fast-click="true" className="min-h-[48px] w-full rounded-xl border border-teal-500 bg-[#020617] px-5 py-3 font-bold text-teal-300 transition hover:border-teal-400 hover:bg-teal-500/10 hover:shadow-[0_0_22px_rgba(20,184,166,0.18)] active:scale-[0.98] disabled:opacity-60"
             >
-              {printingPdf ? "Downloading..." : "Download Fast File"}
+              {printingPdf ? "Downloading..." : "Download Repair Request"}
             </button>
 
             <div className="grid w-full grid-cols-1 gap-3 rounded-xl border border-cyan-500 bg-[#020617] p-2 sm:grid-cols-[minmax(0,1fr)_auto] xl:col-span-2">
@@ -908,7 +1080,7 @@ function RepairRequestContent() {
                 type="button"
                 onClick={emailRepairRequest}
                 disabled={emailingRepairRequest}
-                className="min-h-[48px] w-full rounded-xl border border-cyan-500 bg-[#020617] px-5 py-3 font-bold text-cyan-300 transition hover:border-cyan-400 hover:bg-cyan-500/10 active:scale-[0.98] disabled:opacity-60 sm:mt-[18px] sm:w-auto"
+                data-fast-click="true" className="min-h-[48px] w-full rounded-xl border border-cyan-500 bg-[#020617] px-5 py-3 font-bold text-cyan-300 transition hover:border-cyan-400 hover:bg-cyan-500/10 hover:shadow-[0_0_22px_rgba(6,182,212,0.18)] active:scale-[0.98] disabled:opacity-60 sm:mt-[18px] sm:w-auto"
               >
                 {emailingRepairRequest ? "Sending..." : "Email Repair Request"}
               </button>
@@ -996,6 +1168,7 @@ function RepairRequestContent() {
             <Info label="Realtor" value={inspection?.realtor_name} />
             <Info label="Date" value={inspection?.inspection_date} />
             <Info label="Selected Items" value={selectedFindings.length} />
+            <Info label="Requested Credit" value={formatMoney(selectedCreditTotal)} />
           </div>
         </section>
 
@@ -1025,9 +1198,20 @@ function RepairRequestContent() {
         </section>
 
         <section className="mb-8 overflow-hidden rounded-2xl border border-slate-800 bg-[#0f172a] p-5 print:hidden md:p-6">
-          <h2 className="mb-4 break-words text-2xl font-bold text-teal-300">
-            Select Findings
-          </h2>
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="break-words text-2xl font-bold text-teal-300">
+                Select Findings
+              </h2>
+              <p className="mt-1 text-sm text-slate-400">
+                Select the items to include, then enter any requested credit beside each selected item.
+              </p>
+            </div>
+            <div className="rounded-xl border border-teal-500/40 bg-teal-500/10 px-4 py-3 text-right">
+              <p className="text-xs font-black uppercase tracking-wide text-teal-300">Running Total</p>
+              <p className="text-2xl font-black text-white">{formatMoney(selectedCreditTotal)}</p>
+            </div>
+          </div>
 
           <div className="space-y-3">
             {findings.map((finding) => {
@@ -1052,6 +1236,10 @@ function RepairRequestContent() {
 
                     <div className="min-w-0 flex-1 overflow-hidden">
                       <div className="mb-2 flex max-w-full flex-wrap gap-2">
+                        <span className="max-w-full break-words rounded-full border border-cyan-500/60 bg-cyan-500/10 px-3 py-1 text-xs font-black uppercase tracking-wide text-cyan-300">
+                          Item #{getFindingNumber(finding)}
+                        </span>
+
                         <span
                           className={`max-w-full break-words rounded-full border px-3 py-1 text-xs font-bold uppercase ${getSeverityStyle(
                             finding.severity,
@@ -1072,6 +1260,24 @@ function RepairRequestContent() {
                       <p className="mt-1 line-clamp-3 break-words text-sm leading-6 text-slate-400">
                         {finding.recommendation || finding.observation || ""}
                       </p>
+
+                      {selected && (
+                        <label className="mt-4 block max-w-xs">
+                          <span className="mb-1 block text-xs font-black uppercase tracking-wide text-teal-300">
+                            Requested Credit
+                          </span>
+                          <input
+                            value={String(requestedCredits[String(finding.id)] || "")}
+                            onChange={(event) =>
+                              updateRequestedCredit(String(finding.id), event.target.value)
+                            }
+                            onClick={(event) => event.stopPropagation()}
+                            placeholder="$0"
+                            inputMode="decimal"
+                            className="h-[48px] w-full rounded-xl border border-slate-700 bg-[#020617] px-4 text-sm font-black text-white outline-none transition focus:border-teal-400"
+                          />
+                        </label>
+                      )}
                     </div>
                   </div>
                 </label>
@@ -1098,8 +1304,14 @@ function RepairRequestContent() {
                   key={finding.id}
                   className="overflow-hidden rounded-xl border border-slate-300 p-4"
                 >
+                  <span className="mb-2 inline-flex rounded-full border border-cyan-500 bg-cyan-50 px-3 py-1 text-xs font-black uppercase tracking-wide text-cyan-700">
+                    Item #{getFindingNumber(finding, index)}
+                  </span>
                   <p className="break-words font-black text-slate-950">
-                    {index + 1}. {finding.title}
+                    {getFindingNumber(finding, index)}. {finding.title}
+                  </p>
+                  <p className="mt-2 w-fit rounded-full border border-teal-300 bg-teal-50 px-3 py-1 text-sm font-black text-teal-800">
+                    Requested Credit: {formatMoney(getFindingCredit(finding, requestedCredits))}
                   </p>
                   <p className="mt-2 break-words text-slate-700">
                     Requested Action:{" "}
@@ -1148,6 +1360,20 @@ function RepairRequestContent() {
         )}
 
         <section className="overflow-hidden rounded-2xl border border-slate-800 bg-white p-5 text-black md:p-6">
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-teal-300 bg-teal-50 p-4">
+            <div>
+              <p className="text-xs font-black uppercase tracking-wide text-teal-700">
+                Total Requested Credit
+              </p>
+              <p className="mt-1 text-3xl font-black text-slate-950">
+                {formatMoney(selectedCreditTotal)}
+              </p>
+            </div>
+            <p className="text-sm font-bold text-slate-600">
+              {selectedFindings.length} selected item{selectedFindings.length === 1 ? "" : "s"}
+            </p>
+          </div>
+
           <h2 className="mb-4 break-words text-3xl font-black text-slate-950">
             Requested Repairs / Corrections
           </h2>
@@ -1175,10 +1401,18 @@ function RepairRequestContent() {
                           key={finding.id}
                           className="break-inside-avoid overflow-hidden rounded-xl border border-slate-300 p-5"
                         >
-                          <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                            <h4 className="break-words text-xl font-black text-slate-950">
-                              {index + 1}. {finding.title}
-                            </h4>
+                          <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                            <div className="min-w-0 flex-1">
+                              <span className="mb-2 inline-flex w-fit rounded-full border border-cyan-500 bg-cyan-50 px-3 py-1 text-xs font-black uppercase tracking-wide text-cyan-700">
+                                Item #{getFindingNumber(finding, index)}
+                              </span>
+                              <h4 className="break-words text-xl font-black text-slate-950">
+                                {finding.title}
+                              </h4>
+                              <p className="mt-2 w-fit rounded-full border border-teal-300 bg-teal-50 px-3 py-1 text-sm font-black text-teal-800">
+                                Requested Credit: {formatMoney(getFindingCredit(finding, requestedCredits))}
+                              </p>
+                            </div>
 
                             <span className="w-fit max-w-full break-words rounded-full border border-slate-400 px-3 py-1 text-xs font-bold uppercase text-slate-700">
                               {finding.severity || "Recommended Repair"}

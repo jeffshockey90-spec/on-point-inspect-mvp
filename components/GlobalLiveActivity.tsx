@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { createClient } from "../utils/supabase/client";
 
 type InspectionSummary = {
@@ -122,8 +121,39 @@ function maybeShowBrowserNotification(title: string, body: string, url: string) 
   } catch {}
 }
 
+const INSPECTION_CACHE_KEY = "onpoint_live_activity_inspections";
+const INSPECTION_CACHE_TTL_MS = 1000 * 60 * 5;
+
+function readInspectionCache() {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const raw = window.sessionStorage.getItem(INSPECTION_CACHE_KEY);
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw);
+    if (!parsed?.savedAt || Date.now() - parsed.savedAt > INSPECTION_CACHE_TTL_MS) {
+      return null;
+    }
+
+    return Array.isArray(parsed?.items) ? parsed.items : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeInspectionCache(items: InspectionSummary[]) {
+  if (typeof window === "undefined") return;
+
+  try {
+    window.sessionStorage.setItem(
+      INSPECTION_CACHE_KEY,
+      JSON.stringify({ savedAt: Date.now(), items })
+    );
+  } catch {}
+}
+
 export default function GlobalLiveActivity() {
-  const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
 
   const [inspections, setInspections] = useState<InspectionSummary[]>([]);
@@ -227,13 +257,8 @@ export default function GlobalLiveActivity() {
 
     loadLiveActivitySettings();
 
-    window.addEventListener("focus", loadLiveActivitySettings);
-    document.addEventListener("visibilitychange", loadLiveActivitySettings);
-
     return () => {
       mounted = false;
-      window.removeEventListener("focus", loadLiveActivitySettings);
-      document.removeEventListener("visibilitychange", loadLiveActivitySettings);
     };
   }, [supabase]);
 
@@ -313,6 +338,12 @@ export default function GlobalLiveActivity() {
     let mounted = true;
 
     async function loadInspections() {
+      const cachedInspections = readInspectionCache();
+
+      if (cachedInspections?.length) {
+        setInspections(cachedInspections);
+      }
+
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -322,7 +353,9 @@ export default function GlobalLiveActivity() {
       const { data, error } = await supabase
         .from("inspections")
         .select("id,address,property_address")
-        .eq("inspector_id", user.id);
+        .eq("inspector_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(250);
 
       if (!mounted) return;
 
@@ -331,7 +364,9 @@ export default function GlobalLiveActivity() {
         return;
       }
 
-      setInspections(data || []);
+      const nextInspections = data || [];
+      setInspections(nextInspections);
+      writeInspectionCache(nextInspections);
     }
 
     loadInspections();
@@ -479,14 +514,6 @@ export default function GlobalLiveActivity() {
                 Open Report
               </a>
             )}
-
-            <button
-              type="button"
-              onClick={() => router.refresh()}
-              className="rounded-lg border border-slate-700 px-3 py-2 text-xs font-black text-slate-300 transition hover:border-teal-400 hover:text-teal-300"
-            >
-              Refresh
-            </button>
 
             {!soundEnabled && (
               <button

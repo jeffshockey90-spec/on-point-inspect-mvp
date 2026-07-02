@@ -115,6 +115,78 @@ function normalizeSection(section: string | null | undefined) {
   return aliases[clean] || clean;
 }
 
+function getRepairNumberTitle(finding: any) {
+  const rawTitle = String(
+    finding?.title ||
+      finding?.finding_title ||
+      finding?.defect_title ||
+      finding?.name ||
+      "Untitled Finding"
+  ).trim();
+
+  return rawTitle.replace(/^\d+\.\d+\.\d+\s*[-–—:]\s*/g, "");
+}
+
+function getRepairItemGroupLabel(finding: any) {
+  return String(
+    finding?.component ||
+      finding?.subsection ||
+      finding?.category ||
+      finding?.system ||
+      finding?.group_title ||
+      finding?.item_group ||
+      "General"
+  ).trim() || "General";
+}
+
+function addRepairItemNumbers(findings: any[]) {
+  const sectionGroupMap = new Map<string, number>();
+  const sectionGroupCounts = new Map<string, number>();
+
+  return (findings || []).map((finding: any) => {
+    const section = normalizeSection(finding?.section);
+    const sectionNumberRaw = SECTION_ORDER.indexOf(section) + 1;
+    const sectionNumber = sectionNumberRaw > 0 ? sectionNumberRaw : SECTION_ORDER.length + 1;
+    const groupLabel = getRepairItemGroupLabel(finding).toLowerCase();
+    const sectionGroupKey = `${sectionNumber}:${groupLabel}`;
+
+    if (!sectionGroupMap.has(sectionGroupKey)) {
+      const existingGroupsForSection = Array.from(sectionGroupMap.keys()).filter((key) =>
+        key.startsWith(`${sectionNumber}:`)
+      ).length;
+
+      sectionGroupMap.set(sectionGroupKey, existingGroupsForSection + 1);
+    }
+
+    const groupNumber = sectionGroupMap.get(sectionGroupKey) || 1;
+    const countKey = `${sectionNumber}.${groupNumber}`;
+    const nextCount = (sectionGroupCounts.get(countKey) || 0) + 1;
+    sectionGroupCounts.set(countKey, nextCount);
+
+    const repairItemNumber =
+      finding?.repair_item_number ||
+      finding?.item_number ||
+      finding?.finding_number ||
+      `${sectionNumber}.${groupNumber}.${nextCount}`;
+
+    return {
+      ...finding,
+      section,
+      original_title: getRepairNumberTitle(finding),
+      item_number: repairItemNumber,
+      repair_item_number: repairItemNumber,
+    };
+  });
+}
+
+function getNumberedFindingTitle(finding: any) {
+  const itemNumber = String(finding?.repair_item_number || finding?.item_number || "").trim();
+  const title = getRepairNumberTitle(finding);
+
+  return itemNumber ? `${itemNumber} - ${title}` : title;
+}
+
+
 function getStoragePathFromUrl(url: string | null | undefined) {
   if (!url) return "";
 
@@ -1593,12 +1665,18 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
     };
   });
 
-  const groupedFindingsArray = SECTION_ORDER.map((section) => ({
-    section,
-    findings: findings.filter((finding: any) => finding.section === section),
+  const numberedFindings = addRepairItemNumbers(findings);
+  const findingsForEditor = numberedFindings.map((finding: any) => ({
+    ...finding,
+    title: getNumberedFindingTitle(finding),
   }));
 
-  const defectFindings = findings.filter((finding: any) => {
+  const groupedFindingsArray = SECTION_ORDER.map((section) => ({
+    section,
+    findings: findingsForEditor.filter((finding: any) => finding.section === section),
+  }));
+
+  const defectFindings = numberedFindings.filter((finding: any) => {
     const section = String(finding.section || "").toLowerCase();
     const title = String(finding.title || "").toLowerCase();
 

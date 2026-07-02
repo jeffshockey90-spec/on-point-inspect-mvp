@@ -3,19 +3,53 @@
 import { useMemo, useState } from "react";
 
 type Finding = Record<string, any>;
+
 type ExistingResponse = {
   finding_id: string;
   response_status: string;
   notes?: string | null;
+  credit_amount?: number | string | null;
+  seller_credit_amount?: number | string | null;
+};
+
+type ResponseState = {
+  responseStatus: string;
+  notes: string;
+  creditAmount: string;
 };
 
 const RESPONSE_OPTIONS = [
-  { value: "agree_to_repair", label: "Agree to Repair" },
-  { value: "already_repaired", label: "Already Repaired" },
-  { value: "credit_buyer", label: "Credit Buyer" },
-  { value: "decline", label: "Decline" },
-  { value: "needs_discussion", label: "Needs Discussion" },
+  { value: "agree_to_repair", label: "Agree to Repair", icon: "✅" },
+  { value: "already_repaired", label: "Already Repaired", icon: "🔧" },
+  { value: "credit_buyer", label: "Credit Buyer", icon: "💲" },
+  { value: "decline", label: "Decline", icon: "❌" },
+  { value: "needs_discussion", label: "Needs Discussion", icon: "💬" },
 ];
+
+function parseMoneyValue(value: any) {
+  const number = Number(String(value || "").replace(/[^0-9.-]/g, ""));
+  return Number.isFinite(number) ? number : 0;
+}
+
+function formatMoney(value: any) {
+  const number = parseMoneyValue(value);
+  return number.toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  });
+}
+
+function getItemNumber(finding: Finding, fallbackIndex = 0) {
+  return String(
+    finding?.item_number ||
+      finding?.finding_number ||
+      finding?.repair_item_number ||
+      finding?.report_item_number ||
+      finding?.reference_number ||
+      `Item ${fallbackIndex + 1}`,
+  ).trim();
+}
 
 function getFindingText(finding: Finding) {
   return (
@@ -54,6 +88,10 @@ function getFirstPhotoUrl(finding: Finding) {
 
 function responseLabel(value: string) {
   return RESPONSE_OPTIONS.find((option) => option.value === value)?.label || "Not answered";
+}
+
+function responseIcon(value: string) {
+  return RESPONSE_OPTIONS.find((option) => option.value === value)?.icon || "○";
 }
 
 function getResponseStyle(value: string) {
@@ -96,6 +134,16 @@ function getResponseBadgeStyle(value: string) {
   return "border-slate-600 bg-slate-900 text-slate-300";
 }
 
+function getRequestedCredit(finding: Finding) {
+  return (
+    finding?.requested_credit_amount ||
+    finding?.requestedCreditAmount ||
+    finding?.requested_credit ||
+    finding?.requestedCredit ||
+    ""
+  );
+}
+
 export default function RepairResponseForm({
   token,
   findings,
@@ -114,18 +162,20 @@ export default function RepairResponseForm({
         {
           responseStatus: item.response_status || "",
           notes: item.notes || "",
+          creditAmount: String(item.seller_credit_amount || item.credit_amount || ""),
         },
       ])
     );
 
-    return findings.reduce(
-      (acc: Record<string, { responseStatus: string; notes: string }>, finding) => {
-        const id = String(finding.id);
-        acc[id] = responseMap.get(id) || { responseStatus: "", notes: "" };
-        return acc;
-      },
-      {}
-    );
+    return findings.reduce((acc: Record<string, ResponseState>, finding) => {
+      const id = String(finding.id);
+      acc[id] = responseMap.get(id) || {
+        responseStatus: "",
+        notes: "",
+        creditAmount: "",
+      };
+      return acc;
+    }, {});
   }, [existingResponses, findings]);
 
   const [items, setItems] = useState(initialItems);
@@ -141,13 +191,23 @@ export default function RepairResponseForm({
     return Boolean(items[id]?.responseStatus);
   }).length;
 
+  const requestedCreditTotal = findings.reduce(
+    (sum, finding) => sum + parseMoneyValue(getRequestedCredit(finding)),
+    0
+  );
+
+  const sellerCreditTotal = findings.reduce((sum, finding) => {
+    const id = String(finding.id);
+    return sum + parseMoneyValue(items[id]?.creditAmount);
+  }, 0);
+
   const progressPercent = findings.length
     ? Math.round((answeredCount / findings.length) * 100)
     : 0;
 
   function updateItem(
     findingId: string,
-    field: "responseStatus" | "notes",
+    field: "responseStatus" | "notes" | "creditAmount",
     value: string
   ) {
     if (locked) return;
@@ -157,6 +217,7 @@ export default function RepairResponseForm({
       [findingId]: {
         responseStatus: prev[findingId]?.responseStatus || "",
         notes: prev[findingId]?.notes || "",
+        creditAmount: prev[findingId]?.creditAmount || "",
         [field]: value,
       },
     }));
@@ -169,8 +230,10 @@ export default function RepairResponseForm({
       const id = String(finding.id);
       return {
         findingId: id,
+        itemNumber: getItemNumber(finding),
         responseStatus: items[id]?.responseStatus || "",
         notes: items[id]?.notes || "",
+        creditAmount: parseMoneyValue(items[id]?.creditAmount),
       };
     });
 
@@ -193,6 +256,7 @@ export default function RepairResponseForm({
         body: JSON.stringify({
           token,
           responses,
+          sellerCreditTotal,
         }),
       });
 
@@ -248,6 +312,26 @@ export default function RepairResponseForm({
             style={{ width: `${progressPercent}%` }}
           />
         </div>
+
+        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          <div className="rounded-xl border border-cyan-500/40 bg-cyan-500/10 p-4">
+            <p className="text-xs font-black uppercase tracking-wide text-cyan-200">
+              Requested Credit
+            </p>
+            <p className="mt-2 text-2xl font-black text-white">
+              {formatMoney(requestedCreditTotal)}
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4">
+            <p className="text-xs font-black uppercase tracking-wide text-emerald-200">
+              Seller Credit Offered
+            </p>
+            <p className="mt-2 text-2xl font-black text-white">
+              {formatMoney(sellerCreditTotal)}
+            </p>
+          </div>
+        </div>
       </section>
 
       {message ? (
@@ -261,6 +345,9 @@ export default function RepairResponseForm({
         const photoUrl = getFirstPhotoUrl(finding);
         const currentStatus = items[id]?.responseStatus || "";
         const hidePhoto = hiddenPhotos[id] || !photoUrl;
+        const itemNumber = getItemNumber(finding, index);
+        const requestedCredit = getRequestedCredit(finding);
+        const showCreditField = currentStatus === "credit_buyer";
 
         return (
           <article
@@ -270,7 +357,7 @@ export default function RepairResponseForm({
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
                 <p className="text-xs font-black uppercase tracking-[0.22em] text-teal-300">
-                  Item {index + 1}
+                  Item #{itemNumber}
                 </p>
                 <h2 className="mt-2 break-words text-2xl font-black text-white">
                   {finding.title || "Untitled Finding"}
@@ -278,10 +365,16 @@ export default function RepairResponseForm({
                 <p className="mt-1 break-words text-sm font-bold text-slate-400">
                   {finding.section || "Other"} · {finding.severity || "Recommended Repair"}
                 </p>
+
+                {parseMoneyValue(requestedCredit) > 0 ? (
+                  <p className="mt-3 w-fit rounded-full border border-cyan-400/60 bg-cyan-500/15 px-3 py-1 text-xs font-black uppercase tracking-wide text-cyan-200">
+                    Requested Credit: {formatMoney(requestedCredit)}
+                  </p>
+                ) : null}
               </div>
 
               <span className={`w-fit rounded-full border px-3 py-1 text-xs font-black uppercase ${getResponseBadgeStyle(currentStatus)}`}>
-                {responseLabel(currentStatus)}
+                {responseIcon(currentStatus)} {responseLabel(currentStatus)}
               </span>
             </div>
 
@@ -308,42 +401,64 @@ export default function RepairResponseForm({
               </p>
             </div>
 
-            <div className="mt-4 grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-              <label>
-                <span className="mb-2 block text-sm font-black text-white">
-                  Response
-                </span>
-                <select
-                  value={items[id]?.responseStatus || ""}
-                  onChange={(event) =>
-                    updateItem(id, "responseStatus", event.target.value)
-                  }
-                  disabled={locked}
-                  className="h-[52px] w-full rounded-xl border border-slate-700 bg-[#020617] px-3 font-bold text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-70"
-                >
-                  <option value="">Select response...</option>
-                  {RESPONSE_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+            <div className="mt-4">
+              <p className="mb-3 text-sm font-black text-white">Response</p>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                {RESPONSE_OPTIONS.map((option) => {
+                  const active = currentStatus === option.value;
 
-              <label>
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => updateItem(id, "responseStatus", option.value)}
+                      disabled={locked}
+                      data-fast-click="true"
+                      className={`min-h-[74px] rounded-xl border px-3 py-3 text-left transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70 ${
+                        active
+                          ? "border-teal-300 bg-teal-500/20 text-white shadow-[0_0_20px_rgba(20,184,166,0.18)]"
+                          : "border-slate-700 bg-[#020617] text-slate-300 hover:border-teal-500 hover:bg-teal-500/10"
+                      }`}
+                    >
+                      <span className="block text-xl">{option.icon}</span>
+                      <span className="mt-1 block text-xs font-black uppercase leading-4">
+                        {option.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {showCreditField ? (
+              <label className="mt-4 block">
                 <span className="mb-2 block text-sm font-black text-white">
-                  Notes
+                  Seller Credit Amount
                 </span>
-                <textarea
-                  value={items[id]?.notes || ""}
-                  onChange={(event) => updateItem(id, "notes", event.target.value)}
-                  rows={3}
+                <input
+                  value={items[id]?.creditAmount || ""}
+                  onChange={(event) => updateItem(id, "creditAmount", event.target.value)}
                   disabled={locked}
-                  placeholder="Add repair notes, credit details, timing, or explanation..."
-                  className="w-full rounded-xl border border-slate-700 bg-[#020617] p-3 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-70"
+                  placeholder="$0"
+                  inputMode="decimal"
+                  className="h-[52px] w-full rounded-xl border border-blue-500/60 bg-[#020617] px-3 text-lg font-black text-white outline-none focus:border-blue-300 disabled:cursor-not-allowed disabled:opacity-70"
                 />
               </label>
-            </div>
+            ) : null}
+
+            <label className="mt-4 block">
+              <span className="mb-2 block text-sm font-black text-white">
+                Notes
+              </span>
+              <textarea
+                value={items[id]?.notes || ""}
+                onChange={(event) => updateItem(id, "notes", event.target.value)}
+                rows={3}
+                disabled={locked}
+                placeholder="Add repair notes, credit details, timing, or explanation..."
+                className="w-full rounded-xl border border-slate-700 bg-[#020617] p-3 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-70"
+              />
+            </label>
           </article>
         );
       })}
@@ -352,6 +467,7 @@ export default function RepairResponseForm({
         type="button"
         onClick={submitResponse}
         disabled={submitting || locked}
+        data-fast-click="true"
         className="min-h-[58px] w-full rounded-xl border border-teal-500 bg-teal-500 px-5 py-4 text-lg font-black text-slate-950 transition hover:bg-teal-400 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
       >
         {locked ? "Response Submitted" : submitting ? "Submitting..." : "Submit Repair Request Response"}

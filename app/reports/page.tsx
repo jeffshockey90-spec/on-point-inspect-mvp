@@ -80,15 +80,34 @@ function getInspectionPropertyPhoto(inspection: any) {
   );
 }
 
+const propertyPhotoSignedUrlCache = new Map<string, { url: string; expiresAt: number }>();
+const PROPERTY_PHOTO_CACHE_TTL_MS = 1000 * 60 * 45;
+
 async function createSignedPropertyPhotoMap(supabase: any, paths: string[]) {
   const uniquePaths = Array.from(new Set(paths.filter(Boolean)));
   const signedMap: Record<string, string> = {};
 
   if (uniquePaths.length === 0) return signedMap;
 
+  const now = Date.now();
+  const missingPaths: string[] = [];
+
+  uniquePaths.forEach((path) => {
+    const cached = propertyPhotoSignedUrlCache.get(path);
+
+    if (cached && cached.expiresAt > now) {
+      signedMap[path] = cached.url;
+      return;
+    }
+
+    missingPaths.push(path);
+  });
+
+  if (missingPaths.length === 0) return signedMap;
+
   const { data, error } = await supabase.storage
     .from("inspection-photos")
-    .createSignedUrls(uniquePaths, 60 * 60 * 24 * 7, {
+    .createSignedUrls(missingPaths, 60 * 60 * 24 * 7, {
       transform: {
         width: 700,
         resize: "cover",
@@ -101,10 +120,14 @@ async function createSignedPropertyPhotoMap(supabase: any, paths: string[]) {
   }
 
   (data || []).forEach((item: any, index: number) => {
-    const path = item?.path || uniquePaths[index];
+    const path = item?.path || missingPaths[index];
 
     if (path && item?.signedUrl) {
       signedMap[path] = item.signedUrl;
+      propertyPhotoSignedUrlCache.set(path, {
+        url: item.signedUrl,
+        expiresAt: now + PROPERTY_PHOTO_CACHE_TTL_MS,
+      });
     }
   });
 
@@ -280,6 +303,7 @@ export default async function ReportsPage() {
           .select("*")
           .in("inspection_id_bigint", inspectionIds)
           .order("created_at", { ascending: false })
+          .limit(500)
       : { data: [], error: null };
 
   if (viewLogsError) {
@@ -287,6 +311,15 @@ export default async function ReportsPage() {
   }
 
   const activityByInspectionId = buildReportActivityMap(viewLogsRaw || []);
+  const reportsViewedCount = Object.values(activityByInspectionId).filter(
+    (activity: any) => activity.totalViews > 0
+  ).length;
+  const clientViewedCount = Object.values(activityByInspectionId).filter(
+    (activity: any) => activity.clientViewed
+  ).length;
+  const realtorViewedCount = Object.values(activityByInspectionId).filter(
+    (activity: any) => activity.realtorViewed
+  ).length;
 
   return (
     <main className="min-h-screen bg-[#020617] px-6 py-10 text-white">
@@ -329,6 +362,13 @@ export default async function ReportsPage() {
           </div>
         </div>
 
+        <section className="mb-8 grid gap-4 md:grid-cols-4">
+          <ReportMetric label="Total Reports" value={String(rows.length)} />
+          <ReportMetric label="Viewed Reports" value={String(reportsViewedCount)} />
+          <ReportMetric label="Client Viewed" value={String(clientViewedCount)} />
+          <ReportMetric label="Realtor Viewed" value={String(realtorViewedCount)} />
+        </section>
+
         {rows.length === 0 ? (
           <div className="rounded-2xl border border-slate-800 bg-slate-900 p-8">
             <p className="text-slate-300">No saved inspections found.</p>
@@ -357,7 +397,7 @@ export default async function ReportsPage() {
               return (
                 <div
                   key={inspection.id}
-                  className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 shadow-xl"
+                  className="group overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 shadow-xl transition duration-150 hover:-translate-y-0.5 hover:border-teal-500/70 hover:bg-[#13213a] hover:shadow-[0_0_28px_rgba(20,184,166,0.14)] active:scale-[0.99]"
                 >
                   <div className="relative flex h-56 items-center justify-center overflow-hidden bg-slate-950 text-slate-500">
                     {!propertyPhoto ? (
@@ -373,13 +413,13 @@ export default async function ReportsPage() {
                         loading={index < 8 ? "eager" : "lazy"}
                         decoding="async"
                         fetchPriority={index < 4 ? "high" : "auto"}
-                        className="relative z-10 h-full w-full object-cover"
+                        className="relative z-10 h-full w-full object-cover transition duration-200 group-hover:scale-[1.03]"
                       />
                     ) : null}
                   </div>
 
                   <div className="p-6">
-                    <h2 className="text-2xl font-bold text-white">
+                    <h2 className="text-2xl font-bold text-white transition group-hover:text-teal-300">
                       {inspection.property_address || "Untitled Inspection"}
                     </h2>
 
@@ -475,6 +515,15 @@ export default async function ReportsPage() {
         )}
       </div>
     </main>
+  );
+}
+
+function ReportMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-slate-800 bg-[#0b1220] p-5 shadow-xl transition duration-150 hover:border-teal-500/50 hover:bg-[#13213a] active:scale-[0.985]">
+      <p className="text-xs font-black uppercase tracking-wide text-slate-500">{label}</p>
+      <p className="mt-3 text-3xl font-black text-white">{value}</p>
+    </div>
   );
 }
 

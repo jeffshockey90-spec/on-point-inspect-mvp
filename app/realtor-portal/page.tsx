@@ -1,4 +1,4 @@
-import Link from "next/link";
+import FastLinkButton from "../../components/FastLinkButton";
 import { redirect } from "next/navigation";
 import { createClient } from "../../utils/supabase/server";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
@@ -227,12 +227,13 @@ export default async function RealtorPortalPage() {
               </p>
             </div>
 
-            <Link
+            <FastLinkButton
               href="/"
+              loadingText="Opening..."
               className="rounded-xl border border-teal-500 px-5 py-3 font-bold text-teal-300 hover:bg-teal-500/10"
             >
               Back
-            </Link>
+            </FastLinkButton>
           </div>
         </section>
 
@@ -277,7 +278,7 @@ export default async function RealtorPortalPage() {
                 return (
                   <article
                     key={id}
-                    className="rounded-2xl border border-slate-700 bg-[#020617] p-5"
+                    className="rounded-2xl border border-slate-700 bg-[#020617] p-5 transition duration-150 hover:border-teal-500/60 hover:bg-[#071224] hover:shadow-[0_0_24px_rgba(20,184,166,0.12)] active:scale-[0.995]"
                   >
                     <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                       <div className="min-w-0">
@@ -311,29 +312,32 @@ export default async function RealtorPortalPage() {
                       </div>
 
                       <div className="grid gap-3 sm:grid-cols-2 lg:min-w-[420px]">
-                        <Link
+                        <FastLinkButton
                           href={`/share/${id}`}
+                          loadingText="Opening Report..."
                           className="rounded-xl border border-teal-500 px-4 py-3 text-center font-black text-teal-300 hover:bg-teal-500/10"
                         >
                           View Report
-                        </Link>
+                        </FastLinkButton>
 
-                        <Link
+                        <FastLinkButton
                           href={`/repair-request?inspection_id=${encodeURIComponent(
                             id
                           )}&role=realtor&email=${encodeURIComponent(userEmail)}`}
+                          loadingText="Opening Builder..."
                           className="rounded-xl border border-cyan-500 px-4 py-3 text-center font-black text-cyan-300 hover:bg-cyan-500/10"
                         >
                           Build Repair Request
-                        </Link>
+                        </FastLinkButton>
 
                         {latestShare ? (
-                          <Link
+                          <FastLinkButton
                             href={`/repair-response/${latestShare.token}`}
+                            loadingText="Opening Response..."
                             className="rounded-xl border border-purple-500 px-4 py-3 text-center font-black text-purple-300 hover:bg-purple-500/10 sm:col-span-2"
                           >
                             Open Secure Response
-                          </Link>
+                          </FastLinkButton>
                         ) : null}
                       </div>
                     </div>
@@ -350,7 +354,7 @@ export default async function RealtorPortalPage() {
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-teal-500/40 bg-teal-950/20 p-6 shadow-xl">
+    <div className="rounded-2xl border border-teal-500/40 bg-teal-950/20 p-6 shadow-xl transition duration-150 hover:border-teal-400 hover:bg-teal-500/10 active:scale-[0.985]">
       <p className="text-xs font-black uppercase tracking-wide text-slate-400">
         {label}
       </p>

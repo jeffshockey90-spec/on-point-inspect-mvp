@@ -70,6 +70,20 @@ function looksLikeEmail(value: any) {
   return Boolean(email && email.includes("@") && email.includes("."));
 }
 
+function parseMoneyValue(value: any) {
+  const number = Number(String(value || "").replace(/[^0-9.-]/g, ""));
+  return Number.isFinite(number) ? number : 0;
+}
+
+function formatMoney(value: any) {
+  const number = parseMoneyValue(value);
+  return number.toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  });
+}
+
 function getRecipientTypeForRole(roleValue: any): "client" | "realtor" | "custom" {
   const role = String(roleValue || "").toLowerCase();
 
@@ -196,12 +210,14 @@ function buildRepairRequestEmailHtml({
   trackedResponseUrl,
   summary,
   selectedCount,
+  requestedCreditTotal = 0,
 }: {
   property: string;
   trackedRepairRequestUrl: string;
   trackedResponseUrl: string;
   summary: string;
   selectedCount: number;
+  requestedCreditTotal?: number;
 }) {
   return `
 <!doctype html>
@@ -218,11 +234,12 @@ function buildRepairRequestEmailHtml({
           <a href="${escapeHtml(trackedResponseUrl)}" style="display:inline-block; background:#14b8a6; color:#020617; padding:14px 20px; border-radius:10px; text-decoration:none; font-weight:700;">Respond to Repair Request</a>
         </p>
         <p style="margin:0 0 24px 0;">
-          <a href="${escapeHtml(trackedRepairRequestUrl)}" style="display:inline-block; background:#020617; color:#5eead4; padding:12px 18px; border-radius:10px; text-decoration:none; font-weight:700;">View Printable Request</a>
+          <a href="${escapeHtml(trackedRepairRequestUrl)}" style="display:inline-block; background:#020617; color:#5eead4; padding:12px 18px; border-radius:10px; text-decoration:none; font-weight:700;">View / Download Repair Request</a>
         </p>
         <div style="background:#f1f5f9; border:1px solid #cbd5e1; border-radius:12px; padding:18px; margin:0 0 22px 0;">
           <h2 style="font-size:18px; margin:0 0 10px 0; color:#0f172a;">Repair Request Summary</h2>
           <p style="font-size:15px; line-height:1.5; margin:0 0 10px 0;">Selected repair request items: <strong>${selectedCount}</strong></p>
+          <p style="font-size:15px; line-height:1.5; margin:0 0 10px 0;">Requested credit total: <strong>${escapeHtml(formatMoney(requestedCreditTotal))}</strong></p>
           <p style="font-size:15px; line-height:1.6; margin:0; color:#334155;">${escapeHtml(summary)}</p>
         </div>
         <p style="font-size:15px; line-height:1.6; margin:0 0 16px 0; color:#334155;">Please review the requested repair/correction items and submit a response for each item.</p>
@@ -244,12 +261,14 @@ function buildRepairRequestEmailText({
   responseUrl,
   summary,
   selectedCount,
+  requestedCreditTotal = 0,
 }: {
   property: string;
   repairRequestUrl: string;
   responseUrl: string;
   summary: string;
   selectedCount: number;
+  requestedCreditTotal?: number;
 }) {
   return `Hello,
 
@@ -258,10 +277,11 @@ The repair request summary for ${property} is ready to review and respond to.
 Respond to Repair Request:
 ${responseUrl}
 
-View Printable Request:
+View / Download Repair Request:
 ${repairRequestUrl}
 
 Selected repair request items: ${selectedCount}
+Requested credit total: ${formatMoney(requestedCreditTotal)}
 
 ${summary}
 
@@ -365,6 +385,8 @@ export async function POST(req: Request) {
       recipientType = "realtor",
       recipientEmail,
       selectedIds = [],
+      requestedCredits = {},
+      requestedCreditTotal = 0,
       summary = "",
     } = body;
 
@@ -413,6 +435,11 @@ export async function POST(req: Request) {
       (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
 
     const property = inspection.property_address || inspection.address || "the inspected property";
+    const cleanRequestedCredits =
+      requestedCredits && typeof requestedCredits === "object" && !Array.isArray(requestedCredits)
+        ? requestedCredits
+        : {};
+    const totalRequestedCredit = parseMoneyValue(requestedCreditTotal);
 
     let recipients: Recipient[] = [];
 
@@ -490,25 +517,50 @@ export async function POST(req: Request) {
 
     const finalSummary =
       summary || "The selected inspection findings are ready for repair request review and negotiation.";
+    const summaryWithCredit =
+      totalRequestedCredit > 0
+        ? `${finalSummary}\n\nTotal requested credit: ${formatMoney(totalRequestedCredit)}`
+        : finalSummary;
 
     const results: any[] = [];
 
     for (const recipient of recipients) {
       const token = crypto.randomBytes(32).toString("hex");
 
-      const { data: share, error: shareError } = await db
+      const sharePayloadWithCredits = {
+        inspection_id: Number(inspectionId),
+        token,
+        recipient_email: recipient.email,
+        recipient_type: recipient.recipientType,
+        selected_finding_ids: finalSelectedIds,
+        summary: summaryWithCredit,
+        status: "sent",
+        requested_credits: cleanRequestedCredits,
+        requested_credit_total: totalRequestedCredit,
+        metadata: {
+          requested_credits: cleanRequestedCredits,
+          requested_credit_total: totalRequestedCredit,
+        },
+      };
+
+      let shareResult = await db
         .from("repair_request_shares")
-        .insert({
-          inspection_id: Number(inspectionId),
-          token,
-          recipient_email: recipient.email,
-          recipient_type: recipient.recipientType,
-          selected_finding_ids: finalSelectedIds,
-          summary: finalSummary,
-          status: "sent",
-        })
+        .insert(sharePayloadWithCredits)
         .select("id, token")
         .single();
+
+      if (shareResult.error) {
+        const { requested_credits, requested_credit_total, metadata, ...fallbackPayload } =
+          sharePayloadWithCredits as any;
+
+        shareResult = await db
+          .from("repair_request_shares")
+          .insert(fallbackPayload)
+          .select("id, token")
+          .single();
+      }
+
+      const { data: share, error: shareError } = shareResult;
 
       if (shareError || !share?.token) {
         console.error("Repair request share create error:", shareError);
@@ -549,16 +601,18 @@ export async function POST(req: Request) {
         property,
         trackedRepairRequestUrl,
         trackedResponseUrl,
-        summary: finalSummary,
+        summary: summaryWithCredit,
         selectedCount: finalSelectedIds.length,
+        requestedCreditTotal: totalRequestedCredit,
       });
 
       const text = buildRepairRequestEmailText({
         property,
         repairRequestUrl: repairUrlWithViewer,
         responseUrl,
-        summary: finalSummary,
+        summary: summaryWithCredit,
         selectedCount: finalSelectedIds.length,
+        requestedCreditTotal: totalRequestedCredit,
       });
 
       const resendRes = await fetch("https://api.resend.com/emails", {

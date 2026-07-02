@@ -78,6 +78,18 @@ function getFindingSummary(finding: any) {
   );
 }
 
+function getItemNumber(finding: any) {
+  return String(
+    finding?.item_number ||
+      finding?.itemNumber ||
+      finding?.finding_number ||
+      finding?.findingNumber ||
+      finding?.reference_number ||
+      finding?.referenceNumber ||
+      "",
+  ).trim();
+}
+
 function getMediaUrl(media: any) {
   if (!media) return "";
   return (
@@ -288,6 +300,7 @@ function SummaryFindingCard({
   });
   const title = getFindingTitle(finding);
   const summary = getFindingSummary(finding);
+  const itemNumber = getItemNumber(finding);
   const video = isVideoMedia(primaryMedia || finding, mediaUrl);
 
   return (
@@ -301,8 +314,15 @@ function SummaryFindingCard({
         type="button"
         onClick={onToggle}
         aria-expanded={isOpen}
-        className="block w-full max-w-full min-w-0 text-left"
+        data-fast-click="true"
+        className="block w-full max-w-full min-w-0 text-left transition duration-150 active:scale-[0.99] [touch-action:manipulation]"
       >
+        {itemNumber && (
+          <div className="absolute left-3 top-3 z-20 rounded-full border border-cyan-300/80 bg-[#020617]/90 px-3 py-1.5 text-[11px] font-black uppercase tracking-wide text-cyan-200 shadow-[0_0_18px_rgba(34,211,238,0.22)] backdrop-blur">
+            Item #{itemNumber}
+          </div>
+        )}
+
         {mediaUrl && (
           <div className="relative h-44 w-full max-w-full overflow-hidden border-b border-slate-800 bg-black sm:h-48">
             {video ? (
@@ -333,8 +353,14 @@ function SummaryFindingCard({
           </div>
         )}
 
-        <div className="p-4 sm:p-5">
+        <div className={`p-4 sm:p-5 ${!mediaUrl && itemNumber ? "pt-14" : ""}`}>
           <div className="mb-4 flex max-w-full flex-wrap items-center gap-2">
+            {itemNumber && (
+              <span className="rounded-full border border-cyan-400/80 bg-cyan-500/15 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-cyan-200 shadow-[0_0_16px_rgba(34,211,238,0.14)]">
+                Item #{itemNumber}
+              </span>
+            )}
+
             <span
               className={`rounded-full border px-3 py-1.5 text-[10px] font-black uppercase tracking-wide ${getSeverityClass(finding.severity)}`}
             >
