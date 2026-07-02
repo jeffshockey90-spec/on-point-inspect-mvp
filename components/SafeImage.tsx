@@ -1,37 +1,41 @@
 "use client";
 
-import { useState, type ImgHTMLAttributes } from "react";
+import { useEffect, useState } from "react";
 
-type SafeImageProps = ImgHTMLAttributes<HTMLImageElement> & {
-  fallbackSrc?: string;
+type SafeImageProps = React.ImgHTMLAttributes<HTMLImageElement> & {
+  src?: string | null;
+  fallbackSrc?: string | null;
 };
 
 export default function SafeImage({
   src,
   fallbackSrc,
-  style,
+  alt,
+  onError,
   ...props
 }: SafeImageProps) {
-  const [currentSrc, setCurrentSrc] = useState(src);
-  const [hidden, setHidden] = useState(false);
+  const primarySrc = String(src || "").trim();
+  const backupSrc = String(fallbackSrc || "").trim();
+  const [currentSrc, setCurrentSrc] = useState(primarySrc);
+
+  useEffect(() => {
+    setCurrentSrc(primarySrc);
+  }, [primarySrc]);
+
+  if (!currentSrc) return null;
 
   return (
     <img
       {...props}
       src={currentSrc}
-      style={{
-        ...style,
-        display: hidden ? "none" : style?.display,
-      }}
-      onError={() => {
-        const fallback = String(fallbackSrc || "").trim();
-
-        if (fallback && currentSrc !== fallback) {
-          setCurrentSrc(fallback);
+      alt={alt || ""}
+      onError={(event) => {
+        if (backupSrc && currentSrc !== backupSrc) {
+          setCurrentSrc(backupSrc);
           return;
         }
 
-        setHidden(true);
+        onError?.(event);
       }}
     />
   );

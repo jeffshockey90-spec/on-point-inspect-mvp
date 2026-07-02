@@ -382,13 +382,7 @@ function getMediaUrl(media: any) {
 }
 
 function getMediaPreviewUrl(media: any) {
-  if (!media) return "";
-
-  return (
-    media?.signed_thumbnail_url ||
-    media?.thumbnail_url ||
-    getMediaUrl(media)
-  );
+  return getMediaUrl(media);
 }
 
 
@@ -924,20 +918,19 @@ export default async function PublicSharePage({
     ...oldFindingImagePaths,
   ]);
 
-  const signedThumbnailUrlMap = await createSignedUrlMap(photoThumbnailPaths);
-
+  // Mobile browsers were sometimes being handed thumbnail URLs that no longer existed.
+  // For the public share page, always expose the full signed image URL as both the
+  // main image and the preview image so mobile never gets stuck on a broken thumbnail.
   const photosWithUrls = (photosRaw || []).map((photo: any) => {
     const path = getPhotoStoragePath(photo);
-
     const fastUrl = getFallbackPhotoUrl(photo);
+    const fullSignedUrl = (path && signedUrlMap[path]) || fastUrl || "";
 
     return {
       ...photo,
-      signed_url: (path && signedUrlMap[path]) || fastUrl || "",
-      signed_thumbnail_url:
-        (photo.thumbnail_path && signedThumbnailUrlMap[photo.thumbnail_path]) ||
-        photo.thumbnail_url ||
-        "",
+      signed_url: fullSignedUrl,
+      signed_thumbnail_url: fullSignedUrl,
+      thumbnail_url: fullSignedUrl,
     };
   });
 
@@ -1002,20 +995,20 @@ export default async function PublicSharePage({
     .filter(Boolean);
 
   const limitationSignedUrlMap = await createSignedUrlMap(limitationPhotoPaths);
-  const limitationThumbnailSignedUrlMap = await createSignedUrlMap(limitationThumbnailPaths);
-
-  const limitationPhotosWithUrls = (limitationPhotosRaw || []).map((photo: any) => ({
-    ...photo,
-    signed_url:
+  const limitationPhotosWithUrls = (limitationPhotosRaw || []).map((photo: any) => {
+    const fullSignedUrl =
       (photo.file_path && limitationSignedUrlMap[photo.file_path]) ||
       photo.signed_url ||
       photo.public_url ||
-      "",
-    signed_thumbnail_url:
-      (photo.thumbnail_path && limitationThumbnailSignedUrlMap[photo.thumbnail_path]) ||
-      photo.thumbnail_url ||
-      "",
-  }));
+      "";
+
+    return {
+      ...photo,
+      signed_url: fullSignedUrl,
+      signed_thumbnail_url: fullSignedUrl,
+      thumbnail_url: fullSignedUrl,
+    };
+  });
 
   const photosByLimitationId = limitationPhotosWithUrls.reduce(
     (acc: Record<string, any[]>, photo: any) => {
@@ -1048,22 +1041,22 @@ export default async function PublicSharePage({
     .filter(Boolean);
 
   const referenceSignedUrlMap = await createSignedUrlMap(referencePhotoPaths);
-  const referenceThumbnailSignedUrlMap = await createSignedUrlMap(referenceThumbnailPaths);
-
   const sectionReferencePhotos = (sectionReferencePhotosRaw || []).map(
-    (photo: any) => ({
-      ...photo,
-      section: normalizeSection(photo.section),
-      signed_url:
+    (photo: any) => {
+      const fullSignedUrl =
         (photo.file_path && referenceSignedUrlMap[photo.file_path]) ||
         photo.signed_url ||
         photo.public_url ||
-        "",
-      signed_thumbnail_url:
-        (photo.thumbnail_path && referenceThumbnailSignedUrlMap[photo.thumbnail_path]) ||
-        photo.thumbnail_url ||
-        "",
-    })
+        "";
+
+      return {
+        ...photo,
+        section: normalizeSection(photo.section),
+        signed_url: fullSignedUrl,
+        signed_thumbnail_url: fullSignedUrl,
+        thumbnail_url: fullSignedUrl,
+      };
+    }
   );
 
   const referencePhotosBySection = sectionReferencePhotos.reduce(
@@ -1101,21 +1094,22 @@ export default async function PublicSharePage({
     .filter(Boolean);
 
   const equipmentSignedUrlMap = await createSignedUrlMap(equipmentPhotoPaths);
-  const equipmentThumbnailSignedUrlMap = await createSignedUrlMap(equipmentThumbnailPaths);
-
-  const equipmentInventory = (equipmentInventoryRaw || []).map((item: any) => ({
-    ...item,
-    signed_image_url:
+  const equipmentInventory = (equipmentInventoryRaw || []).map((item: any) => {
+    const fullSignedUrl =
       (item.file_path && equipmentSignedUrlMap[item.file_path]) ||
       item.signed_image_url ||
       item.image_url ||
       item.public_url ||
-      "",
-    signed_thumbnail_url:
-      (item.thumbnail_path && equipmentThumbnailSignedUrlMap[item.thumbnail_path]) ||
-      item.thumbnail_url ||
-      "",
-  }));
+      "";
+
+    return {
+      ...item,
+      signed_image_url: fullSignedUrl,
+      image_url: fullSignedUrl || item.image_url || "",
+      signed_thumbnail_url: fullSignedUrl,
+      thumbnail_url: fullSignedUrl,
+    };
+  });
 
   const { data: moldTest } = await supabase
     .from("mold_tests")
