@@ -1779,6 +1779,12 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
       ? `${engagementViews.length} view${engagementViews.length === 1 ? "" : "s"}`
       : "No views yet";
 
+  const { data: existingSampleReport } = await supabase
+    .from("public_sample_reports")
+    .select("id, title, description, is_enabled")
+    .eq("inspection_id", inspection.id)
+    .maybeSingle();
+
   const sampleReportBadge =
     existingSampleReport?.is_enabled === true ? "Enabled" : "Disabled";
 
@@ -1802,11 +1808,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
   const sampleShareTitle = getSampleReportTitle(inspection);
   const sampleShareDescription = getSampleReportDescription(inspection);
 
-  const { data: existingSampleReport } = await supabase
-    .from("public_sample_reports")
-    .select("id, title, description, is_enabled")
-    .eq("inspection_id", inspection.id)
-    .maybeSingle();
+  
 
   const { data: signedAgreementsRaw, error: signedAgreementsError } = await supabase
     .from("inspection_agreements")
