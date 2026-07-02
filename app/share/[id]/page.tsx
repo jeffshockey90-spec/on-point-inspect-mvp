@@ -3,7 +3,6 @@ import { createClient } from "@supabase/supabase-js";
 import PdfExportButton from "../../../components/PdfExportButton";
 import ReportTimeTracker from "../../../components/ReportTimeTracker";
 import ClientSummaryAccordion from "../../../components/ClientSummaryAccordion";
-import SafeImage from "../../../components/SafeImage";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -382,9 +381,21 @@ function getMediaUrl(media: any) {
 }
 
 function getMediaPreviewUrl(media: any) {
-  return getMediaUrl(media);
-}
+  if (!media) return "";
 
+  const fullUrl = getMediaUrl(media);
+
+  // Mobile Safari was showing blank/black boxes when an old thumbnail URL
+  // existed in the database but the thumbnail file was missing or expired.
+  // On the public share page, prefer the full signed image URL so photos
+  // always load. Thumbnails remain a last fallback only.
+  return (
+    fullUrl ||
+    media?.signed_thumbnail_url ||
+    media?.thumbnail_url ||
+    ""
+  );
+}
 
 function getFindingPrimaryMedia(finding: any) {
   const photos = Array.isArray(finding?.photos) ? finding.photos : [];
@@ -918,19 +929,20 @@ export default async function PublicSharePage({
     ...oldFindingImagePaths,
   ]);
 
-  // Mobile browsers were sometimes being handed thumbnail URLs that no longer existed.
-  // For the public share page, always expose the full signed image URL as both the
-  // main image and the preview image so mobile never gets stuck on a broken thumbnail.
+  const signedThumbnailUrlMap = await createSignedUrlMap(photoThumbnailPaths);
+
   const photosWithUrls = (photosRaw || []).map((photo: any) => {
     const path = getPhotoStoragePath(photo);
     const fastUrl = getFallbackPhotoUrl(photo);
-    const fullSignedUrl = (path && signedUrlMap[path]) || fastUrl || "";
+    const fullUrl = (path && signedUrlMap[path]) || fastUrl || "";
 
     return {
       ...photo,
-      signed_url: fullSignedUrl,
-      signed_thumbnail_url: fullSignedUrl,
-      thumbnail_url: fullSignedUrl,
+      signed_url: fullUrl,
+      // Force public/mobile share cards to use the real signed image.
+      // Broken generated thumbnails were causing blank black boxes on iPhone.
+      signed_thumbnail_url: fullUrl,
+      thumbnail_url: fullUrl || photo.thumbnail_url || "",
     };
   });
 
@@ -995,8 +1007,10 @@ export default async function PublicSharePage({
     .filter(Boolean);
 
   const limitationSignedUrlMap = await createSignedUrlMap(limitationPhotoPaths);
+  const limitationThumbnailSignedUrlMap = await createSignedUrlMap(limitationThumbnailPaths);
+
   const limitationPhotosWithUrls = (limitationPhotosRaw || []).map((photo: any) => {
-    const fullSignedUrl =
+    const fullUrl =
       (photo.file_path && limitationSignedUrlMap[photo.file_path]) ||
       photo.signed_url ||
       photo.public_url ||
@@ -1004,9 +1018,9 @@ export default async function PublicSharePage({
 
     return {
       ...photo,
-      signed_url: fullSignedUrl,
-      signed_thumbnail_url: fullSignedUrl,
-      thumbnail_url: fullSignedUrl,
+      signed_url: fullUrl,
+      signed_thumbnail_url: fullUrl,
+      thumbnail_url: fullUrl || photo.thumbnail_url || "",
     };
   });
 
@@ -1041,9 +1055,11 @@ export default async function PublicSharePage({
     .filter(Boolean);
 
   const referenceSignedUrlMap = await createSignedUrlMap(referencePhotoPaths);
+  const referenceThumbnailSignedUrlMap = await createSignedUrlMap(referenceThumbnailPaths);
+
   const sectionReferencePhotos = (sectionReferencePhotosRaw || []).map(
     (photo: any) => {
-      const fullSignedUrl =
+      const fullUrl =
         (photo.file_path && referenceSignedUrlMap[photo.file_path]) ||
         photo.signed_url ||
         photo.public_url ||
@@ -1052,9 +1068,9 @@ export default async function PublicSharePage({
       return {
         ...photo,
         section: normalizeSection(photo.section),
-        signed_url: fullSignedUrl,
-        signed_thumbnail_url: fullSignedUrl,
-        thumbnail_url: fullSignedUrl,
+        signed_url: fullUrl,
+        signed_thumbnail_url: fullUrl,
+        thumbnail_url: fullUrl || photo.thumbnail_url || "",
       };
     }
   );
@@ -1094,8 +1110,10 @@ export default async function PublicSharePage({
     .filter(Boolean);
 
   const equipmentSignedUrlMap = await createSignedUrlMap(equipmentPhotoPaths);
+  const equipmentThumbnailSignedUrlMap = await createSignedUrlMap(equipmentThumbnailPaths);
+
   const equipmentInventory = (equipmentInventoryRaw || []).map((item: any) => {
-    const fullSignedUrl =
+    const fullUrl =
       (item.file_path && equipmentSignedUrlMap[item.file_path]) ||
       item.signed_image_url ||
       item.image_url ||
@@ -1104,10 +1122,9 @@ export default async function PublicSharePage({
 
     return {
       ...item,
-      signed_image_url: fullSignedUrl,
-      image_url: fullSignedUrl || item.image_url || "",
-      signed_thumbnail_url: fullSignedUrl,
-      thumbnail_url: fullSignedUrl,
+      signed_image_url: fullUrl,
+      signed_thumbnail_url: fullUrl,
+      thumbnail_url: fullUrl || item.thumbnail_url || "",
     };
   });
 
@@ -1279,13 +1296,12 @@ export default async function PublicSharePage({
         <section className="relative overflow-hidden border-b border-slate-800 bg-[#020617]">
           {propertyPhoto ? (
             <>
-              <SafeImage
+              <img
                 src={propertyPhoto}
                 alt="Property"
                 loading="eager"
                 decoding="async"
                 fetchPriority="high"
-                
                 className="h-[360px] w-full object-cover md:h-[520px]"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[#020617] via-[#020617]/35 to-black/20" />
@@ -1577,11 +1593,8 @@ export default async function PublicSharePage({
 
               <div className="mt-5 grid gap-4 lg:grid-cols-2">
                 {equipmentInventory.map((item: any) => {
-                  const equipmentFullImage =
-                    item.signed_image_url || item.image_url || item.public_url || "";
-
                   const equipmentImage =
-                    item.signed_thumbnail_url || item.thumbnail_url || equipmentFullImage;
+                    item.signed_thumbnail_url || item.thumbnail_url || item.signed_image_url || item.image_url || item.public_url || "";
 
                   return (
                     <div
@@ -1589,13 +1602,12 @@ export default async function PublicSharePage({
                       className="rounded-xl border border-slate-700 bg-[#0f172a] p-4"
                     >
                       {equipmentImage && (
-                        <SafeImage
+                        <img
                           src={equipmentImage}
                           alt={item.equipment_type || "Equipment"}
                           loading="lazy"
                 decoding="async"
                 fetchPriority="low"
-                fallbackSrc={equipmentFullImage}
                 className="mb-4 max-h-56 w-full rounded-xl border border-slate-700 object-contain"
                         />
                       )}
@@ -1853,14 +1865,13 @@ export default async function PublicSharePage({
                             {item.photos?.length > 0 && (
                               <div className="mt-4 grid gap-3 md:grid-cols-3">
                                 {item.photos.map((photo: any) => (
-                                  <SafeImage
+                                  <img
                                     key={photo.id}
-                                    src={photo.signed_thumbnail_url || photo.thumbnail_url || photo.signed_url || photo.public_url}
+                                    src={photo.signed_url || photo.public_url}
                                     alt="Limitation photo"
                                     loading="lazy"
                 decoding="async"
                 fetchPriority="low"
-                fallbackSrc={photo.signed_url || photo.public_url}
                 className="max-h-[260px] w-full rounded-xl border border-slate-700 object-cover"
                                   />
                                 ))}
@@ -1963,8 +1974,7 @@ export default async function PublicSharePage({
 
                           <div className="grid gap-4 md:grid-cols-3">
                             {referencePhotosBySection[group.section].map((photo: any, index: number) => {
-                              const fullPhotoUrl = photo.signed_url || photo.public_url || photo.image_url || photo.photo_url || "";
-                              const photoUrl = photo.signed_thumbnail_url || photo.thumbnail_url || fullPhotoUrl;
+                              const photoUrl = photo.signed_thumbnail_url || photo.thumbnail_url || photo.signed_url || photo.public_url || photo.image_url || photo.photo_url || "";
 
                               if (!photoUrl) return null;
 
@@ -1973,13 +1983,12 @@ export default async function PublicSharePage({
                                   key={photo.id || index}
                                   className="overflow-hidden rounded-xl border border-slate-700 bg-[#020617]"
                                 >
-                                  <SafeImage
+                                  <img
                                     src={photoUrl}
                                     alt={photo.caption || `Section reference photo ${index + 1}`}
                                     loading="lazy"
                 decoding="async"
                 fetchPriority="low"
-                fallbackSrc={fullPhotoUrl}
                 className="max-h-[280px] w-full object-cover"
                                   />
 
@@ -2033,13 +2042,12 @@ export default async function PublicSharePage({
                                             </span>
                                           </div>
                                         ) : (
-                                          <SafeImage
+                                          <img
                                             src={previewImage || image}
                                             alt={title}
                                             loading="lazy"
                 decoding="async"
                 fetchPriority="low"
-                fallbackSrc={image}
                 className="h-full w-full object-cover"
                                           />
                                         )}
@@ -2101,14 +2109,13 @@ export default async function PublicSharePage({
                                             className="max-h-[520px] w-full rounded-xl border border-slate-700 bg-black object-contain"
                                           />
                                         ) : (
-                                          <SafeImage
+                                          <img
                                             key={media.id || media.file_path || mediaUrl || mediaIndex}
                                             src={mediaPreviewUrl || mediaUrl}
                                             alt={`Inspection finding photo ${mediaIndex + 1}`}
                                             loading="lazy"
                                             decoding="async"
                                             fetchPriority="low"
-                                            fallbackSrc={mediaUrl}
                                             className="max-h-[520px] w-full rounded-xl border border-slate-700 object-contain"
                                           />
                                         );
@@ -2194,14 +2201,13 @@ export default async function PublicSharePage({
                                             className="max-h-[520px] w-full rounded-xl border border-slate-700 bg-black object-contain"
                                           />
                                         ) : (
-                                          <SafeImage
+                                          <img
                                             key={media.id || media.file_path || mediaUrl || mediaIndex}
                                             src={mediaPreviewUrl || mediaUrl}
                                             alt={`Inspection finding photo ${mediaIndex + 1}`}
                                             loading="lazy"
                                             decoding="async"
                                             fetchPriority="low"
-                                            fallbackSrc={mediaUrl}
                                             className="max-h-[520px] w-full rounded-xl border border-slate-700 object-contain"
                                           />
                                         );
@@ -2301,13 +2307,12 @@ function ClientSummaryFindingCard({
                 </span>
               </div>
             ) : (
-              <SafeImage
+              <img
                 src={previewUrl || mediaUrl}
                 alt={title}
                 loading="lazy"
                 decoding="async"
                 fetchPriority="low"
-                fallbackSrc={mediaUrl}
                 className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
               />
             )}
@@ -2368,14 +2373,13 @@ function ClientSummaryFindingCard({
                   className="max-h-[360px] w-full rounded-xl border border-slate-700 bg-black object-contain"
                 />
               ) : (
-                <SafeImage
+                <img
                   key={item.id || item.file_path || itemUrl || mediaIndex}
                   src={itemPreviewUrl || itemUrl}
                   alt={`Summary finding media ${mediaIndex + 1}`}
                   loading="lazy"
                   decoding="async"
                   fetchPriority="low"
-                  fallbackSrc={itemUrl}
                   className="max-h-[360px] w-full rounded-xl border border-slate-700 object-contain"
                 />
               );
