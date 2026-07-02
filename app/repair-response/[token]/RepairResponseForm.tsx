@@ -187,6 +187,10 @@ export default function RepairResponseForm({
   const [hiddenPhotos, setHiddenPhotos] = useState<Record<string, boolean>>({});
   const [emailingAddendum, setEmailingAddendum] = useState(false);
   const [addendumMessage, setAddendumMessage] = useState("");
+  const [buyerPrintedName, setBuyerPrintedName] = useState("");
+  const [buyerSignature, setBuyerSignature] = useState("");
+  const [sellerPrintedName, setSellerPrintedName] = useState("");
+  const [sellerSignature, setSellerSignature] = useState("");
 
   const answeredCount = findings.filter((finding) => {
     const id = String(finding.id);
@@ -249,6 +253,11 @@ export default function RepairResponseForm({
       return;
     }
 
+    if (!sellerPrintedName.trim() || !sellerSignature.trim()) {
+      setMessage("Add the seller printed name and electronic signature before submitting.");
+      return;
+    }
+
     try {
       setSubmitting(true);
       setMessage("Submitting repair response...");
@@ -262,6 +271,16 @@ export default function RepairResponseForm({
           token,
           responses,
           sellerCreditTotal,
+          signatures: {
+            buyer: {
+              printedName: buyerPrintedName.trim(),
+              signature: buyerSignature.trim(),
+            },
+            seller: {
+              printedName: sellerPrintedName.trim(),
+              signature: sellerSignature.trim(),
+            },
+          },
         }),
       });
 
@@ -579,6 +598,106 @@ export default function RepairResponseForm({
           </article>
         );
       })}
+
+      <section className="rounded-2xl border border-cyan-500/40 bg-cyan-500/10 p-5 shadow-xl">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-200">
+              Electronic Signatures
+            </p>
+            <h2 className="mt-2 text-2xl font-black text-white">
+              Sign Repair Request Response
+            </h2>
+            <p className="mt-1 text-sm leading-6 text-slate-300">
+              Seller signature is required to submit. Buyer signature can be added here if available, or added later on the final addendum.
+            </p>
+          </div>
+
+          <span className={`w-fit rounded-full border px-4 py-2 text-sm font-black ${
+            sellerPrintedName.trim() && sellerSignature.trim()
+              ? "border-emerald-400/60 bg-emerald-500/15 text-emerald-200"
+              : "border-yellow-400/60 bg-yellow-500/15 text-yellow-100"
+          }`}>
+            {sellerPrintedName.trim() && sellerSignature.trim() ? "Seller Signed" : "Seller Signature Needed"}
+          </span>
+        </div>
+
+        <div className="mt-5 grid gap-4 md:grid-cols-2">
+          <div className="rounded-xl border border-slate-700 bg-[#020617] p-4">
+            <p className="text-sm font-black uppercase tracking-wide text-slate-300">
+              Buyer Signature
+            </p>
+            <label className="mt-4 block">
+              <span className="mb-2 block text-xs font-black uppercase tracking-wide text-slate-400">
+                Buyer Printed Name
+              </span>
+              <input
+                value={buyerPrintedName}
+                onChange={(event) => {
+                  setBuyerPrintedName(event.target.value);
+                  if (!buyerSignature.trim()) setBuyerSignature(event.target.value);
+                }}
+                disabled={locked}
+                placeholder="Buyer name"
+                className="h-[52px] w-full rounded-xl border border-slate-700 bg-[#071224] px-3 font-bold text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-70"
+              />
+            </label>
+            <label className="mt-4 block">
+              <span className="mb-2 block text-xs font-black uppercase tracking-wide text-slate-400">
+                Type Buyer Signature
+              </span>
+              <input
+                value={buyerSignature}
+                onChange={(event) => setBuyerSignature(event.target.value)}
+                disabled={locked}
+                placeholder="Type full legal signature"
+                className="h-[64px] w-full rounded-xl border border-slate-700 bg-[#071224] px-4 text-2xl font-black italic text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-70"
+              />
+            </label>
+            {buyerSignature.trim() ? (
+              <p className="mt-3 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs font-bold text-emerald-100">
+                Buyer signature will be dated automatically when submitted.
+              </p>
+            ) : null}
+          </div>
+
+          <div className="rounded-xl border border-teal-500/50 bg-[#020617] p-4">
+            <p className="text-sm font-black uppercase tracking-wide text-teal-200">
+              Seller Signature Required
+            </p>
+            <label className="mt-4 block">
+              <span className="mb-2 block text-xs font-black uppercase tracking-wide text-slate-400">
+                Seller Printed Name
+              </span>
+              <input
+                value={sellerPrintedName}
+                onChange={(event) => {
+                  setSellerPrintedName(event.target.value);
+                  if (!sellerSignature.trim()) setSellerSignature(event.target.value);
+                }}
+                disabled={locked}
+                placeholder="Seller name"
+                className="h-[52px] w-full rounded-xl border border-slate-700 bg-[#071224] px-3 font-bold text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-70"
+              />
+            </label>
+            <label className="mt-4 block">
+              <span className="mb-2 block text-xs font-black uppercase tracking-wide text-slate-400">
+                Type Seller Signature
+              </span>
+              <input
+                value={sellerSignature}
+                onChange={(event) => setSellerSignature(event.target.value)}
+                disabled={locked}
+                placeholder="Type full legal signature"
+                className="h-[64px] w-full rounded-xl border border-teal-500/60 bg-[#071224] px-4 text-2xl font-black italic text-white outline-none focus:border-teal-300 disabled:cursor-not-allowed disabled:opacity-70"
+              />
+            </label>
+            <p className="mt-3 rounded-xl border border-slate-700 bg-[#071224] px-3 py-2 text-xs leading-5 text-slate-300">
+              By submitting, the signer confirms this electronic signature is intended to be used for this repair request response.
+            </p>
+          </div>
+        </div>
+      </section>
 
       <div className="sticky bottom-[72px] z-50 -mx-5 mt-6 border-t border-slate-700 bg-[#020617]/95 p-4 backdrop-blur md:static md:bottom-auto md:mx-0 md:border-0 md:bg-transparent md:p-0">
         <button

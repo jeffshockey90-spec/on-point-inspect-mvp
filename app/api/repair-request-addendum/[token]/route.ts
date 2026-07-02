@@ -354,6 +354,58 @@ function responseIcon(value: any) {
   return icons[clean] || "○";
 }
 
+function getRepairRequestSignatures(share: any) {
+  const metadata = share?.metadata && typeof share.metadata === "object" && !Array.isArray(share.metadata)
+    ? share.metadata
+    : {};
+
+  const signatures = metadata.repair_request_signatures || {};
+  const buyer = signatures.buyer && typeof signatures.buyer === "object" ? signatures.buyer : {};
+  const seller = signatures.seller && typeof signatures.seller === "object" ? signatures.seller : {};
+  const audit = signatures.audit && typeof signatures.audit === "object" ? signatures.audit : {};
+
+  return { buyer, seller, audit };
+}
+
+function formatSignedDate(value: any) {
+  if (!value) return "";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return cleanText(value);
+
+  return date.toLocaleString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function buildSignatureBox(label: string, signature: any) {
+  const signedName = cleanText(signature?.signature);
+  const printedName = cleanText(signature?.printed_name || signature?.printedName);
+  const signedAt = formatSignedDate(signature?.signed_at || signature?.signedAt);
+
+  if (!signedName && !printedName) {
+    return `
+      <div class="signature-box">
+        <div class="sig-line"></div>
+        <p class="sig-label">${escapeHtml(label)} Signature / Date</p>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="signature-box signed">
+      <p class="sig-title">${escapeHtml(label)} Signature</p>
+      <div class="typed-signature">${escapeHtml(signedName || printedName)}</div>
+      <p class="printed-name">${escapeHtml(printedName || signedName)}</p>
+      <p class="signed-meta">Signed electronically${signedAt ? ` · ${escapeHtml(signedAt)}` : ""}</p>
+    </div>
+  `;
+}
+
 async function loadAddendumData(token: string) {
   const admin = createAdminClient();
 
@@ -518,6 +570,10 @@ function buildAddendumHtml(data: Awaited<ReturnType<typeof loadAddendumData>>) {
     {},
   );
 
+  const signatures = getRepairRequestSignatures(data.share);
+  const buyerSignatureHtml = buildSignatureBox("Buyer", signatures.buyer);
+  const sellerSignatureHtml = buildSignatureBox("Seller", signatures.seller);
+
   const coverPhotoHtml = data.propertyPhotoUrl
     ? `<div class="cover-photo"><img src="${escapeHtml(data.propertyPhotoUrl)}" alt="Property photo" /></div>`
     : "";
@@ -647,9 +703,15 @@ function buildAddendumHtml(data: Awaited<ReturnType<typeof loadAddendumData>>) {
     .credit-row div { border: 1px solid #cbd5e1; border-radius: 9px; background: #ffffff; padding: 10px; }
     .negative { color: #b91c1c !important; }
     .positive { color: #047857 !important; }
-    .signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 36px; margin-top: 34px; break-inside: avoid; page-break-inside: avoid; }
-    .sig-line { margin-top: 44px; border-bottom: 1px solid #475569; height: 1px; }
+    .signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 34px; break-inside: avoid; page-break-inside: avoid; }
+    .signature-box { min-height: 118px; border: 1px solid #cbd5e1; border-radius: 12px; background: #f8fafc; padding: 14px; }
+    .signature-box.signed { border-color: #0f8f8f; background: #ecfeff; }
+    .sig-line { margin-top: 54px; border-bottom: 1px solid #475569; height: 1px; }
     .sig-label { margin-top: 8px; color: #475569; font-weight: 800; }
+    .sig-title { margin: 0 0 10px; color: #0f766e; font-size: 10px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
+    .typed-signature { min-height: 42px; border-bottom: 1px solid #0f766e; color: #020617; font-size: 28px; font-style: italic; font-weight: 900; line-height: 1.2; }
+    .printed-name { margin: 9px 0 0; color: #020617; font-weight: 900; }
+    .signed-meta { margin: 4px 0 0; color: #64748b; font-size: 10px; font-weight: 800; }
     .footer-note { margin-top: 24px; color: #64748b; font-size: 11px; text-align: center; }
     @media (max-width: 760px) { .summary, .count-grid, .detail-grid, .credit-row, .signatures, .photos { grid-template-columns: 1fr; } .brand, .item-top { flex-direction: column; } }
     @media print { body { background: #fff; } .screen-actions { display: none; } .shell { max-width: none; margin: 0; padding: 0; } .paper { border: 0; box-shadow: none; border-radius: 0; padding: 0; } }
@@ -696,14 +758,8 @@ function buildAddendumHtml(data: Awaited<ReturnType<typeof loadAddendumData>>) {
       ${rowsHtml || `<p>No repair request responses were found.</p>`}
 
       <div class="signatures">
-        <div>
-          <div class="sig-line"></div>
-          <p class="sig-label">Buyer Signature / Date</p>
-        </div>
-        <div>
-          <div class="sig-line"></div>
-          <p class="sig-label">Seller Signature / Date</p>
-        </div>
+        ${buyerSignatureHtml}
+        ${sellerSignatureHtml}
       </div>
 
       <p class="footer-note">Generated by On Point Inspect for repair negotiation review. Final terms should be confirmed by the parties and their real estate professionals.</p>

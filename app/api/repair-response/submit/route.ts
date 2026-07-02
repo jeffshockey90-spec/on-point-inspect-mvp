@@ -30,6 +30,10 @@ function cleanStatus(value: any) {
   return allowed.has(status) ? status : "";
 }
 
+function cleanText(value: any) {
+  return String(value || "").trim();
+}
+
 function parseMoneyValue(value: any) {
   const number = Number(String(value || "").replace(/[^0-9.-]/g, ""));
   return Number.isFinite(number) ? number : 0;
@@ -61,6 +65,38 @@ function buildNotesWithCredit(notes: string, creditAmount: number) {
   const creditLine = `Seller Credit Offered: ${formatMoney(creditAmount)}`;
 
   return cleanNotes ? `${creditLine}\n\n${cleanNotes}` : creditLine;
+}
+
+function getSignaturePayload(value: any, submittedAt: string, req: Request) {
+  const signatures = value && typeof value === "object" ? value : {};
+  const buyer = signatures.buyer && typeof signatures.buyer === "object" ? signatures.buyer : {};
+  const seller = signatures.seller && typeof signatures.seller === "object" ? signatures.seller : {};
+
+  const ip =
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    req.headers.get("x-real-ip") ||
+    "";
+
+  const userAgent = req.headers.get("user-agent") || "";
+
+  return {
+    buyer: {
+      printed_name: cleanText(buyer.printedName || buyer.printed_name),
+      signature: cleanText(buyer.signature),
+      signed_at: cleanText(buyer.signature) ? submittedAt : null,
+    },
+    seller: {
+      printed_name: cleanText(seller.printedName || seller.printed_name),
+      signature: cleanText(seller.signature),
+      signed_at: cleanText(seller.signature) ? submittedAt : null,
+    },
+    audit: {
+      ip_address: ip,
+      user_agent: userAgent,
+      submitted_at: submittedAt,
+      method: "typed_electronic_signature",
+    },
+  };
 }
 
 async function sendOwnerPushNotification({
@@ -167,6 +203,14 @@ export async function POST(req: Request) {
       : [];
 
     const now = new Date().toISOString();
+    const signaturePayload = getSignaturePayload(body?.signatures, now, req);
+
+    if (!signaturePayload.seller.printed_name || !signaturePayload.seller.signature) {
+      return NextResponse.json(
+        { error: "Seller printed name and electronic signature are required." },
+        { status: 400 }
+      );
+    }
 
     const baseRows = responses
       .map((item: any) => {
@@ -231,19 +275,25 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: upsertError.message }, { status: 500 });
     }
 
-    const submittedAt = new Date().toISOString();
+    const submittedAt = now;
     const sellerCreditTotal = baseRows.reduce(
       (sum, row: any) => sum + parseMoneyValue(row.seller_credit_amount),
       0
     );
+
+    const existingMetadata =
+      share?.metadata && typeof share.metadata === "object" && !Array.isArray(share.metadata)
+        ? share.metadata
+        : {};
 
     const shareUpdateWithCredits = {
       status: "responded",
       responded_at: submittedAt,
       seller_credit_total: sellerCreditTotal,
       metadata: {
-        ...(share?.metadata && typeof share.metadata === "object" && !Array.isArray(share.metadata) ? share.metadata : {}),
+        ...existingMetadata,
         seller_credit_total: sellerCreditTotal,
+        repair_request_signatures: signaturePayload,
       },
     };
 
@@ -258,6 +308,10 @@ export async function POST(req: Request) {
         .update({
           status: "responded",
           responded_at: submittedAt,
+          metadata: {
+            ...existingMetadata,
+            repair_request_signatures: signaturePayload,
+          },
         })
         .eq("id", share.id);
     }
@@ -282,6 +336,7 @@ export async function POST(req: Request) {
           response_count: baseRows.length,
           seller_credit_total: sellerCreditTotal,
           submitted_at: submittedAt,
+          repair_request_signatures: signaturePayload,
         },
       });
     } catch (error) {
