@@ -277,6 +277,7 @@ async function createSignedUrlMap({
 export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
+    const includePhotos = url.searchParams.get("include_photos") === "1";
     const inspectionId = url.searchParams.get("inspection_id");
     const selectedIdsFromUrl = parseSelectedIds(url.searchParams.get("selected"));
     const selectedIdSet = new Set(selectedIdsFromUrl.map(String));
@@ -350,7 +351,7 @@ export async function GET(req: Request) {
     const findingIds = filteredFindings.map((finding: any) => finding.id).filter(Boolean);
 
     const { data: photosRaw, error: photosError } =
-      findingIds.length > 0
+      includePhotos && findingIds.length > 0
         ? await admin
             .from("photos")
             .select("*")
@@ -366,18 +367,20 @@ export async function GET(req: Request) {
     const photoPaths = photoRows.map(getPhotoStoragePath).filter(Boolean);
     const thumbnailPaths = photoRows.map((photo: any) => photo.thumbnail_path).filter(Boolean);
 
-    const [signedPhotoMap, signedThumbnailMap] = await Promise.all([
-      createSignedUrlMap({
-        admin,
-        paths: photoPaths,
-        transformOptions: REPAIR_IMAGE_TRANSFORM_OPTIONS,
-      }),
-      createSignedUrlMap({
-        admin,
-        paths: thumbnailPaths,
-        transformOptions: THUMBNAIL_IMAGE_TRANSFORM_OPTIONS,
-      }),
-    ]);
+    const [signedPhotoMap, signedThumbnailMap] = includePhotos
+      ? await Promise.all([
+          createSignedUrlMap({
+            admin,
+            paths: photoPaths,
+            transformOptions: REPAIR_IMAGE_TRANSFORM_OPTIONS,
+          }),
+          createSignedUrlMap({
+            admin,
+            paths: thumbnailPaths,
+            transformOptions: THUMBNAIL_IMAGE_TRANSFORM_OPTIONS,
+          }),
+        ])
+      : [{}, {}];
 
     const photosWithUrls = photoRows.map((photo: any) => {
       const filePath = getPhotoStoragePath(photo);

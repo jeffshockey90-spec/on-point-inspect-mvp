@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 type FastLinkButtonProps = {
@@ -30,13 +30,18 @@ export default function FastLinkButton({
   onClick,
 }: FastLinkButtonProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const [opening, setOpening] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const isExternal = href.startsWith("http://") || href.startsWith("https://") || href.startsWith("mailto:") || href.startsWith("tel:");
+
+  const isExternal =
+    href.startsWith("http://") ||
+    href.startsWith("https://") ||
+    href.startsWith("mailto:") ||
+    href.startsWith("tel:");
 
   function prefetchHref() {
     if (!prefetch || isExternal) return;
-
     try {
       router.prefetch(href);
     } catch {}
@@ -45,7 +50,13 @@ export default function FastLinkButton({
   function handleClick(event: React.MouseEvent<HTMLAnchorElement>) {
     onClick?.();
 
-    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || target === "_blank") {
+    if (
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey ||
+      target === "_blank"
+    ) {
       return;
     }
 
@@ -58,11 +69,21 @@ export default function FastLinkButton({
   }
 
   useEffect(() => {
+    setOpening(false);
+
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+  }, [pathname]);
+
+  useEffect(() => {
     if (!opening) return;
 
     timeoutRef.current = setTimeout(() => {
       setOpening(false);
-    }, 8000);
+      timeoutRef.current = null;
+    }, 2500);
 
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -77,7 +98,6 @@ export default function FastLinkButton({
       target={target}
       rel={rel || (target === "_blank" ? "noreferrer" : undefined)}
       onPointerEnter={prefetchHref}
-      onTouchStart={prefetchHref}
       onFocus={prefetchHref}
       onClick={handleClick}
       aria-busy={opening}

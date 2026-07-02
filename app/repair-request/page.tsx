@@ -8,6 +8,8 @@ type Finding = Record<string, any>;
 type Inspection = Record<string, any>;
 type Contact = Record<string, any>;
 
+const FINDING_RENDER_PAGE_SIZE = 10;
+
 const SECTION_ORDER = [
   "Inspection Details",
   "Exterior",
@@ -599,6 +601,11 @@ function buildPrintableRepairRequestHtml({
 function RepairRequestContent() {
   const searchParams = useSearchParams();
   const inspectionId = searchParams.get("inspection_id");
+  const [initialUrlParams] = useState(() => ({
+    selected: String(searchParams.get("selected") || ""),
+    role: String(searchParams.get("role") || ""),
+    email: String(searchParams.get("email") || ""),
+  }));
   const [inspection, setInspection] = useState<Inspection | null>(null);
   const [findings, setFindings] = useState<Finding[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -613,6 +620,7 @@ function RepairRequestContent() {
   const [emailingRepairRequest, setEmailingRepairRequest] = useState(false);
   const [recipientType, setRecipientType] = useState("realtor");
   const [customRecipientEmail, setCustomRecipientEmail] = useState("");
+  const [visibleFindingCount, setVisibleFindingCount] = useState(FINDING_RENDER_PAGE_SIZE);
 
   const [requestIntro, setRequestIntro] = useState(
     "The following items are requested for repair, correction, evaluation, or further review by qualified professionals prior to closing, unless otherwise negotiated by the parties involved.",
@@ -653,13 +661,13 @@ function RepairRequestContent() {
       setLoading(true);
 
       try {
-        const selectedFromUrl = String(searchParams.get("selected") || "")
+        const selectedFromUrl = initialUrlParams.selected
           .split(",")
           .map((id) => id.trim())
           .filter(Boolean);
 
-        const roleFromUrl = searchParams.get("role") || "";
-        const emailFromUrl = searchParams.get("email") || "";
+        const roleFromUrl = initialUrlParams.role;
+        const emailFromUrl = initialUrlParams.email;
         const openedFromEmail = Boolean(roleFromUrl || emailFromUrl);
 
         const query = new URLSearchParams({
@@ -675,9 +683,7 @@ function RepairRequestContent() {
 
         const response = await fetch(
           `/api/repair-request-public?${query.toString()}`,
-          {
-            cache: "no-store",
-          },
+          { cache: "no-store" },
         );
 
         const payload = await response.json().catch(() => ({}));
@@ -697,6 +703,7 @@ function RepairRequestContent() {
         setInspection(payload?.inspection || null);
         setContacts(Array.isArray(payload?.contacts) ? payload.contacts : []);
         setFindings(hydratedFindings);
+        setVisibleFindingCount(FINDING_RENDER_PAGE_SIZE);
 
         setSelectedIds(
           validSelectedIds.length
@@ -718,13 +725,20 @@ function RepairRequestContent() {
     }
 
     loadData();
-  }, [inspectionId, searchParams]);
+  }, [inspectionId]);
 
   const selectedFindings = useMemo(
     () =>
       findings.filter((finding) => selectedIds.includes(String(finding.id))),
     [findings, selectedIds],
   );
+
+  const visibleFindings = useMemo(
+    () => findings.slice(0, visibleFindingCount),
+    [findings, visibleFindingCount],
+  );
+
+  const hiddenFindingCount = Math.max(0, findings.length - visibleFindingCount);
 
   const selectedCreditTotal = useMemo(() => {
     return selectedFindings.reduce((sum, finding) => {
@@ -843,9 +857,6 @@ function RepairRequestContent() {
     });
   }, [contacts, inspection]);
 
-  const selectedRecipientOption = recipientOptions.find(
-    (option) => option.value === recipientType,
-  );
 
   function toggleFinding(id: string) {
     const cleanId = String(id);
@@ -1100,22 +1111,7 @@ function RepairRequestContent() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
-            <button
-              type="button"
-              onClick={() => setShowAddendum(!showAddendum)}
-              className="min-h-[48px] w-full rounded-xl border border-purple-500 bg-[#020617] px-5 py-3 font-bold text-purple-300 transition hover:border-purple-400 hover:bg-purple-500/10 active:scale-[0.98]"
-            >
-              {showAddendum ? "Hide Addendum" : "Export Negotiation Addendum"}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setShowPrintablePreview((prev) => !prev)}
-              className="min-h-[48px] w-full rounded-xl border border-cyan-500 bg-[#020617] px-5 py-3 font-bold text-cyan-300 transition hover:border-cyan-400 hover:bg-cyan-500/10 active:scale-[0.98]"
-            >
-              {showPrintablePreview ? "Hide Preview" : "Show Print Preview"}
-            </button>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
 
             <button
               type="button"
@@ -1213,7 +1209,7 @@ function RepairRequestContent() {
                 Select Findings
               </h2>
               <p className="mt-1 text-sm text-slate-400">
-                Select the items to include, then enter any requested credit beside each selected item.
+                Select the items to include, then enter any requested credit beside each selected item. Photos stay out of this builder until download/email to keep the page fast.
               </p>
             </div>
             <div className="rounded-xl border border-teal-500/40 bg-teal-500/10 px-4 py-3 text-right">
@@ -1223,13 +1219,13 @@ function RepairRequestContent() {
           </div>
 
           <div className="space-y-3">
-            {findings.map((finding) => {
+            {visibleFindings.map((finding) => {
               const selected = selectedIds.includes(String(finding.id));
 
               return (
                 <label
                   key={finding.id}
-                  className={`block w-full max-w-full cursor-pointer overflow-hidden rounded-xl border bg-[#020617] p-4 transition ${
+                  className={`block w-full max-w-full cursor-pointer overflow-hidden rounded-xl border bg-[#020617] p-4 transition [content-visibility:auto] [contain-intrinsic-size:130px] ${
                     selected
                       ? "border-teal-400 ring-1 ring-teal-400/40"
                       : "border-slate-700 hover:border-teal-500"
@@ -1293,9 +1289,30 @@ function RepairRequestContent() {
               );
             })}
           </div>
+
+          {hiddenFindingCount > 0 ? (
+            <button
+              type="button"
+              onClick={() =>
+                setVisibleFindingCount((prev) =>
+                  Math.min(prev + FINDING_RENDER_PAGE_SIZE, findings.length),
+                )
+              }
+              className="mt-4 min-h-[48px] w-full rounded-xl border border-cyan-500 bg-cyan-500/10 px-5 py-3 text-sm font-black text-cyan-300 transition hover:bg-cyan-500/20 active:scale-[0.98]"
+            >
+              Load {Math.min(FINDING_RENDER_PAGE_SIZE, hiddenFindingCount)} more finding
+              {Math.min(FINDING_RENDER_PAGE_SIZE, hiddenFindingCount) === 1 ? "" : "s"}
+            </button>
+          ) : null}
+
+          {findings.length > visibleFindings.length ? (
+            <p className="mt-3 text-center text-xs font-bold text-slate-500">
+              Showing {visibleFindings.length} of {findings.length} findings to keep this page fast.
+            </p>
+          ) : null}
         </section>
 
-        {showAddendum && (
+        {false && showAddendum && (
           <section className="mb-8 overflow-hidden rounded-2xl border border-purple-500/40 bg-white p-5 text-black md:p-6">
             <h2 className="mb-4 break-words text-3xl font-black text-slate-950">
               Negotiation Addendum Draft
@@ -1368,7 +1385,7 @@ function RepairRequestContent() {
           </section>
         )}
 
-        {showPrintablePreview && (
+        {false && showPrintablePreview && (
           <section className="overflow-hidden rounded-2xl border border-slate-800 bg-white p-5 text-black md:p-6">
           <div className="mb-5 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-teal-300 bg-teal-50 p-4">
             <div>
