@@ -668,7 +668,6 @@ function RepairRequestContent() {
 
         const roleFromUrl = initialUrlParams.role;
         const emailFromUrl = initialUrlParams.email;
-        const openedFromEmail = Boolean(roleFromUrl || emailFromUrl);
 
         const query = new URLSearchParams({
           inspection_id: String(inspectionId),
@@ -705,13 +704,7 @@ function RepairRequestContent() {
         setFindings(hydratedFindings);
         setVisibleFindingCount(FINDING_RENDER_PAGE_SIZE);
 
-        setSelectedIds(
-          validSelectedIds.length
-            ? validSelectedIds
-            : openedFromEmail
-              ? hydratedFindings.map((finding: any) => String(finding.id))
-              : [],
-        );
+        setSelectedIds(validSelectedIds);
       } catch (error: any) {
         console.error("Repair request load error:", error);
         setEmailMessage(error?.message || "Could not load repair request.");
@@ -860,11 +853,20 @@ function RepairRequestContent() {
 
   function toggleFinding(id: string) {
     const cleanId = String(id);
-    setSelectedIds((prev) =>
-      prev.includes(cleanId)
-        ? prev.filter((item) => item !== cleanId)
-        : [...prev, cleanId],
-    );
+
+    setSelectedIds((prev) => {
+      if (prev.includes(cleanId)) {
+        setRequestedCredits((current) => {
+          const next = { ...current };
+          delete next[cleanId];
+          return next;
+        });
+
+        return prev.filter((item) => item !== cleanId);
+      }
+
+      return [...prev, cleanId];
+    });
   }
 
   function selectSafetyOnly() {
