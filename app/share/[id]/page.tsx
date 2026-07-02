@@ -390,6 +390,20 @@ function getMediaPreviewUrl(media: any) {
   );
 }
 
+function handleImageFallback(event: any, fallbackUrl?: string) {
+  const image = event?.currentTarget;
+  const fallback = String(fallbackUrl || "").trim();
+
+  if (!image || !fallback) return;
+
+  if (image.src !== fallback) {
+    image.src = fallback;
+    return;
+  }
+
+  image.style.display = "none";
+}
+
 function getFindingPrimaryMedia(finding: any) {
   const photos = Array.isArray(finding?.photos) ? finding.photos : [];
 
@@ -1289,6 +1303,7 @@ export default async function PublicSharePage({
                 loading="eager"
                 decoding="async"
                 fetchPriority="high"
+                onError={(event) => handleImageFallback(event)}
                 className="h-[360px] w-full object-cover md:h-[520px]"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[#020617] via-[#020617]/35 to-black/20" />
@@ -1580,8 +1595,11 @@ export default async function PublicSharePage({
 
               <div className="mt-5 grid gap-4 lg:grid-cols-2">
                 {equipmentInventory.map((item: any) => {
+                  const equipmentFullImage =
+                    item.signed_image_url || item.image_url || item.public_url || "";
+
                   const equipmentImage =
-                    item.signed_thumbnail_url || item.thumbnail_url || item.signed_image_url || item.image_url || item.public_url || "";
+                    item.signed_thumbnail_url || item.thumbnail_url || equipmentFullImage;
 
                   return (
                     <div
@@ -1595,6 +1613,7 @@ export default async function PublicSharePage({
                           loading="lazy"
                 decoding="async"
                 fetchPriority="low"
+                onError={(event) => handleImageFallback(event, equipmentFullImage)}
                 className="mb-4 max-h-56 w-full rounded-xl border border-slate-700 object-contain"
                         />
                       )}
@@ -1854,11 +1873,12 @@ export default async function PublicSharePage({
                                 {item.photos.map((photo: any) => (
                                   <img
                                     key={photo.id}
-                                    src={photo.signed_url || photo.public_url}
+                                    src={photo.signed_thumbnail_url || photo.thumbnail_url || photo.signed_url || photo.public_url}
                                     alt="Limitation photo"
                                     loading="lazy"
                 decoding="async"
                 fetchPriority="low"
+                onError={(event) => handleImageFallback(event, photo.signed_url || photo.public_url)}
                 className="max-h-[260px] w-full rounded-xl border border-slate-700 object-cover"
                                   />
                                 ))}
@@ -1961,7 +1981,8 @@ export default async function PublicSharePage({
 
                           <div className="grid gap-4 md:grid-cols-3">
                             {referencePhotosBySection[group.section].map((photo: any, index: number) => {
-                              const photoUrl = photo.signed_thumbnail_url || photo.thumbnail_url || photo.signed_url || photo.public_url || photo.image_url || photo.photo_url || "";
+                              const fullPhotoUrl = photo.signed_url || photo.public_url || photo.image_url || photo.photo_url || "";
+                              const photoUrl = photo.signed_thumbnail_url || photo.thumbnail_url || fullPhotoUrl;
 
                               if (!photoUrl) return null;
 
@@ -1976,6 +1997,7 @@ export default async function PublicSharePage({
                                     loading="lazy"
                 decoding="async"
                 fetchPriority="low"
+                onError={(event) => handleImageFallback(event, fullPhotoUrl)}
                 className="max-h-[280px] w-full object-cover"
                                   />
 
@@ -2035,6 +2057,7 @@ export default async function PublicSharePage({
                                             loading="lazy"
                 decoding="async"
                 fetchPriority="low"
+                onError={(event) => handleImageFallback(event, image)}
                 className="h-full w-full object-cover"
                                           />
                                         )}
@@ -2103,6 +2126,7 @@ export default async function PublicSharePage({
                                             loading="lazy"
                                             decoding="async"
                                             fetchPriority="low"
+                                            onError={(event) => handleImageFallback(event, mediaUrl)}
                                             className="max-h-[520px] w-full rounded-xl border border-slate-700 object-contain"
                                           />
                                         );
@@ -2195,6 +2219,7 @@ export default async function PublicSharePage({
                                             loading="lazy"
                                             decoding="async"
                                             fetchPriority="low"
+                                            onError={(event) => handleImageFallback(event, mediaUrl)}
                                             className="max-h-[520px] w-full rounded-xl border border-slate-700 object-contain"
                                           />
                                         );
@@ -2300,6 +2325,7 @@ function ClientSummaryFindingCard({
                 loading="lazy"
                 decoding="async"
                 fetchPriority="low"
+                onError={(event) => handleImageFallback(event, mediaUrl)}
                 className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
               />
             )}
@@ -2367,6 +2393,7 @@ function ClientSummaryFindingCard({
                   loading="lazy"
                   decoding="async"
                   fetchPriority="low"
+                  onError={(event) => handleImageFallback(event, itemUrl)}
                   className="max-h-[360px] w-full rounded-xl border border-slate-700 object-contain"
                 />
               );
