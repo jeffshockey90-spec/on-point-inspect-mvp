@@ -1769,6 +1769,19 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
     inspection.published === true ||
     String(inspection.report_status || "").toLowerCase() === "published";
 
+  const publishGuardNeedsAttention =
+    getSingleSearchParam(resolvedSearchParams, "publish_guard") === "blocked" ||
+    getSingleSearchParam(resolvedSearchParams, "publish_guard_error") === "1" ||
+    getSingleSearchParam(resolvedSearchParams, "publish_error") === "1";
+
+  const engagementBadge =
+    latestEngagementView
+      ? `${engagementViews.length} view${engagementViews.length === 1 ? "" : "s"}`
+      : "No views yet";
+
+  const sampleReportBadge =
+    existingSampleReport?.is_enabled === true ? "Enabled" : "Disabled";
+
   const serviceType = String(
     inspection.service_mode ||
       inspection.inspection_type ||
@@ -1995,31 +2008,34 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
 
           <AttentionPanel
             title="Final Publish Guard"
-            badge={reportIsPublished ? "Published" : "Check before publish"}
-            helper="This stays open before publishing because it can block delivery if something important is missing."
-            defaultOpen={!reportIsPublished}
+            badge={reportIsPublished ? "Complete" : publishGuardNeedsAttention ? "Needs Attention" : "Review Before Publish"}
+            helper="Collapsed by default. It opens automatically only when publishing is blocked or errors need attention."
+            defaultOpen={publishGuardNeedsAttention}
           >
             <AIPublishGuardPanel inspectionId={String(inspection.id)} />
           </AttentionPanel>
 
-          <SampleReportManager
-            inspectionId={String(inspection.id)}
-            initialEnabled={existingSampleReport?.is_enabled === true}
-            initialTitle={existingSampleReport?.title || sampleShareTitle}
-            initialDescription={existingSampleReport?.description || sampleShareDescription}
-            shareUrl={shareHref}
-          />
+          <AttentionPanel
+            title="Sample Report"
+            eyebrow="Public Profile"
+            badge={sampleReportBadge}
+            helper="Open only when you need to add or update this inspection as a public sample report."
+          >
+            <SampleReportManager
+              inspectionId={String(inspection.id)}
+              initialEnabled={existingSampleReport?.is_enabled === true}
+              initialTitle={existingSampleReport?.title || sampleShareTitle}
+              initialDescription={existingSampleReport?.description || sampleShareDescription}
+              shareUrl={shareHref}
+            />
+          </AttentionPanel>
 
-          <section className="mb-8 rounded-2xl border border-slate-700 bg-[#071224] p-4">
-            <h2 className="text-2xl font-bold text-teal-300">
-              Report Engagement
-            </h2>
-
-            <p className="mt-1 text-sm text-slate-400">
-              Email delivery comes from Resend. Page-open tracking is recorded
-              directly by On Point Inspect when the client/realtor opens the
-              portal, agreement, shared report, or environmental report.
-            </p>
+          <AttentionPanel
+            title="Report Engagement"
+            eyebrow="Client Activity"
+            badge={engagementBadge}
+            helper="Collapsed by default to keep the report editor fast. Open to review email opens, link clicks, client/realtor views, and reading time."
+          >
 
             <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
               <EngagementStatCard
@@ -2231,7 +2247,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                 </div>
               </div>
             )}
-          </section>
+          </AttentionPanel>
 
           <section className="mb-8 rounded-2xl border border-purple-500/40 bg-[#071224] p-4 shadow-xl">
             <div className="flex flex-wrap items-start justify-between gap-4">

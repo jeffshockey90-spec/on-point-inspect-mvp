@@ -20,7 +20,7 @@ const SEVERITIES = [
   "Major Concern",
 ];
 
-const AUTO_PREVIEW_PHOTO_LIMIT = 3;
+const AUTO_PREVIEW_PHOTO_LIMIT = 1;
 
 const EditableFinding = dynamic(() => import("../../../components/EditableFinding"), {
   ssr: false,
@@ -710,6 +710,20 @@ function getPhotoPreviewUrl(photo: any) {
   );
 }
 
+function handleImageFallback(
+  event: React.SyntheticEvent<HTMLImageElement>,
+  fallbackUrl: string,
+) {
+  const image = event.currentTarget;
+
+  if (fallbackUrl && image.src !== fallbackUrl) {
+    image.src = fallbackUrl;
+    return;
+  }
+
+  image.style.display = "none";
+}
+
 function isLikelyVideoUrl(value: any) {
   const clean = String(value || "").toLowerCase().split("?")[0];
   return /\.(mp4|mov|m4v|webm|avi|quicktime)$/.test(clean);
@@ -1215,6 +1229,7 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
                     <img
                       src={getVideoPosterUrl(primaryPhoto)}
                       alt={findingTitle}
+                      onError={(event) => handleImageFallback(event, primaryPhotoUrl)}
                       loading="lazy"
                       decoding="async"
                       fetchPriority="low"
@@ -1234,6 +1249,7 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
                 <img
                   src={primaryPreviewUrl || primaryPhotoUrl}
                   alt={findingTitle}
+                  onError={(event) => handleImageFallback(event, primaryPhotoUrl)}
                   loading="lazy"
                   decoding="async"
                   fetchPriority="low"
@@ -1367,6 +1383,7 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
                       <img
                         src={previewUrl || url}
                         alt={`Finding photo ${index + 1}`}
+                        onError={(event) => handleImageFallback(event, url)}
                         loading="lazy"
                         decoding="async"
                         fetchPriority={index === 0 ? "auto" : "low"}
@@ -1665,6 +1682,7 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
                             <img
                               src={previewUrl || url}
                               alt={`Report photo ${index + 1}`}
+                              onError={(event) => handleImageFallback(event, url)}
                               loading="lazy"
                               decoding="async"
                               fetchPriority="low"
