@@ -185,6 +185,8 @@ export default function RepairResponseForm({
   const [submitting, setSubmitting] = useState(false);
   const [locked, setLocked] = useState(alreadySubmitted);
   const [hiddenPhotos, setHiddenPhotos] = useState<Record<string, boolean>>({});
+  const [emailingAddendum, setEmailingAddendum] = useState(false);
+  const [addendumMessage, setAddendumMessage] = useState("");
 
   const answeredCount = findings.filter((finding) => {
     const id = String(finding.id);
@@ -275,6 +277,31 @@ export default function RepairResponseForm({
     }
   }
 
+  async function emailAddendum() {
+    if (emailingAddendum) return;
+
+    try {
+      setEmailingAddendum(true);
+      setAddendumMessage("Emailing addendum...");
+
+      const response = await fetch(`/api/repair-request-addendum/${encodeURIComponent(token)}`, {
+        method: "POST",
+      });
+
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(payload?.error || "Could not email addendum.");
+      }
+
+      setAddendumMessage(payload?.message || "Addendum emailed.");
+    } catch (error: any) {
+      setAddendumMessage(error?.message || "Could not email addendum.");
+    } finally {
+      setEmailingAddendum(false);
+    }
+  }
+
   if (!findings.length) {
     return (
       <section className="rounded-2xl border border-yellow-400/30 bg-yellow-500/10 p-5 text-yellow-100">
@@ -338,6 +365,58 @@ export default function RepairResponseForm({
         <p className="rounded-xl border border-teal-500/40 bg-teal-500/10 px-4 py-3 text-sm font-bold text-teal-100">
           {message}
         </p>
+      ) : null}
+
+      {locked ? (
+        <section className="rounded-2xl border border-purple-500/40 bg-purple-500/10 p-5 shadow-xl">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.22em] text-purple-200">
+                Addendum Ready
+              </p>
+              <h2 className="mt-2 text-2xl font-black text-white">
+                Repair Request Addendum
+              </h2>
+              <p className="mt-1 text-sm text-slate-300">
+                Includes seller responses, requested credits, offered credits, and totals.
+              </p>
+            </div>
+
+            <div className="grid w-full gap-3 sm:w-auto sm:grid-cols-3">
+              <a
+                href={`/api/repair-request-addendum/${encodeURIComponent(token)}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-purple-400 bg-[#020617] px-4 py-3 text-sm font-black text-purple-200 transition hover:bg-purple-500/10 active:scale-[0.98]"
+              >
+                Open
+              </a>
+
+              <a
+                href={`/api/repair-request-addendum/${encodeURIComponent(token)}?download=1`}
+                className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-teal-400 bg-[#020617] px-4 py-3 text-sm font-black text-teal-200 transition hover:bg-teal-500/10 active:scale-[0.98]"
+              >
+                Download
+              </a>
+
+              <button
+                type="button"
+                onClick={emailAddendum}
+                disabled={emailingAddendum}
+                data-fast-click="true"
+                className="min-h-[48px] rounded-xl border border-cyan-400 bg-[#020617] px-4 py-3 text-sm font-black text-cyan-200 transition hover:bg-cyan-500/10 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {emailingAddendum ? "Emailing..." : "Email"}
+              </button>
+            </div>
+          </div>
+
+          {addendumMessage ? (
+            <p className="mt-4 rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-4 py-3 text-sm font-bold text-cyan-100">
+              {addendumMessage}
+            </p>
+          ) : null}
+        </section>
       ) : null}
 
       {findings.map((finding, index) => {
