@@ -113,9 +113,23 @@ function getMediaPreviewUrl(media: any) {
       ""
   ).trim();
 
-  // Use the full signed photo first. Broken generated thumbnails were causing
-  // black boxes on mobile and in the share summary.
-  return fullUrl || thumbnailUrl;
+  // Use lightweight preview URLs first. These are generated from the original
+  // stored image when possible, then fall back to the full signed photo.
+  return thumbnailUrl || fullUrl;
+}
+
+function handleImageFallback(
+  event: React.SyntheticEvent<HTMLImageElement>,
+  fallbackUrl: string,
+) {
+  const image = event.currentTarget;
+
+  if (fallbackUrl && image.src !== fallbackUrl) {
+    image.src = fallbackUrl;
+    return;
+  }
+
+  image.style.display = "none";
 }
 
 function isVideoMedia(media: any, urlValue?: string) {
@@ -352,6 +366,7 @@ function SummaryFindingCard({
               <img
                 src={previewUrl || mediaUrl}
                 alt={title}
+                onError={(event) => handleImageFallback(event, mediaUrl)}
                 loading="lazy"
                 decoding="async"
                 fetchPriority="low"
@@ -427,6 +442,7 @@ function SummaryFindingCard({
                     key={item.id || item.file_path || itemUrl || mediaIndex}
                     src={itemPreviewUrl || itemUrl}
                     alt={`Summary finding media ${mediaIndex + 1}`}
+                    onError={(event) => handleImageFallback(event, itemUrl)}
                     loading="lazy"
                     decoding="async"
                     fetchPriority="low"

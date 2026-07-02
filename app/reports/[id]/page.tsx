@@ -383,6 +383,44 @@ function getPhotoFallbackUrl(photo: any) {
   );
 }
 
+function isVideoPhotoFile(photo: any, pathValue: any = "") {
+  const path = String(
+    pathValue ||
+      photo?.file_path ||
+      photo?.storage_path ||
+      photo?.photo_path ||
+      photo?.image_path ||
+      photo?.video_path ||
+      ""
+  ).toLowerCase();
+
+  const type = String(
+    photo?.mime_type ||
+      photo?.media_type ||
+      photo?.content_type ||
+      photo?.file_type ||
+      ""
+  ).toLowerCase();
+
+  const url = String(
+    photo?.signed_url ||
+      photo?.public_url ||
+      photo?.image_url ||
+      photo?.photo_url ||
+      photo?.video_url ||
+      ""
+  ).toLowerCase();
+
+  return (
+    Boolean(photo?.is_video) ||
+    Boolean(photo?.video_url) ||
+    type.startsWith("video/") ||
+    type.includes("quicktime") ||
+    /\.(mp4|mov|m4v|webm|avi|quicktime)(\?|$)/.test(path) ||
+    /\.(mp4|mov|m4v|webm|avi|quicktime)(\?|$)/.test(url)
+  );
+}
+
 function formatEmailStatusDate(value: any) {
   if (!value) return "N/A";
 
@@ -1533,12 +1571,20 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
     .map((photo: any) => getPhotoStoragePath(photo))
     .filter(Boolean);
 
-  // IMPORTANT: sign the original media paths WITHOUT image transforms.
-  // Image transforms break video playback because Supabase transform URLs are for images only.
-  // The share page works because it signs raw storage paths.
-  const [signedThumbnailMap, signedFullMediaMap] = await Promise.all([
+  const imagePreviewPaths = rawPhotos
+    .map((photo: any) => {
+      const path = getPhotoStoragePath(photo);
+      return path && !isVideoPhotoFile(photo, path) ? path : "";
+    })
+    .filter(Boolean);
+
+  // IMPORTANT: sign original media paths WITHOUT image transforms for the full URL
+  // so videos keep working. For previews, use a transformed signed URL from the
+  // original image instead of relying on generated thumbnail rows that may not exist.
+  const [signedThumbnailMap, signedFullMediaMap, signedImagePreviewMap] = await Promise.all([
     createSignedRawUrlMap(storageSupabase, thumbnailPaths),
     createSignedRawUrlMap(storageSupabase, fullPhotoPaths),
+    createSignedUrlMap(storageSupabase, imagePreviewPaths),
   ]);
 
   const getEquipmentStoragePath = (item: any) =>
@@ -1625,16 +1671,18 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
       signed_video_url: finalFullUrl,
       signedVideoUrl: finalFullUrl,
       signed_thumbnail_url:
-        finalFullUrl ||
+        signedImagePreviewMap[fullPath] ||
         signedThumbnailUrl ||
-        existingFullUrl ||
         existingThumbnailUrl ||
+        finalFullUrl ||
+        existingFullUrl ||
         "",
       signedThumbnailUrl:
-        finalFullUrl ||
+        signedImagePreviewMap[fullPath] ||
         signedThumbnailUrl ||
-        existingFullUrl ||
         existingThumbnailUrl ||
+        finalFullUrl ||
+        existingFullUrl ||
         "",
     };
   });

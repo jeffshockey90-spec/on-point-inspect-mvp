@@ -390,9 +390,9 @@ function getMediaPreviewUrl(media: any) {
       ""
   ).trim();
 
-  // Use the full signed photo first. Some thumbnail rows point to missing
-  // generated files, which created black image boxes on mobile.
-  return fullUrl || thumbnailUrl;
+  // Use lightweight preview URLs first. These are generated from the original
+  // stored image when possible, then fall back to the full signed photo.
+  return thumbnailUrl || fullUrl;
 }
 
 function getFindingPrimaryMedia(finding: any) {
@@ -545,6 +545,72 @@ async function createSignedUrlMap(paths: string[]) {
   );
 
   return signedMap;
+}
+
+
+async function createSignedImagePreviewUrlMap(paths: string[]) {
+  const uniquePaths = Array.from(new Set(paths.filter((path) => Boolean(path))));
+  const signedMap: Record<string, string> = {};
+
+  if (uniquePaths.length === 0) return signedMap;
+
+  const chunkSize = 50;
+
+  await Promise.all(
+    Array.from({ length: Math.ceil(uniquePaths.length / chunkSize) }).map(
+      async (_, chunkIndex) => {
+        const chunk = uniquePaths.slice(
+          chunkIndex * chunkSize,
+          chunkIndex * chunkSize + chunkSize
+        );
+
+        const { data, error } = await supabase.storage
+          .from("inspection-photos")
+          .createSignedUrls(chunk, 60 * 60 * 24 * 7);
+
+        if (error) {
+          console.error("Share preview signed photo error:", error);
+          return;
+        }
+
+        (data || []).forEach((item: any, index: number) => {
+          const path = item?.path || chunk[index];
+          if (path && item?.signedUrl) {
+            signedMap[path] = item.signedUrl;
+          }
+        });
+      }
+    )
+  );
+
+  return signedMap;
+}
+
+function isVideoPathOrPhoto(photo: any, pathValue: any = "") {
+  const path = String(
+    pathValue ||
+      photo?.file_path ||
+      photo?.storage_path ||
+      photo?.photo_path ||
+      photo?.image_path ||
+      ""
+  ).toLowerCase();
+
+  const type = String(
+    photo?.mime_type ||
+      photo?.media_type ||
+      photo?.content_type ||
+      photo?.file_type ||
+      ""
+  ).toLowerCase();
+
+  return (
+    Boolean(photo?.is_video) ||
+    Boolean(photo?.video_url) ||
+    type.startsWith("video/") ||
+    type.includes("quicktime") ||
+    path.match(/\.(mp4|mov|m4v|webm|avi|quicktime)$/) !== null
+  );
 }
 
 function groupChecklistRows(rows: any[]) {
@@ -918,6 +984,13 @@ export default async function PublicSharePage({
     .map((photo: any) => photo.thumbnail_path)
     .filter(Boolean);
 
+  const photoImagePreviewPaths = (photosRaw || [])
+    .map((photo: any) => {
+      const path = getPhotoStoragePath(photo);
+      return path && !isVideoPathOrPhoto(photo, path) ? path : "";
+    })
+    .filter(Boolean);
+
   const oldFindingImagePaths = (findingsRaw || [])
     .map((finding: any) => getStoragePathFromUrl(finding.image_url))
     .filter(Boolean);
@@ -928,6 +1001,7 @@ export default async function PublicSharePage({
   ]);
 
   const signedThumbnailUrlMap = await createSignedUrlMap(photoThumbnailPaths);
+  const signedPreviewUrlMap = await createSignedImagePreviewUrlMap(photoImagePreviewPaths);
 
   const photosWithUrls = (photosRaw || []).map((photo: any) => {
     const path = getPhotoStoragePath(photo);
