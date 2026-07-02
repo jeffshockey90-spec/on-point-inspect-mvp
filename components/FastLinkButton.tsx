@@ -80,6 +80,14 @@ export default function FastLinkButton({
       return;
     }
 
+    const currentUrl =
+      pathname + (searchParamsText ? `?${searchParamsText}` : "");
+
+    if (href === pathname || href === currentUrl) {
+      clearOpening();
+      return;
+    }
+
     setOpening(true);
 
     if (timeoutRef.current) {
@@ -87,19 +95,29 @@ export default function FastLinkButton({
     }
 
     timeoutRef.current = setTimeout(() => {
-      setOpening(false);
-      timeoutRef.current = null;
-    }, 1800);
+      clearOpening();
+    }, 1200);
   }
 
   useEffect(() => {
     clearOpening();
-    // Reset on path OR query-string changes. This prevents spinner states from
-    // sticking when moving between /share/123 and /share/123?role=realtor.
-  }, [pathname, searchParamsText, href]);
+  }, [pathname, searchParamsText]);
 
   useEffect(() => {
+    function handlePageShow() {
+      clearOpening();
+    }
+
+    function handleVisibilityChange() {
+      if (document.visibilityState === "visible") clearOpening();
+    }
+
+    window.addEventListener("pageshow", handlePageShow);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     return () => {
+      window.removeEventListener("pageshow", handlePageShow);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
   }, []);
