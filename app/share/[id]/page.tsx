@@ -42,7 +42,7 @@ async function recordInspectionView({
       contact_id: contactId || null,
       viewer_role: viewerRole || null,
       viewer_email: viewerEmail || null,
-      path: `/share/${sharePathId || inspectionId}`,
+      path: `/public-report/${sharePathId || inspectionId}`,
       metadata: {
         source: "public_share_page",
       },
@@ -1265,7 +1265,7 @@ export default async function PublicSharePage({
 
     const query = params.toString();
 
-    return `/share/${sharePathId}${query ? `?${query}` : ""}`;
+    return `/public-report/${sharePathId}${query ? `?${query}` : ""}`;
   }
 
   return (
@@ -1275,7 +1275,7 @@ export default async function PublicSharePage({
           inspectionId={String(inspectionId)}
           viewerRole={resolvedSearchParams?.role || null}
           viewerEmail={resolvedSearchParams?.email || null}
-          path={`/share/${sharePathId}`}
+          path={`/public-report/${sharePathId}`}
         />
       )}
 

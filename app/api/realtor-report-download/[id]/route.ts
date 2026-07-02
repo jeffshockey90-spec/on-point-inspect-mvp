@@ -222,7 +222,7 @@ function onlineReportUrlForInspection(inspection: any) {
   const appUrl = cleanText(process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL);
   const token = getInspectionShareToken(inspection);
   if (!appUrl || !token) return "";
-  return `${appUrl.replace(/\/$/, "")}/share/${encodeURIComponent(token)}`;
+  return `${appUrl.replace(/\/$/, "")}/public-report/${encodeURIComponent(token)}`;
 }
 
 function getStoragePathFromUrl(url: string | null | undefined) {
