@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import PdfExportButton from "../../../components/PdfExportButton";
 import ReportTimeTracker from "../../../components/ReportTimeTracker";
 import ClientSummaryAccordion from "../../../components/ClientSummaryAccordion";
+import SafeImage from "../../../components/SafeImage";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -390,19 +391,6 @@ function getMediaPreviewUrl(media: any) {
   );
 }
 
-function handleImageFallback(event: any, fallbackUrl?: string) {
-  const image = event?.currentTarget;
-  const fallback = String(fallbackUrl || "").trim();
-
-  if (!image || !fallback) return;
-
-  if (image.src !== fallback) {
-    image.src = fallback;
-    return;
-  }
-
-  image.style.display = "none";
-}
 
 function getFindingPrimaryMedia(finding: any) {
   const photos = Array.isArray(finding?.photos) ? finding.photos : [];
@@ -1297,13 +1285,13 @@ export default async function PublicSharePage({
         <section className="relative overflow-hidden border-b border-slate-800 bg-[#020617]">
           {propertyPhoto ? (
             <>
-              <img
+              <SafeImage
                 src={propertyPhoto}
                 alt="Property"
                 loading="eager"
                 decoding="async"
                 fetchPriority="high"
-                onError={(event) => handleImageFallback(event)}
+                
                 className="h-[360px] w-full object-cover md:h-[520px]"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[#020617] via-[#020617]/35 to-black/20" />
@@ -1607,13 +1595,13 @@ export default async function PublicSharePage({
                       className="rounded-xl border border-slate-700 bg-[#0f172a] p-4"
                     >
                       {equipmentImage && (
-                        <img
+                        <SafeImage
                           src={equipmentImage}
                           alt={item.equipment_type || "Equipment"}
                           loading="lazy"
                 decoding="async"
                 fetchPriority="low"
-                onError={(event) => handleImageFallback(event, equipmentFullImage)}
+                fallbackSrc={equipmentFullImage}
                 className="mb-4 max-h-56 w-full rounded-xl border border-slate-700 object-contain"
                         />
                       )}
@@ -1871,14 +1859,14 @@ export default async function PublicSharePage({
                             {item.photos?.length > 0 && (
                               <div className="mt-4 grid gap-3 md:grid-cols-3">
                                 {item.photos.map((photo: any) => (
-                                  <img
+                                  <SafeImage
                                     key={photo.id}
                                     src={photo.signed_thumbnail_url || photo.thumbnail_url || photo.signed_url || photo.public_url}
                                     alt="Limitation photo"
                                     loading="lazy"
                 decoding="async"
                 fetchPriority="low"
-                onError={(event) => handleImageFallback(event, photo.signed_url || photo.public_url)}
+                fallbackSrc={photo.signed_url || photo.public_url}
                 className="max-h-[260px] w-full rounded-xl border border-slate-700 object-cover"
                                   />
                                 ))}
@@ -1991,13 +1979,13 @@ export default async function PublicSharePage({
                                   key={photo.id || index}
                                   className="overflow-hidden rounded-xl border border-slate-700 bg-[#020617]"
                                 >
-                                  <img
+                                  <SafeImage
                                     src={photoUrl}
                                     alt={photo.caption || `Section reference photo ${index + 1}`}
                                     loading="lazy"
                 decoding="async"
                 fetchPriority="low"
-                onError={(event) => handleImageFallback(event, fullPhotoUrl)}
+                fallbackSrc={fullPhotoUrl}
                 className="max-h-[280px] w-full object-cover"
                                   />
 
@@ -2051,13 +2039,13 @@ export default async function PublicSharePage({
                                             </span>
                                           </div>
                                         ) : (
-                                          <img
+                                          <SafeImage
                                             src={previewImage || image}
                                             alt={title}
                                             loading="lazy"
                 decoding="async"
                 fetchPriority="low"
-                onError={(event) => handleImageFallback(event, image)}
+                fallbackSrc={image}
                 className="h-full w-full object-cover"
                                           />
                                         )}
@@ -2119,14 +2107,14 @@ export default async function PublicSharePage({
                                             className="max-h-[520px] w-full rounded-xl border border-slate-700 bg-black object-contain"
                                           />
                                         ) : (
-                                          <img
+                                          <SafeImage
                                             key={media.id || media.file_path || mediaUrl || mediaIndex}
                                             src={mediaPreviewUrl || mediaUrl}
                                             alt={`Inspection finding photo ${mediaIndex + 1}`}
                                             loading="lazy"
                                             decoding="async"
                                             fetchPriority="low"
-                                            onError={(event) => handleImageFallback(event, mediaUrl)}
+                                            fallbackSrc={mediaUrl}
                                             className="max-h-[520px] w-full rounded-xl border border-slate-700 object-contain"
                                           />
                                         );
@@ -2212,14 +2200,14 @@ export default async function PublicSharePage({
                                             className="max-h-[520px] w-full rounded-xl border border-slate-700 bg-black object-contain"
                                           />
                                         ) : (
-                                          <img
+                                          <SafeImage
                                             key={media.id || media.file_path || mediaUrl || mediaIndex}
                                             src={mediaPreviewUrl || mediaUrl}
                                             alt={`Inspection finding photo ${mediaIndex + 1}`}
                                             loading="lazy"
                                             decoding="async"
                                             fetchPriority="low"
-                                            onError={(event) => handleImageFallback(event, mediaUrl)}
+                                            fallbackSrc={mediaUrl}
                                             className="max-h-[520px] w-full rounded-xl border border-slate-700 object-contain"
                                           />
                                         );
@@ -2319,13 +2307,13 @@ function ClientSummaryFindingCard({
                 </span>
               </div>
             ) : (
-              <img
+              <SafeImage
                 src={previewUrl || mediaUrl}
                 alt={title}
                 loading="lazy"
                 decoding="async"
                 fetchPriority="low"
-                onError={(event) => handleImageFallback(event, mediaUrl)}
+                fallbackSrc={mediaUrl}
                 className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
               />
             )}
@@ -2386,14 +2374,14 @@ function ClientSummaryFindingCard({
                   className="max-h-[360px] w-full rounded-xl border border-slate-700 bg-black object-contain"
                 />
               ) : (
-                <img
+                <SafeImage
                   key={item.id || item.file_path || itemUrl || mediaIndex}
                   src={itemPreviewUrl || itemUrl}
                   alt={`Summary finding media ${mediaIndex + 1}`}
                   loading="lazy"
                   decoding="async"
                   fetchPriority="low"
-                  onError={(event) => handleImageFallback(event, itemUrl)}
+                  fallbackSrc={itemUrl}
                   className="max-h-[360px] w-full rounded-xl border border-slate-700 object-contain"
                 />
               );
