@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import QRCode from "qrcode";
+import { randomUUID } from "crypto";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -209,11 +210,19 @@ function formatDate(value: any) {
   return date.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 }
 
-function onlineReportUrlForInspection(inspectionId: any) {
+function getInspectionShareToken(inspection: any) {
+  return cleanText(
+    inspection?.public_share_token ||
+      inspection?.share_token ||
+      inspection?.report_share_token
+  );
+}
+
+function onlineReportUrlForInspection(inspection: any) {
   const appUrl = cleanText(process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL);
-  const cleanId = cleanText(inspectionId);
-  if (!appUrl || !cleanId) return "";
-  return `${appUrl.replace(/\/$/, "")}/share/${encodeURIComponent(cleanId)}`;
+  const token = getInspectionShareToken(inspection);
+  if (!appUrl || !token) return "";
+  return `${appUrl.replace(/\/$/, "")}/share/${encodeURIComponent(token)}`;
 }
 
 function getStoragePathFromUrl(url: string | null | undefined) {
@@ -611,7 +620,7 @@ function buildAgentReportHtml({
   const inspectionDate = formatDate(inspection.inspection_date || inspection.scheduled_date || inspection.created_at);
   const cityStateZip = [inspection.city, inspection.state, inspection.zip].filter(Boolean).join(", ");
   const reportId = inspection.report_number || inspection.id || "";
-  const onlineReportUrl = onlineReportUrlForInspection(inspection.id);
+  const onlineReportUrl = onlineReportUrlForInspection(inspection);
   const companyName = branding?.companyName || "On Point Home Inspections LLC";
   const companyEmail = branding?.companyEmail || "";
   const companyPhone = branding?.companyPhone || "";
@@ -623,26 +632,20 @@ function buildAgentReportHtml({
   const qrLogoUrl = cleanText(branding?.logoUrl);
   const qrHtml = qrCodeDataUrl
     ? `
-      <div class="qr-card">
-        <div class="qr-frame">
-          <img class="qr-image" src="${escapeHtml(qrCodeDataUrl)}" alt="Scan QR code to view report" />
-          ${
-            qrLogoUrl
-              ? `
-                <div class="qr-logo">
-                  <img src="${escapeHtml(qrLogoUrl)}" alt="${escapeHtml(companyName)} logo" />
-                </div>
-              `
-              : ""
-          }
-        </div>
-
-        <div class="qr-title">SCAN TO VIEW REPORT</div>
-        <div class="qr-description">View the interactive inspection report with photos, videos, repair requests and more.</div>
-        <div class="qr-powered">POWERED BY ON POINT INSPECT</div>
+      <div class="qr-box real">
+        <img class="qr-image" src="${escapeHtml(qrCodeDataUrl)}" alt="Scan to view full inspection report" />
+        ${
+          qrLogoUrl
+            ? `
+              <div class="qr-logo">
+                <img src="${escapeHtml(qrLogoUrl)}" alt="${escapeHtml(companyName)} logo" />
+              </div>
+            `
+            : ""
+        }
       </div>
     `
-    : `<div class="qr-card"><div class="qr-title">QR CODE UNAVAILABLE</div></div>`;
+    : `<div class="qr-box">QR Code<br/>Unavailable</div>`;
 
   const coverPhotoHtml = propertyPhotoUrl
     ? `<img class="cover-photo" src="${escapeHtml(propertyPhotoUrl)}" alt="Property photo" />`
@@ -882,15 +885,13 @@ function buildAgentReportHtml({
 
     .interactive-card { margin: 120px auto 0; max-width: 420px; text-align: center; }
     .interactive-icon { width: 90px; height: 90px; margin: 0 auto 18px; border-radius: 999px; background: #0f8f8f; color: white; display: flex; align-items: center; justify-content: center; font-size: 34px; font-weight: 900; }
-    .qr-card { width: 300px; margin: 34px auto 0; background: #07111f; border: 1px solid #24344d; border-radius: 24px; padding: 20px 18px 22px; text-align: center; box-shadow: 0 14px 34px rgba(2, 6, 23, .34); }
-    .qr-frame { width: 190px; height: 190px; margin: 0 auto 18px; background: #fff; border-radius: 20px; padding: 13px; position: relative; }
+    .qr-caption { margin: 22px 0 0; color: #020617; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .12em; }
+    .qr-box { width: 180px; height: 180px; margin: 24px auto; border: 2px dashed #0f8f8f; border-radius: 14px; display: flex; align-items: center; justify-content: center; color: #0f8f8f; font-weight: 900; }
+    .qr-box.real { width: 220px; height: 220px; margin: 16px auto 14px; background: #fff; border: 0; border-radius: 18px; display: flex; justify-content: center; align-items: center; position: relative; padding: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.15); }
     .qr-image { width: 100%; height: 100%; object-fit: contain; display: block; }
-    .qr-logo { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 60px; height: 60px; background: #07111f; border: 3px solid #0f172a; border-radius: 16px; display: flex; justify-content: center; align-items: center; overflow: hidden; box-shadow: 0 4px 14px rgba(0,0,0,.45); }
+    .qr-logo { position: absolute; width: 58px; height: 58px; background: #fff; border-radius: 14px; display: flex; justify-content: center; align-items: center; overflow: hidden; box-shadow: 0 0 8px rgba(0,0,0,.2); }
     .qr-logo img { width: 46px; height: 46px; object-fit: contain; display: block; }
-    .qr-title { color: #18d6c6; font-size: 13px; font-weight: 900; letter-spacing: .18em; text-transform: uppercase; }
-    .qr-description { margin: 8px auto 0; max-width: 230px; color: #b9c7d9; font-size: 10px; line-height: 1.45; }
-    .qr-powered { margin-top: 18px; color: #7186a4; font-size: 9px; font-weight: 900; letter-spacing: .32em; text-transform: uppercase; line-height: 1.35; }
-    .online-link { color: #0f8f8f; overflow-wrap: anywhere; font-weight: 800; font-size: 9px; }
+    .online-link { color: #0f8f8f; overflow-wrap: anywhere; font-weight: 800; }
 
     .black-footer { position: absolute; left: 0; right: 0; bottom: 0; height: 36px; background: #020617; color: #cbd5e1; display: flex; align-items: center; justify-content: space-between; padding: 0 46px; font-size: 9px; }
     .teal-line { position: absolute; left: 46px; right: 46px; bottom: 42px; border-top: 1px solid #0f8f8f; }
@@ -1008,6 +1009,7 @@ function buildAgentReportHtml({
         <div class="interactive-icon">↗</div>
         <h2 class="summary-title">Interactive Online Report</h2>
         <p>View the complete online report with photos, videos, repair requests, addenda, and client-friendly tools.</p>
+        <p class="qr-caption">Scan to View Full Inspection Report</p>
         ${qrHtml}
         <p class="online-link">${escapeHtml(onlineReportUrl)}</p>
       </div>
@@ -1068,6 +1070,23 @@ export async function GET(req: Request, { params }: RouteProps) {
 
     if (inspectionError || !inspection) {
       return NextResponse.json({ error: "Inspection not found." }, { status: 404 });
+    }
+
+    let secureShareToken = getInspectionShareToken(inspection);
+
+    if (!secureShareToken) {
+      secureShareToken = randomUUID().replace(/-/g, "");
+
+      const { error: tokenError } = await admin
+        .from("inspections")
+        .update({ public_share_token: secureShareToken })
+        .eq("id", inspectionId);
+
+      if (tokenError) {
+        console.error("Secure share token create error:", tokenError);
+      } else {
+        inspection.public_share_token = secureShareToken;
+      }
     }
 
     let allowed = inspectionHasRealtorEmail(inspection, userEmail);
@@ -1155,9 +1174,11 @@ export async function GET(req: Request, { params }: RouteProps) {
 
     const branding = await loadCompanyBranding(admin, inspection, userEmail);
 
+    const secureOnlineReportUrl = onlineReportUrlForInspection(inspection);
+
     const qrCodeDataUrl =
-      reportMode === "full" && onlineReportUrlForInspection(inspection.id)
-        ? await QRCode.toDataURL(onlineReportUrlForInspection(inspection.id), {
+      reportMode === "full" && secureOnlineReportUrl
+        ? await QRCode.toDataURL(secureOnlineReportUrl, {
             errorCorrectionLevel: "H",
             margin: 1,
             width: 420,

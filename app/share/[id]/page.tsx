@@ -22,12 +22,14 @@ async function recordInspectionView({
   contactId,
   viewerRole,
   viewerEmail,
+  sharePathId,
 }: {
   inspectionId: string | number;
   viewType: string;
   contactId?: string | null;
   viewerRole?: string | null;
   viewerEmail?: string | null;
+  sharePathId?: string | null;
 }) {
   try {
     const numericInspectionId = Number(inspectionId);
@@ -40,7 +42,7 @@ async function recordInspectionView({
       contact_id: contactId || null,
       viewer_role: viewerRole || null,
       viewer_email: viewerEmail || null,
-      path: `/share/${inspectionId}`,
+      path: `/share/${sharePathId || inspectionId}`,
       metadata: {
         source: "public_share_page",
       },
@@ -804,7 +806,8 @@ export default async function PublicSharePage({
 }) {
   const resolvedParams = await params;
   const resolvedSearchParams = searchParams ? await searchParams : {};
-  const inspectionId = resolvedParams.id;
+  const shareLookup = resolvedParams.id;
+  let inspectionId = shareLookup;
 
   const isDemo =
     resolvedSearchParams?.role === "demo";
@@ -827,11 +830,29 @@ export default async function PublicSharePage({
     information: "Informational",
   };
 
-  const { data: inspection, error: inspectionError } = await supabase
+  const { data: inspectionByToken, error: tokenLookupError } = await supabase
     .from("inspections")
     .select("*")
-    .eq("id", inspectionId)
-    .single();
+    .eq("public_share_token", shareLookup)
+    .maybeSingle();
+
+  let inspection = inspectionByToken;
+  let inspectionError = tokenLookupError;
+
+  if (!inspection && /^\d+$/.test(shareLookup)) {
+    const fallbackResult = await supabase
+      .from("inspections")
+      .select("*")
+      .eq("id", shareLookup)
+      .maybeSingle();
+
+    inspection = fallbackResult.data;
+    inspectionError = fallbackResult.error;
+  }
+
+  if (inspection) {
+    inspectionId = String(inspection.id);
+  }
 
   if (inspectionError || !inspection) {
     return (
@@ -841,6 +862,13 @@ export default async function PublicSharePage({
     );
   }
 
+  const sharePathId = String(
+    inspection.public_share_token ||
+      inspection.share_token ||
+      inspection.report_share_token ||
+      shareLookup
+  );
+
   if (!isDemo) {
     await recordInspectionView({
       inspectionId,
@@ -848,6 +876,7 @@ export default async function PublicSharePage({
       contactId: resolvedSearchParams?.contact || null,
       viewerRole: resolvedSearchParams?.role || null,
       viewerEmail: resolvedSearchParams?.email || null,
+      sharePathId,
     });
   }
 
@@ -1236,7 +1265,7 @@ export default async function PublicSharePage({
 
     const query = params.toString();
 
-    return `/share/${inspectionId}${query ? `?${query}` : ""}`;
+    return `/share/${sharePathId}${query ? `?${query}` : ""}`;
   }
 
   return (
@@ -1246,7 +1275,7 @@ export default async function PublicSharePage({
           inspectionId={String(inspectionId)}
           viewerRole={resolvedSearchParams?.role || null}
           viewerEmail={resolvedSearchParams?.email || null}
-          path={`/share/${inspectionId}`}
+          path={`/share/${sharePathId}`}
         />
       )}
 
