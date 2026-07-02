@@ -83,12 +83,14 @@ function getSignaturePayload(value: any, submittedAt: string, req: Request) {
     buyer: {
       printed_name: cleanText(buyer.printedName || buyer.printed_name),
       signature: cleanText(buyer.signature),
-      signed_at: cleanText(buyer.signature) ? submittedAt : null,
+      signature_image: cleanText(buyer.signatureImage || buyer.signature_image),
+      signed_at: cleanText(buyer.signature || buyer.signatureImage || buyer.signature_image) ? submittedAt : null,
     },
     seller: {
       printed_name: cleanText(seller.printedName || seller.printed_name),
       signature: cleanText(seller.signature),
-      signed_at: cleanText(seller.signature) ? submittedAt : null,
+      signature_image: cleanText(seller.signatureImage || seller.signature_image),
+      signed_at: cleanText(seller.signature || seller.signatureImage || seller.signature_image) ? submittedAt : null,
     },
     audit: {
       ip_address: ip,
@@ -205,7 +207,7 @@ export async function POST(req: Request) {
     const now = new Date().toISOString();
     const signaturePayload = getSignaturePayload(body?.signatures, now, req);
 
-    if (!signaturePayload.seller.printed_name || !signaturePayload.seller.signature) {
+    if (!signaturePayload.seller.printed_name || (!signaturePayload.seller.signature && !signaturePayload.seller.signature_image)) {
       return NextResponse.json(
         { error: "Seller printed name and electronic signature are required." },
         { status: 400 }

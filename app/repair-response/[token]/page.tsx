@@ -199,6 +199,28 @@ function getRequestedCreditTotalFromShare(share: any, findings: any[]) {
   );
 }
 
+function getSignatureValue(signatures: any, party: "buyer" | "seller", key: string) {
+  const partySignature =
+    signatures?.[party] && typeof signatures[party] === "object"
+      ? signatures[party]
+      : {};
+
+  return String(
+    partySignature?.[key] ||
+      partySignature?.[key.replace("_", "")] ||
+      partySignature?.[key === "printed_name" ? "printedName" : key] ||
+      ""
+  ).trim();
+}
+
+function hasSignedParty(signatures: any, party: "buyer" | "seller") {
+  return Boolean(
+    getSignatureValue(signatures, party, "printed_name") &&
+      (getSignatureValue(signatures, party, "signature") ||
+        getSignatureValue(signatures, party, "signature_image"))
+  );
+}
+
 export default async function RepairResponsePage({ params }: PageProps) {
   const { token } = await params;
   const cleanToken = cleanText(token);
@@ -280,6 +302,9 @@ export default async function RepairResponsePage({ params }: PageProps) {
       : {};
 
   const existingSignatures = shareMetadata.repair_request_signatures || null;
+  const buyerSigned = hasSignedParty(existingSignatures, "buyer");
+  const sellerSigned = hasSignedParty(existingSignatures, "seller");
+  const fullyExecuted = buyerSigned && sellerSigned;
 
   const { data: responsesRaw } = await admin
     .from("repair_request_responses")
@@ -320,7 +345,13 @@ export default async function RepairResponsePage({ params }: PageProps) {
           <div className="rounded-xl border border-slate-700 bg-[#020617] p-4">
             <p className="text-xs font-black uppercase text-blue-200">Status</p>
             <p className="mt-2 font-black text-white">
-              {alreadySubmitted ? "completed" : share.status || "sent"}
+              {fullyExecuted
+                ? "fully executed"
+                : sellerSigned
+                  ? "seller signed"
+                  : alreadySubmitted
+                    ? "completed"
+                    : share.status || "sent"}
             </p>
           </div>
         </div>
@@ -349,6 +380,31 @@ export default async function RepairResponsePage({ params }: PageProps) {
             <p className="mt-3 whitespace-pre-line leading-7 text-white">{share.summary}</p>
           </div>
         ) : null}
+      </section>
+
+      <section className="mx-auto mb-5 max-w-5xl rounded-2xl border border-cyan-500/40 bg-cyan-500/10 p-5 md:p-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-200">
+              Execution Status
+            </p>
+            <h2 className="mt-2 text-2xl font-black text-white">
+              {fullyExecuted ? "Fully Executed" : sellerSigned ? "Seller Signed" : "Waiting for Signatures"}
+            </h2>
+            <p className="mt-1 text-sm text-slate-300">
+              Once submitted, the executed addendum can be opened, downloaded, or emailed.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2 text-xs font-black">
+            <span className={`rounded-full border px-3 py-1 ${buyerSigned ? "border-emerald-400/60 bg-emerald-500/15 text-emerald-200" : "border-yellow-400/60 bg-yellow-500/15 text-yellow-100"}`}>
+              {buyerSigned ? "Buyer Signed" : "Buyer Pending"}
+            </span>
+            <span className={`rounded-full border px-3 py-1 ${sellerSigned ? "border-emerald-400/60 bg-emerald-500/15 text-emerald-200" : "border-yellow-400/60 bg-yellow-500/15 text-yellow-100"}`}>
+              {sellerSigned ? "Seller Signed" : "Seller Pending"}
+            </span>
+          </div>
+        </div>
       </section>
 
       <RepairResponseForm

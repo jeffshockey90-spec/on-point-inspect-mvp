@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 type Finding = Record<string, any>;
 
@@ -174,6 +174,139 @@ function formatSignedDate(value: any) {
   });
 }
 
+function hasSignatureValue(signatureText: string, signatureImage: string) {
+  return Boolean(signatureText.trim() || signatureImage.trim());
+}
+
+function SignaturePad({
+  value,
+  onChange,
+  disabled,
+  label,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  disabled?: boolean;
+  label: string;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const drawingRef = useRef(false);
+
+  function getPoint(event: React.PointerEvent<HTMLCanvasElement>) {
+    const canvas = canvasRef.current;
+    const rect = canvas?.getBoundingClientRect();
+    if (!canvas || !rect) return null;
+
+    return {
+      x: (event.clientX - rect.left) * (canvas.width / rect.width),
+      y: (event.clientY - rect.top) * (canvas.height / rect.height),
+    };
+  }
+
+  function startDrawing(event: React.PointerEvent<HTMLCanvasElement>) {
+    if (disabled) return;
+
+    const canvas = canvasRef.current;
+    const point = getPoint(event);
+    const ctx = canvas?.getContext("2d");
+
+    if (!canvas || !point || !ctx) return;
+
+    drawingRef.current = true;
+    canvas.setPointerCapture(event.pointerId);
+    ctx.lineWidth = 4;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.strokeStyle = "#ffffff";
+    ctx.beginPath();
+    ctx.moveTo(point.x, point.y);
+  }
+
+  function draw(event: React.PointerEvent<HTMLCanvasElement>) {
+    if (disabled || !drawingRef.current) return;
+
+    const canvas = canvasRef.current;
+    const point = getPoint(event);
+    const ctx = canvas?.getContext("2d");
+
+    if (!canvas || !point || !ctx) return;
+
+    ctx.lineTo(point.x, point.y);
+    ctx.stroke();
+  }
+
+  function stopDrawing(event: React.PointerEvent<HTMLCanvasElement>) {
+    if (!drawingRef.current) return;
+
+    const canvas = canvasRef.current;
+    drawingRef.current = false;
+
+    try {
+      canvas?.releasePointerCapture(event.pointerId);
+    } catch {}
+
+    if (canvas) onChange(canvas.toDataURL("image/png"));
+  }
+
+  function clear() {
+    if (disabled) return;
+
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext("2d");
+
+    if (!canvas || !ctx) return;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    onChange("");
+  }
+
+  return (
+    <div className="mt-4">
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <span className="block text-xs font-black uppercase tracking-wide text-slate-400">
+          {label}
+        </span>
+        {!disabled && value ? (
+          <button
+            type="button"
+            onClick={clear}
+            className="rounded-full border border-slate-600 px-3 py-1 text-xs font-black text-slate-300 hover:bg-slate-800"
+          >
+            Clear
+          </button>
+        ) : null}
+      </div>
+
+      <div className="overflow-hidden rounded-xl border border-slate-700 bg-[#071224]">
+        {value ? (
+          <img
+            src={value}
+            alt={label}
+            className="h-[150px] w-full bg-[#071224] object-contain p-3"
+          />
+        ) : null}
+
+        <canvas
+          ref={canvasRef}
+          width={900}
+          height={260}
+          onPointerDown={startDrawing}
+          onPointerMove={draw}
+          onPointerUp={stopDrawing}
+          onPointerCancel={stopDrawing}
+          className={`${value ? "hidden" : "block"} h-[150px] w-full touch-none bg-[#071224] ${disabled ? "cursor-not-allowed opacity-70" : "cursor-crosshair"}`}
+        />
+      </div>
+
+      {!value && !disabled ? (
+        <p className="mt-2 text-xs text-slate-400">
+          Sign above with your finger, mouse, or stylus. Typed signature can also be used below.
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 export default function RepairResponseForm({
   token,
   findings,
@@ -225,6 +358,9 @@ export default function RepairResponseForm({
   const [buyerSignature, setBuyerSignature] = useState(() =>
     getExistingSignatureValue(existingSignatures, "buyer", "signature")
   );
+  const [buyerSignatureImage, setBuyerSignatureImage] = useState(() =>
+    getExistingSignatureValue(existingSignatures, "buyer", "signature_image")
+  );
   const [buyerSignedAt, setBuyerSignedAt] = useState(() =>
     getExistingSignatureValue(existingSignatures, "buyer", "signed_at")
   );
@@ -233,6 +369,9 @@ export default function RepairResponseForm({
   );
   const [sellerSignature, setSellerSignature] = useState(() =>
     getExistingSignatureValue(existingSignatures, "seller", "signature")
+  );
+  const [sellerSignatureImage, setSellerSignatureImage] = useState(() =>
+    getExistingSignatureValue(existingSignatures, "seller", "signature_image")
   );
   const [sellerSignedAt, setSellerSignedAt] = useState(() =>
     getExistingSignatureValue(existingSignatures, "seller", "signed_at")
@@ -258,7 +397,10 @@ export default function RepairResponseForm({
     : 0;
 
   const allAnswered = answeredCount === findings.length;
-  const canSubmit = allAnswered && !submitting && !locked;
+  const buyerSigned = Boolean(buyerPrintedName.trim() && hasSignatureValue(buyerSignature, buyerSignatureImage));
+  const sellerSigned = Boolean(sellerPrintedName.trim() && hasSignatureValue(sellerSignature, sellerSignatureImage));
+  const fullyExecuted = buyerSigned && sellerSigned;
+  const canSubmit = allAnswered && sellerSigned && !submitting && !locked;
 
   function updateItem(
     findingId: string,
@@ -299,7 +441,7 @@ export default function RepairResponseForm({
       return;
     }
 
-    if (!sellerPrintedName.trim() || !sellerSignature.trim()) {
+    if (!sellerPrintedName.trim() || !hasSignatureValue(sellerSignature, sellerSignatureImage)) {
       setMessage("Add the seller printed name and electronic signature before submitting.");
       return;
     }
@@ -321,10 +463,12 @@ export default function RepairResponseForm({
             buyer: {
               printedName: buyerPrintedName.trim(),
               signature: buyerSignature.trim(),
+              signatureImage: buyerSignatureImage,
             },
             seller: {
               printedName: sellerPrintedName.trim(),
               signature: sellerSignature.trim(),
+              signatureImage: sellerSignatureImage,
             },
           },
         }),
@@ -341,11 +485,11 @@ export default function RepairResponseForm({
         payload?.signatures?.audit?.submitted_at ||
         new Date().toISOString();
 
-      if (buyerSignature.trim() && !buyerSignedAt) {
+      if (hasSignatureValue(buyerSignature, buyerSignatureImage) && !buyerSignedAt) {
         setBuyerSignedAt(payload?.signatures?.buyer?.signed_at || signedAt);
       }
 
-      if (sellerSignature.trim()) {
+      if (hasSignatureValue(sellerSignature, sellerSignatureImage)) {
         setSellerSignedAt(payload?.signatures?.seller?.signed_at || signedAt);
       }
 
@@ -491,10 +635,10 @@ export default function RepairResponseForm({
                 Addendum Ready
               </p>
               <h2 className="mt-2 text-2xl font-black text-white">
-                Repair Request Addendum
+                Executed Repair Request Addendum
               </h2>
               <p className="mt-1 text-sm text-slate-300">
-                Includes seller responses, requested credits, offered credits, and totals.
+                Includes seller responses, requested credits, offered credits, totals, signatures, and execution record.
               </p>
             </div>
 
@@ -522,7 +666,7 @@ export default function RepairResponseForm({
                 data-fast-click="true"
                 className="min-h-[48px] rounded-xl border border-cyan-400 bg-[#020617] px-4 py-3 text-sm font-black text-cyan-200 transition hover:bg-cyan-500/10 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {emailingAddendum ? "Emailing..." : "Email"}
+                {emailingAddendum ? "Emailing..." : "Email Executed Addendum"}
               </button>
             </div>
           </div>
@@ -673,15 +817,17 @@ export default function RepairResponseForm({
           </div>
 
           <span className={`w-fit rounded-full border px-4 py-2 text-sm font-black ${
-            sellerPrintedName.trim() && sellerSignature.trim()
+            sellerSigned
               ? "border-emerald-400/60 bg-emerald-500/15 text-emerald-200"
               : "border-yellow-400/60 bg-yellow-500/15 text-yellow-100"
           }`}>
-            {sellerPrintedName.trim() && sellerSignature.trim()
-              ? sellerSignedAt
-                ? `Seller Signed • ${formatSignedDate(sellerSignedAt)}`
-                : "Seller Signed"
-              : "Seller Signature Needed"}
+            {fullyExecuted
+              ? "Fully Executed"
+              : sellerSigned
+                ? sellerSignedAt
+                  ? `Seller Signed • ${formatSignedDate(sellerSignedAt)}`
+                  : "Seller Signed"
+                : "Seller Signature Needed"}
           </span>
         </div>
 
@@ -705,6 +851,13 @@ export default function RepairResponseForm({
                 className="h-[52px] w-full rounded-xl border border-slate-700 bg-[#071224] px-3 font-bold text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-70"
               />
             </label>
+            <SignaturePad
+              value={buyerSignatureImage}
+              onChange={setBuyerSignatureImage}
+              disabled={locked}
+              label="Draw Buyer Signature"
+            />
+
             <label className="mt-4 block">
               <span className="mb-2 block text-xs font-black uppercase tracking-wide text-slate-400">
                 Type Buyer Signature
@@ -717,7 +870,7 @@ export default function RepairResponseForm({
                 className="h-[64px] w-full rounded-xl border border-slate-700 bg-[#071224] px-4 text-2xl font-black italic text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-70"
               />
             </label>
-            {buyerSignature.trim() ? (
+            {hasSignatureValue(buyerSignature, buyerSignatureImage) ? (
               <p className="mt-3 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs font-bold text-emerald-100">
                 {buyerSignedAt
                   ? `Buyer signed electronically on ${formatSignedDate(buyerSignedAt)}.`
@@ -745,6 +898,13 @@ export default function RepairResponseForm({
                 className="h-[52px] w-full rounded-xl border border-slate-700 bg-[#071224] px-3 font-bold text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-70"
               />
             </label>
+            <SignaturePad
+              value={sellerSignatureImage}
+              onChange={setSellerSignatureImage}
+              disabled={locked}
+              label="Draw Seller Signature"
+            />
+
             <label className="mt-4 block">
               <span className="mb-2 block text-xs font-black uppercase tracking-wide text-slate-400">
                 Type Seller Signature
