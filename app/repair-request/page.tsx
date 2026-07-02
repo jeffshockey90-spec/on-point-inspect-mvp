@@ -606,6 +606,7 @@ function RepairRequestContent() {
   const [requestedCredits, setRequestedCredits] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [showAddendum, setShowAddendum] = useState(false);
+  const [showPrintablePreview, setShowPrintablePreview] = useState(false);
   const [pdfMessage, setPdfMessage] = useState("");
   const [printingPdf, setPrintingPdf] = useState(false);
   const [emailMessage, setEmailMessage] = useState("");
@@ -1099,13 +1100,21 @@ function RepairRequestContent() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
             <button
               type="button"
               onClick={() => setShowAddendum(!showAddendum)}
               className="min-h-[48px] w-full rounded-xl border border-purple-500 bg-[#020617] px-5 py-3 font-bold text-purple-300 transition hover:border-purple-400 hover:bg-purple-500/10 active:scale-[0.98]"
             >
               {showAddendum ? "Hide Addendum" : "Export Negotiation Addendum"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShowPrintablePreview((prev) => !prev)}
+              className="min-h-[48px] w-full rounded-xl border border-cyan-500 bg-[#020617] px-5 py-3 font-bold text-cyan-300 transition hover:border-cyan-400 hover:bg-cyan-500/10 active:scale-[0.98]"
+            >
+              {showPrintablePreview ? "Hide Preview" : "Show Print Preview"}
             </button>
 
             <button
@@ -1359,7 +1368,8 @@ function RepairRequestContent() {
           </section>
         )}
 
-        <section className="overflow-hidden rounded-2xl border border-slate-800 bg-white p-5 text-black md:p-6">
+        {showPrintablePreview && (
+          <section className="overflow-hidden rounded-2xl border border-slate-800 bg-white p-5 text-black md:p-6">
           <div className="mb-5 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-teal-300 bg-teal-50 p-4">
             <div>
               <p className="text-xs font-black uppercase tracking-wide text-teal-700">
@@ -1492,7 +1502,8 @@ function RepairRequestContent() {
               ))}
             </div>
           )}
-        </section>
+          </section>
+        )}
       </div>
     </main>
   );
