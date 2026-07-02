@@ -1535,7 +1535,8 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
 
   // IMPORTANT: sign the original media paths WITHOUT image transforms.
   // Image transforms break video playback because Supabase transform URLs are for images only.
-  // The share page works because it signs raw storage paths.   const [signedThumbnailMap, signedFullMediaMap] = await Promise.all([
+  // The share page works because it signs raw storage paths.
+  const [signedThumbnailMap, signedFullMediaMap] = await Promise.all([
     createSignedRawUrlMap(storageSupabase, thumbnailPaths),
     createSignedRawUrlMap(storageSupabase, fullPhotoPaths),
   ]);
