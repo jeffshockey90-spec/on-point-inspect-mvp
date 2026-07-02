@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 type FastLinkButtonProps = {
@@ -31,6 +31,9 @@ export default function FastLinkButton({
 }: FastLinkButtonProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const searchParamsText = searchParams.toString();
+
   const [opening, setOpening] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -40,8 +43,18 @@ export default function FastLinkButton({
     href.startsWith("mailto:") ||
     href.startsWith("tel:");
 
+  function clearOpening() {
+    setOpening(false);
+
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+  }
+
   function prefetchHref() {
     if (!prefetch || isExternal) return;
+
     try {
       router.prefetch(href);
     } catch {}
@@ -55,8 +68,10 @@ export default function FastLinkButton({
       event.ctrlKey ||
       event.shiftKey ||
       event.altKey ||
-      target === "_blank"
+      target === "_blank" ||
+      isExternal
     ) {
+      clearOpening();
       return;
     }
 
@@ -66,29 +81,28 @@ export default function FastLinkButton({
     }
 
     setOpening(true);
-  }
-
-  useEffect(() => {
-    setOpening(false);
 
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
     }
-  }, [pathname]);
-
-  useEffect(() => {
-    if (!opening) return;
 
     timeoutRef.current = setTimeout(() => {
       setOpening(false);
       timeoutRef.current = null;
-    }, 2500);
+    }, 1800);
+  }
 
+  useEffect(() => {
+    clearOpening();
+    // Reset on path OR query-string changes. This prevents spinner states from
+    // sticking when moving between /share/123 and /share/123?role=realtor.
+  }, [pathname, searchParamsText, href]);
+
+  useEffect(() => {
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
-  }, [opening]);
+  }, []);
 
   return (
     <Link

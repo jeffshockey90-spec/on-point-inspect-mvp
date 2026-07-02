@@ -207,6 +207,9 @@ export default function RepairResponseForm({
     ? Math.round((answeredCount / findings.length) * 100)
     : 0;
 
+  const allAnswered = answeredCount === findings.length;
+  const canSubmit = allAnswered && !submitting && !locked;
+
   function updateItem(
     findingId: string,
     field: "responseStatus" | "notes" | "creditAmount",
@@ -311,7 +314,42 @@ export default function RepairResponseForm({
   }
 
   return (
-    <section className="space-y-5">
+    <section className="space-y-5 pb-28 md:pb-0">
+      <div className="sticky top-0 z-40 -mx-4 rounded-b-2xl border-b border-slate-700 bg-[#020617]/95 p-3 shadow-xl backdrop-blur md:static md:mx-0 md:rounded-2xl md:border md:border-slate-700 md:bg-[#0f172a] md:p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-teal-300">
+              Response Progress
+            </p>
+            <p className="mt-1 text-sm font-black text-white">
+              {answeredCount} of {findings.length} answered
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2 text-xs font-black">
+            <span className="rounded-full border border-cyan-500/40 bg-cyan-500/10 px-3 py-1 text-cyan-100">
+              Requested {formatMoney(requestedCreditTotal)}
+            </span>
+            <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-emerald-100">
+              Seller {formatMoney(sellerCreditTotal)}
+            </span>
+          </div>
+        </div>
+
+        <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-900 ring-1 ring-slate-700">
+          <div
+            className="h-full rounded-full bg-teal-400 transition-all"
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
+
+        {!locked && !allAnswered ? (
+          <p className="mt-2 text-xs font-bold text-yellow-100">
+            Answer every item before submitting.
+          </p>
+        ) : null}
+      </div>
+
       <section className="rounded-2xl border border-slate-700 bg-[#0f172a] p-5 shadow-xl">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -542,15 +580,23 @@ export default function RepairResponseForm({
         );
       })}
 
-      <button
-        type="button"
-        onClick={submitResponse}
-        disabled={submitting || locked}
-        data-fast-click="true"
-        className="min-h-[58px] w-full rounded-xl border border-teal-500 bg-teal-500 px-5 py-4 text-lg font-black text-slate-950 transition hover:bg-teal-400 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        {locked ? "Response Submitted" : submitting ? "Submitting..." : "Submit Repair Request Response"}
-      </button>
+      <div className="sticky bottom-[72px] z-50 -mx-5 mt-6 border-t border-slate-700 bg-[#020617]/95 p-4 backdrop-blur md:static md:bottom-auto md:mx-0 md:border-0 md:bg-transparent md:p-0">
+        <button
+          type="button"
+          onClick={submitResponse}
+          disabled={!canSubmit}
+          data-fast-click="true"
+          className="min-h-[60px] w-full rounded-xl border border-teal-500 bg-teal-500 px-5 py-4 text-lg font-black text-slate-950 shadow-xl transition hover:bg-teal-400 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {locked
+            ? "Response Submitted"
+            : submitting
+            ? "Submitting..."
+            : allAnswered
+            ? "Submit Repair Request Response"
+            : `Answer ${findings.length - answeredCount} More Item${findings.length - answeredCount === 1 ? "" : "s"}`}
+        </button>
+      </div>
     </section>
   );
 }

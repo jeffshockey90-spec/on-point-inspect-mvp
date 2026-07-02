@@ -1213,6 +1213,32 @@ export default async function PublicSharePage({
   const address =
     inspection.property_address || inspection.address || "Property Address Not Entered";
 
+  const viewerRole = String(resolvedSearchParams?.role || "").toLowerCase();
+  const viewerEmail = String(resolvedSearchParams?.email || "").trim();
+  const viewerContact = String(resolvedSearchParams?.contact || "").trim();
+
+  const canOpenInternalReportActions =
+    !viewerRole || viewerRole === "inspector" || viewerRole === "owner";
+
+  const canOpenEditableReport = canOpenInternalReportActions;
+
+  function buildShareHref(extra: Record<string, string> = {}) {
+    const params = new URLSearchParams();
+
+    Object.entries({
+      role: viewerRole,
+      email: viewerEmail,
+      contact: viewerContact,
+      ...extra,
+    }).forEach(([key, value]) => {
+      if (value) params.set(key, value);
+    });
+
+    const query = params.toString();
+
+    return `/share/${inspectionId}${query ? `?${query}` : ""}`;
+  }
+
   return (
     <main className="min-h-screen w-full overflow-x-hidden bg-[#020617] p-4 text-white md:p-8">
       {!isDemo && (
@@ -1278,7 +1304,7 @@ export default async function PublicSharePage({
           <div className="mb-8 flex flex-wrap gap-3 print:hidden">
             <PdfExportButton />
 
-            {!isDemo && (
+            {!isDemo && canOpenInternalReportActions && (
               <>
                 <Link
                   href={`/reports/${inspectionId}/summary`}
@@ -1294,12 +1320,14 @@ export default async function PublicSharePage({
                   Client Portal
                 </Link>
 
-                <Link
-                  href={`/reports/${inspectionId}`}
-                  className="rounded-xl border border-slate-600 px-5 py-3 font-bold text-white transition hover:bg-slate-800"
-                >
-                  Full Editable Report
-                </Link>
+                {canOpenEditableReport ? (
+                  <Link
+                    href={`/reports/${inspectionId}`}
+                    className="rounded-xl border border-slate-600 px-5 py-3 font-bold text-white transition hover:bg-slate-800"
+                  >
+                    Full Editable Report
+                  </Link>
+                ) : null}
               </>
             )}
           </div>
@@ -1335,28 +1363,28 @@ export default async function PublicSharePage({
                 label="Safety / Major"
                 value={defectTotals.safety}
                 tone="red"
-                href={isDemo ? `/demo/${inspectionId}?defect_filter=safety#inspection-findings` : `/share/${inspectionId}?defect_filter=safety#inspection-findings`}
+                href={isDemo ? `/demo/${inspectionId}?defect_filter=safety#inspection-findings` : `${buildShareHref({ defect_filter: "safety" })}#inspection-findings`}
                 active={activeDefectFilter === "safety"}
               />
               <DefectSummaryCard
                 label="Recommended Repair"
                 value={defectTotals.repair}
                 tone="teal"
-                href={isDemo ? `/demo/${inspectionId}?defect_filter=repair#inspection-findings` : `/share/${inspectionId}?defect_filter=repair#inspection-findings`}
+                href={isDemo ? `/demo/${inspectionId}?defect_filter=repair#inspection-findings` : `${buildShareHref({ defect_filter: "repair" })}#inspection-findings`}
                 active={activeDefectFilter === "repair"}
               />
               <DefectSummaryCard
                 label="Maintenance / Monitor"
                 value={defectTotals.maintenance}
                 tone="yellow"
-                href={isDemo ? `/demo/${inspectionId}?defect_filter=maintenance#inspection-findings` : `/share/${inspectionId}?defect_filter=maintenance#inspection-findings`}
+                href={isDemo ? `/demo/${inspectionId}?defect_filter=maintenance#inspection-findings` : `${buildShareHref({ defect_filter: "maintenance" })}#inspection-findings`}
                 active={activeDefectFilter === "maintenance"}
               />
               <DefectSummaryCard
                 label="Informational"
                 value={defectTotals.information}
                 tone="blue"
-                href={isDemo ? `/demo/${inspectionId}?defect_filter=information#inspection-findings` : `/share/${inspectionId}?defect_filter=information#inspection-findings`}
+                href={isDemo ? `/demo/${inspectionId}?defect_filter=information#inspection-findings` : `${buildShareHref({ defect_filter: "information" })}#inspection-findings`}
                 active={activeDefectFilter === "information"}
               />
             </div>
@@ -1365,7 +1393,7 @@ export default async function PublicSharePage({
               <span>Click a defect type above to filter the findings list.</span>
               {activeDefectFilter !== "all" && (
                 <Link
-                  href={isDemo ? `/demo/${inspectionId}#inspection-findings` : `/share/${inspectionId}#inspection-findings`}
+                  href={isDemo ? `/demo/${inspectionId}#inspection-findings` : `${buildShareHref()}#inspection-findings`}
                   className="rounded-full border border-slate-600 px-3 py-1 font-bold text-white hover:bg-slate-800"
                 >
                   Clear filter: {activeDefectFilterLabel[activeDefectFilter]}

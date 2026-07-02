@@ -193,6 +193,167 @@ function getResponseCredit(response: any) {
   );
 }
 
+function getStoragePathFromUrl(url: string | null | undefined) {
+  if (!url) return "";
+
+  const cleanUrl = String(url).split("?")[0].split("#")[0];
+  const markers = [
+    "/inspection-photos/",
+    "/object/public/inspection-photos/",
+    "/object/sign/inspection-photos/",
+    "/object/authenticated/inspection-photos/",
+  ];
+
+  for (const marker of markers) {
+    const index = cleanUrl.indexOf(marker);
+    if (index !== -1) {
+      return decodeURIComponent(cleanUrl.substring(index + marker.length));
+    }
+  }
+
+  return "";
+}
+
+function getPropertyPhoto(inspection: any) {
+  return (
+    inspection?.property_image ||
+    inspection?.street_view_url ||
+    inspection?.cover_photo_url ||
+    inspection?.google_photo_url ||
+    inspection?.property_photo_url ||
+    inspection?.place_photo_url ||
+    inspection?.photo_url ||
+    inspection?.image_url ||
+    ""
+  );
+}
+
+function getPropertyPhotoPath(inspection: any) {
+  return (
+    inspection?.property_photo_path ||
+    inspection?.property_photo_storage_path ||
+    inspection?.cover_photo_path ||
+    inspection?.property_image_path ||
+    inspection?.storage_path ||
+    getStoragePathFromUrl(getPropertyPhoto(inspection)) ||
+    ""
+  );
+}
+
+function getPhotoStoragePath(photo: any) {
+  return (
+    photo?.thumbnail_path ||
+    photo?.file_path ||
+    photo?.storage_path ||
+    photo?.photo_path ||
+    photo?.image_path ||
+    getStoragePathFromUrl(photo?.signed_thumbnail_url) ||
+    getStoragePathFromUrl(photo?.thumbnail_url) ||
+    getStoragePathFromUrl(photo?.signed_url) ||
+    getStoragePathFromUrl(photo?.public_url) ||
+    getStoragePathFromUrl(photo?.image_url) ||
+    getStoragePathFromUrl(photo?.photo_url) ||
+    getStoragePathFromUrl(photo?.url) ||
+    ""
+  );
+}
+
+function getPhotoFallbackUrl(photo: any) {
+  return (
+    photo?.signed_thumbnail_url ||
+    photo?.thumbnail_url ||
+    photo?.signed_url ||
+    photo?.public_url ||
+    photo?.image_url ||
+    photo?.photo_url ||
+    photo?.url ||
+    ""
+  );
+}
+
+function getLegacyFindingPhotoCandidates(finding: any) {
+  return [
+    finding?.signed_thumbnail_url,
+    finding?.thumbnail_url,
+    finding?.signed_image_url,
+    finding?.public_image_url,
+    finding?.image_url,
+    finding?.photo_url,
+    finding?.url,
+  ].filter(Boolean);
+}
+
+function dedupePhotos(photos: any[]) {
+  const seen = new Set<string>();
+  const result: any[] = [];
+
+  for (const photo of photos || []) {
+    const key = cleanText(
+      photo?.id ||
+        photo?.file_path ||
+        photo?.storage_path ||
+        photo?.photo_path ||
+        photo?.thumbnail_path ||
+        photo?.download_url ||
+        photo?.signed_url ||
+        photo?.public_url ||
+        photo?.image_url ||
+        photo?.photo_url ||
+        photo?.url,
+    );
+
+    if (!key || seen.has(key)) continue;
+
+    seen.add(key);
+    result.push(photo);
+  }
+
+  return result;
+}
+
+async function signedUrlMap(admin: any, paths: string[]) {
+  const uniquePaths = Array.from(new Set(paths.filter(Boolean)));
+  const result: Record<string, string> = {};
+
+  if (!uniquePaths.length) return result;
+
+  const chunkSize = 80;
+
+  for (let index = 0; index < uniquePaths.length; index += chunkSize) {
+    const chunk = uniquePaths.slice(index, index + chunkSize);
+
+    const { data, error } = await admin.storage
+      .from("inspection-photos")
+      .createSignedUrls(chunk, 60 * 60 * 24 * 7);
+
+    if (error) {
+      console.error("Repair addendum signed URL error:", error);
+      continue;
+    }
+
+    (data || []).forEach((item: any, itemIndex: number) => {
+      const path = item?.path || chunk[itemIndex];
+      if (path && item?.signedUrl) result[path] = item.signedUrl;
+    });
+  }
+
+  return result;
+}
+
+function responseIcon(value: any) {
+  const clean = cleanText(value);
+
+  const icons: Record<string, string> = {
+    agree_to_repair: "✓",
+    already_repaired: "✓",
+    credit_buyer: "$",
+    decline: "×",
+    needs_discussion: "…",
+  };
+
+  return icons[clean] || "○";
+}
+
 async function loadAddendumData(token: string) {
   const admin = createAdminClient();
 
@@ -231,17 +392,75 @@ async function loadAddendumData(token: string) {
     ]);
 
   const orderedFindings = groupFindingsInSelectedOrder(findingsRaw || [], selectedIds);
+  const findingIds = orderedFindings.map((finding: any) => cleanText(finding.id)).filter(Boolean);
   const requestedCredits = getRequestedCreditsFromShare(share);
+
+  const { data: photosRaw, error: photosError } = findingIds.length
+    ? await admin
+        .from("photos")
+        .select("*")
+        .in("finding_id", findingIds)
+        .order("created_at", { ascending: true })
+    : { data: [], error: null };
+
+  if (photosError) {
+    console.error("Repair addendum photos load error:", photosError);
+  }
+
+  const propertyPhotoPath = getPropertyPhotoPath(inspection);
+  const rawPropertyPhoto = getPropertyPhoto(inspection);
+
+  const photoPaths = (photosRaw || []).map((photo: any) => getPhotoStoragePath(photo)).filter(Boolean);
+
+  const legacyFindingPhotoPaths = orderedFindings
+    .flatMap((finding: any) =>
+      getLegacyFindingPhotoCandidates(finding).map((candidate: any) => getStoragePathFromUrl(candidate)),
+    )
+    .filter(Boolean);
+
+  const signedMap = await signedUrlMap(admin, [
+    ...photoPaths,
+    ...legacyFindingPhotoPaths,
+    propertyPhotoPath,
+  ]);
+
+  const photosWithUrls = (photosRaw || []).map((photo: any) => {
+    const path = getPhotoStoragePath(photo);
+
+    return {
+      ...photo,
+      download_url: (path && signedMap[path]) || getPhotoFallbackUrl(photo) || "",
+    };
+  });
+
+  const photosByFindingId = photosWithUrls.reduce((acc: Record<string, any[]>, photo: any) => {
+    const findingId = cleanText(photo.finding_id);
+    if (!findingId || !photo.download_url) return acc;
+    if (!acc[findingId]) acc[findingId] = [];
+    acc[findingId].push(photo);
+    return acc;
+  }, {});
 
   const findings = orderedFindings.map((finding: any, index: number) => {
     const itemNumber = getFindingNumber(finding, index);
     const requestedCredit = requestedCredits[cleanText(finding.id)] || finding?.requested_credit_amount || "";
+    const findingId = cleanText(finding.id);
+
+    const directPhotos = photosByFindingId[findingId] || [];
+    const legacyPhotos = getLegacyFindingPhotoCandidates(finding)
+      .map((candidate: any) => {
+        const path = getStoragePathFromUrl(candidate);
+        const urlValue = (path && signedMap[path]) || candidate || "";
+        return urlValue ? { download_url: urlValue } : null;
+      })
+      .filter(Boolean);
 
     return {
       ...finding,
       section: normalizeSection(finding.section),
       item_number: itemNumber,
       requested_credit_amount: requestedCredit,
+      photos: dedupePhotos(directPhotos.length > 0 ? directPhotos : legacyPhotos),
     };
   });
 
@@ -266,11 +485,13 @@ async function loadAddendumData(token: string) {
 
   const requestedCreditTotal = getRequestedCreditTotalFromShare(share, findings);
   const sellerCreditTotal = items.reduce((sum, item) => sum + item.offeredCredit, 0);
+  const propertyPhotoUrl = (propertyPhotoPath && signedMap[propertyPhotoPath]) || rawPropertyPhoto || "";
 
   return {
     share,
     inspection,
     property: getPropertyLabel(inspection),
+    propertyPhotoUrl,
     selectedIds,
     findings,
     responses: responsesRaw || [],
@@ -297,12 +518,36 @@ function buildAddendumHtml(data: Awaited<ReturnType<typeof loadAddendumData>>) {
     {},
   );
 
+  const coverPhotoHtml = data.propertyPhotoUrl
+    ? `<div class="cover-photo"><img src="${escapeHtml(data.propertyPhotoUrl)}" alt="Property photo" /></div>`
+    : "";
+
   const rowsHtml = data.items
     .map((item) => {
       const finding = item.finding;
       const response = item.response || {};
       const responseStatus = cleanText(response.response_status);
       const notes = cleanText(response.notes);
+
+      const photos = Array.isArray(finding.photos) ? finding.photos.slice(0, 4) : [];
+
+      const photoHtml = photos.length
+        ? `<div class="photos">${photos
+            .map((photo: any) => `<img src="${escapeHtml(photo.download_url)}" alt="Repair request item photo" />`)
+            .join("")}</div>`
+        : "";
+
+      const observationHtml = finding.observation
+        ? `<div class="detail"><span>Observation</span><p>${escapeHtml(finding.observation)}</p></div>`
+        : "";
+
+      const implicationHtml = finding.implication
+        ? `<div class="detail"><span>Implication</span><p>${escapeHtml(finding.implication)}</p></div>`
+        : "";
+
+      const recommendationHtml = finding.recommendation
+        ? `<div class="detail"><span>Requested Repair</span><p>${escapeHtml(finding.recommendation)}</p></div>`
+        : `<div class="detail"><span>Requested Repair</span><p>${escapeHtml(getFindingText(finding))}</p></div>`;
 
       return `
         <article class="item-card">
@@ -312,24 +557,27 @@ function buildAddendumHtml(data: Awaited<ReturnType<typeof loadAddendumData>>) {
               <h3>${escapeHtml(finding.title || "Untitled Finding")}</h3>
               <p class="section-line">${escapeHtml(finding.section || "Other")} · ${escapeHtml(finding.severity || "Recommended Repair")}</p>
             </div>
-            <span class="status-badge ${responseClass(responseStatus)}">${escapeHtml(responseLabel(responseStatus))}</span>
+            <span class="status-badge ${responseClass(responseStatus)}">
+              <b>${escapeHtml(responseIcon(responseStatus))}</b> ${escapeHtml(responseLabel(responseStatus))}
+            </span>
           </div>
 
-          <div class="grid-two">
-            <div class="box">
-              <p class="box-label">Buyer Requested</p>
-              <p>${escapeHtml(getFindingText(finding))}</p>
-            </div>
-            <div class="box">
-              <p class="box-label">Seller Response</p>
+          ${photoHtml}
+
+          <div class="detail-grid">
+            ${observationHtml}
+            ${implicationHtml}
+            ${recommendationHtml}
+            <div class="detail seller">
+              <span>Seller Response</span>
               <p><strong>${escapeHtml(responseLabel(responseStatus))}</strong></p>
-              ${notes ? `<p class="notes">${escapeHtml(notes)}</p>` : `<p class="notes muted">No notes entered.</p>`}
+              ${notes ? `<p class="notes">${escapeHtml(notes)}</p>` : `<p class="notes muted">No seller notes entered.</p>`}
             </div>
           </div>
 
           <div class="credit-row">
             <div>
-              <span>Requested Credit</span>
+              <span>Buyer Requested Credit</span>
               <strong>${escapeHtml(formatMoney(item.requestedCredit))}</strong>
             </div>
             <div>
@@ -357,19 +605,22 @@ function buildAddendumHtml(data: Awaited<ReturnType<typeof loadAddendumData>>) {
     @page { size: letter; margin: .45in; }
     html, body { margin: 0; padding: 0; }
     body { background: #020617; color: #0f172a; font-family: Arial, Helvetica, sans-serif; font-size: 12px; line-height: 1.45; }
-    .screen-actions { max-width: 980px; margin: 18px auto 12px; padding: 0 12px; display: flex; gap: 10px; flex-wrap: wrap; }
+    .screen-actions { max-width: 1020px; margin: 18px auto 12px; padding: 0 12px; display: flex; gap: 10px; flex-wrap: wrap; }
     .screen-actions button { min-height: 44px; border: 1px solid #14b8a6; border-radius: 12px; background: #020617; color: #5eead4; padding: 10px 16px; font-weight: 900; cursor: pointer; }
-    .shell { max-width: 980px; margin: 0 auto 28px; padding: 12px; }
+    .shell { max-width: 1020px; margin: 0 auto 28px; padding: 12px; }
     .paper { background: #fff; border-radius: 14px; border: 1px solid #cbd5e1; padding: 24px; box-shadow: 0 14px 40px rgba(0,0,0,.18); }
     .brand { display: flex; justify-content: space-between; gap: 18px; border-bottom: 3px solid #0f8f8f; padding-bottom: 16px; margin-bottom: 16px; }
     .eyebrow { margin: 0 0 6px; color: #0f8f8f; font-size: 11px; font-weight: 900; letter-spacing: .24em; text-transform: uppercase; }
-    h1 { margin: 0 0 8px; font-size: 30px; line-height: 1.08; font-weight: 900; color: #020617; }
+    h1 { margin: 0 0 8px; font-size: 31px; line-height: 1.08; font-weight: 900; color: #020617; }
     .property { margin: 0; color: #475569; font-weight: 800; }
     .badge { height: fit-content; border: 1px solid #0f8f8f; border-radius: 999px; color: #0f8f8f; padding: 8px 12px; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; }
+    .cover-photo { height: 230px; margin: 16px 0 18px; overflow: hidden; border: 1px solid #cbd5e1; border-radius: 14px; background: #f8fafc; }
+    .cover-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 18px 0; }
     .summary div, .count-card { border: 1px solid #cbd5e1; border-radius: 10px; background: #f8fafc; padding: 10px 12px; }
-    .summary span, .count-card span, .credit-row span { display: block; margin-bottom: 3px; color: #64748b; font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; }
+    .summary span, .count-card span, .credit-row span, .detail span { display: block; margin-bottom: 3px; color: #64748b; font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; }
     .summary strong, .count-card strong, .credit-row strong { display: block; color: #020617; font-size: 13px; font-weight: 900; word-break: break-word; }
+    .highlight { background: #ecfeff !important; border-color: #0f8f8f !important; }
     .count-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin: 14px 0 22px; }
     .item-card { break-inside: avoid; page-break-inside: avoid; border: 1px solid #cbd5e1; border-radius: 12px; padding: 14px; margin-top: 16px; }
     .item-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
@@ -377,15 +628,19 @@ function buildAddendumHtml(data: Awaited<ReturnType<typeof loadAddendumData>>) {
     h2 { margin: 22px 0 10px; font-size: 20px; color: #020617; }
     h3 { margin: 0; font-size: 15px; color: #020617; line-height: 1.25; }
     .section-line { margin: 5px 0 0; color: #64748b; font-size: 11px; font-weight: 800; }
-    .status-badge { flex-shrink: 0; border-radius: 999px; border: 1px solid #94a3b8; padding: 5px 9px; font-size: 9px; font-weight: 900; text-transform: uppercase; text-align: center; }
+    .status-badge { flex-shrink: 0; border-radius: 999px; border: 1px solid #94a3b8; padding: 6px 10px; font-size: 9px; font-weight: 900; text-transform: uppercase; text-align: center; white-space: nowrap; }
+    .status-badge b { margin-right: 4px; }
     .status-badge.good { border-color: #10b981; background: #ecfdf5; color: #047857; }
     .status-badge.credit { border-color: #3b82f6; background: #eff6ff; color: #1d4ed8; }
     .status-badge.bad { border-color: #ef4444; background: #fef2f2; color: #b91c1c; }
     .status-badge.warn { border-color: #f59e0b; background: #fffbeb; color: #b45309; }
-    .grid-two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .box { border: 1px solid #cbd5e1; border-radius: 9px; background: #f8fafc; padding: 11px; }
-    .box p { margin: 0; color: #334155; white-space: pre-line; }
-    .box-label { margin: 0 0 5px !important; color: #020617 !important; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; }
+    .status-badge.neutral { border-color: #94a3b8; background: #f8fafc; color: #475569; }
+    .photos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 10px 0 12px; }
+    .photos img { width: 100%; max-height: 210px; object-fit: contain; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; }
+    .detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .detail { border: 1px solid #cbd5e1; border-radius: 9px; background: #f8fafc; padding: 11px; }
+    .detail.seller { background: #ecfeff; border-color: #99f6e4; }
+    .detail p { margin: 0; color: #334155; white-space: pre-line; }
     .notes { margin-top: 8px !important; }
     .muted { color: #94a3b8 !important; }
     .credit-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
@@ -395,7 +650,8 @@ function buildAddendumHtml(data: Awaited<ReturnType<typeof loadAddendumData>>) {
     .signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 36px; margin-top: 34px; break-inside: avoid; page-break-inside: avoid; }
     .sig-line { margin-top: 44px; border-bottom: 1px solid #475569; height: 1px; }
     .sig-label { margin-top: 8px; color: #475569; font-weight: 800; }
-    @media (max-width: 760px) { .summary, .count-grid, .grid-two, .credit-row, .signatures { grid-template-columns: 1fr; } .brand { flex-direction: column; } }
+    .footer-note { margin-top: 24px; color: #64748b; font-size: 11px; text-align: center; }
+    @media (max-width: 760px) { .summary, .count-grid, .detail-grid, .credit-row, .signatures, .photos { grid-template-columns: 1fr; } .brand, .item-top { flex-direction: column; } }
     @media print { body { background: #fff; } .screen-actions { display: none; } .shell { max-width: none; margin: 0; padding: 0; } .paper { border: 0; box-shadow: none; border-radius: 0; padding: 0; } }
   </style>
 </head>
@@ -414,14 +670,16 @@ function buildAddendumHtml(data: Awaited<ReturnType<typeof loadAddendumData>>) {
         <div class="badge">Addendum</div>
       </div>
 
+      ${coverPhotoHtml}
+
       <div class="summary">
         <div><span>Date Prepared</span><strong>${escapeHtml(createdDate)}</strong></div>
         <div><span>Repair Items</span><strong>${data.items.length}</strong></div>
         <div><span>Recipient</span><strong>${escapeHtml(data.share.recipient_email || "Secure recipient")}</strong></div>
         <div><span>Status</span><strong>${escapeHtml(data.share.status || "sent")}</strong></div>
-        <div><span>Buyer Requested Credits</span><strong>${escapeHtml(formatMoney(data.requestedCreditTotal))}</strong></div>
-        <div><span>Seller Offered Credits</span><strong>${escapeHtml(formatMoney(data.sellerCreditTotal))}</strong></div>
-        <div><span>Credit Difference</span><strong class="${data.differenceTotal < 0 ? "negative" : data.differenceTotal > 0 ? "positive" : ""}">${escapeHtml(formatMoney(data.differenceTotal))}</strong></div>
+        <div class="highlight"><span>Buyer Requested Credits</span><strong>${escapeHtml(formatMoney(data.requestedCreditTotal))}</strong></div>
+        <div class="highlight"><span>Seller Offered Credits</span><strong>${escapeHtml(formatMoney(data.sellerCreditTotal))}</strong></div>
+        <div class="highlight"><span>Credit Difference</span><strong class="${data.differenceTotal < 0 ? "negative" : data.differenceTotal > 0 ? "positive" : ""}">${escapeHtml(formatMoney(data.differenceTotal))}</strong></div>
         <div><span>Responded</span><strong>${data.share.responded_at ? escapeHtml(new Date(data.share.responded_at).toLocaleDateString("en-US")) : "Not submitted"}</strong></div>
       </div>
 
@@ -447,6 +705,8 @@ function buildAddendumHtml(data: Awaited<ReturnType<typeof loadAddendumData>>) {
           <p class="sig-label">Seller Signature / Date</p>
         </div>
       </div>
+
+      <p class="footer-note">Generated by On Point Inspect for repair negotiation review. Final terms should be confirmed by the parties and their real estate professionals.</p>
     </section>
   </main>
 </body>
