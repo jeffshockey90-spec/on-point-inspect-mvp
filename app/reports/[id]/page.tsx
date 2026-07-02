@@ -1535,8 +1535,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
 
   // IMPORTANT: sign the original media paths WITHOUT image transforms.
   // Image transforms break video playback because Supabase transform URLs are for images only.
-  // The share page works because it signs raw storage paths. Do the same here.
-  const [signedThumbnailMap, signedFullMediaMap] = await Promise.all([
+  // The share page works because it signs raw storage paths.   const [signedThumbnailMap, signedFullMediaMap] = await Promise.all([
     createSignedRawUrlMap(storageSupabase, thumbnailPaths),
     createSignedRawUrlMap(storageSupabase, fullPhotoPaths),
   ]);
@@ -1625,16 +1624,16 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
       signed_video_url: finalFullUrl,
       signedVideoUrl: finalFullUrl,
       signed_thumbnail_url:
-        signedThumbnailUrl ||
         finalFullUrl ||
-        existingThumbnailUrl ||
+        signedThumbnailUrl ||
         existingFullUrl ||
+        existingThumbnailUrl ||
         "",
       signedThumbnailUrl:
-        signedThumbnailUrl ||
         finalFullUrl ||
-        existingThumbnailUrl ||
+        signedThumbnailUrl ||
         existingFullUrl ||
+        existingThumbnailUrl ||
         "",
     };
   });
@@ -2465,13 +2464,13 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
               <div className="grid gap-4">
                 {equipmentInventory.map((item: any) => {
                   const equipmentImage =
-                    item.signed_thumbnail_url ||
-                    item.thumbnail_url ||
-                    item.thumbnail_public_url ||
                     item.signed_image_url ||
                     item.image_url ||
                     item.public_url ||
                     item.photo_url ||
+                    item.signed_thumbnail_url ||
+                    item.thumbnail_url ||
+                    item.thumbnail_public_url ||
                     "";
 
                   return (

@@ -105,9 +105,17 @@ function getMediaUrl(media: any) {
 
 function getMediaPreviewUrl(media: any) {
   if (!media) return "";
-  return (
-    media?.signed_thumbnail_url || media?.thumbnail_url || getMediaUrl(media)
-  );
+
+  const fullUrl = getMediaUrl(media);
+  const thumbnailUrl = String(
+    media?.signed_thumbnail_url ||
+      media?.thumbnail_url ||
+      ""
+  ).trim();
+
+  // Use the full signed photo first. Broken generated thumbnails were causing
+  // black boxes on mobile and in the share summary.
+  return fullUrl || thumbnailUrl;
 }
 
 function isVideoMedia(media: any, urlValue?: string) {

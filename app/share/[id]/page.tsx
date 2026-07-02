@@ -384,17 +384,15 @@ function getMediaPreviewUrl(media: any) {
   if (!media) return "";
 
   const fullUrl = getMediaUrl(media);
-
-  // Mobile Safari was showing blank/black boxes when an old thumbnail URL
-  // existed in the database but the thumbnail file was missing or expired.
-  // On the public share page, prefer the full signed image URL so photos
-  // always load. Thumbnails remain a last fallback only.
-  return (
-    fullUrl ||
+  const thumbnailUrl = String(
     media?.signed_thumbnail_url ||
-    media?.thumbnail_url ||
-    ""
-  );
+      media?.thumbnail_url ||
+      ""
+  ).trim();
+
+  // Use the full signed photo first. Some thumbnail rows point to missing
+  // generated files, which created black image boxes on mobile.
+  return fullUrl || thumbnailUrl;
 }
 
 function getFindingPrimaryMedia(finding: any) {
@@ -933,16 +931,17 @@ export default async function PublicSharePage({
 
   const photosWithUrls = (photosRaw || []).map((photo: any) => {
     const path = getPhotoStoragePath(photo);
+
     const fastUrl = getFallbackPhotoUrl(photo);
-    const fullUrl = (path && signedUrlMap[path]) || fastUrl || "";
 
     return {
       ...photo,
-      signed_url: fullUrl,
-      // Force public/mobile share cards to use the real signed image.
-      // Broken generated thumbnails were causing blank black boxes on iPhone.
-      signed_thumbnail_url: fullUrl,
-      thumbnail_url: fullUrl || photo.thumbnail_url || "",
+      signed_url: (path && signedUrlMap[path]) || fastUrl || "",
+      signed_thumbnail_url:
+        (path && signedUrlMap[path]) ||
+        (photo.thumbnail_path && signedThumbnailUrlMap[photo.thumbnail_path]) ||
+        photo.thumbnail_url ||
+        "",
     };
   });
 
@@ -1009,20 +1008,19 @@ export default async function PublicSharePage({
   const limitationSignedUrlMap = await createSignedUrlMap(limitationPhotoPaths);
   const limitationThumbnailSignedUrlMap = await createSignedUrlMap(limitationThumbnailPaths);
 
-  const limitationPhotosWithUrls = (limitationPhotosRaw || []).map((photo: any) => {
-    const fullUrl =
+  const limitationPhotosWithUrls = (limitationPhotosRaw || []).map((photo: any) => ({
+    ...photo,
+    signed_url:
       (photo.file_path && limitationSignedUrlMap[photo.file_path]) ||
       photo.signed_url ||
       photo.public_url ||
-      "";
-
-    return {
-      ...photo,
-      signed_url: fullUrl,
-      signed_thumbnail_url: fullUrl,
-      thumbnail_url: fullUrl || photo.thumbnail_url || "",
-    };
-  });
+      "",
+    signed_thumbnail_url:
+      (photo.file_path && limitationSignedUrlMap[photo.file_path]) ||
+      (photo.thumbnail_path && limitationThumbnailSignedUrlMap[photo.thumbnail_path]) ||
+      photo.thumbnail_url ||
+      "",
+  }));
 
   const photosByLimitationId = limitationPhotosWithUrls.reduce(
     (acc: Record<string, any[]>, photo: any) => {
@@ -1058,21 +1056,20 @@ export default async function PublicSharePage({
   const referenceThumbnailSignedUrlMap = await createSignedUrlMap(referenceThumbnailPaths);
 
   const sectionReferencePhotos = (sectionReferencePhotosRaw || []).map(
-    (photo: any) => {
-      const fullUrl =
+    (photo: any) => ({
+      ...photo,
+      section: normalizeSection(photo.section),
+      signed_url:
         (photo.file_path && referenceSignedUrlMap[photo.file_path]) ||
         photo.signed_url ||
         photo.public_url ||
-        "";
-
-      return {
-        ...photo,
-        section: normalizeSection(photo.section),
-        signed_url: fullUrl,
-        signed_thumbnail_url: fullUrl,
-        thumbnail_url: fullUrl || photo.thumbnail_url || "",
-      };
-    }
+        "",
+      signed_thumbnail_url:
+        (photo.file_path && referenceSignedUrlMap[photo.file_path]) ||
+        (photo.thumbnail_path && referenceThumbnailSignedUrlMap[photo.thumbnail_path]) ||
+        photo.thumbnail_url ||
+        "",
+    })
   );
 
   const referencePhotosBySection = sectionReferencePhotos.reduce(
@@ -1112,21 +1109,20 @@ export default async function PublicSharePage({
   const equipmentSignedUrlMap = await createSignedUrlMap(equipmentPhotoPaths);
   const equipmentThumbnailSignedUrlMap = await createSignedUrlMap(equipmentThumbnailPaths);
 
-  const equipmentInventory = (equipmentInventoryRaw || []).map((item: any) => {
-    const fullUrl =
+  const equipmentInventory = (equipmentInventoryRaw || []).map((item: any) => ({
+    ...item,
+    signed_image_url:
       (item.file_path && equipmentSignedUrlMap[item.file_path]) ||
       item.signed_image_url ||
       item.image_url ||
       item.public_url ||
-      "";
-
-    return {
-      ...item,
-      signed_image_url: fullUrl,
-      signed_thumbnail_url: fullUrl,
-      thumbnail_url: fullUrl || item.thumbnail_url || "",
-    };
-  });
+      "",
+    signed_thumbnail_url:
+      (item.file_path && equipmentSignedUrlMap[item.file_path]) ||
+      (item.thumbnail_path && equipmentThumbnailSignedUrlMap[item.thumbnail_path]) ||
+      item.thumbnail_url ||
+      "",
+  }));
 
   const { data: moldTest } = await supabase
     .from("mold_tests")
