@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import SupportUnreadBadge from "./SupportUnreadBadge";
 
@@ -43,11 +43,51 @@ export default function Navbar() {
   const router = useRouter();
   const [loggingOut, setLoggingOut] = useState(false);
   const [openingHref, setOpeningHref] = useState("");
+  const openingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isOwner, setIsOwner] = useState(false);
   const [isRealtor, setIsRealtor] = useState(false);
   const [isInspector, setIsInspector] = useState(true);
   const [reportsHref, setReportsHref] = useState("/reports");
   const [dashboardHref, setDashboardHref] = useState("/");
+
+  function clearOpeningHref() {
+    setOpeningHref("");
+
+    if (openingTimeoutRef.current) {
+      clearTimeout(openingTimeoutRef.current);
+      openingTimeoutRef.current = null;
+    }
+  }
+
+  useEffect(() => {
+    clearOpeningHref();
+  }, [pathname]);
+
+  useEffect(() => {
+    function clear() {
+      clearOpeningHref();
+    }
+
+    function clearOnAnyPageInteraction() {
+      clearOpeningHref();
+    }
+
+    window.addEventListener("pageshow", clear);
+    window.addEventListener("focus", clear);
+    document.addEventListener("visibilitychange", clear);
+    document.addEventListener("pointerdown", clearOnAnyPageInteraction, true);
+
+    return () => {
+      window.removeEventListener("pageshow", clear);
+      window.removeEventListener("focus", clear);
+      document.removeEventListener("visibilitychange", clear);
+      document.removeEventListener("pointerdown", clearOnAnyPageInteraction, true);
+
+      if (openingTimeoutRef.current) {
+        clearTimeout(openingTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -178,17 +218,42 @@ export default function Navbar() {
     return isOwner ? [...supportAwareItems, ownerNavItem] : supportAwareItems;
   }, [dashboardHref, reportsHref, isOwner, isRealtor, isInspector]);
 
+  function normalizeHref(href: string) {
+    if (!href) return "/";
+    return href.split("?")[0].replace(/\/$/, "") || "/";
+  }
+
   function isActive(href: string) {
-    if (href === "/") return pathname === "/";
-    return pathname === href || pathname.startsWith(`${href}/`);
+    const cleanHref = normalizeHref(href);
+    const cleanPathname = normalizeHref(pathname);
+
+    if (cleanHref === "/") return cleanPathname === "/";
+    return cleanPathname === cleanHref || cleanPathname.startsWith(`${cleanHref}/`);
   }
 
   function prefetchRoute(href: string) {
-    router.prefetch(href);
+    try {
+      router.prefetch(href);
+    } catch {}
   }
 
   function handleNavClick(href: string) {
-    if (href !== pathname) setOpeningHref(href);
+    const active = isActive(href);
+
+    if (active) {
+      clearOpeningHref();
+      return;
+    }
+
+    setOpeningHref(href);
+
+    if (openingTimeoutRef.current) {
+      clearTimeout(openingTimeoutRef.current);
+    }
+
+    openingTimeoutRef.current = setTimeout(() => {
+      clearOpeningHref();
+    }, 500);
   }
 
   async function handleLogout() {
