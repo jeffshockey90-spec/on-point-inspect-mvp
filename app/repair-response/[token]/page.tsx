@@ -274,6 +274,13 @@ export default async function RepairResponsePage({ params }: PageProps) {
 
   const requestedCreditTotal = getRequestedCreditTotalFromShare(share, findings);
 
+  const shareMetadata =
+    share?.metadata && typeof share.metadata === "object" && !Array.isArray(share.metadata)
+      ? share.metadata
+      : {};
+
+  const existingSignatures = shareMetadata.repair_request_signatures || null;
+
   const { data: responsesRaw } = await admin
     .from("repair_request_responses")
     .select("*")
@@ -349,6 +356,7 @@ export default async function RepairResponsePage({ params }: PageProps) {
         findings={findings}
         existingResponses={responses}
         alreadySubmitted={alreadySubmitted}
+        existingSignatures={existingSignatures}
       />
     </main>
   );

@@ -361,6 +361,7 @@ export async function POST(req: Request) {
       success: true,
       message: "Repair response submitted.",
       sellerCreditTotal,
+      signatures: signaturePayload,
     });
   } catch (error: any) {
     return NextResponse.json(

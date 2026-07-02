@@ -144,16 +144,48 @@ function getRequestedCredit(finding: Finding) {
   );
 }
 
+function getExistingSignatureValue(signatures: any, party: "buyer" | "seller", key: string) {
+  const partySignature =
+    signatures?.[party] && typeof signatures[party] === "object"
+      ? signatures[party]
+      : {};
+
+  return String(
+    partySignature?.[key] ||
+      partySignature?.[key.replace("_", "")] ||
+      partySignature?.[key === "printed_name" ? "printedName" : key] ||
+      ""
+  ).trim();
+}
+
+function formatSignedDate(value: any) {
+  if (!value) return "";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) return String(value || "");
+
+  return date.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 export default function RepairResponseForm({
   token,
   findings,
   existingResponses = [],
   alreadySubmitted = false,
+  existingSignatures = null,
 }: {
   token: string;
   findings: Finding[];
   existingResponses?: ExistingResponse[];
   alreadySubmitted?: boolean;
+  existingSignatures?: any;
 }) {
   const initialItems = useMemo(() => {
     const responseMap = new Map(
@@ -187,10 +219,24 @@ export default function RepairResponseForm({
   const [hiddenPhotos, setHiddenPhotos] = useState<Record<string, boolean>>({});
   const [emailingAddendum, setEmailingAddendum] = useState(false);
   const [addendumMessage, setAddendumMessage] = useState("");
-  const [buyerPrintedName, setBuyerPrintedName] = useState("");
-  const [buyerSignature, setBuyerSignature] = useState("");
-  const [sellerPrintedName, setSellerPrintedName] = useState("");
-  const [sellerSignature, setSellerSignature] = useState("");
+  const [buyerPrintedName, setBuyerPrintedName] = useState(() =>
+    getExistingSignatureValue(existingSignatures, "buyer", "printed_name")
+  );
+  const [buyerSignature, setBuyerSignature] = useState(() =>
+    getExistingSignatureValue(existingSignatures, "buyer", "signature")
+  );
+  const [buyerSignedAt, setBuyerSignedAt] = useState(() =>
+    getExistingSignatureValue(existingSignatures, "buyer", "signed_at")
+  );
+  const [sellerPrintedName, setSellerPrintedName] = useState(() =>
+    getExistingSignatureValue(existingSignatures, "seller", "printed_name")
+  );
+  const [sellerSignature, setSellerSignature] = useState(() =>
+    getExistingSignatureValue(existingSignatures, "seller", "signature")
+  );
+  const [sellerSignedAt, setSellerSignedAt] = useState(() =>
+    getExistingSignatureValue(existingSignatures, "seller", "signed_at")
+  );
 
   const answeredCount = findings.filter((finding) => {
     const id = String(finding.id);
@@ -290,8 +336,21 @@ export default function RepairResponseForm({
         throw new Error(payload?.error || "Could not submit repair response.");
       }
 
+      const signedAt =
+        payload?.signatures?.seller?.signed_at ||
+        payload?.signatures?.audit?.submitted_at ||
+        new Date().toISOString();
+
+      if (buyerSignature.trim() && !buyerSignedAt) {
+        setBuyerSignedAt(payload?.signatures?.buyer?.signed_at || signedAt);
+      }
+
+      if (sellerSignature.trim()) {
+        setSellerSignedAt(payload?.signatures?.seller?.signed_at || signedAt);
+      }
+
       setLocked(true);
-      setMessage("Repair response submitted. Thank you.");
+      setMessage("Repair response submitted and electronically signed. Thank you.");
     } catch (error: any) {
       setMessage(error?.message || "Could not submit repair response.");
     } finally {
@@ -618,7 +677,11 @@ export default function RepairResponseForm({
               ? "border-emerald-400/60 bg-emerald-500/15 text-emerald-200"
               : "border-yellow-400/60 bg-yellow-500/15 text-yellow-100"
           }`}>
-            {sellerPrintedName.trim() && sellerSignature.trim() ? "Seller Signed" : "Seller Signature Needed"}
+            {sellerPrintedName.trim() && sellerSignature.trim()
+              ? sellerSignedAt
+                ? `Seller Signed • ${formatSignedDate(sellerSignedAt)}`
+                : "Seller Signed"
+              : "Seller Signature Needed"}
           </span>
         </div>
 
@@ -656,7 +719,9 @@ export default function RepairResponseForm({
             </label>
             {buyerSignature.trim() ? (
               <p className="mt-3 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs font-bold text-emerald-100">
-                Buyer signature will be dated automatically when submitted.
+                {buyerSignedAt
+                  ? `Buyer signed electronically on ${formatSignedDate(buyerSignedAt)}.`
+                  : "Buyer signature will be dated automatically when submitted."}
               </p>
             ) : null}
           </div>
@@ -692,8 +757,14 @@ export default function RepairResponseForm({
                 className="h-[64px] w-full rounded-xl border border-teal-500/60 bg-[#071224] px-4 text-2xl font-black italic text-white outline-none focus:border-teal-300 disabled:cursor-not-allowed disabled:opacity-70"
               />
             </label>
-            <p className="mt-3 rounded-xl border border-slate-700 bg-[#071224] px-3 py-2 text-xs leading-5 text-slate-300">
-              By submitting, the signer confirms this electronic signature is intended to be used for this repair request response.
+            <p className={`mt-3 rounded-xl border px-3 py-2 text-xs leading-5 ${
+              sellerSignedAt
+                ? "border-emerald-500/40 bg-emerald-500/10 font-bold text-emerald-100"
+                : "border-slate-700 bg-[#071224] text-slate-300"
+            }`}>
+              {sellerSignedAt
+                ? `Seller signed electronically on ${formatSignedDate(sellerSignedAt)}.`
+                : "By submitting, the signer confirms this electronic signature is intended to be used for this repair request response."}
             </p>
           </div>
         </div>
