@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 
 type ToolTone =
   | "purple"
@@ -264,6 +263,96 @@ function getActionTitleForNotification(notification: WorkspaceNotification, item
   if (direct) return direct.title;
 
   return items[0]?.title || "";
+}
+
+
+type ReportJumpTarget = {
+  anchors: string[];
+  textMatches: string[];
+  fallbackTool?: string;
+};
+
+function getReportJumpTargetForNotification(notification: WorkspaceNotification): ReportJumpTarget | null {
+  const text = normalizeText(
+    `${notification.id || ""} ${notification.title} ${notification.message || ""} ${notification.badge || ""}`
+  );
+
+  if (
+    text.includes("safety") ||
+    text.includes("defect") ||
+    text.includes("major") ||
+    text.includes("finding") ||
+    text.includes("findings")
+  ) {
+    return {
+      anchors: [
+        "report-findings",
+        "findings",
+        "inspection-findings",
+        "editable-findings",
+        "report-editor",
+        "defects",
+        "safety-findings",
+        "findings-editor",
+      ],
+      textMatches: [
+        "Report Findings",
+        "Findings",
+        "Defects",
+        "Safety",
+        "Recommended Repair",
+        "Report Editor",
+      ],
+      fallbackTool: "AI Report Review",
+    };
+  }
+
+  return null;
+}
+
+function findReportTargetElement(target: ReportJumpTarget) {
+  for (const anchor of target.anchors) {
+    const byId = document.getElementById(anchor);
+    if (byId) return byId as HTMLElement;
+
+    const byName = document.querySelector(`[name="${CSS.escape(anchor)}"]`);
+    if (byName) return byName as HTMLElement;
+
+    const byDataTarget = document.querySelector(
+      `[data-report-target="${CSS.escape(anchor)}"], [data-command-target="${CSS.escape(anchor)}"], [data-section="${CSS.escape(anchor)}"]`
+    );
+    if (byDataTarget) return byDataTarget as HTMLElement;
+  }
+
+  const candidates = Array.from(
+    document.querySelectorAll("main h1, main h2, main h3, main summary, main section, main article")
+  ) as HTMLElement[];
+
+  const matched = candidates.find((element) => {
+    const text = normalizeText(element.textContent || "");
+    return target.textMatches.some((match) => {
+      const cleanMatch = normalizeText(match);
+      return text === cleanMatch || text.includes(cleanMatch);
+    });
+  });
+
+  return matched || null;
+}
+
+function flashReportTarget(element: HTMLElement) {
+  const previousOutline = element.style.outline;
+  const previousOutlineOffset = element.style.outlineOffset;
+  const previousBoxShadow = element.style.boxShadow;
+
+  element.style.outline = "3px solid rgba(34, 211, 238, 0.95)";
+  element.style.outlineOffset = "6px";
+  element.style.boxShadow = "0 0 0 9999px rgba(2, 6, 23, 0.22), 0 0 34px rgba(34, 211, 238, 0.55)";
+
+  window.setTimeout(() => {
+    element.style.outline = previousOutline;
+    element.style.outlineOffset = previousOutlineOffset;
+    element.style.boxShadow = previousBoxShadow;
+  }, 2200);
 }
 
 function categoryLabel(category: WorkspaceCategory) {
@@ -574,7 +663,37 @@ export default function InspectorToolsDrawer({
     }, 80);
   }
 
+  function jumpToReportTarget(target: ReportJumpTarget) {
+    setOpen(false);
+
+    window.setTimeout(() => {
+      const element = findReportTargetElement(target);
+
+      if (!element) {
+        if (target.fallbackTool) openTool(target.fallbackTool);
+        return;
+      }
+
+      element.scrollIntoView({ behavior: "smooth", block: "start" });
+      flashReportTarget(element);
+
+      const id = element.id || target.anchors[0] || "";
+      if (id) {
+        try {
+          window.history.replaceState(null, "", `#${id}`);
+        } catch {}
+      }
+    }, 160);
+  }
+
   function openNotification(notification: WorkspaceNotification) {
+    const reportTarget = getReportJumpTargetForNotification(notification);
+
+    if (reportTarget) {
+      jumpToReportTarget(reportTarget);
+      return;
+    }
+
     const targetTitle = getActionTitleForNotification(notification, items);
     if (targetTitle) openTool(targetTitle);
     else openWorkspace();
@@ -682,29 +801,16 @@ export default function InspectorToolsDrawer({
 
       {/* Alerts stay inside the Command Center instead of popping up on every report visit. */}
 
-      {open && typeof document !== "undefined"
-        ? createPortal(
-            <div
-              className="fixed left-0 top-0 z-[9999] h-[100dvh] min-h-[100svh] w-screen overflow-hidden bg-[#071224] lg:bg-black/80 lg:backdrop-blur-sm"
-              style={{
-                inset: 0,
-                position: "fixed",
-              }}
-            >
-              <button
-                type="button"
-                aria-label="Close inspector command center"
-                onClick={() => setOpen(false)}
-                className="hidden lg:absolute lg:inset-0 lg:block"
-              />
+      {open ? (
+        <div className="fixed inset-0 z-[100]">
+          <button
+            type="button"
+            aria-label="Close inspector command center"
+            onClick={() => setOpen(false)}
+            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+          />
 
-              <aside
-                className="absolute inset-0 flex h-[100dvh] min-h-[100svh] w-screen flex-col overflow-hidden bg-[#071224] shadow-2xl lg:inset-4 lg:h-auto lg:min-h-0 lg:w-auto lg:rounded-[2rem] lg:border lg:border-slate-700"
-                style={{
-                  paddingTop: "env(safe-area-inset-top)",
-                  paddingBottom: "env(safe-area-inset-bottom)",
-                }}
-              >
+          <aside className="absolute inset-0 flex flex-col overflow-hidden bg-[#071224] shadow-2xl lg:inset-4 lg:rounded-[2rem] lg:border lg:border-slate-700">
             <div className="shrink-0 border-b border-slate-800 bg-gradient-to-r from-[#0f172a] via-[#0b1326] to-[#061826] p-3 sm:p-5">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -933,10 +1039,8 @@ export default function InspectorToolsDrawer({
               </aside>
             </div>
           </aside>
-        </div>,
-            document.body,
-          )
-        : null}
+        </div>
+      ) : null}
     </>
   );
 }
