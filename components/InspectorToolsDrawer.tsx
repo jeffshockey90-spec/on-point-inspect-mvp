@@ -161,34 +161,106 @@ function getCategoryForTool(item: ToolItem): WorkspaceCategory {
   return "all";
 }
 
+function getBestTargetTitle(targets: string[], items: ToolItem[]) {
+  for (const target of targets) {
+    const cleanTarget = normalizeText(target);
+
+    const exact = items.find((item) => normalizeText(item.title) === cleanTarget);
+    if (exact) return exact.title;
+
+    const partial = items.find((item) => {
+      const itemText = normalizeText(`${item.title} ${item.helper || ""}`);
+      return itemText.includes(cleanTarget) || cleanTarget.includes(normalizeText(item.title));
+    });
+
+    if (partial) return partial.title;
+  }
+
+  return "";
+}
+
 function getActionTitleForNotification(notification: WorkspaceNotification, items: ToolItem[]) {
-  const text = normalizeText(`${notification.title} ${notification.message || ""}`);
+  const text = normalizeText(`${notification.id || ""} ${notification.title} ${notification.message || ""} ${notification.badge || ""}`);
 
-  const direct = items.find((item) => {
-    const itemText = normalizeText(`${item.title} ${item.helper || ""}`);
-    return itemText && (text.includes(itemText) || itemText.includes(text));
-  });
-
-  if (direct) return direct.title;
-
+  // Route the common high-priority alerts first so clicks never fall through to the wrong panel.
   const rules: Array<[string[], string[]]> = [
-    [["safety", "defect", "contradiction", "ai"], ["AI Report Review", "Live AI Inspector Assistant"]],
-    [["agreement", "signature", "payment", "publish", "delivery"], ["Final Publish Guard", "Report Delivery Guard"]],
-    [["repair", "response", "seller", "addendum"], ["Repair Request History"]],
-    [["view", "opened", "read", "engagement"], ["Report Engagement"]],
-    [["sample", "public"], ["Sample Report"]],
-    [["house", "memory", "property"], ["House Intelligence"]],
+    [
+      ["agreement", "signature", "signed", "signing"],
+      [
+        "Agreement Status",
+        "Agreement Status Panel",
+        "Send Agreement",
+        "Agreement Selection",
+        "Agreement Selector",
+        "Agreements",
+      ],
+    ],
+    [
+      ["payment", "invoice", "paid", "due", "balance"],
+      [
+        "Payment / Invoice",
+        "Payment Invoice",
+        "Invoice",
+        "Payment",
+        "Payment Status",
+        "Report Delivery Guard",
+      ],
+    ],
+    [
+      ["repair", "response", "seller", "addendum", "negotiation"],
+      [
+        "Repair Request History",
+        "Repair Requests",
+        "Repair Request",
+        "Seller Response",
+        "Addendum",
+      ],
+    ],
+    [
+      ["publish", "delivery", "guard", "blocked"],
+      [
+        "Final Publish Guard",
+        "AI Publish Guard",
+        "Publish Guard",
+        "Report Delivery Guard",
+      ],
+    ],
+    [
+      ["safety", "defect", "contradiction", "ai review"],
+      [
+        "AI Report Review",
+        "Live AI Inspector Assistant",
+        "AI Inspector",
+        "Inspection Copilot",
+      ],
+    ],
+    [
+      ["view", "opened", "read", "engagement", "client"],
+      [
+        "Report Engagement",
+        "Client Views",
+        "Live Inspection Timeline",
+        "Activity",
+      ],
+    ],
+    [["sample", "public", "profile"], ["Sample Report", "Public Profile"]],
+    [["house", "memory", "property", "intelligence"], ["House Intelligence", "House Memory"]],
   ];
 
   for (const [keywords, targets] of rules) {
     if (!keywords.some((keyword) => text.includes(keyword))) continue;
 
-    const target = targets.find((title) =>
-      items.some((item) => normalizeText(item.title) === normalizeText(title))
-    );
-
-    if (target) return target;
+    const targetTitle = getBestTargetTitle(targets, items);
+    if (targetTitle) return targetTitle;
   }
+
+  const direct = items.find((item) => {
+    const itemTitle = normalizeText(item.title);
+    const itemText = normalizeText(`${item.title} ${item.helper || ""} ${item.badge || ""}`);
+    return itemTitle && (text.includes(itemTitle) || itemText.includes(text));
+  });
+
+  if (direct) return direct.title;
 
   return items[0]?.title || "";
 }
