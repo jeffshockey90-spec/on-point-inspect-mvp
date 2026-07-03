@@ -474,7 +474,7 @@ function getStatusTileStatus(title: string, notifications: WorkspaceNotification
     if (cleanTitle.includes("publish")) return text.includes("publish") || text.includes("guard");
     if (cleanTitle.includes("ai")) return text.includes("ai") || text.includes("safety") || text.includes("defect");
     if (cleanTitle.includes("repair")) return text.includes("repair") || text.includes("seller");
-    if (cleanTitle.includes("client")) return text.includes("view") || text.includes("engagement") || text.includes("opened") || text.includes("report_share") || text.includes("client portal viewed");
+    if (cleanTitle.includes("client")) return text.includes("view") || text.includes("engagement") || text.includes("client");
     return false;
   });
 
@@ -839,56 +839,96 @@ export default function InspectorToolsDrawer({
     else openWorkspace();
   }
 
-  function getMatchingNotificationForTileTitle(title: string) {
-    const cleanTitle = normalizeText(title);
 
+  function findNotificationByKeywords(keywords: string[]) {
     return attentionNotifications.find((item) => {
-      const text = normalizeText(
-        `${item.id || ""} ${item.title} ${item.message || ""} ${item.badge || ""} ${item.targetAnchor || ""}`
-      );
-
-      if (cleanTitle.includes("payment")) {
-        return text.includes("payment") || text.includes("invoice") || text.includes("due") || text.includes("balance");
-      }
-
-      if (cleanTitle.includes("agreement")) {
-        return text.includes("agreement") || text.includes("signature") || text.includes("signed") || text.includes("signing");
-      }
-
-      if (cleanTitle.includes("publish")) {
-        return text.includes("publish") || text.includes("guard") || text.includes("blocked");
-      }
-
-      if (cleanTitle.includes("ai")) {
-        return text.includes("ai") || text.includes("safety") || text.includes("defect") || text.includes("major") || text.includes("finding");
-      }
-
-      if (cleanTitle.includes("repair")) {
-        return text.includes("repair") || text.includes("seller") || text.includes("addendum") || text.includes("negotiation");
-      }
-
-      if (cleanTitle.includes("client")) {
-        return text.includes("view") || text.includes("engagement") || text.includes("opened") || text.includes("report_share") || text.includes("client portal viewed");
-      }
-
-      return false;
+      const text = normalizeText(`${item.id || ""} ${item.title} ${item.message || ""} ${item.badge || ""}`);
+      return keywords.some((keyword) => text.includes(keyword));
     });
   }
 
-  function handleStatusTileClick(tile: any) {
-    const matchingAlert = getMatchingNotificationForTileTitle(tile.title);
+  function openFirstToolByKeywords(keywords: string[], fallbackTitle = "") {
+    const match = getBestToolMatch(keywords, enrichedItems);
+    if (match) {
+      openTool(match.title);
+      return true;
+    }
 
-    if (matchingAlert) {
-      openNotification(matchingAlert);
+    if (fallbackTitle) {
+      openTool(fallbackTitle);
+      return true;
+    }
+
+    return false;
+  }
+
+  function handleCategoryClick(category: WorkspaceCategory) {
+    setActiveCategory(category);
+    setQuery("");
+
+    if (category === "all") {
+      setActiveTool("");
       return;
     }
 
-    if (tile.tool?.title) {
-      openTool(tile.tool.title);
+    if (category === "attention") {
+      const firstAlert = attentionNotifications[0];
+      if (firstAlert) {
+        openNotification(firstAlert);
+        return;
+      }
       return;
     }
 
-    openWorkspace();
+    if (category === "negotiation") {
+      const repairAlert = findNotificationByKeywords(["repair", "seller", "addendum", "response", "negotiation"]);
+      if (repairAlert) {
+        openNotification(repairAlert);
+        return;
+      }
+
+      openFirstToolByKeywords(["repair request", "seller", "addendum", "negotiation"], "Repair Request History");
+      return;
+    }
+
+    if (category === "activity") {
+      const activityAlert = findNotificationByKeywords(["view", "opened", "read", "engagement", "client"]);
+      if (activityAlert) {
+        openNotification(activityAlert);
+        return;
+      }
+
+      openFirstToolByKeywords(["engagement", "view", "opened", "timeline", "activity", "client views"], "Report Engagement");
+      return;
+    }
+
+    if (category === "ai") {
+      const aiAlert = findNotificationByKeywords(["safety", "defect", "major", "finding", "ai", "review"]);
+      if (aiAlert) {
+        openNotification(aiAlert);
+        return;
+      }
+
+      openFirstToolByKeywords(["ai report review", "ai review", "live ai", "copilot", "house intelligence", "equipment"], "AI Report Review");
+      return;
+    }
+
+    if (category === "delivery") {
+      const deliveryAlert =
+        findNotificationByKeywords(["agreement", "signature", "payment", "invoice", "publish", "guard", "delivery", "email"]);
+
+      if (deliveryAlert) {
+        openNotification(deliveryAlert);
+        return;
+      }
+
+      openFirstToolByKeywords(["agreement", "payment", "invoice", "publish", "delivery", "email", "client portal"], "Report Delivery Guard");
+      return;
+    }
+
+    if (category === "profile") {
+      openFirstToolByKeywords(["sample", "public profile", "profile"], "Sample Report");
+    }
   }
 
   const totalBadgeText =
@@ -944,7 +984,7 @@ export default function InspectorToolsDrawer({
               <button
                 key={tile.title}
                 type="button"
-                onClick={() => handleStatusTileClick(tile)}
+                onClick={() => (tile.tool ? openTool(tile.tool.title) : openWorkspace())}
                 className="rounded-2xl border border-transparent p-3 text-left transition hover:border-cyan-400/35 hover:bg-white/5 active:scale-[0.99]"
               >
                 <div className="flex items-center justify-between gap-2">
@@ -1033,7 +1073,7 @@ export default function InspectorToolsDrawer({
                     <button
                       key={tile.title}
                       type="button"
-                      onClick={() => handleStatusTileClick(tile)}
+                      onClick={() => (tile.tool ? openTool(tile.tool.title) : undefined)}
                       className={`min-w-[145px] rounded-2xl border p-3 text-left transition hover:scale-[1.01] active:scale-[0.99] sm:min-w-0 ${style.shell}`}
                     >
                       <div className="flex items-center justify-between gap-2">
@@ -1058,7 +1098,7 @@ export default function InspectorToolsDrawer({
                       <button
                         key={category}
                         type="button"
-                        onClick={() => setActiveCategory(category)}
+                        onClick={() => handleCategoryClick(category)}
                         className={`flex shrink-0 items-center gap-2 rounded-full border px-3 py-2 text-xs font-black transition active:scale-[0.98] ${
                           active
                             ? "border-cyan-300 bg-cyan-500/15 text-cyan-100"
