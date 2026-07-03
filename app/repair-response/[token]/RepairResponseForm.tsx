@@ -238,6 +238,7 @@ export default function RepairResponseForm({
   });
   const [customAddendumEmail, setCustomAddendumEmail] = useState("");
   const [showRecipientPicker, setShowRecipientPicker] = useState(false);
+  const [showCustomAddendumEmail, setShowCustomAddendumEmail] = useState(false);
   const [buyerPrintedName, setBuyerPrintedName] = useState(() =>
     getExistingSignatureValue(existingSignatures, "buyer", "printed_name")
   );
@@ -436,7 +437,10 @@ export default function RepairResponseForm({
         throw new Error(payload?.error || "Could not email addendum.");
       }
 
-      setAddendumMessage(payload?.message || "Addendum emailed.");
+      setAddendumMessage(
+        payload?.message ||
+          `Executed addendum emailed successfully to ${recipients.join(", ")}.`
+      );
     } catch (error: any) {
       setAddendumMessage(error?.message || "Could not email addendum.");
     } finally {
@@ -547,7 +551,7 @@ export default function RepairResponseForm({
       {locked ? (
         <section className="rounded-2xl border border-purple-500/40 bg-purple-500/10 p-5 shadow-xl">
           <div className="flex flex-col gap-5">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
               <div className="min-w-0">
                 <p className="text-xs font-black uppercase tracking-[0.22em] text-purple-200">
                   {fullyExecuted ? "Fully Executed" : sellerSigned ? "Seller Signed" : "Addendum Ready"}
@@ -582,7 +586,7 @@ export default function RepairResponseForm({
                 </div>
               </div>
 
-              <div className="grid w-full gap-3 sm:grid-cols-3 lg:w-[560px]">
+              <div className="grid w-full gap-3 sm:grid-cols-4 xl:w-[720px]">
                 <a
                   href={`/api/repair-request-addendum/${encodeURIComponent(token)}`}
                   target="_blank"
@@ -607,6 +611,22 @@ export default function RepairResponseForm({
                   className="min-h-[48px] rounded-xl border border-cyan-400 bg-[#020617] px-4 py-3 text-sm font-black text-cyan-200 transition hover:bg-cyan-500/10 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {emailingAddendum ? "Emailing..." : `Email Selected (${addendumRecipientCount})`}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const url = `${window.location.origin}/api/repair-request-addendum/${encodeURIComponent(token)}`;
+                    try {
+                      await navigator.clipboard.writeText(url);
+                      setAddendumMessage("Executed addendum share link copied.");
+                    } catch {
+                      setAddendumMessage(url);
+                    }
+                  }}
+                  className="min-h-[48px] rounded-xl border border-slate-500 bg-[#020617] px-4 py-3 text-sm font-black text-slate-200 transition hover:border-slate-300 hover:bg-slate-800 active:scale-[0.98]"
+                >
+                  Copy Link
                 </button>
               </div>
             </div>
@@ -643,20 +663,23 @@ export default function RepairResponseForm({
                         const label = labelParts[0] || "Recipient";
 
                         return (
-                          <label
+                          <button
                             key={`${recipient.value}-${email}`}
-                            className={`flex min-h-[76px] cursor-pointer items-start gap-3 rounded-xl border px-3 py-3 transition ${
+                            type="button"
+                            onClick={() => toggleAddendumRecipient(email)}
+                            className={`relative flex min-h-[76px] w-full items-start gap-3 rounded-xl border px-3 py-3 text-left transition active:scale-[0.99] ${
                               checked
-                                ? "border-cyan-400 bg-cyan-500/10 text-cyan-100"
+                                ? "border-cyan-300 bg-cyan-500/15 text-cyan-100 shadow-[0_0_22px_rgba(6,182,212,0.16)]"
                                 : "border-slate-700 bg-[#071224] text-slate-300 hover:border-cyan-500"
                             }`}
                           >
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              onChange={() => toggleAddendumRecipient(email)}
-                              className="mt-1 h-4 w-4 shrink-0 accent-cyan-400"
-                            />
+                            <span className={`mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded border text-xs font-black ${
+                              checked
+                                ? "border-cyan-300 bg-cyan-400 text-slate-950"
+                                : "border-slate-500 bg-[#020617] text-transparent"
+                            }`}>
+                              ✓
+                            </span>
                             <span className="min-w-0">
                               <span className="block break-words text-sm font-black">
                                 {label}
@@ -665,7 +688,7 @@ export default function RepairResponseForm({
                                 {email}
                               </span>
                             </span>
-                          </label>
+                          </button>
                         );
                       })
                     ) : (
@@ -675,33 +698,54 @@ export default function RepairResponseForm({
                     )}
                   </div>
 
-                  <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
-                    <input
-                      value={customAddendumEmail}
-                      onChange={(event) => setCustomAddendumEmail(event.target.value)}
-                      placeholder="Add custom email..."
-                      type="email"
-                      className="h-[48px] w-full rounded-xl border border-slate-700 bg-[#071224] px-3 text-sm font-bold text-white outline-none transition focus:border-cyan-400"
-                    />
+                  {!showCustomAddendumEmail ? (
                     <button
                       type="button"
-                      onClick={() => {
-                        const email = customAddendumEmail.trim().toLowerCase();
-                        if (!email || !email.includes("@")) {
-                          setAddendumMessage("Enter a valid custom email address.");
-                          return;
-                        }
-                        setSelectedAddendumRecipients((prev) =>
-                          prev.includes(email) ? prev : [...prev, email]
-                        );
-                        setCustomAddendumEmail("");
-                        setAddendumMessage("");
-                      }}
-                      className="min-h-[48px] rounded-xl border border-cyan-400 bg-cyan-500/10 px-5 py-3 text-sm font-black text-cyan-200 transition hover:bg-cyan-500/20 active:scale-[0.98]"
+                      onClick={() => setShowCustomAddendumEmail(true)}
+                      className="min-h-[48px] w-full rounded-xl border border-cyan-400 bg-cyan-500/10 px-5 py-3 text-sm font-black text-cyan-200 transition hover:bg-cyan-500/20 active:scale-[0.98]"
                     >
-                      Add Recipient
+                      + Add Recipient
                     </button>
-                  </div>
+                  ) : (
+                    <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
+                      <input
+                        value={customAddendumEmail}
+                        onChange={(event) => setCustomAddendumEmail(event.target.value)}
+                        placeholder="Email address..."
+                        type="email"
+                        className="h-[48px] w-full rounded-xl border border-slate-700 bg-[#071224] px-3 text-sm font-bold text-white outline-none transition focus:border-cyan-400"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const email = customAddendumEmail.trim().toLowerCase();
+                          if (!email || !email.includes("@")) {
+                            setAddendumMessage("Enter a valid custom email address.");
+                            return;
+                          }
+                          setSelectedAddendumRecipients((prev) =>
+                            prev.includes(email) ? prev : [...prev, email]
+                          );
+                          setCustomAddendumEmail("");
+                          setShowCustomAddendumEmail(false);
+                          setAddendumMessage("");
+                        }}
+                        className="min-h-[48px] rounded-xl border border-cyan-400 bg-cyan-500/10 px-5 py-3 text-sm font-black text-cyan-200 transition hover:bg-cyan-500/20 active:scale-[0.98]"
+                      >
+                        Add
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCustomAddendumEmail("");
+                          setShowCustomAddendumEmail(false);
+                        }}
+                        className="min-h-[48px] rounded-xl border border-slate-600 bg-[#071224] px-5 py-3 text-sm font-black text-slate-300 transition hover:bg-slate-800 active:scale-[0.98]"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
                 </div>
               ) : null}
             </div>
