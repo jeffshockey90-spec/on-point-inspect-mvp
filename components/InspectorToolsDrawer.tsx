@@ -179,79 +179,161 @@ function getBestTargetTitle(targets: string[], items: ToolItem[]) {
   return "";
 }
 
+type NotificationDestination =
+  | {
+      mode: "tool";
+      title: string;
+    }
+  | {
+      mode: "page";
+      selectors: string[];
+      searchTerms: string[];
+      fallbackTool?: string;
+    };
+
 function getActionTitleForNotification(notification: WorkspaceNotification, items: ToolItem[]) {
-  const text = normalizeText(`${notification.id || ""} ${notification.title} ${notification.message || ""} ${notification.badge || ""}`);
+  const destination = getDestinationForNotification(notification, items);
+  return destination.mode === "tool" ? destination.title : destination.fallbackTool || "";
+}
 
-  // Route the common high-priority alerts first so clicks never fall through to the wrong panel.
-  const rules: Array<[string[], string[]]> = [
-    [
-      ["agreement", "signature", "signed", "signing"],
-      [
-        "Agreement Status",
-        "Agreement Status Panel",
-        "Send Agreement",
-        "Agreement Selection",
-        "Agreement Selector",
-        "Agreements",
-      ],
-    ],
-    [
-      ["payment", "invoice", "paid", "due", "balance"],
-      [
-        "Payment / Invoice",
-        "Payment Invoice",
-        "Invoice",
-        "Payment",
-        "Payment Status",
-        "Report Delivery Guard",
-      ],
-    ],
-    [
-      ["repair", "response", "seller", "addendum", "negotiation"],
-      [
-        "Repair Request History",
-        "Repair Requests",
-        "Repair Request",
-        "Seller Response",
-        "Addendum",
-      ],
-    ],
-    [
-      ["publish", "delivery", "guard", "blocked"],
-      [
-        "Final Publish Guard",
-        "AI Publish Guard",
-        "Publish Guard",
-        "Report Delivery Guard",
-      ],
-    ],
-    [
-      ["safety", "defect", "contradiction", "ai review"],
-      [
-        "AI Report Review",
-        "Live AI Inspector Assistant",
-        "AI Inspector",
-        "Inspection Copilot",
-      ],
-    ],
-    [
-      ["view", "opened", "read", "engagement", "client"],
-      [
-        "Report Engagement",
-        "Client Views",
-        "Live Inspection Timeline",
-        "Activity",
-      ],
-    ],
-    [["sample", "public", "profile"], ["Sample Report", "Public Profile"]],
-    [["house", "memory", "property", "intelligence"], ["House Intelligence", "House Memory"]],
-  ];
+function getDestinationForNotification(
+  notification: WorkspaceNotification,
+  items: ToolItem[]
+): NotificationDestination {
+  const text = normalizeText(
+    `${notification.id || ""} ${notification.title} ${notification.message || ""} ${notification.badge || ""}`
+  );
 
-  for (const [keywords, targets] of rules) {
-    if (!keywords.some((keyword) => text.includes(keyword))) continue;
+  if (
+    text.includes("safety") ||
+    text.includes("defect") ||
+    text.includes("finding") ||
+    text.includes("major item") ||
+    text.includes("review before publishing")
+  ) {
+    return {
+      mode: "page",
+      selectors: [
+        "#report-findings",
+        "#findings",
+        "#report-editor",
+        "[data-report-findings]",
+        "[data-section='findings']",
+        "[data-workspace-target='findings']",
+      ],
+      searchTerms: [
+        "report findings",
+        "findings",
+        "inspection findings",
+        "safety",
+        "recommended repair",
+      ],
+      fallbackTool:
+        getBestTargetTitle(
+          ["AI Report Review", "Live AI Inspector Assistant", "AI Inspector", "Inspection Copilot"],
+          items
+        ) || "",
+    };
+  }
 
-    const targetTitle = getBestTargetTitle(targets, items);
-    if (targetTitle) return targetTitle;
+  if (text.includes("agreement") || text.includes("signature") || text.includes("signed") || text.includes("signing")) {
+    return {
+      mode: "tool",
+      title:
+        getBestTargetTitle(
+          [
+            "Agreement Status",
+            "Agreement Status Panel",
+            "Send Agreement",
+            "Agreement Selection",
+            "Agreement Selector",
+            "Agreements",
+          ],
+          items
+        ) || items[0]?.title || "",
+    };
+  }
+
+  if (text.includes("payment") || text.includes("invoice") || text.includes("paid") || text.includes("due") || text.includes("balance")) {
+    return {
+      mode: "tool",
+      title:
+        getBestTargetTitle(
+          [
+            "Payment / Invoice",
+            "Payment Invoice",
+            "Invoice",
+            "Payment",
+            "Payment Status",
+            "Report Delivery Guard",
+          ],
+          items
+        ) || items[0]?.title || "",
+    };
+  }
+
+  if (text.includes("repair") || text.includes("response") || text.includes("seller") || text.includes("addendum") || text.includes("negotiation")) {
+    return {
+      mode: "tool",
+      title:
+        getBestTargetTitle(
+          [
+            "Repair Request History",
+            "Repair Requests",
+            "Repair Request",
+            "Seller Response",
+            "Addendum",
+          ],
+          items
+        ) || items[0]?.title || "",
+    };
+  }
+
+  if (text.includes("publish") || text.includes("delivery") || text.includes("guard") || text.includes("blocked")) {
+    return {
+      mode: "tool",
+      title:
+        getBestTargetTitle(
+          ["Final Publish Guard", "AI Publish Guard", "Publish Guard", "Report Delivery Guard"],
+          items
+        ) || items[0]?.title || "",
+    };
+  }
+
+  if (text.includes("ai review") || text.includes("contradiction")) {
+    return {
+      mode: "tool",
+      title:
+        getBestTargetTitle(
+          ["AI Report Review", "Live AI Inspector Assistant", "AI Inspector", "Inspection Copilot"],
+          items
+        ) || items[0]?.title || "",
+    };
+  }
+
+  if (text.includes("view") || text.includes("opened") || text.includes("read") || text.includes("engagement") || text.includes("client")) {
+    return {
+      mode: "tool",
+      title:
+        getBestTargetTitle(
+          ["Report Engagement", "Client Views", "Live Inspection Timeline", "Activity"],
+          items
+        ) || items[0]?.title || "",
+    };
+  }
+
+  if (text.includes("sample") || text.includes("public") || text.includes("profile")) {
+    return {
+      mode: "tool",
+      title: getBestTargetTitle(["Sample Report", "Public Profile"], items) || items[0]?.title || "",
+    };
+  }
+
+  if (text.includes("house") || text.includes("memory") || text.includes("property") || text.includes("intelligence")) {
+    return {
+      mode: "tool",
+      title: getBestTargetTitle(["House Intelligence", "House Memory"], items) || items[0]?.title || "",
+    };
   }
 
   const direct = items.find((item) => {
@@ -260,9 +342,10 @@ function getActionTitleForNotification(notification: WorkspaceNotification, item
     return itemTitle && (text.includes(itemTitle) || itemText.includes(text));
   });
 
-  if (direct) return direct.title;
-
-  return items[0]?.title || "";
+  return {
+    mode: "tool",
+    title: direct?.title || items[0]?.title || "",
+  };
 }
 
 function categoryLabel(category: WorkspaceCategory) {
@@ -329,6 +412,50 @@ function getBestToolMatch(keywords: string[], items: EnrichedToolItem[]) {
     const text = normalizeText(`${item.title} ${item.helper || ""}`);
     return keywords.some((keyword) => text.includes(keyword));
   });
+}
+
+
+function findPageElementByText(searchTerms: string[]) {
+  const normalizedTerms = searchTerms.map((term) => normalizeText(term)).filter(Boolean);
+  if (!normalizedTerms.length) return null;
+
+  const candidates = Array.from(
+    document.querySelectorAll<HTMLElement>(
+      "main section, main article, main details, main form, main div, h1, h2, h3, h4, [id], [data-workspace-target]"
+    )
+  );
+
+  return (
+    candidates.find((element) => {
+      const text = normalizeText(element.textContent || "");
+      return normalizedTerms.some((term) => text.includes(term));
+    }) || null
+  );
+}
+
+function scrollToPageDestination(destination: Extract<NotificationDestination, { mode: "page" }>) {
+  window.setTimeout(() => {
+    const selectorTarget = destination.selectors
+      .map((selector) => {
+        try {
+          return document.querySelector<HTMLElement>(selector);
+        } catch {
+          return null;
+        }
+      })
+      .find(Boolean);
+
+    const textTarget = selectorTarget || findPageElementByText(destination.searchTerms);
+
+    if (textTarget) {
+      textTarget.scrollIntoView({ behavior: "smooth", block: "start" });
+      textTarget.classList.add("ring-2", "ring-cyan-300", "ring-offset-2", "ring-offset-slate-950");
+
+      window.setTimeout(() => {
+        textTarget.classList.remove("ring-2", "ring-cyan-300", "ring-offset-2", "ring-offset-slate-950");
+      }, 1800);
+    }
+  }, 120);
 }
 
 export default function InspectorToolsDrawer({
@@ -574,8 +701,20 @@ export default function InspectorToolsDrawer({
   }
 
   function openNotification(notification: WorkspaceNotification) {
-    const targetTitle = getActionTitleForNotification(notification, items);
-    if (targetTitle) openTool(targetTitle);
+    const destination = getDestinationForNotification(notification, items);
+
+    if (destination.mode === "page") {
+      if (destination.fallbackTool) {
+        // Open the most useful workspace panel first, then move the inspector to the exact report area that needs action.
+        openTool(destination.fallbackTool);
+      }
+
+      setOpen(false);
+      scrollToPageDestination(destination);
+      return;
+    }
+
+    if (destination.title) openTool(destination.title);
     else openWorkspace();
   }
 
