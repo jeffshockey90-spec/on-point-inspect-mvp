@@ -114,18 +114,6 @@ function slugify(value: unknown) {
   return normalizeText(value).replace(/\s+/g, "-");
 }
 
-function getNotificationKey(notifications: WorkspaceNotification[]) {
-  return notifications
-    .map((item) => `${item.id || item.title}:${item.badge || ""}:${item.urgency || "info"}`)
-    .join("|");
-}
-
-function getHighestUrgency(notifications: WorkspaceNotification[]) {
-  if (notifications.some((item) => item.urgency === "critical")) return "critical";
-  if (notifications.some((item) => item.urgency === "warning")) return "warning";
-  if (notifications.some((item) => item.urgency === "info")) return "info";
-  return "success";
-}
 
 function getCategoryForTool(item: ToolItem): WorkspaceCategory {
   const text = normalizeText(`${item.title} ${item.helper || ""}`);
@@ -283,31 +271,15 @@ export default function InspectorToolsDrawer({
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
-  const [toastVisible, setToastVisible] = useState(false);
-  const [toastDismissedKey, setToastDismissedKey] = useState("");
   const [query, setQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<WorkspaceCategory>("all");
   const [activeTool, setActiveTool] = useState("");
   const bodyRef = useRef<HTMLDivElement | null>(null);
-  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const attentionNotifications = useMemo(
     () => notifications.filter((item) => ["critical", "warning", "info"].includes(item.urgency || "info")),
     [notifications]
   );
-
-  const notificationKey = useMemo(
-    () => getNotificationKey(attentionNotifications),
-    [attentionNotifications]
-  );
-
-  const highestUrgency = useMemo(
-    () => getHighestUrgency(attentionNotifications),
-    [attentionNotifications]
-  );
-
-  const topNotification = attentionNotifications[0] || null;
-  const urgency = urgencyStyles[highestUrgency] || urgencyStyles.info;
 
   const enrichedItems = useMemo(
     () =>
@@ -449,25 +421,6 @@ export default function InspectorToolsDrawer({
   }, [open]);
 
   useEffect(() => {
-    if (!notificationKey || !attentionNotifications.length || open) {
-      setToastVisible(false);
-      return;
-    }
-
-    if (toastDismissedKey === notificationKey) return;
-
-    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-
-    toastTimerRef.current = setTimeout(() => {
-      setToastVisible(true);
-    }, 850);
-
-    return () => {
-      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-    };
-  }, [notificationKey, attentionNotifications.length, open, toastDismissedKey]);
-
-  useEffect(() => {
     if (!open || !bodyRef.current) return;
 
     const details = Array.from(bodyRef.current.querySelectorAll("details"));
@@ -511,13 +464,7 @@ export default function InspectorToolsDrawer({
   }, [activeCategory, enrichedItems, open, query]);
 
   function openWorkspace() {
-    setToastVisible(false);
     setOpen(true);
-  }
-
-  function dismissToast() {
-    setToastDismissedKey(notificationKey);
-    setToastVisible(false);
   }
 
   function openTool(title: string) {
@@ -660,71 +607,7 @@ export default function InspectorToolsDrawer({
         ) : null}
       </section>
 
-      {toastVisible && topNotification ? (
-        <div className="fixed inset-x-3 bottom-24 z-[120] sm:bottom-auto sm:left-auto sm:right-5 sm:top-24 sm:w-[440px]">
-          <div className={`overflow-hidden rounded-2xl border backdrop-blur-xl ${urgency.shell} ${urgency.glow}`}>
-            <div className="p-4">
-              <div className="flex items-start gap-3">
-                <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border text-lg font-black ${urgency.icon}`}>
-                  {highestUrgency === "critical" ? "!" : highestUrgency === "warning" ? "⚠" : "•"}
-                </div>
-
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-[10px] font-black uppercase tracking-[0.22em] opacity-80">
-                      Inspector Command Center
-                    </p>
-                    <span className={`rounded-full border px-2 py-0.5 text-[10px] font-black ${urgency.badge}`}>
-                      {urgency.label}
-                    </span>
-                  </div>
-
-                  <h3 className="mt-1 text-base font-black text-white">
-                    {attentionNotifications.length === 1
-                      ? topNotification.title
-                      : `${attentionNotifications.length} items need your attention`}
-                  </h3>
-
-                  <p className="mt-1 text-sm leading-5 text-slate-200">
-                    {attentionNotifications.length === 1
-                      ? topNotification.message || "Open the workspace to review this item."
-                      : topNotification.message || "Open the workspace to review the highest priority items."}
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={dismissToast}
-                  aria-label="Dismiss workspace notification"
-                  className="rounded-lg border border-white/10 bg-black/20 px-2 py-1 text-xs font-black text-slate-200 transition hover:bg-white/10"
-                >
-                  ×
-                </button>
-              </div>
-
-              <div className="mt-4 grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => openNotification(topNotification)}
-                  className="min-h-[44px] rounded-xl border border-cyan-300 bg-cyan-400/15 px-3 py-2 text-sm font-black text-cyan-100 transition hover:bg-cyan-400/25 active:scale-[0.98]"
-                >
-                  Review Now
-                </button>
-
-                <button
-                  type="button"
-                  onClick={dismissToast}
-                  className="min-h-[44px] rounded-xl border border-slate-600 bg-black/25 px-3 py-2 text-sm font-black text-slate-200 transition hover:bg-white/10 active:scale-[0.98]"
-                >
-                  Later
-                </button>
-              </div>
-            </div>
-
-            <div className="h-1 bg-gradient-to-r from-transparent via-white/40 to-transparent" />
-          </div>
-        </div>
-      ) : null}
+      {/* Alerts stay inside the Command Center instead of popping up on every report visit. */}
 
       {open ? (
         <div className="fixed inset-0 z-[100]">
@@ -735,8 +618,8 @@ export default function InspectorToolsDrawer({
             className="absolute inset-0 bg-black/80 backdrop-blur-sm"
           />
 
-          <aside className="absolute inset-0 flex flex-col bg-[#071224] shadow-2xl lg:inset-4 lg:rounded-[2rem] lg:border lg:border-slate-700">
-            <div className="shrink-0 border-b border-slate-800 bg-gradient-to-r from-[#0f172a] via-[#0b1326] to-[#061826] p-4 sm:p-5">
+          <aside className="absolute inset-0 flex flex-col overflow-hidden bg-[#071224] shadow-2xl lg:inset-4 lg:rounded-[2rem] lg:border lg:border-slate-700">
+            <div className="shrink-0 border-b border-slate-800 bg-gradient-to-r from-[#0f172a] via-[#0b1326] to-[#061826] p-3 sm:p-5">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-[11px] font-black uppercase tracking-[0.24em] text-teal-300">
@@ -759,7 +642,7 @@ export default function InspectorToolsDrawer({
                 </button>
               </div>
 
-              <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-6">
+              <div className="mt-3 flex gap-2 overflow-x-auto pb-1 sm:grid sm:grid-cols-2 sm:overflow-visible lg:grid-cols-6">
                 {statusTiles.map((tile) => {
                   const style = urgencyStyles[tile.urgency] || urgencyStyles.success;
                   return (
@@ -767,7 +650,7 @@ export default function InspectorToolsDrawer({
                       key={tile.title}
                       type="button"
                       onClick={() => (tile.tool ? openTool(tile.tool.title) : undefined)}
-                      className={`rounded-2xl border p-3 text-left transition hover:scale-[1.01] active:scale-[0.99] ${style.shell}`}
+                      className={`min-w-[145px] rounded-2xl border p-3 text-left transition hover:scale-[1.01] active:scale-[0.99] sm:min-w-0 ${style.shell}`}
                     >
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-[10px] font-black uppercase tracking-[0.14em] opacity-80">
@@ -782,7 +665,7 @@ export default function InspectorToolsDrawer({
                 })}
               </div>
 
-              <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,1fr)_360px]">
+              <div className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,1fr)_360px]">
                 <div className="flex gap-2 overflow-x-auto pb-1">
                   {categories.map((category) => {
                     const active = activeCategory === category;
@@ -824,7 +707,7 @@ export default function InspectorToolsDrawer({
               </div>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-hidden xl:grid xl:grid-cols-[320px_minmax(0,1fr)_340px]">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-24 xl:grid xl:grid-cols-[320px_minmax(0,1fr)_340px] xl:overflow-hidden xl:pb-0">
               <nav className="hidden min-h-0 overflow-y-auto border-r border-slate-800 bg-[#0b1220] p-4 xl:block">
                 <div>
                   <p className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
@@ -897,8 +780,10 @@ export default function InspectorToolsDrawer({
                 </div>
               </nav>
 
-              <div className="min-h-0 overflow-y-auto scroll-smooth p-4 sm:p-5" ref={bodyRef}>
-                <div className="mb-4 flex gap-2 overflow-x-auto pb-1 xl:hidden">
+              <div className="min-h-0 scroll-smooth p-3 sm:p-5 xl:overflow-y-auto" ref={bodyRef}>
+                <div className="sticky top-0 z-10 -mx-3 mb-4 border-b border-slate-800 bg-[#071224]/95 px-3 py-3 backdrop-blur xl:hidden">
+                  <p className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Quick Actions</p>
+                  <div className="flex gap-2 overflow-x-auto pb-1">
                   {quickActions.map((item) => (
                     <button
                       key={item.title}
@@ -909,6 +794,7 @@ export default function InspectorToolsDrawer({
                       {item.title}
                     </button>
                   ))}
+                  </div>
                 </div>
 
                 {children}

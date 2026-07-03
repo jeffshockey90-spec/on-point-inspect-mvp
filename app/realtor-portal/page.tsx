@@ -541,11 +541,11 @@ export default async function RealtorPortalPage() {
                             const requestNumber = getShareNumber(shareIndex, shares.length);
 
                             return (
-                              <div
+                              <details
                                 key={share.id || share.token}
-                                className="rounded-xl border border-slate-700 bg-[#020617] p-4"
+                                className="group overflow-hidden rounded-2xl border border-slate-700 bg-[#020617] transition hover:border-orange-400/60"
                               >
-                                <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                                <summary className="flex cursor-pointer list-none flex-col gap-4 p-4 transition hover:bg-[#071224] sm:flex-row sm:items-center sm:justify-between">
                                   <div className="min-w-0">
                                     <div className="flex flex-wrap gap-2">
                                       <span className="rounded-full border border-orange-400/60 bg-orange-500/10 px-3 py-1 text-xs font-black uppercase text-orange-200">
@@ -554,13 +554,13 @@ export default async function RealtorPortalPage() {
                                       <span className={`rounded-full border px-3 py-1 text-xs font-black uppercase ${getStatusBadge(status)}`}>
                                         {getStatusLabel(status)}
                                       </span>
+                                      <span className="rounded-full border border-slate-600 bg-slate-800 px-3 py-1 text-xs font-black uppercase text-slate-300">
+                                        {selectedCount} item{selectedCount === 1 ? "" : "s"}
+                                      </span>
                                     </div>
 
                                     <p className="mt-2 break-words text-sm font-bold text-slate-300">
                                       Sent to: <span className="text-white">{share.recipient_email || "Recipient"}</span>
-                                    </p>
-                                    <p className="mt-1 break-words text-sm font-bold text-slate-300">
-                                      Created by: <span className="text-white">{getRepairRequestCreatorLabel(share)}</span>
                                     </p>
                                     <p className="mt-1 text-xs font-bold text-slate-500">
                                       Created {formatDate(share.created_at)}
@@ -568,55 +568,92 @@ export default async function RealtorPortalPage() {
                                     </p>
                                   </div>
 
-                                  <div className="grid gap-2 sm:grid-cols-4 xl:min-w-[560px]">
-                                    <MiniMoneyCard label="Items" value={String(selectedCount)} />
+                                  <div className="grid gap-2 sm:min-w-[420px] sm:grid-cols-4">
                                     <MiniMoneyCard label="Requested" value={formatMoney(requested)} />
                                     <MiniMoneyCard label="Seller" value={responses.length ? formatMoney(seller) : "—"} />
                                     <MiniMoneyCard label="Difference" value={responses.length ? formatMoney(difference) : "—"} negative={difference < 0} />
+                                    <div className="rounded-xl border border-orange-400/40 bg-orange-500/10 p-3 text-center">
+                                      <p className="text-[10px] font-black uppercase tracking-wide text-orange-200">Open</p>
+                                      <p className="mt-1 text-lg font-black text-white transition group-open:rotate-180">⌄</p>
+                                    </div>
                                   </div>
-                                </div>
+                                </summary>
 
-                                <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                                  <FastLinkButton
-                                    href={`/repair-request?inspection_id=${encodeURIComponent(id)}&role=realtor&email=${encodeURIComponent(userEmail)}&selected=${encodeURIComponent(Array.isArray(share.selected_finding_ids) ? share.selected_finding_ids.join(",") : "")}&share=${encodeURIComponent(String(share.id || ""))}`}
-                                    loadingText="Opening Request..."
-                                    className="rounded-xl border border-cyan-500 px-4 py-3 text-center text-sm font-black text-cyan-300 hover:bg-cyan-500/10"
-                                  >
-                                    Open Request
-                                  </FastLinkButton>
+                                <div className="border-t border-slate-800 p-4">
+                                  <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_320px]">
+                                    <div className="rounded-2xl border border-slate-700 bg-[#071224] p-4">
+                                      <p className="text-xs font-black uppercase tracking-[0.22em] text-orange-200">
+                                        Linked Addendum + Seller Response
+                                      </p>
+                                      <p className="mt-2 break-words text-sm font-bold text-slate-300">
+                                        Created by: <span className="text-white">{getRepairRequestCreatorLabel(share)}</span>
+                                      </p>
+                                      <p className="mt-1 break-words text-sm font-bold text-slate-300">
+                                        Report: <span className="text-white">{address}</span>
+                                      </p>
+                                      <p className="mt-1 text-xs font-bold text-slate-500">
+                                        This repair request, response, addendum, and downloads are linked to report #{id}.
+                                      </p>
 
-                                  <FastLinkButton
-                                    href={`/repair-response/${share.token}`}
-                                    loadingText="Opening Response..."
-                                    className="rounded-xl border border-purple-500 px-4 py-3 text-center text-sm font-black text-purple-300 hover:bg-purple-500/10"
-                                  >
-                                    Open Response
-                                  </FastLinkButton>
+                                      <div className="mt-4 grid gap-2 sm:grid-cols-4">
+                                        <MiniMoneyCard label="Items" value={String(selectedCount)} />
+                                        <MiniMoneyCard label="Requested" value={formatMoney(requested)} />
+                                        <MiniMoneyCard label="Seller" value={responses.length ? formatMoney(seller) : "—"} />
+                                        <MiniMoneyCard label="Difference" value={responses.length ? formatMoney(difference) : "—"} negative={difference < 0} />
+                                      </div>
+                                    </div>
 
-                                  <a
-                                    href={`/api/repair-request-addendum/${encodeURIComponent(share.token)}`}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-purple-400 px-4 py-3 text-center text-sm font-black text-purple-200 transition hover:bg-purple-500/10 active:scale-[0.98]"
-                                  >
-                                    {status === "responded" ? "View Addendum" : "Preview Addendum"}
-                                  </a>
-
-                                  <a
-                                    href={`/api/repair-request-addendum/${encodeURIComponent(share.token)}?download=1`}
-                                    className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-orange-400 px-4 py-3 text-center text-sm font-black text-orange-200 transition hover:bg-orange-500/10 active:scale-[0.98]"
-                                  >
-                                    Download
-                                  </a>
-
-                                  <div className="sm:col-span-2 lg:col-span-4">
-                                    <EmailAddendumButton
-                                      token={share.token}
-                                      ready={status === "responded"}
+                                    <RepairTimeline
+                                      status={status}
+                                      createdAt={share.created_at}
+                                      viewedAt={share.viewed_at || share.opened_at || share.last_viewed_at}
+                                      respondedAt={share.responded_at}
+                                      responses={responses}
                                     />
                                   </div>
+
+                                  <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                                    <FastLinkButton
+                                      href={`/repair-request?inspection_id=${encodeURIComponent(id)}&role=realtor&email=${encodeURIComponent(userEmail)}&selected=${encodeURIComponent(Array.isArray(share.selected_finding_ids) ? share.selected_finding_ids.join(",") : "")}&share=${encodeURIComponent(String(share.id || ""))}`}
+                                      loadingText="Opening Request..."
+                                      className="rounded-xl border border-cyan-500 px-4 py-3 text-center text-sm font-black text-cyan-300 hover:bg-cyan-500/10"
+                                    >
+                                      Open Request
+                                    </FastLinkButton>
+
+                                    <FastLinkButton
+                                      href={`/repair-response/${share.token}`}
+                                      loadingText="Opening Response..."
+                                      className="rounded-xl border border-purple-500 px-4 py-3 text-center text-sm font-black text-purple-300 hover:bg-purple-500/10"
+                                    >
+                                      Open Response
+                                    </FastLinkButton>
+
+                                    <a
+                                      href={`/api/repair-request-addendum/${encodeURIComponent(share.token)}`}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-purple-400 px-4 py-3 text-center text-sm font-black text-purple-200 transition hover:bg-purple-500/10 active:scale-[0.98]"
+                                    >
+                                      {status === "responded" ? "View Addendum" : "Preview Addendum"}
+                                    </a>
+
+                                    <a
+                                      href={`/api/repair-request-addendum/${encodeURIComponent(share.token)}?download=1`}
+                                      className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-orange-400 px-4 py-3 text-center text-sm font-black text-orange-200 transition hover:bg-orange-500/10 active:scale-[0.98]"
+                                    >
+                                      Download Addendum
+                                    </a>
+
+                                    <div className="sm:col-span-2 lg:col-span-4">
+                                      <EmailAddendumButton
+                                        token={share.token}
+                                        ready={status === "responded"}
+                                      />
+                                    </div>
+                                  </div>
                                 </div>
-                              </div>
+                              </details>
                             );
                           })}
                         </div>
@@ -630,6 +667,53 @@ export default async function RealtorPortalPage() {
         </section>
       </div>
     </main>
+  );
+}
+
+function RepairTimeline({
+  status,
+  createdAt,
+  viewedAt,
+  respondedAt,
+  responses,
+}: {
+  status: string;
+  createdAt: any;
+  viewedAt?: any;
+  respondedAt?: any;
+  responses: any[];
+}) {
+  const responseDate = respondedAt || responses?.[0]?.created_at || responses?.[0]?.submitted_at;
+  const steps = [
+    { label: "Created", value: createdAt, done: Boolean(createdAt) },
+    { label: "Viewed", value: viewedAt, done: Boolean(viewedAt) || status === "viewed" || status === "responded" },
+    { label: "Seller Response", value: responseDate, done: Boolean(responseDate) || status === "responded" },
+    { label: "Addendum", value: responseDate, done: status === "responded" },
+  ];
+
+  return (
+    <div className="rounded-2xl border border-slate-700 bg-[#071224] p-4">
+      <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-200">Timeline</p>
+      <div className="mt-4 space-y-3">
+        {steps.map((step) => (
+          <div key={step.label} className="flex items-start gap-3">
+            <span
+              className={`mt-1 h-3 w-3 shrink-0 rounded-full ${
+                step.done ? "bg-emerald-400" : "bg-slate-600"
+              }`}
+            />
+            <div>
+              <p className={`text-sm font-black ${step.done ? "text-white" : "text-slate-500"}`}>
+                {step.label}
+              </p>
+              <p className="text-xs font-bold text-slate-500">
+                {step.value ? formatDate(step.value) : step.done ? "Completed" : "Waiting"}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
