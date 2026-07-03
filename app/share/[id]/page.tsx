@@ -1419,6 +1419,13 @@ export default async function PublicSharePage({
 
             {!isDemo && canOpenInternalReportActions && (
               <>
+                <a
+                  href={`/api/realtor-report-download/${encodeURIComponent(String(inspectionId))}?type=full`}
+                  className="rounded-xl border border-cyan-500 bg-cyan-500/10 px-5 py-3 font-bold text-cyan-300 transition hover:bg-cyan-500 hover:text-black"
+                >
+                  ⬇ Download Report
+                </a>
+
                 <Link
                   href={`/reports/${inspectionId}/summary`}
                   className="rounded-xl border border-teal-500 px-5 py-3 font-bold text-teal-400 transition hover:bg-teal-500 hover:text-black"

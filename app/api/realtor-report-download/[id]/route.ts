@@ -316,6 +316,35 @@ function inspectionHasRealtorEmail(inspection: any, userEmail: string) {
   return fields.some((field) => cleanEmail(field) === userEmail);
 }
 
+function inspectionBelongsToUser(inspection: any, user: any) {
+  const userId = cleanText(user?.id);
+  const userEmail = cleanEmail(user?.email);
+
+  const ownerIds = [
+    inspection?.inspector_id,
+    inspection?.inspector_user_id,
+    inspection?.user_id,
+    inspection?.owner_id,
+    inspection?.created_by,
+    inspection?.auth_user_id,
+  ]
+    .map((value) => cleanText(value))
+    .filter(Boolean);
+
+  if (userId && ownerIds.includes(userId)) return true;
+
+  const ownerEmails = [
+    inspection?.inspector_email,
+    inspection?.owner_email,
+    inspection?.created_by_email,
+    inspection?.company_email,
+  ]
+    .map((value) => cleanEmail(value))
+    .filter(Boolean);
+
+  return Boolean(userEmail && ownerEmails.includes(userEmail));
+}
+
 async function signedUrlMap(admin: any, paths: string[]) {
   const uniquePaths = Array.from(new Set(paths.filter(Boolean)));
   const result: Record<string, string> = {};
@@ -1089,7 +1118,9 @@ export async function GET(req: Request, { params }: RouteProps) {
       }
     }
 
-    let allowed = inspectionHasRealtorEmail(inspection, userEmail);
+    let allowed =
+      inspectionBelongsToUser(inspection, user) ||
+      inspectionHasRealtorEmail(inspection, userEmail);
 
     if (!allowed) {
       const { data: contact } = await admin
