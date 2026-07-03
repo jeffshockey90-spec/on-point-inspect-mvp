@@ -187,6 +187,96 @@ function flashElement(element: HTMLElement) {
 
 
 
+
+function getNotificationPriority(notification: WorkspaceNotification) {
+  const text = normalizeText(`${notification.id || ""} ${notification.title} ${notification.message || ""} ${notification.badge || ""}`);
+
+  if (text.includes("publish") || text.includes("guard") || text.includes("blocked")) return 10;
+  if (text.includes("agreement") || text.includes("signature") || text.includes("signed")) return 20;
+  if (text.includes("payment") || text.includes("invoice") || text.includes("due") || text.includes("balance")) return 30;
+  if (text.includes("safety") || text.includes("major") || text.includes("defect") || text.includes("finding")) return 40;
+  if (text.includes("ai") || text.includes("review") || text.includes("contradiction")) return 50;
+  if (text.includes("repair") || text.includes("seller") || text.includes("addendum") || text.includes("response")) return 60;
+  if (text.includes("view") || text.includes("engagement") || text.includes("client")) return 70;
+
+  return 90;
+}
+
+function getNextTaskCopy(notification: WorkspaceNotification | undefined) {
+  if (!notification) {
+    return {
+      eyebrow: "Next Task",
+      title: "No action needed",
+      helper: "This report does not have any active Command Center alerts right now.",
+      action: "All Clear",
+    };
+  }
+
+  const text = normalizeText(`${notification.id || ""} ${notification.title} ${notification.message || ""} ${notification.badge || ""}`);
+
+  if (text.includes("agreement") || text.includes("signature") || text.includes("signed")) {
+    return {
+      eyebrow: "Next Task",
+      title: "Agreement signature missing",
+      helper: notification.message || "Send or review the client agreement before delivery.",
+      action: "Fix Agreement",
+    };
+  }
+
+  if (text.includes("payment") || text.includes("invoice") || text.includes("due") || text.includes("balance")) {
+    return {
+      eyebrow: "Next Task",
+      title: "Payment needs attention",
+      helper: notification.message || "Review the invoice or payment status before delivery.",
+      action: "Fix Payment",
+    };
+  }
+
+  if (text.includes("publish") || text.includes("guard") || text.includes("blocked")) {
+    return {
+      eyebrow: "Next Task",
+      title: "Publish guard needs review",
+      helper: notification.message || "Review the blockers before publishing this report.",
+      action: "Fix Publish Blocker",
+    };
+  }
+
+  if (text.includes("safety") || text.includes("major") || text.includes("defect") || text.includes("finding")) {
+    const count = notification.findingIds?.length || Number(notification.badge) || 0;
+    return {
+      eyebrow: "Next Task",
+      title: count > 1 ? `${count} safety items need review` : "Safety item needs review",
+      helper: notification.message || "Jump to the next unresolved safety or major finding.",
+      action: "Go to Finding",
+    };
+  }
+
+  if (text.includes("repair") || text.includes("seller") || text.includes("addendum") || text.includes("response")) {
+    return {
+      eyebrow: "Next Task",
+      title: "Repair request update ready",
+      helper: notification.message || "Review the seller response or addendum.",
+      action: "Review Repair Request",
+    };
+  }
+
+  if (text.includes("view") || text.includes("engagement") || text.includes("client")) {
+    return {
+      eyebrow: "Next Task",
+      title: "Client activity updated",
+      helper: notification.message || "Review the latest report engagement activity.",
+      action: "View Activity",
+    };
+  }
+
+  return {
+    eyebrow: "Next Task",
+    title: notification.title,
+    helper: notification.message || "Open the matching Command Center tool.",
+    action: "Fix Now",
+  };
+}
+
 function getCategoryForTool(item: ToolItem): WorkspaceCategory {
   const text = normalizeText(`${item.title} ${item.helper || ""}`);
 
@@ -562,9 +652,15 @@ export default function InspectorToolsDrawer({
   }, [notifications, reviewedFindingIds]);
 
   const attentionNotifications = useMemo(
-    () => normalizedNotifications.filter((item) => ["critical", "warning", "info"].includes(item.urgency || "info")),
+    () =>
+      normalizedNotifications
+        .filter((item) => ["critical", "warning", "info"].includes(item.urgency || "info"))
+        .sort((a, b) => getNotificationPriority(a) - getNotificationPriority(b)),
     [normalizedNotifications]
   );
+
+  const nextAttentionNotification = attentionNotifications[0];
+  const nextTaskCopy = getNextTaskCopy(nextAttentionNotification);
 
   const enrichedItems = useMemo(
     () =>
@@ -839,6 +935,39 @@ export default function InspectorToolsDrawer({
     else openWorkspace();
   }
 
+  function findNotificationForStatusTile(title: string) {
+    const cleanTitle = normalizeText(title);
+
+    return attentionNotifications.find((item) => {
+      const text = normalizeText(`${item.id || ""} ${item.title} ${item.message || ""} ${item.badge || ""}`);
+
+      if (cleanTitle.includes("payment")) return text.includes("payment") || text.includes("invoice") || text.includes("due") || text.includes("balance");
+      if (cleanTitle.includes("agreement")) return text.includes("agreement") || text.includes("signature") || text.includes("signed");
+      if (cleanTitle.includes("publish")) return text.includes("publish") || text.includes("guard") || text.includes("blocked");
+      if (cleanTitle.includes("ai")) return text.includes("ai") || text.includes("safety") || text.includes("major") || text.includes("finding") || text.includes("defect");
+      if (cleanTitle.includes("repair")) return text.includes("repair") || text.includes("seller") || text.includes("addendum") || text.includes("response");
+      if (cleanTitle.includes("client")) return text.includes("view") || text.includes("engagement") || text.includes("opened") || text.includes("read");
+
+      return false;
+    });
+  }
+
+  function handleStatusTileClick(tile: { title: string; tool?: EnrichedToolItem }) {
+    const matchingAlert = findNotificationForStatusTile(tile.title);
+
+    if (matchingAlert) {
+      openNotification(matchingAlert);
+      return;
+    }
+
+    if (tile.tool) {
+      openTool(tile.tool.title);
+      return;
+    }
+
+    openWorkspace();
+  }
+
 
   function findNotificationByKeywords(keywords: string[]) {
     return attentionNotifications.find((item) => {
@@ -984,7 +1113,7 @@ export default function InspectorToolsDrawer({
               <button
                 key={tile.title}
                 type="button"
-                onClick={() => (tile.tool ? openTool(tile.tool.title) : openWorkspace())}
+                onClick={() => handleStatusTileClick(tile)}
                 className="rounded-2xl border border-transparent p-3 text-left transition hover:border-cyan-400/35 hover:bg-white/5 active:scale-[0.99]"
               >
                 <div className="flex items-center justify-between gap-2">
@@ -1073,7 +1202,7 @@ export default function InspectorToolsDrawer({
                     <button
                       key={tile.title}
                       type="button"
-                      onClick={() => (tile.tool ? openTool(tile.tool.title) : undefined)}
+                      onClick={() => handleStatusTileClick(tile)}
                       className={`min-w-[145px] rounded-2xl border p-3 text-left transition hover:scale-[1.01] active:scale-[0.99] sm:min-w-0 ${style.shell}`}
                     >
                       <div className="flex items-center justify-between gap-2">
@@ -1087,6 +1216,36 @@ export default function InspectorToolsDrawer({
                     </button>
                   );
                 })}
+              </div>
+
+              <div className={`mt-3 rounded-3xl border p-4 ${nextAttentionNotification ? "border-red-400/60 bg-red-500/10" : "border-emerald-400/50 bg-emerald-500/10"}`}>
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">
+                      {nextTaskCopy.eyebrow}
+                    </p>
+                    <h3 className="mt-1 break-words text-xl font-black text-white">
+                      {nextTaskCopy.title}
+                    </h3>
+                    <p className="mt-1 max-w-3xl text-sm font-bold leading-6 text-slate-300">
+                      {nextTaskCopy.helper}
+                    </p>
+                  </div>
+
+                  {nextAttentionNotification ? (
+                    <button
+                      type="button"
+                      onClick={() => openNotification(nextAttentionNotification)}
+                      className="inline-flex min-h-[46px] shrink-0 items-center justify-center rounded-2xl bg-red-500 px-5 py-3 text-sm font-black text-white transition hover:bg-red-400 active:scale-[0.98]"
+                    >
+                      {nextTaskCopy.action} →
+                    </button>
+                  ) : (
+                    <span className="inline-flex min-h-[46px] shrink-0 items-center justify-center rounded-2xl border border-emerald-400/60 bg-emerald-500/15 px-5 py-3 text-sm font-black text-emerald-100">
+                      All clear
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,1fr)_360px]">
