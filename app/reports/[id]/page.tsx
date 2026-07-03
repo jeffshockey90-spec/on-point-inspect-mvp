@@ -40,14 +40,6 @@ type PageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
-type WorkspaceNotification = {
-  id: string;
-  title: string;
-  message: string;
-  badge?: string;
-  urgency?: "info" | "warning" | "critical" | "success";
-};
-
 const SECTION_ORDER = [
   "Inspection Details",
   "Exterior",
@@ -2097,7 +2089,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
     return status.includes("responded") || status.includes("seller") || status.includes("fully");
   }).length;
 
-  const inspectorWorkspaceNotifications: WorkspaceNotification[] = [
+  const inspectorWorkspaceNotifications = [
     ...(paymentNeedsAttention
       ? [
           {
@@ -2107,7 +2099,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
               paymentDueAmount > 0
                 ? `${formatRepairMoney(paymentDueAmount)} is still showing due before delivery.`
                 : "Payment is not marked complete yet.",
-            urgency: "critical",
+            urgency: "critical" as const,
             badge: paymentDueAmount > 0 ? formatRepairMoney(paymentDueAmount) : "Due",
           },
         ]
@@ -2118,7 +2110,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
             id: "agreement-missing",
             title: "Agreement signature missing",
             message: "No signed client agreement is saved for this inspection yet.",
-            urgency: "critical",
+            urgency: "critical" as const,
             badge: "Required",
           },
         ]
@@ -2129,7 +2121,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
             id: "publish-guard",
             title: "Publish guard needs review",
             message: "The report was stopped or flagged before publishing. Review the guard details.",
-            urgency: "critical",
+            urgency: "critical" as const,
             badge: "Review",
           },
         ]
@@ -2140,7 +2132,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
             id: "safety-findings",
             title: "Safety items detected",
             message: `${defectTotals.safety} safety/major item${defectTotals.safety === 1 ? "" : "s"} should be reviewed before publishing.`,
-            urgency: "warning",
+            urgency: "warning" as const,
             badge: `${defectTotals.safety}`,
           },
         ]
@@ -2151,7 +2143,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
             id: "repair-response-ready",
             title: "Repair request update",
             message: `${repairResponseReadyCount} repair request${repairResponseReadyCount === 1 ? "" : "s"} have responses or signatures ready to review.`,
-            urgency: "info",
+            urgency: "info" as const,
             badge: `${repairResponseReadyCount}`,
           },
         ]
