@@ -45,6 +45,102 @@ const DEFAULT_TEXT: Record<string, string> = {
     "The history, permits, and workmanship of previous repairs or improvements were not verified as part of this inspection. Further review with the local authority or qualified contractor may be appropriate.",
 };
 
+type AgeBasedDisclaimerRule = {
+  topic: string;
+  maxYear: number;
+  label: string;
+  reason: string;
+  disclaimerText: string;
+};
+
+const AGE_BASED_DISCLAIMER_RULES: AgeBasedDisclaimerRule[] = [
+  {
+    topic: "Older Home Disclaimer",
+    maxYear: 1999,
+    label: "Older home materials and concealed conditions",
+    reason: "Homes built before 2000 may include older materials, methods, and concealed conditions that are not fully visible during a non-invasive inspection.",
+    disclaimerText:
+      "Based on the reported age of the home, older construction methods, materials, repairs, and concealed conditions may be present. This inspection was visual and non-invasive. Hidden conditions behind finishes, insulation, wall coverings, flooring, stored items, or other obstructions could not be fully evaluated and may require further review by qualified specialists or contractors.",
+  },
+  {
+    topic: "Lead-Based Paint",
+    maxYear: 1977,
+    label: "Lead-based paint potential",
+    reason: "Homes built before 1978 may contain lead-based paint.",
+    disclaimerText:
+      "Because this home was reportedly built prior to 1978, lead-based paint may be present on interior or exterior painted surfaces. No lead testing was performed as part of this visual home inspection. Confirmation requires testing by a qualified lead professional. Painted surfaces should be maintained in good condition, and renovation or disturbance of older painted materials should follow applicable lead-safe practices.",
+  },
+  {
+    topic: "Asbestos",
+    maxYear: 1989,
+    label: "Asbestos-containing material potential",
+    reason: "Many homes built before the late 1980s may contain asbestos-containing building materials.",
+    disclaimerText:
+      "Because this home was reportedly built before modern asbestos restrictions were common, some building materials may contain asbestos. Materials that may be of concern can include certain insulation, flooring, ceiling texture, siding, roofing, duct materials, and other older products. No asbestos testing was performed as part of this visual inspection. Confirmation requires laboratory testing by a qualified asbestos professional before disturbing suspect materials.",
+  },
+  {
+    topic: "Environmental / Hazardous Materials",
+    maxYear: 1989,
+    label: "Older hazardous material potential",
+    reason: "Older homes may include materials or conditions that require environmental testing outside the scope of a standard inspection.",
+    disclaimerText:
+      "Due to the age of the home, environmental or hazardous material concerns may be present, including but not limited to lead-based paint, asbestos-containing materials, buried tanks, contaminated materials, or other conditions not visible during a standard inspection. Environmental testing and hazardous material identification are outside the scope of this visual home inspection unless specifically contracted and sampled by a qualified specialist.",
+  },
+  {
+    topic: "Code Compliance",
+    maxYear: 2005,
+    label: "Modern standards may differ",
+    reason: "Older homes were often built under different standards than current construction practices.",
+    disclaimerText:
+      "This home may have been built under older construction standards that differ from current building practices. This inspection is not a code compliance inspection. Comments are based on visible safety, function, and condition at the time of inspection. Upgrades may be recommended where older conditions present safety, performance, or reliability concerns, even if those conditions may have been common when the home was originally built.",
+  },
+  {
+    topic: "Permit / Previous Work Unknown",
+    maxYear: 1999,
+    label: "Older repairs and alterations may be present",
+    reason: "Older homes commonly have prior repairs, remodeling, or additions with unknown permits or workmanship.",
+    disclaimerText:
+      "Due to the age of the property, prior repairs, alterations, additions, or remodeling may have been performed over time. Permit history, code approval, and workmanship of previous work were not verified as part of this inspection. Further review with the local authority, seller documentation, or qualified contractors may be appropriate when confirming the history or compliance of past improvements.",
+  },
+  {
+    topic: "Concealed / Inaccessible Areas",
+    maxYear: 1999,
+    label: "Hidden older conditions may exist",
+    reason: "Older homes can have concealed defects behind finishes, insulation, flooring, or stored items.",
+    disclaimerText:
+      "Older homes may contain concealed or inaccessible conditions that are not visible during a standard, non-invasive inspection. Defects may exist behind finishes, wall coverings, flooring, insulation, stored items, or other obstructions. The inspection was limited to visible and readily accessible components at the time of inspection.",
+  },
+  {
+    topic: "Mold / Microbial Growth",
+    maxYear: 1999,
+    label: "Older moisture history potential",
+    reason: "Older homes may have past or hidden moisture conditions that are not visible without invasive evaluation.",
+    disclaimerText:
+      "Due to the age of the home, past or hidden moisture conditions may exist in concealed areas. This inspection is not a mold assessment unless specifically contracted for. Visible suspect staining, moisture damage, musty odors, or water intrusion concerns should be further evaluated by a qualified specialist if confirmation or sampling is desired.",
+  },
+];
+
+function parseYearBuilt(value: any) {
+  const match = String(value || "").match(/(18|19|20)\d{2}/);
+  if (!match) return null;
+  const year = Number(match[0]);
+  if (!Number.isFinite(year) || year < 1800 || year > new Date().getFullYear() + 1) return null;
+  return year;
+}
+
+function uniqueAgeRulesForYear(year: number | null) {
+  if (!year) return [];
+
+  const seen = new Set<string>();
+  return AGE_BASED_DISCLAIMER_RULES.filter((rule) => {
+    if (year > rule.maxYear) return false;
+    if (seen.has(rule.topic)) return false;
+    seen.add(rule.topic);
+    return true;
+  });
+}
+
+
 type DisclaimerRow = {
   id: string;
   inspection_id: string;
@@ -69,6 +165,7 @@ export default function ReportDisclaimers({
   const [generating, setGenerating] = useState(false);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"success" | "error" | "">("");
+  const [inspectionYear, setInspectionYear] = useState<number | null>(null);
 
 
 
@@ -81,11 +178,18 @@ export default function ReportDisclaimers({
     async function loadDisclaimers() {
       if (!inspectionId) return;
 
-      const { data, error } = await supabase
-        .from("report_disclaimers")
-        .select("*")
-        .eq("inspection_id", inspectionId)
-        .order("created_at", { ascending: true });
+      const [{ data, error }, inspectionResult] = await Promise.all([
+        supabase
+          .from("report_disclaimers")
+          .select("*")
+          .eq("inspection_id", inspectionId)
+          .order("created_at", { ascending: true }),
+        supabase
+          .from("inspections")
+          .select("year_built, built_year, construction_year, property_year_built")
+          .eq("id", inspectionId)
+          .maybeSingle(),
+      ]);
 
       if (error) {
         console.error("Failed to load disclaimers:", error);
@@ -93,6 +197,17 @@ export default function ReportDisclaimers({
       }
 
       setRows(data || []);
+
+      if (!inspectionResult.error) {
+        setInspectionYear(
+          parseYearBuilt(
+            inspectionResult.data?.year_built ||
+              inspectionResult.data?.built_year ||
+              inspectionResult.data?.construction_year ||
+              inspectionResult.data?.property_year_built
+          )
+        );
+      }
     }
 
     loadDisclaimers();
@@ -102,6 +217,12 @@ export default function ReportDisclaimers({
     () => new Set(rows.map((row) => row.topic)),
     [rows]
   );
+
+  const ageBasedSuggestions = useMemo(() => {
+    return uniqueAgeRulesForYear(inspectionYear).filter(
+      (rule) => !selectedTopics.has(rule.topic)
+    );
+  }, [inspectionYear, selectedTopics]);
 
   const activeRow = rows.find((row) => row.topic === activeTopic);
 
@@ -154,6 +275,43 @@ export default function ReportDisclaimers({
       if (data) setRows((prev) => [...prev, data]);
     } catch (error: any) {
       showMessage("error", error?.message || "Failed to update disclaimer.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+
+  async function addAgeBasedDisclaimer(rule: AgeBasedDisclaimerRule) {
+    if (saving || !inspectionId || selectedTopics.has(rule.topic)) return;
+
+    setSaving(true);
+    setActiveTopic(rule.topic);
+
+    try {
+      const { data, error } = await supabase
+        .from("report_disclaimers")
+        .insert({
+          inspection_id: inspectionId,
+          topic: rule.topic,
+          rough_notes: inspectionYear
+            ? `Suggested automatically because the home was built in ${inspectionYear}. ${rule.reason}`
+            : rule.reason,
+          disclaimer_text: rule.disclaimerText,
+        })
+        .select("*")
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        setRows((prev) => [...prev, data]);
+        setRoughNotes(data.rough_notes || "");
+        setGeneratedText(data.disclaimer_text || "");
+      }
+
+      showMessage("success", `${rule.topic} disclaimer added.`);
+    } catch (error: any) {
+      showMessage("error", error?.message || "Failed to add suggested disclaimer.");
     } finally {
       setSaving(false);
     }
@@ -349,6 +507,59 @@ export default function ReportDisclaimers({
 
       {open && (
         <div className="space-y-5 border-t border-slate-700 p-5">
+          <div className="rounded-xl border border-cyan-500/40 bg-cyan-500/10 p-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-sm font-black uppercase tracking-wide text-cyan-300">
+                  Smart Age-Based Suggestions
+                </p>
+                <p className="mt-1 text-sm leading-6 text-slate-300">
+                  {inspectionYear
+                    ? `Home built in ${inspectionYear}. Suggested disclaimers are generated below so you can add them with one click.`
+                    : "Enter or auto-fill the year built on the report to generate age-based disclaimer suggestions."}
+                </p>
+              </div>
+
+              {inspectionYear ? (
+                <span className="w-fit rounded-full border border-cyan-400/60 bg-cyan-500/15 px-3 py-1 text-xs font-black text-cyan-100">
+                  Year Built: {inspectionYear}
+                </span>
+              ) : null}
+            </div>
+
+            {ageBasedSuggestions.length > 0 ? (
+              <div className="mt-4 grid gap-3 lg:grid-cols-2">
+                {ageBasedSuggestions.map((rule) => (
+                  <button
+                    key={rule.topic}
+                    type="button"
+                    onClick={() => addAgeBasedDisclaimer(rule)}
+                    disabled={saving}
+                    className="rounded-xl border border-cyan-400/40 bg-[#020617] p-4 text-left transition hover:border-cyan-300 hover:bg-cyan-500/10 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-base font-black text-white">{rule.topic}</p>
+                        <p className="mt-1 text-sm font-bold text-cyan-200">{rule.label}</p>
+                      </div>
+                      <span className="shrink-0 rounded-full border border-cyan-400/60 bg-cyan-500/15 px-3 py-1 text-xs font-black text-cyan-100">
+                        Add
+                      </span>
+                    </div>
+                    <p className="mt-3 text-sm leading-6 text-slate-300">{rule.reason}</p>
+                    <div className="mt-3 rounded-lg border border-slate-700 bg-slate-950/70 p-3 text-xs leading-5 text-slate-400">
+                      {rule.disclaimerText}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            ) : inspectionYear ? (
+              <div className="mt-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-sm font-bold text-emerald-200">
+                All age-based disclaimer suggestions for this home are already added.
+              </div>
+            ) : null}
+          </div>
+
           <div className="rounded-xl border border-slate-700 bg-slate-950/50 p-4">
             <p className="mb-3 text-sm font-bold uppercase tracking-wide text-slate-400">
               Turn Disclaimers On / Off
