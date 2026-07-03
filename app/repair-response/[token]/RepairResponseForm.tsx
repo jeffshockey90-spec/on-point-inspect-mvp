@@ -221,10 +221,23 @@ export default function RepairResponseForm({
   const [hiddenPhotos, setHiddenPhotos] = useState<Record<string, boolean>>({});
   const [emailingAddendum, setEmailingAddendum] = useState(false);
   const [addendumMessage, setAddendumMessage] = useState("");
-  const [selectedAddendumRecipients, setSelectedAddendumRecipients] = useState<string[]>(() =>
-    addendumEmailRecipients.length ? [addendumEmailRecipients[0].email] : []
-  );
+  const [selectedAddendumRecipients, setSelectedAddendumRecipients] = useState<string[]>(() => {
+    const preferred = addendumEmailRecipients
+      .filter((recipient) =>
+        ["client", "co-client", "realtor"].includes(String(recipient.value || ""))
+      )
+      .map((recipient) => String(recipient.email || "").trim().toLowerCase())
+      .filter((email) => email.includes("@"));
+
+    const fallback = addendumEmailRecipients
+      .slice(0, 1)
+      .map((recipient) => String(recipient.email || "").trim().toLowerCase())
+      .filter((email) => email.includes("@"));
+
+    return Array.from(new Set(preferred.length ? preferred : fallback));
+  });
   const [customAddendumEmail, setCustomAddendumEmail] = useState("");
+  const [showRecipientPicker, setShowRecipientPicker] = useState(false);
   const [buyerPrintedName, setBuyerPrintedName] = useState(() =>
     getExistingSignatureValue(existingSignatures, "buyer", "printed_name")
   );
@@ -265,6 +278,14 @@ export default function RepairResponseForm({
 
   const allAnswered = answeredCount === findings.length;
   const canSubmit = allAnswered && !submitting && !locked;
+  const addendumRecipientCount = Array.from(
+    new Set(
+      [
+        ...selectedAddendumRecipients,
+        customAddendumEmail.trim().toLowerCase(),
+      ].filter((email) => email && email.includes("@"))
+    )
+  ).length;
 
   function updateItem(
     findingId: string,
@@ -522,67 +543,43 @@ export default function RepairResponseForm({
 
       {locked ? (
         <section className="rounded-2xl border border-purple-500/40 bg-purple-500/10 p-5 shadow-xl">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-xs font-black uppercase tracking-[0.22em] text-purple-200">
-                Addendum Ready
-              </p>
-              <h2 className="mt-2 text-2xl font-black text-white">
-                Repair Request Addendum
-              </h2>
-              <p className="mt-1 text-sm text-slate-300">
-                Includes seller responses, requested credits, offered credits, and totals.
-              </p>
-            </div>
-
-            <div className="w-full space-y-3 sm:w-[420px]">
-              <div className="rounded-xl border border-purple-400/40 bg-[#020617] p-3">
-                <p className="text-xs font-black uppercase tracking-wide text-purple-200">
-                  Email Executed Addendum To
+          <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+              <div className="min-w-0">
+                <p className="text-xs font-black uppercase tracking-[0.22em] text-purple-200">
+                  {fullyExecuted ? "Fully Executed" : sellerSigned ? "Seller Signed" : "Addendum Ready"}
+                </p>
+                <h2 className="mt-2 text-2xl font-black text-white">
+                  Executed Repair Request Addendum
+                </h2>
+                <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-300">
+                  Includes seller responses, requested credits, offered credits, totals, signatures, and execution record.
                 </p>
 
-                <div className="mt-3 grid gap-2">
-                  {addendumEmailRecipients.length ? (
-                    addendumEmailRecipients.map((recipient) => {
-                      const email = String(recipient.email || "").trim().toLowerCase();
-                      const checked = selectedAddendumRecipients.includes(email);
-
-                      return (
-                        <label
-                          key={`${recipient.value}-${email}`}
-                          className={`flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 text-sm font-bold transition ${
-                            checked
-                              ? "border-cyan-400 bg-cyan-500/10 text-cyan-100"
-                              : "border-slate-700 bg-[#071224] text-slate-300 hover:border-cyan-500"
-                          }`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={() => toggleAddendumRecipient(email)}
-                            className="h-4 w-4 accent-cyan-400"
-                          />
-                          <span className="min-w-0 break-words">{recipient.label}</span>
-                        </label>
-                      );
-                    })
-                  ) : (
-                    <p className="rounded-lg border border-yellow-500/40 bg-yellow-500/10 px-3 py-2 text-sm font-bold text-yellow-100">
-                      No saved contacts found. Add a custom email below.
-                    </p>
-                  )}
+                <div className="mt-4 flex flex-wrap gap-2 text-xs font-black">
+                  <span className={`rounded-full border px-3 py-1 ${
+                    buyerSigned
+                      ? "border-emerald-400/60 bg-emerald-500/15 text-emerald-200"
+                      : "border-yellow-400/60 bg-yellow-500/15 text-yellow-100"
+                  }`}>
+                    {buyerSigned ? "Buyer Signed" : "Buyer Pending"}
+                  </span>
+                  <span className={`rounded-full border px-3 py-1 ${
+                    sellerSigned
+                      ? "border-emerald-400/60 bg-emerald-500/15 text-emerald-200"
+                      : "border-yellow-400/60 bg-yellow-500/15 text-yellow-100"
+                  }`}>
+                    {sellerSigned ? "Seller Signed" : "Seller Pending"}
+                  </span>
+                  {sellerSignedAt ? (
+                    <span className="rounded-full border border-cyan-400/50 bg-cyan-500/10 px-3 py-1 text-cyan-100">
+                      Seller signed {formatSignedDate(sellerSignedAt)}
+                    </span>
+                  ) : null}
                 </div>
-
-                <input
-                  value={customAddendumEmail}
-                  onChange={(event) => setCustomAddendumEmail(event.target.value)}
-                  placeholder="Add custom email..."
-                  type="email"
-                  className="mt-3 h-[46px] w-full rounded-lg border border-slate-700 bg-[#071224] px-3 text-sm font-bold text-white outline-none transition focus:border-cyan-400"
-                />
               </div>
 
-              <div className="grid w-full gap-3 sm:grid-cols-3">
+              <div className="grid w-full gap-3 sm:grid-cols-3 lg:w-[560px]">
                 <a
                   href={`/api/repair-request-addendum/${encodeURIComponent(token)}`}
                   target="_blank"
@@ -602,13 +599,108 @@ export default function RepairResponseForm({
                 <button
                   type="button"
                   onClick={emailAddendum}
-                  disabled={emailingAddendum}
+                  disabled={emailingAddendum || addendumRecipientCount === 0}
                   data-fast-click="true"
                   className="min-h-[48px] rounded-xl border border-cyan-400 bg-[#020617] px-4 py-3 text-sm font-black text-cyan-200 transition hover:bg-cyan-500/10 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {emailingAddendum ? "Emailing..." : "Email"}
+                  {emailingAddendum ? "Emailing..." : `Email Selected (${addendumRecipientCount})`}
                 </button>
               </div>
+            </div>
+
+            <div className="rounded-xl border border-purple-400/40 bg-[#020617] p-4">
+              <button
+                type="button"
+                onClick={() => setShowRecipientPicker((prev) => !prev)}
+                className="flex w-full items-center justify-between gap-3 text-left"
+              >
+                <span>
+                  <span className="block text-xs font-black uppercase tracking-wide text-purple-200">
+                    Email Recipients
+                  </span>
+                  <span className="mt-1 block text-sm font-bold text-slate-300">
+                    {addendumRecipientCount
+                      ? `${addendumRecipientCount} selected`
+                      : "No recipients selected"}
+                  </span>
+                </span>
+                <span className="rounded-full border border-purple-400/50 px-3 py-1 text-xs font-black text-purple-200">
+                  {showRecipientPicker ? "Hide ▲" : "Show ▼"}
+                </span>
+              </button>
+
+              {showRecipientPicker ? (
+                <div className="mt-4 space-y-3">
+                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    {addendumEmailRecipients.length ? (
+                      addendumEmailRecipients.map((recipient) => {
+                        const email = String(recipient.email || "").trim().toLowerCase();
+                        const checked = selectedAddendumRecipients.includes(email);
+                        const labelParts = String(recipient.label || "").split(" - ");
+                        const label = labelParts[0] || "Recipient";
+
+                        return (
+                          <label
+                            key={`${recipient.value}-${email}`}
+                            className={`flex min-h-[76px] cursor-pointer items-start gap-3 rounded-xl border px-3 py-3 transition ${
+                              checked
+                                ? "border-cyan-400 bg-cyan-500/10 text-cyan-100"
+                                : "border-slate-700 bg-[#071224] text-slate-300 hover:border-cyan-500"
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => toggleAddendumRecipient(email)}
+                              className="mt-1 h-4 w-4 shrink-0 accent-cyan-400"
+                            />
+                            <span className="min-w-0">
+                              <span className="block break-words text-sm font-black">
+                                {label}
+                              </span>
+                              <span className="mt-1 block break-all text-xs font-bold text-slate-400">
+                                {email}
+                              </span>
+                            </span>
+                          </label>
+                        );
+                      })
+                    ) : (
+                      <p className="rounded-lg border border-yellow-500/40 bg-yellow-500/10 px-3 py-2 text-sm font-bold text-yellow-100">
+                        No saved contacts found. Add a custom email below.
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+                    <input
+                      value={customAddendumEmail}
+                      onChange={(event) => setCustomAddendumEmail(event.target.value)}
+                      placeholder="Add custom email..."
+                      type="email"
+                      className="h-[48px] w-full rounded-xl border border-slate-700 bg-[#071224] px-3 text-sm font-bold text-white outline-none transition focus:border-cyan-400"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const email = customAddendumEmail.trim().toLowerCase();
+                        if (!email || !email.includes("@")) {
+                          setAddendumMessage("Enter a valid custom email address.");
+                          return;
+                        }
+                        setSelectedAddendumRecipients((prev) =>
+                          prev.includes(email) ? prev : [...prev, email]
+                        );
+                        setCustomAddendumEmail("");
+                        setAddendumMessage("");
+                      }}
+                      className="min-h-[48px] rounded-xl border border-cyan-400 bg-cyan-500/10 px-5 py-3 text-sm font-black text-cyan-200 transition hover:bg-cyan-500/20 active:scale-[0.98]"
+                    >
+                      Add Recipient
+                    </button>
+                  </div>
+                </div>
+              ) : null}
             </div>
           </div>
 
