@@ -291,6 +291,47 @@ On Point Home Inspections LLC
 Protecting Your Investment. One Inspection at a Time.`;
 }
 
+function getRepairRequestCreatorRole(userEmail: any, inspection: any, contacts: any[]) {
+  const email = cleanEmail(userEmail);
+
+  const inspectorEmail = cleanEmail(
+    inspection?.inspector_email ||
+      inspection?.owner_email ||
+      inspection?.company_email ||
+      ""
+  );
+
+  if (inspectorEmail && email === inspectorEmail) return "inspector";
+
+  const realtorEmails = [
+    inspection?.realtor_email,
+    inspection?.agent_email,
+    inspection?.buyer_agent_email,
+    inspection?.buyers_agent_email,
+    inspection?.transaction_coordinator_email,
+    ...(Array.isArray(contacts)
+      ? contacts
+          .filter((contact: any) => roleLooksLikeRealtor(contact?.role))
+          .map((contact: any) => contact?.email)
+      : []),
+  ]
+    .map(cleanEmail)
+    .filter(Boolean);
+
+  if (realtorEmails.includes(email)) return "realtor";
+
+  return "inspector";
+}
+
+function getRepairRequestCreatorName(user: any, role: string) {
+  return (
+    cleanText(user?.user_metadata?.full_name) ||
+    cleanText(user?.user_metadata?.name) ||
+    cleanText(user?.email) ||
+    (role === "realtor" ? "Realtor" : "Inspector")
+  );
+}
+
 function collectEmailsFromInspection(inspection: any, recipientType: string): Recipient[] {
   const recipients: Recipient[] = [];
 
@@ -429,6 +470,9 @@ export async function POST(req: Request) {
 
     const contacts = contactsError ? [] : contactsRaw || [];
 
+    const creatorRole = getRepairRequestCreatorRole(user.email, inspection, contacts);
+    const creatorName = getRepairRequestCreatorName(user, creatorRole);
+
     const appUrl =
       process.env.NEXT_PUBLIC_APP_URL ||
       process.env.NEXT_PUBLIC_SITE_URL ||
@@ -537,9 +581,17 @@ export async function POST(req: Request) {
         status: "sent",
         requested_credits: cleanRequestedCredits,
         requested_credit_total: totalRequestedCredit,
+        created_by_user_id: user.id,
+        created_by_email: cleanEmail(user.email),
+        created_by_name: creatorName,
+        created_by_role: creatorRole,
         metadata: {
           requested_credits: cleanRequestedCredits,
           requested_credit_total: totalRequestedCredit,
+          created_by_user_id: user.id,
+          created_by_email: cleanEmail(user.email),
+          created_by_name: creatorName,
+          created_by_role: creatorRole,
         },
       };
 
@@ -550,8 +602,15 @@ export async function POST(req: Request) {
         .single();
 
       if (shareResult.error) {
-        const { requested_credits, requested_credit_total, metadata, ...fallbackPayload } =
-          sharePayloadWithCredits as any;
+        const {
+          requested_credits,
+          requested_credit_total,
+          created_by_user_id,
+          created_by_email,
+          created_by_name,
+          created_by_role,
+          ...fallbackPayload
+        } = sharePayloadWithCredits as any;
 
         shareResult = await db
           .from("repair_request_shares")
@@ -661,6 +720,9 @@ export async function POST(req: Request) {
             repairRequestUrl: baseRepairRequestUrl,
             responseUrl,
             repairRequestShareId: share.id,
+            createdByRole: creatorRole,
+            createdByName: creatorName,
+            createdByEmail: cleanEmail(user.email),
           },
         });
 
