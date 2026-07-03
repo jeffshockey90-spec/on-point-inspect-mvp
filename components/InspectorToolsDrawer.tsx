@@ -474,7 +474,7 @@ function getStatusTileStatus(title: string, notifications: WorkspaceNotification
     if (cleanTitle.includes("publish")) return text.includes("publish") || text.includes("guard");
     if (cleanTitle.includes("ai")) return text.includes("ai") || text.includes("safety") || text.includes("defect");
     if (cleanTitle.includes("repair")) return text.includes("repair") || text.includes("seller");
-    if (cleanTitle.includes("client")) return text.includes("view") || text.includes("engagement") || text.includes("client");
+    if (cleanTitle.includes("client")) return text.includes("view") || text.includes("engagement") || text.includes("opened") || text.includes("report_share") || text.includes("client portal viewed");
     return false;
   });
 
@@ -839,6 +839,58 @@ export default function InspectorToolsDrawer({
     else openWorkspace();
   }
 
+  function getMatchingNotificationForTileTitle(title: string) {
+    const cleanTitle = normalizeText(title);
+
+    return attentionNotifications.find((item) => {
+      const text = normalizeText(
+        `${item.id || ""} ${item.title} ${item.message || ""} ${item.badge || ""} ${item.targetAnchor || ""}`
+      );
+
+      if (cleanTitle.includes("payment")) {
+        return text.includes("payment") || text.includes("invoice") || text.includes("due") || text.includes("balance");
+      }
+
+      if (cleanTitle.includes("agreement")) {
+        return text.includes("agreement") || text.includes("signature") || text.includes("signed") || text.includes("signing");
+      }
+
+      if (cleanTitle.includes("publish")) {
+        return text.includes("publish") || text.includes("guard") || text.includes("blocked");
+      }
+
+      if (cleanTitle.includes("ai")) {
+        return text.includes("ai") || text.includes("safety") || text.includes("defect") || text.includes("major") || text.includes("finding");
+      }
+
+      if (cleanTitle.includes("repair")) {
+        return text.includes("repair") || text.includes("seller") || text.includes("addendum") || text.includes("negotiation");
+      }
+
+      if (cleanTitle.includes("client")) {
+        return text.includes("view") || text.includes("engagement") || text.includes("opened") || text.includes("report_share") || text.includes("client portal viewed");
+      }
+
+      return false;
+    });
+  }
+
+  function handleStatusTileClick(tile: any) {
+    const matchingAlert = getMatchingNotificationForTileTitle(tile.title);
+
+    if (matchingAlert) {
+      openNotification(matchingAlert);
+      return;
+    }
+
+    if (tile.tool?.title) {
+      openTool(tile.tool.title);
+      return;
+    }
+
+    openWorkspace();
+  }
+
   const totalBadgeText =
     attentionNotifications.length > 0
       ? `${attentionNotifications.length} alert${attentionNotifications.length === 1 ? "" : "s"}`
@@ -892,7 +944,7 @@ export default function InspectorToolsDrawer({
               <button
                 key={tile.title}
                 type="button"
-                onClick={() => (tile.tool ? openTool(tile.tool.title) : openWorkspace())}
+                onClick={() => handleStatusTileClick(tile)}
                 className="rounded-2xl border border-transparent p-3 text-left transition hover:border-cyan-400/35 hover:bg-white/5 active:scale-[0.99]"
               >
                 <div className="flex items-center justify-between gap-2">
@@ -981,7 +1033,7 @@ export default function InspectorToolsDrawer({
                     <button
                       key={tile.title}
                       type="button"
-                      onClick={() => (tile.tool ? openTool(tile.tool.title) : undefined)}
+                      onClick={() => handleStatusTileClick(tile)}
                       className={`min-w-[145px] rounded-2xl border p-3 text-left transition hover:scale-[1.01] active:scale-[0.99] sm:min-w-0 ${style.shell}`}
                     >
                       <div className="flex items-center justify-between gap-2">
