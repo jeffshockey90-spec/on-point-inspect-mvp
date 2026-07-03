@@ -28,6 +28,7 @@ import InspectionCopilotPanel from "../../../components/InspectionCopilotPanel";
 import HouseRelationshipPanel from "../../../components/HouseRelationshipPanel";
 import LiveInspectionTimelinePanel from "../../../components/LiveInspectionTimelinePanel";
 import AIPublishGuardPanel from "../../../components/AIPublishGuardPanel";
+import ReportDisclaimers from "../../../components/ReportDisclaimers";
 import PropertyPhotoUploader from "../../../components/PropertyPhotoUploader";
 import InspectorToolsDrawer, {
   type WorkspaceNotification,
