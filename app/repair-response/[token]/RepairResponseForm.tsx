@@ -277,6 +277,9 @@ export default function RepairResponseForm({
     : 0;
 
   const allAnswered = answeredCount === findings.length;
+  const buyerSigned = Boolean(buyerPrintedName.trim() && (buyerSignature.trim() || buyerSignatureImage.trim()));
+  const sellerSigned = Boolean(sellerPrintedName.trim() && (sellerSignature.trim() || sellerSignatureImage.trim()));
+  const fullyExecuted = buyerSigned && sellerSigned;
   const canSubmit = allAnswered && !submitting && !locked;
   const addendumRecipientCount = Array.from(
     new Set(
