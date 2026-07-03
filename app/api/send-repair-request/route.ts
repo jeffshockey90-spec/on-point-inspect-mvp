@@ -291,6 +291,18 @@ On Point Home Inspections LLC
 Protecting Your Investment. One Inspection at a Time.`;
 }
 
+function repairRequestRoleLooksLikeRealtor(roleValue: any) {
+  const role = cleanText(roleValue).toLowerCase();
+
+  return (
+    role.includes("realtor") ||
+    role.includes("agent") ||
+    role.includes("buyer") ||
+    role.includes("transaction") ||
+    role.includes("coordinator")
+  );
+}
+
 function getRepairRequestCreatorRole(userEmail: any, inspection: any, contacts: any[]) {
   const email = cleanEmail(userEmail);
 
@@ -311,7 +323,7 @@ function getRepairRequestCreatorRole(userEmail: any, inspection: any, contacts: 
     inspection?.transaction_coordinator_email,
     ...(Array.isArray(contacts)
       ? contacts
-          .filter((contact: any) => roleLooksLikeRealtor(contact?.role))
+          .filter((contact: any) => repairRequestRoleLooksLikeRealtor(contact?.role))
           .map((contact: any) => contact?.email)
       : []),
   ]
