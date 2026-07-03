@@ -437,6 +437,87 @@ function formatEmailStatusDate(value: any) {
   });
 }
 
+function parseRepairMoneyValue(value: any) {
+  const number = Number(String(value || "").replace(/[^0-9.-]/g, ""));
+  return Number.isFinite(number) ? number : 0;
+}
+
+function formatRepairMoney(value: any) {
+  const number = parseRepairMoneyValue(value);
+
+  return number.toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  });
+}
+
+function getRepairRequestRequestedCredit(share: any) {
+  return parseRepairMoneyValue(
+    share?.requested_credit_total ??
+      share?.metadata?.requested_credit_total ??
+      0
+  );
+}
+
+function getRepairRequestSignatures(share: any) {
+  const metadata =
+    share?.metadata && typeof share.metadata === "object" && !Array.isArray(share.metadata)
+      ? share.metadata
+      : {};
+
+  const signatures =
+    metadata?.repair_request_signatures &&
+    typeof metadata.repair_request_signatures === "object" &&
+    !Array.isArray(metadata.repair_request_signatures)
+      ? metadata.repair_request_signatures
+      : {};
+
+  return signatures;
+}
+
+function hasRepairRequestSignature(share: any, party: "buyer" | "seller") {
+  const signatures = getRepairRequestSignatures(share);
+  const signature = signatures?.[party] || {};
+
+  return Boolean(
+    String(signature?.printed_name || signature?.printedName || "").trim() &&
+      (String(signature?.signature || "").trim() ||
+        String(signature?.signature_image || signature?.signatureImage || "").trim())
+  );
+}
+
+function getRepairRequestStatus(share: any, responseCount = 0) {
+  const status = String(share?.status || "").toLowerCase();
+  const buyerSigned = hasRepairRequestSignature(share, "buyer");
+  const sellerSigned = hasRepairRequestSignature(share, "seller");
+
+  if (buyerSigned && sellerSigned) return "Fully Executed";
+  if (sellerSigned) return "Seller Signed";
+  if (share?.responded_at || responseCount > 0 || status === "responded") return "Responded";
+  if (status === "failed") return "Failed";
+  if (status === "viewed") return "Viewed";
+  return "Sent";
+}
+
+function getRepairRequestStatusClass(status: string) {
+  const clean = String(status || "").toLowerCase();
+
+  if (clean.includes("fully")) return "border-emerald-400/60 bg-emerald-500/15 text-emerald-200";
+  if (clean.includes("seller") || clean.includes("responded")) return "border-teal-400/60 bg-teal-500/15 text-teal-200";
+  if (clean.includes("viewed")) return "border-blue-400/60 bg-blue-500/15 text-blue-200";
+  if (clean.includes("failed")) return "border-red-400/60 bg-red-500/15 text-red-200";
+  return "border-yellow-400/60 bg-yellow-500/15 text-yellow-100";
+}
+
+function getRepairRequestSelectedCount(share: any) {
+  return Array.isArray(share?.selected_finding_ids) ? share.selected_finding_ids.length : 0;
+}
+
+function getRepairRequestLabel(index: number, total: number) {
+  return `Repair Request #${Math.max(1, total - index)}`;
+}
+
 function getSampleReportTitle(inspection: any) {
   return (
     inspection?.address ||
@@ -1469,6 +1550,75 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
   const equipmentInventoryRaw = equipmentResult.data || [];
   const findingsRaw = findingsResult.data || [];
 
+  const { data: repairRequestSharesRaw, error: repairRequestSharesError } = await supabase
+    .from("repair_request_shares")
+    .select("*")
+    .eq("inspection_id", inspection.id)
+    .order("created_at", { ascending: false });
+
+  if (repairRequestSharesError) {
+    console.error("Repair request history load error:", repairRequestSharesError);
+  }
+
+  const repairRequestShares = repairRequestSharesRaw || [];
+  const repairRequestShareIds = repairRequestShares.map((share: any) => share.id).filter(Boolean);
+
+  const { data: repairRequestResponsesRaw, error: repairRequestResponsesError } =
+    repairRequestShareIds.length > 0
+      ? await supabase
+          .from("repair_request_responses")
+          .select("*")
+          .in("share_id", repairRequestShareIds)
+      : { data: [], error: null };
+
+  if (repairRequestResponsesError) {
+    console.error("Repair request response history load error:", repairRequestResponsesError);
+  }
+
+  const repairResponsesByShareId = (repairRequestResponsesRaw || []).reduce(
+    (acc: Record<string, any[]>, response: any) => {
+      const shareId = String(response.share_id || "");
+      if (!shareId) return acc;
+      if (!acc[shareId]) acc[shareId] = [];
+      acc[shareId].push(response);
+      return acc;
+    },
+    {},
+  );
+
+  const repairRequestHistory = repairRequestShares.map((share: any, index: number) => {
+    const responses = repairResponsesByShareId[String(share.id)] || [];
+    const requestedCredit = getRepairRequestRequestedCredit(share);
+    const sellerOffered = responses.reduce(
+      (sum: number, response: any) =>
+        sum +
+        parseRepairMoneyValue(
+          response?.seller_credit_amount ??
+            response?.credit_amount ??
+            response?.metadata?.seller_credit_amount ??
+            0
+        ),
+      0,
+    );
+    const status = getRepairRequestStatus(share, responses.length);
+
+    return {
+      share,
+      label: getRepairRequestLabel(index, repairRequestShares.length),
+      responses,
+      status,
+      requestedCredit,
+      sellerOffered,
+      difference: sellerOffered - requestedCredit,
+      selectedCount: getRepairRequestSelectedCount(share),
+    };
+  });
+
+  const repairRequestHistoryBadge =
+    repairRequestHistory.length > 0
+      ? `${repairRequestHistory.length} request${repairRequestHistory.length === 1 ? "" : "s"}`
+      : "None yet";
+
   const latestAgreementEmail =
     getLatestEmailLog(emailLogs, "agreement_email") ||
     getLatestEmailLog(emailLogs, "agreement_reminder") ||
@@ -2015,6 +2165,145 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
               Capture, Equipment Analyzer, repair requests, and findings.
             </p>
           </div>
+
+          <AttentionPanel
+            title="Repair Request History"
+            eyebrow="Negotiation"
+            badge={repairRequestHistoryBadge}
+            helper="Every repair request stays saved here. Open older requests, check requested credit, seller credit, status, and download the executed addendum."
+            defaultOpen={repairRequestHistory.length > 0}
+          >
+            {repairRequestHistory.length > 0 ? (
+              <div className="space-y-3">
+                {repairRequestHistory.map((item: any) => {
+                  const share = item.share;
+                  const selectedParam = Array.isArray(share.selected_finding_ids)
+                    ? share.selected_finding_ids.join(",")
+                    : "";
+                  const repairBuilderHref = `/repair-request?inspection_id=${inspection.id}${
+                    selectedParam ? `&selected=${encodeURIComponent(selectedParam)}` : ""
+                  }&share=${encodeURIComponent(String(share.id || ""))}`;
+                  const responseHref = share.token ? `/repair-response/${share.token}` : "";
+                  const addendumHref = share.token ? `/api/repair-request-addendum/${share.token}` : "";
+                  const downloadHref = share.token
+                    ? `/api/repair-request-addendum/${share.token}?download=1`
+                    : "";
+                  const recipient = String(share.recipient_email || "Unknown recipient");
+
+                  return (
+                    <div
+                      key={share.id || share.token}
+                      className="rounded-2xl border border-slate-700 bg-[#020617] p-4"
+                    >
+                      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="rounded-full border border-orange-400/60 bg-orange-500/10 px-3 py-1 text-xs font-black uppercase tracking-wide text-orange-200">
+                              {item.label}
+                            </span>
+                            <span className={`rounded-full border px-3 py-1 text-xs font-black uppercase ${getRepairRequestStatusClass(item.status)}`}>
+                              {item.status}
+                            </span>
+                          </div>
+
+                          <p className="mt-3 break-words text-sm font-bold text-slate-300">
+                            Sent to: <span className="text-white">{recipient}</span>
+                          </p>
+                          <p className="mt-1 text-xs font-bold text-slate-500">
+                            Created {formatEmailStatusDate(share.created_at)}
+                            {share.responded_at ? ` • Responded ${formatEmailStatusDate(share.responded_at)}` : ""}
+                          </p>
+                        </div>
+
+                        <div className="grid gap-2 sm:grid-cols-4 xl:min-w-[520px]">
+                          <div className="rounded-xl border border-slate-700 bg-[#071224] p-3">
+                            <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+                              Items
+                            </p>
+                            <p className="mt-1 text-lg font-black text-white">{item.selectedCount}</p>
+                          </div>
+                          <div className="rounded-xl border border-cyan-500/40 bg-cyan-500/10 p-3">
+                            <p className="text-[10px] font-black uppercase tracking-wide text-cyan-200">
+                              Requested
+                            </p>
+                            <p className="mt-1 text-lg font-black text-white">
+                              {formatRepairMoney(item.requestedCredit)}
+                            </p>
+                          </div>
+                          <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3">
+                            <p className="text-[10px] font-black uppercase tracking-wide text-emerald-200">
+                              Seller
+                            </p>
+                            <p className="mt-1 text-lg font-black text-white">
+                              {item.responses.length ? formatRepairMoney(item.sellerOffered) : "—"}
+                            </p>
+                          </div>
+                          <div className="rounded-xl border border-purple-500/40 bg-purple-500/10 p-3">
+                            <p className="text-[10px] font-black uppercase tracking-wide text-purple-200">
+                              Difference
+                            </p>
+                            <p className={`mt-1 text-lg font-black ${
+                              item.difference < 0
+                                ? "text-red-200"
+                                : item.difference > 0
+                                  ? "text-emerald-200"
+                                  : "text-white"
+                            }`}>
+                              {item.responses.length ? formatRepairMoney(item.difference) : "—"}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        <FastLinkButton
+                          href={repairBuilderHref}
+                          loadingText="Opening Request..."
+                          className="rounded-xl border border-orange-500 bg-orange-500/10 px-4 py-3 text-center text-sm font-black text-orange-200 hover:bg-orange-500/20"
+                        >
+                          Open Request
+                        </FastLinkButton>
+
+                        {responseHref ? (
+                          <FastLinkButton
+                            href={responseHref}
+                            loadingText="Opening Response..."
+                            className="rounded-xl border border-teal-500 bg-teal-500/10 px-4 py-3 text-center text-sm font-black text-teal-200 hover:bg-teal-500/20"
+                          >
+                            Open Response
+                          </FastLinkButton>
+                        ) : null}
+
+                        {addendumHref ? (
+                          <a
+                            href={addendumHref}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-purple-500 bg-purple-500/10 px-4 py-3 text-center text-sm font-black text-purple-200 transition hover:bg-purple-500/20 active:scale-[0.98]"
+                          >
+                            Open Addendum
+                          </a>
+                        ) : null}
+
+                        {downloadHref ? (
+                          <a
+                            href={downloadHref}
+                            className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-cyan-500 bg-cyan-500/10 px-4 py-3 text-center text-sm font-black text-cyan-200 transition hover:bg-cyan-500/20 active:scale-[0.98]"
+                          >
+                            Download
+                          </a>
+                        ) : null}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="rounded-xl border border-slate-700 bg-[#020617] p-4 text-sm font-bold text-slate-300">
+                No repair requests have been sent for this inspection yet. Use the Repair Request Builder to create the first one.
+              </div>
+            )}
+          </AttentionPanel>
 
           <AttentionPanel
             title="AI Report Review"
