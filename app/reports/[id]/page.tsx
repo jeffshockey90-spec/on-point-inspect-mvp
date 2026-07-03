@@ -29,6 +29,7 @@ import HouseRelationshipPanel from "../../../components/HouseRelationshipPanel";
 import LiveInspectionTimelinePanel from "../../../components/LiveInspectionTimelinePanel";
 import AIPublishGuardPanel from "../../../components/AIPublishGuardPanel";
 import PropertyPhotoUploader from "../../../components/PropertyPhotoUploader";
+import InspectorToolsDrawer from "../../../components/InspectorToolsDrawer";
 import { aiPublishGuard } from "../../../lib/ai/AIPublishGuard";
 
 export const dynamic = "force-dynamic";
@@ -2046,6 +2047,118 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
 
   const signedAgreements = signedAgreementsRaw || [];
 
+  const paymentDueAmount = parseRepairMoneyValue(
+    inspection.balance_due ??
+      inspection.amount_due ??
+      inspection.invoice_due ??
+      inspection.payment_due ??
+      inspection.due_amount ??
+      inspection.due ??
+      0
+  );
+
+  const paymentStatusText = String(
+    inspection.payment_status ||
+      inspection.paymentStatus ||
+      inspection.invoice_status ||
+      ""
+  ).toLowerCase();
+
+  const invoiceTotalForNotice = parseRepairMoneyValue(
+    inspection.invoice_total ??
+      inspection.invoice_amount ??
+      inspection.price ??
+      inspection.total_price ??
+      inspection.fee ??
+      0
+  );
+
+  const paymentNeedsAttention =
+    paymentDueAmount > 0 ||
+    (invoiceTotalForNotice > 0 &&
+      !paymentStatusText.includes("paid") &&
+      !paymentStatusText.includes("complete") &&
+      !paymentStatusText.includes("waived"));
+
+  const agreementNeedsAttention =
+    Boolean(inspection.client_email || inspection.client_name) &&
+    signedAgreements.length === 0;
+
+  const repairResponseReadyCount = repairRequestHistory.filter((item: any) => {
+    const status = String(item.status || "").toLowerCase();
+    return status.includes("responded") || status.includes("seller") || status.includes("fully");
+  }).length;
+
+  const inspectorWorkspaceNotifications = [
+    ...(paymentNeedsAttention
+      ? [
+          {
+            id: "payment-due",
+            title: "Payment needs attention",
+            message:
+              paymentDueAmount > 0
+                ? `${formatRepairMoney(paymentDueAmount)} is still showing due before delivery.`
+                : "Payment is not marked complete yet.",
+            urgency: "critical",
+            badge: paymentDueAmount > 0 ? formatRepairMoney(paymentDueAmount) : "Due",
+          },
+        ]
+      : []),
+    ...(agreementNeedsAttention
+      ? [
+          {
+            id: "agreement-missing",
+            title: "Agreement signature missing",
+            message: "No signed client agreement is saved for this inspection yet.",
+            urgency: "critical",
+            badge: "Required",
+          },
+        ]
+      : []),
+    ...(publishGuardNeedsAttention
+      ? [
+          {
+            id: "publish-guard",
+            title: "Publish guard needs review",
+            message: "The report was stopped or flagged before publishing. Review the guard details.",
+            urgency: "critical",
+            badge: "Review",
+          },
+        ]
+      : []),
+    ...(defectTotals.safety > 0
+      ? [
+          {
+            id: "safety-findings",
+            title: "Safety items detected",
+            message: `${defectTotals.safety} safety/major item${defectTotals.safety === 1 ? "" : "s"} should be reviewed before publishing.`,
+            urgency: "warning",
+            badge: `${defectTotals.safety}`,
+          },
+        ]
+      : []),
+    ...(repairResponseReadyCount > 0
+      ? [
+          {
+            id: "repair-response-ready",
+            title: "Repair request update",
+            message: `${repairResponseReadyCount} repair request${repairResponseReadyCount === 1 ? "" : "s"} have responses or signatures ready to review.`,
+            urgency: "info",
+            badge: `${repairResponseReadyCount}`,
+          },
+        ]
+      : []),
+  ];
+
+  const inspectorWorkspaceBadge =
+    inspectorWorkspaceNotifications.length > 0
+      ? `${inspectorWorkspaceNotifications.length}`
+      : publishGuardNeedsAttention
+        ? "Needs Attention"
+        : defectTotals.total > 0
+          ? `${defectTotals.total}`
+          : "Ready";
+
   return (
     <main className="min-h-screen bg-[#020617] text-white">
       <div className="mx-auto w-full max-w-none px-2 py-3 sm:px-3 md:px-6 lg:max-w-7xl lg:py-8">
@@ -2191,6 +2304,66 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
             </p>
           </div>
 
+          <InspectorToolsDrawer
+            badge={inspectorWorkspaceBadge}
+            notifications={inspectorWorkspaceNotifications}
+            items={[
+              {
+                title: "Repair Request History",
+                helper: "All requests and responses",
+                badge: repairRequestHistoryBadge,
+                tone: "green",
+              },
+              {
+                title: "AI Report Review",
+                helper: "AI safety review",
+                badge: defectTotals.total > 0 ? `${defectTotals.total} defects` : "Ready",
+                tone: "purple",
+              },
+              {
+                title: "House Intelligence",
+                helper: "Property memory and history",
+                badge: "Memory",
+                tone: "emerald",
+              },
+              {
+                title: "Live AI Inspector Assistant",
+                helper: "Missing items and publish readiness",
+                badge: defectTotals.safety > 0 ? `${defectTotals.safety} safety` : "AI checks",
+                tone: "yellow",
+              },
+              {
+                title: "Connected Finding Intelligence",
+                helper: "Related defects and systems",
+                badge: "Related findings",
+                tone: "blue",
+              },
+              {
+                title: "AI Activity Timeline",
+                helper: "Inspection activity log",
+                badge: `${findings.length} findings`,
+                tone: "violet",
+              },
+              {
+                title: "Final Publish Guard",
+                helper: "Review before publishing",
+                badge: reportIsPublished ? "Complete" : publishGuardNeedsAttention ? "Needs Attention" : "Review Before Publish",
+                tone: publishGuardNeedsAttention ? "red" : "yellow",
+              },
+              {
+                title: "Sample Report",
+                helper: "Public profile preview",
+                badge: sampleReportBadge,
+                tone: existingSampleReport?.is_enabled === true ? "emerald" : "slate",
+              },
+              {
+                title: "Report Engagement",
+                helper: "Email opens, views, and reading time",
+                badge: engagementBadge,
+                tone: "cyan",
+              },
+            ]}
+          >
           <AttentionPanel
             title="Repair Request History"
             eyebrow="Negotiation"
@@ -2615,6 +2788,9 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
               </div>
             )}
           </AttentionPanel>
+
+
+          </InspectorToolsDrawer>
 
           <section className="mb-8 rounded-2xl border border-purple-500/40 bg-[#071224] p-4 shadow-xl">
             <div className="flex flex-wrap items-start justify-between gap-4">
