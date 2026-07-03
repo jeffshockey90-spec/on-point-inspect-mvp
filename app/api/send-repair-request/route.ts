@@ -292,7 +292,7 @@ Protecting Your Investment. One Inspection at a Time.`;
 }
 
 function repairRequestRoleLooksLikeRealtor(roleValue: any) {
-  const role = cleanText(roleValue).toLowerCase();
+  const role = String(roleValue || "").trim().toLowerCase();
 
   return (
     role.includes("realtor") ||
@@ -337,9 +337,9 @@ function getRepairRequestCreatorRole(userEmail: any, inspection: any, contacts: 
 
 function getRepairRequestCreatorName(user: any, role: string) {
   return (
-    cleanText(user?.user_metadata?.full_name) ||
-    cleanText(user?.user_metadata?.name) ||
-    cleanText(user?.email) ||
+    String(user?.user_metadata?.full_name || "").trim() ||
+    String(user?.user_metadata?.name || "").trim() ||
+    String(user?.email || "").trim() ||
     (role === "realtor" ? "Realtor" : "Inspector")
   );
 }
