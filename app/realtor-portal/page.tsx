@@ -130,6 +130,30 @@ function getShareSellerTotal(share: any) {
   );
 }
 
+function getResponseSellerTotal(responses: any[]) {
+  return (responses || []).reduce(
+    (sum: number, response: any) =>
+      sum +
+      parseMoneyValue(
+        response?.seller_credit_amount ??
+          response?.credit_amount ??
+          response?.metadata?.seller_credit_amount ??
+          0
+      ),
+    0
+  );
+}
+
+function getShareItemCount(share: any) {
+  return Array.isArray(share?.selected_finding_ids)
+    ? share.selected_finding_ids.length
+    : 0;
+}
+
+function getShareNumber(index: number, total: number) {
+  return `Repair Request #${Math.max(1, total - index)}`;
+}
+
 function getRepairStatus(share: any) {
   const status = cleanText(share?.status || "sent").toLowerCase();
   if (share?.responded_at || status === "responded" || status === "completed") return "responded";
@@ -248,6 +272,30 @@ export default async function RealtorPortalPage() {
     repairShares = data || [];
   }
 
+  const repairShareIds = repairShares.map((share: any) => share.id).filter(Boolean);
+
+  let repairResponses: any[] = [];
+
+  if (repairShareIds.length) {
+    const { data } = await admin
+      .from("repair_request_responses")
+      .select("*")
+      .in("share_id", repairShareIds);
+
+    repairResponses = data || [];
+  }
+
+  const responsesByShareId = repairResponses.reduce(
+    (acc: Record<string, any[]>, response: any) => {
+      const shareId = cleanText(response.share_id);
+      if (!shareId) return acc;
+      if (!acc[shareId]) acc[shareId] = [];
+      acc[shareId].push(response);
+      return acc;
+    },
+    {}
+  );
+
   const sharesByInspectionId = repairShares.reduce(
     (acc: Record<string, any[]>, share: any) => {
       const inspectionId = cleanText(share.inspection_id);
@@ -346,11 +394,18 @@ export default async function RealtorPortalPage() {
                 const address = getPropertyAddress(inspection);
                 const shares = sharesByInspectionId[id] || [];
                 const latestShare = shares[0] || null;
-                const latestStatus = latestShare ? getRepairStatus(latestShare) : "";
-                const requestedTotal = latestShare ? getShareRequestedTotal(latestShare) : 0;
-                const sellerTotal = latestShare ? getShareSellerTotal(latestShare) : 0;
-                const difference = sellerTotal - requestedTotal;
-
+                const latestStatus = latestShare
+                  ? getRepairStatus(latestShare)
+                  : "";
+                const propertyRequestedTotal = shares.reduce(
+                  (sum: number, share: any) => sum + getShareRequestedTotal(share),
+                  0
+                );
+                const propertySellerTotal = shares.reduce((sum: number, share: any) => {
+                  const responses = responsesByShareId[cleanText(share.id)] || [];
+                  return sum + (responses.length ? getResponseSellerTotal(responses) : getShareSellerTotal(share));
+                }, 0);
+                const propertyDifference = propertySellerTotal - propertyRequestedTotal;
                 return (
                   <article
                     key={id}
@@ -365,13 +420,19 @@ export default async function RealtorPortalPage() {
 
                           {latestShare ? (
                             <span className={`rounded-full border px-3 py-1 text-xs font-black uppercase ${getStatusBadge(latestStatus)}`}>
-                              Repair Request: {getStatusLabel(latestStatus)}
+                              Latest: {getStatusLabel(latestStatus)}
                             </span>
                           ) : (
                             <span className="rounded-full border border-slate-600 bg-slate-800 px-3 py-1 text-xs font-black uppercase text-slate-300">
                               No repair request sent yet
                             </span>
                           )}
+
+                          {shares.length ? (
+                            <span className="rounded-full border border-orange-500/50 bg-orange-500/10 px-3 py-1 text-xs font-black uppercase text-orange-200">
+                              {shares.length} Repair Request{shares.length === 1 ? "" : "s"}
+                            </span>
+                          ) : null}
                         </div>
 
                         <h3 className="mt-3 break-words text-2xl font-black text-white">
@@ -384,11 +445,11 @@ export default async function RealtorPortalPage() {
                           {formatDate(getInspectionDate(inspection))}
                         </p>
 
-                        {latestShare ? (
+                        {shares.length ? (
                           <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                            <MiniMoneyCard label="Buyer Requested" value={formatMoney(requestedTotal)} />
-                            <MiniMoneyCard label="Seller Offered" value={formatMoney(sellerTotal)} />
-                            <MiniMoneyCard label="Difference" value={formatMoney(difference)} negative={difference < 0} />
+                            <MiniMoneyCard label="Buyer Requested" value={formatMoney(propertyRequestedTotal)} />
+                            <MiniMoneyCard label="Seller Offered" value={formatMoney(propertySellerTotal)} />
+                            <MiniMoneyCard label="Difference" value={formatMoney(propertyDifference)} negative={propertyDifference < 0} />
                           </div>
                         ) : null}
                       </div>
@@ -423,43 +484,116 @@ export default async function RealtorPortalPage() {
                         >
                           Build Repair Request
                         </FastLinkButton>
-
-                        {latestShare ? (
-                          <FastLinkButton
-                            href={`/repair-response/${latestShare.token}`}
-                            loadingText="Opening Response..."
-                            className="rounded-xl border border-purple-500 px-4 py-3 text-center font-black text-purple-300 hover:bg-purple-500/10"
-                          >
-                            Open Response
-                          </FastLinkButton>
-                        ) : null}
-
-                        {latestShare ? (
-                          <>
-                            <a
-                              href={`/api/repair-request-addendum/${encodeURIComponent(latestShare.token)}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-purple-400 px-4 py-3 text-center font-black text-purple-200 transition hover:bg-purple-500/10 active:scale-[0.98]"
-                            >
-                              {latestStatus === "responded" ? "View Addendum" : "Preview Addendum"}
-                            </a>
-
-                            <a
-                              href={`/api/repair-request-addendum/${encodeURIComponent(latestShare.token)}?download=1`}
-                              className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-orange-400 px-4 py-3 text-center font-black text-orange-200 transition hover:bg-orange-500/10 active:scale-[0.98]"
-                            >
-                              {latestStatus === "responded" ? "Download Addendum" : "Download Draft Addendum"}
-                            </a>
-
-                            <EmailAddendumButton
-                              token={latestShare.token}
-                              ready={latestStatus === "responded"}
-                            />
-                          </>
-                        ) : null}
                       </div>
                     </div>
+
+                    {shares.length ? (
+                      <div className="mt-5 rounded-2xl border border-orange-500/30 bg-orange-500/10 p-4">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <p className="text-xs font-black uppercase tracking-[0.22em] text-orange-200">
+                              Repair Request History
+                            </p>
+                            <p className="mt-1 text-sm font-bold text-slate-300">
+                              All saved repair requests for this property are available below.
+                            </p>
+                          </div>
+                          <span className="w-fit rounded-full border border-orange-400/60 bg-orange-500/15 px-3 py-1 text-xs font-black text-orange-100">
+                            {shares.length} total
+                          </span>
+                        </div>
+
+                        <div className="mt-4 space-y-3">
+                          {shares.map((share: any, shareIndex: number) => {
+                            const status = getRepairStatus(share);
+                            const responses = responsesByShareId[cleanText(share.id)] || [];
+                            const requested = getShareRequestedTotal(share);
+                            const seller = responses.length
+                              ? getResponseSellerTotal(responses)
+                              : getShareSellerTotal(share);
+                            const difference = seller - requested;
+                            const selectedCount = getShareItemCount(share);
+                            const requestNumber = getShareNumber(shareIndex, shares.length);
+
+                            return (
+                              <div
+                                key={share.id || share.token}
+                                className="rounded-xl border border-slate-700 bg-[#020617] p-4"
+                              >
+                                <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                                  <div className="min-w-0">
+                                    <div className="flex flex-wrap gap-2">
+                                      <span className="rounded-full border border-orange-400/60 bg-orange-500/10 px-3 py-1 text-xs font-black uppercase text-orange-200">
+                                        {requestNumber}
+                                      </span>
+                                      <span className={`rounded-full border px-3 py-1 text-xs font-black uppercase ${getStatusBadge(status)}`}>
+                                        {getStatusLabel(status)}
+                                      </span>
+                                    </div>
+
+                                    <p className="mt-2 break-words text-sm font-bold text-slate-300">
+                                      Sent to: <span className="text-white">{share.recipient_email || "Recipient"}</span>
+                                    </p>
+                                    <p className="mt-1 text-xs font-bold text-slate-500">
+                                      Created {formatDate(share.created_at)}
+                                      {share.responded_at ? ` • Responded ${formatDate(share.responded_at)}` : ""}
+                                    </p>
+                                  </div>
+
+                                  <div className="grid gap-2 sm:grid-cols-4 xl:min-w-[560px]">
+                                    <MiniMoneyCard label="Items" value={String(selectedCount)} />
+                                    <MiniMoneyCard label="Requested" value={formatMoney(requested)} />
+                                    <MiniMoneyCard label="Seller" value={responses.length ? formatMoney(seller) : "—"} />
+                                    <MiniMoneyCard label="Difference" value={responses.length ? formatMoney(difference) : "—"} negative={difference < 0} />
+                                  </div>
+                                </div>
+
+                                <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                                  <FastLinkButton
+                                    href={`/repair-request?inspection_id=${encodeURIComponent(id)}&role=realtor&email=${encodeURIComponent(userEmail)}&selected=${encodeURIComponent(Array.isArray(share.selected_finding_ids) ? share.selected_finding_ids.join(",") : "")}&share=${encodeURIComponent(String(share.id || ""))}`}
+                                    loadingText="Opening Request..."
+                                    className="rounded-xl border border-cyan-500 px-4 py-3 text-center text-sm font-black text-cyan-300 hover:bg-cyan-500/10"
+                                  >
+                                    Open Request
+                                  </FastLinkButton>
+
+                                  <FastLinkButton
+                                    href={`/repair-response/${share.token}`}
+                                    loadingText="Opening Response..."
+                                    className="rounded-xl border border-purple-500 px-4 py-3 text-center text-sm font-black text-purple-300 hover:bg-purple-500/10"
+                                  >
+                                    Open Response
+                                  </FastLinkButton>
+
+                                  <a
+                                    href={`/api/repair-request-addendum/${encodeURIComponent(share.token)}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-purple-400 px-4 py-3 text-center text-sm font-black text-purple-200 transition hover:bg-purple-500/10 active:scale-[0.98]"
+                                  >
+                                    {status === "responded" ? "View Addendum" : "Preview Addendum"}
+                                  </a>
+
+                                  <a
+                                    href={`/api/repair-request-addendum/${encodeURIComponent(share.token)}?download=1`}
+                                    className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-orange-400 px-4 py-3 text-center text-sm font-black text-orange-200 transition hover:bg-orange-500/10 active:scale-[0.98]"
+                                  >
+                                    Download
+                                  </a>
+
+                                  <div className="sm:col-span-2 lg:col-span-4">
+                                    <EmailAddendumButton
+                                      token={share.token}
+                                      ready={status === "responded"}
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : null}
                   </article>
                 );
               })
