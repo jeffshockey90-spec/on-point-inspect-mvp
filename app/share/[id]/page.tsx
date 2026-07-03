@@ -1615,6 +1615,14 @@ export default async function PublicSharePage({
                   >
                     ⚙ Maintenance
                   </a>
+                  {reportDisclaimers && reportDisclaimers.length > 0 && (
+                    <a
+                      href="#report-disclaimers"
+                      className="rounded-xl border border-purple-500/40 px-4 py-3 text-sm font-black text-purple-300 transition hover:bg-purple-500/10"
+                    >
+                      📝 Disclaimers
+                    </a>
+                  )}
                   <a
                     href="#inspection-findings"
                     className="rounded-xl border border-blue-500/40 px-4 py-3 text-sm font-black text-blue-300 transition hover:bg-blue-500/10"
