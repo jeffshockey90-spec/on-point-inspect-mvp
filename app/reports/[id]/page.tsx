@@ -29,7 +29,9 @@ import HouseRelationshipPanel from "../../../components/HouseRelationshipPanel";
 import LiveInspectionTimelinePanel from "../../../components/LiveInspectionTimelinePanel";
 import AIPublishGuardPanel from "../../../components/AIPublishGuardPanel";
 import PropertyPhotoUploader from "../../../components/PropertyPhotoUploader";
-import InspectorToolsDrawer from "../../../components/InspectorToolsDrawer";
+import InspectorToolsDrawer, {
+  type WorkspaceNotification,
+} from "../../../components/InspectorToolsDrawer";
 import { aiPublishGuard } from "../../../lib/ai/AIPublishGuard";
 
 export const dynamic = "force-dynamic";
@@ -2148,7 +2150,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
           },
         ]
       : []),
-  ];
+  ] satisfies WorkspaceNotification[];
 
   const inspectorWorkspaceBadge =
     inspectorWorkspaceNotifications.length > 0

@@ -20,7 +20,7 @@ type ToolItem = {
   tone?: ToolTone;
 };
 
-type WorkspaceNotification = {
+export type WorkspaceNotification = {
   id?: string;
   title: string;
   message?: string;
@@ -37,6 +37,11 @@ type WorkspaceCategory =
   | "profile"
   | "all";
 
+type EnrichedToolItem = ToolItem & {
+  category: WorkspaceCategory;
+  slug: string;
+};
+
 const toneClasses: Record<ToolTone, string> = {
   purple: "border-purple-400/50 bg-purple-500/10 text-purple-200",
   emerald: "border-emerald-400/50 bg-emerald-500/10 text-emerald-200",
@@ -50,7 +55,7 @@ const toneClasses: Record<ToolTone, string> = {
 };
 
 const urgencyStyles: Record<
-  string,
+  NonNullable<WorkspaceNotification["urgency"]>,
   {
     shell: string;
     icon: string;
@@ -98,14 +103,14 @@ const urgencyStyles: Record<
   },
 };
 
-function normalizeText(value: any) {
+function normalizeText(value: unknown) {
   return String(value || "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
 }
 
-function slugify(value: any) {
+function slugify(value: unknown) {
   return normalizeText(value).replace(/\s+/g, "-");
 }
 
@@ -129,12 +134,14 @@ function getCategoryForTool(item: ToolItem): WorkspaceCategory {
     text.includes("publish") ||
     text.includes("agreement") ||
     text.includes("payment") ||
-    text.includes("delivery")
+    text.includes("delivery") ||
+    text.includes("email") ||
+    text.includes("client portal")
   ) {
     return "delivery";
   }
 
-  if (text.includes("repair request") || text.includes("negotiation")) {
+  if (text.includes("repair request") || text.includes("negotiation") || text.includes("seller")) {
     return "negotiation";
   }
 
@@ -142,7 +149,8 @@ function getCategoryForTool(item: ToolItem): WorkspaceCategory {
     text.includes("engagement") ||
     text.includes("timeline") ||
     text.includes("activity") ||
-    text.includes("view")
+    text.includes("view") ||
+    text.includes("opened")
   ) {
     return "activity";
   }
@@ -156,7 +164,8 @@ function getCategoryForTool(item: ToolItem): WorkspaceCategory {
     text.includes("house") ||
     text.includes("finding") ||
     text.includes("intelligence") ||
-    text.includes("copilot")
+    text.includes("copilot") ||
+    text.includes("equipment")
   ) {
     return "ai";
   }
@@ -176,7 +185,7 @@ function getActionTitleForNotification(notification: WorkspaceNotification, item
 
   const rules: Array<[string[], string[]]> = [
     [["safety", "defect", "contradiction", "ai"], ["AI Report Review", "Live AI Inspector Assistant"]],
-    [["agreement", "signature", "payment", "publish", "delivery"], ["Final Publish Guard"]],
+    [["agreement", "signature", "payment", "publish", "delivery"], ["Final Publish Guard", "Report Delivery Guard"]],
     [["repair", "response", "seller", "addendum"], ["Repair Request History"]],
     [["view", "opened", "read", "engagement"], ["Report Engagement"]],
     [["sample", "public"], ["Sample Report"]],
@@ -234,6 +243,34 @@ function categoryIcon(category: WorkspaceCategory) {
   }
 }
 
+function getStatusTileStatus(title: string, notifications: WorkspaceNotification[]) {
+  const cleanTitle = normalizeText(title);
+  const matched = notifications.find((item) => {
+    const text = normalizeText(`${item.title} ${item.message || ""} ${item.badge || ""}`);
+    if (cleanTitle.includes("payment")) return text.includes("payment") || text.includes("due");
+    if (cleanTitle.includes("agreement")) return text.includes("agreement") || text.includes("signature");
+    if (cleanTitle.includes("publish")) return text.includes("publish") || text.includes("guard");
+    if (cleanTitle.includes("ai")) return text.includes("ai") || text.includes("safety") || text.includes("defect");
+    if (cleanTitle.includes("repair")) return text.includes("repair") || text.includes("seller");
+    if (cleanTitle.includes("client")) return text.includes("view") || text.includes("engagement") || text.includes("client");
+    return false;
+  });
+
+  if (!matched) return { label: "Ready", urgency: "success" as const, badge: "✓" };
+  return {
+    label: urgencyStyles[matched.urgency || "info"].label,
+    urgency: matched.urgency || "info",
+    badge: matched.badge || "!",
+  };
+}
+
+function getBestToolMatch(keywords: string[], items: EnrichedToolItem[]) {
+  return items.find((item) => {
+    const text = normalizeText(`${item.title} ${item.helper || ""}`);
+    return keywords.some((keyword) => text.includes(keyword));
+  });
+}
+
 export default function InspectorToolsDrawer({
   badge = "Ready",
   items = [],
@@ -255,10 +292,7 @@ export default function InspectorToolsDrawer({
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const attentionNotifications = useMemo(
-    () =>
-      notifications.filter((item) =>
-        ["critical", "warning", "info"].includes(item.urgency || "info")
-      ),
+    () => notifications.filter((item) => ["critical", "warning", "info"].includes(item.urgency || "info")),
     [notifications]
   );
 
@@ -284,6 +318,75 @@ export default function InspectorToolsDrawer({
       })),
     [items]
   );
+
+  const statusTiles = useMemo(
+    () =>
+      [
+        { title: "Payment", keywords: ["payment", "invoice", "due"] },
+        { title: "Agreements", keywords: ["agreement", "signature"] },
+        { title: "Publish Guard", keywords: ["publish", "guard", "delivery"] },
+        { title: "AI Review", keywords: ["ai", "review", "copilot", "inspector"] },
+        { title: "Repair Requests", keywords: ["repair request", "seller", "negotiation"] },
+        { title: "Client Views", keywords: ["engagement", "view", "opened", "activity"] },
+      ].map((tile) => ({
+        ...tile,
+        ...getStatusTileStatus(tile.title, attentionNotifications),
+        tool: getBestToolMatch(tile.keywords, enrichedItems),
+      })),
+    [attentionNotifications, enrichedItems]
+  );
+
+  const quickActions = useMemo(() => {
+    const preferred = [
+      ["Publish", ["publish", "guard"]],
+      ["Repair Request", ["repair request"]],
+      ["Email Report", ["email", "delivery", "send"]],
+      ["Executive Summary", ["executive", "summary", "realtor summary"]],
+      ["AI Capture", ["ai capture", "capture"]],
+      ["Field Tool", ["field tool", "finding"]],
+      ["Equipment Analyzer", ["equipment", "analyzer"]],
+      ["Client Portal", ["client portal"]],
+    ] as Array<[string, string[]]>;
+
+    const matches: EnrichedToolItem[] = [];
+
+    preferred.forEach(([, keywords]) => {
+      const match = getBestToolMatch(keywords, enrichedItems);
+      if (match && !matches.some((item) => item.title === match.title)) matches.push(match);
+    });
+
+    enrichedItems.forEach((item) => {
+      if (matches.length >= 8) return;
+      if (!matches.some((match) => match.title === item.title)) matches.push(item);
+    });
+
+    return matches.slice(0, 8);
+  }, [enrichedItems]);
+
+  const activityItems = useMemo(() => {
+    const notificationActivity = attentionNotifications.map((item) => ({
+      id: item.id || item.title,
+      title: item.title,
+      helper: item.message || "Workspace update ready to review.",
+      urgency: item.urgency || "info",
+      badge: item.badge || urgencyStyles[item.urgency || "info"].label,
+      notification: item,
+    }));
+
+    const toolActivity = enrichedItems
+      .filter((item) => item.badge)
+      .slice(0, 6)
+      .map((item) => ({
+        id: `tool-${item.slug}`,
+        title: item.title,
+        helper: item.helper || "Tool is available in the workspace.",
+        urgency: "success" as const,
+        badge: item.badge || "Ready",
+        tool: item,
+      }));
+
+    return [...notificationActivity, ...toolActivity].slice(0, 10);
+  }, [attentionNotifications, enrichedItems]);
 
   const categories = useMemo(() => {
     const set = new Set<WorkspaceCategory>(["all"]);
@@ -337,9 +440,7 @@ export default function InspectorToolsDrawer({
 
     window.addEventListener("keydown", handleKeyDown);
 
-    if (open) {
-      document.body.style.overflow = "hidden";
-    }
+    if (open) document.body.style.overflow = "hidden";
 
     return () => {
       document.body.style.overflow = "";
@@ -455,11 +556,8 @@ export default function InspectorToolsDrawer({
 
   function openNotification(notification: WorkspaceNotification) {
     const targetTitle = getActionTitleForNotification(notification, items);
-    if (targetTitle) {
-      openTool(targetTitle);
-    } else {
-      openWorkspace();
-    }
+    if (targetTitle) openTool(targetTitle);
+    else openWorkspace();
   }
 
   const totalBadgeText =
@@ -469,25 +567,30 @@ export default function InspectorToolsDrawer({
 
   return (
     <>
-      <section className="mb-8 overflow-hidden rounded-2xl border border-purple-500/50 bg-gradient-to-br from-purple-500/15 via-[#10172a] to-[#071224] shadow-xl">
+      <section className="mb-8 overflow-hidden rounded-[2rem] border border-cyan-400/30 bg-gradient-to-br from-cyan-500/12 via-[#10172a] to-[#050814] shadow-[0_30px_80px_rgba(0,0,0,0.35)]">
         <button
           type="button"
           onClick={openWorkspace}
-          className="group flex w-full flex-col gap-4 p-4 text-left sm:flex-row sm:items-center sm:justify-between"
+          className="group flex w-full flex-col gap-5 p-4 text-left sm:p-5 lg:flex-row lg:items-center lg:justify-between"
         >
           <div className="min-w-0">
-            <p className="text-[11px] font-black uppercase tracking-[0.24em] text-purple-200">
-              Inspector Workspace
-            </p>
-            <h2 className="mt-1 text-2xl font-black text-white">
-              Command Center
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-[11px] font-black uppercase tracking-[0.24em] text-cyan-200">
+                Inspector Command Center
+              </p>
+              <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-slate-300">
+                Ctrl K
+              </span>
+            </div>
+            <h2 className="mt-2 text-2xl font-black text-white sm:text-3xl">
+              Run the inspection business from here.
             </h2>
-            <p className="mt-1 text-sm leading-6 text-slate-300">
-              Review alerts, AI tools, publish guard, engagement, sample report, and repair request history without scrolling through every section.
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">
+              Report writing stays on the page. Delivery, signatures, payments, AI review, engagement, repair requests, and business tools live in one polished workspace.
             </p>
           </div>
 
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
             <span
               className={`rounded-full border px-3 py-1 text-xs font-black ${
                 needsAttention
@@ -497,15 +600,40 @@ export default function InspectorToolsDrawer({
             >
               {totalBadgeText}
             </span>
-            <span className="rounded-xl border border-purple-400 bg-[#020617] px-4 py-3 text-sm font-black text-purple-100 transition group-hover:bg-purple-500/10 active:scale-[0.98]">
-              Open Workspace →
+            <span className="rounded-2xl border border-cyan-300/70 bg-cyan-400/10 px-5 py-3 text-sm font-black text-cyan-100 transition group-hover:bg-cyan-400/20 active:scale-[0.98]">
+              Open Command Center →
             </span>
           </div>
         </button>
 
+        <div className="grid border-t border-cyan-400/15 bg-black/10 p-3 sm:grid-cols-2 lg:grid-cols-6">
+          {statusTiles.map((tile) => {
+            const style = urgencyStyles[tile.urgency] || urgencyStyles.success;
+            return (
+              <button
+                key={tile.title}
+                type="button"
+                onClick={() => (tile.tool ? openTool(tile.tool.title) : openWorkspace())}
+                className="rounded-2xl border border-transparent p-3 text-left transition hover:border-cyan-400/35 hover:bg-white/5 active:scale-[0.99]"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className={`h-2.5 w-2.5 rounded-full ${style.dot}`} />
+                  <span className={`rounded-full border px-2 py-0.5 text-[10px] font-black uppercase ${style.badge}`}>
+                    {tile.badge}
+                  </span>
+                </div>
+                <p className="mt-2 text-xs font-black uppercase tracking-[0.14em] text-slate-400">
+                  {tile.title}
+                </p>
+                <p className="mt-1 text-sm font-black text-white">{tile.label}</p>
+              </button>
+            );
+          })}
+        </div>
+
         {attentionNotifications.length > 0 ? (
-          <div className="border-t border-purple-400/20 px-4 pb-4">
-            <div className="grid gap-2 sm:grid-cols-3">
+          <div className="border-t border-cyan-400/15 px-4 pb-4">
+            <div className="grid gap-2 pt-4 sm:grid-cols-3">
               {attentionNotifications.slice(0, 3).map((item) => {
                 const style = urgencyStyles[item.urgency || "info"] || urgencyStyles.info;
 
@@ -514,7 +642,7 @@ export default function InspectorToolsDrawer({
                     key={item.id || item.title}
                     type="button"
                     onClick={() => openNotification(item)}
-                    className={`rounded-xl border px-3 py-2 text-left transition hover:scale-[1.01] active:scale-[0.99] ${style.shell}`}
+                    className={`rounded-2xl border px-3 py-3 text-left transition hover:scale-[1.01] active:scale-[0.99] ${style.shell}`}
                   >
                     <div className="flex items-center justify-between gap-2">
                       <p className="min-w-0 truncate text-xs font-black">{item.title}</p>
@@ -544,7 +672,7 @@ export default function InspectorToolsDrawer({
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="text-[10px] font-black uppercase tracking-[0.22em] opacity-80">
-                      Inspector Workspace
+                      Inspector Command Center
                     </p>
                     <span className={`rounded-full border px-2 py-0.5 text-[10px] font-black ${urgency.badge}`}>
                       {urgency.label}
@@ -602,23 +730,23 @@ export default function InspectorToolsDrawer({
         <div className="fixed inset-0 z-[100]">
           <button
             type="button"
-            aria-label="Close inspector workspace"
+            aria-label="Close inspector command center"
             onClick={() => setOpen(false)}
-            className="absolute inset-0 bg-black/75 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
           />
 
-          <aside className="absolute inset-y-0 right-0 flex w-full flex-col border-l border-slate-700 bg-[#071224] shadow-2xl sm:max-w-3xl xl:max-w-6xl">
-            <div className="shrink-0 border-b border-slate-800 bg-[#0f172a] p-4 sm:p-5">
+          <aside className="absolute inset-0 flex flex-col bg-[#071224] shadow-2xl lg:inset-4 lg:rounded-[2rem] lg:border lg:border-slate-700">
+            <div className="shrink-0 border-b border-slate-800 bg-gradient-to-r from-[#0f172a] via-[#0b1326] to-[#061826] p-4 sm:p-5">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-[11px] font-black uppercase tracking-[0.24em] text-teal-300">
                     On Point Inspect
                   </p>
-                  <h2 className="mt-1 text-2xl font-black text-white">
-                    Inspector Workspace
+                  <h2 className="mt-1 text-2xl font-black text-white sm:text-3xl">
+                    Inspector Command Center
                   </h2>
-                  <p className="mt-1 text-sm text-slate-400">
-                    Command center for review, delivery, negotiation, and report intelligence.
+                  <p className="mt-1 text-sm leading-6 text-slate-400">
+                    Business operations, report intelligence, delivery controls, repair requests, and activity in one workspace.
                   </p>
                 </div>
 
@@ -631,49 +759,30 @@ export default function InspectorToolsDrawer({
                 </button>
               </div>
 
-              {attentionNotifications.length > 0 ? (
-                <div className="mt-4 rounded-2xl border border-red-400/40 bg-red-500/10 p-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-xs font-black uppercase tracking-[0.22em] text-red-100">
-                      Needs Attention
-                    </p>
-                    <span className="rounded-full border border-red-300/60 bg-red-500/20 px-3 py-1 text-xs font-black text-red-100">
-                      {attentionNotifications.length}
-                    </span>
-                  </div>
+              <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-6">
+                {statusTiles.map((tile) => {
+                  const style = urgencyStyles[tile.urgency] || urgencyStyles.success;
+                  return (
+                    <button
+                      key={tile.title}
+                      type="button"
+                      onClick={() => (tile.tool ? openTool(tile.tool.title) : undefined)}
+                      className={`rounded-2xl border p-3 text-left transition hover:scale-[1.01] active:scale-[0.99] ${style.shell}`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[10px] font-black uppercase tracking-[0.14em] opacity-80">
+                          {tile.title}
+                        </span>
+                        <span className={`h-2.5 w-2.5 rounded-full ${style.dot}`} />
+                      </div>
+                      <p className="mt-2 text-sm font-black text-white">{tile.label}</p>
+                      <p className="mt-1 text-xs font-bold text-slate-300">{tile.badge}</p>
+                    </button>
+                  );
+                })}
+              </div>
 
-                  <div className="mt-3 grid gap-2 md:grid-cols-2">
-                    {attentionNotifications.map((item) => {
-                      const style = urgencyStyles[item.urgency || "info"] || urgencyStyles.info;
-
-                      return (
-                        <button
-                          key={item.id || item.title}
-                          type="button"
-                          onClick={() => openNotification(item)}
-                          className={`rounded-xl border px-3 py-3 text-left transition hover:scale-[1.01] active:scale-[0.99] ${style.shell}`}
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <p className="text-sm font-black text-white">{item.title}</p>
-                              {item.message ? (
-                                <p className="mt-1 text-xs leading-5 text-slate-300">{item.message}</p>
-                              ) : null}
-                            </div>
-                            {item.badge ? (
-                              <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-black uppercase ${style.badge}`}>
-                                {item.badge}
-                              </span>
-                            ) : null}
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              ) : null}
-
-              <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_280px]">
+              <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,1fr)_360px]">
                 <div className="flex gap-2 overflow-x-auto pb-1">
                   {categories.map((category) => {
                     const active = activeCategory === category;
@@ -708,92 +817,148 @@ export default function InspectorToolsDrawer({
                   <input
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
-                    placeholder="Search workspace..."
+                    placeholder="Search tools, sections, actions..."
                     className="h-[42px] w-full rounded-full border border-slate-700 bg-[#020617] pl-9 pr-3 text-sm font-bold text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-400"
                   />
                 </label>
               </div>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-hidden lg:grid lg:grid-cols-[320px_minmax(0,1fr)]">
-              <nav className="hidden min-h-0 overflow-y-auto border-r border-slate-800 bg-[#0b1220] p-4 lg:block">
-                <div className="space-y-2">
-                  {filteredItems.map((item) => {
-                    const active = activeTool === item.title;
-
-                    return (
+            <div className="min-h-0 flex-1 overflow-hidden xl:grid xl:grid-cols-[320px_minmax(0,1fr)_340px]">
+              <nav className="hidden min-h-0 overflow-y-auto border-r border-slate-800 bg-[#0b1220] p-4 xl:block">
+                <div>
+                  <p className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+                    Quick Actions
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {quickActions.slice(0, 8).map((item) => (
                       <button
                         key={item.title}
                         type="button"
                         onClick={() => openTool(item.title)}
-                        className={`w-full rounded-2xl border p-3 text-left transition active:scale-[0.99] ${
-                          active
-                            ? "border-cyan-300 bg-cyan-500/15 shadow-[0_0_22px_rgba(34,211,238,0.14)]"
-                            : "border-slate-700 bg-[#020617] hover:border-cyan-500/70 hover:bg-slate-900"
-                        }`}
+                        className="rounded-2xl border border-slate-700 bg-[#020617] p-3 text-left transition hover:border-cyan-400/70 hover:bg-cyan-500/10 active:scale-[0.99]"
                       >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="break-words text-sm font-black text-white">
-                              {item.title}
-                            </p>
-                            {item.helper ? (
-                              <p className="mt-1 text-xs leading-5 text-slate-400">
-                                {item.helper}
+                        <p className="line-clamp-2 text-xs font-black text-white">{item.title}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-5">
+                  <p className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+                    Workspace Tools
+                  </p>
+                  <div className="space-y-2">
+                    {filteredItems.map((item) => {
+                      const active = activeTool === item.title;
+
+                      return (
+                        <button
+                          key={item.title}
+                          type="button"
+                          onClick={() => openTool(item.title)}
+                          className={`w-full rounded-2xl border p-3 text-left transition active:scale-[0.99] ${
+                            active
+                              ? "border-cyan-300 bg-cyan-500/15 shadow-[0_0_22px_rgba(34,211,238,0.14)]"
+                              : "border-slate-700 bg-[#020617] hover:border-cyan-500/70 hover:bg-slate-900"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="break-words text-sm font-black text-white">
+                                {item.title}
                               </p>
+                              {item.helper ? (
+                                <p className="mt-1 text-xs leading-5 text-slate-400">
+                                  {item.helper}
+                                </p>
+                              ) : null}
+                            </div>
+                            {item.badge ? (
+                              <span
+                                className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-black uppercase ${
+                                  toneClasses[item.tone || "slate"] || toneClasses.slate
+                                }`}
+                              >
+                                {item.badge}
+                              </span>
                             ) : null}
                           </div>
-                          {item.badge ? (
-                            <span
-                              className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-black uppercase ${
-                                toneClasses[item.tone || "slate"] || toneClasses.slate
-                              }`}
-                            >
-                              {item.badge}
-                            </span>
-                          ) : null}
-                        </div>
-                      </button>
-                    );
-                  })}
+                        </button>
+                      );
+                    })}
 
-                  {filteredItems.length === 0 ? (
-                    <div className="rounded-2xl border border-slate-700 bg-[#020617] p-4 text-sm font-bold text-slate-400">
-                      No workspace tools match that search.
-                    </div>
-                  ) : null}
+                    {filteredItems.length === 0 ? (
+                      <div className="rounded-2xl border border-slate-700 bg-[#020617] p-4 text-sm font-bold text-slate-400">
+                        No workspace tools match that search.
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
               </nav>
 
               <div className="min-h-0 overflow-y-auto scroll-smooth p-4 sm:p-5" ref={bodyRef}>
-                <div className="mb-4 flex gap-2 overflow-x-auto pb-1 lg:hidden">
-                  {filteredItems.map((item) => (
+                <div className="mb-4 flex gap-2 overflow-x-auto pb-1 xl:hidden">
+                  {quickActions.map((item) => (
                     <button
                       key={item.title}
                       type="button"
                       onClick={() => openTool(item.title)}
-                      className={`flex shrink-0 items-center gap-2 rounded-full border px-3 py-2 text-xs font-black transition active:scale-[0.98] ${
-                        activeTool === item.title
-                          ? "border-cyan-300 bg-cyan-500/15 text-cyan-100"
-                          : "border-slate-700 bg-[#020617] text-slate-300 hover:border-cyan-400 hover:text-cyan-200"
-                      }`}
+                      className="flex shrink-0 items-center gap-2 rounded-full border border-cyan-400/40 bg-cyan-500/10 px-3 py-2 text-xs font-black text-cyan-100 transition active:scale-[0.98]"
                     >
-                      <span>{item.title}</span>
-                      {item.badge ? (
-                        <span
-                          className={`rounded-full border px-2 py-0.5 text-[10px] font-black uppercase ${
-                            toneClasses[item.tone || "slate"] || toneClasses.slate
-                          }`}
-                        >
-                          {item.badge}
-                        </span>
-                      ) : null}
+                      {item.title}
                     </button>
                   ))}
                 </div>
 
                 {children}
               </div>
+
+              <aside className="hidden min-h-0 overflow-y-auto border-l border-slate-800 bg-[#08111f] p-4 xl:block">
+                <div className="rounded-3xl border border-slate-700 bg-[#020617] p-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">
+                    Activity Feed
+                  </p>
+                  <h3 className="mt-1 text-lg font-black text-white">What changed</h3>
+
+                  <div className="mt-4 space-y-3">
+                    {activityItems.length > 0 ? (
+                      activityItems.map((item) => {
+                        const activityUrgency = (item.urgency || "info") as NonNullable<WorkspaceNotification["urgency"]>;
+                        const style = urgencyStyles[activityUrgency] || urgencyStyles.info;
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => {
+                              if ("notification" in item && item.notification) openNotification(item.notification);
+                              if ("tool" in item && item.tool) openTool(item.tool.title);
+                            }}
+                            className="w-full rounded-2xl border border-slate-700 bg-slate-950/80 p-3 text-left transition hover:border-cyan-400/60 hover:bg-slate-900 active:scale-[0.99]"
+                          >
+                            <div className="flex items-start gap-3">
+                              <span className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${style.dot}`} />
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center justify-between gap-2">
+                                  <p className="truncate text-sm font-black text-white">{item.title}</p>
+                                  <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-black ${style.badge}`}>
+                                    {item.badge}
+                                  </span>
+                                </div>
+                                <p className="mt-1 text-xs leading-5 text-slate-400">{item.helper}</p>
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })
+                    ) : (
+                      <p className="rounded-2xl border border-slate-700 bg-slate-950 p-3 text-sm font-bold text-slate-400">
+                        No major workspace activity yet.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </aside>
             </div>
           </aside>
         </div>
