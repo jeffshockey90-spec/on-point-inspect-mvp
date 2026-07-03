@@ -1957,6 +1957,28 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
     { total: 0, safety: 0, repair: 0, maintenance: 0, information: 0 },
   );
 
+  const unresolvedSafetyFindings = defectFindings.filter((finding: any) => {
+    const severity = String(finding.severity || "").toLowerCase();
+    const reviewed =
+      finding.command_center_reviewed === true ||
+      finding.reviewed === true ||
+      finding.resolved === true ||
+      finding.is_resolved === true ||
+      Boolean(finding.reviewed_at || finding.resolved_at || finding.closed_at);
+
+    if (reviewed) return false;
+
+    return (
+      severity.includes("safety") ||
+      severity.includes("hazard") ||
+      severity.includes("major")
+    );
+  });
+
+  const unresolvedSafetyFindingIds = unresolvedSafetyFindings
+    .map((finding: any) => finding.id)
+    .filter(Boolean);
+
   const rawPropertyPhoto =
     inspection.property_image ||
     inspection.street_view_url ||
@@ -2086,10 +2108,13 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
     Boolean(inspection.client_email || inspection.client_name) &&
     signedAgreements.length === 0;
 
-  const repairResponseReadyCount = repairRequestHistory.filter((item: any) => {
+  const repairResponsesReady = repairRequestHistory.filter((item: any) => {
     const status = String(item.status || "").toLowerCase();
     return status.includes("responded") || status.includes("seller") || status.includes("fully");
-  }).length;
+  });
+
+  const repairResponseReadyCount = repairResponsesReady.length;
+  const firstRepairResponseReady = repairResponsesReady[0] || null;
 
   const inspectorWorkspaceNotifications = [
     ...(paymentNeedsAttention
@@ -2103,6 +2128,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                 : "Payment is not marked complete yet.",
             urgency: "critical" as const,
             badge: paymentDueAmount > 0 ? formatRepairMoney(paymentDueAmount) : "Due",
+            targetAnchor: "payment-invoice",
           },
         ]
       : []),
@@ -2114,6 +2140,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
             message: "No signed client agreement is saved for this inspection yet.",
             urgency: "critical" as const,
             badge: "Required",
+            targetAnchor: "agreement-status",
           },
         ]
       : []),
@@ -2125,17 +2152,22 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
             message: "The report was stopped or flagged before publishing. Review the guard details.",
             urgency: "critical" as const,
             badge: "Review",
+            targetAnchor: "publish-guard",
           },
         ]
       : []),
-    ...(defectTotals.safety > 0
+    ...(unresolvedSafetyFindingIds.length > 0
       ? [
           {
             id: "safety-findings",
             title: "Safety items detected",
-            message: `${defectTotals.safety} safety/major item${defectTotals.safety === 1 ? "" : "s"} should be reviewed before publishing.`,
+            message: `${unresolvedSafetyFindingIds.length} safety/major item${unresolvedSafetyFindingIds.length === 1 ? "" : "s"} should be reviewed before publishing.`,
             urgency: "warning" as const,
-            badge: `${defectTotals.safety}`,
+            badge: `${unresolvedSafetyFindingIds.length}`,
+            targetAnchor: unresolvedSafetyFindingIds[0]
+              ? `finding-${unresolvedSafetyFindingIds[0]}`
+              : "report-findings",
+            findingIds: unresolvedSafetyFindingIds,
           },
         ]
       : []),
@@ -2147,6 +2179,10 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
             message: `${repairResponseReadyCount} repair request${repairResponseReadyCount === 1 ? "" : "s"} have responses or signatures ready to review.`,
             urgency: "info" as const,
             badge: `${repairResponseReadyCount}`,
+            targetAnchor: firstRepairResponseReady?.share?.id
+              ? `repair-request-${firstRepairResponseReady.share.id}`
+              : "repair-request-history",
+            repairRequestId: firstRepairResponseReady?.share?.id,
           },
         ]
       : []),
@@ -2331,7 +2367,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
               {
                 title: "Live AI Inspector Assistant",
                 helper: "Missing items and publish readiness",
-                badge: defectTotals.safety > 0 ? `${defectTotals.safety} safety` : "AI checks",
+                badge: unresolvedSafetyFindingIds.length > 0 ? `${unresolvedSafetyFindingIds.length} safety` : "AI checks",
                 tone: "yellow",
               },
               {
@@ -2366,6 +2402,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
               },
             ]}
           >
+          <div id="repair-request-history" data-command-target="repair-request-history">
           <AttentionPanel
             title="Repair Request History"
             eyebrow="Negotiation"
@@ -2393,6 +2430,8 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                   return (
                     <div
                       key={share.id || share.token}
+                      id={share.id ? `repair-request-${share.id}` : undefined}
+                      data-command-target={share.id ? `repair-request-${share.id}` : undefined}
                       className="rounded-2xl border border-slate-700 bg-[#020617] p-4"
                     >
                       <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
@@ -2507,7 +2546,9 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
               </div>
             )}
           </AttentionPanel>
+          </div>
 
+          <div id="ai-report-review" data-command-target="ai-report-review">
           <AttentionPanel
             title="AI Report Review"
             badge={defectTotals.total > 0 ? `${defectTotals.total} defects` : "Ready"}
@@ -2515,6 +2556,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
           >
             <AIReportReviewPanel inspectionId={String(inspection.id)} />
           </AttentionPanel>
+          </div>
 
           <AttentionPanel
             title="House Intelligence"
@@ -2548,6 +2590,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
             <LiveInspectionTimelinePanel inspectionId={String(inspection.id)} />
           </AttentionPanel>
 
+          <div id="publish-guard" data-command-target="publish-guard">
           <AttentionPanel
             title="Final Publish Guard"
             badge={reportIsPublished ? "Complete" : publishGuardNeedsAttention ? "Needs Attention" : "Review Before Publish"}
@@ -2556,6 +2599,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
           >
             <AIPublishGuardPanel inspectionId={String(inspection.id)} />
           </AttentionPanel>
+          </div>
 
           <AttentionPanel
             title="Sample Report"
@@ -2853,6 +2897,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
             }
           />
 
+          <div id="agreement-status" data-command-target="agreement-status">
           <AgreementSelector
             inspectionId={String(inspection.id)}
             initialAgreementState={inspection.agreement_state}
@@ -2862,6 +2907,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
           />
 
           <AgreementStatusPanel inspectionId={String(inspection.id)} />
+          </div>
 
           <section className="mb-6 rounded-2xl border border-emerald-500/40 bg-[#071224] p-4 shadow-xl">
             <div className="flex flex-wrap items-start justify-between gap-4">
@@ -2920,9 +2966,13 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
             )}
           </section>
 
+          <div id="report-delivery-guard" data-command-target="report-delivery-guard">
           <ReportDeliveryGuard inspectionId={String(inspection.id)} />
+          </div>
 
+          <div id="payment-invoice" data-command-target="payment-invoice">
           <PaymentInvoicePanel inspection={inspection} />
+          </div>
 
           <section className="mb-6 overflow-hidden rounded-2xl border border-slate-700 bg-[#071224]">
             {propertyPhotoUpdated && (
@@ -3267,7 +3317,9 @@ Service-life information is a general industry estimate only. Actual service lif
           </form>
         </div>
 
-        <ReportFindingsSortable groupedFindings={groupedFindingsArray} />
+        <div id="report-findings" data-command-target="report-findings">
+          <ReportFindingsSortable groupedFindings={groupedFindingsArray} />
+        </div>
       </div>
     </main>
   );

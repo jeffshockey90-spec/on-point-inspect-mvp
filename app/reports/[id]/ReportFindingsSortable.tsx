@@ -22,6 +22,39 @@ const SEVERITIES = [
 
 const AUTO_PREVIEW_PHOTO_LIMIT = 1;
 
+function commandSlug(value: any) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function getFindingAnchor(finding: any) {
+  return `finding-${String(finding?.id || "").trim()}`;
+}
+
+function getReviewedFindingStorageKey() {
+  return "opi-command-center-reviewed-findings";
+}
+
+function markFindingReviewedForCommandCenter(findingId: any) {
+  if (typeof window === "undefined") return;
+
+  const id = String(findingId || "").trim();
+  if (!id) return;
+
+  try {
+    const raw = window.localStorage.getItem(getReviewedFindingStorageKey());
+    const values = raw ? JSON.parse(raw) : [];
+    const ids = new Set((Array.isArray(values) ? values : []).map((value) => String(value)));
+    ids.add(id);
+    window.localStorage.setItem(getReviewedFindingStorageKey(), JSON.stringify(Array.from(ids)));
+  } catch {}
+
+  window.dispatchEvent(new CustomEvent("opi:finding-reviewed", { detail: { findingId: id } }));
+}
+
+
 const EditableFinding = dynamic(() => import("../../../components/EditableFinding"), {
   ssr: false,
   loading: () => (
@@ -105,6 +138,62 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
     return photos;
   }, [allFindings, photoPickerLoaded]);
 
+  useEffect(() => {
+    function openTargetFromHash(rawTarget?: string) {
+      const target = String(rawTarget || window.location.hash || "").replace(/^#/, "").trim();
+      if (!target) return;
+
+      let targetFindingId = "";
+      if (target.startsWith("finding-")) targetFindingId = target.replace("finding-", "");
+
+      if (targetFindingId) {
+        const matchedGroup = (orderedGroups || []).find((group: any) =>
+          (group.findings || []).some((finding: any) => String(finding.id) === targetFindingId)
+        );
+
+        if (matchedGroup?.section) {
+          setClosedSections((prev) => ({ ...prev, [matchedGroup.section]: false }));
+        }
+      } else if (target.startsWith("report-section-")) {
+        const sectionSlug = target.replace("report-section-", "");
+        const matchedGroup = (orderedGroups || []).find((group: any) => commandSlug(group.section) === sectionSlug);
+        if (matchedGroup?.section) {
+          setClosedSections((prev) => ({ ...prev, [matchedGroup.section]: false }));
+        }
+      }
+
+      window.setTimeout(() => {
+        const element = document.getElementById(target);
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth", block: "center" });
+          element.classList.add("ring-4", "ring-cyan-300", "ring-offset-4", "ring-offset-slate-950");
+          window.setTimeout(() => {
+            element.classList.remove("ring-4", "ring-cyan-300", "ring-offset-4", "ring-offset-slate-950");
+          }, 2200);
+        }
+      }, 180);
+    }
+
+    function handleHashChange() {
+      openTargetFromHash();
+    }
+
+    function handleCommandJump(event: Event) {
+      const detail = (event as CustomEvent)?.detail || {};
+      const firstFindingId = Array.isArray(detail.findingIds) ? detail.findingIds[0] : "";
+      openTargetFromHash(detail.targetAnchor || (firstFindingId ? `finding-${firstFindingId}` : ""));
+    }
+
+    window.addEventListener("hashchange", handleHashChange);
+    window.addEventListener("opi:command-center-jump", handleCommandJump as EventListener);
+    openTargetFromHash();
+
+    return () => {
+      window.removeEventListener("hashchange", handleHashChange);
+      window.removeEventListener("opi:command-center-jump", handleCommandJump as EventListener);
+    };
+  }, [orderedGroups]);
+
   function toggleSection(section: string) {
     setClosedSections((prev) => ({
       ...prev,
@@ -174,7 +263,7 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
   }
 
   return (
-    <div className="w-full max-w-full space-y-6 overflow-hidden">
+    <div id="report-findings-editor" data-command-target="report-findings" className="w-full max-w-full space-y-6 overflow-hidden">
       <div className="flex w-full flex-col gap-3 rounded-2xl border border-slate-700 bg-[#0f172a] p-4 sm:flex-row sm:flex-wrap">
         <button
           type="button"
@@ -205,6 +294,8 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
         return (
           <section
             key={group.section}
+            id={`report-section-${commandSlug(group.section)}`}
+            data-command-target={`report-section-${commandSlug(group.section)}`}
             draggable
             onDragStart={() => handleDragStart(group.section)}
             onDragOver={handleDragOver}
@@ -1013,6 +1104,37 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
     ? photos
     : photos.slice(0, AUTO_PREVIEW_PHOTO_LIMIT);
 
+  const findingAnchor = getFindingAnchor(finding);
+  const isSafetyOrMajor = String(finding.severity || "").toLowerCase().includes("safety") ||
+    String(finding.severity || "").toLowerCase().includes("major") ||
+    String(finding.severity || "").toLowerCase().includes("hazard");
+
+  useEffect(() => {
+    function openIfTargeted(event?: Event) {
+      const detail = (event as CustomEvent)?.detail || {};
+      const targetAnchor = String(detail.targetAnchor || window.location.hash || "").replace(/^#/, "");
+      const findingIds = Array.isArray(detail.findingIds) ? detail.findingIds.map((value: any) => String(value)) : [];
+      const shouldOpen = targetAnchor === findingAnchor || findingIds.includes(String(finding.id));
+
+      if (!shouldOpen) return;
+
+      setExpanded(true);
+      window.setTimeout(() => {
+        const element = document.getElementById(findingAnchor);
+        if (element) element.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 150);
+    }
+
+    window.addEventListener("hashchange", openIfTargeted);
+    window.addEventListener("opi:command-center-jump", openIfTargeted as EventListener);
+    openIfTargeted();
+
+    return () => {
+      window.removeEventListener("hashchange", openIfTargeted);
+      window.removeEventListener("opi:command-center-jump", openIfTargeted as EventListener);
+    };
+  }, [finding.id, findingAnchor]);
+
   function showMessage(type: "success" | "error", text: string) {
     setMessageType(type);
     setMessage(text);
@@ -1199,6 +1321,9 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
   if (!expanded) {
     return (
       <article
+        id={findingAnchor}
+        data-command-target={findingAnchor}
+        data-finding-id={String(finding.id || "")}
         onDragOver={(event) => {
           event.preventDefault();
           event.stopPropagation();
@@ -1310,6 +1435,9 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
 
   return (
     <article
+      id={findingAnchor}
+      data-command-target={findingAnchor}
+      data-finding-id={String(finding.id || "")}
       onDragOver={(event) => {
         event.preventDefault();
         event.stopPropagation();
@@ -1329,7 +1457,20 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
     >
       <div className="p-3 pb-0 sm:p-4 sm:pb-0">
         <InlineStatusMessage type={messageType} message={message} />
-        <div className="mb-3 flex justify-end">
+        <div className="mb-3 flex flex-wrap justify-end gap-2">
+          {isSafetyOrMajor && (
+            <button
+              type="button"
+              onClick={() => {
+                markFindingReviewedForCommandCenter(finding.id);
+                showMessage("success", "Marked reviewed in Command Center. If the finding is still a safety concern, update the severity or recommendation before publishing.");
+              }}
+              className="rounded-xl border border-emerald-500 bg-emerald-500/10 px-4 py-2 text-sm font-black text-emerald-300 hover:bg-emerald-500 hover:text-slate-950"
+            >
+              Mark Reviewed
+            </button>
+          )}
+
           <button
             type="button"
             onClick={() => setExpanded(false)}

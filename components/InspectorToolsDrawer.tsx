@@ -26,6 +26,12 @@ export type WorkspaceNotification = {
   message?: string;
   urgency?: "critical" | "warning" | "info" | "success";
   badge?: string;
+  /** Direct page target. Example: agreement-status, payment-invoice, publish-guard, report-findings. */
+  targetAnchor?: string;
+  /** Finding ids that still need action. The drawer removes ids marked reviewed locally. */
+  findingIds?: Array<string | number>;
+  /** Optional repair request id for direct repair request routing. */
+  repairRequestId?: string | number;
 };
 
 type WorkspaceCategory =
@@ -113,6 +119,72 @@ function normalizeText(value: unknown) {
 function slugify(value: unknown) {
   return normalizeText(value).replace(/\s+/g, "-");
 }
+
+function getReviewedFindingStorageKey() {
+  return "opi-command-center-reviewed-findings";
+}
+
+function readReviewedFindingIds() {
+  if (typeof window === "undefined") return new Set<string>();
+
+  try {
+    const raw = window.localStorage.getItem(getReviewedFindingStorageKey());
+    const values = raw ? JSON.parse(raw) : [];
+    return new Set((Array.isArray(values) ? values : []).map((value) => String(value)));
+  } catch {
+    return new Set<string>();
+  }
+}
+
+function writeReviewedFindingIds(ids: Set<string>) {
+  if (typeof window === "undefined") return;
+
+  try {
+    window.localStorage.setItem(getReviewedFindingStorageKey(), JSON.stringify(Array.from(ids)));
+  } catch {}
+}
+
+function getNotificationRemainingFindingIds(notification: WorkspaceNotification, reviewedIds: Set<string>) {
+  return (notification.findingIds || [])
+    .map((value) => String(value))
+    .filter((value) => value && !reviewedIds.has(value));
+}
+
+function getHashTargetForNotification(notification: WorkspaceNotification, reviewedIds = new Set<string>()) {
+  const remainingFindingIds = getNotificationRemainingFindingIds(notification, reviewedIds);
+
+  if (remainingFindingIds.length > 0) return `finding-${remainingFindingIds[0]}`;
+  if (notification.repairRequestId) return `repair-request-${notification.repairRequestId}`;
+  if (notification.targetAnchor) return notification.targetAnchor;
+
+  const text = normalizeText(`${notification.id || ""} ${notification.title} ${notification.message || ""}`);
+
+  if (text.includes("agreement") || text.includes("signature")) return "agreement-status";
+  if (text.includes("payment") || text.includes("invoice") || text.includes("due")) return "payment-invoice";
+  if (text.includes("repair") || text.includes("seller") || text.includes("addendum")) return "repair-request-history";
+  if (text.includes("publish") || text.includes("guard") || text.includes("blocked")) return "publish-guard";
+  if (text.includes("safety") || text.includes("defect") || text.includes("major") || text.includes("finding")) return "report-findings";
+  if (text.includes("view") || text.includes("engagement") || text.includes("client")) return "report-engagement";
+
+  return "";
+}
+
+function flashElement(element: HTMLElement) {
+  const previousOutline = element.style.outline;
+  const previousOutlineOffset = element.style.outlineOffset;
+  const previousBoxShadow = element.style.boxShadow;
+
+  element.style.outline = "3px solid rgba(34, 211, 238, 0.95)";
+  element.style.outlineOffset = "6px";
+  element.style.boxShadow = "0 0 0 9999px rgba(2, 6, 23, 0.16), 0 0 34px rgba(34, 211, 238, 0.55)";
+
+  window.setTimeout(() => {
+    element.style.outline = previousOutline;
+    element.style.outlineOffset = previousOutlineOffset;
+    element.style.boxShadow = previousBoxShadow;
+  }, 2200);
+}
+
 
 
 function getCategoryForTool(item: ToolItem): WorkspaceCategory {
@@ -437,10 +509,54 @@ export default function InspectorToolsDrawer({
   const [activeCategory, setActiveCategory] = useState<WorkspaceCategory>("all");
   const [activeTool, setActiveTool] = useState("");
   const bodyRef = useRef<HTMLDivElement | null>(null);
+  const [reviewedFindingIds, setReviewedFindingIds] = useState<Set<string>>(() => readReviewedFindingIds());
+
+  useEffect(() => {
+    function handleReviewedFinding(event: Event) {
+      const detail = (event as CustomEvent)?.detail || {};
+      const findingId = String(detail.findingId || "");
+      if (!findingId) return;
+
+      setReviewedFindingIds((prev) => {
+        const next = new Set<string>(prev);
+        next.add(findingId);
+        writeReviewedFindingIds(next);
+        return next;
+      });
+    }
+
+    window.addEventListener("opi:finding-reviewed", handleReviewedFinding as EventListener);
+    window.addEventListener("storage", () => setReviewedFindingIds(readReviewedFindingIds()));
+
+    return () => {
+      window.removeEventListener("opi:finding-reviewed", handleReviewedFinding as EventListener);
+    };
+  }, []);
+
+  const normalizedNotifications = useMemo(() => {
+    return notifications
+      .map((item) => {
+        const remainingFindingIds = getNotificationRemainingFindingIds(item, reviewedFindingIds);
+
+        if (item.findingIds?.length) {
+          if (remainingFindingIds.length === 0) return null;
+
+          return {
+            ...item,
+            badge: String(remainingFindingIds.length),
+            findingIds: remainingFindingIds,
+            message: `${remainingFindingIds.length} safety/major item${remainingFindingIds.length === 1 ? "" : "s"} still need review.`,
+          };
+        }
+
+        return item;
+      })
+      .filter(Boolean) as WorkspaceNotification[];
+  }, [notifications, reviewedFindingIds]);
 
   const attentionNotifications = useMemo(
-    () => notifications.filter((item) => ["critical", "warning", "info"].includes(item.urgency || "info")),
-    [notifications]
+    () => normalizedNotifications.filter((item) => ["critical", "warning", "info"].includes(item.urgency || "info")),
+    [normalizedNotifications]
   );
 
   const enrichedItems = useMemo(
@@ -585,7 +701,7 @@ export default function InspectorToolsDrawer({
   useEffect(() => {
     if (!open || !bodyRef.current) return;
 
-    const details = Array.from(bodyRef.current.querySelectorAll("details"));
+    const details = Array.from(bodyRef.current.querySelectorAll("details")) as HTMLDetailsElement[];
 
     details.forEach((detail) => {
       const summaryText = normalizeText(detail.querySelector("summary")?.textContent || "");
@@ -663,34 +779,57 @@ export default function InspectorToolsDrawer({
     }, 80);
   }
 
-  function jumpToReportTarget(target: ReportJumpTarget) {
+  function jumpToReportAnchor(notification: WorkspaceNotification) {
+    const targetAnchor = getHashTargetForNotification(notification, reviewedFindingIds);
+    if (!targetAnchor) return false;
+
     setOpen(false);
 
     window.setTimeout(() => {
-      const element = findReportTargetElement(target);
+      const hash = `#${targetAnchor}`;
 
-      if (!element) {
-        if (target.fallbackTool) openTool(target.fallbackTool);
-        return;
+      try {
+        window.history.replaceState(null, "", hash);
+      } catch {}
+
+      window.dispatchEvent(
+        new CustomEvent("opi:command-center-jump", {
+          detail: {
+            targetAnchor,
+            notification,
+            findingIds: notification.findingIds || [],
+            repairRequestId: notification.repairRequestId || null,
+          },
+        })
+      );
+
+      const element = document.getElementById(targetAnchor) || document.querySelector(`[data-command-target="${CSS.escape(targetAnchor)}"]`);
+
+      if (element instanceof HTMLElement) {
+        element.scrollIntoView({ behavior: "smooth", block: "center" });
+        flashElement(element);
       }
+    }, 140);
 
-      element.scrollIntoView({ behavior: "smooth", block: "start" });
-      flashReportTarget(element);
-
-      const id = element.id || target.anchors[0] || "";
-      if (id) {
-        try {
-          window.history.replaceState(null, "", `#${id}`);
-        } catch {}
-      }
-    }, 160);
+    return true;
   }
 
   function openNotification(notification: WorkspaceNotification) {
+    if (jumpToReportAnchor(notification)) return;
+
     const reportTarget = getReportJumpTargetForNotification(notification);
 
     if (reportTarget) {
-      jumpToReportTarget(reportTarget);
+      setOpen(false);
+      window.setTimeout(() => {
+        const element = findReportTargetElement(reportTarget);
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth", block: "start" });
+          flashReportTarget(element);
+        } else if (reportTarget.fallbackTool) {
+          openTool(reportTarget.fallbackTool);
+        }
+      }, 160);
       return;
     }
 
