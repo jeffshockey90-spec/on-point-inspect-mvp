@@ -40,6 +40,14 @@ type PageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
+type WorkspaceNotification = {
+  id: string;
+  title: string;
+  message: string;
+  badge?: string;
+  urgency?: "info" | "warning" | "critical" | "success";
+};
+
 const SECTION_ORDER = [
   "Inspection Details",
   "Exterior",
@@ -2089,7 +2097,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
     return status.includes("responded") || status.includes("seller") || status.includes("fully");
   }).length;
 
-  const inspectorWorkspaceNotifications = [
+  const inspectorWorkspaceNotifications: WorkspaceNotification[] = [
     ...(paymentNeedsAttention
       ? [
           {
