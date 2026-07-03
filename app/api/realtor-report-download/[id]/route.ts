@@ -1067,43 +1067,82 @@ function getDownloadName(property: string, reportMode: "agent" | "full") {
 export async function GET(req: Request, { params }: RouteProps) {
   try {
     const { id } = await params;
-    const inspectionId = cleanText(id);
+    const lookupValue = cleanText(id);
     const url = new URL(req.url);
     const reportMode = url.searchParams.get("type") === "full" ? "full" : "agent";
 
-    if (!inspectionId) {
-      return NextResponse.json({ error: "Missing inspection ID." }, { status: 400 });
+    if (!lookupValue) {
+      return NextResponse.json({ error: "Missing report token." }, { status: 400 });
     }
 
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
       return NextResponse.json({ error: "Missing SUPABASE_SERVICE_ROLE_KEY." }, { status: 500 });
     }
 
-    const authClient = await createSupabaseServerClient();
-    const {
-      data: { user },
-    } = await authClient.auth.getUser();
-
-    if (!user?.email) {
-      return NextResponse.json({ error: "You must be logged in." }, { status: 401 });
-    }
-
-    const userEmail = cleanEmail(user.email);
     const admin = createAdminClient();
 
-    const { data: inspection, error: inspectionError } = await admin
+    // Public downloads are authorized by the same secure report token used to open the share page.
+    // Numeric IDs are only accepted for logged-in inspectors/linked realtor portal users.
+    const { data: tokenInspection, error: tokenInspectionError } = await admin
       .from("inspections")
       .select("*")
-      .eq("id", inspectionId)
+      .or(
+        [
+          `public_share_token.eq.${lookupValue}`,
+          `share_token.eq.${lookupValue}`,
+          `report_share_token.eq.${lookupValue}`,
+        ].join(",")
+      )
       .maybeSingle();
 
-    if (inspectionError || !inspection) {
+    if (tokenInspectionError) {
+      console.error("Secure report token lookup error:", tokenInspectionError);
+    }
+
+    let inspection = tokenInspection || null;
+    let inspectionId = inspection ? cleanText(inspection.id) : "";
+    let allowedByShareToken = Boolean(inspection);
+    let user: any = null;
+    let userEmail = "";
+
+    if (!inspection) {
+      if (!/^\d+$/.test(lookupValue)) {
+        return NextResponse.json({ error: "Report link is invalid or expired." }, { status: 404 });
+      }
+
+      const authClient = await createSupabaseServerClient();
+      const authResult = await authClient.auth.getUser();
+      user = authResult.data.user;
+      userEmail = cleanEmail(user?.email);
+
+      if (!user?.email) {
+        return NextResponse.json({ error: "This download link requires a valid shared report link." }, { status: 401 });
+      }
+
+      inspectionId = lookupValue;
+
+      const { data: inspectionById, error: inspectionError } = await admin
+        .from("inspections")
+        .select("*")
+        .eq("id", inspectionId)
+        .maybeSingle();
+
+      if (inspectionError || !inspectionById) {
+        return NextResponse.json({ error: "Inspection not found." }, { status: 404 });
+      }
+
+      inspection = inspectionById;
+    }
+
+    if (!inspection || !inspectionId) {
       return NextResponse.json({ error: "Inspection not found." }, { status: 404 });
     }
 
     let secureShareToken = getInspectionShareToken(inspection);
 
-    if (!secureShareToken) {
+    // Only create a missing token when a logged-in authorized user is downloading by numeric ID.
+    // Public/token downloads never expose or create predictable numeric access.
+    if (!secureShareToken && !allowedByShareToken && user?.email) {
       secureShareToken = randomUUID().replace(/-/g, "");
 
       const { error: tokenError } = await admin
@@ -1118,11 +1157,15 @@ export async function GET(req: Request, { params }: RouteProps) {
       }
     }
 
-    let allowed =
-      inspectionBelongsToUser(inspection, user) ||
-      inspectionHasRealtorEmail(inspection, userEmail);
+    let allowed = allowedByShareToken;
 
     if (!allowed) {
+      allowed =
+        inspectionBelongsToUser(inspection, user) ||
+        inspectionHasRealtorEmail(inspection, userEmail);
+    }
+
+    if (!allowed && userEmail) {
       const { data: contact } = await admin
         .from("inspection_contacts")
         .select("id, role, email, portal_access")
