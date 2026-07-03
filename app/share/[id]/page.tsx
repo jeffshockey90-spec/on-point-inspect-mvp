@@ -1524,6 +1524,45 @@ export default async function PublicSharePage({
             </div>
           </section>
 
+          {reportDisclaimers && reportDisclaimers.length > 0 && (
+            <section id="report-disclaimers" className="mt-8 rounded-2xl border border-purple-500/40 bg-[#071224] p-6 shadow-xl">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm font-bold uppercase tracking-[0.3em] text-purple-300">
+                    Important Report Disclaimers
+                  </p>
+                  <h2 className="mt-2 text-3xl font-black text-white">
+                    Scope, Limitations, and Age-Based Notices
+                  </h2>
+                  <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
+                    These disclaimers are part of the inspection report and should be reviewed with the same importance as the findings below.
+                  </p>
+                </div>
+
+                <span className="rounded-full border border-purple-400/60 bg-purple-500/15 px-4 py-2 text-sm font-black text-purple-100">
+                  {reportDisclaimers.length} notice{reportDisclaimers.length === 1 ? "" : "s"}
+                </span>
+              </div>
+
+              <div className="mt-5 grid gap-4 lg:grid-cols-2">
+                {reportDisclaimers.map((disclaimer: any) => (
+                  <div
+                    key={disclaimer.id}
+                    className="rounded-xl border border-slate-700 bg-[#0f172a] p-5"
+                  >
+                    <h3 className="text-xl font-bold text-white">
+                      {disclaimer.topic}
+                    </h3>
+
+                    <p className="mt-3 whitespace-pre-line leading-7 text-slate-300">
+                      {disclaimer.disclaimer_text}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
           {clientSummaryGroups.length > 0 && (
             <section
               id="client-summary"
@@ -1963,31 +2002,6 @@ export default async function PublicSharePage({
                     </div>
                   )
                 )}
-              </div>
-            </section>
-          )}
-
-          {reportDisclaimers && reportDisclaimers.length > 0 && (
-            <section className="mt-8 rounded-2xl border border-purple-500/40 bg-[#071224] p-6">
-              <h2 className="mb-5 text-2xl font-bold text-purple-300">
-                Disclaimers
-              </h2>
-
-              <div className="space-y-5">
-                {reportDisclaimers.map((disclaimer: any) => (
-                  <div
-                    key={disclaimer.id}
-                    className="rounded-xl border border-slate-700 bg-[#0f172a] p-5"
-                  >
-                    <h3 className="text-xl font-bold text-white">
-                      {disclaimer.topic}
-                    </h3>
-
-                    <p className="mt-3 whitespace-pre-line leading-7 text-slate-300">
-                      {disclaimer.disclaimer_text}
-                    </p>
-                  </div>
-                ))}
               </div>
             </section>
           )}

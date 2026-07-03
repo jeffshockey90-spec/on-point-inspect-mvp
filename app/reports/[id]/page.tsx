@@ -1048,6 +1048,164 @@ function AttentionPanel({
   );
 }
 
+function parseYearBuiltValue(value: any) {
+  const match = String(value || "").match(/(18|19|20)\d{2}/);
+  if (!match) return null;
+  const year = Number(match[0]);
+  if (!Number.isFinite(year) || year < 1800 || year > new Date().getFullYear() + 1) return null;
+  return year;
+}
+
+function getInspectionYearBuilt(inspection: any) {
+  return parseYearBuiltValue(
+    inspection?.year_built ||
+      inspection?.built_year ||
+      inspection?.construction_year ||
+      inspection?.property_year_built
+  );
+}
+
+function getAgeBasedWatchlistItems(year: number | null) {
+  if (!year) return [];
+
+  const items: any[] = [];
+  const age = new Date().getFullYear() - year;
+
+  if (age >= 25) {
+    items.push({
+      title: "Older home / concealed conditions",
+      reason: `Home is approximately ${age} years old. Older materials, renovations, and concealed conditions may be present.`,
+      tips: ["Look for old repairs", "Check visible transitions between old/new work", "Document inaccessible areas"],
+    });
+  }
+
+  if (year <= 1977) {
+    items.push({
+      title: "Lead-based paint potential",
+      reason: "Homes built before 1978 may contain lead-based paint.",
+      tips: ["Look for peeling paint", "Watch painted trim/windows", "Do not state testing was performed unless sampled"],
+    });
+  }
+
+  if (year <= 1989) {
+    items.push({
+      title: "Asbestos-containing material potential",
+      reason: "Older homes may contain asbestos in insulation, flooring, siding, ceilings, duct materials, or roofing products.",
+      tips: ["Look for 9x9 tile", "Watch pipe/duct wrap", "Document suspect materials without confirming asbestos"],
+    });
+  }
+
+  if (year <= 1965) {
+    items.push({
+      title: "Older electrical / grounding",
+      reason: "Homes from this era commonly have older wiring methods and may lack modern grounding or safety protection.",
+      tips: ["Check receptacle grounding", "Look for cloth wiring", "Check panel age and labeling"],
+    });
+  }
+
+  if (year >= 1965 && year <= 1978) {
+    items.push({
+      title: "Aluminum branch wiring possibility",
+      reason: "Homes and additions from the mid-1960s through 1970s may contain aluminum branch wiring.",
+      tips: ["Look carefully in the panel", "Document if suspected", "Recommend electrician if present"],
+    });
+  }
+
+  if (year <= 1975) {
+    items.push({
+      title: "Older plumbing materials",
+      reason: "Galvanized supply piping, cast iron drains, or older plumbing materials may be present.",
+      tips: ["Check visible supply piping", "Look for corrosion/leaks", "Check drain piping and slow drainage"],
+    });
+  }
+
+  if (year <= 2000) {
+    items.push({
+      title: "Modern safety standards may differ",
+      reason: "Older homes may not include modern GFCI/AFCI, smoke/CO, stair, guardrail, and deck safety standards.",
+      tips: ["Check GFCI areas", "Look at rail/guard spacing", "Document safety upgrades as recommendations"],
+    });
+  }
+
+  return items;
+}
+
+function getFindingBasedWatchlistItems(findings: any[]) {
+  const text = (findings || [])
+    .map((finding: any) =>
+      [
+        finding?.title,
+        finding?.observation,
+        finding?.implication,
+        finding?.recommendation,
+        finding?.comment,
+        finding?.section,
+        finding?.severity,
+      ]
+        .filter(Boolean)
+        .join(" ")
+    )
+    .join(" ")
+    .toLowerCase();
+
+  const rules = [
+    {
+      title: "Fuel oil / environmental concern",
+      keywords: ["oil tank", "fuel oil", "buried tank", "abandoned tank", "oil line"],
+      reason: "Report notes mention oil/fuel storage concerns.",
+      tips: ["Look for staining", "Check visible tank/lines", "Recommend environmental/tank specialist as needed"],
+    },
+    {
+      title: "Moisture / microbial growth concern",
+      keywords: ["mold", "microbial", "musty", "staining", "moisture", "water intrusion"],
+      reason: "Report notes mention moisture or possible microbial concerns.",
+      tips: ["Document moisture source", "Photograph staining", "Recommend specialist/testing if needed"],
+    },
+    {
+      title: "Limited access / concealed areas",
+      keywords: ["inaccessible", "not accessible", "limited access", "stored items", "blocked", "concealed"],
+      reason: "Report notes mention areas that were not fully visible or accessible.",
+      tips: ["Document exact limitation", "Add limitation photos", "Add concealed/inaccessible disclaimer"],
+    },
+    {
+      title: "Weather limitation",
+      keywords: ["snow", "ice", "rain", "weather", "wet roof", "roof covered"],
+      reason: "Report notes mention weather conditions that may limit visibility or access.",
+      tips: ["Document areas not visible", "Use limitation comments", "Recommend reinspection if needed"],
+    },
+  ];
+
+  return rules.filter((rule) => rule.keywords.some((keyword) => text.includes(keyword)));
+}
+
+function getSuggestedDisclaimerTopicsForReport(year: number | null, findings: any[]) {
+  const topics = new Set<string>();
+
+  if (year) {
+    if (year <= 1999) topics.add("Older Home Disclaimer");
+    if (year <= 1977) topics.add("Lead-Based Paint");
+    if (year <= 1989) topics.add("Asbestos");
+    if (year <= 1989) topics.add("Environmental / Hazardous Materials");
+    if (year <= 2005) topics.add("Code Compliance");
+    if (year <= 1999) topics.add("Permit / Previous Work Unknown");
+    if (year <= 1975) topics.add("Older Plumbing Materials");
+    if (year <= 1978) topics.add("Older Electrical System");
+  }
+
+  const text = (findings || [])
+    .map((finding: any) => [finding?.title, finding?.observation, finding?.implication, finding?.recommendation, finding?.comment].filter(Boolean).join(" "))
+    .join(" ")
+    .toLowerCase();
+
+  if (/oil tank|fuel oil|buried tank|abandoned tank/.test(text)) topics.add("Oil Tank / Fuel Storage");
+  if (/mold|microbial|musty|moisture|water intrusion/.test(text)) topics.add("Mold / Microbial Growth");
+  if (/snow|ice|rain|weather|wet roof|roof covered/.test(text)) topics.add("Snow / Weather Limitations");
+  if (/inaccessible|limited access|stored items|blocked|concealed/.test(text)) topics.add("Concealed / Inaccessible Areas");
+  if (/utilities off|gas off|water off|electric off|not operated|shut off/.test(text)) topics.add("Utilities Off / Not Operated");
+
+  return Array.from(topics);
+}
+
 export default async function ReportPage({ params, searchParams }: PageProps) {
   const { id } = await params;
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
@@ -2071,6 +2229,29 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
 
   const signedAgreements = signedAgreementsRaw || [];
 
+  const { data: reportDisclaimersRaw, error: reportDisclaimersError } = await supabase
+    .from("report_disclaimers")
+    .select("id, topic, disclaimer_text")
+    .eq("inspection_id", inspection.id)
+    .order("created_at", { ascending: true });
+
+  if (reportDisclaimersError) {
+    console.error("Report disclaimers load error:", reportDisclaimersError);
+  }
+
+  const reportDisclaimers = reportDisclaimersRaw || [];
+  const reportDisclaimerTopics = new Set(reportDisclaimers.map((row: any) => String(row.topic || "")));
+  const inspectionYearBuilt = getInspectionYearBuilt(inspection);
+  const inspectionWatchlistItems = [
+    ...getAgeBasedWatchlistItems(inspectionYearBuilt),
+    ...getFindingBasedWatchlistItems(numberedFindings),
+  ].slice(0, 10);
+  const suggestedDisclaimerTopics = getSuggestedDisclaimerTopicsForReport(inspectionYearBuilt, numberedFindings);
+  const missingSuggestedDisclaimerTopics = suggestedDisclaimerTopics.filter(
+    (topic) => !reportDisclaimerTopics.has(topic)
+  );
+
+
   const paymentDueAmount = parseRepairMoneyValue(
     inspection.balance_due ??
       inspection.amount_due ??
@@ -2168,6 +2349,18 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
               ? `finding-${unresolvedSafetyFindingIds[0]}`
               : "report-findings",
             findingIds: unresolvedSafetyFindingIds,
+          },
+        ]
+      : []),
+    ...(missingSuggestedDisclaimerTopics.length > 0
+      ? [
+          {
+            id: "suggested-disclaimers",
+            title: "Suggested disclaimers ready",
+            message: `${missingSuggestedDisclaimerTopics.length} AI recommended disclaimer${missingSuggestedDisclaimerTopics.length === 1 ? "" : "s"} should be reviewed before publishing.`,
+            urgency: "warning" as const,
+            badge: `${missingSuggestedDisclaimerTopics.length}`,
+            targetAnchor: "report-disclaimers",
           },
         ]
       : []),
@@ -2342,6 +2535,60 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
             </p>
           </div>
 
+          <section className="mb-8 rounded-2xl border border-cyan-500/40 bg-cyan-500/10 p-5 shadow-xl">
+            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.24em] text-cyan-200">
+                  AI Inspection Watchlist
+                </p>
+                <h2 className="mt-2 text-2xl font-black text-white">
+                  Be on the lookout before you finish this report
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-slate-300">
+                  {inspectionYearBuilt
+                    ? `This home was reportedly built in ${inspectionYearBuilt}. The system is watching for age-related risks, finding-based limitations, and disclaimers you may want to add.`
+                    : "Add or auto-fill the year built to unlock age-based watchlist items and disclaimer suggestions."}
+                </p>
+              </div>
+
+              <a
+                href="#report-disclaimers"
+                className="w-fit rounded-xl border border-cyan-300 bg-cyan-400/10 px-4 py-3 text-sm font-black text-cyan-100 hover:bg-cyan-400/20"
+              >
+                Review Disclaimers
+              </a>
+            </div>
+
+            {inspectionWatchlistItems.length > 0 ? (
+              <div className="mt-5 grid gap-3 lg:grid-cols-2">
+                {inspectionWatchlistItems.map((item: any, index: number) => (
+                  <div
+                    key={`${item.title}-${index}`}
+                    className="rounded-xl border border-cyan-400/30 bg-[#020617] p-4"
+                  >
+                    <p className="text-base font-black text-white">{item.title}</p>
+                    <p className="mt-2 text-sm leading-6 text-cyan-100">{item.reason}</p>
+                    {item.tips?.length ? (
+                      <ul className="mt-3 space-y-1 text-xs font-bold leading-5 text-slate-300">
+                        {item.tips.map((tip: string) => (
+                          <li key={tip}>✓ {tip}</li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="mt-5 rounded-xl border border-slate-700 bg-[#020617] p-4 text-sm font-bold text-slate-300">
+                No age-based watchlist items yet. Add the year built or continue documenting findings.
+              </div>
+            )}
+          </section>
+
+          <div id="report-disclaimers" data-command-target="report-disclaimers" className="mb-8">
+            <ReportDisclaimers inspectionId={String(inspection.id)} />
+          </div>
+
           <InspectorToolsDrawer
             badge={inspectorWorkspaceBadge}
             notifications={inspectorWorkspaceNotifications}
@@ -2381,6 +2628,12 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                 helper: "Inspection activity log",
                 badge: `${findings.length} findings`,
                 tone: "violet",
+              },
+              {
+                title: "AI Disclaimer Assistant",
+                helper: "Age and finding based disclaimer suggestions",
+                badge: missingSuggestedDisclaimerTopics.length > 0 ? `${missingSuggestedDisclaimerTopics.length} suggested` : `${reportDisclaimers.length} added`,
+                tone: missingSuggestedDisclaimerTopics.length > 0 ? "yellow" : "emerald",
               },
               {
                 title: "Final Publish Guard",

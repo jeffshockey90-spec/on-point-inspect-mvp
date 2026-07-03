@@ -16,6 +16,14 @@ const DEFAULT_DISCLAIMER_TOPICS = [
   "Personal Property / Stored Items",
   "Utilities Off / Not Operated",
   "Permit / Previous Work Unknown",
+  "Older Electrical System",
+  "Older Plumbing Materials",
+  "Aluminum Wiring",
+  "Knob-and-Tube Wiring",
+  "Federal Pacific / Zinsco Panels",
+  "Oil Tank / Fuel Storage",
+  "Vermiculite Insulation",
+  "Polybutylene Plumbing",
 ];
 
 const DEFAULT_TEXT: Record<string, string> = {
@@ -43,6 +51,22 @@ const DEFAULT_TEXT: Record<string, string> = {
     "Some systems or components could not be operated because utilities were off, disconnected, inaccessible, or otherwise unavailable at the time of inspection.",
   "Permit / Previous Work Unknown":
     "The history, permits, and workmanship of previous repairs or improvements were not verified as part of this inspection. Further review with the local authority or qualified contractor may be appropriate.",
+  "Older Electrical System":
+    "Older electrical systems may not include modern grounding, GFCI protection, AFCI protection, panel labeling, wiring methods, or safety standards. This inspection was visual and non-invasive. Further evaluation by a qualified electrician is recommended where older, altered, damaged, or unsafe electrical conditions are observed.",
+  "Older Plumbing Materials":
+    "Older plumbing materials such as galvanized supply piping, cast iron drain piping, older copper piping, or other aging components may be present. Plumbing components can deteriorate from the inside or in concealed areas. Further evaluation by a qualified plumber is recommended where corrosion, leaks, poor flow, drainage issues, or aging materials are observed.",
+  "Aluminum Wiring":
+    "Some homes from the mid-1960s through 1970s may contain aluminum branch-circuit wiring. No destructive verification was performed as part of this inspection. If aluminum wiring is present or suspected, evaluation by a qualified electrician familiar with aluminum wiring repair methods is recommended.",
+  "Knob-and-Tube Wiring":
+    "Older homes may contain knob-and-tube wiring or remnants of obsolete wiring systems. The inspection was visual and non-invasive, and concealed wiring could not be fully verified. Evaluation by a qualified electrician is recommended if knob-and-tube wiring is observed, suspected, active, or abandoned in place.",
+  "Federal Pacific / Zinsco Panels":
+    "Certain older electrical panels, including Federal Pacific and Zinsco equipment, have known industry concerns. If such equipment is present or suspected, further evaluation by a qualified electrician is recommended. This inspection does not determine product recall status, internal panel condition beyond visible components, or insurability.",
+  "Oil Tank / Fuel Storage":
+    "Fuel oil tanks, abandoned fuel lines, or evidence of previous fuel storage may involve leakage, environmental concerns, or hidden conditions. Environmental testing, soil testing, tank integrity evaluation, and abandoned tank verification are outside the scope of a standard visual inspection unless specifically contracted.",
+  "Vermiculite Insulation":
+    "Vermiculite insulation may contain asbestos and should not be disturbed without proper evaluation. No asbestos testing was performed as part of this inspection. Confirmation requires laboratory testing by a qualified environmental professional.",
+  "Polybutylene Plumbing":
+    "Polybutylene plumbing has known industry concerns related to premature failure. If polybutylene piping is present or suspected, further evaluation by a qualified plumber is recommended. Concealed portions of the plumbing system could not be fully evaluated during this visual inspection.",
 };
 
 type AgeBasedDisclaimerRule = {
@@ -120,6 +144,117 @@ const AGE_BASED_DISCLAIMER_RULES: AgeBasedDisclaimerRule[] = [
   },
 ];
 
+
+type FindingBasedDisclaimerRule = {
+  topic: string;
+  keywords: string[];
+  label: string;
+  reason: string;
+  disclaimerText: string;
+};
+
+const FINDING_BASED_DISCLAIMER_RULES: FindingBasedDisclaimerRule[] = [
+  {
+    topic: "Older Electrical System",
+    keywords: ["ungrounded", "two prong", "2 prong", "cloth wiring", "older wiring", "open ground", "no ground", "gfci", "afci"],
+    label: "Older electrical limitations",
+    reason: "Findings mention older wiring, grounding, or modern electrical safety protection concerns.",
+    disclaimerText: DEFAULT_TEXT["Older Electrical System"],
+  },
+  {
+    topic: "Aluminum Wiring",
+    keywords: ["aluminum wiring", "aluminum branch", "solid aluminum"],
+    label: "Aluminum wiring concern",
+    reason: "Findings mention aluminum branch-circuit wiring or a related concern.",
+    disclaimerText: DEFAULT_TEXT["Aluminum Wiring"],
+  },
+  {
+    topic: "Knob-and-Tube Wiring",
+    keywords: ["knob and tube", "knob-and-tube", "knob tube"],
+    label: "Knob-and-tube wiring concern",
+    reason: "Findings mention knob-and-tube wiring or remnants of an obsolete wiring system.",
+    disclaimerText: DEFAULT_TEXT["Knob-and-Tube Wiring"],
+  },
+  {
+    topic: "Federal Pacific / Zinsco Panels",
+    keywords: ["federal pacific", "fpe", "zinsco", "sylvani a", "stab lok", "stab-lok"],
+    label: "Older panel concern",
+    reason: "Findings mention Federal Pacific, Zinsco, Stab-Lok, or a similar older panel concern.",
+    disclaimerText: DEFAULT_TEXT["Federal Pacific / Zinsco Panels"],
+  },
+  {
+    topic: "Older Plumbing Materials",
+    keywords: ["galvanized", "cast iron", "old plumbing", "corroded pipe", "drain piping", "supply piping"],
+    label: "Older plumbing material limitation",
+    reason: "Findings mention galvanized, cast iron, corrosion, or older plumbing materials.",
+    disclaimerText: DEFAULT_TEXT["Older Plumbing Materials"],
+  },
+  {
+    topic: "Polybutylene Plumbing",
+    keywords: ["polybutylene", "poly b", "pb pipe", "quest piping"],
+    label: "Polybutylene plumbing concern",
+    reason: "Findings mention polybutylene or suspected polybutylene plumbing.",
+    disclaimerText: DEFAULT_TEXT["Polybutylene Plumbing"],
+  },
+  {
+    topic: "Oil Tank / Fuel Storage",
+    keywords: ["oil tank", "fuel oil", "abandoned tank", "buried tank", "oil line", "ust"],
+    label: "Fuel storage / environmental concern",
+    reason: "Findings mention an oil tank, abandoned fuel line, or possible fuel storage concern.",
+    disclaimerText: DEFAULT_TEXT["Oil Tank / Fuel Storage"],
+  },
+  {
+    topic: "Vermiculite Insulation",
+    keywords: ["vermiculite"],
+    label: "Vermiculite insulation concern",
+    reason: "Findings mention vermiculite insulation, which can require environmental testing before disturbance.",
+    disclaimerText: DEFAULT_TEXT["Vermiculite Insulation"],
+  },
+  {
+    topic: "Asbestos",
+    keywords: ["asbestos", "transite", "9x9", "popcorn ceiling", "duct wrap", "old floor tile"],
+    label: "Asbestos material concern",
+    reason: "Findings mention materials commonly associated with possible asbestos-containing products.",
+    disclaimerText: DEFAULT_TEXT.Asbestos,
+  },
+  {
+    topic: "Mold / Microbial Growth",
+    keywords: ["mold", "microbial", "fungal", "musty", "staining", "water intrusion", "moisture damage"],
+    label: "Moisture / microbial concern",
+    reason: "Findings mention moisture, staining, musty odor, or possible microbial growth.",
+    disclaimerText: DEFAULT_TEXT["Mold / Microbial Growth"],
+  },
+  {
+    topic: "Snow / Weather Limitations",
+    keywords: ["snow", "ice", "frost", "rain", "weather limited", "wet roof", "roof covered"],
+    label: "Weather limitation",
+    reason: "Findings mention weather conditions that can limit visibility or access.",
+    disclaimerText: DEFAULT_TEXT["Snow / Weather Limitations"],
+  },
+  {
+    topic: "Concealed / Inaccessible Areas",
+    keywords: ["not accessible", "inaccessible", "concealed", "limited access", "unable to inspect", "stored items", "personal property", "blocked"],
+    label: "Concealed / inaccessible limitation",
+    reason: "Findings mention limited access, concealed areas, stored items, or areas not fully visible.",
+    disclaimerText: DEFAULT_TEXT["Concealed / Inaccessible Areas"],
+  },
+  {
+    topic: "Utilities Off / Not Operated",
+    keywords: ["utilities off", "gas off", "water off", "electric off", "not operated", "shut off", "could not operate"],
+    label: "Utilities or systems not operated",
+    reason: "Findings mention utilities or systems that could not be operated during the inspection.",
+    disclaimerText: DEFAULT_TEXT["Utilities Off / Not Operated"],
+  },
+];
+
+type DisclaimerSuggestion = {
+  topic: string;
+  label: string;
+  reason: string;
+  disclaimerText: string;
+  source: "Age" | "Finding";
+};
+
 function parseYearBuilt(value: any) {
   const match = String(value || "").match(/(18|19|20)\d{2}/);
   if (!match) return null;
@@ -166,6 +301,7 @@ export default function ReportDisclaimers({
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"success" | "error" | "">("");
   const [inspectionYear, setInspectionYear] = useState<number | null>(null);
+  const [findingText, setFindingText] = useState("");
 
 
 
@@ -178,7 +314,7 @@ export default function ReportDisclaimers({
     async function loadDisclaimers() {
       if (!inspectionId) return;
 
-      const [{ data, error }, inspectionResult] = await Promise.all([
+      const [{ data, error }, inspectionResult, findingsResult] = await Promise.all([
         supabase
           .from("report_disclaimers")
           .select("*")
@@ -189,6 +325,10 @@ export default function ReportDisclaimers({
           .select("year_built, built_year, construction_year, property_year_built")
           .eq("id", inspectionId)
           .maybeSingle(),
+        supabase
+          .from("findings")
+          .select("title, observation, implication, recommendation, comment, section, severity")
+          .eq("inspection_id", inspectionId),
       ]);
 
       if (error) {
@@ -208,6 +348,27 @@ export default function ReportDisclaimers({
           )
         );
       }
+
+      if (!findingsResult.error) {
+        setFindingText(
+          (findingsResult.data || [])
+            .map((finding: any) =>
+              [
+                finding.title,
+                finding.observation,
+                finding.implication,
+                finding.recommendation,
+                finding.comment,
+                finding.section,
+                finding.severity,
+              ]
+                .filter(Boolean)
+                .join(" ")
+            )
+            .join(" ")
+            .toLowerCase()
+        );
+      }
     }
 
     loadDisclaimers();
@@ -218,11 +379,37 @@ export default function ReportDisclaimers({
     [rows]
   );
 
-  const ageBasedSuggestions = useMemo(() => {
-    return uniqueAgeRulesForYear(inspectionYear).filter(
-      (rule) => !selectedTopics.has(rule.topic)
-    );
-  }, [inspectionYear, selectedTopics]);
+  const recommendedSuggestions = useMemo<DisclaimerSuggestion[]>(() => {
+    const map = new Map<string, DisclaimerSuggestion>();
+
+    uniqueAgeRulesForYear(inspectionYear).forEach((rule) => {
+      if (selectedTopics.has(rule.topic)) return;
+      map.set(rule.topic, {
+        topic: rule.topic,
+        label: rule.label,
+        reason: rule.reason,
+        disclaimerText: rule.disclaimerText,
+        source: "Age",
+      });
+    });
+
+    const text = findingText.toLowerCase();
+
+    FINDING_BASED_DISCLAIMER_RULES.forEach((rule) => {
+      if (selectedTopics.has(rule.topic) || map.has(rule.topic)) return;
+      if (!rule.keywords.some((keyword) => text.includes(keyword))) return;
+
+      map.set(rule.topic, {
+        topic: rule.topic,
+        label: rule.label,
+        reason: rule.reason,
+        disclaimerText: rule.disclaimerText,
+        source: "Finding",
+      });
+    });
+
+    return Array.from(map.values());
+  }, [findingText, inspectionYear, selectedTopics]);
 
   const activeRow = rows.find((row) => row.topic === activeTopic);
 
@@ -281,7 +468,7 @@ export default function ReportDisclaimers({
   }
 
 
-  async function addAgeBasedDisclaimer(rule: AgeBasedDisclaimerRule) {
+  async function addSuggestedDisclaimer(rule: DisclaimerSuggestion) {
     if (saving || !inspectionId || selectedTopics.has(rule.topic)) return;
 
     setSaving(true);
@@ -293,9 +480,10 @@ export default function ReportDisclaimers({
         .insert({
           inspection_id: inspectionId,
           topic: rule.topic,
-          rough_notes: inspectionYear
-            ? `Suggested automatically because the home was built in ${inspectionYear}. ${rule.reason}`
-            : rule.reason,
+          rough_notes:
+            rule.source === "Age" && inspectionYear
+              ? `Suggested automatically because the home was built in ${inspectionYear}. ${rule.reason}`
+              : `Suggested automatically from report data. ${rule.reason}`,
           disclaimer_text: rule.disclaimerText,
         })
         .select("*")
@@ -312,6 +500,44 @@ export default function ReportDisclaimers({
       showMessage("success", `${rule.topic} disclaimer added.`);
     } catch (error: any) {
       showMessage("error", error?.message || "Failed to add suggested disclaimer.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function addAllSuggestedDisclaimers() {
+    if (saving || !inspectionId || recommendedSuggestions.length === 0) return;
+
+    setSaving(true);
+
+    try {
+      const payload = recommendedSuggestions.map((rule) => ({
+        inspection_id: inspectionId,
+        topic: rule.topic,
+        rough_notes:
+          rule.source === "Age" && inspectionYear
+            ? `Suggested automatically because the home was built in ${inspectionYear}. ${rule.reason}`
+            : `Suggested automatically from report data. ${rule.reason}`,
+        disclaimer_text: rule.disclaimerText,
+      }));
+
+      const { data, error } = await supabase
+        .from("report_disclaimers")
+        .insert(payload)
+        .select("*");
+
+      if (error) throw error;
+
+      if (data?.length) {
+        setRows((prev) => [...prev, ...data]);
+        setActiveTopic(data[0].topic);
+        setRoughNotes(data[0].rough_notes || "");
+        setGeneratedText(data[0].disclaimer_text || "");
+      }
+
+      showMessage("success", `${payload.length} suggested disclaimer${payload.length === 1 ? "" : "s"} added.`);
+    } catch (error: any) {
+      showMessage("error", error?.message || "Failed to add suggested disclaimers.");
     } finally {
       setSaving(false);
     }
@@ -466,6 +692,9 @@ export default function ReportDisclaimers({
             {rows.length > 0
               ? `${rows.length} disclaimer${rows.length === 1 ? "" : "s"} turned on`
               : "No disclaimers turned on"}
+            {recommendedSuggestions.length > 0
+              ? ` • ${recommendedSuggestions.length} AI suggestion${recommendedSuggestions.length === 1 ? "" : "s"} ready`
+              : ""}
           </p>
         </div>
 
@@ -488,6 +717,33 @@ export default function ReportDisclaimers({
         </div>
       )}
 
+
+      {recommendedSuggestions.length > 0 && (
+        <div className="border-t border-cyan-500/30 bg-cyan-500/10 px-5 py-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-200">
+                AI Recommended Disclaimers
+              </p>
+              <p className="mt-1 text-sm font-bold leading-6 text-cyan-50">
+                {recommendedSuggestions.length} suggestion{recommendedSuggestions.length === 1 ? "" : "s"} ready
+                {inspectionYear ? ` based on a home built in ${inspectionYear}` : " based on this report"}.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(true);
+                window.setTimeout(() => document.getElementById("ai-disclaimer-suggestions")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
+              }}
+              className="rounded-xl border border-cyan-300 bg-cyan-400/10 px-4 py-2 text-sm font-black text-cyan-100 hover:bg-cyan-400/20"
+            >
+              Review Suggestions
+            </button>
+          </div>
+        </div>
+      )}
+
       {rows.length > 0 && (
         <div className="border-t border-slate-700 px-5 py-3">
           <div className="flex flex-wrap gap-2">
@@ -507,33 +763,45 @@ export default function ReportDisclaimers({
 
       {open && (
         <div className="space-y-5 border-t border-slate-700 p-5">
-          <div className="rounded-xl border border-cyan-500/40 bg-cyan-500/10 p-4">
+          <div id="ai-disclaimer-suggestions" className="rounded-xl border border-cyan-500/40 bg-cyan-500/10 p-4">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <p className="text-sm font-black uppercase tracking-wide text-cyan-300">
-                  Smart Age-Based Suggestions
+                  AI Recommended Disclaimers
                 </p>
                 <p className="mt-1 text-sm leading-6 text-slate-300">
                   {inspectionYear
-                    ? `Home built in ${inspectionYear}. Suggested disclaimers are generated below so you can add them with one click.`
-                    : "Enter or auto-fill the year built on the report to generate age-based disclaimer suggestions."}
+                    ? `Home built in ${inspectionYear}. Suggested disclaimers are generated from the year built and the findings you have documented.`
+                    : "Enter or auto-fill the year built on the report. The system also scans findings for conditions that may need disclaimers."}
                 </p>
               </div>
 
-              {inspectionYear ? (
-                <span className="w-fit rounded-full border border-cyan-400/60 bg-cyan-500/15 px-3 py-1 text-xs font-black text-cyan-100">
-                  Year Built: {inspectionYear}
-                </span>
-              ) : null}
+              <div className="flex flex-wrap gap-2">
+                {inspectionYear ? (
+                  <span className="w-fit rounded-full border border-cyan-400/60 bg-cyan-500/15 px-3 py-1 text-xs font-black text-cyan-100">
+                    Year Built: {inspectionYear}
+                  </span>
+                ) : null}
+                {recommendedSuggestions.length > 0 ? (
+                  <button
+                    type="button"
+                    onClick={addAllSuggestedDisclaimers}
+                    disabled={saving}
+                    className="rounded-full border border-emerald-400/60 bg-emerald-500/15 px-3 py-1 text-xs font-black text-emerald-100 hover:bg-emerald-500/25 disabled:opacity-60"
+                  >
+                    Add All Suggested
+                  </button>
+                ) : null}
+              </div>
             </div>
 
-            {ageBasedSuggestions.length > 0 ? (
+            {recommendedSuggestions.length > 0 ? (
               <div className="mt-4 grid gap-3 lg:grid-cols-2">
-                {ageBasedSuggestions.map((rule) => (
+                {recommendedSuggestions.map((rule) => (
                   <button
                     key={rule.topic}
                     type="button"
-                    onClick={() => addAgeBasedDisclaimer(rule)}
+                    onClick={() => addSuggestedDisclaimer(rule)}
                     disabled={saving}
                     className="rounded-xl border border-cyan-400/40 bg-[#020617] p-4 text-left transition hover:border-cyan-300 hover:bg-cyan-500/10 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
                   >
@@ -542,9 +810,14 @@ export default function ReportDisclaimers({
                         <p className="text-base font-black text-white">{rule.topic}</p>
                         <p className="mt-1 text-sm font-bold text-cyan-200">{rule.label}</p>
                       </div>
-                      <span className="shrink-0 rounded-full border border-cyan-400/60 bg-cyan-500/15 px-3 py-1 text-xs font-black text-cyan-100">
-                        Add
-                      </span>
+                      <div className="flex shrink-0 flex-col items-end gap-2">
+                        <span className="rounded-full border border-slate-500/60 bg-slate-500/10 px-3 py-1 text-[10px] font-black uppercase text-slate-200">
+                          {rule.source}
+                        </span>
+                        <span className="rounded-full border border-cyan-400/60 bg-cyan-500/15 px-3 py-1 text-xs font-black text-cyan-100">
+                          Add
+                        </span>
+                      </div>
                     </div>
                     <p className="mt-3 text-sm leading-6 text-slate-300">{rule.reason}</p>
                     <div className="mt-3 rounded-lg border border-slate-700 bg-slate-950/70 p-3 text-xs leading-5 text-slate-400">
@@ -555,7 +828,7 @@ export default function ReportDisclaimers({
               </div>
             ) : inspectionYear ? (
               <div className="mt-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-sm font-bold text-emerald-200">
-                All age-based disclaimer suggestions for this home are already added.
+                All current AI disclaimer suggestions for this home are already added.
               </div>
             ) : null}
           </div>
