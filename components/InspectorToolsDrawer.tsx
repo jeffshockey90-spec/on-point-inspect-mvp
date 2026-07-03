@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 type ToolTone =
   | "purple"
@@ -179,161 +180,79 @@ function getBestTargetTitle(targets: string[], items: ToolItem[]) {
   return "";
 }
 
-type NotificationDestination =
-  | {
-      mode: "tool";
-      title: string;
-    }
-  | {
-      mode: "page";
-      selectors: string[];
-      searchTerms: string[];
-      fallbackTool?: string;
-    };
-
 function getActionTitleForNotification(notification: WorkspaceNotification, items: ToolItem[]) {
-  const destination = getDestinationForNotification(notification, items);
-  return destination.mode === "tool" ? destination.title : destination.fallbackTool || "";
-}
+  const text = normalizeText(`${notification.id || ""} ${notification.title} ${notification.message || ""} ${notification.badge || ""}`);
 
-function getDestinationForNotification(
-  notification: WorkspaceNotification,
-  items: ToolItem[]
-): NotificationDestination {
-  const text = normalizeText(
-    `${notification.id || ""} ${notification.title} ${notification.message || ""} ${notification.badge || ""}`
-  );
-
-  if (
-    text.includes("safety") ||
-    text.includes("defect") ||
-    text.includes("finding") ||
-    text.includes("major item") ||
-    text.includes("review before publishing")
-  ) {
-    return {
-      mode: "page",
-      selectors: [
-        "#report-findings",
-        "#findings",
-        "#report-editor",
-        "[data-report-findings]",
-        "[data-section='findings']",
-        "[data-workspace-target='findings']",
+  // Route the common high-priority alerts first so clicks never fall through to the wrong panel.
+  const rules: Array<[string[], string[]]> = [
+    [
+      ["agreement", "signature", "signed", "signing"],
+      [
+        "Agreement Status",
+        "Agreement Status Panel",
+        "Send Agreement",
+        "Agreement Selection",
+        "Agreement Selector",
+        "Agreements",
       ],
-      searchTerms: [
-        "report findings",
-        "findings",
-        "inspection findings",
-        "safety",
-        "recommended repair",
+    ],
+    [
+      ["payment", "invoice", "paid", "due", "balance"],
+      [
+        "Payment / Invoice",
+        "Payment Invoice",
+        "Invoice",
+        "Payment",
+        "Payment Status",
+        "Report Delivery Guard",
       ],
-      fallbackTool:
-        getBestTargetTitle(
-          ["AI Report Review", "Live AI Inspector Assistant", "AI Inspector", "Inspection Copilot"],
-          items
-        ) || "",
-    };
-  }
+    ],
+    [
+      ["repair", "response", "seller", "addendum", "negotiation"],
+      [
+        "Repair Request History",
+        "Repair Requests",
+        "Repair Request",
+        "Seller Response",
+        "Addendum",
+      ],
+    ],
+    [
+      ["publish", "delivery", "guard", "blocked"],
+      [
+        "Final Publish Guard",
+        "AI Publish Guard",
+        "Publish Guard",
+        "Report Delivery Guard",
+      ],
+    ],
+    [
+      ["safety", "defect", "contradiction", "ai review"],
+      [
+        "AI Report Review",
+        "Live AI Inspector Assistant",
+        "AI Inspector",
+        "Inspection Copilot",
+      ],
+    ],
+    [
+      ["view", "opened", "read", "engagement", "client"],
+      [
+        "Report Engagement",
+        "Client Views",
+        "Live Inspection Timeline",
+        "Activity",
+      ],
+    ],
+    [["sample", "public", "profile"], ["Sample Report", "Public Profile"]],
+    [["house", "memory", "property", "intelligence"], ["House Intelligence", "House Memory"]],
+  ];
 
-  if (text.includes("agreement") || text.includes("signature") || text.includes("signed") || text.includes("signing")) {
-    return {
-      mode: "tool",
-      title:
-        getBestTargetTitle(
-          [
-            "Agreement Status",
-            "Agreement Status Panel",
-            "Send Agreement",
-            "Agreement Selection",
-            "Agreement Selector",
-            "Agreements",
-          ],
-          items
-        ) || items[0]?.title || "",
-    };
-  }
+  for (const [keywords, targets] of rules) {
+    if (!keywords.some((keyword) => text.includes(keyword))) continue;
 
-  if (text.includes("payment") || text.includes("invoice") || text.includes("paid") || text.includes("due") || text.includes("balance")) {
-    return {
-      mode: "tool",
-      title:
-        getBestTargetTitle(
-          [
-            "Payment / Invoice",
-            "Payment Invoice",
-            "Invoice",
-            "Payment",
-            "Payment Status",
-            "Report Delivery Guard",
-          ],
-          items
-        ) || items[0]?.title || "",
-    };
-  }
-
-  if (text.includes("repair") || text.includes("response") || text.includes("seller") || text.includes("addendum") || text.includes("negotiation")) {
-    return {
-      mode: "tool",
-      title:
-        getBestTargetTitle(
-          [
-            "Repair Request History",
-            "Repair Requests",
-            "Repair Request",
-            "Seller Response",
-            "Addendum",
-          ],
-          items
-        ) || items[0]?.title || "",
-    };
-  }
-
-  if (text.includes("publish") || text.includes("delivery") || text.includes("guard") || text.includes("blocked")) {
-    return {
-      mode: "tool",
-      title:
-        getBestTargetTitle(
-          ["Final Publish Guard", "AI Publish Guard", "Publish Guard", "Report Delivery Guard"],
-          items
-        ) || items[0]?.title || "",
-    };
-  }
-
-  if (text.includes("ai review") || text.includes("contradiction")) {
-    return {
-      mode: "tool",
-      title:
-        getBestTargetTitle(
-          ["AI Report Review", "Live AI Inspector Assistant", "AI Inspector", "Inspection Copilot"],
-          items
-        ) || items[0]?.title || "",
-    };
-  }
-
-  if (text.includes("view") || text.includes("opened") || text.includes("read") || text.includes("engagement") || text.includes("client")) {
-    return {
-      mode: "tool",
-      title:
-        getBestTargetTitle(
-          ["Report Engagement", "Client Views", "Live Inspection Timeline", "Activity"],
-          items
-        ) || items[0]?.title || "",
-    };
-  }
-
-  if (text.includes("sample") || text.includes("public") || text.includes("profile")) {
-    return {
-      mode: "tool",
-      title: getBestTargetTitle(["Sample Report", "Public Profile"], items) || items[0]?.title || "",
-    };
-  }
-
-  if (text.includes("house") || text.includes("memory") || text.includes("property") || text.includes("intelligence")) {
-    return {
-      mode: "tool",
-      title: getBestTargetTitle(["House Intelligence", "House Memory"], items) || items[0]?.title || "",
-    };
+    const targetTitle = getBestTargetTitle(targets, items);
+    if (targetTitle) return targetTitle;
   }
 
   const direct = items.find((item) => {
@@ -342,10 +261,9 @@ function getDestinationForNotification(
     return itemTitle && (text.includes(itemTitle) || itemText.includes(text));
   });
 
-  return {
-    mode: "tool",
-    title: direct?.title || items[0]?.title || "",
-  };
+  if (direct) return direct.title;
+
+  return items[0]?.title || "";
 }
 
 function categoryLabel(category: WorkspaceCategory) {
@@ -412,50 +330,6 @@ function getBestToolMatch(keywords: string[], items: EnrichedToolItem[]) {
     const text = normalizeText(`${item.title} ${item.helper || ""}`);
     return keywords.some((keyword) => text.includes(keyword));
   });
-}
-
-
-function findPageElementByText(searchTerms: string[]) {
-  const normalizedTerms = searchTerms.map((term) => normalizeText(term)).filter(Boolean);
-  if (!normalizedTerms.length) return null;
-
-  const candidates = Array.from(
-    document.querySelectorAll<HTMLElement>(
-      "main section, main article, main details, main form, main div, h1, h2, h3, h4, [id], [data-workspace-target]"
-    )
-  );
-
-  return (
-    candidates.find((element) => {
-      const text = normalizeText(element.textContent || "");
-      return normalizedTerms.some((term) => text.includes(term));
-    }) || null
-  );
-}
-
-function scrollToPageDestination(destination: Extract<NotificationDestination, { mode: "page" }>) {
-  window.setTimeout(() => {
-    const selectorTarget = destination.selectors
-      .map((selector) => {
-        try {
-          return document.querySelector<HTMLElement>(selector);
-        } catch {
-          return null;
-        }
-      })
-      .find(Boolean);
-
-    const textTarget = selectorTarget || findPageElementByText(destination.searchTerms);
-
-    if (textTarget) {
-      textTarget.scrollIntoView({ behavior: "smooth", block: "start" });
-      textTarget.classList.add("ring-2", "ring-cyan-300", "ring-offset-2", "ring-offset-slate-950");
-
-      window.setTimeout(() => {
-        textTarget.classList.remove("ring-2", "ring-cyan-300", "ring-offset-2", "ring-offset-slate-950");
-      }, 1800);
-    }
-  }, 120);
 }
 
 export default function InspectorToolsDrawer({
@@ -701,20 +575,8 @@ export default function InspectorToolsDrawer({
   }
 
   function openNotification(notification: WorkspaceNotification) {
-    const destination = getDestinationForNotification(notification, items);
-
-    if (destination.mode === "page") {
-      if (destination.fallbackTool) {
-        // Open the most useful workspace panel first, then move the inspector to the exact report area that needs action.
-        openTool(destination.fallbackTool);
-      }
-
-      setOpen(false);
-      scrollToPageDestination(destination);
-      return;
-    }
-
-    if (destination.title) openTool(destination.title);
+    const targetTitle = getActionTitleForNotification(notification, items);
+    if (targetTitle) openTool(targetTitle);
     else openWorkspace();
   }
 
@@ -820,16 +682,29 @@ export default function InspectorToolsDrawer({
 
       {/* Alerts stay inside the Command Center instead of popping up on every report visit. */}
 
-      {open ? (
-        <div className="fixed inset-0 z-[100]">
-          <button
-            type="button"
-            aria-label="Close inspector command center"
-            onClick={() => setOpen(false)}
-            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-          />
+      {open && typeof document !== "undefined"
+        ? createPortal(
+            <div
+              className="fixed left-0 top-0 z-[9999] h-[100dvh] min-h-[100svh] w-screen overflow-hidden bg-[#071224] lg:bg-black/80 lg:backdrop-blur-sm"
+              style={{
+                inset: 0,
+                position: "fixed",
+              }}
+            >
+              <button
+                type="button"
+                aria-label="Close inspector command center"
+                onClick={() => setOpen(false)}
+                className="hidden lg:absolute lg:inset-0 lg:block"
+              />
 
-          <aside className="absolute inset-0 flex flex-col overflow-hidden bg-[#071224] shadow-2xl lg:inset-4 lg:rounded-[2rem] lg:border lg:border-slate-700">
+              <aside
+                className="absolute inset-0 flex h-[100dvh] min-h-[100svh] w-screen flex-col overflow-hidden bg-[#071224] shadow-2xl lg:inset-4 lg:h-auto lg:min-h-0 lg:w-auto lg:rounded-[2rem] lg:border lg:border-slate-700"
+                style={{
+                  paddingTop: "env(safe-area-inset-top)",
+                  paddingBottom: "env(safe-area-inset-bottom)",
+                }}
+              >
             <div className="shrink-0 border-b border-slate-800 bg-gradient-to-r from-[#0f172a] via-[#0b1326] to-[#061826] p-3 sm:p-5">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -1058,8 +933,10 @@ export default function InspectorToolsDrawer({
               </aside>
             </div>
           </aside>
-        </div>
-      ) : null}
+        </div>,
+            document.body,
+          )
+        : null}
     </>
   );
 }
