@@ -51,7 +51,9 @@ function markFindingReviewedForCommandCenter(findingId: any) {
     window.localStorage.setItem(getReviewedFindingStorageKey(), JSON.stringify(Array.from(ids)));
   } catch {}
 
+  // Keep the Command Center counts live without requiring a refresh.
   window.dispatchEvent(new CustomEvent("opi:finding-reviewed", { detail: { findingId: id } }));
+  window.dispatchEvent(new Event("opi:reviewed-findings-changed"));
 }
 
 
@@ -184,12 +186,11 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
       openTargetFromHash(detail.targetAnchor || (firstFindingId ? `finding-${firstFindingId}` : ""));
     }
 
-    window.addEventListener("hashchange", handleHashChange);
+    // Do not react to existing URL hashes on page load.
+    // Command Center jumps should only happen after an explicit user click.
     window.addEventListener("opi:command-center-jump", handleCommandJump as EventListener);
-    openTargetFromHash();
 
     return () => {
-      window.removeEventListener("hashchange", handleHashChange);
       window.removeEventListener("opi:command-center-jump", handleCommandJump as EventListener);
     };
   }, [orderedGroups]);
@@ -1112,7 +1113,7 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
   useEffect(() => {
     function openIfTargeted(event?: Event) {
       const detail = (event as CustomEvent)?.detail || {};
-      const targetAnchor = String(detail.targetAnchor || window.location.hash || "").replace(/^#/, "");
+      const targetAnchor = String(detail.targetAnchor || "").replace(/^#/, "");
       const findingIds = Array.isArray(detail.findingIds) ? detail.findingIds.map((value: any) => String(value)) : [];
       const shouldOpen = targetAnchor === findingAnchor || findingIds.includes(String(finding.id));
 
@@ -1125,12 +1126,11 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
       }, 150);
     }
 
-    window.addEventListener("hashchange", openIfTargeted);
+    // Only open a finding when Command Center dispatches an explicit jump event.
+    // This prevents the report page from auto-scrolling on initial load.
     window.addEventListener("opi:command-center-jump", openIfTargeted as EventListener);
-    openIfTargeted();
 
     return () => {
-      window.removeEventListener("hashchange", openIfTargeted);
       window.removeEventListener("opi:command-center-jump", openIfTargeted as EventListener);
     };
   }, [finding.id, findingAnchor]);

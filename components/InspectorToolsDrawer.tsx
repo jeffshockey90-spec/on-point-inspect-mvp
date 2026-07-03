@@ -525,11 +525,18 @@ export default function InspectorToolsDrawer({
       });
     }
 
+    function syncReviewedFindings() {
+      setReviewedFindingIds(readReviewedFindingIds());
+    }
+
     window.addEventListener("opi:finding-reviewed", handleReviewedFinding as EventListener);
-    window.addEventListener("storage", () => setReviewedFindingIds(readReviewedFindingIds()));
+    window.addEventListener("opi:reviewed-findings-changed", syncReviewedFindings);
+    window.addEventListener("storage", syncReviewedFindings);
 
     return () => {
       window.removeEventListener("opi:finding-reviewed", handleReviewedFinding as EventListener);
+      window.removeEventListener("opi:reviewed-findings-changed", syncReviewedFindings);
+      window.removeEventListener("storage", syncReviewedFindings);
     };
   }, []);
 
@@ -786,12 +793,6 @@ export default function InspectorToolsDrawer({
     setOpen(false);
 
     window.setTimeout(() => {
-      const hash = `#${targetAnchor}`;
-
-      try {
-        window.history.replaceState(null, "", hash);
-      } catch {}
-
       window.dispatchEvent(
         new CustomEvent("opi:command-center-jump", {
           detail: {
