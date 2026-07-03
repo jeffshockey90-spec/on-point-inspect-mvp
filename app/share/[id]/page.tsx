@@ -1353,7 +1353,7 @@ export default async function PublicSharePage({
   }
 
   return (
-    <main className="min-h-screen w-full overflow-x-hidden bg-[#020617] p-4 text-white md:p-8">
+    <main className="min-h-screen w-full scroll-smooth overflow-x-hidden bg-[#020617] p-4 text-white md:p-8">
       {!isDemo && (
         <ReportTimeTracker
           inspectionId={String(inspectionId)}
@@ -1525,7 +1525,7 @@ export default async function PublicSharePage({
           </section>
 
           {reportDisclaimers && reportDisclaimers.length > 0 && (
-            <section id="report-disclaimers" className="mt-8 rounded-2xl border border-purple-500/40 bg-[#071224] p-6 shadow-xl">
+            <section id="report-disclaimers" className="scroll-mt-28 mt-8 rounded-2xl border border-purple-500/40 bg-[#071224] p-6 shadow-xl">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <p className="text-sm font-bold uppercase tracking-[0.3em] text-purple-300">
@@ -1566,7 +1566,7 @@ export default async function PublicSharePage({
           {clientSummaryGroups.length > 0 && (
             <section
               id="client-summary"
-              className="mt-8 rounded-2xl border border-teal-500/40 bg-[#071224] p-6 shadow-xl"
+              className="scroll-mt-28 mt-8 rounded-2xl border border-teal-500/40 bg-[#071224] p-6 shadow-xl"
             >
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
@@ -1593,41 +1593,41 @@ export default async function PublicSharePage({
                 <div className="flex w-max min-w-full gap-2">
                   <a
                     href="#client-summary"
-                    className="rounded-xl bg-slate-700 px-4 py-3 text-sm font-black text-white transition hover:bg-slate-600"
+                    className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl bg-slate-700 px-4 py-3 text-sm font-black leading-none text-white transition hover:bg-slate-600"
                   >
-                    ☰ Summary
+                    <span className="text-base leading-none">☰</span><span>Summary</span>
                   </a>
                   <a
                     href="#client-summary-safety"
-                    className="rounded-xl border border-red-500/40 px-4 py-3 text-sm font-black text-red-300 transition hover:bg-red-500/10"
+                    className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-red-500/40 px-4 py-3 text-sm font-black leading-none text-red-300 transition hover:bg-red-500/10"
                   >
-                    ⚠ Safety Hazards
+                    <span className="text-base leading-none">⚠</span><span>Safety Hazards</span>
                   </a>
                   <a
                     href="#client-summary-repair"
-                    className="rounded-xl border border-teal-500/40 px-4 py-3 text-sm font-black text-teal-300 transition hover:bg-teal-500/10"
+                    className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-teal-500/40 px-4 py-3 text-sm font-black leading-none text-teal-300 transition hover:bg-teal-500/10"
                   >
-                    🔧 Recommendations
+                    <span className="text-base leading-none">🔧</span><span>Recommendations</span>
                   </a>
                   <a
                     href="#client-summary-maintenance"
-                    className="rounded-xl border border-yellow-500/40 px-4 py-3 text-sm font-black text-yellow-300 transition hover:bg-yellow-500/10"
+                    className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-yellow-500/40 px-4 py-3 text-sm font-black leading-none text-yellow-300 transition hover:bg-yellow-500/10"
                   >
-                    ⚙ Maintenance
+                    <span className="text-base leading-none">⚙</span><span>Maintenance</span>
                   </a>
                   {reportDisclaimers && reportDisclaimers.length > 0 && (
                     <a
                       href="#report-disclaimers"
-                      className="rounded-xl border border-purple-500/40 px-4 py-3 text-sm font-black text-purple-300 transition hover:bg-purple-500/10"
+                      className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-purple-500/40 px-4 py-3 text-sm font-black leading-none text-purple-300 transition hover:bg-purple-500/10"
                     >
-                      📝 Disclaimers
+                      <span className="text-base leading-none">📝</span><span>Disclaimers</span>
                     </a>
                   )}
                   <a
                     href="#inspection-findings"
-                    className="rounded-xl border border-blue-500/40 px-4 py-3 text-sm font-black text-blue-300 transition hover:bg-blue-500/10"
+                    className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-blue-500/40 px-4 py-3 text-sm font-black leading-none text-blue-300 transition hover:bg-blue-500/10"
                   >
-                    📄 Full Report
+                    <span className="text-base leading-none">📄</span><span>Full Report</span>
                   </a>
                 </div>
               </div>
@@ -2014,7 +2014,7 @@ export default async function PublicSharePage({
             </section>
           )}
 
-          <section id="inspection-findings" className="mt-10">
+          <section id="inspection-findings" className="scroll-mt-28 mt-10">
             <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
               <div>
                 <p className="text-sm font-bold uppercase tracking-[0.3em] text-teal-400">
