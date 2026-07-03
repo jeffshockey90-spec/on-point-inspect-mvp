@@ -154,6 +154,31 @@ function getShareNumber(index: number, total: number) {
   return `Repair Request #${Math.max(1, total - index)}`;
 }
 
+function getRepairRequestCreatorLabel(share: any) {
+  const metadata =
+    share?.metadata && typeof share.metadata === "object" && !Array.isArray(share.metadata)
+      ? share.metadata
+      : {};
+
+  const role = cleanText(
+    share?.created_by_role ||
+      metadata?.created_by_role ||
+      "inspector"
+  );
+
+  const name = cleanText(
+    share?.created_by_name ||
+      metadata?.created_by_name ||
+      share?.created_by_email ||
+      metadata?.created_by_email ||
+      ""
+  );
+
+  const label = role.toLowerCase().includes("realtor") ? "Realtor" : "Inspector";
+
+  return name ? `${label}: ${name}` : label;
+}
+
 function getRepairStatus(share: any) {
   const status = cleanText(share?.status || "sent").toLowerCase();
   if (share?.responded_at || status === "responded" || status === "completed") return "responded";
@@ -533,6 +558,9 @@ export default async function RealtorPortalPage() {
 
                                     <p className="mt-2 break-words text-sm font-bold text-slate-300">
                                       Sent to: <span className="text-white">{share.recipient_email || "Recipient"}</span>
+                                    </p>
+                                    <p className="mt-1 break-words text-sm font-bold text-slate-300">
+                                      Created by: <span className="text-white">{getRepairRequestCreatorLabel(share)}</span>
                                     </p>
                                     <p className="mt-1 text-xs font-bold text-slate-500">
                                       Created {formatDate(share.created_at)}
