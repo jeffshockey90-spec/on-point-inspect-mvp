@@ -1066,15 +1066,15 @@ async function renderHtmlToPdf(html: string) {
       (await chromium.executablePath());
 
     browser = await puppeteer.launch({
-      args: chromium.args,
-      defaultViewport: {
-        width: 816,
-        height: 1056,
-        deviceScaleFactor: 1,
-      },
-      executablePath,
-      headless: chromium.headless,
-    });
+  args: chromium.args,
+  defaultViewport: {
+    width: 816,
+    height: 1056,
+    deviceScaleFactor: 1,
+  },
+  executablePath,
+  headless: true,
+});
 
     const page = await browser.newPage();
 
