@@ -1640,9 +1640,7 @@ export default async function PublicSharePage({
                   </summary>
 
                   <div className="mt-4 space-y-3 border-t border-slate-800 pt-4 text-sm leading-7 text-slate-300">
-                    {standard.body.split("
-
-").map((paragraph) => (
+                    {standard.body.split("\n\n").map((paragraph) => (
                       <p key={paragraph}>{paragraph}</p>
                     ))}
                   </div>
