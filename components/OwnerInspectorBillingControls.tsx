@@ -105,7 +105,7 @@ export default function OwnerInspectorBillingControls({
   }
 
   return (
-    <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-700 bg-[#020617]/70 p-4">
+    <div className="h-auto min-h-0 w-full min-w-0 overflow-hidden rounded-2xl border border-slate-700 bg-[#020617]/70 p-4">
       <div className="min-w-0">
         <p className="text-[11px] font-black uppercase tracking-wide text-slate-500">Billing</p>
         <p className="mt-1 break-words text-xl font-black text-white">{priceLabel}</p>
@@ -114,7 +114,7 @@ export default function OwnerInspectorBillingControls({
         </p>
       </div>
 
-      <div className="mt-4 space-y-3">
+      <div className="mt-4 flex flex-col gap-3">
         <ToggleRow
           checked={required}
           onChange={setRequired}
@@ -140,7 +140,7 @@ export default function OwnerInspectorBillingControls({
         />
       </div>
 
-      <div className="mt-4 space-y-3">
+      <div className="mt-4 flex flex-col gap-3">
         <Input
           value={customPrice}
           onChange={setCustomPrice}
@@ -200,7 +200,7 @@ function ToggleRow({
   disabled?: boolean;
 }) {
   return (
-    <label className="flex min-w-0 cursor-pointer items-start gap-3 rounded-xl border border-slate-700 bg-slate-950/60 p-3 transition hover:border-teal-400/50">
+    <label className="flex h-auto min-h-[76px] w-full min-w-0 cursor-pointer items-start gap-3 rounded-xl border border-slate-700 bg-slate-950/60 p-3 transition hover:border-teal-400/50">
       <input
         type="checkbox"
         checked={checked}
@@ -208,8 +208,8 @@ function ToggleRow({
         onChange={(event) => onChange(event.target.checked)}
         className="mt-1 h-6 w-6 shrink-0 accent-teal-400"
       />
-      <span className="min-w-0 flex-1">
-        <span className="block break-words text-sm font-black text-white">{title}</span>
+      <span className="block min-w-0 flex-1">
+        <span className="block break-words text-sm font-black leading-5 text-white">{title}</span>
         <span className="mt-1 block break-words text-xs font-bold leading-5 text-slate-400">{helper}</span>
       </span>
     </label>

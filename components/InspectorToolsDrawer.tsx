@@ -1234,7 +1234,7 @@ export default function InspectorToolsDrawer({
                 </button>
               </div>
 
-              <div className="mt-3 flex max-w-full gap-3 overflow-x-auto overscroll-x-contain pb-2 sm:grid sm:grid-cols-2 sm:overflow-visible lg:grid-cols-6">
+              <div className="mt-3 -mx-3 flex max-w-full gap-3 overflow-x-auto overscroll-x-contain px-3 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:px-0 sm:overflow-visible lg:grid-cols-6">
                 {statusTiles.map((tile) => {
                   const style = urgencyStyles[tile.urgency] || urgencyStyles.success;
                   return (
@@ -1242,7 +1242,7 @@ export default function InspectorToolsDrawer({
                       key={tile.title}
                       type="button"
                       onClick={() => handleStatusTileClick(tile)}
-                      className={`min-w-[185px] rounded-2xl border p-3 text-left transition hover:scale-[1.01] active:scale-[0.99] sm:min-w-0 ${style.shell}`}
+                      className={`min-w-[235px] rounded-2xl border p-4 text-left transition hover:scale-[1.01] active:scale-[0.99] sm:min-w-0 ${style.shell}`}
                     >
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-[10px] font-black uppercase tracking-[0.14em] opacity-80">
