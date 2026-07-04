@@ -30,6 +30,7 @@ import LiveInspectionTimelinePanel from "../../../components/LiveInspectionTimel
 import AIPublishGuardPanel from "../../../components/AIPublishGuardPanel";
 import ReportDisclaimers from "../../../components/ReportDisclaimers";
 import PropertyPhotoUploader from "../../../components/PropertyPhotoUploader";
+import OpenCommandCenterToolButton from "../../../components/OpenCommandCenterToolButton";
 import InspectorToolsDrawer, {
   type WorkspaceNotification,
 } from "../../../components/InspectorToolsDrawer";
@@ -2454,41 +2455,48 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
           label: latestAgreementEmail ? "Send Reminder" : "Send Agreement",
           href: "#agreement-status",
           className: "border-red-400 bg-red-500/15 text-red-100 hover:bg-red-500/25",
+          commandTool: "",
         }
       : !nextWorkspaceNotification && agreementComplete && firstSignedAgreement?.id
         ? {
             label: "View Signed Agreement",
             href: `/reports/${inspection.id}/signed-agreement/${firstSignedAgreement.id}`,
             className: "border-emerald-400 bg-emerald-500/15 text-emerald-100 hover:bg-emerald-500/25",
+            commandTool: "",
           }
       : nextWorkspaceNotification && nextWorkspaceText.includes("payment")
         ? {
             label: "Check Invoice",
             href: "#payment-invoice",
             className: "border-red-400 bg-red-500/15 text-red-100 hover:bg-red-500/25",
+            commandTool: "",
           }
         : nextWorkspaceNotification && nextWorkspaceText.includes("publish")
           ? {
               label: "Review Publish Guard",
-              href: "#publish-guard",
+              href: "#",
               className: "border-yellow-400 bg-yellow-500/15 text-yellow-100 hover:bg-yellow-500/25",
+              commandTool: "Final Publish Guard",
             }
           : nextWorkspaceNotification && (nextWorkspaceText.includes("safety") || nextWorkspaceText.includes("finding"))
             ? {
                 label: "Review Findings",
                 href: "#report-findings",
                 className: "border-yellow-400 bg-yellow-500/15 text-yellow-100 hover:bg-yellow-500/25",
+                commandTool: "",
               }
             : nextWorkspaceNotification && nextWorkspaceText.includes("repair")
               ? {
                   label: "Review Repair Request",
                   href: "#repair-request-history",
                   className: "border-cyan-400 bg-cyan-500/15 text-cyan-100 hover:bg-cyan-500/25",
+                  commandTool: "",
                 }
               : {
                   label: reportIsPublished ? "Open Client Preview" : "Continue Inspection",
                   href: reportIsPublished ? `/share/${inspection.id}` : `/field?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`,
                   className: "border-teal-400 bg-teal-500/15 text-teal-100 hover:bg-teal-500/25",
+                  commandTool: "",
                 };
 
   return (
@@ -2842,12 +2850,21 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
               )}
 
               <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <a
-                  href={nextWorkspaceAction.href}
-                  className={`inline-flex min-h-[48px] items-center justify-center rounded-xl border px-4 py-3 text-center text-sm font-black transition active:scale-[0.98] ${nextWorkspaceAction.className}`}
-                >
-                  {nextWorkspaceAction.label}
-                </a>
+                {nextWorkspaceAction.commandTool ? (
+                  <OpenCommandCenterToolButton
+                    toolTitle={nextWorkspaceAction.commandTool}
+                    className={`inline-flex min-h-[48px] items-center justify-center rounded-xl border px-4 py-3 text-center text-sm font-black transition active:scale-[0.98] ${nextWorkspaceAction.className}`}
+                  >
+                    {nextWorkspaceAction.label}
+                  </OpenCommandCenterToolButton>
+                ) : (
+                  <a
+                    href={nextWorkspaceAction.href}
+                    className={`inline-flex min-h-[48px] items-center justify-center rounded-xl border px-4 py-3 text-center text-sm font-black transition active:scale-[0.98] ${nextWorkspaceAction.className}`}
+                  >
+                    {nextWorkspaceAction.label}
+                  </a>
+                )}
 
                 <a
                   href="#agreement-status"
@@ -2863,12 +2880,12 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                   Payment
                 </a>
 
-                <a
-                  href="#publish-guard"
+                <OpenCommandCenterToolButton
+                  toolTitle="Final Publish Guard"
                   className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-slate-700 bg-[#020617] px-4 py-3 text-center text-sm font-black text-slate-200 transition hover:border-teal-400/60 hover:bg-teal-500/10 active:scale-[0.98]"
                 >
                   Publish Guard
-                </a>
+                </OpenCommandCenterToolButton>
               </div>
             </div>
 

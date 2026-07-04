@@ -583,6 +583,14 @@ function getBestToolMatch(keywords: string[], items: EnrichedToolItem[]) {
   });
 }
 
+function isPublishGuardNotification(notification: WorkspaceNotification) {
+  const text = normalizeText(
+    `${notification.id || ""} ${notification.title} ${notification.message || ""} ${notification.badge || ""} ${notification.targetAnchor || ""}`
+  );
+
+  return text.includes("publish") || text.includes("publish guard") || text.includes("blocked");
+}
+
 export default function InspectorToolsDrawer({
   badge = "Ready",
   items = [],
@@ -892,6 +900,22 @@ export default function InspectorToolsDrawer({
     }, 80);
   }
 
+  useEffect(() => {
+    function handleOpenCommandCenterTool(event: Event) {
+      const detail = (event as CustomEvent)?.detail || {};
+      const title = String(detail.title || "").trim();
+      if (!title) return;
+
+      openTool(title);
+    }
+
+    window.addEventListener("opi:open-command-center-tool", handleOpenCommandCenterTool as EventListener);
+
+    return () => {
+      window.removeEventListener("opi:open-command-center-tool", handleOpenCommandCenterTool as EventListener);
+    };
+  }, [enrichedItems]);
+
   function jumpToReportAnchor(notification: WorkspaceNotification) {
     const targetAnchor = getHashTargetForNotification(notification, reviewedFindingIds);
     if (!targetAnchor) return false;
@@ -922,6 +946,11 @@ export default function InspectorToolsDrawer({
   }
 
   function openNotification(notification: WorkspaceNotification) {
+    if (isPublishGuardNotification(notification)) {
+      openTool("Final Publish Guard");
+      return;
+    }
+
     if (jumpToReportAnchor(notification)) return;
 
     const reportTarget = getReportJumpTargetForNotification(notification);
