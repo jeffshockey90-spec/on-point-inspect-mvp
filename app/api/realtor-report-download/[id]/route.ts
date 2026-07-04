@@ -1084,8 +1084,8 @@ async function renderHtmlToPdf(html: string) {
     page.setDefaultTimeout(0);
 
     await page.setContent(html, {
-      waitUntil: "networkidle0",
-      timeout: 90000,
+      waitUntil: "domcontentloaded",
+      timeout: 60000,
     });
 
     await page.emulateMediaType("print");
@@ -1339,7 +1339,22 @@ export async function GET(req: Request, { params }: RouteProps) {
     });
     const property = getPropertyAddress(inspection);
 
-    const pdf = await renderHtmlToPdf(html);
+    let pdf: Buffer | null = null;
+
+    try {
+      pdf = await renderHtmlToPdf(html);
+    } catch (pdfError) {
+      console.error("PDF render failed, falling back to HTML:", pdfError);
+
+      return new NextResponse(html, {
+        status: 200,
+        headers: {
+          "Content-Type": "text/html; charset=utf-8",
+          "Content-Disposition": `attachment; filename="${getDownloadName(property, reportMode).replace(".pdf", ".html")}"`,
+          "Cache-Control": "private, max-age=20, stale-while-revalidate=120",
+        },
+      });
+    }
 
     return new NextResponse(pdf, {
       status: 200,
