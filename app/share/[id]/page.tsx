@@ -107,6 +107,28 @@ const STANDARDS_OF_PRACTICE = [
   }
 ] as const;
 
+function getCompanyStandards(company: any) {
+  const customBody = String(company?.standards_of_practice_body || "").trim();
+  const customTitle = String(
+    company?.standards_of_practice_title || "Standards of Practice"
+  ).trim();
+
+  if (customBody) {
+    return [
+      {
+        title: customTitle || "Standards of Practice",
+        body: customBody,
+      },
+    ];
+  }
+
+  return [...STANDARDS_OF_PRACTICE];
+}
+
+function shouldShowStandardsInShare(company: any) {
+  return company?.standards_include_in_share !== false;
+}
+
 
 function normalizeSection(section: string | null | undefined) {
   if (!section) return "Inspection Details";
@@ -1200,6 +1222,17 @@ export default async function PublicSharePage({
     .eq("inspection_id", inspectionId)
     .order("created_at", { ascending: true });
 
+  const { data: standardsCompany } = inspection?.company_id
+    ? await supabase
+        .from("companies")
+        .select("*")
+        .eq("id", inspection.company_id)
+        .maybeSingle()
+    : { data: null };
+
+  const standardsOfPractice = getCompanyStandards(standardsCompany);
+  const showStandardsInShare = shouldShowStandardsInShare(standardsCompany);
+
   const { data: equipmentInventoryRaw, error: equipmentInventoryError } = await supabase
     .from("equipment_inventory")
     .select("*")
@@ -1603,6 +1636,7 @@ export default async function PublicSharePage({
             </section>
           )}
 
+          {showStandardsInShare && (
           <section id="standards-of-practice" className="scroll-mt-28 mt-8 rounded-2xl border border-cyan-500/40 bg-[#071224] p-6 shadow-xl">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
@@ -1618,12 +1652,12 @@ export default async function PublicSharePage({
               </div>
 
               <span className="rounded-full border border-cyan-400/60 bg-cyan-500/15 px-4 py-2 text-sm font-black text-cyan-100">
-                {STANDARDS_OF_PRACTICE.length} sections
+                {standardsOfPractice.length} section{standardsOfPractice.length === 1 ? "" : "s"}
               </span>
             </div>
 
             <div className="mt-5 grid gap-4 lg:grid-cols-2">
-              {STANDARDS_OF_PRACTICE.map((standard) => (
+              {standardsOfPractice.map((standard) => (
                 <details
                   key={standard.title}
                   className="group rounded-xl border border-slate-700 bg-[#0f172a] p-5 open:border-cyan-500/50"
@@ -1648,6 +1682,7 @@ export default async function PublicSharePage({
               ))}
             </div>
           </section>
+          )}
 
           {clientSummaryGroups.length > 0 && (
             <section
@@ -1709,12 +1744,14 @@ export default async function PublicSharePage({
                       <span className="text-base leading-none">📝</span><span>Disclaimers</span>
                     </a>
                   )}
-                  <a
-                    href="#standards-of-practice"
-                    className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-cyan-500/40 px-4 py-3 text-sm font-black leading-none text-cyan-300 transition hover:bg-cyan-500/10"
-                  >
-                    <span className="text-base leading-none">📘</span><span>Standards</span>
-                  </a>
+                  {showStandardsInShare && (
+                    <a
+                      href="#standards-of-practice"
+                      className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-cyan-500/40 px-4 py-3 text-sm font-black leading-none text-cyan-300 transition hover:bg-cyan-500/10"
+                    >
+                      <span className="text-base leading-none">📘</span><span>Standards</span>
+                    </a>
+                  )}
                   <a
                     href="#inspection-findings"
                     className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-blue-500/40 px-4 py-3 text-sm font-black leading-none text-blue-300 transition hover:bg-blue-500/10"

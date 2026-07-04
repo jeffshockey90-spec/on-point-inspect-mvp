@@ -71,6 +71,28 @@ const STANDARDS_OF_PRACTICE = [
   }
 ] as const;
 
+function getCompanyStandards(company: any) {
+  const customBody = String(company?.standards_of_practice_body || "").trim();
+  const customTitle = String(
+    company?.standards_of_practice_title || "Standards of Practice"
+  ).trim();
+
+  if (customBody) {
+    return [
+      {
+        title: customTitle || "Standards of Practice",
+        body: customBody,
+      },
+    ];
+  }
+
+  return [...STANDARDS_OF_PRACTICE];
+}
+
+function shouldIncludeStandardsInPdf(company: any) {
+  return company?.standards_include_in_pdf !== false;
+}
+
 
 async function createSupabaseServerClient() {
   const cookieStore = await cookies();
@@ -651,13 +673,15 @@ function buildStandardsOfPracticePagesHtml({
   cityStateZip,
   companyName,
   headerLogoHtml,
+  standardsOfPractice,
 }: {
   property: string;
   cityStateZip: string;
   companyName: string;
   headerLogoHtml: string;
+  standardsOfPractice: Array<{ title: string; body: string }>;
 }) {
-  const standardsHtml = STANDARDS_OF_PRACTICE.map((section) => `
+  const standardsHtml = standardsOfPractice.map((section) => `
     <article class="standards-block">
       <h3>${escapeHtml(section.title)}</h3>
       ${escapeHtml(section.body)
@@ -700,6 +724,8 @@ function buildAgentReportHtml({
   propertyPhotoUrl,
   branding,
   qrCodeDataUrl,
+  standardsOfPractice,
+  includeStandardsInPdf,
 }: {
   inspection: any;
   findings: any[];
@@ -707,6 +733,8 @@ function buildAgentReportHtml({
   propertyPhotoUrl?: string;
   branding: any;
   qrCodeDataUrl?: string;
+  standardsOfPractice: Array<{ title: string; body: string }>;
+  includeStandardsInPdf: boolean;
 }) {
   const property = getPropertyAddress(inspection);
   const isFull = reportMode === "full";
@@ -781,14 +809,16 @@ function buildAgentReportHtml({
     `;
   }).join("");
 
-  const standardsTocHtml = `
-    <div class="toc-row">
-      <span class="toc-num">SOP</span>
-      <span class="toc-name">Standards of Practice</span>
-      <span class="toc-dots"></span>
-      <span class="toc-count">Reference</span>
-    </div>
-  `;
+  const standardsTocHtml = includeStandardsInPdf
+    ? `
+      <div class="toc-row">
+        <span class="toc-num">SOP</span>
+        <span class="toc-name">Standards of Practice</span>
+        <span class="toc-dots"></span>
+        <span class="toc-count">Reference</span>
+      </div>
+    `
+    : "";
 
   const keyFindingsHtml = defects.map((finding: any, index: number) => {
     const section = normalizeSection(finding.section);
@@ -915,12 +945,15 @@ function buildAgentReportHtml({
     `;
   }).join("");
 
-  const standardsPagesHtml = buildStandardsOfPracticePagesHtml({
-    property,
-    cityStateZip,
-    companyName,
-    headerLogoHtml,
-  });
+  const standardsPagesHtml = includeStandardsInPdf
+    ? buildStandardsOfPracticePagesHtml({
+        property,
+        cityStateZip,
+        companyName,
+        headerLogoHtml,
+        standardsOfPractice,
+      })
+    : "";
 
   return `<!doctype html>
 <html>
@@ -1428,6 +1461,8 @@ export async function GET(req: Request, { params }: RouteProps) {
       "";
 
     const branding = await loadCompanyBranding(admin, inspection, userEmail);
+    const standardsOfPractice = getCompanyStandards(branding.company);
+    const includeStandardsInPdf = shouldIncludeStandardsInPdf(branding.company);
 
     const secureOnlineReportUrl = onlineReportUrlForInspection(inspection);
 
@@ -1451,6 +1486,8 @@ export async function GET(req: Request, { params }: RouteProps) {
       propertyPhotoUrl,
       branding,
       qrCodeDataUrl,
+      standardsOfPractice,
+      includeStandardsInPdf,
     });
     const property = getPropertyAddress(inspection);
 
