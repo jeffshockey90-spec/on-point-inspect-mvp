@@ -1083,20 +1083,30 @@ export async function GET(req: Request, { params }: RouteProps) {
 
     // Public downloads are authorized by the same secure report token used to open the share page.
     // Numeric IDs are only accepted for logged-in inspectors/linked realtor portal users.
-    const { data: tokenInspection, error: tokenInspectionError } = await admin
-      .from("inspections")
-      .select("*")
-      .or(
-        [
-          `public_share_token.eq.${lookupValue}`,
-          `share_token.eq.${lookupValue}`,
-          `report_share_token.eq.${lookupValue}`,
-        ].join(",")
-      )
-      .maybeSingle();
+    // Look up token columns one at a time so a missing legacy column does not break all public downloads.
+    let tokenInspection: any = null;
 
-    if (tokenInspectionError) {
-      console.error("Secure report token lookup error:", tokenInspectionError);
+    const tokenColumns = [
+      "public_share_token",
+      "share_token",
+      "report_share_token",
+    ];
+
+    for (const column of tokenColumns) {
+      const { data, error } = await admin
+        .from("inspections")
+        .select("*")
+        .eq(column, lookupValue)
+        .maybeSingle();
+
+      if (data) {
+        tokenInspection = data;
+        break;
+      }
+
+      if (error) {
+        console.warn(`Skipping secure report token lookup for ${column}:`, error.message);
+      }
     }
 
     let inspection = tokenInspection || null;
