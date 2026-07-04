@@ -1426,7 +1426,34 @@ export default async function PublicSharePage({
   }
 
   return (
-    <main className="min-h-screen w-full scroll-smooth overflow-x-hidden bg-[#020617] p-4 text-white md:p-8">
+    <>
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+            html {
+              scroll-padding-top: 180px;
+            }
+
+            @media (min-width: 768px) {
+              html {
+                scroll-padding-top: 220px;
+              }
+            }
+
+            [id] {
+              scroll-margin-top: 180px;
+            }
+
+            @media (min-width: 768px) {
+              [id] {
+                scroll-margin-top: 220px;
+              }
+            }
+          `,
+        }}
+      />
+
+      <main className="min-h-screen w-full scroll-smooth overflow-x-hidden bg-[#020617] p-4 text-white md:p-8">
       {!isDemo && (
         <ReportTimeTracker
           inspectionId={String(inspectionId)}
@@ -1598,7 +1625,7 @@ export default async function PublicSharePage({
           </section>
 
           {reportDisclaimers && reportDisclaimers.length > 0 && (
-            <section id="report-disclaimers" className="scroll-mt-28 mt-8 rounded-2xl border border-purple-500/40 bg-[#071224] p-6 shadow-xl">
+            <section id="report-disclaimers" className="scroll-mt-[180px] md:scroll-mt-[220px] mt-8 rounded-2xl border border-purple-500/40 bg-[#071224] p-6 shadow-xl">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <p className="text-sm font-bold uppercase tracking-[0.3em] text-purple-300">
@@ -1637,7 +1664,7 @@ export default async function PublicSharePage({
           )}
 
           {showStandardsInShare && (
-          <section id="standards-of-practice" className="scroll-mt-28 mt-8 rounded-2xl border border-cyan-500/40 bg-[#071224] p-6 shadow-xl">
+          <section id="standards-of-practice" className="scroll-mt-[180px] md:scroll-mt-[220px] mt-8 rounded-2xl border border-cyan-500/40 bg-[#071224] p-6 shadow-xl">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <p className="text-sm font-bold uppercase tracking-[0.3em] text-cyan-300">
@@ -1687,7 +1714,7 @@ export default async function PublicSharePage({
           {clientSummaryGroups.length > 0 && (
             <section
               id="client-summary"
-              className="scroll-mt-28 mt-8 rounded-2xl border border-teal-500/40 bg-[#071224] p-6 shadow-xl"
+              className="scroll-mt-[180px] md:scroll-mt-[220px] mt-8 rounded-2xl border border-teal-500/40 bg-[#071224] p-6 shadow-xl"
             >
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
@@ -2143,7 +2170,7 @@ export default async function PublicSharePage({
             </section>
           )}
 
-          <section id="inspection-findings" className="scroll-mt-28 mt-10">
+          <section id="inspection-findings" className="scroll-mt-[180px] md:scroll-mt-[220px] mt-10">
             <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
               <div>
                 <p className="text-sm font-bold uppercase tracking-[0.3em] text-teal-400">
@@ -2490,6 +2517,7 @@ export default async function PublicSharePage({
         </div>
       </div>
     </main>
+    </>
   );
 }
 
