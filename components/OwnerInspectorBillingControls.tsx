@@ -1,25 +1,44 @@
 "use client";
 
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
+
+function toBool(value: any, fallback = false) {
+  if (typeof value === "boolean") return value;
+  if (value === "true") return true;
+  if (value === "false") return false;
+  return fallback;
+}
+
+function toDollars(cents: any) {
+  const number = Number(cents || 0);
+  if (!Number.isFinite(number) || number <= 0) return "";
+  return String(Math.round(number / 100));
+}
+
+function dollarsToCents(value: string) {
+  const number = Number(String(value || "").replace(/[^0-9.]/g, ""));
+  if (!Number.isFinite(number) || number <= 0) return 0;
+  return Math.round(number * 100);
+}
 
 type Props = {
   userId: string;
   email?: string;
-  subscriptionStatus?: string | null;
-  subscriptionRequired?: boolean | null;
-  subscriptionExempt?: boolean | null;
-  subscriptionExemptReason?: string | null;
-  subscriptionPriceOverrideCents?: number | null;
-  subscriptionPriceOverrideReason?: string | null;
-  freeInspectionLimit?: number | null;
-  freeInspectionsUsed?: number | null;
-  foundingMember?: boolean | null;
+  subscriptionStatus?: any;
+  subscriptionRequired?: any;
+  subscriptionExempt?: any;
+  subscriptionExemptReason?: any;
+  subscriptionPriceOverrideCents?: any;
+  subscriptionPriceOverrideReason?: any;
+  freeInspectionLimit?: any;
+  freeInspectionsUsed?: any;
+  foundingMember?: any;
 };
-
-const DEFAULT_MONTHLY_PRICE = 69;
 
 export default function OwnerInspectorBillingControls({
   userId,
+  email,
   subscriptionStatus,
   subscriptionRequired,
   subscriptionExempt,
@@ -30,19 +49,29 @@ export default function OwnerInspectorBillingControls({
   freeInspectionsUsed,
   foundingMember,
 }: Props) {
-  const [required, setRequired] = useState(subscriptionRequired ?? true);
-  const [exempt, setExempt] = useState(subscriptionExempt ?? false);
-  const [founding, setFounding] = useState(foundingMember ?? false);
-  const [customPrice, setCustomPrice] = useState(
-    subscriptionPriceOverrideCents ? String(subscriptionPriceOverrideCents / 100) : ""
-  );
-  const [reason, setReason] = useState(subscriptionExemptReason || "");
-  const [priceReason, setPriceReason] = useState(subscriptionPriceOverrideReason || "");
-  const [limit, setLimit] = useState(String(freeInspectionLimit ?? 3));
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
 
-  async function save() {
+  const [required, setRequired] = useState(() => toBool(subscriptionRequired, true));
+  const [exempt, setExempt] = useState(() => toBool(subscriptionExempt, false));
+  const [founding, setFounding] = useState(() => toBool(foundingMember, false));
+  const [customPrice, setCustomPrice] = useState(() => toDollars(subscriptionPriceOverrideCents));
+  const [freeLimit, setFreeLimit] = useState(() => String(Number(freeInspectionLimit ?? 3) || 3));
+  const [exemptReason, setExemptReason] = useState(() => String(subscriptionExemptReason || ""));
+  const [customPriceReason, setCustomPriceReason] = useState(() => String(subscriptionPriceOverrideReason || ""));
+
+  const busy = saving || isPending;
+  const statusText = String(subscriptionStatus || "inactive");
+  const used = Number(freeInspectionsUsed ?? 0) || 0;
+  const limit = Number(freeLimit || 3) || 3;
+  const priceCents = exempt ? 0 : dollarsToCents(customPrice) || (founding ? 4900 : 6900);
+  const priceLabel = exempt ? "Free" : `$${Math.round(priceCents / 100)}/month`;
+
+  async function saveBilling() {
+    if (busy) return;
+
     setSaving(true);
     setMessage("");
 
@@ -52,113 +81,162 @@ export default function OwnerInspectorBillingControls({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userId,
-          subscription_required: required,
-          subscription_exempt: exempt,
-          subscription_exempt_reason: reason,
-          subscription_price_override_cents: customPrice
-            ? Math.round(Number(customPrice) * 100)
-            : null,
-          subscription_price_override_reason: priceReason,
-          free_inspection_limit: Number(limit || 3),
-          founding_member: founding,
+          email,
+          subscriptionRequired: required,
+          subscriptionExempt: exempt,
+          foundingMember: founding,
+          subscriptionPriceOverrideCents: dollarsToCents(customPrice),
+          subscriptionPriceOverrideReason: customPriceReason.trim(),
+          freeInspectionLimit: limit,
+          subscriptionExemptReason: exemptReason.trim(),
         }),
       });
 
-      const json = await res.json();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Failed to save billing.");
 
-      if (!res.ok) throw new Error(json?.error || "Could not save.");
-
-      setMessage("Saved");
-    } catch (err: any) {
-      setMessage(err?.message || "Save failed");
+      setMessage(data.message || "Billing saved.");
+      startTransition(() => router.refresh());
+    } catch (error: any) {
+      setMessage(error?.message || "Failed to save billing.");
     } finally {
       setSaving(false);
     }
   }
 
-  const displayPrice = exempt
-    ? "Free"
-    : customPrice
-      ? `$${customPrice}/mo`
-      : founding
-        ? "$49/mo founding"
-        : `$${DEFAULT_MONTHLY_PRICE}/mo`;
-
   return (
-    <div className="mt-3 space-y-3 rounded-xl border border-slate-700 bg-slate-950/60 p-3">
-      <div>
-        <p className="text-xs font-black uppercase text-slate-400">Billing</p>
-        <p className="text-sm font-black text-white">{displayPrice}</p>
-        <p className="text-xs text-slate-400">
-          Status: {subscriptionStatus || "inactive"} · Free used:{" "}
-          {freeInspectionsUsed ?? 0}/{limit || 3}
+    <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-700 bg-[#020617]/70 p-4">
+      <div className="min-w-0">
+        <p className="text-[11px] font-black uppercase tracking-wide text-slate-500">Billing</p>
+        <p className="mt-1 break-words text-xl font-black text-white">{priceLabel}</p>
+        <p className="mt-1 break-words text-sm font-bold leading-6 text-slate-400">
+          Status: {statusText} · Free used: {used}/{limit}
         </p>
       </div>
 
-      <label className="flex items-center gap-2 text-xs font-bold text-slate-300">
-        <input
-          type="checkbox"
+      <div className="mt-4 space-y-3">
+        <ToggleRow
           checked={required}
-          onChange={(e) => setRequired(e.target.checked)}
+          onChange={setRequired}
+          title="Subscription required"
+          helper="Require paid subscription after free inspections."
+          disabled={busy}
         />
-        Subscription required after free inspections
-      </label>
 
-      <label className="flex items-center gap-2 text-xs font-bold text-slate-300">
-        <input
-          type="checkbox"
+        <ToggleRow
           checked={exempt}
-          onChange={(e) => setExempt(e.target.checked)}
+          onChange={setExempt}
+          title="Free / exempt inspector"
+          helper="Inspector can use the app without subscription billing."
+          disabled={busy}
         />
-        Free / exempt inspector
-      </label>
 
-      <label className="flex items-center gap-2 text-xs font-bold text-slate-300">
-        <input
-          type="checkbox"
+        <ToggleRow
           checked={founding}
-          onChange={(e) => setFounding(e.target.checked)}
+          onChange={setFounding}
+          title="Founding member"
+          helper="$49/month instead of the standard plan."
+          disabled={busy || exempt}
         />
-        Founding member $49/month
-      </label>
+      </div>
 
-      <input
-        className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white"
-        placeholder="Custom monthly price, example: 59"
-        value={customPrice}
-        onChange={(e) => setCustomPrice(e.target.value)}
-      />
+      <div className="mt-4 space-y-3">
+        <Input
+          value={customPrice}
+          onChange={setCustomPrice}
+          placeholder="Custom monthly price, example: 59"
+          inputMode="decimal"
+          disabled={busy || exempt}
+        />
 
-      <input
-        className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white"
-        placeholder="Free inspection limit"
-        value={limit}
-        onChange={(e) => setLimit(e.target.value)}
-      />
+        <Input
+          value={freeLimit}
+          onChange={setFreeLimit}
+          placeholder="Free inspection limit"
+          inputMode="numeric"
+          disabled={busy}
+        />
 
-      <input
-        className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white"
-        placeholder="Exempt reason"
-        value={reason}
-        onChange={(e) => setReason(e.target.value)}
-      />
+        <Input
+          value={exemptReason}
+          onChange={setExemptReason}
+          placeholder="Exempt reason"
+          disabled={busy || !exempt}
+        />
 
-      <input
-        className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white"
-        placeholder="Custom price reason"
-        value={priceReason}
-        onChange={(e) => setPriceReason(e.target.value)}
-      />
+        <Input
+          value={customPriceReason}
+          onChange={setCustomPriceReason}
+          placeholder="Custom price reason"
+          disabled={busy || exempt || !customPrice.trim()}
+        />
+      </div>
 
       <button
-        onClick={save}
-        disabled={saving}
-        className="w-full rounded-lg bg-teal-500 px-3 py-2 text-sm font-black text-slate-950 disabled:opacity-60"
+        type="button"
+        onClick={saveBilling}
+        disabled={busy}
+        className="mt-4 min-h-[48px] w-full rounded-xl bg-teal-500 px-4 py-3 text-center font-black text-slate-950 transition hover:bg-teal-400 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {saving ? "Saving..." : "Save Billing"}
+        {busy ? "Saving Billing..." : "Save Billing"}
       </button>
 
-      {message && <p className="text-xs font-bold text-teal-300">{message}</p>}
+      {message ? <p className="mt-3 break-words text-xs font-bold text-slate-400">{message}</p> : null}
     </div>
+  );
+}
+
+function ToggleRow({
+  checked,
+  onChange,
+  title,
+  helper,
+  disabled,
+}: {
+  checked: boolean;
+  onChange: (value: boolean) => void;
+  title: string;
+  helper: string;
+  disabled?: boolean;
+}) {
+  return (
+    <label className="flex min-w-0 cursor-pointer items-start gap-3 rounded-xl border border-slate-700 bg-slate-950/60 p-3 transition hover:border-teal-400/50">
+      <input
+        type="checkbox"
+        checked={checked}
+        disabled={disabled}
+        onChange={(event) => onChange(event.target.checked)}
+        className="mt-1 h-6 w-6 shrink-0 accent-teal-400"
+      />
+      <span className="min-w-0 flex-1">
+        <span className="block break-words text-sm font-black text-white">{title}</span>
+        <span className="mt-1 block break-words text-xs font-bold leading-5 text-slate-400">{helper}</span>
+      </span>
+    </label>
+  );
+}
+
+function Input({
+  value,
+  onChange,
+  placeholder,
+  inputMode,
+  disabled,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  inputMode?: "text" | "numeric" | "decimal";
+  disabled?: boolean;
+}) {
+  return (
+    <input
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      placeholder={placeholder}
+      inputMode={inputMode || "text"}
+      disabled={disabled}
+      className="min-h-[46px] w-full min-w-0 rounded-xl border border-slate-700 bg-[#020617] px-4 py-3 text-base font-bold text-white outline-none transition placeholder:text-slate-500 focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-50"
+    />
   );
 }

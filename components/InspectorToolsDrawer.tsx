@@ -1145,7 +1145,7 @@ export default function InspectorToolsDrawer({
           </div>
         </button>
 
-        <div className="grid border-t border-cyan-400/15 bg-black/10 p-3 sm:grid-cols-2 lg:grid-cols-6">
+        <div className="flex gap-3 overflow-x-auto border-t border-cyan-400/15 bg-black/10 p-3 sm:grid sm:grid-cols-2 sm:overflow-visible lg:grid-cols-6">
           {statusTiles.map((tile) => {
             const style = urgencyStyles[tile.urgency] || urgencyStyles.success;
             return (
@@ -1153,7 +1153,7 @@ export default function InspectorToolsDrawer({
                 key={tile.title}
                 type="button"
                 onClick={() => handleStatusTileClick(tile)}
-                className="rounded-2xl border border-transparent p-3 text-left transition hover:border-cyan-400/35 hover:bg-white/5 active:scale-[0.99]"
+                className="min-w-[170px] rounded-2xl border border-transparent p-3 text-left transition hover:border-cyan-400/35 hover:bg-white/5 active:scale-[0.99] sm:min-w-0"
               >
                 <div className="flex items-center justify-between gap-2">
                   <span className={`h-2.5 w-2.5 rounded-full ${style.dot}`} />
@@ -1210,9 +1210,9 @@ export default function InspectorToolsDrawer({
             className="absolute inset-0 bg-black/80 backdrop-blur-sm"
           />
 
-          <aside className="absolute inset-0 flex flex-col overflow-hidden bg-[#071224] shadow-2xl lg:inset-4 lg:rounded-[2rem] lg:border lg:border-slate-700">
-            <div className="shrink-0 border-b border-slate-800 bg-gradient-to-r from-[#0f172a] via-[#0b1326] to-[#061826] p-3 sm:p-5">
-              <div className="flex items-start justify-between gap-3">
+          <aside className="absolute inset-0 flex min-w-0 flex-col overflow-hidden bg-[#071224] shadow-2xl lg:inset-4 lg:rounded-[2rem] lg:border lg:border-slate-700">
+            <div className="shrink-0 overflow-hidden border-b border-slate-800 bg-gradient-to-r from-[#0f172a] via-[#0b1326] to-[#061826] p-3 sm:p-5">
+              <div className="flex min-w-0 items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-[11px] font-black uppercase tracking-[0.24em] text-teal-300">
                     On Point Inspect
@@ -1228,13 +1228,13 @@ export default function InspectorToolsDrawer({
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
-                  className="rounded-xl border border-slate-600 bg-[#020617] px-4 py-2 text-sm font-black text-slate-200 transition hover:bg-slate-800 active:scale-[0.98]"
+                  className="shrink-0 rounded-xl border border-slate-600 bg-[#020617] px-4 py-2 text-sm font-black text-slate-200 transition hover:bg-slate-800 active:scale-[0.98]"
                 >
                   Close
                 </button>
               </div>
 
-              <div className="mt-3 flex gap-2 overflow-x-auto pb-1 sm:grid sm:grid-cols-2 sm:overflow-visible lg:grid-cols-6">
+              <div className="mt-3 flex max-w-full gap-3 overflow-x-auto overscroll-x-contain pb-2 sm:grid sm:grid-cols-2 sm:overflow-visible lg:grid-cols-6">
                 {statusTiles.map((tile) => {
                   const style = urgencyStyles[tile.urgency] || urgencyStyles.success;
                   return (
@@ -1242,7 +1242,7 @@ export default function InspectorToolsDrawer({
                       key={tile.title}
                       type="button"
                       onClick={() => handleStatusTileClick(tile)}
-                      className={`min-w-[145px] rounded-2xl border p-3 text-left transition hover:scale-[1.01] active:scale-[0.99] sm:min-w-0 ${style.shell}`}
+                      className={`min-w-[185px] rounded-2xl border p-3 text-left transition hover:scale-[1.01] active:scale-[0.99] sm:min-w-0 ${style.shell}`}
                     >
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-[10px] font-black uppercase tracking-[0.14em] opacity-80">
@@ -1287,8 +1287,8 @@ export default function InspectorToolsDrawer({
                 </div>
               </div>
 
-              <div className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,1fr)_360px]">
-                <div className="flex gap-2 overflow-x-auto pb-1">
+              <div className="mt-3 grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_360px]">
+                <div className="flex max-w-full gap-2 overflow-x-auto overscroll-x-contain pb-2">
                   {categories.map((category) => {
                     const active = activeCategory === category;
 
@@ -1329,7 +1329,7 @@ export default function InspectorToolsDrawer({
               </div>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-24 xl:grid xl:grid-cols-[320px_minmax(0,1fr)_340px] xl:overflow-hidden xl:pb-0">
+            <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain pb-24 xl:grid xl:grid-cols-[320px_minmax(0,1fr)_340px] xl:overflow-hidden xl:pb-0">
               <nav className="hidden min-h-0 overflow-y-auto border-r border-slate-800 bg-[#0b1220] p-4 xl:block">
                 <div>
                   <p className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
@@ -1368,7 +1368,7 @@ export default function InspectorToolsDrawer({
                               : "border-slate-700 bg-[#020617] hover:border-cyan-500/70 hover:bg-slate-900"
                           }`}
                         >
-                          <div className="flex items-start justify-between gap-3">
+                          <div className="flex min-w-0 items-start justify-between gap-3">
                             <div className="min-w-0">
                               <p className="break-words text-sm font-black text-white">
                                 {item.title}
@@ -1402,16 +1402,16 @@ export default function InspectorToolsDrawer({
                 </div>
               </nav>
 
-              <div className="min-h-0 scroll-smooth p-3 sm:p-5 xl:overflow-y-auto" ref={bodyRef}>
-                <div className="sticky top-0 z-10 -mx-3 mb-4 border-b border-slate-800 bg-[#071224]/95 px-3 py-3 backdrop-blur xl:hidden">
+              <div className="min-h-0 min-w-0 scroll-smooth p-3 sm:p-5 xl:overflow-y-auto" ref={bodyRef}>
+                <div className="sticky top-0 z-10 -mx-3 mb-4 overflow-hidden border-b border-slate-800 bg-[#071224]/95 px-3 py-3 backdrop-blur xl:hidden">
                   <p className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Quick Actions</p>
-                  <div className="flex gap-2 overflow-x-auto pb-1">
+                  <div className="flex max-w-full gap-2 overflow-x-auto overscroll-x-contain pb-2">
                   {quickActions.map((item) => (
                     <button
                       key={item.title}
                       type="button"
                       onClick={() => openTool(item.title)}
-                      className="flex shrink-0 items-center gap-2 rounded-full border border-cyan-400/40 bg-cyan-500/10 px-3 py-2 text-xs font-black text-cyan-100 transition active:scale-[0.98]"
+                      className="flex min-w-max shrink-0 items-center gap-2 rounded-full border border-cyan-400/40 bg-cyan-500/10 px-3 py-2 text-xs font-black text-cyan-100 transition active:scale-[0.98]"
                     >
                       {item.title}
                     </button>
