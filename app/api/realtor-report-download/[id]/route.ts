@@ -1356,10 +1356,10 @@ export async function GET(req: Request, { params }: RouteProps) {
       });
     }
 
-    return new NextResponse(pdf, {
-      status: 200,
-      headers: {
-        "Content-Type": "application/pdf",
+    return new NextResponse(new Uint8Array(pdf), {
+  status: 200,
+  headers: {
+    "Content-Type": "application/pdf",
         "Content-Disposition": `attachment; filename="${getDownloadName(property, reportMode)}"`,
         "Cache-Control": "private, max-age=20, stale-while-revalidate=120",
       },
