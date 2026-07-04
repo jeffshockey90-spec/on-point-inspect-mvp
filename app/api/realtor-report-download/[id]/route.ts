@@ -32,6 +32,46 @@ const SECTION_ORDER = [
   "Disclaimers",
 ];
 
+const STANDARDS_OF_PRACTICE = [
+  {
+    "title": "Exterior",
+    "body": "I. The inspector shall: A. inspect: 1. wall coverings, flashing, and trim. 2. exterior doors. 3. attached and adjacent decks, balconies, stoops, steps, porches, and their associated railings. 4. eaves, soffits, and fascias where accessible from the ground level. 5. vegetation, grading, surface drainage, and retaining walls that are likely to adversely affect the building. 6. adjacent and entryway walkways, patios, and driveways. B. describe wall coverings.\n\nII. The inspector is NOT required to inspect: A. screening, shutters, awnings, and similar seasonal accessories. B. fences, boundary walls, and similar structures. C. geological and soil conditions. D. recreational facilities. E. outbuildings other than garages and carports. F. seawalls, break-walls, and docks. G. erosion control and earth stabilization measures."
+  },
+  {
+    "title": "Roof",
+    "body": "I. The inspector shall inspect from ground level or the eaves: A. the roof-covering materials; B. the gutters; C. the downspouts; D. the vents, flashing, skylights, chimney, and other roof penetrations; and E. the general structure of the roof from the readily accessible panels, doors or stairs.\n\nII. The inspector shall describe: A. the type of roof-covering materials.\n\nIII. The inspector shall report as in need of correction: A. observed indications of active roof leaks.\n\nIV. The inspector is not required to: A. walk on any roof surface. B. predict the service life expectancy. C. inspect underground downspout diverter drainage pipes. D. remove snow, ice, debris or other conditions that prohibit the observation of the roof surfaces. E. move insulation. F. inspect antennae, satellite dishes, lightning arresters, de-icing equipment, or similar attachments. G. walk on any roof areas that appear, in the inspectors opinion, to be unsafe. H. walk on any roof areas if doing so might, in the inspector's opinion, cause damage. I. perform a water test. J. warrant or certify the roof. K. confirm proper fastening or installation of any roof-covering material."
+  },
+  {
+    "title": "Basement, Foundation, Crawlspace & Structure",
+    "body": "I. The inspector shall inspect: A. the foundation; B. the basement; C. the crawlspace; and D. structural components.\n\nII. The inspector shall describe: A. the type of foundation; and B. the location of the access to the under-floor space.\n\nIII. The inspector shall report as in need of correction: A. observed indications of wood in contact with or near soil; B. observed indications of active water penetration; C. observed indications of possible foundation movement, such as sheetrock cracks, brick cracks, out-of-square door frames, and unlevel floors; and D. any observed cutting, notching and boring of framing members that may, in the inspector's opinion, present a structural or safety concern.\n\nIV. The inspector is not required to: A. enter any crawlspace that is not readily accessible, or where entry could cause damage or pose a hazard to him/herself. B. move stored items or debris. C. operate sump pumps with inaccessible floats. D. identify the size, spacing, span or location or determine the adequacy of foundation bolting, bracing, joists, joist spans or support systems. E. provide any engineering or architectural service. F. report on the adequacy of any structural system or component."
+  },
+  {
+    "title": "Heating",
+    "body": "I. The inspector shall inspect: A. the heating system, using normal operating controls.\n\nII. The inspector shall describe: A. the location of the thermostat for the heating system; B. the energy source; and C. the heating method.\n\nIII. The inspector shall report as in need of correction: A. any heating system that did not operate; and B. if the heating system was deemed inaccessible.\n\nIV. The inspector is not required to: A. inspect or evaluate the interior of flues or chimneys, fire chambers, heat exchangers, combustion air systems, fresh-air intakes, humidifiers, dehumidifiers, electronic air filters, geothermal systems, or solar heating systems. B. inspect fuel tanks or underground or concealed fuel supply systems. C. determine the uniformity, temperature, flow, balance, distribution, size, capacity, BTU, or supply adequacy of the heating system. D. light or ignite pilot flames. E. activate heating, heat pump systems, or other heating systems when ambient temperatures or other circumstances are not conducive to safe operation or may damage the equipment. F. override electronic thermostats. G. evaluate fuel quality. H. verify thermostat calibration, heat anticipation, or automatic setbacks, timers, programs or clocks."
+  },
+  {
+    "title": "Cooling",
+    "body": "I. The inspector shall inspect: A. the cooling system, using normal operating controls.\n\nII. The inspector shall describe: A. the location of the thermostat for the cooling system; and B. the cooling method.\n\nIII. The inspector shall report as in need of correction: A. any cooling system that did not operate; and B. if the cooling system was deemed inaccessible.\n\nIV. The inspector is not required to: A. determine the uniformity, temperature, flow, balance, distribution, size, capacity, BTU, or supply adequacy of the cooling system. B. inspect portable window units, through-wall units, or electronic air filters. C. operate equipment or systems if the exterior temperature is below 65 Fahrenheit, or when other circumstances are not conducive to safe operation or may damage the equipment. D. inspect or determine thermostat calibration, cooling anticipation, or automatic setbacks or clocks. E. examine electrical current, coolant fluids or gases, or coolant leakage."
+  },
+  {
+    "title": "Plumbing",
+    "body": "I. The inspector shall inspect: A. the main water supply shut-off valve; B. the main fuel supply shut-off valve; C. the water heating equipment, including the energy source, venting connections, temperature/pressure-relief (TPR) valves, Watts 210 valves, and seismic bracing; D. interior water supply, including all fixtures and faucets, by running the water; E. all toilets for proper operation by flushing; F. all sinks, tubs and showers for functional drainage; G. the drain, waste and vent system; and H. drainage sump pumps with accessible floats.\n\nII. The inspector shall describe: A. whether the water supply is public or private based upon observed evidence; B. the location of the main water supply shut-off valve; C. the location of the main fuel supply shut-off valve; D. the location of any observed fuel-storage system; and E. the capacity of the water heating equipment, if labeled.\n\nIII. The inspector shall report as in need of correction: A. deficiencies in the water supply by viewing the functional flow in two fixtures operated simultaneously; B. deficiencies in the installation of hot and cold water faucets; C. mechanical drain stops that were missing or did not operate if installed in sinks, lavatories and tubs; and D. toilets that were damaged, had loose connections to the floor, were leaking, or had tank components that did not operate.\n\nIV. The inspector is not required to: A. light or ignite pilot flames. B. measure the capacity, temperature, age, life expectancy or adequacy of the water heater. C. inspect the interior of flues or chimneys, combustion air systems, water softener or filtering systems, well pumps or tanks, safety or shut-off valves, floor drains, lawn sprinkler systems, or fire sprinkler systems. D. determine the exact flow rate, volume, pressure, temperature or adequacy of the water supply. E. determine the water quality, potability or reliability of the water supply or source. F. open sealed plumbing access panels. G. inspect clothes washing machines or their connections. H. operate any valve. I. test shower pans, tub and shower surrounds or enclosures for leakage or functional overflow protection. J. evaluate the compliance with conservation, energy or building standards, or the proper design or sizing of any water, waste or venting components, fixtures or piping. K. determine the effectiveness of anti-siphon, backflow prevention or drain-stop devices. L. determine whether there are sufficient cleanouts for effective cleaning of drains. M. evaluate fuel storage tanks or supply systems. N. inspect wastewater treatment systems. O. inspect water treatment systems or water filters. P. inspect water storage tanks, pressure pumps, or bladder tanks. Q. evaluate wait time to obtain hot water at fixtures, or perform testing of any kind to water heater elements. R. evaluate or determine the adequacy of combustion air. S. test, operate, open or close: safety controls, manual stop valves, temperature/pressure-relief valves, control valves, or check valves. T. examine ancillary or auxiliary systems or components, such as, but not limited to, those related to solar water heating and hot water circulation. U. determine the existence or condition of polybutylene plumbing. V. inspect or test for gas or fuel leaks, or indications thereof."
+  },
+  {
+    "title": "Electrical",
+    "body": "I. The inspector shall inspect: A. the service drop; B. the overhead service conductors and attachment point; C. the service head, gooseneck and drip loops; D. the service mast, service conduit and raceway; E. the electric meter and base; F. service-entrance conductors; G. the main service disconnect; H. panelboards and over-current protection devices (circuit breakers and fuses); I. service grounding and bonding; J. a representative number of switches, lighting fixtures and receptacles, including receptacles observed and deemed to be arc-fault circuit interrupter (AFCI)-protected using the AFCI test button, where possible; K. all ground-fault circuit interrupter receptacles and circuit breakers observed and deemed to be GFCIs using a GFCI tester, where possible; and L. smoke and carbon-monoxide detectors.\n\nII. The inspector shall describe: A. the main service disconnect's amperage rating, if labeled; and B. the type of wiring observed.\n\nIII. The inspector shall report as in need of correction: A. deficiencies in the integrity of the service entrance conductors insulation, drip loop, and vertical clearances from grade and roofs; B. any unused circuit-breaker panel opening that was not filled; C. the presence of solid conductor aluminum branch-circuit wiring, if readily visible; D. any tested receptacle in which power was not present, polarity was incorrect, the cover was not in place, the GFCI devices were not properly installed or did not operate properly, evidence of arcing or excessive heat, and where the receptacle was not grounded or was not secured to the wall; and E. the absence of smoke detectors.\n\nIV. The inspector is not required to: A. insert any tool, probe or device into the main panelboard, sub-panels, distribution panelboards, or electrical fixtures. B. operate electrical systems that are shut down. C. remove panelboard cabinet covers or dead fronts. D. operate or re-set over-current protection devices or overload devices. E. operate or test smoke or carbon-monoxide detectors or alarms F. inspect, operate or test any security, fire or alarms systems or components, or other warning or signaling systems. G. measure or determine the amperage or voltage of the main service equipment, if not visibly labeled. H. inspect ancillary wiring or remote-control devices. I. activate any electrical systems or branch circuits that are not energized. J. inspect low-voltage systems, electrical de-icing tapes, swimming pool wiring, or any timecontrolled devices. K. verify the service ground. L. inspect private or emergency electrical supply sources, including, but not limited to: generators, windmills, photovoltaic solar collectors, or battery or electrical storage facility. M. inspect spark or lightning arrestors. N. inspect or test de-icing equipment. O. conduct voltage-drop calculations. P. determine the accuracy of labeling. Q. inspect exterior lighting."
+  },
+  {
+    "title": "Attic, Insulation & Ventilation",
+    "body": "I. The inspector shall inspect: A. insulation in unfinished spaces, including attics, crawlspaces and foundation areas; B. ventilation of unfinished spaces, including attics, crawlspaces and foundation areas; and C. mechanical exhaust systems in the kitchen, bathrooms and laundry area.\n\nII. The inspector shall describe: A. the type of insulation observed; and B. the approximate average depth of insulation observed at the unfinished attic floor area or roof structure.\n\nIII. The inspector shall report as in need of correction: A. the general absence of insulation or ventilation in unfinished spaces.\n\nIV. The inspector is not required to: A. enter the attic or any unfinished spaces that are not readily accessible, or where entry could cause damage or, in the inspector's opinion, pose a safety hazard. B. move, touch or disturb insulation. C. move, touch or disturb vapor retarders. D. break or otherwise damage the surface finish or weather seal on or around access panels or covers. E. identify the composition or R-value of insulation material. F. activate thermostatically operated fans. G. determine the types of materials used in insulation or wrapping of pipes, ducts, jackets, boilers or wiring. H. determine the adequacy of ventilation."
+  },
+  {
+    "title": "Doors, Windows & Interior",
+    "body": "I. The inspector shall inspect: A. a representative number of doors and windows by opening and closing them; B. floors, walls and ceilings; C. stairs, steps, landings, stairways and ramps; D. railings, guards and handrails; and E. garage vehicle doors and the operation of garage vehicle door openers, using normal operating controls.\n\nII. The inspector shall describe: A. a garage vehicle door as manually-operated or installed with a garage door opener.\n\nIII. The inspector shall report as in need of correction: A. improper spacing between intermediate balusters, spindles and rails for steps, stairways, guards and railings; B. photo-electric safety sensors that did not operate properly; and C. any window that was obviously fogged or displayed other evidence of broken seals.\n\nIV. The inspector is not required to: A. inspect paint, wallpaper, window treatments or finish treatments. B. inspect floor coverings or carpeting. C. inspect central vacuum systems. D. inspect for safety glazing. E. inspect security systems or components. F. evaluate the fastening of islands, countertops, cabinets, sink tops or fixtures. G. move furniture, stored items, or any coverings, such as carpets or rugs, in order to inspect the concealed floor structure. H. move suspendedceiling tiles. I. inspect or move any household appliances. J. inspect or operate equipment housed in the garage, except as otherwise noted. K. verify or certify the proper operation of any pressure-activated auto-reverse or related safety feature of a garage door. L. operate or evaluate any security bar release and opening mechanisms, whether interior or exterior, including their compliance with local, state or federal standards. M. operate any system, appliance or component that requires the use of special keys, codes, combinations or devices. N. operate or evaluate self-cleaning oven cycles, tilt guards/latches, or signal lights. O. inspect microwave ovens or test leakage from microwave ovens. P. operate or examine any sauna, steamgenerating equipment, kiln, toaster, ice maker, coffee maker, can opener, bread warmer, blender, instant hot-water dispenser, or other small, ancillary appliances or devices. Q. inspect elevators. R. inspect remote controls. S. inspect appliances. T. inspect items not permanently installed. U. discover firewall compromises. V. inspect pools, spas or fountains. W. determine the adequacy of whirlpool or spa jets, water force, or bubble effects. X. determine the structural integrity or leakage of pools or spas."
+  }
+] as const;
+
+
 async function createSupabaseServerClient() {
   const cookieStore = await cookies();
 
@@ -606,6 +646,53 @@ function severityKey(value: any) {
   return getSeverityBucket(value).toLowerCase().replace(/[^a-z]+/g, "-");
 }
 
+function buildStandardsOfPracticePagesHtml({
+  property,
+  cityStateZip,
+  companyName,
+  headerLogoHtml,
+}: {
+  property: string;
+  cityStateZip: string;
+  companyName: string;
+  headerLogoHtml: string;
+}) {
+  const standardsHtml = STANDARDS_OF_PRACTICE.map((section) => `
+    <article class="standards-block">
+      <h3>${escapeHtml(section.title)}</h3>
+      ${escapeHtml(section.body)
+        .split("\n\n")
+        .filter(Boolean)
+        .map((paragraph) => `<p>${paragraph}</p>`)
+        .join("")}
+    </article>
+  `).join("");
+
+  return `
+    <section class="page standards-page" id="standards-of-practice">
+      <header class="page-header">
+        <div class="mini-brand">${headerLogoHtml}</div>
+        <div class="header-address">${escapeHtml(property)}<br/>${escapeHtml(cityStateZip)}</div>
+      </header>
+
+      <div class="standards-title">
+        <p>Report Reference</p>
+        <h2>Standards of Practice</h2>
+        <span>The inspection was performed according to these Standards of Practice. These standards define the systems inspected and identify items the inspector is not required to inspect.</span>
+      </div>
+
+      <div class="standards-grid">
+        ${standardsHtml}
+      </div>
+
+      <footer class="black-footer">
+        <span>Standards of Practice</span>
+        <span>${escapeHtml(companyName)}</span>
+      </footer>
+    </section>
+  `;
+}
+
 function buildAgentReportHtml({
   inspection,
   findings,
@@ -693,6 +780,15 @@ function buildAgentReportHtml({
       </div>
     `;
   }).join("");
+
+  const standardsTocHtml = `
+    <div class="toc-row">
+      <span class="toc-num">SOP</span>
+      <span class="toc-name">Standards of Practice</span>
+      <span class="toc-dots"></span>
+      <span class="toc-count">Reference</span>
+    </div>
+  `;
 
   const keyFindingsHtml = defects.map((finding: any, index: number) => {
     const section = normalizeSection(finding.section);
@@ -819,6 +915,13 @@ function buildAgentReportHtml({
     `;
   }).join("");
 
+  const standardsPagesHtml = buildStandardsOfPracticePagesHtml({
+    property,
+    cityStateZip,
+    companyName,
+    headerLogoHtml,
+  });
+
   return `<!doctype html>
 <html>
 <head>
@@ -914,6 +1017,15 @@ function buildAgentReportHtml({
     .finding-photos { display: grid; gap: 8px; }
     .finding-photos img { width: 100%; max-height: 174px; object-fit: contain; border: 1px solid #cbd5e1; background: #fff; }
 
+    .standards-title { border-left: 6px solid #0f8f8f; padding: 0 0 0 18px; margin-bottom: 18px; }
+    .standards-title p { margin: 0; color: #0f8f8f; font-size: 10px; text-transform: uppercase; letter-spacing: .14em; font-weight: 900; }
+    .standards-title h2 { margin: 4px 0 6px; color: #020617; font-size: 28px; text-transform: uppercase; }
+    .standards-title span { display: block; color: #475569; font-size: 11px; line-height: 1.5; max-width: 650px; }
+    .standards-grid { column-count: 2; column-gap: 22px; }
+    .standards-block { break-inside: avoid; page-break-inside: avoid; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px 12px; margin: 0 0 12px; background: #f8fafc; }
+    .standards-block h3 { margin: 0 0 7px; color: #0f8f8f; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; }
+    .standards-block p { margin: 0 0 7px; color: #334155; font-size: 9.2px; line-height: 1.42; }
+
     .interactive-card { margin: 120px auto 0; max-width: 420px; text-align: center; }
     .interactive-icon { width: 90px; height: 90px; margin: 0 auto 18px; border-radius: 999px; background: #0f8f8f; color: white; display: flex; align-items: center; justify-content: center; font-size: 34px; font-weight: 900; }
     .qr-caption { margin: 22px 0 0; color: #020617; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .12em; }
@@ -993,6 +1105,7 @@ function buildAgentReportHtml({
       </header>
       <h2 class="toc-title">Table of Contents</h2>
       ${tocHtml || "<p>No sections with findings.</p>"}
+      ${standardsTocHtml}
       <footer class="black-footer"><span>${escapeHtml(companyName)}</span><span>Table of Contents</span></footer>
     </section>
     ` : ""}
@@ -1028,6 +1141,8 @@ function buildAgentReportHtml({
         <footer class="black-footer"><span>${escapeHtml(companyName)}</span><span>No Findings</span></footer>
       </section>
     `}
+
+    ${standardsPagesHtml}
 
     ${isFull && onlineReportUrl ? `
     <section class="page">
