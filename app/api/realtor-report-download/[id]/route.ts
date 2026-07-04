@@ -4,6 +4,8 @@ import { createServerClient } from "@supabase/ssr";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import QRCode from "qrcode";
 import { randomUUID } from "crypto";
+import chromium from "@sparticuz/chromium";
+import puppeteer from "puppeteer-core";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -1054,6 +1056,58 @@ function buildAgentReportHtml({
 </html>`;
 }
 
+
+async function renderHtmlToPdf(html: string) {
+  let browser: any = null;
+
+  try {
+    const executablePath =
+      process.env.PUPPETEER_EXECUTABLE_PATH ||
+      (await chromium.executablePath());
+
+    browser = await puppeteer.launch({
+      args: chromium.args,
+      defaultViewport: {
+        width: 816,
+        height: 1056,
+        deviceScaleFactor: 1,
+      },
+      executablePath,
+      headless: chromium.headless,
+    });
+
+    const page = await browser.newPage();
+
+    page.setDefaultNavigationTimeout(0);
+    page.setDefaultTimeout(0);
+
+    await page.setContent(html, {
+      waitUntil: "networkidle0",
+      timeout: 90000,
+    });
+
+    await page.emulateMediaType("print");
+
+    const pdf = await page.pdf({
+      format: "Letter",
+      printBackground: true,
+      preferCSSPageSize: true,
+      margin: {
+        top: "0in",
+        right: "0in",
+        bottom: "0in",
+        left: "0in",
+      },
+    });
+
+    return Buffer.from(pdf);
+  } finally {
+    if (browser) {
+      await browser.close().catch(() => {});
+    }
+  }
+}
+
 function getDownloadName(property: string, reportMode: "agent" | "full") {
   const slug = cleanText(property)
     .toLowerCase()
@@ -1061,7 +1115,7 @@ function getDownloadName(property: string, reportMode: "agent" | "full") {
     .replace(/^-+|-+$/g, "")
     .slice(0, 70);
 
-  return `${slug || "inspection-report"}-${reportMode === "full" ? "full-report" : "agent-report"}.html`;
+  return `${slug || "inspection-report"}-${reportMode === "full" ? "full-report" : "agent-report"}.pdf`;
 }
 
 export async function GET(req: Request, { params }: RouteProps) {
@@ -1283,10 +1337,12 @@ export async function GET(req: Request, { params }: RouteProps) {
     });
     const property = getPropertyAddress(inspection);
 
-    return new NextResponse(html, {
+    const pdf = await renderHtmlToPdf(html);
+
+    return new NextResponse(pdf, {
       status: 200,
       headers: {
-        "Content-Type": "text/html; charset=utf-8",
+        "Content-Type": "application/pdf",
         "Content-Disposition": `attachment; filename="${getDownloadName(property, reportMode)}"`,
         "Cache-Control": "private, max-age=20, stale-while-revalidate=120",
       },
