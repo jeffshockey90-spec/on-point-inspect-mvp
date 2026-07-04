@@ -1410,8 +1410,7 @@ export default function InspectorToolsDrawer({
                             key={item.id}
                             type="button"
                             onClick={() => {
-                              if ("notification" in item && item.notification) openNotification(item.notification);
-                              if ("tool" in item && item.tool) openTool(item.tool.title);
+                              if (item.notification) openNotification(item.notification);
                             }}
                             className="w-full rounded-2xl border border-slate-700 bg-slate-950/80 p-3 text-left transition hover:border-cyan-400/60 hover:bg-slate-900 active:scale-[0.99]"
                           >
