@@ -7,6 +7,7 @@ import DeleteAccountSection from "./DeleteAccountSection";
 import PushNotificationSetup from "../../components/PushNotificationSetup";
 import SupportUnreadBadge from "../../components/SupportUnreadBadge";
 import CompanyImageUploader from "./CompanyImageUploader";
+import StandardsOfPracticeEditor from "./StandardsOfPracticeEditor";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -920,75 +921,12 @@ export default async function SettingsPage({
             </div>
           </section>
 
-          <section className="rounded-3xl border border-cyan-500/30 bg-[#0b1220] p-5 sm:p-6 md:p-8">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-black uppercase tracking-[0.25em] text-cyan-300">
-                  Report Settings
-                </p>
-                <h2 className="mt-2 text-xl font-black text-white sm:text-2xl">
-                  Standards of Practice
-                </h2>
-                <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">
-                  Paste your own inspection Standards of Practice here. If this is left blank, reports use the On Point default SOP. These settings are saved to your company and are used automatically in shared reports and PDF downloads.
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-6 grid gap-4 md:grid-cols-2">
-              <label className="block min-w-0 md:col-span-2">
-                <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
-                  SOP Title
-                </p>
-                <input
-                  name="standards_of_practice_title"
-                  defaultValue={standardsTitle}
-                  placeholder="Standards of Practice"
-                  className="w-full min-w-0 rounded-xl border border-slate-700 bg-[#020617] p-3 text-white outline-none focus:border-cyan-400"
-                />
-              </label>
-
-              <label className="block min-w-0 md:col-span-2">
-                <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
-                  Custom Standards of Practice
-                </p>
-                <textarea
-                  name="standards_of_practice_body"
-                  defaultValue={standardsBody}
-                  rows={14}
-                  placeholder="Paste your Standards of Practice here. Leave blank to use the On Point default SOP."
-                  className="w-full min-w-0 rounded-xl border border-slate-700 bg-[#020617] p-3 text-sm leading-6 text-white outline-none focus:border-cyan-400"
-                />
-                <p className="mt-2 text-xs leading-5 text-slate-500">
-                  Tip: separate major paragraphs with a blank line. The shared report and PDF will format it automatically.
-                </p>
-              </label>
-
-              <label className="flex gap-3 rounded-xl border border-slate-700 bg-[#020617] p-4">
-                <input
-                  name="standards_include_in_share"
-                  type="checkbox"
-                  defaultChecked={standardsIncludeShare}
-                  className="mt-0.5 h-5 w-5 shrink-0"
-                />
-                <span className="text-sm font-bold leading-6 text-slate-200">
-                  Show Standards of Practice in shared client/realtor report
-                </span>
-              </label>
-
-              <label className="flex gap-3 rounded-xl border border-slate-700 bg-[#020617] p-4">
-                <input
-                  name="standards_include_in_pdf"
-                  type="checkbox"
-                  defaultChecked={standardsIncludePdf}
-                  className="mt-0.5 h-5 w-5 shrink-0"
-                />
-                <span className="text-sm font-bold leading-6 text-slate-200">
-                  Include Standards of Practice in downloaded PDF report
-                </span>
-              </label>
-            </div>
-          </section>
+          <StandardsOfPracticeEditor
+            initialTitle={standardsTitle}
+            initialBody={standardsBody}
+            initialIncludeShare={standardsIncludeShare}
+            initialIncludePdf={standardsIncludePdf}
+          />
 
           <section className="rounded-3xl border border-slate-800 bg-[#0b1220] p-5 sm:p-6 md:p-8">
             <h2 className="text-xl font-black text-teal-300 sm:text-2xl">
