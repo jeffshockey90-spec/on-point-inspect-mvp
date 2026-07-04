@@ -275,6 +275,33 @@ function uniqueAgeRulesForYear(year: number | null) {
   });
 }
 
+function getDeclinedSuggestionStorageKey(inspectionId: string) {
+  return `opi-declined-disclaimer-suggestions-${inspectionId}`;
+}
+
+function readDeclinedSuggestionTopics(inspectionId: string) {
+  if (typeof window === "undefined" || !inspectionId) return new Set<string>();
+
+  try {
+    const raw = window.localStorage.getItem(getDeclinedSuggestionStorageKey(inspectionId));
+    const values = raw ? JSON.parse(raw) : [];
+    return new Set((Array.isArray(values) ? values : []).map((value) => String(value)));
+  } catch {
+    return new Set<string>();
+  }
+}
+
+function writeDeclinedSuggestionTopics(inspectionId: string, topics: Set<string>) {
+  if (typeof window === "undefined" || !inspectionId) return;
+
+  try {
+    window.localStorage.setItem(
+      getDeclinedSuggestionStorageKey(inspectionId),
+      JSON.stringify(Array.from(topics))
+    );
+  } catch {}
+}
+
 
 type DisclaimerRow = {
   id: string;
@@ -302,6 +329,9 @@ export default function ReportDisclaimers({
   const [messageType, setMessageType] = useState<"success" | "error" | "">("");
   const [inspectionYear, setInspectionYear] = useState<number | null>(null);
   const [findingText, setFindingText] = useState("");
+  const [declinedSuggestionTopics, setDeclinedSuggestionTopics] = useState<Set<string>>(
+    () => readDeclinedSuggestionTopics(inspectionId)
+  );
 
 
 
@@ -374,6 +404,10 @@ export default function ReportDisclaimers({
     loadDisclaimers();
   }, [inspectionId]);
 
+  useEffect(() => {
+    setDeclinedSuggestionTopics(readDeclinedSuggestionTopics(inspectionId));
+  }, [inspectionId]);
+
   const selectedTopics = useMemo(
     () => new Set(rows.map((row) => row.topic)),
     [rows]
@@ -383,7 +417,7 @@ export default function ReportDisclaimers({
     const map = new Map<string, DisclaimerSuggestion>();
 
     uniqueAgeRulesForYear(inspectionYear).forEach((rule) => {
-      if (selectedTopics.has(rule.topic)) return;
+      if (selectedTopics.has(rule.topic) || declinedSuggestionTopics.has(rule.topic)) return;
       map.set(rule.topic, {
         topic: rule.topic,
         label: rule.label,
@@ -396,7 +430,7 @@ export default function ReportDisclaimers({
     const text = findingText.toLowerCase();
 
     FINDING_BASED_DISCLAIMER_RULES.forEach((rule) => {
-      if (selectedTopics.has(rule.topic) || map.has(rule.topic)) return;
+      if (selectedTopics.has(rule.topic) || declinedSuggestionTopics.has(rule.topic) || map.has(rule.topic)) return;
       if (!rule.keywords.some((keyword) => text.includes(keyword))) return;
 
       map.set(rule.topic, {
@@ -409,7 +443,41 @@ export default function ReportDisclaimers({
     });
 
     return Array.from(map.values());
-  }, [findingText, inspectionYear, selectedTopics]);
+  }, [declinedSuggestionTopics, findingText, inspectionYear, selectedTopics]);
+
+  const declinedSuggestions = useMemo<DisclaimerSuggestion[]>(() => {
+    if (declinedSuggestionTopics.size === 0) return [];
+
+    const map = new Map<string, DisclaimerSuggestion>();
+
+    uniqueAgeRulesForYear(inspectionYear).forEach((rule) => {
+      if (selectedTopics.has(rule.topic) || !declinedSuggestionTopics.has(rule.topic)) return;
+      map.set(rule.topic, {
+        topic: rule.topic,
+        label: rule.label,
+        reason: rule.reason,
+        disclaimerText: rule.disclaimerText,
+        source: "Age",
+      });
+    });
+
+    const text = findingText.toLowerCase();
+
+    FINDING_BASED_DISCLAIMER_RULES.forEach((rule) => {
+      if (selectedTopics.has(rule.topic) || map.has(rule.topic) || !declinedSuggestionTopics.has(rule.topic)) return;
+      if (!rule.keywords.some((keyword) => text.includes(keyword))) return;
+
+      map.set(rule.topic, {
+        topic: rule.topic,
+        label: rule.label,
+        reason: rule.reason,
+        disclaimerText: rule.disclaimerText,
+        source: "Finding",
+      });
+    });
+
+    return Array.from(map.values());
+  }, [declinedSuggestionTopics, findingText, inspectionYear, selectedTopics]);
 
   const activeRow = rows.find((row) => row.topic === activeTopic);
 
@@ -468,6 +536,41 @@ export default function ReportDisclaimers({
   }
 
 
+  function declineSuggestedDisclaimer(rule: DisclaimerSuggestion) {
+    if (!inspectionId) return;
+
+    setDeclinedSuggestionTopics((prev) => {
+      const next = new Set(prev);
+      next.add(rule.topic);
+      writeDeclinedSuggestionTopics(inspectionId, next);
+      return next;
+    });
+
+    showMessage("success", `${rule.topic} suggestion declined.`);
+  }
+
+  function restoreSuggestedDisclaimer(topic: string) {
+    if (!inspectionId) return;
+
+    setDeclinedSuggestionTopics((prev) => {
+      const next = new Set(prev);
+      next.delete(topic);
+      writeDeclinedSuggestionTopics(inspectionId, next);
+      return next;
+    });
+
+    showMessage("success", `${topic} suggestion restored.`);
+  }
+
+  function restoreAllDeclinedSuggestions() {
+    if (!inspectionId) return;
+
+    const next = new Set<string>();
+    writeDeclinedSuggestionTopics(inspectionId, next);
+    setDeclinedSuggestionTopics(next);
+    showMessage("success", "Declined disclaimer suggestions restored.");
+  }
+
   async function addSuggestedDisclaimer(rule: DisclaimerSuggestion) {
     if (saving || !inspectionId || selectedTopics.has(rule.topic)) return;
 
@@ -496,6 +599,14 @@ export default function ReportDisclaimers({
         setRoughNotes(data.rough_notes || "");
         setGeneratedText(data.disclaimer_text || "");
       }
+
+      setDeclinedSuggestionTopics((prev) => {
+        if (!prev.has(rule.topic)) return prev;
+        const next = new Set(prev);
+        next.delete(rule.topic);
+        writeDeclinedSuggestionTopics(inspectionId, next);
+        return next;
+      });
 
       showMessage("success", `${rule.topic} disclaimer added.`);
     } catch (error: any) {
@@ -798,37 +909,87 @@ export default function ReportDisclaimers({
             {recommendedSuggestions.length > 0 ? (
               <div className="mt-4 grid gap-3 lg:grid-cols-2">
                 {recommendedSuggestions.map((rule) => (
-                  <button
+                  <div
                     key={rule.topic}
-                    type="button"
-                    onClick={() => addSuggestedDisclaimer(rule)}
-                    disabled={saving}
-                    className="rounded-xl border border-cyan-400/40 bg-[#020617] p-4 text-left transition hover:border-cyan-300 hover:bg-cyan-500/10 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+                    className="rounded-xl border border-cyan-400/40 bg-[#020617] p-4 text-left transition hover:border-cyan-300 hover:bg-cyan-500/10"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className="text-base font-black text-white">{rule.topic}</p>
                         <p className="mt-1 text-sm font-bold text-cyan-200">{rule.label}</p>
                       </div>
-                      <div className="flex shrink-0 flex-col items-end gap-2">
-                        <span className="rounded-full border border-slate-500/60 bg-slate-500/10 px-3 py-1 text-[10px] font-black uppercase text-slate-200">
-                          {rule.source}
-                        </span>
-                        <span className="rounded-full border border-cyan-400/60 bg-cyan-500/15 px-3 py-1 text-xs font-black text-cyan-100">
-                          Add
-                        </span>
-                      </div>
+                      <span className="shrink-0 rounded-full border border-slate-500/60 bg-slate-500/10 px-3 py-1 text-[10px] font-black uppercase text-slate-200">
+                        {rule.source}
+                      </span>
                     </div>
                     <p className="mt-3 text-sm leading-6 text-slate-300">{rule.reason}</p>
                     <div className="mt-3 rounded-lg border border-slate-700 bg-slate-950/70 p-3 text-xs leading-5 text-slate-400">
                       {rule.disclaimerText}
                     </div>
-                  </button>
+
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => addSuggestedDisclaimer(rule)}
+                        disabled={saving}
+                        className="rounded-full border border-cyan-400/60 bg-cyan-500/15 px-4 py-2 text-xs font-black text-cyan-100 hover:bg-cyan-500/25 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        Add Disclaimer
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => declineSuggestedDisclaimer(rule)}
+                        disabled={saving}
+                        className="rounded-full border border-slate-500/70 bg-slate-500/10 px-4 py-2 text-xs font-black text-slate-200 hover:bg-slate-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        Decline
+                      </button>
+                    </div>
+                  </div>
                 ))}
               </div>
             ) : inspectionYear ? (
               <div className="mt-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-sm font-bold text-emerald-200">
-                All current AI disclaimer suggestions for this home are already added.
+                All current AI disclaimer suggestions for this home are already added or declined.
+              </div>
+            ) : null}
+
+            {declinedSuggestions.length > 0 ? (
+              <div className="mt-4 rounded-xl border border-slate-600 bg-slate-950/70 p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-300">
+                      Declined Suggestions
+                    </p>
+                    <p className="mt-1 text-sm leading-6 text-slate-400">
+                      These suggestions are hidden from AI Recommended unless you restore them.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={restoreAllDeclinedSuggestions}
+                    disabled={saving}
+                    className="rounded-full border border-slate-400/70 bg-slate-500/10 px-3 py-1 text-xs font-black text-slate-100 hover:bg-slate-500/20 disabled:opacity-60"
+                  >
+                    Restore All
+                  </button>
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {declinedSuggestions.map((rule) => (
+                    <button
+                      key={rule.topic}
+                      type="button"
+                      onClick={() => restoreSuggestedDisclaimer(rule.topic)}
+                      disabled={saving}
+                      className="rounded-full border border-slate-500/70 bg-[#020617] px-3 py-2 text-xs font-bold text-slate-200 hover:border-cyan-400 hover:text-cyan-100 disabled:opacity-60"
+                    >
+                      Restore {rule.topic}
+                    </button>
+                  ))}
+                </div>
               </div>
             ) : null}
           </div>

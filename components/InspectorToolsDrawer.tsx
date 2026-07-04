@@ -599,9 +599,11 @@ export default function InspectorToolsDrawer({
   const [activeCategory, setActiveCategory] = useState<WorkspaceCategory>("all");
   const [activeTool, setActiveTool] = useState("");
   const bodyRef = useRef<HTMLDivElement | null>(null);
-  const [reviewedFindingIds, setReviewedFindingIds] = useState<Set<string>>(() => readReviewedFindingIds());
+  const [reviewedFindingIds, setReviewedFindingIds] = useState<Set<string>>(() => new Set<string>());
 
   useEffect(() => {
+    setReviewedFindingIds(readReviewedFindingIds());
+
     function handleReviewedFinding(event: Event) {
       const detail = (event as CustomEvent)?.detail || {};
       const findingId = String(detail.findingId || "");
@@ -717,29 +719,37 @@ export default function InspectorToolsDrawer({
   }, [enrichedItems]);
 
   const activityItems = useMemo(() => {
-    const notificationActivity = attentionNotifications.map((item) => ({
-      id: item.id || item.title,
-      title: item.title,
-      helper: item.message || "Workspace update ready to review.",
-      urgency: item.urgency || "info",
-      badge: item.badge || urgencyStyles[item.urgency || "info"].label,
-      notification: item,
-    }));
+    return attentionNotifications
+      .filter((item) => {
+        const text = normalizeText(
+          `${item.id || ""} ${item.title} ${item.message || ""}`
+        );
 
-    const toolActivity = enrichedItems
-      .filter((item) => item.badge)
-      .slice(0, 6)
+        return (
+          text.includes("view") ||
+          text.includes("opened") ||
+          text.includes("client") ||
+          text.includes("realtor") ||
+          text.includes("signed") ||
+          text.includes("agreement") ||
+          text.includes("payment") ||
+          text.includes("invoice") ||
+          text.includes("repair response") ||
+          text.includes("seller") ||
+          text.includes("published") ||
+          text.includes("email")
+        );
+      })
       .map((item) => ({
-        id: `tool-${item.slug}`,
+        id: item.id || item.title,
         title: item.title,
-        helper: item.helper || "Tool is available in the workspace.",
-        urgency: "success" as const,
-        badge: item.badge || "Ready",
-        tool: item,
-      }));
-
-    return [...notificationActivity, ...toolActivity].slice(0, 10);
-  }, [attentionNotifications, enrichedItems]);
+        helper: item.message || "Inspection activity updated.",
+        urgency: item.urgency || "info",
+        badge: item.badge || urgencyStyles[item.urgency || "info"].label,
+        notification: item,
+      }))
+      .slice(0, 10);
+  }, [attentionNotifications]);
 
   const categories = useMemo(() => {
     const set = new Set<WorkspaceCategory>(["all"]);

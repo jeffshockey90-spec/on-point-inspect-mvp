@@ -2230,6 +2230,38 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
 
   const signedAgreements = signedAgreementsRaw || [];
 
+  const { data: agreementContactsRaw, error: agreementContactsError } = await supabase
+    .from("inspection_contacts")
+    .select("id, name, email, role, agreement_required, agreement_signed, signed_at")
+    .eq("inspection_id", inspection.id)
+    .order("created_at", { ascending: true });
+
+  if (agreementContactsError) {
+    console.error("Agreement contacts load error:", agreementContactsError);
+  }
+
+  const agreementContacts = agreementContactsRaw || [];
+  const requiredAgreementContacts = agreementContacts.filter((contact: any) =>
+    Boolean(contact.agreement_required)
+  );
+  const unsignedRequiredAgreementContacts = requiredAgreementContacts.filter(
+    (contact: any) => !Boolean(contact.agreement_signed)
+  );
+  const allRequiredAgreementsSigned =
+    requiredAgreementContacts.length > 0 && unsignedRequiredAgreementContacts.length === 0;
+  const hasSignedAgreementRecord = signedAgreements.length > 0;
+  const agreementComplete = requiredAgreementContacts.length > 0
+    ? allRequiredAgreementsSigned
+    : hasSignedAgreementRecord;
+  const agreementStatusLabel = requiredAgreementContacts.length > 0
+    ? allRequiredAgreementsSigned
+      ? "All signed"
+      : `${unsignedRequiredAgreementContacts.length} missing`
+    : hasSignedAgreementRecord
+      ? "Signed"
+      : "Needs setup";
+  const firstSignedAgreement = signedAgreements[0] || null;
+
   const { data: reportDisclaimersRaw, error: reportDisclaimersError } = await supabase
     .from("report_disclaimers")
     .select("id, topic, disclaimer_text")
@@ -2287,8 +2319,12 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
       !paymentStatusText.includes("waived"));
 
   const agreementNeedsAttention =
-    Boolean(inspection.client_email || inspection.client_name) &&
-    signedAgreements.length === 0;
+    Boolean(
+      inspection.client_email ||
+        inspection.client_name ||
+        requiredAgreementContacts.length > 0 ||
+        signedAgreements.length > 0
+    ) && !agreementComplete;
 
   const repairResponsesReady = repairRequestHistory.filter((item: any) => {
     const status = String(item.status || "").toLowerCase();
@@ -2318,10 +2354,14 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
       ? [
           {
             id: "agreement-missing",
-            title: "Agreement signature missing",
-            message: "No signed client agreement is saved for this inspection yet.",
+            title: requiredAgreementContacts.length > 0
+              ? "Required agreement signature missing"
+              : "Agreement signer setup needed",
+            message: requiredAgreementContacts.length > 0
+              ? `${unsignedRequiredAgreementContacts.length} required agreement signature${unsignedRequiredAgreementContacts.length === 1 ? "" : "s"} still need to be completed.`
+              : "No required agreement signer is marked complete yet. Review agreement contacts and send the agreement if needed.",
             urgency: "critical" as const,
-            badge: "Required",
+            badge: requiredAgreementContacts.length > 0 ? `${unsignedRequiredAgreementContacts.length} missing` : "Required",
             targetAnchor: "agreement-status",
           },
         ]
@@ -2390,6 +2430,66 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
         : defectTotals.total > 0
           ? `${defectTotals.total}`
           : "Ready";
+
+
+  const inspectionProgressItems = [
+    { label: "Report Items", complete: findings.length > 0 },
+    { label: "Media", complete: photosWithUrls.length > 0 },
+    { label: "Agreement", complete: agreementComplete },
+    { label: "Payment", complete: !paymentNeedsAttention },
+    { label: "Published", complete: reportIsPublished },
+  ];
+
+  const inspectionProgressCompleteCount = inspectionProgressItems.filter((item) => item.complete).length;
+  const inspectionProgressPercent = Math.round(
+    (inspectionProgressCompleteCount / inspectionProgressItems.length) * 100
+  );
+
+  const nextWorkspaceNotification = inspectorWorkspaceNotifications[0] || null;
+  const nextWorkspaceText = `${nextWorkspaceNotification?.id || ""} ${nextWorkspaceNotification?.title || ""} ${nextWorkspaceNotification?.message || ""}`.toLowerCase();
+
+  const nextWorkspaceAction =
+    nextWorkspaceNotification && nextWorkspaceText.includes("agreement")
+      ? {
+          label: latestAgreementEmail ? "Send Reminder" : "Send Agreement",
+          href: "#agreement-status",
+          className: "border-red-400 bg-red-500/15 text-red-100 hover:bg-red-500/25",
+        }
+      : !nextWorkspaceNotification && agreementComplete && firstSignedAgreement?.id
+        ? {
+            label: "View Signed Agreement",
+            href: `/reports/${inspection.id}/signed-agreement/${firstSignedAgreement.id}`,
+            className: "border-emerald-400 bg-emerald-500/15 text-emerald-100 hover:bg-emerald-500/25",
+          }
+      : nextWorkspaceNotification && nextWorkspaceText.includes("payment")
+        ? {
+            label: "Check Invoice",
+            href: "#payment-invoice",
+            className: "border-red-400 bg-red-500/15 text-red-100 hover:bg-red-500/25",
+          }
+        : nextWorkspaceNotification && nextWorkspaceText.includes("publish")
+          ? {
+              label: "Review Publish Guard",
+              href: "#publish-guard",
+              className: "border-yellow-400 bg-yellow-500/15 text-yellow-100 hover:bg-yellow-500/25",
+            }
+          : nextWorkspaceNotification && (nextWorkspaceText.includes("safety") || nextWorkspaceText.includes("finding"))
+            ? {
+                label: "Review Findings",
+                href: "#report-findings",
+                className: "border-yellow-400 bg-yellow-500/15 text-yellow-100 hover:bg-yellow-500/25",
+              }
+            : nextWorkspaceNotification && nextWorkspaceText.includes("repair")
+              ? {
+                  label: "Review Repair Request",
+                  href: "#repair-request-history",
+                  className: "border-cyan-400 bg-cyan-500/15 text-cyan-100 hover:bg-cyan-500/25",
+                }
+              : {
+                  label: reportIsPublished ? "Open Client Preview" : "Continue Inspection",
+                  href: reportIsPublished ? `/share/${inspection.id}` : `/field?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`,
+                  className: "border-teal-400 bg-teal-500/15 text-teal-100 hover:bg-teal-500/25",
+                };
 
   return (
     <main className="min-h-screen bg-[#020617] text-white">
@@ -2589,6 +2689,224 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
           <div id="report-disclaimers" data-command-target="report-disclaimers" className="mb-8">
             <ReportDisclaimers inspectionId={String(inspection.id)} />
           </div>
+
+          <section className="mb-8 overflow-hidden rounded-[2rem] border border-teal-400/30 bg-gradient-to-br from-[#071224] via-[#071224] to-[#020617] p-5 shadow-xl sm:p-6">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div className="min-w-0">
+                <p className="text-xs font-black uppercase tracking-[0.24em] text-teal-300">
+                  Inspection Workspace
+                </p>
+
+                <h2 className="mt-2 break-words text-3xl font-black text-white sm:text-4xl">
+                  {inspection.address || "Current Inspection"}
+                </h2>
+
+                <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
+                  Finish the inspection, clear blockers, deliver the report, and manage the transaction from one home base.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-2 lg:justify-end">
+                <span
+                  className={`rounded-full border px-4 py-2 text-sm font-black ${
+                    reportIsPublished
+                      ? "border-green-400/70 bg-green-500/10 text-green-300"
+                      : "border-yellow-400/70 bg-yellow-500/10 text-yellow-200"
+                  }`}
+                >
+                  {reportIsPublished ? "Published" : "In Progress"}
+                </span>
+
+                <span
+                  className={`rounded-full border px-4 py-2 text-sm font-black ${
+                    inspectorWorkspaceNotifications.length > 0
+                      ? "border-red-400/70 bg-red-500/10 text-red-200"
+                      : "border-emerald-400/70 bg-emerald-500/10 text-emerald-200"
+                  }`}
+                >
+                  {inspectorWorkspaceNotifications.length > 0
+                    ? `${inspectorWorkspaceNotifications.length} alert${inspectorWorkspaceNotifications.length === 1 ? "" : "s"}`
+                    : "Ready"}
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-6 rounded-2xl border border-slate-700 bg-black/25 p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-400">
+                    Inspection Progress
+                  </p>
+                  <p className="mt-1 text-2xl font-black text-white">
+                    {inspectionProgressPercent}%
+                  </p>
+                </div>
+
+                <p className="text-sm font-bold text-slate-400">
+                  {inspectionProgressCompleteCount} of {inspectionProgressItems.length} checkpoints complete
+                </p>
+              </div>
+
+              <div className="mt-4 h-3 overflow-hidden rounded-full bg-slate-800">
+                <div
+                  className={`h-full rounded-full ${
+                    inspectionProgressPercent >= 100
+                      ? "bg-emerald-400"
+                      : inspectionProgressPercent >= 60
+                        ? "bg-teal-400"
+                        : "bg-yellow-400"
+                  }`}
+                  style={{ width: `${inspectionProgressPercent}%` }}
+                />
+              </div>
+
+              <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+                {inspectionProgressItems.map((item) => (
+                  <div
+                    key={item.label}
+                    className={`rounded-xl border px-3 py-2 text-sm font-black ${
+                      item.complete
+                        ? "border-emerald-400/50 bg-emerald-500/10 text-emerald-200"
+                        : "border-yellow-400/50 bg-yellow-500/10 text-yellow-100"
+                    }`}
+                  >
+                    {item.complete ? "✓" : "⚠"} {item.label}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+              <div className="rounded-2xl border border-slate-700 bg-black/30 p-4">
+                <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+                  Total Items
+                </p>
+                <p className="mt-2 text-3xl font-black text-white">{findings.length}</p>
+                <p className="mt-1 text-xs font-bold text-slate-500">All report entries</p>
+              </div>
+
+              <div className="rounded-2xl border border-slate-700 bg-black/30 p-4">
+                <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+                  Media
+                </p>
+                <p className="mt-2 text-3xl font-black text-white">{photosWithUrls.length}</p>
+                <p className="mt-1 text-xs font-bold text-slate-500">Photos and videos</p>
+              </div>
+
+              <div className="rounded-2xl border border-red-500/40 bg-red-500/10 p-4">
+                <p className="text-xs font-black uppercase tracking-wide text-red-200">
+                  Safety / Major
+                </p>
+                <p className="mt-2 text-3xl font-black text-white">{defectTotals.safety}</p>
+                <p className="mt-1 text-xs font-bold text-red-100/70">Priority concerns</p>
+              </div>
+
+              <div className="rounded-2xl border border-orange-500/40 bg-orange-500/10 p-4">
+                <p className="text-xs font-black uppercase tracking-wide text-orange-200">
+                  Client Summary
+                </p>
+                <p className="mt-2 text-3xl font-black text-white">{defectTotals.total}</p>
+                <p className="mt-1 text-xs font-bold text-orange-100/70">Defects shown to client</p>
+              </div>
+
+              <div className="rounded-2xl border border-purple-500/40 bg-purple-500/10 p-4">
+                <p className="text-xs font-black uppercase tracking-wide text-purple-200">
+                  Repair Requests
+                </p>
+                <p className="mt-2 text-3xl font-black text-white">{repairRequestHistory.length}</p>
+                <p className="mt-1 text-xs font-bold text-purple-100/70">Negotiation history</p>
+              </div>
+            </div>
+
+            <div className="mt-6 rounded-2xl border border-slate-700 bg-black/25 p-4">
+              <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-500">
+                Next Best Action
+              </p>
+
+              {nextWorkspaceNotification ? (
+                <div className="mt-3 rounded-2xl border border-red-400/50 bg-red-500/10 p-4">
+                  <p className="text-xl font-black text-white">
+                    {nextWorkspaceNotification.title || "Review report alert"}
+                  </p>
+                  <p className="mt-2 text-sm font-bold leading-6 text-red-100/80">
+                    {nextWorkspaceNotification.message || "Open the Command Center and clear this before delivery."}
+                  </p>
+                </div>
+              ) : (
+                <div className="mt-3 rounded-2xl border border-emerald-400/50 bg-emerald-500/10 p-4">
+                  <p className="text-xl font-black text-white">No active blockers</p>
+                  <p className="mt-2 text-sm font-bold leading-6 text-emerald-100/80">
+                    Keep writing the report or use the delivery tools when you are ready.
+                  </p>
+                </div>
+              )}
+
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <a
+                  href={nextWorkspaceAction.href}
+                  className={`inline-flex min-h-[48px] items-center justify-center rounded-xl border px-4 py-3 text-center text-sm font-black transition active:scale-[0.98] ${nextWorkspaceAction.className}`}
+                >
+                  {nextWorkspaceAction.label}
+                </a>
+
+                <a
+                  href="#agreement-status"
+                  className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-slate-700 bg-[#020617] px-4 py-3 text-center text-sm font-black text-slate-200 transition hover:border-teal-400/60 hover:bg-teal-500/10 active:scale-[0.98]"
+                >
+                  Agreement: {agreementStatusLabel}
+                </a>
+
+                <a
+                  href="#payment-invoice"
+                  className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-slate-700 bg-[#020617] px-4 py-3 text-center text-sm font-black text-slate-200 transition hover:border-teal-400/60 hover:bg-teal-500/10 active:scale-[0.98]"
+                >
+                  Payment
+                </a>
+
+                <a
+                  href="#publish-guard"
+                  className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-slate-700 bg-[#020617] px-4 py-3 text-center text-sm font-black text-slate-200 transition hover:border-teal-400/60 hover:bg-teal-500/10 active:scale-[0.98]"
+                >
+                  Publish Guard
+                </a>
+              </div>
+            </div>
+
+            <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <FastLinkButton
+                href={`/field?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`}
+                loadingText="Opening Field Tool..."
+                className="rounded-xl bg-teal-500 px-4 py-3 text-center font-black text-slate-950 shadow-lg shadow-teal-950/20 hover:bg-teal-400"
+              >
+                Continue Inspection
+              </FastLinkButton>
+
+              <FastLinkButton
+                href={`/share/${inspection.id}`}
+                loadingText="Opening Preview..."
+                className="rounded-xl border border-blue-500 bg-blue-500/10 px-4 py-3 text-center font-black text-blue-300 hover:bg-blue-500/20"
+              >
+                Client Preview
+              </FastLinkButton>
+
+              <FastLinkButton
+                href={`/repair-request?inspection_id=${inspection.id}`}
+                loadingText="Opening Repair Request..."
+                className="rounded-xl border border-orange-500 bg-orange-500/10 px-4 py-3 text-center font-black text-orange-300 hover:bg-orange-500/20"
+              >
+                Repair Request
+              </FastLinkButton>
+
+              <a
+                href={`/reports/${inspection.id}/print`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-purple-500 bg-purple-500/10 px-4 py-3 text-center font-black text-purple-300 transition hover:bg-purple-500/20 active:scale-[0.98]"
+              >
+                PDF / Print
+              </a>
+            </div>
+          </section>
 
           <InspectorToolsDrawer
             badge={inspectorWorkspaceBadge}
