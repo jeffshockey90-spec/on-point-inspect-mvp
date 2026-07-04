@@ -513,22 +513,31 @@ export default async function RealtorPortalPage() {
                     </div>
 
                     {shares.length ? (
-                      <div className="mt-5 rounded-2xl border border-orange-500/30 bg-orange-500/10 p-4">
-                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                          <div>
-                            <p className="text-xs font-black uppercase tracking-[0.22em] text-orange-200">
-                              Repair Request History
-                            </p>
-                            <p className="mt-1 text-sm font-bold text-slate-300">
-                              All saved repair requests for this property are available below.
-                            </p>
-                          </div>
-                          <span className="w-fit rounded-full border border-orange-400/60 bg-orange-500/15 px-3 py-1 text-xs font-black text-orange-100">
-                            {shares.length} total
-                          </span>
-                        </div>
+                      <details className="group mt-5 rounded-2xl border border-orange-500/30 bg-orange-500/10 p-4">
+                        <summary className="cursor-pointer list-none">
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                              <p className="text-xs font-black uppercase tracking-[0.22em] text-orange-200">
+                                Repair Request History
+                              </p>
+                              <p className="mt-1 text-sm font-bold text-slate-300">
+                                Previous repair requests are collapsed by default. Open this section to review saved requests, responses, addenda, and downloads.
+                              </p>
+                            </div>
 
-                        <div className="mt-4 space-y-3">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="w-fit rounded-full border border-orange-400/60 bg-orange-500/15 px-3 py-1 text-xs font-black text-orange-100">
+                                {shares.length} total
+                              </span>
+                              <span className="w-fit rounded-full border border-orange-400/60 bg-[#020617] px-3 py-1 text-xs font-black text-orange-100">
+                                <span className="group-open:hidden">View History</span>
+                                <span className="hidden group-open:inline">Hide History</span>
+                              </span>
+                            </div>
+                          </div>
+                        </summary>
+
+                        <div className="mt-4 space-y-3 border-t border-orange-500/20 pt-4">
                           {shares.map((share: any, shareIndex: number) => {
                             const status = getRepairStatus(share);
                             const responses = responsesByShareId[cleanText(share.id)] || [];
@@ -657,7 +666,7 @@ export default async function RealtorPortalPage() {
                             );
                           })}
                         </div>
-                      </div>
+                      </details>
                     ) : null}
                   </article>
                 );
