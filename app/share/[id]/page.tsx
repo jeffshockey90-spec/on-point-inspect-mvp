@@ -1528,12 +1528,12 @@ export default async function PublicSharePage({
 
             {!isDemo && canOpenInternalReportActions && (
               <>
-                <Link
-                  href={`/reports/${inspectionId}/summary`}
+                <a
+                  href={clientSummaryGroups.length > 0 ? "#client-summary" : "#inspection-findings"}
                   className="rounded-xl border border-teal-500 px-5 py-3 font-bold text-teal-400 transition hover:bg-teal-500 hover:text-black"
                 >
-                  Report Summary
-                </Link>
+                  View Summary
+                </a>
 
                 <Link
                   href={`/client-portal/${inspectionId}`}
