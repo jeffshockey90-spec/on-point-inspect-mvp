@@ -1062,8 +1062,10 @@ async function renderHtmlToPdf(html: string) {
 
   try {
     const executablePath =
-      process.env.PUPPETEER_EXECUTABLE_PATH ||
-      (await chromium.executablePath());
+  process.env.PUPPETEER_EXECUTABLE_PATH ||
+  (await chromium.executablePath(
+    "https://github.com/Sparticuz/chromium/releases/download/v123.0.1/chromium-v123.0.1-pack.tar"
+  ));
 
     browser = await puppeteer.launch({
   args: chromium.args,
