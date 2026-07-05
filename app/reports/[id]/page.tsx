@@ -2500,9 +2500,9 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                 };
 
   return (
-    <main className="min-h-screen bg-[#020617] text-white">
-      <div className="mx-auto w-full max-w-none px-2 py-3 sm:px-3 md:px-6 lg:max-w-7xl lg:py-8">
-        <div className="mb-5 overflow-hidden rounded-3xl border border-slate-800 bg-[#0f172a] p-2 shadow-xl sm:p-4 md:p-6">
+    <main className="min-h-screen overflow-x-hidden overscroll-y-contain bg-[#020617] pb-[calc(100px+env(safe-area-inset-bottom))] text-white">
+      <div className="mx-auto w-full max-w-none px-1 py-2 sm:px-2 md:px-4 lg:max-w-7xl lg:py-8">
+        <div className="mb-4 overflow-hidden rounded-2xl border border-slate-800 bg-[#0f172a] p-1.5 shadow-xl sm:p-3 md:rounded-3xl md:p-6">
           <div className="mb-6 flex max-w-full flex-wrap gap-3 overflow-hidden">
             <PrintButton
               label="Print / Save PDF"
@@ -3906,7 +3906,7 @@ Service-life information is a general industry estimate only. Actual service lif
           </form>
         </div>
 
-        <div id="report-findings" data-command-target="report-findings">
+        <div id="report-findings" data-command-target="report-findings" className="w-full max-w-none overflow-visible">
           <ReportFindingsSortable groupedFindings={groupedFindingsArray} />
         </div>
       </div>

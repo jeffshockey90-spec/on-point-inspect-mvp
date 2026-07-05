@@ -359,8 +359,8 @@ export default function Navbar() {
       </header>
 
       <nav
-        className="fixed bottom-0 left-0 right-0 z-50 border-t border-zinc-800 bg-[#0b1220]/95 shadow-2xl shadow-black/60 backdrop-blur md:hidden portrait:block landscape:hidden"
-        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+        className="fixed inset-x-0 bottom-0 z-[100] border-t border-zinc-800 bg-[#0b1220]/95 shadow-2xl shadow-black/60 backdrop-blur md:hidden portrait:block landscape:hidden [transform:translateZ(0)] [will-change:transform]"
+        style={{ bottom: 0, paddingBottom: "env(safe-area-inset-bottom)", transform: "translateZ(0)" }}
       >
         <div className="flex h-[78px] w-full flex-row flex-nowrap items-center justify-between">
           {visibleMobileItems.map((item) => {
