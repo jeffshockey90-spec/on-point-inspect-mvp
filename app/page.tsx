@@ -586,7 +586,7 @@ export default async function HomePage() {
   const unpaidInspections = inspections.filter((inspection: any) => !isPaymentComplete(inspection));
 
   const agreementStats = inspections.reduce(
-    (acc, inspection: any) => {
+    (acc: { required: number; unsigned: number; signed: number }, inspection: any) => {
       const stats = getAgreementStatsForInspection({
         inspection,
         contactsByInspectionId,
@@ -603,7 +603,7 @@ export default async function HomePage() {
   );
 
   const repairStats = repairShares.reduce(
-    (acc, share: any) => {
+    (acc: { total: number; waiting: number; viewed: number; responded: number; failed: number }, share: any) => {
       const responses = responsesByShareId[String(share?.id || "")] || [];
       const status = getRepairShareStatus(share, responses.length);
 
@@ -835,7 +835,7 @@ export default async function HomePage() {
                 </h2>
 
                 <p className="mt-2 text-sm leading-6 text-slate-400">
-                  Real delivery blockers from report status, invoice/payment fields, required agreement signers, and repair request responses.
+                  Showing draft reports, unpaid reports, unsigned agreements, and repair requests that need follow-up.
                 </p>
               </div>
 
@@ -845,7 +845,7 @@ export default async function HomePage() {
             </div>
 
             <div className="mt-5 space-y-3">
-              {attentionItems.slice(0, 4).map(({ inspection, items }: any) => (
+              {attentionItems.slice(0, 8).map(({ inspection, items }: any) => (
                 <Link
                   key={inspection.id}
                   href={`/reports/${inspection.id}`}
