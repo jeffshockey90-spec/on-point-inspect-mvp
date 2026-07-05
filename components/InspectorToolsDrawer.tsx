@@ -801,6 +801,15 @@ export default function InspectorToolsDrawer({
   }, [badge, items, attentionNotifications]);
 
   useEffect(() => {
+    // Never lock the page body from the Command Center drawer.
+    // The drawer has its own internal scroll containers, and body locking was
+    // preventing desktop mouse-wheel scrolling on the report page after the
+    // drawer/reorder updates.
+    document.body.style.removeProperty("overflow");
+    document.body.style.removeProperty("touch-action");
+    document.documentElement.style.removeProperty("overflow");
+    document.documentElement.style.removeProperty("touch-action");
+
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") setOpen(false);
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
@@ -811,13 +820,14 @@ export default function InspectorToolsDrawer({
 
     window.addEventListener("keydown", handleKeyDown);
 
-    if (open) document.body.style.overflow = "hidden";
-
     return () => {
-      document.body.style.overflow = "";
+      document.body.style.removeProperty("overflow");
+      document.body.style.removeProperty("touch-action");
+      document.documentElement.style.removeProperty("overflow");
+      document.documentElement.style.removeProperty("touch-action");
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [open]);
+  }, []);
 
   useEffect(() => {
     if (!open || !bodyRef.current) return;

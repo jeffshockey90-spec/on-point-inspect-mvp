@@ -2500,10 +2500,10 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                 };
 
   return (
-    <main className="min-h-screen overflow-x-hidden overscroll-y-contain bg-[#020617] pb-[calc(100px+env(safe-area-inset-bottom))] text-white">
+    <main className="min-h-screen overflow-x-hidden bg-[#020617] pb-[calc(100px+env(safe-area-inset-bottom))] text-white">
       <div className="mx-auto w-full max-w-none px-1 py-2 sm:px-2 md:px-4 lg:max-w-7xl lg:py-8">
-        <div className="mb-4 overflow-hidden rounded-2xl border border-slate-800 bg-[#0f172a] p-1.5 shadow-xl sm:p-3 md:rounded-3xl md:p-6">
-          <div className="mb-6 flex max-w-full flex-wrap gap-3 overflow-hidden">
+        <div className="mb-4 overflow-x-hidden overflow-y-visible rounded-2xl border border-slate-800 bg-[#0f172a] p-1.5 shadow-xl sm:p-3 md:rounded-3xl md:p-6">
+          <div className="mb-6 flex max-w-full flex-wrap gap-3 overflow-x-hidden overflow-y-visible">
             <PrintButton
               label="Print / Save PDF"
               className="rounded-xl bg-black px-5 py-3 font-bold text-white hover:bg-slate-800"

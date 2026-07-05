@@ -273,7 +273,7 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
   }
 
   return (
-    <div id="report-findings-editor" data-command-target="report-findings" className="w-full max-w-full space-y-4 overflow-hidden">
+    <div id="report-findings-editor" data-command-target="report-findings" className="w-full max-w-full space-y-4 overflow-visible">
       <div className="flex w-full flex-col gap-2 rounded-2xl border border-slate-700 bg-[#0f172a] p-3 sm:flex-row sm:flex-wrap sm:p-4">
         <button
           type="button"
@@ -307,12 +307,9 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
             key={group.section}
             id={`report-section-${commandSlug(group.section)}`}
             data-command-target={`report-section-${commandSlug(group.section)}`}
-            draggable
-            onDragStart={() => handleDragStart(group.section)}
             onDragOver={handleDragOver}
             onDrop={() => handleDrop(group.section)}
-            onDragEnd={() => setDraggingSection(null)}
-            className={`w-full max-w-full overflow-hidden rounded-2xl border border-slate-700 bg-[#0f172a] shadow-lg transition ${
+            className={`w-full max-w-full overflow-x-hidden rounded-2xl border border-slate-700 bg-[#0f172a] shadow-lg transition ${
               isDragging ? "opacity-50 ring-2 ring-teal-400" : ""
             }`}
           >
@@ -333,9 +330,18 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
                   <span
                     role="button"
                     tabIndex={0}
+                    draggable
                     aria-label={`Drag ${group.section} section to reorder`}
+                    onDragStart={(event) => {
+                      event.stopPropagation();
+                      handleDragStart(group.section);
+                    }}
+                    onDragEnd={(event) => {
+                      event.stopPropagation();
+                      setDraggingSection(null);
+                    }}
                     onClick={(event) => event.stopPropagation()}
-                    className="hidden cursor-grab select-none text-2xl text-slate-500 active:cursor-grabbing sm:inline"
+                    className="hidden cursor-grab select-none rounded-lg px-1 text-2xl text-slate-500 active:cursor-grabbing sm:inline"
                   >
                     ⋮⋮
                   </span>
@@ -391,7 +397,7 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
             </div>
 
             {!isClosed && (
-              <div className="w-full max-w-full space-y-4 overflow-hidden p-2 sm:p-5">
+              <div className="w-full max-w-full space-y-4 overflow-x-hidden p-2 sm:p-5">
                 <SectionInformationChecklist
                   inspectionId={inspectionId}
                   section={group.section}
@@ -1351,7 +1357,7 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
           setDraggingOver(false);
         }}
         onDrop={handleFindingDrop}
-        className={`w-full max-w-full overflow-hidden rounded-2xl border bg-[#071224] shadow-lg transition ${
+        className={`w-full max-w-full overflow-x-hidden rounded-2xl border bg-[#071224] shadow-lg transition ${
           draggingOver
             ? "border-teal-400 ring-2 ring-teal-400/40"
             : "border-slate-700"
@@ -1465,7 +1471,7 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
         setDraggingOver(false);
       }}
       onDrop={handleFindingDrop}
-      className={`w-full max-w-full overflow-hidden rounded-2xl border bg-[#071224] shadow-xl transition [content-visibility:auto] [contain-intrinsic-size:900px] ${
+      className={`w-full max-w-full overflow-x-hidden rounded-2xl border bg-[#071224] shadow-xl transition [content-visibility:auto] [contain-intrinsic-size:900px] ${
         draggingOver
           ? "border-teal-400 ring-2 ring-teal-400/40"
           : "border-slate-700"
@@ -1518,7 +1524,7 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
               return (
                 <div
                   key={String(photo.id || photo.file_path || url || index)}
-                  className="w-full max-w-full overflow-hidden rounded-xl border border-slate-700 bg-slate-950"
+                  className="w-full max-w-full overflow-x-hidden rounded-xl border border-slate-700 bg-slate-950"
                 >
                   {isVideoMedia(photo) ? (
                     <video
@@ -1609,7 +1615,7 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
         </div>
       )}
 
-      <div className="w-full max-w-full overflow-hidden p-3 sm:p-6">
+      <div className="w-full max-w-full overflow-x-hidden p-3 sm:p-6">
         <div className="mb-4 flex flex-wrap items-center gap-3">
           <span
             className={`rounded-full border px-3 py-1 text-xs font-extrabold uppercase tracking-wide ${getSeverityStyle(
@@ -1729,7 +1735,7 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
         </div>
 
         {showUploadPanel && (
-          <div className="mb-4 w-full max-w-full overflow-hidden rounded-xl border border-teal-700 bg-teal-950/20 p-3 sm:p-4">
+          <div className="mb-4 w-full max-w-full overflow-x-hidden rounded-xl border border-teal-700 bg-teal-950/20 p-3 sm:p-4">
             <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h4 className="text-lg font-black text-teal-300">
@@ -1785,7 +1791,7 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
         )}
 
         {showPhotoPicker && (
-          <div className="mb-4 w-full max-w-full overflow-hidden rounded-xl border border-cyan-700 bg-cyan-950/20 p-3 sm:p-4">
+          <div className="mb-4 w-full max-w-full overflow-x-hidden rounded-xl border border-cyan-700 bg-cyan-950/20 p-3 sm:p-4">
             <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h4 className="text-lg font-black text-cyan-300">
@@ -1822,7 +1828,7 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
                     return (
                       <div
                         key={String(photo.id || photo.file_path || index)}
-                        className="w-full max-w-full overflow-hidden rounded-xl border border-slate-700 bg-slate-950"
+                        className="w-full max-w-full overflow-x-hidden rounded-xl border border-slate-700 bg-slate-950"
                       >
                         {url ? (
                           isVideoMedia(photo) ? (
@@ -1924,7 +1930,7 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
 
         <div
           onClick={(event) => event.stopPropagation()}
-          className="mb-4 w-full max-w-full overflow-hidden rounded-xl border border-slate-700 bg-slate-950/40 p-2 sm:p-4"
+          className="mb-4 w-full max-w-full overflow-x-hidden rounded-xl border border-slate-700 bg-slate-950/40 p-2 sm:p-4"
         >
           <EditableFinding finding={finding} />
         </div>
@@ -1981,7 +1987,7 @@ function ReportBlock({ title, text }: any) {
     <div className="mt-5">
       <h4 className="mb-2 text-lg font-bold text-white">{title}</h4>
 
-      <div className="w-full max-w-full overflow-hidden rounded-xl border border-slate-700 bg-slate-900/60 p-4">
+      <div className="w-full max-w-full overflow-x-hidden rounded-xl border border-slate-700 bg-slate-900/60 p-4">
         <p className="whitespace-pre-line break-words text-sm leading-7 text-slate-200">
           {text}
         </p>
