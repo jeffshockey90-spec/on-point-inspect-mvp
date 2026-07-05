@@ -422,7 +422,7 @@ export default async function HomePage() {
     "balance_due",
   ].join(", ");
 
-  let inspectionsResult = await supabase
+  let inspectionsResult: any = await supabase
     .from("inspections")
     .select(inspectionSelectFields)
     .eq("inspector_id", user.id)
@@ -835,7 +835,7 @@ export default async function HomePage() {
                 </h2>
 
                 <p className="mt-2 text-sm leading-6 text-slate-400">
-                  Showing draft reports, unpaid reports, unsigned agreements, and repair requests that need follow-up.
+                  Real delivery blockers from report status, invoice/payment fields, required agreement signers, and repair request responses.
                 </p>
               </div>
 
@@ -845,7 +845,7 @@ export default async function HomePage() {
             </div>
 
             <div className="mt-5 space-y-3">
-              {attentionItems.slice(0, 8).map(({ inspection, items }: any) => (
+              {attentionItems.slice(0, 4).map(({ inspection, items }: any) => (
                 <Link
                   key={inspection.id}
                   href={`/reports/${inspection.id}`}
