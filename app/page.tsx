@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 const cards = [
+  { title: "Getting Started", description: "Set up your account, create sample data, and walk through your first inspection.", href: "/onboarding", icon: "🚀" },
   { title: "New Inspection", description: "Start a new inspection.", href: "/inspections/new", icon: "🏠" },
   { title: "Reports", description: "View and edit reports.", href: "/reports", icon: "📋" },
   { title: "Analytics", description: "Track revenue, inspections, payments, agreements, and reports.", href: "/analytics", icon: "📊" },
