@@ -1242,7 +1242,7 @@ export default function InspectorToolsDrawer({
                       key={tile.title}
                       type="button"
                       onClick={() => handleStatusTileClick(tile)}
-                      className={`min-w-[235px] rounded-2xl border p-4 text-left transition hover:scale-[1.01] active:scale-[0.99] sm:min-w-0 ${style.shell}`}
+                      className={`min-w-[190px] rounded-2xl border p-4 text-left transition hover:scale-[1.01] active:scale-[0.99] sm:min-w-0 ${style.shell}`}
                     >
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-[10px] font-black uppercase tracking-[0.14em] opacity-80">

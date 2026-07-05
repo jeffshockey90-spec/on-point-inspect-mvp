@@ -200,19 +200,32 @@ function ToggleRow({
   disabled?: boolean;
 }) {
   return (
-    <label className="flex h-auto min-h-[76px] w-full min-w-0 cursor-pointer items-start gap-3 rounded-xl border border-slate-700 bg-slate-950/60 p-3 transition hover:border-teal-400/50">
-      <input
-        type="checkbox"
-        checked={checked}
-        disabled={disabled}
-        onChange={(event) => onChange(event.target.checked)}
-        className="mt-1 h-6 w-6 shrink-0 accent-teal-400"
-      />
-      <span className="block min-w-0 flex-1">
-        <span className="block break-words text-sm font-black leading-5 text-white">{title}</span>
-        <span className="mt-1 block break-words text-xs font-bold leading-5 text-slate-400">{helper}</span>
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className="flex w-full items-center gap-3 rounded-xl border border-slate-700 bg-slate-950/60 p-3 text-left transition hover:border-teal-400/50 disabled:cursor-not-allowed disabled:opacity-60"
+    >
+      <span
+        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border text-sm font-black ${
+          checked
+            ? "border-teal-400 bg-teal-400 text-slate-950"
+            : "border-slate-500 bg-white text-transparent"
+        }`}
+      >
+        {checked ? "✓" : ""}
       </span>
-    </label>
+
+      <span className="block min-w-0">
+        <span className="block break-words text-sm font-black leading-5 text-white">
+          {title}
+        </span>
+
+        <span className="mt-1 block break-words text-xs font-bold leading-5 text-slate-400">
+          {helper}
+        </span>
+      </span>
+    </button>
   );
 }
 
