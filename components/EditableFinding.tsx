@@ -300,20 +300,20 @@ export default function EditableFinding({ finding }: { finding: any }) {
 
   if (!editing) {
     return (
-      <div className="mt-6 w-full max-w-full space-y-5 overflow-hidden print:hidden">
+      <div className="mt-3 w-full max-w-full space-y-3 overflow-hidden print:hidden">
         <InlineStatusMessage type={messageType} message={message} />
-        <div className="w-full max-w-full overflow-hidden rounded-2xl border border-teal-700 bg-gradient-to-r from-[#052b2b] to-[#071b35] p-4 sm:p-5">
-          <h4 className="mb-4 text-sm font-bold uppercase tracking-wider text-teal-300">
-            AI / Repair Request Tools
+        <div className="w-full max-w-full overflow-hidden rounded-2xl border border-teal-700 bg-gradient-to-r from-[#052b2b] to-[#071b35] p-3 sm:p-5">
+          <h4 className="mb-3 text-xs font-black uppercase tracking-[0.22em] text-teal-300 sm:text-sm">
+            Quick Tools
           </h4>
 
-          <div className="flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap">
+          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:flex-row sm:flex-wrap">
             <button
               type="button"
               onClick={rewriteSofter}
               disabled={rewriting}
               aria-busy={rewriting}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-teal-500 px-5 py-3 text-sm font-bold text-slate-950 transition active:scale-[0.98] hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto [touch-action:manipulation]"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-teal-500 px-3 py-3 text-xs font-black text-slate-950 transition active:scale-[0.98] hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:px-5 sm:text-sm [touch-action:manipulation]"
             >
               <Spinner active={rewriting} />
               {rewriteLabel}
@@ -323,7 +323,7 @@ export default function EditableFinding({ finding }: { finding: any }) {
               type="button"
               onClick={() => setRepairRequest(!repairRequest)}
               disabled={savingRepair}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-600 bg-slate-900 px-5 py-3 text-sm font-bold text-white transition active:scale-[0.98] hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto [touch-action:manipulation]"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-600 bg-slate-900 px-3 py-3 text-xs font-black text-white transition active:scale-[0.98] hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:px-5 sm:text-sm [touch-action:manipulation]"
             >
               {repairRequest ? "Remove From Request" : "Add To Repair Request"}
             </button>
@@ -333,7 +333,7 @@ export default function EditableFinding({ finding }: { finding: any }) {
               onClick={saveRepairRequestSettings}
               disabled={savingRepair}
               aria-busy={savingRepair}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-orange-500 px-5 py-3 text-sm font-bold text-orange-400 transition active:scale-[0.98] hover:bg-orange-500/10 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto [touch-action:manipulation]"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-orange-500 px-3 py-3 text-xs font-black text-orange-400 transition active:scale-[0.98] hover:bg-orange-500/10 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:px-5 sm:text-sm [touch-action:manipulation]"
             >
               <Spinner active={savingRepair} />
               {repairLabel}
@@ -341,12 +341,12 @@ export default function EditableFinding({ finding }: { finding: any }) {
           </div>
 
           {repairRequest && (
-            <div className="mt-4 grid w-full max-w-full gap-3 md:grid-cols-2">
+            <div className="mt-3 grid w-full max-w-full gap-2 md:grid-cols-2">
               <select
                 value={repairPriority}
                 onChange={(e) => setRepairPriority(e.target.value)}
                 disabled={savingRepair}
-                className="w-full min-w-0 rounded-xl border border-slate-700 bg-slate-900 p-3 text-white disabled:cursor-not-allowed disabled:opacity-60"
+                className="w-full min-w-0 rounded-xl border border-slate-700 bg-slate-900 p-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <option>Safety</option>
                 <option>Major</option>
@@ -359,17 +359,17 @@ export default function EditableFinding({ finding }: { finding: any }) {
                 value={repairNotes}
                 onChange={(e) => setRepairNotes(e.target.value)}
                 disabled={savingRepair}
-                className="min-h-[90px] w-full min-w-0 rounded-xl border border-slate-700 bg-slate-900 p-3 text-white disabled:cursor-not-allowed disabled:opacity-60 md:col-span-2"
+                className="min-h-[76px] w-full min-w-0 rounded-xl border border-slate-700 bg-slate-900 p-3 text-sm font-bold leading-6 text-white disabled:cursor-not-allowed disabled:opacity-60 md:col-span-2"
               />
             </div>
           )}
         </div>
 
-        <div className="flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap">
+        <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:flex-row sm:flex-wrap">
           <button
             type="button"
             onClick={() => setEditing(true)}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-cyan-500 px-5 py-3 text-sm font-bold text-slate-950 transition active:scale-[0.98] hover:bg-cyan-400 sm:w-auto [touch-action:manipulation]"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-cyan-500 px-3 py-3 text-xs font-black text-slate-950 transition active:scale-[0.98] hover:bg-cyan-400 sm:w-auto sm:px-5 sm:text-sm [touch-action:manipulation]"
           >
             Edit Finding
           </button>
@@ -379,7 +379,7 @@ export default function EditableFinding({ finding }: { finding: any }) {
             onClick={saveToLibrary}
             disabled={savingTemplate}
             aria-busy={savingTemplate}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-500 px-5 py-3 text-sm font-bold text-cyan-300 transition active:scale-[0.98] hover:bg-cyan-500/10 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto [touch-action:manipulation]"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-500 px-3 py-3 text-xs font-black text-cyan-300 transition active:scale-[0.98] hover:bg-cyan-500/10 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:px-5 sm:text-sm [touch-action:manipulation]"
           >
             <Spinner active={savingTemplate} />
             {templateLabel}
@@ -390,7 +390,7 @@ export default function EditableFinding({ finding }: { finding: any }) {
             onClick={deleteFinding}
             disabled={deleting}
             aria-busy={deleting}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-3 text-sm font-bold text-white transition active:scale-[0.98] hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto [touch-action:manipulation]"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-3 py-3 text-xs font-black text-white transition active:scale-[0.98] hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:px-5 sm:text-sm [touch-action:manipulation]"
           >
             <Spinner active={deleting} />
             {deleteLabel}
@@ -399,7 +399,7 @@ export default function EditableFinding({ finding }: { finding: any }) {
           <FastLinkButton
             href={`/ai-capture?inspection_id=${finding.inspection_id}`}
             loadingText="Opening AI Capture..."
-            className="w-full rounded-xl border border-blue-500 bg-blue-500/10 px-5 py-3 text-center text-sm font-bold text-blue-300 hover:bg-blue-500/20 sm:w-auto"
+            className="w-full rounded-xl border border-blue-500 bg-blue-500/10 px-3 py-3 text-center text-xs font-black text-blue-300 transition active:scale-[0.98] hover:bg-blue-500/20 sm:w-auto sm:px-5 sm:text-sm"
           >
             Add Photos
           </FastLinkButton>
@@ -409,11 +409,11 @@ export default function EditableFinding({ finding }: { finding: any }) {
   }
 
   return (
-    <div className="mt-6 w-full max-w-full space-y-4 overflow-hidden rounded-2xl border border-slate-700 bg-[#111827] p-4 print:hidden sm:p-5">
+    <div className="mt-3 w-full max-w-full space-y-3 overflow-hidden rounded-2xl border border-slate-700 bg-[#111827] p-3 print:hidden sm:p-5">
       <InlineStatusMessage type={messageType} message={message} />
       <Input label="Title" value={title} onChange={setTitle} disabled={saving} />
 
-      <div className="grid w-full max-w-full gap-4 md:grid-cols-2">
+      <div className="grid w-full max-w-full gap-3 md:grid-cols-2">
         <Select
           label="Section"
           value={section}
@@ -452,13 +452,13 @@ export default function EditableFinding({ finding }: { finding: any }) {
         disabled={saving}
       />
 
-      <div className="flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap">
+      <div className="sticky bottom-2 z-30 grid w-full grid-cols-2 gap-2 rounded-2xl border border-slate-700 bg-[#111827]/95 p-2 shadow-2xl backdrop-blur sm:static sm:flex sm:flex-row sm:flex-wrap sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">
         <button
           type="button"
           onClick={saveFinding}
           disabled={saving}
           aria-busy={saving}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-teal-500 px-5 py-3 text-sm font-bold text-black transition active:scale-[0.98] hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto [touch-action:manipulation]"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-teal-500 px-4 py-3 text-sm font-black text-black transition active:scale-[0.98] hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto [touch-action:manipulation]"
         >
           <Spinner active={saving} />
           {saveLabel}
@@ -468,7 +468,7 @@ export default function EditableFinding({ finding }: { finding: any }) {
           type="button"
           onClick={() => setEditing(false)}
           disabled={saving}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-600 px-5 py-3 text-sm font-bold text-white transition active:scale-[0.98] hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto [touch-action:manipulation]"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-600 px-4 py-3 text-sm font-black text-white transition active:scale-[0.98] hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto [touch-action:manipulation]"
         >
           Cancel
         </button>
@@ -519,7 +519,7 @@ function Input({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
-        className="w-full min-w-0 rounded-lg border border-slate-700 bg-black p-3 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
+        className="min-h-[46px] w-full min-w-0 rounded-xl border border-slate-700 bg-black p-3 text-base font-bold text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
       />
     </label>
   );
@@ -545,7 +545,7 @@ function Select({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
-        className="w-full min-w-0 rounded-lg border border-slate-700 bg-black p-3 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
+        className="min-h-[46px] w-full min-w-0 rounded-xl border border-slate-700 bg-black p-3 text-base font-bold text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {options.map((item) => (
           <option key={item} value={item}>
@@ -574,9 +574,9 @@ function Textarea({
       <textarea
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        rows={5}
+        rows={4}
         disabled={disabled}
-        className="w-full min-w-0 rounded-lg border border-slate-700 bg-black p-3 leading-7 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
+        className="w-full min-w-0 rounded-xl border border-slate-700 bg-black p-3 text-base font-bold leading-7 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
       />
     </label>
   );

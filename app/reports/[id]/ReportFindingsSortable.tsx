@@ -264,12 +264,12 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
   }
 
   return (
-    <div id="report-findings-editor" data-command-target="report-findings" className="w-full max-w-full space-y-6 overflow-hidden">
-      <div className="flex w-full flex-col gap-3 rounded-2xl border border-slate-700 bg-[#0f172a] p-4 sm:flex-row sm:flex-wrap">
+    <div id="report-findings-editor" data-command-target="report-findings" className="w-full max-w-full space-y-4 overflow-hidden">
+      <div className="flex w-full flex-col gap-2 rounded-2xl border border-slate-700 bg-[#0f172a] p-3 sm:flex-row sm:flex-wrap sm:p-4">
         <button
           type="button"
           onClick={expandAll}
-          className="w-full rounded-xl bg-teal-500 px-4 py-2 text-sm font-black text-slate-950 hover:bg-teal-400 sm:w-auto"
+          className="w-full rounded-xl bg-teal-500 px-4 py-3 text-sm font-black text-slate-950 transition active:scale-[0.98] hover:bg-teal-400 sm:w-auto sm:py-2"
         >
           Expand All
         </button>
@@ -277,12 +277,12 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
         <button
           type="button"
           onClick={collapseAll}
-          className="w-full rounded-xl border border-slate-600 px-4 py-2 text-sm font-black text-slate-200 hover:bg-slate-800 sm:w-auto"
+          className="w-full rounded-xl border border-slate-600 px-4 py-3 text-sm font-black text-slate-200 transition active:scale-[0.98] hover:bg-slate-800 sm:w-auto sm:py-2"
         >
           Collapse All
         </button>
 
-        <div className="w-full rounded-xl border border-slate-700 px-4 py-2 text-sm font-bold text-slate-400 sm:w-auto">
+        <div className="hidden w-full rounded-xl border border-slate-700 px-4 py-2 text-sm font-bold text-slate-400 sm:block sm:w-auto">
           Drag section headers to reorder
         </div>
       </div>
@@ -302,7 +302,7 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
             onDragOver={handleDragOver}
             onDrop={() => handleDrop(group.section)}
             onDragEnd={() => setDraggingSection(null)}
-            className={`w-full max-w-full overflow-hidden rounded-2xl border border-slate-700 bg-[#0f172a] shadow-xl transition ${
+            className={`w-full max-w-full overflow-hidden rounded-2xl border border-slate-700 bg-[#0f172a] shadow-lg transition ${
               isDragging ? "opacity-50 ring-2 ring-teal-400" : ""
             }`}
           >
@@ -317,30 +317,30 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
                     toggleSection(group.section);
                   }
                 }}
-                className="flex min-w-0 flex-1 cursor-pointer flex-col items-stretch gap-3 px-4 py-4 text-left transition hover:bg-slate-800/60 focus:outline-none focus:ring-2 focus:ring-teal-400 sm:flex-row sm:items-center sm:justify-between sm:px-6"
+                className="flex min-w-0 flex-1 cursor-pointer flex-col items-stretch gap-2 px-3 py-3 text-left transition hover:bg-slate-800/60 focus:outline-none focus:ring-2 focus:ring-teal-400 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-4"
               >
                 <div className="flex min-w-0 items-center gap-3 sm:gap-4">
                   <span className="cursor-grab select-none text-2xl text-slate-500 active:cursor-grabbing">
                     ⋮⋮
                   </span>
 
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-teal-500/50 bg-teal-500/10 text-2xl font-black text-teal-300">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-teal-500/50 bg-teal-500/10 text-xl font-black text-teal-300 sm:h-10 sm:w-10 sm:text-2xl">
                     {isClosed ? "+" : "−"}
                   </span>
 
                   <div className="min-w-0">
-                    <h2 className="break-words text-xl font-bold text-teal-400 sm:text-2xl">
+                    <h2 className="break-words text-lg font-black text-teal-400 sm:text-2xl">
                       {group.section}
                     </h2>
 
-                    <p className="mt-1 text-sm text-slate-400">
+                    <p className="mt-0.5 text-xs font-bold text-slate-400 sm:mt-1 sm:text-sm">
                       {findings.length} finding
                       {findings.length === 1 ? "" : "s"}
                     </p>
                   </div>
                 </div>
 
-                <span className="w-full rounded-xl border border-slate-600 px-4 py-2 text-center text-sm font-black text-slate-200 sm:w-auto sm:shrink-0">
+                <span className="w-full rounded-xl border border-slate-600 px-4 py-2 text-center text-xs font-black text-slate-200 sm:w-auto sm:shrink-0 sm:text-sm">
                   {isClosed ? "Open" : "Close"}
                 </span>
               </div>
@@ -375,7 +375,7 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
             </div>
 
             {!isClosed && (
-              <div className="w-full max-w-full space-y-5 overflow-hidden p-3 sm:p-5">
+              <div className="w-full max-w-full space-y-4 overflow-hidden p-2 sm:p-5">
                 <SectionInformationChecklist
                   inspectionId={inspectionId}
                   section={group.section}
@@ -606,7 +606,7 @@ function AddSectionFindingForm({
               <h3 className="text-lg font-black text-cyan-300">
                 Add Defect To {section}
               </h3>
-              <p className="mt-1 text-sm text-slate-400">
+              <p className="mt-0.5 text-xs font-bold text-slate-400 sm:mt-1 sm:text-sm">
                 Create a normal finding without using AI Capture, Field Tool, Voice Tool, or Equipment Analyzer. Photos can be added after saving.
               </p>
             </div>
@@ -1335,7 +1335,7 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
           setDraggingOver(false);
         }}
         onDrop={handleFindingDrop}
-        className={`w-full max-w-full overflow-hidden rounded-2xl border bg-[#071224] shadow-xl transition ${
+        className={`w-full max-w-full overflow-hidden rounded-2xl border bg-[#071224] shadow-lg transition ${
           draggingOver
             ? "border-teal-400 ring-2 ring-teal-400/40"
             : "border-slate-700"
@@ -1344,9 +1344,9 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
         <button
           type="button"
           onClick={() => setExpanded(true)}
-          className="flex w-full min-w-0 gap-3 p-3 text-left transition hover:bg-slate-800/40 sm:gap-4 sm:p-4 [touch-action:manipulation]"
+          className="flex w-full min-w-0 gap-2 p-2 text-left transition hover:bg-slate-800/40 sm:gap-4 sm:p-4 [touch-action:manipulation]"
         >
-          <div className="h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-slate-700 bg-black sm:h-28 sm:w-32">
+          <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-slate-700 bg-black sm:h-28 sm:w-32">
             {primaryPhotoUrl ? (
               isVideoMedia(primaryPhoto) ? (
                 getVideoPosterUrl(primaryPhoto) ? (
@@ -1392,7 +1392,7 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
           </div>
 
           <div className="min-w-0 flex-1">
-            <div className="mb-2 flex flex-wrap items-center gap-2">
+            <div className="mb-1.5 flex flex-wrap items-center gap-1.5 sm:mb-2 sm:gap-2">
               <span
                 className={`rounded-full border px-3 py-1 text-[10px] font-extrabold uppercase tracking-wide ${getSeverityStyle(
                   finding.severity
@@ -1408,17 +1408,17 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
               )}
             </div>
 
-            <h3 className="line-clamp-2 break-words text-lg font-black leading-tight text-white sm:text-xl">
+            <h3 className="line-clamp-2 break-words text-base font-black leading-tight text-white sm:text-xl">
               {findingTitle}
             </h3>
 
             {finding.observation && (
-              <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-300">
+              <p className="mt-1 line-clamp-1 text-xs font-semibold leading-5 text-slate-300 sm:mt-2 sm:line-clamp-2 sm:text-sm sm:leading-6">
                 {finding.observation}
               </p>
             )}
 
-            <p className="mt-3 text-sm font-black text-cyan-300">
+            <p className="mt-2 text-xs font-black text-cyan-300 sm:mt-3 sm:text-sm">
               Open / Edit Finding →
             </p>
           </div>
@@ -1455,9 +1455,9 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
           : "border-slate-700"
       }`}
     >
-      <div className="p-3 pb-0 sm:p-4 sm:pb-0">
+      <div className="p-2 pb-0 sm:p-4 sm:pb-0">
         <InlineStatusMessage type={messageType} message={message} />
-        <div className="mb-3 flex flex-wrap justify-end gap-2">
+        <div className="sticky top-2 z-20 mb-3 flex flex-wrap justify-end gap-2 rounded-2xl border border-slate-700 bg-[#071224]/95 p-2 shadow-xl backdrop-blur sm:static sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">
           {isSafetyOrMajor && (
             <button
               type="button"
@@ -1486,7 +1486,7 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
         )}
       </div>
       {photos.length > 0 && (
-        <div className="border-b border-slate-700 bg-black p-3">
+        <div className="border-b border-slate-700 bg-black p-2 sm:p-3">
           <div
             className={
               visiblePhotos.length === 1
@@ -1593,7 +1593,7 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
         </div>
       )}
 
-      <div className="w-full max-w-full overflow-hidden p-4 sm:p-6">
+      <div className="w-full max-w-full overflow-hidden p-3 sm:p-6">
         <div className="mb-4 flex flex-wrap items-center gap-3">
           <span
             className={`rounded-full border px-3 py-1 text-xs font-extrabold uppercase tracking-wide ${getSeverityStyle(
@@ -1617,10 +1617,9 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
         </div>
 
         <h3 className="mb-4 break-words text-2xl font-black text-white">
-{findingTitle}
-        </h3>
+{findingTitle} </h3>
 
-        <div className="mb-5 flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap">
+        <div className="mb-4 grid w-full grid-cols-2 gap-2 sm:flex sm:flex-row sm:flex-wrap">
           <button
             type="button"
             onClick={async (event) => {
@@ -1663,7 +1662,7 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
                 showMessage("error", "Failed to save template.");
               }
             }}
-            className="w-full rounded-xl border border-yellow-500 px-4 py-2 text-sm font-black text-yellow-300 hover:bg-yellow-500/10 sm:w-auto"
+            className="w-full rounded-xl border border-yellow-500 px-3 py-3 text-xs font-black text-yellow-300 transition active:scale-[0.98] hover:bg-yellow-500/10 sm:w-auto sm:px-4 sm:py-2 sm:text-sm"
           >
             ⭐ Save as Template
           </button>
@@ -1675,7 +1674,7 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
               setShowUploadPanel((prev) => !prev);
               setShowPhotoPicker(false);
             }}
-            className="w-full rounded-xl border border-teal-500 px-4 py-2 text-sm font-black text-teal-300 hover:bg-teal-500/10 sm:w-auto"
+            className="w-full rounded-xl border border-teal-500 px-3 py-3 text-xs font-black text-teal-300 transition active:scale-[0.98] hover:bg-teal-500/10 sm:w-auto sm:px-4 sm:py-2 sm:text-sm"
           >
             📷 Add Pictures
           </button>
@@ -1689,7 +1688,7 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
               setShowPhotoPicker((prev) => !prev);
               setShowUploadPanel(false);
             }}
-            className="w-full rounded-xl border border-cyan-500 px-4 py-2 text-sm font-black text-cyan-300 hover:bg-cyan-500/10 sm:w-auto"
+            className="w-full rounded-xl border border-cyan-500 px-3 py-3 text-xs font-black text-cyan-300 transition active:scale-[0.98] hover:bg-cyan-500/10 sm:w-auto sm:px-4 sm:py-2 sm:text-sm"
           >
             📎 Move Existing Photo
           </button>
@@ -1707,14 +1706,14 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
               setMarkupPhoto(photos[0]);
               setShowMarkupEditor(true);
             }}
-            className="w-full rounded-xl border border-purple-500 px-4 py-2 text-sm font-black text-purple-300 hover:bg-purple-500/10 sm:w-auto"
+            className="w-full rounded-xl border border-purple-500 px-3 py-3 text-xs font-black text-purple-300 transition active:scale-[0.98] hover:bg-purple-500/10 sm:w-auto sm:px-4 sm:py-2 sm:text-sm"
           >
             ✏️ Markup Photo
           </button>
         </div>
 
         {showUploadPanel && (
-          <div className="mb-5 w-full max-w-full overflow-hidden rounded-xl border border-teal-700 bg-teal-950/20 p-4">
+          <div className="mb-4 w-full max-w-full overflow-hidden rounded-xl border border-teal-700 bg-teal-950/20 p-3 sm:p-4">
             <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h4 className="text-lg font-black text-teal-300">
@@ -1770,7 +1769,7 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
         )}
 
         {showPhotoPicker && (
-          <div className="mb-5 w-full max-w-full overflow-hidden rounded-xl border border-cyan-700 bg-cyan-950/20 p-4">
+          <div className="mb-4 w-full max-w-full overflow-hidden rounded-xl border border-cyan-700 bg-cyan-950/20 p-3 sm:p-4">
             <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h4 className="text-lg font-black text-cyan-300">
@@ -1909,7 +1908,7 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
 
         <div
           onClick={(event) => event.stopPropagation()}
-          className="mb-5 w-full max-w-full overflow-hidden rounded-xl border border-slate-700 bg-slate-950/40 p-3 sm:p-4"
+          className="mb-4 w-full max-w-full overflow-hidden rounded-xl border border-slate-700 bg-slate-950/40 p-2 sm:p-4"
         >
           <EditableFinding finding={finding} />
         </div>
