@@ -108,20 +108,12 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
   }, [groupedFindings]);
 
   useEffect(() => {
-    // Safety reset from the removed mobile touch-drag experiment.
-    // If a previous route left body scrolling locked during client navigation,
-    // this immediately restores normal desktop and mobile scrolling.
-    if (typeof document !== "undefined") {
-      document.body.style.removeProperty("overflow");
-      document.body.style.removeProperty("touch-action");
-    }
+    if (typeof document === "undefined") return;
 
-    return () => {
-      if (typeof document !== "undefined") {
-        document.body.style.removeProperty("overflow");
-        document.body.style.removeProperty("touch-action");
-      }
-    };
+    document.body.style.removeProperty("overflow");
+    document.body.style.removeProperty("touch-action");
+    document.documentElement.style.removeProperty("overflow");
+    document.documentElement.style.removeProperty("touch-action");
   }, []);
 
   const allFindings = useMemo(() => {
@@ -300,7 +292,7 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
         </button>
 
         <div className="w-full rounded-xl border border-slate-700 px-4 py-2 text-center text-xs font-bold text-slate-400 sm:w-auto sm:text-left sm:text-sm">
-          <span className="sm:hidden">Use arrows to reorder sections</span>
+          <span className="sm:hidden">Use arrows to reorder</span>
           <span className="hidden sm:inline">Drag section headers to reorder</span>
         </div>
       </div>
@@ -315,7 +307,6 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
             key={group.section}
             id={`report-section-${commandSlug(group.section)}`}
             data-command-target={`report-section-${commandSlug(group.section)}`}
-            data-mobile-section={group.section}
             draggable
             onDragStart={() => handleDragStart(group.section)}
             onDragOver={handleDragOver}
@@ -340,8 +331,11 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
               >
                 <div className="flex min-w-0 items-center gap-3 sm:gap-4">
                   <span
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Drag ${group.section} section to reorder`}
+                    onClick={(event) => event.stopPropagation()}
                     className="hidden cursor-grab select-none text-2xl text-slate-500 active:cursor-grabbing sm:inline"
-                    aria-hidden="true"
                   >
                     ⋮⋮
                   </span>
