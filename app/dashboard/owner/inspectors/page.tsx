@@ -204,28 +204,28 @@ function RestrictedOwner() {
 function OwnerNav() {
   return (
     <div className="flex flex-wrap gap-3">
-      <Link href="/dashboard/owner" className="rounded-xl border border-teal-500 px-4 py-3 font-black text-teal-300 transition hover:bg-teal-500/10">
+      <Link href="/dashboard/owner" className="rounded-xl border border-teal-500 px-3 py-2 text-sm font-black text-teal-300 transition hover:bg-teal-500/10 sm:px-4 sm:py-3 sm:text-base">
         Owner
       </Link>
-      <Link href="/dashboard/owner/users" className="rounded-xl border border-cyan-500 px-4 py-3 font-black text-cyan-300 transition hover:bg-cyan-500/10">
+      <Link href="/dashboard/owner/users" className="rounded-xl border border-cyan-500 px-3 py-2 text-sm font-black text-cyan-300 transition hover:bg-cyan-500/10 sm:px-4 sm:py-3 sm:text-base">
         👥 Users
       </Link>
-      <Link href="/dashboard/owner/devices" className="rounded-xl border border-purple-500 px-4 py-3 font-black text-purple-300 transition hover:bg-purple-500/10">
+      <Link href="/dashboard/owner/devices" className="rounded-xl border border-purple-500 px-3 py-2 text-sm font-black text-purple-300 transition hover:bg-purple-500/10 sm:px-4 sm:py-3 sm:text-base">
         📱 Devices
       </Link>
-      <Link href="/dashboard/owner/revenue" className="rounded-xl border border-green-500 px-4 py-3 font-black text-green-300 transition hover:bg-green-500/10">
+      <Link href="/dashboard/owner/revenue" className="rounded-xl border border-green-500 px-3 py-2 text-sm font-black text-green-300 transition hover:bg-green-500/10 sm:px-4 sm:py-3 sm:text-base">
         💰 Revenue
       </Link>
-      <Link href="/dashboard/owner/push" className="rounded-xl border border-yellow-500 px-4 py-3 font-black text-yellow-300 transition hover:bg-yellow-500/10">
+      <Link href="/dashboard/owner/push" className="rounded-xl border border-yellow-500 px-3 py-2 text-sm font-black text-yellow-300 transition hover:bg-yellow-500/10 sm:px-4 sm:py-3 sm:text-base">
         🔔 Push Center
       </Link>
-      <Link href="/dashboard/owner/inspectors" className="rounded-xl border border-orange-500 px-4 py-3 font-black text-orange-300 transition hover:bg-orange-500/10">
+      <Link href="/dashboard/owner/inspectors" className="rounded-xl border border-orange-500 px-3 py-2 text-sm font-black text-orange-300 transition hover:bg-orange-500/10 sm:px-4 sm:py-3 sm:text-base">
         🧑‍ inspector
       </Link>
-      <Link href="/dashboard/owner/live" className="rounded-xl border border-blue-500 px-4 py-3 font-black text-blue-300 transition hover:bg-blue-500/10">
+      <Link href="/dashboard/owner/live" className="rounded-xl border border-blue-500 px-3 py-2 text-sm font-black text-blue-300 transition hover:bg-blue-500/10 sm:px-4 sm:py-3 sm:text-base">
         ⚡ Live
       </Link>
-      <Link href="/dashboard/owner/system" className="rounded-xl border border-slate-500 px-4 py-3 font-black text-slate-200 transition hover:bg-slate-700/30">
+      <Link href="/dashboard/owner/system" className="rounded-xl border border-slate-500 px-3 py-2 text-sm font-black text-slate-200 transition hover:bg-slate-700/30 sm:px-4 sm:py-3 sm:text-base">
         🩺 System
       </Link>
     </div>
@@ -244,9 +244,9 @@ function MetricCard({ label, value, helper, tone }: { label: string; value: stri
   };
 
   return (
-    <div className={`rounded-2xl border p-6 shadow-xl ${classes[tone]}`}>
+    <div className={`min-w-0 rounded-2xl border p-4 shadow-xl sm:p-6 ${classes[tone]}`}>
       <p className="text-xs font-black uppercase tracking-wide text-slate-400">{label}</p>
-      <p className="mt-3 text-4xl font-black text-white">{value}</p>
+      <p className="mt-3 break-words text-3xl font-black text-white sm:text-4xl">{value}</p>
       <p className="mt-3 text-sm leading-6 text-slate-400">{helper}</p>
     </div>
   );
@@ -254,7 +254,7 @@ function MetricCard({ label, value, helper, tone }: { label: string; value: stri
 
 function Panel({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
+    <section className="w-full min-w-0 overflow-hidden rounded-2xl border border-slate-800 bg-[#0f172a] p-3 shadow-xl sm:p-6">
       <h2 className="text-2xl font-black text-teal-300">{title}</h2>
       <p className="mt-2 text-sm text-slate-400">{subtitle}</p>
       <div className="mt-6">{children}</div>
@@ -293,9 +293,9 @@ function MiniStat({ label, value, tone }: { label: string; value: string; tone: 
   };
 
   return (
-    <div className="rounded-xl border border-slate-700 bg-slate-950/60 p-3">
+    <div className="min-w-0 rounded-xl border border-slate-700 bg-slate-950/60 p-3">
       <p className="text-[11px] font-black uppercase tracking-wide text-slate-500">{label}</p>
-      <p className={`mt-1 text-lg font-black ${valueClass[tone]}`}>{value}</p>
+      <p className={`mt-1 break-words text-base font-black sm:text-lg ${valueClass[tone]}`}>{value}</p>
     </div>
   );
 }
@@ -393,13 +393,13 @@ export default async function OwnerInspectorsPage() {
   const totalReports = rows.reduce((sum, row) => sum + row.reports, 0);
 
   return (
-    <main className="min-h-screen bg-[#020617] px-4 py-8 text-white md:px-6 md:py-10">
-      <div className="mx-auto max-w-7xl space-y-8">
-        <section className="rounded-3xl border border-orange-500/40 bg-[#0f172a] p-8 shadow-2xl">
+    <main className="min-h-screen overflow-x-hidden bg-[#020617] px-2 py-6 text-white md:px-6 md:py-10">
+      <div className="mx-auto w-full max-w-7xl space-y-6 overflow-hidden md:space-y-8">
+        <section className="rounded-3xl border border-orange-500/40 bg-[#0f172a] p-4 shadow-2xl sm:p-6 md:p-8">
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div>
               <p className="text-sm font-black uppercase tracking-[0.35em] text-orange-400">Owner Inspector Management</p>
-              <h1 className="mt-4 text-5xl font-black text-white">Inspectors, Production & Activity</h1>
+              <h1 className="mt-4 text-3xl font-black text-white sm:text-4xl md:text-5xl">Inspectors, Production & Activity</h1>
               <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-300">
                 Track inspector activity, report production, revenue, push setup, and recent usage.
               </p>
@@ -429,9 +429,9 @@ export default async function OwnerInspectorsPage() {
               {rows.map((row) => (
                 <article
                   key={row.id}
-                  className="rounded-2xl border border-slate-700 bg-[#020817]/70 p-5 shadow-xl"
+                  className="w-full min-w-0 overflow-hidden rounded-2xl border border-slate-700 bg-[#020817]/70 p-3 shadow-xl sm:p-5"
                 >
-                  <div className="grid gap-5 xl:grid-cols-[1.2fr_1fr_1fr]">
+                  <div className="grid w-full min-w-0 gap-4 xl:grid-cols-[1.2fr_1fr_1fr] xl:gap-5">
                     <div className="space-y-4">
                       <div>
                         <p className="text-xs font-black uppercase tracking-wide text-slate-500">
@@ -465,7 +465,7 @@ export default async function OwnerInspectorsPage() {
                       </div>
                     </div>
 
-                    <div className="rounded-2xl border border-slate-700 bg-slate-950/40 p-4">
+                    <div className="w-full min-w-0 overflow-hidden rounded-2xl border border-slate-700 bg-slate-950/40 p-2 sm:p-4">
                       <OwnerInspectorBillingControls
                         userId={row.id}
                         email={row.email}
@@ -481,11 +481,13 @@ export default async function OwnerInspectorsPage() {
                       />
                     </div>
 
-                    <div className="rounded-2xl border border-slate-700 bg-slate-950/40 p-4">
+                    <div className="w-full min-w-0 overflow-hidden rounded-2xl border border-slate-700 bg-slate-950/40 p-3 sm:p-4">
                       <p className="mb-3 text-xs font-black uppercase tracking-wide text-slate-500">
                         Account Actions
                       </p>
-                      <OwnerAccountActions userId={row.id} email={row.email} currentRole="inspector" />
+                      <div className="min-w-0 overflow-hidden">
+                        <OwnerAccountActions userId={row.id} email={row.email} currentRole="inspector" />
+                      </div>
                     </div>
                   </div>
                 </article>
