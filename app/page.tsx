@@ -526,7 +526,7 @@ export default async function HomePage() {
   const signedAgreements = signedAgreementsResult.data || [];
   const repairResponses = repairResponsesResult.data || [];
 
-  const inspectionMap = new Map(
+  const inspectionMap = new Map<string, any>(
     inspections.map((inspection: any) => [String(inspection.id), inspection])
   );
 
@@ -912,7 +912,7 @@ export default async function HomePage() {
                 </div>
               ) : (
                 visibleActivity.map((log: any) => {
-                  const inspection = inspectionMap.get(
+                  const inspection: any = inspectionMap.get(
                     String(log.inspection_id_bigint || log.inspection_id || "")
                   );
 
