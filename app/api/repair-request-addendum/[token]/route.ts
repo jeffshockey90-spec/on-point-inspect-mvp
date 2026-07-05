@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { existsSync } from "fs";
+import chromium from "@sparticuz/chromium";
+import puppeteer from "puppeteer-core";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -769,6 +772,100 @@ function buildAddendumHtml(data: Awaited<ReturnType<typeof loadAddendumData>>) {
 </html>`;
 }
 
+
+function getLocalChromiumCandidates() {
+  return [
+    process.env.PUPPETEER_EXECUTABLE_PATH,
+    process.env.CHROME_EXECUTABLE_PATH,
+    process.env.LOCALAPPDATA
+      ? `${process.env.LOCALAPPDATA}\\Google\\Chrome\\Application\\chrome.exe`
+      : "",
+    process.env.PROGRAMFILES
+      ? `${process.env.PROGRAMFILES}\\Google\\Chrome\\Application\\chrome.exe`
+      : "",
+    process.env["PROGRAMFILES(X86)"]
+      ? `${process.env["PROGRAMFILES(X86)"]}\\Google\\Chrome\\Application\\chrome.exe`
+      : "",
+    process.env.LOCALAPPDATA
+      ? `${process.env.LOCALAPPDATA}\\Microsoft\\Edge\\Application\\msedge.exe`
+      : "",
+    process.env.PROGRAMFILES
+      ? `${process.env.PROGRAMFILES}\\Microsoft\\Edge\\Application\\msedge.exe`
+      : "",
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+    "/usr/bin/google-chrome-stable",
+    "/usr/bin/google-chrome",
+    "/usr/bin/chromium-browser",
+    "/usr/bin/chromium",
+  ].filter(Boolean) as string[];
+}
+
+async function getChromiumExecutablePath() {
+  if (process.env.VERCEL) {
+    return chromium.executablePath(
+      "https://github.com/Sparticuz/chromium/releases/download/v123.0.1/chromium-v123.0.1-pack.tar"
+    );
+  }
+
+  for (const candidate of getLocalChromiumCandidates()) {
+    if (existsSync(candidate)) return candidate;
+  }
+
+  return chromium.executablePath();
+}
+
+async function renderHtmlToPdf(html: string) {
+  let browser: any = null;
+
+  try {
+    const executablePath = await getChromiumExecutablePath();
+
+    browser = await puppeteer.launch({
+      args: process.env.VERCEL
+        ? chromium.args
+        : ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
+      defaultViewport: {
+        width: 816,
+        height: 1056,
+        deviceScaleFactor: 1,
+      },
+      executablePath,
+      headless: true,
+    });
+
+    const page = await browser.newPage();
+
+    page.setDefaultNavigationTimeout(0);
+    page.setDefaultTimeout(0);
+
+    await page.setContent(html, {
+      waitUntil: "networkidle0",
+      timeout: 60000,
+    });
+
+    await page.emulateMediaType("print");
+
+    const pdf = await page.pdf({
+      format: "Letter",
+      printBackground: true,
+      preferCSSPageSize: true,
+      margin: {
+        top: "0in",
+        right: "0in",
+        bottom: "0in",
+        left: "0in",
+      },
+    });
+
+    return Buffer.from(pdf);
+  } finally {
+    if (browser) {
+      await browser.close().catch(() => {});
+    }
+  }
+}
+
 function getDownloadName(property: string) {
   const slug = cleanText(property)
     .toLowerCase()
@@ -776,7 +873,7 @@ function getDownloadName(property: string) {
     .replace(/^-+|-+$/g, "")
     .slice(0, 70);
 
-  return `${slug || "repair-request"}-addendum.html`;
+  return `${slug || "repair-request"}-addendum.pdf`;
 }
 
 export async function GET(req: Request, { params }: RouteProps) {
@@ -797,16 +894,24 @@ export async function GET(req: Request, { params }: RouteProps) {
     const data = await loadAddendumData(cleanToken);
     const html = buildAddendumHtml(data);
 
+    if (download) {
+      const pdf = await renderHtmlToPdf(html);
+
+      return new NextResponse(pdf, {
+        status: 200,
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `attachment; filename="${getDownloadName(data.property)}"`,
+          "Cache-Control": "private, max-age=20, stale-while-revalidate=120",
+        },
+      });
+    }
+
     return new NextResponse(html, {
       status: 200,
       headers: {
         "Content-Type": "text/html; charset=utf-8",
         "Cache-Control": "private, max-age=20, stale-while-revalidate=120",
-        ...(download
-          ? {
-              "Content-Disposition": `attachment; filename="${getDownloadName(data.property)}"`,
-            }
-          : {}),
       },
     });
   } catch (error: any) {

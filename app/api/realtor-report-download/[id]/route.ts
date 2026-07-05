@@ -6,6 +6,7 @@ import QRCode from "qrcode";
 import { randomUUID } from "crypto";
 import chromium from "@sparticuz/chromium";
 import puppeteer from "puppeteer-core";
+import { existsSync } from "fs";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -1205,26 +1206,53 @@ function buildAgentReportHtml({
 }
 
 
+async function getChromiumExecutablePath() {
+  if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+    return process.env.PUPPETEER_EXECUTABLE_PATH;
+  }
+
+  if (process.env.VERCEL || process.env.AWS_REGION) {
+    return chromium.executablePath(
+      "https://github.com/Sparticuz/chromium/releases/download/v123.0.1/chromium-v123.0.1-pack.tar"
+    );
+  }
+
+  const localCandidates = [
+    "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+    "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+    "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe",
+    "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+    "/usr/bin/google-chrome",
+    "/usr/bin/chromium",
+    "/usr/bin/chromium-browser",
+  ];
+
+  const localPath = localCandidates.find((candidate) => existsSync(candidate));
+  if (localPath) return localPath;
+
+  return chromium.executablePath();
+}
+
 async function renderHtmlToPdf(html: string) {
   let browser: any = null;
 
   try {
-    const executablePath =
-  process.env.PUPPETEER_EXECUTABLE_PATH ||
-  (await chromium.executablePath(
-    "https://github.com/Sparticuz/chromium/releases/download/v123.0.1/chromium-v123.0.1-pack.tar"
-  ));
+    const executablePath = await getChromiumExecutablePath();
 
     browser = await puppeteer.launch({
-  args: chromium.args,
-  defaultViewport: {
-    width: 816,
-    height: 1056,
-    deviceScaleFactor: 1,
-  },
-  executablePath,
-  headless: true,
-});
+      args: process.env.VERCEL || process.env.AWS_REGION
+        ? chromium.args
+        : ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
+      defaultViewport: {
+        width: 816,
+        height: 1056,
+        deviceScaleFactor: 1,
+      },
+      executablePath,
+      headless: true,
+    });
 
     const page = await browser.newPage();
 
@@ -1232,8 +1260,8 @@ async function renderHtmlToPdf(html: string) {
     page.setDefaultTimeout(0);
 
     await page.setContent(html, {
-      waitUntil: "domcontentloaded",
-      timeout: 60000,
+      waitUntil: "networkidle0",
+      timeout: 90000,
     });
 
     await page.emulateMediaType("print");
@@ -1491,27 +1519,12 @@ export async function GET(req: Request, { params }: RouteProps) {
     });
     const property = getPropertyAddress(inspection);
 
-    let pdf: Buffer | null = null;
-
-    try {
-      pdf = await renderHtmlToPdf(html);
-    } catch (pdfError) {
-      console.error("PDF render failed, falling back to HTML:", pdfError);
-
-      return new NextResponse(html, {
-        status: 200,
-        headers: {
-          "Content-Type": "text/html; charset=utf-8",
-          "Content-Disposition": `attachment; filename="${getDownloadName(property, reportMode).replace(".pdf", ".html")}"`,
-          "Cache-Control": "private, max-age=20, stale-while-revalidate=120",
-        },
-      });
-    }
+    const pdf = await renderHtmlToPdf(html);
 
     return new NextResponse(new Uint8Array(pdf), {
-  status: 200,
-  headers: {
-    "Content-Type": "application/pdf",
+      status: 200,
+      headers: {
+        "Content-Type": "application/pdf",
         "Content-Disposition": `attachment; filename="${getDownloadName(property, reportMode)}"`,
         "Cache-Control": "private, max-age=20, stale-while-revalidate=120",
       },
