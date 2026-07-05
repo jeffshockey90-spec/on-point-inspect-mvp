@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import SectionLimitations from "../../../components/SectionLimitations";
@@ -98,11 +98,6 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
 
   const [orderedGroups, setOrderedGroups] = useState<any[]>(groupedFindings || []);
   const [draggingSection, setDraggingSection] = useState<string | null>(null);
-  const [touchDraggingSection, setTouchDraggingSection] = useState<string | null>(null);
-  const [touchDragY, setTouchDragY] = useState(0);
-  const touchDragSectionRef = useRef<string | null>(null);
-  const touchLastTargetRef = useRef<string | null>(null);
-  const touchStartYRef = useRef(0);
   const [photoPickerLoaded, setPhotoPickerLoaded] = useState(false);
 
   useEffect(() => {
@@ -112,14 +107,6 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
     setClosedSections(getAllSectionsClosed(nextGroups));
   }, [groupedFindings]);
 
-  useEffect(() => {
-    return () => {
-      if (typeof document !== "undefined") {
-        document.body.style.removeProperty("overflow");
-        document.body.style.removeProperty("touch-action");
-      }
-    };
-  }, []);
 
   const allFindings = useMemo(() => {
     return (orderedGroups || []).flatMap((group: any) => group.findings || []);
@@ -241,80 +228,6 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
     });
   }
 
-  function startTouchSectionDrag(section: string, event: any) {
-    if (!section) return;
-
-    event.preventDefault?.();
-    event.stopPropagation?.();
-
-    touchDragSectionRef.current = section;
-    touchLastTargetRef.current = section;
-    touchStartYRef.current = Number(event.clientY || 0);
-    setTouchDraggingSection(section);
-    setTouchDragY(0);
-
-    try {
-      event.currentTarget?.setPointerCapture?.(event.pointerId);
-    } catch {}
-
-    if (typeof document !== "undefined") {
-      document.body.style.overflow = "hidden";
-      document.body.style.touchAction = "none";
-    }
-  }
-
-  function moveTouchSectionDrag(event: any) {
-    const activeSection = touchDragSectionRef.current;
-    if (!activeSection) return;
-
-    event.preventDefault?.();
-    event.stopPropagation?.();
-
-    const clientY = Number(event.clientY || 0);
-    setTouchDragY(clientY - touchStartYRef.current);
-
-    const targetElement = document.elementFromPoint(
-      Number(event.clientX || 0),
-      clientY
-    ) as HTMLElement | null;
-
-    const targetSection = targetElement
-      ?.closest("[data-mobile-section]")
-      ?.getAttribute("data-mobile-section");
-
-    if (!targetSection || targetSection === touchLastTargetRef.current) return;
-
-    setOrderedGroups((prev) => {
-      const fromIndex = prev.findIndex((group: any) => group.section === activeSection);
-      const toIndex = prev.findIndex((group: any) => group.section === targetSection);
-
-      if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) return prev;
-
-      const next = [...prev];
-      const [moved] = next.splice(fromIndex, 1);
-      next.splice(toIndex, 0, moved);
-      return next;
-    });
-
-    touchLastTargetRef.current = targetSection;
-  }
-
-  function endTouchSectionDrag(event?: any) {
-    event?.preventDefault?.();
-    event?.stopPropagation?.();
-
-    touchDragSectionRef.current = null;
-    touchLastTargetRef.current = null;
-    touchStartYRef.current = 0;
-    setTouchDraggingSection(null);
-    setTouchDragY(0);
-
-    if (typeof document !== "undefined") {
-      document.body.style.removeProperty("overflow");
-      document.body.style.removeProperty("touch-action");
-    }
-  }
-
   function handleDragStart(section: string) {
     setDraggingSection(section);
   }
@@ -371,7 +284,7 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
         </button>
 
         <div className="w-full rounded-xl border border-slate-700 px-4 py-2 text-center text-xs font-bold text-slate-400 sm:w-auto sm:text-left sm:text-sm">
-          <span className="sm:hidden">Hold ⋮⋮ and drag, or use arrows</span>
+          <span className="sm:hidden">Use arrows to reorder sections</span>
           <span className="hidden sm:inline">Drag section headers to reorder</span>
         </div>
       </div>
@@ -380,7 +293,6 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
         const findings = group.findings || [];
         const isClosed = !!closedSections[group.section];
         const isDragging = draggingSection === group.section;
-        const isTouchDragging = touchDraggingSection === group.section;
 
         return (
           <section
@@ -395,10 +307,7 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
             onDragEnd={() => setDraggingSection(null)}
             className={`w-full max-w-full overflow-hidden rounded-2xl border border-slate-700 bg-[#0f172a] shadow-lg transition ${
               isDragging ? "opacity-50 ring-2 ring-teal-400" : ""
-            } ${
-              isTouchDragging ? "scale-[1.015] opacity-95 ring-2 ring-cyan-300 shadow-2xl shadow-cyan-500/20" : ""
             }`}
-            style={isTouchDragging ? { transform: `translateY(${Math.max(-14, Math.min(14, touchDragY * 0.12))}px)` } : undefined}
           >
             <div className="flex min-w-0 items-stretch border-b border-slate-700">
               <div
@@ -415,15 +324,8 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
               >
                 <div className="flex min-w-0 items-center gap-3 sm:gap-4">
                   <span
-                    role="button"
-                    tabIndex={0}
-                    aria-label={`Drag ${group.section} section to reorder`}
-                    onPointerDown={(event) => startTouchSectionDrag(group.section, event)}
-                    onPointerMove={moveTouchSectionDrag}
-                    onPointerUp={endTouchSectionDrag}
-                    onPointerCancel={endTouchSectionDrag}
-                    onClick={(event) => event.stopPropagation()}
-                    className="cursor-grab select-none rounded-xl border border-slate-700 bg-slate-950/70 px-2 py-2 text-2xl leading-none text-slate-400 shadow-sm active:cursor-grabbing active:border-cyan-400 active:text-cyan-300 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:text-slate-500 [touch-action:none]"
+                    aria-hidden="true"
+                    className="hidden cursor-grab select-none text-2xl text-slate-500 active:cursor-grabbing sm:inline"
                   >
                     ⋮⋮
                   </span>
@@ -457,7 +359,7 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
                     moveSection(index, index - 1);
                   }}
                   disabled={index === 0}
-                  className="flex h-1/2 min-h-[36px] items-center justify-center px-3 text-sm font-black text-slate-300 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-30"
+                  className="flex h-1/2 min-h-[42px] items-center justify-center px-4 text-base font-black text-slate-300 transition active:scale-[0.96] hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-30 sm:min-h-[36px] sm:px-3 sm:text-sm"
                   title="Move section up"
                 >
                   ↑
@@ -470,7 +372,7 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
                     moveSection(index, index + 1);
                   }}
                   disabled={index === orderedGroups.length - 1}
-                  className="flex h-1/2 min-h-[36px] items-center justify-center border-t border-slate-700 px-3 text-sm font-black text-slate-300 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-30"
+                  className="flex h-1/2 min-h-[42px] items-center justify-center border-t border-slate-700 px-4 text-base font-black text-slate-300 transition active:scale-[0.96] hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-30 sm:min-h-[36px] sm:px-3 sm:text-sm"
                   title="Move section down"
                 >
                   ↓
