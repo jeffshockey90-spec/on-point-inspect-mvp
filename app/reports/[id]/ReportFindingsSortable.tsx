@@ -107,6 +107,22 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
     setClosedSections(getAllSectionsClosed(nextGroups));
   }, [groupedFindings]);
 
+  useEffect(() => {
+    // Safety reset from the removed mobile touch-drag experiment.
+    // If a previous route left body scrolling locked during client navigation,
+    // this immediately restores normal desktop and mobile scrolling.
+    if (typeof document !== "undefined") {
+      document.body.style.removeProperty("overflow");
+      document.body.style.removeProperty("touch-action");
+    }
+
+    return () => {
+      if (typeof document !== "undefined") {
+        document.body.style.removeProperty("overflow");
+        document.body.style.removeProperty("touch-action");
+      }
+    };
+  }, []);
 
   const allFindings = useMemo(() => {
     return (orderedGroups || []).flatMap((group: any) => group.findings || []);
@@ -324,8 +340,8 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
               >
                 <div className="flex min-w-0 items-center gap-3 sm:gap-4">
                   <span
-                    aria-hidden="true"
                     className="hidden cursor-grab select-none text-2xl text-slate-500 active:cursor-grabbing sm:inline"
+                    aria-hidden="true"
                   >
                     ⋮⋮
                   </span>
@@ -359,7 +375,7 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
                     moveSection(index, index - 1);
                   }}
                   disabled={index === 0}
-                  className="flex h-1/2 min-h-[42px] items-center justify-center px-4 text-base font-black text-slate-300 transition active:scale-[0.96] hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-30 sm:min-h-[36px] sm:px-3 sm:text-sm"
+                  className="flex h-1/2 min-h-[36px] items-center justify-center px-3 text-sm font-black text-slate-300 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-30"
                   title="Move section up"
                 >
                   ↑
@@ -372,7 +388,7 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
                     moveSection(index, index + 1);
                   }}
                   disabled={index === orderedGroups.length - 1}
-                  className="flex h-1/2 min-h-[42px] items-center justify-center border-t border-slate-700 px-4 text-base font-black text-slate-300 transition active:scale-[0.96] hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-30 sm:min-h-[36px] sm:px-3 sm:text-sm"
+                  className="flex h-1/2 min-h-[36px] items-center justify-center border-t border-slate-700 px-3 text-sm font-black text-slate-300 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-30"
                   title="Move section down"
                 >
                   ↓
