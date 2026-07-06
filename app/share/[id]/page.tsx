@@ -445,16 +445,26 @@ function getMediaUrl(media: any) {
 function getMediaPreviewUrl(media: any) {
   if (!media) return "";
 
-  const fullUrl = getMediaUrl(media);
   const thumbnailUrl = String(
     media?.signed_thumbnail_url ||
       media?.thumbnail_url ||
+      media?.poster_url ||
+      media?.video_thumbnail_url ||
       ""
   ).trim();
 
-  // Use lightweight preview URLs first. These are generated from the original
-  // stored image when possible, then fall back to the full signed photo.
-  return thumbnailUrl || fullUrl;
+  if (thumbnailUrl) {
+    return thumbnailUrl;
+  }
+
+  // Never return a video file as an image preview.
+  // Collapsed mobile cards should either show the generated thumbnail
+  // or the clean VIDEO badge, not a broken/black MP4 image fallback.
+  if (isVideoMedia(media)) {
+    return "";
+  }
+
+  return getMediaUrl(media);
 }
 
 function getFindingPrimaryMedia(finding: any) {
