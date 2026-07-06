@@ -3,12 +3,15 @@ import { spawn } from "child_process";
 import { promises as fs } from "fs";
 import os from "os";
 import path from "path";
+import ffmpegStaticPath from "ffmpeg-static";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 const LOCAL_FFMPEG_PATH =
+  ffmpegStaticPath ||
+  process.env.FFMPEG_PATH ||
   "C:\\Users\\jeffs\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\\ffmpeg-8.1.2-full_build\\bin\\ffmpeg.exe";
 
 function safeExtension(name: string) {
@@ -18,6 +21,11 @@ function safeExtension(name: string) {
 
 function runProcess(command: string, args: string[]) {
   return new Promise<void>((resolve, reject) => {
+    if (!command) {
+      reject(new Error("FFmpeg binary was not found."));
+      return;
+    }
+
     const child = spawn(command, args, {
       stdio: ["ignore", "ignore", "pipe"],
     });
@@ -31,7 +39,13 @@ function runProcess(command: string, args: string[]) {
       }
     });
 
-    child.on("error", reject);
+    child.on("error", (error) => {
+      reject(
+        new Error(
+          `FFmpeg could not start. ${error?.message || "Unknown process error."}`
+        )
+      );
+    });
 
     child.on("close", (code) => {
       if (code === 0) {
