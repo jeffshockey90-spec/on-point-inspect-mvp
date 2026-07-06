@@ -2288,13 +2288,26 @@ export default async function PublicSharePage({
                                       <div className="h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-slate-700 bg-[#020617]">
                                         {isVideo ? (
                                           <div className="relative h-full w-full bg-black">
-                                            <video
-                                              src={image}
-                                              muted
-                                              playsInline
-                                              preload="metadata"
-                                              className="h-full w-full object-cover opacity-80"
-                                            />
+                                            {previewImage && previewImage !== image ? (
+                                              <img
+                                                src={previewImage}
+                                                alt={`${title} video thumbnail`}
+                                                loading="lazy"
+                                                decoding="async"
+                                                fetchPriority="low"
+                                                className="h-full w-full object-cover opacity-80"
+                                              />
+                                            ) : (
+                                              <video
+                                                muted
+                                                playsInline
+                                                preload="metadata"
+                                                poster={previewImage || undefined}
+                                                className="h-full w-full object-cover opacity-80"
+                                              >
+                                                <source src={image} type={primaryMedia?.mime_type || "video/mp4"} />
+                                              </video>
+                                            )}
                                             <span className="absolute inset-x-2 bottom-2 rounded-full border border-cyan-400 bg-black/75 px-2 py-1 text-center text-[10px] font-black uppercase tracking-wide text-cyan-300">
                                               Video
                                             </span>
@@ -2360,12 +2373,15 @@ export default async function PublicSharePage({
                                         return mediaIsVideo ? (
                                           <video
                                             key={media.id || media.file_path || mediaUrl || mediaIndex}
-                                            src={mediaUrl}
+                                            poster={mediaPreviewUrl && mediaPreviewUrl !== mediaUrl ? mediaPreviewUrl : undefined}
                                             controls
                                             playsInline
                                             preload="metadata"
                                             className="max-h-[520px] w-full rounded-xl border border-slate-700 bg-black object-contain"
-                                          />
+                                          >
+                                            <source src={mediaUrl} type={media.mime_type || "video/mp4"} />
+                                            Your browser does not support video playback.
+                                          </video>
                                         ) : (
                                           <img
                                             key={media.id || media.file_path || mediaUrl || mediaIndex}
@@ -2452,12 +2468,15 @@ export default async function PublicSharePage({
                                         return mediaIsVideo ? (
                                           <video
                                             key={media.id || media.file_path || mediaUrl || mediaIndex}
-                                            src={mediaUrl}
+                                            poster={mediaPreviewUrl && mediaPreviewUrl !== mediaUrl ? mediaPreviewUrl : undefined}
                                             controls
                                             playsInline
                                             preload="metadata"
                                             className="max-h-[520px] w-full rounded-xl border border-slate-700 bg-black object-contain"
-                                          />
+                                          >
+                                            <source src={mediaUrl} type={media.mime_type || "video/mp4"} />
+                                            Your browser does not support video playback.
+                                          </video>
                                         ) : (
                                           <img
                                             key={media.id || media.file_path || mediaUrl || mediaIndex}
@@ -2554,13 +2573,26 @@ function ClientSummaryFindingCard({
           <div className="h-52 overflow-hidden border-b border-slate-800 bg-black">
             {video ? (
               <div className="relative h-full w-full">
-                <video
-                  src={mediaUrl}
-                  muted
-                  playsInline
-                  preload="metadata"
-                  className="h-full w-full object-cover opacity-80"
-                />
+                {previewUrl && previewUrl !== mediaUrl ? (
+                  <img
+                    src={previewUrl}
+                    alt={`${title} video thumbnail`}
+                    loading="lazy"
+                    decoding="async"
+                    fetchPriority="low"
+                    className="h-full w-full object-cover opacity-80 transition duration-300 group-hover:scale-105"
+                  />
+                ) : (
+                  <video
+                    muted
+                    playsInline
+                    preload="metadata"
+                    poster={previewUrl || undefined}
+                    className="h-full w-full object-cover opacity-80"
+                  >
+                    <source src={mediaUrl} type={media?.mime_type || "video/mp4"} />
+                  </video>
+                )}
                 <span className="absolute inset-x-4 bottom-4 rounded-full border border-cyan-400 bg-black/75 px-3 py-2 text-center text-xs font-black uppercase tracking-wide text-cyan-300">
                   Tap to Expand Video
                 </span>
@@ -2625,12 +2657,15 @@ function ClientSummaryFindingCard({
               return itemIsVideo ? (
                 <video
                   key={item.id || item.file_path || itemUrl || mediaIndex}
-                  src={itemUrl}
+                  poster={itemPreviewUrl && itemPreviewUrl !== itemUrl ? itemPreviewUrl : undefined}
                   controls
                   playsInline
                   preload="metadata"
                   className="max-h-[360px] w-full rounded-xl border border-slate-700 bg-black object-contain"
-                />
+                >
+                  <source src={itemUrl} type={item.mime_type || "video/mp4"} />
+                  Your browser does not support video playback.
+                </video>
               ) : (
                 <img
                   key={item.id || item.file_path || itemUrl || mediaIndex}
