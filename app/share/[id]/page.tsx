@@ -455,15 +455,12 @@ function getMediaPreviewUrl(media: any) {
 
   const fullUrl = getMediaUrl(media);
 
-  // Some share rows intentionally fall back signed_thumbnail_url to the full media URL.
-  // That is fine for photos, but an MP4/MOV URL cannot be used as an <img> thumbnail.
-  if (thumbnailUrl && !isVideoMedia(media, thumbnailUrl) && thumbnailUrl !== fullUrl) {
+  // Some rows fall back signed_thumbnail_url to the full media URL.
+  // That is fine for photos, but an MP4/MOV cannot be rendered as an <img>.
+  if (thumbnailUrl && !isVideoMedia(media, thumbnailUrl)) {
     return thumbnailUrl;
   }
 
-  // Never return a video file as an image preview.
-  // Collapsed mobile cards should show the generated JPG thumbnail when it exists,
-  // otherwise they should show the clean VIDEO badge instead of a black MP4 fallback.
   if (isVideoMedia(media, fullUrl)) {
     return "";
   }
