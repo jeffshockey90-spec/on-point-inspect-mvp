@@ -1744,33 +1744,49 @@ function FieldPageContent() {
     const isVideo = photo.type.startsWith("video/");
 
     if (isVideo) {
-      setMessage("Converting video for report...");
+      setMessage("Preparing video for report...");
 
-      const formData = new FormData();
-      formData.append("video", photo);
+      try {
+        const formData = new FormData();
+        formData.append("video", photo);
 
-      const response = await fetch("/api/video-convert", {
-        method: "POST",
-        body: formData,
-      });
+        const response = await fetch("/api/video-convert", {
+          method: "POST",
+          body: formData,
+        });
 
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => "");
-        throw new Error(errorText || "Video conversion failed");
+        if (!response.ok) {
+          const errorText = await response.text().catch(() => "");
+          throw new Error(errorText || "Video conversion failed");
+        }
+
+        const convertedBlob = await response.blob();
+
+        if (!convertedBlob || convertedBlob.size === 0) {
+          throw new Error("Video conversion returned an empty MP4.");
+        }
+
+        uploadFile = new File([convertedBlob], `video-${Date.now()}.mp4`, {
+          type: "video/mp4",
+          lastModified: Date.now(),
+        });
+
+        setMessage("Video converted. Saving to report...");
+      } catch (error) {
+        console.warn("Video conversion failed. Saving original video instead.", error);
+
+        // Never block the inspector from saving the finding.
+        // Mobile/Vercel video conversion can fail on large files or slow networks.
+        // If conversion fails, save the original video and still attach it to the report.
+        uploadFile = photo;
+        setMessage("Video conversion skipped. Saving original video to report...");
       }
-
-      const convertedBlob = await response.blob();
-
-      if (!convertedBlob || convertedBlob.size === 0) {
-        throw new Error("Video conversion returned an empty MP4.");
-      }
-
-      uploadFile = new File([convertedBlob], `video-${Date.now()}.mp4`, {
-        type: "video/mp4",
-        lastModified: Date.now(),
-      });
 
       thumbnailFile = await createVideoThumbnailForUpload(uploadFile);
+
+      if (!thumbnailFile && uploadFile !== photo) {
+        thumbnailFile = await createVideoThumbnailForUpload(photo);
+      }
     }
 
     const safeName = uploadFile.name
@@ -1786,7 +1802,7 @@ function FieldPageContent() {
       .upload(fileName, uploadFile, {
         cacheControl: "31536000",
         upsert: false,
-        contentType: isVideo ? "video/mp4" : uploadFile.type || undefined,
+        contentType: uploadFile.type || (isVideo ? "video/mp4" : undefined),
       });
 
     if (uploadError) throw uploadError;
@@ -1826,7 +1842,7 @@ function FieldPageContent() {
       publicUrl: data.publicUrl,
       filePath: fileName,
       isVideo,
-      mimeType: isVideo ? "video/mp4" : uploadFile.type || photo.type || "",
+      mimeType: isVideo ? uploadFile.type || "video/mp4" : uploadFile.type || photo.type || "",
       thumbnailUrl,
       thumbnailPath,
     };
