@@ -875,6 +875,7 @@ function isVideoMedia(photo: any) {
       photo?.storage_path ||
       photo?.photo_path ||
       photo?.image_path ||
+      photo?.video_path ||
       ""
   ).toLowerCase();
   const type = String(
@@ -1106,6 +1107,78 @@ async function createThumbnailForUpload(file: File): Promise<File> {
   return createImageVariantForUpload(file, 480, 0.7, "thumb");
 }
 
+async function createVideoThumbnailForUpload(file: File): Promise<File | null> {
+  if (!file.type.startsWith("video/")) return null;
+
+  return await new Promise((resolve) => {
+    const video = document.createElement("video");
+    const objectUrl = URL.createObjectURL(file);
+    let settled = false;
+
+    const finish = (result: File | null) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeout);
+      URL.revokeObjectURL(objectUrl);
+      resolve(result);
+    };
+
+    const timeout = window.setTimeout(() => finish(null), 3500);
+
+    video.preload = "metadata";
+    video.muted = true;
+    video.playsInline = true;
+    video.crossOrigin = "anonymous";
+    video.src = objectUrl;
+
+    video.onerror = () => finish(null);
+
+    video.onloadedmetadata = () => {
+      try {
+        const duration = Number.isFinite(video.duration) ? video.duration : 0;
+        video.currentTime = Math.min(Math.max(duration * 0.25, 0.25), 2);
+      } catch {
+        finish(null);
+      }
+    };
+
+    video.onseeked = () => {
+      try {
+        const width = video.videoWidth || 640;
+        const height = video.videoHeight || 360;
+        const maxWidth = 640;
+        const scale = Math.min(1, maxWidth / width);
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(width * scale));
+        canvas.height = Math.max(1, Math.round(height * scale));
+
+        const context = canvas.getContext("2d");
+        if (!context) {
+          finish(null);
+          return;
+        }
+
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            finish(null);
+            return;
+          }
+
+          finish(
+            new File([blob], `video-thumb-${Date.now()}.jpg`, {
+              type: "image/jpeg",
+              lastModified: Date.now(),
+            })
+          );
+        }, "image/jpeg", 0.78);
+      } catch {
+        finish(null);
+      }
+    };
+  });
+}
+
 
 
 function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, router }: any) {
@@ -1172,20 +1245,57 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
 
     if (!files.length) return;
 
-    const imageFiles = files.filter((file) => file.type.startsWith("image/"));
+    const mediaFiles = files.filter(
+      (file) => file.type.startsWith("image/") || file.type.startsWith("video/")
+    );
 
-    if (!imageFiles.length) {
-      showMessage("error", "Please choose image files only.");
+    if (!mediaFiles.length) {
+      showMessage("error", "Please choose photos or videos.");
       return;
     }
 
     setUploadingPhotos(true);
 
     try {
-      for (const file of imageFiles) {
-        const uploadFile = await createFullImageForUpload(file);
-        const thumbnailFile = await createThumbnailForUpload(file);
-        const fileExt = "jpg";
+      for (const file of mediaFiles) {
+        let uploadFile = file;
+        let thumbnailFile: File | null = null;
+        let isVideo = false;
+
+        if (file.type.startsWith("video/")) {
+          isVideo = true;
+          showMessage("success", "Preparing video for report...");
+
+          const formData = new FormData();
+          formData.append("video", file);
+
+          const response = await fetch("/api/video-convert", {
+            method: "POST",
+            body: formData,
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text().catch(() => "");
+            throw new Error(errorText || "Video conversion failed");
+          }
+
+          const convertedBlob = await response.blob();
+
+          if (!convertedBlob || convertedBlob.size === 0) {
+            throw new Error("Video conversion returned an empty MP4.");
+          }
+
+          uploadFile = new File([convertedBlob], `video-${Date.now()}.mp4`, {
+            type: "video/mp4",
+          });
+
+          thumbnailFile = await createVideoThumbnailForUpload(uploadFile);
+        } else {
+          uploadFile = await createFullImageForUpload(file);
+          thumbnailFile = await createThumbnailForUpload(file);
+        }
+
+        const fileExt = isVideo ? "mp4" : "jpg";
         const safeName = uploadFile.name
           .replace(/\.[^/.]+$/, "")
           .replace(/[^a-zA-Z0-9-_]/g, "-")
@@ -1200,7 +1310,7 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
           .upload(filePath, uploadFile, {
             cacheControl: "31536000",
             upsert: false,
-            contentType: uploadFile.type || "image/jpeg",
+            contentType: uploadFile.type || (isVideo ? "video/mp4" : "image/jpeg"),
           });
 
         if (uploadError) throw uploadError;
@@ -1211,20 +1321,22 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
 
         let thumbnailUrl = "";
 
-        const { error: thumbnailUploadError } = await supabase.storage
-          .from(PHOTO_BUCKET)
-          .upload(thumbnailPath, thumbnailFile, {
-            cacheControl: "31536000",
-            upsert: false,
-            contentType: "image/jpeg",
-          });
-
-        if (!thumbnailUploadError) {
-          const { data: thumbnailData } = supabase.storage
+        if (thumbnailFile) {
+          const { error: thumbnailUploadError } = await supabase.storage
             .from(PHOTO_BUCKET)
-            .getPublicUrl(thumbnailPath);
+            .upload(thumbnailPath, thumbnailFile, {
+              cacheControl: "31536000",
+              upsert: false,
+              contentType: "image/jpeg",
+            });
 
-          thumbnailUrl = thumbnailData.publicUrl;
+          if (!thumbnailUploadError) {
+            const { data: thumbnailData } = supabase.storage
+              .from(PHOTO_BUCKET)
+              .getPublicUrl(thumbnailPath);
+
+            thumbnailUrl = thumbnailData.publicUrl;
+          }
         }
 
         const { error: insertError } = await supabase.from("photos").insert({
@@ -1234,16 +1346,23 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
           public_url: publicData.publicUrl,
           thumbnail_path: thumbnailUrl ? thumbnailPath : null,
           thumbnail_url: thumbnailUrl || null,
+          is_video: isVideo,
+          mime_type: uploadFile.type || (isVideo ? "video/mp4" : "image/jpeg"),
         });
 
         if (insertError) throw insertError;
       }
 
       setShowUploadPanel(false);
-      showMessage("success", imageFiles.length === 1 ? "Photo added to finding." : "Photos added to finding.");
+      showMessage(
+        "success",
+        mediaFiles.length === 1
+          ? "Media added to finding."
+          : "Media files added to finding."
+      );
       router.refresh();
     } catch (error: any) {
-      showMessage("error", error?.message || "Failed to add photo to this finding.");
+      showMessage("error", error?.message || "Failed to add media to this finding.");
     } finally {
       setUploadingPhotos(false);
     }
@@ -1425,7 +1544,7 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
 
               {photos.length > 0 && (
                 <span className="rounded-full border border-cyan-600 bg-cyan-950/40 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-cyan-300">
-                  {photos.length} photo{photos.length === 1 ? "" : "s"}
+                  {photos.length} media
                 </span>
               )}
             </div>
@@ -1448,7 +1567,7 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
 
         {draggingOver && (
           <div className="mx-3 mb-3 rounded-xl border border-teal-400 bg-teal-500/10 px-4 py-3 text-sm font-black text-teal-200">
-            Drop photos here to attach them to this defect.
+            Drop photos or videos here to attach them to this defect.
           </div>
         )}
       </article>
@@ -1503,19 +1622,13 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
         </div>
         {draggingOver && (
           <div className="mt-3 rounded-xl border border-teal-400 bg-teal-500/10 px-4 py-3 text-sm font-black text-teal-200">
-            Drop photos here to attach them to this defect.
+            Drop photos or videos here to attach them to this defect.
           </div>
         )}
       </div>
       {photos.length > 0 && (
         <div className="border-b border-slate-700 bg-black p-2 sm:p-3">
-          <div
-            className={
-              visiblePhotos.length === 1
-                ? "grid gap-3"
-                : "grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
-            }
-          >
+          <div className="grid gap-3">
             {visiblePhotos.map((photo: any, index: number) => {
               const url = getPhotoUrl(photo);
     const previewUrl = getPhotoPreviewUrl(photo);
@@ -1527,20 +1640,26 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
                   className="w-full max-w-full overflow-x-hidden rounded-xl border border-slate-700 bg-slate-950"
                 >
                   {isVideoMedia(photo) ? (
-                    <video
-                      src={url}
-                      poster={getVideoPosterUrl(photo) || undefined}
-                      controls
-                      playsInline
-                      preload="metadata"
-                      className={
-                        visiblePhotos.length === 1
-                          ? "max-h-[650px] w-full bg-black object-contain"
-                          : "h-56 w-full bg-black object-contain"
-                      }
-                    >
-                      Your browser does not support video playback.
-                    </video>
+                    <div className="flex justify-center rounded-xl bg-black p-2">
+                      <video
+                        key={url}
+                        poster={getVideoPosterUrl(photo) || undefined}
+                        controls
+                        playsInline
+                        preload="metadata"
+                        className="mx-auto max-h-[420px] w-full max-w-full rounded-xl bg-black object-contain"
+                        onError={(event) => {
+                          console.error("OPI report video failed", {
+                            url,
+                            mimeType: photo?.mime_type,
+                            error: event.currentTarget.error,
+                          });
+                        }}
+                      >
+                        <source src={url} type={photo?.mime_type || "video/mp4"} />
+                        Your browser does not support video playback.
+                      </video>
+                    </div>
                   ) : (
                     <a href={url} target="_blank" rel="noreferrer" className="block">
                       <img
@@ -1563,7 +1682,7 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
                   )}
 
                   <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-800 px-3 py-2 text-xs font-bold text-slate-400">
-                    <span>Photo {index + 1}</span>
+                    <span>{isVideoMedia(photo) ? "Video" : "Photo"} {index + 1}</span>
 
                     <div className="flex flex-wrap gap-2">
                       <a
@@ -1599,7 +1718,7 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
               onClick={() => setShowAllPhotos(true)}
               className="mt-3 w-full rounded-xl border border-cyan-500/50 bg-cyan-500/10 px-4 py-3 text-sm font-black text-cyan-300 transition hover:bg-cyan-500/20"
             >
-              Load {hiddenPhotoCount} more photo{hiddenPhotoCount === 1 ? "" : "s"}
+              Load {hiddenPhotoCount} more media
             </button>
           )}
 
@@ -1633,7 +1752,7 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
 
           {photos.length > 0 && (
             <span className="rounded-full border border-cyan-600 bg-cyan-950/40 px-3 py-1 text-xs font-bold uppercase tracking-wide text-cyan-300">
-              {photos.length} photo{photos.length === 1 ? "" : "s"}
+              {photos.length} media
             </span>
           )}
         </div>
@@ -1698,7 +1817,7 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
             }}
             className="w-full rounded-xl border border-teal-500 px-3 py-3 text-xs font-black text-teal-300 transition active:scale-[0.98] hover:bg-teal-500/10 sm:w-auto sm:px-4 sm:py-2 sm:text-sm"
           >
-            📷 Add Pictures
+            📷 Add Media
           </button>
 
           <button
@@ -1739,10 +1858,10 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
             <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h4 className="text-lg font-black text-teal-300">
-                  Add Pictures To This Defect
+                  Add Media To This Defect
                 </h4>
                 <p className="mt-1 text-sm text-slate-300">
-                  These photos save to this existing finding only. They do not create a new defect and they do not affect section reference photos. You can also drag and drop photos onto this defect card.
+                  These photos or videos save to this existing finding only. They do not create a new defect and they do not affect section reference photos. You can also drag and drop photos or videos onto this defect card.
                 </p>
               </div>
 
@@ -1760,7 +1879,7 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
                 {uploadingPhotos ? "Uploading..." : "📷 Take Photo"}
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/*,video/*"
                   capture="environment"
                   multiple
                   disabled={uploadingPhotos}
@@ -1773,10 +1892,10 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
               </label>
 
               <label className="cursor-pointer rounded-xl border border-cyan-500 bg-cyan-500/10 p-4 text-center font-black text-cyan-300 hover:bg-cyan-500 hover:text-slate-950">
-                {uploadingPhotos ? "Uploading..." : "🖼 Choose Photo"}
+                {uploadingPhotos ? "Uploading..." : "🖼 Choose Media"}
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/*,video/*"
                   multiple
                   disabled={uploadingPhotos}
                   onChange={async (event) => {
@@ -1833,13 +1952,23 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
                         {url ? (
                           isVideoMedia(photo) ? (
                             <video
-                              src={url}
+                              key={url}
                               poster={getVideoPosterUrl(photo) || undefined}
                               controls
                               playsInline
                               preload="metadata"
                               className="h-36 w-full bg-black object-contain"
-                            />
+                              onError={(event) => {
+                                console.error("OPI photo picker video failed", {
+                                  url,
+                                  mimeType: photo?.mime_type,
+                                  error: event.currentTarget.error,
+                                });
+                              }}
+                            >
+                              <source src={url} type={photo?.mime_type || "video/mp4"} />
+                              Your browser does not support video playback.
+                            </video>
                           ) : (
                             <img
                               src={previewUrl || url}

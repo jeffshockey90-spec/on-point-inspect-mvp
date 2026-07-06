@@ -46,6 +46,10 @@ type PhotoType = "finding" | "reference_photo";
 type UploadedPhoto = {
   publicUrl: string;
   filePath: string;
+  isVideo?: boolean;
+  mimeType?: string;
+  thumbnailUrl?: string | null;
+  thumbnailPath?: string | null;
 };
 
 const AI_IMAGE_MAX_SIZE = 1400;
@@ -98,6 +102,96 @@ async function compressImageForAiUpload(file: File) {
   });
 }
 
+
+async function createVideoThumbnailForUpload(file: File): Promise<File | null> {
+  if (!file.type.startsWith("video/")) return null;
+
+  return await new Promise((resolve) => {
+    const video = document.createElement("video");
+    const objectUrl = URL.createObjectURL(file);
+
+    let settled = false;
+
+    const finish = (result: File | null) => {
+      if (settled) return;
+      settled = true;
+      URL.revokeObjectURL(objectUrl);
+      resolve(result);
+    };
+
+    const timeout = window.setTimeout(() => {
+      finish(null);
+    }, 3500);
+
+    const finishWith = (result: File | null) => {
+      window.clearTimeout(timeout);
+      finish(result);
+    };
+
+    video.preload = "metadata";
+    video.muted = true;
+    video.playsInline = true;
+    video.src = objectUrl;
+
+    video.onerror = () => finishWith(null);
+
+    video.onloadedmetadata = () => {
+      try {
+        const duration = Number.isFinite(video.duration) ? video.duration : 0;
+        const targetTime = Math.min(Math.max(duration * 0.25, 0.25), 2);
+
+        if (!Number.isFinite(targetTime) || targetTime <= 0) {
+          video.currentTime = 0;
+          return;
+        }
+
+        video.currentTime = targetTime;
+      } catch {
+        finishWith(null);
+      }
+    };
+
+    video.onseeked = () => {
+      try {
+        const width = video.videoWidth || 640;
+        const height = video.videoHeight || 360;
+        const maxWidth = 640;
+        const scale = Math.min(1, maxWidth / width);
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(width * scale));
+        canvas.height = Math.max(1, Math.round(height * scale));
+
+        const context = canvas.getContext("2d");
+        if (!context) {
+          finishWith(null);
+          return;
+        }
+
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              finishWith(null);
+              return;
+            }
+
+            finishWith(
+              new File([blob], `video-thumb-${Date.now()}.jpg`, {
+                type: "image/jpeg",
+                lastModified: Date.now(),
+              })
+            );
+          },
+          "image/jpeg",
+          0.78
+        );
+      } catch {
+        finishWith(null);
+      }
+    };
+  });
+}
 
 
 type EquipmentResult = {
@@ -1246,6 +1340,10 @@ function FieldPageContent() {
           finding_id: findingData.id,
           public_url: photo.publicUrl,
           file_path: photo.filePath,
+          is_video: Boolean(photo.isVideo),
+          mime_type: photo.mimeType || (photo.isVideo ? "video/mp4" : null),
+          thumbnail_url: photo.thumbnailUrl || null,
+          thumbnail_path: photo.thumbnailPath || null,
         }));
 
         const { error: photoError } = await supabase.from("photos").insert(photoRows);
@@ -1641,26 +1739,96 @@ function FieldPageContent() {
   }
 
   async function uploadPhotoFile(photo: File, folder: string): Promise<UploadedPhoto> {
-    const safeName = photo.name.replace(/[^a-zA-Z0-9.\-_]/g, "-").slice(0, 80);
+    let uploadFile = photo;
+    let thumbnailFile: File | null = null;
+    const isVideo = photo.type.startsWith("video/");
+
+    if (isVideo) {
+      setMessage("Converting video for report...");
+
+      const formData = new FormData();
+      formData.append("video", photo);
+
+      const response = await fetch("/api/video-convert", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => "");
+        throw new Error(errorText || "Video conversion failed");
+      }
+
+      const convertedBlob = await response.blob();
+
+      if (!convertedBlob || convertedBlob.size === 0) {
+        throw new Error("Video conversion returned an empty MP4.");
+      }
+
+      uploadFile = new File([convertedBlob], `video-${Date.now()}.mp4`, {
+        type: "video/mp4",
+        lastModified: Date.now(),
+      });
+
+      thumbnailFile = await createVideoThumbnailForUpload(uploadFile);
+    }
+
+    const safeName = uploadFile.name
+      .replace(/[^a-zA-Z0-9.\-_]/g, "-")
+      .slice(0, 80);
+
     const fileName = `${selectedReport}/${folder}/${Date.now()}-${Math.random()
       .toString(36)
       .slice(2)}-${safeName}`;
 
     const { error: uploadError } = await supabase.storage
       .from("inspection-photos")
-      .upload(fileName, photo, {
+      .upload(fileName, uploadFile, {
         cacheControl: "31536000",
         upsert: false,
-        contentType: photo.type || undefined,
+        contentType: isVideo ? "video/mp4" : uploadFile.type || undefined,
       });
 
     if (uploadError) throw uploadError;
 
-    const { data } = supabase.storage.from("inspection-photos").getPublicUrl(fileName);
+    const { data } = supabase.storage
+      .from("inspection-photos")
+      .getPublicUrl(fileName);
+
+    let thumbnailUrl: string | null = null;
+    let thumbnailPath: string | null = null;
+
+    if (thumbnailFile) {
+      thumbnailPath = `${selectedReport}/${folder}/thumbnails/${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2)}-video-thumb.jpg`;
+
+      const { error: thumbnailUploadError } = await supabase.storage
+        .from("inspection-photos")
+        .upload(thumbnailPath, thumbnailFile, {
+          cacheControl: "31536000",
+          upsert: false,
+          contentType: "image/jpeg",
+        });
+
+      if (!thumbnailUploadError) {
+        const { data: thumbnailData } = supabase.storage
+          .from("inspection-photos")
+          .getPublicUrl(thumbnailPath);
+
+        thumbnailUrl = thumbnailData.publicUrl;
+      } else {
+        thumbnailPath = null;
+      }
+    }
 
     return {
       publicUrl: data.publicUrl,
       filePath: fileName,
+      isVideo,
+      mimeType: isVideo ? "video/mp4" : uploadFile.type || photo.type || "",
+      thumbnailUrl,
+      thumbnailPath,
     };
   }
 
@@ -1731,6 +1899,10 @@ function FieldPageContent() {
         finding_id: finding.id,
         public_url: photo.publicUrl,
         file_path: photo.filePath,
+        is_video: Boolean(photo.isVideo),
+        mime_type: photo.mimeType || (photo.isVideo ? "video/mp4" : null),
+        thumbnail_url: photo.thumbnailUrl || null,
+        thumbnail_path: photo.thumbnailPath || null,
       }));
 
       const { error: photoError } = await supabase.from("photos").insert(photoRows);
@@ -2253,6 +2425,8 @@ function MediaPreview({ file, onRemove }: { file: File; onRemove: () => void }) 
           <video
             src={url}
             controls
+            playsInline
+            preload="metadata"
             className="h-40 w-full bg-black object-contain"
           />
         ) : (
