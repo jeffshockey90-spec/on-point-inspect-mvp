@@ -453,18 +453,22 @@ function getMediaPreviewUrl(media: any) {
       ""
   ).trim();
 
-  if (thumbnailUrl) {
+  const fullUrl = getMediaUrl(media);
+
+  // Some share rows intentionally fall back signed_thumbnail_url to the full media URL.
+  // That is fine for photos, but an MP4/MOV URL cannot be used as an <img> thumbnail.
+  if (thumbnailUrl && !isVideoMedia(media, thumbnailUrl) && thumbnailUrl !== fullUrl) {
     return thumbnailUrl;
   }
 
   // Never return a video file as an image preview.
-  // Collapsed mobile cards should either show the generated thumbnail
-  // or the clean VIDEO badge, not a broken/black MP4 image fallback.
-  if (isVideoMedia(media)) {
+  // Collapsed mobile cards should show the generated JPG thumbnail when it exists,
+  // otherwise they should show the clean VIDEO badge instead of a black MP4 fallback.
+  if (isVideoMedia(media, fullUrl)) {
     return "";
   }
 
-  return getMediaUrl(media);
+  return fullUrl;
 }
 
 function getFindingPrimaryMedia(finding: any) {
@@ -2583,7 +2587,7 @@ function ClientSummaryFindingCard({
           <div className="h-52 overflow-hidden border-b border-slate-800 bg-black">
             {video ? (
               <div className="relative h-full w-full">
-                {previewUrl && previewUrl !== mediaUrl ? (
+                {previewUrl ? (
                   <img
                     src={previewUrl}
                     alt={`${title} video thumbnail`}
@@ -2593,15 +2597,11 @@ function ClientSummaryFindingCard({
                     className="h-full w-full object-cover opacity-80 transition duration-300 group-hover:scale-105"
                   />
                 ) : (
-                  <video
-                    muted
-                    playsInline
-                    preload="metadata"
-                    poster={previewUrl || undefined}
-                    className="h-full w-full object-cover opacity-80"
-                  >
-                    <source src={mediaUrl} type={media?.mime_type || "video/mp4"} />
-                  </video>
+                  <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-black">
+                    <div className="rounded-full border border-cyan-400 bg-black/75 px-4 py-2 text-xs font-black uppercase tracking-wide text-cyan-300">
+                      ▶ Video
+                    </div>
+                  </div>
                 )}
                 <span className="absolute inset-x-4 bottom-4 rounded-full border border-cyan-400 bg-black/75 px-3 py-2 text-center text-xs font-black uppercase tracking-wide text-cyan-300">
                   Tap to Expand Video
