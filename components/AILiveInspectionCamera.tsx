@@ -507,22 +507,35 @@ export default function AILiveInspectionCamera({
         throw new Error(data.error || "Failed to add limitation with photo.");
       }
 
+      if (!data?.success) {
+        throw new Error(data?.error || "Limitation save did not complete.");
+      }
+
+      if (!data?.photo) {
+        throw new Error(
+          data?.photoError ||
+            "Limitation text saved, but the photo did not attach. Check limitation_photos table/schema.",
+        );
+      }
+
       window.dispatchEvent(
         new CustomEvent("opi:section-limitations-changed", {
           detail: {
             inspectionId: selectedReport,
             section: targetSection,
+            limitationId: data.limitation?.id || data.limitationId || null,
+            photoId: data.photo?.id || data.photoId || null,
           },
         }),
       );
 
       setResult(null);
       setWaitingForDecision(false);
+      setFrameDataUrl("");
+      latestFrameRef.current = "";
 
       setMessage(
-        data.photo
-          ? `Limitation added to ${targetSection} with photo. AI Watching resumed.`
-          : `Limitation added to ${targetSection}. No photo was attached.`,
+        `Limitation added to ${targetSection} with photo. AI Watching resumed.`,
       );
     } catch (error: any) {
       setMessage(error?.message || "Failed to add limitation to section.");
