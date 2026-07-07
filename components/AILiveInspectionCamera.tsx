@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { supabase } from "../lib/supabaseClient";
 
 const MAX_DISMISSED_AGE_MS = 8 * 60 * 1000;
 const RESURFACE_CONFIDENCE_BOOST = 0.12;
@@ -27,12 +28,23 @@ type AILiveReminder = {
   confidence?: number;
 };
 
+type AILiveLimitation = {
+  id?: string;
+  title: string;
+  section?: string;
+  limitation: string;
+  reason?: string;
+  recommendation?: string;
+  confidence?: number;
+};
+
 type AILiveResult = {
   area?: string;
   system?: string;
   confidence?: number;
   suggestions?: AILiveSuggestion[];
   reminders?: AILiveReminder[];
+  limitations?: AILiveLimitation[];
   dataPlatePrompt?: {
     needed?: boolean;
     reason?: string;
@@ -80,6 +92,16 @@ function confidenceLabel(value: any) {
   return `${Math.round(confidence * 100)}%`;
 }
 
+function createLimitationText(limitation: AILiveLimitation) {
+  const parts = [
+    limitation.limitation,
+    limitation.reason ? `Reason: ${limitation.reason}` : "",
+    limitation.recommendation ? `Recommendation: ${limitation.recommendation}` : "",
+  ].filter(Boolean);
+
+  return parts.join("\n\n");
+}
+
 function dataUrlToFile(dataUrl: string, namePrefix = "ai-live-frame") {
   const [header, base64] = dataUrl.split(",");
   const mimeMatch = header.match(/data:(.*?);base64/);
@@ -117,6 +139,7 @@ export default function AILiveInspectionCamera({
   const [frameDataUrl, setFrameDataUrl] = useState("");
   const [result, setResult] = useState<AILiveResult | null>(null);
   const [message, setMessage] = useState("");
+  const [savingLimitationIndex, setSavingLimitationIndex] = useState<number | null>(null);
 
   const frameFile = useMemo(() => {
     if (!frameDataUrl) return null;
@@ -273,8 +296,9 @@ export default function AILiveInspectionCamera({
       setResult(data);
       const count = Array.isArray(data.suggestions) ? data.suggestions.length : 0;
       const reminderCount = Array.isArray(data.reminders) ? data.reminders.length : 0;
+      const limitationCount = Array.isArray(data.limitations) ? data.limitations.length : 0;
       setMessage(
-        `AI reviewed this area. ${count} suggestion${count === 1 ? "" : "s"} and ${reminderCount} reminder${reminderCount === 1 ? "" : "s"} found. Inspector approval is required.`,
+        `AI reviewed this area. ${count} suggestion${count === 1 ? "" : "s"}, ${reminderCount} reminder${reminderCount === 1 ? "" : "s"}, and ${limitationCount} limitation${limitationCount === 1 ? "" : "s"} found. Inspector approval is required.`,
       );
     } catch (error: any) {
       setMessage(error?.message || "AI Live Camera analysis failed.");
@@ -310,6 +334,79 @@ export default function AILiveInspectionCamera({
     setMessage(
       "Suggestion ignored for now. AI may show it again later if confidence improves or stronger evidence appears.",
     );
+  }
+
+  async function saveLimitationToSection(
+    limitation: AILiveLimitation,
+    index: number,
+  ) {
+    if (!selectedReport) {
+      setMessage("Select a report before adding a limitation.");
+      return;
+    }
+
+    if (savingLimitationIndex !== null) return;
+
+    const targetSection = limitation.section || currentSection;
+    const cleanLimitation = String(limitation.limitation || "").trim();
+    const cleanReason = String(limitation.reason || "").trim();
+    const cleanRecommendation = String(limitation.recommendation || "").trim();
+
+    if (!cleanLimitation) {
+      setMessage("AI limitation did not include enough detail to save.");
+      return;
+    }
+
+    setSavingLimitationIndex(index);
+
+    try {
+      const limitationComment = [
+        cleanLimitation,
+        cleanReason ? `Reason: ${cleanReason}` : "",
+        cleanRecommendation ? `Recommendation: ${cleanRecommendation}` : "",
+      ]
+        .filter(Boolean)
+        .join("\n\n");
+
+      const { error } = await supabase.from("section_limitations").insert({
+        inspection_id: selectedReport,
+        section: targetSection,
+        label: limitation.title || "AI Limitation Note",
+        ai_notes: cleanReason || cleanLimitation,
+        limitation_comment: limitationComment,
+        custom_text: null,
+      });
+
+      if (error) throw error;
+
+      window.dispatchEvent(
+        new CustomEvent("opi:section-limitations-changed", {
+          detail: {
+            inspectionId: selectedReport,
+            section: targetSection,
+          },
+        }),
+      );
+
+      setResult((current) => {
+        if (!current) return current;
+
+        return {
+          ...current,
+          limitations: (current.limitations || []).filter(
+            (_item, itemIndex) => itemIndex !== index,
+          ),
+        };
+      });
+
+      setMessage(
+        `Limitation added to ${targetSection}. It will appear in that section's Limitations box.`,
+      );
+    } catch (error: any) {
+      setMessage(error?.message || "Failed to add limitation to section.");
+    } finally {
+      setSavingLimitationIndex(null);
+    }
   }
 
   function addPhotoOnly() {
@@ -527,6 +624,76 @@ export default function AILiveInspectionCamera({
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+
+              {Array.isArray(result.limitations) && result.limitations.length > 0 && (
+                <div className="rounded-xl border border-orange-500/40 bg-orange-500/10 p-4">
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-orange-300">
+                    Limitations Found
+                  </p>
+                  <p className="mt-1 text-sm text-orange-50/80">
+                    AI noticed possible inspection limitations. Inspector must confirm before adding them to the report.
+                  </p>
+
+                  <div className="mt-3 space-y-3">
+                    {result.limitations.map((limitation, index) => (
+                      <div
+                        key={`${limitation.title}-${index}`}
+                        className="rounded-lg border border-orange-500/30 bg-black/20 p-3"
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <div>
+                            <p className="font-black text-orange-100">
+                              {limitation.title || "Possible Limitation"}
+                            </p>
+                            <p className="mt-1 text-xs font-bold text-orange-200">
+                              {limitation.section || result.area || currentSection} • {confidenceLabel(limitation.confidence)}
+                            </p>
+                          </div>
+                          <span className="rounded-full border border-orange-400/40 px-2 py-0.5 text-[11px] font-black text-orange-200">
+                            limitation
+                          </span>
+                        </div>
+
+                        <p className="mt-2 whitespace-pre-line text-sm leading-5 text-orange-50/85">
+                          {createLimitationText(limitation)}
+                        </p>
+
+                        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                          <button
+                            type="button"
+                            onClick={() => saveLimitationToSection(limitation, index)}
+                            disabled={savingLimitationIndex !== null}
+                            className="rounded-xl bg-orange-400 px-4 py-2 text-sm font-black text-black disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            {savingLimitationIndex === index
+                              ? "Adding..."
+                              : "Add To Section Limitations"}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setResult((current) => {
+                                if (!current) return current;
+                                return {
+                                  ...current,
+                                  limitations: (current.limitations || []).filter(
+                                    (_item, itemIndex) => itemIndex !== index,
+                                  ),
+                                };
+                              });
+                              setMessage("Limitation ignored for now. AI may mention it again if it sees stronger evidence.");
+                            }}
+                            className="rounded-xl border border-orange-500/60 px-4 py-2 text-sm font-black text-orange-100"
+                          >
+                            Ignore For Now
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 

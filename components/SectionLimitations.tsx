@@ -182,45 +182,74 @@ export default function SectionLimitations({
     [section]
   );
 
-  useEffect(() => {
-    async function loadLimitations() {
-      if (!inspectionId || !section) return;
+  async function loadLimitations() {
+    if (!inspectionId || !section) return;
 
-      const { data, error } = await supabase
-        .from("section_limitations")
-        .select("*")
-        .eq("inspection_id", inspectionId)
-        .eq("section", section)
-        .order("created_at", { ascending: true });
+    const { data, error } = await supabase
+      .from("section_limitations")
+      .select("*")
+      .eq("inspection_id", inspectionId)
+      .eq("section", section)
+      .order("created_at", { ascending: true });
 
-      if (error) {
-        console.error("Failed to load section limitations:", error);
-        return;
-      }
-
-      const rows = data || [];
-      setSaved(rows);
-
-      const aiRow = rows.find(
-        (item: LimitationRow) => item.label === "AI Limitation Note"
-      );
-
-      if (aiRow?.ai_notes) setAiNotes(aiRow.ai_notes);
-      if (aiRow?.limitation_comment || aiRow?.custom_text) {
-        setGeneratedComment(aiRow.limitation_comment || aiRow.custom_text || "");
-      }
-
-      const limitationIds = rows.map((row: LimitationRow) => row.id);
-
-      if (limitationIds.length === 0) {
-        setPhotosByLimitationId({});
-        return;
-      }
-
-      await loadLimitationPhotos(limitationIds);
+    if (error) {
+      console.error("Failed to load section limitations:", error);
+      return;
     }
 
+    const rows = data || [];
+    setSaved(rows);
+
+    const aiRow = rows.find(
+      (item: LimitationRow) => item.label === "AI Limitation Note"
+    );
+
+    if (aiRow?.ai_notes) setAiNotes(aiRow.ai_notes);
+    if (aiRow?.limitation_comment || aiRow?.custom_text) {
+      setGeneratedComment(aiRow.limitation_comment || aiRow.custom_text || "");
+    }
+
+    const limitationIds = rows.map((row: LimitationRow) => row.id);
+
+    if (limitationIds.length === 0) {
+      setPhotosByLimitationId({});
+      return;
+    }
+
+    await loadLimitationPhotos(limitationIds);
+  }
+
+  useEffect(() => {
     loadLimitations();
+  }, [inspectionId, section]);
+
+  useEffect(() => {
+    function handleExternalLimitationChange(event: Event) {
+      const detail = (event as CustomEvent)?.detail || {};
+      const eventInspectionId = String(detail.inspectionId || "");
+      const eventSection = String(detail.section || "");
+
+      if (
+        eventInspectionId === String(inspectionId) &&
+        eventSection === String(section)
+      ) {
+        loadLimitations();
+        setOpen(true);
+        showMessage("success", "AI limitation added to this section.");
+      }
+    }
+
+    window.addEventListener(
+      "opi:section-limitations-changed",
+      handleExternalLimitationChange as EventListener
+    );
+
+    return () => {
+      window.removeEventListener(
+        "opi:section-limitations-changed",
+        handleExternalLimitationChange as EventListener
+      );
+    };
   }, [inspectionId, section]);
 
   useEffect(() => {
