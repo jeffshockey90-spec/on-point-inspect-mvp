@@ -13,6 +13,9 @@ import AISecondInspector, {
 } from "../../components/AISecondInspector";
 import InspectionCopilotPanel from "../../components/InspectionCopilotPanel";
 import OfflineReportViewer from "../../components/OfflineReportViewer";
+import AILiveInspectionCamera, {
+  type AILiveSuggestion,
+} from "../../components/AILiveInspectionCamera";
 import {
   addOfflineQueueItem,
   filesToOfflinePhotos,
@@ -1363,6 +1366,41 @@ function FieldPageContent() {
 
     setMessage("AI suggestion accepted. Review and edit before saving.");
     ignoreAiSuggestion(suggestion.id);
+  }
+
+  function acceptLiveCameraSuggestion(suggestion: AILiveSuggestion, frame?: File | null) {
+    setPhotoType("finding");
+    setTitle(suggestion.title || "");
+    setSection(SECTIONS.includes(suggestion.section) ? suggestion.section : section);
+    setSeverity(SEVERITIES.includes(suggestion.severity) ? suggestion.severity : severity);
+    setObservation(suggestion.observation || "");
+    setImplication(suggestion.implication || "");
+    setRecommendation(suggestion.recommendation || "");
+
+    if (frame) {
+      addFiles([frame]);
+    }
+
+    setMessage(
+      "AI Live Camera suggestion loaded into the Field Tool. Review it, edit if needed, then tap Save Finding yourself.",
+    );
+  }
+
+  function addLiveCameraFrameOnly(frame: File) {
+    addFiles([frame]);
+    setMessage("Live camera photo added. Add notes or analyze before saving.");
+  }
+
+  function startLiveCameraDataPlateScan(frame?: File | null) {
+    setPhotoType("finding");
+
+    if (frame) {
+      addFiles([frame]);
+    }
+
+    setMessage(
+      "Data plate reminder accepted. Use Analyze Equipment after the frame is added, or take a closer data plate photo.",
+    );
   }
 
   async function analyzePhotoWithAI() {
@@ -2905,6 +2943,16 @@ function FieldPageContent() {
                 <UploadProgressPanel items={uploadProgress} />
               )}
             </div>
+
+            <AILiveInspectionCamera
+              online={online}
+              selectedReport={selectedReport}
+              currentSection={section}
+              currentSeverity={severity}
+              onUseSuggestion={acceptLiveCameraSuggestion}
+              onAddPhotoOnly={addLiveCameraFrameOnly}
+              onScanDataPlate={startLiveCameraDataPlateScan}
+            />
 
             <div className="rounded-2xl border border-purple-500/30 bg-purple-500/10 p-4">
               <div className="mb-3">
