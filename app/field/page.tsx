@@ -84,6 +84,53 @@ function isLikelyNetworkError(error: any) {
   );
 }
 
+
+const OFFLINE_LOCAL_STORAGE_SOFT_LIMIT_BYTES = 4 * 1024 * 1024;
+
+function getOfflineStorableFiles(files: File[]) {
+  const storable: File[] = [];
+  const skipped: File[] = [];
+  let totalBytes = 0;
+
+  for (const file of files) {
+    const isImage = file.type.startsWith("image/");
+    const nextTotal = totalBytes + Number(file.size || 0);
+
+    if (!isImage || nextTotal > OFFLINE_LOCAL_STORAGE_SOFT_LIMIT_BYTES) {
+      skipped.push(file);
+      continue;
+    }
+
+    storable.push(file);
+    totalBytes = nextTotal;
+  }
+
+  return { storable, skipped, totalBytes };
+}
+
+async function prepareOfflinePhotosForQueue(files: File[]) {
+  const { storable, skipped } = getOfflineStorableFiles(files);
+
+  const offlinePhotos = storable.length > 0 ? await filesToOfflinePhotos(storable) : [];
+
+  return {
+    offlinePhotos,
+    skipped,
+    skippedCount: skipped.length,
+    skippedVideos: skipped.filter((file) => file.type.startsWith("video/")).length,
+  };
+}
+
+function getOfflineMediaSkipMessage(skippedCount: number, skippedVideos: number) {
+  if (skippedCount <= 0) return "";
+
+  if (skippedVideos > 0) {
+    return ` ${skippedVideos} video${skippedVideos === 1 ? "" : "s"} could not be stored in the browser offline queue. The original video remains in your iPhone Photos; attach it after service returns.`;
+  }
+
+  return ` ${skippedCount} media file${skippedCount === 1 ? "" : "s"} were too large for the browser offline queue. Attach them after service returns.`;
+}
+
 const AI_IMAGE_MAX_SIZE = 1400;
 const AI_IMAGE_QUALITY = 0.72;
 
@@ -2312,7 +2359,17 @@ function FieldPageContent() {
 
     try {
       if (!isOnline()) {
-        const offlinePhotos = await filesToOfflinePhotos(photos);
+        setMessage("Saving offline locally...");
+
+        const { offlinePhotos, skippedCount, skippedVideos } =
+          await prepareOfflinePhotosForQueue(photos);
+
+        if (photoType === "reference_photo" && offlinePhotos.length === 0) {
+          setMessage(
+            "Reference photos need at least one image small enough for offline storage. Large videos/files stay on your phone and can be attached when service returns.",
+          );
+          return;
+        }
 
         addOfflineQueueItem({
           type: photoType,
@@ -2328,15 +2385,40 @@ function FieldPageContent() {
             implication,
             recommendation,
             photos: offlinePhotos,
+            run_ai_after_sync: photoType === "finding",
+            ai_after_sync: photoType === "finding",
+            offline_media_skipped_count: skippedCount,
+            offline_video_skipped_count: skippedVideos,
           },
+        });
+
+        photos.forEach((photo) => {
+          const localId = createLocalMediaId(photo);
+          const canStoreOffline = offlinePhotos.some(
+            (offlinePhoto: any) =>
+              offlinePhoto.name === photo.name &&
+              Number(offlinePhoto.size || 0) === Number(photo.size || 0),
+          );
+
+          setMediaProgress(localId, {
+            name: photo.name || "Inspection media",
+            type: photo.type.startsWith("video/") ? "video" : "photo",
+            stage: canStoreOffline
+              ? "Saved locally. Will sync when signal returns"
+              : "Too large for browser offline queue. Original remains on device",
+            progress: 100,
+            status: canStoreOffline ? "queued" : "error",
+          });
         });
 
         resetForm();
         const summary = getOfflineQueueSummary();
+        const skipMessage = getOfflineMediaSkipMessage(skippedCount, skippedVideos);
+
         setMessage(
           photoType === "reference_photo"
-            ? `Saved reference photo offline. Queue: ${summary.count} item(s). It will sync when service returns.`
-            : `Saved finding offline. Queue: ${summary.count} item(s). It will sync when service returns.`,
+            ? `Saved reference photo offline. Queue: ${summary.count} item(s). It will sync when service returns.${skipMessage}`
+            : `Saved finding offline. Queue: ${summary.count} item(s). AI will write the finding after sync when service returns.${skipMessage}`,
         );
         return;
       }
@@ -2359,7 +2441,8 @@ function FieldPageContent() {
 
       if (shouldQueueAfterFailure) {
         try {
-          const offlinePhotos = await filesToOfflinePhotos(photos);
+          const { offlinePhotos, skippedCount, skippedVideos } =
+            await prepareOfflinePhotosForQueue(photos);
 
           addOfflineQueueItem({
             type: photoType,
@@ -2375,23 +2458,36 @@ function FieldPageContent() {
               implication,
               recommendation,
               photos: offlinePhotos,
+              run_ai_after_sync: photoType === "finding",
+              ai_after_sync: photoType === "finding",
+              offline_media_skipped_count: skippedCount,
+              offline_video_skipped_count: skippedVideos,
             },
           });
 
           photos.forEach((photo) => {
+            const canStoreOffline = offlinePhotos.some(
+              (offlinePhoto: any) =>
+                offlinePhoto.name === photo.name &&
+                Number(offlinePhoto.size || 0) === Number(photo.size || 0),
+            );
+
             setMediaProgress(createLocalMediaId(photo), {
               name: photo.name || "Inspection media",
               type: photo.type.startsWith("video/") ? "video" : "photo",
-              stage: "Saved locally. Will retry when signal returns",
+              stage: canStoreOffline
+                ? "Saved locally. Will retry when signal returns"
+                : "Too large for browser offline queue. Original remains on device",
               progress: 100,
-              status: "queued",
+              status: canStoreOffline ? "queued" : "error",
             });
           });
 
           resetForm();
           const summary = getOfflineQueueSummary();
+          const skipMessage = getOfflineMediaSkipMessage(skippedCount, skippedVideos);
           setMessage(
-            `Signal/upload issue detected. Saved locally instead of losing work. Queue: ${summary.count} item(s). It will sync when service returns.`,
+            `Signal/upload issue detected. Saved locally instead of losing work. Queue: ${summary.count} item(s). AI will write the finding after sync when service returns.${skipMessage}`,
           );
           clearCompletedProgressSoon();
           return;
