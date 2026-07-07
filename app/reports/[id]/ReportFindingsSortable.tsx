@@ -200,7 +200,7 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
             finding.defect_title ||
             finding.name ||
             "Untitled Finding",
-          current_section: finding.section || "Inspection Details",
+          current_section: displayFinding.section || "Inspection Details",
         });
       });
     });
@@ -1345,13 +1345,14 @@ function FindingCardBase({
   const [messageType, setMessageType] = useState<"success" | "error" | "">("");
   const [aiInspectorNote, setAiInspectorNote] = useState("");
   const [aiInspectorBusy, setAiInspectorBusy] = useState(false);
-  const [localFinding, setLocalFinding] = useState(finding);
+  const [localFinding, setLocalFinding] = useState<any>(finding);
+  const displayFinding = localFinding || finding;
 
   useEffect(() => {
     setLocalFinding(finding);
   }, [finding]);
 
-  const photos = getFindingPhotos(localFinding);
+  const photos = getFindingPhotos(displayFinding);
   const hiddenPhotoCount = Math.max(
     0,
     photos.length - AUTO_PREVIEW_PHOTO_LIMIT,
@@ -1362,13 +1363,13 @@ function FindingCardBase({
 
   const findingAnchor = getFindingAnchor(finding);
   const isSafetyOrMajor =
-    String(localFinding.severity || "")
+    String(displayFinding.severity || "")
       .toLowerCase()
       .includes("safety") ||
-    String(localFinding.severity || "")
+    String(displayFinding.severity || "")
       .toLowerCase()
       .includes("major") ||
-    String(localFinding.severity || "")
+    String(displayFinding.severity || "")
       .toLowerCase()
       .includes("hazard");
 
@@ -1381,7 +1382,7 @@ function FindingCardBase({
         : [];
       const shouldOpen =
         targetAnchor === findingAnchor ||
-        findingIds.includes(String(localFinding.id));
+        findingIds.includes(String(finding.id));
 
       if (!shouldOpen) return;
 
@@ -1406,7 +1407,7 @@ function FindingCardBase({
         openIfTargeted as EventListener,
       );
     };
-  }, [localFinding.id, findingAnchor]);
+  }, [finding.id, findingAnchor]);
 
   function showMessage(type: "success" | "error", text: string) {
     setMessageType(type);
@@ -1438,13 +1439,13 @@ function FindingCardBase({
     }
 
     setAiInspectorBusy(true);
-    showMessage("success", "AI Inspector is rewriting this localFinding...");
+    showMessage("success", "AI Inspector is rewriting this finding...");
 
     const currentTitle =
-      localFinding.title ||
-      localFinding.finding_title ||
-      localFinding.defect_title ||
-      localFinding.name ||
+      displayFinding.title ||
+      displayFinding.finding_title ||
+      displayFinding.defect_title ||
+      displayFinding.name ||
       "Untitled Finding";
 
     const rewritePrompt = `
@@ -1457,19 +1458,19 @@ Current title:
 ${currentTitle}
 
 Current section:
-${localFinding.section || "Inspection Details"}
+${displayFinding.section || "Inspection Details"}
 
 Current severity:
-${localFinding.severity || "Recommended Repair"}
+${displayFinding.severity || "Recommended Repair"}
 
 Current observation:
-${localFinding.observation || ""}
+${displayFinding.observation || ""}
 
 Current implication:
-${localFinding.implication || ""}
+${displayFinding.implication || ""}
 
 Current recommendation:
-${localFinding.recommendation || ""}
+${displayFinding.recommendation || ""}
 
 Instructions:
 - Keep the same defect and inspector intent.
@@ -1484,12 +1485,12 @@ Instructions:
       inspector_note: cleanNote,
       prompt: rewritePrompt,
       title: currentTitle,
-      section: localFinding.section || "Inspection Details",
-      severity: localFinding.severity || "Recommended Repair",
-      observation: localFinding.observation || "",
-      implication: localFinding.implication || "",
-      recommendation: localFinding.recommendation || "",
-      finding_id: localFinding.id,
+      section: displayFinding.section || "Inspection Details",
+      severity: displayFinding.severity || "Recommended Repair",
+      observation: displayFinding.observation || "",
+      implication: displayFinding.implication || "",
+      recommendation: displayFinding.recommendation || "",
+      finding_id: finding.id,
       inspection_id: inspectionId,
     };
 
@@ -1531,7 +1532,7 @@ Instructions:
       }
 
       if (!data) {
-        showMessage("error", lastError || "AI Inspector could not rewrite this localFinding.");
+        showMessage("error", lastError || "AI Inspector could not rewrite this finding.");
         return;
       }
 
@@ -1540,23 +1541,23 @@ Instructions:
         currentTitle;
       const nextSection =
         pickAiInspectorValue(data, ["section", "suggested_section"]) ||
-        localFinding.section ||
+        displayFinding.section ||
         "Inspection Details";
       const nextSeverity =
         pickAiInspectorValue(data, ["severity", "suggested_severity", "priority", "category"]) ||
-        localFinding.severity ||
+        displayFinding.severity ||
         "Recommended Repair";
       const nextObservation =
         pickAiInspectorValue(data, ["observation", "description", "comment", "summary"]) ||
-        localFinding.observation ||
+        displayFinding.observation ||
         "";
       const nextImplication =
         pickAiInspectorValue(data, ["implication", "impact", "why_it_matters"]) ||
-        localFinding.implication ||
+        displayFinding.implication ||
         "";
       const nextRecommendation =
         pickAiInspectorValue(data, ["recommendation", "recommended_action", "action"]) ||
-        localFinding.recommendation ||
+        displayFinding.recommendation ||
         "";
 
       const { error } = await supabase
@@ -1569,13 +1570,23 @@ Instructions:
           implication: nextImplication,
           recommendation: nextRecommendation,
         })
-        .eq("id", localFinding.id)
+        .eq("id", finding.id)
         .eq("inspection_id", inspectionId);
 
       if (error) throw error;
 
+      setLocalFinding((current: any) => ({
+        ...(current || finding),
+        title: nextTitle,
+        section: nextSection,
+        severity: nextSeverity,
+        observation: nextObservation,
+        implication: nextImplication,
+        recommendation: nextRecommendation,
+      }));
+
       setAiInspectorNote("");
-      showMessage("success", "AI Inspector rewrite saved. Review the updated localFinding.");
+      showMessage("success", "AI Inspector rewrite saved. Review the updated finding.");
     } catch (error: any) {
       showMessage("error", error?.message || "AI Inspector rewrite failed.");
     } finally {
@@ -1646,8 +1657,8 @@ Instructions:
           .slice(0, 50);
 
         const baseName = `${Date.now()}-${crypto.randomUUID()}-${safeName}`;
-        const filePath = `${inspectionId}/finding-photos/${localFinding.id}/${baseName}.${fileExt}`;
-        const thumbnailPath = `${inspectionId}/finding-photos/${localFinding.id}/thumbnails/${baseName}-thumb.jpg`;
+        const filePath = `${inspectionId}/finding-photos/${finding.id}/${baseName}.${fileExt}`;
+        const thumbnailPath = `${inspectionId}/finding-photos/${finding.id}/thumbnails/${baseName}-thumb.jpg`;
 
         const { error: uploadError } = await supabase.storage
           .from(PHOTO_BUCKET)
@@ -1686,7 +1697,7 @@ Instructions:
 
         const { error: insertError } = await supabase.from("photos").insert({
           inspection_id: inspectionId,
-          finding_id: localFinding.id,
+          finding_id: finding.id,
           file_path: filePath,
           public_url: publicData.publicUrl,
           thumbnail_path: thumbnailUrl ? thumbnailPath : null,
@@ -1702,14 +1713,14 @@ Instructions:
       showMessage(
         "success",
         mediaFiles.length === 1
-          ? "Media added to localFinding."
-          : "Media files added to localFinding.",
+          ? "Media added to finding."
+          : "Media files added to finding.",
       );
       router.refresh();
     } catch (error: any) {
       showMessage(
         "error",
-        error?.message || "Failed to add media to this localFinding.",
+        error?.message || "Failed to add media to this finding.",
       );
     } finally {
       setUploadingPhotos(false);
@@ -1737,14 +1748,14 @@ Instructions:
 
     if (
       String(photo.finding_id || photo.current_finding_id || "") ===
-      String(localFinding.id)
+      String(finding.id)
     ) {
-      showMessage("error", "This photo is already attached to this localFinding.");
+      showMessage("error", "This photo is already attached to this finding.");
       return;
     }
 
     const confirmed = window.confirm(
-      "Move this photo to this finding? It will no longer appear under the previous localFinding.",
+      "Move this photo to this finding? It will no longer appear under the previous finding.",
     );
 
     if (!confirmed) return;
@@ -1754,14 +1765,14 @@ Instructions:
     try {
       const { error } = await supabase
         .from("photos")
-        .update({ finding_id: localFinding.id })
+        .update({ finding_id: finding.id })
         .eq("id", photo.id)
         .eq("inspection_id", inspectionId);
 
       if (error) throw error;
 
       setShowPhotoPicker(false);
-      showMessage("success", "Photo moved to this localFinding.");
+      showMessage("success", "Photo moved to this finding.");
       router.refresh();
     } catch (error: any) {
       showMessage("error", error?.message || "Failed to move photo.");
@@ -1774,13 +1785,13 @@ Instructions:
     if (!photo?.id || photo.isLegacyImage) {
       showMessage(
         "error",
-        "This older image is stored directly on the localFinding. Edit the finding image field or delete the finding to remove it.",
+        "This older image is stored directly on the finding. Edit the finding image field or delete the finding to remove it.",
       );
       return;
     }
 
     const confirmed = window.confirm(
-      "Delete this photo from the report? This removes the photo record from this localFinding. The original storage file is left alone for safety.",
+      "Delete this photo from the report? This removes the photo record from this finding. The original storage file is left alone for safety.",
     );
 
     if (!confirmed) return;
@@ -1796,7 +1807,7 @@ Instructions:
 
       if (error) throw error;
 
-      showMessage("success", "Photo deleted from localFinding.");
+      showMessage("success", "Photo deleted from finding.");
       router.refresh();
     } catch (error: any) {
       showMessage("error", error?.message || "Failed to delete photo.");
@@ -1806,10 +1817,10 @@ Instructions:
   }
 
   const findingTitle =
-    localFinding.title ||
-    localFinding.finding_title ||
-    localFinding.defect_title ||
-    localFinding.name ||
+    displayFinding.title ||
+    displayFinding.finding_title ||
+    displayFinding.defect_title ||
+    displayFinding.name ||
     "Untitled Finding";
 
   const primaryPhoto = photos[0] || null;
@@ -1823,7 +1834,7 @@ Instructions:
       <article
         id={findingAnchor}
         data-command-target={findingAnchor}
-        data-finding-id={String(localFinding.id || "")}
+        data-finding-id={String(finding.id || "")}
         onDragOver={(event) => {
           event.preventDefault();
           event.stopPropagation();
@@ -1901,10 +1912,10 @@ Instructions:
             <div className="mb-1.5 flex flex-wrap items-center gap-1.5 sm:mb-2 sm:gap-2">
               <span
                 className={`rounded-full border px-3 py-1 text-[10px] font-extrabold uppercase tracking-wide ${getSeverityStyle(
-                  localFinding.severity,
+                  displayFinding.severity,
                 )}`}
               >
-                {localFinding.severity || "Recommended Repair"}
+                {displayFinding.severity || "Recommended Repair"}
               </span>
 
               {photos.length > 0 && (
@@ -1918,9 +1929,9 @@ Instructions:
               {findingTitle}
             </h3>
 
-            {localFinding.observation && (
+            {displayFinding.observation && (
               <p className="mt-1 line-clamp-1 text-xs font-semibold leading-5 text-slate-300 sm:mt-2 sm:line-clamp-2 sm:text-sm sm:leading-6">
-                {localFinding.observation}
+                {displayFinding.observation}
               </p>
             )}
 
@@ -1943,7 +1954,7 @@ Instructions:
     <article
       id={findingAnchor}
       data-command-target={findingAnchor}
-      data-finding-id={String(localFinding.id || "")}
+      data-finding-id={String(finding.id || "")}
       onDragOver={(event) => {
         event.preventDefault();
         event.stopPropagation();
@@ -1968,7 +1979,7 @@ Instructions:
             <button
               type="button"
               onClick={() => {
-                markFindingReviewedForCommandCenter(localFinding.id);
+                markFindingReviewedForCommandCenter(finding.id);
                 showMessage(
                   "success",
                   "Marked reviewed in Command Center. If the finding is still a safety concern, update the severity or recommendation before publishing.",
@@ -2116,15 +2127,15 @@ Instructions:
         <div className="mb-4 flex flex-wrap items-center gap-3">
           <span
             className={`rounded-full border px-3 py-1 text-xs font-extrabold uppercase tracking-wide ${getSeverityStyle(
-              localFinding.severity,
+              displayFinding.severity,
             )}`}
           >
-            {localFinding.severity || "Recommended Repair"}
+            {displayFinding.severity || "Recommended Repair"}
           </span>
 
-          {localFinding.section && (
+          {displayFinding.section && (
             <span className="rounded-full border border-slate-600 bg-slate-900/70 px-3 py-1 text-xs font-bold uppercase tracking-wide text-slate-300">
-              {localFinding.section}
+              {displayFinding.section}
             </span>
           )}
 
@@ -2151,16 +2162,16 @@ Instructions:
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({
                     title:
-                      localFinding.title ||
-                      localFinding.finding_title ||
-                      localFinding.defect_title ||
-                      localFinding.name ||
+                      displayFinding.title ||
+                      displayFinding.finding_title ||
+                      displayFinding.defect_title ||
+                      displayFinding.name ||
                       "Untitled Finding",
-                    section: localFinding.section || "Inspection Details",
-                    severity: localFinding.severity || "Recommended Repair",
-                    observation: localFinding.observation || "",
-                    implication: localFinding.implication || "",
-                    recommendation: localFinding.recommendation || "",
+                    section: displayFinding.section || "Inspection Details",
+                    severity: displayFinding.severity || "Recommended Repair",
+                    observation: displayFinding.observation || "",
+                    implication: displayFinding.implication || "",
+                    recommendation: displayFinding.recommendation || "",
                   }),
                 });
 
@@ -2331,7 +2342,7 @@ Instructions:
                       const alreadyAttached =
                         String(
                           photo.finding_id || photo.current_finding_id || "",
-                        ) === String(localFinding.id);
+                        ) === String(finding.id);
 
                       return (
                         <div
@@ -2440,7 +2451,7 @@ Instructions:
           <div className="mb-5 rounded-xl border border-purple-700 bg-purple-950/20 p-4">
             <PhotoMarkupEditor
               imageUrl={getPhotoUrl(markupPhoto)}
-              severity={localFinding.severity}
+              severity={displayFinding.severity}
               onCancel={() => {
                 setShowMarkupEditor(false);
                 setMarkupPhoto(null);
@@ -2450,7 +2461,7 @@ Instructions:
                   .from("photo_annotations")
                   .insert({
                     inspection_id: Number(inspectionId),
-                    finding_id: localFinding.id,
+                    finding_id: finding.id,
                     photo_id: markupPhoto.id || null,
                     image_url: getPhotoUrl(markupPhoto),
                     annotation_json: items,
@@ -2512,20 +2523,20 @@ Instructions:
           <EditableFinding finding={finding} />
         </div>
 
-        {localFinding.observation && (
-          <ReportBlock title="Observation" text={localFinding.observation} />
+        {displayFinding.observation && (
+          <ReportBlock title="Observation" text={displayFinding.observation} />
         )}
 
-        {localFinding.implication && (
-          <ReportBlock title="Implication" text={localFinding.implication} />
+        {displayFinding.implication && (
+          <ReportBlock title="Implication" text={displayFinding.implication} />
         )}
 
-        {localFinding.recommendation && (
-          <ReportBlock title="Recommendation" text={localFinding.recommendation} />
+        {displayFinding.recommendation && (
+          <ReportBlock title="Recommendation" text={displayFinding.recommendation} />
         )}
 
-        {localFinding.comment && (
-          <ReportBlock title="Additional Notes" text={localFinding.comment} />
+        {finding.comment && (
+          <ReportBlock title="Additional Notes" text={finding.comment} />
         )}
       </div>
     </article>
