@@ -444,13 +444,22 @@ export async function POST(req: Request) {
           firstImageUrl = upload.publicUrl;
         }
 
+        const isVideo = String(upload.mimeType || "").startsWith("video/");
+
         const { error: photoError } = await supabase.from("photos").insert({
           inspection_id: inspectionId,
           finding_id: finding.id,
           public_url: upload.publicUrl,
+          image_url: upload.publicUrl,
+          photo_url: upload.publicUrl,
           file_path: upload.filePath,
-          is_video: String(upload.mimeType || "").startsWith("video/"),
+          storage_path: upload.filePath,
+          is_video: isVideo,
           mime_type: upload.mimeType,
+          media_type: isVideo ? "video" : "image",
+          content_type: upload.mimeType,
+          thumbnail_url: null,
+          thumbnail_path: null,
         });
 
         if (photoError) throw photoError;
