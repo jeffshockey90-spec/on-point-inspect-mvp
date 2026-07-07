@@ -333,6 +333,20 @@ export default function AILiveInspectionCamera({
   async function autoAnalyzeFrame() {
     if (!selectedReport || !online || autoScanRunningRef.current) return;
 
+    const hasPendingReview =
+      result &&
+      ((result.suggestions || []).length > 0 ||
+        (result.limitations || []).length > 0 ||
+        (result.reminders || []).length > 0 ||
+        result.dataPlatePrompt?.needed);
+
+    if (hasPendingReview) {
+      setMessage(
+        "AI suggestion waiting for review. Choose Add Finding, Add Photo Only, Remind Later, or Ignore to continue scanning.",
+      );
+      return;
+    }
+
     const dataUrl = captureFrame({ silent: true });
     if (!dataUrl) return;
 
@@ -410,6 +424,7 @@ export default function AILiveInspectionCamera({
 
   function useSuggestion(suggestion: AILiveSuggestion) {
     onUseSuggestion(suggestion, frameFile);
+    setResult(null);
     setMessage("Suggestion loaded into Field Tool. Review and tap Save Finding if you agree.");
   }
 
@@ -516,10 +531,14 @@ export default function AILiveInspectionCamera({
       if (!captured) return;
       const nextFile = dataUrlToFile(captured);
       onAddPhotoOnly(nextFile);
+      setResult(null);
+      setMessage("Photo saved. AI Watching can continue scanning.");
       return;
     }
 
     onAddPhotoOnly(frameFile);
+    setResult(null);
+    setMessage("Photo saved. AI Watching can continue scanning.");
   }
 
   return (
