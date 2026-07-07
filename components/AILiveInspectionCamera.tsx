@@ -610,7 +610,7 @@ export default function AILiveInspectionCamera({
           <div className="grid gap-2 sm:grid-cols-4">
             <button
               type="button"
-              onClick={captureFrame}
+              onClick={() => captureFrame()}
               disabled={starting}
               className="rounded-xl border border-slate-600 px-4 py-3 text-sm font-black text-slate-100 transition active:scale-[0.98] hover:bg-slate-800 disabled:opacity-50"
             >
