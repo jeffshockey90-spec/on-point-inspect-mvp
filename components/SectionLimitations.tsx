@@ -739,7 +739,7 @@ export default function SectionLimitations({
   const selectedCount =
     selectedStandard.length + customSaved.length + (aiSaved ? 1 : 0);
 
-  const selectedLimitations = [...selectedStandard, ...customSaved];
+  const selectedLimitations = [...selectedStandard, ...customSaved, ...(aiSaved ? [aiSaved] : [])];
 
   return (
     <div className="rounded-2xl border border-slate-700 bg-[#071224]">

@@ -141,7 +141,6 @@ export default function AILiveInspectionCamera({
   const [cameraError, setCameraError] = useState("");
   const [frameDataUrl, setFrameDataUrl] = useState("");
   const [result, setResult] = useState<AILiveResult | null>(null);
-  const [waitingForDecision, setWaitingForDecision] = useState(false);
   const [message, setMessage] = useState("");
   const [savingLimitationIndex, setSavingLimitationIndex] = useState<number | null>(null);
 
@@ -178,7 +177,6 @@ export default function AILiveInspectionCamera({
   useEffect(() => {
     if (!open) {
       setAutoWatch(false);
-      setWaitingForDecision(false);
       stopCamera();
     }
 
@@ -297,7 +295,6 @@ export default function AILiveInspectionCamera({
     setAnalyzing(true);
     setMessage("");
     setResult(null);
-    setWaitingForDecision(false);
 
     try {
       const res = await fetch("/api/ai/live-inspection-camera", {
@@ -320,12 +317,6 @@ export default function AILiveInspectionCamera({
       }
 
       setResult(data);
-      const hasManualResult =
-        (Array.isArray(data.suggestions) && data.suggestions.length > 0) ||
-        (Array.isArray(data.limitations) && data.limitations.length > 0) ||
-        (Array.isArray(data.reminders) && data.reminders.length > 0) ||
-        Boolean(data?.dataPlatePrompt?.needed);
-      setWaitingForDecision(hasManualResult);
       const count = Array.isArray(data.suggestions) ? data.suggestions.length : 0;
       const reminderCount = Array.isArray(data.reminders) ? data.reminders.length : 0;
       const limitationCount = Array.isArray(data.limitations) ? data.limitations.length : 0;
@@ -340,21 +331,7 @@ export default function AILiveInspectionCamera({
   }
 
   async function autoAnalyzeFrame() {
-    if (!selectedReport || !online || autoScanRunningRef.current || waitingForDecision) return;
-
-    const hasPendingReview =
-      result &&
-      ((result.suggestions || []).length > 0 ||
-        (result.limitations || []).length > 0 ||
-        (result.reminders || []).length > 0 ||
-        result.dataPlatePrompt?.needed);
-
-    if (hasPendingReview) {
-      setMessage(
-        "AI suggestion waiting for review. Choose Add Finding, Add Photo Only, Remind Later, or Ignore to continue scanning.",
-      );
-      return;
-    }
+    if (!selectedReport || !online || autoScanRunningRef.current) return;
 
     const dataUrl = captureFrame({ silent: true });
     if (!dataUrl) return;
@@ -421,8 +398,6 @@ export default function AILiveInspectionCamera({
         reminders: highPriorityReminders.length > 0 ? highPriorityReminders : reminders,
       });
 
-      setWaitingForDecision(true);
-
       setMessage(
         `AI Second Inspector noticed something in ${data.area || currentSection}. Review before saving anything.`,
       );
@@ -435,9 +410,7 @@ export default function AILiveInspectionCamera({
 
   function useSuggestion(suggestion: AILiveSuggestion) {
     onUseSuggestion(suggestion, frameFile);
-    setResult(null);
-    setWaitingForDecision(false);
-    setMessage("Finding sent to Field Tool. AI Watching resumed.");
+    setMessage("Suggestion loaded into Field Tool. Review and tap Save Finding if you agree.");
   }
 
   function ignoreSuggestion(suggestion: AILiveSuggestion) {
@@ -459,10 +432,9 @@ export default function AILiveInspectionCamera({
       };
     });
 
-    setResult(null);
-    setWaitingForDecision(false);
-
-    setMessage("Suggestion dismissed. AI Watching resumed.");
+    setMessage(
+      "Suggestion ignored for now. AI may show it again later if confidence improves or stronger evidence appears.",
+    );
   }
 
   async function saveLimitationToSection(
@@ -497,69 +469,16 @@ export default function AILiveInspectionCamera({
         .filter(Boolean)
         .join("\n\n");
 
-      const { data: savedLimitation, error } = await supabase
-        .from("section_limitations")
-        .insert({
-          inspection_id: selectedReport,
-          section: targetSection,
-          label: limitation.title || "AI Limitation Note",
-          ai_notes: cleanReason || cleanLimitation,
-          limitation_comment: limitationComment,
-          custom_text: null,
-        })
-        .select("*")
-        .single();
+      const { error } = await supabase.from("section_limitations").insert({
+        inspection_id: selectedReport,
+        section: targetSection,
+        label: limitation.title || "AI Limitation Note",
+        ai_notes: cleanReason || cleanLimitation,
+        limitation_comment: limitationComment,
+        custom_text: null,
+      });
 
       if (error) throw error;
-
-      let imageFile = frameFile;
-
-      // Force capture the current camera view at the exact moment
-      // the inspector confirms the limitation. This prevents the
-      // limitation from saving without a photo when React state has
-      // not finished updating frameFile yet.
-      if (!imageFile) {
-        const freshCapture = captureFrame({ silent: true });
-
-        if (freshCapture) {
-          imageFile = dataUrlToFile(freshCapture, "ai-limitation");
-        }
-      }
-
-      if (imageFile && savedLimitation?.id) {
-        const filePath = `${selectedReport}/limitations/${
-          savedLimitation.id
-        }/${Date.now()}-ai-live.jpg`;
-
-        const { error: uploadError } = await supabase.storage
-          .from("inspection-photos")
-          .upload(filePath, imageFile, {
-            contentType: imageFile.type || "image/jpeg",
-            upsert: false,
-          });
-
-        if (uploadError) {
-          console.error("AI limitation photo upload failed:", uploadError);
-        } else {
-          const { data: publicData } = supabase.storage
-            .from("inspection-photos")
-            .getPublicUrl(filePath);
-
-          const { error: photoError } = await supabase
-            .from("limitation_photos")
-            .insert({
-              limitation_id: savedLimitation.id,
-              inspection_id: selectedReport,
-              section: targetSection,
-              file_path: filePath,
-              public_url: publicData.publicUrl,
-            });
-
-          if (photoError) {
-            console.error("AI limitation photo record failed:", photoError);
-          }
-        }
-      }
 
       window.dispatchEvent(
         new CustomEvent("opi:section-limitations-changed", {
@@ -570,13 +489,19 @@ export default function AILiveInspectionCamera({
         }),
       );
 
-      setResult(null);
-      setWaitingForDecision(false);
+      setResult((current) => {
+        if (!current) return current;
+
+        return {
+          ...current,
+          limitations: (current.limitations || []).filter(
+            (_item, itemIndex) => itemIndex !== index,
+          ),
+        };
+      });
 
       setMessage(
-        imageFile
-          ? `Limitation added to ${targetSection} with photo. AI Watching resumed.`
-          : `Limitation added to ${targetSection}. AI Watching resumed.`,
+        `Limitation added to ${targetSection}. It will appear in that section's Limitations box.`,
       );
     } catch (error: any) {
       setMessage(error?.message || "Failed to add limitation to section.");
@@ -591,16 +516,10 @@ export default function AILiveInspectionCamera({
       if (!captured) return;
       const nextFile = dataUrlToFile(captured);
       onAddPhotoOnly(nextFile);
-      setResult(null);
-      setWaitingForDecision(false);
-      setMessage("Photo saved. AI Watching can continue scanning.");
       return;
     }
 
     onAddPhotoOnly(frameFile);
-    setResult(null);
-    setWaitingForDecision(false);
-    setMessage("Photo saved. AI Watching can continue scanning.");
   }
 
   return (
@@ -718,7 +637,7 @@ export default function AILiveInspectionCamera({
 
             <button
               type="button"
-              onClick={() => { onScanDataPlate(frameFile); setResult(null); setWaitingForDecision(false); setMessage("Data plate sent to scanner. AI Watching resumed."); }}
+              onClick={() => onScanDataPlate(frameFile)}
               disabled={!frameDataUrl}
               className="rounded-xl border border-yellow-500 px-4 py-3 text-sm font-black text-yellow-200 transition active:scale-[0.98] hover:bg-yellow-400 hover:text-black disabled:opacity-50"
             >
@@ -756,7 +675,7 @@ export default function AILiveInspectionCamera({
                   </p>
                   <button
                     type="button"
-                    onClick={() => { onScanDataPlate(frameFile); setResult(null); setWaitingForDecision(false); setMessage("Data plate sent to scanner. AI Watching resumed."); }}
+                    onClick={() => onScanDataPlate(frameFile)}
                     className="mt-3 rounded-xl bg-yellow-400 px-4 py-2 text-sm font-black text-black"
                   >
                     Scan Data Plate / Add Frame
@@ -890,9 +809,16 @@ export default function AILiveInspectionCamera({
                           <button
                             type="button"
                             onClick={() => {
-                              setResult(null);
-                              setWaitingForDecision(false);
-                              setMessage("Limitation dismissed. AI Watching resumed.");
+                              setResult((current) => {
+                                if (!current) return current;
+                                return {
+                                  ...current,
+                                  limitations: (current.limitations || []).filter(
+                                    (_item, itemIndex) => itemIndex !== index,
+                                  ),
+                                };
+                              });
+                              setMessage("Limitation ignored for now. AI may mention it again if it sees stronger evidence.");
                             }}
                             className="rounded-xl border border-orange-500/60 px-4 py-2 text-sm font-black text-orange-100"
                           >
@@ -932,7 +858,7 @@ export default function AILiveInspectionCamera({
                         {reminder.action === "scan_data_plate" && (
                           <button
                             type="button"
-                            onClick={() => { onScanDataPlate(frameFile); setResult(null); setWaitingForDecision(false); setMessage("Data plate sent to scanner. AI Watching resumed."); }}
+                            onClick={() => onScanDataPlate(frameFile)}
                             className="mt-2 rounded-lg bg-emerald-400 px-3 py-1.5 text-xs font-black text-black"
                           >
                             Add Frame / Scan Data Plate
