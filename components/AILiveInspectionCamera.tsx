@@ -512,7 +512,19 @@ export default function AILiveInspectionCamera({
 
       if (error) throw error;
 
-      const imageFile = frameFile;
+      let imageFile = frameFile;
+
+      // Force capture the current camera view at the exact moment
+      // the inspector confirms the limitation. This prevents the
+      // limitation from saving without a photo when React state has
+      // not finished updating frameFile yet.
+      if (!imageFile) {
+        const freshCapture = captureFrame({ silent: true });
+
+        if (freshCapture) {
+          imageFile = dataUrlToFile(freshCapture, "ai-limitation");
+        }
+      }
 
       if (imageFile && savedLimitation?.id) {
         const filePath = `${selectedReport}/limitations/${
