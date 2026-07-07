@@ -316,14 +316,17 @@ export default function SectionLimitations({
   }
 
   const selectedStandard = saved.filter(
-    (item) => item.label !== "AI Limitation Note" && !item.custom_text
+    (item) =>
+      !item.custom_text &&
+      !item.ai_notes &&
+      !item.limitation_comment
   );
 
-  const customSaved = saved.filter(
-    (item) => item.label !== "AI Limitation Note" && item.custom_text
-  );
+  const customSaved = saved.filter((item) => item.custom_text);
 
-  const aiSaved = saved.find((item) => item.label === "AI Limitation Note");
+  const aiSaved = saved.filter(
+    (item) => item.ai_notes || item.limitation_comment
+  );
 
   function isSelected(label: string) {
     return saved.some(
@@ -495,7 +498,7 @@ export default function SectionLimitations({
         return next;
       });
 
-      if (aiSaved?.id === id) {
+      if (aiSaved.some((item) => item.id === id)) {
         setAiNotes("");
         setGeneratedComment("");
       }
@@ -743,9 +746,13 @@ export default function SectionLimitations({
   }
 
   const selectedCount =
-    selectedStandard.length + customSaved.length + (aiSaved ? 1 : 0);
+    selectedStandard.length + customSaved.length + aiSaved.length;
 
-  const selectedLimitations = [...selectedStandard, ...customSaved, ...(aiSaved ? [aiSaved] : [])];
+  const selectedLimitations = [
+    ...selectedStandard,
+    ...customSaved,
+    ...aiSaved,
+  ];
 
   return (
     <div className="rounded-2xl border border-slate-700 bg-[#071224]">
