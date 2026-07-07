@@ -8,7 +8,9 @@ import { supabase } from "../../lib/supabaseClient";
 import CommentLibrary from "../../components/CommentLibrary";
 import OfflineSyncStatus from "../../components/OfflineSyncStatus";
 import EquipmentCard from "../../components/EquipmentCard";
-import AISecondInspector, { type AISuggestion } from "../../components/AISecondInspector";
+import AISecondInspector, {
+  type AISuggestion,
+} from "../../components/AISecondInspector";
 import InspectionCopilotPanel from "../../components/InspectionCopilotPanel";
 import {
   addOfflineQueueItem,
@@ -52,6 +54,36 @@ type UploadedPhoto = {
   thumbnailPath?: string | null;
 };
 
+type UploadProgressItem = {
+  id: string;
+  name: string;
+  type: "photo" | "video" | "thumbnail" | "offline";
+  stage: string;
+  progress: number;
+  status: "pending" | "processing" | "uploading" | "queued" | "done" | "error";
+};
+
+function createLocalMediaId(file: File) {
+  return `${file.name}-${file.size}-${file.lastModified}`;
+}
+
+function isLikelyNetworkError(error: any) {
+  const text = String(
+    error?.message || error?.name || error || "",
+  ).toLowerCase();
+
+  return (
+    text.includes("network") ||
+    text.includes("fetch") ||
+    text.includes("failed to fetch") ||
+    text.includes("load failed") ||
+    text.includes("offline") ||
+    text.includes("timeout") ||
+    text.includes("storage") ||
+    text.includes("upload")
+  );
+}
+
 const AI_IMAGE_MAX_SIZE = 1400;
 const AI_IMAGE_QUALITY = 0.72;
 
@@ -67,7 +99,9 @@ function loadImageForAiCompression(file: File) {
 
     image.onerror = () => {
       URL.revokeObjectURL(objectUrl);
-      reject(new Error("AI could not read that photo. Try choosing a JPG photo."));
+      reject(
+        new Error("AI could not read that photo. Try choosing a JPG photo."),
+      );
     };
 
     image.src = objectUrl;
@@ -96,12 +130,15 @@ async function compressImageForAiUpload(file: File) {
 
   if (!blob) throw new Error("AI could not compress that photo.");
 
-  return new File([blob], `ai-photo-${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`, {
-    type: "image/jpeg",
-    lastModified: Date.now(),
-  });
+  return new File(
+    [blob],
+    `ai-photo-${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`,
+    {
+      type: "image/jpeg",
+      lastModified: Date.now(),
+    },
+  );
 }
-
 
 async function createVideoThumbnailForUpload(file: File): Promise<File | null> {
   if (!file.type.startsWith("video/")) return null;
@@ -180,11 +217,11 @@ async function createVideoThumbnailForUpload(file: File): Promise<File | null> {
               new File([blob], `video-thumb-${Date.now()}.jpg`, {
                 type: "image/jpeg",
                 lastModified: Date.now(),
-              })
+              }),
             );
           },
           "image/jpeg",
-          0.78
+          0.78,
         );
       } catch {
         finishWith(null);
@@ -192,7 +229,6 @@ async function createVideoThumbnailForUpload(file: File): Promise<File | null> {
     };
   });
 }
-
 
 type EquipmentResult = {
   equipmentType?: string;
@@ -446,11 +482,17 @@ function getEquipmentStatusLabel(result: EquipmentResult) {
   if (explicit) {
     const lowerExplicit = explicit.toLowerCase();
 
-    if (lowerExplicit.includes("older equipment") || lowerExplicit.includes("monitor")) {
+    if (
+      lowerExplicit.includes("older equipment") ||
+      lowerExplicit.includes("monitor")
+    ) {
       return "⚠ Monitor Due To Age";
     }
 
-    if (lowerExplicit.includes("no specific") || lowerExplicit.includes("operating normally")) {
+    if (
+      lowerExplicit.includes("no specific") ||
+      lowerExplicit.includes("operating normally")
+    ) {
       return "✓ No Specific Deficiency Noted";
     }
 
@@ -468,9 +510,13 @@ function getAiInspectorNote(result: EquipmentResult, optionalAiNote = "") {
   const model = meaningfulEquipmentValue(result.model);
   const manufactureYear = meaningfulEquipmentValue(result.manufactureYear);
   const refrigerant = meaningfulEquipmentValue(result.refrigerant);
-  const capacity = meaningfulEquipmentValue(result.capacity || result.estimatedBTU);
+  const capacity = meaningfulEquipmentValue(
+    result.capacity || result.estimatedBTU,
+  );
   const fuelType = meaningfulEquipmentValue(result.fuelType);
-  const condition = meaningfulEquipmentValue(cleanServiceLifeCondition(result.condition));
+  const condition = meaningfulEquipmentValue(
+    cleanServiceLifeCondition(result.condition),
+  );
 
   const sentences: string[] = [];
 
@@ -532,13 +578,15 @@ function getAiInspectorNote(result: EquipmentResult, optionalAiNote = "") {
       lowerCondition.includes("budget")
     ) {
       sentences.push(
-        "Older equipment. The unit was operating at the time of inspection. Monitor performance and budget for future replacement as part of normal ownership planning."
+        "Older equipment. The unit was operating at the time of inspection. Monitor performance and budget for future replacement as part of normal ownership planning.",
       );
     } else {
       sentences.push(condition.endsWith(".") ? condition : `${condition}.`);
     }
   } else {
-    sentences.push("No significant deficiencies were observed at the time of inspection.");
+    sentences.push(
+      "No significant deficiencies were observed at the time of inspection.",
+    );
   }
 
   return sentences
@@ -623,7 +671,9 @@ function getCalmFindingObservation(result: EquipmentResult) {
     }
   }
 
-  return observation || "Equipment condition was documented during the inspection.";
+  return (
+    observation || "Equipment condition was documented during the inspection."
+  );
 }
 
 function getCalmFindingImplication(result: EquipmentResult) {
@@ -640,7 +690,10 @@ function getCalmFindingImplication(result: EquipmentResult) {
     return "The equipment is older and may require increased maintenance over time. While functional at the time of inspection, budgeting for eventual replacement is prudent.";
   }
 
-  return implication || "Deferred maintenance or component wear may affect reliable operation over time.";
+  return (
+    implication ||
+    "Deferred maintenance or component wear may affect reliable operation over time."
+  );
 }
 
 function getCalmFindingRecommendation(result: EquipmentResult) {
@@ -655,7 +708,10 @@ function getCalmFindingRecommendation(result: EquipmentResult) {
     severity.includes("safety") ||
     severity.includes("major")
   ) {
-    return recommendation || "Further evaluation, repair, or replacement is recommended by a qualified contractor.";
+    return (
+      recommendation ||
+      "Further evaluation, repair, or replacement is recommended by a qualified contractor."
+    );
   }
 
   if (
@@ -668,7 +724,10 @@ function getCalmFindingRecommendation(result: EquipmentResult) {
     return "Continue routine maintenance and monitor performance. Budgeting for future replacement should be anticipated as the equipment continues to age.";
   }
 
-  return recommendation || "Routine maintenance is recommended in accordance with manufacturer guidelines.";
+  return (
+    recommendation ||
+    "Routine maintenance is recommended in accordance with manufacturer guidelines."
+  );
 }
 
 export default function FieldPage() {
@@ -699,15 +758,18 @@ function isNativeCapacitorApp() {
 
   return Boolean(
     capacitor?.isNativePlatform?.() ||
-      platform === "ios" ||
-      platform === "android" ||
-      platform === "iphone" ||
-      platform === "ipad"
+    platform === "ios" ||
+    platform === "android" ||
+    platform === "iphone" ||
+    platform === "ipad",
   );
 }
 
 function safeSectionFolder(section: string) {
-  return section.replace(/[^a-zA-Z0-9-_]/g, "-").replace(/-+/g, "-").slice(0, 50);
+  return section
+    .replace(/[^a-zA-Z0-9-_]/g, "-")
+    .replace(/-+/g, "-")
+    .slice(0, 50);
 }
 
 function FieldPageContent() {
@@ -732,10 +794,16 @@ function FieldPageContent() {
   const [dictating, setDictating] = useState(false);
   const [analyzingPhoto, setAnalyzingPhoto] = useState(false);
   const [analyzingEquipment, setAnalyzingEquipment] = useState(false);
-  const [equipmentResult, setEquipmentResult] = useState<EquipmentResult | null>(null);
+  const [equipmentResult, setEquipmentResult] =
+    useState<EquipmentResult | null>(null);
   const [savingEquipment, setSavingEquipment] = useState(false);
-  const [equipmentSaveLabel, setEquipmentSaveLabel] = useState("Save To Equipment Inventory");
+  const [equipmentSaveLabel, setEquipmentSaveLabel] = useState(
+    "Save To Equipment Inventory",
+  );
   const [saving, setSaving] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgressItem[]>(
+    [],
+  );
   const [takingNativePhoto, setTakingNativePhoto] = useState(false);
   const [online, setOnline] = useState(true);
   const [message, setMessage] = useState("");
@@ -756,10 +824,53 @@ function FieldPageContent() {
   }, []);
   const offlineSummary = useMemo(
     () => getOfflineQueueSummary(),
-    [message, photos.length, online, queueTick]
+    [message, photos.length, online, queueTick],
   );
 
+  function setMediaProgress(
+    id: string,
+    patch: Partial<UploadProgressItem> &
+      Pick<UploadProgressItem, "name" | "type">,
+  ) {
+    setUploadProgress((current) => {
+      const existing = current.find((item) => item.id === id);
 
+      if (!existing) {
+        return [
+          ...current,
+          {
+            id,
+            name: patch.name,
+            type: patch.type,
+            stage: patch.stage || "Waiting",
+            progress: patch.progress ?? 0,
+            status: patch.status || "pending",
+          },
+        ];
+      }
+
+      return current.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              ...patch,
+              name: patch.name || item.name,
+              type: patch.type || item.type,
+            }
+          : item,
+      );
+    });
+  }
+
+  function clearCompletedProgressSoon() {
+    window.setTimeout(() => {
+      setUploadProgress((current) =>
+        current.filter(
+          (item) => item.status !== "done" && item.status !== "queued",
+        ),
+      );
+    }, 2500);
+  }
 
   useEffect(() => {
     function handleTouchStart(event: TouchEvent) {
@@ -784,13 +895,12 @@ function FieldPageContent() {
 
       const startedAtLeftEdge = startX <= 32;
       const strongRightSwipe =
-        deltaX > 85 &&
-        Math.abs(deltaY) < 60 &&
-        deltaX > Math.abs(deltaY) * 1.5;
+        deltaX > 85 && Math.abs(deltaY) < 60 && deltaX > Math.abs(deltaY) * 1.5;
 
       if (!startedAtLeftEdge || !strongRightSwipe) return;
 
-      const target = returnToFromUrl || (selectedReport ? `/reports/${selectedReport}` : "");
+      const target =
+        returnToFromUrl || (selectedReport ? `/reports/${selectedReport}` : "");
       if (!target) return;
 
       swipeBackTriggeredRef.current = true;
@@ -839,7 +949,10 @@ function FieldPageContent() {
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
-      window.removeEventListener("on-point-offline-queue-change", handleQueueChange);
+      window.removeEventListener(
+        "on-point-offline-queue-change",
+        handleQueueChange,
+      );
     };
   }, []);
 
@@ -870,6 +983,11 @@ function FieldPageContent() {
     setEquipmentResult(null);
     setEquipmentSaveLabel("Save To Equipment Inventory");
     setAiSuggestions([]);
+    setUploadProgress((current) =>
+      current.filter(
+        (item) => item.status === "uploading" || item.status === "processing",
+      ),
+    );
     setQueueTick((current) => current + 1);
   }
 
@@ -891,12 +1009,15 @@ function FieldPageContent() {
     setObservation("");
     setImplication("");
     setRecommendation("");
-    setMessage("Reference photo mode selected. Add photo(s), choose a section, and save.");
+    setMessage(
+      "Reference photo mode selected. Add photo(s), choose a section, and save.",
+    );
   }
 
   function addFiles(nextFiles: File[]) {
     const validFiles = nextFiles.filter((file) => {
-      if (photoType === "reference_photo") return file.type.startsWith("image/");
+      if (photoType === "reference_photo")
+        return file.type.startsWith("image/");
       return file.type.startsWith("image/") || file.type.startsWith("video/");
     });
 
@@ -904,31 +1025,58 @@ function FieldPageContent() {
       setMessage(
         photoType === "reference_photo"
           ? "Reference photos must be images. Videos can be saved as finding media."
-          : "Some files were skipped because they were not supported media."
+          : "Some files were skipped because they were not supported media.",
       );
     }
 
     setEquipmentResult(null);
     setPhotos((current) => [...current, ...validFiles].slice(0, 6));
+
+    if (validFiles.some((file) => file.type.startsWith("video/"))) {
+      setMessage(
+        nativeApp
+          ? "Video added. iPhone camera videos remain in Photos, and the app will attach them to the report with upload status."
+          : "Video added. The app will attach it to the report with upload status.",
+      );
+    }
   }
 
   function removePhoto(index: number) {
-    setPhotos((current) => current.filter((_, itemIndex) => itemIndex !== index));
+    setPhotos((current) =>
+      current.filter((_, itemIndex) => itemIndex !== index),
+    );
   }
 
   function getImagesForAi() {
-    return photos.filter((photo) => photo.type.startsWith("image/")).slice(0, 6);
+    return photos
+      .filter((photo) => photo.type.startsWith("image/"))
+      .slice(0, 6);
   }
 
   function applyAiFinding(data: any) {
     setPhotoType("finding");
     setTitle(data.title || data.suggested_title || data.defect_title || "");
-    setObservation(data.observation || data.clientComment || data.client_comment || data.comment || "");
-    setImplication(data.implication || data.impact || data.why_it_matters || "");
-    setRecommendation(data.recommendation || data.recommended_action || data.action || "");
+    setObservation(
+      data.observation ||
+        data.clientComment ||
+        data.client_comment ||
+        data.comment ||
+        "",
+    );
+    setImplication(
+      data.implication || data.impact || data.why_it_matters || "",
+    );
+    setRecommendation(
+      data.recommendation || data.recommended_action || data.action || "",
+    );
 
-    const nextSection = data.section || data.suggested_section || section || "Exterior";
-    const nextSeverity = data.severity || data.suggested_severity || severity || "Recommended Repair";
+    const nextSection =
+      data.section || data.suggested_section || section || "Exterior";
+    const nextSeverity =
+      data.severity ||
+      data.suggested_severity ||
+      severity ||
+      "Recommended Repair";
 
     setSection(SECTIONS.includes(nextSection) ? nextSection : section);
     setSeverity(SEVERITIES.includes(nextSeverity) ? nextSeverity : severity);
@@ -947,13 +1095,13 @@ function FieldPageContent() {
           createdAt: Date.now(),
         },
         ...current,
-      ].slice(0, 6)
+      ].slice(0, 6),
     );
   }
 
   function ignoreAiSuggestion(suggestionId: string) {
     setAiSuggestions((current) =>
-      current.filter((suggestion) => suggestion.id !== suggestionId)
+      current.filter((suggestion) => suggestion.id !== suggestionId),
     );
   }
 
@@ -983,22 +1131,35 @@ function FieldPageContent() {
   }
 
   async function analyzePhotoWithAI() {
-    if (analyzingPhoto || analyzingEquipment || generating || saving || savingEquipment) return;
+    if (
+      analyzingPhoto ||
+      analyzingEquipment ||
+      generating ||
+      saving ||
+      savingEquipment
+    )
+      return;
 
     if (!online) {
-      setMessage("Photo AI needs internet. Save the finding offline, then run AI when service returns.");
+      setMessage(
+        "Photo AI needs internet. Save the finding offline, then run AI when service returns.",
+      );
       return;
     }
 
     if (photoType === "reference_photo") {
-      setMessage("Switch to Finding / Defect mode before analyzing a defect photo.");
+      setMessage(
+        "Switch to Finding / Defect mode before analyzing a defect photo.",
+      );
       return;
     }
 
     const images = getImagesForAi();
 
     if (!images.length) {
-      setMessage("Add or take at least one photo before using Analyze Photo(s). Videos can still be saved, but AI needs at least one still photo to analyze.");
+      setMessage(
+        "Add or take at least one photo before using Analyze Photo(s). Videos can still be saved, but AI needs at least one still photo to analyze.",
+      );
       return;
     }
 
@@ -1009,7 +1170,7 @@ function FieldPageContent() {
       setMessage("Preparing photo for AI...");
 
       const aiImages = await Promise.all(
-        images.map((image) => compressImageForAiUpload(image))
+        images.map((image) => compressImageForAiUpload(image)),
       );
 
       const formData = new FormData();
@@ -1051,13 +1212,14 @@ function FieldPageContent() {
           ...(Array.isArray(data.evidence) ? data.evidence.slice(0, 2) : []),
         ].filter(Boolean),
         recommendation:
-          data.recommendation || "Review the AI finding and edit before saving.",
+          data.recommendation ||
+          "Review the AI finding and edit before saving.",
       });
 
       setMessage(
         images.length === 1
           ? "AI analyzed the photo. Review and edit the finding before saving."
-          : `AI analyzed ${images.length} photos together. Review and edit the finding before saving.`
+          : `AI analyzed ${images.length} photos together. Review and edit the finding before saving.`,
       );
     } catch (error: any) {
       setMessage(error?.message || "AI photo analysis failed.");
@@ -1070,7 +1232,9 @@ function FieldPageContent() {
     if (takingNativePhoto) return;
 
     if (!nativeApp) {
-      setMessage("Use Take Photos or Choose Photos on web. Native gallery saving works inside the iOS app.");
+      setMessage(
+        "Use Take Photos or Choose Photos on web. Native gallery saving works inside the iOS app.",
+      );
       return;
     }
 
@@ -1106,7 +1270,7 @@ function FieldPageContent() {
       setMessage(
         photoType === "reference_photo"
           ? "Reference photo added and saved to your phone gallery."
-          : "Photo added and saved to your phone gallery."
+          : "Photo added and saved to your phone gallery.",
       );
     } catch (error: any) {
       setMessage(error?.message || "Could not take native photo.");
@@ -1116,7 +1280,14 @@ function FieldPageContent() {
   }
 
   async function analyzeEquipmentWithAI() {
-    if (analyzingEquipment || analyzingPhoto || generating || saving || savingEquipment) return;
+    if (
+      analyzingEquipment ||
+      analyzingPhoto ||
+      generating ||
+      saving ||
+      savingEquipment
+    )
+      return;
 
     if (!selectedReport) {
       setMessage("Select a report before analyzing equipment.");
@@ -1124,7 +1295,9 @@ function FieldPageContent() {
     }
 
     if (!online) {
-      setMessage("Equipment AI needs internet. Save photos offline, then analyze equipment when service returns.");
+      setMessage(
+        "Equipment AI needs internet. Save photos offline, then analyze equipment when service returns.",
+      );
       return;
     }
 
@@ -1136,7 +1309,9 @@ function FieldPageContent() {
     const images = getImagesForAi();
 
     if (!images.length) {
-      setMessage("Add or take at least one equipment photo before using Analyze Equipment.");
+      setMessage(
+        "Add or take at least one equipment photo before using Analyze Equipment.",
+      );
       return;
     }
 
@@ -1148,7 +1323,7 @@ function FieldPageContent() {
       setMessage("Preparing equipment photo for AI...");
 
       const aiImages = await Promise.all(
-        images.map((image) => compressImageForAiUpload(image))
+        images.map((image) => compressImageForAiUpload(image)),
       );
 
       const formData = new FormData();
@@ -1182,7 +1357,7 @@ function FieldPageContent() {
       setEquipmentSaveLabel(
         shouldCreateEquipmentFinding(data)
           ? "Save Equipment + Create Finding"
-          : "Save To Equipment Inventory"
+          : "Save To Equipment Inventory",
       );
 
       addAiSuggestion({
@@ -1221,7 +1396,7 @@ function FieldPageContent() {
       setMessage(
         shouldCreateEquipmentFinding(data)
           ? `Equipment analyzed using ${images.length} photo${images.length === 1 ? "" : "s"}. It will save to Equipment Inventory and create a finding because the analyzer found a reportable condition.`
-          : `Equipment analyzed using ${images.length} photo${images.length === 1 ? "" : "s"}. This appears informational and will save to Equipment Inventory only.`
+          : `Equipment analyzed using ${images.length} photo${images.length === 1 ? "" : "s"}. This appears informational and will save to Equipment Inventory only.`,
       );
     } catch (error: any) {
       setMessage(error?.message || "Equipment analysis failed.");
@@ -1231,7 +1406,8 @@ function FieldPageContent() {
   }
 
   async function saveEquipmentFromFieldTool() {
-    if (!equipmentResult || savingEquipment || analyzingEquipment || saving) return;
+    if (!equipmentResult || savingEquipment || analyzingEquipment || saving)
+      return;
 
     if (!selectedReport) {
       setMessage("Select a report before saving equipment.");
@@ -1239,7 +1415,9 @@ function FieldPageContent() {
     }
 
     if (!isOnline()) {
-      setMessage("Equipment inventory saving needs internet right now. Save the media offline, then add equipment when service returns.");
+      setMessage(
+        "Equipment inventory saving needs internet right now. Save the media offline, then add equipment when service returns.",
+      );
       return;
     }
 
@@ -1247,7 +1425,7 @@ function FieldPageContent() {
     setEquipmentSaveLabel(
       shouldCreateEquipmentFinding(equipmentResult)
         ? "Preparing Equipment + Finding..."
-        : "Preparing Equipment Save..."
+        : "Preparing Equipment Save...",
     );
     setMessage("");
 
@@ -1259,7 +1437,7 @@ function FieldPageContent() {
       }
 
       const mainImage = uploadedPhotos.find((photo) =>
-        String(photo.filePath || "").match(/\.(jpg|jpeg|png|webp|gif|heic)$/i)
+        String(photo.filePath || "").match(/\.(jpg|jpeg|png|webp|gif|heic)$/i),
       );
 
       setEquipmentSaveLabel("Saving Equipment Inventory...");
@@ -1272,12 +1450,18 @@ function FieldPageContent() {
           manufacturer: cleanEquipmentValue(equipmentResult.manufacturer),
           model: cleanEquipmentValue(equipmentResult.model),
           serial: cleanEquipmentValue(equipmentResult.serial),
-          manufacture_year: cleanEquipmentValue(equipmentResult.manufactureYear),
+          manufacture_year: cleanEquipmentValue(
+            equipmentResult.manufactureYear,
+          ),
           estimated_age: cleanEquipmentValue(equipmentResult.estimatedAge),
-          expected_service_life: cleanEquipmentValue(equipmentResult.expectedServiceLife),
+          expected_service_life: cleanEquipmentValue(
+            equipmentResult.expectedServiceLife,
+          ),
           estimated_life_remaining: "",
           refrigerant: cleanEquipmentValue(equipmentResult.refrigerant),
-          condition: meaningfulEquipmentValue(cleanServiceLifeCondition(equipmentResult.condition)),
+          condition: meaningfulEquipmentValue(
+            cleanServiceLifeCondition(equipmentResult.condition),
+          ),
           inspector_note: getAiInspectorNote(equipmentResult, note),
           maintenance_note: getAiMaintenanceNote(equipmentResult),
           equipment_status: getEquipmentStatusLabel(equipmentResult),
@@ -1291,17 +1475,23 @@ function FieldPageContent() {
 
       if (!createFinding) {
         resetForm();
-        setMessage("Equipment saved to Equipment Inventory. It was not added as a defect.");
+        setMessage(
+          "Equipment saved to Equipment Inventory. It was not added as a defect.",
+        );
         return;
       }
 
-      let equipmentTitle = `${cleanEquipmentValue(equipmentResult.manufacturer) || "Equipment"} ${
-        cleanEquipmentValue(equipmentResult.equipmentType) || "Finding"
-      }`.trim();
+      let equipmentTitle =
+        `${cleanEquipmentValue(equipmentResult.manufacturer) || "Equipment"} ${
+          cleanEquipmentValue(equipmentResult.equipmentType) || "Finding"
+        }`.trim();
 
       const titlePrefix = getFindingTitlePrefix(equipmentResult);
 
-      if (titlePrefix && !equipmentTitle.toLowerCase().startsWith(titlePrefix.toLowerCase())) {
+      if (
+        titlePrefix &&
+        !equipmentTitle.toLowerCase().startsWith(titlePrefix.toLowerCase())
+      ) {
         equipmentTitle = `${titlePrefix} – ${equipmentTitle}`;
       }
 
@@ -1346,12 +1536,16 @@ function FieldPageContent() {
           thumbnail_path: photo.thumbnailPath || null,
         }));
 
-        const { error: photoError } = await supabase.from("photos").insert(photoRows);
+        const { error: photoError } = await supabase
+          .from("photos")
+          .insert(photoRows);
         if (photoError) throw photoError;
       }
 
       resetForm();
-      setMessage("Equipment saved to Equipment Inventory and a report finding was created.");
+      setMessage(
+        "Equipment saved to Equipment Inventory and a report finding was created.",
+      );
     } catch (error: any) {
       setMessage(error?.message || "Failed to save equipment.");
     } finally {
@@ -1359,17 +1553,22 @@ function FieldPageContent() {
       setEquipmentSaveLabel(
         equipmentResult && shouldCreateEquipmentFinding(equipmentResult)
           ? "Save Equipment + Create Finding"
-          : "Save To Equipment Inventory"
+          : "Save To Equipment Inventory",
       );
       setOnline(isOnline());
     }
   }
 
-  async function generateFindingFromNoteText(noteText: string, successMessage = "AI finding generated. Review it before saving.") {
+  async function generateFindingFromNoteText(
+    noteText: string,
+    successMessage = "AI finding generated. Review it before saving.",
+  ) {
     const cleanNote = noteText.trim();
 
     if (!online) {
-      setMessage("AI needs internet. Save your notes/photos offline, then run AI when service returns.");
+      setMessage(
+        "AI needs internet. Save your notes/photos offline, then run AI when service returns.",
+      );
       return;
     }
 
@@ -1411,15 +1610,22 @@ function FieldPageContent() {
       setImplication(data.implication || "");
       setRecommendation(data.recommendation || "");
       setSection(SECTIONS.includes(data.section) ? data.section : "Exterior");
-      setSeverity(SEVERITIES.includes(data.severity) ? data.severity : "Recommended Repair");
+      setSeverity(
+        SEVERITIES.includes(data.severity)
+          ? data.severity
+          : "Recommended Repair",
+      );
 
       addAiSuggestion({
-        source: successMessage.toLowerCase().includes("voice") ? "voice" : "note",
+        source: successMessage.toLowerCase().includes("voice")
+          ? "voice"
+          : "note",
         title: data.title || "Generated Finding",
         section: data.section || section,
         severity: data.severity || severity,
         confidence: Number(data.confidence || data.confidenceScore || 82),
-        summary: data.observation || "AI generated a finding from the inspector note.",
+        summary:
+          data.observation || "AI generated a finding from the inspector note.",
         reasoning: [
           "Inspector note was used as the primary source of truth.",
           data.section ? `AI selected ${data.section}.` : "",
@@ -1454,14 +1660,18 @@ function FieldPageContent() {
   }
 
   async function finishDictationAndGenerate(transcriptValue?: string) {
-    const transcript = String(transcriptValue || voiceTranscriptRef.current || note || "").trim();
+    const transcript = String(
+      transcriptValue || voiceTranscriptRef.current || note || "",
+    ).trim();
 
     finishVoiceDictation();
     voiceTranscriptRef.current = "";
     voiceStopRequestedRef.current = false;
 
     if (!transcript) {
-      setMessage("No voice note was captured. Try again or type the note manually.");
+      setMessage(
+        "No voice note was captured. Try again or type the note manually.",
+      );
       return;
     }
 
@@ -1469,7 +1679,7 @@ function FieldPageContent() {
     setMessage("Voice note captured. Generating finding...");
     await generateFindingFromNoteText(
       transcript,
-      "Voice finding generated. Review and edit it before saving."
+      "Voice finding generated. Review and edit it before saving.",
     );
   }
 
@@ -1477,10 +1687,13 @@ function FieldPageContent() {
     if (typeof window === "undefined") return;
 
     const BrowserSpeechRecognition =
-      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
 
     if (!BrowserSpeechRecognition) {
-      setMessage("Voice dictation is not supported in this browser. Use your keyboard microphone to dictate into the Quick Inspector Note, then tap Generate From Note.");
+      setMessage(
+        "Voice dictation is not supported in this browser. Use your keyboard microphone to dictate into the Quick Inspector Note, then tap Generate From Note.",
+      );
       return;
     }
 
@@ -1496,7 +1709,9 @@ function FieldPageContent() {
 
     setDictating(true);
     setPhotoType("finding");
-    setMessage("Listening... describe the finding. Tap Stop Listening when you are done.");
+    setMessage(
+      "Listening... describe the finding. Tap Stop Listening when you are done.",
+    );
 
     recognition.onresult = (event: any) => {
       const transcript = Array.from(event.results || [])
@@ -1519,12 +1734,16 @@ function FieldPageContent() {
       voiceStopRequestedRef.current = false;
 
       if (errorName === "no-speech") {
-        setMessage("No voice was detected. Try again, speak a little louder, or use your keyboard microphone in the Quick Inspector Note field.");
+        setMessage(
+          "No voice was detected. Try again, speak a little louder, or use your keyboard microphone in the Quick Inspector Note field.",
+        );
         return;
       }
 
       if (errorName === "not-allowed" || errorName === "service-not-allowed") {
-        setMessage("Microphone access was blocked. Allow microphone access for this site/app, then try Dictate Finding again.");
+        setMessage(
+          "Microphone access was blocked. Allow microphone access for this site/app, then try Dictate Finding again.",
+        );
         return;
       }
 
@@ -1542,7 +1761,9 @@ function FieldPageContent() {
       finishVoiceDictation();
       voiceTranscriptRef.current = "";
       voiceStopRequestedRef.current = false;
-      setMessage("No voice note was captured. Try again or type the note manually.");
+      setMessage(
+        "No voice note was captured. Try again or type the note manually.",
+      );
     };
 
     try {
@@ -1576,7 +1797,7 @@ function FieldPageContent() {
       if (!isNativeCapacitorApp()) {
         finishVoiceDictation();
         setMessage(
-          `Native speech was not started because this app is being detected as "${platform}" instead of iOS. This means the Capacitor native bridge is not available on this screen.`
+          `Native speech was not started because this app is being detected as "${platform}" instead of iOS. This means the Capacitor native bridge is not available on this screen.`,
         );
         return;
       }
@@ -1595,7 +1816,7 @@ function FieldPageContent() {
       if (!speechGranted || !microphoneGranted) {
         finishVoiceDictation();
         setMessage(
-          `Speech or microphone permission was not granted. Current permission response: ${JSON.stringify(permissionAny)}`
+          `Speech or microphone permission was not granted. Current permission response: ${JSON.stringify(permissionAny)}`,
         );
         return;
       }
@@ -1606,40 +1827,50 @@ function FieldPageContent() {
       if (!available?.available) {
         finishVoiceDictation();
         setMessage(
-          "Native speech recognition is not available on this device. Make sure Siri & Dictation are enabled in iPhone Settings, then try again."
+          "Native speech recognition is not available on this device. Make sure Siri & Dictation are enabled in iPhone Settings, then try again.",
         );
         return;
       }
 
       await NativeSpeechRecognition.removeAllListeners();
 
-      await NativeSpeechRecognition.addListener("partialResults", (data: any) => {
-        const transcript = (data?.matches || [])
-          .join(" ")
-          .replace(/\s+/g, " ")
-          .trim();
+      await NativeSpeechRecognition.addListener(
+        "partialResults",
+        (data: any) => {
+          const transcript = (data?.matches || [])
+            .join(" ")
+            .replace(/\s+/g, " ")
+            .trim();
 
-        if (transcript) {
-          voiceTranscriptRef.current = transcript;
-          setNote(transcript);
-        }
-      });
-
-      await NativeSpeechRecognition.addListener("listeningState", (data: any) => {
-        if (data?.status === "started") {
-          setMessage("Listening... describe the finding. Tap Stop Listening when you are done.");
-        }
-
-        if (data?.status === "stopped" && !voiceStopRequestedRef.current) {
-          const transcript = String(voiceTranscriptRef.current || "").trim();
           if (transcript) {
-            void finishDictationAndGenerate(transcript);
-          } else {
-            finishVoiceDictation();
-            setMessage("Listening stopped, but no voice note was captured. Try again or type the note manually.");
+            voiceTranscriptRef.current = transcript;
+            setNote(transcript);
           }
-        }
-      });
+        },
+      );
+
+      await NativeSpeechRecognition.addListener(
+        "listeningState",
+        (data: any) => {
+          if (data?.status === "started") {
+            setMessage(
+              "Listening... describe the finding. Tap Stop Listening when you are done.",
+            );
+          }
+
+          if (data?.status === "stopped" && !voiceStopRequestedRef.current) {
+            const transcript = String(voiceTranscriptRef.current || "").trim();
+            if (transcript) {
+              void finishDictationAndGenerate(transcript);
+            } else {
+              finishVoiceDictation();
+              setMessage(
+                "Listening stopped, but no voice note was captured. Try again or type the note manually.",
+              );
+            }
+          }
+        },
+      );
 
       const result = await NativeSpeechRecognition.start({
         language: "en-US",
@@ -1658,7 +1889,9 @@ function FieldPageContent() {
         setNote(immediateTranscript);
       }
 
-      setMessage("Listening... describe the finding. Tap Stop Listening when you are done.");
+      setMessage(
+        "Listening... describe the finding. Tap Stop Listening when you are done.",
+      );
     } catch (error: any) {
       try {
         await NativeSpeechRecognition.stop();
@@ -1674,7 +1907,7 @@ function FieldPageContent() {
         error?.message ||
           error?.errorMessage ||
           JSON.stringify(error) ||
-          "Native voice dictation could not start."
+          "Native voice dictation could not start.",
       );
     }
   }
@@ -1703,7 +1936,9 @@ function FieldPageContent() {
       voiceStopRequestedRef.current = true;
       setMessage("Stopping recording...");
 
-      const transcript = String(voiceTranscriptRef.current || note || "").trim();
+      const transcript = String(
+        voiceTranscriptRef.current || note || "",
+      ).trim();
 
       try {
         voiceRecognitionRef.current?.stop?.();
@@ -1719,7 +1954,14 @@ function FieldPageContent() {
       return;
     }
 
-    if (generating || analyzingPhoto || analyzingEquipment || saving || savingEquipment) return;
+    if (
+      generating ||
+      analyzingPhoto ||
+      analyzingEquipment ||
+      saving ||
+      savingEquipment
+    )
+      return;
 
     if (photoType === "reference_photo") {
       setMessage("Switch to Finding / Defect mode before dictating a finding.");
@@ -1727,7 +1969,9 @@ function FieldPageContent() {
     }
 
     if (!online) {
-      setMessage("Voice dictation can start now. AI generation will still need internet after the note is captured.");
+      setMessage(
+        "Voice dictation can start now. AI generation will still need internet after the note is captured.",
+      );
     }
 
     if (nativeApp) {
@@ -1738,13 +1982,35 @@ function FieldPageContent() {
     await startBrowserDictation();
   }
 
-  async function uploadPhotoFile(photo: File, folder: string): Promise<UploadedPhoto> {
+  async function uploadPhotoFile(
+    photo: File,
+    folder: string,
+  ): Promise<UploadedPhoto> {
     let uploadFile = photo;
     let thumbnailFile: File | null = null;
     const isVideo = photo.type.startsWith("video/");
+    const progressId = createLocalMediaId(photo);
+    const progressType: UploadProgressItem["type"] = isVideo
+      ? "video"
+      : "photo";
+
+    setMediaProgress(progressId, {
+      name: photo.name || (isVideo ? "Inspection video" : "Inspection photo"),
+      type: progressType,
+      stage: isVideo ? "Preparing video backup" : "Preparing photo upload",
+      progress: 8,
+      status: "processing",
+    });
 
     if (isVideo) {
       setMessage("Preparing video for report...");
+      setMediaProgress(progressId, {
+        name: photo.name || "Inspection video",
+        type: progressType,
+        stage: "Converting video for browser playback",
+        progress: 18,
+        status: "processing",
+      });
 
       try {
         const formData = new FormData();
@@ -1772,15 +2038,42 @@ function FieldPageContent() {
         });
 
         setMessage("Video converted. Saving to report...");
+        setMediaProgress(progressId, {
+          name: photo.name || "Inspection video",
+          type: progressType,
+          stage: "Video converted",
+          progress: 40,
+          status: "processing",
+        });
       } catch (error) {
-        console.warn("Video conversion failed. Saving original video instead.", error);
+        console.warn(
+          "Video conversion failed. Saving original video instead.",
+          error,
+        );
 
         // Never block the inspector from saving the finding.
         // Mobile/Vercel video conversion can fail on large files or slow networks.
         // If conversion fails, save the original video and still attach it to the report.
         uploadFile = photo;
-        setMessage("Video conversion skipped. Saving original video to report...");
+        setMessage(
+          "Video conversion skipped. Saving original video to report...",
+        );
+        setMediaProgress(progressId, {
+          name: photo.name || "Inspection video",
+          type: progressType,
+          stage: "Conversion skipped. Saving original video",
+          progress: 35,
+          status: "processing",
+        });
       }
+
+      setMediaProgress(progressId, {
+        name: photo.name || "Inspection video",
+        type: progressType,
+        stage: "Creating video thumbnail",
+        progress: 48,
+        status: "processing",
+      });
 
       thumbnailFile = await createVideoThumbnailForUpload(uploadFile);
 
@@ -1797,6 +2090,19 @@ function FieldPageContent() {
       .toString(36)
       .slice(2)}-${safeName}`;
 
+    setMediaProgress(progressId, {
+      name:
+        uploadFile.name ||
+        photo.name ||
+        (isVideo ? "Inspection video" : "Inspection photo"),
+      type: progressType,
+      stage: isVideo
+        ? "Uploading video to report"
+        : "Uploading photo to report",
+      progress: isVideo ? 62 : 35,
+      status: "uploading",
+    });
+
     const { error: uploadError } = await supabase.storage
       .from("inspection-photos")
       .upload(fileName, uploadFile, {
@@ -1805,7 +2111,24 @@ function FieldPageContent() {
         contentType: uploadFile.type || (isVideo ? "video/mp4" : undefined),
       });
 
-    if (uploadError) throw uploadError;
+    if (uploadError) {
+      setMediaProgress(progressId, {
+        name: uploadFile.name || photo.name || "Inspection media",
+        type: progressType,
+        stage: "Upload failed. Item can be saved to local queue",
+        progress: 0,
+        status: "error",
+      });
+      throw uploadError;
+    }
+
+    setMediaProgress(progressId, {
+      name: uploadFile.name || photo.name || "Inspection media",
+      type: progressType,
+      stage: isVideo ? "Video uploaded" : "Photo uploaded",
+      progress: isVideo ? 78 : 82,
+      status: "uploading",
+    });
 
     const { data } = supabase.storage
       .from("inspection-photos")
@@ -1818,6 +2141,14 @@ function FieldPageContent() {
       thumbnailPath = `${selectedReport}/${folder}/thumbnails/${Date.now()}-${Math.random()
         .toString(36)
         .slice(2)}-video-thumb.jpg`;
+
+      setMediaProgress(progressId, {
+        name: uploadFile.name || photo.name || "Inspection video",
+        type: progressType,
+        stage: "Uploading video thumbnail",
+        progress: 86,
+        status: "uploading",
+      });
 
       const { error: thumbnailUploadError } = await supabase.storage
         .from("inspection-photos")
@@ -1838,11 +2169,21 @@ function FieldPageContent() {
       }
     }
 
+    setMediaProgress(progressId, {
+      name: uploadFile.name || photo.name || "Inspection media",
+      type: progressType,
+      stage: "Backed up to report",
+      progress: 100,
+      status: "done",
+    });
+
     return {
       publicUrl: data.publicUrl,
       filePath: fileName,
       isVideo,
-      mimeType: isVideo ? uploadFile.type || "video/mp4" : uploadFile.type || photo.type || "",
+      mimeType: isVideo
+        ? uploadFile.type || "video/mp4"
+        : uploadFile.type || photo.type || "",
       thumbnailUrl,
       thumbnailPath,
     };
@@ -1853,16 +2194,23 @@ function FieldPageContent() {
       throw new Error("Add at least one photo for a section reference photo.");
     }
 
-    const imagePhotos = photos.filter((photo) => photo.type.startsWith("image/"));
+    const imagePhotos = photos.filter((photo) =>
+      photo.type.startsWith("image/"),
+    );
 
     if (imagePhotos.length !== photos.length) {
-      throw new Error("Reference photos must be images. Videos can be saved as finding media while online.");
+      throw new Error(
+        "Reference photos must be images. Videos can be saved as finding media while online.",
+      );
     }
 
     let saved = 0;
 
     for (const photo of imagePhotos) {
-      const uploaded = await uploadPhotoFile(photo, `reference-photos/${safeSectionFolder(section)}`);
+      const uploaded = await uploadPhotoFile(
+        photo,
+        `reference-photos/${safeSectionFolder(section)}`,
+      );
 
       const { error } = await supabase.from("section_reference_photos").insert({
         inspection_id: selectedReport,
@@ -1886,8 +2234,11 @@ function FieldPageContent() {
       uploadedPhotos.push(await uploadPhotoFile(photo, "field-media"));
     }
 
-    const fallbackTitle = title.trim() || note.trim().slice(0, 80) || "Field Finding";
-    const fallbackObservation = observation.trim() || (note.trim() ? `Inspector field note: ${note.trim()}` : "");
+    const fallbackTitle =
+      title.trim() || note.trim().slice(0, 80) || "Field Finding";
+    const fallbackObservation =
+      observation.trim() ||
+      (note.trim() ? `Inspector field note: ${note.trim()}` : "");
 
     const { data: finding, error } = await supabase
       .from("findings")
@@ -1901,7 +2252,9 @@ function FieldPageContent() {
         recommendation,
         image_url:
           uploadedPhotos.find((photo) =>
-            String(photo.filePath || "").match(/\.(jpg|jpeg|png|webp|gif|heic)$/i)
+            String(photo.filePath || "").match(
+              /\.(jpg|jpeg|png|webp|gif|heic)$/i,
+            ),
           )?.publicUrl || null,
       })
       .select()
@@ -1921,7 +2274,9 @@ function FieldPageContent() {
         thumbnail_path: photo.thumbnailPath || null,
       }));
 
-      const { error: photoError } = await supabase.from("photos").insert(photoRows);
+      const { error: photoError } = await supabase
+        .from("photos")
+        .insert(photoRows);
       if (photoError) throw photoError;
     }
 
@@ -1934,8 +2289,16 @@ function FieldPageContent() {
       return;
     }
 
-    if (photoType === "finding" && !title.trim() && !note.trim() && !observation.trim() && photos.length === 0) {
-      setMessage("Add a title, observation, inspector note, or media before saving.");
+    if (
+      photoType === "finding" &&
+      !title.trim() &&
+      !note.trim() &&
+      !observation.trim() &&
+      photos.length === 0
+    ) {
+      setMessage(
+        "Add a title, observation, inspector note, or media before saving.",
+      );
       return;
     }
 
@@ -1973,7 +2336,7 @@ function FieldPageContent() {
         setMessage(
           photoType === "reference_photo"
             ? `Saved reference photo offline. Queue: ${summary.count} item(s). It will sync when service returns.`
-            : `Saved finding offline. Queue: ${summary.count} item(s). It will sync when service returns.`
+            : `Saved finding offline. Queue: ${summary.count} item(s). It will sync when service returns.`,
         );
         return;
       }
@@ -1981,7 +2344,9 @@ function FieldPageContent() {
       if (photoType === "reference_photo") {
         const count = await saveReferencePhotosOnline();
         resetForm();
-        setMessage(`${count} reference photo${count === 1 ? "" : "s"} saved to ${section}.`);
+        setMessage(
+          `${count} reference photo${count === 1 ? "" : "s"} saved to ${section}.`,
+        );
         return;
       }
 
@@ -1989,6 +2354,57 @@ function FieldPageContent() {
       resetForm();
       setMessage("Finding saved to report.");
     } catch (error: any) {
+      const shouldQueueAfterFailure =
+        photos.length > 0 && (isLikelyNetworkError(error) || !isOnline());
+
+      if (shouldQueueAfterFailure) {
+        try {
+          const offlinePhotos = await filesToOfflinePhotos(photos);
+
+          addOfflineQueueItem({
+            type: photoType,
+            payload: {
+              inspection_id: selectedReport,
+              title,
+              section,
+              severity,
+              inspector_note: note,
+              note,
+              caption: note || title,
+              observation,
+              implication,
+              recommendation,
+              photos: offlinePhotos,
+            },
+          });
+
+          photos.forEach((photo) => {
+            setMediaProgress(createLocalMediaId(photo), {
+              name: photo.name || "Inspection media",
+              type: photo.type.startsWith("video/") ? "video" : "photo",
+              stage: "Saved locally. Will retry when signal returns",
+              progress: 100,
+              status: "queued",
+            });
+          });
+
+          resetForm();
+          const summary = getOfflineQueueSummary();
+          setMessage(
+            `Signal/upload issue detected. Saved locally instead of losing work. Queue: ${summary.count} item(s). It will sync when service returns.`,
+          );
+          clearCompletedProgressSoon();
+          return;
+        } catch (queueError: any) {
+          setMessage(
+            queueError?.message ||
+              error?.message ||
+              "Failed to save field item.",
+          );
+          return;
+        }
+      }
+
       setMessage(error?.message || "Failed to save field item.");
     } finally {
       setSaving(false);
@@ -2005,20 +2421,30 @@ function FieldPageContent() {
           </h1>
 
           <p className="mb-4 text-slate-400">
-            Capture findings, defect media, and section reference photos in the field. If service drops, items save locally and sync when you are back online.
+            Capture findings, defect media, and section reference photos in the
+            field. If service drops, items save locally and sync when you are
+            back online.
           </p>
 
           <div className="mb-4 rounded-xl border border-slate-700 bg-black/40 p-4 text-sm text-slate-300">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <span className={`font-black ${online ? "text-green-300" : "text-yellow-300"}`}>
+              <span
+                className={`font-black ${online ? "text-green-300" : "text-yellow-300"}`}
+              >
                 {online ? "Online" : "Offline Mode"}
               </span>
               <span>
-                Queue: {offlineSummary.count} item(s), {offlineSummary.referencePhotoCount} reference, {offlineSummary.findingCount} finding, about {offlineSummary.megabytes} MB
+                Queue: {offlineSummary.count} item(s),{" "}
+                {offlineSummary.referencePhotoCount} reference,{" "}
+                {offlineSummary.findingCount} finding, about{" "}
+                {offlineSummary.megabytes} MB
               </span>
             </div>
             <p className="mt-2 text-xs text-slate-500">
-              Native iOS photo captures save a copy to your phone gallery when allowed. Videos chosen from your phone stay in your gallery and are attached to the finding.
+              Native iOS photo captures save a copy to your phone gallery when
+              allowed. Videos recorded or chosen from the iPhone picker remain
+              in Photos, then upload with visible progress and offline fallback
+              protection.
             </p>
           </div>
 
@@ -2043,7 +2469,9 @@ function FieldPageContent() {
                 <option value="">Select Report</option>
                 {reports.map((report) => (
                   <option key={report.id} value={report.id}>
-                    {report.property_address || report.address || "Unnamed Inspection"}
+                    {report.property_address ||
+                      report.address ||
+                      "Unnamed Inspection"}
                   </option>
                 ))}
               </select>
@@ -2059,7 +2487,9 @@ function FieldPageContent() {
                     : "border-slate-700 bg-black text-slate-300 hover:bg-slate-900"
                 }`}
               >
-                <span className="block text-lg font-black">Finding / Defect</span>
+                <span className="block text-lg font-black">
+                  Finding / Defect
+                </span>
                 <span className="mt-1 block text-xs text-slate-400">
                   Creates a report finding and can include photos or video.
                 </span>
@@ -2074,7 +2504,9 @@ function FieldPageContent() {
                     : "border-slate-700 bg-black text-slate-300 hover:bg-slate-900"
                 }`}
               >
-                <span className="block text-lg font-black">Section Reference Photo</span>
+                <span className="block text-lg font-black">
+                  Section Reference Photo
+                </span>
                 <span className="mt-1 block text-xs text-slate-400">
                   Saves photos to Section Reference Photos only, not defects.
                 </span>
@@ -2121,6 +2553,10 @@ function FieldPageContent() {
                   ))}
                 </div>
               )}
+
+              {uploadProgress.length > 0 && (
+                <UploadProgressPanel items={uploadProgress} />
+              )}
             </div>
 
             <div className="rounded-2xl border border-purple-500/30 bg-purple-500/10 p-4">
@@ -2132,7 +2568,9 @@ function FieldPageContent() {
                   Let AI Help Write It
                 </h2>
                 <p className="mt-1 text-sm text-slate-300">
-                  Take a photo first, analyze it as a defect, scan it as equipment, dictate a finding, or type a rough note and generate from the note.
+                  Take a photo first, analyze it as a defect, scan it as
+                  equipment, dictate a finding, or type a rough note and
+                  generate from the note.
                 </p>
               </div>
 
@@ -2140,7 +2578,17 @@ function FieldPageContent() {
                 <button
                   type="button"
                   onClick={analyzePhotoWithAI}
-                  disabled={analyzingPhoto || analyzingEquipment || generating || dictating || saving || savingEquipment || !online || photoType === "reference_photo" || !photos.some((photo) => photo.type.startsWith("image/"))}
+                  disabled={
+                    analyzingPhoto ||
+                    analyzingEquipment ||
+                    generating ||
+                    dictating ||
+                    saving ||
+                    savingEquipment ||
+                    !online ||
+                    photoType === "reference_photo" ||
+                    !photos.some((photo) => photo.type.startsWith("image/"))
+                  }
                   className="w-full rounded-xl border border-purple-500 bg-purple-500/10 p-4 text-lg font-bold text-purple-200 transition active:scale-[0.98] hover:bg-purple-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
                 >
                   {analyzingPhoto ? "Analyzing Defect..." : "🤖 Analyze Defect"}
@@ -2149,16 +2597,35 @@ function FieldPageContent() {
                 <button
                   type="button"
                   onClick={analyzeEquipmentWithAI}
-                  disabled={analyzingEquipment || analyzingPhoto || generating || dictating || saving || savingEquipment || !online || photoType === "reference_photo" || !photos.some((photo) => photo.type.startsWith("image/"))}
+                  disabled={
+                    analyzingEquipment ||
+                    analyzingPhoto ||
+                    generating ||
+                    dictating ||
+                    saving ||
+                    savingEquipment ||
+                    !online ||
+                    photoType === "reference_photo" ||
+                    !photos.some((photo) => photo.type.startsWith("image/"))
+                  }
                   className="w-full rounded-xl border border-cyan-500 bg-cyan-500/10 p-4 text-lg font-bold text-cyan-200 transition active:scale-[0.98] hover:bg-cyan-500 hover:text-black disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
                 >
-                  {analyzingEquipment ? "Analyzing Equipment..." : "🔧 Analyze Equipment"}
+                  {analyzingEquipment
+                    ? "Analyzing Equipment..."
+                    : "🔧 Analyze Equipment"}
                 </button>
 
                 <button
                   type="button"
                   onClick={dictateFinding}
-                  disabled={generating || analyzingPhoto || analyzingEquipment || saving || savingEquipment || photoType === "reference_photo"}
+                  disabled={
+                    generating ||
+                    analyzingPhoto ||
+                    analyzingEquipment ||
+                    saving ||
+                    savingEquipment ||
+                    photoType === "reference_photo"
+                  }
                   className="w-full rounded-xl border border-emerald-500 bg-emerald-500/10 p-4 text-lg font-bold text-emerald-200 transition active:scale-[0.98] hover:bg-emerald-500 hover:text-black disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
                 >
                   {dictating ? "⏹ Stop Listening" : "🎤 Dictate Finding"}
@@ -2167,10 +2634,23 @@ function FieldPageContent() {
                 <button
                   type="button"
                   onClick={generateWithAI}
-                  disabled={generating || dictating || analyzingPhoto || analyzingEquipment || saving || savingEquipment || !online || photoType === "reference_photo"}
+                  disabled={
+                    generating ||
+                    dictating ||
+                    analyzingPhoto ||
+                    analyzingEquipment ||
+                    saving ||
+                    savingEquipment ||
+                    !online ||
+                    photoType === "reference_photo"
+                  }
                   className="w-full rounded-xl bg-teal-500 p-4 text-lg font-bold text-black transition active:scale-[0.98] hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
                 >
-                  {generating ? "Generating AI Finding..." : online ? "✍️ Generate From Note" : "AI Available When Back Online"}
+                  {generating
+                    ? "Generating AI Finding..."
+                    : online
+                      ? "✍️ Generate From Note"
+                      : "AI Available When Back Online"}
                 </button>
               </div>
             </div>
@@ -2183,7 +2663,9 @@ function FieldPageContent() {
                       Equipment Detected
                     </p>
                     <h2 className="mt-1 text-xl font-black text-white">
-                      {cleanEquipmentValue(equipmentResult.manufacturer) || "Equipment"} {cleanEquipmentValue(equipmentResult.equipmentType)}
+                      {cleanEquipmentValue(equipmentResult.manufacturer) ||
+                        "Equipment"}{" "}
+                      {cleanEquipmentValue(equipmentResult.equipmentType)}
                     </h2>
                     <p className="mt-1 text-sm text-slate-300">
                       {shouldCreateEquipmentFinding(equipmentResult)
@@ -2193,7 +2675,9 @@ function FieldPageContent() {
                   </div>
 
                   <span className="rounded-full border border-cyan-400/50 bg-cyan-400/10 px-3 py-1 text-xs font-black text-cyan-200">
-                    {shouldCreateEquipmentFinding(equipmentResult) ? "Equipment + Finding" : "Inventory Only"}
+                    {shouldCreateEquipmentFinding(equipmentResult)
+                      ? "Equipment + Finding"
+                      : "Inventory Only"}
                   </span>
                 </div>
 
@@ -2225,17 +2709,23 @@ function FieldPageContent() {
               </div>
             )}
 
-            {photoType === "finding" && photos.some((photo) => photo.type.startsWith("video/")) && !photos.some((photo) => photo.type.startsWith("image/")) && (
-              <div className="rounded-xl border border-yellow-500/50 bg-yellow-500/10 p-4 text-sm font-bold leading-6 text-yellow-100">
-                Video is saved with the finding, but AI photo recognition needs at least one still photo. Add one photo if you want AI to write the defect from media.
-              </div>
-            )}
+            {photoType === "finding" &&
+              photos.some((photo) => photo.type.startsWith("video/")) &&
+              !photos.some((photo) => photo.type.startsWith("image/")) && (
+                <div className="rounded-xl border border-yellow-500/50 bg-yellow-500/10 p-4 text-sm font-bold leading-6 text-yellow-100">
+                  Video is saved with the finding, but AI photo recognition
+                  needs at least one still photo. Add one photo if you want AI
+                  to write the defect from media.
+                </div>
+              )}
 
             {photoType === "reference_photo" && (
               <div className="rounded-xl border border-cyan-500/40 bg-cyan-950/20 p-4 text-sm leading-6 text-cyan-100">
                 <p className="font-black text-cyan-300">Reference Photo Mode</p>
                 <p className="mt-1">
-                  Photos saved here will appear under Section Reference Photos in the report/share/client views. They are not counted as findings, defects, or repair request items.
+                  Photos saved here will appear under Section Reference Photos
+                  in the report/share/client views. They are not counted as
+                  findings, defects, or repair request items.
                 </p>
               </div>
             )}
@@ -2253,14 +2743,18 @@ function FieldPageContent() {
                   className="w-full rounded-xl border border-slate-700 bg-black p-4 text-white"
                 >
                   {SECTIONS.map((item) => (
-                    <option key={item} value={item}>{item}</option>
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
                   ))}
                 </select>
               </div>
 
               <div className="mt-5">
                 <label className="mb-2 block font-bold">
-                  {photoType === "reference_photo" ? "Reference Photo Caption" : "Quick Inspector Note"}
+                  {photoType === "reference_photo"
+                    ? "Reference Photo Caption"
+                    : "Quick Inspector Note"}
                 </label>
                 <textarea
                   value={note}
@@ -2300,14 +2794,28 @@ function FieldPageContent() {
                       className="w-full rounded-xl border border-slate-700 bg-black p-4 text-white"
                     >
                       {SEVERITIES.map((item) => (
-                        <option key={item} value={item}>{item}</option>
+                        <option key={item} value={item}>
+                          {item}
+                        </option>
                       ))}
                     </select>
                   </div>
 
-                  <TextArea label="Observation" value={observation} onChange={setObservation} />
-                  <TextArea label="Implication" value={implication} onChange={setImplication} />
-                  <TextArea label="Recommendation" value={recommendation} onChange={setRecommendation} />
+                  <TextArea
+                    label="Observation"
+                    value={observation}
+                    onChange={setObservation}
+                  />
+                  <TextArea
+                    label="Implication"
+                    value={implication}
+                    onChange={setImplication}
+                  />
+                  <TextArea
+                    label="Recommendation"
+                    value={recommendation}
+                    onChange={setRecommendation}
+                  />
                 </div>
               </div>
             )}
@@ -2323,7 +2831,13 @@ function FieldPageContent() {
               }`}
             >
               {saving
-                ? "Saving..."
+                ? uploadProgress.some(
+                    (item) =>
+                      item.status === "uploading" ||
+                      item.status === "processing",
+                  )
+                  ? "Saving + Uploading Media..."
+                  : "Saving..."
                 : photoType === "reference_photo"
                   ? online
                     ? "Save Section Reference Photo"
@@ -2366,6 +2880,76 @@ function FieldPageContent() {
   );
 }
 
+function UploadProgressPanel({ items }: { items: UploadProgressItem[] }) {
+  if (!items.length) return null;
+
+  return (
+    <div className="mt-4 rounded-2xl border border-cyan-500/30 bg-cyan-500/10 p-4">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-300">
+          Media Backup / Upload Queue
+        </p>
+        <span className="rounded-full border border-cyan-400/40 px-3 py-1 text-xs font-black text-cyan-200">
+          {items.length} item{items.length === 1 ? "" : "s"}
+        </span>
+      </div>
+
+      <div className="space-y-3">
+        {items.map((item) => (
+          <div
+            key={item.id}
+            className="rounded-xl border border-slate-700 bg-black/35 p-3"
+          >
+            <div className="mb-2 flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-black text-white">
+                  {item.type === "video"
+                    ? "🎥"
+                    : item.type === "thumbnail"
+                      ? "🖼"
+                      : "📷"}{" "}
+                  {item.name}
+                </p>
+                <p className="mt-1 text-xs font-semibold text-slate-300">
+                  {item.stage}
+                </p>
+              </div>
+              <span
+                className={`shrink-0 rounded-full border px-2 py-1 text-[10px] font-black uppercase tracking-wide ${
+                  item.status === "done"
+                    ? "border-green-400/50 bg-green-500/10 text-green-300"
+                    : item.status === "queued"
+                      ? "border-yellow-400/50 bg-yellow-500/10 text-yellow-300"
+                      : item.status === "error"
+                        ? "border-red-400/50 bg-red-500/10 text-red-300"
+                        : "border-cyan-400/50 bg-cyan-500/10 text-cyan-300"
+                }`}
+              >
+                {item.status === "done"
+                  ? "Backed Up"
+                  : item.status === "queued"
+                    ? "Queued"
+                    : item.status === "error"
+                      ? "Needs Retry"
+                      : "Working"}
+              </span>
+            </div>
+
+            <div className="h-2 overflow-hidden rounded-full bg-slate-800">
+              <div
+                className="h-full rounded-full bg-cyan-400 transition-all duration-300"
+                style={{
+                  width: `${Math.max(4, Math.min(100, item.progress))}%`,
+                }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function MediaUploadButtons({
   nativeApp,
   takingNativePhoto,
@@ -2399,25 +2983,50 @@ function MediaUploadButtons({
       ) : (
         <label className="cursor-pointer rounded-xl border border-teal-500 bg-teal-500/10 p-4 text-center font-bold text-teal-300 transition active:scale-[0.98] hover:bg-teal-500 hover:text-black [touch-action:manipulation]">
           {referenceMode ? "📷 Take Reference Photos" : "📷 Take Photos"}
-          <input type="file" accept="image/*" capture="environment" multiple onChange={onChange} className="hidden" />
+          <input
+            type="file"
+            accept="image/*"
+            capture="environment"
+            multiple
+            onChange={onChange}
+            className="hidden"
+          />
         </label>
       )}
 
       <label className="cursor-pointer rounded-xl border border-cyan-500 bg-cyan-500/10 p-4 text-center font-bold text-cyan-300 transition active:scale-[0.98] hover:bg-cyan-500 hover:text-black [touch-action:manipulation]">
         {referenceMode ? "🖼 Choose Reference Photos" : "🖼 Choose Photos"}
-        <input type="file" accept="image/*" multiple onChange={onChange} className="hidden" />
+        <input
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={onChange}
+          className="hidden"
+        />
       </label>
 
       {!referenceMode && (
         <>
           <label className="cursor-pointer rounded-xl border border-purple-500 bg-purple-500/10 p-4 text-center font-bold text-purple-300 transition active:scale-[0.98] hover:bg-purple-500 hover:text-white [touch-action:manipulation]">
             🎥 Record Video
-            <input type="file" accept="video/*" capture="environment" onChange={onChange} className="hidden" />
+            <input
+              type="file"
+              accept="video/*"
+              capture="environment"
+              onChange={onChange}
+              className="hidden"
+            />
           </label>
 
           <label className="cursor-pointer rounded-xl border border-purple-500 bg-purple-500/10 p-4 text-center font-bold text-purple-300 transition active:scale-[0.98] hover:bg-purple-500 hover:text-white [touch-action:manipulation]">
             🎥 Choose Videos
-            <input type="file" accept="video/*" multiple onChange={onChange} className="hidden" />
+            <input
+              type="file"
+              accept="video/*"
+              multiple
+              onChange={onChange}
+              className="hidden"
+            />
           </label>
         </>
       )}
@@ -2425,7 +3034,13 @@ function MediaUploadButtons({
   );
 }
 
-function MediaPreview({ file, onRemove }: { file: File; onRemove: () => void }) {
+function MediaPreview({
+  file,
+  onRemove,
+}: {
+  file: File;
+  onRemove: () => void;
+}) {
   const [url, setUrl] = useState("");
 
   useEffect(() => {
@@ -2449,11 +3064,7 @@ function MediaPreview({ file, onRemove }: { file: File; onRemove: () => void }) 
           <div className="h-40 w-full bg-black" />
         )
       ) : url ? (
-        <img
-          src={url}
-          alt="Preview"
-          className="h-40 w-full object-cover"
-        />
+        <img src={url} alt="Preview" className="h-40 w-full object-cover" />
       ) : (
         <div className="h-40 w-full bg-black" />
       )}
