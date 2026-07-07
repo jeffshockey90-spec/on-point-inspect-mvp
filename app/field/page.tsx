@@ -110,6 +110,7 @@ function isLikelyNetworkError(error: any) {
 
 
 const OFFLINE_LOCAL_STORAGE_SOFT_LIMIT_BYTES = 6 * 1024 * 1024;
+const OFFLINE_RAW_IMAGE_SOFT_LIMIT_BYTES = 35 * 1024 * 1024;
 
 function getOfflineStorableFiles(files: File[]) {
   const storable: File[] = [];
@@ -120,22 +121,22 @@ function getOfflineStorableFiles(files: File[]) {
     const isImage = isImageFile(file);
     const isVideo = isVideoFile(file);
     const fileSize = Number(file.size || 0);
-    const nextTotal = totalBytes + fileSize;
 
-    // Browser/iOS WebView localStorage is not safe for videos or very large media.
-    // Save the text finding first and only keep small images in the offline queue.
-    if (
-      !isImage ||
-      isVideo ||
-      fileSize > 3 * 1024 * 1024 ||
-      nextTotal > OFFLINE_LOCAL_STORAGE_SOFT_LIMIT_BYTES
-    ) {
+    // Videos are not safe for browser localStorage. Keep the original on the phone
+    // and queue the finding text. Images are compressed later by filesToOfflinePhotos,
+    // so do not reject normal iPhone/gallery photos just because the raw file is large.
+    if (!isImage || isVideo || fileSize > OFFLINE_RAW_IMAGE_SOFT_LIMIT_BYTES) {
+      skipped.push(file);
+      continue;
+    }
+
+    if (storable.length >= 6) {
       skipped.push(file);
       continue;
     }
 
     storable.push(file);
-    totalBytes = nextTotal;
+    totalBytes += fileSize;
   }
 
   return { storable, skipped, totalBytes };
@@ -1381,20 +1382,28 @@ function FieldPageContent() {
       const { Camera, CameraResultType, CameraSource } = cameraModule;
 
       const image = await Camera.getPhoto({
-        quality: 85,
+        quality: 82,
         allowEditing: false,
-        resultType: CameraResultType.Uri,
+        resultType: CameraResultType.DataUrl,
         source: CameraSource.Camera,
         saveToGallery: true,
         correctOrientation: true,
       });
 
-      if (!image.webPath) {
-        throw new Error("Camera did not return a usable photo path.");
+      let blob: Blob | null = null;
+
+      if (image.dataUrl) {
+        const response = await fetch(image.dataUrl);
+        blob = await response.blob();
+      } else if (image.webPath) {
+        const response = await fetch(image.webPath);
+        blob = await response.blob();
       }
 
-      const response = await fetch(image.webPath);
-      const blob = await response.blob();
+      if (!blob) {
+        throw new Error("Camera did not return a usable photo.");
+      }
+
       const fileName = `on-point-${Date.now()}.${image.format || "jpg"}`;
       const file = new File([blob], fileName, {
         type: blob.type || "image/jpeg",
@@ -1402,6 +1411,16 @@ function FieldPageContent() {
       });
 
       addFiles([file]);
+
+      setMediaProgress(createLocalMediaId(file), {
+        name: file.name || "Inspection photo",
+        type: "photo",
+        stage: isOnline()
+          ? "Photo added. Ready to upload"
+          : "Photo added locally. Save finding offline to queue it",
+        progress: isOnline() ? 15 : 100,
+        status: isOnline() ? "pending" : "queued",
+      });
       setMessage(
         photoType === "reference_photo"
           ? "Reference photo added and saved to your phone gallery."

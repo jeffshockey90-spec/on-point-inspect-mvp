@@ -158,7 +158,7 @@ async function compressImageForOfflineQueue(file: File): Promise<File> {
 
   try {
     const image = await loadImageFromFile(file);
-    const maxDimension = 1200;
+    const maxDimension = 900;
     const longestSide = Math.max(image.width, image.height);
     const scale = Math.min(1, maxDimension / longestSide);
     const width = Math.max(1, Math.round(image.width * scale));
@@ -174,7 +174,7 @@ async function compressImageForOfflineQueue(file: File): Promise<File> {
     context.drawImage(image, 0, 0, width, height);
 
     const blob = await new Promise<Blob | null>((resolve) => {
-      canvas.toBlob(resolve, "image/jpeg", 0.72);
+      canvas.toBlob(resolve, "image/jpeg", 0.55);
     });
 
     if (!blob) return file;
