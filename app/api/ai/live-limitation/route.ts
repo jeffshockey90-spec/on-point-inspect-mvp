@@ -42,12 +42,11 @@ function parseDataUrl(dataUrl: string) {
     throw new Error("Camera image was empty.");
   }
 
-  const extension =
-    mimeType.includes("png")
-      ? "png"
-      : mimeType.includes("webp")
-        ? "webp"
-        : "jpg";
+  const extension = mimeType.includes("png")
+    ? "png"
+    : mimeType.includes("webp")
+      ? "webp"
+      : "jpg";
 
   return {
     buffer,
@@ -58,6 +57,7 @@ function parseDataUrl(dataUrl: string) {
 
 export async function POST(req: Request) {
   let savedLimitation: any = null;
+  let uploadedFilePath = "";
 
   try {
     const body = await req.json();
@@ -117,13 +117,13 @@ export async function POST(req: Request) {
 
     savedLimitation = insertedLimitation;
 
-    const filePath = `${inspectionId}/limitations/${
+    uploadedFilePath = `${inspectionId}/limitations/${
       savedLimitation.id
     }/${Date.now()}-ai-live.${parsedImage.extension}`;
 
     const { error: uploadError } = await supabase.storage
       .from(PHOTO_BUCKET)
-      .upload(filePath, parsedImage.buffer, {
+      .upload(uploadedFilePath, parsedImage.buffer, {
         contentType: parsedImage.mimeType,
         upsert: true,
       });
@@ -143,22 +143,23 @@ export async function POST(req: Request) {
 
     const { data: publicData } = supabase.storage
       .from(PHOTO_BUCKET)
-      .getPublicUrl(filePath);
+      .getPublicUrl(uploadedFilePath);
 
+    // Your limitation_photos table only has:
+    // id, limitation_id, photo_url, inspector_id, created_at, thumbnail_path, thumbnail_url
     const { data: photoRow, error: photoError } = await supabase
       .from("limitation_photos")
       .insert({
         limitation_id: savedLimitation.id,
-        inspection_id: inspectionId,
-        section,
-        file_path: filePath,
-        public_url: publicData.publicUrl,
+        photo_url: publicData.publicUrl,
+        thumbnail_url: publicData.publicUrl,
+        thumbnail_path: uploadedFilePath,
       })
       .select("*")
       .single();
 
     if (photoError) {
-      await supabase.storage.from(PHOTO_BUCKET).remove([filePath]);
+      await supabase.storage.from(PHOTO_BUCKET).remove([uploadedFilePath]);
       await supabase.from("section_limitations").delete().eq("id", savedLimitation.id);
 
       return NextResponse.json(
@@ -179,6 +180,10 @@ export async function POST(req: Request) {
       photoId: photoRow?.id || null,
     });
   } catch (error: any) {
+    if (uploadedFilePath) {
+      await supabase.storage.from(PHOTO_BUCKET).remove([uploadedFilePath]);
+    }
+
     if (savedLimitation?.id) {
       await supabase.from("section_limitations").delete().eq("id", savedLimitation.id);
     }
