@@ -131,10 +131,13 @@ export default function AILiveInspectionCamera({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const dismissedRef = useRef<Record<string, { confidence: number; at: number }>>({});
+  const autoScanRunningRef = useRef(false);
 
   const [open, setOpen] = useState(false);
   const [starting, setStarting] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
+  const [autoWatch, setAutoWatch] = useState(false);
+  const [lastAutoScanAt, setLastAutoScanAt] = useState(0);
   const [cameraError, setCameraError] = useState("");
   const [frameDataUrl, setFrameDataUrl] = useState("");
   const [result, setResult] = useState<AILiveResult | null>(null);
@@ -173,6 +176,7 @@ export default function AILiveInspectionCamera({
 
   useEffect(() => {
     if (!open) {
+      setAutoWatch(false);
       stopCamera();
     }
 
@@ -180,6 +184,22 @@ export default function AILiveInspectionCamera({
       stopCamera();
     };
   }, [open]);
+
+  useEffect(() => {
+    if (!open || !autoWatch || !online || !selectedReport) return;
+
+    const interval = window.setInterval(() => {
+      const now = Date.now();
+
+      if (autoScanRunningRef.current) return;
+      if (analyzing || starting) return;
+      if (now - lastAutoScanAt < 7500) return;
+
+      void autoAnalyzeFrame();
+    }, 8000);
+
+    return () => window.clearInterval(interval);
+  }, [open, autoWatch, online, selectedReport, analyzing, starting, lastAutoScanAt]);
 
   async function startCamera() {
     if (starting) return;
@@ -228,11 +248,11 @@ export default function AILiveInspectionCamera({
     }
   }
 
-  function captureFrame() {
+  function captureFrame(options: { silent?: boolean } = {}) {
     const video = videoRef.current;
 
     if (!video || !video.videoWidth || !video.videoHeight) {
-      setMessage("Camera frame is not ready yet.");
+      if (!options.silent) setMessage("Camera frame is not ready yet.");
       return "";
     }
 
@@ -244,7 +264,7 @@ export default function AILiveInspectionCamera({
 
     const context = canvas.getContext("2d");
     if (!context) {
-      setMessage("Could not capture camera frame.");
+      if (!options.silent) setMessage("Could not capture camera frame.");
       return "";
     }
 
@@ -252,7 +272,9 @@ export default function AILiveInspectionCamera({
 
     const dataUrl = canvas.toDataURL("image/jpeg", 0.78);
     setFrameDataUrl(dataUrl);
-    setMessage("Frame captured. Review, analyze, or add it as a photo.");
+    if (!options.silent) {
+      setMessage("Frame captured. Review, analyze, or add it as a photo.");
+    }
     return dataUrl;
   }
 
@@ -283,6 +305,7 @@ export default function AILiveInspectionCamera({
           inspectionId: selectedReport,
           currentSection,
           currentSeverity,
+          mode: "manual",
         }),
       });
 
@@ -304,6 +327,84 @@ export default function AILiveInspectionCamera({
       setMessage(error?.message || "AI Live Camera analysis failed.");
     } finally {
       setAnalyzing(false);
+    }
+  }
+
+  async function autoAnalyzeFrame() {
+    if (!selectedReport || !online || autoScanRunningRef.current) return;
+
+    const dataUrl = captureFrame({ silent: true });
+    if (!dataUrl) return;
+
+    autoScanRunningRef.current = true;
+    setLastAutoScanAt(Date.now());
+
+    try {
+      const res = await fetch("/api/ai/live-inspection-camera", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          imageDataUrl: dataUrl,
+          inspectionId: selectedReport,
+          currentSection,
+          currentSeverity,
+          mode: "live_watch",
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) return;
+
+      const suggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
+      const reminders = Array.isArray(data.reminders) ? data.reminders : [];
+      const limitations = Array.isArray(data.limitations) ? data.limitations : [];
+
+      const strongSuggestions = suggestions.filter((item: any) => {
+        const confidence = normalizeConfidence(item?.confidence);
+        const severityText = String(item?.severity || "").toLowerCase();
+        const typeText = String(item?.suggestionType || "").toLowerCase();
+
+        return (
+          confidence >= 0.78 ||
+          severityText.includes("safety") ||
+          severityText.includes("major") ||
+          typeText.includes("safety")
+        );
+      });
+
+      const strongLimitations = limitations.filter(
+        (item: any) => normalizeConfidence(item?.confidence) >= 0.8,
+      );
+
+      const highPriorityReminders = reminders.filter(
+        (item: any) => String(item?.priority || "").toLowerCase() === "high",
+      );
+
+      const shouldInterrupt =
+        strongSuggestions.length > 0 ||
+        strongLimitations.length > 0 ||
+        highPriorityReminders.length > 0 ||
+        Boolean(data?.dataPlatePrompt?.needed);
+
+      if (!shouldInterrupt) {
+        setMessage("AI watching... no strong issue detected.");
+        return;
+      }
+
+      setResult({
+        ...data,
+        suggestions: strongSuggestions.length > 0 ? strongSuggestions : suggestions,
+        limitations: strongLimitations.length > 0 ? strongLimitations : limitations,
+        reminders: highPriorityReminders.length > 0 ? highPriorityReminders : reminders,
+      });
+
+      setMessage(
+        `AI Second Inspector noticed something in ${data.area || currentSection}. Review before saving anything.`,
+      );
+    } catch {
+      // Silent failure in live watch mode so it does not interrupt the inspector.
+    } finally {
+      autoScanRunningRef.current = false;
     }
   }
 
@@ -434,16 +535,33 @@ export default function AILiveInspectionCamera({
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => {
-            setOpen((current) => !current);
-            if (!open) window.setTimeout(startCamera, 50);
-          }}
-          className="rounded-xl bg-cyan-400 px-4 py-2 text-sm font-black text-black transition active:scale-[0.98] hover:bg-cyan-300 [touch-action:manipulation]"
-        >
-          {open ? "Close Camera" : "📸 Open AI Camera"}
-        </button>
+        <div className="flex flex-wrap gap-2">
+          {open && (
+            <button
+              type="button"
+              onClick={() => setAutoWatch((current) => !current)}
+              disabled={!online || starting}
+              className={`rounded-xl px-4 py-2 text-sm font-black transition active:scale-[0.98] disabled:opacity-50 [touch-action:manipulation] ${
+                autoWatch
+                  ? "bg-emerald-400 text-black hover:bg-emerald-300"
+                  : "border border-emerald-400 text-emerald-200 hover:bg-emerald-500 hover:text-black"
+              }`}
+            >
+              {autoWatch ? "👀 AI Watching: ON" : "👀 AI Watching: OFF"}
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={() => {
+              setOpen((current) => !current);
+              if (!open) window.setTimeout(startCamera, 50);
+            }}
+            className="rounded-xl bg-cyan-400 px-4 py-2 text-sm font-black text-black transition active:scale-[0.98] hover:bg-cyan-300 [touch-action:manipulation]"
+          >
+            {open ? "Close Camera" : "📸 Open AI Camera"}
+          </button>
+        </div>
       </div>
 
       {open && (
@@ -480,6 +598,12 @@ export default function AILiveInspectionCamera({
           {message && (
             <div className="rounded-xl border border-cyan-500/40 bg-black/30 p-3 text-sm font-bold text-cyan-100">
               {message}
+            </div>
+          )}
+
+          {autoWatch && (
+            <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm font-bold text-emerald-100">
+              👀 AI Watching is active. The camera will quietly check this area about every 8 seconds and only interrupt for stronger issues, limitations, reminders, or data plate prompts.
             </div>
           )}
 
@@ -599,13 +723,13 @@ export default function AILiveInspectionCamera({
                         </div>
                       )}
 
-                      <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                      <div className="mt-4 grid gap-2 sm:grid-cols-4">
                         <button
                           type="button"
                           onClick={() => useSuggestion(suggestion)}
                           className="rounded-xl bg-teal-400 px-4 py-2 text-sm font-black text-black"
                         >
-                          Use This Finding
+                          Add Finding
                         </button>
                         <button
                           type="button"
@@ -613,6 +737,16 @@ export default function AILiveInspectionCamera({
                           className="rounded-xl border border-slate-600 px-4 py-2 text-sm font-black text-slate-200"
                         >
                           Add Photo Only
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMessage("Reminder saved for later in this live camera session.");
+                            ignoreSuggestion(suggestion);
+                          }}
+                          className="rounded-xl border border-yellow-500/60 px-4 py-2 text-sm font-black text-yellow-200"
+                        >
+                          Remind Later
                         </button>
                         <button
                           type="button"

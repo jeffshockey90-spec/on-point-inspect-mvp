@@ -63,8 +63,9 @@ function normalizeConfidence(value: any, fallback = 0.72) {
 }
 
 function cleanSection(value: any, fallback = "Exterior") {
+  const clean = cleanText(value);
   const routed = routeFindingSection({
-    section: cleanText(value),
+    section: clean,
     title: "",
     observation: "",
     implication: "",
@@ -72,7 +73,7 @@ function cleanSection(value: any, fallback = "Exterior") {
   });
 
   if (VALID_SECTIONS.includes(routed)) return routed;
-  return VALID_SECTIONS.includes(cleanText(value)) ? cleanText(value) : fallback;
+  return VALID_SECTIONS.includes(clean) ? clean : fallback;
 }
 
 function cleanSeverity(value: any, fallback = "Recommended Repair") {
@@ -99,10 +100,12 @@ function cleanSuggestion(value: any, index: number) {
   const severity = cleanSeverity(value?.severity);
 
   return {
-    id: cleanText(value?.id) || `${section}-${severity}-${title}`
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, ""),
+    id:
+      cleanText(value?.id) ||
+      `${section}-${severity}-${title}`
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, ""),
     title,
     section,
     severity,
@@ -128,6 +131,31 @@ function cleanReminder(value: any, index: number) {
   };
 }
 
+function cleanLimitation(value: any, index: number, fallbackSection: string) {
+  const section = cleanSection(value?.section, fallbackSection);
+
+  return {
+    id:
+      cleanText(value?.id) ||
+      `limitation-${section}-${index + 1}`
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, ""),
+    title: cleanText(value?.title) || "Inspection Limitation",
+    section,
+    limitation:
+      cleanText(value?.limitation || value?.observation || value?.description) ||
+      "Visibility or access appeared limited in this area.",
+    reason:
+      cleanText(value?.reason || value?.cause) ||
+      "The limitation should be verified by the inspector.",
+    recommendation:
+      cleanText(value?.recommendation) ||
+      "Document the limitation and inspect further if access becomes available.",
+    confidence: normalizeConfidence(value?.confidence, 0.72),
+  };
+}
+
 function imageDataUrlParts(imageDataUrl: string) {
   const [header, base64] = String(imageDataUrl || "").split(",");
   const mimeMatch = header.match(/^data:(.*?);base64$/);
@@ -143,6 +171,58 @@ function imageDataUrlParts(imageDataUrl: string) {
   };
 }
 
+function filterForLiveWatch(items: any[]) {
+  return items.filter((item) => {
+    const confidence = normalizeConfidence(item?.confidence, 0);
+    const severity = cleanText(item?.severity).toLowerCase();
+    const type = cleanText(item?.suggestionType || item?.type).toLowerCase();
+    const title = cleanText(item?.title).toLowerCase();
+    const observation = cleanText(item?.observation || item?.summary).toLowerCase();
+    const combined = `${title} ${observation}`;
+
+    const importantBySeverity =
+      severity.includes("safety") ||
+      severity.includes("major") ||
+      severity.includes("recommended repair");
+
+    const importantByType =
+      type.includes("safety") || type.includes("defect") || type.includes("documentation");
+
+    const meaningfulTerms = [
+      "double tap",
+      "double tapped",
+      "overheating",
+      "scorch",
+      "burn",
+      "corrosion",
+      "active leak",
+      "leak",
+      "missing",
+      "damaged",
+      "loose",
+      "open ground",
+      "reverse polarity",
+      "gfcI",
+      "gfci",
+      "afci",
+      "crack",
+      "structural",
+      "safety",
+      "unsafe",
+      "defect",
+      "repair",
+      "data plate",
+      "label",
+    ];
+
+    const looksMeaningful = meaningfulTerms.some((term) =>
+      combined.includes(term.toLowerCase()),
+    );
+
+    return confidence >= 0.78 || importantBySeverity || importantByType || looksMeaningful;
+  });
+}
+
 export async function POST(req: Request) {
   try {
     if (!process.env.OPENAI_API_KEY) {
@@ -156,6 +236,8 @@ export async function POST(req: Request) {
     const imageDataUrl = cleanText(body.imageDataUrl);
     const currentSection = cleanText(body.currentSection) || "Exterior";
     const currentSeverity = cleanText(body.currentSeverity) || "Recommended Repair";
+    const mode = cleanText(body.mode) || "manual";
+    const isLiveWatch = mode === "live_watch";
 
     if (!imageDataUrl) {
       return NextResponse.json(
@@ -175,8 +257,9 @@ The inspector must approve every finding before anything is saved.
 Analyze the frame for:
 1. The current area/system.
 2. Multiple visible possible defects or reportable conditions in the same area.
-3. Inspection reminders before walking away.
-4. Equipment/data-plate scan prompts when equipment is visible.
+3. Inspection limitations such as personal belongings, stored items, blocked access, inaccessible areas, snow/debris coverage, locked rooms, low clearance, unsafe access, utilities off, or components not fully visible.
+4. Inspection reminders before walking away.
+5. Equipment/data-plate scan prompts when equipment is visible.
 
 Return ONLY valid JSON in this exact structure:
 
@@ -209,6 +292,17 @@ Return ONLY valid JSON in this exact structure:
       "confidence": 0.0
     }
   ],
+  "limitations": [
+    {
+      "id": "",
+      "title": "",
+      "section": "",
+      "limitation": "",
+      "reason": "",
+      "recommendation": "",
+      "confidence": 0.0
+    }
+  ],
   "dataPlatePrompt": {
     "needed": false,
     "reason": "",
@@ -225,10 +319,20 @@ Rules:
 - Do not claim code violations.
 - Do not diagnose concealed conditions.
 - Do not identify mold/asbestos as fact from a photo.
+- If access or visibility is limited by personal belongings, stored items, coverings, obstructions, unsafe access, weather, snow, locked areas, low clearance, or utilities off, return a limitation.
+- Limitation wording should explain what was limited, why it was limited, and recommend further evaluation only when appropriate.
+- Do not overstate limitations. If the limitation is only possible, say "appeared" or "may have limited visibility."
 - If water heater, HVAC, electrical panel, appliance, or similar equipment is visible, include a data plate scan reminder unless the data plate is clearly already captured.
 - Reminders should include items the inspector should verify before leaving the area.
 - Do not include markdown.
 - Do not include any text outside JSON.
+
+Live-watch behavior:
+- If mode is "live_watch", only interrupt the inspector for meaningful visible issues.
+- In live_watch mode, prefer zero suggestions over weak or cosmetic suggestions.
+- In live_watch mode, do not return generic normal observations.
+- In live_watch mode, focus on safety concerns, major concerns, recommended repairs, missing documentation, blocked/limited inspection areas, or data plate reminders.
+- In live_watch mode, avoid cosmetic comments unless the visible condition is clearly reportable.
 
 Allowed sections:
 Exterior, Roof, Basement, Foundation, Crawlspace & Structure, Heating, Cooling, Plumbing, Electrical, Fireplace, Attic, Insulation & Ventilation, Doors, Windows & Interior, Built-in Appliances, Garage.
@@ -240,11 +344,18 @@ Informational, Monitor, Maintenance, Recommended Repair, Safety Concern, Major C
     const userPrompt = `
 Current selected section: ${currentSection}
 Current selected severity: ${currentSeverity}
+Mode: ${mode}
 
 Analyze this live inspection camera frame.
 
 Return multiple findings if multiple concerns are visible.
 Also return "before you walk away" reminders and data plate scanning prompts where appropriate.
+
+If mode is "live_watch":
+- Only interrupt the inspector for meaningful, visible issues.
+- Do not return minor cosmetic comments unless they are clearly reportable.
+- Prefer zero suggestions over weak suggestions.
+- Focus on safety concerns, major concerns, missing documentation, visible defects, limitations, or data plate reminders.
 `;
 
     const brainResult = await inspectionBrain.run({
@@ -252,21 +363,48 @@ Also return "before you walk away" reminders and data plate scanning prompts whe
       systemPrompt,
       userPrompt,
       images: [image],
-      temperature: 0.1,
+      temperature: isLiveWatch ? 0.05 : 0.1,
       responseFormat: "json_object",
     });
 
     const parsed = safeJsonParse(brainResult.text || "{}");
 
-    const suggestions = Array.isArray(parsed?.suggestions)
-      ? parsed.suggestions.slice(0, 6).map(cleanSuggestion)
+    const rawSuggestions = Array.isArray(parsed?.suggestions)
+      ? parsed.suggestions.slice(0, 6)
       : [];
 
+    const suggestions = (isLiveWatch ? filterForLiveWatch(rawSuggestions) : rawSuggestions)
+      .slice(0, 6)
+      .map(cleanSuggestion);
+
     const reminders = Array.isArray(parsed?.reminders)
-      ? parsed.reminders.slice(0, 8).map(cleanReminder)
+      ? parsed.reminders
+          .slice(0, 8)
+          .filter((item: any) => {
+            if (!isLiveWatch) return true;
+            const priority = cleanText(item?.priority).toLowerCase();
+            const action = cleanText(item?.action).toLowerCase();
+            const confidence = normalizeConfidence(item?.confidence, 0);
+            return priority === "high" || action === "scan_data_plate" || confidence >= 0.8;
+          })
+          .map(cleanReminder)
+      : [];
+
+    const limitations = Array.isArray(parsed?.limitations)
+      ? parsed.limitations
+          .slice(0, 6)
+          .filter((item: any) => !isLiveWatch || normalizeConfidence(item?.confidence, 0) >= 0.76)
+          .map((item: any, index: number) =>
+            cleanLimitation(item, index, currentSection),
+          )
       : [];
 
     const dataPlatePrompt = parsed?.dataPlatePrompt || {};
+    const cleanDataPlatePrompt = {
+      needed: Boolean(dataPlatePrompt?.needed),
+      reason: cleanText(dataPlatePrompt?.reason),
+      equipmentType: cleanText(dataPlatePrompt?.equipmentType),
+    };
 
     return NextResponse.json({
       area: cleanText(parsed?.area) || cleanText(parsed?.system) || currentSection,
@@ -275,11 +413,9 @@ Also return "before you walk away" reminders and data plate scanning prompts whe
       summary: cleanText(parsed?.summary),
       suggestions,
       reminders,
-      dataPlatePrompt: {
-        needed: Boolean(dataPlatePrompt?.needed),
-        reason: cleanText(dataPlatePrompt?.reason),
-        equipmentType: cleanText(dataPlatePrompt?.equipmentType),
-      },
+      limitations,
+      dataPlatePrompt: cleanDataPlatePrompt,
+      mode,
       model: brainResult.model,
     });
   } catch (error: any) {
