@@ -2299,7 +2299,7 @@ export default async function PublicSharePage({
                                       <div className="h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-slate-700 bg-[#020617]">
                                         {isVideo ? (
                                           <div className="relative h-full w-full bg-black">
-                                            {previewImage && previewImage !== image ? (
+                                            {previewImage ? (
                                               <img
                                                 src={previewImage}
                                                 alt={`${title} video thumbnail`}
@@ -2309,15 +2309,9 @@ export default async function PublicSharePage({
                                                 className="h-full w-full object-cover opacity-80"
                                               />
                                             ) : (
-                                              <video
-                                                muted
-                                                playsInline
-                                                preload="metadata"
-                                                poster={previewImage || undefined}
-                                                className="h-full w-full object-cover opacity-80"
-                                              >
-                                                <source src={image} type={primaryMedia?.mime_type || "video/mp4"} />
-                                              </video>
+                                              <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-black">
+                                                <span className="text-2xl text-cyan-300">▶</span>
+                                              </div>
                                             )}
                                             <span className="absolute inset-x-2 bottom-2 rounded-full border border-cyan-400 bg-black/75 px-2 py-1 text-center text-[10px] font-black uppercase tracking-wide text-cyan-300">
                                               Video
