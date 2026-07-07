@@ -497,16 +497,57 @@ export default function AILiveInspectionCamera({
         .filter(Boolean)
         .join("\n\n");
 
-      const { error } = await supabase.from("section_limitations").insert({
-        inspection_id: selectedReport,
-        section: targetSection,
-        label: limitation.title || "AI Limitation Note",
-        ai_notes: cleanReason || cleanLimitation,
-        limitation_comment: limitationComment,
-        custom_text: null,
-      });
+      const { data: savedLimitation, error } = await supabase
+        .from("section_limitations")
+        .insert({
+          inspection_id: selectedReport,
+          section: targetSection,
+          label: limitation.title || "AI Limitation Note",
+          ai_notes: cleanReason || cleanLimitation,
+          limitation_comment: limitationComment,
+          custom_text: null,
+        })
+        .select("*")
+        .single();
 
       if (error) throw error;
+
+      const imageFile = frameFile;
+
+      if (imageFile && savedLimitation?.id) {
+        const filePath = `${selectedReport}/limitations/${
+          savedLimitation.id
+        }/${Date.now()}-ai-live.jpg`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("inspection-photos")
+          .upload(filePath, imageFile, {
+            contentType: imageFile.type || "image/jpeg",
+            upsert: false,
+          });
+
+        if (uploadError) {
+          console.error("AI limitation photo upload failed:", uploadError);
+        } else {
+          const { data: publicData } = supabase.storage
+            .from("inspection-photos")
+            .getPublicUrl(filePath);
+
+          const { error: photoError } = await supabase
+            .from("limitation_photos")
+            .insert({
+              limitation_id: savedLimitation.id,
+              inspection_id: selectedReport,
+              section: targetSection,
+              file_path: filePath,
+              public_url: publicData.publicUrl,
+            });
+
+          if (photoError) {
+            console.error("AI limitation photo record failed:", photoError);
+          }
+        }
+      }
 
       window.dispatchEvent(
         new CustomEvent("opi:section-limitations-changed", {
@@ -521,7 +562,9 @@ export default function AILiveInspectionCamera({
       setWaitingForDecision(false);
 
       setMessage(
-        `Limitation added to ${targetSection}. AI Watching resumed.`,
+        imageFile
+          ? `Limitation added to ${targetSection} with photo. AI Watching resumed.`
+          : `Limitation added to ${targetSection}. AI Watching resumed.`,
       );
     } catch (error: any) {
       setMessage(error?.message || "Failed to add limitation to section.");
