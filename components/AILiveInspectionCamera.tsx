@@ -140,6 +140,7 @@ export default function AILiveInspectionCamera({
   const [lastAutoScanAt, setLastAutoScanAt] = useState(0);
   const [cameraError, setCameraError] = useState("");
   const [frameDataUrl, setFrameDataUrl] = useState("");
+  const latestFrameRef = useRef("");
   const [result, setResult] = useState<AILiveResult | null>(null);
   const [waitingForDecision, setWaitingForDecision] = useState(false);
   const [message, setMessage] = useState("");
@@ -273,6 +274,7 @@ export default function AILiveInspectionCamera({
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     const dataUrl = canvas.toDataURL("image/jpeg", 0.78);
+    latestFrameRef.current = dataUrl;
     setFrameDataUrl(dataUrl);
     if (!options.silent) {
       setMessage("Frame captured. Review, analyze, or add it as a photo.");
@@ -502,13 +504,15 @@ export default function AILiveInspectionCamera({
 
       if (error) throw error;
 
-      let imageFile = frameFile;
+      let imageFile: File | null = null;
 
-      if (!imageFile) {
-        const freshCapture = captureFrame({ silent: true });
-        if (freshCapture) {
-          imageFile = dataUrlToFile(freshCapture, "ai-limitation");
-        }
+      const savedFrame =
+        latestFrameRef.current ||
+        frameDataUrl ||
+        captureFrame({ silent: true });
+
+      if (savedFrame) {
+        imageFile = dataUrlToFile(savedFrame, "ai-limitation");
       }
 
       if (imageFile && savedLimitation?.id) {
@@ -859,6 +863,14 @@ export default function AILiveInspectionCamera({
                         <p className="mt-2 whitespace-pre-line text-sm leading-5 text-orange-50/85">
                           {createLimitationText(limitation)}
                         </p>
+
+                        {frameDataUrl && (
+                          <img
+                            src={frameDataUrl}
+                            alt="Limitation preview"
+                            className="mt-3 max-h-48 w-full rounded-xl border border-orange-500/40 object-contain"
+                          />
+                        )}
 
                         <div className="mt-3 grid gap-2 sm:grid-cols-2">
                           <button
