@@ -237,7 +237,10 @@ export default function SectionLimitations({
         eventInspectionId === String(inspectionId) &&
         eventSection === String(section)
       ) {
-        loadLimitations();
+        window.setTimeout(() => {
+          loadLimitations();
+        }, 500);
+
         setOpen(true);
         showMessage("success", "AI limitation added to this section.");
       }
@@ -824,9 +827,9 @@ export default function SectionLimitations({
                       {photos.map((photo) => {
                         const photoUrl =
                           photo.signed_url ||
-                          photo.public_url ||
                           photo.photo_url ||
                           photo.thumbnail_url ||
+                          photo.public_url ||
                           "";
 
                         if (!photoUrl) return null;

@@ -23,35 +23,23 @@ function cleanText(value: any) {
 
 function parseDataUrl(dataUrl: string) {
   const clean = cleanText(dataUrl);
-
-  if (!clean) {
-    throw new Error("No camera image was received.");
-  }
+  if (!clean) throw new Error("No camera image was received.");
 
   const match = clean.match(/^data:(.*?);base64,(.*)$/);
-
-  if (!match) {
-    throw new Error("Invalid camera image data.");
-  }
+  if (!match) throw new Error("Invalid camera image data.");
 
   const mimeType = match[1] || "image/jpeg";
-  const base64 = match[2] || "";
-  const buffer = Buffer.from(base64, "base64");
-
-  if (!buffer.length) {
-    throw new Error("Camera image was empty.");
-  }
-
-  const extension = mimeType.includes("png")
-    ? "png"
-    : mimeType.includes("webp")
-      ? "webp"
-      : "jpg";
+  const buffer = Buffer.from(match[2] || "", "base64");
+  if (!buffer.length) throw new Error("Camera image was empty.");
 
   return {
     buffer,
     mimeType,
-    extension,
+    extension: mimeType.includes("png")
+      ? "png"
+      : mimeType.includes("webp")
+        ? "webp"
+        : "jpg",
   };
 }
 
@@ -70,18 +58,24 @@ export async function POST(req: Request) {
     const recommendation = cleanText(body.recommendation);
     const imageDataUrl = cleanText(body.imageDataUrl);
 
-    if (!inspectionId) {
-      return NextResponse.json({ error: "Missing inspectionId." }, { status: 400 });
+    if (!inspectionId) return NextResponse.json({ error: "Missing inspectionId." }, { status: 400 });
+    if (!section) return NextResponse.json({ error: "Missing section." }, { status: 400 });
+    if (!limitation) return NextResponse.json({ error: "Missing limitation text." }, { status: 400 });
+
+    const { data: inspectionRow, error: inspectionError } = await supabase
+      .from("inspections")
+      .select("inspector_id")
+      .eq("id", inspectionId)
+      .single();
+
+    if (inspectionError || !inspectionRow?.inspector_id) {
+      return NextResponse.json(
+        { error: "Could not verify inspection owner." },
+        { status: 500 },
+      );
     }
 
-    if (!section) {
-      return NextResponse.json({ error: "Missing section." }, { status: 400 });
-    }
-
-    if (!limitation) {
-      return NextResponse.json({ error: "Missing limitation text." }, { status: 400 });
-    }
-
+    const inspectorId = inspectionRow.inspector_id;
     const parsedImage = parseDataUrl(imageDataUrl);
 
     const limitationComment = [
@@ -96,6 +90,7 @@ export async function POST(req: Request) {
       .from("section_limitations")
       .insert({
         inspection_id: inspectionId,
+        inspector_id: inspectorId,
         section,
         label: title,
         ai_notes: reason || limitation,
@@ -107,19 +102,14 @@ export async function POST(req: Request) {
 
     if (limitationError) {
       return NextResponse.json(
-        {
-          error: limitationError.message || "Failed to save limitation.",
-          details: limitationError,
-        },
+        { error: limitationError.message || "Failed to save limitation." },
         { status: 500 },
       );
     }
 
     savedLimitation = insertedLimitation;
 
-    uploadedFilePath = `${inspectionId}/limitations/${
-      savedLimitation.id
-    }/${Date.now()}-ai-live.${parsedImage.extension}`;
+    uploadedFilePath = `${inspectionId}/limitations/${savedLimitation.id}/${Date.now()}-ai-live.${parsedImage.extension}`;
 
     const { error: uploadError } = await supabase.storage
       .from(PHOTO_BUCKET)
@@ -128,29 +118,17 @@ export async function POST(req: Request) {
         upsert: true,
       });
 
-    if (uploadError) {
-      await supabase.from("section_limitations").delete().eq("id", savedLimitation.id);
-
-      return NextResponse.json(
-        {
-          error: uploadError.message || "Photo upload failed.",
-          photoError: uploadError.message || "Photo upload failed.",
-          limitationRolledBack: true,
-        },
-        { status: 500 },
-      );
-    }
+    if (uploadError) throw new Error(uploadError.message || "Photo upload failed.");
 
     const { data: publicData } = supabase.storage
       .from(PHOTO_BUCKET)
       .getPublicUrl(uploadedFilePath);
 
-    // Your limitation_photos table only has:
-    // id, limitation_id, photo_url, inspector_id, created_at, thumbnail_path, thumbnail_url
     const { data: photoRow, error: photoError } = await supabase
       .from("limitation_photos")
       .insert({
         limitation_id: savedLimitation.id,
+        inspector_id: inspectorId,
         photo_url: publicData.publicUrl,
         thumbnail_url: publicData.publicUrl,
         thumbnail_path: uploadedFilePath,
@@ -158,19 +136,7 @@ export async function POST(req: Request) {
       .select("*")
       .single();
 
-    if (photoError) {
-      await supabase.storage.from(PHOTO_BUCKET).remove([uploadedFilePath]);
-      await supabase.from("section_limitations").delete().eq("id", savedLimitation.id);
-
-      return NextResponse.json(
-        {
-          error: photoError.message || "Photo record insert failed.",
-          photoError: photoError.message || "Photo record insert failed.",
-          limitationRolledBack: true,
-        },
-        { status: 500 },
-      );
-    }
+    if (photoError) throw new Error(photoError.message || "Photo record insert failed.");
 
     return NextResponse.json({
       success: true,
@@ -188,12 +154,8 @@ export async function POST(req: Request) {
       await supabase.from("section_limitations").delete().eq("id", savedLimitation.id);
     }
 
-    console.error("AI live limitation save error:", error);
-
     return NextResponse.json(
-      {
-        error: error?.message || "Failed to save AI limitation with photo.",
-      },
+      { error: error?.message || "Failed to save AI limitation with photo." },
       { status: 500 },
     );
   }
