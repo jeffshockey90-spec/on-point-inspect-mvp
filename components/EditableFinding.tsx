@@ -106,6 +106,35 @@ export default function EditableFinding({ finding }: { finding: any }) {
         return;
       }
 
+      try {
+        await fetch("/api/ai/learning", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            inspectionId: finding.inspection_id,
+            tool: "editable_finding",
+            original: {
+              title: finding.title || "",
+              section: finding.section || "",
+              severity: finding.severity || "",
+              observation: finding.observation || "",
+              implication: finding.implication || "",
+              recommendation: finding.recommendation || "",
+            },
+            updated: {
+              title,
+              section,
+              severity,
+              observation,
+              implication,
+              recommendation,
+            },
+          }),
+        });
+      } catch {
+        // Learning should never block saving a finding.
+      }
+
       setSaveLabel("Saved!");
       showMessage("success", "Finding saved.");
       setEditing(false);
