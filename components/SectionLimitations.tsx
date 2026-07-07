@@ -658,14 +658,14 @@ export default function SectionLimitations({
             limitation_comment: cleanComment,
             custom_text: null,
           })
-          .eq("id", aiSaved.id)
+          .eq("id", aiSaved[0]?.id)
           .select("*")
           .single();
 
         if (error) throw error;
 
         setSaved((prev) =>
-          prev.map((item) => (item.id === aiSaved.id ? data : item))
+          prev.map((item) => (item.id === aiSaved[0]?.id ? data : item))
         );
       } else {
         const { data, error } = await supabase
