@@ -249,7 +249,7 @@ Preserve the inspector's intent. Improve the report language, but do not drift a
     }));
 
   const brainResult = await inspectionBrain.run({
-    task: "offline_field_ai_after_sync",
+    task: "finding",
     systemPrompt,
     userPrompt,
     images: imageInputs,
