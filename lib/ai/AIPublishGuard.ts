@@ -38,6 +38,64 @@ const CORE_SYSTEMS = [
   "Garage",
 ];
 
+const LIMITED_ACCESS_TERMS = [
+  "limited access",
+  "not accessible",
+  "inaccessible",
+  "unable to access",
+  "blocked",
+  "stored items",
+  "personal belongings",
+  "concealed",
+  "covered",
+  "snow",
+  "ice",
+  "unsafe access",
+  "low clearance",
+  "locked",
+  "utilities off",
+  "not operated",
+  "could not be inspected",
+];
+
+const WEAK_WORDING_TERMS = [
+  "passed inspection",
+  "failed inspection",
+  "up to code",
+  "not up to code",
+  "code violation",
+  "definitely mold",
+  "definitely asbestos",
+  "black mold",
+  "probably okay",
+  "appears fine",
+  "looks fine",
+  "all good",
+  "no issues at all",
+];
+
+const SATISFACTORY_TERMS = [
+  "satisfactory",
+  "acceptable",
+  "operating normally",
+  "functional",
+  "working properly",
+  "no significant deficiencies",
+  "no specific deficiency",
+];
+
+const NOT_TESTED_TERMS = [
+  "not tested",
+  "not operated",
+  "could not test",
+  "unable to test",
+  "unable to operate",
+  "did not operate",
+  "utilities off",
+  "shut off",
+  "disconnected",
+];
+
 function cleanText(value: any) {
   return String(value ?? "").replace(/\s+/g, " ").trim();
 }
@@ -117,6 +175,11 @@ function hasAnyText(items: any[], terms: string[]) {
   return terms.some((term) => text.includes(term));
 }
 
+function itemContainsAny(item: any, terms: string[]) {
+  const text = `${findingText(item)} ${equipmentText(item)}`.toLowerCase();
+  return terms.some((term) => text.includes(term));
+}
+
 function isReportableSeverity(value: any) {
   const severity = lowerText(value);
   return (
@@ -180,6 +243,63 @@ function inferEquipmentSection(item: any) {
   if (text.includes("condenser") || text.includes("air conditioner") || text.includes("cooling")) return "Cooling";
 
   return "General";
+}
+
+function getFindingIdentityText(finding: any) {
+  return cleanText(
+    [finding?.section, finding?.title, finding?.observation]
+      .filter(Boolean)
+      .join(" ")
+  )
+    .toLowerCase()
+    .replace(/\b(the|a|an|and|or|to|of|at|in|on|for|with|by|as|is|was|were|appeared|observed|recommend|recommended|repair|evaluation|qualified|contractor)\b/g, " ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function getTokenSet(text: string) {
+  return new Set(
+    text
+      .split(" ")
+      .map((token) => token.trim())
+      .filter((token) => token.length >= 4)
+  );
+}
+
+function similarityScore(a: string, b: string) {
+  const aSet = getTokenSet(a);
+  const bSet = getTokenSet(b);
+  if (aSet.size === 0 || bSet.size === 0) return 0;
+
+  let overlap = 0;
+  aSet.forEach((token) => {
+    if (bSet.has(token)) overlap += 1;
+  });
+
+  return overlap / Math.min(aSet.size, bSet.size);
+}
+
+function hasUsefulEquipmentIdentity(item: any) {
+  return Boolean(
+    cleanText(item?.manufacturer) ||
+      cleanText(item?.model) ||
+      cleanText(item?.serial) ||
+      cleanText(item?.manufacture_year || item?.manufactureYear) ||
+      cleanText(item?.estimated_age || item?.estimatedAge)
+  );
+}
+
+function hasPhotoLikeValue(item: any) {
+  return Boolean(
+    item?.image_url ||
+      item?.public_url ||
+      item?.photo_url ||
+      item?.file_path ||
+      item?.signed_image_url ||
+      item?.signed_url ||
+      (Array.isArray(item?.photos) && item.photos.length > 0)
+  );
 }
 
 export class AIPublishGuard {
@@ -301,6 +421,7 @@ export class AIPublishGuard {
       const title = cleanText(finding?.title || "Finding");
       const section = normalizeSection(finding?.section);
       const severity = lowerText(finding?.severity);
+      const text = lowerText(findingText(finding));
 
       if (!cleanText(finding?.recommendation)) {
         issues.push(
@@ -344,6 +465,141 @@ export class AIPublishGuard {
           )
         );
       }
+
+      const weakTerm = WEAK_WORDING_TERMS.find((term) => text.includes(term));
+      if (weakTerm) {
+        issues.push(
+          issue(
+            `weak-wording-${finding?.id || title}`,
+            `Review wording: ${title}`,
+            weakTerm.includes("code violation") || weakTerm.includes("mold") || weakTerm.includes("asbestos") ? "critical" : "warning",
+            `The finding contains wording that may be too absolute or risky: "${weakTerm}".`,
+            "Revise the language to stay factual, non-alarmist, and inspection-scope appropriate.",
+            section,
+            weakTerm.includes("definitely") || weakTerm.includes("code violation")
+          )
+        );
+      }
+
+      if (
+        itemContainsAny(finding, SATISFACTORY_TERMS) &&
+        itemContainsAny(finding, NOT_TESTED_TERMS)
+      ) {
+        issues.push(
+          issue(
+            `contradiction-tested-${finding?.id || title}`,
+            `Possible contradiction: ${title}`,
+            "critical",
+            "This finding appears to include both satisfactory/functional wording and not-tested/not-operated wording.",
+            "Clarify whether the component was operated, limited, or functioning at the time of inspection.",
+            section,
+            true
+          )
+        );
+      }
+    });
+
+    for (let i = 0; i < reportableFindings.length; i += 1) {
+      for (let j = i + 1; j < reportableFindings.length; j += 1) {
+        const first = reportableFindings[i];
+        const second = reportableFindings[j];
+        const firstSection = normalizeSection(first?.section);
+        const secondSection = normalizeSection(second?.section);
+        if (firstSection !== secondSection) continue;
+
+        const firstIdentity = getFindingIdentityText(first);
+        const secondIdentity = getFindingIdentityText(second);
+        const score = similarityScore(firstIdentity, secondIdentity);
+
+        if (score >= 0.72) {
+          const firstTitle = cleanText(first?.title || "Finding");
+          const secondTitle = cleanText(second?.title || "Finding");
+          issues.push(
+            issue(
+              `possible-duplicate-${first?.id || i}-${second?.id || j}`,
+              `Possible duplicate findings in ${firstSection}`,
+              "warning",
+              `"${firstTitle}" and "${secondTitle}" appear to describe a very similar condition.`,
+              "Review both findings and combine, delete, or differentiate them if needed.",
+              firstSection,
+              false
+            )
+          );
+        }
+      }
+    }
+
+    CORE_SYSTEMS.forEach((system) => {
+      const sectionItems = allItems.filter((item) => {
+        const section = "equipment_type" in item || "equipmentType" in item ? inferEquipmentSection(item) : normalizeSection(item?.section);
+        return section === system;
+      });
+
+      if (sectionItems.length === 0) return;
+      const sectionHasLimitationLanguage = hasAnyText(sectionItems, LIMITED_ACCESS_TERMS);
+      const sectionSuggestsLimitedAccess = sectionItems.some((item) => itemContainsAny(item, LIMITED_ACCESS_TERMS));
+
+      if (sectionSuggestsLimitedAccess && !sectionHasLimitationLanguage) {
+        issues.push(
+          issue(
+            `limitation-review-${system}`,
+            `Limitation may need review: ${system}`,
+            "warning",
+            "This section may include access or visibility limitations, but clear limitation wording was not detected.",
+            "Confirm the limitation is documented in the section limitations or finding language before publishing.",
+            system,
+            false
+          )
+        );
+      }
+    });
+
+    const inspectionText = lowerText(
+      [
+        inspection?.summary,
+        inspection?.notes,
+        inspection?.report_summary,
+        inspection?.executive_summary,
+        inspection?.status,
+        inspection?.overall_condition,
+      ]
+        .filter(Boolean)
+        .join(" ")
+    );
+
+    CORE_SYSTEMS.forEach((system) => {
+      const sectionItems = allItems.filter((item) => {
+        const section = "equipment_type" in item || "equipmentType" in item ? inferEquipmentSection(item) : normalizeSection(item?.section);
+        return section === system;
+      });
+      const sectionText = lowerText(sectionItems.map((item) => `${findingText(item)} ${equipmentText(item)}`).join(" "));
+
+      const systemWasCalledGood =
+        inspectionText.includes(`${system.toLowerCase()} satisfactory`) ||
+        inspectionText.includes(`${system.toLowerCase()} acceptable`) ||
+        sectionText.includes("satisfactory") ||
+        sectionText.includes("operating normally");
+
+      const systemWasNotTested =
+        sectionText.includes("not tested") ||
+        sectionText.includes("not operated") ||
+        sectionText.includes("unable to test") ||
+        sectionText.includes("unable to operate") ||
+        sectionText.includes("utilities off");
+
+      if (sectionItems.length > 0 && systemWasCalledGood && systemWasNotTested) {
+        issues.push(
+          issue(
+            `section-contradiction-${system}`,
+            `Possible section contradiction: ${system}`,
+            "critical",
+            `${system} appears to include both satisfactory/operating language and not-tested/not-operated limitation language.`,
+            "Clarify the section wording before publishing so the report does not conflict with itself.",
+            system,
+            true
+          )
+        );
+      }
     });
 
     (equipment || []).forEach((item) => {
@@ -354,6 +610,7 @@ export class AIPublishGuard {
       const ageText = cleanText(item?.estimated_age || item?.estimatedAge || "");
       const ageNumber = Number(ageText.replace(/[^0-9.]/g, ""));
       const status = lowerText(item?.equipment_status || item?.equipmentStatus || item?.condition);
+      const section = inferEquipmentSection(item);
 
       if (Number.isFinite(ageNumber) && ageNumber >= 15 && (status.includes("excellent") || status.includes("operating normally"))) {
         issues.push(
@@ -363,7 +620,7 @@ export class AIPublishGuard {
             "warning",
             `Equipment appears older (${ageText}) but has very positive status wording.`,
             "Confirm this is intentional. Consider wording such as operating at time of inspection, monitor due to age, and budget for future replacement when appropriate.",
-            inferEquipmentSection(item),
+            section,
             false
           )
         );
@@ -377,7 +634,35 @@ export class AIPublishGuard {
             "warning",
             "R-22 refrigerant may have service/replacement-planning implications.",
             "Confirm client-facing language includes service/replacement planning as appropriate.",
-            inferEquipmentSection(item),
+            section,
+            false
+          )
+        );
+      }
+
+      if (!hasUsefulEquipmentIdentity(item)) {
+        issues.push(
+          issue(
+            `missing-equipment-identity-${item?.id || name}`,
+            `Equipment identity may be incomplete: ${name}`,
+            "info",
+            "Equipment was saved but manufacturer/model/serial/age information may be incomplete.",
+            "Confirm whether a data plate photo or equipment identity note should be added before publishing.",
+            section,
+            false
+          )
+        );
+      }
+
+      if (!hasPhotoLikeValue(item)) {
+        issues.push(
+          issue(
+            `missing-equipment-photo-${item?.id || name}`,
+            `Equipment photo may be missing: ${name}`,
+            "info",
+            "Equipment was saved without a clear attached image value.",
+            "Attach an equipment/data plate photo if available, or leave as-is if intentionally omitted.",
+            section,
             false
           )
         );
@@ -411,6 +696,12 @@ export class AIPublishGuard {
 
     if (uniqueIssues.length === 0) {
       suggestions.push("No major publish guard concerns detected. Inspector final review still applies.");
+    }
+
+    if (criticalIssues.length > 0) {
+      suggestions.push("Resolve critical publish guard items before sending this report to the client.");
+    } else if (warnings.length > 0) {
+      suggestions.push("Review warning items before publishing, especially missing recommendations, duplicate findings, and contradictory wording.");
     }
 
     return {
