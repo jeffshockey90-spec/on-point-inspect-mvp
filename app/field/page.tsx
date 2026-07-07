@@ -111,14 +111,46 @@ function getOfflineStorableFiles(files: File[]) {
 async function prepareOfflinePhotosForQueue(files: File[]) {
   const { storable, skipped } = getOfflineStorableFiles(files);
 
-  const offlinePhotos = storable.length > 0 ? await filesToOfflinePhotos(storable) : [];
+  if (storable.length === 0) {
+    return {
+      offlinePhotos: [],
+      skipped,
+      skippedCount: skipped.length,
+      skippedVideos: skipped.filter((file) => file.type.startsWith("video/")).length,
+      quotaHit: false,
+    };
+  }
 
-  return {
-    offlinePhotos,
-    skipped,
-    skippedCount: skipped.length,
-    skippedVideos: skipped.filter((file) => file.type.startsWith("video/")).length,
-  };
+  try {
+    const offlinePhotos = await filesToOfflinePhotos(storable);
+
+    return {
+      offlinePhotos,
+      skipped,
+      skippedCount: skipped.length,
+      skippedVideos: skipped.filter((file) => file.type.startsWith("video/")).length,
+      quotaHit: false,
+    };
+  } catch (error: any) {
+    const text = String(error?.message || error?.name || error || "").toLowerCase();
+    const quotaHit =
+      text.includes("quota") ||
+      text.includes("storage") ||
+      text.includes("exceeded") ||
+      text.includes("localstorage");
+
+    // Never let media storage failure block the actual finding from being queued.
+    // iPhone Safari/Capacitor WebView storage can be very small, especially after
+    // prior failed base64 video/photo attempts. The rough finding text still needs
+    // to be saved so AI can polish it after sync.
+    return {
+      offlinePhotos: [],
+      skipped: [...storable, ...skipped],
+      skippedCount: files.length,
+      skippedVideos: files.filter((file) => file.type.startsWith("video/")).length,
+      quotaHit,
+    };
+  }
 }
 
 function getOfflineMediaSkipMessage(skippedCount: number, skippedVideos: number) {
