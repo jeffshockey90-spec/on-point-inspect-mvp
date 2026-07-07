@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { supabase } from "../lib/supabaseClient";
 
 const MAX_DISMISSED_AGE_MS = 8 * 60 * 1000;
 const RESURFACE_CONFIDENCE_BOOST = 0.12;
@@ -481,73 +480,31 @@ export default function AILiveInspectionCamera({
     setSavingLimitationIndex(index);
 
     try {
-      const limitationComment = [
-        cleanLimitation,
-        cleanReason ? `Reason: ${cleanReason}` : "",
-        cleanRecommendation ? `Recommendation: ${cleanRecommendation}` : "",
-      ]
-        .filter(Boolean)
-        .join("\n\n");
-
-      const { data: savedLimitation, error } = await supabase
-        .from("section_limitations")
-        .insert({
-          inspection_id: selectedReport,
-          section: targetSection,
-          label: limitation.title || "AI Limitation Note",
-          ai_notes: cleanReason || cleanLimitation,
-          limitation_comment: limitationComment,
-          custom_text: null,
-        })
-        .select("*")
-        .single();
-
-      if (error) throw error;
-
-      let imageFile: File | null = null;
-
       const savedFrame =
         latestFrameRef.current ||
         frameDataUrl ||
         captureFrame({ silent: true });
 
-      if (savedFrame) {
-        imageFile = dataUrlToFile(savedFrame, "ai-limitation");
-      }
+      const response = await fetch("/api/ai/live-limitation", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          inspectionId: selectedReport,
+          section: targetSection,
+          title: limitation.title || "AI Limitation Note",
+          limitation: cleanLimitation,
+          reason: cleanReason,
+          recommendation: cleanRecommendation,
+          imageDataUrl: savedFrame || "",
+        }),
+      });
 
-      if (imageFile && savedLimitation?.id) {
-        const filePath = `${selectedReport}/limitations/${
-          savedLimitation.id
-        }/${Date.now()}-ai-live.jpg`;
+      const data = await response.json().catch(() => ({}));
 
-        const { error: uploadError } = await supabase.storage
-          .from("inspection-photos")
-          .upload(filePath, imageFile, {
-            contentType: imageFile.type || "image/jpeg",
-            upsert: false,
-          });
-
-        if (uploadError) {
-          console.error("AI limitation photo upload failed:", uploadError);
-        } else {
-          const { data: publicData } = supabase.storage
-            .from("inspection-photos")
-            .getPublicUrl(filePath);
-
-          const { error: photoError } = await supabase
-            .from("limitation_photos")
-            .insert({
-              limitation_id: savedLimitation.id,
-              inspection_id: selectedReport,
-              section: targetSection,
-              file_path: filePath,
-              public_url: publicData.publicUrl,
-            });
-
-          if (photoError) {
-            console.error("AI limitation photo record failed:", photoError);
-          }
-        }
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to add limitation with photo.");
       }
 
       window.dispatchEvent(
@@ -563,9 +520,9 @@ export default function AILiveInspectionCamera({
       setWaitingForDecision(false);
 
       setMessage(
-        imageFile
+        data.photo
           ? `Limitation added to ${targetSection} with photo. AI Watching resumed.`
-          : `Limitation added to ${targetSection}. AI Watching resumed.`,
+          : `Limitation added to ${targetSection}. No photo was attached.`,
       );
     } catch (error: any) {
       setMessage(error?.message || "Failed to add limitation to section.");
