@@ -170,6 +170,45 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
     };
   }, [inspectionId, router]);
 
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    function handleLiveLimitationAdded(event: Event) {
+      const detail = (event as CustomEvent)?.detail || {};
+      const eventInspectionId = String(detail.inspectionId || "");
+      const targetSection = String(detail.section || "");
+
+      if (!targetSection) return;
+      if (eventInspectionId && eventInspectionId !== String(inspectionId)) return;
+
+      setClosedSections((current) => ({
+        ...current,
+        [targetSection]: false,
+      }));
+
+      router.refresh();
+
+      window.setTimeout(() => {
+        document
+          .getElementById(`report-section-${commandSlug(targetSection)}`)
+          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 350);
+    }
+
+    window.addEventListener(
+      "opi:section-limitations-changed",
+      handleLiveLimitationAdded as EventListener,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "opi:section-limitations-changed",
+        handleLiveLimitationAdded as EventListener,
+      );
+    };
+  }, [inspectionId, router]);
+
   const allFindings = useMemo(() => {
     return (orderedGroups || []).flatMap((group: any) => group.findings || []);
   }, [orderedGroups]);
