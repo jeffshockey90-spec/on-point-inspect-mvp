@@ -104,6 +104,22 @@ function shouldRunAiAfterSync(payload: any) {
   return hasUsefulText && Boolean(process.env.OPENAI_API_KEY);
 }
 
+function getOfflineCreatedAt(payload: any, itemCreatedAt?: string) {
+  return cleanText(payload?.offline_created_at || payload?.created_at || itemCreatedAt);
+}
+
+function wasEditedAfterOfflineCapture(row: any, offlineCreatedAt: string) {
+  if (!offlineCreatedAt || !row?.updated_at) return false;
+
+  const updatedAt = new Date(row.updated_at).getTime();
+  const capturedAt = new Date(offlineCreatedAt).getTime();
+
+  if (!Number.isFinite(updatedAt) || !Number.isFinite(capturedAt)) return false;
+
+  // Give the database a short grace window for insert/update timestamps.
+  return updatedAt > capturedAt + 3000;
+}
+
 async function uploadOfflinePhoto({
   inspectionId,
   photo,
@@ -148,11 +164,13 @@ async function generateAiFindingAfterSync({
   inspectionId,
   findingId,
   photoInputs,
+  offlineCreatedAt,
 }: {
   payload: any;
   inspectionId: string;
   findingId: string | number;
   photoInputs: any[];
+  offlineCreatedAt?: string;
 }) {
   const inspectorNote = cleanText(payload?.inspector_note || payload?.note);
   const existingTitle = cleanText(payload?.title);
@@ -284,6 +302,36 @@ Preserve the inspector's intent. Improve the report language, but do not drift a
     recommendation: nextRecommendation,
   };
 
+  if (offlineCreatedAt) {
+    const { data: latestFinding } = await supabase
+      .from("findings")
+      .select("id, updated_at")
+      .eq("id", findingId)
+      .eq("inspection_id", inspectionId)
+      .maybeSingle();
+
+    if (wasEditedAfterOfflineCapture(latestFinding, offlineCreatedAt)) {
+      await logAIEvent({
+        inspectionId,
+        tool: "offline_field_ai_after_sync",
+        prompt: userPrompt,
+        response: {
+          findingId,
+          skipped: true,
+          reason: "Finding was edited after offline capture. AI update skipped to avoid overwriting newer inspector changes.",
+        },
+        status: "success",
+      });
+
+      return {
+        ran: false,
+        skipped: true,
+        reason:
+          "Finding was edited after offline capture. AI update skipped to avoid overwriting newer inspector changes.",
+      };
+    }
+  }
+
   // These columns may not exist in every older database. Try them, then fall back safely.
   const enhancedPayload = {
     ...updatePayload,
@@ -350,6 +398,7 @@ export async function POST(req: Request) {
     }
 
     const payload = item.payload || {};
+    const offlineCreatedAt = getOfflineCreatedAt(payload, item.createdAt);
     const inspectionId = String(payload.inspection_id || "").trim();
 
     if (!inspectionId) {
@@ -486,6 +535,7 @@ export async function POST(req: Request) {
           inspectionId,
           findingId: finding.id,
           photoInputs: uploadedPhotoInputs,
+          offlineCreatedAt,
         });
       } catch (aiError: any) {
         console.error("Offline AI after sync failed:", aiError);

@@ -9,6 +9,10 @@ import {
   processOfflineQueue,
   startOfflineQueueAutoSync,
 } from "../lib/offlineSyncQueue";
+import {
+  getCachedInspectionPreload,
+  saveSyncCompletionNotice,
+} from "../lib/offlineInspectionPreload";
 
 const OFFLINE_SYNC_COMPLETE_EVENT = "opi:offline-sync-complete";
 const OFFLINE_SYNC_COMPLETE_KEY = "opi-offline-sync-complete-at";
@@ -37,6 +41,7 @@ export default function OfflineSyncStatus() {
   const [syncing, setSyncing] = useState(false);
   const [lastSynced, setLastSynced] = useState("");
   const [lastError, setLastError] = useState("");
+  const [completionNotice, setCompletionNotice] = useState("");
 
   function refreshStatus() {
     const summary = getOfflineQueueSummary();
@@ -75,6 +80,35 @@ export default function OfflineSyncStatus() {
         setLastError(
           `${result.failed} item${result.failed === 1 ? "" : "s"} failed to sync.`,
         );
+      }
+
+      if (result.synced > 0) {
+        const syncedFindings = (result.syncedItems || []).filter(
+          (entry: any) => entry?.item?.type === "finding",
+        );
+        const aiProcessed = syncedFindings.filter(
+          (entry: any) => entry?.result?.ai_after_sync?.ran,
+        ).length;
+        const firstInspectionId =
+          syncedFindings[0]?.item?.payload?.inspection_id ||
+          (result.syncedItems || [])[0]?.item?.payload?.inspection_id ||
+          "";
+        const cached = firstInspectionId
+          ? getCachedInspectionPreload(String(firstInspectionId))
+          : null;
+        const label = cached?.inspection?.label || "Inspection";
+        const notice = `${label} synced — ${result.synced} item${
+          result.synced === 1 ? "" : "s"
+        } uploaded${aiProcessed > 0 ? `, ${aiProcessed} processed by AI` : ""}.`;
+
+        saveSyncCompletionNotice({
+          inspectionId: String(firstInspectionId || ""),
+          label,
+          synced: result.synced,
+          failed: result.failed,
+          aiProcessed,
+        });
+        setCompletionNotice(notice);
       }
 
       refreshStatus();
@@ -125,9 +159,21 @@ export default function OfflineSyncStatus() {
       refreshStatus();
     };
 
+    const handleCompletionNotice = (event: Event) => {
+      const detail = (event as CustomEvent)?.detail || {};
+      if (!detail?.synced) return;
+
+      setCompletionNotice(
+        `${detail.label || "Inspection"} synced — ${detail.synced} item${
+          detail.synced === 1 ? "" : "s"
+        } uploaded${detail.aiProcessed > 0 ? `, ${detail.aiProcessed} processed by AI` : ""}.`,
+      );
+    };
+
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
     window.addEventListener("on-point-offline-queue-change", handleQueueChange);
+    window.addEventListener("opi:sync-completion-notice", handleCompletionNotice);
 
     const interval = window.setInterval(refreshStatus, 5000);
 
@@ -138,6 +184,10 @@ export default function OfflineSyncStatus() {
       window.removeEventListener(
         "on-point-offline-queue-change",
         handleQueueChange,
+      );
+      window.removeEventListener(
+        "opi:sync-completion-notice",
+        handleCompletionNotice,
       );
       window.clearInterval(interval);
     };
@@ -202,6 +252,12 @@ export default function OfflineSyncStatus() {
 
           {lastError && (
             <p className="mt-1 text-xs font-bold text-red-300">{lastError}</p>
+          )}
+
+          {completionNotice && (
+            <p className="mt-1 text-xs font-black text-emerald-300">
+              {completionNotice}
+            </p>
           )}
         </div>
 

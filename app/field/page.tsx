@@ -19,6 +19,14 @@ import {
   isOnline,
   startOfflineQueueAutoSync,
 } from "../../lib/offlineSyncQueue";
+import {
+  cacheReportsForOffline,
+  getCachedInspectionPreload,
+  getCachedReportsForOffline,
+  getInspectionLabel,
+  saveInspectionPreload,
+  saveSyncCompletionNotice,
+} from "../../lib/offlineInspectionPreload";
 
 const SECTIONS = [
   "Exterior",
@@ -920,6 +928,7 @@ function FieldPageContent() {
   const [takingNativePhoto, setTakingNativePhoto] = useState(false);
   const [online, setOnline] = useState(true);
   const [message, setMessage] = useState("");
+  const [syncNotice, setSyncNotice] = useState("");
   const [aiSuggestions, setAiSuggestions] = useState<AISuggestion[]>([]);
   const [queueTick, setQueueTick] = useState(0);
   const voiceRecognitionRef = useRef<any>(null);
@@ -944,11 +953,41 @@ function FieldPageContent() {
         if (result.synced > 0) {
           notifyFieldBackgroundSyncComplete();
           setQueueTick((current) => current + 1);
-          setMessage(
-            result.failed > 0
-              ? `Background sync finished with ${result.failed} item${result.failed === 1 ? "" : "s"} still waiting.`
-              : `Background sync completed. ${result.synced} item${result.synced === 1 ? "" : "s"} synced.`,
+
+          const syncedFindings = (result.syncedItems || []).filter(
+            (entry: any) => entry?.item?.type === "finding",
           );
+          const aiProcessed = syncedFindings.filter(
+            (entry: any) => entry?.result?.ai_after_sync?.ran,
+          ).length;
+          const firstInspectionId =
+            syncedFindings[0]?.item?.payload?.inspection_id || selectedReport || "";
+          const cached = firstInspectionId
+            ? getCachedInspectionPreload(String(firstInspectionId))
+            : null;
+          const matchedReport = reports.find(
+            (report: any) => String(report.id) === String(firstInspectionId),
+          );
+          const label =
+            cached?.inspection?.label ||
+            (matchedReport ? getInspectionLabel(matchedReport) : "") ||
+            "Inspection";
+
+          const notice =
+            result.failed > 0
+              ? `Background sync finished for ${label}. ${result.synced} synced, ${result.failed} still waiting.`
+              : `${label} synced — ${result.synced} item${result.synced === 1 ? "" : "s"} uploaded${aiProcessed > 0 ? `, ${aiProcessed} processed by AI` : ""}.`;
+
+          saveSyncCompletionNotice({
+            inspectionId: String(firstInspectionId || ""),
+            label,
+            synced: result.synced,
+            failed: result.failed,
+            aiProcessed,
+          });
+
+          setSyncNotice(notice);
+          setMessage(notice);
         }
       },
       onFailed: () => {
@@ -957,11 +996,16 @@ function FieldPageContent() {
     });
 
     return stopAutoSync;
-  }, []);
+  }, [reports, selectedReport]);
   const offlineSummary = useMemo(
     () => getOfflineQueueSummary(),
     [message, photos.length, online, queueTick],
   );
+
+  const selectedOfflinePreload = useMemo(() => {
+    if (!selectedReport) return null;
+    return getCachedInspectionPreload(selectedReport);
+  }, [selectedReport, reports, queueTick]);
 
   function setMediaProgress(
     id: string,
@@ -1099,12 +1143,59 @@ function FieldPageContent() {
       .order("created_at", { ascending: false });
 
     if (error) {
+      const cachedReports = getCachedReportsForOffline();
+      if (cachedReports.length > 0) {
+        setReports(cachedReports.map((item: any) => item.raw || item));
+        setMessage(
+          "Loaded cached inspections for offline use. Some live details may update when service returns.",
+        );
+        return;
+      }
+
       setMessage(error.message);
       return;
     }
 
-    setReports(data || []);
+    const nextReports = data || [];
+    setReports(nextReports);
+    cacheReportsForOffline(nextReports);
+
+    if (selectedReport) {
+      const selectedInspection = nextReports.find(
+        (report: any) => String(report.id) === String(selectedReport),
+      );
+
+      saveInspectionPreload({
+        inspectionId: selectedReport,
+        inspection: selectedInspection,
+        reports: nextReports,
+        comments: [],
+        templates: [],
+        sections: SECTIONS,
+        findings: [],
+        clientInfo: selectedInspection || {},
+      });
+    }
   }
+
+  useEffect(() => {
+    if (!selectedReport || reports.length === 0) return;
+
+    const selectedInspection = reports.find(
+      (report: any) => String(report.id) === String(selectedReport),
+    );
+
+    saveInspectionPreload({
+      inspectionId: selectedReport,
+      inspection: selectedInspection,
+      reports,
+      comments: [],
+      templates: [],
+      sections: SECTIONS,
+      findings: [],
+      clientInfo: selectedInspection || {},
+    });
+  }, [selectedReport, reports]);
 
   function resetForm() {
     setTitle("");
@@ -2655,6 +2746,12 @@ function FieldPageContent() {
             <OfflineSyncStatus />
           </div>
 
+          {syncNotice && (
+            <div className="mb-5 rounded-xl border border-emerald-500/50 bg-emerald-500/10 p-4 text-sm font-black text-emerald-200">
+              {syncNotice}
+            </div>
+          )}
+
           {message && (
             <div className="mb-5 rounded-xl border border-teal-500/40 bg-teal-950/20 p-4 text-sm font-bold text-teal-200">
               {message}
@@ -2666,7 +2763,27 @@ function FieldPageContent() {
               <label className="mb-2 block font-bold">Select Report</label>
               <select
                 value={selectedReport}
-                onChange={(e) => setSelectedReport(e.target.value)}
+                onChange={(e) => {
+                  const nextId = e.target.value;
+                  setSelectedReport(nextId);
+
+                  if (nextId) {
+                    const selectedInspection = reports.find(
+                      (report: any) => String(report.id) === String(nextId),
+                    );
+
+                    saveInspectionPreload({
+                      inspectionId: nextId,
+                      inspection: selectedInspection,
+                      reports,
+                      comments: [],
+                      templates: [],
+                      sections: SECTIONS,
+                      findings: [],
+                      clientInfo: selectedInspection || {},
+                    });
+                  }
+                }}
                 className="w-full rounded-xl border border-slate-700 bg-black p-4 text-white"
               >
                 <option value="">Select Report</option>
@@ -2678,6 +2795,14 @@ function FieldPageContent() {
                   </option>
                 ))}
               </select>
+
+              {selectedReport && (
+                <div className="mt-3 rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-4 py-3 text-xs font-bold text-cyan-100">
+                  {selectedOfflinePreload
+                    ? `Offline preload ready for ${selectedOfflinePreload.inspection?.label || "this inspection"} — sections, selected report info, client info, and field workflow cache are stored on this device.`
+                    : "This inspection will be cached on this device for offline use."}
+                </div>
+              )}
             </div>
 
             <div className="grid gap-3 md:grid-cols-2">

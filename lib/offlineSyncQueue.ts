@@ -17,6 +17,22 @@ export type OfflineQueueItem = {
   lastError?: string;
 };
 
+export type OfflineSyncResult = {
+  ok: boolean;
+  synced: number;
+  failed: number;
+  remaining: number;
+  offline: boolean;
+  syncedItems: Array<{
+    item: OfflineQueueItem;
+    result?: any;
+  }>;
+  failedItems: Array<{
+    item: OfflineQueueItem;
+    error: string;
+  }>;
+};
+
 const OFFLINE_QUEUE_KEY = "on_point_offline_sync_queue";
 const QUEUE_CHANGE_EVENT = "on-point-offline-queue-change";
 const AUTO_SYNC_LOCK_KEY = "on_point_offline_sync_running";
@@ -285,7 +301,10 @@ export async function processOfflineQueue({
 }: {
   onItemSynced?: (item: OfflineQueueItem, result?: any) => void;
   onItemFailed?: (item: OfflineQueueItem, error: any) => void;
-} = {}) {
+} = {}): Promise<OfflineSyncResult & { busy?: boolean }> {
+  const syncedItems: OfflineSyncResult["syncedItems"] = [];
+  const failedItems: OfflineSyncResult["failedItems"] = [];
+
   if (!isOnline()) {
     return {
       ok: false,
@@ -293,6 +312,8 @@ export async function processOfflineQueue({
       failed: 0,
       remaining: getOfflineQueue().length,
       offline: true,
+      syncedItems,
+      failedItems,
     };
   }
 
@@ -304,6 +325,8 @@ export async function processOfflineQueue({
       remaining: getOfflineQueue().length,
       offline: false,
       busy: true,
+      syncedItems,
+      failedItems,
     };
   }
 
@@ -333,16 +356,19 @@ export async function processOfflineQueue({
 
         removeOfflineQueueItem(item.id);
         synced += 1;
+        syncedItems.push({ item, result: data });
         onItemSynced?.(item, data);
       } catch (error: any) {
+        const message = error?.message || "Sync failed.";
         failed += 1;
 
         updateOfflineQueueItem(item.id, (current) => ({
           ...current,
           retryCount: Number(current.retryCount || 0) + 1,
-          lastError: error?.message || "Sync failed.",
+          lastError: message,
         }));
 
+        failedItems.push({ item, error: message });
         onItemFailed?.(item, error);
       }
     }
@@ -357,6 +383,8 @@ export async function processOfflineQueue({
     failed,
     remaining: getOfflineQueue().length,
     offline: false,
+    syncedItems,
+    failedItems,
   };
 }
 
