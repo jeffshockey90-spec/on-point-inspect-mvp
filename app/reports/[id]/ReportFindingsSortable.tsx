@@ -7,6 +7,7 @@ import SectionLimitations from "../../../components/SectionLimitations";
 import ReportDisclaimers from "../../../components/ReportDisclaimers";
 import SectionInformationChecklist from "../../../components/SectionInformationChecklist";
 import SectionReferencePhotos from "../../../components/SectionReferencePhotos";
+import AISectionReview from "../../../components/AISectionReview";
 import { supabase } from "../../../lib/supabaseClient";
 
 const PHOTO_BUCKET = "inspection-photos";
@@ -500,6 +501,12 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
                 <SectionInformationChecklist
                   inspectionId={inspectionId}
                   section={group.section}
+                />
+
+                <AISectionReview
+                  inspectionId={inspectionId}
+                  section={group.section}
+                  findings={findings}
                 />
 
                 {group.section === "Inspection Details" && (
