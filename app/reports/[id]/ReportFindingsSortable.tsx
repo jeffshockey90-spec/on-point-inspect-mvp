@@ -46,34 +46,46 @@ function markFindingReviewedForCommandCenter(findingId: any) {
   try {
     const raw = window.localStorage.getItem(getReviewedFindingStorageKey());
     const values = raw ? JSON.parse(raw) : [];
-    const ids = new Set((Array.isArray(values) ? values : []).map((value) => String(value)));
+    const ids = new Set(
+      (Array.isArray(values) ? values : []).map((value) => String(value)),
+    );
     ids.add(id);
-    window.localStorage.setItem(getReviewedFindingStorageKey(), JSON.stringify(Array.from(ids)));
+    window.localStorage.setItem(
+      getReviewedFindingStorageKey(),
+      JSON.stringify(Array.from(ids)),
+    );
   } catch {}
 
   // Keep the Command Center counts live without requiring a refresh.
-  window.dispatchEvent(new CustomEvent("opi:finding-reviewed", { detail: { findingId: id } }));
+  window.dispatchEvent(
+    new CustomEvent("opi:finding-reviewed", { detail: { findingId: id } }),
+  );
   window.dispatchEvent(new Event("opi:reviewed-findings-changed"));
 }
 
+const EditableFinding = dynamic(
+  () => import("../../../components/EditableFinding"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="rounded-xl border border-slate-700 bg-slate-950/50 p-4 text-sm font-bold text-slate-400">
+        Loading editor...
+      </div>
+    ),
+  },
+);
 
-const EditableFinding = dynamic(() => import("../../../components/EditableFinding"), {
-  ssr: false,
-  loading: () => (
-    <div className="rounded-xl border border-slate-700 bg-slate-950/50 p-4 text-sm font-bold text-slate-400">
-      Loading editor...
-    </div>
-  ),
-});
-
-const PhotoMarkupEditor = dynamic(() => import("../../../components/PhotoMarkupEditor"), {
-  ssr: false,
-  loading: () => (
-    <div className="rounded-xl border border-purple-700 bg-purple-950/20 p-4 text-sm font-bold text-purple-200">
-      Loading photo markup...
-    </div>
-  ),
-});
+const PhotoMarkupEditor = dynamic(
+  () => import("../../../components/PhotoMarkupEditor"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="rounded-xl border border-purple-700 bg-purple-950/20 p-4 text-sm font-bold text-purple-200">
+        Loading photo markup...
+      </div>
+    ),
+  },
+);
 
 const PHOTO_PICKER_PAGE_SIZE = 48;
 
@@ -93,10 +105,12 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
   }
 
   const [closedSections, setClosedSections] = useState<Record<string, boolean>>(
-    () => getAllSectionsClosed(groupedFindings || [])
+    () => getAllSectionsClosed(groupedFindings || []),
   );
 
-  const [orderedGroups, setOrderedGroups] = useState<any[]>(groupedFindings || []);
+  const [orderedGroups, setOrderedGroups] = useState<any[]>(
+    groupedFindings || [],
+  );
   const [draggingSection, setDraggingSection] = useState<string | null>(null);
   const [photoPickerLoaded, setPhotoPickerLoaded] = useState(false);
 
@@ -116,6 +130,45 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
     document.documentElement.style.removeProperty("touch-action");
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const syncCompleteKey = "opi-offline-sync-complete-at";
+    const seenKey = `opi-offline-sync-seen-${inspectionId}`;
+
+    function refreshReportAfterOfflineSync() {
+      const syncedAt = window.localStorage.getItem(syncCompleteKey) || "";
+      const lastSeen = window.sessionStorage.getItem(seenKey) || "";
+
+      if (syncedAt && syncedAt !== lastSeen) {
+        window.sessionStorage.setItem(seenKey, syncedAt);
+        router.refresh();
+      }
+    }
+
+    function handleStorage(event: StorageEvent) {
+      if (event.key === syncCompleteKey) {
+        refreshReportAfterOfflineSync();
+      }
+    }
+
+    window.addEventListener(
+      "opi:offline-sync-complete",
+      refreshReportAfterOfflineSync,
+    );
+    window.addEventListener("storage", handleStorage);
+
+    refreshReportAfterOfflineSync();
+
+    return () => {
+      window.removeEventListener(
+        "opi:offline-sync-complete",
+        refreshReportAfterOfflineSync,
+      );
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, [inspectionId, router]);
+
   const allFindings = useMemo(() => {
     return (orderedGroups || []).flatMap((group: any) => group.findings || []);
   }, [orderedGroups]);
@@ -128,7 +181,13 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
 
     (allFindings || []).forEach((finding: any) => {
       (finding.photos || []).forEach((photo: any) => {
-        const key = String(photo.id || photo.file_path || photo.public_url || photo.signed_url || "");
+        const key = String(
+          photo.id ||
+            photo.file_path ||
+            photo.public_url ||
+            photo.signed_url ||
+            "",
+        );
         if (!key || seen.has(key)) return;
 
         seen.add(key);
@@ -151,25 +210,38 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
 
   useEffect(() => {
     function openTargetFromHash(rawTarget?: string) {
-      const target = String(rawTarget || window.location.hash || "").replace(/^#/, "").trim();
+      const target = String(rawTarget || window.location.hash || "")
+        .replace(/^#/, "")
+        .trim();
       if (!target) return;
 
       let targetFindingId = "";
-      if (target.startsWith("finding-")) targetFindingId = target.replace("finding-", "");
+      if (target.startsWith("finding-"))
+        targetFindingId = target.replace("finding-", "");
 
       if (targetFindingId) {
         const matchedGroup = (orderedGroups || []).find((group: any) =>
-          (group.findings || []).some((finding: any) => String(finding.id) === targetFindingId)
+          (group.findings || []).some(
+            (finding: any) => String(finding.id) === targetFindingId,
+          ),
         );
 
         if (matchedGroup?.section) {
-          setClosedSections((prev) => ({ ...prev, [matchedGroup.section]: false }));
+          setClosedSections((prev) => ({
+            ...prev,
+            [matchedGroup.section]: false,
+          }));
         }
       } else if (target.startsWith("report-section-")) {
         const sectionSlug = target.replace("report-section-", "");
-        const matchedGroup = (orderedGroups || []).find((group: any) => commandSlug(group.section) === sectionSlug);
+        const matchedGroup = (orderedGroups || []).find(
+          (group: any) => commandSlug(group.section) === sectionSlug,
+        );
         if (matchedGroup?.section) {
-          setClosedSections((prev) => ({ ...prev, [matchedGroup.section]: false }));
+          setClosedSections((prev) => ({
+            ...prev,
+            [matchedGroup.section]: false,
+          }));
         }
       }
 
@@ -177,9 +249,19 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
         const element = document.getElementById(target);
         if (element) {
           element.scrollIntoView({ behavior: "smooth", block: "center" });
-          element.classList.add("ring-4", "ring-cyan-300", "ring-offset-4", "ring-offset-slate-950");
+          element.classList.add(
+            "ring-4",
+            "ring-cyan-300",
+            "ring-offset-4",
+            "ring-offset-slate-950",
+          );
           window.setTimeout(() => {
-            element.classList.remove("ring-4", "ring-cyan-300", "ring-offset-4", "ring-offset-slate-950");
+            element.classList.remove(
+              "ring-4",
+              "ring-cyan-300",
+              "ring-offset-4",
+              "ring-offset-slate-950",
+            );
           }, 2200);
         }
       }, 180);
@@ -191,16 +273,27 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
 
     function handleCommandJump(event: Event) {
       const detail = (event as CustomEvent)?.detail || {};
-      const firstFindingId = Array.isArray(detail.findingIds) ? detail.findingIds[0] : "";
-      openTargetFromHash(detail.targetAnchor || (firstFindingId ? `finding-${firstFindingId}` : ""));
+      const firstFindingId = Array.isArray(detail.findingIds)
+        ? detail.findingIds[0]
+        : "";
+      openTargetFromHash(
+        detail.targetAnchor ||
+          (firstFindingId ? `finding-${firstFindingId}` : ""),
+      );
     }
 
     // Do not react to existing URL hashes on page load.
     // Command Center jumps should only happen after an explicit user click.
-    window.addEventListener("opi:command-center-jump", handleCommandJump as EventListener);
+    window.addEventListener(
+      "opi:command-center-jump",
+      handleCommandJump as EventListener,
+    );
 
     return () => {
-      window.removeEventListener("opi:command-center-jump", handleCommandJump as EventListener);
+      window.removeEventListener(
+        "opi:command-center-jump",
+        handleCommandJump as EventListener,
+      );
     };
   }, [orderedGroups]);
 
@@ -254,11 +347,11 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
       const next = [...prev];
 
       const fromIndex = next.findIndex(
-        (group: any) => group.section === draggingSection
+        (group: any) => group.section === draggingSection,
       );
 
       const toIndex = next.findIndex(
-        (group: any) => group.section === targetSection
+        (group: any) => group.section === targetSection,
       );
 
       if (fromIndex === -1 || toIndex === -1) return prev;
@@ -273,7 +366,11 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
   }
 
   return (
-    <div id="report-findings-editor" data-command-target="report-findings" className="w-full max-w-full space-y-4 overflow-visible">
+    <div
+      id="report-findings-editor"
+      data-command-target="report-findings"
+      className="w-full max-w-full space-y-4 overflow-visible"
+    >
       <div className="flex w-full flex-col gap-2 rounded-2xl border border-slate-700 bg-[#0f172a] p-3 sm:flex-row sm:flex-wrap sm:p-4">
         <button
           type="button"
@@ -293,7 +390,9 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
 
         <div className="w-full rounded-xl border border-slate-700 px-4 py-2 text-center text-xs font-bold text-slate-400 sm:w-auto sm:text-left sm:text-sm">
           <span className="sm:hidden">Use arrows to reorder</span>
-          <span className="hidden sm:inline">Drag section headers to reorder</span>
+          <span className="hidden sm:inline">
+            Drag section headers to reorder
+          </span>
         </div>
       </div>
 
@@ -450,7 +549,6 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
   );
 }
 
-
 function AddSectionFindingForm({
   inspectionId,
   section,
@@ -523,7 +621,11 @@ function AddSectionFindingForm({
           const nextData = await response.json().catch(() => ({}));
 
           if (response.ok) {
-            data = nextData?.finding || nextData?.result || nextData?.suggestion || nextData;
+            data =
+              nextData?.finding ||
+              nextData?.result ||
+              nextData?.suggestion ||
+              nextData;
             break;
           }
 
@@ -534,15 +636,39 @@ function AddSectionFindingForm({
       }
 
       if (!data) {
-        setMessage(lastError || "AI could not generate a finding from this note.");
+        setMessage(
+          lastError || "AI could not generate a finding from this note.",
+        );
         return;
       }
 
-      const nextTitle = pickAiValue(data, ["title", "finding_title", "defect_title", "name"]);
-      const nextSeverity = pickAiValue(data, ["severity", "priority", "category"]);
-      const nextObservation = pickAiValue(data, ["observation", "description", "comment", "summary"]);
-      const nextImplication = pickAiValue(data, ["implication", "impact", "why_it_matters"]);
-      const nextRecommendation = pickAiValue(data, ["recommendation", "recommended_action", "action"]);
+      const nextTitle = pickAiValue(data, [
+        "title",
+        "finding_title",
+        "defect_title",
+        "name",
+      ]);
+      const nextSeverity = pickAiValue(data, [
+        "severity",
+        "priority",
+        "category",
+      ]);
+      const nextObservation = pickAiValue(data, [
+        "observation",
+        "description",
+        "comment",
+        "summary",
+      ]);
+      const nextImplication = pickAiValue(data, [
+        "implication",
+        "impact",
+        "why_it_matters",
+      ]);
+      const nextRecommendation = pickAiValue(data, [
+        "recommendation",
+        "recommended_action",
+        "action",
+      ]);
 
       setTitle(nextTitle || cleanNote.slice(0, 80));
       setSeverity(SEVERITIES.includes(nextSeverity) ? nextSeverity : severity);
@@ -629,7 +755,9 @@ function AddSectionFindingForm({
                 Add Defect To {section}
               </h3>
               <p className="mt-0.5 text-xs font-bold text-slate-400 sm:mt-1 sm:text-sm">
-                Create a normal finding without using AI Capture, Field Tool, Voice Tool, or Equipment Analyzer. Photos can be added after saving.
+                Create a normal finding without using AI Capture, Field Tool,
+                Voice Tool, or Equipment Analyzer. Photos can be added after
+                saving.
               </p>
             </div>
 
@@ -644,7 +772,9 @@ function AddSectionFindingForm({
           </div>
 
           {message && (
-            <div className={`rounded-xl border px-4 py-3 text-sm font-bold ${message.includes("filled in") ? "border-emerald-500/60 bg-emerald-500/10 text-emerald-200" : "border-red-500/60 bg-red-500/10 text-red-200"}`}>
+            <div
+              className={`rounded-xl border px-4 py-3 text-sm font-bold ${message.includes("filled in") ? "border-emerald-500/60 bg-emerald-500/10 text-emerald-200" : "border-red-500/60 bg-red-500/10 text-red-200"}`}
+            >
               {message}
             </div>
           )}
@@ -656,7 +786,8 @@ function AddSectionFindingForm({
                   🤖 AI Note Inspector
                 </h4>
                 <p className="mt-1 text-sm text-slate-300">
-                  Type a rough field note and AI will turn it into a clean defect. Review before saving.
+                  Type a rough field note and AI will turn it into a clean
+                  defect. Review before saving.
                 </p>
               </div>
 
@@ -839,7 +970,9 @@ function handleImageFallback(
 }
 
 function isLikelyVideoUrl(value: any) {
-  const clean = String(value || "").toLowerCase().split("?")[0];
+  const clean = String(value || "")
+    .toLowerCase()
+    .split("?")[0];
   return /\.(mp4|mov|m4v|webm|avi|quicktime)$/.test(clean);
 }
 
@@ -876,21 +1009,21 @@ function isVideoMedia(photo: any) {
       photo?.photo_path ||
       photo?.image_path ||
       photo?.video_path ||
-      ""
+      "",
   ).toLowerCase();
   const type = String(
     photo?.mime_type ||
       photo?.media_type ||
       photo?.content_type ||
       photo?.file_type ||
-      ""
+      "",
   ).toLowerCase();
   const title = String(
     photo?.title ||
       photo?.current_finding_title ||
       photo?.finding_title ||
       photo?.caption ||
-      ""
+      "",
   ).toLowerCase();
 
   return (
@@ -1014,7 +1147,10 @@ function getFindingPhotos(finding: any) {
       finding.defect_title ||
       finding.name ||
       "",
-    is_video: finding.is_video || finding.media_type === "video" || Boolean(finding.video_url),
+    is_video:
+      finding.is_video ||
+      finding.media_type === "video" ||
+      Boolean(finding.video_url),
     isLegacyImage: true,
   };
 
@@ -1024,7 +1160,6 @@ function getFindingPhotos(finding: any) {
 
   return photos;
 }
-
 
 async function readFileAsDataUrl(file: File): Promise<string> {
   return await new Promise((resolve, reject) => {
@@ -1044,7 +1179,9 @@ async function readFileAsDataUrl(file: File): Promise<string> {
   });
 }
 
-async function loadImageFromDataUrl(dataUrl: string): Promise<HTMLImageElement> {
+async function loadImageFromDataUrl(
+  dataUrl: string,
+): Promise<HTMLImageElement> {
   return await new Promise((resolve, reject) => {
     const image = new Image();
 
@@ -1054,12 +1191,11 @@ async function loadImageFromDataUrl(dataUrl: string): Promise<HTMLImageElement> 
   });
 }
 
-
 async function createImageVariantForUpload(
   file: File,
   maxDimension: number,
   quality: number,
-  suffix: string
+  suffix: string,
 ): Promise<File> {
   if (!file.type.startsWith("image/")) return file;
 
@@ -1070,7 +1206,10 @@ async function createImageVariantForUpload(
     const originalWidth = image.naturalWidth || image.width;
     const originalHeight = image.naturalHeight || image.height;
 
-    const scale = Math.min(1, maxDimension / Math.max(originalWidth, originalHeight));
+    const scale = Math.min(
+      1,
+      maxDimension / Math.max(originalWidth, originalHeight),
+    );
     const width = Math.max(1, Math.round(originalWidth * scale));
     const height = Math.max(1, Math.round(originalHeight * scale));
 
@@ -1159,19 +1298,23 @@ async function createVideoThumbnailForUpload(file: File): Promise<File | null> {
         }
 
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        canvas.toBlob((blob) => {
-          if (!blob) {
-            finish(null);
-            return;
-          }
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              finish(null);
+              return;
+            }
 
-          finish(
-            new File([blob], `video-thumb-${Date.now()}.jpg`, {
-              type: "image/jpeg",
-              lastModified: Date.now(),
-            })
-          );
-        }, "image/jpeg", 0.78);
+            finish(
+              new File([blob], `video-thumb-${Date.now()}.jpg`, {
+                type: "image/jpeg",
+                lastModified: Date.now(),
+              }),
+            );
+          },
+          "image/jpeg",
+          0.78,
+        );
       } catch {
         finish(null);
       }
@@ -1179,11 +1322,17 @@ async function createVideoThumbnailForUpload(file: File): Promise<File | null> {
   });
 }
 
-
-
-function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, router }: any) {
+function FindingCardBase({
+  finding,
+  inspectionId,
+  allPhotos,
+  onNeedPhotoPicker,
+  router,
+}: any) {
   const [showPhotoPicker, setShowPhotoPicker] = useState(false);
-  const [photoPickerLimit, setPhotoPickerLimit] = useState(PHOTO_PICKER_PAGE_SIZE);
+  const [photoPickerLimit, setPhotoPickerLimit] = useState(
+    PHOTO_PICKER_PAGE_SIZE,
+  );
   const [showAllPhotos, setShowAllPhotos] = useState(false);
   const [showUploadPanel, setShowUploadPanel] = useState(false);
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
@@ -1195,38 +1344,59 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"success" | "error" | "">("");
   const photos = getFindingPhotos(finding);
-  const hiddenPhotoCount = Math.max(0, photos.length - AUTO_PREVIEW_PHOTO_LIMIT);
+  const hiddenPhotoCount = Math.max(
+    0,
+    photos.length - AUTO_PREVIEW_PHOTO_LIMIT,
+  );
   const visiblePhotos = showAllPhotos
     ? photos
     : photos.slice(0, AUTO_PREVIEW_PHOTO_LIMIT);
 
   const findingAnchor = getFindingAnchor(finding);
-  const isSafetyOrMajor = String(finding.severity || "").toLowerCase().includes("safety") ||
-    String(finding.severity || "").toLowerCase().includes("major") ||
-    String(finding.severity || "").toLowerCase().includes("hazard");
+  const isSafetyOrMajor =
+    String(finding.severity || "")
+      .toLowerCase()
+      .includes("safety") ||
+    String(finding.severity || "")
+      .toLowerCase()
+      .includes("major") ||
+    String(finding.severity || "")
+      .toLowerCase()
+      .includes("hazard");
 
   useEffect(() => {
     function openIfTargeted(event?: Event) {
       const detail = (event as CustomEvent)?.detail || {};
       const targetAnchor = String(detail.targetAnchor || "").replace(/^#/, "");
-      const findingIds = Array.isArray(detail.findingIds) ? detail.findingIds.map((value: any) => String(value)) : [];
-      const shouldOpen = targetAnchor === findingAnchor || findingIds.includes(String(finding.id));
+      const findingIds = Array.isArray(detail.findingIds)
+        ? detail.findingIds.map((value: any) => String(value))
+        : [];
+      const shouldOpen =
+        targetAnchor === findingAnchor ||
+        findingIds.includes(String(finding.id));
 
       if (!shouldOpen) return;
 
       setExpanded(true);
       window.setTimeout(() => {
         const element = document.getElementById(findingAnchor);
-        if (element) element.scrollIntoView({ behavior: "smooth", block: "center" });
+        if (element)
+          element.scrollIntoView({ behavior: "smooth", block: "center" });
       }, 150);
     }
 
     // Only open a finding when Command Center dispatches an explicit jump event.
     // This prevents the report page from auto-scrolling on initial load.
-    window.addEventListener("opi:command-center-jump", openIfTargeted as EventListener);
+    window.addEventListener(
+      "opi:command-center-jump",
+      openIfTargeted as EventListener,
+    );
 
     return () => {
-      window.removeEventListener("opi:command-center-jump", openIfTargeted as EventListener);
+      window.removeEventListener(
+        "opi:command-center-jump",
+        openIfTargeted as EventListener,
+      );
     };
   }, [finding.id, findingAnchor]);
 
@@ -1246,7 +1416,8 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
     if (!files.length) return;
 
     const mediaFiles = files.filter(
-      (file) => file.type.startsWith("image/") || file.type.startsWith("video/")
+      (file) =>
+        file.type.startsWith("image/") || file.type.startsWith("video/"),
     );
 
     if (!mediaFiles.length) {
@@ -1310,7 +1481,8 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
           .upload(filePath, uploadFile, {
             cacheControl: "31536000",
             upsert: false,
-            contentType: uploadFile.type || (isVideo ? "video/mp4" : "image/jpeg"),
+            contentType:
+              uploadFile.type || (isVideo ? "video/mp4" : "image/jpeg"),
           });
 
         if (uploadError) throw uploadError;
@@ -1358,11 +1530,14 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
         "success",
         mediaFiles.length === 1
           ? "Media added to finding."
-          : "Media files added to finding."
+          : "Media files added to finding.",
       );
       router.refresh();
     } catch (error: any) {
-      showMessage("error", error?.message || "Failed to add media to this finding.");
+      showMessage(
+        "error",
+        error?.message || "Failed to add media to this finding.",
+      );
     } finally {
       setUploadingPhotos(false);
     }
@@ -1380,17 +1555,23 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
 
   async function movePhotoToFinding(photo: any) {
     if (!photo?.id || photo.isLegacyImage) {
-      showMessage("error", "This older image does not have a movable photo record.");
+      showMessage(
+        "error",
+        "This older image does not have a movable photo record.",
+      );
       return;
     }
 
-    if (String(photo.finding_id || photo.current_finding_id || "") === String(finding.id)) {
+    if (
+      String(photo.finding_id || photo.current_finding_id || "") ===
+      String(finding.id)
+    ) {
       showMessage("error", "This photo is already attached to this finding.");
       return;
     }
 
     const confirmed = window.confirm(
-      "Move this photo to this finding? It will no longer appear under the previous finding."
+      "Move this photo to this finding? It will no longer appear under the previous finding.",
     );
 
     if (!confirmed) return;
@@ -1418,12 +1599,15 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
 
   async function deletePhotoFromFinding(photo: any) {
     if (!photo?.id || photo.isLegacyImage) {
-      showMessage("error", "This older image is stored directly on the finding. Edit the finding image field or delete the finding to remove it.");
+      showMessage(
+        "error",
+        "This older image is stored directly on the finding. Edit the finding image field or delete the finding to remove it.",
+      );
       return;
     }
 
     const confirmed = window.confirm(
-      "Delete this photo from the report? This removes the photo record from this finding. The original storage file is left alone for safety."
+      "Delete this photo from the report? This removes the photo record from this finding. The original storage file is left alone for safety.",
     );
 
     if (!confirmed) return;
@@ -1457,7 +1641,9 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
 
   const primaryPhoto = photos[0] || null;
   const primaryPhotoUrl = primaryPhoto ? getPhotoUrl(primaryPhoto) : "";
-  const primaryPreviewUrl = primaryPhoto ? getPhotoPreviewUrl(primaryPhoto) : "";
+  const primaryPreviewUrl = primaryPhoto
+    ? getPhotoPreviewUrl(primaryPhoto)
+    : "";
 
   if (!expanded) {
     return (
@@ -1495,7 +1681,9 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
                     <img
                       src={getVideoPosterUrl(primaryPhoto)}
                       alt={findingTitle}
-                      onError={(event) => handleImageFallback(event, primaryPhotoUrl)}
+                      onError={(event) =>
+                        handleImageFallback(event, primaryPhotoUrl)
+                      }
                       loading="lazy"
                       decoding="async"
                       fetchPriority="low"
@@ -1504,7 +1692,9 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
                       sizes="128px"
                       className="h-full w-full object-cover"
                     />
-                    <span className="absolute inset-0 flex items-center justify-center bg-black/25 text-3xl text-white">▶</span>
+                    <span className="absolute inset-0 flex items-center justify-center bg-black/25 text-3xl text-white">
+                      ▶
+                    </span>
                   </div>
                 ) : (
                   <div className="flex h-full w-full items-center justify-center bg-black text-xs font-black uppercase tracking-wide text-cyan-300">
@@ -1515,7 +1705,9 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
                 <img
                   src={primaryPreviewUrl || primaryPhotoUrl}
                   alt={findingTitle}
-                  onError={(event) => handleImageFallback(event, primaryPhotoUrl)}
+                  onError={(event) =>
+                    handleImageFallback(event, primaryPhotoUrl)
+                  }
                   loading="lazy"
                   decoding="async"
                   fetchPriority="low"
@@ -1536,7 +1728,7 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
             <div className="mb-1.5 flex flex-wrap items-center gap-1.5 sm:mb-2 sm:gap-2">
               <span
                 className={`rounded-full border px-3 py-1 text-[10px] font-extrabold uppercase tracking-wide ${getSeverityStyle(
-                  finding.severity
+                  finding.severity,
                 )}`}
               >
                 {finding.severity || "Recommended Repair"}
@@ -1604,7 +1796,10 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
               type="button"
               onClick={() => {
                 markFindingReviewedForCommandCenter(finding.id);
-                showMessage("success", "Marked reviewed in Command Center. If the finding is still a safety concern, update the severity or recommendation before publishing.");
+                showMessage(
+                  "success",
+                  "Marked reviewed in Command Center. If the finding is still a safety concern, update the severity or recommendation before publishing.",
+                );
               }}
               className="rounded-xl border border-emerald-500 bg-emerald-500/10 px-4 py-2 text-sm font-black text-emerald-300 hover:bg-emerald-500 hover:text-slate-950"
             >
@@ -1631,7 +1826,7 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
           <div className="grid gap-3">
             {visiblePhotos.map((photo: any, index: number) => {
               const url = getPhotoUrl(photo);
-    const previewUrl = getPhotoPreviewUrl(photo);
+              const previewUrl = getPhotoPreviewUrl(photo);
               const isBusy = movingPhotoId === String(photo.id);
 
               return (
@@ -1656,12 +1851,20 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
                           });
                         }}
                       >
-                        <source src={url} type={photo?.mime_type || "video/mp4"} />
+                        <source
+                          src={url}
+                          type={photo?.mime_type || "video/mp4"}
+                        />
                         Your browser does not support video playback.
                       </video>
                     </div>
                   ) : (
-                    <a href={url} target="_blank" rel="noreferrer" className="block">
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="block"
+                    >
                       <img
                         src={previewUrl || url}
                         alt={`Finding photo ${index + 1}`}
@@ -1682,7 +1885,9 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
                   )}
 
                   <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-800 px-3 py-2 text-xs font-bold text-slate-400">
-                    <span>{isVideoMedia(photo) ? "Video" : "Photo"} {index + 1}</span>
+                    <span>
+                      {isVideoMedia(photo) ? "Video" : "Photo"} {index + 1}
+                    </span>
 
                     <div className="flex flex-wrap gap-2">
                       <a
@@ -1738,7 +1943,7 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
         <div className="mb-4 flex flex-wrap items-center gap-3">
           <span
             className={`rounded-full border px-3 py-1 text-xs font-extrabold uppercase tracking-wide ${getSeverityStyle(
-              finding.severity
+              finding.severity,
             )}`}
           >
             {finding.severity || "Recommended Repair"}
@@ -1758,7 +1963,8 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
         </div>
 
         <h3 className="mb-4 break-words text-2xl font-black text-white">
-{findingTitle} </h3>
+          {findingTitle}{" "}
+        </h3>
 
         <div className="mb-4 grid w-full grid-cols-2 gap-2 sm:flex sm:flex-row sm:flex-wrap">
           <button
@@ -1794,7 +2000,10 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
                 }
 
                 if (!res.ok) {
-                  showMessage("error", data.error || "Failed to save template.");
+                  showMessage(
+                    "error",
+                    data.error || "Failed to save template.",
+                  );
                   return;
                 }
 
@@ -1861,7 +2070,10 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
                   Add Media To This Defect
                 </h4>
                 <p className="mt-1 text-sm text-slate-300">
-                  These photos or videos save to this existing finding only. They do not create a new defect and they do not affect section reference photos. You can also drag and drop photos or videos onto this defect card.
+                  These photos or videos save to this existing finding only.
+                  They do not create a new defect and they do not affect section
+                  reference photos. You can also drag and drop photos or videos
+                  onto this defect card.
                 </p>
               </div>
 
@@ -1917,7 +2129,8 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
                   Add Existing Photo To This Finding
                 </h4>
                 <p className="mt-1 text-sm text-slate-300">
-                  Select a photo from this report. It will be moved from its current finding to this one.
+                  Select a photo from this report. It will be moved from its
+                  current finding to this one.
                 </p>
               </div>
 
@@ -1937,88 +2150,112 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
             ) : (
               <>
                 <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                  {allPhotos.slice(0, photoPickerLimit).map((photo: any, index: number) => {
-                    const url = getPhotoUrl(photo);
-    const previewUrl = getPhotoPreviewUrl(photo);
-                    const alreadyAttached =
-                      String(photo.finding_id || photo.current_finding_id || "") ===
-                      String(finding.id);
+                  {allPhotos
+                    .slice(0, photoPickerLimit)
+                    .map((photo: any, index: number) => {
+                      const url = getPhotoUrl(photo);
+                      const previewUrl = getPhotoPreviewUrl(photo);
+                      const alreadyAttached =
+                        String(
+                          photo.finding_id || photo.current_finding_id || "",
+                        ) === String(finding.id);
 
-                    return (
-                      <div
-                        key={String(photo.id || photo.file_path || index)}
-                        className="w-full max-w-full overflow-x-hidden rounded-xl border border-slate-700 bg-slate-950"
-                      >
-                        {url ? (
-                          isVideoMedia(photo) ? (
-                            <video
-                              key={url}
-                              poster={getVideoPosterUrl(photo) || undefined}
-                              controls
-                              playsInline
-                              preload="metadata"
-                              className="h-36 w-full bg-black object-contain"
-                              onError={(event) => {
-                                console.error("OPI photo picker video failed", {
-                                  url,
-                                  mimeType: photo?.mime_type,
-                                  error: event.currentTarget.error,
-                                });
-                              }}
-                            >
-                              <source src={url} type={photo?.mime_type || "video/mp4"} />
-                              Your browser does not support video playback.
-                            </video>
+                      return (
+                        <div
+                          key={String(photo.id || photo.file_path || index)}
+                          className="w-full max-w-full overflow-x-hidden rounded-xl border border-slate-700 bg-slate-950"
+                        >
+                          {url ? (
+                            isVideoMedia(photo) ? (
+                              <video
+                                key={url}
+                                poster={getVideoPosterUrl(photo) || undefined}
+                                controls
+                                playsInline
+                                preload="metadata"
+                                className="h-36 w-full bg-black object-contain"
+                                onError={(event) => {
+                                  console.error(
+                                    "OPI photo picker video failed",
+                                    {
+                                      url,
+                                      mimeType: photo?.mime_type,
+                                      error: event.currentTarget.error,
+                                    },
+                                  );
+                                }}
+                              >
+                                <source
+                                  src={url}
+                                  type={photo?.mime_type || "video/mp4"}
+                                />
+                                Your browser does not support video playback.
+                              </video>
+                            ) : (
+                              <img
+                                src={previewUrl || url}
+                                alt={`Report photo ${index + 1}`}
+                                onError={(event) =>
+                                  handleImageFallback(event, url)
+                                }
+                                loading="lazy"
+                                decoding="async"
+                                fetchPriority="low"
+                                width={480}
+                                height={320}
+                                sizes="(max-width: 640px) 94vw, (max-width: 1024px) 48vw, 25vw"
+                                className="h-36 w-full object-contain"
+                              />
+                            )
                           ) : (
-                            <img
-                              src={previewUrl || url}
-                              alt={`Report photo ${index + 1}`}
-                              onError={(event) => handleImageFallback(event, url)}
-                              loading="lazy"
-                              decoding="async"
-                              fetchPriority="low"
-                              width={480}
-                              height={320}
-                              sizes="(max-width: 640px) 94vw, (max-width: 1024px) 48vw, 25vw"
-                              className="h-36 w-full object-contain"
-                            />
-                          )
-                        ) : (
-                          <div className="flex h-36 items-center justify-center text-sm text-slate-500">
-                            No preview
+                            <div className="flex h-36 items-center justify-center text-sm text-slate-500">
+                              No preview
+                            </div>
+                          )}
+
+                          <div className="space-y-2 border-t border-slate-800 p-3">
+                            <p className="line-clamp-2 text-xs font-bold text-slate-300">
+                              {photo.current_section} ·{" "}
+                              {photo.current_finding_title}
+                            </p>
+
+                            <button
+                              type="button"
+                              onClick={() => movePhotoToFinding(photo)}
+                              disabled={
+                                alreadyAttached ||
+                                movingPhotoId === String(photo.id)
+                              }
+                              className="w-full rounded-lg bg-cyan-500 px-3 py-2 text-xs font-black text-slate-950 hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {alreadyAttached
+                                ? "Already Here"
+                                : movingPhotoId === String(photo.id)
+                                  ? "Moving..."
+                                  : "Move Here"}
+                            </button>
                           </div>
-                        )}
-
-                        <div className="space-y-2 border-t border-slate-800 p-3">
-                          <p className="line-clamp-2 text-xs font-bold text-slate-300">
-                            {photo.current_section} · {photo.current_finding_title}
-                          </p>
-
-                          <button
-                            type="button"
-                            onClick={() => movePhotoToFinding(photo)}
-                            disabled={alreadyAttached || movingPhotoId === String(photo.id)}
-                            className="w-full rounded-lg bg-cyan-500 px-3 py-2 text-xs font-black text-slate-950 hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            {alreadyAttached
-                              ? "Already Here"
-                              : movingPhotoId === String(photo.id)
-                              ? "Moving..."
-                              : "Move Here"}
-                          </button>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
                 </div>
 
                 {allPhotos.length > photoPickerLimit && (
                   <button
                     type="button"
-                    onClick={() => setPhotoPickerLimit((prev) => prev + PHOTO_PICKER_PAGE_SIZE)}
+                    onClick={() =>
+                      setPhotoPickerLimit(
+                        (prev) => prev + PHOTO_PICKER_PAGE_SIZE,
+                      )
+                    }
                     className="mt-3 w-full rounded-xl border border-cyan-500/50 bg-cyan-500/10 px-4 py-3 text-sm font-black text-cyan-300 transition hover:bg-cyan-500/20"
                   >
-                    Load {Math.min(PHOTO_PICKER_PAGE_SIZE, allPhotos.length - photoPickerLimit)} more photos
+                    Load{" "}
+                    {Math.min(
+                      PHOTO_PICKER_PAGE_SIZE,
+                      allPhotos.length - photoPickerLimit,
+                    )}{" "}
+                    more photos
                   </button>
                 )}
               </>
@@ -2036,13 +2273,15 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
                 setMarkupPhoto(null);
               }}
               onSave={async (items) => {
-                const { error } = await supabase.from("photo_annotations").insert({
-                  inspection_id: Number(inspectionId),
-                  finding_id: finding.id,
-                  photo_id: markupPhoto.id || null,
-                  image_url: getPhotoUrl(markupPhoto),
-                  annotation_json: items,
-                });
+                const { error } = await supabase
+                  .from("photo_annotations")
+                  .insert({
+                    inspection_id: Number(inspectionId),
+                    finding_id: finding.id,
+                    photo_id: markupPhoto.id || null,
+                    image_url: getPhotoUrl(markupPhoto),
+                    annotation_json: items,
+                  });
 
                 if (error) {
                   showMessage("error", error.message);
@@ -2085,7 +2324,6 @@ function FindingCardBase({ finding, inspectionId, allPhotos, onNeedPhotoPicker, 
 }
 
 const FindingCard = memo(FindingCardBase);
-
 
 function InlineStatusMessage({
   type,

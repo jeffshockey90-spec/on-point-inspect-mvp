@@ -9,6 +9,21 @@ import {
   processOfflineQueue,
 } from "../lib/offlineSyncQueue";
 
+const OFFLINE_SYNC_COMPLETE_EVENT = "opi:offline-sync-complete";
+const OFFLINE_SYNC_COMPLETE_KEY = "opi-offline-sync-complete-at";
+
+function notifyOfflineSyncComplete() {
+  if (typeof window === "undefined") return;
+
+  const syncedAt = new Date().toISOString();
+  window.localStorage.setItem(OFFLINE_SYNC_COMPLETE_KEY, syncedAt);
+  window.dispatchEvent(
+    new CustomEvent(OFFLINE_SYNC_COMPLETE_EVENT, {
+      detail: { syncedAt },
+    }),
+  );
+}
+
 export default function OfflineSyncStatus() {
   const [online, setOnline] = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
@@ -50,10 +65,16 @@ export default function OfflineSyncStatus() {
       });
 
       if (result.failed > 0) {
-        setLastError(`${result.failed} item${result.failed === 1 ? "" : "s"} failed to sync.`);
+        setLastError(
+          `${result.failed} item${result.failed === 1 ? "" : "s"} failed to sync.`,
+        );
       }
 
       refreshStatus();
+
+      if (result.synced > 0) {
+        notifyOfflineSyncComplete();
+      }
     } finally {
       setSyncing(false);
     }
@@ -64,7 +85,7 @@ export default function OfflineSyncStatus() {
 
     const handleOnline = () => {
       refreshStatus();
-      syncNow();
+      void syncNow();
     };
 
     const handleOffline = () => {
@@ -77,10 +98,7 @@ export default function OfflineSyncStatus() {
 
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
-    window.addEventListener(
-      "on-point-offline-queue-change",
-      handleQueueChange
-    );
+    window.addEventListener("on-point-offline-queue-change", handleQueueChange);
 
     const interval = window.setInterval(refreshStatus, 5000);
 
@@ -89,10 +107,12 @@ export default function OfflineSyncStatus() {
       window.removeEventListener("offline", handleOffline);
       window.removeEventListener(
         "on-point-offline-queue-change",
-        handleQueueChange
+        handleQueueChange,
       );
       window.clearInterval(interval);
     };
+    // syncNow intentionally omitted so the auto-sync listener stays stable.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -130,9 +150,7 @@ export default function OfflineSyncStatus() {
           )}
 
           {lastError && (
-            <p className="mt-1 text-xs font-bold text-red-300">
-              {lastError}
-            </p>
+            <p className="mt-1 text-xs font-bold text-red-300">{lastError}</p>
           )}
         </div>
 
@@ -151,7 +169,7 @@ export default function OfflineSyncStatus() {
               type="button"
               onClick={() => {
                 const confirmClear = window.confirm(
-                  "Clear pending offline queue? Only do this if you are sure nothing needs synced."
+                  "Clear pending offline queue? Only do this if you are sure nothing needs synced.",
                 );
 
                 if (!confirmClear) return;
@@ -169,9 +187,7 @@ export default function OfflineSyncStatus() {
 
       <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-800">
         <div
-          className={`h-full ${
-            online ? "bg-teal-400" : "bg-yellow-400"
-          }`}
+          className={`${online ? "bg-teal-400" : "bg-yellow-400"} h-full`}
           style={{
             width: online ? "100%" : "45%",
           }}
