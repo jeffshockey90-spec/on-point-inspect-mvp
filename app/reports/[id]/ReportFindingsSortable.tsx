@@ -200,7 +200,7 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
             finding.defect_title ||
             finding.name ||
             "Untitled Finding",
-          current_section: displayFinding.section || "Inspection Details",
+          current_section: finding.section || "Inspection Details",
         });
       });
     });
