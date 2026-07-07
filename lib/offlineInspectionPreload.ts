@@ -16,7 +16,9 @@ export type CachedInspectionPreload = {
   templates: any[];
   sections: string[];
   findings: any[];
+  groupedFindings?: any[];
   clientInfo: Record<string, any>;
+  reportSnapshot?: Record<string, any>;
   cachedAt: string;
 };
 
@@ -121,7 +123,9 @@ export function saveInspectionPreload({
   templates = [],
   sections = [],
   findings = [],
+  groupedFindings = [],
   clientInfo = {},
+  reportSnapshot = {},
 }: {
   inspectionId: string;
   inspection?: any;
@@ -130,7 +134,9 @@ export function saveInspectionPreload({
   templates?: any[];
   sections?: string[];
   findings?: any[];
+  groupedFindings?: any[];
   clientInfo?: Record<string, any>;
+  reportSnapshot?: Record<string, any>;
 }) {
   const win = safeWindow();
   const id = cleanId(inspectionId);
@@ -149,7 +155,9 @@ export function saveInspectionPreload({
     templates: Array.isArray(templates) ? templates.slice(0, 500) : [],
     sections: Array.isArray(sections) ? sections : [],
     findings: Array.isArray(findings) ? findings.slice(0, 500) : [],
+    groupedFindings: Array.isArray(groupedFindings) ? groupedFindings : [],
     clientInfo: clientInfo || {},
+    reportSnapshot: reportSnapshot || {},
     cachedAt: new Date().toISOString(),
   };
 

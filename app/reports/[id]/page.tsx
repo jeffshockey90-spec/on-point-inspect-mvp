@@ -6,6 +6,7 @@ import { createClient as createServiceClient } from "@supabase/supabase-js";
 
 import PrintButton from "../../../components/PrintButton";
 import ReportFindingsSortable from "./ReportFindingsSortable";
+import OfflineReportCacheBridge from "../../../components/OfflineReportCacheBridge";
 import SendReportEmailButtons from "../../../components/SendReportEmailButtons";
 import InspectionContactsManager from "../../../components/InspectionContactsManager";
 import AgreementSelector from "../../../components/AgreementSelector";
@@ -2501,6 +2502,13 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#020617] pb-[calc(100px+env(safe-area-inset-bottom))] text-white">
+      <OfflineReportCacheBridge
+        inspectionId={String(inspection.id)}
+        inspection={inspection}
+        groupedFindings={groupedFindingsArray}
+        sections={SECTION_ORDER}
+        clientInfo={inspection}
+      />
       <div className="mx-auto w-full max-w-none px-1 py-2 sm:px-2 md:px-4 lg:max-w-7xl lg:py-8">
         <div className="mb-4 overflow-x-hidden overflow-y-visible rounded-2xl border border-slate-800 bg-[#0f172a] p-1.5 shadow-xl sm:p-3 md:rounded-3xl md:p-6">
           <div className="mb-6 flex max-w-full flex-wrap gap-3 overflow-x-hidden overflow-y-visible">

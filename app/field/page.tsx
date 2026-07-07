@@ -12,6 +12,7 @@ import AISecondInspector, {
   type AISuggestion,
 } from "../../components/AISecondInspector";
 import InspectionCopilotPanel from "../../components/InspectionCopilotPanel";
+import OfflineReportViewer from "../../components/OfflineReportViewer";
 import {
   addOfflineQueueItem,
   filesToOfflinePhotos,
@@ -929,6 +930,7 @@ function FieldPageContent() {
   const [online, setOnline] = useState(true);
   const [message, setMessage] = useState("");
   const [syncNotice, setSyncNotice] = useState("");
+  const [showOfflineReportViewer, setShowOfflineReportViewer] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState<AISuggestion[]>([]);
   const [queueTick, setQueueTick] = useState(0);
   const voiceRecognitionRef = useRef<any>(null);
@@ -1084,6 +1086,12 @@ function FieldPageContent() {
       if (!target) return;
 
       swipeBackTriggeredRef.current = true;
+
+      if (!isOnline() && selectedReport && target.startsWith("/reports/")) {
+        setShowOfflineReportViewer(true);
+        return;
+      }
+
       router.push(target);
     }
 
@@ -2706,6 +2714,17 @@ function FieldPageContent() {
     }
   }
 
+  if (showOfflineReportViewer && selectedReport) {
+    return (
+      <main className="min-h-screen bg-[#020617] p-3 pb-[calc(100px+env(safe-area-inset-bottom))] text-white sm:p-6">
+        <OfflineReportViewer
+          inspectionId={String(selectedReport)}
+          onClose={() => setShowOfflineReportViewer(false)}
+        />
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-[#0f172a] p-4 text-white">
       <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[1fr_380px]">
@@ -3176,12 +3195,20 @@ function FieldPageContent() {
             </button>
 
             {selectedReport && (
-              <a
-                href={`/reports/${selectedReport}`}
-                className="block rounded-xl border border-teal-500 p-4 text-center font-bold text-teal-400 transition active:scale-[0.98] hover:bg-teal-500 hover:text-black [touch-action:manipulation]"
+              <button
+                type="button"
+                onClick={() => {
+                  if (!isOnline()) {
+                    setShowOfflineReportViewer(true);
+                    return;
+                  }
+
+                  router.push(`/reports/${selectedReport}`);
+                }}
+                className="block w-full rounded-xl border border-teal-500 p-4 text-center font-bold text-teal-400 transition active:scale-[0.98] hover:bg-teal-500 hover:text-black [touch-action:manipulation]"
               >
-                Open This Report
-              </a>
+                {online ? "Open This Report" : "Open Offline Report"}
+              </button>
             )}
           </div>
         </div>
