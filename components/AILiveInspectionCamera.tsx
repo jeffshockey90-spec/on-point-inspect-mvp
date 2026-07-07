@@ -478,43 +478,55 @@ export default function AILiveInspectionCamera({
     }
 
     setSavingLimitationIndex(index);
+    setMessage("Saving limitation and attaching photo...");
 
     try {
-      const savedFrame =
+      let savedFrame =
         latestFrameRef.current ||
         frameDataUrl ||
-        captureFrame({ silent: true });
+        "";
+
+      if (!savedFrame) {
+        savedFrame = captureFrame({ silent: true });
+      }
+
+      if (!savedFrame) {
+        throw new Error(
+          "Could not capture the camera image. Keep the camera open and try Add To Section Limitations again.",
+        );
+      }
 
       const response = await fetch("/api/ai/live-limitation", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
+        cache: "no-store",
         body: JSON.stringify({
-          inspectionId: selectedReport,
+          inspectionId: String(selectedReport),
           section: targetSection,
           title: limitation.title || "AI Limitation Note",
           limitation: cleanLimitation,
           reason: cleanReason,
           recommendation: cleanRecommendation,
-          imageDataUrl: savedFrame || "",
+          imageDataUrl: savedFrame,
         }),
       });
 
       const data = await response.json().catch(() => ({}));
 
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to add limitation with photo.");
+      if (!response.ok || !data?.success) {
+        throw new Error(
+          data?.error ||
+            data?.photoError ||
+            `Failed to add limitation. Server returned ${response.status}.`,
+        );
       }
 
-      if (!data?.success) {
-        throw new Error(data?.error || "Limitation save did not complete.");
-      }
-
-      if (!data?.photo) {
+      if (!data?.photo?.id && !data?.photoId) {
         throw new Error(
           data?.photoError ||
-            "Limitation text saved, but the photo did not attach. Check limitation_photos table/schema.",
+            "The limitation saved, but the photo did not attach. Check the limitation_photos table schema.",
         );
       }
 
