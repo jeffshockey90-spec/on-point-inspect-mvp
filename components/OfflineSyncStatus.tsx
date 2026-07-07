@@ -7,6 +7,7 @@ import {
   getOfflineQueueSummary,
   isOnline,
   processOfflineQueue,
+  startOfflineQueueAutoSync,
 } from "../lib/offlineSyncQueue";
 
 const OFFLINE_SYNC_COMPLETE_EVENT = "opi:offline-sync-complete";
@@ -29,6 +30,9 @@ export default function OfflineSyncStatus() {
   const [pendingCount, setPendingCount] = useState(0);
   const [findingCount, setFindingCount] = useState(0);
   const [referencePhotoCount, setReferencePhotoCount] = useState(0);
+  const [failedCount, setFailedCount] = useState(0);
+  const [skippedMediaCount, setSkippedMediaCount] = useState(0);
+  const [skippedVideoCount, setSkippedVideoCount] = useState(0);
   const [megabytes, setMegabytes] = useState(0);
   const [syncing, setSyncing] = useState(false);
   const [lastSynced, setLastSynced] = useState("");
@@ -41,6 +45,9 @@ export default function OfflineSyncStatus() {
     setPendingCount(getOfflineQueue().length);
     setFindingCount(summary.findingCount);
     setReferencePhotoCount(summary.referencePhotoCount);
+    setFailedCount(summary.failedCount || 0);
+    setSkippedMediaCount(summary.skippedMediaCount || 0);
+    setSkippedVideoCount(summary.skippedVideoCount || 0);
     setMegabytes(summary.megabytes);
   }
 
@@ -83,6 +90,28 @@ export default function OfflineSyncStatus() {
   useEffect(() => {
     refreshStatus();
 
+    const stopAutoSync = startOfflineQueueAutoSync({
+      intervalMs: 30000,
+      onSynced: (result) => {
+        if (result.synced > 0) {
+          setLastSynced(new Date().toLocaleTimeString());
+          notifyOfflineSyncComplete();
+        }
+
+        if (result.failed > 0) {
+          setLastError(
+            `${result.failed} item${result.failed === 1 ? "" : "s"} failed to sync.`,
+          );
+        }
+
+        refreshStatus();
+      },
+      onFailed: (error) => {
+        setLastError(error?.message || "Background sync failed.");
+        refreshStatus();
+      },
+    });
+
     const handleOnline = () => {
       refreshStatus();
       void syncNow();
@@ -103,6 +132,7 @@ export default function OfflineSyncStatus() {
     const interval = window.setInterval(refreshStatus, 5000);
 
     return () => {
+      stopAutoSync();
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
       window.removeEventListener(
@@ -131,7 +161,7 @@ export default function OfflineSyncStatus() {
             {pendingCount > 0
               ? `${pendingCount} item${
                   pendingCount === 1 ? "" : "s"
-                } waiting to sync.`
+                } waiting to sync. Background sync will keep retrying.`
               : "Everything is synced."}
           </p>
 
@@ -140,6 +170,27 @@ export default function OfflineSyncStatus() {
               {findingCount} finding{findingCount === 1 ? "" : "s"} •{" "}
               {referencePhotoCount} reference photo
               {referencePhotoCount === 1 ? "" : "s"} • about {megabytes} MB
+            </p>
+          )}
+
+          {skippedMediaCount > 0 && (
+            <p className="mt-1 text-xs font-bold text-yellow-200">
+              {skippedMediaCount} large media file
+              {skippedMediaCount === 1 ? "" : "s"} skipped from browser
+              offline storage
+              {skippedVideoCount > 0
+                ? `, including ${skippedVideoCount} video${
+                    skippedVideoCount === 1 ? "" : "s"
+                  }`
+                : ""}
+              . Originals stay on the device.
+            </p>
+          )}
+
+          {failedCount > 0 && (
+            <p className="mt-1 text-xs font-bold text-red-300">
+              {failedCount} item{failedCount === 1 ? "" : "s"} need another
+              retry.
             </p>
           )}
 

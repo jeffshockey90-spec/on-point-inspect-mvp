@@ -17,6 +17,7 @@ import {
   filesToOfflinePhotos,
   getOfflineQueueSummary,
   isOnline,
+  startOfflineQueueAutoSync,
 } from "../../lib/offlineSyncQueue";
 
 const SECTIONS = [
@@ -63,6 +64,29 @@ type UploadProgressItem = {
   status: "pending" | "processing" | "uploading" | "queued" | "done" | "error";
 };
 
+const FIELD_BACKGROUND_SYNC_EVENT = "opi:offline-sync-complete";
+const FIELD_BACKGROUND_SYNC_KEY = "opi-offline-sync-complete-at";
+
+function notifyFieldBackgroundSyncComplete() {
+  if (typeof window === "undefined") return;
+
+  const syncedAt = new Date().toISOString();
+  window.localStorage.setItem(FIELD_BACKGROUND_SYNC_KEY, syncedAt);
+  window.dispatchEvent(
+    new CustomEvent(FIELD_BACKGROUND_SYNC_EVENT, {
+      detail: { syncedAt },
+    }),
+  );
+}
+
+function isVideoFile(file: File) {
+  return String(file?.type || "").startsWith("video/");
+}
+
+function isImageFile(file: File) {
+  return String(file?.type || "").startsWith("image/");
+}
+
 function createLocalMediaId(file: File) {
   return `${file.name}-${file.size}-${file.lastModified}`;
 }
@@ -85,7 +109,7 @@ function isLikelyNetworkError(error: any) {
 }
 
 
-const OFFLINE_LOCAL_STORAGE_SOFT_LIMIT_BYTES = 4 * 1024 * 1024;
+const OFFLINE_LOCAL_STORAGE_SOFT_LIMIT_BYTES = 6 * 1024 * 1024;
 
 function getOfflineStorableFiles(files: File[]) {
   const storable: File[] = [];
@@ -93,10 +117,19 @@ function getOfflineStorableFiles(files: File[]) {
   let totalBytes = 0;
 
   for (const file of files) {
-    const isImage = file.type.startsWith("image/");
-    const nextTotal = totalBytes + Number(file.size || 0);
+    const isImage = isImageFile(file);
+    const isVideo = isVideoFile(file);
+    const fileSize = Number(file.size || 0);
+    const nextTotal = totalBytes + fileSize;
 
-    if (!isImage || nextTotal > OFFLINE_LOCAL_STORAGE_SOFT_LIMIT_BYTES) {
+    // Browser/iOS WebView localStorage is not safe for videos or very large media.
+    // Save the text finding first and only keep small images in the offline queue.
+    if (
+      !isImage ||
+      isVideo ||
+      fileSize > 3 * 1024 * 1024 ||
+      nextTotal > OFFLINE_LOCAL_STORAGE_SOFT_LIMIT_BYTES
+    ) {
       skipped.push(file);
       continue;
     }
@@ -901,6 +934,29 @@ function FieldPageContent() {
   useEffect(() => {
     setNativeApp(isNativeCapacitorApp());
   }, []);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const stopAutoSync = startOfflineQueueAutoSync({
+      intervalMs: 30000,
+      onSynced: (result) => {
+        if (result.synced > 0) {
+          notifyFieldBackgroundSyncComplete();
+          setQueueTick((current) => current + 1);
+          setMessage(
+            result.failed > 0
+              ? `Background sync finished with ${result.failed} item${result.failed === 1 ? "" : "s"} still waiting.`
+              : `Background sync completed. ${result.synced} item${result.synced === 1 ? "" : "s"} synced.`,
+          );
+        }
+      },
+      onFailed: () => {
+        setQueueTick((current) => current + 1);
+      },
+    });
+
+    return stopAutoSync;
+  }, []);
   const offlineSummary = useMemo(
     () => getOfflineQueueSummary(),
     [message, photos.length, online, queueTick],
@@ -1114,7 +1170,7 @@ function FieldPageContent() {
     if (validFiles.some((file) => file.type.startsWith("video/"))) {
       setMessage(
         nativeApp
-          ? "Video added. iPhone camera videos remain in Photos, and the app will attach them to the report with upload status."
+          ? "Video added. Keep the original in iPhone Photos as the native backup. The app will attach it to the report with upload status and retry protection."
           : "Video added. The app will attach it to the report with upload status.",
       );
     }
@@ -2450,7 +2506,7 @@ function FieldPageContent() {
         setMessage(
           photoType === "reference_photo"
             ? `Saved reference photo offline. Queue: ${summary.count} item(s). It will sync when service returns.${skipMessage}`
-            : `Saved finding offline. Queue: ${summary.count} item(s). AI will write the finding after sync when service returns.${skipMessage}`,
+            : `Saved finding offline. Queue: ${summary.count} item(s). Background sync will retry automatically when service returns. AI will write the finding after sync.${skipMessage}`,
         );
         return;
       }
@@ -2519,7 +2575,7 @@ function FieldPageContent() {
           const summary = getOfflineQueueSummary();
           const skipMessage = getOfflineMediaSkipMessage(skippedCount, skippedVideos);
           setMessage(
-            `Signal/upload issue detected. Saved locally instead of losing work. Queue: ${summary.count} item(s). AI will write the finding after sync when service returns.${skipMessage}`,
+            `Signal/upload issue detected. Saved locally instead of losing work. Queue: ${summary.count} item(s). Background sync will retry automatically when service returns. AI will write the finding after sync.${skipMessage}`,
           );
           clearCompletedProgressSoon();
           return;
