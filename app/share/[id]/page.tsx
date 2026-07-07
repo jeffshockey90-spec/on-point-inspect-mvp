@@ -437,9 +437,16 @@ function getMediaUrl(media: any) {
     media?.public_url ||
     media?.image_url ||
     media?.photo_url ||
+    media?.video_url ||
     media?.url ||
     ""
   );
+}
+
+function getVideoPreviewSrc(url: string) {
+  if (!url) return "";
+  if (url.includes("#t=")) return url;
+  return `${url}#t=0.1`;
 }
 
 function getMediaPreviewUrl(media: any) {
@@ -455,9 +462,9 @@ function getMediaPreviewUrl(media: any) {
 
   const fullUrl = getMediaUrl(media);
 
-  // Some rows fall back signed_thumbnail_url to the full media URL.
-  // That is fine for photos, but an MP4/MOV cannot be rendered as an <img>.
-  if (thumbnailUrl && !isVideoMedia(media, thumbnailUrl)) {
+  // Some rows fall back signed_thumbnail_url to the full video URL.
+  // Keep real image thumbnails, but do not try to render a video URL in an <img>.
+  if (thumbnailUrl && thumbnailUrl !== fullUrl && !isVideoMedia(media, thumbnailUrl)) {
     return thumbnailUrl;
   }
 
@@ -2309,9 +2316,13 @@ export default async function PublicSharePage({
                                                 className="h-full w-full object-cover opacity-80"
                                               />
                                             ) : (
-                                              <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-black">
-                                                <span className="text-2xl text-cyan-300">▶</span>
-                                              </div>
+                                              <video
+                                                src={getVideoPreviewSrc(image)}
+                                                muted
+                                                playsInline
+                                                preload="auto"
+                                                className="h-full w-full object-cover opacity-80"
+                                              />
                                             )}
                                             <span className="absolute inset-x-2 bottom-2 rounded-full border border-cyan-400 bg-black/75 px-2 py-1 text-center text-[10px] font-black uppercase tracking-wide text-cyan-300">
                                               Video
