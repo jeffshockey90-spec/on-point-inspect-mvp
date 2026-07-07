@@ -277,53 +277,42 @@ export default function SectionLimitations({
   }
 
   async function loadLimitationPhotos(limitationIds: string[]) {
-    const { data, error } = await supabase
-      .from("limitation_photos")
-      .select("*")
-      .in("limitation_id", limitationIds)
-      .order("created_at", { ascending: true });
-
-    if (error) {
-      console.error("Failed to load limitation photos:", error);
+    if (!limitationIds.length) {
+      setPhotosByLimitationId({});
       return;
     }
 
-    const photos = await Promise.all(
-      (data || []).map(async (photo: LimitationPhoto) => {
-        const storagePath = photo.file_path || photo.thumbnail_path || "";
-        const fallbackUrl =
-          photo.public_url || photo.photo_url || photo.thumbnail_url || "";
+    try {
+      const response = await fetch("/api/limitation-photos", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        cache: "no-store",
+        body: JSON.stringify({ limitationIds }),
+      });
 
-        if (!storagePath) {
-          return {
-            ...photo,
-            file_path: storagePath,
-            public_url: fallbackUrl,
-            signed_url: photo.signed_url || fallbackUrl,
-          };
-        }
+      const data = await response.json().catch(() => ({}));
 
-        const { data: signedData } = await supabase.storage
-          .from(PHOTO_BUCKET)
-          .createSignedUrl(storagePath, 60 * 60 * 24 * 7);
+      if (!response.ok) {
+        throw new Error(data?.error || "Failed to load limitation photos.");
+      }
 
-        return {
-          ...photo,
-          file_path: storagePath,
-          public_url: fallbackUrl,
-          signed_url: signedData?.signedUrl || fallbackUrl,
-        };
-      })
-    );
+      const grouped: Record<string, LimitationPhoto[]> = {};
 
-    const grouped: Record<string, LimitationPhoto[]> = {};
+      (Array.isArray(data.photos) ? data.photos : []).forEach(
+        (photo: LimitationPhoto) => {
+          if (!photo?.limitation_id) return;
+          if (!grouped[photo.limitation_id]) grouped[photo.limitation_id] = [];
+          grouped[photo.limitation_id].push(photo);
+        },
+      );
 
-    photos.forEach((photo) => {
-      if (!grouped[photo.limitation_id]) grouped[photo.limitation_id] = [];
-      grouped[photo.limitation_id].push(photo);
-    });
-
-    setPhotosByLimitationId(grouped);
+      setPhotosByLimitationId(grouped);
+    } catch (error) {
+      console.error("Failed to load limitation photos:", error);
+      setPhotosByLimitationId({});
+    }
   }
 
   const selectedStandard = saved.filter(
