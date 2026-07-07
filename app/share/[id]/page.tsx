@@ -1781,6 +1781,14 @@ export default async function PublicSharePage({
                   >
                     <span className="text-base leading-none">⚙</span><span>Maintenance</span>
                   </a>
+                  {Object.keys(limitationsBySection).length > 0 && (
+                    <a
+                      href="#report-limitations"
+                      className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-orange-500/40 px-4 py-3 text-sm font-black leading-none text-orange-300 transition hover:bg-orange-500/10"
+                    >
+                      <span className="text-base leading-none">🚧</span><span>Limitations</span>
+                    </a>
+                  )}
                   {reportDisclaimers && reportDisclaimers.length > 0 && (
                     <a
                       href="#report-disclaimers"
@@ -2131,61 +2139,114 @@ export default async function PublicSharePage({
           )}
 
           {Object.keys(limitationsBySection).length > 0 && (
-            <section className="mt-8 rounded-2xl border border-yellow-500/40 bg-[#071224] p-6">
-              <h2 className="mb-5 text-2xl font-bold text-yellow-300">
-                Limitations
-              </h2>
+            <details
+              id="report-limitations"
+              className="scroll-mt-[180px] md:scroll-mt-[220px] mt-8 rounded-2xl border border-yellow-500/40 bg-[#071224] p-6"
+            >
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm font-bold uppercase tracking-[0.3em] text-yellow-400">
+                    Scope Notes
+                  </p>
+                  <h2 className="mt-2 text-2xl font-bold text-yellow-300">
+                    Limitations
+                  </h2>
+                  <p className="mt-2 text-sm leading-6 text-slate-400">
+                    Areas or components that could not be fully inspected are collapsed by default. Tap to review details and photos.
+                  </p>
+                </div>
+                <span className="rounded-xl border border-yellow-500/40 px-4 py-2 text-sm font-black text-yellow-200">
+                  Show Limitations
+                </span>
+              </summary>
 
-              <div className="space-y-6">
+              <div className="mt-6 space-y-6 border-t border-slate-700 pt-6">
                 {SECTION_ORDER.filter((section) => limitationsBySection[section]).map(
                   (section) => (
-                    <div
+                    <details
                       key={section}
                       className="rounded-xl border border-slate-700 bg-[#0f172a] p-5"
                     >
-                      <h3 className="mb-4 text-xl font-bold text-white">
-                        {section}
-                      </h3>
+                      <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
+                        <h3 className="text-xl font-bold text-white">
+                          {section}
+                        </h3>
+                        <span className="rounded-full border border-yellow-500/40 bg-yellow-500/10 px-3 py-1 text-xs font-black text-yellow-200">
+                          {(limitationsBySection[section] || []).length} item{(limitationsBySection[section] || []).length === 1 ? "" : "s"}
+                        </span>
+                      </summary>
 
-                      <div className="space-y-5">
-                        {(limitationsBySection[section] || []).map((item: any) => (
-                          <div
-                            key={item.id}
-                            className="rounded-xl border border-slate-700 bg-[#020617] p-4"
-                          >
-                            <p className="font-bold text-yellow-200">
-                              {item.custom_text || item.label}
-                            </p>
+                      <div className="mt-5 space-y-5">
+                        {(limitationsBySection[section] || []).map((item: any) => {
+                          const limitationPhotos = Array.isArray(item.photos) ? item.photos : [];
+                          const limitationText = String(
+                            item.limitation_comment ||
+                              item.custom_text ||
+                              item.ai_notes ||
+                              ""
+                          ).trim();
 
-                            {item.limitation_comment && (
-                              <p className="mt-3 whitespace-pre-line leading-7 text-slate-300">
-                                {item.limitation_comment}
+                          return (
+                            <div
+                              key={item.id}
+                              className="rounded-xl border border-slate-700 bg-[#020617] p-4"
+                            >
+                              <p className="font-bold text-yellow-200">
+                                {item.custom_text || item.label}
                               </p>
-                            )}
 
-                            {item.photos?.length > 0 && (
-                              <div className="mt-4 grid gap-3 md:grid-cols-3">
-                                {item.photos.map((photo: any) => (
-                                  <img
-                                    key={photo.id}
-                                    src={photo.signed_url || photo.public_url}
-                                    alt="Limitation photo"
-                                    loading="lazy"
-                decoding="async"
-                fetchPriority="low"
-                className="max-h-[260px] w-full rounded-xl border border-slate-700 object-cover"
-                                  />
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        ))}
+                              {limitationText && (
+                                <p className="mt-3 whitespace-pre-line leading-7 text-slate-300">
+                                  {limitationText}
+                                </p>
+                              )}
+
+                              {limitationPhotos.length > 0 && (
+                                <div className="mt-4 grid gap-3 md:grid-cols-3">
+                                  {limitationPhotos.map((photo: any) => {
+                                    const photoUrl =
+                                      photo.signed_thumbnail_url ||
+                                      photo.thumbnail_url ||
+                                      photo.signed_url ||
+                                      photo.public_url ||
+                                      "";
+                                    const fullUrl =
+                                      photo.signed_url ||
+                                      photo.public_url ||
+                                      photoUrl;
+
+                                    if (!photoUrl) return null;
+
+                                    return (
+                                      <a
+                                        key={photo.id || photo.file_path || photoUrl}
+                                        href={fullUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="block overflow-hidden rounded-xl border border-slate-700 bg-black"
+                                      >
+                                        <img
+                                          src={photoUrl}
+                                          alt="Limitation photo"
+                                          loading="lazy"
+                                          decoding="async"
+                                          fetchPriority="low"
+                                          className="max-h-[260px] w-full object-cover"
+                                        />
+                                      </a>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
-                    </div>
+                    </details>
                   )
                 )}
               </div>
-            </section>
+            </details>
           )}
 
           <section id="inspection-findings" className="scroll-mt-[180px] md:scroll-mt-[220px] mt-10">

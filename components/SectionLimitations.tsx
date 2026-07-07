@@ -762,42 +762,73 @@ export default function SectionLimitations({
         </span>
       </button>
 
-      {(selectedStandard.length > 0 || customSaved.length > 0 || aiSaved) && (
-        <div className="border-t border-slate-700 px-5 py-3">
-          <div className="flex flex-wrap gap-2">
-            {selectedStandard.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => removeLimitation(item.id)}
-                className="rounded-full border border-teal-500/60 bg-teal-500/10 px-3 py-1 text-sm font-bold text-teal-200 hover:bg-teal-500/20"
-                title="Click to remove"
-              >
-                {item.label} ×
-              </button>
-            ))}
+      {selectedLimitations.length > 0 && (
+        <div className="border-t border-slate-700 px-5 py-4">
+          <p className="mb-3 text-xs font-black uppercase tracking-[0.18em] text-slate-400">
+            Saved limitation preview
+          </p>
 
-            {customSaved.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => removeLimitation(item.id)}
-                className="rounded-full border border-yellow-500/60 bg-yellow-500/10 px-3 py-1 text-sm font-bold text-yellow-200 hover:bg-yellow-500/20"
-                title="Click to remove"
-              >
-                {item.custom_text} ×
-              </button>
-            ))}
-            {aiSaved && (
-              <button
-                type="button"
-                onClick={() => removeLimitation(aiSaved.id)}
-                className="rounded-full border border-purple-500/60 bg-purple-500/10 px-3 py-1 text-sm font-bold text-purple-200 hover:bg-purple-500/20"
-                title="Click to remove"
-              >
-                AI Limitation Note ×
-              </button>
-            )}
+          <div className="space-y-3">
+            {selectedLimitations.map((item) => {
+              const label = item.custom_text || item.label;
+              const comment = String(
+                item.limitation_comment ||
+                  item.custom_text ||
+                  item.ai_notes ||
+                  ""
+              ).trim();
+              const photos = photosByLimitationId[item.id] || [];
+
+              return (
+                <div
+                  key={item.id}
+                  className="rounded-xl border border-slate-700 bg-[#020617] p-4"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="break-words font-black text-yellow-200">
+                        {label}
+                      </p>
+                      {comment && (
+                        <p className="mt-2 whitespace-pre-line break-words text-sm leading-6 text-slate-300">
+                          {comment}
+                        </p>
+                      )}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => removeLimitation(item.id)}
+                      className="rounded-full border border-red-500/60 bg-red-500/10 px-3 py-1 text-xs font-black text-red-200 hover:bg-red-500/20"
+                      title="Remove limitation"
+                    >
+                      Remove
+                    </button>
+                  </div>
+
+                  {photos.length > 0 && (
+                    <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      {photos.map((photo) => {
+                        const photoUrl =
+                          photo.signed_url || photo.public_url || "";
+
+                        if (!photoUrl) return null;
+
+                        return (
+                          <img
+                            key={photo.id}
+                            src={photoUrl}
+                            alt="Limitation"
+                            loading="lazy"
+                            className="h-36 w-full rounded-xl border border-slate-700 object-cover"
+                          />
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
