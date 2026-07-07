@@ -130,11 +130,15 @@ type LimitationRow = {
 type LimitationPhoto = {
   id: string;
   limitation_id: string;
-  inspection_id: string;
-  section: string;
-  file_path: string;
+  inspection_id?: string | null;
+  section?: string | null;
+  file_path?: string | null;
   public_url?: string | null;
   signed_url?: string | null;
+  photo_url?: string | null;
+  thumbnail_path?: string | null;
+  thumbnail_url?: string | null;
+  inspector_id?: string | null;
 };
 
 type LimitationTemplate = {
@@ -286,15 +290,28 @@ export default function SectionLimitations({
 
     const photos = await Promise.all(
       (data || []).map(async (photo: LimitationPhoto) => {
-        if (!photo.file_path) return photo;
+        const storagePath = photo.file_path || photo.thumbnail_path || "";
+        const fallbackUrl =
+          photo.public_url || photo.photo_url || photo.thumbnail_url || "";
+
+        if (!storagePath) {
+          return {
+            ...photo,
+            file_path: storagePath,
+            public_url: fallbackUrl,
+            signed_url: photo.signed_url || fallbackUrl,
+          };
+        }
 
         const { data: signedData } = await supabase.storage
           .from(PHOTO_BUCKET)
-          .createSignedUrl(photo.file_path, 60 * 60 * 24 * 7);
+          .createSignedUrl(storagePath, 60 * 60 * 24 * 7);
 
         return {
           ...photo,
-          signed_url: signedData?.signedUrl || photo.public_url || "",
+          file_path: storagePath,
+          public_url: fallbackUrl,
+          signed_url: signedData?.signedUrl || fallbackUrl,
         };
       })
     );
@@ -528,10 +545,9 @@ export default function SectionLimitations({
         .from("limitation_photos")
         .insert({
           limitation_id: limitation.id,
-          inspection_id: inspectionId,
-          section,
-          file_path: filePath,
-          public_url: publicData.publicUrl,
+          photo_url: publicData.publicUrl,
+          thumbnail_url: publicData.publicUrl,
+          thumbnail_path: filePath,
         })
         .select("*")
         .single();
@@ -573,8 +589,9 @@ export default function SectionLimitations({
 
       if (error) throw error;
 
-      if (photo.file_path) {
-        await supabase.storage.from(PHOTO_BUCKET).remove([photo.file_path]);
+      const storagePath = photo.file_path || photo.thumbnail_path || "";
+      if (storagePath) {
+        await supabase.storage.from(PHOTO_BUCKET).remove([storagePath]);
       }
 
       setPhotosByLimitationId((prev) => ({
@@ -810,7 +827,11 @@ export default function SectionLimitations({
                     <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                       {photos.map((photo) => {
                         const photoUrl =
-                          photo.signed_url || photo.public_url || "";
+                          photo.signed_url ||
+                          photo.public_url ||
+                          photo.photo_url ||
+                          photo.thumbnail_url ||
+                          "";
 
                         if (!photoUrl) return null;
 
@@ -975,7 +996,11 @@ export default function SectionLimitations({
                         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                           {photos.map((photo) => {
                             const photoUrl =
-                              photo.signed_url || photo.public_url || "";
+                              photo.signed_url ||
+                              photo.public_url ||
+                              photo.photo_url ||
+                              photo.thumbnail_url ||
+                              "";
 
                             if (!photoUrl) return null;
 
