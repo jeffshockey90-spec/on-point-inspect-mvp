@@ -1570,7 +1570,6 @@ Instructions:
 
       setAiInspectorNote("");
       showMessage("success", "AI Inspector rewrite saved. Review the updated finding.");
-      router.refresh();
     } catch (error: any) {
       showMessage("error", error?.message || "AI Inspector rewrite failed.");
     } finally {
