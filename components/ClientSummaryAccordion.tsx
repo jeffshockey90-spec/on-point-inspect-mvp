@@ -110,12 +110,29 @@ function getMediaPreviewUrl(media: any) {
   const thumbnailUrl = String(
     media?.signed_thumbnail_url ||
       media?.thumbnail_url ||
-      ""
+      media?.poster_url ||
+      media?.posterUrl ||
+      media?.video_thumbnail_url ||
+      media?.videoThumbnailUrl ||
+      "",
   ).trim();
 
-  // Use lightweight preview URLs first. These are generated from the original
-  // stored image when possible, then fall back to the full signed photo.
-  return thumbnailUrl || fullUrl;
+  // Use real image thumbnails/posters for videos. Do not use the video file
+  // itself as an <img> preview because iPhone Safari often renders it blank.
+  if (thumbnailUrl && thumbnailUrl !== fullUrl && !isVideoUrl(thumbnailUrl)) {
+    return thumbnailUrl;
+  }
+
+  if (isVideoMedia(media, fullUrl)) {
+    return "";
+  }
+
+  return fullUrl;
+}
+
+function isVideoUrl(urlValue?: string) {
+  const url = String(urlValue || "").toLowerCase();
+  return /\.(mp4|mov|m4v|webm|avi|quicktime)(\?|#|$)/.test(url);
 }
 
 function handleImageFallback(
@@ -244,10 +261,19 @@ function DetailIcon({ tone }: { tone: "blue" | "yellow" | "teal" | "slate" }) {
           ? "bg-teal-500/25 text-teal-100"
           : "bg-slate-500/25 text-slate-100";
 
-  const icon = tone === "blue" ? "👁" : tone === "yellow" ? "⚠" : tone === "teal" ? "✓" : "•";
+  const icon =
+    tone === "blue"
+      ? "👁"
+      : tone === "yellow"
+        ? "⚠"
+        : tone === "teal"
+          ? "✓"
+          : "•";
 
   return (
-    <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-lg ${className}`}>
+    <span
+      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-lg ${className}`}
+    >
       {icon}
     </span>
   );
@@ -290,7 +316,9 @@ function FindingTextCard({
       <div className="flex w-full min-w-0 items-start gap-4">
         <DetailIcon tone={tone} />
         <div className="min-w-0 flex-1">
-          <p className={`break-words text-sm font-black uppercase tracking-wide ${heading}`}>
+          <p
+            className={`break-words text-sm font-black uppercase tracking-wide ${heading}`}
+          >
             {title}
           </p>
           <p className="mt-4 whitespace-pre-line break-words text-base leading-8 text-slate-100 [overflow-wrap:anywhere]">
@@ -349,16 +377,29 @@ function SummaryFindingCard({
           <div className="relative h-44 w-full max-w-full overflow-hidden border-b border-slate-800 bg-black sm:h-48">
             {video ? (
               <>
-                <video
-                  src={mediaUrl}
-                  muted
-                  playsInline
-                  preload="metadata"
-                  className="h-full w-full object-cover opacity-70"
-                />
-                <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                {previewUrl ? (
+                  <img
+                    src={previewUrl}
+                    alt={title}
+                    onError={(event) => handleImageFallback(event, "")}
+                    loading="lazy"
+                    decoding="async"
+                    fetchPriority="low"
+                    className="h-full w-full object-cover opacity-80"
+                  />
+                ) : (
+                  <video
+                    src={mediaUrl}
+                    muted
+                    playsInline
+                    preload="metadata"
+                    className="h-full w-full object-cover opacity-70"
+                  />
+                )}
+
+                <div className="absolute inset-0 flex items-center justify-center bg-black/25">
                   <span className="rounded-full border border-cyan-400 bg-black/75 px-4 py-2 text-xs font-black uppercase tracking-wide text-cyan-300 shadow-[0_0_22px_rgba(34,211,238,0.25)]">
-                    ▷ Video
+                    ▶ Video
                   </span>
                 </div>
               </>
@@ -429,14 +470,41 @@ function SummaryFindingCard({
                 if (!itemUrl) return null;
 
                 return itemIsVideo ? (
-                  <video
+                  <div
                     key={item.id || item.file_path || itemUrl || mediaIndex}
-                    src={itemUrl}
-                    controls
-                    playsInline
-                    preload="metadata"
-                    className="max-h-[520px] w-full max-w-full rounded-xl border border-slate-700 bg-black object-contain"
-                  />
+                    className="relative overflow-hidden rounded-xl border border-slate-700 bg-black"
+                  >
+                    {itemPreviewUrl ? (
+                      <img
+                        src={itemPreviewUrl}
+                        alt={`Summary finding video ${mediaIndex + 1}`}
+                        onError={(event) => handleImageFallback(event, "")}
+                        loading="lazy"
+                        decoding="async"
+                        fetchPriority="low"
+                        className="max-h-[520px] w-full max-w-full object-contain opacity-80"
+                      />
+                    ) : (
+                      <video
+                        src={itemUrl}
+                        controls
+                        playsInline
+                        preload="metadata"
+                        className="max-h-[520px] w-full max-w-full bg-black object-contain"
+                      />
+                    )}
+                    {itemPreviewUrl && (
+                      <a
+                        href={itemUrl}
+                        className="absolute inset-0 flex items-center justify-center bg-black/25"
+                        aria-label={`Open summary finding video ${mediaIndex + 1}`}
+                      >
+                        <span className="rounded-full border border-cyan-400 bg-black/75 px-4 py-2 text-xs font-black uppercase tracking-wide text-cyan-300 shadow-[0_0_22px_rgba(34,211,238,0.25)]">
+                          ▶ Video
+                        </span>
+                      </a>
+                    )}
+                  </div>
                 ) : (
                   <img
                     key={item.id || item.file_path || itemUrl || mediaIndex}
