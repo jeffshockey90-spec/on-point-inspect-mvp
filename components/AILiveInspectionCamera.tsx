@@ -425,7 +425,7 @@ export default function AILiveInspectionCamera({
   function useSuggestion(suggestion: AILiveSuggestion) {
     onUseSuggestion(suggestion, frameFile);
     setResult(null);
-    setMessage("Suggestion loaded into Field Tool. Review and tap Save Finding if you agree.");
+    setMessage("Finding sent to Field Tool. AI Watching resumed.");
   }
 
   function ignoreSuggestion(suggestion: AILiveSuggestion) {
@@ -447,9 +447,9 @@ export default function AILiveInspectionCamera({
       };
     });
 
-    setMessage(
-      "Suggestion ignored for now. AI may show it again later if confidence improves or stronger evidence appears.",
-    );
+    setResult(null);
+
+    setMessage("Suggestion dismissed. AI Watching resumed.");
   }
 
   async function saveLimitationToSection(
@@ -504,19 +504,10 @@ export default function AILiveInspectionCamera({
         }),
       );
 
-      setResult((current) => {
-        if (!current) return current;
-
-        return {
-          ...current,
-          limitations: (current.limitations || []).filter(
-            (_item, itemIndex) => itemIndex !== index,
-          ),
-        };
-      });
+      setResult(null);
 
       setMessage(
-        `Limitation added to ${targetSection}. It will appear in that section's Limitations box.`,
+        `Limitation added to ${targetSection}. AI Watching resumed.`,
       );
     } catch (error: any) {
       setMessage(error?.message || "Failed to add limitation to section.");
@@ -656,7 +647,7 @@ export default function AILiveInspectionCamera({
 
             <button
               type="button"
-              onClick={() => onScanDataPlate(frameFile)}
+              onClick={() => { onScanDataPlate(frameFile); setResult(null); setMessage("Data plate sent to scanner. AI Watching resumed."); }}
               disabled={!frameDataUrl}
               className="rounded-xl border border-yellow-500 px-4 py-3 text-sm font-black text-yellow-200 transition active:scale-[0.98] hover:bg-yellow-400 hover:text-black disabled:opacity-50"
             >
@@ -694,7 +685,7 @@ export default function AILiveInspectionCamera({
                   </p>
                   <button
                     type="button"
-                    onClick={() => onScanDataPlate(frameFile)}
+                    onClick={() => { onScanDataPlate(frameFile); setResult(null); setMessage("Data plate sent to scanner. AI Watching resumed."); }}
                     className="mt-3 rounded-xl bg-yellow-400 px-4 py-2 text-sm font-black text-black"
                   >
                     Scan Data Plate / Add Frame
@@ -828,16 +819,8 @@ export default function AILiveInspectionCamera({
                           <button
                             type="button"
                             onClick={() => {
-                              setResult((current) => {
-                                if (!current) return current;
-                                return {
-                                  ...current,
-                                  limitations: (current.limitations || []).filter(
-                                    (_item, itemIndex) => itemIndex !== index,
-                                  ),
-                                };
-                              });
-                              setMessage("Limitation ignored for now. AI may mention it again if it sees stronger evidence.");
+                              setResult(null);
+                              setMessage("Limitation dismissed. AI Watching resumed.");
                             }}
                             className="rounded-xl border border-orange-500/60 px-4 py-2 text-sm font-black text-orange-100"
                           >
@@ -877,7 +860,7 @@ export default function AILiveInspectionCamera({
                         {reminder.action === "scan_data_plate" && (
                           <button
                             type="button"
-                            onClick={() => onScanDataPlate(frameFile)}
+                            onClick={() => { onScanDataPlate(frameFile); setResult(null); setMessage("Data plate sent to scanner. AI Watching resumed."); }}
                             className="mt-2 rounded-lg bg-emerald-400 px-3 py-1.5 text-xs font-black text-black"
                           >
                             Add Frame / Scan Data Plate
