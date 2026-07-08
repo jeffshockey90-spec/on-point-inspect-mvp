@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { createClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
@@ -177,6 +178,11 @@ export async function POST(req: Request) {
     if (photoError) {
       throw new Error(photoError.message || "Photo record insert failed.");
     }
+
+    revalidatePath(`/reports/${inspectionId}`);
+    revalidatePath(`/share/${inspectionId}`);
+    revalidatePath(`/client-portal/${inspectionId}`);
+    revalidatePath(`/reports/${inspectionId}/print`);
 
     return NextResponse.json({
       success: true,
