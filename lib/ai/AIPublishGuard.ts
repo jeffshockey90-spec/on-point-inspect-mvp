@@ -298,8 +298,24 @@ function hasPhotoLikeValue(item: any) {
       item?.file_path ||
       item?.signed_image_url ||
       item?.signed_url ||
+      item?.thumbnail_url ||
+      item?.thumbnail_path ||
       (Array.isArray(item?.photos) && item.photos.length > 0)
   );
+}
+
+function findingPhotoCount(finding: any) {
+  const photos = Array.isArray(finding?.photos) ? finding.photos.length : 0;
+  return photos + (hasPhotoLikeValue(finding) ? 1 : 0);
+}
+
+function isSafetyOrMajor(value: any) {
+  const severity = lowerText(value);
+  return severity.includes("safety") || severity.includes("major") || severity.includes("hazard");
+}
+
+function sectionHasPhotoLikeValue(items: any[]) {
+  return items.some((item) => hasPhotoLikeValue(item));
 }
 
 export class AIPublishGuard {
@@ -451,15 +467,20 @@ export class AIPublishGuard {
         );
       }
 
-      const photoCount = Array.isArray(finding?.photos) ? finding.photos.length : 0;
-      if (!finding?.image_url && photoCount === 0) {
+      const mediaCount = findingPhotoCount(finding);
+      if (mediaCount === 0) {
+        const important = isSafetyOrMajor(finding?.severity);
         issues.push(
           issue(
             `missing-media-${finding?.id || title}`,
             `No media attached: ${title}`,
-            "info",
-            "This finding may not have supporting photo/video media attached.",
-            "Attach media if available, or leave as-is if a photo was not needed.",
+            important ? "warning" : "info",
+            important
+              ? "This safety/major finding does not appear to have supporting photo/video media attached."
+              : "This finding may not have supporting photo/video media attached.",
+            important
+              ? "Attach media before publishing when available, or clearly document why no photo was possible."
+              : "Attach media if available, or leave as-is if a photo was not needed.",
             section,
             false
           )
@@ -536,6 +557,21 @@ export class AIPublishGuard {
       });
 
       if (sectionItems.length === 0) return;
+
+      if (!sectionHasPhotoLikeValue(sectionItems)) {
+        issues.push(
+          issue(
+            `section-missing-media-${system}`,
+            `Section may need overview media: ${system}`,
+            "info",
+            `${system} has report content but no obvious attached media was detected in its findings/equipment rows.`,
+            "Confirm the section has representative media or that media was intentionally omitted.",
+            system,
+            false
+          )
+        );
+      }
+
       const sectionHasLimitationLanguage = hasAnyText(sectionItems, LIMITED_ACCESS_TERMS);
       const sectionSuggestsLimitedAccess = sectionItems.some((item) => itemContainsAny(item, LIMITED_ACCESS_TERMS));
 
@@ -696,6 +732,10 @@ export class AIPublishGuard {
 
     if (uniqueIssues.length === 0) {
       suggestions.push("No major publish guard concerns detected. Inspector final review still applies.");
+    }
+
+    if (uniqueIssues.some((item) => item.id.startsWith("missing-media-") || item.id.startsWith("section-missing-media-"))) {
+      suggestions.push("Review photo coverage before publishing, especially AI Live Camera findings, safety concerns, equipment, and sections with limitations.");
     }
 
     if (criticalIssues.length > 0) {

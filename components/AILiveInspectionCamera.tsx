@@ -79,6 +79,19 @@ function createSuggestionKey(suggestion: AILiveSuggestion) {
     .join(":");
 }
 
+
+function createReminderKey(reminder: AILiveReminder) {
+  return [reminder.id, reminder.title, reminder.action]
+    .map((value) =>
+      String(value || "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, ""),
+    )
+    .filter(Boolean)
+    .join(":");
+}
+
 function normalizeConfidence(value: any) {
   const number = Number(value);
   if (!Number.isFinite(number)) return 0;
@@ -144,6 +157,7 @@ export default function AILiveInspectionCamera({
   const [waitingForDecision, setWaitingForDecision] = useState(false);
   const [message, setMessage] = useState("");
   const [savingLimitationIndex, setSavingLimitationIndex] = useState<number | null>(null);
+  const [handledReminderKeys, setHandledReminderKeys] = useState<Record<string, boolean>>({});
 
   const frameFile = useMemo(() => {
     if (!frameDataUrl) return null;
@@ -174,6 +188,14 @@ export default function AILiveInspectionCamera({
       return isOldDismissal || confidenceImproved;
     });
   }, [result]);
+
+  const visibleReminders = useMemo(() => {
+    const reminders = result?.reminders || [];
+    return reminders.filter((reminder) => {
+      const key = createReminderKey(reminder);
+      return !key || !handledReminderKeys[key];
+    });
+  }, [result, handledReminderKeys]);
 
   useEffect(() => {
     if (!open) {
@@ -320,6 +342,7 @@ export default function AILiveInspectionCamera({
         return;
       }
 
+      setHandledReminderKeys({});
       setResult(data);
       const hasManualResult =
         (Array.isArray(data.suggestions) && data.suggestions.length > 0) ||
@@ -415,6 +438,7 @@ export default function AILiveInspectionCamera({
         return;
       }
 
+      setHandledReminderKeys({});
       setResult({
         ...data,
         suggestions: strongSuggestions.length > 0 ? strongSuggestions : suggestions,
@@ -567,6 +591,63 @@ export default function AILiveInspectionCamera({
     } finally {
       setSavingLimitationIndex(null);
     }
+  }
+
+  function resolveReminder(reminder: AILiveReminder, nextMessage: string) {
+    const key = createReminderKey(reminder);
+
+    if (key) {
+      setHandledReminderKeys((current) => ({
+        ...current,
+        [key]: true,
+      }));
+    }
+
+    setResult((current) => {
+      if (!current) return current;
+
+      const remainingReminders = (current.reminders || []).filter(
+        (item) => createReminderKey(item) !== key,
+      );
+
+      const hasPending =
+        (current.suggestions || []).length > 0 ||
+        (current.limitations || []).length > 0 ||
+        remainingReminders.length > 0 ||
+        Boolean(current.dataPlatePrompt?.needed);
+
+      if (!hasPending) {
+        setWaitingForDecision(false);
+        return null;
+      }
+
+      return {
+        ...current,
+        reminders: remainingReminders,
+      };
+    });
+
+    setMessage(nextMessage);
+  }
+
+  function markReminderChecked(reminder: AILiveReminder) {
+    resolveReminder(reminder, "Checklist reminder marked complete. AI Watching can continue when all prompts are handled.");
+  }
+
+  function saveReminderPhoto(reminder: AILiveReminder) {
+    const captured = frameFile || (captureFrame({ silent: true }) ? dataUrlToFile(latestFrameRef.current) : null);
+
+    if (!captured) {
+      setMessage("Capture a frame before adding this reminder photo.");
+      return;
+    }
+
+    onAddPhotoOnly(captured);
+    resolveReminder(reminder, "Reminder photo saved. AI Watching can continue when all prompts are handled.");
+  }
+
+  function ignoreReminder(reminder: AILiveReminder) {
+    resolveReminder(reminder, "Reminder ignored for now. AI Watching can continue when all prompts are handled.");
   }
 
   function addPhotoOnly() {
@@ -897,13 +978,13 @@ export default function AILiveInspectionCamera({
                 </div>
               )}
 
-              {Array.isArray(result.reminders) && result.reminders.length > 0 && (
+              {visibleReminders.length > 0 && (
                 <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4">
                   <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-300">
                     Before You Walk Away
                   </p>
                   <div className="mt-3 space-y-2">
-                    {result.reminders.map((reminder, index) => (
+                    {visibleReminders.map((reminder, index) => (
                       <div
                         key={`${reminder.title}-${index}`}
                         className="rounded-lg border border-emerald-500/30 bg-black/20 p-3"
@@ -921,15 +1002,44 @@ export default function AILiveInspectionCamera({
                             {reminder.detail}
                           </p>
                         )}
-                        {reminder.action === "scan_data_plate" && (
+                        <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                          {reminder.action === "scan_data_plate" ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onScanDataPlate(frameFile);
+                                resolveReminder(reminder, "Data plate sent to scanner. AI Watching can continue when all prompts are handled.");
+                              }}
+                              className="rounded-lg bg-emerald-400 px-3 py-2 text-xs font-black text-black"
+                            >
+                              Scan Data Plate
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => markReminderChecked(reminder)}
+                              className="rounded-lg bg-emerald-400 px-3 py-2 text-xs font-black text-black"
+                            >
+                              Mark Checked
+                            </button>
+                          )}
+
                           <button
                             type="button"
-                            onClick={() => { onScanDataPlate(frameFile); setResult(null); setWaitingForDecision(false); setMessage("Data plate sent to scanner. AI Watching resumed."); }}
-                            className="mt-2 rounded-lg bg-emerald-400 px-3 py-1.5 text-xs font-black text-black"
+                            onClick={() => saveReminderPhoto(reminder)}
+                            className="rounded-lg border border-cyan-500/70 px-3 py-2 text-xs font-black text-cyan-100"
                           >
-                            Add Frame / Scan Data Plate
+                            Add Photo
                           </button>
-                        )}
+
+                          <button
+                            type="button"
+                            onClick={() => ignoreReminder(reminder)}
+                            className="rounded-lg border border-slate-500/70 px-3 py-2 text-xs font-black text-slate-100"
+                          >
+                            Ignore
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
