@@ -223,6 +223,105 @@ function filterForLiveWatch(items: any[]) {
   });
 }
 
+
+function sectionFallbackReminders(section: string, isLiveWatch: boolean) {
+  const clean = cleanSection(section, section);
+  const common = [
+    {
+      id: `photo-${clean}`.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+      title: `${clean} overview photo documented`,
+      detail: "Capture an overview or representative photo before leaving this section if one has not already been saved.",
+      priority: isLiveWatch ? "medium" : "high",
+      action: "photo",
+      confidence: isLiveWatch ? 0.72 : 0.86,
+    },
+  ];
+
+  const bySection: Record<string, any[]> = {
+    Electrical: [
+      {
+        id: "electrical-panel-label-photo",
+        title: "Panel label and breaker area documented",
+        detail: "Before leaving the panel, confirm the label, breaker layout, dead front condition, clearances, and any visible overheating/corrosion concerns were documented.",
+        priority: "high",
+        action: "photo",
+        confidence: 0.9,
+      },
+      {
+        id: "electrical-gfci-afci-check",
+        title: "GFCI / AFCI and accessible receptacles considered",
+        detail: "Confirm wet-area protection, representative receptacles, smoke/CO notes, and any limitation if access/testing was restricted.",
+        priority: "medium",
+        action: "check",
+        confidence: 0.82,
+      },
+    ],
+    Plumbing: [
+      {
+        id: "plumbing-water-heater-tpr",
+        title: "Water heater and TPR discharge checked",
+        detail: "Verify water heater condition, visible data plate, TPR valve/discharge, leaks, corrosion, venting where applicable, and expansion tank where present.",
+        priority: "high",
+        action: "check",
+        confidence: 0.88,
+      },
+    ],
+    Heating: [
+      {
+        id: "heating-data-plate-filter-venting",
+        title: "Heating data plate, filter, and venting documented",
+        detail: "Capture data plate when visible and verify operation/limitation, filter condition, venting/flue where applicable, and service concerns.",
+        priority: "high",
+        action: "scan_data_plate",
+        confidence: 0.88,
+      },
+    ],
+    Cooling: [
+      {
+        id: "cooling-data-plate-temperature-limitation",
+        title: "Cooling data plate and operating limitation checked",
+        detail: "Capture condenser/air handler data plate when visible and document if outdoor temperature or conditions limited operation.",
+        priority: "high",
+        action: "scan_data_plate",
+        confidence: 0.86,
+      },
+    ],
+    Roof: [
+      {
+        id: "roof-access-flashing-penetrations",
+        title: "Roof access, flashing, and penetrations documented",
+        detail: "Confirm roof access method, covering condition, penetrations, flashing, drainage, and any limitation if not walked or not fully visible.",
+        priority: "high",
+        action: "photo",
+        confidence: 0.86,
+      },
+    ],
+    Garage: [
+      {
+        id: "garage-door-safety-fire-separation",
+        title: "Garage door safety and fire separation checked",
+        detail: "Confirm photo eyes/auto-reverse where applicable, spring/cable condition, opener operation, and visible fire separation concerns.",
+        priority: "high",
+        action: "check",
+        confidence: 0.86,
+      },
+    ],
+    "Attic, Insulation & Ventilation": [
+      {
+        id: "attic-access-insulation-ventilation",
+        title: "Attic access, insulation, ventilation, and sheathing reviewed",
+        detail: "Confirm attic access/limitation, insulation type/depth, ventilation, roof sheathing, staining, and bath fan routing were documented.",
+        priority: "high",
+        action: "photo",
+        confidence: 0.86,
+      },
+    ],
+  };
+
+  const sectionItems = bySection[clean] || [];
+  return [...sectionItems, ...common].slice(0, isLiveWatch ? 1 : 3).map((item, index) => cleanReminder(item, index));
+}
+
 export async function POST(req: Request) {
   try {
     if (!process.env.OPENAI_API_KEY) {
@@ -258,7 +357,7 @@ Analyze the frame for:
 1. The current area/system.
 2. Multiple visible possible defects or reportable conditions in the same area.
 3. Inspection limitations such as personal belongings, stored items, blocked access, inaccessible areas, snow/debris coverage, locked rooms, low clearance, unsafe access, utilities off, or components not fully visible.
-4. Inspection reminders before walking away.
+4. Inspection reminders before walking away, including missing required photos, representative overview photos, safety checks, operation/limitation checks, and data plate/documentation prompts.
 5. Equipment/data-plate scan prompts when equipment is visible.
 
 Return ONLY valid JSON in this exact structure:
@@ -324,6 +423,9 @@ Rules:
 - Do not overstate limitations. If the limitation is only possible, say "appeared" or "may have limited visibility."
 - If water heater, HVAC, electrical panel, appliance, or similar equipment is visible, include a data plate scan reminder unless the data plate is clearly already captured.
 - Reminders should include items the inspector should verify before leaving the area.
+- Use reminder action "photo" when the inspector should capture a photo before leaving.
+- Use reminder action "check" when no photo is required but the item should be verified.
+- Use reminder action "scan_data_plate" when a visible equipment label/data plate should be captured.
 - Do not include markdown.
 - Do not include any text outside JSON.
 
@@ -377,7 +479,7 @@ If mode is "live_watch":
       .slice(0, 6)
       .map(cleanSuggestion);
 
-    const reminders = Array.isArray(parsed?.reminders)
+    let reminders = Array.isArray(parsed?.reminders)
       ? parsed.reminders
           .slice(0, 8)
           .filter((item: any) => {
@@ -389,6 +491,14 @@ If mode is "live_watch":
           })
           .map(cleanReminder)
       : [];
+
+    if (reminders.length === 0 && !isLiveWatch) {
+      reminders = sectionFallbackReminders(currentSection, isLiveWatch);
+    }
+
+    if (reminders.length === 0 && isLiveWatch && (suggestions.length > 0 || Boolean(parsed?.dataPlatePrompt?.needed))) {
+      reminders = sectionFallbackReminders(currentSection, isLiveWatch);
+    }
 
     const limitations = Array.isArray(parsed?.limitations)
       ? parsed.limitations
