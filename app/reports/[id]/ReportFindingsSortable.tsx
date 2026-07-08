@@ -209,6 +209,49 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
     };
   }, [inspectionId, router]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    function handleLiveFindingAdded(event: Event) {
+      const detail = (event as CustomEvent)?.detail || {};
+      const eventInspectionId = String(detail.inspectionId || "");
+      const targetSection = String(detail.section || "");
+
+      if (eventInspectionId && eventInspectionId !== String(inspectionId)) {
+        return;
+      }
+
+      if (targetSection) {
+        setClosedSections((current) => ({
+          ...current,
+          [targetSection]: false,
+        }));
+      }
+
+      router.refresh();
+
+      window.setTimeout(() => {
+        if (targetSection) {
+          document
+            .getElementById(`report-section-${commandSlug(targetSection)}`)
+            ?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }, 350);
+    }
+
+    window.addEventListener(
+      "opi:findings-changed",
+      handleLiveFindingAdded as EventListener,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "opi:findings-changed",
+        handleLiveFindingAdded as EventListener,
+      );
+    };
+  }, [inspectionId, router]);
+
   const allFindings = useMemo(() => {
     return (orderedGroups || []).flatMap((group: any) => group.findings || []);
   }, [orderedGroups]);

@@ -436,9 +436,22 @@ export default function AILiveInspectionCamera({
 
   function useSuggestion(suggestion: AILiveSuggestion) {
     onUseSuggestion(suggestion, frameFile);
+
+    window.dispatchEvent(
+      new CustomEvent("opi:findings-changed", {
+        detail: {
+          inspectionId: selectedReport,
+          section: suggestion.section || currentSection,
+        },
+      }),
+    );
+
     setResult(null);
     setWaitingForDecision(false);
-    setMessage("Finding sent to Field Tool. AI Watching resumed.");
+    setFrameDataUrl("");
+    latestFrameRef.current = "";
+
+    setMessage("Finding added to report with photo. AI Watching resumed.");
   }
 
   function ignoreSuggestion(suggestion: AILiveSuggestion) {
