@@ -461,14 +461,32 @@ export default function AILiveInspectionCamera({
   function useSuggestion(suggestion: AILiveSuggestion) {
     onUseSuggestion(suggestion, frameFile);
 
+    const findingChangeDetail = {
+      inspectionId: selectedReport,
+      section: suggestion.section || currentSection,
+    };
+
     window.dispatchEvent(
       new CustomEvent("opi:findings-changed", {
-        detail: {
-          inspectionId: selectedReport,
-          section: suggestion.section || currentSection,
-        },
+        detail: findingChangeDetail,
       }),
     );
+
+    window.setTimeout(() => {
+      window.dispatchEvent(
+        new CustomEvent("opi:findings-changed", {
+          detail: findingChangeDetail,
+        }),
+      );
+    }, 900);
+
+    window.setTimeout(() => {
+      window.dispatchEvent(
+        new CustomEvent("opi:findings-changed", {
+          detail: findingChangeDetail,
+        }),
+      );
+    }, 1800);
 
     setResult(null);
     setWaitingForDecision(false);

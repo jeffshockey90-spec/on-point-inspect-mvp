@@ -8,6 +8,7 @@ import ReportDisclaimers from "../../../components/ReportDisclaimers";
 import SectionInformationChecklist from "../../../components/SectionInformationChecklist";
 import SectionReferencePhotos from "../../../components/SectionReferencePhotos";
 import AISectionReview from "../../../components/AISectionReview";
+import ExpandableReportImage from "../../../components/ExpandableReportImage";
 import { supabase } from "../../../lib/supabaseClient";
 
 const PHOTO_BUCKET = "inspection-photos";
@@ -2132,29 +2133,18 @@ Instructions:
                       </video>
                     </div>
                   ) : (
-                    <a
-                      href={url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="block"
-                    >
-                      <img
-                        src={previewUrl || url}
-                        alt={`Finding photo ${index + 1}`}
-                        onError={(event) => handleImageFallback(event, url)}
-                        loading="lazy"
-                        decoding="async"
-                        fetchPriority={index === 0 ? "auto" : "low"}
-                        width={900}
-                        height={600}
-                        sizes="(max-width: 640px) 94vw, (max-width: 1024px) 48vw, 33vw"
-                        className={
-                          visiblePhotos.length === 1
-                            ? "max-h-[650px] w-full object-contain"
-                            : "h-56 w-full object-contain transition hover:scale-[1.02]"
-                        }
-                      />
-                    </a>
+                    <ExpandableReportImage
+                      src={previewUrl || url}
+                      fullSrc={url}
+                      alt={`Finding photo ${index + 1}`}
+                      className={
+                        visiblePhotos.length === 1
+                          ? "max-h-[650px] w-full object-contain"
+                          : "h-56 w-full object-contain"
+                      }
+                      buttonClassName="block w-full overflow-hidden bg-black text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
+                      badgeText="Tap to enlarge"
+                    />
                   )}
 
                   <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-800 px-3 py-2 text-xs font-bold text-slate-400">
@@ -2163,14 +2153,11 @@ Instructions:
                     </span>
 
                     <div className="flex flex-wrap gap-2">
-                      <a
-                        href={url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="rounded-lg border border-slate-600 px-3 py-1 text-slate-200 hover:bg-slate-800"
-                      >
-                        Open
-                      </a>
+                      {!isVideoMedia(photo) && (
+                        <span className="rounded-lg border border-slate-600 px-3 py-1 text-slate-300">
+                          Tap photo to expand
+                        </span>
+                      )}
 
                       <button
                         type="button"
