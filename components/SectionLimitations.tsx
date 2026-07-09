@@ -749,16 +749,6 @@ export default function SectionLimitations({
     }
   }
 
-  function getPhotoUrl(photo: LimitationPhoto) {
-    return (
-      photo.signed_url ||
-      photo.photo_url ||
-      photo.public_url ||
-      photo.thumbnail_url ||
-      ""
-    );
-  }
-
   const selectedCount =
     selectedStandard.length + customSaved.length + aiSaved.length;
 
@@ -769,6 +759,7 @@ export default function SectionLimitations({
   ];
 
   return (
+    <>
     <div className="rounded-2xl border border-slate-700 bg-[#071224]">
       <button
         type="button"
@@ -850,17 +841,17 @@ export default function SectionLimitations({
                             key={photo.id}
                             type="button"
                             onClick={() => setExpandedPhotoUrl(photoUrl)}
-                            className="group relative overflow-hidden rounded-xl border border-slate-700 bg-black text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
-                            aria-label="Open limitation photo full size"
+                            className="group relative block h-36 w-full overflow-hidden rounded-xl border border-slate-700 bg-black text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
+                            title="Tap to enlarge limitation photo"
                           >
                             <img
                               src={photoUrl}
                               alt="Limitation"
                               loading="lazy"
-                              className="h-36 w-full object-cover transition duration-200 group-hover:scale-[1.02]"
+                              className="h-full w-full object-cover transition duration-200 group-hover:scale-[1.02]"
                             />
-                            <span className="absolute bottom-2 right-2 rounded-full border border-cyan-300/70 bg-black/75 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-cyan-100">
-                              View Full
+                            <span className="absolute bottom-2 right-2 rounded-full border border-white/30 bg-black/70 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-white">
+                              Tap to enlarge
                             </span>
                           </button>
                         );
@@ -1032,16 +1023,17 @@ export default function SectionLimitations({
                                 <button
                                   type="button"
                                   onClick={() => setExpandedPhotoUrl(photoUrl)}
-                                  className="group relative block w-full bg-black text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
-                                  aria-label="Open limitation photo full size"
+                                  className="group relative block h-40 w-full overflow-hidden bg-black text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
+                                  title="Tap to enlarge limitation photo"
                                 >
                                   <img
                                     src={photoUrl}
                                     alt="Limitation"
-                                    className="h-40 w-full object-cover transition duration-200 group-hover:scale-[1.02]"
+                                    loading="lazy"
+                                    className="h-full w-full object-cover transition duration-200 group-hover:scale-[1.02]"
                                   />
-                                  <span className="absolute bottom-2 right-2 rounded-full border border-cyan-300/70 bg-black/75 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-cyan-100">
-                                    View Full
+                                  <span className="absolute bottom-2 right-2 rounded-full border border-white/30 bg-black/70 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-white">
+                                    Tap to enlarge
                                   </span>
                                 </button>
 
@@ -1144,30 +1136,35 @@ export default function SectionLimitations({
           </div>
         </div>
       )}
-
-      {expandedPhotoUrl && (
-        <div
-          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 p-4"
-          role="dialog"
-          aria-modal="true"
-          onClick={() => setExpandedPhotoUrl("")}
-        >
-          <button
-            type="button"
-            onClick={() => setExpandedPhotoUrl("")}
-            className="absolute right-4 top-4 rounded-full border border-white/30 bg-black/70 px-4 py-2 text-sm font-black text-white hover:bg-white hover:text-black"
-          >
-            Close
-          </button>
-
-          <img
-            src={expandedPhotoUrl}
-            alt="Expanded limitation"
-            onClick={(event) => event.stopPropagation()}
-            className="max-h-[88vh] max-w-[96vw] rounded-2xl border border-slate-600 bg-black object-contain shadow-2xl"
-          />
-        </div>
-      )}
     </div>
+
+    {expandedPhotoUrl && (
+      <div
+        role="dialog"
+        aria-modal="true"
+        className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm"
+        onClick={() => setExpandedPhotoUrl("")}
+      >
+        <button
+          type="button"
+          aria-label="Close expanded limitation photo"
+          className="absolute right-4 top-4 rounded-full border border-white/30 bg-black/80 px-4 py-2 text-sm font-black text-white shadow-xl"
+          onClick={(event) => {
+            event.stopPropagation();
+            setExpandedPhotoUrl("");
+          }}
+        >
+          Close ✕
+        </button>
+
+        <img
+          src={expandedPhotoUrl}
+          alt="Expanded limitation"
+          className="max-h-[88vh] max-w-[94vw] rounded-2xl border border-slate-600 bg-black object-contain shadow-2xl"
+          onClick={(event) => event.stopPropagation()}
+        />
+      </div>
+    )}
+    </>
   );
 }
