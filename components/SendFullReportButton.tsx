@@ -49,7 +49,7 @@ export default function SendFullReportButton({ inspectionId }: Props) {
     setStatusText("Checking Requirements...");
 
     const res = await fetch(
-      `/api/report-delivery-status?inspection_id=${inspectionId}`
+      `/api/report-delivery-status?inspection_id=${inspectionId}`,
     );
 
     const data = await res.json().catch(() => ({}));
@@ -60,12 +60,9 @@ export default function SendFullReportButton({ inspectionId }: Props) {
 
     if (!data.canDeliver) {
       throw new Error(
-        `Report delivery is blocked until requirements are complete:
-
-${(
+        `Report delivery is blocked until requirements are complete:\n\n${(
           data.blockers || []
-        ).join("
-")}`
+        ).join("\n")}`,
       );
     }
 
@@ -107,16 +104,11 @@ ${(
         const section = issue?.section ? `${issue.section}: ` : "";
         return `• ${section}${issue?.title || issue?.reason || "Publish concern"}`;
       })
-      .join("
-");
+      .join("\n");
 
-    return `${scoreText}AI Publish Guard recommends review before sending.
-
-${
+    return `${scoreText}AI Publish Guard recommends review before sending.\n\n${
       issueText || "Review the Publish Guard panel for details."
-    }
-
-Click Send Anyway to override and deliver the report.`;
+    }\n\nClick Send Anyway to override and deliver the report.`;
   }
 
   async function sendReport() {
@@ -135,7 +127,9 @@ Click Send Anyway to override and deliver the report.`;
     try {
       await checkDeliveryRequirements();
 
-      const publishGuard = guardOverrideReady ? guardResult : await runPublishGuard();
+      const publishGuard = guardOverrideReady
+        ? guardResult
+        : await runPublishGuard();
 
       if (publishGuard?.blocked && !guardOverrideReady) {
         setStatusText("Send Anyway");
@@ -173,7 +167,7 @@ Click Send Anyway to override and deliver the report.`;
         setStatusText("Completed With Errors");
         showMessage(
           "error",
-          `Report sent to ${sent.length} recipient${sent.length === 1 ? "" : "s"}, but ${failed.length} failed.`
+          `Report sent to ${sent.length} recipient${sent.length === 1 ? "" : "s"}, but ${failed.length} failed.`,
         );
         return;
       }
@@ -182,7 +176,7 @@ Click Send Anyway to override and deliver the report.`;
       setGuardOverrideReady(false);
       showMessage(
         "success",
-        `Report sent successfully to ${sent.length} recipient${sent.length === 1 ? "" : "s"}.`
+        `Report sent successfully to ${sent.length} recipient${sent.length === 1 ? "" : "s"}.`,
       );
     } catch (error: any) {
       setStatusText("Failed");
