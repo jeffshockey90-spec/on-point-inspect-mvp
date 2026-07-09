@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import PdfExportButton from "../../../components/PdfExportButton";
 import ReportTimeTracker from "../../../components/ReportTimeTracker";
 import ClientSummaryAccordion from "../../../components/ClientSummaryAccordion";
+import ExpandableReportImage from "../../../components/ExpandableReportImage";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -2218,22 +2219,14 @@ export default async function PublicSharePage({
                                     if (!photoUrl) return null;
 
                                     return (
-                                      <a
+                                      <ExpandableReportImage
                                         key={photo.id || photo.file_path || photoUrl}
-                                        href={fullUrl}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="block overflow-hidden rounded-xl border border-slate-700 bg-black"
-                                      >
-                                        <img
-                                          src={photoUrl}
-                                          alt="Limitation photo"
-                                          loading="lazy"
-                                          decoding="async"
-                                          fetchPriority="low"
-                                          className="max-h-[260px] w-full object-cover"
-                                        />
-                                      </a>
+                                        src={photoUrl}
+                                        fullSrc={fullUrl}
+                                        alt="Limitation photo"
+                                        className="max-h-[260px] w-full object-cover"
+                                        buttonClassName="block w-full overflow-hidden rounded-xl border border-slate-700 bg-black text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
+                                      />
                                     );
                                   })}
                                 </div>
