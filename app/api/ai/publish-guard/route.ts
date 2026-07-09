@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { createClient } from "../../../../utils/supabase/server";
 import { aiPublishGuard } from "../../../../lib/ai";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
@@ -10,7 +13,7 @@ export async function POST(req: Request) {
     if (!inspectionId) {
       return NextResponse.json(
         { error: "inspectionId is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -25,11 +28,11 @@ export async function POST(req: Request) {
     if (inspectionError || !inspection) {
       return NextResponse.json(
         { error: inspectionError?.message || "Inspection not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
-    const [findingsResult, equipmentResult] = await Promise.all([
+    const [findingsResult, equipmentResult, allPhotosResult] = await Promise.all([
       supabase
         .from("findings")
         .select("*")
@@ -37,6 +40,11 @@ export async function POST(req: Request) {
         .order("created_at", { ascending: true }),
       supabase
         .from("equipment_inventory")
+        .select("*")
+        .eq("inspection_id", inspectionId)
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("photos")
         .select("*")
         .eq("inspection_id", inspectionId)
         .order("created_at", { ascending: true }),
@@ -50,26 +58,24 @@ export async function POST(req: Request) {
       console.error("Publish Guard equipment load error:", equipmentResult.error);
     }
 
-    const findings = findingsResult.data || [];
-    const equipment = equipmentResult.data || [];
-    const findingIds = findings.map((finding: any) => finding.id).filter(Boolean);
-
-    const { data: photos, error: photosError } =
-      findingIds.length > 0
-        ? await supabase.from("photos").select("*").in("finding_id", findingIds)
-        : { data: [], error: null };
-
-    if (photosError) {
-      console.error("Publish Guard photos load error:", photosError);
+    if (allPhotosResult.error) {
+      console.error("Publish Guard photos load error:", allPhotosResult.error);
     }
 
-    const photosByFindingId = (photos || []).reduce((acc: Record<string, any[]>, photo: any) => {
-      const findingId = String(photo.finding_id || "");
-      if (!findingId) return acc;
-      if (!acc[findingId]) acc[findingId] = [];
-      acc[findingId].push(photo);
-      return acc;
-    }, {});
+    const findings = findingsResult.data || [];
+    const equipment = equipmentResult.data || [];
+    const photos = allPhotosResult.data || [];
+
+    const photosByFindingId = photos.reduce(
+      (acc: Record<string, any[]>, photo: any) => {
+        const findingId = String(photo.finding_id || "");
+        if (!findingId) return acc;
+        if (!acc[findingId]) acc[findingId] = [];
+        acc[findingId].push(photo);
+        return acc;
+      },
+      {},
+    );
 
     const normalizedFindings = findings.map((finding: any) => ({
       ...finding,
@@ -81,7 +87,7 @@ export async function POST(req: Request) {
       inspection,
       findings: normalizedFindings,
       equipment,
-      photos: photos || [],
+      photos,
     });
 
     return NextResponse.json({
@@ -96,7 +102,7 @@ export async function POST(req: Request) {
         success: false,
         error: error?.message || "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
