@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type Props = {
   src: string;
@@ -22,6 +22,23 @@ export default function ExpandableReportImage({
   const [expanded, setExpanded] = useState(false);
   const fullImageUrl = fullSrc || src;
 
+  useEffect(() => {
+    if (!expanded) return;
+
+    const previousOverflow = document.body.style.overflow;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setExpanded(false);
+    };
+
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [expanded]);
+
   if (!src) return null;
 
   return (
@@ -38,7 +55,9 @@ export default function ExpandableReportImage({
           loading="lazy"
           decoding="async"
           fetchPriority="low"
-          className={`${className} transition duration-200 group-hover:scale-[1.02]`}
+          draggable={false}
+          className={`${className} transition-transform duration-200 group-hover:scale-[1.02]`}
+          style={{ contentVisibility: "auto", containIntrinsicSize: "260px" }}
         />
         <span className="absolute bottom-2 right-2 rounded-full border border-white/30 bg-black/70 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-white shadow-xl">
           {badgeText}
@@ -49,6 +68,7 @@ export default function ExpandableReportImage({
         <div
           role="dialog"
           aria-modal="true"
+          aria-label={alt}
           className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm"
           onClick={() => setExpanded(false)}
         >
@@ -67,6 +87,7 @@ export default function ExpandableReportImage({
           <img
             src={fullImageUrl}
             alt={alt}
+            decoding="async"
             className="max-h-[88vh] max-w-[94vw] rounded-2xl border border-slate-600 bg-black object-contain shadow-2xl"
             onClick={(event) => event.stopPropagation()}
           />

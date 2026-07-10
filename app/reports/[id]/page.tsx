@@ -271,7 +271,8 @@ function getSafePropertyPhotoContentType(extension: string) {
 
 const REPORT_IMAGE_TRANSFORM_OPTIONS = {
   transform: {
-    width: 1400,
+    width: 640,
+    quality: 72,
     resize: "contain",
   },
 };

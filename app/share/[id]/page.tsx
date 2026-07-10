@@ -647,7 +647,13 @@ async function createSignedImagePreviewUrlMap(paths: string[]) {
 
         const { data, error } = await supabase.storage
           .from("inspection-photos")
-          .createSignedUrls(chunk, 60 * 60 * 24 * 7);
+          .createSignedUrls(chunk, 60 * 60 * 24 * 7, {
+          transform: {
+            width: 640,
+            quality: 72,
+            resize: "contain",
+          },
+        });
 
         if (error) {
           console.error("Share preview signed photo error:", error);

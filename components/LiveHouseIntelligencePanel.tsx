@@ -10,12 +10,43 @@ export default function LiveHouseIntelligencePanel({
 }: {
   inspectionId: string;
 }) {
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const inFlight = useRef(false);
+  const isIntersecting = useRef(false);
+  const [active, setActive] = useState(false);
   const [memory, setMemory] = useState<HouseMemorySnapshot | null>(null);
   const [loading, setLoading] = useState(false);
-  const inFlight = useRef(false);
+
+  useEffect(() => {
+    const node = rootRef.current;
+    if (!node || typeof IntersectionObserver === "undefined") {
+      setActive(document.visibilityState === "visible");
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        isIntersecting.current = entry.isIntersecting;
+        setActive(entry.isIntersecting && document.visibilityState === "visible");
+      },
+      { rootMargin: "300px 0px", threshold: 0.01 },
+    );
+
+    const onVisibilityChange = () => {
+      setActive(isIntersecting.current && document.visibilityState === "visible");
+    };
+
+    observer.observe(node);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    return () => {
+      observer.disconnect();
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, []);
 
   const loadMemory = useCallback(async () => {
-    if (!inspectionId || inFlight.current) return;
+    if (!inspectionId || !active || inFlight.current) return;
 
     inFlight.current = true;
     setLoading(true);
@@ -31,31 +62,30 @@ export default function LiveHouseIntelligencePanel({
       if (!res.ok) return;
 
       const data = await res.json().catch(() => ({}));
-
-      if (data?.memory) {
-        setMemory(data.memory);
-      }
+      if (data?.memory) setMemory(data.memory);
     } catch {
-      // Quiet fail so this does not spam the console or break the report page.
+      // Keep report interaction responsive if the AI endpoint is unavailable.
     } finally {
       inFlight.current = false;
       setLoading(false);
     }
-  }, [inspectionId]);
+  }, [inspectionId, active]);
 
   useEffect(() => {
+    if (!active) return;
+
     loadMemory();
-
     const interval = window.setInterval(loadMemory, 30000);
-
     return () => window.clearInterval(interval);
-  }, [loadMemory]);
+  }, [active, loadMemory]);
 
   return (
-    <HouseIntelligencePanel
-      memory={memory}
-      loading={loading}
-      onRefresh={loadMemory}
-    />
+    <div ref={rootRef} style={{ contentVisibility: "auto", containIntrinsicSize: "500px" }}>
+      <HouseIntelligencePanel
+        memory={memory}
+        loading={loading}
+        onRefresh={loadMemory}
+      />
+    </div>
   );
 }

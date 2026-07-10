@@ -495,6 +495,11 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
             className={`w-full max-w-full overflow-x-hidden rounded-2xl border border-slate-700 bg-[#0f172a] shadow-lg transition ${
               isDragging ? "opacity-50 ring-2 ring-teal-400" : ""
             }`}
+            style={{
+              contentVisibility: "auto",
+              containIntrinsicSize: isClosed ? "86px" : "900px",
+              contain: "layout paint style",
+            }}
           >
             <div className="flex min-w-0 items-stretch border-b border-slate-700">
               <div
@@ -2107,6 +2112,7 @@ Instructions:
                 <div
                   key={String(photo.id || photo.file_path || url || index)}
                   className="w-full max-w-full overflow-x-hidden rounded-xl border border-slate-700 bg-slate-950"
+                  style={{ contentVisibility: "auto", containIntrinsicSize: "420px" }}
                 >
                   {isVideoMedia(photo) ? (
                     <div className="flex justify-center rounded-xl bg-black p-2">
@@ -2115,7 +2121,7 @@ Instructions:
                         poster={getVideoPosterUrl(photo) || undefined}
                         controls
                         playsInline
-                        preload="metadata"
+                        preload="none"
                         className="mx-auto max-h-[420px] w-full max-w-full rounded-xl bg-black object-contain"
                         onError={(event) => {
                           console.error("OPI report video failed", {
@@ -2432,7 +2438,7 @@ Instructions:
                                 poster={getVideoPosterUrl(photo) || undefined}
                                 controls
                                 playsInline
-                                preload="metadata"
+                                preload="none"
                                 className="h-36 w-full bg-black object-contain"
                                 onError={(event) => {
                                   console.error(

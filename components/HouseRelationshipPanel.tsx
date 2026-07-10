@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type RelationshipSeverity = "info" | "monitor" | "concern" | "critical";
 
@@ -139,6 +139,42 @@ function RelationshipCard({ relationship }: { relationship: HouseRelationship })
   );
 }
 
+function usePanelActive() {
+  const rootRef = useRef<HTMLElement | null>(null);
+  const isIntersecting = useRef(false);
+  const [active, setActive] = useState(false);
+
+  useEffect(() => {
+    const node = rootRef.current;
+    if (!node || typeof IntersectionObserver === "undefined") {
+      setActive(document.visibilityState === "visible");
+      return;
+    }
+
+    const updateVisibility = () => {
+      setActive(isIntersecting.current && document.visibilityState === "visible");
+    };
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        isIntersecting.current = entry.isIntersecting;
+        setActive(entry.isIntersecting && document.visibilityState === "visible");
+      },
+      { rootMargin: "300px 0px", threshold: 0.01 },
+    );
+
+    observer.observe(node);
+    document.addEventListener("visibilitychange", updateVisibility);
+
+    return () => {
+      observer.disconnect();
+      document.removeEventListener("visibilitychange", updateVisibility);
+    };
+  }, []);
+
+  return { rootRef, active };
+}
+
 export default function HouseRelationshipPanel({
   inspectionId,
   compact = false,
@@ -146,13 +182,16 @@ export default function HouseRelationshipPanel({
   inspectionId: string;
   compact?: boolean;
 }) {
+  const { rootRef, active } = usePanelActive();
+  const inFlight = useRef(false);
   const [result, setResult] = useState<HouseRelationshipResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
   const loadRelationships = useCallback(async () => {
-    if (!inspectionId) return;
+    if (!inspectionId || !active || inFlight.current) return;
 
+    inFlight.current = true;
     setLoading(true);
     setMessage("");
 
@@ -178,11 +217,13 @@ export default function HouseRelationshipPanel({
     } catch (error: any) {
       setMessage(error?.message || "House Relationship Engine failed.");
     } finally {
+      inFlight.current = false;
       setLoading(false);
     }
-  }, [inspectionId]);
+  }, [inspectionId, active]);
 
   useEffect(() => {
+    if (!active) return;
     loadRelationships();
 
     const interval = window.setInterval(() => {
@@ -198,7 +239,7 @@ export default function HouseRelationshipPanel({
   }, [result, compact]);
 
   return (
-    <section className="rounded-2xl border border-fuchsia-500/40 bg-fuchsia-950/20 p-4 shadow-xl">
+    <section ref={rootRef} className="rounded-2xl border border-fuchsia-500/40 bg-fuchsia-950/20 p-4 shadow-xl">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.22em] text-fuchsia-300">

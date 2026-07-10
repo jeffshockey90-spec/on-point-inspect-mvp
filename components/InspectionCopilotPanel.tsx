@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type CopilotIssue = {
   id: string;
@@ -117,6 +117,42 @@ function jumpToIssue(issue: CopilotIssue) {
   );
 }
 
+function usePanelActive() {
+  const rootRef = useRef<HTMLElement | null>(null);
+  const isIntersecting = useRef(false);
+  const [active, setActive] = useState(false);
+
+  useEffect(() => {
+    const node = rootRef.current;
+    if (!node || typeof IntersectionObserver === "undefined") {
+      setActive(document.visibilityState === "visible");
+      return;
+    }
+
+    const updateVisibility = () => {
+      setActive(isIntersecting.current && document.visibilityState === "visible");
+    };
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        isIntersecting.current = entry.isIntersecting;
+        setActive(entry.isIntersecting && document.visibilityState === "visible");
+      },
+      { rootMargin: "300px 0px", threshold: 0.01 },
+    );
+
+    observer.observe(node);
+    document.addEventListener("visibilitychange", updateVisibility);
+
+    return () => {
+      observer.disconnect();
+      document.removeEventListener("visibilitychange", updateVisibility);
+    };
+  }, []);
+
+  return { rootRef, active };
+}
+
 export default function InspectionCopilotPanel({
   inspectionId,
   compact = false,
@@ -124,6 +160,8 @@ export default function InspectionCopilotPanel({
   inspectionId: string;
   compact?: boolean;
 }) {
+  const { rootRef, active } = usePanelActive();
+  const inFlight = useRef(false);
   const [result, setResult] = useState<CopilotResult | null>(null);
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
@@ -131,7 +169,8 @@ export default function InspectionCopilotPanel({
 
   const loadCopilot = useCallback(
     async (nextQuestion = "") => {
-      if (!inspectionId) return;
+      if (!inspectionId || !active || inFlight.current) return;
+      inFlight.current = true;
       setLoading(true);
       setMessage("");
 
@@ -158,13 +197,15 @@ export default function InspectionCopilotPanel({
       } catch (error: any) {
         setMessage(error?.message || "Inspection Copilot failed.");
       } finally {
+        inFlight.current = false;
         setLoading(false);
       }
     },
-    [inspectionId]
+    [inspectionId, active]
   );
 
   useEffect(() => {
+    if (!active) return;
     loadCopilot();
 
     const interval = window.setInterval(() => {
@@ -196,7 +237,7 @@ export default function InspectionCopilotPanel({
   const score = result?.score ?? 0;
 
   return (
-    <section className="rounded-2xl border border-indigo-500/40 bg-indigo-950/20 p-4 shadow-xl">
+    <section ref={rootRef} className="rounded-2xl border border-indigo-500/40 bg-indigo-950/20 p-4 shadow-xl">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.22em] text-indigo-300">
