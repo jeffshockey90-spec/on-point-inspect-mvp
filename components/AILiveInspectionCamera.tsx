@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 const MAX_DISMISSED_AGE_MS = 8 * 60 * 1000;
 const RESURFACE_CONFIDENCE_BOOST = 0.12;
@@ -764,32 +765,33 @@ export default function AILiveInspectionCamera({
     setMessage("Photo saved. AI Watching can continue scanning.");
   }
 
-  return (
+  const cameraUi = (
     <div
       className={
         open
-          ? "fixed inset-0 z-[9998] flex h-[100dvh] w-screen flex-col overflow-hidden bg-[#020617] px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-[max(0.75rem,env(safe-area-inset-top))] text-white sm:relative sm:inset-auto sm:z-auto sm:h-auto sm:w-auto sm:overflow-visible sm:rounded-2xl sm:border sm:border-cyan-500/40 sm:bg-cyan-500/10 sm:p-4"
+          ? "fixed inset-0 z-[2147483647] flex h-[100dvh] w-[100vw] flex-col overflow-hidden bg-[#020617] px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-[max(0.5rem,env(safe-area-inset-top))] text-white sm:relative sm:inset-auto sm:z-auto sm:h-auto sm:w-auto sm:overflow-visible sm:rounded-2xl sm:border sm:border-cyan-500/40 sm:bg-cyan-500/10 sm:p-4"
           : "rounded-2xl border border-cyan-500/40 bg-cyan-500/10 p-4 text-white"
       }
     >
-      <div className="mb-3 flex shrink-0 items-start justify-between gap-3">
+      <div className="mb-2 grid shrink-0 gap-2 sm:mb-3 sm:flex sm:items-start sm:justify-between sm:gap-3">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-300">
             AI Live Inspection Camera
           </p>
-          <h2 className="mt-1 text-lg font-black sm:text-xl">AI Second Inspector Camera</h2>
+          <h2 className="mt-1 text-lg font-black sm:hidden">AI Second Inspector</h2>
+          <h2 className="mt-1 hidden text-xl font-black sm:block">AI Second Inspector Camera</h2>
           <p className="mt-1 hidden text-sm text-slate-300 sm:block">
             Suggestions only. Inspector approval is required before anything is saved.
           </p>
         </div>
 
-        <div className="flex shrink-0 gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:shrink-0">
           {open && (
             <button
               type="button"
               onClick={() => setAutoWatch((current) => !current)}
               disabled={!online || starting}
-              className={`rounded-xl px-3 py-2 text-xs font-black transition sm:px-4 sm:text-sm active:scale-[0.98] disabled:opacity-50 [touch-action:manipulation] ${
+              className={`min-h-[44px] w-full rounded-xl px-2 py-2 text-[11px] font-black transition sm:w-auto sm:px-4 sm:text-sm active:scale-[0.98] disabled:opacity-50 [touch-action:manipulation] ${
                 autoWatch
                   ? "bg-emerald-400 text-black hover:bg-emerald-300"
                   : "border border-emerald-400 text-emerald-200 hover:bg-emerald-500 hover:text-black"
@@ -811,7 +813,7 @@ export default function AILiveInspectionCamera({
               setOpen(true);
               window.setTimeout(startCamera, 50);
             }}
-            className="rounded-xl bg-cyan-400 px-3 py-2 text-xs font-black text-black transition sm:px-4 sm:text-sm active:scale-[0.98] hover:bg-cyan-300 [touch-action:manipulation]"
+            className="min-h-[44px] w-full rounded-xl bg-cyan-400 px-2 py-2 text-[11px] font-black text-black transition sm:w-auto sm:px-4 sm:text-sm active:scale-[0.98] hover:bg-cyan-300 [touch-action:manipulation]"
           >
             {open ? "Close Camera" : "📸 Open AI Camera"}
           </button>
@@ -826,7 +828,7 @@ export default function AILiveInspectionCamera({
               autoPlay
               muted
               playsInline
-              className="h-[42dvh] min-h-[260px] max-h-[52dvh] w-full bg-black object-cover sm:aspect-video sm:h-auto sm:min-h-0 sm:max-h-none"
+              className="h-[48dvh] min-h-[280px] max-h-[58dvh] w-full bg-black object-cover sm:aspect-video sm:h-auto sm:min-h-0 sm:max-h-none"
             />
 
             {frameDataUrl && (
@@ -866,7 +868,7 @@ export default function AILiveInspectionCamera({
               type="button"
               onClick={() => captureFrame()}
               disabled={starting}
-              className="rounded-xl border border-slate-600 px-3 py-3 text-sm font-black text-slate-100 transition active:scale-[0.98] hover:bg-slate-800 disabled:opacity-50"
+              className="rounded-xl border border-slate-600 px-3 py-2.5 text-sm font-black text-slate-100 transition active:scale-[0.98] hover:bg-slate-800 disabled:opacity-50"
             >
               Capture Frame
             </button>
@@ -875,7 +877,7 @@ export default function AILiveInspectionCamera({
               type="button"
               onClick={analyzeCurrentFrame}
               disabled={starting || analyzing || !online}
-              className="rounded-xl bg-purple-500 px-3 py-3 text-sm font-black text-white transition active:scale-[0.98] hover:bg-purple-400 disabled:opacity-50"
+              className="rounded-xl bg-purple-500 px-3 py-2.5 text-sm font-black text-white transition active:scale-[0.98] hover:bg-purple-400 disabled:opacity-50"
             >
               {analyzing ? "Analyzing..." : "Analyze Frame"}
             </button>
@@ -884,7 +886,7 @@ export default function AILiveInspectionCamera({
               type="button"
               onClick={addPhotoOnly}
               disabled={!frameDataUrl}
-              className="rounded-xl border border-teal-500 px-3 py-3 text-sm font-black text-teal-200 transition active:scale-[0.98] hover:bg-teal-500 hover:text-black disabled:opacity-50"
+              className="rounded-xl border border-teal-500 px-3 py-2.5 text-sm font-black text-teal-200 transition active:scale-[0.98] hover:bg-teal-500 hover:text-black disabled:opacity-50"
             >
               Add Photo Only
             </button>
@@ -893,7 +895,7 @@ export default function AILiveInspectionCamera({
               type="button"
               onClick={() => { onScanDataPlate(frameFile); setResult(null); setWaitingForDecision(false); setMessage("Data plate sent to scanner. AI Watching resumed."); }}
               disabled={!frameDataUrl}
-              className="rounded-xl border border-yellow-500 px-3 py-3 text-sm font-black text-yellow-200 transition active:scale-[0.98] hover:bg-yellow-400 hover:text-black disabled:opacity-50"
+              className="rounded-xl border border-yellow-500 px-3 py-2.5 text-sm font-black text-yellow-200 transition active:scale-[0.98] hover:bg-yellow-400 hover:text-black disabled:opacity-50"
             >
               Scan Data Plate
             </button>
@@ -1159,4 +1161,10 @@ export default function AILiveInspectionCamera({
       )}
     </div>
   );
+
+  if (open && typeof document !== "undefined") {
+    return createPortal(cameraUi, document.body);
+  }
+
+  return cameraUi;
 }
