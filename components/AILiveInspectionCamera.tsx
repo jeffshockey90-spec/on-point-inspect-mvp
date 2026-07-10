@@ -188,7 +188,7 @@ export default function AILiveInspectionCamera({
   const [open, setOpen] = useState(false);
   const [starting, setStarting] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
-  const [autoWatch, setAutoWatch] = useState(false);
+  const [autoWatch, setAutoWatch] = useState(true);
   const [lastAutoScanAt, setLastAutoScanAt] = useState(0);
   const [cameraError, setCameraError] = useState("");
   const [frameDataUrl, setFrameDataUrl] = useState("");
@@ -255,13 +255,30 @@ export default function AILiveInspectionCamera({
 
   useEffect(() => {
     if (!open) {
-      setAutoWatch(false);
       setWaitingForDecision(false);
       stopCamera();
     }
 
     return () => {
       stopCamera();
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || typeof document === "undefined") return;
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    const previousBodyOverscroll = document.body.style.overscrollBehavior;
+
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overscrollBehavior = "none";
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+      document.body.style.overscrollBehavior = previousBodyOverscroll;
     };
   }, [open]);
 
@@ -751,28 +768,28 @@ export default function AILiveInspectionCamera({
     <div
       className={
         open
-          ? "fixed inset-0 z-[9998] overflow-y-auto bg-[#020617] p-3 text-white sm:relative sm:inset-auto sm:z-auto sm:rounded-2xl sm:border sm:border-cyan-500/40 sm:bg-cyan-500/10 sm:p-4"
+          ? "fixed inset-0 z-[9998] flex h-[100dvh] w-screen flex-col overflow-hidden bg-[#020617] px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-[max(0.75rem,env(safe-area-inset-top))] text-white sm:relative sm:inset-auto sm:z-auto sm:h-auto sm:w-auto sm:overflow-visible sm:rounded-2xl sm:border sm:border-cyan-500/40 sm:bg-cyan-500/10 sm:p-4"
           : "rounded-2xl border border-cyan-500/40 bg-cyan-500/10 p-4 text-white"
       }
     >
-      <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+      <div className="mb-3 flex shrink-0 items-start justify-between gap-3">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-300">
             AI Live Inspection Camera
           </p>
-          <h2 className="mt-1 text-xl font-black">AI Second Inspector Camera</h2>
-          <p className="mt-1 text-sm text-slate-300">
+          <h2 className="mt-1 text-lg font-black sm:text-xl">AI Second Inspector Camera</h2>
+          <p className="mt-1 hidden text-sm text-slate-300 sm:block">
             Suggestions only. Inspector approval is required before anything is saved.
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex shrink-0 gap-2">
           {open && (
             <button
               type="button"
               onClick={() => setAutoWatch((current) => !current)}
               disabled={!online || starting}
-              className={`rounded-xl px-4 py-2 text-sm font-black transition active:scale-[0.98] disabled:opacity-50 [touch-action:manipulation] ${
+              className={`rounded-xl px-3 py-2 text-xs font-black transition sm:px-4 sm:text-sm active:scale-[0.98] disabled:opacity-50 [touch-action:manipulation] ${
                 autoWatch
                   ? "bg-emerald-400 text-black hover:bg-emerald-300"
                   : "border border-emerald-400 text-emerald-200 hover:bg-emerald-500 hover:text-black"
@@ -785,10 +802,16 @@ export default function AILiveInspectionCamera({
           <button
             type="button"
             onClick={() => {
-              setOpen((current) => !current);
-              if (!open) window.setTimeout(startCamera, 50);
+              if (open) {
+                setOpen(false);
+                return;
+              }
+
+              setAutoWatch(online);
+              setOpen(true);
+              window.setTimeout(startCamera, 50);
             }}
-            className="rounded-xl bg-cyan-400 px-4 py-2 text-sm font-black text-black transition active:scale-[0.98] hover:bg-cyan-300 [touch-action:manipulation]"
+            className="rounded-xl bg-cyan-400 px-3 py-2 text-xs font-black text-black transition sm:px-4 sm:text-sm active:scale-[0.98] hover:bg-cyan-300 [touch-action:manipulation]"
           >
             {open ? "Close Camera" : "📸 Open AI Camera"}
           </button>
@@ -796,14 +819,14 @@ export default function AILiveInspectionCamera({
       </div>
 
       {open && (
-        <div className="space-y-4">
-          <div className="overflow-hidden rounded-2xl border border-slate-700 bg-black">
+        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain pb-32 sm:space-y-4 sm:overflow-visible sm:pb-0">
+          <div className="shrink-0 overflow-hidden rounded-2xl border border-slate-700 bg-black">
             <video
               ref={videoRef}
               autoPlay
               muted
               playsInline
-              className="aspect-video w-full bg-black object-cover"
+              className="h-[42dvh] min-h-[260px] max-h-[52dvh] w-full bg-black object-cover sm:aspect-video sm:h-auto sm:min-h-0 sm:max-h-none"
             />
 
             {frameDataUrl && (
@@ -814,7 +837,7 @@ export default function AILiveInspectionCamera({
                 <img
                   src={frameDataUrl}
                   alt="Captured inspection frame"
-                  className="max-h-52 w-full rounded-xl object-contain"
+                  className="max-h-40 w-full rounded-xl object-contain sm:max-h-52"
                 />
               </div>
             )}
@@ -827,23 +850,23 @@ export default function AILiveInspectionCamera({
           )}
 
           {message && (
-            <div className="rounded-xl border border-cyan-500/40 bg-black/30 p-3 text-sm font-bold text-cyan-100">
+            <div className="rounded-xl border border-cyan-500/40 bg-black/30 px-3 py-2 text-xs font-bold text-cyan-100 sm:p-3 sm:text-sm">
               {message}
             </div>
           )}
 
           {autoWatch && (
-            <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm font-bold text-emerald-100">
+            <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs font-bold text-emerald-100 sm:p-3 sm:text-sm">
               👀 AI Watching is active. The camera will quietly check this area about every 8 seconds and only interrupt for stronger issues, limitations, reminders, or data plate prompts.
             </div>
           )}
 
-          <div className="grid gap-2 sm:grid-cols-4">
+          <div className="sticky bottom-0 z-20 grid grid-cols-2 gap-2 rounded-2xl border border-slate-700 bg-[#020617]/95 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-2xl backdrop-blur sm:static sm:grid-cols-4 sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">
             <button
               type="button"
               onClick={() => captureFrame()}
               disabled={starting}
-              className="rounded-xl border border-slate-600 px-4 py-3 text-sm font-black text-slate-100 transition active:scale-[0.98] hover:bg-slate-800 disabled:opacity-50"
+              className="rounded-xl border border-slate-600 px-3 py-3 text-sm font-black text-slate-100 transition active:scale-[0.98] hover:bg-slate-800 disabled:opacity-50"
             >
               Capture Frame
             </button>
@@ -852,7 +875,7 @@ export default function AILiveInspectionCamera({
               type="button"
               onClick={analyzeCurrentFrame}
               disabled={starting || analyzing || !online}
-              className="rounded-xl bg-purple-500 px-4 py-3 text-sm font-black text-white transition active:scale-[0.98] hover:bg-purple-400 disabled:opacity-50"
+              className="rounded-xl bg-purple-500 px-3 py-3 text-sm font-black text-white transition active:scale-[0.98] hover:bg-purple-400 disabled:opacity-50"
             >
               {analyzing ? "Analyzing..." : "Analyze Frame"}
             </button>
@@ -861,7 +884,7 @@ export default function AILiveInspectionCamera({
               type="button"
               onClick={addPhotoOnly}
               disabled={!frameDataUrl}
-              className="rounded-xl border border-teal-500 px-4 py-3 text-sm font-black text-teal-200 transition active:scale-[0.98] hover:bg-teal-500 hover:text-black disabled:opacity-50"
+              className="rounded-xl border border-teal-500 px-3 py-3 text-sm font-black text-teal-200 transition active:scale-[0.98] hover:bg-teal-500 hover:text-black disabled:opacity-50"
             >
               Add Photo Only
             </button>
@@ -870,7 +893,7 @@ export default function AILiveInspectionCamera({
               type="button"
               onClick={() => { onScanDataPlate(frameFile); setResult(null); setWaitingForDecision(false); setMessage("Data plate sent to scanner. AI Watching resumed."); }}
               disabled={!frameDataUrl}
-              className="rounded-xl border border-yellow-500 px-4 py-3 text-sm font-black text-yellow-200 transition active:scale-[0.98] hover:bg-yellow-400 hover:text-black disabled:opacity-50"
+              className="rounded-xl border border-yellow-500 px-3 py-3 text-sm font-black text-yellow-200 transition active:scale-[0.98] hover:bg-yellow-400 hover:text-black disabled:opacity-50"
             >
               Scan Data Plate
             </button>
