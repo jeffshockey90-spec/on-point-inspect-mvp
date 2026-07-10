@@ -356,6 +356,35 @@ export default function AISectionReview({
     }
   }, [inspectionId]);
 
+  const sectionFingerprint = useMemo(() => {
+    const ids = (findings || [])
+      .map((finding: any) => `${finding?.id || ""}:${finding?.updated_at || finding?.created_at || ""}`)
+      .join("|");
+    return `${section}:${ids}:${getFindingPhotoCount(findings)}`;
+  }, [findings, section]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !inspectionId || !section) return;
+
+    const key = `${getCompletionStorageKey(inspectionId)}-fingerprints`;
+    try {
+      const raw = window.localStorage.getItem(key);
+      const saved = raw ? JSON.parse(raw) : {};
+      const prior = String(saved?.[section] || "");
+
+      if (completedSections[section] && prior && prior !== sectionFingerprint) {
+        setCompletedSections((current) => {
+          const next = { ...current, [section]: false };
+          window.localStorage.setItem(
+            getCompletionStorageKey(inspectionId),
+            JSON.stringify(next),
+          );
+          return next;
+        });
+      }
+    } catch {}
+  }, [completedSections, inspectionId, section, sectionFingerprint]);
+
   const review = useMemo(() => {
     const text = textForFindings(findings);
     const photoCount = getFindingPhotoCount(findings);
@@ -412,6 +441,17 @@ export default function AISectionReview({
       window.localStorage.setItem(
         getCompletionStorageKey(inspectionId),
         JSON.stringify(next),
+      );
+
+      const fingerprintKey = `${getCompletionStorageKey(inspectionId)}-fingerprints`;
+      const raw = window.localStorage.getItem(fingerprintKey);
+      const fingerprints = raw ? JSON.parse(raw) : {};
+      window.localStorage.setItem(
+        fingerprintKey,
+        JSON.stringify({
+          ...fingerprints,
+          [section]: sectionFingerprint,
+        }),
       );
     } catch {}
   }

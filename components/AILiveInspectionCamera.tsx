@@ -5,6 +5,46 @@ import { useEffect, useMemo, useRef, useState } from "react";
 const MAX_DISMISSED_AGE_MS = 8 * 60 * 1000;
 const RESURFACE_CONFIDENCE_BOOST = 0.12;
 
+
+function getLiveMemoryKey(inspectionId: string) {
+  return `opi-ai-live-memory-${String(inspectionId || "").trim()}`;
+}
+
+type PersistedLiveMemory = {
+  dismissed?: Record<string, { confidence: number; at: number }>;
+  handledReminders?: Record<string, boolean>;
+};
+
+function readLiveMemory(inspectionId: string): PersistedLiveMemory {
+  if (typeof window === "undefined" || !inspectionId) return {};
+
+  try {
+    const raw = window.localStorage.getItem(getLiveMemoryKey(inspectionId));
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeLiveMemory(
+  inspectionId: string,
+  dismissed: Record<string, { confidence: number; at: number }>,
+  handledReminders: Record<string, boolean>,
+) {
+  if (typeof window === "undefined" || !inspectionId) return;
+
+  try {
+    window.localStorage.setItem(
+      getLiveMemoryKey(inspectionId),
+      JSON.stringify({
+        dismissed,
+        handledReminders,
+      }),
+    );
+  } catch {}
+}
+
 export type AILiveSuggestion = {
   id?: string;
   title: string;
@@ -196,6 +236,22 @@ export default function AILiveInspectionCamera({
       return !key || !handledReminderKeys[key];
     });
   }, [result, handledReminderKeys]);
+
+  useEffect(() => {
+    if (!selectedReport) return;
+
+    const memory = readLiveMemory(selectedReport);
+    dismissedRef.current = memory.dismissed || {};
+    setHandledReminderKeys(memory.handledReminders || {});
+  }, [selectedReport]);
+
+  useEffect(() => {
+    writeLiveMemory(
+      selectedReport,
+      dismissedRef.current,
+      handledReminderKeys,
+    );
+  }, [selectedReport, handledReminderKeys]);
 
   useEffect(() => {
     if (!open) {
@@ -503,6 +559,11 @@ export default function AILiveInspectionCamera({
         confidence: normalizeConfidence(suggestion.confidence),
         at: Date.now(),
       };
+      writeLiveMemory(
+        selectedReport,
+        dismissedRef.current,
+        handledReminderKeys,
+      );
     }
 
     setResult(null);
@@ -687,7 +748,13 @@ export default function AILiveInspectionCamera({
   }
 
   return (
-    <div className="rounded-2xl border border-cyan-500/40 bg-cyan-500/10 p-4 text-white">
+    <div
+      className={
+        open
+          ? "fixed inset-0 z-[9998] overflow-y-auto bg-[#020617] p-3 text-white sm:relative sm:inset-auto sm:z-auto sm:rounded-2xl sm:border sm:border-cyan-500/40 sm:bg-cyan-500/10 sm:p-4"
+          : "rounded-2xl border border-cyan-500/40 bg-cyan-500/10 p-4 text-white"
+      }
+    >
       <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-300">

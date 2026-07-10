@@ -88,7 +88,32 @@ function IssueCard({ issue }: { issue: CopilotIssue }) {
       </div>
       <p className="mt-2 text-xs leading-5 opacity-90">{issue.reason}</p>
       <p className="mt-2 text-xs font-bold leading-5">{issue.recommendation}</p>
+      <button
+        type="button"
+        onClick={() => jumpToIssue(issue)}
+        className="mt-3 rounded-lg border border-current/40 px-3 py-1.5 text-xs font-black transition active:scale-[0.98] hover:bg-white/10"
+      >
+        Open Section
+      </button>
     </div>
+  );
+}
+
+function jumpToIssue(issue: CopilotIssue) {
+  if (typeof window === "undefined") return;
+
+  const section = String(issue?.section || "").trim();
+  const slug = section
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  window.dispatchEvent(
+    new CustomEvent("opi:command-center-jump", {
+      detail: {
+        targetAnchor: slug ? `report-section-${slug}` : "report-findings",
+      },
+    }),
   );
 }
 
@@ -161,6 +186,13 @@ export default function InspectionCopilotPanel({
     await loadCopilot(cleanQuestion);
   }
 
+  async function reviewMyInspection() {
+    setQuestion("Review my inspection before I leave. Give me a prioritized punch list of missing systems, photos, equipment data plates, limitations, weak findings, and contradictions.");
+    await loadCopilot(
+      "Review my inspection before I leave. Give me a prioritized punch list of missing systems, photos, equipment data plates, limitations, weak findings, and contradictions.",
+    );
+  }
+
   const score = result?.score ?? 0;
 
   return (
@@ -178,14 +210,25 @@ export default function InspectionCopilotPanel({
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => loadCopilot(question)}
-          disabled={loading || !inspectionId}
-          className="rounded-xl bg-indigo-500 px-4 py-3 text-sm font-black text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {loading ? "Checking..." : "Refresh Copilot"}
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={reviewMyInspection}
+            disabled={loading || !inspectionId}
+            className="rounded-xl bg-emerald-400 px-4 py-3 text-sm font-black text-black transition active:scale-[0.98] hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {loading ? "Reviewing..." : "Review My Inspection"}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => loadCopilot(question)}
+            disabled={loading || !inspectionId}
+            className="rounded-xl bg-indigo-500 px-4 py-3 text-sm font-black text-white transition active:scale-[0.98] hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {loading ? "Checking..." : "Refresh Copilot"}
+          </button>
+        </div>
       </div>
 
       {message && (
