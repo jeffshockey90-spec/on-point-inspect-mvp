@@ -1284,15 +1284,18 @@ function buildAgentReportHtml({
 }
 
 
+async const REMOTE_CHROMIUM_PACK_URL =
+  "https://github.com/Sparticuz/chromium/releases/download/v138.0.2/chromium-v138.0.2-pack.tar";
+
 async function getChromiumExecutablePath() {
   if (process.env.PUPPETEER_EXECUTABLE_PATH) {
     return process.env.PUPPETEER_EXECUTABLE_PATH;
   }
 
   if (process.env.VERCEL || process.env.AWS_REGION) {
-    // Use the Chromium binary bundled with @sparticuz/chromium.
-    // Downloading the remote pack on a cold start adds a large first-download delay.
-    return chromium.executablePath();
+    // Vercel may omit @sparticuz/chromium/bin from the traced serverless bundle.
+    // Use the pack that matches the installed @sparticuz/chromium version.
+    return chromium.executablePath(REMOTE_CHROMIUM_PACK_URL);
   }
 
   const localCandidates = [
