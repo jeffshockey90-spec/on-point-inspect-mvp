@@ -4,6 +4,7 @@ import PdfExportButton from "../../../components/PdfExportButton";
 import ReportTimeTracker from "../../../components/ReportTimeTracker";
 import ClientSummaryAccordion from "../../../components/ClientSummaryAccordion";
 import ExpandableReportImage from "../../../components/ExpandableReportImage";
+import ShareReportTabs from "../../../components/ShareReportTabs";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -1518,7 +1519,7 @@ export default async function PublicSharePage({
           inspectionId={String(inspectionId)}
           viewerRole={resolvedSearchParams?.role || null}
           viewerEmail={resolvedSearchParams?.email || null}
-          path={`/public-report/${sharePathId}`}
+          path={`/share/${sharePathId}`}
         />
       )}
 
@@ -1682,6 +1683,14 @@ export default async function PublicSharePage({
               )}
             </div>
           </section>
+
+          <ShareReportTabs
+            initialTab={activeDefectFilter === "all" ? "summary" : "full"}
+            showSummary={clientSummaryGroups.length > 0}
+            showDisclaimers={Boolean(reportDisclaimers?.length)}
+            showStandards={showStandardsInShare}
+            showEquipment={equipmentInventory.length > 0}
+          />
 
           {reportDisclaimers && reportDisclaimers.length > 0 && (
             <section id="report-disclaimers" className="scroll-mt-[180px] md:scroll-mt-[220px] mt-8 rounded-2xl border border-purple-500/40 bg-[#071224] p-6 shadow-xl">
