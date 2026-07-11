@@ -1285,7 +1285,7 @@ function buildAgentReportHtml({
 
 
 const REMOTE_CHROMIUM_PACK_URL =
-  "https://github.com/Sparticuz/chromium/releases/download/v138.0.2/chromium-v138.0.2-pack.tar";
+  "https://github.com/Sparticuz/chromium/releases/download/v138.0.2/chromium-v138.0.2-pack.x64.tar";
 
 async function getChromiumExecutablePath() {
   if (process.env.PUPPETEER_EXECUTABLE_PATH) {
