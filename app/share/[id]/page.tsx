@@ -4,6 +4,7 @@ import PdfExportButton from "../../../components/PdfExportButton";
 import ReportTimeTracker from "../../../components/ReportTimeTracker";
 import ClientSummaryAccordion from "../../../components/ClientSummaryAccordion";
 import ExpandableReportImage from "../../../components/ExpandableReportImage";
+import ReportDownloadButton from "../../../components/ReportDownloadButton";
 import ShareReportTabs from "../../../components/ShareReportTabs";
 
 const supabase = createClient(
@@ -1578,12 +1579,9 @@ export default async function PublicSharePage({
             <PdfExportButton />
 
             {!isDemo && (
-              <a
+              <ReportDownloadButton
                 href={`/api/realtor-report-download/${encodeURIComponent(String(sharePathId || inspectionId))}?type=full`}
-                className="rounded-xl border border-cyan-500 bg-cyan-500/10 px-5 py-3 font-bold text-cyan-300 transition hover:bg-cyan-500 hover:text-black"
-              >
-                ⬇ Download Report
-              </a>
+              />
             )}
 
             {!isDemo && canOpenInternalReportActions && (
