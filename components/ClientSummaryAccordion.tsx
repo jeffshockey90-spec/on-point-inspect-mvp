@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import ExpandableReportImage from "./ExpandableReportImage";
 
 type SummaryTone = "red" | "teal" | "yellow" | "blue";
@@ -202,12 +202,14 @@ function CompactSummaryCard({
   open,
   onToggle,
   eager,
+  cardId,
 }: {
   finding: any;
   tone: SummaryTone;
   open: boolean;
   onToggle: () => void;
   eager: boolean;
+  cardId: string;
 }) {
   const media = getPrimaryMedia(finding);
   const fullUrl = getMediaUrl(media);
@@ -226,6 +228,7 @@ function CompactSummaryCard({
 
   return (
     <article
+      data-summary-card-id={cardId}
       className={`overflow-hidden rounded-2xl border bg-[#0b1426] ${toneStyle.border}`}
       style={{ contentVisibility: "auto", containIntrinsicSize: "210px" }}
     >
@@ -362,6 +365,30 @@ export default function ClientSummaryAccordion({
 }) {
   const [openId, setOpenId] = useState<string | number | null>(null);
   const [visibleCounts, setVisibleCounts] = useState<Record<string, number>>({});
+  const rootRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!openId) return;
+
+    function handlePointerDown(event: PointerEvent) {
+      const target = event.target as HTMLElement | null;
+      if (!target) return;
+
+      const clickedCard = target.closest<HTMLElement>("[data-summary-card-id]");
+
+      // Clicking inside any finding card is handled by that card itself.
+      // Clicking anywhere else closes the currently open finding.
+      if (!clickedCard) {
+        setOpenId(null);
+      }
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown, true);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown, true);
+    };
+  }, [openId]);
 
   const normalizedGroups = useMemo(
     () => (groups || []).filter((group) => Array.isArray(group.findings) && group.findings.length > 0),
@@ -371,7 +398,7 @@ export default function ClientSummaryAccordion({
   if (!normalizedGroups.length) return null;
 
   return (
-    <div className="mt-6 space-y-8 overflow-x-hidden">
+    <div ref={rootRef} className="mt-6 space-y-8 overflow-x-hidden">
       {normalizedGroups.map((group) => {
         const visibleCount = visibleCounts[group.key] || INITIAL_ITEMS;
         const visibleFindings = group.findings.slice(0, visibleCount);
@@ -410,6 +437,7 @@ export default function ClientSummaryAccordion({
                     open={openId === cardId}
                     onToggle={() => setOpenId(openId === cardId ? null : cardId)}
                     eager={index < 2 && group.key === normalizedGroups[0]?.key}
+                    cardId={cardId}
                   />
                 );
               })}
