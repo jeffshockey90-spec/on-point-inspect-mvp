@@ -265,6 +265,71 @@ async function compressImageForAiUpload(file: File) {
   );
 }
 
+const REPORT_IMAGE_MAX_DIMENSION = 1600;
+const REPORT_THUMBNAIL_MAX_DIMENSION = 420;
+const REPORT_IMAGE_QUALITY = 0.8;
+const REPORT_THUMBNAIL_QUALITY = 0.62;
+
+async function createImageVariantForUpload(
+  file: File,
+  maxDimension: number,
+  quality: number,
+  suffix: string,
+): Promise<File> {
+  if (!file.type.startsWith("image/")) return file;
+
+  const image = await loadImageForAiCompression(file);
+  const originalWidth = image.naturalWidth || image.width;
+  const originalHeight = image.naturalHeight || image.height;
+  const longestSide = Math.max(originalWidth, originalHeight);
+  const scale = Math.min(1, maxDimension / Math.max(1, longestSide));
+  const width = Math.max(1, Math.round(originalWidth * scale));
+  const height = Math.max(1, Math.round(originalHeight * scale));
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+
+  const context = canvas.getContext("2d", { alpha: false });
+  if (!context) throw new Error("Could not prepare inspection photo.");
+
+  context.drawImage(image, 0, 0, width, height);
+
+  const blob = await new Promise<Blob | null>((resolve) => {
+    canvas.toBlob(resolve, "image/jpeg", quality);
+  });
+
+  if (!blob) throw new Error("Could not optimize inspection photo.");
+
+  const originalName = String(file.name || "inspection-photo")
+    .replace(/\.[^/.]+$/, "")
+    .replace(/[^a-zA-Z0-9-_]/g, "-")
+    .slice(0, 50);
+
+  return new File([blob], `${originalName}-${suffix}.jpg`, {
+    type: "image/jpeg",
+    lastModified: Date.now(),
+  });
+}
+
+function createFullImageForUpload(file: File) {
+  return createImageVariantForUpload(
+    file,
+    REPORT_IMAGE_MAX_DIMENSION,
+    REPORT_IMAGE_QUALITY,
+    "optimized",
+  );
+}
+
+function createThumbnailForUpload(file: File) {
+  return createImageVariantForUpload(
+    file,
+    REPORT_THUMBNAIL_MAX_DIMENSION,
+    REPORT_THUMBNAIL_QUALITY,
+    "thumb",
+  );
+}
+
 async function createVideoThumbnailForUpload(file: File): Promise<File | null> {
   if (!file.type.startsWith("video/")) return null;
 
@@ -2277,18 +2342,17 @@ function FieldPageContent() {
     photo: File,
     folder: string,
   ): Promise<UploadedPhoto> {
-    let uploadFile = photo;
-    let thumbnailFile: File | null = null;
     const isVideo = photo.type.startsWith("video/");
     const progressId = createLocalMediaId(photo);
-    const progressType: UploadProgressItem["type"] = isVideo
-      ? "video"
-      : "photo";
+    const progressType: UploadProgressItem["type"] = isVideo ? "video" : "photo";
+
+    let uploadFile = photo;
+    let thumbnailFile: File | null = null;
 
     setMediaProgress(progressId, {
       name: photo.name || (isVideo ? "Inspection video" : "Inspection photo"),
       type: progressType,
-      stage: isVideo ? "Preparing video backup" : "Preparing photo upload",
+      stage: isVideo ? "Preparing video backup" : "Optimizing photo",
       progress: 8,
       status: "processing",
     });
@@ -2318,7 +2382,6 @@ function FieldPageContent() {
         }
 
         const convertedBlob = await response.blob();
-
         if (!convertedBlob || convertedBlob.size === 0) {
           throw new Error("Video conversion returned an empty MP4.");
         }
@@ -2327,35 +2390,9 @@ function FieldPageContent() {
           type: "video/mp4",
           lastModified: Date.now(),
         });
-
-        setMessage("Video converted. Saving to report...");
-        setMediaProgress(progressId, {
-          name: photo.name || "Inspection video",
-          type: progressType,
-          stage: "Video converted",
-          progress: 40,
-          status: "processing",
-        });
       } catch (error) {
-        console.warn(
-          "Video conversion failed. Saving original video instead.",
-          error,
-        );
-
-        // Never block the inspector from saving the finding.
-        // Mobile/Vercel video conversion can fail on large files or slow networks.
-        // If conversion fails, save the original video and still attach it to the report.
+        console.warn("Video conversion failed. Saving original video instead.", error);
         uploadFile = photo;
-        setMessage(
-          "Video conversion skipped. Saving original video to report...",
-        );
-        setMediaProgress(progressId, {
-          name: photo.name || "Inspection video",
-          type: progressType,
-          stage: "Conversion skipped. Saving original video",
-          progress: 35,
-          status: "processing",
-        });
       }
 
       setMediaProgress(progressId, {
@@ -2367,42 +2404,72 @@ function FieldPageContent() {
       });
 
       thumbnailFile = await createVideoThumbnailForUpload(uploadFile);
-
       if (!thumbnailFile && uploadFile !== photo) {
         thumbnailFile = await createVideoThumbnailForUpload(photo);
       }
+    } else {
+      // Permanent, pre-generated variants are the key to instant report loading.
+      // The report card downloads the tiny thumbnail instead of resizing a multi-MB
+      // phone photo on every page view.
+      setMediaProgress(progressId, {
+        name: photo.name || "Inspection photo",
+        type: progressType,
+        stage: "Creating report image + instant thumbnail",
+        progress: 20,
+        status: "processing",
+      });
+
+      [uploadFile, thumbnailFile] = await Promise.all([
+        createFullImageForUpload(photo),
+        createThumbnailForUpload(photo),
+      ]);
     }
 
     const safeName = uploadFile.name
-      .replace(/[^a-zA-Z0-9.\-_]/g, "-")
-      .slice(0, 80);
-
-    const fileName = `${selectedReport}/${folder}/${Date.now()}-${Math.random()
-      .toString(36)
-      .slice(2)}-${safeName}`;
+      .replace(/\.[^/.]+$/, "")
+      .replace(/[^a-zA-Z0-9-_]/g, "-")
+      .slice(0, 60);
+    const baseName = `${Date.now()}-${crypto.randomUUID()}-${safeName}`;
+    const fileExtension = isVideo
+      ? String(uploadFile.name.split(".").pop() || "mp4").toLowerCase()
+      : "jpg";
+    const fileName = `${selectedReport}/${folder}/${baseName}.${fileExtension}`;
+    const generatedThumbnailPath = thumbnailFile
+      ? `${selectedReport}/${folder}/thumbnails/${baseName}-thumb.jpg`
+      : null;
 
     setMediaProgress(progressId, {
-      name:
-        uploadFile.name ||
-        photo.name ||
-        (isVideo ? "Inspection video" : "Inspection photo"),
+      name: uploadFile.name || photo.name || "Inspection media",
       type: progressType,
-      stage: isVideo
-        ? "Uploading video to report"
-        : "Uploading photo to report",
-      progress: isVideo ? 62 : 35,
+      stage: isVideo ? "Uploading video + thumbnail" : "Uploading photo + instant thumbnail",
+      progress: isVideo ? 62 : 55,
       status: "uploading",
     });
 
-    const { error: uploadError } = await supabase.storage
+    const fullUploadPromise = supabase.storage
       .from("inspection-photos")
       .upload(fileName, uploadFile, {
         cacheControl: "31536000",
         upsert: false,
-        contentType: uploadFile.type || (isVideo ? "video/mp4" : undefined),
+        contentType: uploadFile.type || (isVideo ? "video/mp4" : "image/jpeg"),
       });
 
-    if (uploadError) {
+    const thumbnailUploadPromise = generatedThumbnailPath && thumbnailFile
+      ? supabase.storage
+          .from("inspection-photos")
+          .upload(generatedThumbnailPath, thumbnailFile, {
+            cacheControl: "31536000",
+            upsert: false,
+            contentType: "image/jpeg",
+          })
+      : Promise.resolve({ error: null } as any);
+
+    const [fullUpload, thumbnailUpload] = await Promise.all([
+      fullUploadPromise,
+      thumbnailUploadPromise,
+    ]);
+
+    if (fullUpload.error) {
       setMediaProgress(progressId, {
         name: uploadFile.name || photo.name || "Inspection media",
         type: progressType,
@@ -2410,71 +2477,39 @@ function FieldPageContent() {
         progress: 0,
         status: "error",
       });
-      throw uploadError;
+      throw fullUpload.error;
     }
 
-    setMediaProgress(progressId, {
-      name: uploadFile.name || photo.name || "Inspection media",
-      type: progressType,
-      stage: isVideo ? "Video uploaded" : "Photo uploaded",
-      progress: isVideo ? 78 : 82,
-      status: "uploading",
-    });
-
-    const { data } = supabase.storage
+    const { data: fullPublicData } = supabase.storage
       .from("inspection-photos")
       .getPublicUrl(fileName);
 
+    let thumbnailPath: string | null = generatedThumbnailPath;
     let thumbnailUrl: string | null = null;
-    let thumbnailPath: string | null = null;
 
-    if (thumbnailFile) {
-      thumbnailPath = `${selectedReport}/${folder}/thumbnails/${Date.now()}-${Math.random()
-        .toString(36)
-        .slice(2)}-video-thumb.jpg`;
-
-      setMediaProgress(progressId, {
-        name: uploadFile.name || photo.name || "Inspection video",
-        type: progressType,
-        stage: "Uploading video thumbnail",
-        progress: 86,
-        status: "uploading",
-      });
-
-      const { error: thumbnailUploadError } = await supabase.storage
+    if (thumbnailUpload.error) {
+      console.warn("Thumbnail upload failed; full photo was preserved.", thumbnailUpload.error);
+      thumbnailPath = null;
+    } else if (thumbnailPath) {
+      const { data: thumbnailPublicData } = supabase.storage
         .from("inspection-photos")
-        .upload(thumbnailPath, thumbnailFile, {
-          cacheControl: "31536000",
-          upsert: false,
-          contentType: "image/jpeg",
-        });
-
-      if (!thumbnailUploadError) {
-        const { data: thumbnailData } = supabase.storage
-          .from("inspection-photos")
-          .getPublicUrl(thumbnailPath);
-
-        thumbnailUrl = thumbnailData.publicUrl;
-      } else {
-        thumbnailPath = null;
-      }
+        .getPublicUrl(thumbnailPath);
+      thumbnailUrl = thumbnailPublicData.publicUrl;
     }
 
     setMediaProgress(progressId, {
       name: uploadFile.name || photo.name || "Inspection media",
       type: progressType,
-      stage: "Backed up to report",
+      stage: thumbnailUrl ? "Instant preview ready" : "Media uploaded",
       progress: 100,
       status: "done",
     });
 
     return {
-      publicUrl: data.publicUrl,
+      publicUrl: fullPublicData.publicUrl,
       filePath: fileName,
       isVideo,
-      mimeType: isVideo
-        ? uploadFile.type || "video/mp4"
-        : uploadFile.type || photo.type || "",
+      mimeType: isVideo ? uploadFile.type || "video/mp4" : "image/jpeg",
       thumbnailUrl,
       thumbnailPath,
     };
@@ -2509,6 +2544,8 @@ function FieldPageContent() {
         caption: note.trim() || title.trim() || null,
         file_path: uploaded.filePath,
         public_url: uploaded.publicUrl,
+        thumbnail_path: uploaded.thumbnailPath || null,
+        thumbnail_url: uploaded.thumbnailUrl || null,
       });
 
       if (error) throw error;
