@@ -4,7 +4,6 @@ import PdfExportButton from "../../../components/PdfExportButton";
 import ReportTimeTracker from "../../../components/ReportTimeTracker";
 import ClientSummaryAccordion from "../../../components/ClientSummaryAccordion";
 import ExpandableReportImage from "../../../components/ExpandableReportImage";
-import ShareReportTabs from "../../../components/ShareReportTabs";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -1519,7 +1518,7 @@ export default async function PublicSharePage({
           inspectionId={String(inspectionId)}
           viewerRole={resolvedSearchParams?.role || null}
           viewerEmail={resolvedSearchParams?.email || null}
-          path={`/share/${sharePathId}`}
+          path={`/public-report/${sharePathId}`}
         />
       )}
 
@@ -1683,14 +1682,6 @@ export default async function PublicSharePage({
               )}
             </div>
           </section>
-
-          <ShareReportTabs
-            initialTab={activeDefectFilter === "all" ? "summary" : "full"}
-            showSummary={clientSummaryGroups.length > 0}
-            showDisclaimers={Boolean(reportDisclaimers?.length)}
-            showStandards={showStandardsInShare}
-            showEquipment={equipmentInventory.length > 0}
-          />
 
           {reportDisclaimers && reportDisclaimers.length > 0 && (
             <section id="report-disclaimers" className="scroll-mt-[180px] md:scroll-mt-[220px] mt-8 rounded-2xl border border-purple-500/40 bg-[#071224] p-6 shadow-xl">
@@ -2362,13 +2353,13 @@ export default async function PublicSharePage({
                                   key={photo.id || index}
                                   className="overflow-hidden rounded-xl border border-slate-700 bg-[#020617]"
                                 >
-                                  <img
+                                  <ExpandableReportImage
                                     src={photoUrl}
+                                    fullSrc={photo.signed_url || photo.public_url || photo.image_url || photo.photo_url || photoUrl}
                                     alt={photo.caption || `Section reference photo ${index + 1}`}
-                                    loading="lazy"
-                decoding="async"
-                fetchPriority="low"
-                className="max-h-[280px] w-full object-cover"
+                                    badgeText="Tap to enlarge"
+                                    className="max-h-[280px] w-full object-cover"
+                                    buttonClassName="block w-full overflow-hidden bg-black text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
                                   />
 
                                   {photo.caption && (
@@ -2432,13 +2423,13 @@ export default async function PublicSharePage({
                                             </span>
                                           </div>
                                         ) : (
-                                          <img
+                                          <ExpandableReportImage
                                             src={previewImage || image}
+                                            fullSrc={image}
                                             alt={title}
-                                            loading="lazy"
-                decoding="async"
-                fetchPriority="low"
-                className="h-full w-full object-cover"
+                                            badgeText="View"
+                                            className="h-full w-full object-cover"
+                                            buttonClassName="block h-full w-full overflow-hidden bg-[#020617] text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
                                           />
                                         )}
                                       </div>
@@ -2502,14 +2493,14 @@ export default async function PublicSharePage({
                                             Your browser does not support video playback.
                                           </video>
                                         ) : (
-                                          <img
+                                          <ExpandableReportImage
                                             key={media.id || media.file_path || mediaUrl || mediaIndex}
                                             src={mediaPreviewUrl || mediaUrl}
+                                            fullSrc={mediaUrl}
                                             alt={`Inspection finding photo ${mediaIndex + 1}`}
-                                            loading="lazy"
-                                            decoding="async"
-                                            fetchPriority="low"
-                                            className="max-h-[520px] w-full rounded-xl border border-slate-700 object-contain"
+                                            badgeText="Tap to enlarge"
+                                            className="max-h-[520px] w-full object-contain"
+                                            buttonClassName="block w-full overflow-hidden rounded-xl border border-slate-700 bg-black text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
                                           />
                                         );
                                       })}
@@ -2597,14 +2588,14 @@ export default async function PublicSharePage({
                                             Your browser does not support video playback.
                                           </video>
                                         ) : (
-                                          <img
+                                          <ExpandableReportImage
                                             key={media.id || media.file_path || mediaUrl || mediaIndex}
                                             src={mediaPreviewUrl || mediaUrl}
+                                            fullSrc={mediaUrl}
                                             alt={`Inspection finding photo ${mediaIndex + 1}`}
-                                            loading="lazy"
-                                            decoding="async"
-                                            fetchPriority="low"
-                                            className="max-h-[520px] w-full rounded-xl border border-slate-700 object-contain"
+                                            badgeText="Tap to enlarge"
+                                            className="max-h-[520px] w-full object-contain"
+                                            buttonClassName="block w-full overflow-hidden rounded-xl border border-slate-700 bg-black text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
                                           />
                                         );
                                       })}
