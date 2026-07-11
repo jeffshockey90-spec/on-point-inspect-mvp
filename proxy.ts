@@ -1,5 +1,226 @@
 import { createServerClient } from "@supabase/ssr";
+import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
+
+const OWNER_EMAILS = [
+  "jeff@onpointhomeinspect.com",
+  "jeffshockey90@gmail.com",
+];
+
+const INSPECTOR_ONLY_PREFIXES = [
+  "/dashboard",
+  "/reports",
+  "/inspections",
+  "/ai-capture",
+  "/equipment-test",
+  "/equipment-analyzer",
+  "/field",
+  "/field-tool",
+  "/agreements",
+  "/templates",
+  "/schedule",
+  "/quotes",
+  "/invoices",
+  "/analytics",
+  "/radon",
+  "/mold",
+  "/environmental-report",
+  "/realtors",
+  "/onboarding",
+];
+
+const REALTOR_ACCOUNT_PREFIXES = [
+];
+
+const PUBLIC_PREFIXES = [
+  "/login",
+  "/signup",
+  "/api",
+  "/share",
+  "/environmental-share",
+  "/repair-request",
+  "/repair-response",
+  "/client",
+  "/client-portal",
+  "/client-agreement",
+  "/forgot-password",
+  "/reset-password",
+];
+
+function cleanText(value: unknown) {
+  return String(value || "").trim();
+}
+
+function cleanEmail(value: unknown) {
+  return cleanText(value).toLowerCase();
+}
+
+function roleLooksLikeRealtor(value: unknown) {
+  const role = cleanText(value).toLowerCase();
+
+  return (
+    role.includes("realtor") ||
+    role.includes("agent") ||
+    role.includes("transaction") ||
+    role.includes("coordinator")
+  );
+}
+
+function roleLooksLikeClient(value: unknown) {
+  const role = cleanText(value).toLowerCase();
+
+  return (
+    role === "client" ||
+    role.includes("buyer") ||
+    role.includes("co-client") ||
+    role.includes("coclient") ||
+    role.includes("homeowner")
+  );
+}
+
+function createAdminClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!url || !serviceKey) return null;
+
+  return createServiceClient(url, serviceKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
+}
+
+async function getAccountRoute(user: { id: string; email?: string | null }) {
+  const email = cleanEmail(user.email);
+  const isOwner = OWNER_EMAILS.includes(email);
+
+  if (isOwner) {
+    return {
+      isInspector: true,
+      isRealtor: false,
+      isClient: false,
+      destination: "/",
+    };
+  }
+
+  const admin = createAdminClient();
+
+  // Fail closed for non-owner accounts if the service key is unavailable.
+  if (!admin || !email) {
+    return {
+      isInspector: false,
+      isRealtor: false,
+      isClient: false,
+      destination: "/login",
+    };
+  }
+
+  let isInspector = false;
+  let isRealtor = false;
+  let isClient = false;
+  let clientInspectionId = "";
+
+  try {
+    const [{ data: inspectors }, { data: companies }, { data: contacts }] =
+      await Promise.all([
+        admin
+          .from("inspectors")
+          .select("id,email,user_id,owner_email")
+          .or(
+            `user_id.eq.${user.id},email.ilike.${email},owner_email.ilike.${email}`,
+          )
+          .limit(1),
+        admin
+          .from("companies")
+          .select("id,email,owner_email,user_id")
+          .or(
+            `user_id.eq.${user.id},email.ilike.${email},owner_email.ilike.${email}`,
+          )
+          .limit(1),
+        admin
+          .from("inspection_contacts")
+          .select("inspection_id,role,email,portal_access")
+          .ilike("email", email)
+          .limit(100),
+      ]);
+
+    isInspector = Boolean(inspectors?.length || companies?.length);
+
+    for (const contact of contacts || []) {
+      if (contact?.portal_access === false) continue;
+
+      if (roleLooksLikeRealtor(contact?.role)) {
+        isRealtor = true;
+      }
+
+      if (roleLooksLikeClient(contact?.role)) {
+        isClient = true;
+        if (!clientInspectionId && contact?.inspection_id) {
+          clientInspectionId = String(contact.inspection_id);
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Proxy account role lookup failed:", error);
+  }
+
+  if (!isRealtor) {
+    try {
+      const { data } = await admin
+        .from("inspections")
+        .select("id")
+        .or(
+          [
+            `realtor_email.ilike.${email}`,
+            `agent_email.ilike.${email}`,
+            `buyer_agent_email.ilike.${email}`,
+            `buyers_agent_email.ilike.${email}`,
+            `transaction_coordinator_email.ilike.${email}`,
+          ].join(","),
+        )
+        .limit(1);
+
+      isRealtor = Boolean(data?.length);
+    } catch {}
+  }
+
+  // Inspector status always wins if an account has multiple relationships.
+  if (isInspector) {
+    return {
+      isInspector: true,
+      isRealtor,
+      isClient,
+      destination: "/",
+    };
+  }
+
+  if (isRealtor) {
+    return {
+      isInspector: false,
+      isRealtor: true,
+      isClient,
+      destination: "/realtor-portal",
+    };
+  }
+
+  if (isClient && clientInspectionId) {
+    return {
+      isInspector: false,
+      isRealtor: false,
+      isClient: true,
+      destination: `/client-portal/${encodeURIComponent(clientInspectionId)}`,
+    };
+  }
+
+  return {
+    isInspector: false,
+    isRealtor: false,
+    isClient: false,
+    destination: "/login",
+  };
+}
 
 export default async function proxy(request: NextRequest) {
   let response = NextResponse.next({
@@ -28,7 +249,7 @@ export default async function proxy(request: NextRequest) {
           });
         },
       },
-    }
+    },
   );
 
   const {
@@ -36,52 +257,49 @@ export default async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const pathname = request.nextUrl.pathname;
-
-  const isPublicRoute =
-    pathname === "/" ||
-    pathname.startsWith("/login") ||
-    pathname.startsWith("/signup") ||
-    pathname.startsWith("/api") ||
-    pathname.startsWith("/share") ||
-    pathname.startsWith("/environmental-share") ||
-    pathname.startsWith("/repair-request") ||
-    pathname.startsWith("/client") ||
-    pathname.startsWith("/client-portal") ||
-    pathname.startsWith("/client-agreement") ||
-    pathname.startsWith("/forgot-password") ||
-    pathname.startsWith("/reset-password");
+  const isPublicRoute = PUBLIC_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
 
   if (isPublicRoute) return response;
 
-  const protectedRoutes = [
-    "/dashboard",
-    "/reports",
-    "/inspections",
-    "/ai-capture",
-    "/equipment-test",
-    "/equipment-analyzer",
-    "/field",
-    "/field-tool",
-    "/agreements",
-    "/templates",
-    "/schedule",
-    "/quotes",
-    "/invoices",
-    "/analytics",
-    "/radon",
-    "/mold",
-    "/environmental-report",
-  ];
-
-  const isProtected = protectedRoutes.some((route) =>
-    pathname.startsWith(route)
-  );
-
-  if (isProtected && !user) {
+  if (!user) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("redirectedFrom", pathname);
     return NextResponse.redirect(url);
+  }
+
+  const account = await getAccountRoute(user);
+
+  // Root is the inspector Command Center. Never render it for realtor/client accounts.
+  if (pathname === "/" && !account.isInspector) {
+    return NextResponse.redirect(new URL(account.destination, request.url));
+  }
+
+  const isInspectorOnly = INSPECTOR_ONLY_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+
+  if (isInspectorOnly && !account.isInspector) {
+    return NextResponse.redirect(new URL(account.destination, request.url));
+  }
+
+  const isRealtorAccountRoute = REALTOR_ACCOUNT_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+
+  if (
+    isRealtorAccountRoute &&
+    !account.isInspector &&
+    !account.isRealtor
+  ) {
+    return NextResponse.redirect(new URL(account.destination, request.url));
+  }
+
+  // Keep realtor-only users inside their own portal.
+  if (pathname.startsWith("/realtor-portal") && account.isClient && !account.isRealtor) {
+    return NextResponse.redirect(new URL(account.destination, request.url));
   }
 
   return response;

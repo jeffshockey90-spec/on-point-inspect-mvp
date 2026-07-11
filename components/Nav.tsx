@@ -46,7 +46,8 @@ export default function Navbar() {
   const openingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isOwner, setIsOwner] = useState(false);
   const [isRealtor, setIsRealtor] = useState(false);
-  const [isInspector, setIsInspector] = useState(true);
+  const [isInspector, setIsInspector] = useState(false);
+  const [routingResolved, setRoutingResolved] = useState(false);
   const [reportsHref, setReportsHref] = useState("/reports");
   const [dashboardHref, setDashboardHref] = useState("/");
 
@@ -112,15 +113,19 @@ export default function Navbar() {
           setIsInspector(inspector);
           setReportsHref(payload.reportsHref || (realtor && !inspector ? "/realtor-portal" : "/reports"));
           setDashboardHref(payload.dashboardHref === "/dashboard" ? "/" : payload.dashboardHref || "/");
+          setRoutingResolved(true);
           return;
         }
 
         const email = String(fallbackEmail || "").toLowerCase();
-        setIsOwner(OWNER_EMAILS.includes(email));
+        const owner = OWNER_EMAILS.includes(email);
+        setIsOwner(owner);
         setIsRealtor(false);
-        setIsInspector(true);
-        setReportsHref("/reports");
-        setDashboardHref("/");
+        setIsInspector(owner);
+        setReportsHref(owner ? "/reports" : "/realtor-portal");
+        setDashboardHref(owner ? "/" : "/realtor-portal");
+        setRoutingResolved(true);
+        setRoutingResolved(true);
       } catch (error) {
         console.error("Account routing nav check failed:", error);
 
@@ -277,6 +282,21 @@ export default function Navbar() {
     return (
       <span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
     );
+  }
+
+  const hideNavbarForPortal =
+    pathname.startsWith("/client") ||
+    pathname.startsWith("/client-portal") ||
+    pathname.startsWith("/client-agreement") ||
+    pathname.startsWith("/share") ||
+    pathname.startsWith("/environmental-share") ||
+    pathname.startsWith("/repair-request") ||
+    pathname.startsWith("/repair-response") ||
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/signup");
+
+  if (hideNavbarForPortal || !routingResolved) {
+    return null;
   }
 
   return (

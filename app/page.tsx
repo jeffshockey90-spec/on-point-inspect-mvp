@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
+import { createClient as createServiceClient } from "@supabase/supabase-js";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -42,6 +43,122 @@ async function createSupabaseServerClient() {
       },
     }
   );
+}
+
+const OWNER_EMAILS = [
+  "jeff@onpointhomeinspect.com",
+  "jeffshockey90@gmail.com",
+];
+
+function cleanEmailForRouting(value: unknown) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function roleLooksLikeRealtorForRouting(value: unknown) {
+  const role = String(value || "").trim().toLowerCase();
+
+  return (
+    role.includes("realtor") ||
+    role.includes("agent") ||
+    role.includes("transaction") ||
+    role.includes("coordinator")
+  );
+}
+
+function roleLooksLikeClientForRouting(value: unknown) {
+  const role = String(value || "").trim().toLowerCase();
+
+  return (
+    role === "client" ||
+    role.includes("buyer") ||
+    role.includes("co-client") ||
+    role.includes("coclient") ||
+    role.includes("homeowner")
+  );
+}
+
+async function getDashboardDestination(user: any) {
+  const email = cleanEmailForRouting(user?.email);
+
+  if (OWNER_EMAILS.includes(email)) return "/";
+
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!url || !serviceKey || !email) return "/login";
+
+  const admin = createServiceClient(url, serviceKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
+
+  const [{ data: inspectors }, { data: companies }, { data: contacts }] =
+    await Promise.all([
+      admin
+        .from("inspectors")
+        .select("id")
+        .or(
+          `user_id.eq.${user.id},email.ilike.${email},owner_email.ilike.${email}`,
+        )
+        .limit(1),
+      admin
+        .from("companies")
+        .select("id")
+        .or(
+          `user_id.eq.${user.id},email.ilike.${email},owner_email.ilike.${email}`,
+        )
+        .limit(1),
+      admin
+        .from("inspection_contacts")
+        .select("inspection_id,role,portal_access")
+        .ilike("email", email)
+        .limit(100),
+    ]);
+
+  if (inspectors?.length || companies?.length) return "/";
+
+  const realtorContact = (contacts || []).some(
+    (contact: any) =>
+      contact?.portal_access !== false &&
+      roleLooksLikeRealtorForRouting(contact?.role),
+  );
+
+  if (realtorContact) return "/realtor-portal";
+
+  try {
+    const { data: realtorInspection } = await admin
+      .from("inspections")
+      .select("id")
+      .or(
+        [
+          `realtor_email.ilike.${email}`,
+          `agent_email.ilike.${email}`,
+          `buyer_agent_email.ilike.${email}`,
+          `buyers_agent_email.ilike.${email}`,
+          `transaction_coordinator_email.ilike.${email}`,
+        ].join(","),
+      )
+      .limit(1);
+
+    if (realtorInspection?.length) return "/realtor-portal";
+  } catch {}
+
+  const clientContact = (contacts || []).find(
+    (contact: any) =>
+      contact?.portal_access !== false &&
+      roleLooksLikeClientForRouting(contact?.role) &&
+      contact?.inspection_id,
+  );
+
+  if (clientContact?.inspection_id) {
+    return `/client-portal/${encodeURIComponent(
+      String(clientContact.inspection_id),
+    )}`;
+  }
+
+  return "/login";
 }
 
 function getNumber(value: any) {
@@ -405,6 +522,12 @@ export default async function HomePage() {
   } = await supabase.auth.getUser();
 
   if (!user) redirect("/login");
+
+  const dashboardDestination = await getDashboardDestination(user);
+
+  if (dashboardDestination !== "/") {
+    redirect(dashboardDestination);
+  }
 
   const inspectionSelectFields = [
     "id",

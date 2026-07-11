@@ -1,5 +1,6 @@
 import FastLinkButton from "../../components/FastLinkButton";
 import EmailAddendumButton from "../../components/EmailAddendumButton";
+import ReportDownloadLink from "../../components/ReportDownloadLink";
 import { redirect } from "next/navigation";
 import { createClient } from "../../utils/supabase/server";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
@@ -361,13 +362,9 @@ export default async function RealtorPortalPage() {
               </p>
             </div>
 
-            <FastLinkButton
-              href="/"
-              loadingText="Opening..."
-              className="rounded-xl border border-teal-500 px-5 py-3 font-bold text-teal-300 hover:bg-teal-500/10"
-            >
-              Back
-            </FastLinkButton>
+            <div className="rounded-xl border border-slate-700 bg-[#020617] px-5 py-3 text-sm font-bold text-slate-300">
+              Realtor Portal
+            </div>
           </div>
         </section>
 
@@ -488,19 +485,21 @@ export default async function RealtorPortalPage() {
                           View Report
                         </FastLinkButton>
 
-                        <a
+                        <ReportDownloadLink
                           href={`/api/realtor-report-download/${encodeURIComponent(id)}?type=full`}
-                          className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-emerald-500 px-4 py-3 text-center font-black text-emerald-300 transition hover:bg-emerald-500/10 active:scale-[0.98]"
+                          preparingText="Preparing Full Report..."
+                          className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-emerald-500 px-4 py-3 text-center font-black text-emerald-300 transition hover:bg-emerald-500/10 active:scale-[0.98]"
                         >
-                          Full Report Download
-                        </a>
+                          <>Full Report Download</>
+                        </ReportDownloadLink>
 
-                        <a
+                        <ReportDownloadLink
                           href={`/api/realtor-report-download/${encodeURIComponent(id)}?type=agent`}
-                          className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-lime-500 px-4 py-3 text-center font-black text-lime-300 transition hover:bg-lime-500/10 active:scale-[0.98]"
+                          preparingText="Preparing Agent Report..."
+                          className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-lime-500 px-4 py-3 text-center font-black text-lime-300 transition hover:bg-lime-500/10 active:scale-[0.98]"
                         >
-                          Agent Report Download
-                        </a>
+                          <>Agent Report Download</>
+                        </ReportDownloadLink>
 
                         <FastLinkButton
                           href={`/repair-request?inspection_id=${encodeURIComponent(id)}&role=realtor&email=${encodeURIComponent(userEmail)}`}

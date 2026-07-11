@@ -10,6 +10,7 @@ import { existsSync } from "fs";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 type RouteProps = {
   params: Promise<{
@@ -417,23 +418,97 @@ async function signedUrlMap(admin: any, paths: string[]) {
   if (!uniquePaths.length) return result;
 
   const chunkSize = 80;
+  const chunks = Array.from(
+    { length: Math.ceil(uniquePaths.length / chunkSize) },
+    (_, index) => uniquePaths.slice(index * chunkSize, index * chunkSize + chunkSize)
+  );
 
-  for (let index = 0; index < uniquePaths.length; index += chunkSize) {
-    const chunk = uniquePaths.slice(index, index + chunkSize);
-    const { data, error } = await admin.storage
-      .from("inspection-photos")
-      .createSignedUrls(chunk, 60 * 60 * 24 * 7);
+  await Promise.all(
+    chunks.map(async (chunk) => {
+      const { data, error } = await admin.storage
+        .from("inspection-photos")
+        .createSignedUrls(chunk, 60 * 60 * 24 * 7);
 
-    if (error) {
-      console.error("Realtor report download signed URL error:", error);
-      continue;
+      if (error) {
+        console.error("Realtor report download signed URL error:", error);
+        return;
+      }
+
+      (data || []).forEach((item: any, itemIndex: number) => {
+        const path = item?.path || chunk[itemIndex];
+        if (path && item?.signedUrl) result[path] = item.signedUrl;
+      });
+    })
+  );
+
+  return result;
+}
+
+function isVideoPhoto(photo: any, value?: string) {
+  const path = cleanText(
+    value ||
+      photo?.file_path ||
+      photo?.storage_path ||
+      photo?.photo_path ||
+      photo?.image_path ||
+      photo?.public_url ||
+      photo?.image_url ||
+      photo?.photo_url ||
+      photo?.url
+  ).toLowerCase();
+
+  const type = cleanText(
+    photo?.mime_type ||
+      photo?.media_type ||
+      photo?.content_type ||
+      photo?.file_type
+  ).toLowerCase();
+
+  return (
+    Boolean(photo?.is_video) ||
+    Boolean(photo?.video_url) ||
+    type.startsWith("video/") ||
+    type.includes("quicktime") ||
+    /\.(mp4|mov|m4v|webm|avi|quicktime)(\?|#|$)/i.test(path)
+  );
+}
+
+async function signedPdfImageUrlMap(admin: any, paths: string[]) {
+  const uniquePaths = Array.from(new Set(paths.filter(Boolean)));
+  const result: Record<string, string> = {};
+
+  if (!uniquePaths.length) return result;
+
+  const concurrency = Math.min(24, uniquePaths.length);
+  let cursor = 0;
+
+  async function worker() {
+    while (cursor < uniquePaths.length) {
+      const path = uniquePaths[cursor];
+      cursor += 1;
+
+      const { data, error } = await admin.storage
+        .from("inspection-photos")
+        .createSignedUrl(path, 60 * 60 * 24 * 7, {
+          transform: {
+            width: 1100,
+            quality: 72,
+            resize: "contain",
+          },
+        });
+
+      if (error) {
+        console.error("PDF preview image signing failed:", { path, error });
+        continue;
+      }
+
+      if (data?.signedUrl) {
+        result[path] = data.signedUrl;
+      }
     }
-
-    (data || []).forEach((item: any, itemIndex: number) => {
-      const path = item?.path || chunk[itemIndex];
-      if (path && item?.signedUrl) result[path] = item.signedUrl;
-    });
   }
+
+  await Promise.all(Array.from({ length: concurrency }, () => worker()));
 
   return result;
 }
@@ -459,32 +534,35 @@ function dedupeDownloadPhotos(photos: any[]) {
 async function loadPhotos(admin: any, inspectionId: string, findingIds: string[]) {
   const byId = new Map<string, any>();
 
-  if (findingIds.length) {
-    const { data, error } = await admin
-      .from("photos")
-      .select("*")
-      .in("finding_id", findingIds)
-      .order("created_at", { ascending: true });
+  const findingPhotosPromise = findingIds.length
+    ? admin
+        .from("photos")
+        .select("*")
+        .in("finding_id", findingIds)
+        .order("created_at", { ascending: true })
+    : Promise.resolve({ data: [], error: null });
 
-    if (!error) {
-      (data || []).forEach((photo: any) => {
-        if (photo?.id) byId.set(String(photo.id), photo);
-      });
-    } else {
-      console.error("Agent report photos by finding_id failed:", error);
-    }
-  }
-
-  // Some older uploads are attached to the inspection first, then finding_id is filled later.
-  // If this column exists, this catches those too. If it does not exist, we silently ignore it.
-  const { data: inspectionPhotos, error: inspectionPhotoError } = await admin
+  const inspectionPhotosPromise = admin
     .from("photos")
     .select("*")
     .eq("inspection_id", inspectionId)
     .order("created_at", { ascending: true });
 
-  if (!inspectionPhotoError) {
-    (inspectionPhotos || []).forEach((photo: any) => {
+  const [findingPhotosResult, inspectionPhotosResult] = await Promise.all([
+    findingPhotosPromise,
+    inspectionPhotosPromise,
+  ]);
+
+  if (!findingPhotosResult.error) {
+    (findingPhotosResult.data || []).forEach((photo: any) => {
+      if (photo?.id) byId.set(String(photo.id), photo);
+    });
+  } else {
+    console.error("Agent report photos by finding_id failed:", findingPhotosResult.error);
+  }
+
+  if (!inspectionPhotosResult.error) {
+    (inspectionPhotosResult.data || []).forEach((photo: any) => {
       if (photo?.id) byId.set(String(photo.id), photo);
     });
   }
@@ -1212,9 +1290,9 @@ async function getChromiumExecutablePath() {
   }
 
   if (process.env.VERCEL || process.env.AWS_REGION) {
-    return chromium.executablePath(
-      "https://github.com/Sparticuz/chromium/releases/download/v123.0.1/chromium-v123.0.1-pack.tar"
-    );
+    // Use the Chromium binary bundled with @sparticuz/chromium.
+    // Downloading the remote pack on a cold start adds a large first-download delay.
+    return chromium.executablePath();
   }
 
   const localCandidates = [
@@ -1244,7 +1322,13 @@ async function renderHtmlToPdf(html: string) {
     browser = await puppeteer.launch({
       args: process.env.VERCEL || process.env.AWS_REGION
         ? chromium.args
-        : ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
+        : [
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-extensions",
+            "--disable-background-networking",
+          ],
       defaultViewport: {
         width: 816,
         height: 1056,
@@ -1260,8 +1344,29 @@ async function renderHtmlToPdf(html: string) {
     page.setDefaultTimeout(0);
 
     await page.setContent(html, {
-      waitUntil: "networkidle0",
+      waitUntil: "domcontentloaded",
       timeout: 90000,
+    });
+
+    await page.evaluate(async () => {
+      const images = Array.from(document.images);
+
+      await Promise.all(
+        images.map(
+          (image) =>
+            new Promise<void>((resolve) => {
+              if (image.complete) {
+                resolve();
+                return;
+              }
+
+              const finish = () => resolve();
+              image.addEventListener("load", finish, { once: true });
+              image.addEventListener("error", finish, { once: true });
+              window.setTimeout(finish, 15000);
+            })
+        )
+      );
     });
 
     await page.emulateMediaType("print");
@@ -1422,6 +1527,22 @@ export async function GET(req: Request, { params }: RouteProps) {
       return NextResponse.json({ error: "You do not have access to this report." }, { status: 403 });
     }
 
+    const secureOnlineReportUrl = onlineReportUrlForInspection(inspection);
+
+    const brandingPromise = loadCompanyBranding(admin, inspection, userEmail);
+    const qrCodePromise =
+      reportMode === "full" && secureOnlineReportUrl
+        ? QRCode.toDataURL(secureOnlineReportUrl, {
+            errorCorrectionLevel: "H",
+            margin: 1,
+            width: 420,
+            color: {
+              dark: "#18c8bf",
+              light: "#ffffff",
+            },
+          })
+        : Promise.resolve("");
+
     const { data: findingsRaw } = await admin
       .from("findings")
       .select("*")
@@ -1434,24 +1555,48 @@ export async function GET(req: Request, { params }: RouteProps) {
     }));
 
     const findingIds = normalizedFindings.map((finding: any) => cleanText(finding.id)).filter(Boolean);
-    const preferThumbnail = reportMode !== "full";
     const photosRaw = await loadPhotos(admin, inspectionId, findingIds);
 
-    const photoPaths = photosRaw.map((photo: any) => getPhotoStoragePath(photo, preferThumbnail)).filter(Boolean);
+    // PDF files should never embed original phone photos or video files.
+    // Prefer a permanent thumbnail, then request a compressed 1100px transform.
+    const photoPaths = photosRaw
+      .filter((photo: any) => !isVideoPhoto(photo))
+      .map((photo: any) => getPhotoStoragePath(photo, true))
+      .filter(Boolean);
 
     const legacyFindingPhotoPaths = normalizedFindings
-      .flatMap((finding: any) => getLegacyFindingPhotoCandidates(finding).map((candidate: any) => getStoragePathFromUrl(candidate)))
+      .flatMap((finding: any) =>
+        getLegacyFindingPhotoCandidates(finding)
+          .filter((candidate: any) => !isVideoPhoto({}, cleanText(candidate)))
+          .map((candidate: any) => getStoragePathFromUrl(candidate))
+      )
       .filter(Boolean);
 
     const propertyPhotoPath = getPropertyPhotoPath(inspection);
-    const allPaths = [...photoPaths, ...legacyFindingPhotoPaths, propertyPhotoPath].filter(Boolean);
-    const signedMap = await signedUrlMap(admin, allPaths);
+    const allImagePaths = [...photoPaths, ...legacyFindingPhotoPaths, propertyPhotoPath].filter(Boolean);
+
+    const [signedMap, pdfImageMap] = await Promise.all([
+      signedUrlMap(admin, allImagePaths),
+      signedPdfImageUrlMap(admin, allImagePaths),
+    ]);
 
     const photosWithUrls = photosRaw.map((photo: any) => {
-      const path = getPhotoStoragePath(photo, preferThumbnail);
+      if (isVideoPhoto(photo)) {
+        return {
+          ...photo,
+          download_url: "",
+        };
+      }
+
+      const path = getPhotoStoragePath(photo, true);
+
       return {
         ...photo,
-        download_url: (path && signedMap[path]) || getPhotoFallbackUrl(photo, preferThumbnail) || "",
+        download_url:
+          (path && pdfImageMap[path]) ||
+          (path && signedMap[path]) ||
+          getPhotoFallbackUrl(photo, true) ||
+          "",
       };
     });
 
@@ -1467,9 +1612,15 @@ export async function GET(req: Request, { params }: RouteProps) {
       const findingId = cleanText(finding.id);
       const directPhotos = photosByFindingId[findingId] || [];
       const legacyPhotos = getLegacyFindingPhotoCandidates(finding)
+        .filter((candidate: any) => !isVideoPhoto({}, cleanText(candidate)))
         .map((candidate: any) => {
           const path = getStoragePathFromUrl(candidate);
-          const urlValue = (path && signedMap[path]) || candidate || "";
+          const urlValue =
+            (path && pdfImageMap[path]) ||
+            (path && signedMap[path]) ||
+            candidate ||
+            "";
+
           return urlValue ? { download_url: urlValue } : null;
         })
         .filter(Boolean);
@@ -1484,28 +1635,18 @@ export async function GET(req: Request, { params }: RouteProps) {
 
     const rawPropertyPhoto = getPropertyPhoto(inspection);
     const propertyPhotoUrl =
+      (propertyPhotoPath && pdfImageMap[propertyPhotoPath]) ||
       (propertyPhotoPath && signedMap[propertyPhotoPath]) ||
       rawPropertyPhoto ||
       "";
 
-    const branding = await loadCompanyBranding(admin, inspection, userEmail);
+    const [branding, qrCodeDataUrl] = await Promise.all([
+      brandingPromise,
+      qrCodePromise,
+    ]);
+
     const standardsOfPractice = getCompanyStandards(branding.company);
     const includeStandardsInPdf = shouldIncludeStandardsInPdf(branding.company);
-
-    const secureOnlineReportUrl = onlineReportUrlForInspection(inspection);
-
-    const qrCodeDataUrl =
-      reportMode === "full" && secureOnlineReportUrl
-        ? await QRCode.toDataURL(secureOnlineReportUrl, {
-            errorCorrectionLevel: "H",
-            margin: 1,
-            width: 420,
-            color: {
-              dark: "#18c8bf",
-              light: "#ffffff",
-            },
-          })
-        : "";
 
     const html = buildAgentReportHtml({
       inspection,
