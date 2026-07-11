@@ -2494,13 +2494,14 @@ export default async function PublicSharePage({
                                         return mediaIsVideo ? (
                                           <video
                                             key={media.id || media.file_path || mediaUrl || mediaIndex}
+                                            src={getVideoPreviewSrc(mediaUrl)}
                                             poster={mediaPreviewUrl && mediaPreviewUrl !== mediaUrl ? mediaPreviewUrl : undefined}
                                             controls
+                                            muted
                                             playsInline
                                             preload="metadata"
                                             className="max-h-[520px] w-full rounded-xl border border-slate-700 bg-black object-contain"
                                           >
-                                            <source src={mediaUrl} type={media.mime_type || "video/mp4"} />
                                             Your browser does not support video playback.
                                           </video>
                                         ) : (
@@ -2589,13 +2590,14 @@ export default async function PublicSharePage({
                                         return mediaIsVideo ? (
                                           <video
                                             key={media.id || media.file_path || mediaUrl || mediaIndex}
+                                            src={getVideoPreviewSrc(mediaUrl)}
                                             poster={mediaPreviewUrl && mediaPreviewUrl !== mediaUrl ? mediaPreviewUrl : undefined}
                                             controls
+                                            muted
                                             playsInline
                                             preload="metadata"
                                             className="max-h-[520px] w-full rounded-xl border border-slate-700 bg-black object-contain"
                                           >
-                                            <source src={mediaUrl} type={media.mime_type || "video/mp4"} />
                                             Your browser does not support video playback.
                                           </video>
                                         ) : (
@@ -2774,13 +2776,14 @@ function ClientSummaryFindingCard({
               return itemIsVideo ? (
                 <video
                   key={item.id || item.file_path || itemUrl || mediaIndex}
+                  src={getVideoPreviewSrc(itemUrl)}
                   poster={itemPreviewUrl && itemPreviewUrl !== itemUrl ? itemPreviewUrl : undefined}
                   controls
+                  muted
                   playsInline
                   preload="metadata"
                   className="max-h-[360px] w-full rounded-xl border border-slate-700 bg-black object-contain"
                 >
-                  <source src={itemUrl} type={item.mime_type || "video/mp4"} />
                   Your browser does not support video playback.
                 </video>
               ) : (
