@@ -306,38 +306,46 @@ function CompactSummaryCard({
 
       {open && (
         <div className="border-t border-slate-800 px-4 pb-4 pt-4">
-          {fullUrl && !isVideo && (
-            <div className="mb-4 overflow-hidden rounded-xl border border-slate-700 bg-black">
-              <ExpandableReportImage
-                src={previewUrl || fullUrl}
-                fullSrc={fullUrl}
-                alt={title}
-                badgeText="Tap to enlarge"
-                className="max-h-[520px] w-full object-contain"
-                buttonClassName="block w-full overflow-hidden bg-black text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
-              />
-            </div>
-          )}
+          <div className="grid gap-3">
+            {finding.observation && (
+              <div className="rounded-xl border border-blue-500/40 bg-blue-500/10 p-4">
+                <p className="text-xs font-black uppercase tracking-wide text-blue-300">
+                  Observation
+                </p>
+                <p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-100">
+                  {finding.observation}
+                </p>
+              </div>
+            )}
 
-          {fullUrl && isVideo && (
-            <video
-              src={fullUrl}
-              controls
-              playsInline
-              preload="metadata"
-              className="mb-4 max-h-[520px] w-full rounded-xl border border-slate-700 bg-black object-contain"
-            />
-          )}
+            {finding.implication && (
+              <div className="rounded-xl border border-yellow-500/40 bg-yellow-500/10 p-4">
+                <p className="text-xs font-black uppercase tracking-wide text-yellow-300">
+                  Implication
+                </p>
+                <p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-100">
+                  {finding.implication}
+                </p>
+              </div>
+            )}
 
-          {finding.observation && (
-            <p className="text-sm leading-6 text-slate-200">{finding.observation}</p>
-          )}
+            {finding.recommendation && (
+              <div className="rounded-xl border border-teal-500/40 bg-teal-500/10 p-4">
+                <p className="text-xs font-black uppercase tracking-wide text-teal-300">
+                  Recommendation
+                </p>
+                <p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-100">
+                  {finding.recommendation}
+                </p>
+              </div>
+            )}
+          </div>
 
           <button
             type="button"
             onClick={openFullFinding}
             data-fast-click="true"
-            className="mt-3 min-h-11 rounded-xl border border-cyan-500 px-4 py-2 text-sm font-black text-cyan-200 active:scale-[0.98] active:opacity-80 [touch-action:manipulation]"
+            className="mt-4 min-h-11 rounded-xl border border-cyan-500 px-4 py-2 text-sm font-black text-cyan-200 active:scale-[0.98] active:opacity-80 [touch-action:manipulation]"
           >
             Open Full Report Finding
           </button>
