@@ -43,54 +43,6 @@ function normalizeSection(section: string | null | undefined) {
   return aliases[clean] || clean;
 }
 
-function normalizeChecklistGroupTitle(value: any) {
-  const title = String(value || "General").trim() || "General";
-  const normalized = title.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-
-  const aliases: Record<string, string> = {
-    "flooring insulation": "Insulation Type",
-    "insulation type": "Insulation Type",
-  };
-
-  return aliases[normalized] || title;
-}
-
-function cleanChecklistValue(row: any) {
-  const raw = row?.item_label ?? row?.item ?? row?.value ?? "";
-  const value = String(raw ?? "").trim();
-  const normalized = value.toLowerCase().replace(/\s+/g, " ").trim();
-
-  const invalidValues = new Set([
-    "",
-    "null",
-    "undefined",
-    "__text_value__",
-    "text_value",
-    "n/a",
-    "na",
-  ]);
-
-  const unitOnlyValues = new Set([
-    "gallon",
-    "gallons",
-    "fahrenheit",
-    "fahrenheit (f)",
-    "celsius",
-    "celsius (c)",
-    "seer",
-    "r-value",
-    "r value",
-  ]);
-
-  if (invalidValues.has(normalized) || unitOnlyValues.has(normalized)) {
-    return "";
-  }
-
-  if (/^_+text_value_+$/i.test(value)) return "";
-
-  return value;
-}
-
 function getChecklistDedupeKey(value: string) {
   return value
     .toLowerCase()
@@ -99,27 +51,115 @@ function getChecklistDedupeKey(value: string) {
     .trim();
 }
 
-function groupChecklistRows(rows: any[]) {
-  const grouped: Record<string, Record<string, string[]>> = {};
+function getChecklistRowValue(row: any) {
+  const raw = row?.item_label ?? row?.item ?? row?.value ?? "";
+  return String(raw ?? "").trim();
+}
+
+function isChecklistTextPlaceholder(value: string) {
+  const normalized = value.toLowerCase().replace(/\s+/g, " ").trim();
+
+  return (
+    normalized === "__text_value__" ||
+    normalized === "text_value" ||
+    /^_+text_value_+$/i.test(value)
+  );
+}
+
+function isEmptyChecklistValue(value: string) {
+  const normalized = value.toLowerCase().replace(/\s+/g, " ").trim();
+
+  return (
+    !normalized ||
+    normalized === "null" ||
+    normalized === "undefined"
+  );
+}
+
+function isChecklistUnit(value: string) {
+  const normalized = value.toLowerCase().replace(/\s+/g, " ").trim();
+
+  return new Set([
+    "gallon",
+    "gallons",
+    "fahrenheit",
+    "fahrenheit (f)",
+    "celsius",
+    "celsius (c)",
+    "seer",
+  ]).has(normalized);
+}
+
+function buildChecklistDisplayValues(rows: any[]) {
+  const textRow = (rows || []).find((row: any) =>
+    isChecklistTextPlaceholder(getChecklistRowValue(row))
+  );
+
+  const customText = String(textRow?.custom_text ?? "").trim();
+
+  const regularValues = (rows || [])
+    .filter((row: any) => !isChecklistTextPlaceholder(getChecklistRowValue(row)))
+    .map((row: any) => {
+      const rawValue = getChecklistRowValue(row);
+
+      if (rawValue.toUpperCase() === "OTHER") {
+        return String(row?.custom_text ?? "").trim();
+      }
+
+      return rawValue;
+    })
+    .filter((value: string) => !isEmptyChecklistValue(value));
+
+  const unit = regularValues.find((value: string) => isChecklistUnit(value));
+  const values: string[] = [];
+
+  if (customText) {
+    const shouldAppendUnit =
+      unit &&
+      !["n/a", "na", "not applicable"].includes(customText.toLowerCase());
+
+    values.push(shouldAppendUnit ? `${customText} ${unit}` : customText);
+  }
+
+  regularValues.forEach((value: string) => {
+    if (customText && unit && value === unit) return;
+    values.push(value);
+  });
+
   const seen = new Set<string>();
+
+  return values.filter((value) => {
+    const key = getChecklistDedupeKey(value);
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function groupChecklistRows(rows: any[]) {
+  const rowGroups: Record<string, Record<string, any[]>> = {};
 
   (rows || []).forEach((row: any) => {
     const section = normalizeSection(row.section);
-    const groupTitle = normalizeChecklistGroupTitle(
-      row.group_title || row.group || "General"
-    );
-    const value = cleanChecklistValue(row);
+    const groupTitle = String(row.group_title || row.group || "General").trim() || "General";
 
-    if (!value) return;
+    if (!rowGroups[section]) rowGroups[section] = {};
+    if (!rowGroups[section][groupTitle]) rowGroups[section][groupTitle] = [];
 
-    const dedupeKey = `${section.toLowerCase()}::${groupTitle.toLowerCase()}::${getChecklistDedupeKey(value)}`;
-    if (seen.has(dedupeKey)) return;
-    seen.add(dedupeKey);
+    rowGroups[section][groupTitle].push(row);
+  });
 
-    if (!grouped[section]) grouped[section] = {};
-    if (!grouped[section][groupTitle]) grouped[section][groupTitle] = [];
+  const grouped: Record<string, Record<string, string[]>> = {};
 
-    grouped[section][groupTitle].push(value);
+  Object.entries(rowGroups).forEach(([section, groups]) => {
+    Object.entries(groups).forEach(([groupTitle, groupRows]) => {
+      const values = buildChecklistDisplayValues(groupRows);
+
+      if (!values.length) return;
+
+      if (!grouped[section]) grouped[section] = {};
+      grouped[section][groupTitle] = values;
+    });
   });
 
   return grouped;
