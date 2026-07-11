@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import ExpandableReportImage from "./ExpandableReportImage";
 
 type SummaryTone = "red" | "teal" | "yellow" | "blue";
 
@@ -228,40 +229,51 @@ function CompactSummaryCard({
       className={`overflow-hidden rounded-2xl border bg-[#0b1426] ${toneStyle.border}`}
       style={{ contentVisibility: "auto", containIntrinsicSize: "210px" }}
     >
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-expanded={open}
-        data-fast-click="true"
-        className="grid w-full grid-cols-[116px_minmax(0,1fr)] gap-4 p-4 text-left active:opacity-85 [touch-action:manipulation] sm:grid-cols-[132px_minmax(0,1fr)]"
-      >
+      <div className="grid w-full grid-cols-[116px_minmax(0,1fr)] gap-4 p-4 sm:grid-cols-[132px_minmax(0,1fr)]">
         <div className="relative h-[116px] w-[116px] overflow-hidden rounded-xl border border-slate-700 bg-slate-900 sm:h-[132px] sm:w-[132px]">
           {!imageFailed && previewUrl ? (
-            <img
-              src={previewUrl}
-              alt={title}
-              width={132}
-              height={132}
-              loading={eager ? "eager" : "lazy"}
-              fetchPriority={eager ? "high" : "low"}
-              decoding="async"
-              draggable={false}
-              onError={() => setImageFailed(true)}
-              className="h-full w-full object-cover"
-            />
+            isVideo ? (
+              <div className="relative h-full w-full">
+                <img
+                  src={previewUrl}
+                  alt={title}
+                  width={132}
+                  height={132}
+                  loading={eager ? "eager" : "lazy"}
+                  fetchPriority={eager ? "high" : "low"}
+                  decoding="async"
+                  draggable={false}
+                  onError={() => setImageFailed(true)}
+                  className="h-full w-full object-cover"
+                />
+                <span className="absolute bottom-2 left-2 rounded-full bg-black/80 px-2 py-1 text-[10px] font-black text-cyan-200">
+                  ▶ VIDEO
+                </span>
+              </div>
+            ) : (
+              <ExpandableReportImage
+                src={previewUrl}
+                fullSrc={fullUrl || previewUrl}
+                alt={title}
+                badgeText="View"
+                className="h-full w-full object-cover"
+                buttonClassName="block h-full w-full overflow-hidden bg-slate-900 text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
+              />
+            )
           ) : (
             <div className="flex h-full w-full items-center justify-center px-3 text-center text-xs font-bold text-slate-500">
               {isVideo ? "Video" : "Photo unavailable"}
             </div>
           )}
-          {isVideo && (
-            <span className="absolute bottom-2 left-2 rounded-full bg-black/80 px-2 py-1 text-[10px] font-black text-cyan-200">
-              ▶ VIDEO
-            </span>
-          )}
         </div>
 
-        <div className="min-w-0">
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-expanded={open}
+          data-fast-click="true"
+          className="min-w-0 text-left active:opacity-85 [touch-action:manipulation]"
+        >
           <div className="flex flex-wrap gap-2">
             {itemNumber && (
               <span className="rounded-full border border-cyan-500/50 bg-cyan-500/10 px-2.5 py-1 text-[10px] font-black uppercase text-cyan-200">
@@ -289,8 +301,8 @@ function CompactSummaryCard({
           <p className="mt-3 text-sm font-black text-cyan-300">
             {open ? "Hide Details ↑" : "View Finding →"}
           </p>
-        </div>
-      </button>
+        </button>
+      </div>
 
       {open && (
         <div className="border-t border-slate-800 px-4 pb-4 pt-3">
