@@ -29,7 +29,9 @@ const INSPECTOR_ONLY_PREFIXES = [
   "/onboarding",
 ];
 
-const REALTOR_ACCOUNT_PREFIXES = [
+const REALTOR_ACCOUNT_PREFIXES: string[] = [
+  "/support",
+  "/settings",
 ];
 
 const PUBLIC_PREFIXES = [
