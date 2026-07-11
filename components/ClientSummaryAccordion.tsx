@@ -234,38 +234,34 @@ function CompactSummaryCard({
     >
       <div className="grid w-full grid-cols-[116px_minmax(0,1fr)] gap-4 p-4 sm:grid-cols-[132px_minmax(0,1fr)]">
         <div className="relative h-[116px] w-[116px] overflow-hidden rounded-xl border border-slate-700 bg-slate-900 sm:h-[132px] sm:w-[132px]">
-          {!imageFailed && previewUrl ? (
-            isVideo ? (
-              <div className="relative h-full w-full">
-                <img
-                  src={previewUrl}
-                  alt={title}
-                  width={132}
-                  height={132}
-                  loading={eager ? "eager" : "lazy"}
-                  fetchPriority={eager ? "high" : "low"}
-                  decoding="async"
-                  draggable={false}
-                  onError={() => setImageFailed(true)}
-                  className="h-full w-full object-cover"
-                />
-                <span className="absolute bottom-2 left-2 rounded-full bg-black/80 px-2 py-1 text-[10px] font-black text-cyan-200">
-                  ▶ VIDEO
-                </span>
-              </div>
-            ) : (
-              <ExpandableReportImage
-                src={previewUrl}
-                fullSrc={fullUrl || previewUrl}
-                alt={title}
-                badgeText="View"
+          {!imageFailed && previewUrl && !isVideo ? (
+            <ExpandableReportImage
+              src={previewUrl}
+              fullSrc={fullUrl || previewUrl}
+              alt={title}
+              badgeText="View"
+              className="h-full w-full object-cover"
+              buttonClassName="block h-full w-full overflow-hidden bg-slate-900 text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
+            />
+          ) : isVideo && fullUrl ? (
+            <div className="relative h-full w-full">
+              <video
+                src={fullUrl.includes("#t=") ? fullUrl : `${fullUrl}#t=0.1`}
+                poster={previewUrl || undefined}
+                muted
+                playsInline
+                preload="metadata"
+                aria-label={`${title} video preview`}
                 className="h-full w-full object-cover"
-                buttonClassName="block h-full w-full overflow-hidden bg-slate-900 text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
+                onError={() => setImageFailed(true)}
               />
-            )
+              <span className="pointer-events-none absolute bottom-2 left-2 rounded-full bg-black/80 px-2 py-1 text-[10px] font-black text-cyan-200">
+                ▶ VIDEO
+              </span>
+            </div>
           ) : (
             <div className="flex h-full w-full items-center justify-center px-3 text-center text-xs font-bold text-slate-500">
-              {isVideo ? "Video" : "Photo unavailable"}
+              {isVideo ? "Video unavailable" : "Photo unavailable"}
             </div>
           )}
         </div>
