@@ -1755,6 +1755,7 @@ export default async function PublicSharePage({
               {standardsOfPractice.map((standard) => (
                 <details
                   key={standard.title}
+                  open
                   className="group rounded-xl border border-slate-700 bg-[#0f172a] p-5 open:border-cyan-500/50"
                 >
                   <summary className="cursor-pointer list-none">
@@ -1930,6 +1931,7 @@ export default async function PublicSharePage({
           {equipmentInventory.length > 0 && (
             <details
               id="equipment-inventory"
+              open
               className="mt-8 rounded-2xl border border-cyan-500/40 bg-[#071224] p-6"
             >
               <summary className="cursor-pointer list-none">
