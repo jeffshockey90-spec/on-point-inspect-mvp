@@ -305,10 +305,34 @@ function CompactSummaryCard({
       </div>
 
       {open && (
-        <div className="border-t border-slate-800 px-4 pb-4 pt-3">
+        <div className="border-t border-slate-800 px-4 pb-4 pt-4">
+          {fullUrl && !isVideo && (
+            <div className="mb-4 overflow-hidden rounded-xl border border-slate-700 bg-black">
+              <ExpandableReportImage
+                src={previewUrl || fullUrl}
+                fullSrc={fullUrl}
+                alt={title}
+                badgeText="Tap to enlarge"
+                className="max-h-[520px] w-full object-contain"
+                buttonClassName="block w-full overflow-hidden bg-black text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
+              />
+            </div>
+          )}
+
+          {fullUrl && isVideo && (
+            <video
+              src={fullUrl}
+              controls
+              playsInline
+              preload="metadata"
+              className="mb-4 max-h-[520px] w-full rounded-xl border border-slate-700 bg-black object-contain"
+            />
+          )}
+
           {finding.observation && (
             <p className="text-sm leading-6 text-slate-200">{finding.observation}</p>
           )}
+
           <button
             type="button"
             onClick={openFullFinding}
