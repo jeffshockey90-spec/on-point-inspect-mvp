@@ -630,45 +630,45 @@ async function createSignedUrlMap(paths: string[]) {
 
 
 async function createSignedImagePreviewUrlMap(paths: string[]) {
-  const uniquePaths = Array.from(new Set(paths.filter((path) => Boolean(path))));
+  const uniquePaths = Array.from(
+    new Set(paths.filter((path) => Boolean(path))),
+  );
+
   const signedMap: Record<string, string> = {};
 
   if (uniquePaths.length === 0) return signedMap;
 
-  const chunkSize = 50;
+  const chunkSize = 12;
 
-  await Promise.all(
-    Array.from({ length: Math.ceil(uniquePaths.length / chunkSize) }).map(
-      async (_, chunkIndex) => {
-        const chunk = uniquePaths.slice(
-          chunkIndex * chunkSize,
-          chunkIndex * chunkSize + chunkSize
-        );
+  for (let index = 0; index < uniquePaths.length; index += chunkSize) {
+    const chunk = uniquePaths.slice(index, index + chunkSize);
 
+    await Promise.all(
+      chunk.map(async (path) => {
         const { data, error } = await supabase.storage
           .from("inspection-photos")
-          .createSignedUrls(chunk, 60 * 60 * 24 * 7, {
-          transform: {
-            width: 640,
-            quality: 72,
-            resize: "contain",
-          },
-        });
+          .createSignedUrl(path, 60 * 60 * 24 * 7, {
+            transform: {
+              width: 640,
+              quality: 72,
+              resize: "contain",
+            },
+          });
 
         if (error) {
-          console.error("Share preview signed photo error:", error);
+          console.error("Share preview signed photo error:", {
+            path,
+            error,
+          });
           return;
         }
 
-        (data || []).forEach((item: any, index: number) => {
-          const path = item?.path || chunk[index];
-          if (path && item?.signedUrl) {
-            signedMap[path] = item.signedUrl;
-          }
-        });
-      }
-    )
-  );
+        if (data?.signedUrl) {
+          signedMap[path] = data.signedUrl;
+        }
+      }),
+    );
+  }
 
   return signedMap;
 }
