@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 type SummaryTone = "red" | "teal" | "yellow" | "blue";
 
@@ -12,51 +12,8 @@ type SummaryGroup = {
   findings: any[];
 };
 
-function getSeverityBucket(severityValue: any) {
-  const severity = String(severityValue || "Recommended Repair").toLowerCase();
-
-  if (
-    severity.includes("safety") ||
-    severity.includes("hazard") ||
-    severity.includes("major")
-  ) {
-    return "safety";
-  }
-
-  if (severity.includes("repair") || severity.includes("defect")) {
-    return "repair";
-  }
-
-  if (
-    severity.includes("maintenance") ||
-    severity.includes("monitor") ||
-    severity.includes("minor")
-  ) {
-    return "maintenance";
-  }
-
-  if (
-    severity.includes("information") ||
-    severity.includes("info") ||
-    severity.includes("client")
-  ) {
-    return "information";
-  }
-
-  return "repair";
-}
-
-function getSeverityClass(severityValue: any) {
-  const bucket = getSeverityBucket(severityValue);
-
-  if (bucket === "safety")
-    return "border-red-400/70 bg-red-500/20 text-red-100 shadow-[0_0_18px_rgba(239,68,68,0.18)]";
-  if (bucket === "maintenance")
-    return "border-yellow-400/70 bg-yellow-500/20 text-yellow-100 shadow-[0_0_18px_rgba(234,179,8,0.14)]";
-  if (bucket === "information")
-    return "border-blue-400/70 bg-blue-500/20 text-blue-100 shadow-[0_0_18px_rgba(59,130,246,0.14)]";
-  return "border-teal-400/70 bg-teal-500/20 text-teal-100 shadow-[0_0_18px_rgba(20,184,166,0.14)]";
-}
+const INITIAL_ITEMS = 6;
+const LOAD_MORE_ITEMS = 6;
 
 function getFindingTitle(finding: any) {
   return (
@@ -74,7 +31,7 @@ function getFindingSummary(finding: any) {
     finding?.recommendation ||
     finding?.implication ||
     finding?.comment ||
-    "Tap to view finding details."
+    "Tap to review this finding."
   );
 }
 
@@ -103,50 +60,8 @@ function getMediaUrl(media: any) {
   );
 }
 
-function getMediaPreviewUrl(media: any) {
-  if (!media) return "";
-
-  const fullUrl = getMediaUrl(media);
-  const thumbnailUrl = String(
-    media?.signed_thumbnail_url ||
-      media?.thumbnail_url ||
-      media?.poster_url ||
-      media?.posterUrl ||
-      media?.video_thumbnail_url ||
-      media?.videoThumbnailUrl ||
-      "",
-  ).trim();
-
-  // Use real image thumbnails/posters for videos. Do not use the video file
-  // itself as an <img> preview because iPhone Safari often renders it blank.
-  if (thumbnailUrl && thumbnailUrl !== fullUrl && !isVideoUrl(thumbnailUrl)) {
-    return thumbnailUrl;
-  }
-
-  if (isVideoMedia(media, fullUrl)) {
-    return "";
-  }
-
-  return fullUrl;
-}
-
-function isVideoUrl(urlValue?: string) {
-  const url = String(urlValue || "").toLowerCase();
-  return /\.(mp4|mov|m4v|webm|avi|quicktime)(\?|#|$)/.test(url);
-}
-
-function handleImageFallback(
-  event: React.SyntheticEvent<HTMLImageElement>,
-  fallbackUrl: string,
-) {
-  const image = event.currentTarget;
-
-  if (fallbackUrl && image.src !== fallbackUrl) {
-    image.src = fallbackUrl;
-    return;
-  }
-
-  image.style.display = "none";
+function isVideoUrl(value?: string) {
+  return /\.(mp4|mov|m4v|webm|avi|quicktime)(\?|#|$)/i.test(String(value || ""));
 }
 
 function isVideoMedia(media: any, urlValue?: string) {
@@ -171,36 +86,59 @@ function isVideoMedia(media: any, urlValue?: string) {
     Boolean(media?.video_url) ||
     type.startsWith("video/") ||
     type.includes("quicktime") ||
-    path.match(/\.(mp4|mov|m4v|webm|avi|quicktime)$/) !== null ||
-    url.match(/\.(mp4|mov|m4v|webm|avi|quicktime)(\?|$)/) !== null
+    /\.(mp4|mov|m4v|webm|avi|quicktime)$/.test(path) ||
+    /\.(mp4|mov|m4v|webm|avi|quicktime)(\?|#|$)/.test(url)
   );
 }
 
-function getFindingPrimaryMedia(finding: any) {
-  const photos = Array.isArray(finding?.photos) ? finding.photos : [];
+function getPreviewUrl(media: any) {
+  if (!media) return "";
 
-  const imagePhoto = photos.find((photo: any) => {
+  const fullUrl = getMediaUrl(media);
+  const preview = String(
+    media?.signed_thumbnail_url ||
+      media?.thumbnail_url ||
+      media?.signed_preview_url ||
+      media?.poster_url ||
+      media?.posterUrl ||
+      media?.video_thumbnail_url ||
+      media?.videoThumbnailUrl ||
+      "",
+  ).trim();
+
+  if (preview && preview !== fullUrl && !isVideoUrl(preview)) return preview;
+  if (isVideoMedia(media, fullUrl)) return preview && !isVideoUrl(preview) ? preview : "";
+  return preview || fullUrl;
+}
+
+function getPrimaryMedia(finding: any) {
+  const photos = Array.isArray(finding?.photos) ? finding.photos : [];
+  const image = photos.find((photo: any) => {
     const url = getMediaUrl(photo);
     return url && !isVideoMedia(photo, url);
   });
-  if (imagePhoto) return imagePhoto;
+  if (image) return image;
 
-  const firstUsablePhoto = photos.find((photo: any) => getMediaUrl(photo));
-  if (firstUsablePhoto) return firstUsablePhoto;
+  const first = photos.find((photo: any) => getMediaUrl(photo));
+  if (first) return first;
 
-  const legacyUrl =
+  const fullUrl =
     finding?.signed_image_url ||
     finding?.image_url ||
     finding?.public_image_url ||
     finding?.video_url ||
     "";
-  if (!legacyUrl) return null;
+
+  if (!fullUrl) return null;
 
   return {
-    signed_url: legacyUrl,
-    public_url: legacyUrl,
-    image_url: legacyUrl,
-    photo_url: legacyUrl,
+    signed_url: fullUrl,
+    public_url: fullUrl,
+    signed_thumbnail_url:
+      finding?.signed_preview_image_url ||
+      finding?.signed_thumbnail_url ||
+      finding?.thumbnail_url ||
+      "",
     video_url: finding?.video_url || "",
     file_path:
       finding?.file_path ||
@@ -218,340 +156,155 @@ function getFindingPrimaryMedia(finding: any) {
   };
 }
 
-function getFindingMediaList(finding: any) {
-  const photos = Array.isArray(finding?.photos) ? finding.photos : [];
-  const usablePhotos = photos.filter((photo: any) =>
-    Boolean(getMediaUrl(photo)),
-  );
-  if (usablePhotos.length > 0) return usablePhotos;
-
-  const primaryMedia = getFindingPrimaryMedia(finding);
-  return primaryMedia && getMediaUrl(primaryMedia) ? [primaryMedia] : [];
+function toneClasses(tone: SummaryTone) {
+  if (tone === "red") {
+    return {
+      border: "border-red-500/55",
+      count: "border-red-500/40 bg-red-500/10 text-red-200",
+    };
+  }
+  if (tone === "yellow") {
+    return {
+      border: "border-yellow-500/45",
+      count: "border-yellow-500/40 bg-yellow-500/10 text-yellow-200",
+    };
+  }
+  if (tone === "blue") {
+    return {
+      border: "border-blue-500/45",
+      count: "border-blue-500/40 bg-blue-500/10 text-blue-200",
+    };
+  }
+  return {
+    border: "border-teal-500/45",
+    count: "border-teal-500/40 bg-teal-500/10 text-teal-200",
+  };
 }
 
-function toneCardClass(tone: SummaryTone, active: boolean) {
-  const open = active
-    ? "border-cyan-300/80 shadow-[0_0_0_1px_rgba(34,211,238,0.35),0_28px_80px_rgba(0,0,0,0.55)]"
-    : "shadow-[0_18px_48px_rgba(0,0,0,0.38)]";
-
-  if (tone === "red")
-    return `${open} border-red-500/80 bg-gradient-to-b from-[#10192b] via-[#081323] to-[#020817] hover:border-red-300/90`;
-  if (tone === "yellow")
-    return `${open} border-yellow-500/75 bg-gradient-to-b from-[#10192b] via-[#081323] to-[#020817] hover:border-yellow-300/90`;
-  if (tone === "blue")
-    return `${open} border-blue-500/75 bg-gradient-to-b from-[#10192b] via-[#081323] to-[#020817] hover:border-blue-300/90`;
-  return `${open} border-teal-500/75 bg-gradient-to-b from-[#10192b] via-[#081323] to-[#020817] hover:border-teal-300/90`;
+function severityClass(value: any) {
+  const severity = String(value || "Recommended Repair").toLowerCase();
+  if (severity.includes("safety") || severity.includes("major")) {
+    return "border-red-500/50 bg-red-500/10 text-red-200";
+  }
+  if (severity.includes("maintenance") || severity.includes("monitor")) {
+    return "border-yellow-500/50 bg-yellow-500/10 text-yellow-200";
+  }
+  if (severity.includes("information")) {
+    return "border-blue-500/50 bg-blue-500/10 text-blue-200";
+  }
+  return "border-teal-500/50 bg-teal-500/10 text-teal-200";
 }
 
-function toneCountClass(tone: SummaryTone) {
-  if (tone === "red") return "border-red-500/40 bg-red-500/10 text-red-300";
-  if (tone === "yellow")
-    return "border-yellow-500/40 bg-yellow-500/10 text-yellow-300";
-  if (tone === "blue") return "border-blue-500/40 bg-blue-500/10 text-blue-300";
-  return "border-teal-500/40 bg-teal-500/10 text-teal-300";
-}
-
-function DetailIcon({ tone }: { tone: "blue" | "yellow" | "teal" | "slate" }) {
-  const className =
-    tone === "blue"
-      ? "bg-blue-500/25 text-blue-100"
-      : tone === "yellow"
-        ? "bg-yellow-500/25 text-yellow-100"
-        : tone === "teal"
-          ? "bg-teal-500/25 text-teal-100"
-          : "bg-slate-500/25 text-slate-100";
-
-  const icon =
-    tone === "blue"
-      ? "👁"
-      : tone === "yellow"
-        ? "⚠"
-        : tone === "teal"
-          ? "✓"
-          : "•";
-
-  return (
-    <span
-      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-lg ${className}`}
-    >
-      {icon}
-    </span>
-  );
-}
-
-function FindingTextCard({
-  title,
-  value,
-  tone,
-}: {
-  title: string;
-  value?: any;
-  tone: "blue" | "yellow" | "teal" | "slate";
-}) {
-  const clean = String(value || "").trim();
-  if (!clean) return null;
-
-  const color =
-    tone === "blue"
-      ? "border-blue-500/70 bg-blue-500/10 text-slate-100 shadow-[inset_0_0_22px_rgba(59,130,246,0.08)]"
-      : tone === "yellow"
-        ? "border-yellow-500/75 bg-yellow-500/10 text-slate-100 shadow-[inset_0_0_22px_rgba(234,179,8,0.08)]"
-        : tone === "teal"
-          ? "border-teal-500/70 bg-teal-500/10 text-slate-100 shadow-[inset_0_0_22px_rgba(20,184,166,0.08)]"
-          : "border-slate-700 bg-[#020817]/80 text-slate-200";
-
-  const heading =
-    tone === "blue"
-      ? "text-blue-400"
-      : tone === "yellow"
-        ? "text-yellow-400"
-        : tone === "teal"
-          ? "text-cyan-300"
-          : "text-slate-300";
-
-  return (
-    <div
-      className={`box-border w-full max-w-full rounded-2xl border p-4 sm:p-5 ${color}`}
-    >
-      <div className="flex w-full min-w-0 items-start gap-4">
-        <DetailIcon tone={tone} />
-        <div className="min-w-0 flex-1">
-          <p
-            className={`break-words text-sm font-black uppercase tracking-wide ${heading}`}
-          >
-            {title}
-          </p>
-          <p className="mt-4 whitespace-pre-line break-words text-base leading-8 text-slate-100 [overflow-wrap:anywhere]">
-            {clean}
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SummaryFindingCard({
+function CompactSummaryCard({
   finding,
   tone,
-  isOpen,
+  open,
   onToggle,
+  eager,
 }: {
   finding: any;
   tone: SummaryTone;
-  isOpen: boolean;
+  open: boolean;
   onToggle: () => void;
+  eager: boolean;
 }) {
-  const primaryMedia = getFindingPrimaryMedia(finding);
-  const mediaUrl = getMediaUrl(primaryMedia);
-  const previewUrl = getMediaPreviewUrl(primaryMedia);
-  const mediaList = getFindingMediaList(finding).filter((item: any) => {
-    const url = getMediaUrl(item);
-    return url && url !== mediaUrl;
-  });
+  const media = getPrimaryMedia(finding);
+  const fullUrl = getMediaUrl(media);
+  const previewUrl = getPreviewUrl(media);
   const title = getFindingTitle(finding);
   const summary = getFindingSummary(finding);
   const itemNumber = getItemNumber(finding);
-  const video = isVideoMedia(primaryMedia || finding, mediaUrl);
+  const isVideo = isVideoMedia(media || finding, fullUrl);
+  const [imageFailed, setImageFailed] = useState(false);
+  const toneStyle = toneClasses(tone);
+
+  function openFullFinding() {
+    const target = document.getElementById("inspection-findings");
+    target?.scrollIntoView({ block: "start" });
+  }
 
   return (
     <article
-      className={`relative w-full max-w-full min-w-0 self-start overflow-hidden rounded-2xl border text-left transition duration-200 ${isOpen ? "sm:col-span-2 xl:col-span-2" : ""} ${toneCardClass(
-        tone,
-        isOpen,
-      )}`}
+      className={`overflow-hidden rounded-2xl border bg-[#0b1426] ${toneStyle.border}`}
+      style={{ contentVisibility: "auto", containIntrinsicSize: "210px" }}
     >
       <button
         type="button"
         onClick={onToggle}
-        aria-expanded={isOpen}
+        aria-expanded={open}
         data-fast-click="true"
-        className="block w-full max-w-full min-w-0 text-left transition duration-150 active:scale-[0.99] [touch-action:manipulation]"
+        className="grid w-full grid-cols-[116px_minmax(0,1fr)] gap-4 p-4 text-left active:opacity-85 [touch-action:manipulation] sm:grid-cols-[132px_minmax(0,1fr)]"
       >
-        {itemNumber && (
-          <div className="absolute left-3 top-3 z-20 rounded-full border border-cyan-300/80 bg-[#020617]/90 px-3 py-1.5 text-[11px] font-black uppercase tracking-wide text-cyan-200 shadow-[0_0_18px_rgba(34,211,238,0.22)] backdrop-blur">
-            Item #{itemNumber}
-          </div>
-        )}
+        <div className="relative h-[116px] w-[116px] overflow-hidden rounded-xl border border-slate-700 bg-slate-900 sm:h-[132px] sm:w-[132px]">
+          {!imageFailed && previewUrl ? (
+            <img
+              src={previewUrl}
+              alt={title}
+              width={132}
+              height={132}
+              loading={eager ? "eager" : "lazy"}
+              fetchPriority={eager ? "high" : "low"}
+              decoding="async"
+              draggable={false}
+              onError={() => setImageFailed(true)}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center px-3 text-center text-xs font-bold text-slate-500">
+              {isVideo ? "Video" : "Photo unavailable"}
+            </div>
+          )}
+          {isVideo && (
+            <span className="absolute bottom-2 left-2 rounded-full bg-black/80 px-2 py-1 text-[10px] font-black text-cyan-200">
+              ▶ VIDEO
+            </span>
+          )}
+        </div>
 
-        {mediaUrl && (
-          <div className="relative h-44 w-full max-w-full overflow-hidden border-b border-slate-800 bg-black sm:h-48">
-            {video ? (
-              <>
-                {previewUrl ? (
-                  <img
-                    src={previewUrl}
-                    alt={title}
-                    onError={(event) => handleImageFallback(event, "")}
-                    loading="lazy"
-                    decoding="async"
-                    fetchPriority="low"
-                    className="h-full w-full object-cover opacity-80"
-                  />
-                ) : (
-                  <video
-                    src={mediaUrl}
-                    muted
-                    playsInline
-                    preload="metadata"
-                    className="h-full w-full object-cover opacity-70"
-                  />
-                )}
-
-                <div className="absolute inset-0 flex items-center justify-center bg-black/25">
-                  <span className="rounded-full border border-cyan-400 bg-black/75 px-4 py-2 text-xs font-black uppercase tracking-wide text-cyan-300 shadow-[0_0_22px_rgba(34,211,238,0.25)]">
-                    ▶ Video
-                  </span>
-                </div>
-              </>
-            ) : (
-              <img
-                src={previewUrl || mediaUrl}
-                alt={title}
-                onError={(event) => handleImageFallback(event, mediaUrl)}
-                loading="lazy"
-                decoding="async"
-                fetchPriority="low"
-                className="h-full w-full object-cover"
-              />
-            )}
-          </div>
-        )}
-
-        <div className={`p-4 sm:p-5 ${!mediaUrl && itemNumber ? "pt-14" : ""}`}>
-          <div className="mb-4 flex max-w-full flex-wrap items-center gap-2">
+        <div className="min-w-0">
+          <div className="flex flex-wrap gap-2">
             {itemNumber && (
-              <span className="rounded-full border border-cyan-400/80 bg-cyan-500/15 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-cyan-200 shadow-[0_0_16px_rgba(34,211,238,0.14)]">
+              <span className="rounded-full border border-cyan-500/50 bg-cyan-500/10 px-2.5 py-1 text-[10px] font-black uppercase text-cyan-200">
                 Item #{itemNumber}
               </span>
             )}
-
             <span
-              className={`rounded-full border px-3 py-1.5 text-[10px] font-black uppercase tracking-wide ${getSeverityClass(finding.severity)}`}
+              className={`rounded-full border px-2.5 py-1 text-[10px] font-black uppercase ${severityClass(
+                finding.severity,
+              )}`}
             >
               {finding.severity || "Recommended Repair"}
             </span>
-            <span className="rounded-full border border-slate-500/60 bg-slate-900/70 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-slate-200">
-              {finding.section || "Report"}
-            </span>
           </div>
 
-          <h4 className="break-words text-xl font-black leading-tight text-white sm:text-2xl">
+          <h4 className="mt-3 line-clamp-2 text-lg font-black leading-tight text-white">
             {title}
           </h4>
-          <p
-            className={`mt-4 text-[15px] leading-7 text-slate-200 ${isOpen ? "" : "line-clamp-3"}`}
-          >
+          <p className="mt-2 text-xs font-black uppercase tracking-wide text-teal-300">
+            {finding.section || "Report"}
+          </p>
+          <p className="mt-3 line-clamp-2 text-sm leading-6 text-slate-300">
             {summary}
           </p>
-          <p className="mt-5 text-base font-black text-cyan-300">
-            {isOpen ? "Collapse ↑" : "See More →"}
+          <p className="mt-3 text-sm font-black text-cyan-300">
+            {open ? "Hide Details ↑" : "View Finding →"}
           </p>
         </div>
       </button>
 
-      {isOpen && (
-        <div className="box-border w-full max-w-full min-w-0 overflow-hidden px-4 pb-5 sm:px-5 sm:pb-6">
-          {video && mediaUrl && (
-            <video
-              src={mediaUrl}
-              controls
-              playsInline
-              preload="metadata"
-              className="mb-4 max-h-[520px] w-full max-w-full rounded-xl border border-slate-700 bg-black object-contain"
-            />
+      {open && (
+        <div className="border-t border-slate-800 px-4 pb-4 pt-3">
+          {finding.observation && (
+            <p className="text-sm leading-6 text-slate-200">{finding.observation}</p>
           )}
-
-          {mediaList.length > 0 && (
-            <div className="mb-5 grid w-full max-w-full min-w-0 gap-4 md:grid-cols-2">
-              {mediaList.map((item: any, mediaIndex: number) => {
-                const itemUrl = getMediaUrl(item);
-                const itemPreviewUrl = getMediaPreviewUrl(item);
-                const itemIsVideo = isVideoMedia(item, itemUrl);
-                if (!itemUrl) return null;
-
-                return itemIsVideo ? (
-                  <div
-                    key={item.id || item.file_path || itemUrl || mediaIndex}
-                    className="relative overflow-hidden rounded-xl border border-slate-700 bg-black"
-                  >
-                    {itemPreviewUrl ? (
-                      <img
-                        src={itemPreviewUrl}
-                        alt={`Summary finding video ${mediaIndex + 1}`}
-                        onError={(event) => handleImageFallback(event, "")}
-                        loading="lazy"
-                        decoding="async"
-                        fetchPriority="low"
-                        className="max-h-[520px] w-full max-w-full object-contain opacity-80"
-                      />
-                    ) : (
-                      <video
-                        src={itemUrl}
-                        controls
-                        playsInline
-                        preload="metadata"
-                        className="max-h-[520px] w-full max-w-full bg-black object-contain"
-                      />
-                    )}
-                    {itemPreviewUrl && (
-                      <a
-                        href={itemUrl}
-                        className="absolute inset-0 flex items-center justify-center bg-black/25"
-                        aria-label={`Open summary finding video ${mediaIndex + 1}`}
-                      >
-                        <span className="rounded-full border border-cyan-400 bg-black/75 px-4 py-2 text-xs font-black uppercase tracking-wide text-cyan-300 shadow-[0_0_22px_rgba(34,211,238,0.25)]">
-                          ▶ Video
-                        </span>
-                      </a>
-                    )}
-                  </div>
-                ) : (
-                  <img
-                    key={item.id || item.file_path || itemUrl || mediaIndex}
-                    src={itemPreviewUrl || itemUrl}
-                    alt={`Summary finding media ${mediaIndex + 1}`}
-                    onError={(event) => handleImageFallback(event, itemUrl)}
-                    loading="lazy"
-                    decoding="async"
-                    fetchPriority="low"
-                    className="max-h-[520px] w-full max-w-full rounded-xl border border-slate-700 object-contain"
-                  />
-                );
-              })}
-            </div>
-          )}
-
-          <div className="box-border flex w-full max-w-full min-w-0 flex-col gap-4">
-            <FindingTextCard
-              title="Observation"
-              value={finding.observation}
-              tone="blue"
-            />
-            <FindingTextCard
-              title="Implication"
-              value={finding.implication}
-              tone="yellow"
-            />
-            <FindingTextCard
-              title="Recommendation"
-              value={finding.recommendation}
-              tone="teal"
-            />
-            <FindingTextCard
-              title="Additional Notes"
-              value={finding.comment}
-              tone="slate"
-            />
-          </div>
-
-          {(finding.equipment_type || finding.equipmentType) && (
-            <div className="mt-5 border-t border-slate-600/70 pt-5">
-              <p className="text-sm font-black text-cyan-300">Equipment Type</p>
-              <p className="mt-2 break-words text-lg font-semibold text-white">
-                {finding.equipment_type || finding.equipmentType}
-              </p>
-            </div>
-          )}
+          <button
+            type="button"
+            onClick={openFullFinding}
+            data-fast-click="true"
+            className="mt-3 min-h-11 rounded-xl border border-cyan-500 px-4 py-2 text-sm font-black text-cyan-200 active:scale-[0.98] active:opacity-80 [touch-action:manipulation]"
+          >
+            Open Full Report Finding
+          </button>
         </div>
       )}
     </article>
@@ -564,55 +317,78 @@ export default function ClientSummaryAccordion({
   groups: SummaryGroup[];
 }) {
   const [openId, setOpenId] = useState<string | number | null>(null);
+  const [visibleCounts, setVisibleCounts] = useState<Record<string, number>>({});
 
-  if (!groups?.length) return null;
+  const normalizedGroups = useMemo(
+    () => (groups || []).filter((group) => Array.isArray(group.findings) && group.findings.length > 0),
+    [groups],
+  );
+
+  if (!normalizedGroups.length) return null;
 
   return (
-    <div className="mt-6 w-full max-w-full space-y-8 overflow-x-hidden">
-      {groups.map((group) => (
-        <section
-          key={group.key}
-          id={`client-summary-${group.key}`}
-          className="w-full max-w-full overflow-x-hidden scroll-mt-6"
-        >
-          <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h3 className="text-2xl font-black text-white sm:text-3xl">
-                {group.title}
-              </h3>
-              {group.description && (
-                <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
-                  {group.description}
-                </p>
-              )}
+    <div className="mt-6 space-y-8 overflow-x-hidden">
+      {normalizedGroups.map((group) => {
+        const visibleCount = visibleCounts[group.key] || INITIAL_ITEMS;
+        const visibleFindings = group.findings.slice(0, visibleCount);
+        const remaining = Math.max(0, group.findings.length - visibleFindings.length);
+        const toneStyle = toneClasses(group.tone);
+
+        return (
+          <section
+            key={group.key}
+            id={`client-summary-${group.key}`}
+            className="scroll-mt-24"
+            style={{ contentVisibility: "auto", containIntrinsicSize: "520px" }}
+          >
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h3 className="text-2xl font-black text-white">{group.title}</h3>
+                {group.description && (
+                  <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
+                    {group.description}
+                  </p>
+                )}
+              </div>
+              <span className={`shrink-0 rounded-full border px-3 py-2 text-sm font-black ${toneStyle.count}`}>
+                {group.findings.length} item{group.findings.length === 1 ? "" : "s"}
+              </span>
             </div>
 
-            <span
-              className={`rounded-full border px-4 py-2 text-sm font-black ${toneCountClass(group.tone)}`}
-            >
-              {group.findings.length} item
-              {group.findings.length === 1 ? "" : "s"}
-            </span>
-          </div>
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              {visibleFindings.map((finding: any, index: number) => {
+                const cardId = `${group.key}-${finding.id || finding.title || index}`;
+                return (
+                  <CompactSummaryCard
+                    key={cardId}
+                    finding={finding}
+                    tone={group.tone}
+                    open={openId === cardId}
+                    onToggle={() => setOpenId(openId === cardId ? null : cardId)}
+                    eager={index < 2 && group.key === normalizedGroups[0]?.key}
+                  />
+                );
+              })}
+            </div>
 
-          <div className="grid w-full max-w-full min-w-0 grid-cols-1 items-start gap-5 overflow-visible sm:grid-cols-2 xl:grid-cols-4">
-            {group.findings.map((finding: any, index: number) => {
-              const cardId = `${group.key}-${finding.id || finding.title || index}`;
-              const isOpen = openId === cardId;
-
-              return (
-                <SummaryFindingCard
-                  key={cardId}
-                  finding={finding}
-                  tone={group.tone}
-                  isOpen={isOpen}
-                  onToggle={() => setOpenId(isOpen ? null : cardId)}
-                />
-              );
-            })}
-          </div>
-        </section>
-      ))}
+            {remaining > 0 && (
+              <button
+                type="button"
+                onClick={() =>
+                  setVisibleCounts((current) => ({
+                    ...current,
+                    [group.key]: Math.min(group.findings.length, visibleCount + LOAD_MORE_ITEMS),
+                  }))
+                }
+                data-fast-click="true"
+                className="mt-4 min-h-12 w-full rounded-xl border border-slate-600 bg-slate-900 px-4 py-3 text-sm font-black text-white active:scale-[0.99] active:opacity-80 [touch-action:manipulation]"
+              >
+                Show {Math.min(remaining, LOAD_MORE_ITEMS)} More
+              </button>
+            )}
+          </section>
+        );
+      })}
     </div>
   );
 }

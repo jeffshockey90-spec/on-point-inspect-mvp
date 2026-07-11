@@ -1083,6 +1083,16 @@ export default async function PublicSharePage({
 
   const signedThumbnailUrlMap = await createSignedUrlMap(photoThumbnailPaths);
 
+  const legacyPhotoPreviewPaths = (photosRaw || [])
+    .filter((photo: any) => !photo.thumbnail_path)
+    .map((photo: any) => getPhotoStoragePath(photo))
+    .filter((path: string) => Boolean(path) && !isVideoPathOrPhoto({}, path));
+
+  const signedPreviewUrlMap = await createSignedImagePreviewUrlMap([
+    ...legacyPhotoPreviewPaths,
+    ...oldFindingImagePaths,
+  ]);
+
   const photosWithUrls = (photosRaw || []).map((photo: any) => {
     const path = getPhotoStoragePath(photo);
 
@@ -1094,8 +1104,14 @@ export default async function PublicSharePage({
       signed_thumbnail_url:
         (photo.thumbnail_path && signedThumbnailUrlMap[photo.thumbnail_path]) ||
         photo.thumbnail_url ||
+        (path && signedPreviewUrlMap[path]) ||
         (path && signedUrlMap[path]) ||
         fastUrl ||
+        "",
+      signed_preview_url:
+        (path && signedPreviewUrlMap[path]) ||
+        (photo.thumbnail_path && signedThumbnailUrlMap[photo.thumbnail_path]) ||
+        photo.thumbnail_url ||
         "",
     };
   });
@@ -1123,6 +1139,11 @@ export default async function PublicSharePage({
       ...finding,
       section: normalizeSection(finding.section),
       signed_image_url: signedImageUrl,
+      signed_preview_image_url:
+        (oldImagePath && signedPreviewUrlMap[oldImagePath]) ||
+        finding.signed_preview_image_url ||
+        finding.signed_thumbnail_url ||
+        null,
       image_url: signedImageUrl || finding.image_url || null,
       photos: photosByFindingId[finding.id] || [],
     };
@@ -1474,11 +1495,24 @@ export default async function PublicSharePage({
                 scroll-margin-top: 220px;
               }
             }
+
+            button,
+            a,
+            summary {
+              touch-action: manipulation;
+              -webkit-tap-highlight-color: transparent;
+            }
+
+            button:active,
+            a:active,
+            summary:active {
+              opacity: 0.86;
+            }
           `,
         }}
       />
 
-      <main className="min-h-screen w-full scroll-smooth overflow-x-hidden bg-[#020617] p-4 text-white md:p-8">
+      <main className="min-h-screen w-full overflow-x-hidden bg-[#020617] p-4 text-white md:p-8">
       {!isDemo && (
         <ReportTimeTracker
           inspectionId={String(inspectionId)}

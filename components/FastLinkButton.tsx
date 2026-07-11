@@ -32,30 +32,24 @@ export default function FastLinkButton({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const searchParamsText = searchParams.toString();
-
   const [opening, setOpening] = useState(false);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const linkRef = useRef<HTMLAnchorElement | null>(null);
+  const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const isExternal =
-    href.startsWith("http://") ||
-    href.startsWith("https://") ||
-    href.startsWith("mailto:") ||
-    href.startsWith("tel:");
+  const isExternal = /^(https?:|mailto:|tel:)/i.test(href);
+  const isHashOnly = href.startsWith("#");
 
-  function clearOpening() {
+  useEffect(() => {
     setOpening(false);
+  }, [pathname, searchParams]);
 
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
-  }
+  useEffect(() => {
+    return () => {
+      if (resetTimer.current) clearTimeout(resetTimer.current);
+    };
+  }, []);
 
   function prefetchHref() {
-    if (!prefetch || isExternal) return;
-
+    if (!prefetch || isExternal || isHashOnly) return;
     try {
       router.prefetch(href);
     } catch {}
@@ -65,14 +59,14 @@ export default function FastLinkButton({
     onClick?.();
 
     if (
+      isExternal ||
+      isHashOnly ||
+      target === "_blank" ||
       event.metaKey ||
       event.ctrlKey ||
       event.shiftKey ||
-      event.altKey ||
-      target === "_blank" ||
-      isExternal
+      event.altKey
     ) {
-      clearOpening();
       return;
     }
 
@@ -81,85 +75,34 @@ export default function FastLinkButton({
       return;
     }
 
-    const currentUrl =
-      pathname + (searchParamsText ? `?${searchParamsText}` : "");
-
-    if (href === pathname || href === currentUrl) {
-      clearOpening();
-      return;
-    }
+    const current = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
+    if (href === pathname || href === current) return;
 
     setOpening(true);
-
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-
-    timeoutRef.current = setTimeout(() => {
-      clearOpening();
-    }, 1200);
+    if (resetTimer.current) clearTimeout(resetTimer.current);
+    resetTimer.current = setTimeout(() => setOpening(false), 1800);
   }
-
-  useEffect(() => {
-    clearOpening();
-  }, [pathname, searchParamsText]);
-
-  useEffect(() => {
-    function handleAnyPointerDown(event: PointerEvent) {
-      const target = event.target as Node | null;
-
-      if (!target || !linkRef.current) return;
-
-      if (!linkRef.current.contains(target)) {
-        clearOpening();
-      }
-    }
-
-    function handlePageShow() {
-      clearOpening();
-    }
-
-    function handleVisibilityChange() {
-      if (document.visibilityState === "visible") clearOpening();
-    }
-
-    function handleFocus() {
-      clearOpening();
-    }
-
-    document.addEventListener("pointerdown", handleAnyPointerDown, true);
-    window.addEventListener("pageshow", handlePageShow);
-    window.addEventListener("focus", handleFocus);
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    return () => {
-      document.removeEventListener("pointerdown", handleAnyPointerDown, true);
-      window.removeEventListener("pageshow", handlePageShow);
-      window.removeEventListener("focus", handleFocus);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    };
-  }, []);
 
   return (
     <Link
-      ref={linkRef}
       href={href}
-      prefetch={prefetch && !isExternal}
+      prefetch={prefetch && !isExternal && !isHashOnly}
       title={title}
       target={target}
       rel={rel || (target === "_blank" ? "noreferrer" : undefined)}
+      onPointerDown={prefetchHref}
       onPointerEnter={prefetchHref}
       onFocus={prefetchHref}
       onClick={handleClick}
       aria-busy={opening}
       data-fast-click="true"
-      data-fast-link-href={href}
-      className={`${className} inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl transition duration-150 active:scale-[0.98] active:opacity-90 [touch-action:manipulation] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 ${
+      className={`${className} inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl active:scale-[0.98] active:opacity-85 [touch-action:manipulation] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 ${
         opening ? `pointer-events-none opacity-80 ${activeClassName}` : ""
       }`}
     >
-      {opening ? (
+      {opening && (
         <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent" />
-      ) : null}
+      )}
       <span>{opening ? loadingText : children}</span>
     </Link>
   );
