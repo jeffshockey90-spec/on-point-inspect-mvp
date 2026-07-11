@@ -4,7 +4,6 @@ import PdfExportButton from "../../../components/PdfExportButton";
 import ReportTimeTracker from "../../../components/ReportTimeTracker";
 import ClientSummaryAccordion from "../../../components/ClientSummaryAccordion";
 import ExpandableReportImage from "../../../components/ExpandableReportImage";
-import FastLinkButton from "../../../components/FastLinkButton";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -961,7 +960,7 @@ export default async function PublicSharePage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams?: Promise<{ defect_filter?: string; contact?: string; role?: string; email?: string; view?: string }>;
+  searchParams?: Promise<{ defect_filter?: string; contact?: string; role?: string; email?: string }>;
 }) {
   const resolvedParams = await params;
   const resolvedSearchParams = searchParams ? await searchParams : {};
@@ -988,11 +987,6 @@ export default async function PublicSharePage({
     maintenance: "Maintenance / Monitor",
     information: "Informational",
   };
-
-  const requestedView = String(resolvedSearchParams?.view || "summary").toLowerCase();
-  const activeView = ["summary", "report", "disclaimers", "standards", "equipment"].includes(requestedView)
-    ? requestedView
-    : "summary";
 
   const { data: inspectionByToken, error: tokenLookupError } = await supabase
     .from("inspections")
@@ -1474,7 +1468,7 @@ export default async function PublicSharePage({
 
     const query = params.toString();
 
-    return `/public-report/${sharePathId}${query ? `?${query}` : ""}`;
+    return `/share/${sharePathId}${query ? `?${query}` : ""}`;
   }
 
   return (
@@ -1594,7 +1588,7 @@ export default async function PublicSharePage({
             {!isDemo && canOpenInternalReportActions && (
               <>
                 <a
-                  href={clientSummaryGroups.length > 0 ? buildShareHref({ view: "summary" }) : buildShareHref({ view: "report" })}
+                  href={clientSummaryGroups.length > 0 ? "#client-summary" : "#inspection-findings"}
                   className="rounded-xl border border-teal-500 px-5 py-3 font-bold text-teal-400 transition hover:bg-teal-500 hover:text-black"
                 >
                   View Summary
@@ -1650,28 +1644,28 @@ export default async function PublicSharePage({
                 label="Safety / Major"
                 value={defectTotals.safety}
                 tone="red"
-                href={isDemo ? `/demo/${inspectionId}?defect_filter=safety#inspection-findings` : `${buildShareHref({ view: "report", defect_filter: "safety" })}#inspection-findings`}
+                href={isDemo ? `/demo/${inspectionId}?defect_filter=safety#inspection-findings` : `${buildShareHref({ defect_filter: "safety" })}#inspection-findings`}
                 active={activeDefectFilter === "safety"}
               />
               <DefectSummaryCard
                 label="Recommended Repair"
                 value={defectTotals.repair}
                 tone="teal"
-                href={isDemo ? `/demo/${inspectionId}?defect_filter=repair#inspection-findings` : `${buildShareHref({ view: "report", defect_filter: "repair" })}#inspection-findings`}
+                href={isDemo ? `/demo/${inspectionId}?defect_filter=repair#inspection-findings` : `${buildShareHref({ defect_filter: "repair" })}#inspection-findings`}
                 active={activeDefectFilter === "repair"}
               />
               <DefectSummaryCard
                 label="Maintenance / Monitor"
                 value={defectTotals.maintenance}
                 tone="yellow"
-                href={isDemo ? `/demo/${inspectionId}?defect_filter=maintenance#inspection-findings` : `${buildShareHref({ view: "report", defect_filter: "maintenance" })}#inspection-findings`}
+                href={isDemo ? `/demo/${inspectionId}?defect_filter=maintenance#inspection-findings` : `${buildShareHref({ defect_filter: "maintenance" })}#inspection-findings`}
                 active={activeDefectFilter === "maintenance"}
               />
               <DefectSummaryCard
                 label="Informational"
                 value={defectTotals.information}
                 tone="blue"
-                href={isDemo ? `/demo/${inspectionId}?defect_filter=information#inspection-findings` : `${buildShareHref({ view: "report", defect_filter: "information" })}#inspection-findings`}
+                href={isDemo ? `/demo/${inspectionId}?defect_filter=information#inspection-findings` : `${buildShareHref({ defect_filter: "information" })}#inspection-findings`}
                 active={activeDefectFilter === "information"}
               />
             </div>
@@ -1680,7 +1674,7 @@ export default async function PublicSharePage({
               <span>Click a defect type above to filter the findings list.</span>
               {activeDefectFilter !== "all" && (
                 <Link
-                  href={isDemo ? `/demo/${inspectionId}#inspection-findings` : `${buildShareHref({ view: "report" })}#inspection-findings`}
+                  href={isDemo ? `/demo/${inspectionId}#inspection-findings` : `${buildShareHref()}#inspection-findings`}
                   className="rounded-full border border-slate-600 px-3 py-1 font-bold text-white hover:bg-slate-800"
                 >
                   Clear filter: {activeDefectFilterLabel[activeDefectFilter]}
@@ -1689,53 +1683,7 @@ export default async function PublicSharePage({
             </div>
           </section>
 
-          <nav className="sticky top-0 z-40 mt-8 -mx-2 overflow-x-auto border-y border-slate-700 bg-[#071224]/95 px-2 py-3 backdrop-blur print:hidden">
-            <div className="flex min-w-max gap-2">
-              <FastLinkButton
-                href={buildShareHref({ view: "summary" })}
-                loadingText="Opening Summary..."
-                className={`px-4 py-2 text-sm font-black ${activeView === "summary" ? "bg-teal-500 text-black" : "border border-teal-500/50 text-teal-300"}`}
-              >
-                Summary
-              </FastLinkButton>
-              <FastLinkButton
-                href={buildShareHref({ view: "report" })}
-                loadingText="Opening Full Report..."
-                className={`px-4 py-2 text-sm font-black ${activeView === "report" ? "bg-cyan-500 text-black" : "border border-cyan-500/50 text-cyan-300"}`}
-              >
-                Full Report
-              </FastLinkButton>
-              {reportDisclaimers && reportDisclaimers.length > 0 && (
-                <FastLinkButton
-                  href={buildShareHref({ view: "disclaimers" })}
-                  loadingText="Opening Disclaimers..."
-                  className={`px-4 py-2 text-sm font-black ${activeView === "disclaimers" ? "bg-purple-500 text-white" : "border border-purple-500/50 text-purple-300"}`}
-                >
-                  Disclaimers
-                </FastLinkButton>
-              )}
-              {showStandardsInShare && (
-                <FastLinkButton
-                  href={buildShareHref({ view: "standards" })}
-                  loadingText="Opening Standards..."
-                  className={`px-4 py-2 text-sm font-black ${activeView === "standards" ? "bg-sky-500 text-black" : "border border-sky-500/50 text-sky-300"}`}
-                >
-                  Standards
-                </FastLinkButton>
-              )}
-              {equipmentInventory.length > 0 && (
-                <FastLinkButton
-                  href={buildShareHref({ view: "equipment" })}
-                  loadingText="Opening Equipment..."
-                  className={`px-4 py-2 text-sm font-black ${activeView === "equipment" ? "bg-emerald-500 text-black" : "border border-emerald-500/50 text-emerald-300"}`}
-                >
-                  Equipment
-                </FastLinkButton>
-              )}
-            </div>
-          </nav>
-
-          {activeView === "disclaimers" && reportDisclaimers && reportDisclaimers.length > 0 && (
+          {reportDisclaimers && reportDisclaimers.length > 0 && (
             <section id="report-disclaimers" className="scroll-mt-[180px] md:scroll-mt-[220px] mt-8 rounded-2xl border border-purple-500/40 bg-[#071224] p-6 shadow-xl">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
@@ -1774,7 +1722,7 @@ export default async function PublicSharePage({
             </section>
           )}
 
-          {activeView === "standards" && showStandardsInShare && (
+          {showStandardsInShare && (
           <section id="standards-of-practice" className="scroll-mt-[180px] md:scroll-mt-[220px] mt-8 rounded-2xl border border-cyan-500/40 bg-[#071224] p-6 shadow-xl">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
@@ -1822,7 +1770,7 @@ export default async function PublicSharePage({
           </section>
           )}
 
-          {activeView === "summary" && clientSummaryGroups.length > 0 && (
+          {clientSummaryGroups.length > 0 && (
             <section
               id="client-summary"
               className="scroll-mt-[180px] md:scroll-mt-[220px] mt-8 rounded-2xl border border-teal-500/40 bg-[#071224] p-6 shadow-xl"
@@ -1836,12 +1784,12 @@ export default async function PublicSharePage({
                     Key Findings Summary
                   </h2>
                   <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
-                    This summary highlights notable findings by severity so clients and agents can quickly review the most important report items. Use the Full Report tab to review the complete inspection record.
+                    This summary highlights notable findings by severity so clients and agents can quickly review the most important report items. The full report below remains the complete inspection record.
                   </p>
                 </div>
 
                 <a
-                  href={`${buildShareHref({ view: "report" })}#inspection-findings`}
+                  href="#inspection-findings"
                   className="rounded-xl border border-teal-500 px-4 py-3 text-sm font-black text-teal-300 transition hover:bg-teal-500 hover:text-black"
                 >
                   View Full Findings
@@ -1884,7 +1832,7 @@ export default async function PublicSharePage({
                   )}
                   {reportDisclaimers && reportDisclaimers.length > 0 && (
                     <a
-                      href={buildShareHref({ view: "disclaimers" })}
+                      href="#report-disclaimers"
                       className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-purple-500/40 px-4 py-3 text-sm font-black leading-none text-purple-300 transition hover:bg-purple-500/10"
                     >
                       <span className="text-base leading-none">📝</span><span>Disclaimers</span>
@@ -1892,14 +1840,14 @@ export default async function PublicSharePage({
                   )}
                   {showStandardsInShare && (
                     <a
-                      href={buildShareHref({ view: "standards" })}
+                      href="#standards-of-practice"
                       className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-cyan-500/40 px-4 py-3 text-sm font-black leading-none text-cyan-300 transition hover:bg-cyan-500/10"
                     >
                       <span className="text-base leading-none">📘</span><span>Standards</span>
                     </a>
                   )}
                   <a
-                    href={`${buildShareHref({ view: "report" })}#inspection-findings`}
+                    href="#inspection-findings"
                     className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-blue-500/40 px-4 py-3 text-sm font-black leading-none text-blue-300 transition hover:bg-blue-500/10"
                   >
                     <span className="text-base leading-none">📄</span><span>Full Report</span>
@@ -1970,7 +1918,7 @@ export default async function PublicSharePage({
             </div>
           </details>
 
-          {activeView === "equipment" && equipmentInventory.length > 0 && (
+          {equipmentInventory.length > 0 && (
             <details
               id="equipment-inventory"
               className="mt-8 rounded-2xl border border-cyan-500/40 bg-[#071224] p-6"
@@ -2061,8 +2009,6 @@ export default async function PublicSharePage({
             </details>
           )}
 
-          {activeView === "report" && (
-            <>
           {showEnvironmentalLinks && (
             <section className="mt-8 rounded-2xl border border-purple-500/40 bg-[#071224] p-6">
               <h2 className="text-2xl font-bold text-purple-300">
@@ -2693,8 +2639,6 @@ export default async function PublicSharePage({
               </div>
             )}
           </section>
-            </>
-          )}
 
           <footer className="mt-12 border-t border-slate-700 pt-6 text-sm text-slate-400">
             <p>On Point Home Inspections LLC • Shared Report Portal</p>
