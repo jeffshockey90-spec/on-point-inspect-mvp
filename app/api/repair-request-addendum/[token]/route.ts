@@ -6,6 +6,7 @@ import puppeteer from "puppeteer-core";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 type RouteProps = {
   params: Promise<{
@@ -802,16 +803,18 @@ function getLocalChromiumCandidates() {
 }
 
 async function getChromiumExecutablePath() {
+  // On Vercel, use the Chromium binary bundled with the installed
+  // @sparticuz/chromium package. Do not download an older, mismatched pack.
   if (process.env.VERCEL) {
-    return chromium.executablePath(
-      "https://github.com/Sparticuz/chromium/releases/download/v123.0.1/chromium-v123.0.1-pack.tar"
-    );
+    return chromium.executablePath();
   }
 
+  // During local development, prefer an installed Chrome or Edge binary.
   for (const candidate of getLocalChromiumCandidates()) {
     if (existsSync(candidate)) return candidate;
   }
 
+  // Final fallback for other Node environments.
   return chromium.executablePath();
 }
 
