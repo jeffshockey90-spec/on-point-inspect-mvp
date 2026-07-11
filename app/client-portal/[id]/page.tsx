@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { supabase } from "../../../lib/supabaseClient";
 import FastLinkButton from "../../../components/FastLinkButton";
 
@@ -43,17 +43,83 @@ function normalizeSection(section: string | null | undefined) {
   return aliases[clean] || clean;
 }
 
+function normalizeChecklistGroupTitle(value: any) {
+  const title = String(value || "General").trim() || "General";
+  const normalized = title.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+  const aliases: Record<string, string> = {
+    "flooring insulation": "Insulation Type",
+    "insulation type": "Insulation Type",
+  };
+
+  return aliases[normalized] || title;
+}
+
+function cleanChecklistValue(row: any) {
+  const raw = row?.item_label ?? row?.item ?? row?.value ?? "";
+  const value = String(raw ?? "").trim();
+  const normalized = value.toLowerCase().replace(/\s+/g, " ").trim();
+
+  const invalidValues = new Set([
+    "",
+    "null",
+    "undefined",
+    "__text_value__",
+    "text_value",
+    "n/a",
+    "na",
+  ]);
+
+  const unitOnlyValues = new Set([
+    "gallon",
+    "gallons",
+    "fahrenheit",
+    "fahrenheit (f)",
+    "celsius",
+    "celsius (c)",
+    "seer",
+    "r-value",
+    "r value",
+  ]);
+
+  if (invalidValues.has(normalized) || unitOnlyValues.has(normalized)) {
+    return "";
+  }
+
+  if (/^_+text_value_+$/i.test(value)) return "";
+
+  return value;
+}
+
+function getChecklistDedupeKey(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[-_/]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function groupChecklistRows(rows: any[]) {
-  const grouped: Record<string, Record<string, any[]>> = {};
+  const grouped: Record<string, Record<string, string[]>> = {};
+  const seen = new Set<string>();
 
   (rows || []).forEach((row: any) => {
     const section = normalizeSection(row.section);
-    const groupTitle = row.group_title || row.group || "General";
+    const groupTitle = normalizeChecklistGroupTitle(
+      row.group_title || row.group || "General"
+    );
+    const value = cleanChecklistValue(row);
+
+    if (!value) return;
+
+    const dedupeKey = `${section.toLowerCase()}::${groupTitle.toLowerCase()}::${getChecklistDedupeKey(value)}`;
+    if (seen.has(dedupeKey)) return;
+    seen.add(dedupeKey);
 
     if (!grouped[section]) grouped[section] = {};
     if (!grouped[section][groupTitle]) grouped[section][groupTitle] = [];
 
-    grouped[section][groupTitle].push(row);
+    grouped[section][groupTitle].push(value);
   });
 
   return grouped;
@@ -238,6 +304,7 @@ function getClientPdfHref(inspection: any, inspectionId: string) {
 
 export default function ClientPortalPage() {
   const params = useParams();
+  const router = useRouter();
   const inspectionId = params.id as string;
 
   const [inspection, setInspection] = useState<any>(null);
@@ -247,6 +314,7 @@ export default function ClientPortalPage() {
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
   const [updatingReview, setUpdatingReview] = useState(false);
+  const [propertyPhotoFailed, setPropertyPhotoFailed] = useState(false);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"success" | "error" | "">("");
 
@@ -432,6 +500,15 @@ export default function ClientPortalPage() {
     }
   }
 
+  function goBack() {
+    if (window.history.length > 1) {
+      router.back();
+      return;
+    }
+
+    router.push(`/reports/${inspectionId}`);
+  }
+
   if (loading) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#020617] text-white">
@@ -489,8 +566,19 @@ export default function ClientPortalPage() {
   );
 
   return (
-    <main className="min-h-screen bg-[#020617] p-4 text-white md:p-8">
+    <main
+      className="min-h-screen bg-[#020617] px-4 pb-6 text-white md:px-8 md:pb-8"
+      style={{ paddingTop: "max(16px, env(safe-area-inset-top))" }}
+    >
       <div className="mx-auto max-w-6xl space-y-6">
+        <button
+          type="button"
+          onClick={goBack}
+          className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-700 bg-[#0f172a] px-4 py-2 font-bold text-slate-100 transition active:scale-[0.98] hover:border-teal-500 hover:text-teal-300 [touch-action:manipulation]"
+          aria-label="Go back"
+        >
+          <span aria-hidden="true">←</span> Back
+        </button>
         {message && (
           <div
             className={`rounded-2xl border p-4 text-sm font-bold shadow-xl ${
@@ -504,7 +592,7 @@ export default function ClientPortalPage() {
         )}
 
         <section className="overflow-hidden rounded-3xl border border-slate-800 bg-[#0f172a] shadow-2xl">
-          {propertyPhoto && (
+          {propertyPhoto && !propertyPhotoFailed && (
             <div className="relative border-b border-slate-800 bg-black">
               <img
                 src={propertyPhoto}
@@ -512,6 +600,7 @@ export default function ClientPortalPage() {
                 loading="eager"
                 decoding="async"
                 fetchPriority="high"
+                onError={() => setPropertyPhotoFailed(true)}
                 className="h-72 w-full object-cover md:h-96"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[#020617] via-transparent to-transparent" />
@@ -902,7 +991,7 @@ export default function ClientPortalPage() {
 
                   <div className="mt-4 grid gap-4 md:grid-cols-2">
                     {Object.entries(checklistBySection[section]).map(
-                      ([groupTitle, rows]) => (
+                      ([groupTitle, values]) => (
                         <div
                           key={groupTitle}
                           className="rounded-xl border border-slate-700 bg-[#071224] p-4"
@@ -912,9 +1001,9 @@ export default function ClientPortalPage() {
                           </p>
 
                           <ul className="mt-3 space-y-2 text-sm text-slate-300">
-                            {(rows as any[]).map((row: any) => (
-                              <li key={row.id}>
-                                ✓ {row.item_label || row.item || row.value}
+                            {(values as string[]).map((value) => (
+                              <li key={`${groupTitle}-${getChecklistDedupeKey(value)}`}>
+                                ✓ {value}
                               </li>
                             ))}
                           </ul>
