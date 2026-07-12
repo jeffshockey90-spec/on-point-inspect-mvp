@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import ExpandableReportImage from "./ExpandableReportImage";
 
 type SummaryTone = "red" | "teal" | "yellow" | "blue";
@@ -342,44 +343,49 @@ function CompactSummaryCard({
         </button>
       </div>
 
-      {videoOpen && isVideo && fullUrl && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label={`${title} video player`}
-          className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/95 p-3 sm:p-6"
-          onClick={() => setVideoOpen(false)}
-        >
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              setVideoOpen(false);
-            }}
-            aria-label="Close video"
-            className="fixed right-4 top-[max(1rem,env(safe-area-inset-top))] z-[10001] flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-black/80 text-2xl font-black text-white active:scale-95"
-          >
-            ×
-          </button>
-
+      {videoOpen &&
+        isVideo &&
+        fullUrl &&
+        typeof document !== "undefined" &&
+        createPortal(
           <div
-            className="flex h-full w-full items-center justify-center"
-            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label={`${title} video player`}
+            className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/95 p-3 sm:p-6"
+            onClick={() => setVideoOpen(false)}
           >
-            <video
-              src={fullUrl}
-              poster={previewUrl || undefined}
-              controls
-              autoPlay
-              playsInline
-              preload="auto"
-              className="max-h-full max-w-full rounded-xl bg-black object-contain shadow-2xl"
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                setVideoOpen(false);
+              }}
+              aria-label="Close video"
+              className="fixed right-4 top-[max(1rem,env(safe-area-inset-top))] z-[10001] flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-black/80 text-2xl font-black text-white active:scale-95"
             >
-              Your browser does not support video playback.
-            </video>
-          </div>
-        </div>
-      )}
+              ×
+            </button>
+
+            <div
+              className="flex h-full w-full items-center justify-center"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <video
+                src={fullUrl}
+                poster={previewUrl || undefined}
+                controls
+                autoPlay
+                playsInline
+                preload="auto"
+                className="h-auto max-h-[92dvh] w-auto max-w-[94vw] rounded-xl bg-black object-contain shadow-2xl"
+              >
+                Your browser does not support video playback.
+              </video>
+            </div>
+          </div>,
+          document.body,
+        )}
 
       {open && (
         <div className="border-t border-slate-800 px-4 pb-4 pt-4">
