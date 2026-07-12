@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import {
   Stage,
   Layer,
@@ -131,7 +131,7 @@ function getCircleStrokeWidth(item: MarkupItem) {
   return Math.min(12, Math.max(6, averageRadius * 0.06));
 }
 
-export default function PhotoMarkupEditor({
+function PhotoMarkupEditor({
   imageUrl,
   severity,
   initialItems = [],
@@ -151,7 +151,7 @@ export default function PhotoMarkupEditor({
     getSeverityColor(severity)
   );
 
-  useMemo(() => {
+  useEffect(() => {
     if (items.length === 0) setActiveColor(getSeverityColor(severity));
   }, [severity, items.length]);
 
@@ -571,3 +571,5 @@ export default function PhotoMarkupEditor({
     </div>
   );
 }
+
+export default memo(PhotoMarkupEditor);

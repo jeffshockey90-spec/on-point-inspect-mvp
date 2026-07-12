@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 
 const PHOTO_BUCKET = "inspection-photos";
@@ -149,7 +149,37 @@ type LimitationTemplate = {
   created_at?: string;
 };
 
-export default function SectionLimitations({
+let limitationTemplatesCache: LimitationTemplate[] | null = null;
+let limitationTemplatesPromise: Promise<LimitationTemplate[]> | null = null;
+
+async function getSharedLimitationTemplates() {
+  if (limitationTemplatesCache) return limitationTemplatesCache;
+  if (limitationTemplatesPromise) return limitationTemplatesPromise;
+
+  limitationTemplatesPromise = fetch("/api/get-limitation-templates", {
+    method: "GET",
+    cache: "no-store",
+  })
+    .then(async (response) => {
+      if (!response.ok) return [];
+      const data = await response.json();
+      const templates = Array.isArray(data) ? data : [];
+      limitationTemplatesCache = templates;
+      return templates;
+    })
+    .catch((error) => {
+      console.error("Failed to load limitation templates:", error);
+      return [];
+    })
+    .finally(() => {
+      limitationTemplatesPromise = null;
+    });
+
+  return limitationTemplatesPromise;
+}
+
+
+function SectionLimitations({
   inspectionId,
   section,
 }: {
@@ -265,19 +295,8 @@ export default function SectionLimitations({
   }, []);
 
   async function loadTemplates() {
-    try {
-      const res = await fetch("/api/get-limitation-templates", {
-        method: "GET",
-        cache: "no-store",
-      });
-
-      if (!res.ok) return;
-
-      const data = await res.json();
-      setTemplates(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error("Failed to load limitation templates:", error);
-    }
+    const data = await getSharedLimitationTemplates();
+    setTemplates(data);
   }
 
   async function loadLimitationPhotos(limitationIds: string[]) {
@@ -1168,3 +1187,5 @@ export default function SectionLimitations({
     </>
   );
 }
+
+export default memo(SectionLimitations);

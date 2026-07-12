@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 
 type ChecklistGroup = {
@@ -1051,7 +1051,7 @@ const CHECKLIST_LIBRARY: Record<string, ChecklistGroup[]> = {
   ]
 };
 
-export default function SectionInformationChecklist({
+function SectionInformationChecklist({
   inspectionId,
   section,
 }: {
@@ -1527,3 +1527,5 @@ function Modal({ title, subtitle, children, onClose }: any) {
     </div>
   );
 }
+
+export default memo(SectionInformationChecklist);

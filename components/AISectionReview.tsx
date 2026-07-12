@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 
 type Props = {
   inspectionId: string;
@@ -334,7 +334,7 @@ function shouldShowItem(section: string, item: ReviewItem, signals: Record<strin
   return !signals.documentation;
 }
 
-export default function AISectionReview({
+function AISectionReview({
   inspectionId,
   section,
   findings = [],
@@ -611,3 +611,5 @@ export default function AISectionReview({
     </div>
   );
 }
+
+export default memo(AISectionReview);

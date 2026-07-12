@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { isNativeApp, takeNativePhotoSavedToGallery } from "../lib/nativePhoto";
 
@@ -148,7 +148,7 @@ async function createSignedUrlMap(paths: string[]) {
   return signedMap;
 }
 
-export default function SectionReferencePhotos({
+function SectionReferencePhotos({
   inspectionId,
   section,
 }: {
@@ -696,3 +696,5 @@ export default function SectionReferencePhotos({
     </div>
   );
 }
+
+export default memo(SectionReferencePhotos);

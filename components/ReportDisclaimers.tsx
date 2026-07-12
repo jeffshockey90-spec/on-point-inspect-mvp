@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 
 const DEFAULT_DISCLAIMER_TOPICS = [
@@ -312,7 +312,7 @@ type DisclaimerRow = {
   created_at?: string;
 };
 
-export default function ReportDisclaimers({
+function ReportDisclaimers({
   inspectionId,
 }: {
   inspectionId: string;
@@ -1136,3 +1136,5 @@ export default function ReportDisclaimers({
     </div>
   );
 }
+
+export default memo(ReportDisclaimers);
