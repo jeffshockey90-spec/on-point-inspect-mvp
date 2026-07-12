@@ -1,10 +1,18 @@
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
 import { logAIEvent } from "../../../lib/logging";
+import { routeFindingSection, normalizeSeverity } from "../../../lib/routeFindingSection";
+import { getAIModel, getAIVersion } from "../../../lib/openai";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
+
+const AI_WRITER_MODEL = getAIModel();
+const AI_WRITER_VERSION = getAIVersion("report-writer-3");
 
 const VALID_SECTIONS = [
   "Exterior",
@@ -31,8 +39,53 @@ const VALID_SEVERITIES = [
 ];
 
 function cleanText(value: any) {
-  if (!value || typeof value !== "string") return "";
-  return value.trim();
+  return String(value ?? "").trim();
+}
+
+function safeJsonParse(value: string) {
+  const clean = value.replace(/```json/gi, "").replace(/```/g, "").trim();
+
+  try {
+    return JSON.parse(clean);
+  } catch {}
+
+  const match = clean.match(/\{[\s\S]*\}/);
+  return match ? JSON.parse(match[0]) : {};
+}
+
+function normalizeSection(value: any, fallback: string) {
+  const clean = cleanText(value);
+  const routed = routeFindingSection({
+    section: clean,
+    title: "",
+    observation: "",
+    implication: "",
+    recommendation: "",
+  });
+
+  if (VALID_SECTIONS.includes(routed)) return routed;
+  if (VALID_SECTIONS.includes(clean)) return clean;
+  return VALID_SECTIONS.includes(fallback) ? fallback : "Exterior";
+}
+
+function normalizeWriterSeverity(value: any, fallback: string) {
+  const normalized = normalizeSeverity(cleanText(value));
+  if (VALID_SEVERITIES.includes(normalized)) return normalized;
+  return VALID_SEVERITIES.includes(fallback) ? fallback : "Recommended Repair";
+}
+
+function appendMaintenance(recommendation: string, maintenanceTip: string) {
+  const cleanRecommendation = cleanText(recommendation);
+  const cleanMaintenance = cleanText(maintenanceTip);
+
+  if (!cleanMaintenance) return cleanRecommendation;
+  if (cleanRecommendation.toLowerCase().includes(cleanMaintenance.toLowerCase())) {
+    return cleanRecommendation;
+  }
+
+  return [cleanRecommendation, `Maintenance: ${cleanMaintenance}`]
+    .filter(Boolean)
+    .join("\n\n");
 }
 
 export async function POST(req: Request) {
@@ -40,154 +93,173 @@ export async function POST(req: Request) {
   let inspectionId: string | number | null = null;
 
   try {
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
 
-    note = cleanText(body.note);
+    note = cleanText(body.note || body.transcript);
     inspectionId = body.inspectionId || body.inspection_id || null;
 
     if (!note) {
-      await logAIEvent({
-        inspectionId,
-        tool: "ai_capture",
-        prompt: note,
-        status: "failed",
-        response: {
-          error: "Missing inspector note.",
-        },
-      });
-
       return NextResponse.json(
         { error: "Missing inspector note." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      response_format: {
-        type: "json_object",
-      },
-      messages: [
-        {
-          role: "system",
-          content: `
-You are a senior certified home inspector writing professional inspection report comments.
+    if (!process.env.OPENAI_API_KEY) {
+      return NextResponse.json(
+        { error: "Missing OPENAI_API_KEY." },
+        { status: 500 },
+      );
+    }
 
-Your job is to convert the inspector's quick field note into a complete, professional report finding.
+    const requestedSection = cleanText(body.section);
+    const requestedSeverity = cleanText(body.severity);
+    const propertyYear = cleanText(body.propertyYear || body.yearBuilt || body.year_built);
+    const equipmentContext = cleanText(body.equipmentContext || body.equipment_context);
+    const existingObservation = cleanText(body.observation);
+    const existingImplication = cleanText(body.implication);
+    const existingRecommendation = cleanText(body.recommendation);
+    const imageDataUrls = Array.isArray(body.images)
+      ? body.images
+          .map(cleanText)
+          .filter((value: string) => value.startsWith("data:image/"))
+          .slice(0, 3)
+      : [];
 
-The inspector note is the PRIMARY SOURCE OF TRUTH.
-Use the inspector's note as the main guidance for:
-- what defect or condition is being reported
-- the correct system/section
-- the likely severity
-- the wording and context of the observation
-- the implication
-- the recommendation
+    const systemPrompt = `
+You are On Point Inspect AI Report Writer 3.0, a senior certified home inspector and careful report editor.
 
-Do not ignore the inspector note.
-Do not replace the inspector note with a generic finding.
-Do not invent unrelated defects.
-Do not claim code violations unless the note clearly supports a safety concern.
-Do not overstate the condition.
-Do not diagnose concealed conditions as fact.
+The inspector's spoken or typed note is the PRIMARY SOURCE OF TRUTH. Photos are supporting evidence only.
+Do not invent a defect that is not supported by the note or visible evidence.
+Do not state concealed conditions as fact.
+Do not claim code violations.
+Preserve uncertainty words such as possible, appeared, may, suspected, and could.
+Write client-friendly, realtor-friendly language that remains accurate and non-alarmist.
+Use the property's age and equipment context only to improve relevance, not to invent conditions.
 
-If the note is brief, expand it professionally using standard home inspection language.
-If the note includes uncertainty, keep that uncertainty in the finding.
-If the note says "possible", "appears", "suspected", or "may", use cautious language.
-If the note identifies a location, include it.
-If the note identifies a specific recommendation, keep it.
-
-Return ONLY valid JSON.
-
-Use this exact structure:
-
+Return ONLY valid JSON in this exact structure:
 {
   "title": "",
   "section": "",
   "severity": "",
   "observation": "",
   "implication": "",
-  "recommendation": ""
+  "recommendation": "",
+  "maintenanceTip": "",
+  "liabilityNote": "",
+  "confidence": 0,
+  "evidence": []
 }
 
-Writing style:
-- Clear, detailed, and professional.
-- Realtor-friendly but accurate.
-- Client-friendly and easy to understand.
-- Use complete sentences.
-- Avoid alarmist language.
-- Do not use markdown.
-- Do not include bullet points.
-- Observation should describe what was noted.
-- Implication should explain why it matters.
-- Recommendation should explain who should evaluate/repair and what should be done.
+Writing requirements:
+- Observation: what was visibly observed or reported by the inspector.
+- Implication: why it matters and the likely consequence if not corrected.
+- Recommendation: who should evaluate/correct it and what action is appropriate.
+- Maintenance tip: include only when useful; keep it separate from the core repair recommendation.
+- Liability note: a short internal note explaining any cautious wording, limitation, uncertainty, or need for inspector verification. Do not use legal jargon.
+- Confidence: 0-100 based on note clarity and photo support.
+- Evidence: up to four short statements describing what supports the finding.
+- No markdown and no text outside JSON.
 
-Allowed sections only:
-Exterior, Roof, Basement, Foundation, Crawlspace & Structure, Heating, Cooling, Plumbing, Electrical, Fireplace, Attic, Insulation & Ventilation, Doors, Windows & Interior, Built-in Appliances, Garage.
+Allowed sections:
+${VALID_SECTIONS.join(", ")}.
 
-Allowed severities only:
-Informational, Monitor, Maintenance, Recommended Repair, Safety Concern, Major Concern.
+Allowed severities:
+${VALID_SEVERITIES.join(", ")}.
+`;
 
-Severity guidance:
-- Informational: normal descriptive information or client awareness only.
-- Monitor: condition should be watched over time.
-- Maintenance: routine maintenance or minor upkeep.
-- Recommended Repair: repair, correction, or specialist evaluation recommended.
-- Safety Concern: clear safety risk such as shock, fire, fall, burn, CO, or injury hazard.
-- Major Concern: significant defect, major system failure, structural concern, or potentially costly repair.
-          `,
-        },
-        {
-          role: "user",
-          content: `
-Convert this inspector note into a detailed inspection finding.
+    const userContent: any[] = [
+      {
+        type: "text",
+        text: `
+Create one complete inspection finding.
 
-Inspector note:
+Inspector note / voice transcript:
 ${note}
 
-Important:
-Base the entire finding on this note. Expand it professionally, but do not drift away from what the inspector wrote.
-          `,
-        },
+Preferred section:
+${requestedSection || "Choose the best section."}
+
+Preferred severity:
+${requestedSeverity || "Choose the best severity."}
+
+Property year built:
+${propertyYear || "Unknown"}
+
+Equipment / house context:
+${equipmentContext || "None provided"}
+
+Existing observation:
+${existingObservation || "None"}
+
+Existing implication:
+${existingImplication || "None"}
+
+Existing recommendation:
+${existingRecommendation || "None"}
+
+Keep the inspector's intent. Improve the writing without drifting away from the documented condition.
+`,
+      },
+      ...imageDataUrls.map((url: string) => ({
+        type: "image_url",
+        image_url: { url },
+      })),
+    ];
+
+    const response = await openai.chat.completions.create({
+      model: AI_WRITER_MODEL,
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userContent },
       ],
+      temperature: 0.2,
+      max_tokens: 1400,
     });
 
-    const raw = response.choices[0]?.message?.content || "{}";
-
-    let parsed: any = {};
-
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      parsed = {};
-    }
-
-    const cleanSection = VALID_SECTIONS.includes(parsed.section)
-      ? parsed.section
-      : "Exterior";
-
-    const cleanSeverity = VALID_SEVERITIES.includes(parsed.severity)
-      ? parsed.severity
-      : "Recommended Repair";
+    const parsed = safeJsonParse(response.choices[0]?.message?.content || "{}");
+    const section = normalizeSection(parsed.section, requestedSection);
+    const severity = normalizeWriterSeverity(parsed.severity, requestedSeverity);
+    const maintenanceTip = cleanText(parsed.maintenanceTip);
+    const recommendation = appendMaintenance(
+      cleanText(parsed.recommendation) || existingRecommendation,
+      maintenanceTip,
+    );
 
     const result = {
       title: cleanText(parsed.title) || "Inspection Finding",
-      section: cleanSection,
-      severity: cleanSeverity,
-      observation: cleanText(parsed.observation),
-      implication: cleanText(parsed.implication),
-      recommendation: cleanText(parsed.recommendation),
+      section,
+      severity,
+      observation: cleanText(parsed.observation) || existingObservation,
+      implication: cleanText(parsed.implication) || existingImplication,
+      recommendation,
+      maintenanceTip,
+      liabilityNote: cleanText(parsed.liabilityNote),
+      confidence: Math.max(0, Math.min(100, Number(parsed.confidence) || 82)),
+      evidence: Array.isArray(parsed.evidence)
+        ? parsed.evidence.map(cleanText).filter(Boolean).slice(0, 4)
+        : [],
+      aiModel: AI_WRITER_MODEL,
+      aiVersion: AI_WRITER_VERSION,
+      photoCount: imageDataUrls.length,
+      reviewRequired: true,
     };
 
     await logAIEvent({
       inspectionId,
-      tool: "ai_capture",
+      tool: "report_writer_3",
       prompt: note,
       response: {
         title: result.title,
         section: result.section,
         severity: result.severity,
-        model: "gpt-4o-mini",
+        confidence: result.confidence,
+        maintenanceTip: result.maintenanceTip,
+        liabilityNote: result.liabilityNote,
+        photoCount: result.photoCount,
+        aiModel: AI_WRITER_MODEL,
+        aiVersion: AI_WRITER_VERSION,
       },
       tokensUsed: response.usage?.total_tokens ?? null,
       status: "success",
@@ -195,23 +267,17 @@ Base the entire finding on this note. Expand it professionally, but do not drift
 
     return NextResponse.json(result);
   } catch (error: any) {
-    console.error(error);
-
     await logAIEvent({
       inspectionId,
-      tool: "ai_capture",
+      tool: "report_writer_3",
       prompt: note,
       status: "failed",
-      response: {
-        error: error?.message || "Failed to generate AI finding.",
-      },
+      response: { error: error?.message || "Failed to generate AI finding." },
     });
 
     return NextResponse.json(
-      {
-        error: error.message || "Failed to generate AI finding.",
-      },
-      { status: 500 }
+      { error: error?.message || "Failed to generate AI finding." },
+      { status: 500 },
     );
   }
 }

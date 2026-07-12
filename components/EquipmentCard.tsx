@@ -13,6 +13,16 @@ type EquipmentCardProps = {
     estimated_age?: string | number;
     expectedServiceLife?: string;
     expected_service_life?: string;
+    lifeExpectancyPercent?: number;
+    life_expectancy_percent?: number;
+    maintenanceSchedule?: string;
+    maintenance_schedule?: string;
+    recallAwareness?: string;
+    recall_awareness?: string;
+    knownFailurePatterns?: string[];
+    known_failure_patterns?: string[];
+    replacementCostEstimate?: string;
+    replacement_cost_estimate?: string;
     equipmentStatus?: string;
     equipment_status?: string;
     efficiency?: string;
@@ -252,6 +262,26 @@ export default function EquipmentCard({ equipment }: EquipmentCardProps) {
   const imageUrl = getEquipmentImageUrl(equipment);
   const videoUrl = getEquipmentVideoUrl(equipment) || imageUrl;
   const isVideo = isVideoMedia(equipment);
+  const lifeExpectancyPercent = Number(
+    firstKnown(equipment.lifeExpectancyPercent, equipment.life_expectancy_percent) || 0,
+  );
+  const maintenanceSchedule = firstKnown(
+    equipment.maintenanceSchedule,
+    equipment.maintenance_schedule,
+  );
+  const recallAwareness = firstKnown(
+    equipment.recallAwareness,
+    equipment.recall_awareness,
+  );
+  const replacementCostEstimate = firstKnown(
+    equipment.replacementCostEstimate,
+    equipment.replacement_cost_estimate,
+  );
+  const knownFailurePatterns = Array.isArray(equipment.knownFailurePatterns)
+    ? equipment.knownFailurePatterns
+    : Array.isArray(equipment.known_failure_patterns)
+      ? equipment.known_failure_patterns
+      : [];
 
   const rows = [
     ["Equipment Type", firstKnown(equipment.equipmentType, equipment.equipment_type)],
@@ -262,6 +292,13 @@ export default function EquipmentCard({ equipment }: EquipmentCardProps) {
     ["Estimated Age", firstKnown(equipment.estimatedAge, equipment.estimated_age)],
     ["Typical Industry Range", typicalRange],
     ["Service Life", typicalRange ? "Industry estimate only" : ""],
+    [
+      "Life Used",
+      Number.isFinite(lifeExpectancyPercent) && lifeExpectancyPercent > 0
+        ? `${Math.min(150, Math.round(lifeExpectancyPercent))}% of upper typical range`
+        : "",
+    ],
+    ["Replacement Planning", replacementCostEstimate],
     ["Estimated SEER", firstKnown(equipment.estimatedSEER, equipment.estimated_seer)],
     ["Estimated AFUE", firstKnown(equipment.estimatedAFUE, equipment.estimated_afue)],
     [
@@ -380,6 +417,45 @@ export default function EquipmentCard({ equipment }: EquipmentCardProps) {
             </div>
           ))}
       </div>
+
+      {(maintenanceSchedule || recallAwareness || knownFailurePatterns.length > 0) && (
+        <div className="mt-4 grid gap-3 lg:grid-cols-2">
+          {maintenanceSchedule && (
+            <div className="rounded-xl border border-emerald-500/35 bg-emerald-500/10 p-4">
+              <p className="text-xs font-black uppercase tracking-wide text-emerald-300">
+                Maintenance Schedule
+              </p>
+              <p className="mt-2 text-sm leading-6 text-slate-100">
+                {maintenanceSchedule}
+              </p>
+            </div>
+          )}
+
+          {knownFailurePatterns.length > 0 && (
+            <div className="rounded-xl border border-yellow-500/35 bg-yellow-500/10 p-4">
+              <p className="text-xs font-black uppercase tracking-wide text-yellow-300">
+                Common Failure Patterns
+              </p>
+              <ul className="mt-2 space-y-1 text-sm leading-6 text-slate-100">
+                {knownFailurePatterns.slice(0, 5).map((item) => (
+                  <li key={item}>• {item}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {recallAwareness && (
+            <div className="rounded-xl border border-purple-500/35 bg-purple-500/10 p-4 lg:col-span-2">
+              <p className="text-xs font-black uppercase tracking-wide text-purple-300">
+                Recall Awareness
+              </p>
+              <p className="mt-2 text-sm leading-6 text-slate-100">
+                {recallAwareness}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       {typicalRange && (
         <p className="mt-4 rounded-xl border border-slate-700 bg-slate-950 p-3 text-xs leading-5 text-slate-400">

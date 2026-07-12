@@ -13,8 +13,12 @@ export type OfflineQueueItem = {
   type: OfflineQueueItemType;
   payload: Record<string, any>;
   createdAt: string;
+  updatedAt?: string;
   retryCount: number;
+  status?: "queued" | "syncing" | "failed" | "conflict";
+  nextAttemptAt?: string;
   lastError?: string;
+  conflict?: Record<string, any>;
 };
 
 export type OfflineSyncResult = {
@@ -108,7 +112,9 @@ export function addOfflineQueueItem({
     type,
     payload,
     createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
     retryCount: 0,
+    status: "queued",
   };
 
   const queue = getOfflineQueue();
@@ -258,12 +264,16 @@ export function getOfflineQueueSummary() {
   }, 0);
 
   const failedCount = queue.filter((item) => item.lastError).length;
+  const conflictCount = queue.filter((item) => item.status === "conflict").length;
+  const syncingCount = queue.filter((item) => item.status === "syncing").length;
 
   return {
     count: queue.length,
     findingCount,
     referencePhotoCount,
     failedCount,
+    conflictCount,
+    syncingCount,
     skippedMediaCount,
     skippedVideoCount,
     bytes: totalBytes,
@@ -333,13 +343,30 @@ export async function processOfflineQueue({
   processingQueue = true;
   setAutoSyncLock(true);
 
-  const queue = getOfflineQueue().slice().reverse();
+  const now = Date.now();
+  const queue = getOfflineQueue()
+    .filter((item) => {
+      if (item.status === "conflict") return false;
+      const nextAttempt = item.nextAttemptAt
+        ? new Date(item.nextAttemptAt).getTime()
+        : 0;
+      return !Number.isFinite(nextAttempt) || nextAttempt <= now;
+    })
+    .slice()
+    .reverse();
   let synced = 0;
   let failed = 0;
 
   try {
     for (const item of queue) {
       try {
+        updateOfflineQueueItem(item.id, (current) => ({
+          ...current,
+          status: "syncing",
+          updatedAt: new Date().toISOString(),
+          lastError: undefined,
+        }));
+
         const res = await fetch("/api/offline-ai-sync", {
           method: "POST",
           headers: {
@@ -349,6 +376,21 @@ export async function processOfflineQueue({
         });
 
         const data = await res.json().catch(() => ({}));
+
+        if (res.status === 409) {
+          const conflictMessage = data.error || "A newer server version was detected.";
+          updateOfflineQueueItem(item.id, (current) => ({
+            ...current,
+            status: "conflict",
+            updatedAt: new Date().toISOString(),
+            lastError: conflictMessage,
+            conflict: data.conflict || data,
+          }));
+          failed += 1;
+          failedItems.push({ item, error: conflictMessage });
+          onItemFailed?.(item, new Error(conflictMessage));
+          continue;
+        }
 
         if (!res.ok) {
           throw new Error(data.error || "Offline item sync failed.");
@@ -362,11 +404,19 @@ export async function processOfflineQueue({
         const message = error?.message || "Sync failed.";
         failed += 1;
 
-        updateOfflineQueueItem(item.id, (current) => ({
-          ...current,
-          retryCount: Number(current.retryCount || 0) + 1,
-          lastError: message,
-        }));
+        updateOfflineQueueItem(item.id, (current) => {
+          const retryCount = Number(current.retryCount || 0) + 1;
+          const backoffMs = Math.min(15 * 60 * 1000, 5000 * 2 ** Math.min(8, retryCount - 1));
+
+          return {
+            ...current,
+            retryCount,
+            status: "failed",
+            updatedAt: new Date().toISOString(),
+            nextAttemptAt: new Date(Date.now() + backoffMs).toISOString(),
+            lastError: message,
+          };
+        });
 
         failedItems.push({ item, error: message });
         onItemFailed?.(item, error);
@@ -416,13 +466,21 @@ export function startOfflineQueueAutoSync({
     autoSyncTimer = null;
   }
 
+  function handleVisibilityChange() {
+    if (document.visibilityState === "visible") void runOnce();
+  }
+
   win.addEventListener("online", runOnce);
+  win.addEventListener("focus", runOnce);
+  document.addEventListener("visibilitychange", handleVisibilityChange);
   autoSyncTimer = setInterval(runOnce, intervalMs);
 
   void runOnce();
 
   return () => {
     win.removeEventListener("online", runOnce);
+    win.removeEventListener("focus", runOnce);
+    document.removeEventListener("visibilitychange", handleVisibilityChange);
 
     if (autoSyncTimer) {
       clearInterval(autoSyncTimer);

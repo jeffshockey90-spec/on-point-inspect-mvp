@@ -7,6 +7,7 @@ import {
   getOfflineQueueSummary,
   isOnline,
   processOfflineQueue,
+  setOfflineQueue,
   startOfflineQueueAutoSync,
 } from "../lib/offlineSyncQueue";
 import {
@@ -35,6 +36,8 @@ export default function OfflineSyncStatus() {
   const [findingCount, setFindingCount] = useState(0);
   const [referencePhotoCount, setReferencePhotoCount] = useState(0);
   const [failedCount, setFailedCount] = useState(0);
+  const [conflictCount, setConflictCount] = useState(0);
+  const [syncingCount, setSyncingCount] = useState(0);
   const [skippedMediaCount, setSkippedMediaCount] = useState(0);
   const [skippedVideoCount, setSkippedVideoCount] = useState(0);
   const [megabytes, setMegabytes] = useState(0);
@@ -51,6 +54,8 @@ export default function OfflineSyncStatus() {
     setFindingCount(summary.findingCount);
     setReferencePhotoCount(summary.referencePhotoCount);
     setFailedCount(summary.failedCount || 0);
+    setConflictCount(summary.conflictCount || 0);
+    setSyncingCount(summary.syncingCount || 0);
     setSkippedMediaCount(summary.skippedMediaCount || 0);
     setSkippedVideoCount(summary.skippedVideoCount || 0);
     setMegabytes(summary.megabytes);
@@ -64,6 +69,21 @@ export default function OfflineSyncStatus() {
 
     setSyncing(true);
     setLastError("");
+
+    // A manual retry should run immediately instead of waiting for the next
+    // exponential-backoff window. Conflicts remain paused for inspector review.
+    setOfflineQueue(
+      getOfflineQueue().map((item) =>
+        item.status === "failed"
+          ? {
+              ...item,
+              status: "queued" as const,
+              nextAttemptAt: undefined,
+              updatedAt: new Date().toISOString(),
+            }
+          : item,
+      ),
+    );
 
     try {
       const result = await processOfflineQueue({
@@ -244,6 +264,18 @@ export default function OfflineSyncStatus() {
             </p>
           )}
 
+          {syncingCount > 0 && (
+            <p className="mt-1 text-xs font-bold text-cyan-300">
+              {syncingCount} item{syncingCount === 1 ? " is" : "s are"} uploading now.
+            </p>
+          )}
+
+          {conflictCount > 0 && (
+            <p className="mt-1 text-xs font-bold text-orange-300">
+              {conflictCount} item{conflictCount === 1 ? " has" : "s have"} a sync conflict and will not overwrite newer server data automatically.
+            </p>
+          )}
+
           {lastSynced && (
             <p className="mt-1 text-xs text-slate-400">
               Last synced: {lastSynced}
@@ -270,6 +302,38 @@ export default function OfflineSyncStatus() {
           >
             {syncing ? "Syncing..." : "Sync Now"}
           </button>
+
+          {conflictCount > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                const confirmRetry = window.confirm(
+                  "Retry conflicted items? Newer server data will still be protected by the sync API when a true edit conflict exists.",
+                );
+                if (!confirmRetry) return;
+
+                setOfflineQueue(
+                  getOfflineQueue().map((item) =>
+                    item.status === "conflict"
+                      ? {
+                          ...item,
+                          status: "queued" as const,
+                          conflict: undefined,
+                          lastError: undefined,
+                          nextAttemptAt: undefined,
+                          updatedAt: new Date().toISOString(),
+                        }
+                      : item,
+                  ),
+                );
+                refreshStatus();
+                void syncNow();
+              }}
+              className="rounded-xl border border-orange-500 px-4 py-2 font-bold text-orange-200 transition active:scale-[0.98] hover:bg-orange-500/10 [touch-action:manipulation]"
+            >
+              Review / Retry Conflicts
+            </button>
+          )}
 
           {pendingCount > 0 && (
             <button

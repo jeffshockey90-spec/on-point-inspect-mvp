@@ -13,6 +13,7 @@ function getLiveMemoryKey(inspectionId: string) {
 
 type PersistedLiveMemory = {
   dismissed?: Record<string, { confidence: number; at: number }>;
+  snoozed?: Record<string, { until: number; confidence: number }>;
   handledReminders?: Record<string, boolean>;
 };
 
@@ -31,6 +32,7 @@ function readLiveMemory(inspectionId: string): PersistedLiveMemory {
 function writeLiveMemory(
   inspectionId: string,
   dismissed: Record<string, { confidence: number; at: number }>,
+  snoozed: Record<string, { until: number; confidence: number }>,
   handledReminders: Record<string, boolean>,
 ) {
   if (typeof window === "undefined" || !inspectionId) return;
@@ -40,6 +42,7 @@ function writeLiveMemory(
       getLiveMemoryKey(inspectionId),
       JSON.stringify({
         dismissed,
+        snoozed,
         handledReminders,
       }),
     );
@@ -57,6 +60,13 @@ export type AILiveSuggestion = {
   confidence?: number;
   evidence?: string[];
   suggestionType?: "defect" | "maintenance" | "documentation" | "safety" | string;
+  region?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    label?: string;
+  } | null;
 };
 
 type AILiveReminder = {
@@ -183,11 +193,15 @@ export default function AILiveInspectionCamera({
 }: Props) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
   const dismissedRef = useRef<Record<string, { confidence: number; at: number }>>({});
+  const snoozedRef = useRef<Record<string, { until: number; confidence: number }>>({});
   const autoScanRunningRef = useRef(false);
 
   const [open, setOpen] = useState(false);
   const [starting, setStarting] = useState(false);
+  const [recordingVideo, setRecordingVideo] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [autoWatch, setAutoWatch] = useState(true);
   const [lastAutoScanAt, setLastAutoScanAt] = useState(0);
@@ -218,10 +232,19 @@ export default function AILiveInspectionCamera({
       const key = createSuggestionKey(suggestion);
       if (!key) return true;
 
+      const nextConfidence = normalizeConfidence(suggestion.confidence);
+      const snoozed = snoozedRef.current[key];
+      if (snoozed && now < snoozed.until && nextConfidence < snoozed.confidence + RESURFACE_CONFIDENCE_BOOST) {
+        return false;
+      }
+
+      if (snoozed && now >= snoozed.until) {
+        delete snoozedRef.current[key];
+      }
+
       const dismissed = dismissedRef.current[key];
       if (!dismissed) return true;
 
-      const nextConfidence = normalizeConfidence(suggestion.confidence);
       const isOldDismissal = now - dismissed.at > MAX_DISMISSED_AGE_MS;
       const confidenceImproved =
         nextConfidence >= dismissed.confidence + RESURFACE_CONFIDENCE_BOOST;
@@ -243,6 +266,7 @@ export default function AILiveInspectionCamera({
 
     const memory = readLiveMemory(selectedReport);
     dismissedRef.current = memory.dismissed || {};
+    snoozedRef.current = memory.snoozed || {};
     setHandledReminderKeys(memory.handledReminders || {});
   }, [selectedReport]);
 
@@ -250,6 +274,7 @@ export default function AILiveInspectionCamera({
     writeLiveMemory(
       selectedReport,
       dismissedRef.current,
+      snoozedRef.current,
       handledReminderKeys,
     );
   }, [selectedReport, handledReminderKeys]);
@@ -299,6 +324,41 @@ export default function AILiveInspectionCamera({
     return () => window.clearInterval(interval);
   }, [open, autoWatch, online, selectedReport, analyzing, starting, lastAutoScanAt]);
 
+  function recordMemoryEvent({
+    eventType,
+    status,
+    title,
+    detail,
+    confidence,
+    payload,
+    section,
+  }: {
+    eventType: string;
+    status: string;
+    title?: string;
+    detail?: string;
+    confidence?: number;
+    payload?: Record<string, any>;
+    section?: string;
+  }) {
+    if (!selectedReport) return;
+
+    void fetch("/api/ai/inspection-memory", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        inspectionId: selectedReport,
+        section: section || currentSection,
+        eventType,
+        status,
+        title,
+        detail,
+        confidence,
+        payload: payload || {},
+      }),
+    }).catch(() => undefined);
+  }
+
   async function startCamera() {
     if (starting) return;
 
@@ -338,6 +398,15 @@ export default function AILiveInspectionCamera({
   }
 
   function stopCamera() {
+    if (mediaRecorderRef.current?.state === "recording") {
+      try {
+        mediaRecorderRef.current.stop();
+      } catch {}
+    }
+    mediaRecorderRef.current = null;
+    recordedChunksRef.current = [];
+    setRecordingVideo(false);
+
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
 
@@ -375,6 +444,108 @@ export default function AILiveInspectionCamera({
       setMessage("Frame captured. Review, analyze, or add it as a photo.");
     }
     return dataUrl;
+  }
+
+  function quickAddPhoto() {
+    const captured = captureFrame({ silent: true });
+    if (!captured) return;
+
+    try {
+      onAddPhotoOnly(dataUrlToFile(captured, "ai-live-photo"));
+      setFrameDataUrl("");
+      latestFrameRef.current = "";
+      setMessage("Photo added to the Field Tool. Camera remains open for the next capture.");
+      recordMemoryEvent({
+        eventType: "live_camera_media",
+        status: "saved",
+        title: "Live camera photo captured",
+        detail: `Photo added while inspecting ${currentSection}.`,
+        payload: { mediaType: "photo" },
+      });
+    } catch (error: any) {
+      setMessage(error?.message || "Could not add the live camera photo.");
+    }
+  }
+
+  function toggleVideoRecording() {
+    const stream = streamRef.current;
+
+    if (recordingVideo) {
+      try {
+        mediaRecorderRef.current?.stop();
+      } catch {
+        setRecordingVideo(false);
+      }
+      return;
+    }
+
+    if (!stream || typeof MediaRecorder === "undefined") {
+      setMessage("Continuous video recording is not supported by this device/browser. Use the Field Tool video picker instead.");
+      return;
+    }
+
+    try {
+      const supportedTypes = [
+        "video/webm;codecs=vp9,opus",
+        "video/webm;codecs=vp8,opus",
+        "video/webm",
+        "video/mp4",
+      ];
+      const mimeType = supportedTypes.find((type) => MediaRecorder.isTypeSupported(type)) || "";
+      const recorder = mimeType
+        ? new MediaRecorder(stream, { mimeType })
+        : new MediaRecorder(stream);
+
+      recordedChunksRef.current = [];
+      mediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (event) => {
+        if (event.data?.size) recordedChunksRef.current.push(event.data);
+      };
+
+      recorder.onstop = () => {
+        const chunks = recordedChunksRef.current;
+        recordedChunksRef.current = [];
+        mediaRecorderRef.current = null;
+        setRecordingVideo(false);
+
+        if (!chunks.length) {
+          setMessage("No video data was captured.");
+          return;
+        }
+
+        const type = recorder.mimeType || chunks[0]?.type || "video/webm";
+        const extension = type.includes("mp4") ? "mp4" : "webm";
+        const file = new File(chunks, `ai-live-video-${Date.now()}.${extension}`, {
+          type,
+          lastModified: Date.now(),
+        });
+
+        onAddPhotoOnly(file);
+        setMessage("Video added to the Field Tool. Camera remains open for the next capture.");
+        recordMemoryEvent({
+          eventType: "live_camera_media",
+          status: "saved",
+          title: "Live camera video captured",
+          detail: `Video added while inspecting ${currentSection}.`,
+          payload: { mediaType: "video", mimeType: type, size: file.size },
+        });
+      };
+
+      recorder.onerror = () => {
+        mediaRecorderRef.current = null;
+        recordedChunksRef.current = [];
+        setRecordingVideo(false);
+        setMessage("Video recording failed. Use the Field Tool video picker instead.");
+      };
+
+      recorder.start(500);
+      setRecordingVideo(true);
+      setMessage("Recording video... tap Stop Video when finished. The camera remains open.");
+    } catch (error: any) {
+      setRecordingVideo(false);
+      setMessage(error?.message || "Could not start video recording.");
+    }
   }
 
   async function analyzeCurrentFrame() {
@@ -534,6 +705,19 @@ export default function AILiveInspectionCamera({
 
   function useSuggestion(suggestion: AILiveSuggestion) {
     onUseSuggestion(suggestion, frameFile);
+    recordMemoryEvent({
+      eventType: "live_camera_suggestion",
+      status: "accepted",
+      title: suggestion.title,
+      detail: suggestion.observation,
+      confidence: suggestion.confidence,
+      section: suggestion.section || currentSection,
+      payload: {
+        severity: suggestion.severity,
+        suggestionType: suggestion.suggestionType,
+        recommendation: suggestion.recommendation,
+      },
+    });
 
     const findingChangeDetail = {
       inspectionId: selectedReport,
@@ -567,10 +751,50 @@ export default function AILiveInspectionCamera({
     setFrameDataUrl("");
     latestFrameRef.current = "";
 
-    setMessage("Finding added to report with photo. AI Watching resumed.");
+    setMessage("Suggestion loaded into the Field Tool with the captured frame. Review and tap Save Finding when ready. AI Watching resumed.");
+  }
+
+  function snoozeSuggestion(suggestion: AILiveSuggestion) {
+    const key = createSuggestionKey(suggestion);
+    if (key) {
+      snoozedRef.current[key] = {
+        until: Date.now() + 5 * 60 * 1000,
+        confidence: normalizeConfidence(suggestion.confidence),
+      };
+      writeLiveMemory(
+        selectedReport,
+        dismissedRef.current,
+        snoozedRef.current,
+        handledReminderKeys,
+      );
+    }
+
+    recordMemoryEvent({
+      eventType: "live_camera_suggestion",
+      status: "remind_later",
+      title: suggestion.title,
+      detail: suggestion.observation,
+      confidence: suggestion.confidence,
+      section: suggestion.section || currentSection,
+      payload: { snoozedUntil: Date.now() + 5 * 60 * 1000 },
+    });
+
+    setResult(null);
+    setWaitingForDecision(false);
+    setMessage("Reminder snoozed for five minutes. AI Watching resumed.");
   }
 
   function ignoreSuggestion(suggestion: AILiveSuggestion) {
+    recordMemoryEvent({
+      eventType: "live_camera_suggestion",
+      status: "ignored",
+      title: suggestion.title,
+      detail: suggestion.observation,
+      confidence: suggestion.confidence,
+      section: suggestion.section || currentSection,
+      payload: { severity: suggestion.severity, suggestionType: suggestion.suggestionType },
+    });
+
     const key = createSuggestionKey(suggestion);
     if (key) {
       dismissedRef.current[key] = {
@@ -580,6 +804,7 @@ export default function AILiveInspectionCamera({
       writeLiveMemory(
         selectedReport,
         dismissedRef.current,
+        snoozedRef.current,
         handledReminderKeys,
       );
     }
@@ -728,6 +953,14 @@ export default function AILiveInspectionCamera({
   }
 
   function markReminderChecked(reminder: AILiveReminder) {
+    recordMemoryEvent({
+      eventType: "section_coach_item",
+      status: "checked",
+      title: reminder.title,
+      detail: reminder.detail,
+      confidence: reminder.confidence,
+      payload: { action: reminder.action, priority: reminder.priority },
+    });
     resolveReminder(reminder, "Checklist reminder marked complete. AI Watching can continue when all prompts are handled.");
   }
 
@@ -740,10 +973,26 @@ export default function AILiveInspectionCamera({
     }
 
     onAddPhotoOnly(captured);
+    recordMemoryEvent({
+      eventType: "section_coach_item",
+      status: "saved",
+      title: reminder.title,
+      detail: reminder.detail,
+      confidence: reminder.confidence,
+      payload: { action: "photo" },
+    });
     resolveReminder(reminder, "Reminder photo saved. AI Watching can continue when all prompts are handled.");
   }
 
   function ignoreReminder(reminder: AILiveReminder) {
+    recordMemoryEvent({
+      eventType: "section_coach_item",
+      status: "ignored",
+      title: reminder.title,
+      detail: reminder.detail,
+      confidence: reminder.confidence,
+      payload: { action: reminder.action },
+    });
     resolveReminder(reminder, "Reminder ignored for now. AI Watching can continue when all prompts are handled.");
   }
 
@@ -823,24 +1072,73 @@ export default function AILiveInspectionCamera({
       {open && (
         <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain pb-32 sm:space-y-4 sm:overflow-visible sm:pb-0">
           <div className="shrink-0 overflow-hidden rounded-2xl border border-slate-700 bg-black">
-            <video
-              ref={videoRef}
-              autoPlay
-              muted
-              playsInline
-              className="h-[48dvh] min-h-[280px] max-h-[58dvh] w-full bg-black object-cover sm:aspect-video sm:h-auto sm:min-h-0 sm:max-h-none"
-            />
+            <div className="relative">
+              <video
+                ref={videoRef}
+                autoPlay
+                muted
+                playsInline
+                className="h-[48dvh] min-h-[280px] max-h-[58dvh] w-full bg-black object-cover sm:aspect-video sm:h-auto sm:min-h-0 sm:max-h-none"
+              />
+
+              {visibleSuggestions
+                .filter((suggestion) => suggestion.region)
+                .slice(0, 6)
+                .map((suggestion, index) => {
+                  const region = suggestion.region!;
+                  return (
+                    <div
+                      key={`live-region-${createSuggestionKey(suggestion)}-${index}`}
+                      className="pointer-events-none absolute border-2 border-fuchsia-400 bg-fuchsia-500/10 shadow-[0_0_0_1px_rgba(0,0,0,0.8)]"
+                      style={{
+                        left: `${region.x * 100}%`,
+                        top: `${region.y * 100}%`,
+                        width: `${region.width * 100}%`,
+                        height: `${region.height * 100}%`,
+                      }}
+                    >
+                      <span className="absolute left-0 top-0 max-w-[180px] truncate rounded-br bg-fuchsia-500 px-1.5 py-0.5 text-[9px] font-black text-white">
+                        {region.label || suggestion.title}
+                      </span>
+                    </div>
+                  );
+                })}
+            </div>
 
             {frameDataUrl && (
               <div className="border-t border-slate-800 p-3">
                 <p className="mb-2 text-xs font-black uppercase tracking-[0.18em] text-slate-400">
                   Captured Frame
                 </p>
-                <img
-                  src={frameDataUrl}
-                  alt="Captured inspection frame"
-                  className="max-h-40 w-full rounded-xl object-contain sm:max-h-52"
-                />
+                <div className="relative mx-auto w-fit max-w-full overflow-hidden rounded-xl">
+                  <img
+                    src={frameDataUrl}
+                    alt="Captured inspection frame"
+                    className="max-h-40 w-full rounded-xl object-contain sm:max-h-52"
+                  />
+                  {visibleSuggestions
+                    .filter((suggestion) => suggestion.region)
+                    .slice(0, 6)
+                    .map((suggestion, index) => {
+                      const region = suggestion.region!;
+                      return (
+                        <div
+                          key={`region-${createSuggestionKey(suggestion)}-${index}`}
+                          className="pointer-events-none absolute border-2 border-fuchsia-400 bg-fuchsia-500/10 shadow-[0_0_0_1px_rgba(0,0,0,0.8)]"
+                          style={{
+                            left: `${region.x * 100}%`,
+                            top: `${region.y * 100}%`,
+                            width: `${region.width * 100}%`,
+                            height: `${region.height * 100}%`,
+                          }}
+                        >
+                          <span className="absolute left-0 top-0 max-w-[180px] -translate-y-full truncate rounded-t bg-fuchsia-500 px-1.5 py-0.5 text-[9px] font-black text-white">
+                            {region.label || suggestion.title}
+                          </span>
+                        </div>
+                      );
+                    })}
+                </div>
               </div>
             )}
           </div>
@@ -863,14 +1161,36 @@ export default function AILiveInspectionCamera({
             </div>
           )}
 
-          <div className="sticky bottom-0 z-20 grid grid-cols-2 gap-2 rounded-2xl border border-slate-700 bg-[#020617]/95 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-2xl backdrop-blur sm:static sm:grid-cols-4 sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">
+          <div className="sticky bottom-0 z-20 grid grid-cols-2 gap-2 rounded-2xl border border-slate-700 bg-[#020617]/95 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-2xl backdrop-blur sm:static sm:grid-cols-3 sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none lg:grid-cols-6">
             <button
               type="button"
               onClick={() => captureFrame()}
-              disabled={starting}
+              disabled={starting || recordingVideo}
               className="rounded-xl border border-slate-600 px-3 py-2.5 text-sm font-black text-slate-100 transition active:scale-[0.98] hover:bg-slate-800 disabled:opacity-50"
             >
               Capture Frame
+            </button>
+
+            <button
+              type="button"
+              onClick={quickAddPhoto}
+              disabled={starting || recordingVideo}
+              className="rounded-xl bg-teal-400 px-3 py-2.5 text-sm font-black text-black transition active:scale-[0.98] hover:bg-teal-300 disabled:opacity-50"
+            >
+              Quick Photo
+            </button>
+
+            <button
+              type="button"
+              onClick={toggleVideoRecording}
+              disabled={starting}
+              className={`rounded-xl px-3 py-2.5 text-sm font-black transition active:scale-[0.98] disabled:opacity-50 ${
+                recordingVideo
+                  ? "bg-red-500 text-white hover:bg-red-400"
+                  : "border border-red-500 text-red-200 hover:bg-red-500 hover:text-white"
+              }`}
+            >
+              {recordingVideo ? "Stop Video" : "Record Video"}
             </button>
 
             <button
@@ -996,10 +1316,7 @@ export default function AILiveInspectionCamera({
                         </button>
                         <button
                           type="button"
-                          onClick={() => {
-                            setMessage("Reminder saved for later in this live camera session.");
-                            ignoreSuggestion(suggestion);
-                          }}
+                          onClick={() => snoozeSuggestion(suggestion)}
                           className="rounded-xl border border-yellow-500/60 px-4 py-2 text-sm font-black text-yellow-200"
                         >
                           Remind Later

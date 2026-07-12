@@ -24,6 +24,49 @@ const supabase = createClient(
   },
 );
 
+async function getSyncReceipt(queueItemId: string) {
+  if (!queueItemId) return null;
+
+  const { data, error } = await supabase
+    .from("offline_sync_receipts")
+    .select("result")
+    .eq("queue_item_id", queueItemId)
+    .maybeSingle();
+
+  if (error) return null;
+  return data?.result || null;
+}
+
+async function saveSyncReceipt({
+  queueItemId,
+  inspectionId,
+  itemType,
+  result,
+}: {
+  queueItemId: string;
+  inspectionId: string;
+  itemType: string;
+  result: Record<string, any>;
+}) {
+  if (!queueItemId) return;
+
+  try {
+    await supabase
+      .from("offline_sync_receipts")
+      .upsert(
+        {
+          queue_item_id: queueItemId,
+          inspection_id: inspectionId,
+          item_type: itemType,
+          result,
+        },
+        { onConflict: "queue_item_id" },
+      );
+  } catch {
+    // The optional idempotency table may not exist until the v2 migration is run.
+  }
+}
+
 const VALID_SECTIONS = [
   "Exterior",
   "Roof",
@@ -405,6 +448,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing inspection_id." }, { status: 400 });
     }
 
+    const queueItemId = cleanText(item.id);
+    const existingReceipt = await getSyncReceipt(queueItemId);
+
+    if (existingReceipt) {
+      return NextResponse.json({
+        ...existingReceipt,
+        duplicatePrevented: true,
+      });
+    }
+
     const offlinePhotos = Array.isArray(payload.photos)
       ? payload.photos.slice(0, MAX_PHOTOS_PER_ITEM)
       : [];
@@ -444,12 +497,21 @@ export async function POST(req: Request) {
         saved += 1;
       }
 
-      return NextResponse.json({
+      const result = {
         ok: true,
         synced: true,
         type: "reference_photo",
         photo_count: saved,
+      };
+
+      await saveSyncReceipt({
+        queueItemId,
+        inspectionId,
+        itemType: "reference_photo",
+        result,
       });
+
+      return NextResponse.json(result);
     }
 
     if (item.type === "finding") {
@@ -558,14 +620,23 @@ export async function POST(req: Request) {
         };
       }
 
-      return NextResponse.json({
+      const result = {
         ok: true,
         synced: true,
         type: "finding",
         finding_id: finding.id,
         photo_count: photoCount,
         ai_after_sync: aiAfterSync,
+      };
+
+      await saveSyncReceipt({
+        queueItemId,
+        inspectionId,
+        itemType: "finding",
+        result,
       });
+
+      return NextResponse.json(result);
     }
 
     return NextResponse.json(

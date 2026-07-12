@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 import { inspectionBrain } from "../../../../lib/ai";
 import {
   routeFindingSection,
@@ -31,6 +32,20 @@ const VALID_SEVERITIES = [
   "Safety Concern",
   "Major Concern",
 ];
+
+function createAdminClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) return null;
+
+  return createClient(url, key, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
+}
+
 
 function cleanText(value: any) {
   return String(value || "").trim();
@@ -81,6 +96,63 @@ function cleanSeverity(value: any, fallback = "Recommended Repair") {
   return VALID_SEVERITIES.includes(normalized) ? normalized : fallback;
 }
 
+function cleanRegion(value: any) {
+  if (!value || typeof value !== "object") return null;
+
+  const x = Number(value.x);
+  const y = Number(value.y);
+  const width = Number(value.width);
+  const height = Number(value.height);
+
+  if (![x, y, width, height].every(Number.isFinite)) return null;
+
+  const clamp = (number: number) => Math.max(0, Math.min(1, number));
+  const region = {
+    x: clamp(x),
+    y: clamp(y),
+    width: clamp(width),
+    height: clamp(height),
+    label: cleanText(value.label),
+  };
+
+  if (region.width < 0.02 || region.height < 0.02) return null;
+  if (region.x + region.width > 1) region.width = Math.max(0.02, 1 - region.x);
+  if (region.y + region.height > 1) region.height = Math.max(0.02, 1 - region.y);
+
+  return region;
+}
+
+async function loadRecentInspectionMemory(inspectionId: string, section: string) {
+  if (!inspectionId) return "No prior AI memory was available for this inspection.";
+
+  const supabase = createAdminClient();
+  if (!supabase) return "No prior AI memory was available for this inspection.";
+
+  let query = supabase
+    .from("inspection_ai_memory_events")
+    .select("event_type,status,title,detail,confidence,section,created_at")
+    .eq("inspection_id", inspectionId)
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  if (section) query = query.eq("section", section);
+
+  const { data, error } = await query;
+  if (error || !data?.length) {
+    return "No prior AI memory was available for this inspection.";
+  }
+
+  return data
+    .slice(0, 12)
+    .map((event: any) => {
+      const title = cleanText(event.title) || cleanText(event.event_type) || "Inspection event";
+      const detail = cleanText(event.detail);
+      const status = cleanText(event.status) || "active";
+      return `- ${title} [${status}]${detail ? `: ${detail}` : ""}`;
+    })
+    .join("\n");
+}
+
 function cleanSuggestion(value: any, index: number) {
   const title = cleanText(value?.title) || `AI Suggestion ${index + 1}`;
   const observation =
@@ -117,6 +189,7 @@ function cleanSuggestion(value: any, index: number) {
       ? value.evidence.map(cleanText).filter(Boolean).slice(0, 5)
       : [],
     suggestionType: cleanText(value?.suggestionType || value?.type) || "defect",
+    region: cleanRegion(value?.region || value?.boundingBox || value?.box),
   };
 }
 
@@ -333,10 +406,12 @@ export async function POST(req: Request) {
 
     const body = await req.json().catch(() => ({}));
     const imageDataUrl = cleanText(body.imageDataUrl);
+    const inspectionId = cleanText(body.inspectionId || body.inspection_id);
     const currentSection = cleanText(body.currentSection) || "Exterior";
     const currentSeverity = cleanText(body.currentSeverity) || "Recommended Repair";
     const mode = cleanText(body.mode) || "manual";
     const isLiveWatch = mode === "live_watch";
+    const recentMemory = await loadRecentInspectionMemory(inspectionId, currentSection);
 
     if (!imageDataUrl) {
       return NextResponse.json(
@@ -378,7 +453,14 @@ Return ONLY valid JSON in this exact structure:
       "recommendation": "",
       "confidence": 0.0,
       "evidence": [],
-      "suggestionType": "defect | safety | maintenance | documentation"
+      "suggestionType": "defect | safety | maintenance | documentation",
+      "region": {
+        "x": 0.0,
+        "y": 0.0,
+        "width": 0.0,
+        "height": 0.0,
+        "label": ""
+      }
     }
   ],
   "reminders": [
@@ -412,6 +494,7 @@ Return ONLY valid JSON in this exact structure:
 Rules:
 - Return multiple suggestions when multiple visible concerns are present.
 - Do not limit output to one defect.
+- For each visible suggestion, include a normalized region using x, y, width, and height values from 0 to 1. The region must tightly frame the visible evidence. Use null/zero-sized region only when the evidence cannot be localized.
 - It is okay to return zero suggestions if nothing reportable is visible.
 - Keep suggestions conservative and based on visible evidence.
 - Use cautious wording such as "appeared", "was observed", "may", and "recommend verification".
@@ -448,7 +531,11 @@ Current selected section: ${currentSection}
 Current selected severity: ${currentSeverity}
 Mode: ${mode}
 
+Recent inspection memory for this section:
+${recentMemory}
+
 Analyze this live inspection camera frame.
+Use prior memory to avoid repeating items the inspector already confirmed, while still resurfacing a concern if the current frame provides stronger or materially different evidence.
 
 Return multiple findings if multiple concerns are visible.
 Also return "before you walk away" reminders and data plate scanning prompts where appropriate.

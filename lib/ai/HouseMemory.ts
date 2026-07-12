@@ -121,10 +121,12 @@ export class HouseMemory {
     inspection,
     findings = [],
     equipment = [],
+    memoryEvents = [],
   }: {
     inspection: any;
     findings?: any[];
     equipment?: any[];
+    memoryEvents?: any[];
   }): HouseMemorySnapshot {
     const facts: HouseMemoryFact[] = [];
     const reminders: string[] = [];
@@ -253,6 +255,29 @@ export class HouseMemory {
         source: "field_note",
         evidence: [observation].filter(Boolean),
       });
+    }
+
+    for (const event of memoryEvents || []) {
+      const status = getKnownValue(event.status).toLowerCase();
+      const section = (getKnownValue(event.section) || "General") as HouseMemorySystem;
+      const title = getKnownValue(event.title) || getKnownValue(event.event_type);
+      const detail = getKnownValue(event.detail);
+
+      if (["accepted", "checked", "completed", "saved"].includes(status) && title) {
+        addFact(facts, {
+          system: section,
+          label: title,
+          value: detail || "Inspector confirmed this item during the inspection.",
+          confidence: event.confidence || 85,
+          source: "manual",
+          evidence: [getKnownValue(event.event_type)].filter(Boolean),
+          lastUpdated: event.created_at || event.updated_at,
+        });
+      }
+
+      if (status === "remind_later" && title) {
+        reminders.push(`${section}: ${title}`);
+      }
     }
 
     const systemsWithFacts = new Set(facts.map((fact) => fact.system));

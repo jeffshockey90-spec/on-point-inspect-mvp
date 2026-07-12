@@ -30,7 +30,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const [findingsResult, equipmentResult] = await Promise.all([
+    const [findingsResult, equipmentResult, memoryEventsResult] = await Promise.all([
       supabase
         .from("findings")
         .select("*")
@@ -41,6 +41,12 @@ export async function POST(req: Request) {
         .select("*")
         .eq("inspection_id", inspectionId)
         .order("created_at", { ascending: true }),
+      supabase
+        .from("inspection_ai_memory_events")
+        .select("*")
+        .eq("inspection_id", String(inspectionId))
+        .order("created_at", { ascending: false })
+        .limit(250),
     ]);
 
     if (findingsResult.error) {
@@ -53,6 +59,7 @@ export async function POST(req: Request) {
 
     const findings = findingsResult.data || [];
     const equipment = equipmentResult.data || [];
+    const memoryEvents = memoryEventsResult.error ? [] : memoryEventsResult.data || [];
     const findingIds = findings.map((finding: any) => finding.id).filter(Boolean);
 
     const { data: photos, error: photosError } =
@@ -82,6 +89,7 @@ export async function POST(req: Request) {
       inspection,
       findings: normalizedFindings,
       equipment,
+      memoryEvents,
     });
 
     const result = inspectionCopilot.analyze({
@@ -97,6 +105,7 @@ export async function POST(req: Request) {
       success: true,
       ...result,
       houseMemorySummary: memory.summary,
+      memoryEventCount: memoryEvents.length,
     });
   } catch (error: any) {
     console.error("INSPECTION COPILOT ERROR:", error);

@@ -16,6 +16,11 @@ type EquipmentAnalysis = {
   manufactureYear?: string | number;
   estimatedAge?: string | number;
   expectedServiceLife?: string;
+  maintenanceSchedule?: string;
+  recallAwareness?: string;
+  knownFailurePatterns?: string[];
+  replacementCostEstimate?: string;
+  lifeExpectancyPercent?: number;
   estimatedSEER?: string;
   estimatedAFUE?: string;
   estimatedBTU?: string;
@@ -1181,6 +1186,94 @@ function getOverallConfidence(fieldConfidence: Record<string, number | string>, 
 }
 
 
+function getServiceLifeRange(value: string) {
+  const numbers = String(value || "")
+    .match(/\d+(?:\.\d+)?/g)
+    ?.map(Number)
+    .filter(Number.isFinite) || [];
+
+  if (!numbers.length) return null;
+  const min = Math.max(1, numbers[0]);
+  const max = Math.max(min, numbers[numbers.length - 1]);
+  return { min, max };
+}
+
+function getLifeExpectancyPercent(age: number | null, expectedServiceLife: string) {
+  if (age === null || !Number.isFinite(age)) return 0;
+  const range = getServiceLifeRange(expectedServiceLife);
+  if (!range) return 0;
+  return Math.max(0, Math.min(150, Math.round((age / range.max) * 100)));
+}
+
+function getMaintenanceSchedule(category: string, equipmentType: string) {
+  const text = `${category} ${equipmentType}`.toLowerCase();
+
+  if (text.includes("water heater")) {
+    return "Inspect annually for leakage/corrosion; follow manufacturer guidance for flushing, anode-rod service, and TPR-valve maintenance.";
+  }
+
+  if (text.includes("hvac") || text.includes("furnace") || text.includes("heat pump") || text.includes("air conditioner") || text.includes("condenser") || text.includes("boiler")) {
+    return "Professional service is commonly performed annually; replace or clean filters at the interval recommended for the installed filter and household conditions.";
+  }
+
+  if (text.includes("electrical")) {
+    return "Keep the equipment accessible and dry; have a qualified electrician evaluate visible overheating, corrosion, loose components, nuisance tripping, or other changes.";
+  }
+
+  if (text.includes("appliance")) {
+    return "Follow the manufacturer maintenance schedule; keep vents, filters, drains, and safety clearances clean and unobstructed.";
+  }
+
+  return "Follow the manufacturer maintenance schedule and have the equipment serviced when performance, leakage, noise, corrosion, or other conditions change.";
+}
+
+function getKnownFailurePatterns(category: string, equipmentType: string, refrigerant: string) {
+  const text = `${category} ${equipmentType}`.toLowerCase();
+  const patterns: string[] = [];
+
+  if (text.includes("water heater")) {
+    patterns.push("Tank leakage/corrosion", "TPR discharge defects", "venting or combustion concerns where fuel-fired");
+  } else if (text.includes("heat pump") || text.includes("air conditioner") || text.includes("condenser") || text.includes("hvac")) {
+    patterns.push("Capacitor/contact failure", "refrigerant leakage", "coil fouling or airflow restriction", "condensate drainage defects");
+  } else if (text.includes("furnace") || text.includes("boiler")) {
+    patterns.push("Ignition or control failure", "venting/combustion defects", "circulator or blower wear", "heat-exchanger or vessel concerns requiring specialist evaluation");
+  } else if (text.includes("electrical")) {
+    patterns.push("Loose or overheated connections", "corrosion/moisture damage", "breaker or bus damage", "improper grounding/bonding");
+  } else if (text.includes("appliance")) {
+    patterns.push("Control or sensor failure", "drainage/leakage", "heating-element or motor wear", "door/gasket deterioration");
+  }
+
+  if (String(refrigerant || "").toUpperCase().includes("R-22")) {
+    patterns.push("R-22 service availability and cost constraints");
+  }
+
+  return Array.from(new Set(patterns)).slice(0, 5);
+}
+
+function getReplacementCostEstimate(category: string, equipmentType: string) {
+  const text = `${category} ${equipmentType}`.toLowerCase();
+
+  if (text.includes("water heater")) return "$1,500–$5,000 planning range; specialty, high-efficiency, fuel conversion, venting, and local labor can materially change cost.";
+  if (text.includes("heat pump") || text.includes("air conditioner") || text.includes("condenser") || text.includes("hvac")) return "$5,000–$18,000 planning range for common residential systems; ductwork, electrical, efficiency level, refrigerant transition, and local labor can materially change cost.";
+  if (text.includes("furnace") || text.includes("boiler")) return "$4,000–$15,000 planning range; boiler, chimney/venting, fuel conversion, controls, and distribution work can materially change cost.";
+  if (text.includes("electrical panel") || text.includes("panelboard")) return "$2,000–$8,000 planning range; service upgrades, utility work, grounding, permits, and local labor can materially change cost.";
+  if (text.includes("appliance")) return "$800–$4,000 planning range depending on appliance type, capacity, finish, installation, and required utility modifications.";
+
+  return "Obtain local replacement quotes. The available photos and label data are not sufficient for a reliable dollar estimate.";
+}
+
+function getRecallAwareness(manufacturer: string, model: string, serial: string) {
+  if (!isKnown(manufacturer) || !isKnown(model)) {
+    return "Recall status was not checked because manufacturer/model identification was incomplete. Verify the data plate before performing a live manufacturer or CPSC recall search.";
+  }
+
+  const serialNote = isKnown(serial)
+    ? "Include the serial number when checking applicability."
+    : "The serial number should be confirmed because recall applicability may depend on production range.";
+
+  return `No live recall determination was made from image analysis. Verify ${manufacturer} model ${model} against current manufacturer and CPSC recall records. ${serialNote}`;
+}
+
 function enhanceAnalysis(parsed: EquipmentAnalysis, imageCount = 1) {
   const category = inferCategory(parsed);
   const manufacturer = normalizeManufacturer(parsed.manufacturer);
@@ -1216,6 +1309,17 @@ function enhanceAnalysis(parsed: EquipmentAnalysis, imageCount = 1) {
     : cleanText(parsed.manufactureYear) || "Unknown";
 
   const expectedServiceLife = cleanText(parsed.expectedServiceLife) || getExpectedLife(category, equipmentType);
+  const lifeExpectancyPercent = getLifeExpectancyPercent(age, expectedServiceLife);
+  const maintenanceSchedule =
+    cleanText(parsed.maintenanceSchedule) || getMaintenanceSchedule(category, equipmentType);
+  const knownFailurePatterns =
+    Array.isArray(parsed.knownFailurePatterns) && parsed.knownFailurePatterns.length
+      ? parsed.knownFailurePatterns.map(cleanText).filter(Boolean).slice(0, 5)
+      : getKnownFailurePatterns(category, equipmentType, cleanText(parsed.refrigerant));
+  const replacementCostEstimate =
+    cleanText(parsed.replacementCostEstimate) || getReplacementCostEstimate(category, equipmentType);
+  const recallAwareness =
+    cleanText(parsed.recallAwareness) || getRecallAwareness(manufacturer, model, serial);
   const r22 = hasR22(parsed);
   const problemPanel = hasProblemPanel(parsed);
   const condition = problemPanel || getAgeCondition(age, category, equipmentType);
@@ -1399,6 +1503,11 @@ function enhanceAnalysis(parsed: EquipmentAnalysis, imageCount = 1) {
     manufactureYear,
     estimatedAge: age !== null ? `${age} years` : cleanText(parsed.estimatedAge) || "Unknown",
     expectedServiceLife,
+    lifeExpectancyPercent,
+    maintenanceSchedule,
+    knownFailurePatterns,
+    replacementCostEstimate,
+    recallAwareness,
     estimatedSEER,
     estimatedAFUE,
     estimatedBTU,
@@ -1541,6 +1650,11 @@ Return ONLY valid JSON in this exact format:
   "manufactureYear": "",
   "estimatedAge": "",
   "expectedServiceLife": "",
+  "maintenanceSchedule": "",
+  "knownFailurePatterns": [],
+  "replacementCostEstimate": "",
+  "recallAwareness": "",
+  "lifeExpectancyPercent": 0,
   "estimatedSEER": "",
   "estimatedAFUE": "",
   "estimatedBTU": "",
@@ -1603,7 +1717,9 @@ Rules:
 - Include estimatedSEER for AC condensers, heat pumps, and mini splits when it can be reasonably estimated or label information is visible.
 - Include estimatedAFUE for gas, oil, or propane furnaces/boilers when it applies. Do not provide AFUE for electric heat pumps.
 - Include estimatedHeatingEfficiency for heat pumps as label/manual verification language when exact HSPF/HSPF2 is not visible.
-- Do not provide dollar amounts or replacement cost ranges.
+- Replacement cost is a planning estimate only. Use a broad range and state that local quotes, scope, permits, efficiency, access, utility work, and labor can materially change cost.
+- Do not claim a confirmed recall from image analysis. Recall awareness must direct the inspector to verify the exact manufacturer, model, and serial against current manufacturer and CPSC records.
+- Known failure patterns must be general equipment-type patterns, not a diagnosis of the photographed unit.
 - Keep identification notes short and narrative, not a database-style list.
 - Do not write phrases like "serial number documented", "capacity identified", "fuel type identified", or "observed condition/status" in client-facing summaries.
 - Do not repeat routine maintenance language inside identification/client summary text.
@@ -1659,6 +1775,10 @@ Rules:
         manufactureYear: enhanced?.manufactureYear,
         estimatedAge: enhanced?.estimatedAge,
         expectedServiceLife: (enhanced as any)?.expectedServiceLife,
+        lifeExpectancyPercent: (enhanced as any)?.lifeExpectancyPercent,
+        maintenanceSchedule: (enhanced as any)?.maintenanceSchedule,
+        replacementCostEstimate: (enhanced as any)?.replacementCostEstimate,
+        recallAwareness: (enhanced as any)?.recallAwareness,
         estimatedLifeRemaining: enhanced?.estimatedLifeRemaining,
         refrigerant: enhanced?.refrigerant,
         estimatedSEER: (enhanced as any)?.estimatedSEER,

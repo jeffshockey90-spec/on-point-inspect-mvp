@@ -16,6 +16,7 @@ import OfflineReportViewer from "../../components/OfflineReportViewer";
 import AILiveInspectionCamera, {
   type AILiveSuggestion,
 } from "../../components/AILiveInspectionCamera";
+import LiveSectionCoach from "../../components/LiveSectionCoach";
 import {
   addOfflineQueueItem,
   filesToOfflinePhotos,
@@ -265,6 +266,21 @@ async function compressImageForAiUpload(file: File) {
   );
 }
 
+async function fileToDataUrl(file: File): Promise<string> {
+  return await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        resolve(reader.result);
+        return;
+      }
+      reject(new Error("Could not prepare photo for AI Report Writer 3.0."));
+    };
+    reader.onerror = () => reject(new Error("Could not read photo for AI Report Writer 3.0."));
+    reader.readAsDataURL(file);
+  });
+}
+
 const REPORT_IMAGE_MAX_DIMENSION = 1600;
 const REPORT_THUMBNAIL_MAX_DIMENSION = 420;
 const REPORT_IMAGE_QUALITY = 0.8;
@@ -428,6 +444,11 @@ type EquipmentResult = {
   manufactureYear?: string | number;
   estimatedAge?: string | number;
   expectedServiceLife?: string;
+  maintenanceSchedule?: string;
+  recallAwareness?: string;
+  knownFailurePatterns?: string[];
+  replacementCostEstimate?: string;
+  lifeExpectancyPercent?: number;
   estimatedSEER?: string;
   estimatedAFUE?: string;
   estimatedBTU?: string;
@@ -1798,34 +1819,59 @@ function FieldPageContent() {
 
       setEquipmentSaveLabel("Saving Equipment Inventory...");
 
-      const { error: inventoryError } = await supabase
-        .from("equipment_inventory")
-        .insert({
-          inspection_id: Number(selectedReport),
-          equipment_type: cleanEquipmentValue(equipmentResult.equipmentType),
-          manufacturer: cleanEquipmentValue(equipmentResult.manufacturer),
-          model: cleanEquipmentValue(equipmentResult.model),
-          serial: cleanEquipmentValue(equipmentResult.serial),
-          manufacture_year: cleanEquipmentValue(
-            equipmentResult.manufactureYear,
-          ),
-          estimated_age: cleanEquipmentValue(equipmentResult.estimatedAge),
-          expected_service_life: cleanEquipmentValue(
-            equipmentResult.expectedServiceLife,
-          ),
-          estimated_life_remaining: "",
-          refrigerant: cleanEquipmentValue(equipmentResult.refrigerant),
-          condition: meaningfulEquipmentValue(
-            cleanServiceLifeCondition(equipmentResult.condition),
-          ),
-          inspector_note: getAiInspectorNote(equipmentResult, note),
-          maintenance_note: getAiMaintenanceNote(equipmentResult),
-          equipment_status: getEquipmentStatusLabel(equipmentResult),
-          image_url: mainImage?.publicUrl || "",
-          file_path: mainImage?.filePath || "",
-        });
+      const baseInventoryPayload = {
+        inspection_id: Number(selectedReport),
+        equipment_type: cleanEquipmentValue(equipmentResult.equipmentType),
+        manufacturer: cleanEquipmentValue(equipmentResult.manufacturer),
+        model: cleanEquipmentValue(equipmentResult.model),
+        serial: cleanEquipmentValue(equipmentResult.serial),
+        manufacture_year: cleanEquipmentValue(
+          equipmentResult.manufactureYear,
+        ),
+        estimated_age: cleanEquipmentValue(equipmentResult.estimatedAge),
+        expected_service_life: cleanEquipmentValue(
+          equipmentResult.expectedServiceLife,
+        ),
+        estimated_life_remaining: "",
+        refrigerant: cleanEquipmentValue(equipmentResult.refrigerant),
+        condition: meaningfulEquipmentValue(
+          cleanServiceLifeCondition(equipmentResult.condition),
+        ),
+        inspector_note: getAiInspectorNote(equipmentResult, note),
+        maintenance_note: getAiMaintenanceNote(equipmentResult),
+        equipment_status: getEquipmentStatusLabel(equipmentResult),
+        image_url: mainImage?.publicUrl || "",
+        file_path: mainImage?.filePath || "",
+      };
 
-      if (inventoryError) throw inventoryError;
+      const enhancedInventoryPayload = {
+        ...baseInventoryPayload,
+        maintenance_schedule:
+          cleanEquipmentValue(equipmentResult.maintenanceSchedule) || null,
+        recall_awareness:
+          cleanEquipmentValue(equipmentResult.recallAwareness) || null,
+        known_failure_patterns: Array.isArray(
+          equipmentResult.knownFailurePatterns,
+        )
+          ? equipmentResult.knownFailurePatterns
+          : [],
+        replacement_cost_estimate:
+          cleanEquipmentValue(equipmentResult.replacementCostEstimate) || null,
+        life_expectancy_percent:
+          Number(equipmentResult.lifeExpectancyPercent) || null,
+      };
+
+      const { error: enhancedInventoryError } = await supabase
+        .from("equipment_inventory")
+        .insert(enhancedInventoryPayload);
+
+      if (enhancedInventoryError) {
+        const { error: fallbackInventoryError } = await supabase
+          .from("equipment_inventory")
+          .insert(baseInventoryPayload);
+
+        if (fallbackInventoryError) throw fallbackInventoryError;
+      }
 
       const createFinding = shouldCreateEquipmentFinding(equipmentResult);
 
@@ -1937,6 +1983,28 @@ function FieldPageContent() {
     setMessage("");
 
     try {
+      const selectedInspection = reports.find(
+        (report: any) => String(report.id) === String(selectedReport),
+      );
+
+      const writerImages = await Promise.all(
+        getImagesForAi()
+          .slice(0, 3)
+          .map(async (image) => fileToDataUrl(await compressImageForAiUpload(image))),
+      );
+
+      const equipmentContext = equipmentResult
+        ? [
+            equipmentResult.equipmentType,
+            equipmentResult.manufacturer,
+            equipmentResult.model,
+            equipmentResult.manufactureYear,
+            equipmentResult.condition,
+          ]
+            .filter(Boolean)
+            .join(" | ")
+        : "";
+
       const res = await fetch("/api/ai-capture", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1950,6 +2018,12 @@ function FieldPageContent() {
           recommendation,
           section,
           severity,
+          propertyYear:
+            selectedInspection?.year_built ||
+            selectedInspection?.yearBuilt ||
+            "",
+          equipmentContext,
+          images: writerImages,
         }),
       });
 
@@ -1986,6 +2060,9 @@ function FieldPageContent() {
           "Inspector note was used as the primary source of truth.",
           data.section ? `AI selected ${data.section}.` : "",
           data.severity ? `AI selected ${data.severity}.` : "",
+          data.maintenanceTip ? `Maintenance: ${data.maintenanceTip}` : "",
+          data.liabilityNote ? `Verification note: ${data.liabilityNote}` : "",
+          ...(Array.isArray(data.evidence) ? data.evidence.slice(0, 3) : []),
         ].filter(Boolean),
         recommendation: data.recommendation || "Review and edit before saving.",
       });
@@ -2989,6 +3066,12 @@ function FieldPageContent() {
               onUseSuggestion={acceptLiveCameraSuggestion}
               onAddPhotoOnly={addLiveCameraFrameOnly}
               onScanDataPlate={startLiveCameraDataPlateScan}
+            />
+
+            <LiveSectionCoach
+              inspectionId={selectedReport}
+              section={section}
+              online={online}
             />
 
             <div className="rounded-2xl border border-purple-500/30 bg-purple-500/10 p-4">

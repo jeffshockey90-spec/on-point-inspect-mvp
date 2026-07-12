@@ -47,6 +47,17 @@ export async function POST(req: Request) {
       console.error("House memory equipment load error:", equipmentError);
     }
 
+    const { data: memoryEvents, error: memoryEventsError } = await supabase
+      .from("inspection_ai_memory_events")
+      .select("*")
+      .eq("inspection_id", String(inspectionId))
+      .order("created_at", { ascending: false })
+      .limit(200);
+
+    if (memoryEventsError) {
+      console.error("House memory AI events load error:", memoryEventsError);
+    }
+
     const normalizedFindings = (findings || []).map((finding: any) => ({
       ...finding,
       section: finding.section || finding.section_name || "General",
@@ -56,6 +67,7 @@ export async function POST(req: Request) {
       inspection,
       findings: normalizedFindings,
       equipment: equipment || [],
+      memoryEvents: memoryEvents || [],
     });
 
     return NextResponse.json({
