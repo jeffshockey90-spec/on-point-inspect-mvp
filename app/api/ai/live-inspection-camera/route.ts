@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { inspectionBrain } from "../../../../lib/ai";
+import { learningEngine } from "../../../../lib/ai/LearningEngine";
 import {
   routeFindingSection,
   normalizeSeverity,
@@ -457,6 +458,10 @@ export async function POST(req: Request) {
     const mode = cleanText(body.mode) || "manual";
     const isLiveWatch = mode === "live_watch";
     const recentMemory = await loadRecentInspectionMemory(inspectionId, currentSection);
+    const inspectorLearningPatterns = await learningEngine.getPatterns(180);
+    const inspectorLearningMemory = learningEngine.formatPatternsForPrompt(
+      inspectorLearningPatterns,
+    );
 
     if (!imageDataUrl) {
       return NextResponse.json(
@@ -588,6 +593,15 @@ Mode: ${mode}
 
 Recent inspection memory for this section:
 ${recentMemory}
+
+Inspector-specific learning memory from prior edits and decisions:
+${inspectorLearningMemory}
+
+Learning rules:
+- Match the inspector's demonstrated wording, recommendation style, severity choices, and section routing when supported by the visible evidence.
+- Use ignored suggestions to reduce repetitive low-value interruptions.
+- Never suppress a clear safety concern merely because a similar suggestion was previously ignored.
+- Inspector edits and decisions are preferences, not permission to invent or overlook evidence.
 
 Analyze this live inspection camera frame based on what is actually visible. The selected section is context only and must not prevent you from identifying a visible concern from another section.
 Use prior memory to avoid repeating items the inspector already confirmed, while still resurfacing a concern if the current frame provides stronger or materially different evidence.

@@ -589,6 +589,38 @@ export default function AILiveInspectionCamera({
     }).catch(() => undefined);
   }
 
+  function recordInspectorLearning({
+    tool,
+    original,
+    updated,
+    accepted,
+    confidence,
+    notes,
+  }: {
+    tool: string;
+    original: Record<string, any>;
+    updated: Record<string, any>;
+    accepted: boolean | null;
+    confidence?: number;
+    notes: string;
+  }) {
+    if (!selectedReport) return;
+
+    void fetch("/api/ai/learning", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        inspectionId: selectedReport,
+        tool,
+        original,
+        updated,
+        accepted,
+        confidence,
+        notes,
+      }),
+    }).catch(() => undefined);
+  }
+
   async function startCamera(mode: "environment" | "user" = facingMode) {
     if (starting) return;
 
@@ -1037,17 +1069,38 @@ export default function AILiveInspectionCamera({
 
       if (localized.length) {
         setActiveRegionSuggestions((current) => {
-          const merged = [...localized, ...current];
-          const seen = new Set<string>();
+          const currentByKey = new Map(
+            current.map((item: any) => [createSuggestionKey(item), item]),
+          );
 
-          return merged
-            .filter((item) => {
-              const key = createSuggestionKey(item);
-              if (!key || seen.has(key)) return false;
-              seen.add(key);
-              return true;
-            })
-            .slice(0, 6);
+          const next = localized.map((item: any) => {
+            const key = createSuggestionKey(item);
+            const previous: any = currentByKey.get(key);
+            const previousConfidence = normalizeConfidence(previous?.confidence);
+            const nextConfidence = normalizeConfidence(item.confidence);
+            const seenCount = Number(previous?.seenCount || 0) + 1;
+
+            return {
+              ...previous,
+              ...item,
+              detectedAt: Date.now(),
+              seenCount,
+              confidence: Math.min(
+                0.99,
+                Math.max(nextConfidence, previousConfidence) +
+                  Math.min(0.12, Math.max(0, seenCount - 1) * 0.025),
+              ),
+            };
+          });
+
+          const incomingKeys = new Set(next.map((item: any) => createSuggestionKey(item)));
+          const retained = current.filter(
+            (item: any) => !incomingKeys.has(createSuggestionKey(item)),
+          );
+
+          return [...next, ...retained]
+            .sort((a: any, b: any) => b.detectedAt - a.detectedAt)
+            .slice(0, 8);
         });
       }
 
@@ -1073,6 +1126,15 @@ export default function AILiveInspectionCamera({
 
     onUseSuggestion(suggestion, selectedFrame);
     void saveSelectedMediaToGallery(selectedFrame);
+    recordInspectorLearning({
+      tool: "ai_live_camera_suggestion",
+      original: suggestion,
+      updated: { ...suggestion, decision: "accepted" },
+      accepted: true,
+      confidence: normalizeConfidence(suggestion.confidence),
+      notes:
+        "Inspector accepted this live-camera suggestion. Reinforce similar visible conditions, wording, severity, and section routing.",
+    });
     recordMemoryEvent({
       eventType: "live_camera_suggestion",
       status: "accepted",
@@ -1137,6 +1199,16 @@ export default function AILiveInspectionCamera({
       );
     }
 
+    recordInspectorLearning({
+      tool: "ai_live_camera_suggestion",
+      original: suggestion,
+      updated: { ...suggestion, decision: "remind_later" },
+      accepted: null,
+      confidence: normalizeConfidence(suggestion.confidence),
+      notes:
+        "Inspector postponed this suggestion. Do not treat it as rejected; preserve it as a lower-interruption reminder preference.",
+    });
+
     recordMemoryEvent({
       eventType: "live_camera_suggestion",
       status: "remind_later",
@@ -1153,6 +1225,16 @@ export default function AILiveInspectionCamera({
   }
 
   function ignoreSuggestion(suggestion: AILiveSuggestion) {
+    recordInspectorLearning({
+      tool: "ai_live_camera_suggestion",
+      original: suggestion,
+      updated: { ...suggestion, decision: "ignored" },
+      accepted: false,
+      confidence: normalizeConfidence(suggestion.confidence),
+      notes:
+        "Inspector rejected this live-camera suggestion. Reduce similar low-value interruptions while never suppressing clear safety concerns.",
+    });
+
     recordMemoryEvent({
       eventType: "live_camera_suggestion",
       status: "ignored",
@@ -1273,6 +1355,15 @@ export default function AILiveInspectionCamera({
         "ai-live-limitation",
       );
       void saveSelectedMediaToGallery(limitationGalleryFile);
+      recordInspectorLearning({
+        tool: "ai_live_camera_limitation",
+        original: limitation as any,
+        updated: { ...limitation, decision: "accepted" },
+        accepted: true,
+        confidence: normalizeConfidence(limitation.confidence),
+        notes:
+          "Inspector accepted this limitation. Learn preferred limitation wording and when this type of visibility restriction is useful.",
+      });
 
       setResult(null);
       setWaitingForDecision(false);
@@ -1327,6 +1418,14 @@ export default function AILiveInspectionCamera({
   }
 
   function markReminderChecked(reminder: AILiveReminder) {
+    recordInspectorLearning({
+      tool: "ai_section_coach",
+      original: reminder,
+      updated: { ...reminder, decision: "checked" },
+      accepted: true,
+      confidence: normalizeConfidence(reminder.confidence),
+      notes: "Inspector confirmed this Section Coach item was useful and completed it.",
+    });
     recordMemoryEvent({
       eventType: "section_coach_item",
       status: "checked",
@@ -1348,6 +1447,14 @@ export default function AILiveInspectionCamera({
 
     onAddPhotoOnly(captured);
     void saveSelectedMediaToGallery(captured);
+    recordInspectorLearning({
+      tool: "ai_section_coach",
+      original: reminder,
+      updated: { ...reminder, decision: "photo_saved" },
+      accepted: true,
+      confidence: normalizeConfidence(reminder.confidence),
+      notes: "Inspector responded to this Section Coach reminder by saving the requested evidence photo.",
+    });
     recordMemoryEvent({
       eventType: "section_coach_item",
       status: "saved",
@@ -1360,6 +1467,14 @@ export default function AILiveInspectionCamera({
   }
 
   function ignoreReminder(reminder: AILiveReminder) {
+    recordInspectorLearning({
+      tool: "ai_section_coach",
+      original: reminder,
+      updated: { ...reminder, decision: "ignored" },
+      accepted: false,
+      confidence: normalizeConfidence(reminder.confidence),
+      notes: "Inspector dismissed this Section Coach reminder. Reduce similar low-value reminders for this inspector.",
+    });
     recordMemoryEvent({
       eventType: "section_coach_item",
       status: "ignored",
@@ -1524,6 +1639,12 @@ export default function AILiveInspectionCamera({
               <span className="absolute left-1/2 top-0 max-w-[240px] -translate-x-1/2 -translate-y-full rounded-xl border border-emerald-400/50 bg-black/90 px-3 py-2 text-xs font-black text-emerald-300 shadow-xl backdrop-blur">
                 {region.approximate ? "AI review area: " : ""}
                 {region.label || suggestion.title}
+                <span className="ml-2 text-emerald-100">
+                  {confidenceLabel(suggestion.confidence)}
+                  {Number((suggestion as any).seenCount || 0) > 1
+                    ? ` · seen ${(suggestion as any).seenCount}x`
+                    : ""}
+                </span>
               </span>
             </button>
           );

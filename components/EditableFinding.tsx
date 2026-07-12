@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useState } from "react";
+import { memo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../lib/supabaseClient";
 import FastLinkButton from "./FastLinkButton";
@@ -67,6 +67,14 @@ function EditableFinding({ finding }: { finding: any }) {
 
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"success" | "error" | "">("");
+  const learningBaselineRef = useRef({
+    title: finding.title || "",
+    section: finding.section || "",
+    severity: finding.severity || "",
+    observation: finding.observation || "",
+    implication: finding.implication || "",
+    recommendation: finding.recommendation || "",
+  });
 
   function showMessage(type: "success" | "error", text: string) {
     setMessageType(type);
@@ -106,34 +114,40 @@ function EditableFinding({ finding }: { finding: any }) {
         return;
       }
 
-      try {
-        await fetch("/api/ai/learning", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            inspectionId: finding.inspection_id,
-            tool: "editable_finding",
-            original: {
-              title: finding.title || "",
-              section: finding.section || "",
-              severity: finding.severity || "",
-              observation: finding.observation || "",
-              implication: finding.implication || "",
-              recommendation: finding.recommendation || "",
-            },
-            updated: {
-              title,
-              section,
-              severity,
-              observation,
-              implication,
-              recommendation,
-            },
-          }),
-        });
-      } catch {
-        // Learning should never block saving a finding.
+      const updatedLearningValue = {
+        title,
+        section,
+        severity,
+        observation,
+        implication,
+        recommendation,
+      };
+      const originalLearningValue = learningBaselineRef.current;
+      const hasInspectorChanges =
+        JSON.stringify(originalLearningValue) !==
+        JSON.stringify(updatedLearningValue);
+
+      if (hasInspectorChanges) {
+        try {
+          await fetch("/api/ai/learning", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              inspectionId: finding.inspection_id,
+              tool: "editable_finding",
+              original: originalLearningValue,
+              updated: updatedLearningValue,
+              accepted: true,
+              notes:
+                "Inspector edited a finding. Learn wording, severity, and section-routing preferences from the exact before/after values.",
+            }),
+          });
+        } catch {
+          // Learning must never block saving a finding.
+        }
       }
+
+      learningBaselineRef.current = updatedLearningValue;
 
       setSaveLabel("Saved!");
       showMessage("success", "Finding saved.");
