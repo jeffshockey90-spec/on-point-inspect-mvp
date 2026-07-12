@@ -89,8 +89,26 @@ export default function ShareReportTabs({
                   : null;
 
       if (!targetTab) return;
+
       event.preventDefault();
       applyTab(targetTab, true);
+
+      const targetId = hash.replace(/^#/, "");
+
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => {
+          const destination = document.getElementById(targetId);
+
+          if (destination) {
+            destination.scrollIntoView({
+              block: "start",
+              behavior: "smooth",
+            });
+
+            window.history.replaceState(null, "", hash);
+          }
+        });
+      });
     }
 
     parent.addEventListener("click", handleClick);
