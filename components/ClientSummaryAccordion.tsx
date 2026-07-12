@@ -219,7 +219,25 @@ function CompactSummaryCard({
   const itemNumber = getItemNumber(finding);
   const isVideo = isVideoMedia(media || finding, fullUrl);
   const [imageFailed, setImageFailed] = useState(false);
+  const [videoOpen, setVideoOpen] = useState(false);
   const toneStyle = toneClasses(tone);
+
+  useEffect(() => {
+    if (!videoOpen) return;
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setVideoOpen(false);
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [videoOpen]);
 
   function openFullFinding() {
     const target = document.getElementById("inspection-findings");
@@ -244,24 +262,42 @@ function CompactSummaryCard({
               buttonClassName="block h-full w-full overflow-hidden bg-slate-900 text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
             />
           ) : isVideo && fullUrl ? (
-            <div className="relative h-full w-full">
-              <video
-                src={fullUrl.includes("#t=") ? fullUrl : `${fullUrl}#t=0.1`}
-                poster={previewUrl || undefined}
-                controls
-                playsInline
-                preload="metadata"
-                aria-label={`${title} video preview`}
-                className="h-full w-full object-cover"
-                onClick={(event) => event.stopPropagation()}
-                onError={() => setImageFailed(true)}
-              >
-                Your browser does not support video playback.
-              </video>
-              <span className="pointer-events-none absolute bottom-2 left-2 rounded-full bg-black/80 px-2 py-1 text-[10px] font-black text-cyan-200">
-                ▶ VIDEO
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                setVideoOpen(true);
+              }}
+              aria-label={`Open ${title} video full screen`}
+              className="relative block h-full w-full overflow-hidden text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
+            >
+              {previewUrl ? (
+                <img
+                  src={previewUrl}
+                  alt={`${title} video thumbnail`}
+                  className="h-full w-full object-cover"
+                  onError={() => setImageFailed(true)}
+                />
+              ) : (
+                <video
+                  src={fullUrl.includes("#t=") ? fullUrl : `${fullUrl}#t=0.1`}
+                  muted
+                  playsInline
+                  preload="metadata"
+                  aria-hidden="true"
+                  className="h-full w-full object-cover"
+                  onError={() => setImageFailed(true)}
+                />
+              )}
+              <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/10">
+                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-black/80 text-xl text-white shadow-lg">
+                  ▶
+                </span>
               </span>
-            </div>
+              <span className="pointer-events-none absolute bottom-2 left-2 rounded-full bg-black/80 px-2 py-1 text-[10px] font-black text-cyan-200">
+                VIDEO
+              </span>
+            </button>
           ) : (
             <div className="flex h-full w-full items-center justify-center px-3 text-center text-xs font-bold text-slate-500">
               {isVideo ? "Video unavailable" : "Photo unavailable"}
@@ -305,6 +341,45 @@ function CompactSummaryCard({
           </p>
         </button>
       </div>
+
+      {videoOpen && isVideo && fullUrl && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${title} video player`}
+          className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/95 p-3 sm:p-6"
+          onClick={() => setVideoOpen(false)}
+        >
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              setVideoOpen(false);
+            }}
+            aria-label="Close video"
+            className="fixed right-4 top-[max(1rem,env(safe-area-inset-top))] z-[10001] flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-black/80 text-2xl font-black text-white active:scale-95"
+          >
+            ×
+          </button>
+
+          <div
+            className="flex h-full w-full items-center justify-center"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <video
+              src={fullUrl}
+              poster={previewUrl || undefined}
+              controls
+              autoPlay
+              playsInline
+              preload="auto"
+              className="max-h-full max-w-full rounded-xl bg-black object-contain shadow-2xl"
+            >
+              Your browser does not support video playback.
+            </video>
+          </div>
+        </div>
+      )}
 
       {open && (
         <div className="border-t border-slate-800 px-4 pb-4 pt-4">
