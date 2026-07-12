@@ -66,6 +66,7 @@ export type AILiveSuggestion = {
     width: number;
     height: number;
     label?: string;
+    approximate?: boolean;
   } | null;
 };
 
@@ -86,6 +87,15 @@ type AILiveLimitation = {
   reason?: string;
   recommendation?: string;
   confidence?: number;
+};
+
+type LiveMemoryItem = {
+  key: string;
+  title: string;
+  kind: "suggestion" | "reminder" | "limitation" | "data_plate";
+  severity?: string;
+  confidence?: number;
+  createdAt: number;
 };
 
 type AILiveResult = {
@@ -198,6 +208,7 @@ export default function AILiveInspectionCamera({
   const dismissedRef = useRef<Record<string, { confidence: number; at: number }>>({});
   const snoozedRef = useRef<Record<string, { until: number; confidence: number }>>({});
   const autoScanRunningRef = useRef(false);
+  const hardwareZoomSupportedRef = useRef(false);
 
   const [open, setOpen] = useState(false);
   const [starting, setStarting] = useState(false);
@@ -206,6 +217,10 @@ export default function AILiveInspectionCamera({
   const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
   const [torchOn, setTorchOn] = useState(false);
   const [recordingVideo, setRecordingVideo] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [zoomMin, setZoomMin] = useState(1);
+  const [zoomMax, setZoomMax] = useState(3);
+  const [liveMemoryItems, setLiveMemoryItems] = useState<LiveMemoryItem[]>([]);
   const [analyzing, setAnalyzing] = useState(false);
   const [autoWatch, setAutoWatch] = useState(true);
   const [lastAutoScanAt, setLastAutoScanAt] = useState(0);
@@ -227,6 +242,79 @@ export default function AILiveInspectionCamera({
       return null;
     }
   }, [frameDataUrl]);
+
+  const liveMemoryStorageKey = useMemo(
+    () => `opi-ai-live-items-${String(selectedReport || "").trim()}`,
+    [selectedReport],
+  );
+
+  useEffect(() => {
+    if (!selectedReport || typeof window === "undefined") {
+      setLiveMemoryItems([]);
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(window.localStorage.getItem(liveMemoryStorageKey) || "[]");
+      setLiveMemoryItems(Array.isArray(parsed) ? parsed.slice(0, 20) : []);
+    } catch {
+      setLiveMemoryItems([]);
+    }
+  }, [selectedReport, liveMemoryStorageKey]);
+
+  function appendLiveMemory(data: AILiveResult) {
+    const now = Date.now();
+    const nextItems: LiveMemoryItem[] = [
+      ...(data.suggestions || []).map((item) => ({
+        key: `suggestion:${createSuggestionKey(item)}`,
+        title: item.title,
+        kind: "suggestion" as const,
+        severity: item.severity,
+        confidence: item.confidence,
+        createdAt: now,
+      })),
+      ...(data.reminders || []).map((item) => ({
+        key: `reminder:${createReminderKey(item)}`,
+        title: item.title,
+        kind: "reminder" as const,
+        confidence: item.confidence,
+        createdAt: now,
+      })),
+      ...(data.limitations || []).map((item) => ({
+        key: `limitation:${String(item.id || item.title).toLowerCase()}`,
+        title: item.title,
+        kind: "limitation" as const,
+        confidence: item.confidence,
+        createdAt: now,
+      })),
+      ...(data.dataPlatePrompt?.needed
+        ? [{
+            key: `data-plate:${String(data.dataPlatePrompt.equipmentType || data.area || "equipment").toLowerCase()}`,
+            title: data.dataPlatePrompt.reason || "Equipment data plate should be captured",
+            kind: "data_plate" as const,
+            createdAt: now,
+          }]
+        : []),
+    ].filter((item) => item.key && item.title);
+
+    if (!nextItems.length) return;
+
+    setLiveMemoryItems((current) => {
+      const merged = [...nextItems, ...current];
+      const seen = new Set<string>();
+      const unique = merged.filter((item) => {
+        if (seen.has(item.key)) return false;
+        seen.add(item.key);
+        return true;
+      }).slice(0, 20);
+
+      try {
+        window.localStorage.setItem(liveMemoryStorageKey, JSON.stringify(unique));
+      } catch {}
+
+      return unique;
+    });
+  }
 
   const visibleSuggestions = useMemo(() => {
     const suggestions = result?.suggestions || [];
@@ -392,6 +480,17 @@ export default function AILiveInspectionCamera({
 
       streamRef.current = stream;
 
+      const videoTrack = stream.getVideoTracks()[0];
+      const capabilities = videoTrack?.getCapabilities?.() as MediaTrackCapabilities & {
+        zoom?: { min?: number; max?: number; step?: number };
+      };
+      const settings = videoTrack?.getSettings?.() as MediaTrackSettings & { zoom?: number };
+      const supportsHardwareZoom = Boolean(capabilities?.zoom?.max && capabilities.zoom.max > 1);
+      hardwareZoomSupportedRef.current = supportsHardwareZoom;
+      setZoomMin(supportsHardwareZoom ? Math.max(1, Number(capabilities.zoom?.min || 1)) : 1);
+      setZoomMax(supportsHardwareZoom ? Math.min(8, Number(capabilities.zoom?.max || 3)) : 3);
+      setZoomLevel(Math.max(1, Number(settings?.zoom || 1)));
+
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         await videoRef.current.play().catch(() => undefined);
@@ -419,6 +518,10 @@ export default function AILiveInspectionCamera({
 
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
+    hardwareZoomSupportedRef.current = false;
+    setZoomLevel(1);
+    setZoomMin(1);
+    setZoomMax(3);
 
     if (videoRef.current) {
       videoRef.current.srcObject = null;
@@ -445,7 +548,25 @@ export default function AILiveInspectionCamera({
       return "";
     }
 
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    if (!hardwareZoomSupportedRef.current && zoomLevel > 1) {
+      const sourceWidth = video.videoWidth / zoomLevel;
+      const sourceHeight = video.videoHeight / zoomLevel;
+      const sourceX = (video.videoWidth - sourceWidth) / 2;
+      const sourceY = (video.videoHeight - sourceHeight) / 2;
+      context.drawImage(
+        video,
+        sourceX,
+        sourceY,
+        sourceWidth,
+        sourceHeight,
+        0,
+        0,
+        canvas.width,
+        canvas.height,
+      );
+    } else {
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    }
 
     const dataUrl = canvas.toDataURL("image/jpeg", 0.78);
     latestFrameRef.current = dataUrl;
@@ -495,6 +616,22 @@ export default function AILiveInspectionCamera({
       setTorchOn(next);
     } catch {
       setMessage("Flash could not be changed on this device.");
+    }
+  }
+
+  async function handleZoomChange(nextValue: number) {
+    const next = Math.max(zoomMin, Math.min(zoomMax, nextValue));
+    setZoomLevel(next);
+
+    if (!hardwareZoomSupportedRef.current) return;
+
+    const track = streamRef.current?.getVideoTracks?.()[0];
+    if (!track) return;
+
+    try {
+      await track.applyConstraints({ advanced: [{ zoom: next } as any] });
+    } catch {
+      hardwareZoomSupportedRef.current = false;
     }
   }
 
@@ -641,6 +778,7 @@ export default function AILiveInspectionCamera({
 
       setHandledReminderKeys({});
       setResult(data);
+      appendLiveMemory(data);
       const hasManualResult =
         (Array.isArray(data.suggestions) && data.suggestions.length > 0) ||
         (Array.isArray(data.limitations) && data.limitations.length > 0) ||
@@ -738,12 +876,15 @@ export default function AILiveInspectionCamera({
       }
 
       setHandledReminderKeys({});
-      setResult({
+      const liveResult = {
         ...data,
         suggestions: strongSuggestions.length > 0 ? strongSuggestions : suggestions,
         limitations: strongLimitations.length > 0 ? strongLimitations : limitations,
         reminders: highPriorityReminders.length > 0 ? highPriorityReminders : reminders,
-      });
+      };
+
+      setResult(liveResult);
+      appendLiveMemory(liveResult);
 
       setWaitingForDecision(true);
 
@@ -1070,11 +1211,7 @@ export default function AILiveInspectionCamera({
 
   const primarySuggestion = visibleSuggestions[0] || null;
   const primaryReminder = visibleReminders[0] || null;
-  const pendingCount =
-    visibleSuggestions.length +
-    visibleReminders.length +
-    (result?.limitations?.length || 0) +
-    (result?.dataPlatePrompt?.needed ? 1 : 0);
+  const pendingCount = liveMemoryItems.length;
 
   const cameraUi = !open ? (
     <div className="rounded-2xl border border-cyan-500/40 bg-cyan-500/10 p-4 text-white">
@@ -1105,6 +1242,11 @@ export default function AILiveInspectionCamera({
         muted
         playsInline
         className="absolute inset-0 h-full w-full bg-black object-cover"
+        style={
+          hardwareZoomSupportedRef.current || zoomLevel <= 1
+            ? undefined
+            : { transform: `scale(${zoomLevel})`, transformOrigin: "center center" }
+        }
       />
 
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/65" />
@@ -1119,7 +1261,11 @@ export default function AILiveInspectionCamera({
               key={`camera-region-${createSuggestionKey(suggestion)}-${index}`}
               type="button"
               onClick={() => setDetailsOpen(true)}
-              className="absolute z-10 border-2 border-emerald-400 bg-emerald-400/10 shadow-[0_0_18px_rgba(74,222,128,0.45)]"
+              className={`absolute z-10 border-2 bg-emerald-400/10 shadow-[0_0_18px_rgba(74,222,128,0.45)] ${
+                region.approximate
+                  ? "border-dashed border-amber-300"
+                  : "border-emerald-400"
+              }`}
               style={{
                 left: `${region.x * 100}%`,
                 top: `${region.y * 100}%`,
@@ -1128,6 +1274,7 @@ export default function AILiveInspectionCamera({
               }}
             >
               <span className="absolute left-1/2 top-0 max-w-[220px] -translate-x-1/2 -translate-y-full rounded-xl bg-black/85 px-3 py-2 text-xs font-bold text-emerald-300 backdrop-blur">
+                {region.approximate ? "Approximate review area: " : ""}
                 {region.label || suggestion.title}
               </span>
             </button>
@@ -1148,7 +1295,7 @@ export default function AILiveInspectionCamera({
           type="button"
           onClick={() => setAutoWatch((current) => !current)}
           disabled={!online || starting}
-          className="rounded-2xl border border-white/10 bg-black/80 px-6 py-3 text-center shadow-2xl backdrop-blur-xl disabled:opacity-50"
+          className="min-w-[230px] whitespace-nowrap rounded-2xl border border-white/10 bg-black/80 px-5 py-3 text-center shadow-2xl backdrop-blur-xl disabled:opacity-50"
         >
           <span className="block text-[11px] font-black uppercase tracking-[0.2em] text-white">
             AI Second Inspector
@@ -1189,13 +1336,21 @@ export default function AILiveInspectionCamera({
         </div>
       </div>
 
-      <div className="absolute right-5 top-[22%] z-20 flex h-[34%] flex-col items-center">
-        <div className="rounded-full bg-black/65 px-3 py-2 text-sm font-bold backdrop-blur">
-          1.0x
+      <div className="absolute right-4 top-[23%] z-20 flex h-[35%] w-12 flex-col items-center">
+        <div className="rounded-full bg-black/75 px-3 py-2 text-sm font-bold backdrop-blur">
+          {zoomLevel.toFixed(1)}x
         </div>
-        <div className="mt-3 h-full w-1 rounded-full bg-white/25">
-          <div className="mt-[46%] h-4 w-4 -translate-x-[6px] rounded-full bg-white shadow-xl" />
-        </div>
+        <input
+          type="range"
+          min={zoomMin}
+          max={zoomMax}
+          step={0.1}
+          value={zoomLevel}
+          onChange={(event) => void handleZoomChange(Number(event.target.value))}
+          aria-label="Camera zoom"
+          className="mt-3 h-full w-8 cursor-pointer accent-white [appearance:slider-vertical]"
+          style={{ writingMode: "vertical-lr", direction: "rtl" }}
+        />
       </div>
 
       <div className="absolute bottom-[238px] left-5 z-20 w-[40%] max-w-[280px] space-y-3">
@@ -1247,12 +1402,36 @@ export default function AILiveInspectionCamera({
           onClick={() => setDetailsOpen(true)}
           className="w-full rounded-3xl border border-amber-400/20 bg-black/78 px-4 py-3 text-left shadow-2xl backdrop-blur-xl"
         >
-          <span className="block text-xs font-black text-amber-300">
-            🧠 Live Memory
-          </span>
-          <span className="mt-1 block text-sm font-bold">
-            {pendingCount} item{pendingCount === 1 ? "" : "s"} tracked ›
-          </span>
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-black text-amber-300">🧠 LIVE MEMORY</span>
+            <span className="rounded-full border border-amber-300/40 px-2 py-0.5 text-[10px] font-black text-amber-200">
+              {liveMemoryItems.length}
+            </span>
+          </div>
+          <div className="mt-2 space-y-1">
+            {liveMemoryItems.slice(0, 4).map((item) => (
+              <div key={item.key} className="flex items-center gap-2 text-xs font-semibold text-white">
+                <span className={`h-2 w-2 shrink-0 rounded-full ${
+                  item.kind === "suggestion"
+                    ? "bg-red-400"
+                    : item.kind === "reminder"
+                      ? "bg-cyan-300"
+                      : item.kind === "limitation"
+                        ? "bg-yellow-300"
+                        : "bg-purple-300"
+                }`} />
+                <span className="truncate">{item.title}</span>
+              </div>
+            ))}
+            {liveMemoryItems.length > 4 && (
+              <div className="pl-4 text-[11px] font-bold text-slate-300">
+                +{liveMemoryItems.length - 4} more
+              </div>
+            )}
+            {!liveMemoryItems.length && (
+              <div className="text-xs text-slate-300">AI is watching for items…</div>
+            )}
+          </div>
         </button>
       </div>
 
@@ -1278,12 +1457,20 @@ export default function AILiveInspectionCamera({
         ACTIONS⌃
       </button>
 
-      <div className="absolute bottom-[max(0.7rem,env(safe-area-inset-bottom))] left-5 right-5 z-20 grid h-[92px] grid-cols-4 rounded-3xl border border-white/15 bg-black/82 px-2 py-2 shadow-2xl backdrop-blur-xl">
+      <div
+        className="absolute bottom-[max(0.7rem,env(safe-area-inset-bottom))] left-4 right-4 z-20 rounded-3xl border border-white/15 bg-black/85 px-2 py-2 shadow-2xl backdrop-blur-xl"
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+          alignItems: "stretch",
+          height: "88px",
+        }}
+      >
         <button
           type="button"
           onClick={quickAddPhoto}
           disabled={starting || recordingVideo}
-          className="rounded-2xl text-center active:bg-white/10 disabled:opacity-50"
+          className="rounded-2xl text-center active:bg-white/10 disabled:opacity-50" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minWidth: 0 }}
         >
           <span className="block text-2xl">📷</span>
           <span className="mt-1 block text-[11px] font-bold">Quick Photo</span>
@@ -1296,6 +1483,7 @@ export default function AILiveInspectionCamera({
           className={`rounded-2xl text-center active:bg-white/10 disabled:opacity-50 ${
             recordingVideo ? "text-red-300" : ""
           }`}
+          style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minWidth: 0 }}
         >
           <span className="block text-2xl">{recordingVideo ? "⏹" : "🎥"}</span>
           <span className="mt-1 block text-[11px] font-bold">
@@ -1325,7 +1513,7 @@ export default function AILiveInspectionCamera({
 
             onScanDataPlate(captured);
           }}
-          className="rounded-2xl text-center active:bg-white/10"
+          className="rounded-2xl text-center active:bg-white/10" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minWidth: 0 }}
         >
           <span className="block text-2xl">▣</span>
           <span className="mt-1 block text-[11px] font-bold">Data Plate</span>

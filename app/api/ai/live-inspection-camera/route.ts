@@ -96,15 +96,42 @@ function cleanSeverity(value: any, fallback = "Recommended Repair") {
   return VALID_SEVERITIES.includes(normalized) ? normalized : fallback;
 }
 
-function cleanRegion(value: any) {
-  if (!value || typeof value !== "object") return null;
+function cleanRegion(value: any, fallbackLabel = "") {
+  if (!value) return null;
 
-  const x = Number(value.x);
-  const y = Number(value.y);
-  const width = Number(value.width);
-  const height = Number(value.height);
+  let raw: any = value;
+
+  if (Array.isArray(value) && value.length >= 4) {
+    raw = { x: value[0], y: value[1], width: value[2], height: value[3] };
+  }
+
+  if (typeof raw !== "object") return null;
+
+  let x = Number(raw.x ?? raw.left ?? raw.x1 ?? raw.minX);
+  let y = Number(raw.y ?? raw.top ?? raw.y1 ?? raw.minY);
+  let width = Number(raw.width ?? raw.w);
+  let height = Number(raw.height ?? raw.h);
+
+  const x2 = Number(raw.x2 ?? raw.right ?? raw.maxX);
+  const y2 = Number(raw.y2 ?? raw.bottom ?? raw.maxY);
+
+  if (!Number.isFinite(width) && Number.isFinite(x2) && Number.isFinite(x)) {
+    width = x2 - x;
+  }
+  if (!Number.isFinite(height) && Number.isFinite(y2) && Number.isFinite(y)) {
+    height = y2 - y;
+  }
 
   if (![x, y, width, height].every(Number.isFinite)) return null;
+
+  // Accept either normalized 0–1 coordinates or percentages 0–100.
+  const largest = Math.max(Math.abs(x), Math.abs(y), Math.abs(width), Math.abs(height));
+  if (largest > 1.5) {
+    x /= 100;
+    y /= 100;
+    width /= 100;
+    height /= 100;
+  }
 
   const clamp = (number: number) => Math.max(0, Math.min(1, number));
   const region = {
@@ -112,7 +139,8 @@ function cleanRegion(value: any) {
     y: clamp(y),
     width: clamp(width),
     height: clamp(height),
-    label: cleanText(value.label),
+    label: cleanText(raw.label || raw.name || fallbackLabel),
+    approximate: false,
   };
 
   if (region.width < 0.02 || region.height < 0.02) return null;
@@ -189,7 +217,21 @@ function cleanSuggestion(value: any, index: number) {
       ? value.evidence.map(cleanText).filter(Boolean).slice(0, 5)
       : [],
     suggestionType: cleanText(value?.suggestionType || value?.type) || "defect",
-    region: cleanRegion(value?.region || value?.boundingBox || value?.box),
+    region:
+      cleanRegion(
+        value?.region || value?.boundingBox || value?.box || value?.bbox,
+        title,
+      ) ||
+      (normalizeConfidence(value?.confidence) >= 0.6
+        ? {
+            x: 0.15,
+            y: 0.18,
+            width: 0.7,
+            height: 0.5,
+            label: title,
+            approximate: true,
+          }
+        : null),
   };
 }
 
@@ -494,7 +536,10 @@ Return ONLY valid JSON in this exact structure:
 Rules:
 - Return multiple suggestions when multiple visible concerns are present.
 - Do not limit output to one defect.
-- For each visible suggestion, include a normalized region using x, y, width, and height values from 0 to 1. The region must tightly frame the visible evidence. Use null/zero-sized region only when the evidence cannot be localized.
+- For every visible suggestion, you MUST include a region using normalized x, y, width, and height values from 0 to 1.
+- The coordinates refer to the full supplied image: x/y are the top-left corner and width/height define the box.
+- Tightly frame the exact visible evidence. Do not omit the region for a visible condition.
+- If exact localization is genuinely impossible, provide your best broad approximate region rather than null.
 - It is okay to return zero suggestions if nothing reportable is visible.
 - Keep suggestions conservative and based on visible evidence.
 - Use cautious wording such as "appeared", "was observed", "may", and "recommend verification".
