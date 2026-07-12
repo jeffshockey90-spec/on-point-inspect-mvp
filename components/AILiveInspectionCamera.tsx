@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { saveFileToDeviceGallery } from "../lib/nativeGallery";
 
 const MAX_DISMISSED_AGE_MS = 8 * 60 * 1000;
 const RESURFACE_CONFIDENCE_BOOST = 0.12;
@@ -281,6 +282,7 @@ export default function AILiveInspectionCamera({
   const [activeRegionSuggestions, setActiveRegionSuggestions] = useState<
     Array<AILiveSuggestion & { detectedAt: number }>
   >([]);
+  const gallerySavedKeysRef = useRef<Set<string>>(new Set());
   const [analyzing, setAnalyzing] = useState(false);
   const [autoWatch, setAutoWatch] = useState(true);
   const [lastAutoScanAt, setLastAutoScanAt] = useState(0);
@@ -765,12 +767,30 @@ export default function AILiveInspectionCamera({
     }
   }
 
+  async function saveSelectedMediaToGallery(file: File | null | undefined) {
+    if (!file) return false;
+
+    const key = `${file.name}:${file.size}:${file.lastModified}`;
+    if (gallerySavedKeysRef.current.has(key)) return true;
+
+    try {
+      const saved = await saveFileToDeviceGallery(file);
+      if (saved) gallerySavedKeysRef.current.add(key);
+      return saved;
+    } catch (error) {
+      console.error("AI camera gallery save failed:", error);
+      return false;
+    }
+  }
+
   function quickAddPhoto() {
     const captured = captureFrame({ silent: true });
     if (!captured) return;
 
     try {
-      onAddPhotoOnly(dataUrlToFile(captured, "ai-live-photo"));
+      const file = dataUrlToFile(captured, "ai-live-photo");
+      onAddPhotoOnly(file);
+      void saveSelectedMediaToGallery(file);
       setFrameDataUrl("");
       latestFrameRef.current = "";
       setMessage("Photo added to the Field Tool. Camera remains open for the next capture.");
@@ -841,7 +861,8 @@ export default function AILiveInspectionCamera({
         });
 
         onAddPhotoOnly(file);
-        setMessage("Video added to the Field Tool. Camera remains open for the next capture.");
+        void saveSelectedMediaToGallery(file);
+        setMessage("Video added to the Field Tool and queued for the device gallery.");
         recordMemoryEvent({
           eventType: "live_camera_media",
           status: "saved",
@@ -1044,7 +1065,14 @@ export default function AILiveInspectionCamera({
   }
 
   function useSuggestion(suggestion: AILiveSuggestion) {
-    onUseSuggestion(suggestion, frameFile);
+    const selectedFrame =
+      frameFile ||
+      (latestFrameRef.current
+        ? dataUrlToFile(latestFrameRef.current, "ai-live-finding")
+        : null);
+
+    onUseSuggestion(suggestion, selectedFrame);
+    void saveSelectedMediaToGallery(selectedFrame);
     recordMemoryEvent({
       eventType: "live_camera_suggestion",
       status: "accepted",
@@ -1240,13 +1268,19 @@ export default function AILiveInspectionCamera({
         }),
       );
 
+      const limitationGalleryFile = dataUrlToFile(
+        savedFrame,
+        "ai-live-limitation",
+      );
+      void saveSelectedMediaToGallery(limitationGalleryFile);
+
       setResult(null);
       setWaitingForDecision(false);
       setFrameDataUrl("");
       latestFrameRef.current = "";
 
       setMessage(
-        `Limitation added to ${targetSection} with photo. AI Watching resumed.`,
+        `Limitation added to ${targetSection} with photo and queued for the device gallery.`,
       );
     } catch (error: any) {
       setMessage(error?.message || "Failed to add limitation to section.");
@@ -1313,6 +1347,7 @@ export default function AILiveInspectionCamera({
     }
 
     onAddPhotoOnly(captured);
+    void saveSelectedMediaToGallery(captured);
     recordMemoryEvent({
       eventType: "section_coach_item",
       status: "saved",
@@ -1342,6 +1377,7 @@ export default function AILiveInspectionCamera({
       if (!captured) return;
       const nextFile = dataUrlToFile(captured);
       onAddPhotoOnly(nextFile);
+      void saveSelectedMediaToGallery(nextFile);
       setResult(null);
       setWaitingForDecision(false);
       setMessage("Photo saved. AI Watching can continue scanning.");
@@ -1349,6 +1385,7 @@ export default function AILiveInspectionCamera({
     }
 
     onAddPhotoOnly(frameFile);
+    void saveSelectedMediaToGallery(frameFile);
     setResult(null);
     setWaitingForDecision(false);
     setMessage("Photo saved. AI Watching can continue scanning.");
@@ -1356,6 +1393,66 @@ export default function AILiveInspectionCamera({
 
   const primarySuggestion = visibleSuggestions[0] || null;
   const primaryReminder = visibleReminders[0] || null;
+
+  const displayedRegionSuggestions = useMemo(() => {
+    const preciseOrPersisted =
+      activeRegionSuggestions.length > 0
+        ? activeRegionSuggestions
+        : visibleSuggestions.map((suggestion) => ({
+            ...suggestion,
+            detectedAt: Date.now(),
+          }));
+
+    if (preciseOrPersisted.length > 0) {
+      return preciseOrPersisted.slice(0, 4).map((suggestion, index) => ({
+        ...suggestion,
+        region:
+          suggestion.region || {
+            x: 0.14 + index * 0.035,
+            y: 0.18 + index * 0.035,
+            width: 0.6,
+            height: 0.38,
+            label: suggestion.title,
+            approximate: true,
+          },
+      }));
+    }
+
+    const limitation = result?.limitations?.[0];
+
+    if (limitation) {
+      return [
+        {
+          id: limitation.id || "live-limitation-box",
+          title: limitation.title || "AI review area",
+          section: limitation.section || currentSection,
+          severity: "Informational",
+          observation: limitation.limitation,
+          implication: limitation.reason || "",
+          recommendation: limitation.recommendation || "",
+          confidence: limitation.confidence,
+          suggestionType: "documentation",
+          detectedAt: Date.now(),
+          region: {
+            x: 0.16,
+            y: 0.2,
+            width: 0.58,
+            height: 0.36,
+            label: limitation.title || "AI review area",
+            approximate: true,
+          },
+        } as AILiveSuggestion & { detectedAt: number },
+      ];
+    }
+
+    return [];
+  }, [
+    activeRegionSuggestions,
+    visibleSuggestions,
+    result?.limitations,
+    currentSection,
+  ]);
+
   const pendingCount = liveMemoryItems.length;
 
   const cameraUi = !open ? (
@@ -1403,7 +1500,7 @@ export default function AILiveInspectionCamera({
 
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/65" />
 
-      {activeRegionSuggestions
+      {displayedRegionSuggestions
         .filter((suggestion) => suggestion.region)
         .slice(0, 4)
         .map((suggestion, index) => {
@@ -1413,10 +1510,8 @@ export default function AILiveInspectionCamera({
               key={`camera-region-${createSuggestionKey(suggestion)}-${index}`}
               type="button"
               onClick={() => setDetailsOpen(true)}
-              className={`absolute z-10 border-2 bg-emerald-400/10 shadow-[0_0_18px_rgba(74,222,128,0.45)] ${
-                region.approximate
-                  ? "border-dashed border-amber-300"
-                  : "border-emerald-400"
+              className={`absolute z-10 border-[3px] border-emerald-400 bg-emerald-400/10 shadow-[0_0_24px_rgba(74,222,128,0.8)] ${
+                region.approximate ? "border-dashed" : ""
               }`}
               style={mapRegionToObjectCover(
                 region,
@@ -1426,8 +1521,8 @@ export default function AILiveInspectionCamera({
                 viewportSize.height,
               )}
             >
-              <span className="absolute left-1/2 top-0 max-w-[220px] -translate-x-1/2 -translate-y-full rounded-xl bg-black/85 px-3 py-2 text-xs font-bold text-emerald-300 backdrop-blur">
-                {region.approximate ? "Approximate review area: " : ""}
+              <span className="absolute left-1/2 top-0 max-w-[240px] -translate-x-1/2 -translate-y-full rounded-xl border border-emerald-400/50 bg-black/90 px-3 py-2 text-xs font-black text-emerald-300 shadow-xl backdrop-blur">
+                {region.approximate ? "AI review area: " : ""}
                 {region.label || suggestion.title}
               </span>
             </button>
@@ -1664,6 +1759,7 @@ export default function AILiveInspectionCamera({
               return dataUrl ? dataUrlToFile(dataUrl) : null;
             })();
 
+            void saveSelectedMediaToGallery(captured);
             onScanDataPlate(captured);
           }}
           className="rounded-2xl text-center active:bg-white/10" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minWidth: 0 }}
@@ -1760,7 +1856,10 @@ export default function AILiveInspectionCamera({
                 </button>
                 <button
                   type="button"
-                  onClick={() => onScanDataPlate(frameFile)}
+                  onClick={() => {
+                    void saveSelectedMediaToGallery(frameFile);
+                    onScanDataPlate(frameFile);
+                  }}
                   className="rounded-2xl border border-yellow-500 bg-yellow-500/10 p-4 font-black text-yellow-200"
                 >
                   Scan Data Plate
@@ -1771,6 +1870,61 @@ export default function AILiveInspectionCamera({
 
             {detailsOpen && (
               <div className="space-y-4">
+                <div className="sticky top-0 z-10 rounded-2xl border border-amber-400/30 bg-[#06101f]/95 p-4 shadow-xl backdrop-blur">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-[0.15em] text-amber-300">
+                        Everything AI Has Found
+                      </p>
+                      <p className="mt-1 text-sm text-slate-300">
+                        Scroll through every tracked item.
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-amber-300 px-3 py-1 text-sm font-black text-black">
+                      {liveMemoryItems.length}
+                    </span>
+                  </div>
+                </div>
+
+                {liveMemoryItems.length > 0 && (
+                  <div className="rounded-2xl border border-amber-400/30 bg-amber-400/10 p-4">
+                    <p className="text-xs font-black uppercase tracking-[0.15em] text-amber-300">
+                      Live Memory
+                    </p>
+                    <div className="mt-3 space-y-2">
+                      {liveMemoryItems.map((item) => (
+                        <div
+                          key={`memory-detail-${item.key}`}
+                          className="flex items-start gap-3 rounded-xl border border-white/10 bg-black/30 p-3"
+                        >
+                          <span
+                            className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${
+                              item.kind === "suggestion"
+                                ? "bg-red-400"
+                                : item.kind === "reminder"
+                                  ? "bg-cyan-300"
+                                  : item.kind === "limitation"
+                                    ? "bg-yellow-300"
+                                    : "bg-purple-300"
+                            }`}
+                          />
+                          <div className="min-w-0">
+                            <p className="text-sm font-black text-white">
+                              {item.title}
+                            </p>
+                            <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">
+                              {item.kind.replace("_", " ")}
+                              {item.confidence
+                                ? ` · ${confidenceLabel(item.confidence)}`
+                                : ""}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {visibleSuggestions.map((suggestion, index) => (
                   <div
                     key={`${createSuggestionKey(suggestion)}-${index}`}
