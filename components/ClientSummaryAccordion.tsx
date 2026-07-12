@@ -248,13 +248,16 @@ function CompactSummaryCard({
               <video
                 src={fullUrl.includes("#t=") ? fullUrl : `${fullUrl}#t=0.1`}
                 poster={previewUrl || undefined}
-                muted
+                controls
                 playsInline
                 preload="metadata"
                 aria-label={`${title} video preview`}
                 className="h-full w-full object-cover"
+                onClick={(event) => event.stopPropagation()}
                 onError={() => setImageFailed(true)}
-              />
+              >
+                Your browser does not support video playback.
+              </video>
               <span className="pointer-events-none absolute bottom-2 left-2 rounded-full bg-black/80 px-2 py-1 text-[10px] font-black text-cyan-200">
                 ▶ VIDEO
               </span>
