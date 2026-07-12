@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
 type Props = {
@@ -12,7 +12,7 @@ type Props = {
   badgeText?: string;
 };
 
-export default function ExpandableReportImage({
+function ExpandableReportImage({
   src,
   fullSrc,
   alt = "Report image",
@@ -22,13 +22,7 @@ export default function ExpandableReportImage({
   badgeText = "Tap to enlarge",
 }: Props) {
   const [expanded, setExpanded] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const fullImageUrl = fullSrc || src;
-
-  useEffect(() => {
-    setMounted(true);
-    return () => setMounted(false);
-  }, []);
 
   useEffect(() => {
     if (!expanded) return;
@@ -54,7 +48,7 @@ export default function ExpandableReportImage({
   if (!src) return null;
 
   const modal =
-    expanded && mounted
+    expanded && typeof document !== "undefined"
       ? createPortal(
           <div
             role="dialog"
@@ -107,7 +101,6 @@ export default function ExpandableReportImage({
           fetchPriority="low"
           draggable={false}
           className={className}
-          style={{ contentVisibility: "auto", containIntrinsicSize: "260px" }}
         />
 
         <span className="pointer-events-none absolute bottom-2 right-2 rounded-full border border-white/30 bg-black/70 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-white">
@@ -119,3 +112,5 @@ export default function ExpandableReportImage({
     </>
   );
 }
+
+export default memo(ExpandableReportImage);

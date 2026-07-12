@@ -249,7 +249,6 @@ function CompactSummaryCard({
     <article
       data-summary-card-id={cardId}
       className={`overflow-hidden rounded-2xl border bg-[#0b1426] ${toneStyle.border}`}
-      style={{ contentVisibility: "auto", containIntrinsicSize: "210px" }}
     >
       <div className="grid w-full grid-cols-[116px_minmax(0,1fr)] gap-4 p-4 sm:grid-cols-[132px_minmax(0,1fr)]">
         <div className="relative h-[116px] w-[116px] overflow-hidden rounded-xl border border-slate-700 bg-slate-900 sm:h-[132px] sm:w-[132px]">
@@ -367,18 +366,22 @@ function CompactSummaryCard({
               ×
             </button>
 
-            <video
-              src={fullUrl}
-              poster={previewUrl || undefined}
-              controls
-              autoPlay
-              playsInline
-              preload="auto"
+            <div
+              className="flex h-full w-full items-center justify-center"
               onClick={(event) => event.stopPropagation()}
-              className="h-auto max-h-[92dvh] w-auto max-w-[94vw] rounded-xl bg-black object-contain shadow-2xl"
             >
-              Your browser does not support video playback.
-            </video>
+              <video
+                src={fullUrl}
+                poster={previewUrl || undefined}
+                controls
+                autoPlay
+                playsInline
+                preload="auto"
+                className="h-auto max-h-[92dvh] w-auto max-w-[94vw] rounded-xl bg-black object-contain shadow-2xl"
+              >
+                Your browser does not support video playback.
+              </video>
+            </div>
           </div>,
           document.body,
         )}
@@ -486,7 +489,6 @@ export default function ClientSummaryAccordion({
             key={group.key}
             id={`client-summary-${group.key}`}
             className="scroll-mt-24"
-            style={{ contentVisibility: "auto", containIntrinsicSize: "520px" }}
           >
             <div className="mb-4 flex items-start justify-between gap-3">
               <div className="min-w-0">

@@ -495,11 +495,6 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
             className={`w-full max-w-full overflow-x-hidden rounded-2xl border border-slate-700 bg-[#0f172a] shadow-lg transition ${
               isDragging ? "opacity-50 ring-2 ring-teal-400" : ""
             }`}
-            style={{
-              contentVisibility: "auto",
-              containIntrinsicSize: isClosed ? "86px" : "900px",
-              contain: "layout paint style",
-            }}
           >
             <div className="flex min-w-0 items-stretch border-b border-slate-700">
               <div
@@ -2061,7 +2056,7 @@ Instructions:
         setDraggingOver(false);
       }}
       onDrop={handleFindingDrop}
-      className={`w-full max-w-full overflow-x-hidden rounded-2xl border bg-[#071224] shadow-xl transition [content-visibility:auto] [contain-intrinsic-size:900px] ${
+      className={`w-full max-w-full overflow-x-hidden rounded-2xl border bg-[#071224] shadow-xl transition ${
         draggingOver
           ? "border-teal-400 ring-2 ring-teal-400/40"
           : "border-slate-700"
@@ -2112,7 +2107,6 @@ Instructions:
                 <div
                   key={String(photo.id || photo.file_path || url || index)}
                   className="w-full max-w-full overflow-x-hidden rounded-xl border border-slate-700 bg-slate-950"
-                  style={{ contentVisibility: "auto", containIntrinsicSize: "420px" }}
                 >
                   {isVideoMedia(photo) ? (
                     <div className="flex justify-center rounded-xl bg-black p-2">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { memo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../lib/supabaseClient";
 import FastLinkButton from "./FastLinkButton";
@@ -29,7 +29,7 @@ const SEVERITIES = [
   "Major Concern",
 ];
 
-export default function EditableFinding({ finding }: { finding: any }) {
+function EditableFinding({ finding }: { finding: any }) {
   const router = useRouter();
 
   const [editing, setEditing] = useState(false);
@@ -610,3 +610,5 @@ function Textarea({
     </label>
   );
 }
+
+export default memo(EditableFinding);
