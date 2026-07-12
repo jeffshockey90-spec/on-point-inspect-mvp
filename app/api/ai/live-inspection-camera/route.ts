@@ -221,17 +221,14 @@ function cleanSuggestion(value: any, index: number) {
       cleanRegion(
         value?.region || value?.boundingBox || value?.box || value?.bbox,
         title,
-      ) ||
-      (normalizeConfidence(value?.confidence) >= 0.6
-        ? {
-            x: 0.15,
-            y: 0.18,
-            width: 0.7,
-            height: 0.5,
-            label: title,
-            approximate: true,
-          }
-        : null),
+      ) || {
+        x: 0.12,
+        y: 0.12,
+        width: 0.76,
+        height: 0.58,
+        label: title,
+        approximate: true,
+      },
   };
 }
 
@@ -248,6 +245,7 @@ function cleanReminder(value: any, index: number) {
 
 function cleanLimitation(value: any, index: number, fallbackSection: string) {
   const section = cleanSection(value?.section, fallbackSection);
+  const title = cleanText(value?.title) || "Inspection Limitation";
 
   return {
     id:
@@ -256,7 +254,7 @@ function cleanLimitation(value: any, index: number, fallbackSection: string) {
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/^-+|-+$/g, ""),
-    title: cleanText(value?.title) || "Inspection Limitation",
+    title,
     section,
     limitation:
       cleanText(value?.limitation || value?.observation || value?.description) ||
@@ -268,6 +266,11 @@ function cleanLimitation(value: any, index: number, fallbackSection: string) {
       cleanText(value?.recommendation) ||
       "Document the limitation and inspect further if access becomes available.",
     confidence: normalizeConfidence(value?.confidence, 0.72),
+    region:
+      cleanRegion(
+        value?.region || value?.boundingBox || value?.box || value?.bbox,
+        title,
+      ) || null,
   };
 }
 
@@ -512,7 +515,14 @@ Return ONLY valid JSON in this exact structure:
       "detail": "",
       "priority": "low | medium | high",
       "action": "check | document | photo | scan_data_plate",
-      "confidence": 0.0
+      "confidence": 0.0,
+      "region": {
+        "x": 0.0,
+        "y": 0.0,
+        "width": 0.0,
+        "height": 0.0,
+        "label": ""
+      }
     }
   ],
   "limitations": [
@@ -536,7 +546,7 @@ Return ONLY valid JSON in this exact structure:
 Rules:
 - Return multiple suggestions when multiple visible concerns are present.
 - Do not limit output to one defect.
-- For every visible suggestion, you MUST include a region using normalized x, y, width, and height values from 0 to 1.
+- For every visible suggestion and every visible limitation, you MUST include a region using normalized x, y, width, and height values from 0 to 1.
 - The coordinates refer to the full supplied image: x/y are the top-left corner and width/height define the box.
 - Tightly frame the exact visible evidence. Do not omit the region for a visible condition.
 - If exact localization is genuinely impossible, provide your best broad approximate region rather than null.
@@ -579,7 +589,7 @@ Mode: ${mode}
 Recent inspection memory for this section:
 ${recentMemory}
 
-Analyze this live inspection camera frame.
+Analyze this live inspection camera frame based on what is actually visible. The selected section is context only and must not prevent you from identifying a visible concern from another section.
 Use prior memory to avoid repeating items the inspector already confirmed, while still resurfacing a concern if the current frame provides stronger or materially different evidence.
 
 Return multiple findings if multiple concerns are visible.
@@ -607,7 +617,7 @@ If mode is "live_watch":
       ? parsed.suggestions.slice(0, 6)
       : [];
 
-    const suggestions = (isLiveWatch ? filterForLiveWatch(rawSuggestions) : rawSuggestions)
+    const suggestions = rawSuggestions
       .slice(0, 6)
       .map(cleanSuggestion);
 
@@ -635,11 +645,36 @@ If mode is "live_watch":
     const limitations = Array.isArray(parsed?.limitations)
       ? parsed.limitations
           .slice(0, 6)
-          .filter((item: any) => !isLiveWatch || normalizeConfidence(item?.confidence, 0) >= 0.76)
+          .filter((item: any) => !isLiveWatch || normalizeConfidence(item?.confidence, 0) >= 0.6)
           .map((item: any, index: number) =>
             cleanLimitation(item, index, currentSection),
           )
       : [];
+
+    const localizedLimitationSuggestions =
+      suggestions.length === 0
+        ? limitations
+            .filter((item: any) => Boolean(item.region))
+            .map((item: any, index: number) =>
+              cleanSuggestion(
+                {
+                  id: `limitation-visual-${item.id || index}`,
+                  title: item.title,
+                  section: item.section || currentSection,
+                  severity: "Informational",
+                  observation: item.limitation,
+                  implication: item.reason,
+                  recommendation: item.recommendation,
+                  confidence: item.confidence,
+                  suggestionType: "documentation",
+                  region: item.region,
+                },
+                index,
+              ),
+            )
+        : [];
+
+    const finalSuggestions = [...suggestions, ...localizedLimitationSuggestions].slice(0, 6);
 
     const dataPlatePrompt = parsed?.dataPlatePrompt || {};
     const cleanDataPlatePrompt = {
@@ -653,7 +688,7 @@ If mode is "live_watch":
       system: cleanText(parsed?.system) || "",
       confidence: normalizeConfidence(parsed?.confidence),
       summary: cleanText(parsed?.summary),
-      suggestions,
+      suggestions: finalSuggestions,
       reminders,
       limitations,
       dataPlatePrompt: cleanDataPlatePrompt,

@@ -165,6 +165,60 @@ function confidenceLabel(value: any) {
   return `${Math.round(confidence * 100)}%`;
 }
 
+const LIVE_SCAN_INTERVAL_OPTIONS = [3, 5, 8, 10, 15, 30];
+
+function getLiveScanIntervalKey(inspectionId: string) {
+  return `opi-ai-live-scan-seconds-${String(inspectionId || "").trim()}`;
+}
+
+function mapRegionToObjectCover(
+  region: NonNullable<AILiveSuggestion["region"]>,
+  sourceWidth: number,
+  sourceHeight: number,
+  viewportWidth: number,
+  viewportHeight: number,
+) {
+  if (
+    sourceWidth <= 0 ||
+    sourceHeight <= 0 ||
+    viewportWidth <= 0 ||
+    viewportHeight <= 0
+  ) {
+    return {
+      left: `${region.x * 100}%`,
+      top: `${region.y * 100}%`,
+      width: `${region.width * 100}%`,
+      height: `${region.height * 100}%`,
+    };
+  }
+
+  const scale = Math.max(
+    viewportWidth / sourceWidth,
+    viewportHeight / sourceHeight,
+  );
+  const renderedWidth = sourceWidth * scale;
+  const renderedHeight = sourceHeight * scale;
+  const offsetX = (viewportWidth - renderedWidth) / 2;
+  const offsetY = (viewportHeight - renderedHeight) / 2;
+
+  const leftPx = region.x * sourceWidth * scale + offsetX;
+  const topPx = region.y * sourceHeight * scale + offsetY;
+  const widthPx = region.width * sourceWidth * scale;
+  const heightPx = region.height * sourceHeight * scale;
+
+  const clippedLeft = Math.max(0, leftPx);
+  const clippedTop = Math.max(0, topPx);
+  const clippedRight = Math.min(viewportWidth, leftPx + widthPx);
+  const clippedBottom = Math.min(viewportHeight, topPx + heightPx);
+
+  return {
+    left: `${(clippedLeft / viewportWidth) * 100}%`,
+    top: `${(clippedTop / viewportHeight) * 100}%`,
+    width: `${Math.max(0, ((clippedRight - clippedLeft) / viewportWidth) * 100)}%`,
+    height: `${Math.max(0, ((clippedBottom - clippedTop) / viewportHeight) * 100)}%`,
+  };
+}
+
 function createLimitationText(limitation: AILiveLimitation) {
   const parts = [
     limitation.limitation,
@@ -221,6 +275,12 @@ export default function AILiveInspectionCamera({
   const [zoomMin, setZoomMin] = useState(1);
   const [zoomMax, setZoomMax] = useState(3);
   const [liveMemoryItems, setLiveMemoryItems] = useState<LiveMemoryItem[]>([]);
+  const [scanIntervalSeconds, setScanIntervalSeconds] = useState(8);
+  const [videoSize, setVideoSize] = useState({ width: 0, height: 0 });
+  const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 });
+  const [activeRegionSuggestions, setActiveRegionSuggestions] = useState<
+    Array<AILiveSuggestion & { detectedAt: number }>
+  >([]);
   const [analyzing, setAnalyzing] = useState(false);
   const [autoWatch, setAutoWatch] = useState(true);
   const [lastAutoScanAt, setLastAutoScanAt] = useState(0);
@@ -372,6 +432,62 @@ export default function AILiveInspectionCamera({
   }, [selectedReport, handledReminderKeys]);
 
   useEffect(() => {
+    if (!selectedReport || typeof window === "undefined") return;
+
+    const saved = Number(
+      window.localStorage.getItem(getLiveScanIntervalKey(selectedReport)),
+    );
+
+    if (LIVE_SCAN_INTERVAL_OPTIONS.includes(saved)) {
+      setScanIntervalSeconds(saved);
+    }
+  }, [selectedReport]);
+
+  useEffect(() => {
+    if (!selectedReport || typeof window === "undefined") return;
+
+    try {
+      window.localStorage.setItem(
+        getLiveScanIntervalKey(selectedReport),
+        String(scanIntervalSeconds),
+      );
+    } catch {}
+  }, [selectedReport, scanIntervalSeconds]);
+
+  useEffect(() => {
+    if (!open || typeof window === "undefined") return;
+
+    const updateViewport = () => {
+      setViewportSize({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      });
+    };
+
+    updateViewport();
+    window.addEventListener("resize", updateViewport);
+    window.addEventListener("orientationchange", updateViewport);
+
+    return () => {
+      window.removeEventListener("resize", updateViewport);
+      window.removeEventListener("orientationchange", updateViewport);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const timer = window.setInterval(() => {
+      const cutoff = Date.now() - Math.max(12000, scanIntervalSeconds * 2500);
+      setActiveRegionSuggestions((current) =>
+        current.filter((item) => item.detectedAt >= cutoff),
+      );
+    }, 2000);
+
+    return () => window.clearInterval(timer);
+  }, [open, scanIntervalSeconds]);
+
+  useEffect(() => {
     if (!open) {
       setWaitingForDecision(false);
       stopCamera();
@@ -403,24 +519,38 @@ export default function AILiveInspectionCamera({
   useEffect(() => {
     if (!open || !autoWatch || !online || !selectedReport) return;
 
+    const intervalMs = Math.max(3000, scanIntervalSeconds * 1000);
+
     const runScan = () => {
       const now = Date.now();
 
       if (autoScanRunningRef.current) return;
       if (analyzing || starting) return;
-      if (now - lastAutoScanAt < 5500) return;
+      if (now - lastAutoScanAt < intervalMs - 250) return;
 
       void autoAnalyzeFrame();
     };
 
-    const firstScan = window.setTimeout(runScan, 1800);
-    const interval = window.setInterval(runScan, 6000);
+    const firstScan = window.setTimeout(
+      runScan,
+      Math.min(1800, Math.max(900, intervalMs / 3)),
+    );
+    const interval = window.setInterval(runScan, intervalMs);
 
     return () => {
       window.clearTimeout(firstScan);
       window.clearInterval(interval);
     };
-  }, [open, autoWatch, online, selectedReport, analyzing, starting, lastAutoScanAt]);
+  }, [
+    open,
+    autoWatch,
+    online,
+    selectedReport,
+    analyzing,
+    starting,
+    lastAutoScanAt,
+    scanIntervalSeconds,
+  ]);
 
   function recordMemoryEvent({
     eventType,
@@ -799,21 +929,7 @@ export default function AILiveInspectionCamera({
   }
 
   async function autoAnalyzeFrame() {
-    if (!selectedReport || !online || autoScanRunningRef.current || waitingForDecision) return;
-
-    const hasPendingReview =
-      result &&
-      ((result.suggestions || []).length > 0 ||
-        (result.limitations || []).length > 0 ||
-        (result.reminders || []).length > 0 ||
-        result.dataPlatePrompt?.needed);
-
-    if (hasPendingReview) {
-      setMessage(
-        "AI prompt waiting for review. Choose an action or Ignore to continue scanning.",
-      );
-      return;
-    }
+    if (!selectedReport || !online || autoScanRunningRef.current) return;
 
     const dataUrl = captureFrame({ silent: true });
     if (!dataUrl) return;
@@ -883,10 +999,39 @@ export default function AILiveInspectionCamera({
         reminders: highPriorityReminders.length > 0 ? highPriorityReminders : reminders,
       };
 
-      setResult(liveResult);
-      appendLiveMemory(liveResult);
+      setResult((current) => ({
+        ...current,
+        ...liveResult,
+        suggestions: liveResult.suggestions || [],
+        reminders: liveResult.reminders || [],
+        limitations: liveResult.limitations || [],
+      }));
 
-      setWaitingForDecision(true);
+      const localized = (liveResult.suggestions || [])
+        .filter((item: AILiveSuggestion) => Boolean(item.region))
+        .map((item: AILiveSuggestion) => ({
+          ...item,
+          detectedAt: Date.now(),
+        }));
+
+      if (localized.length) {
+        setActiveRegionSuggestions((current) => {
+          const merged = [...localized, ...current];
+          const seen = new Set<string>();
+
+          return merged
+            .filter((item) => {
+              const key = createSuggestionKey(item);
+              if (!key || seen.has(key)) return false;
+              seen.add(key);
+              return true;
+            })
+            .slice(0, 6);
+        });
+      }
+
+      appendLiveMemory(liveResult);
+      setWaitingForDecision(false);
 
       setMessage(
         `AI Second Inspector noticed something in ${data.area || currentSection}. Review before saving anything.`,
@@ -1241,6 +1386,13 @@ export default function AILiveInspectionCamera({
         autoPlay
         muted
         playsInline
+        onLoadedMetadata={(event) => {
+          const video = event.currentTarget;
+          setVideoSize({
+            width: video.videoWidth || 0,
+            height: video.videoHeight || 0,
+          });
+        }}
         className="absolute inset-0 h-full w-full bg-black object-cover"
         style={
           hardwareZoomSupportedRef.current || zoomLevel <= 1
@@ -1251,9 +1403,9 @@ export default function AILiveInspectionCamera({
 
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/65" />
 
-      {visibleSuggestions
+      {activeRegionSuggestions
         .filter((suggestion) => suggestion.region)
-        .slice(0, 3)
+        .slice(0, 4)
         .map((suggestion, index) => {
           const region = suggestion.region!;
           return (
@@ -1266,12 +1418,13 @@ export default function AILiveInspectionCamera({
                   ? "border-dashed border-amber-300"
                   : "border-emerald-400"
               }`}
-              style={{
-                left: `${region.x * 100}%`,
-                top: `${region.y * 100}%`,
-                width: `${region.width * 100}%`,
-                height: `${region.height * 100}%`,
-              }}
+              style={mapRegionToObjectCover(
+                region,
+                videoSize.width,
+                videoSize.height,
+                viewportSize.width,
+                viewportSize.height,
+              )}
             >
               <span className="absolute left-1/2 top-0 max-w-[220px] -translate-x-1/2 -translate-y-full rounded-xl bg-black/85 px-3 py-2 text-xs font-bold text-emerald-300 backdrop-blur">
                 {region.approximate ? "Approximate review area: " : ""}
@@ -1548,7 +1701,41 @@ export default function AILiveInspectionCamera({
             )}
 
             {actionsOpen && (
-              <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-4">
+                <div className="rounded-2xl border border-cyan-500/30 bg-cyan-500/10 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-black text-cyan-100">
+                        AI scan interval
+                      </p>
+                      <p className="mt-1 text-xs text-slate-300">
+                        Analyze the live camera every {scanIntervalSeconds} seconds.
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-cyan-400 px-3 py-1 text-sm font-black text-black">
+                      {scanIntervalSeconds}s
+                    </span>
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-6 gap-2">
+                    {LIVE_SCAN_INTERVAL_OPTIONS.map((seconds) => (
+                      <button
+                        key={seconds}
+                        type="button"
+                        onClick={() => setScanIntervalSeconds(seconds)}
+                        className={`rounded-xl border px-2 py-2 text-xs font-black ${
+                          scanIntervalSeconds === seconds
+                            ? "border-cyan-300 bg-cyan-400 text-black"
+                            : "border-slate-600 bg-slate-900 text-slate-200"
+                        }`}
+                      >
+                        {seconds}s
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
                   onClick={() => captureFrame()}
@@ -1578,6 +1765,7 @@ export default function AILiveInspectionCamera({
                 >
                   Scan Data Plate
                 </button>
+                </div>
               </div>
             )}
 
