@@ -367,22 +367,18 @@ function CompactSummaryCard({
               ×
             </button>
 
-            <div
-              className="flex h-full w-full items-center justify-center"
+            <video
+              src={fullUrl}
+              poster={previewUrl || undefined}
+              controls
+              autoPlay
+              playsInline
+              preload="auto"
               onClick={(event) => event.stopPropagation()}
+              className="h-auto max-h-[92dvh] w-auto max-w-[94vw] rounded-xl bg-black object-contain shadow-2xl"
             >
-              <video
-                src={fullUrl}
-                poster={previewUrl || undefined}
-                controls
-                autoPlay
-                playsInline
-                preload="auto"
-                className="h-auto max-h-[92dvh] w-auto max-w-[94vw] rounded-xl bg-black object-contain shadow-2xl"
-              >
-                Your browser does not support video playback.
-              </video>
-            </div>
+              Your browser does not support video playback.
+            </video>
           </div>,
           document.body,
         )}
