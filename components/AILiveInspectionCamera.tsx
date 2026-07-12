@@ -13,6 +13,7 @@ function getLiveMemoryKey(inspectionId: string) {
 
 type PersistedLiveMemory = {
   dismissed?: Record<string, { confidence: number; at: number }>;
+  snoozed?: Record<string, { until: number; confidence: number }>;
   handledReminders?: Record<string, boolean>;
 };
 
@@ -31,6 +32,7 @@ function readLiveMemory(inspectionId: string): PersistedLiveMemory {
 function writeLiveMemory(
   inspectionId: string,
   dismissed: Record<string, { confidence: number; at: number }>,
+  snoozed: Record<string, { until: number; confidence: number }>,
   handledReminders: Record<string, boolean>,
 ) {
   if (typeof window === "undefined" || !inspectionId) return;
@@ -40,6 +42,7 @@ function writeLiveMemory(
       getLiveMemoryKey(inspectionId),
       JSON.stringify({
         dismissed,
+        snoozed,
         handledReminders,
       }),
     );
@@ -57,6 +60,13 @@ export type AILiveSuggestion = {
   confidence?: number;
   evidence?: string[];
   suggestionType?: "defect" | "maintenance" | "documentation" | "safety" | string;
+  region?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    label?: string;
+  } | null;
 };
 
 type AILiveReminder = {
@@ -183,9 +193,10 @@ export default function AILiveInspectionCamera({
 }: Props) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const recorderRef = useRef<MediaRecorder | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
   const dismissedRef = useRef<Record<string, { confidence: number; at: number }>>({});
+  const snoozedRef = useRef<Record<string, { until: number; confidence: number }>>({});
   const autoScanRunningRef = useRef(false);
 
   const [open, setOpen] = useState(false);
@@ -194,7 +205,7 @@ export default function AILiveInspectionCamera({
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
   const [torchOn, setTorchOn] = useState(false);
-  const [recording, setRecording] = useState(false);
+  const [recordingVideo, setRecordingVideo] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [autoWatch, setAutoWatch] = useState(true);
   const [lastAutoScanAt, setLastAutoScanAt] = useState(0);
@@ -225,10 +236,19 @@ export default function AILiveInspectionCamera({
       const key = createSuggestionKey(suggestion);
       if (!key) return true;
 
+      const nextConfidence = normalizeConfidence(suggestion.confidence);
+      const snoozed = snoozedRef.current[key];
+      if (snoozed && now < snoozed.until && nextConfidence < snoozed.confidence + RESURFACE_CONFIDENCE_BOOST) {
+        return false;
+      }
+
+      if (snoozed && now >= snoozed.until) {
+        delete snoozedRef.current[key];
+      }
+
       const dismissed = dismissedRef.current[key];
       if (!dismissed) return true;
 
-      const nextConfidence = normalizeConfidence(suggestion.confidence);
       const isOldDismissal = now - dismissed.at > MAX_DISMISSED_AGE_MS;
       const confidenceImproved =
         nextConfidence >= dismissed.confidence + RESURFACE_CONFIDENCE_BOOST;
@@ -250,6 +270,7 @@ export default function AILiveInspectionCamera({
 
     const memory = readLiveMemory(selectedReport);
     dismissedRef.current = memory.dismissed || {};
+    snoozedRef.current = memory.snoozed || {};
     setHandledReminderKeys(memory.handledReminders || {});
   }, [selectedReport]);
 
@@ -257,6 +278,7 @@ export default function AILiveInspectionCamera({
     writeLiveMemory(
       selectedReport,
       dismissedRef.current,
+      snoozedRef.current,
       handledReminderKeys,
     );
   }, [selectedReport, handledReminderKeys]);
@@ -293,18 +315,59 @@ export default function AILiveInspectionCamera({
   useEffect(() => {
     if (!open || !autoWatch || !online || !selectedReport) return;
 
-    const interval = window.setInterval(() => {
+    const runScan = () => {
       const now = Date.now();
 
       if (autoScanRunningRef.current) return;
       if (analyzing || starting) return;
-      if (now - lastAutoScanAt < 7500) return;
+      if (now - lastAutoScanAt < 5500) return;
 
       void autoAnalyzeFrame();
-    }, 8000);
+    };
 
-    return () => window.clearInterval(interval);
+    const firstScan = window.setTimeout(runScan, 1800);
+    const interval = window.setInterval(runScan, 6000);
+
+    return () => {
+      window.clearTimeout(firstScan);
+      window.clearInterval(interval);
+    };
   }, [open, autoWatch, online, selectedReport, analyzing, starting, lastAutoScanAt]);
+
+  function recordMemoryEvent({
+    eventType,
+    status,
+    title,
+    detail,
+    confidence,
+    payload,
+    section,
+  }: {
+    eventType: string;
+    status: string;
+    title?: string;
+    detail?: string;
+    confidence?: number;
+    payload?: Record<string, any>;
+    section?: string;
+  }) {
+    if (!selectedReport) return;
+
+    void fetch("/api/ai/inspection-memory", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        inspectionId: selectedReport,
+        section: section || currentSection,
+        eventType,
+        status,
+        title,
+        detail,
+        confidence,
+        payload: payload || {},
+      }),
+    }).catch(() => undefined);
+  }
 
   async function startCamera(mode: "environment" | "user" = facingMode) {
     if (starting) return;
@@ -345,123 +408,20 @@ export default function AILiveInspectionCamera({
   }
 
   function stopCamera() {
-    if (recorderRef.current && recorderRef.current.state !== "inactive") {
-      recorderRef.current.stop();
+    if (mediaRecorderRef.current?.state === "recording") {
+      try {
+        mediaRecorderRef.current.stop();
+      } catch {}
     }
-    recorderRef.current = null;
+    mediaRecorderRef.current = null;
     recordedChunksRef.current = [];
-    setRecording(false);
-    setTorchOn(false);
+    setRecordingVideo(false);
+
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
 
     if (videoRef.current) {
       videoRef.current.srcObject = null;
-    }
-  }
-
-  async function toggleFacingCamera() {
-    if (starting) return;
-    const nextMode = facingMode === "environment" ? "user" : "environment";
-    setFacingMode(nextMode);
-    stopCamera();
-    window.setTimeout(() => {
-      void startCamera(nextMode);
-    }, 120);
-  }
-
-  async function toggleTorch() {
-    const track = streamRef.current?.getVideoTracks?.()[0];
-    if (!track) {
-      setMessage("Flash is not available until the camera is ready.");
-      return;
-    }
-
-    try {
-      const capabilities = track.getCapabilities?.() as MediaTrackCapabilities & {
-        torch?: boolean;
-      };
-
-      if (!capabilities?.torch) {
-        setMessage("Flash is not supported by this camera.");
-        return;
-      }
-
-      const next = !torchOn;
-      await track.applyConstraints({
-        advanced: [{ torch: next } as any],
-      });
-      setTorchOn(next);
-    } catch {
-      setMessage("Flash could not be changed on this device.");
-    }
-  }
-
-  function quickPhoto() {
-    const captured = captureFrame({ silent: true });
-    if (!captured) return;
-    onAddPhotoOnly(dataUrlToFile(captured, "ai-live-photo"));
-    setMessage("Quick photo added to the Field Tool.");
-  }
-
-  function toggleRecording() {
-    if (recording) {
-      recorderRef.current?.stop();
-      return;
-    }
-
-    const stream = streamRef.current;
-    if (!stream) {
-      setMessage("Camera is not ready to record.");
-      return;
-    }
-
-    try {
-      const mimeTypes = [
-        "video/mp4",
-        "video/webm;codecs=vp9",
-        "video/webm;codecs=vp8",
-        "video/webm",
-      ];
-      const mimeType =
-        mimeTypes.find((value) => MediaRecorder.isTypeSupported?.(value)) || "";
-
-      const recorder = new MediaRecorder(
-        stream,
-        mimeType ? { mimeType } : undefined,
-      );
-
-      recordedChunksRef.current = [];
-
-      recorder.ondataavailable = (event) => {
-        if (event.data.size > 0) recordedChunksRef.current.push(event.data);
-      };
-
-      recorder.onstop = () => {
-        const chunks = recordedChunksRef.current;
-        recordedChunksRef.current = [];
-        setRecording(false);
-
-        if (!chunks.length) return;
-
-        const type = recorder.mimeType || "video/webm";
-        const extension = type.includes("mp4") ? "mp4" : "webm";
-        const file = new File(
-          chunks,
-          `ai-live-video-${Date.now()}.${extension}`,
-          { type, lastModified: Date.now() },
-        );
-
-        onAddPhotoOnly(file);
-        setMessage("Video added to the Field Tool.");
-      };
-
-      recorderRef.current = recorder;
-      recorder.start(500);
-      setRecording(true);
-      setMessage("Recording video...");
-    } catch (error: any) {
-      setMessage(error?.message || "Video recording is not supported on this device.");
     }
   }
 
@@ -494,6 +454,150 @@ export default function AILiveInspectionCamera({
       setMessage("Frame captured. Review, analyze, or add it as a photo.");
     }
     return dataUrl;
+  }
+
+  async function toggleFacingCamera() {
+    if (starting) return;
+
+    const nextMode = facingMode === "environment" ? "user" : "environment";
+    setFacingMode(nextMode);
+    stopCamera();
+
+    window.setTimeout(() => {
+      void startCamera(nextMode);
+    }, 120);
+  }
+
+  async function toggleTorch() {
+    const track = streamRef.current?.getVideoTracks?.()[0];
+
+    if (!track) {
+      setMessage("Flash is not available until the camera is ready.");
+      return;
+    }
+
+    try {
+      const capabilities = track.getCapabilities?.() as MediaTrackCapabilities & {
+        torch?: boolean;
+      };
+
+      if (!capabilities?.torch) {
+        setMessage("Flash is not supported by this camera.");
+        return;
+      }
+
+      const next = !torchOn;
+
+      await track.applyConstraints({
+        advanced: [{ torch: next } as any],
+      });
+
+      setTorchOn(next);
+    } catch {
+      setMessage("Flash could not be changed on this device.");
+    }
+  }
+
+  function quickAddPhoto() {
+    const captured = captureFrame({ silent: true });
+    if (!captured) return;
+
+    try {
+      onAddPhotoOnly(dataUrlToFile(captured, "ai-live-photo"));
+      setFrameDataUrl("");
+      latestFrameRef.current = "";
+      setMessage("Photo added to the Field Tool. Camera remains open for the next capture.");
+      recordMemoryEvent({
+        eventType: "live_camera_media",
+        status: "saved",
+        title: "Live camera photo captured",
+        detail: `Photo added while inspecting ${currentSection}.`,
+        payload: { mediaType: "photo" },
+      });
+    } catch (error: any) {
+      setMessage(error?.message || "Could not add the live camera photo.");
+    }
+  }
+
+  function toggleVideoRecording() {
+    const stream = streamRef.current;
+
+    if (recordingVideo) {
+      try {
+        mediaRecorderRef.current?.stop();
+      } catch {
+        setRecordingVideo(false);
+      }
+      return;
+    }
+
+    if (!stream || typeof MediaRecorder === "undefined") {
+      setMessage("Continuous video recording is not supported by this device/browser. Use the Field Tool video picker instead.");
+      return;
+    }
+
+    try {
+      const supportedTypes = [
+        "video/webm;codecs=vp9,opus",
+        "video/webm;codecs=vp8,opus",
+        "video/webm",
+        "video/mp4",
+      ];
+      const mimeType = supportedTypes.find((type) => MediaRecorder.isTypeSupported(type)) || "";
+      const recorder = mimeType
+        ? new MediaRecorder(stream, { mimeType })
+        : new MediaRecorder(stream);
+
+      recordedChunksRef.current = [];
+      mediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (event) => {
+        if (event.data?.size) recordedChunksRef.current.push(event.data);
+      };
+
+      recorder.onstop = () => {
+        const chunks = recordedChunksRef.current;
+        recordedChunksRef.current = [];
+        mediaRecorderRef.current = null;
+        setRecordingVideo(false);
+
+        if (!chunks.length) {
+          setMessage("No video data was captured.");
+          return;
+        }
+
+        const type = recorder.mimeType || chunks[0]?.type || "video/webm";
+        const extension = type.includes("mp4") ? "mp4" : "webm";
+        const file = new File(chunks, `ai-live-video-${Date.now()}.${extension}`, {
+          type,
+          lastModified: Date.now(),
+        });
+
+        onAddPhotoOnly(file);
+        setMessage("Video added to the Field Tool. Camera remains open for the next capture.");
+        recordMemoryEvent({
+          eventType: "live_camera_media",
+          status: "saved",
+          title: "Live camera video captured",
+          detail: `Video added while inspecting ${currentSection}.`,
+          payload: { mediaType: "video", mimeType: type, size: file.size },
+        });
+      };
+
+      recorder.onerror = () => {
+        mediaRecorderRef.current = null;
+        recordedChunksRef.current = [];
+        setRecordingVideo(false);
+        setMessage("Video recording failed. Use the Field Tool video picker instead.");
+      };
+
+      recorder.start(500);
+      setRecordingVideo(true);
+      setMessage("Recording video... tap Stop Video when finished. The camera remains open.");
+    } catch (error: any) {
+      setRecordingVideo(false);
+      setMessage(error?.message || "Could not start video recording.");
+    }
   }
 
   async function analyzeCurrentFrame() {
@@ -605,20 +709,22 @@ export default function AILiveInspectionCamera({
         const typeText = String(item?.suggestionType || "").toLowerCase();
 
         return (
-          confidence >= 0.78 ||
+          confidence >= 0.55 ||
           severityText.includes("safety") ||
           severityText.includes("major") ||
-          typeText.includes("safety")
+          typeText.includes("safety") ||
+          typeText.includes("documentation")
         );
       });
 
       const strongLimitations = limitations.filter(
-        (item: any) => normalizeConfidence(item?.confidence) >= 0.8,
+        (item: any) => normalizeConfidence(item?.confidence) >= 0.65,
       );
 
-      const highPriorityReminders = reminders.filter(
-        (item: any) => String(item?.priority || "").toLowerCase() === "high",
-      );
+      const highPriorityReminders = reminders.filter((item: any) => {
+        const priority = String(item?.priority || "").toLowerCase();
+        return priority === "high" || priority === "medium";
+      });
 
       const shouldInterrupt =
         strongSuggestions.length > 0 ||
@@ -653,6 +759,19 @@ export default function AILiveInspectionCamera({
 
   function useSuggestion(suggestion: AILiveSuggestion) {
     onUseSuggestion(suggestion, frameFile);
+    recordMemoryEvent({
+      eventType: "live_camera_suggestion",
+      status: "accepted",
+      title: suggestion.title,
+      detail: suggestion.observation,
+      confidence: suggestion.confidence,
+      section: suggestion.section || currentSection,
+      payload: {
+        severity: suggestion.severity,
+        suggestionType: suggestion.suggestionType,
+        recommendation: suggestion.recommendation,
+      },
+    });
 
     const findingChangeDetail = {
       inspectionId: selectedReport,
@@ -686,10 +805,50 @@ export default function AILiveInspectionCamera({
     setFrameDataUrl("");
     latestFrameRef.current = "";
 
-    setMessage("Finding added to report with photo. AI Watching resumed.");
+    setMessage("Suggestion loaded into the Field Tool with the captured frame. Review and tap Save Finding when ready. AI Watching resumed.");
+  }
+
+  function snoozeSuggestion(suggestion: AILiveSuggestion) {
+    const key = createSuggestionKey(suggestion);
+    if (key) {
+      snoozedRef.current[key] = {
+        until: Date.now() + 5 * 60 * 1000,
+        confidence: normalizeConfidence(suggestion.confidence),
+      };
+      writeLiveMemory(
+        selectedReport,
+        dismissedRef.current,
+        snoozedRef.current,
+        handledReminderKeys,
+      );
+    }
+
+    recordMemoryEvent({
+      eventType: "live_camera_suggestion",
+      status: "remind_later",
+      title: suggestion.title,
+      detail: suggestion.observation,
+      confidence: suggestion.confidence,
+      section: suggestion.section || currentSection,
+      payload: { snoozedUntil: Date.now() + 5 * 60 * 1000 },
+    });
+
+    setResult(null);
+    setWaitingForDecision(false);
+    setMessage("Reminder snoozed for five minutes. AI Watching resumed.");
   }
 
   function ignoreSuggestion(suggestion: AILiveSuggestion) {
+    recordMemoryEvent({
+      eventType: "live_camera_suggestion",
+      status: "ignored",
+      title: suggestion.title,
+      detail: suggestion.observation,
+      confidence: suggestion.confidence,
+      section: suggestion.section || currentSection,
+      payload: { severity: suggestion.severity, suggestionType: suggestion.suggestionType },
+    });
+
     const key = createSuggestionKey(suggestion);
     if (key) {
       dismissedRef.current[key] = {
@@ -699,6 +858,7 @@ export default function AILiveInspectionCamera({
       writeLiveMemory(
         selectedReport,
         dismissedRef.current,
+        snoozedRef.current,
         handledReminderKeys,
       );
     }
@@ -847,6 +1007,14 @@ export default function AILiveInspectionCamera({
   }
 
   function markReminderChecked(reminder: AILiveReminder) {
+    recordMemoryEvent({
+      eventType: "section_coach_item",
+      status: "checked",
+      title: reminder.title,
+      detail: reminder.detail,
+      confidence: reminder.confidence,
+      payload: { action: reminder.action, priority: reminder.priority },
+    });
     resolveReminder(reminder, "Checklist reminder marked complete. AI Watching can continue when all prompts are handled.");
   }
 
@@ -859,10 +1027,26 @@ export default function AILiveInspectionCamera({
     }
 
     onAddPhotoOnly(captured);
+    recordMemoryEvent({
+      eventType: "section_coach_item",
+      status: "saved",
+      title: reminder.title,
+      detail: reminder.detail,
+      confidence: reminder.confidence,
+      payload: { action: "photo" },
+    });
     resolveReminder(reminder, "Reminder photo saved. AI Watching can continue when all prompts are handled.");
   }
 
   function ignoreReminder(reminder: AILiveReminder) {
+    recordMemoryEvent({
+      eventType: "section_coach_item",
+      status: "ignored",
+      title: reminder.title,
+      detail: reminder.detail,
+      confidence: reminder.confidence,
+      payload: { action: reminder.action },
+    });
     resolveReminder(reminder, "Reminder ignored for now. AI Watching can continue when all prompts are handled.");
   }
 
@@ -914,7 +1098,7 @@ export default function AILiveInspectionCamera({
       </button>
     </div>
   ) : (
-    <div className="fixed inset-0 z-[2147483647] h-[100dvh] w-[100vw] overflow-hidden bg-black text-white">
+    <div className="fixed inset-0 z-[2147483647] h-[100dvh] w-screen overflow-hidden bg-black text-white">
       <video
         ref={videoRef}
         autoPlay
@@ -923,14 +1107,39 @@ export default function AILiveInspectionCamera({
         className="absolute inset-0 h-full w-full bg-black object-cover"
       />
 
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/55 via-transparent to-black/80" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/65" />
 
-      <div className="absolute left-0 right-0 top-0 z-20 flex items-start justify-between px-4 pt-[max(0.8rem,env(safe-area-inset-top))]">
+      {visibleSuggestions
+        .filter((suggestion) => suggestion.region)
+        .slice(0, 3)
+        .map((suggestion, index) => {
+          const region = suggestion.region!;
+          return (
+            <button
+              key={`camera-region-${createSuggestionKey(suggestion)}-${index}`}
+              type="button"
+              onClick={() => setDetailsOpen(true)}
+              className="absolute z-10 border-2 border-emerald-400 bg-emerald-400/10 shadow-[0_0_18px_rgba(74,222,128,0.45)]"
+              style={{
+                left: `${region.x * 100}%`,
+                top: `${region.y * 100}%`,
+                width: `${region.width * 100}%`,
+                height: `${region.height * 100}%`,
+              }}
+            >
+              <span className="absolute left-1/2 top-0 max-w-[220px] -translate-x-1/2 -translate-y-full rounded-xl bg-black/85 px-3 py-2 text-xs font-bold text-emerald-300 backdrop-blur">
+                {region.label || suggestion.title}
+              </span>
+            </button>
+          );
+        })}
+
+      <div className="absolute left-0 right-0 top-0 z-20 flex items-start justify-between px-5 pt-[max(1rem,env(safe-area-inset-top))]">
         <button
           type="button"
           onClick={() => setOpen(false)}
           aria-label="Close camera"
-          className="pointer-events-auto flex h-12 w-12 items-center justify-center rounded-full border border-white/20 bg-black/70 text-3xl font-light text-white shadow-xl backdrop-blur active:scale-95"
+          className="flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-black/70 text-4xl font-light text-white shadow-2xl backdrop-blur active:scale-95"
         >
           ×
         </button>
@@ -939,30 +1148,40 @@ export default function AILiveInspectionCamera({
           type="button"
           onClick={() => setAutoWatch((current) => !current)}
           disabled={!online || starting}
-          className="pointer-events-auto rounded-2xl border border-white/15 bg-black/75 px-5 py-3 text-center shadow-xl backdrop-blur disabled:opacity-50"
+          className="rounded-2xl border border-white/10 bg-black/80 px-6 py-3 text-center shadow-2xl backdrop-blur-xl disabled:opacity-50"
         >
           <span className="block text-[11px] font-black uppercase tracking-[0.2em] text-white">
             AI Second Inspector
           </span>
-          <span className="mt-1 block text-sm font-bold text-white">
-            <span className={`mr-2 inline-block h-2.5 w-2.5 rounded-full ${autoWatch ? "bg-emerald-400" : "bg-slate-500"}`} />
-            AI Watching: <span className={autoWatch ? "text-emerald-400" : "text-slate-300"}>{autoWatch ? "ON" : "OFF"}</span>
+          <span className="mt-1 block text-sm font-bold">
+            <span
+              className={`mr-2 inline-block h-2.5 w-2.5 rounded-full ${
+                autoWatch ? "bg-emerald-400" : "bg-slate-500"
+              }`}
+            />
+            AI Watching:{" "}
+            <span className={autoWatch ? "text-emerald-400" : "text-slate-300"}>
+              {autoWatch ? "ON" : "OFF"}
+            </span>
           </span>
         </button>
 
-        <div className="pointer-events-auto grid gap-3">
+        <div className="grid gap-3">
           <button
             type="button"
             onClick={toggleTorch}
-            className={`flex h-12 w-12 flex-col items-center justify-center rounded-full border border-white/20 bg-black/70 text-white shadow-xl backdrop-blur active:scale-95 ${torchOn ? "ring-2 ring-yellow-300" : ""}`}
+            className={`flex h-12 w-12 flex-col items-center justify-center rounded-full border border-white/15 bg-black/70 shadow-2xl backdrop-blur active:scale-95 ${
+              torchOn ? "ring-2 ring-yellow-300" : ""
+            }`}
           >
             <span className="text-xl">⚡</span>
             <span className="text-[9px] font-bold">Flash</span>
           </button>
+
           <button
             type="button"
             onClick={toggleFacingCamera}
-            className="flex h-12 w-12 flex-col items-center justify-center rounded-full border border-white/20 bg-black/70 text-white shadow-xl backdrop-blur active:scale-95"
+            className="flex h-12 w-12 flex-col items-center justify-center rounded-full border border-white/15 bg-black/70 shadow-2xl backdrop-blur active:scale-95"
           >
             <span className="text-lg">↻</span>
             <span className="text-[9px] font-bold">Flip</span>
@@ -970,119 +1189,160 @@ export default function AILiveInspectionCamera({
         </div>
       </div>
 
-      {(primaryReminder || primarySuggestion) && (
-        <div className="absolute bottom-[228px] left-4 right-4 z-20 grid grid-cols-2 gap-3">
-          {primaryReminder && (
-            <button
-              type="button"
-              onClick={() => setDetailsOpen(true)}
-              className="rounded-2xl border border-emerald-400/30 bg-black/75 p-4 text-left shadow-2xl backdrop-blur"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-black uppercase tracking-[0.12em] text-emerald-300">
-                  Coach
-                </span>
-                <span className="rounded-full bg-emerald-400 px-2 py-0.5 text-[10px] font-black text-black">
-                  {visibleReminders.length}
-                </span>
-              </div>
-              <p className="mt-2 line-clamp-4 text-sm font-bold leading-5 text-white">
-                {primaryReminder.title}
-              </p>
-              {primaryReminder.detail && (
-                <p className="mt-1 line-clamp-3 text-xs leading-4 text-slate-200">
-                  {primaryReminder.detail}
-                </p>
-              )}
-            </button>
-          )}
+      <div className="absolute right-5 top-[22%] z-20 flex h-[34%] flex-col items-center">
+        <div className="rounded-full bg-black/65 px-3 py-2 text-sm font-bold backdrop-blur">
+          1.0x
+        </div>
+        <div className="mt-3 h-full w-1 rounded-full bg-white/25">
+          <div className="mt-[46%] h-4 w-4 -translate-x-[6px] rounded-full bg-white shadow-xl" />
+        </div>
+      </div>
 
-          {primarySuggestion && (
-            <button
-              type="button"
-              onClick={() => setDetailsOpen(true)}
-              className="rounded-2xl border border-purple-400/30 bg-black/75 p-4 text-left shadow-2xl backdrop-blur"
-            >
-              <span className="text-xs font-black uppercase tracking-[0.12em] text-purple-300">
-                Live Suggestion
+      <div className="absolute bottom-[238px] left-5 z-20 w-[40%] max-w-[280px] space-y-3">
+        {primaryReminder && (
+          <button
+            type="button"
+            onClick={() => setDetailsOpen(true)}
+            className="w-full rounded-3xl border border-emerald-400/20 bg-black/78 p-4 text-left shadow-2xl backdrop-blur-xl"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black uppercase tracking-[0.12em] text-emerald-300">
+                Coach
               </span>
-              <p className="mt-2 line-clamp-3 text-sm font-bold leading-5 text-white">
-                {primarySuggestion.title}
+              <span className="rounded-full bg-emerald-400 px-2 py-0.5 text-[10px] font-black text-black">
+                {visibleReminders.length}
+              </span>
+            </div>
+            <p className="mt-3 line-clamp-3 text-sm font-bold leading-5">
+              {primaryReminder.title}
+            </p>
+            {primaryReminder.detail && (
+              <p className="mt-2 line-clamp-4 text-xs leading-5 text-slate-200">
+                {primaryReminder.detail}
               </p>
-              <p className="mt-1 line-clamp-3 text-xs leading-4 text-slate-200">
-                {primarySuggestion.observation}
-              </p>
-            </button>
-          )}
+            )}
+          </button>
+        )}
+
+        {primarySuggestion && (
+          <button
+            type="button"
+            onClick={() => setDetailsOpen(true)}
+            className="w-full rounded-3xl border border-purple-400/20 bg-black/78 p-4 text-left shadow-2xl backdrop-blur-xl"
+          >
+            <span className="text-xs font-black uppercase tracking-[0.12em] text-purple-300">
+              Live Suggestion
+            </span>
+            <p className="mt-3 line-clamp-3 text-sm font-bold leading-5">
+              {primarySuggestion.title}
+            </p>
+            <p className="mt-2 line-clamp-4 text-xs leading-5 text-slate-200">
+              {primarySuggestion.observation}
+            </p>
+          </button>
+        )}
+
+        <button
+          type="button"
+          onClick={() => setDetailsOpen(true)}
+          className="w-full rounded-3xl border border-amber-400/20 bg-black/78 px-4 py-3 text-left shadow-2xl backdrop-blur-xl"
+        >
+          <span className="block text-xs font-black text-amber-300">
+            🧠 Live Memory
+          </span>
+          <span className="mt-1 block text-sm font-bold">
+            {pendingCount} item{pendingCount === 1 ? "" : "s"} tracked ›
+          </span>
+        </button>
+      </div>
+
+      {analyzing && (
+        <div className="absolute left-1/2 top-[46%] z-20 -translate-x-1/2 rounded-full border border-purple-300/40 bg-black/75 px-5 py-3 text-sm font-black text-purple-200 shadow-2xl backdrop-blur">
+          ✨ AI analyzing this area…
         </div>
       )}
 
       <button
         type="button"
-        onClick={() => setDetailsOpen(true)}
-        className="absolute bottom-[164px] left-4 z-20 rounded-2xl border border-white/15 bg-black/75 px-4 py-3 text-left shadow-xl backdrop-blur"
-      >
-        <span className="block text-xs font-black text-amber-200">🧠 Live Memory</span>
-        <span className="mt-1 block text-sm font-bold text-white">
-          {pendingCount} item{pendingCount === 1 ? "" : "s"} tracked ›
-        </span>
-      </button>
-
-      <div className="absolute bottom-[174px] right-5 z-20 rounded-2xl border border-white/15 bg-black/75 px-5 py-3 text-center shadow-xl backdrop-blur">
-        <span className="block text-xs text-white">Zoom</span>
-        <span className="mt-1 block text-lg font-bold">1.0x</span>
-      </div>
-
-      <button
-        type="button"
-        onClick={quickPhoto}
-        disabled={starting}
+        onClick={quickAddPhoto}
+        disabled={starting || recordingVideo}
         aria-label="Take quick photo"
-        className="absolute bottom-[112px] left-1/2 z-20 h-20 w-20 -translate-x-1/2 rounded-full border-[6px] border-white bg-white shadow-2xl ring-4 ring-teal-400 active:scale-95 disabled:opacity-50"
+        className="absolute bottom-[116px] left-1/2 z-20 h-20 w-20 -translate-x-1/2 rounded-full border-[6px] border-white bg-white shadow-2xl ring-4 ring-teal-400 active:scale-95 disabled:opacity-50"
       />
 
       <button
         type="button"
-        onClick={() => setActionsOpen((current) => !current)}
-        className="absolute bottom-[122px] right-5 z-20 rounded-2xl border border-white/15 bg-black/75 px-5 py-4 text-sm font-black tracking-wide text-white shadow-xl backdrop-blur active:scale-95"
+        onClick={() => setActionsOpen(true)}
+        className="absolute bottom-[124px] right-5 z-20 rounded-3xl border border-white/15 bg-black/78 px-6 py-4 text-sm font-black tracking-wide shadow-2xl backdrop-blur-xl active:scale-95"
       >
-        ACTIONS {actionsOpen ? "⌄" : "⌃"}
+        ACTIONS⌃
       </button>
 
-      <div className="absolute bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-4 right-4 z-20 grid grid-cols-4 gap-1 rounded-3xl border border-white/15 bg-black/80 p-3 shadow-2xl backdrop-blur-xl">
-        <button type="button" onClick={quickPhoto} className="rounded-2xl px-2 py-2 text-center active:bg-white/10">
+      <div className="absolute bottom-[max(0.7rem,env(safe-area-inset-bottom))] left-5 right-5 z-20 grid h-[92px] grid-cols-4 rounded-3xl border border-white/15 bg-black/82 px-2 py-2 shadow-2xl backdrop-blur-xl">
+        <button
+          type="button"
+          onClick={quickAddPhoto}
+          disabled={starting || recordingVideo}
+          className="rounded-2xl text-center active:bg-white/10 disabled:opacity-50"
+        >
           <span className="block text-2xl">📷</span>
           <span className="mt-1 block text-[11px] font-bold">Quick Photo</span>
         </button>
-        <button type="button" onClick={toggleRecording} className={`rounded-2xl px-2 py-2 text-center active:bg-white/10 ${recording ? "text-red-300" : ""}`}>
-          <span className="block text-2xl">{recording ? "⏹" : "🎥"}</span>
-          <span className="mt-1 block text-[11px] font-bold">{recording ? "Stop Video" : "Record Video"}</span>
+
+        <button
+          type="button"
+          onClick={toggleVideoRecording}
+          disabled={starting}
+          className={`rounded-2xl text-center active:bg-white/10 disabled:opacity-50 ${
+            recordingVideo ? "text-red-300" : ""
+          }`}
+        >
+          <span className="block text-2xl">{recordingVideo ? "⏹" : "🎥"}</span>
+          <span className="mt-1 block text-[11px] font-bold">
+            {recordingVideo ? "Stop Video" : "Record Video"}
+          </span>
         </button>
-        <button type="button" onClick={analyzeCurrentFrame} disabled={analyzing || !online || starting} className="rounded-2xl px-2 py-2 text-center active:bg-white/10 disabled:opacity-50">
+
+        <button
+          type="button"
+          onClick={analyzeCurrentFrame}
+          disabled={starting || analyzing || !online}
+          className="rounded-2xl text-center active:bg-white/10 disabled:opacity-50"
+        >
           <span className="block text-2xl">✨</span>
-          <span className="mt-1 block text-[11px] font-bold">{analyzing ? "Analyzing" : "Analyze"}</span>
+          <span className="mt-1 block text-[11px] font-bold">
+            {analyzing ? "Analyzing" : "Analyze"}
+          </span>
         </button>
-        <button type="button" onClick={() => {
-          const captured = frameFile || (captureFrame({ silent: true }) ? dataUrlToFile(latestFrameRef.current) : null);
-          onScanDataPlate(captured);
-        }} className="rounded-2xl px-2 py-2 text-center active:bg-white/10">
+
+        <button
+          type="button"
+          onClick={() => {
+            const captured = frameFile || (() => {
+              const dataUrl = captureFrame({ silent: true });
+              return dataUrl ? dataUrlToFile(dataUrl) : null;
+            })();
+
+            onScanDataPlate(captured);
+          }}
+          className="rounded-2xl text-center active:bg-white/10"
+        >
           <span className="block text-2xl">▣</span>
           <span className="mt-1 block text-[11px] font-bold">Data Plate</span>
         </button>
       </div>
 
-      <div className="absolute bottom-0 left-0 right-0 z-10 h-8 bg-black/30" />
-
-      {(actionsOpen || detailsOpen || cameraError) && (
+      {(actionsOpen || detailsOpen || cameraError || message) && (
         <div
           className="absolute inset-0 z-30 flex items-end bg-black/45"
           onClick={() => {
             setActionsOpen(false);
             setDetailsOpen(false);
+            setMessage("");
           }}
         >
           <div
-            className="max-h-[78dvh] w-full overflow-y-auto rounded-t-[2rem] border-t border-white/20 bg-[#06101f]/98 p-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl"
+            className="max-h-[76dvh] w-full overflow-y-auto rounded-t-[2rem] border-t border-white/20 bg-[#06101f]/98 p-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-white/30" />
@@ -1101,58 +1361,165 @@ export default function AILiveInspectionCamera({
 
             {actionsOpen && (
               <div className="grid grid-cols-2 gap-3">
-                <button type="button" onClick={() => captureFrame()} className="rounded-2xl border border-slate-600 bg-slate-900 p-4 font-black">Capture Frame</button>
-                <button type="button" onClick={addPhotoOnly} className="rounded-2xl border border-teal-500 bg-teal-500/10 p-4 font-black text-teal-200">Add Photo Only</button>
-                <button type="button" onClick={analyzeCurrentFrame} disabled={!online || analyzing} className="rounded-2xl border border-purple-500 bg-purple-500/10 p-4 font-black text-purple-200 disabled:opacity-50">Analyze Frame</button>
-                <button type="button" onClick={() => onScanDataPlate(frameFile)} className="rounded-2xl border border-yellow-500 bg-yellow-500/10 p-4 font-black text-yellow-200">Scan Data Plate</button>
+                <button
+                  type="button"
+                  onClick={() => captureFrame()}
+                  className="rounded-2xl border border-slate-600 bg-slate-900 p-4 font-black"
+                >
+                  Capture Frame
+                </button>
+                <button
+                  type="button"
+                  onClick={addPhotoOnly}
+                  className="rounded-2xl border border-teal-500 bg-teal-500/10 p-4 font-black text-teal-200"
+                >
+                  Add Photo Only
+                </button>
+                <button
+                  type="button"
+                  onClick={analyzeCurrentFrame}
+                  disabled={!online || analyzing}
+                  className="rounded-2xl border border-purple-500 bg-purple-500/10 p-4 font-black text-purple-200 disabled:opacity-50"
+                >
+                  Analyze Frame
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onScanDataPlate(frameFile)}
+                  className="rounded-2xl border border-yellow-500 bg-yellow-500/10 p-4 font-black text-yellow-200"
+                >
+                  Scan Data Plate
+                </button>
               </div>
             )}
 
             {detailsOpen && (
               <div className="space-y-4">
                 {visibleSuggestions.map((suggestion, index) => (
-                  <div key={`${createSuggestionKey(suggestion)}-${index}`} className="rounded-2xl border border-purple-500/40 bg-purple-500/10 p-4">
+                  <div
+                    key={`${createSuggestionKey(suggestion)}-${index}`}
+                    className="rounded-2xl border border-purple-500/40 bg-purple-500/10 p-4"
+                  >
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-xs font-black uppercase tracking-[0.15em] text-purple-300">AI Suggestion</p>
-                        <h3 className="mt-1 text-lg font-black">{suggestion.title}</h3>
+                        <p className="text-xs font-black uppercase tracking-[0.15em] text-purple-300">
+                          AI Suggestion
+                        </p>
+                        <h3 className="mt-1 text-lg font-black">
+                          {suggestion.title}
+                        </h3>
                       </div>
-                      <span className="rounded-full border border-purple-400/40 px-2 py-1 text-xs font-black text-purple-200">{confidenceLabel(suggestion.confidence)}</span>
+                      <span className="rounded-full border border-purple-400/40 px-2 py-1 text-xs font-black text-purple-200">
+                        {confidenceLabel(suggestion.confidence)}
+                      </span>
                     </div>
-                    <p className="mt-3 text-sm leading-6 text-slate-200">{suggestion.observation}</p>
-                    {suggestion.implication && <p className="mt-2 text-sm leading-6 text-slate-300"><strong>Implication:</strong> {suggestion.implication}</p>}
-                    {suggestion.recommendation && <p className="mt-2 text-sm leading-6 text-slate-300"><strong>Recommendation:</strong> {suggestion.recommendation}</p>}
+
+                    <p className="mt-3 text-sm leading-6 text-slate-200">
+                      {suggestion.observation}
+                    </p>
+
+                    {suggestion.implication && (
+                      <p className="mt-2 text-sm leading-6 text-slate-300">
+                        <strong>Implication:</strong> {suggestion.implication}
+                      </p>
+                    )}
+
+                    {suggestion.recommendation && (
+                      <p className="mt-2 text-sm leading-6 text-slate-300">
+                        <strong>Recommendation:</strong>{" "}
+                        {suggestion.recommendation}
+                      </p>
+                    )}
+
                     <div className="mt-4 grid grid-cols-3 gap-2">
-                      <button type="button" onClick={() => ignoreSuggestion(suggestion)} className="rounded-xl border border-slate-600 px-3 py-3 text-xs font-black">Ignore</button>
-                      <button type="button" onClick={() => {
-                        setMessage("Reminder saved for later in this live camera session.");
-                        ignoreSuggestion(suggestion);
-                      }} className="rounded-xl border border-yellow-500/60 px-3 py-3 text-xs font-black text-yellow-200">Remind (5m)</button>
-                      <button type="button" onClick={() => useSuggestion(suggestion)} className="rounded-xl bg-emerald-400 px-3 py-3 text-xs font-black text-black">Add Finding</button>
+                      <button
+                        type="button"
+                        onClick={() => ignoreSuggestion(suggestion)}
+                        className="rounded-xl border border-slate-600 px-3 py-3 text-xs font-black"
+                      >
+                        Ignore
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => snoozeSuggestion(suggestion)}
+                        className="rounded-xl border border-yellow-500/60 px-3 py-3 text-xs font-black text-yellow-200"
+                      >
+                        Remind (5m)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => useSuggestion(suggestion)}
+                        className="rounded-xl bg-emerald-400 px-3 py-3 text-xs font-black text-black"
+                      >
+                        Add Finding
+                      </button>
                     </div>
                   </div>
                 ))}
 
                 {visibleReminders.map((reminder, index) => (
-                  <div key={`${createReminderKey(reminder)}-${index}`} className="rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-4">
-                    <p className="text-xs font-black uppercase tracking-[0.15em] text-emerald-300">Section Coach</p>
+                  <div
+                    key={`${createReminderKey(reminder)}-${index}`}
+                    className="rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-4"
+                  >
+                    <p className="text-xs font-black uppercase tracking-[0.15em] text-emerald-300">
+                      Section Coach
+                    </p>
                     <h3 className="mt-1 text-lg font-black">{reminder.title}</h3>
-                    {reminder.detail && <p className="mt-2 text-sm leading-6 text-slate-200">{reminder.detail}</p>}
+                    {reminder.detail && (
+                      <p className="mt-2 text-sm leading-6 text-slate-200">
+                        {reminder.detail}
+                      </p>
+                    )}
                     <div className="mt-4 grid grid-cols-3 gap-2">
-                      <button type="button" onClick={() => ignoreReminder(reminder)} className="rounded-xl border border-slate-600 px-3 py-3 text-xs font-black">Ignore</button>
-                      <button type="button" onClick={() => saveReminderPhoto(reminder)} className="rounded-xl border border-cyan-500/70 px-3 py-3 text-xs font-black text-cyan-100">Add Photo</button>
-                      <button type="button" onClick={() => markReminderChecked(reminder)} className="rounded-xl bg-emerald-400 px-3 py-3 text-xs font-black text-black">Mark Checked</button>
+                      <button
+                        type="button"
+                        onClick={() => ignoreReminder(reminder)}
+                        className="rounded-xl border border-slate-600 px-3 py-3 text-xs font-black"
+                      >
+                        Ignore
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => saveReminderPhoto(reminder)}
+                        className="rounded-xl border border-cyan-500/70 px-3 py-3 text-xs font-black text-cyan-100"
+                      >
+                        Add Photo
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => markReminderChecked(reminder)}
+                        className="rounded-xl bg-emerald-400 px-3 py-3 text-xs font-black text-black"
+                      >
+                        Mark Checked
+                      </button>
                     </div>
                   </div>
                 ))}
 
                 {(result?.limitations || []).map((limitation, index) => (
-                  <div key={`${limitation.title}-${index}`} className="rounded-2xl border border-orange-500/40 bg-orange-500/10 p-4">
-                    <p className="text-xs font-black uppercase tracking-[0.15em] text-orange-300">Possible Limitation</p>
-                    <h3 className="mt-1 text-lg font-black">{limitation.title}</h3>
-                    <p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-200">{createLimitationText(limitation)}</p>
-                    <button type="button" onClick={() => saveLimitationToSection(limitation, index)} disabled={savingLimitationIndex !== null} className="mt-4 w-full rounded-xl bg-orange-400 px-4 py-3 text-sm font-black text-black disabled:opacity-50">
-                      {savingLimitationIndex === index ? "Adding..." : "Add To Section Limitations"}
+                  <div
+                    key={`${limitation.title}-${index}`}
+                    className="rounded-2xl border border-orange-500/40 bg-orange-500/10 p-4"
+                  >
+                    <p className="text-xs font-black uppercase tracking-[0.15em] text-orange-300">
+                      Possible Limitation
+                    </p>
+                    <h3 className="mt-1 text-lg font-black">
+                      {limitation.title}
+                    </h3>
+                    <p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-200">
+                      {createLimitationText(limitation)}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => saveLimitationToSection(limitation, index)}
+                      disabled={savingLimitationIndex !== null}
+                      className="mt-4 w-full rounded-xl bg-orange-400 px-4 py-3 text-sm font-black text-black disabled:opacity-50"
+                    >
+                      {savingLimitationIndex === index
+                        ? "Adding..."
+                        : "Add To Section Limitations"}
                     </button>
                   </div>
                 ))}
