@@ -91,6 +91,51 @@ const PhotoMarkupEditor = dynamic(
 
 const PHOTO_PICKER_PAGE_SIZE = 48;
 
+function DeferredOpenSection({
+  active,
+  children,
+}: {
+  active: boolean;
+  children: React.ReactNode;
+}) {
+  const hostRef = useRef<HTMLDivElement | null>(null);
+  const [hasRendered, setHasRendered] = useState(false);
+
+  useEffect(() => {
+    if (!active || hasRendered) return;
+
+    const host = hostRef.current;
+    if (!host || typeof IntersectionObserver === "undefined") {
+      setHasRendered(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setHasRendered(true);
+          observer.disconnect();
+        }
+      },
+      {
+        root: null,
+        rootMargin: "1400px 0px",
+        threshold: 0.01,
+      },
+    );
+
+    observer.observe(host);
+
+    return () => observer.disconnect();
+  }, [active, hasRendered]);
+
+  return (
+    <div ref={hostRef} className="w-full max-w-full">
+      {active && hasRendered ? children : null}
+    </div>
+  );
+}
+
 export default function ReportFindingsSortable({ groupedFindings }: any) {
   const params = useParams();
   const router = useRouter();
@@ -579,7 +624,7 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
               </div>
             </div>
 
-            {!isClosed && (
+            <DeferredOpenSection active={!isClosed}>
               <div className="w-full max-w-full space-y-4 overflow-x-hidden p-2 sm:p-5">
                 <SectionInformationChecklist
                   inspectionId={inspectionId}
@@ -631,7 +676,7 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
                   />
                 ))}
               </div>
-            )}
+            </DeferredOpenSection>
           </section>
         );
       })}
