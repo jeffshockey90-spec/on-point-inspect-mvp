@@ -1826,89 +1826,98 @@ export default function AILiveInspectionCamera({
           );
         })}
 
-      <div className="absolute left-0 right-0 top-0 z-20 flex items-start justify-between px-5 pt-[max(1rem,env(safe-area-inset-top))]">
-        <button
-          type="button"
-          onClick={() => {
-            if (
-              pendingEvidenceCapture &&
-              !window.confirm(
-                "A finding or limitation is waiting for its required photo. Close the camera and cancel it?",
-              )
-            ) {
-              return;
-            }
-
-            setPendingEvidenceCapture(null);
-            setOpen(false);
+      <div
+        className="absolute left-0 right-0 top-0 z-20"
+        style={{ paddingTop: "max(1rem, env(safe-area-inset-top))" }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            paddingLeft: "16px",
+            paddingRight: "16px",
           }}
-          aria-label="Close camera"
-          className="flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-black/70 text-4xl font-light text-white shadow-2xl backdrop-blur active:scale-95"
         >
-          ×
-        </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (
+                pendingEvidenceCapture &&
+                !window.confirm(
+                  "A finding or limitation is waiting for its required photo. Close the camera and cancel it?",
+                )
+              ) {
+                return;
+              }
 
-        <button
-          type="button"
-          onClick={() => setAutoWatch((current) => !current)}
-          disabled={!online || starting}
-          className="whitespace-nowrap rounded-full border border-white/10 bg-black/75 px-4 py-2 text-center shadow-xl backdrop-blur-xl disabled:opacity-50"
-        >
-          <span className="inline-flex items-center gap-2 text-xs font-black">
+              setPendingEvidenceCapture(null);
+              setOpen(false);
+            }}
+            aria-label="Close camera"
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/15 bg-black/70 text-4xl font-light text-white shadow-2xl backdrop-blur active:scale-95"
+          >
+            ×
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setAutoWatch((current) => !current)}
+            disabled={!online || starting}
+            className="inline-flex min-h-12 shrink-0 items-center gap-2 rounded-full border border-white/15 bg-black/70 px-4 py-2 text-sm font-black text-white shadow-2xl backdrop-blur disabled:opacity-50"
+          >
             <span
-              className={`inline-block h-2.5 w-2.5 rounded-full ${
-                autoWatch ? "bg-emerald-400" : "bg-slate-500"
+              className={`inline-block h-3 w-3 rounded-full ${
+                autoWatch ? "bg-teal-400" : "bg-slate-500"
               }`}
             />
             <span>{autoWatch ? "AI Watching" : "AI Paused"}</span>
-          </span>
-        </button>
+          </button>
 
-        <button
-          type="button"
-          onClick={toggleTorch}
-          className={`flex h-12 w-12 flex-col items-center justify-center rounded-full border border-white/15 bg-black/70 shadow-2xl backdrop-blur active:scale-95 ${
-            torchOn ? "ring-2 ring-yellow-300" : ""
-          }`}
-        >
-          <span className="text-xl">⚡</span>
-          <span className="text-[9px] font-bold">Flash</span>
-        </button>
+          <button
+            type="button"
+            onClick={toggleTorch}
+            aria-label="Toggle flash"
+            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/15 bg-black/70 text-2xl shadow-2xl backdrop-blur active:scale-95 ${
+              torchOn ? "ring-2 ring-yellow-300" : ""
+            }`}
+          >
+            ⚡
+          </button>
+
+          <div style={{ flex: 1 }} />
+
+          <button
+            type="button"
+            onClick={() => setDetailsOpen(true)}
+            className="inline-flex min-h-12 shrink-0 items-center gap-3 rounded-full border border-teal-400/45 bg-black/70 px-4 py-2 text-sm font-black text-white shadow-2xl backdrop-blur"
+          >
+            <span className="text-teal-300">Coach</span>
+            <span>{coachMemoryCount}</span>
+            <span>📋</span>
+          </button>
+        </div>
       </div>
 
       <button
         type="button"
-        onClick={toggleFacingCamera}
-        className="absolute left-4 top-[30%] z-20 flex h-12 w-12 flex-col items-center justify-center rounded-full border border-white/15 bg-black/70 shadow-2xl backdrop-blur active:scale-95"
+        onClick={() => setDetailsOpen(true)}
+        className="absolute left-4 top-[8.5rem] z-20 inline-flex min-h-11 items-center gap-2 rounded-full border border-white/15 bg-black/70 px-4 py-2 text-sm font-black text-white shadow-xl backdrop-blur"
       >
-        <span className="text-lg">↻</span>
-        <span className="text-[9px] font-bold">Flip</span>
+        <span>🧠</span>
+        <span>{pendingCount}</span>
       </button>
 
-      <div className="absolute left-4 top-[calc(max(1rem,env(safe-area-inset-top))+4.7rem)] z-20">
-        <button
-          type="button"
-          onClick={() => setDetailsOpen(true)}
-          className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/15 bg-black/72 px-3 py-2 text-xs font-black text-white shadow-xl backdrop-blur"
-        >
-          <span>🧠</span>
-          <span>{pendingCount}</span>
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={toggleFacingCamera}
+        className="absolute left-4 top-[15.5rem] z-20 flex h-14 w-14 flex-col items-center justify-center rounded-full border border-white/15 bg-black/70 shadow-2xl backdrop-blur active:scale-95"
+      >
+        <span className="text-lg">↻</span>
+        <span className="text-[11px] font-bold">Flip</span>
+      </button>
 
-      <div className="absolute right-4 top-[calc(max(1rem,env(safe-area-inset-top))+0.25rem)] z-20">
-        <button
-          type="button"
-          onClick={() => setDetailsOpen(true)}
-          className="inline-flex min-h-10 items-center gap-2 rounded-full border border-teal-400/40 bg-black/72 px-3 py-2 text-xs font-black text-white shadow-xl backdrop-blur"
-        >
-          <span>Coach</span>
-          <span className="text-teal-300">{coachMemoryCount}</span>
-          <span>📋</span>
-        </button>
-      </div>
-
-      <div className="absolute right-3 top-[19%] z-20 flex h-[28%] w-11 flex-col items-center">
+      <div className="absolute right-3 top-[21%] z-20 flex h-[38%] w-11 flex-col items-center">
         <div className="rounded-full bg-black/75 px-3 py-2 text-sm font-bold backdrop-blur">
           {zoomLevel.toFixed(1)}x
         </div>
@@ -1931,9 +1940,16 @@ export default function AILiveInspectionCamera({
         </div>
       )}
 
-      <div className="absolute bottom-0 left-0 right-0 z-20 px-3 pb-[max(0.4rem,env(safe-area-inset-bottom))]">
+      <div
+        className="absolute bottom-0 left-0 right-0 z-20"
+        style={{
+          paddingLeft: "14px",
+          paddingRight: "14px",
+          paddingBottom: "max(0.65rem, env(safe-area-inset-bottom))",
+        }}
+      >
         {pendingEvidenceCapture && (
-          <div className="mb-2 flex items-center gap-3 rounded-2xl border border-amber-300/55 bg-black/88 px-3 py-2 shadow-2xl backdrop-blur-2xl">
+          <div className="mx-auto mb-3 flex max-w-[680px] items-center gap-3 rounded-2xl border border-amber-300/55 bg-black/88 px-3 py-2 shadow-2xl backdrop-blur-2xl">
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-amber-300/50 bg-amber-400/15 text-lg">
               📸
             </span>
@@ -1966,8 +1982,17 @@ export default function AILiveInspectionCamera({
             <button
               type="button"
               onClick={() => setDetailsOpen(true)}
-              className="mb-2 flex min-h-[46px] w-full items-center gap-3 rounded-2xl border border-white/15 bg-black/76 px-3 py-2 text-left shadow-2xl backdrop-blur-2xl active:scale-[0.99]"
+              className="mx-auto mb-3 flex min-h-[48px] w-full max-w-[680px] items-center gap-3 rounded-2xl border border-white/15 bg-black/78 px-3 py-2 text-left shadow-2xl backdrop-blur-2xl active:scale-[0.99]"
             >
+              <span
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-base ${
+                  primaryReminder
+                    ? "border-blue-400/50 bg-blue-500/20"
+                    : "border-teal-400/50 bg-teal-500/20"
+                }`}
+              >
+                {primaryReminder ? "📋" : "✨"}
+              </span>
               <span className="min-w-0 flex-1 truncate text-xs font-bold text-white">
                 {primaryReminder
                   ? primaryReminder.detail || primaryReminder.title
@@ -1977,68 +2002,74 @@ export default function AILiveInspectionCamera({
             </button>
           )}
 
-        <div className="mx-auto max-w-[680px] rounded-[1.8rem] border border-white/12 bg-black/66 px-3 py-2 shadow-2xl backdrop-blur-2xl">
-          <div className="grid grid-cols-5 items-end gap-1">
-            <button
-              type="button"
-              onClick={() => setDetailsOpen(true)}
-              className="flex min-h-[56px] flex-col items-center justify-center rounded-2xl text-center active:bg-white/10"
-            >
-              <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/15 bg-white/5 text-lg">
-                🖼️
-              </span>
-              <span className="mt-1 text-[10px] font-bold">Gallery</span>
-            </button>
+        <div
+          className="mx-auto max-w-[680px]"
+          style={{
+            display: "flex",
+            alignItems: "flex-end",
+            justifyContent: "space-between",
+            gap: "8px",
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => setDetailsOpen(true)}
+            className="flex min-h-[72px] min-w-0 flex-1 flex-col items-center justify-end rounded-2xl pb-1 text-center active:bg-white/10"
+          >
+            <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/25 bg-black/55 text-xl shadow-xl backdrop-blur">
+              🖼️
+            </span>
+            <span className="mt-1 text-xs font-bold text-white">Gallery</span>
+          </button>
 
-            <button
-              type="button"
-              onClick={quickAddPhoto}
-              disabled={starting || recordingVideo}
-              className="flex min-h-[56px] flex-col items-center justify-center rounded-2xl text-center active:bg-white/10 disabled:opacity-50"
-            >
-              <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-teal-400/45 bg-teal-500/10 text-lg">
-                📷
-              </span>
-              <span className="mt-1 text-[10px] font-black text-teal-300">Photo</span>
-            </button>
+          <button
+            type="button"
+            onClick={quickAddPhoto}
+            disabled={starting || recordingVideo}
+            className="flex min-h-[72px] min-w-0 flex-1 flex-col items-center justify-end rounded-2xl pb-1 text-center active:bg-white/10 disabled:opacity-50"
+          >
+            <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-teal-400/60 bg-black/55 text-xl shadow-xl backdrop-blur">
+              📷
+            </span>
+            <span className="mt-1 text-xs font-black text-teal-300">Photo</span>
+          </button>
 
-            <button
-              type="button"
-              onClick={quickAddPhoto}
-              disabled={starting || recordingVideo}
-              aria-label="Take photo"
-              className={`mx-auto h-[76px] w-[76px] rounded-full border-[5px] border-white bg-white shadow-2xl active:scale-95 disabled:opacity-50 ${
-                pendingEvidenceCapture
-                  ? "ring-4 ring-amber-300 animate-pulse"
-                  : "ring-4 ring-teal-400"
-              }`}
-            />
+          <button
+            type="button"
+            onClick={quickAddPhoto}
+            disabled={starting || recordingVideo}
+            aria-label="Take photo"
+            className={`mb-1 h-[82px] w-[82px] shrink-0 rounded-full border-[5px] border-white bg-white shadow-2xl active:scale-95 disabled:opacity-50 ${
+              pendingEvidenceCapture
+                ? "ring-4 ring-amber-300 animate-pulse"
+                : "ring-4 ring-teal-400"
+            }`}
+          />
 
-            <button
-              type="button"
-              onClick={analyzeCurrentFrame}
-              disabled={starting || analyzing || !online}
-              className="flex min-h-[56px] flex-col items-center justify-center rounded-2xl text-center active:bg-white/10 disabled:opacity-50"
-            >
-              <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/15 bg-white/5 text-lg">
-                ✨
-              </span>
-              <span className="mt-1 text-[10px] font-bold">
-                {analyzing ? "Working" : "Analyze"}
-              </span>
-            </button>
+          <button
+            type="button"
+            onClick={analyzeCurrentFrame}
+            disabled={starting || analyzing || !online}
+            className="flex min-h-[72px] min-w-0 flex-1 flex-col items-center justify-end rounded-2xl pb-1 text-center active:bg-white/10 disabled:opacity-50"
+          >
+            <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/25 bg-black/55 text-xl shadow-xl backdrop-blur">
+              ✨
+            </span>
+            <span className="mt-1 text-xs font-bold text-white">
+              {analyzing ? "Working" : "Analyze"}
+            </span>
+          </button>
 
-            <button
-              type="button"
-              onClick={() => setActionsOpen(true)}
-              className="flex min-h-[56px] flex-col items-center justify-center rounded-2xl text-center active:bg-white/10"
-            >
-              <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/15 bg-white/5 text-xl leading-none">
-                •••
-              </span>
-              <span className="mt-1 text-[10px] font-bold">More</span>
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => setActionsOpen(true)}
+            className="flex min-h-[72px] min-w-0 flex-1 flex-col items-center justify-end rounded-2xl pb-1 text-center active:bg-white/10"
+          >
+            <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/25 bg-black/55 text-2xl leading-none shadow-xl backdrop-blur">
+              •••
+            </span>
+            <span className="mt-1 text-xs font-bold text-white">More</span>
+          </button>
         </div>
       </div>
 
