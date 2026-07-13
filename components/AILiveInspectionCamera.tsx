@@ -95,6 +95,12 @@ type AILiveLimitation = {
   confidence?: number;
 };
 
+type LiveMemoryStatus =
+  | "active"
+  | "snoozed"
+  | "completed"
+  | "ignored";
+
 type LiveMemoryItem = {
   key: string;
   title: string;
@@ -102,6 +108,12 @@ type LiveMemoryItem = {
   severity?: string;
   confidence?: number;
   createdAt: number;
+  updatedAt?: number;
+  status?: LiveMemoryStatus;
+  suggestion?: AILiveSuggestion;
+  reminder?: AILiveReminder;
+  limitation?: AILiveLimitation;
+  dataPlatePrompt?: AILiveResult["dataPlatePrompt"];
 };
 
 type PendingEvidenceCapture =
@@ -369,6 +381,8 @@ export default function AILiveInspectionCamera({
   const [liveNoticeVisible, setLiveNoticeVisible] = useState(true);
   const [pendingEvidenceCapture, setPendingEvidenceCapture] =
     useState<PendingEvidenceCapture | null>(null);
+  const [selectedMemoryKey, setSelectedMemoryKey] = useState("");
+  const [memoryHistoryOpen, setMemoryHistoryOpen] = useState(false);
 
   const frameFile = useMemo(() => {
     if (!frameDataUrl) return null;
@@ -393,11 +407,45 @@ export default function AILiveInspectionCamera({
 
     try {
       const parsed = JSON.parse(window.localStorage.getItem(liveMemoryStorageKey) || "[]");
-      setLiveMemoryItems(Array.isArray(parsed) ? parsed.slice(0, 20) : []);
+      const normalized = Array.isArray(parsed)
+        ? parsed.map((item: LiveMemoryItem) => ({
+            ...item,
+            status: item.status || "active",
+            updatedAt: item.updatedAt || item.createdAt || Date.now(),
+          }))
+        : [];
+      setLiveMemoryItems(normalized.slice(0, 40));
     } catch {
       setLiveMemoryItems([]);
     }
   }, [selectedReport, liveMemoryStorageKey]);
+
+  function persistLiveMemory(items: LiveMemoryItem[]) {
+    const next = items.slice(0, 40);
+    try {
+      window.localStorage.setItem(liveMemoryStorageKey, JSON.stringify(next));
+    } catch {}
+    return next;
+  }
+
+  function updateLiveMemoryItem(
+    key: string,
+    updates: Partial<LiveMemoryItem>,
+  ) {
+    setLiveMemoryItems((current) =>
+      persistLiveMemory(
+        current.map((item) =>
+          item.key === key
+            ? {
+                ...item,
+                ...updates,
+                updatedAt: Date.now(),
+              }
+            : item,
+        ),
+      ),
+    );
+  }
 
   function appendLiveMemory(data: AILiveResult) {
     const now = Date.now();
@@ -409,6 +457,9 @@ export default function AILiveInspectionCamera({
         severity: item.severity,
         confidence: item.confidence,
         createdAt: now,
+        updatedAt: now,
+        status: "active" as const,
+        suggestion: item,
       })),
       ...(data.reminders || []).map((item) => ({
         key: `reminder:${createReminderKey(item)}`,
@@ -416,6 +467,9 @@ export default function AILiveInspectionCamera({
         kind: "reminder" as const,
         confidence: item.confidence,
         createdAt: now,
+        updatedAt: now,
+        status: "active" as const,
+        reminder: item,
       })),
       ...(data.limitations || []).map((item) => ({
         key: `limitation:${String(item.id || item.title).toLowerCase()}`,
@@ -423,6 +477,9 @@ export default function AILiveInspectionCamera({
         kind: "limitation" as const,
         confidence: item.confidence,
         createdAt: now,
+        updatedAt: now,
+        status: "active" as const,
+        limitation: item,
       })),
       ...(data.dataPlatePrompt?.needed
         ? [{
@@ -430,6 +487,9 @@ export default function AILiveInspectionCamera({
             title: data.dataPlatePrompt.reason || "Equipment data plate should be captured",
             kind: "data_plate" as const,
             createdAt: now,
+            updatedAt: now,
+            status: "active" as const,
+            dataPlatePrompt: data.dataPlatePrompt,
           }]
         : []),
     ].filter((item) => item.key && item.title);
@@ -437,19 +497,37 @@ export default function AILiveInspectionCamera({
     if (!nextItems.length) return;
 
     setLiveMemoryItems((current) => {
-      const merged = [...nextItems, ...current];
-      const seen = new Set<string>();
-      const unique = merged.filter((item) => {
-        if (seen.has(item.key)) return false;
-        seen.add(item.key);
-        return true;
-      }).slice(0, 20);
+      const byKey = new Map(current.map((item) => [item.key, item]));
 
-      try {
-        window.localStorage.setItem(liveMemoryStorageKey, JSON.stringify(unique));
-      } catch {}
+      for (const incoming of nextItems) {
+        const existing = byKey.get(incoming.key);
+        if (!existing) {
+          byKey.set(incoming.key, incoming);
+          continue;
+        }
 
-      return unique;
+        const previousConfidence = normalizeConfidence(existing.confidence);
+        const nextConfidence = normalizeConfidence(incoming.confidence);
+        const shouldResurface =
+          existing.status === "ignored" &&
+          nextConfidence >= previousConfidence + RESURFACE_CONFIDENCE_BOOST;
+
+        byKey.set(incoming.key, {
+          ...existing,
+          ...incoming,
+          createdAt: existing.createdAt || incoming.createdAt,
+          status: shouldResurface
+            ? "active"
+            : existing.status || "active",
+          updatedAt: now,
+        });
+      }
+
+      return persistLiveMemory(
+        Array.from(byKey.values()).sort(
+          (a, b) => Number(b.updatedAt || b.createdAt) - Number(a.updatedAt || a.createdAt),
+        ),
+      );
     });
   }
 
@@ -1261,6 +1339,10 @@ export default function AILiveInspectionCamera({
     setFrameDataUrl("");
     latestFrameRef.current = "";
 
+    updateLiveMemoryItem(`suggestion:${createSuggestionKey(suggestion)}`, {
+      status: "completed",
+    });
+    setSelectedMemoryKey("");
     setMessage(
       "Photo captured and finding loaded into the Field Tool. Review the wording and tap Save Finding.",
     );
@@ -1301,6 +1383,10 @@ export default function AILiveInspectionCamera({
       payload: { snoozedUntil: Date.now() + 5 * 60 * 1000 },
     });
 
+    updateLiveMemoryItem(`suggestion:${createSuggestionKey(suggestion)}`, {
+      status: "snoozed",
+    });
+    setSelectedMemoryKey("");
     setResult(null);
     setWaitingForDecision(false);
     setMessage("Reminder snoozed for five minutes. AI Watching resumed.");
@@ -1341,6 +1427,10 @@ export default function AILiveInspectionCamera({
       );
     }
 
+    updateLiveMemoryItem(`suggestion:${createSuggestionKey(suggestion)}`, {
+      status: "ignored",
+    });
+    setSelectedMemoryKey("");
     setResult(null);
     setWaitingForDecision(false);
 
@@ -1471,6 +1561,11 @@ export default function AILiveInspectionCamera({
       setFrameDataUrl("");
       latestFrameRef.current = "";
 
+      updateLiveMemoryItem(
+        `limitation:${String(limitation.id || limitation.title).toLowerCase()}`,
+        { status: "completed" },
+      );
+      setSelectedMemoryKey("");
       setMessage(
         `Photo captured and limitation completed in ${targetSection}. The image was also queued for the device gallery.`,
       );
@@ -1489,6 +1584,12 @@ export default function AILiveInspectionCamera({
         ...current,
         [key]: true,
       }));
+      updateLiveMemoryItem(`reminder:${key}`, {
+        status: nextMessage.toLowerCase().includes("ignored")
+          ? "ignored"
+          : "completed",
+      });
+      setSelectedMemoryKey("");
     }
 
     setResult((current) => {
@@ -1728,8 +1829,27 @@ export default function AILiveInspectionCamera({
     currentSection,
   ]);
 
-  const pendingCount = liveMemoryItems.length;
-  const coachMemoryCount = liveMemoryItems.filter(
+  const activeMemoryItems = useMemo(
+    () =>
+      liveMemoryItems.filter(
+        (item) => (item.status || "active") === "active" || item.status === "snoozed",
+      ),
+    [liveMemoryItems],
+  );
+
+  const memoryHistoryItems = useMemo(
+    () =>
+      liveMemoryItems.filter(
+        (item) => item.status === "completed" || item.status === "ignored",
+      ),
+    [liveMemoryItems],
+  );
+
+  const selectedMemoryItem =
+    liveMemoryItems.find((item) => item.key === selectedMemoryKey) || null;
+
+  const pendingCount = activeMemoryItems.length;
+  const coachMemoryCount = activeMemoryItems.filter(
     (item) => item.kind === "reminder",
   ).length;
   const additionalDetectionCount = Math.max(
@@ -2191,49 +2311,309 @@ export default function AILiveInspectionCamera({
                       </p>
                     </div>
                     <span className="rounded-full bg-amber-300 px-3 py-1 text-sm font-black text-black">
-                      {liveMemoryItems.length}
+                      {activeMemoryItems.length}
                     </span>
                   </div>
                 </div>
 
-                {liveMemoryItems.length > 0 && (
+                {activeMemoryItems.length > 0 && (
                   <div className="rounded-2xl border border-amber-400/30 bg-amber-400/10 p-4">
-                    <p className="text-xs font-black uppercase tracking-[0.15em] text-amber-300">
-                      Live Memory
-                    </p>
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-xs font-black uppercase tracking-[0.15em] text-amber-300">
+                        Active Queue
+                      </p>
+                      <span className="rounded-full bg-amber-300 px-2.5 py-1 text-xs font-black text-black">
+                        {activeMemoryItems.length}
+                      </span>
+                    </div>
+
                     <div className="mt-3 space-y-2">
-                      {liveMemoryItems.map((item) => (
-                        <div
+                      {activeMemoryItems.map((item) => (
+                        <button
+                          type="button"
                           key={`memory-detail-${item.key}`}
-                          className="flex items-start gap-3 rounded-xl border border-white/10 bg-black/30 p-3"
+                          onClick={() =>
+                            setSelectedMemoryKey((current) =>
+                              current === item.key ? "" : item.key,
+                            )
+                          }
+                          className={`w-full rounded-xl border p-3 text-left transition active:scale-[0.99] ${
+                            selectedMemoryKey === item.key
+                              ? "border-teal-300 bg-teal-400/10"
+                              : "border-white/10 bg-black/30"
+                          }`}
                         >
-                          <span
-                            className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${
-                              item.kind === "suggestion"
-                                ? "bg-red-400"
-                                : item.kind === "reminder"
-                                  ? "bg-cyan-300"
-                                  : item.kind === "limitation"
-                                    ? "bg-yellow-300"
-                                    : "bg-purple-300"
-                            }`}
-                          />
-                          <div className="min-w-0">
-                            <p className="text-sm font-black text-white">
-                              {item.title}
-                            </p>
-                            <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">
-                              {formatMemoryTime(item.createdAt)}
-                              {" · "}
-                              {item.kind.replace("_", " ")}
-                              {item.confidence
-                                ? ` · ${confidenceLabel(item.confidence)}`
-                                : ""}
-                            </p>
+                          <div className="flex items-start gap-3">
+                            <span
+                              className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${
+                                item.kind === "suggestion"
+                                  ? "bg-red-400"
+                                  : item.kind === "reminder"
+                                    ? "bg-cyan-300"
+                                    : item.kind === "limitation"
+                                      ? "bg-yellow-300"
+                                      : "bg-purple-300"
+                              }`}
+                            />
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-black text-white">
+                                {item.title}
+                              </p>
+                              <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">
+                                {formatMemoryTime(item.updatedAt || item.createdAt)}
+                                {" · "}
+                                {item.kind.replace("_", " ")}
+                                {item.confidence
+                                  ? ` · ${confidenceLabel(item.confidence)}`
+                                  : ""}
+                                {item.status === "snoozed" ? " · snoozed" : ""}
+                              </p>
+                            </div>
+                            <span className="text-xl text-slate-400">
+                              {selectedMemoryKey === item.key ? "⌃" : "›"}
+                            </span>
                           </div>
-                        </div>
+                        </button>
                       ))}
                     </div>
+                  </div>
+                )}
+
+                {selectedMemoryItem &&
+                  ((selectedMemoryItem.status || "active") === "active" ||
+                    selectedMemoryItem.status === "snoozed") && (
+                    <div className="rounded-2xl border border-teal-400/40 bg-teal-400/10 p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-xs font-black uppercase tracking-[0.15em] text-teal-300">
+                            Work This Item
+                          </p>
+                          <h3 className="mt-1 text-lg font-black text-white">
+                            {selectedMemoryItem.title}
+                          </h3>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedMemoryKey("")}
+                          className="rounded-full border border-white/15 px-3 py-1 text-xs font-black"
+                        >
+                          Close
+                        </button>
+                      </div>
+
+                      {selectedMemoryItem.suggestion && (
+                        <>
+                          <p className="mt-3 text-sm leading-6 text-slate-200">
+                            {selectedMemoryItem.suggestion.observation}
+                          </p>
+                          {selectedMemoryItem.suggestion.implication && (
+                            <p className="mt-2 text-sm leading-6 text-slate-300">
+                              <strong>Implication:</strong>{" "}
+                              {selectedMemoryItem.suggestion.implication}
+                            </p>
+                          )}
+                          {selectedMemoryItem.suggestion.recommendation && (
+                            <p className="mt-2 text-sm leading-6 text-slate-300">
+                              <strong>Recommendation:</strong>{" "}
+                              {selectedMemoryItem.suggestion.recommendation}
+                            </p>
+                          )}
+                          <div className="mt-4 grid grid-cols-3 gap-2">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                ignoreSuggestion(selectedMemoryItem.suggestion!)
+                              }
+                              className="rounded-xl border border-slate-600 px-3 py-3 text-xs font-black"
+                            >
+                              Ignore
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                snoozeSuggestion(selectedMemoryItem.suggestion!)
+                              }
+                              className="rounded-xl border border-yellow-500/60 px-3 py-3 text-xs font-black text-yellow-200"
+                            >
+                              Remind Later
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                beginSuggestionEvidenceCapture(
+                                  selectedMemoryItem.suggestion!,
+                                )
+                              }
+                              className="rounded-xl bg-emerald-400 px-3 py-3 text-xs font-black text-black"
+                            >
+                              Add + Photo
+                            </button>
+                          </div>
+                        </>
+                      )}
+
+                      {selectedMemoryItem.limitation && (
+                        <>
+                          <p className="mt-3 whitespace-pre-line text-sm leading-6 text-slate-200">
+                            {createLimitationText(selectedMemoryItem.limitation)}
+                          </p>
+                          <div className="mt-4 grid grid-cols-2 gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                updateLiveMemoryItem(selectedMemoryItem.key, {
+                                  status: "ignored",
+                                });
+                                setSelectedMemoryKey("");
+                              }}
+                              className="rounded-xl border border-slate-600 px-3 py-3 text-xs font-black"
+                            >
+                              Ignore
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                beginLimitationEvidenceCapture(
+                                  selectedMemoryItem.limitation!,
+                                  0,
+                                )
+                              }
+                              className="rounded-xl bg-orange-400 px-3 py-3 text-xs font-black text-black"
+                            >
+                              Add + Photo
+                            </button>
+                          </div>
+                        </>
+                      )}
+
+                      {selectedMemoryItem.reminder && (
+                        <>
+                          {selectedMemoryItem.reminder.detail && (
+                            <p className="mt-3 text-sm leading-6 text-slate-200">
+                              {selectedMemoryItem.reminder.detail}
+                            </p>
+                          )}
+                          <div className="mt-4 grid grid-cols-3 gap-2">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                ignoreReminder(selectedMemoryItem.reminder!)
+                              }
+                              className="rounded-xl border border-slate-600 px-3 py-3 text-xs font-black"
+                            >
+                              Ignore
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                saveReminderPhoto(selectedMemoryItem.reminder!)
+                              }
+                              className="rounded-xl border border-cyan-500/70 px-3 py-3 text-xs font-black text-cyan-100"
+                            >
+                              Add Photo
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                markReminderChecked(selectedMemoryItem.reminder!)
+                              }
+                              className="rounded-xl bg-emerald-400 px-3 py-3 text-xs font-black text-black"
+                            >
+                              Complete
+                            </button>
+                          </div>
+                        </>
+                      )}
+
+                      {selectedMemoryItem.kind === "data_plate" && (
+                        <div className="mt-4 grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              updateLiveMemoryItem(selectedMemoryItem.key, {
+                                status: "ignored",
+                              });
+                              setSelectedMemoryKey("");
+                            }}
+                            className="rounded-xl border border-slate-600 px-3 py-3 text-xs font-black"
+                          >
+                            Ignore
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onScanDataPlate(frameFile);
+                              updateLiveMemoryItem(selectedMemoryItem.key, {
+                                status: "completed",
+                              });
+                              setSelectedMemoryKey("");
+                            }}
+                            className="rounded-xl bg-yellow-400 px-3 py-3 text-xs font-black text-black"
+                          >
+                            Scan Plate
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                {memoryHistoryItems.length > 0 && (
+                  <div className="rounded-2xl border border-slate-700 bg-slate-900/70 p-4">
+                    <button
+                      type="button"
+                      onClick={() => setMemoryHistoryOpen((current) => !current)}
+                      className="flex w-full items-center justify-between gap-3 text-left"
+                    >
+                      <div>
+                        <p className="text-xs font-black uppercase tracking-[0.15em] text-slate-300">
+                          History
+                        </p>
+                        <p className="mt-1 text-sm text-slate-400">
+                          Completed and ignored items
+                        </p>
+                      </div>
+                      <span className="rounded-full border border-slate-600 px-3 py-1 text-xs font-black">
+                        {memoryHistoryItems.length} {memoryHistoryOpen ? "⌃" : "⌄"}
+                      </span>
+                    </button>
+
+                    {memoryHistoryOpen && (
+                      <div className="mt-3 space-y-2">
+                        {memoryHistoryItems.map((item) => (
+                          <div
+                            key={`memory-history-${item.key}`}
+                            className="flex items-center gap-3 rounded-xl border border-white/5 bg-black/25 p-3"
+                          >
+                            <span
+                              className={`h-2.5 w-2.5 shrink-0 rounded-full ${
+                                item.status === "completed"
+                                  ? "bg-emerald-400"
+                                  : "bg-slate-500"
+                              }`}
+                            />
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-bold text-white">
+                                {item.title}
+                              </p>
+                              <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-slate-500">
+                                {item.status}
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                updateLiveMemoryItem(item.key, {
+                                  status: "active",
+                                })
+                              }
+                              className="rounded-lg border border-slate-600 px-2 py-1 text-[10px] font-black"
+                            >
+                              Reopen
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
 
