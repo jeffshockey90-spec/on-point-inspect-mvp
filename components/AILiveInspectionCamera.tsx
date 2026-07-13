@@ -104,17 +104,6 @@ type LiveMemoryItem = {
   createdAt: number;
 };
 
-type PendingEvidenceCapture =
-  | {
-      kind: "finding";
-      suggestion: AILiveSuggestion;
-    }
-  | {
-      kind: "limitation";
-      limitation: AILiveLimitation;
-      index: number;
-    };
-
 type AILiveResult = {
   area?: string;
   system?: string;
@@ -180,17 +169,6 @@ function normalizeConfidence(value: any) {
 function confidenceLabel(value: any) {
   const confidence = normalizeConfidence(value);
   return `${Math.round(confidence * 100)}%`;
-}
-
-function formatMemoryTime(value: number) {
-  try {
-    return new Intl.DateTimeFormat("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-    }).format(new Date(value));
-  } catch {
-    return "";
-  }
 }
 
 function livePriority(value: {
@@ -367,8 +345,6 @@ export default function AILiveInspectionCamera({
   const [savingLimitationIndex, setSavingLimitationIndex] = useState<number | null>(null);
   const [handledReminderKeys, setHandledReminderKeys] = useState<Record<string, boolean>>({});
   const [liveNoticeVisible, setLiveNoticeVisible] = useState(true);
-  const [pendingEvidenceCapture, setPendingEvidenceCapture] =
-    useState<PendingEvidenceCapture | null>(null);
 
   const frameFile = useMemo(() => {
     if (!frameDataUrl) return null;
@@ -890,31 +866,11 @@ export default function AILiveInspectionCamera({
     }
   }
 
-  async function quickAddPhoto() {
+  function quickAddPhoto() {
     const captured = captureFrame({ silent: true });
     if (!captured) return;
 
     try {
-      if (pendingEvidenceCapture?.kind === "finding") {
-        const file = dataUrlToFile(captured, "ai-live-finding");
-        completeSuggestionWithEvidence(
-          pendingEvidenceCapture.suggestion,
-          file,
-        );
-        setPendingEvidenceCapture(null);
-        return;
-      }
-
-      if (pendingEvidenceCapture?.kind === "limitation") {
-        await saveLimitationToSection(
-          pendingEvidenceCapture.limitation,
-          pendingEvidenceCapture.index,
-          captured,
-        );
-        setPendingEvidenceCapture(null);
-        return;
-      }
-
       const file = dataUrlToFile(captured, "ai-live-photo");
       onAddPhotoOnly(file);
       void saveSelectedMediaToGallery(file);
@@ -1185,33 +1141,23 @@ export default function AILiveInspectionCamera({
     }
   }
 
-  function beginSuggestionEvidenceCapture(suggestion: AILiveSuggestion) {
-    setPendingEvidenceCapture({
-      kind: "finding",
-      suggestion,
-    });
-    setDetailsOpen(false);
-    setActionsOpen(false);
-    setLiveNoticeVisible(false);
-    setMessage(
-      `Take a clear photo to complete "${suggestion.title}". The finding will not move forward until the photo is captured.`,
-    );
-  }
+  function useSuggestion(suggestion: AILiveSuggestion) {
+    const selectedFrame =
+      frameFile ||
+      (latestFrameRef.current
+        ? dataUrlToFile(latestFrameRef.current, "ai-live-finding")
+        : null);
 
-  function completeSuggestionWithEvidence(
-    suggestion: AILiveSuggestion,
-    selectedFrame: File,
-  ) {
     onUseSuggestion(suggestion, selectedFrame);
     void saveSelectedMediaToGallery(selectedFrame);
     recordInspectorLearning({
       tool: "ai_live_camera_suggestion",
       original: suggestion,
-      updated: { ...suggestion, decision: "accepted_with_photo" },
+      updated: { ...suggestion, decision: "accepted" },
       accepted: true,
       confidence: normalizeConfidence(suggestion.confidence),
       notes:
-        "Inspector accepted this live-camera suggestion and captured required photo evidence. Reinforce similar visible conditions, wording, severity, and section routing.",
+        "Inspector accepted this live-camera suggestion. Reinforce similar visible conditions, wording, severity, and section routing.",
     });
     recordMemoryEvent({
       eventType: "live_camera_suggestion",
@@ -1224,8 +1170,6 @@ export default function AILiveInspectionCamera({
         severity: suggestion.severity,
         suggestionType: suggestion.suggestionType,
         recommendation: suggestion.recommendation,
-        evidenceRequired: true,
-        evidenceCaptured: true,
       },
     });
 
@@ -1261,9 +1205,7 @@ export default function AILiveInspectionCamera({
     setFrameDataUrl("");
     latestFrameRef.current = "";
 
-    setMessage(
-      "Photo captured and finding loaded into the Field Tool. Review the wording and tap Save Finding.",
-    );
+    setMessage("Suggestion loaded into the Field Tool with the captured frame. Review and tap Save Finding when ready. AI Watching resumed.");
   }
 
   function snoozeSuggestion(suggestion: AILiveSuggestion) {
@@ -1347,27 +1289,9 @@ export default function AILiveInspectionCamera({
     setMessage("Suggestion dismissed. AI Watching resumed.");
   }
 
-  function beginLimitationEvidenceCapture(
-    limitation: AILiveLimitation,
-    index: number,
-  ) {
-    setPendingEvidenceCapture({
-      kind: "limitation",
-      limitation,
-      index,
-    });
-    setDetailsOpen(false);
-    setActionsOpen(false);
-    setLiveNoticeVisible(false);
-    setMessage(
-      `Take a clear photo to complete "${limitation.title}". The limitation will not be saved until the photo is captured.`,
-    );
-  }
-
   async function saveLimitationToSection(
     limitation: AILiveLimitation,
     index: number,
-    requiredFrameDataUrl?: string,
   ) {
     if (!selectedReport) {
       setMessage("Select a report before adding a limitation.");
@@ -1391,7 +1315,6 @@ export default function AILiveInspectionCamera({
 
     try {
       let savedFrame =
-        requiredFrameDataUrl ||
         latestFrameRef.current ||
         frameDataUrl ||
         "";
@@ -1472,7 +1395,7 @@ export default function AILiveInspectionCamera({
       latestFrameRef.current = "";
 
       setMessage(
-        `Photo captured and limitation completed in ${targetSection}. The image was also queued for the device gallery.`,
+        `Limitation added to ${targetSection} with photo and queued for the device gallery.`,
       );
     } catch (error: any) {
       setMessage(error?.message || "Failed to add limitation to section.");
@@ -1801,7 +1724,7 @@ export default function AILiveInspectionCamera({
               className={`absolute z-10 border-[3px] bg-emerald-400/10 transition-all duration-500 ease-out ${
                 suggestion.stale
                   ? "border-emerald-300/55 opacity-60"
-                  : "border-emerald-400 opacity-100 shadow-[0_0_24px_rgba(74,222,128,0.8)] animate-[pulse_2.8s_ease-in-out_infinite]"
+                  : "border-emerald-400 opacity-100 shadow-[0_0_24px_rgba(74,222,128,0.8)]"
               } ${region.approximate ? "border-dashed" : ""} ${
                 suggestion.pinned ? "ring-2 ring-cyan-300" : ""
               }`}
@@ -1829,19 +1752,7 @@ export default function AILiveInspectionCamera({
       <div className="absolute left-0 right-0 top-0 z-20 flex items-start justify-between px-5 pt-[max(1rem,env(safe-area-inset-top))]">
         <button
           type="button"
-          onClick={() => {
-            if (
-              pendingEvidenceCapture &&
-              !window.confirm(
-                "A finding or limitation is waiting for its required photo. Close the camera and cancel it?",
-              )
-            ) {
-              return;
-            }
-
-            setPendingEvidenceCapture(null);
-            setOpen(false);
-          }}
+          onClick={() => setOpen(false)}
           aria-label="Close camera"
           className="flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-black/70 text-4xl font-light text-white shadow-2xl backdrop-blur active:scale-95"
         >
@@ -1852,7 +1763,7 @@ export default function AILiveInspectionCamera({
           type="button"
           onClick={() => setAutoWatch((current) => !current)}
           disabled={!online || starting}
-          className="whitespace-nowrap rounded-full border border-white/10 bg-black/75 px-4 py-2 text-center shadow-xl backdrop-blur-xl disabled:opacity-50"
+          className="whitespace-nowrap rounded-full border border-white/10 bg-black/70 px-3 py-2 text-center shadow-xl backdrop-blur-xl disabled:opacity-50"
         >
           <span className="inline-flex items-center gap-2 text-xs font-black">
             <span
@@ -1887,7 +1798,7 @@ export default function AILiveInspectionCamera({
         </div>
       </div>
 
-      <div className="absolute right-4 top-[23%] z-20 flex h-[35%] w-12 flex-col items-center">
+      <div className="absolute right-3 top-[21%] z-20 flex h-[30%] w-11 flex-col items-center">
         <div className="rounded-full bg-black/75 px-3 py-2 text-sm font-bold backdrop-blur">
           {zoomLevel.toFixed(1)}x
         </div>
@@ -1905,147 +1816,117 @@ export default function AILiveInspectionCamera({
       </div>
 
       {analyzing && (
-        <div className="absolute left-1/2 top-[46%] z-20 -translate-x-1/2 rounded-full border border-purple-300/40 bg-black/75 px-5 py-3 text-sm font-black text-purple-200 shadow-2xl backdrop-blur">
+        <div className="absolute left-1/2 top-[46%] z-20 -translate-x-1/2 rounded-full border border-purple-300/40 bg-black/75 px-4 py-2.5 text-xs font-black text-purple-200 shadow-2xl backdrop-blur">
           ✨ AI analyzing this area…
         </div>
       )}
 
-      <div className="absolute bottom-0 left-0 right-0 z-20 px-3 pb-[max(0.7rem,env(safe-area-inset-bottom))]">
+      <div className="absolute bottom-0 left-0 right-0 z-20 px-3 pb-[max(0.55rem,env(safe-area-inset-bottom))]">
         {pendingEvidenceCapture && (
-          <div className="mb-3 rounded-[1.6rem] border border-amber-300/55 bg-black/90 px-4 py-4 shadow-2xl backdrop-blur-2xl">
-            <div className="flex items-start gap-3">
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-amber-300/50 bg-amber-400/15 text-xl">
-                📸
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-black uppercase tracking-[0.14em] text-amber-300">
-                  Photo Required
-                </p>
-                <p className="mt-1 text-sm font-black leading-5 text-white">
-                  {pendingEvidenceCapture.kind === "finding"
-                    ? pendingEvidenceCapture.suggestion.title
-                    : pendingEvidenceCapture.limitation.title}
-                </p>
-                <p className="mt-1 text-xs leading-5 text-slate-300">
-                  Aim at the condition and press the shutter. This item will not
-                  move forward without photo evidence.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setPendingEvidenceCapture(null);
-                  setMessage("Required photo capture canceled. Nothing was added.");
-                }}
-                className="shrink-0 rounded-full border border-white/15 bg-white/5 px-3 py-2 text-xs font-black text-white"
-              >
-                Cancel
-              </button>
+          <div className="mb-2 flex items-center gap-3 rounded-2xl border border-amber-300/55 bg-black/88 px-3 py-2.5 shadow-2xl backdrop-blur-2xl">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-amber-300/50 bg-amber-400/15 text-lg">
+              📸
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-black uppercase tracking-[0.14em] text-amber-300">
+                Photo Required
+              </p>
+              <p className="truncate text-sm font-black text-white">
+                {pendingEvidenceCapture.kind === "finding"
+                  ? pendingEvidenceCapture.suggestion.title
+                  : pendingEvidenceCapture.limitation.title}
+              </p>
             </div>
+            <button
+              type="button"
+              onClick={() => {
+                setPendingEvidenceCapture(null);
+                setMessage("Required photo capture canceled. Nothing was added.");
+              }}
+              className="shrink-0 rounded-full border border-white/15 bg-white/5 px-3 py-2 text-[11px] font-black text-white"
+            >
+              Cancel
+            </button>
           </div>
         )}
 
         {!pendingEvidenceCapture &&
           liveNoticeVisible &&
           (primarySuggestion || primaryReminder) && (
+            <button
+              type="button"
+              onClick={() => setDetailsOpen(true)}
+              className="mb-2 flex min-h-[54px] w-full items-center gap-3 rounded-2xl border border-white/15 bg-black/80 px-3 py-2 text-left shadow-2xl backdrop-blur-2xl active:scale-[0.99]"
+            >
+              <span
+                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-lg ${
+                  primaryReminder
+                    ? "border-blue-400/50 bg-blue-500/20"
+                    : "border-teal-400/50 bg-teal-500/20"
+                }`}
+              >
+                {primaryReminder ? "📋" : "✨"}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span
+                  className={`block text-[10px] font-black uppercase tracking-[0.13em] ${
+                    primaryReminder ? "text-blue-300" : "text-teal-300"
+                  }`}
+                >
+                  {primaryReminder ? "Coach" : "AI Suggestion"}
+                </span>
+                <span className="block truncate text-sm font-bold text-white">
+                  {primaryReminder
+                    ? primaryReminder.detail || primaryReminder.title
+                    : primarySuggestion?.observation || primarySuggestion?.title}
+                </span>
+              </span>
+              <span className="shrink-0 text-xl text-teal-200">›</span>
+            </button>
+          )}
+
+        <div className="mb-2 flex items-center justify-between gap-2">
           <button
             type="button"
             onClick={() => setDetailsOpen(true)}
-            className="mb-3 flex min-h-[76px] w-full items-center gap-3 rounded-[1.6rem] border border-white/15 bg-black/84 px-4 py-3 text-left shadow-2xl backdrop-blur-2xl active:scale-[0.99]"
+            className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/15 bg-black/70 px-3 py-2 text-xs font-black text-white shadow-xl backdrop-blur"
           >
-            <span
-              className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border text-xl ${
-                primaryReminder
-                  ? "border-blue-400/50 bg-blue-500/20"
-                  : "border-teal-400/50 bg-teal-500/20"
-              }`}
-            >
-              {primaryReminder ? "📋" : "✨"}
-            </span>
-
-            <span className="min-w-0 flex-1">
-              <span
-                className={`block text-[11px] font-black uppercase tracking-[0.14em] ${
-                  primaryReminder ? "text-blue-300" : "text-teal-300"
-                }`}
-              >
-                {primaryReminder ? "Section Coach" : "AI Suggestion"}
-              </span>
-              <span className="mt-1 block line-clamp-2 text-sm font-bold leading-5 text-white">
-                {primaryReminder
-                  ? primaryReminder.detail || primaryReminder.title
-                  : primarySuggestion?.observation || primarySuggestion?.title}
-              </span>
-            </span>
-
-            <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-teal-400/40 bg-teal-500/15 px-3 py-2 text-xs font-black text-teal-200">
-              Review <span aria-hidden="true">›</span>
-            </span>
+            <span>🧠</span>
+            <span>{pendingCount}</span>
           </button>
-        )}
 
-        <div className="rounded-[2rem] border border-white/15 bg-black/88 px-3 pb-3 pt-3 shadow-2xl backdrop-blur-2xl">
-          <div className="grid grid-cols-2 divide-x divide-white/15 border-b border-white/10 pb-3">
-            <button
-              type="button"
-              onClick={() => setDetailsOpen(true)}
-              className="flex min-h-12 items-center gap-3 px-3 text-left active:bg-white/5"
-            >
-              <span className="flex h-9 w-9 items-center justify-center rounded-full border border-rose-400/40 bg-rose-500/15 text-lg">
-                🧠
-              </span>
-              <span className="min-w-0">
-                <span className="block text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
-                  Live Memory
-                </span>
-                <span className="block truncate text-sm font-bold text-white">
-                  {pendingCount} {pendingCount === 1 ? "item" : "items"}
-                </span>
-              </span>
-              <span className="ml-auto text-xl text-slate-400">›</span>
-            </button>
+          <button
+            type="button"
+            onClick={() => setDetailsOpen(true)}
+            className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/15 bg-black/70 px-3 py-2 text-xs font-black text-white shadow-xl backdrop-blur"
+          >
+            <span>📋</span>
+            <span>{coachMemoryCount}</span>
+          </button>
+        </div>
 
-            <button
-              type="button"
-              onClick={() => setDetailsOpen(true)}
-              className="flex min-h-12 items-center gap-3 px-3 text-left active:bg-white/5"
-            >
-              <span className="flex h-9 w-9 items-center justify-center rounded-full border border-blue-400/40 bg-blue-500/15 text-lg">
-                📋
-              </span>
-              <span className="min-w-0">
-                <span className="block text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
-                  Coach
-                </span>
-                <span className="block truncate text-sm font-bold text-white">
-                  {coachMemoryCount} {coachMemoryCount === 1 ? "reminder" : "reminders"}
-                </span>
-              </span>
-              <span className="ml-auto text-xl text-slate-400">›</span>
-            </button>
-          </div>
-
-          <div className="mt-3 grid grid-cols-5 items-end gap-1">
+        <div className="relative rounded-[1.75rem] border border-white/15 bg-black/84 px-3 py-2.5 shadow-2xl backdrop-blur-2xl">
+          <div className="grid grid-cols-5 items-center gap-1">
             <button
               type="button"
               onClick={quickAddPhoto}
               disabled={starting || recordingVideo}
-              className="flex min-h-[66px] flex-col items-center justify-center rounded-2xl text-center active:bg-white/10 disabled:opacity-50"
+              className="flex min-h-[56px] flex-col items-center justify-center rounded-2xl text-center active:bg-white/10 disabled:opacity-50"
             >
-              <span className="text-xl">🖼️</span>
-              <span className="mt-1 text-[10px] font-bold">Photo</span>
+              <span className="text-lg">🖼️</span>
+              <span className="mt-0.5 text-[9px] font-bold">Photo</span>
             </button>
 
             <button
               type="button"
               onClick={toggleVideoRecording}
               disabled={starting}
-              className={`flex min-h-[66px] flex-col items-center justify-center rounded-2xl text-center active:bg-white/10 disabled:opacity-50 ${
+              className={`flex min-h-[56px] flex-col items-center justify-center rounded-2xl text-center active:bg-white/10 disabled:opacity-50 ${
                 recordingVideo ? "text-red-300" : ""
               }`}
             >
-              <span className="text-xl">{recordingVideo ? "⏹" : "🎥"}</span>
-              <span className="mt-1 text-[10px] font-bold">
+              <span className="text-lg">{recordingVideo ? "⏹" : "🎥"}</span>
+              <span className="mt-0.5 text-[9px] font-bold">
                 {recordingVideo ? "Stop" : "Video"}
               </span>
             </button>
@@ -2055,7 +1936,7 @@ export default function AILiveInspectionCamera({
               onClick={quickAddPhoto}
               disabled={starting || recordingVideo}
               aria-label="Take photo"
-              className={`mx-auto h-[72px] w-[72px] rounded-full border-[5px] border-white bg-white shadow-2xl active:scale-95 disabled:opacity-50 ${
+              className={`mx-auto h-[68px] w-[68px] rounded-full border-[5px] border-white bg-white shadow-2xl active:scale-95 disabled:opacity-50 ${
                 pendingEvidenceCapture
                   ? "ring-4 ring-amber-300 animate-pulse"
                   : "ring-4 ring-teal-400"
@@ -2066,10 +1947,10 @@ export default function AILiveInspectionCamera({
               type="button"
               onClick={analyzeCurrentFrame}
               disabled={starting || analyzing || !online}
-              className="flex min-h-[66px] flex-col items-center justify-center rounded-2xl text-center active:bg-white/10 disabled:opacity-50"
+              className="flex min-h-[56px] flex-col items-center justify-center rounded-2xl text-center active:bg-white/10 disabled:opacity-50"
             >
-              <span className="text-xl">✨</span>
-              <span className="mt-1 text-[10px] font-bold">
+              <span className="text-lg">✨</span>
+              <span className="mt-0.5 text-[9px] font-bold">
                 {analyzing ? "Working" : "Analyze"}
               </span>
             </button>
@@ -2077,10 +1958,10 @@ export default function AILiveInspectionCamera({
             <button
               type="button"
               onClick={() => setActionsOpen(true)}
-              className="flex min-h-[66px] flex-col items-center justify-center rounded-2xl text-center active:bg-white/10"
+              className="flex min-h-[56px] flex-col items-center justify-center rounded-2xl text-center active:bg-white/10"
             >
-              <span className="text-2xl leading-none">•••</span>
-              <span className="mt-1 text-[10px] font-bold">Actions</span>
+              <span className="text-xl leading-none">•••</span>
+              <span className="mt-0.5 text-[9px] font-bold">Actions</span>
             </button>
           </div>
         </div>
@@ -2236,8 +2117,6 @@ export default function AILiveInspectionCamera({
                               {item.title}
                             </p>
                             <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">
-                              {formatMemoryTime(item.createdAt)}
-                              {" · "}
                               {item.kind.replace("_", " ")}
                               {item.confidence
                                 ? ` · ${confidenceLabel(item.confidence)}`
@@ -2303,10 +2182,10 @@ export default function AILiveInspectionCamera({
                       </button>
                       <button
                         type="button"
-                        onClick={() => beginSuggestionEvidenceCapture(suggestion)}
+                        onClick={() => useSuggestion(suggestion)}
                         className="rounded-xl bg-emerald-400 px-3 py-3 text-xs font-black text-black"
                       >
-                        Add Finding + Photo
+                        Add Finding
                       </button>
                     </div>
                   </div>
@@ -2368,13 +2247,13 @@ export default function AILiveInspectionCamera({
                     </p>
                     <button
                       type="button"
-                      onClick={() => beginLimitationEvidenceCapture(limitation, index)}
+                      onClick={() => saveLimitationToSection(limitation, index)}
                       disabled={savingLimitationIndex !== null}
                       className="mt-4 w-full rounded-xl bg-orange-400 px-4 py-3 text-sm font-black text-black disabled:opacity-50"
                     >
                       {savingLimitationIndex === index
                         ? "Adding..."
-                        : "Add Limitation + Photo"}
+                        : "Add To Section Limitations"}
                     </button>
                   </div>
                 ))}
