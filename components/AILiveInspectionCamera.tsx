@@ -3,6 +3,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { saveFileToDeviceGallery } from "../lib/nativeGallery";
+import {
+  mergeLiveDetections,
+  toggleTrackedDetectionPin,
+  type LiveTrackedDetection,
+} from "../lib/ai/LiveVisionTracker";
 
 const MAX_DISMISSED_AGE_MS = 8 * 60 * 1000;
 const RESURFACE_CONFIDENCE_BOOST = 0.12;
@@ -99,6 +104,17 @@ type LiveMemoryItem = {
   createdAt: number;
 };
 
+type PendingEvidenceCapture =
+  | {
+      kind: "finding";
+      suggestion: AILiveSuggestion;
+    }
+  | {
+      kind: "limitation";
+      limitation: AILiveLimitation;
+      index: number;
+    };
+
 type AILiveResult = {
   area?: string;
   system?: string;
@@ -166,6 +182,51 @@ function confidenceLabel(value: any) {
   return `${Math.round(confidence * 100)}%`;
 }
 
+function formatMemoryTime(value: number) {
+  try {
+    return new Intl.DateTimeFormat("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(new Date(value));
+  } catch {
+    return "";
+  }
+}
+
+function livePriority(value: {
+  severity?: string;
+  suggestionType?: string;
+  priority?: string;
+  confidence?: number;
+}) {
+  const severity = String(value.severity || "").toLowerCase();
+  const suggestionType = String(value.suggestionType || "").toLowerCase();
+  const priority = String(value.priority || "").toLowerCase();
+  const confidence = normalizeConfidence(value.confidence);
+
+  if (
+    severity.includes("safety") ||
+    severity.includes("major") ||
+    suggestionType.includes("safety") ||
+    priority === "high"
+  ) {
+    return 4;
+  }
+
+  if (severity.includes("repair") || confidence >= 0.88) return 3;
+  if (severity.includes("monitor") || priority === "medium") return 2;
+  return 1;
+}
+
+function shouldInterruptCamera(value: {
+  severity?: string;
+  suggestionType?: string;
+  priority?: string;
+  confidence?: number;
+}) {
+  return livePriority(value) >= 3;
+}
+
 const LIVE_SCAN_INTERVAL_OPTIONS = [3, 5, 8, 10, 15, 30];
 
 function getLiveScanIntervalKey(inspectionId: string) {
@@ -178,6 +239,8 @@ function mapRegionToObjectCover(
   sourceHeight: number,
   viewportWidth: number,
   viewportHeight: number,
+  zoomLevel = 1,
+  hardwareZoom = false,
 ) {
   if (
     sourceWidth <= 0 ||
@@ -201,11 +264,20 @@ function mapRegionToObjectCover(
   const renderedHeight = sourceHeight * scale;
   const offsetX = (viewportWidth - renderedWidth) / 2;
   const offsetY = (viewportHeight - renderedHeight) / 2;
+  const digitalZoom = hardwareZoom ? 1 : Math.max(1, zoomLevel);
+  const zoomedWidth = renderedWidth * digitalZoom;
+  const zoomedHeight = renderedHeight * digitalZoom;
+  const zoomOffsetX = (viewportWidth - zoomedWidth) / 2;
+  const zoomOffsetY = (viewportHeight - zoomedHeight) / 2;
 
-  const leftPx = region.x * sourceWidth * scale + offsetX;
-  const topPx = region.y * sourceHeight * scale + offsetY;
-  const widthPx = region.width * sourceWidth * scale;
-  const heightPx = region.height * sourceHeight * scale;
+  const leftPx =
+    region.x * sourceWidth * scale * digitalZoom +
+    (digitalZoom > 1 ? zoomOffsetX : offsetX);
+  const topPx =
+    region.y * sourceHeight * scale * digitalZoom +
+    (digitalZoom > 1 ? zoomOffsetY : offsetY);
+  const widthPx = region.width * sourceWidth * scale * digitalZoom;
+  const heightPx = region.height * sourceHeight * scale * digitalZoom;
 
   const clippedLeft = Math.max(0, leftPx);
   const clippedTop = Math.max(0, topPx);
@@ -280,7 +352,7 @@ export default function AILiveInspectionCamera({
   const [videoSize, setVideoSize] = useState({ width: 0, height: 0 });
   const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 });
   const [activeRegionSuggestions, setActiveRegionSuggestions] = useState<
-    Array<AILiveSuggestion & { detectedAt: number }>
+    LiveTrackedDetection<AILiveSuggestion>[]
   >([]);
   const gallerySavedKeysRef = useRef<Set<string>>(new Set());
   const [analyzing, setAnalyzing] = useState(false);
@@ -294,6 +366,9 @@ export default function AILiveInspectionCamera({
   const [message, setMessage] = useState("");
   const [savingLimitationIndex, setSavingLimitationIndex] = useState<number | null>(null);
   const [handledReminderKeys, setHandledReminderKeys] = useState<Record<string, boolean>>({});
+  const [liveNoticeVisible, setLiveNoticeVisible] = useState(true);
+  const [pendingEvidenceCapture, setPendingEvidenceCapture] =
+    useState<PendingEvidenceCapture | null>(null);
 
   const frameFile = useMemo(() => {
     if (!frameDataUrl) return null;
@@ -480,9 +555,9 @@ export default function AILiveInspectionCamera({
     if (!open) return;
 
     const timer = window.setInterval(() => {
-      const cutoff = Date.now() - Math.max(12000, scanIntervalSeconds * 2500);
+      const cutoff = Date.now() - Math.max(24000, scanIntervalSeconds * 3500);
       setActiveRegionSuggestions((current) =>
-        current.filter((item) => item.detectedAt >= cutoff),
+        current.filter((item) => item.pinned || item.lastSeenAt >= cutoff),
       );
     }, 2000);
 
@@ -815,11 +890,31 @@ export default function AILiveInspectionCamera({
     }
   }
 
-  function quickAddPhoto() {
+  async function quickAddPhoto() {
     const captured = captureFrame({ silent: true });
     if (!captured) return;
 
     try {
+      if (pendingEvidenceCapture?.kind === "finding") {
+        const file = dataUrlToFile(captured, "ai-live-finding");
+        completeSuggestionWithEvidence(
+          pendingEvidenceCapture.suggestion,
+          file,
+        );
+        setPendingEvidenceCapture(null);
+        return;
+      }
+
+      if (pendingEvidenceCapture?.kind === "limitation") {
+        await saveLimitationToSection(
+          pendingEvidenceCapture.limitation,
+          pendingEvidenceCapture.index,
+          captured,
+        );
+        setPendingEvidenceCapture(null);
+        return;
+      }
+
       const file = dataUrlToFile(captured, "ai-live-photo");
       onAddPhotoOnly(file);
       void saveSelectedMediaToGallery(file);
@@ -1010,46 +1105,33 @@ export default function AILiveInspectionCamera({
       const reminders = Array.isArray(data.reminders) ? data.reminders : [];
       const limitations = Array.isArray(data.limitations) ? data.limitations : [];
 
-      const strongSuggestions = suggestions.filter((item: any) => {
-        const confidence = normalizeConfidence(item?.confidence);
-        const severityText = String(item?.severity || "").toLowerCase();
-        const typeText = String(item?.suggestionType || "").toLowerCase();
+      // Every AI observation is retained in Live Memory, but only safety,
+      // major, strong repair, and high-priority coach items interrupt the camera.
+      appendLiveMemory(data);
 
-        return (
-          confidence >= 0.55 ||
-          severityText.includes("safety") ||
-          severityText.includes("major") ||
-          typeText.includes("safety") ||
-          typeText.includes("documentation")
-        );
-      });
-
-      const strongLimitations = limitations.filter(
-        (item: any) => normalizeConfidence(item?.confidence) >= 0.65,
+      const interruptingSuggestions = suggestions.filter((item: any) =>
+        shouldInterruptCamera(item),
       );
 
-      const highPriorityReminders = reminders.filter((item: any) => {
-        const priority = String(item?.priority || "").toLowerCase();
-        return priority === "high" || priority === "medium";
-      });
+      const highPriorityReminders = reminders.filter(
+        (item: any) => String(item?.priority || "").toLowerCase() === "high",
+      );
 
       const shouldInterrupt =
-        strongSuggestions.length > 0 ||
-        strongLimitations.length > 0 ||
-        highPriorityReminders.length > 0 ||
-        Boolean(data?.dataPlatePrompt?.needed);
+        interruptingSuggestions.length > 0 ||
+        highPriorityReminders.length > 0;
 
       if (!shouldInterrupt) {
-        setMessage("AI watching... no strong issue detected.");
+        setWaitingForDecision(false);
         return;
       }
 
       setHandledReminderKeys({});
       const liveResult = {
         ...data,
-        suggestions: strongSuggestions.length > 0 ? strongSuggestions : suggestions,
-        limitations: strongLimitations.length > 0 ? strongLimitations : limitations,
-        reminders: highPriorityReminders.length > 0 ? highPriorityReminders : reminders,
+        suggestions: interruptingSuggestions,
+        limitations: [],
+        reminders: highPriorityReminders,
       };
 
       setResult((current) => ({
@@ -1068,43 +1150,29 @@ export default function AILiveInspectionCamera({
         }));
 
       if (localized.length) {
-        setActiveRegionSuggestions((current) => {
-          const currentByKey = new Map(
-            current.map((item: any) => [createSuggestionKey(item), item]),
-          );
-
-          const next = localized.map((item: any) => {
-            const key = createSuggestionKey(item);
-            const previous: any = currentByKey.get(key);
-            const previousConfidence = normalizeConfidence(previous?.confidence);
-            const nextConfidence = normalizeConfidence(item.confidence);
-            const seenCount = Number(previous?.seenCount || 0) + 1;
-
-            return {
-              ...previous,
-              ...item,
-              detectedAt: Date.now(),
-              seenCount,
-              confidence: Math.min(
-                0.99,
-                Math.max(nextConfidence, previousConfidence) +
-                  Math.min(0.12, Math.max(0, seenCount - 1) * 0.025),
-              ),
-            };
-          });
-
-          const incomingKeys = new Set(next.map((item: any) => createSuggestionKey(item)));
-          const retained = current.filter(
-            (item: any) => !incomingKeys.has(createSuggestionKey(item)),
-          );
-
-          return [...next, ...retained]
-            .sort((a: any, b: any) => b.detectedAt - a.detectedAt)
-            .slice(0, 8);
-        });
+        setActiveRegionSuggestions((current) =>
+          mergeLiveDetections(
+            current,
+            localized,
+            {
+              now: Date.now(),
+              staleAfterMs: Math.max(9000, scanIntervalSeconds * 1600),
+              removeAfterMs: Math.max(24000, scanIntervalSeconds * 3500),
+              maxTracks: 8,
+            },
+          ),
+        );
+      } else {
+        setActiveRegionSuggestions((current) =>
+          mergeLiveDetections(current, [], {
+            now: Date.now(),
+            staleAfterMs: Math.max(9000, scanIntervalSeconds * 1600),
+            removeAfterMs: Math.max(24000, scanIntervalSeconds * 3500),
+            maxTracks: 8,
+          }),
+        );
       }
 
-      appendLiveMemory(liveResult);
       setWaitingForDecision(false);
 
       setMessage(
@@ -1117,23 +1185,33 @@ export default function AILiveInspectionCamera({
     }
   }
 
-  function useSuggestion(suggestion: AILiveSuggestion) {
-    const selectedFrame =
-      frameFile ||
-      (latestFrameRef.current
-        ? dataUrlToFile(latestFrameRef.current, "ai-live-finding")
-        : null);
+  function beginSuggestionEvidenceCapture(suggestion: AILiveSuggestion) {
+    setPendingEvidenceCapture({
+      kind: "finding",
+      suggestion,
+    });
+    setDetailsOpen(false);
+    setActionsOpen(false);
+    setLiveNoticeVisible(false);
+    setMessage(
+      `Take a clear photo to complete "${suggestion.title}". The finding will not move forward until the photo is captured.`,
+    );
+  }
 
+  function completeSuggestionWithEvidence(
+    suggestion: AILiveSuggestion,
+    selectedFrame: File,
+  ) {
     onUseSuggestion(suggestion, selectedFrame);
     void saveSelectedMediaToGallery(selectedFrame);
     recordInspectorLearning({
       tool: "ai_live_camera_suggestion",
       original: suggestion,
-      updated: { ...suggestion, decision: "accepted" },
+      updated: { ...suggestion, decision: "accepted_with_photo" },
       accepted: true,
       confidence: normalizeConfidence(suggestion.confidence),
       notes:
-        "Inspector accepted this live-camera suggestion. Reinforce similar visible conditions, wording, severity, and section routing.",
+        "Inspector accepted this live-camera suggestion and captured required photo evidence. Reinforce similar visible conditions, wording, severity, and section routing.",
     });
     recordMemoryEvent({
       eventType: "live_camera_suggestion",
@@ -1146,6 +1224,8 @@ export default function AILiveInspectionCamera({
         severity: suggestion.severity,
         suggestionType: suggestion.suggestionType,
         recommendation: suggestion.recommendation,
+        evidenceRequired: true,
+        evidenceCaptured: true,
       },
     });
 
@@ -1181,7 +1261,9 @@ export default function AILiveInspectionCamera({
     setFrameDataUrl("");
     latestFrameRef.current = "";
 
-    setMessage("Suggestion loaded into the Field Tool with the captured frame. Review and tap Save Finding when ready. AI Watching resumed.");
+    setMessage(
+      "Photo captured and finding loaded into the Field Tool. Review the wording and tap Save Finding.",
+    );
   }
 
   function snoozeSuggestion(suggestion: AILiveSuggestion) {
@@ -1265,9 +1347,27 @@ export default function AILiveInspectionCamera({
     setMessage("Suggestion dismissed. AI Watching resumed.");
   }
 
+  function beginLimitationEvidenceCapture(
+    limitation: AILiveLimitation,
+    index: number,
+  ) {
+    setPendingEvidenceCapture({
+      kind: "limitation",
+      limitation,
+      index,
+    });
+    setDetailsOpen(false);
+    setActionsOpen(false);
+    setLiveNoticeVisible(false);
+    setMessage(
+      `Take a clear photo to complete "${limitation.title}". The limitation will not be saved until the photo is captured.`,
+    );
+  }
+
   async function saveLimitationToSection(
     limitation: AILiveLimitation,
     index: number,
+    requiredFrameDataUrl?: string,
   ) {
     if (!selectedReport) {
       setMessage("Select a report before adding a limitation.");
@@ -1291,6 +1391,7 @@ export default function AILiveInspectionCamera({
 
     try {
       let savedFrame =
+        requiredFrameDataUrl ||
         latestFrameRef.current ||
         frameDataUrl ||
         "";
@@ -1371,7 +1472,7 @@ export default function AILiveInspectionCamera({
       latestFrameRef.current = "";
 
       setMessage(
-        `Limitation added to ${targetSection} with photo and queued for the device gallery.`,
+        `Photo captured and limitation completed in ${targetSection}. The image was also queued for the device gallery.`,
       );
     } catch (error: any) {
       setMessage(error?.message || "Failed to add limitation to section.");
@@ -1506,27 +1607,80 @@ export default function AILiveInspectionCamera({
     setMessage("Photo saved. AI Watching can continue scanning.");
   }
 
-  const primarySuggestion = visibleSuggestions[0] || null;
-  const primaryReminder = visibleReminders[0] || null;
+  const prioritizedSuggestions = useMemo(
+    () =>
+      [...visibleSuggestions].sort(
+        (a, b) =>
+          livePriority(b) - livePriority(a) ||
+          normalizeConfidence(b.confidence) - normalizeConfidence(a.confidence),
+      ),
+    [visibleSuggestions],
+  );
+
+  const prioritizedReminders = useMemo(
+    () =>
+      [...visibleReminders].sort(
+        (a, b) =>
+          livePriority(b) - livePriority(a) ||
+          normalizeConfidence(b.confidence) - normalizeConfidence(a.confidence),
+      ),
+    [visibleReminders],
+  );
+
+  const primarySuggestion =
+    prioritizedSuggestions.find((item) => shouldInterruptCamera(item)) || null;
+  const primaryReminder =
+    prioritizedReminders.find((item) => shouldInterruptCamera(item)) || null;
+
+  const noticeKey = [
+    primarySuggestion ? createSuggestionKey(primarySuggestion) : "",
+    primaryReminder ? createReminderKey(primaryReminder) : "",
+  ]
+    .filter(Boolean)
+    .join("|");
+
+  useEffect(() => {
+    if (!noticeKey) {
+      setLiveNoticeVisible(false);
+      return;
+    }
+
+    setLiveNoticeVisible(true);
+    const timer = window.setTimeout(() => setLiveNoticeVisible(false), 6500);
+    return () => window.clearTimeout(timer);
+  }, [noticeKey]);
 
   const displayedRegionSuggestions = useMemo(() => {
     const preciseOrPersisted =
       activeRegionSuggestions.length > 0
         ? activeRegionSuggestions
-        : visibleSuggestions.map((suggestion) => ({
+        : visibleSuggestions.map((suggestion, index) => ({
             ...suggestion,
-            detectedAt: Date.now(),
+            trackId: suggestion.id || `${createSuggestionKey(suggestion)}-${index}`,
+            firstSeenAt: Date.now(),
+            lastSeenAt: Date.now(),
+            seenCount: 1,
+            smoothedConfidence: normalizeConfidence(suggestion.confidence),
+            stale: false,
+            pinned: false,
           }));
 
     if (preciseOrPersisted.length > 0) {
-      return preciseOrPersisted.slice(0, 4).map((suggestion, index) => ({
+      const ordered = [...preciseOrPersisted].sort(
+        (a, b) =>
+          Number(Boolean(b.pinned)) - Number(Boolean(a.pinned)) ||
+          livePriority(b) - livePriority(a) ||
+          normalizeConfidence(b.confidence) - normalizeConfidence(a.confidence),
+      );
+
+      return ordered.slice(0, 1).map((suggestion) => ({
         ...suggestion,
         region:
           suggestion.region || {
-            x: 0.14 + index * 0.035,
-            y: 0.18 + index * 0.035,
-            width: 0.6,
-            height: 0.38,
+            x: 0.17,
+            y: 0.22,
+            width: 0.56,
+            height: 0.34,
             label: suggestion.title,
             approximate: true,
           },
@@ -1547,7 +1701,13 @@ export default function AILiveInspectionCamera({
           recommendation: limitation.recommendation || "",
           confidence: limitation.confidence,
           suggestionType: "documentation",
-          detectedAt: Date.now(),
+          trackId: "live-limitation-box",
+          firstSeenAt: Date.now(),
+          lastSeenAt: Date.now(),
+          seenCount: 1,
+          smoothedConfidence: normalizeConfidence(limitation.confidence),
+          stale: false,
+          pinned: false,
           region: {
             x: 0.16,
             y: 0.2,
@@ -1556,7 +1716,7 @@ export default function AILiveInspectionCamera({
             label: limitation.title || "AI review area",
             approximate: true,
           },
-        } as AILiveSuggestion & { detectedAt: number },
+        } as LiveTrackedDetection<AILiveSuggestion>,
       ];
     }
 
@@ -1569,6 +1729,14 @@ export default function AILiveInspectionCamera({
   ]);
 
   const pendingCount = liveMemoryItems.length;
+  const coachMemoryCount = liveMemoryItems.filter(
+    (item) => item.kind === "reminder",
+  ).length;
+  const additionalDetectionCount = Math.max(
+    0,
+    activeRegionSuggestions.filter((item) => !item.stale).length -
+      displayedRegionSuggestions.length,
+  );
 
   const cameraUi = !open ? (
     <div className="rounded-2xl border border-cyan-500/40 bg-cyan-500/10 p-4 text-white">
@@ -1617,16 +1785,25 @@ export default function AILiveInspectionCamera({
 
       {displayedRegionSuggestions
         .filter((suggestion) => suggestion.region)
-        .slice(0, 4)
+        .slice(0, 1)
         .map((suggestion, index) => {
           const region = suggestion.region!;
           return (
             <button
-              key={`camera-region-${createSuggestionKey(suggestion)}-${index}`}
+              key={`camera-region-${suggestion.trackId || createSuggestionKey(suggestion)}-${index}`}
               type="button"
-              onClick={() => setDetailsOpen(true)}
-              className={`absolute z-10 border-[3px] border-emerald-400 bg-emerald-400/10 shadow-[0_0_24px_rgba(74,222,128,0.8)] ${
-                region.approximate ? "border-dashed" : ""
+              onClick={() => {
+                setActiveRegionSuggestions((current) =>
+                  toggleTrackedDetectionPin(current, suggestion.trackId),
+                );
+                setDetailsOpen(true);
+              }}
+              className={`absolute z-10 border-[3px] bg-emerald-400/10 transition-all duration-500 ease-out ${
+                suggestion.stale
+                  ? "border-emerald-300/55 opacity-60"
+                  : "border-emerald-400 opacity-100 shadow-[0_0_24px_rgba(74,222,128,0.8)] animate-[pulse_2.8s_ease-in-out_infinite]"
+              } ${region.approximate ? "border-dashed" : ""} ${
+                suggestion.pinned ? "ring-2 ring-cyan-300" : ""
               }`}
               style={mapRegionToObjectCover(
                 region,
@@ -1634,16 +1811,15 @@ export default function AILiveInspectionCamera({
                 videoSize.height,
                 viewportSize.width,
                 viewportSize.height,
+                zoomLevel,
+                hardwareZoomSupportedRef.current,
               )}
             >
-              <span className="absolute left-1/2 top-0 max-w-[240px] -translate-x-1/2 -translate-y-full rounded-xl border border-emerald-400/50 bg-black/90 px-3 py-2 text-xs font-black text-emerald-300 shadow-xl backdrop-blur">
-                {region.approximate ? "AI review area: " : ""}
+              <span className="absolute left-1/2 top-0 max-w-[220px] -translate-x-1/2 -translate-y-full rounded-full border border-emerald-400/50 bg-black/88 px-3 py-1.5 text-[11px] font-black text-emerald-300 shadow-xl backdrop-blur">
                 {region.label || suggestion.title}
                 <span className="ml-2 text-emerald-100">
                   {confidenceLabel(suggestion.confidence)}
-                  {Number((suggestion as any).seenCount || 0) > 1
-                    ? ` · seen ${(suggestion as any).seenCount}x`
-                    : ""}
+                  {suggestion.pinned ? " · pinned" : ""}
                 </span>
               </span>
             </button>
@@ -1653,7 +1829,19 @@ export default function AILiveInspectionCamera({
       <div className="absolute left-0 right-0 top-0 z-20 flex items-start justify-between px-5 pt-[max(1rem,env(safe-area-inset-top))]">
         <button
           type="button"
-          onClick={() => setOpen(false)}
+          onClick={() => {
+            if (
+              pendingEvidenceCapture &&
+              !window.confirm(
+                "A finding or limitation is waiting for its required photo. Close the camera and cancel it?",
+              )
+            ) {
+              return;
+            }
+
+            setPendingEvidenceCapture(null);
+            setOpen(false);
+          }}
           aria-label="Close camera"
           className="flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-black/70 text-4xl font-light text-white shadow-2xl backdrop-blur active:scale-95"
         >
@@ -1664,21 +1852,15 @@ export default function AILiveInspectionCamera({
           type="button"
           onClick={() => setAutoWatch((current) => !current)}
           disabled={!online || starting}
-          className="min-w-[230px] whitespace-nowrap rounded-2xl border border-white/10 bg-black/80 px-5 py-3 text-center shadow-2xl backdrop-blur-xl disabled:opacity-50"
+          className="whitespace-nowrap rounded-full border border-white/10 bg-black/75 px-4 py-2 text-center shadow-xl backdrop-blur-xl disabled:opacity-50"
         >
-          <span className="block text-[11px] font-black uppercase tracking-[0.2em] text-white">
-            AI Second Inspector
-          </span>
-          <span className="mt-1 block text-sm font-bold">
+          <span className="inline-flex items-center gap-2 text-xs font-black">
             <span
-              className={`mr-2 inline-block h-2.5 w-2.5 rounded-full ${
+              className={`inline-block h-2.5 w-2.5 rounded-full ${
                 autoWatch ? "bg-emerald-400" : "bg-slate-500"
               }`}
             />
-            AI Watching:{" "}
-            <span className={autoWatch ? "text-emerald-400" : "text-slate-300"}>
-              {autoWatch ? "ON" : "OFF"}
-            </span>
+            <span>{autoWatch ? "AI Watching" : "AI Paused"}</span>
           </span>
         </button>
 
@@ -1722,175 +1904,190 @@ export default function AILiveInspectionCamera({
         />
       </div>
 
-      <div className="absolute bottom-[238px] left-5 z-20 w-[40%] max-w-[280px] space-y-3">
-        {primaryReminder && (
-          <button
-            type="button"
-            onClick={() => setDetailsOpen(true)}
-            className="w-full rounded-3xl border border-emerald-400/20 bg-black/78 p-4 text-left shadow-2xl backdrop-blur-xl"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-black uppercase tracking-[0.12em] text-emerald-300">
-                Coach
-              </span>
-              <span className="rounded-full bg-emerald-400 px-2 py-0.5 text-[10px] font-black text-black">
-                {visibleReminders.length}
-              </span>
-            </div>
-            <p className="mt-3 line-clamp-3 text-sm font-bold leading-5">
-              {primaryReminder.title}
-            </p>
-            {primaryReminder.detail && (
-              <p className="mt-2 line-clamp-4 text-xs leading-5 text-slate-200">
-                {primaryReminder.detail}
-              </p>
-            )}
-          </button>
-        )}
-
-        {primarySuggestion && (
-          <button
-            type="button"
-            onClick={() => setDetailsOpen(true)}
-            className="w-full rounded-3xl border border-purple-400/20 bg-black/78 p-4 text-left shadow-2xl backdrop-blur-xl"
-          >
-            <span className="text-xs font-black uppercase tracking-[0.12em] text-purple-300">
-              Live Suggestion
-            </span>
-            <p className="mt-3 line-clamp-3 text-sm font-bold leading-5">
-              {primarySuggestion.title}
-            </p>
-            <p className="mt-2 line-clamp-4 text-xs leading-5 text-slate-200">
-              {primarySuggestion.observation}
-            </p>
-          </button>
-        )}
-
-        <button
-          type="button"
-          onClick={() => setDetailsOpen(true)}
-          className="w-full rounded-3xl border border-amber-400/20 bg-black/78 px-4 py-3 text-left shadow-2xl backdrop-blur-xl"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-black text-amber-300">🧠 LIVE MEMORY</span>
-            <span className="rounded-full border border-amber-300/40 px-2 py-0.5 text-[10px] font-black text-amber-200">
-              {liveMemoryItems.length}
-            </span>
-          </div>
-          <div className="mt-2 space-y-1">
-            {liveMemoryItems.slice(0, 4).map((item) => (
-              <div key={item.key} className="flex items-center gap-2 text-xs font-semibold text-white">
-                <span className={`h-2 w-2 shrink-0 rounded-full ${
-                  item.kind === "suggestion"
-                    ? "bg-red-400"
-                    : item.kind === "reminder"
-                      ? "bg-cyan-300"
-                      : item.kind === "limitation"
-                        ? "bg-yellow-300"
-                        : "bg-purple-300"
-                }`} />
-                <span className="truncate">{item.title}</span>
-              </div>
-            ))}
-            {liveMemoryItems.length > 4 && (
-              <div className="pl-4 text-[11px] font-bold text-slate-300">
-                +{liveMemoryItems.length - 4} more
-              </div>
-            )}
-            {!liveMemoryItems.length && (
-              <div className="text-xs text-slate-300">AI is watching for items…</div>
-            )}
-          </div>
-        </button>
-      </div>
-
       {analyzing && (
         <div className="absolute left-1/2 top-[46%] z-20 -translate-x-1/2 rounded-full border border-purple-300/40 bg-black/75 px-5 py-3 text-sm font-black text-purple-200 shadow-2xl backdrop-blur">
           ✨ AI analyzing this area…
         </div>
       )}
 
-      <button
-        type="button"
-        onClick={quickAddPhoto}
-        disabled={starting || recordingVideo}
-        aria-label="Take quick photo"
-        className="absolute bottom-[116px] left-1/2 z-20 h-20 w-20 -translate-x-1/2 rounded-full border-[6px] border-white bg-white shadow-2xl ring-4 ring-teal-400 active:scale-95 disabled:opacity-50"
-      />
+      <div className="absolute bottom-0 left-0 right-0 z-20 px-3 pb-[max(0.7rem,env(safe-area-inset-bottom))]">
+        {pendingEvidenceCapture && (
+          <div className="mb-3 rounded-[1.6rem] border border-amber-300/55 bg-black/90 px-4 py-4 shadow-2xl backdrop-blur-2xl">
+            <div className="flex items-start gap-3">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-amber-300/50 bg-amber-400/15 text-xl">
+                📸
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] font-black uppercase tracking-[0.14em] text-amber-300">
+                  Photo Required
+                </p>
+                <p className="mt-1 text-sm font-black leading-5 text-white">
+                  {pendingEvidenceCapture.kind === "finding"
+                    ? pendingEvidenceCapture.suggestion.title
+                    : pendingEvidenceCapture.limitation.title}
+                </p>
+                <p className="mt-1 text-xs leading-5 text-slate-300">
+                  Aim at the condition and press the shutter. This item will not
+                  move forward without photo evidence.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setPendingEvidenceCapture(null);
+                  setMessage("Required photo capture canceled. Nothing was added.");
+                }}
+                className="shrink-0 rounded-full border border-white/15 bg-white/5 px-3 py-2 text-xs font-black text-white"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
 
-      <button
-        type="button"
-        onClick={() => setActionsOpen(true)}
-        className="absolute bottom-[124px] right-5 z-20 rounded-3xl border border-white/15 bg-black/78 px-6 py-4 text-sm font-black tracking-wide shadow-2xl backdrop-blur-xl active:scale-95"
-      >
-        ACTIONS⌃
-      </button>
+        {!pendingEvidenceCapture &&
+          liveNoticeVisible &&
+          (primarySuggestion || primaryReminder) && (
+          <button
+            type="button"
+            onClick={() => setDetailsOpen(true)}
+            className="mb-3 flex min-h-[76px] w-full items-center gap-3 rounded-[1.6rem] border border-white/15 bg-black/84 px-4 py-3 text-left shadow-2xl backdrop-blur-2xl active:scale-[0.99]"
+          >
+            <span
+              className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border text-xl ${
+                primaryReminder
+                  ? "border-blue-400/50 bg-blue-500/20"
+                  : "border-teal-400/50 bg-teal-500/20"
+              }`}
+            >
+              {primaryReminder ? "📋" : "✨"}
+            </span>
 
-      <div
-        className="absolute bottom-[max(0.7rem,env(safe-area-inset-bottom))] left-4 right-4 z-20 rounded-3xl border border-white/15 bg-black/85 px-2 py-2 shadow-2xl backdrop-blur-xl"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-          alignItems: "stretch",
-          height: "88px",
-        }}
-      >
-        <button
-          type="button"
-          onClick={quickAddPhoto}
-          disabled={starting || recordingVideo}
-          className="rounded-2xl text-center active:bg-white/10 disabled:opacity-50" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minWidth: 0 }}
-        >
-          <span className="block text-2xl">📷</span>
-          <span className="mt-1 block text-[11px] font-bold">Quick Photo</span>
-        </button>
+            <span className="min-w-0 flex-1">
+              <span
+                className={`block text-[11px] font-black uppercase tracking-[0.14em] ${
+                  primaryReminder ? "text-blue-300" : "text-teal-300"
+                }`}
+              >
+                {primaryReminder ? "Section Coach" : "AI Suggestion"}
+              </span>
+              <span className="mt-1 block line-clamp-2 text-sm font-bold leading-5 text-white">
+                {primaryReminder
+                  ? primaryReminder.detail || primaryReminder.title
+                  : primarySuggestion?.observation || primarySuggestion?.title}
+              </span>
+            </span>
 
-        <button
-          type="button"
-          onClick={toggleVideoRecording}
-          disabled={starting}
-          className={`rounded-2xl text-center active:bg-white/10 disabled:opacity-50 ${
-            recordingVideo ? "text-red-300" : ""
-          }`}
-          style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minWidth: 0 }}
-        >
-          <span className="block text-2xl">{recordingVideo ? "⏹" : "🎥"}</span>
-          <span className="mt-1 block text-[11px] font-bold">
-            {recordingVideo ? "Stop Video" : "Record Video"}
-          </span>
-        </button>
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-teal-400/40 bg-teal-500/15 px-3 py-2 text-xs font-black text-teal-200">
+              Review <span aria-hidden="true">›</span>
+            </span>
+          </button>
+        )}
 
-        <button
-          type="button"
-          onClick={analyzeCurrentFrame}
-          disabled={starting || analyzing || !online}
-          className="rounded-2xl text-center active:bg-white/10 disabled:opacity-50"
-        >
-          <span className="block text-2xl">✨</span>
-          <span className="mt-1 block text-[11px] font-bold">
-            {analyzing ? "Analyzing" : "Analyze"}
-          </span>
-        </button>
+        <div className="rounded-[2rem] border border-white/15 bg-black/88 px-3 pb-3 pt-3 shadow-2xl backdrop-blur-2xl">
+          <div className="grid grid-cols-2 divide-x divide-white/15 border-b border-white/10 pb-3">
+            <button
+              type="button"
+              onClick={() => setDetailsOpen(true)}
+              className="flex min-h-12 items-center gap-3 px-3 text-left active:bg-white/5"
+            >
+              <span className="flex h-9 w-9 items-center justify-center rounded-full border border-rose-400/40 bg-rose-500/15 text-lg">
+                🧠
+              </span>
+              <span className="min-w-0">
+                <span className="block text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
+                  Live Memory
+                </span>
+                <span className="block truncate text-sm font-bold text-white">
+                  {pendingCount} {pendingCount === 1 ? "item" : "items"}
+                </span>
+              </span>
+              <span className="ml-auto text-xl text-slate-400">›</span>
+            </button>
 
-        <button
-          type="button"
-          onClick={() => {
-            const captured = frameFile || (() => {
-              const dataUrl = captureFrame({ silent: true });
-              return dataUrl ? dataUrlToFile(dataUrl) : null;
-            })();
+            <button
+              type="button"
+              onClick={() => setDetailsOpen(true)}
+              className="flex min-h-12 items-center gap-3 px-3 text-left active:bg-white/5"
+            >
+              <span className="flex h-9 w-9 items-center justify-center rounded-full border border-blue-400/40 bg-blue-500/15 text-lg">
+                📋
+              </span>
+              <span className="min-w-0">
+                <span className="block text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
+                  Coach
+                </span>
+                <span className="block truncate text-sm font-bold text-white">
+                  {coachMemoryCount} {coachMemoryCount === 1 ? "reminder" : "reminders"}
+                </span>
+              </span>
+              <span className="ml-auto text-xl text-slate-400">›</span>
+            </button>
+          </div>
 
-            void saveSelectedMediaToGallery(captured);
-            onScanDataPlate(captured);
-          }}
-          className="rounded-2xl text-center active:bg-white/10" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minWidth: 0 }}
-        >
-          <span className="block text-2xl">▣</span>
-          <span className="mt-1 block text-[11px] font-bold">Data Plate</span>
-        </button>
+          <div className="mt-3 grid grid-cols-5 items-end gap-1">
+            <button
+              type="button"
+              onClick={quickAddPhoto}
+              disabled={starting || recordingVideo}
+              className="flex min-h-[66px] flex-col items-center justify-center rounded-2xl text-center active:bg-white/10 disabled:opacity-50"
+            >
+              <span className="text-xl">🖼️</span>
+              <span className="mt-1 text-[10px] font-bold">Photo</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={toggleVideoRecording}
+              disabled={starting}
+              className={`flex min-h-[66px] flex-col items-center justify-center rounded-2xl text-center active:bg-white/10 disabled:opacity-50 ${
+                recordingVideo ? "text-red-300" : ""
+              }`}
+            >
+              <span className="text-xl">{recordingVideo ? "⏹" : "🎥"}</span>
+              <span className="mt-1 text-[10px] font-bold">
+                {recordingVideo ? "Stop" : "Video"}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={quickAddPhoto}
+              disabled={starting || recordingVideo}
+              aria-label="Take photo"
+              className={`mx-auto h-[72px] w-[72px] rounded-full border-[5px] border-white bg-white shadow-2xl active:scale-95 disabled:opacity-50 ${
+                pendingEvidenceCapture
+                  ? "ring-4 ring-amber-300 animate-pulse"
+                  : "ring-4 ring-teal-400"
+              }`}
+            />
+
+            <button
+              type="button"
+              onClick={analyzeCurrentFrame}
+              disabled={starting || analyzing || !online}
+              className="flex min-h-[66px] flex-col items-center justify-center rounded-2xl text-center active:bg-white/10 disabled:opacity-50"
+            >
+              <span className="text-xl">✨</span>
+              <span className="mt-1 text-[10px] font-bold">
+                {analyzing ? "Working" : "Analyze"}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActionsOpen(true)}
+              className="flex min-h-[66px] flex-col items-center justify-center rounded-2xl text-center active:bg-white/10"
+            >
+              <span className="text-2xl leading-none">•••</span>
+              <span className="mt-1 text-[10px] font-bold">Actions</span>
+            </button>
+          </div>
+        </div>
       </div>
 
-      {(actionsOpen || detailsOpen || cameraError || message) && (
+      {(actionsOpen || detailsOpen || cameraError) && (
+
         <div
           className="absolute inset-0 z-30 flex items-end bg-black/45"
           onClick={() => {
@@ -1933,6 +2130,11 @@ export default function AILiveInspectionCamera({
                       {scanIntervalSeconds}s
                     </span>
                   </div>
+                  <p className="mt-3 text-xs leading-5 text-slate-300">
+                    Safety and repair concerns interrupt the camera. Maintenance,
+                    documentation, Digital Twin context, and lower-priority guidance
+                    are stored quietly in Live Memory.
+                  </p>
 
                   <div className="mt-4 grid grid-cols-6 gap-2">
                     {LIVE_SCAN_INTERVAL_OPTIONS.map((seconds) => (
@@ -2034,6 +2236,8 @@ export default function AILiveInspectionCamera({
                               {item.title}
                             </p>
                             <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">
+                              {formatMemoryTime(item.createdAt)}
+                              {" · "}
                               {item.kind.replace("_", " ")}
                               {item.confidence
                                 ? ` · ${confidenceLabel(item.confidence)}`
@@ -2099,10 +2303,10 @@ export default function AILiveInspectionCamera({
                       </button>
                       <button
                         type="button"
-                        onClick={() => useSuggestion(suggestion)}
+                        onClick={() => beginSuggestionEvidenceCapture(suggestion)}
                         className="rounded-xl bg-emerald-400 px-3 py-3 text-xs font-black text-black"
                       >
-                        Add Finding
+                        Add Finding + Photo
                       </button>
                     </div>
                   </div>
@@ -2164,13 +2368,13 @@ export default function AILiveInspectionCamera({
                     </p>
                     <button
                       type="button"
-                      onClick={() => saveLimitationToSection(limitation, index)}
+                      onClick={() => beginLimitationEvidenceCapture(limitation, index)}
                       disabled={savingLimitationIndex !== null}
                       className="mt-4 w-full rounded-xl bg-orange-400 px-4 py-3 text-sm font-black text-black disabled:opacity-50"
                     >
                       {savingLimitationIndex === index
                         ? "Adding..."
-                        : "Add To Section Limitations"}
+                        : "Add Limitation + Photo"}
                     </button>
                   </div>
                 ))}
