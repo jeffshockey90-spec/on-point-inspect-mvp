@@ -1910,9 +1910,9 @@ export default function AILiveInspectionCamera({
         </div>
       )}
 
-      <div className="absolute bottom-0 left-0 right-0 z-20 px-3 pb-[max(0.55rem,env(safe-area-inset-bottom))]">
+      <div className="absolute bottom-0 left-0 right-0 z-20 px-3 pb-[max(0.45rem,env(safe-area-inset-bottom))]">
         {pendingEvidenceCapture && (
-          <div className="mb-2 flex items-center gap-3 rounded-2xl border border-amber-300/55 bg-black/88 px-3 py-2.5 shadow-2xl backdrop-blur-2xl">
+          <div className="mb-2 flex items-center gap-3 rounded-2xl border border-amber-300/55 bg-black/88 px-3 py-2 shadow-2xl backdrop-blur-2xl">
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-amber-300/50 bg-amber-400/15 text-lg">
               📸
             </span>
@@ -1945,10 +1945,10 @@ export default function AILiveInspectionCamera({
             <button
               type="button"
               onClick={() => setDetailsOpen(true)}
-              className="mb-2 flex min-h-[54px] w-full items-center gap-3 rounded-2xl border border-white/15 bg-black/80 px-3 py-2 text-left shadow-2xl backdrop-blur-2xl active:scale-[0.99]"
+              className="mb-2 flex min-h-[50px] w-full items-center gap-3 rounded-2xl border border-white/15 bg-black/80 px-3 py-2 text-left shadow-2xl backdrop-blur-2xl active:scale-[0.99]"
             >
               <span
-                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-lg ${
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-base ${
                   primaryReminder
                     ? "border-blue-400/50 bg-blue-500/20"
                     : "border-teal-400/50 bg-teal-500/20"
@@ -1958,27 +1958,27 @@ export default function AILiveInspectionCamera({
               </span>
               <span className="min-w-0 flex-1">
                 <span
-                  className={`block text-[10px] font-black uppercase tracking-[0.13em] ${
+                  className={`block text-[9px] font-black uppercase tracking-[0.13em] ${
                     primaryReminder ? "text-blue-300" : "text-teal-300"
                   }`}
                 >
                   {primaryReminder ? "Coach" : "AI Suggestion"}
                 </span>
-                <span className="block truncate text-sm font-bold text-white">
+                <span className="block truncate text-xs font-bold text-white">
                   {primaryReminder
                     ? primaryReminder.detail || primaryReminder.title
                     : primarySuggestion?.observation || primarySuggestion?.title}
                 </span>
               </span>
-              <span className="shrink-0 text-xl text-teal-200">›</span>
+              <span className="shrink-0 text-lg text-teal-200">›</span>
             </button>
           )}
 
-        <div className="mb-2 flex items-center justify-between gap-2">
+        <div className="mb-2 flex items-center justify-between gap-2 px-1">
           <button
             type="button"
             onClick={() => setDetailsOpen(true)}
-            className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/15 bg-black/70 px-3 py-2 text-xs font-black text-white shadow-xl backdrop-blur"
+            className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/15 bg-black/72 px-3 py-2 text-xs font-black text-white shadow-xl backdrop-blur"
           >
             <span>🧠</span>
             <span>{pendingCount}</span>
@@ -1987,37 +1987,21 @@ export default function AILiveInspectionCamera({
           <button
             type="button"
             onClick={() => setDetailsOpen(true)}
-            className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/15 bg-black/70 px-3 py-2 text-xs font-black text-white shadow-xl backdrop-blur"
+            className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/15 bg-black/72 px-3 py-2 text-xs font-black text-white shadow-xl backdrop-blur"
           >
             <span>📋</span>
             <span>{coachMemoryCount}</span>
           </button>
         </div>
 
-        <div className="relative rounded-[1.75rem] border border-white/15 bg-black/84 px-3 py-2.5 shadow-2xl backdrop-blur-2xl">
-          <div className="grid grid-cols-5 items-center gap-1">
+        <div className="rounded-[1.7rem] border border-white/15 bg-black/86 px-3 pb-2.5 pt-2 shadow-2xl backdrop-blur-2xl">
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
             <button
               type="button"
-              onClick={quickAddPhoto}
-              disabled={starting || recordingVideo}
-              className="flex min-h-[56px] flex-col items-center justify-center rounded-2xl text-center active:bg-white/10 disabled:opacity-50"
+              onClick={() => setActionsOpen(true)}
+              className="justify-self-start rounded-full border border-white/15 bg-white/5 px-4 py-2 text-[11px] font-black text-white active:bg-white/10"
             >
-              <span className="text-lg">🖼️</span>
-              <span className="mt-0.5 text-[9px] font-bold">Photo</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={toggleVideoRecording}
-              disabled={starting}
-              className={`flex min-h-[56px] flex-col items-center justify-center rounded-2xl text-center active:bg-white/10 disabled:opacity-50 ${
-                recordingVideo ? "text-red-300" : ""
-              }`}
-            >
-              <span className="text-lg">{recordingVideo ? "⏹" : "🎥"}</span>
-              <span className="mt-0.5 text-[9px] font-bold">
-                {recordingVideo ? "Stop" : "Video"}
-              </span>
+              More
             </button>
 
             <button
@@ -2025,7 +2009,7 @@ export default function AILiveInspectionCamera({
               onClick={quickAddPhoto}
               disabled={starting || recordingVideo}
               aria-label="Take photo"
-              className={`mx-auto h-[68px] w-[68px] rounded-full border-[5px] border-white bg-white shadow-2xl active:scale-95 disabled:opacity-50 ${
+              className={`h-[72px] w-[72px] rounded-full border-[5px] border-white bg-white shadow-2xl active:scale-95 disabled:opacity-50 ${
                 pendingEvidenceCapture
                   ? "ring-4 ring-amber-300 animate-pulse"
                   : "ring-4 ring-teal-400"
@@ -2036,20 +2020,53 @@ export default function AILiveInspectionCamera({
               type="button"
               onClick={analyzeCurrentFrame}
               disabled={starting || analyzing || !online}
-              className="flex min-h-[56px] flex-col items-center justify-center rounded-2xl text-center active:bg-white/10 disabled:opacity-50"
+              className="justify-self-end rounded-full border border-white/15 bg-white/5 px-4 py-2 text-[11px] font-black text-white active:bg-white/10 disabled:opacity-50"
             >
-              <span className="text-lg">✨</span>
+              {analyzing ? "Working" : "Analyze"}
+            </button>
+          </div>
+
+          <div className="mt-2 grid grid-cols-4 gap-1">
+            <button
+              type="button"
+              onClick={quickAddPhoto}
+              disabled={starting || recordingVideo}
+              className="flex min-h-[44px] flex-col items-center justify-center rounded-xl text-center active:bg-white/10 disabled:opacity-50"
+            >
+              <span className="text-base">🖼️</span>
+              <span className="mt-0.5 text-[9px] font-bold">Photo</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={toggleVideoRecording}
+              disabled={starting}
+              className={`flex min-h-[44px] flex-col items-center justify-center rounded-xl text-center active:bg-white/10 disabled:opacity-50 ${
+                recordingVideo ? "text-red-300" : ""
+              }`}
+            >
+              <span className="text-base">{recordingVideo ? "⏹" : "🎥"}</span>
               <span className="mt-0.5 text-[9px] font-bold">
-                {analyzing ? "Working" : "Analyze"}
+                {recordingVideo ? "Stop" : "Video"}
               </span>
             </button>
 
             <button
               type="button"
-              onClick={() => setActionsOpen(true)}
-              className="flex min-h-[56px] flex-col items-center justify-center rounded-2xl text-center active:bg-white/10"
+              onClick={analyzeCurrentFrame}
+              disabled={starting || analyzing || !online}
+              className="flex min-h-[44px] flex-col items-center justify-center rounded-xl text-center active:bg-white/10 disabled:opacity-50"
             >
-              <span className="text-xl leading-none">•••</span>
+              <span className="text-base">✨</span>
+              <span className="mt-0.5 text-[9px] font-bold">Analyze</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActionsOpen(true)}
+              className="flex min-h-[44px] flex-col items-center justify-center rounded-xl text-center active:bg-white/10"
+            >
+              <span className="text-lg leading-none">•••</span>
               <span className="mt-0.5 text-[9px] font-bold">Actions</span>
             </button>
           </div>
