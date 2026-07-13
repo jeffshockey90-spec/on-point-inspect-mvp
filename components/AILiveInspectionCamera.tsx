@@ -1845,9 +1845,6 @@ export default function AILiveInspectionCamera({
     [liveMemoryItems],
   );
 
-  const selectedMemoryItem =
-    liveMemoryItems.find((item) => item.key === selectedMemoryKey) || null;
-
   const pendingCount = activeMemoryItems.length;
   const coachMemoryCount = activeMemoryItems.filter(
     (item) => item.kind === "reminder",
@@ -2307,7 +2304,7 @@ export default function AILiveInspectionCamera({
                         Everything AI Has Found
                       </p>
                       <p className="mt-1 text-sm text-slate-300">
-                        Scroll through every tracked item.
+                        Tap any item to expand it and work it immediately.
                       </p>
                     </div>
                     <span className="rounded-full bg-amber-300 px-3 py-1 text-sm font-black text-black">
@@ -2320,7 +2317,7 @@ export default function AILiveInspectionCamera({
                   <div className="rounded-2xl border border-amber-400/30 bg-amber-400/10 p-4">
                     <div className="flex items-center justify-between gap-3">
                       <p className="text-xs font-black uppercase tracking-[0.15em] text-amber-300">
-                        Active Queue
+                        Active Queue · Tap To Work
                       </p>
                       <span className="rounded-full bg-amber-300 px-2.5 py-1 text-xs font-black text-black">
                         {activeMemoryItems.length}
@@ -2328,234 +2325,227 @@ export default function AILiveInspectionCamera({
                     </div>
 
                     <div className="mt-3 space-y-2">
-                      {activeMemoryItems.map((item) => (
-                        <button
-                          type="button"
-                          key={`memory-detail-${item.key}`}
-                          onClick={() =>
-                            setSelectedMemoryKey((current) =>
-                              current === item.key ? "" : item.key,
-                            )
-                          }
-                          className={`w-full rounded-xl border p-3 text-left transition active:scale-[0.99] ${
-                            selectedMemoryKey === item.key
-                              ? "border-teal-300 bg-teal-400/10"
-                              : "border-white/10 bg-black/30"
-                          }`}
-                        >
-                          <div className="flex items-start gap-3">
-                            <span
-                              className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${
-                                item.kind === "suggestion"
-                                  ? "bg-red-400"
-                                  : item.kind === "reminder"
-                                    ? "bg-cyan-300"
-                                    : item.kind === "limitation"
-                                      ? "bg-yellow-300"
-                                      : "bg-purple-300"
-                              }`}
-                            />
-                            <div className="min-w-0 flex-1">
-                              <p className="text-sm font-black text-white">
-                                {item.title}
-                              </p>
-                              <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">
-                                {formatMemoryTime(item.updatedAt || item.createdAt)}
-                                {" · "}
-                                {item.kind.replace("_", " ")}
-                                {item.confidence
-                                  ? ` · ${confidenceLabel(item.confidence)}`
-                                  : ""}
-                                {item.status === "snoozed" ? " · snoozed" : ""}
-                              </p>
-                            </div>
-                            <span className="text-xl text-slate-400">
-                              {selectedMemoryKey === item.key ? "⌃" : "›"}
-                            </span>
+                      {activeMemoryItems.map((item) => {
+                        const expanded = selectedMemoryKey === item.key;
+
+                        return (
+                          <div
+                            key={`memory-detail-${item.key}`}
+                            className={`overflow-hidden rounded-xl border transition ${
+                              expanded
+                                ? "border-teal-300 bg-teal-400/10 shadow-lg"
+                                : "border-white/10 bg-black/30"
+                            }`}
+                          >
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setSelectedMemoryKey((current) =>
+                                  current === item.key ? "" : item.key,
+                                )
+                              }
+                              className="w-full p-3 text-left active:bg-white/5"
+                            >
+                              <div className="flex items-start gap-3">
+                                <span
+                                  className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${
+                                    item.kind === "suggestion"
+                                      ? "bg-red-400"
+                                      : item.kind === "reminder"
+                                        ? "bg-cyan-300"
+                                        : item.kind === "limitation"
+                                          ? "bg-yellow-300"
+                                          : "bg-purple-300"
+                                  }`}
+                                />
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-sm font-black text-white">
+                                    {item.title}
+                                  </p>
+                                  <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">
+                                    {formatMemoryTime(item.updatedAt || item.createdAt)}
+                                    {" · "}
+                                    {item.kind.replace("_", " ")}
+                                    {item.confidence
+                                      ? ` · ${confidenceLabel(item.confidence)}`
+                                      : ""}
+                                    {item.status === "snoozed" ? " · snoozed" : ""}
+                                  </p>
+                                </div>
+                                <span className="text-xl text-slate-400">
+                                  {expanded ? "⌃" : "⌄"}
+                                </span>
+                              </div>
+                            </button>
+
+                            {expanded && (
+                              <div className="border-t border-white/10 px-3 pb-3 pt-3">
+                                {item.suggestion && (
+                                  <>
+                                    <p className="text-sm leading-6 text-slate-200">
+                                      {item.suggestion.observation}
+                                    </p>
+
+                                    {item.suggestion.implication && (
+                                      <p className="mt-2 text-sm leading-6 text-slate-300">
+                                        <strong>Implication:</strong>{" "}
+                                        {item.suggestion.implication}
+                                      </p>
+                                    )}
+
+                                    {item.suggestion.recommendation && (
+                                      <p className="mt-2 text-sm leading-6 text-slate-300">
+                                        <strong>Recommendation:</strong>{" "}
+                                        {item.suggestion.recommendation}
+                                      </p>
+                                    )}
+
+                                    <div className="mt-4 grid grid-cols-3 gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => ignoreSuggestion(item.suggestion!)}
+                                        className="rounded-xl border border-slate-600 px-2 py-3 text-xs font-black"
+                                      >
+                                        Ignore
+                                      </button>
+
+                                      <button
+                                        type="button"
+                                        onClick={() => snoozeSuggestion(item.suggestion!)}
+                                        className="rounded-xl border border-yellow-500/60 px-2 py-3 text-xs font-black text-yellow-200"
+                                      >
+                                        Remind Later
+                                      </button>
+
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          beginSuggestionEvidenceCapture(item.suggestion!)
+                                        }
+                                        className="rounded-xl bg-emerald-400 px-2 py-3 text-xs font-black text-black"
+                                      >
+                                        Add + Photo
+                                      </button>
+                                    </div>
+                                  </>
+                                )}
+
+                                {item.limitation && (
+                                  <>
+                                    <p className="whitespace-pre-line text-sm leading-6 text-slate-200">
+                                      {createLimitationText(item.limitation)}
+                                    </p>
+
+                                    <div className="mt-4 grid grid-cols-2 gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          updateLiveMemoryItem(item.key, {
+                                            status: "ignored",
+                                          });
+                                          setSelectedMemoryKey("");
+                                          setMessage(
+                                            "Limitation ignored and moved to History.",
+                                          );
+                                        }}
+                                        className="rounded-xl border border-slate-600 px-3 py-3 text-xs font-black"
+                                      >
+                                        Ignore
+                                      </button>
+
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          beginLimitationEvidenceCapture(
+                                            item.limitation!,
+                                            0,
+                                          )
+                                        }
+                                        className="rounded-xl bg-orange-400 px-3 py-3 text-xs font-black text-black"
+                                      >
+                                        Add + Photo
+                                      </button>
+                                    </div>
+                                  </>
+                                )}
+
+                                {item.reminder && (
+                                  <>
+                                    {item.reminder.detail && (
+                                      <p className="text-sm leading-6 text-slate-200">
+                                        {item.reminder.detail}
+                                      </p>
+                                    )}
+
+                                    <div className="mt-4 grid grid-cols-3 gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => ignoreReminder(item.reminder!)}
+                                        className="rounded-xl border border-slate-600 px-2 py-3 text-xs font-black"
+                                      >
+                                        Ignore
+                                      </button>
+
+                                      <button
+                                        type="button"
+                                        onClick={() => saveReminderPhoto(item.reminder!)}
+                                        className="rounded-xl border border-cyan-500/70 px-2 py-3 text-xs font-black text-cyan-100"
+                                      >
+                                        Add Photo
+                                      </button>
+
+                                      <button
+                                        type="button"
+                                        onClick={() => markReminderChecked(item.reminder!)}
+                                        className="rounded-xl bg-emerald-400 px-2 py-3 text-xs font-black text-black"
+                                      >
+                                        Complete
+                                      </button>
+                                    </div>
+                                  </>
+                                )}
+
+                                {item.kind === "data_plate" && (
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        updateLiveMemoryItem(item.key, {
+                                          status: "ignored",
+                                        });
+                                        setSelectedMemoryKey("");
+                                        setMessage(
+                                          "Data plate reminder ignored and moved to History.",
+                                        );
+                                      }}
+                                      className="rounded-xl border border-slate-600 px-3 py-3 text-xs font-black"
+                                    >
+                                      Ignore
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        onScanDataPlate(frameFile);
+                                        updateLiveMemoryItem(item.key, {
+                                          status: "completed",
+                                        });
+                                        setSelectedMemoryKey("");
+                                      }}
+                                      className="rounded-xl bg-yellow-400 px-3 py-3 text-xs font-black text-black"
+                                    >
+                                      Scan Plate
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
-                        </button>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
-
-                {selectedMemoryItem &&
-                  ((selectedMemoryItem.status || "active") === "active" ||
-                    selectedMemoryItem.status === "snoozed") && (
-                    <div className="rounded-2xl border border-teal-400/40 bg-teal-400/10 p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-xs font-black uppercase tracking-[0.15em] text-teal-300">
-                            Work This Item
-                          </p>
-                          <h3 className="mt-1 text-lg font-black text-white">
-                            {selectedMemoryItem.title}
-                          </h3>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setSelectedMemoryKey("")}
-                          className="rounded-full border border-white/15 px-3 py-1 text-xs font-black"
-                        >
-                          Close
-                        </button>
-                      </div>
-
-                      {selectedMemoryItem.suggestion && (
-                        <>
-                          <p className="mt-3 text-sm leading-6 text-slate-200">
-                            {selectedMemoryItem.suggestion.observation}
-                          </p>
-                          {selectedMemoryItem.suggestion.implication && (
-                            <p className="mt-2 text-sm leading-6 text-slate-300">
-                              <strong>Implication:</strong>{" "}
-                              {selectedMemoryItem.suggestion.implication}
-                            </p>
-                          )}
-                          {selectedMemoryItem.suggestion.recommendation && (
-                            <p className="mt-2 text-sm leading-6 text-slate-300">
-                              <strong>Recommendation:</strong>{" "}
-                              {selectedMemoryItem.suggestion.recommendation}
-                            </p>
-                          )}
-                          <div className="mt-4 grid grid-cols-3 gap-2">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                ignoreSuggestion(selectedMemoryItem.suggestion!)
-                              }
-                              className="rounded-xl border border-slate-600 px-3 py-3 text-xs font-black"
-                            >
-                              Ignore
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                snoozeSuggestion(selectedMemoryItem.suggestion!)
-                              }
-                              className="rounded-xl border border-yellow-500/60 px-3 py-3 text-xs font-black text-yellow-200"
-                            >
-                              Remind Later
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                beginSuggestionEvidenceCapture(
-                                  selectedMemoryItem.suggestion!,
-                                )
-                              }
-                              className="rounded-xl bg-emerald-400 px-3 py-3 text-xs font-black text-black"
-                            >
-                              Add + Photo
-                            </button>
-                          </div>
-                        </>
-                      )}
-
-                      {selectedMemoryItem.limitation && (
-                        <>
-                          <p className="mt-3 whitespace-pre-line text-sm leading-6 text-slate-200">
-                            {createLimitationText(selectedMemoryItem.limitation)}
-                          </p>
-                          <div className="mt-4 grid grid-cols-2 gap-2">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                updateLiveMemoryItem(selectedMemoryItem.key, {
-                                  status: "ignored",
-                                });
-                                setSelectedMemoryKey("");
-                              }}
-                              className="rounded-xl border border-slate-600 px-3 py-3 text-xs font-black"
-                            >
-                              Ignore
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                beginLimitationEvidenceCapture(
-                                  selectedMemoryItem.limitation!,
-                                  0,
-                                )
-                              }
-                              className="rounded-xl bg-orange-400 px-3 py-3 text-xs font-black text-black"
-                            >
-                              Add + Photo
-                            </button>
-                          </div>
-                        </>
-                      )}
-
-                      {selectedMemoryItem.reminder && (
-                        <>
-                          {selectedMemoryItem.reminder.detail && (
-                            <p className="mt-3 text-sm leading-6 text-slate-200">
-                              {selectedMemoryItem.reminder.detail}
-                            </p>
-                          )}
-                          <div className="mt-4 grid grid-cols-3 gap-2">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                ignoreReminder(selectedMemoryItem.reminder!)
-                              }
-                              className="rounded-xl border border-slate-600 px-3 py-3 text-xs font-black"
-                            >
-                              Ignore
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                saveReminderPhoto(selectedMemoryItem.reminder!)
-                              }
-                              className="rounded-xl border border-cyan-500/70 px-3 py-3 text-xs font-black text-cyan-100"
-                            >
-                              Add Photo
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                markReminderChecked(selectedMemoryItem.reminder!)
-                              }
-                              className="rounded-xl bg-emerald-400 px-3 py-3 text-xs font-black text-black"
-                            >
-                              Complete
-                            </button>
-                          </div>
-                        </>
-                      )}
-
-                      {selectedMemoryItem.kind === "data_plate" && (
-                        <div className="mt-4 grid grid-cols-2 gap-2">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              updateLiveMemoryItem(selectedMemoryItem.key, {
-                                status: "ignored",
-                              });
-                              setSelectedMemoryKey("");
-                            }}
-                            className="rounded-xl border border-slate-600 px-3 py-3 text-xs font-black"
-                          >
-                            Ignore
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              onScanDataPlate(frameFile);
-                              updateLiveMemoryItem(selectedMemoryItem.key, {
-                                status: "completed",
-                              });
-                              setSelectedMemoryKey("");
-                            }}
-                            className="rounded-xl bg-yellow-400 px-3 py-3 text-xs font-black text-black"
-                          >
-                            Scan Plate
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
 
                 {memoryHistoryItems.length > 0 && (
                   <div className="rounded-2xl border border-slate-700 bg-slate-900/70 p-4">
