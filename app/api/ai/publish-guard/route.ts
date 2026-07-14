@@ -5,6 +5,45 @@ import { aiPublishGuard, inspectionCompleteness } from "../../../../lib/ai";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+
+function enrichIssue(item: any) {
+  const text = `${item?.title || ""} ${item?.reason || ""} ${item?.recommendation || ""}`.toLowerCase();
+  const safety = /(safety|reverse|sensor|tpr|pressure relief|electrical|shock|fire|carbon monoxide|smoke|guardrail|handrail|egress|gas|combustion)/.test(text);
+  const media = /(photo|image|media|documented|documentation|evidence)/.test(text);
+  const limitation = /(not visible|limited|inaccessible|not inspected|limitation)/.test(text);
+  const confidence = item?.severity === "critical" ? 97 : item?.severity === "warning" ? (safety ? 95 : 90) : 84;
+  const priority = item?.blocking || item?.severity === "critical"
+    ? "blocking"
+    : safety
+      ? "safety"
+      : item?.severity === "warning"
+        ? "recommended"
+        : "improvement";
+  const liabilityRisk = item?.blocking || safety ? "high" : item?.severity === "warning" ? "medium" : "low";
+  const expectedEvidence = media
+    ? [
+        `Photo or report language documenting ${item?.section || "the affected system"}.`,
+        item?.recommendation || "Add the missing inspection evidence.",
+      ]
+    : limitation
+      ? [
+          "Document the limitation and what prevented inspection.",
+          "State whether additional evaluation is recommended.",
+        ]
+      : [
+          item?.recommendation || "Add the missing inspection evidence.",
+          "Confirm the condition, test result, or limitation in the report.",
+        ];
+
+  return {
+    ...item,
+    confidence,
+    priority,
+    liabilityRisk,
+    expectedEvidence: Array.from(new Set(expectedEvidence.filter(Boolean))),
+  };
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
@@ -160,9 +199,9 @@ export async function POST(req: Request) {
       blocking: item.severity === "critical",
     }));
 
-    const mergedIssues = [...result.issues, ...completenessIssues].filter(
-      (item, index, array) => array.findIndex((candidate) => candidate.id === item.id) === index,
-    );
+    const mergedIssues = [...result.issues, ...completenessIssues]
+      .filter((item, index, array) => array.findIndex((candidate) => candidate.id === item.id) === index)
+      .map(enrichIssue);
     const criticalIssues = mergedIssues.filter((item) => item.severity === "critical");
     const warnings = mergedIssues.filter((item) => item.severity === "warning");
     const blocked = result.blocked || criticalIssues.some((item) => item.blocking);
