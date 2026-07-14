@@ -16,7 +16,6 @@ import {
 const MAX_DISMISSED_AGE_MS = 8 * 60 * 1000;
 const RESURFACE_CONFIDENCE_BOOST = 0.12;
 
-
 function getLiveMemoryKey(inspectionId: string) {
   return `opi-ai-live-memory-${String(inspectionId || "").trim()}`;
 }
@@ -69,7 +68,12 @@ export type AILiveSuggestion = {
   recommendation: string;
   confidence?: number;
   evidence?: string[];
-  suggestionType?: "defect" | "maintenance" | "documentation" | "safety" | string;
+  suggestionType?:
+    | "defect"
+    | "maintenance"
+    | "documentation"
+    | "safety"
+    | string;
   region?: {
     x: number;
     y: number;
@@ -99,11 +103,7 @@ type AILiveLimitation = {
   confidence?: number;
 };
 
-type LiveMemoryStatus =
-  | "active"
-  | "snoozed"
-  | "completed"
-  | "ignored";
+type LiveMemoryStatus = "active" | "snoozed" | "completed" | "ignored";
 
 type LiveMemoryItem = {
   key: string;
@@ -172,7 +172,6 @@ function createSuggestionKey(suggestion: AILiveSuggestion) {
     .filter(Boolean)
     .join(":");
 }
-
 
 function createReminderKey(reminder: AILiveReminder) {
   return [reminder.id, reminder.title, reminder.action]
@@ -312,7 +311,9 @@ function createLimitationText(limitation: AILiveLimitation) {
   const parts = [
     limitation.limitation,
     limitation.reason ? `Reason: ${limitation.reason}` : "",
-    limitation.recommendation ? `Recommendation: ${limitation.recommendation}` : "",
+    limitation.recommendation
+      ? `Recommendation: ${limitation.recommendation}`
+      : "",
   ].filter(Boolean);
 
   return parts.join("\n\n");
@@ -348,8 +349,12 @@ export default function AILiveInspectionCamera({
   const streamRef = useRef<MediaStream | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
-  const dismissedRef = useRef<Record<string, { confidence: number; at: number }>>({});
-  const snoozedRef = useRef<Record<string, { until: number; confidence: number }>>({});
+  const dismissedRef = useRef<
+    Record<string, { confidence: number; at: number }>
+  >({});
+  const snoozedRef = useRef<
+    Record<string, { until: number; confidence: number }>
+  >({});
   const autoScanRunningRef = useRef(false);
   const hardwareZoomSupportedRef = useRef(false);
 
@@ -357,7 +362,9 @@ export default function AILiveInspectionCamera({
   const [starting, setStarting] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
+  const [facingMode, setFacingMode] = useState<"environment" | "user">(
+    "environment",
+  );
   const [torchOn, setTorchOn] = useState(false);
   const [recordingVideo, setRecordingVideo] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
@@ -380,8 +387,12 @@ export default function AILiveInspectionCamera({
   const [result, setResult] = useState<AILiveResult | null>(null);
   const [waitingForDecision, setWaitingForDecision] = useState(false);
   const [message, setMessage] = useState("");
-  const [savingLimitationIndex, setSavingLimitationIndex] = useState<number | null>(null);
-  const [handledReminderKeys, setHandledReminderKeys] = useState<Record<string, boolean>>({});
+  const [savingLimitationIndex, setSavingLimitationIndex] = useState<
+    number | null
+  >(null);
+  const [handledReminderKeys, setHandledReminderKeys] = useState<
+    Record<string, boolean>
+  >({});
   const [liveNoticeVisible, setLiveNoticeVisible] = useState(true);
   const [pendingEvidenceCapture, setPendingEvidenceCapture] =
     useState<PendingEvidenceCapture | null>(null);
@@ -413,7 +424,9 @@ export default function AILiveInspectionCamera({
     }
 
     try {
-      const parsed = JSON.parse(window.localStorage.getItem(liveMemoryStorageKey) || "[]");
+      const parsed = JSON.parse(
+        window.localStorage.getItem(liveMemoryStorageKey) || "[]",
+      );
       const normalized = Array.isArray(parsed)
         ? parsed.map((item: LiveMemoryItem) => ({
             ...item,
@@ -435,10 +448,7 @@ export default function AILiveInspectionCamera({
     return next;
   }
 
-  function updateLiveMemoryItem(
-    key: string,
-    updates: Partial<LiveMemoryItem>,
-  ) {
+  function updateLiveMemoryItem(key: string, updates: Partial<LiveMemoryItem>) {
     setLiveMemoryItems((current) =>
       persistLiveMemory(
         current.map((item) =>
@@ -489,15 +499,19 @@ export default function AILiveInspectionCamera({
         limitation: item,
       })),
       ...(data.dataPlatePrompt?.needed
-        ? [{
-            key: `data-plate:${String(data.dataPlatePrompt.equipmentType || data.area || "equipment").toLowerCase()}`,
-            title: data.dataPlatePrompt.reason || "Equipment data plate should be captured",
-            kind: "data_plate" as const,
-            createdAt: now,
-            updatedAt: now,
-            status: "active" as const,
-            dataPlatePrompt: data.dataPlatePrompt,
-          }]
+        ? [
+            {
+              key: `data-plate:${String(data.dataPlatePrompt.equipmentType || data.area || "equipment").toLowerCase()}`,
+              title:
+                data.dataPlatePrompt.reason ||
+                "Equipment data plate should be captured",
+              kind: "data_plate" as const,
+              createdAt: now,
+              updatedAt: now,
+              status: "active" as const,
+              dataPlatePrompt: data.dataPlatePrompt,
+            },
+          ]
         : []),
     ].filter((item) => item.key && item.title);
 
@@ -523,16 +537,16 @@ export default function AILiveInspectionCamera({
           ...existing,
           ...incoming,
           createdAt: existing.createdAt || incoming.createdAt,
-          status: shouldResurface
-            ? "active"
-            : existing.status || "active",
+          status: shouldResurface ? "active" : existing.status || "active",
           updatedAt: now,
         });
       }
 
       return persistLiveMemory(
         Array.from(byKey.values()).sort(
-          (a, b) => Number(b.updatedAt || b.createdAt) - Number(a.updatedAt || a.createdAt),
+          (a, b) =>
+            Number(b.updatedAt || b.createdAt) -
+            Number(a.updatedAt || a.createdAt),
         ),
       );
     });
@@ -548,7 +562,11 @@ export default function AILiveInspectionCamera({
 
       const nextConfidence = normalizeConfidence(suggestion.confidence);
       const snoozed = snoozedRef.current[key];
-      if (snoozed && now < snoozed.until && nextConfidence < snoozed.confidence + RESURFACE_CONFIDENCE_BOOST) {
+      if (
+        snoozed &&
+        now < snoozed.until &&
+        nextConfidence < snoozed.confidence + RESURFACE_CONFIDENCE_BOOST
+      ) {
         return false;
       }
 
@@ -805,14 +823,27 @@ export default function AILiveInspectionCamera({
       streamRef.current = stream;
 
       const videoTrack = stream.getVideoTracks()[0];
-      const capabilities = videoTrack?.getCapabilities?.() as MediaTrackCapabilities & {
-        zoom?: { min?: number; max?: number; step?: number };
+      const capabilities =
+        videoTrack?.getCapabilities?.() as MediaTrackCapabilities & {
+          zoom?: { min?: number; max?: number; step?: number };
+        };
+      const settings = videoTrack?.getSettings?.() as MediaTrackSettings & {
+        zoom?: number;
       };
-      const settings = videoTrack?.getSettings?.() as MediaTrackSettings & { zoom?: number };
-      const supportsHardwareZoom = Boolean(capabilities?.zoom?.max && capabilities.zoom.max > 1);
+      const supportsHardwareZoom = Boolean(
+        capabilities?.zoom?.max && capabilities.zoom.max > 1,
+      );
       hardwareZoomSupportedRef.current = supportsHardwareZoom;
-      setZoomMin(supportsHardwareZoom ? Math.max(1, Number(capabilities.zoom?.min || 1)) : 1);
-      setZoomMax(supportsHardwareZoom ? Math.min(8, Number(capabilities.zoom?.max || 3)) : 3);
+      setZoomMin(
+        supportsHardwareZoom
+          ? Math.max(1, Number(capabilities.zoom?.min || 1))
+          : 1,
+      );
+      setZoomMax(
+        supportsHardwareZoom
+          ? Math.min(8, Number(capabilities.zoom?.max || 3))
+          : 3,
+      );
       setZoomLevel(Math.max(1, Number(settings?.zoom || 1)));
 
       if (videoRef.current) {
@@ -922,9 +953,10 @@ export default function AILiveInspectionCamera({
     }
 
     try {
-      const capabilities = track.getCapabilities?.() as MediaTrackCapabilities & {
-        torch?: boolean;
-      };
+      const capabilities =
+        track.getCapabilities?.() as MediaTrackCapabilities & {
+          torch?: boolean;
+        };
 
       if (!capabilities?.torch) {
         setMessage("Flash is not supported by this camera.");
@@ -982,10 +1014,7 @@ export default function AILiveInspectionCamera({
     try {
       if (pendingEvidenceCapture?.kind === "finding") {
         const file = dataUrlToFile(captured, "ai-live-finding");
-        completeSuggestionWithEvidence(
-          pendingEvidenceCapture.suggestion,
-          file,
-        );
+        completeSuggestionWithEvidence(pendingEvidenceCapture.suggestion, file);
         setPendingEvidenceCapture(null);
         return;
       }
@@ -1005,7 +1034,9 @@ export default function AILiveInspectionCamera({
       void saveSelectedMediaToGallery(file);
       setFrameDataUrl("");
       latestFrameRef.current = "";
-      setMessage("Photo added to the Field Tool. Camera remains open for the next capture.");
+      setMessage(
+        "Photo added to the Field Tool. Camera remains open for the next capture.",
+      );
       recordMemoryEvent({
         eventType: "live_camera_media",
         status: "saved",
@@ -1031,7 +1062,9 @@ export default function AILiveInspectionCamera({
     }
 
     if (!stream || typeof MediaRecorder === "undefined") {
-      setMessage("Continuous video recording is not supported by this device/browser. Use the Field Tool video picker instead.");
+      setMessage(
+        "Continuous video recording is not supported by this device/browser. Use the Field Tool video picker instead.",
+      );
       return;
     }
 
@@ -1042,7 +1075,9 @@ export default function AILiveInspectionCamera({
         "video/webm",
         "video/mp4",
       ];
-      const mimeType = supportedTypes.find((type) => MediaRecorder.isTypeSupported(type)) || "";
+      const mimeType =
+        supportedTypes.find((type) => MediaRecorder.isTypeSupported(type)) ||
+        "";
       const recorder = mimeType
         ? new MediaRecorder(stream, { mimeType })
         : new MediaRecorder(stream);
@@ -1067,14 +1102,20 @@ export default function AILiveInspectionCamera({
 
         const type = recorder.mimeType || chunks[0]?.type || "video/webm";
         const extension = type.includes("mp4") ? "mp4" : "webm";
-        const file = new File(chunks, `ai-live-video-${Date.now()}.${extension}`, {
-          type,
-          lastModified: Date.now(),
-        });
+        const file = new File(
+          chunks,
+          `ai-live-video-${Date.now()}.${extension}`,
+          {
+            type,
+            lastModified: Date.now(),
+          },
+        );
 
         onAddPhotoOnly(file);
         void saveSelectedMediaToGallery(file);
-        setMessage("Video added to the Field Tool and queued for the device gallery.");
+        setMessage(
+          "Video added to the Field Tool and queued for the device gallery.",
+        );
         recordMemoryEvent({
           eventType: "live_camera_media",
           status: "saved",
@@ -1088,12 +1129,16 @@ export default function AILiveInspectionCamera({
         mediaRecorderRef.current = null;
         recordedChunksRef.current = [];
         setRecordingVideo(false);
-        setMessage("Video recording failed. Use the Field Tool video picker instead.");
+        setMessage(
+          "Video recording failed. Use the Field Tool video picker instead.",
+        );
       };
 
       recorder.start(500);
       setRecordingVideo(true);
-      setMessage("Recording video... tap Stop Video when finished. The camera remains open.");
+      setMessage(
+        "Recording video... tap Stop Video when finished. The camera remains open.",
+      );
     } catch (error: any) {
       setRecordingVideo(false);
       setMessage(error?.message || "Could not start video recording.");
@@ -1107,7 +1152,9 @@ export default function AILiveInspectionCamera({
     }
 
     if (!online) {
-      setMessage("AI Live Camera analysis needs internet. You can still capture a photo and save it offline.");
+      setMessage(
+        "AI Live Camera analysis needs internet. You can still capture a photo and save it offline.",
+      );
       return;
     }
 
@@ -1148,9 +1195,15 @@ export default function AILiveInspectionCamera({
         (Array.isArray(data.reminders) && data.reminders.length > 0) ||
         Boolean(data?.dataPlatePrompt?.needed);
       setWaitingForDecision(hasManualResult);
-      const count = Array.isArray(data.suggestions) ? data.suggestions.length : 0;
-      const reminderCount = Array.isArray(data.reminders) ? data.reminders.length : 0;
-      const limitationCount = Array.isArray(data.limitations) ? data.limitations.length : 0;
+      const count = Array.isArray(data.suggestions)
+        ? data.suggestions.length
+        : 0;
+      const reminderCount = Array.isArray(data.reminders)
+        ? data.reminders.length
+        : 0;
+      const limitationCount = Array.isArray(data.limitations)
+        ? data.limitations.length
+        : 0;
       setMessage(
         `AI reviewed this area. ${count} suggestion${count === 1 ? "" : "s"}, ${reminderCount} reminder${reminderCount === 1 ? "" : "s"}, and ${limitationCount} limitation${limitationCount === 1 ? "" : "s"} found. Inspector approval is required.`,
       );
@@ -1186,9 +1239,13 @@ export default function AILiveInspectionCamera({
       const data = await res.json().catch(() => ({}));
       if (!res.ok) return;
 
-      const suggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
+      const suggestions = Array.isArray(data.suggestions)
+        ? data.suggestions
+        : [];
       const reminders = Array.isArray(data.reminders) ? data.reminders : [];
-      const limitations = Array.isArray(data.limitations) ? data.limitations : [];
+      const limitations = Array.isArray(data.limitations)
+        ? data.limitations
+        : [];
 
       // Every AI observation is retained in Live Memory, but only safety,
       // major, strong repair, and high-priority coach items interrupt the camera.
@@ -1203,8 +1260,7 @@ export default function AILiveInspectionCamera({
       );
 
       const shouldInterrupt =
-        interruptingSuggestions.length > 0 ||
-        highPriorityReminders.length > 0;
+        interruptingSuggestions.length > 0 || highPriorityReminders.length > 0;
 
       if (!shouldInterrupt) {
         setWaitingForDecision(false);
@@ -1236,16 +1292,12 @@ export default function AILiveInspectionCamera({
 
       if (localized.length) {
         setActiveRegionSuggestions((current) =>
-          mergeLiveDetections(
-            current,
-            localized,
-            {
-              now: Date.now(),
-              staleAfterMs: Math.max(9000, scanIntervalSeconds * 1600),
-              removeAfterMs: Math.max(24000, scanIntervalSeconds * 3500),
-              maxTracks: 8,
-            },
-          ),
+          mergeLiveDetections(current, localized, {
+            now: Date.now(),
+            staleAfterMs: Math.max(9000, scanIntervalSeconds * 1600),
+            removeAfterMs: Math.max(24000, scanIntervalSeconds * 3500),
+            maxTracks: 8,
+          }),
         );
       } else {
         setActiveRegionSuggestions((current) =>
@@ -1417,7 +1469,10 @@ export default function AILiveInspectionCamera({
       detail: suggestion.observation,
       confidence: suggestion.confidence,
       section: suggestion.section || currentSection,
-      payload: { severity: suggestion.severity, suggestionType: suggestion.suggestionType },
+      payload: {
+        severity: suggestion.severity,
+        suggestionType: suggestion.suggestionType,
+      },
     });
 
     const key = createSuggestionKey(suggestion);
@@ -1488,10 +1543,7 @@ export default function AILiveInspectionCamera({
 
     try {
       let savedFrame =
-        requiredFrameDataUrl ||
-        latestFrameRef.current ||
-        frameDataUrl ||
-        "";
+        requiredFrameDataUrl || latestFrameRef.current || frameDataUrl || "";
 
       if (!savedFrame) {
         savedFrame = captureFrame({ silent: true });
@@ -1633,7 +1685,8 @@ export default function AILiveInspectionCamera({
       updated: { ...reminder, decision: "checked" },
       accepted: true,
       confidence: normalizeConfidence(reminder.confidence),
-      notes: "Inspector confirmed this Section Coach item was useful and completed it.",
+      notes:
+        "Inspector confirmed this Section Coach item was useful and completed it.",
     });
     recordMemoryEvent({
       eventType: "section_coach_item",
@@ -1643,11 +1696,18 @@ export default function AILiveInspectionCamera({
       confidence: reminder.confidence,
       payload: { action: reminder.action, priority: reminder.priority },
     });
-    resolveReminder(reminder, "Checklist reminder marked complete. AI Watching can continue when all prompts are handled.");
+    resolveReminder(
+      reminder,
+      "Checklist reminder marked complete. AI Watching can continue when all prompts are handled.",
+    );
   }
 
   function saveReminderPhoto(reminder: AILiveReminder) {
-    const captured = frameFile || (captureFrame({ silent: true }) ? dataUrlToFile(latestFrameRef.current) : null);
+    const captured =
+      frameFile ||
+      (captureFrame({ silent: true })
+        ? dataUrlToFile(latestFrameRef.current)
+        : null);
 
     if (!captured) {
       setMessage("Capture a frame before adding this reminder photo.");
@@ -1662,7 +1722,8 @@ export default function AILiveInspectionCamera({
       updated: { ...reminder, decision: "photo_saved" },
       accepted: true,
       confidence: normalizeConfidence(reminder.confidence),
-      notes: "Inspector responded to this Section Coach reminder by saving the requested evidence photo.",
+      notes:
+        "Inspector responded to this Section Coach reminder by saving the requested evidence photo.",
     });
     recordMemoryEvent({
       eventType: "section_coach_item",
@@ -1672,7 +1733,10 @@ export default function AILiveInspectionCamera({
       confidence: reminder.confidence,
       payload: { action: "photo" },
     });
-    resolveReminder(reminder, "Reminder photo saved. AI Watching can continue when all prompts are handled.");
+    resolveReminder(
+      reminder,
+      "Reminder photo saved. AI Watching can continue when all prompts are handled.",
+    );
   }
 
   function ignoreReminder(reminder: AILiveReminder) {
@@ -1682,7 +1746,8 @@ export default function AILiveInspectionCamera({
       updated: { ...reminder, decision: "ignored" },
       accepted: false,
       confidence: normalizeConfidence(reminder.confidence),
-      notes: "Inspector dismissed this Section Coach reminder. Reduce similar low-value reminders for this inspector.",
+      notes:
+        "Inspector dismissed this Section Coach reminder. Reduce similar low-value reminders for this inspector.",
     });
     recordMemoryEvent({
       eventType: "section_coach_item",
@@ -1692,7 +1757,10 @@ export default function AILiveInspectionCamera({
       confidence: reminder.confidence,
       payload: { action: reminder.action },
     });
-    resolveReminder(reminder, "Reminder ignored for now. AI Watching can continue when all prompts are handled.");
+    resolveReminder(
+      reminder,
+      "Reminder ignored for now. AI Watching can continue when all prompts are handled.",
+    );
   }
 
   function addPhotoOnly() {
@@ -1764,7 +1832,8 @@ export default function AILiveInspectionCamera({
         ? activeRegionSuggestions
         : visibleSuggestions.map((suggestion, index) => ({
             ...suggestion,
-            trackId: suggestion.id || `${createSuggestionKey(suggestion)}-${index}`,
+            trackId:
+              suggestion.id || `${createSuggestionKey(suggestion)}-${index}`,
             firstSeenAt: Date.now(),
             lastSeenAt: Date.now(),
             seenCount: 1,
@@ -1783,15 +1852,14 @@ export default function AILiveInspectionCamera({
 
       return ordered.slice(0, 1).map((suggestion) => ({
         ...suggestion,
-        region:
-          suggestion.region || {
-            x: 0.17,
-            y: 0.22,
-            width: 0.56,
-            height: 0.34,
-            label: suggestion.title,
-            approximate: true,
-          },
+        region: suggestion.region || {
+          x: 0.17,
+          y: 0.22,
+          width: 0.56,
+          height: 0.34,
+          label: suggestion.title,
+          approximate: true,
+        },
       }));
     }
 
@@ -1839,7 +1907,8 @@ export default function AILiveInspectionCamera({
   const activeMemoryItems = useMemo(
     () =>
       liveMemoryItems.filter(
-        (item) => (item.status || "active") === "active" || item.status === "snoozed",
+        (item) =>
+          (item.status || "active") === "active" || item.status === "snoozed",
       ),
     [liveMemoryItems],
   );
@@ -1869,7 +1938,8 @@ export default function AILiveInspectionCamera({
       </p>
       <h2 className="mt-1 text-xl font-black">AI Second Inspector Camera</h2>
       <p className="mt-1 text-sm text-slate-300">
-        Suggestions only. Inspector approval is required before anything is saved.
+        Suggestions only. Inspector approval is required before anything is
+        saved.
       </p>
       <button
         type="button"
@@ -1901,7 +1971,10 @@ export default function AILiveInspectionCamera({
         style={
           hardwareZoomSupportedRef.current || zoomLevel <= 1
             ? undefined
-            : { transform: `scale(${zoomLevel})`, transformOrigin: "center center" }
+            : {
+                transform: `scale(${zoomLevel})`,
+                transformOrigin: "center center",
+              }
         }
       />
 
@@ -2057,7 +2130,9 @@ export default function AILiveInspectionCamera({
           max={zoomMax}
           step={0.1}
           value={zoomLevel}
-          onChange={(event) => void handleZoomChange(Number(event.target.value))}
+          onChange={(event) =>
+            void handleZoomChange(Number(event.target.value))
+          }
           aria-label="Camera zoom"
           className="mt-3 h-full w-8 cursor-pointer accent-white [appearance:slider-vertical]"
           style={{ writingMode: "vertical-lr", direction: "rtl" }}
@@ -2097,7 +2172,9 @@ export default function AILiveInspectionCamera({
               type="button"
               onClick={() => {
                 setPendingEvidenceCapture(null);
-                setMessage("Required photo capture canceled. Nothing was added.");
+                setMessage(
+                  "Required photo capture canceled. Nothing was added.",
+                );
               }}
               className="shrink-0 rounded-full border border-white/15 bg-white/5 px-3 py-2 text-[11px] font-black text-white"
             >
@@ -2207,7 +2284,6 @@ export default function AILiveInspectionCamera({
       </div>
 
       {(actionsOpen || detailsOpen || cameraError) && (
-
         <div
           className="absolute inset-0 z-30 flex items-end bg-black/45"
           onClick={() => {
@@ -2217,7 +2293,7 @@ export default function AILiveInspectionCamera({
           }}
         >
           <div
-            className="max-h-[76dvh] w-full overflow-y-auto rounded-t-[2rem] border-t border-white/20 bg-[#06101f]/98 p-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl"
+            className="flex h-[76dvh] w-full flex-col overflow-hidden rounded-t-[2rem] border-t border-white/20 bg-[#06101f]/98 p-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-white/30" />
@@ -2243,7 +2319,8 @@ export default function AILiveInspectionCamera({
                         AI scan interval
                       </p>
                       <p className="mt-1 text-xs text-slate-300">
-                        Analyze the live camera every {scanIntervalSeconds} seconds.
+                        Analyze the live camera every {scanIntervalSeconds}{" "}
+                        seconds.
                       </p>
                     </div>
                     <span className="rounded-full bg-cyan-400 px-3 py-1 text-sm font-black text-black">
@@ -2251,9 +2328,9 @@ export default function AILiveInspectionCamera({
                     </span>
                   </div>
                   <p className="mt-3 text-xs leading-5 text-slate-300">
-                    Safety and repair concerns interrupt the camera. Maintenance,
-                    documentation, Digital Twin context, and lower-priority guidance
-                    are stored quietly in Live Memory.
+                    Safety and repair concerns interrupt the camera.
+                    Maintenance, documentation, Digital Twin context, and
+                    lower-priority guidance are stored quietly in Live Memory.
                   </p>
 
                   <div className="mt-4 grid grid-cols-6 gap-2">
@@ -2275,562 +2352,616 @@ export default function AILiveInspectionCamera({
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => captureFrame()}
-                  className="rounded-2xl border border-slate-600 bg-slate-900 p-4 font-black"
-                >
-                  Capture Frame
-                </button>
-                <button
-                  type="button"
-                  onClick={addPhotoOnly}
-                  className="rounded-2xl border border-teal-500 bg-teal-500/10 p-4 font-black text-teal-200"
-                >
-                  Add Photo Only
-                </button>
-                <button
-                  type="button"
-                  onClick={analyzeCurrentFrame}
-                  disabled={!online || analyzing}
-                  className="rounded-2xl border border-purple-500 bg-purple-500/10 p-4 font-black text-purple-200 disabled:opacity-50"
-                >
-                  Analyze Frame
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    void saveSelectedMediaToGallery(frameFile);
-                    onScanDataPlate(frameFile);
-                  }}
-                  className="rounded-2xl border border-yellow-500 bg-yellow-500/10 p-4 font-black text-yellow-200"
-                >
-                  Scan Data Plate
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => captureFrame()}
+                    className="rounded-2xl border border-slate-600 bg-slate-900 p-4 font-black"
+                  >
+                    Capture Frame
+                  </button>
+                  <button
+                    type="button"
+                    onClick={addPhotoOnly}
+                    className="rounded-2xl border border-teal-500 bg-teal-500/10 p-4 font-black text-teal-200"
+                  >
+                    Add Photo Only
+                  </button>
+                  <button
+                    type="button"
+                    onClick={analyzeCurrentFrame}
+                    disabled={!online || analyzing}
+                    className="rounded-2xl border border-purple-500 bg-purple-500/10 p-4 font-black text-purple-200 disabled:opacity-50"
+                  >
+                    Analyze Frame
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void saveSelectedMediaToGallery(frameFile);
+                      onScanDataPlate(frameFile);
+                    }}
+                    className="rounded-2xl border border-yellow-500 bg-yellow-500/10 p-4 font-black text-yellow-200"
+                  >
+                    Scan Data Plate
+                  </button>
                 </div>
               </div>
             )}
 
             {detailsOpen && (
-              <div className="space-y-4">
-                <div className="sticky top-0 z-20 -mx-1 rounded-2xl border border-cyan-400/30 bg-[#06101f]/98 p-3 shadow-2xl backdrop-blur">
+              <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                <div className="shrink-0 rounded-2xl border border-cyan-400/30 bg-[#06101f]/98 p-3 shadow-2xl backdrop-blur">
                   <div className="flex items-center justify-between gap-3">
-                    <div>
+                    <div className="min-w-0">
                       <p className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-300">
                         Live Inspection Cockpit
                       </p>
-                      <p className="mt-1 text-sm font-black text-white">
+                      <p className="mt-1 truncate text-sm font-black text-white">
                         {currentSection || "Inspection"}
                       </p>
                     </div>
                     <button
                       type="button"
                       onClick={() => setDetailsOpen(false)}
-                      className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/5 text-2xl text-white"
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/5 text-2xl text-white active:scale-95"
                       aria-label="Close cockpit"
                     >
                       ×
                     </button>
                   </div>
 
-                  <div className="mt-3 grid grid-cols-5 gap-1.5">
+                  <div
+                    className="mt-3 gap-1.5"
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
+                    }}
+                  >
                     {[
-                      ["queue", "🧠", pendingCount],
-                      ["coach", "📋", coachMemoryCount],
+                      ["queue", "🧠", String(pendingCount)],
+                      ["coach", "📋", String(coachMemoryCount)],
                       ["score", "✓", "Score"],
                       ["timeline", "◷", "Activity"],
                       ["house", "⌂", "House"],
-                    ].map(([view, icon, label]) => (
-                      <button
-                        key={String(view)}
-                        type="button"
-                        onClick={() => setCockpitView(view as typeof cockpitView)}
-                        className={`min-h-12 rounded-xl border px-1.5 py-2 text-[10px] font-black transition active:scale-[0.98] ${
-                          cockpitView === view
-                            ? "border-cyan-300 bg-cyan-400 text-black"
-                            : "border-white/10 bg-black/35 text-slate-200"
-                        }`}
-                      >
-                        <span className="block text-base leading-none">{icon}</span>
-                        <span className="mt-1 block truncate">{label}</span>
-                      </button>
-                    ))}
+                    ].map(([view, icon, label]) => {
+                      const active = cockpitView === view;
+
+                      return (
+                        <button
+                          key={view}
+                          type="button"
+                          onClick={() =>
+                            setCockpitView(view as typeof cockpitView)
+                          }
+                          className={`min-w-0 rounded-xl border px-1 py-2 text-center text-[9px] font-black transition active:scale-[0.96] ${
+                            active
+                              ? "border-cyan-200 bg-cyan-400 text-black shadow-[0_0_18px_rgba(34,211,238,0.42)]"
+                              : "border-white/10 bg-black/35 text-slate-300"
+                          }`}
+                        >
+                          <span className="block text-base leading-none">
+                            {icon}
+                          </span>
+                          <span className="mt-1 block truncate">{label}</span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
-                {cockpitView === "coach" && (
-                  <LiveSectionCoach
-                    inspectionId={selectedReport}
-                    section={currentSection}
-                    online={online}
-                  />
-                )}
+                <div className="mt-3 min-h-0 flex-1 overflow-y-auto overscroll-contain pb-2">
+                  {cockpitView === "coach" && (
+                    <LiveSectionCoach
+                      inspectionId={selectedReport}
+                      section={currentSection}
+                      online={online}
+                    />
+                  )}
 
-                {cockpitView === "score" && (
-                  <LiveInspectionScore
-                    inspectionId={selectedReport}
-                    section={currentSection}
-                    online={online}
-                    compact
-                  />
-                )}
+                  {cockpitView === "score" && (
+                    <LiveInspectionScore
+                      inspectionId={selectedReport}
+                      section={currentSection}
+                      online={online}
+                      compact
+                    />
+                  )}
 
-                {cockpitView === "timeline" && (
-                  <LiveInspectionTimelinePanel inspectionId={selectedReport} />
-                )}
+                  {cockpitView === "timeline" && (
+                    <LiveInspectionTimelinePanel
+                      inspectionId={selectedReport}
+                    />
+                  )}
 
-                {cockpitView === "house" && (
-                  <LiveHouseIntelligencePanel inspectionId={selectedReport} />
-                )}
+                  {cockpitView === "house" && (
+                    <LiveHouseIntelligencePanel inspectionId={selectedReport} />
+                  )}
 
-                {cockpitView === "queue" && (
-                  <div className="space-y-4">
-                <div className="rounded-2xl border border-amber-400/30 bg-[#06101f]/95 p-4 shadow-xl backdrop-blur">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-xs font-black uppercase tracking-[0.15em] text-amber-300">
-                        Everything AI Has Found
-                      </p>
-                      <p className="mt-1 text-sm text-slate-300">
-                        Tap any item to expand it and work it immediately.
-                      </p>
-                    </div>
-                    <span className="rounded-full bg-amber-300 px-3 py-1 text-sm font-black text-black">
-                      {activeMemoryItems.length}
-                    </span>
-                  </div>
-                </div>
-
-                {activeMemoryItems.length > 0 && (
-                  <div className="rounded-2xl border border-amber-400/30 bg-amber-400/10 p-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="text-xs font-black uppercase tracking-[0.15em] text-amber-300">
-                        Active Queue · Tap To Work
-                      </p>
-                      <span className="rounded-full bg-amber-300 px-2.5 py-1 text-xs font-black text-black">
-                        {activeMemoryItems.length}
-                      </span>
-                    </div>
-
-                    <div className="mt-3 space-y-2">
-                      {activeMemoryItems.map((item) => {
-                        const expanded = selectedMemoryKey === item.key;
-
-                        return (
-                          <div
-                            key={`memory-detail-${item.key}`}
-                            className={`overflow-hidden rounded-xl border transition ${
-                              expanded
-                                ? "border-teal-300 bg-teal-400/10 shadow-lg"
-                                : "border-white/10 bg-black/30"
-                            }`}
-                          >
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setSelectedMemoryKey((current) =>
-                                  current === item.key ? "" : item.key,
-                                )
-                              }
-                              className="w-full p-3 text-left active:bg-white/5"
-                            >
-                              <div className="flex items-start gap-3">
-                                <span
-                                  className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${
-                                    item.kind === "suggestion"
-                                      ? "bg-red-400"
-                                      : item.kind === "reminder"
-                                        ? "bg-cyan-300"
-                                        : item.kind === "limitation"
-                                          ? "bg-yellow-300"
-                                          : "bg-purple-300"
-                                  }`}
-                                />
-                                <div className="min-w-0 flex-1">
-                                  <p className="text-sm font-black text-white">
-                                    {item.title}
-                                  </p>
-                                  <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">
-                                    {formatMemoryTime(item.updatedAt || item.createdAt)}
-                                    {" · "}
-                                    {item.kind.replace("_", " ")}
-                                    {item.confidence
-                                      ? ` · ${confidenceLabel(item.confidence)}`
-                                      : ""}
-                                    {item.status === "snoozed" ? " · snoozed" : ""}
-                                  </p>
-                                </div>
-                                <span className="text-xl text-slate-400">
-                                  {expanded ? "⌃" : "⌄"}
-                                </span>
-                              </div>
-                            </button>
-
-                            {expanded && (
-                              <div className="border-t border-white/10 px-3 pb-3 pt-3">
-                                {item.suggestion && (
-                                  <>
-                                    <p className="text-sm leading-6 text-slate-200">
-                                      {item.suggestion.observation}
-                                    </p>
-
-                                    {item.suggestion.implication && (
-                                      <p className="mt-2 text-sm leading-6 text-slate-300">
-                                        <strong>Implication:</strong>{" "}
-                                        {item.suggestion.implication}
-                                      </p>
-                                    )}
-
-                                    {item.suggestion.recommendation && (
-                                      <p className="mt-2 text-sm leading-6 text-slate-300">
-                                        <strong>Recommendation:</strong>{" "}
-                                        {item.suggestion.recommendation}
-                                      </p>
-                                    )}
-
-                                    <div className="mt-4 grid grid-cols-3 gap-2">
-                                      <button
-                                        type="button"
-                                        onClick={() => ignoreSuggestion(item.suggestion!)}
-                                        className="rounded-xl border border-slate-600 px-2 py-3 text-xs font-black"
-                                      >
-                                        Ignore
-                                      </button>
-
-                                      <button
-                                        type="button"
-                                        onClick={() => snoozeSuggestion(item.suggestion!)}
-                                        className="rounded-xl border border-yellow-500/60 px-2 py-3 text-xs font-black text-yellow-200"
-                                      >
-                                        Remind Later
-                                      </button>
-
-                                      <button
-                                        type="button"
-                                        onClick={() =>
-                                          beginSuggestionEvidenceCapture(item.suggestion!)
-                                        }
-                                        className="rounded-xl bg-emerald-400 px-2 py-3 text-xs font-black text-black"
-                                      >
-                                        Add + Photo
-                                      </button>
-                                    </div>
-                                  </>
-                                )}
-
-                                {item.limitation && (
-                                  <>
-                                    <p className="whitespace-pre-line text-sm leading-6 text-slate-200">
-                                      {createLimitationText(item.limitation)}
-                                    </p>
-
-                                    <div className="mt-4 grid grid-cols-2 gap-2">
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          updateLiveMemoryItem(item.key, {
-                                            status: "ignored",
-                                          });
-                                          setSelectedMemoryKey("");
-                                          setMessage(
-                                            "Limitation ignored and moved to History.",
-                                          );
-                                        }}
-                                        className="rounded-xl border border-slate-600 px-3 py-3 text-xs font-black"
-                                      >
-                                        Ignore
-                                      </button>
-
-                                      <button
-                                        type="button"
-                                        onClick={() =>
-                                          beginLimitationEvidenceCapture(
-                                            item.limitation!,
-                                            0,
-                                          )
-                                        }
-                                        className="rounded-xl bg-orange-400 px-3 py-3 text-xs font-black text-black"
-                                      >
-                                        Add + Photo
-                                      </button>
-                                    </div>
-                                  </>
-                                )}
-
-                                {item.reminder && (
-                                  <>
-                                    {item.reminder.detail && (
-                                      <p className="text-sm leading-6 text-slate-200">
-                                        {item.reminder.detail}
-                                      </p>
-                                    )}
-
-                                    <div className="mt-4 grid grid-cols-3 gap-2">
-                                      <button
-                                        type="button"
-                                        onClick={() => ignoreReminder(item.reminder!)}
-                                        className="rounded-xl border border-slate-600 px-2 py-3 text-xs font-black"
-                                      >
-                                        Ignore
-                                      </button>
-
-                                      <button
-                                        type="button"
-                                        onClick={() => saveReminderPhoto(item.reminder!)}
-                                        className="rounded-xl border border-cyan-500/70 px-2 py-3 text-xs font-black text-cyan-100"
-                                      >
-                                        Add Photo
-                                      </button>
-
-                                      <button
-                                        type="button"
-                                        onClick={() => markReminderChecked(item.reminder!)}
-                                        className="rounded-xl bg-emerald-400 px-2 py-3 text-xs font-black text-black"
-                                      >
-                                        Complete
-                                      </button>
-                                    </div>
-                                  </>
-                                )}
-
-                                {item.kind === "data_plate" && (
-                                  <div className="grid grid-cols-2 gap-2">
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        updateLiveMemoryItem(item.key, {
-                                          status: "ignored",
-                                        });
-                                        setSelectedMemoryKey("");
-                                        setMessage(
-                                          "Data plate reminder ignored and moved to History.",
-                                        );
-                                      }}
-                                      className="rounded-xl border border-slate-600 px-3 py-3 text-xs font-black"
-                                    >
-                                      Ignore
-                                    </button>
-
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        onScanDataPlate(frameFile);
-                                        updateLiveMemoryItem(item.key, {
-                                          status: "completed",
-                                        });
-                                        setSelectedMemoryKey("");
-                                      }}
-                                      className="rounded-xl bg-yellow-400 px-3 py-3 text-xs font-black text-black"
-                                    >
-                                      Scan Plate
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                            )}
+                  {cockpitView === "queue" && (
+                    <div className="space-y-4">
+                      <div className="rounded-2xl border border-amber-400/30 bg-[#06101f]/95 p-4 shadow-xl backdrop-blur">
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <p className="text-xs font-black uppercase tracking-[0.15em] text-amber-300">
+                              Everything AI Has Found
+                            </p>
+                            <p className="mt-1 text-sm text-slate-300">
+                              Tap any item to expand it and work it immediately.
+                            </p>
                           </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {memoryHistoryItems.length > 0 && (
-                  <div className="rounded-2xl border border-slate-700 bg-slate-900/70 p-4">
-                    <button
-                      type="button"
-                      onClick={() => setMemoryHistoryOpen((current) => !current)}
-                      className="flex w-full items-center justify-between gap-3 text-left"
-                    >
-                      <div>
-                        <p className="text-xs font-black uppercase tracking-[0.15em] text-slate-300">
-                          History
-                        </p>
-                        <p className="mt-1 text-sm text-slate-400">
-                          Completed and ignored items
-                        </p>
+                          <span className="rounded-full bg-amber-300 px-3 py-1 text-sm font-black text-black">
+                            {activeMemoryItems.length}
+                          </span>
+                        </div>
                       </div>
-                      <span className="rounded-full border border-slate-600 px-3 py-1 text-xs font-black">
-                        {memoryHistoryItems.length} {memoryHistoryOpen ? "⌃" : "⌄"}
-                      </span>
-                    </button>
 
-                    {memoryHistoryOpen && (
-                      <div className="mt-3 space-y-2">
-                        {memoryHistoryItems.map((item) => (
-                          <div
-                            key={`memory-history-${item.key}`}
-                            className="flex items-center gap-3 rounded-xl border border-white/5 bg-black/25 p-3"
+                      {activeMemoryItems.length > 0 && (
+                        <div className="rounded-2xl border border-amber-400/30 bg-amber-400/10 p-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="text-xs font-black uppercase tracking-[0.15em] text-amber-300">
+                              Active Queue · Tap To Work
+                            </p>
+                            <span className="rounded-full bg-amber-300 px-2.5 py-1 text-xs font-black text-black">
+                              {activeMemoryItems.length}
+                            </span>
+                          </div>
+
+                          <div className="mt-3 space-y-2">
+                            {activeMemoryItems.map((item) => {
+                              const expanded = selectedMemoryKey === item.key;
+
+                              return (
+                                <div
+                                  key={`memory-detail-${item.key}`}
+                                  className={`overflow-hidden rounded-xl border transition ${
+                                    expanded
+                                      ? "border-teal-300 bg-teal-400/10 shadow-lg"
+                                      : "border-white/10 bg-black/30"
+                                  }`}
+                                >
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setSelectedMemoryKey((current) =>
+                                        current === item.key ? "" : item.key,
+                                      )
+                                    }
+                                    className="w-full p-3 text-left active:bg-white/5"
+                                  >
+                                    <div className="flex items-start gap-3">
+                                      <span
+                                        className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${
+                                          item.kind === "suggestion"
+                                            ? "bg-red-400"
+                                            : item.kind === "reminder"
+                                              ? "bg-cyan-300"
+                                              : item.kind === "limitation"
+                                                ? "bg-yellow-300"
+                                                : "bg-purple-300"
+                                        }`}
+                                      />
+                                      <div className="min-w-0 flex-1">
+                                        <p className="text-sm font-black text-white">
+                                          {item.title}
+                                        </p>
+                                        <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">
+                                          {formatMemoryTime(
+                                            item.updatedAt || item.createdAt,
+                                          )}
+                                          {" · "}
+                                          {item.kind.replace("_", " ")}
+                                          {item.confidence
+                                            ? ` · ${confidenceLabel(item.confidence)}`
+                                            : ""}
+                                          {item.status === "snoozed"
+                                            ? " · snoozed"
+                                            : ""}
+                                        </p>
+                                      </div>
+                                      <span className="text-xl text-slate-400">
+                                        {expanded ? "⌃" : "⌄"}
+                                      </span>
+                                    </div>
+                                  </button>
+
+                                  {expanded && (
+                                    <div className="border-t border-white/10 px-3 pb-3 pt-3">
+                                      {item.suggestion && (
+                                        <>
+                                          <p className="text-sm leading-6 text-slate-200">
+                                            {item.suggestion.observation}
+                                          </p>
+
+                                          {item.suggestion.implication && (
+                                            <p className="mt-2 text-sm leading-6 text-slate-300">
+                                              <strong>Implication:</strong>{" "}
+                                              {item.suggestion.implication}
+                                            </p>
+                                          )}
+
+                                          {item.suggestion.recommendation && (
+                                            <p className="mt-2 text-sm leading-6 text-slate-300">
+                                              <strong>Recommendation:</strong>{" "}
+                                              {item.suggestion.recommendation}
+                                            </p>
+                                          )}
+
+                                          <div className="mt-4 grid grid-cols-3 gap-2">
+                                            <button
+                                              type="button"
+                                              onClick={() =>
+                                                ignoreSuggestion(
+                                                  item.suggestion!,
+                                                )
+                                              }
+                                              className="rounded-xl border border-slate-600 px-2 py-3 text-xs font-black"
+                                            >
+                                              Ignore
+                                            </button>
+
+                                            <button
+                                              type="button"
+                                              onClick={() =>
+                                                snoozeSuggestion(
+                                                  item.suggestion!,
+                                                )
+                                              }
+                                              className="rounded-xl border border-yellow-500/60 px-2 py-3 text-xs font-black text-yellow-200"
+                                            >
+                                              Remind Later
+                                            </button>
+
+                                            <button
+                                              type="button"
+                                              onClick={() =>
+                                                beginSuggestionEvidenceCapture(
+                                                  item.suggestion!,
+                                                )
+                                              }
+                                              className="rounded-xl bg-emerald-400 px-2 py-3 text-xs font-black text-black"
+                                            >
+                                              Add + Photo
+                                            </button>
+                                          </div>
+                                        </>
+                                      )}
+
+                                      {item.limitation && (
+                                        <>
+                                          <p className="whitespace-pre-line text-sm leading-6 text-slate-200">
+                                            {createLimitationText(
+                                              item.limitation,
+                                            )}
+                                          </p>
+
+                                          <div className="mt-4 grid grid-cols-2 gap-2">
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                updateLiveMemoryItem(item.key, {
+                                                  status: "ignored",
+                                                });
+                                                setSelectedMemoryKey("");
+                                                setMessage(
+                                                  "Limitation ignored and moved to History.",
+                                                );
+                                              }}
+                                              className="rounded-xl border border-slate-600 px-3 py-3 text-xs font-black"
+                                            >
+                                              Ignore
+                                            </button>
+
+                                            <button
+                                              type="button"
+                                              onClick={() =>
+                                                beginLimitationEvidenceCapture(
+                                                  item.limitation!,
+                                                  0,
+                                                )
+                                              }
+                                              className="rounded-xl bg-orange-400 px-3 py-3 text-xs font-black text-black"
+                                            >
+                                              Add + Photo
+                                            </button>
+                                          </div>
+                                        </>
+                                      )}
+
+                                      {item.reminder && (
+                                        <>
+                                          {item.reminder.detail && (
+                                            <p className="text-sm leading-6 text-slate-200">
+                                              {item.reminder.detail}
+                                            </p>
+                                          )}
+
+                                          <div className="mt-4 grid grid-cols-3 gap-2">
+                                            <button
+                                              type="button"
+                                              onClick={() =>
+                                                ignoreReminder(item.reminder!)
+                                              }
+                                              className="rounded-xl border border-slate-600 px-2 py-3 text-xs font-black"
+                                            >
+                                              Ignore
+                                            </button>
+
+                                            <button
+                                              type="button"
+                                              onClick={() =>
+                                                saveReminderPhoto(
+                                                  item.reminder!,
+                                                )
+                                              }
+                                              className="rounded-xl border border-cyan-500/70 px-2 py-3 text-xs font-black text-cyan-100"
+                                            >
+                                              Add Photo
+                                            </button>
+
+                                            <button
+                                              type="button"
+                                              onClick={() =>
+                                                markReminderChecked(
+                                                  item.reminder!,
+                                                )
+                                              }
+                                              className="rounded-xl bg-emerald-400 px-2 py-3 text-xs font-black text-black"
+                                            >
+                                              Complete
+                                            </button>
+                                          </div>
+                                        </>
+                                      )}
+
+                                      {item.kind === "data_plate" && (
+                                        <div className="grid grid-cols-2 gap-2">
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              updateLiveMemoryItem(item.key, {
+                                                status: "ignored",
+                                              });
+                                              setSelectedMemoryKey("");
+                                              setMessage(
+                                                "Data plate reminder ignored and moved to History.",
+                                              );
+                                            }}
+                                            className="rounded-xl border border-slate-600 px-3 py-3 text-xs font-black"
+                                          >
+                                            Ignore
+                                          </button>
+
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              onScanDataPlate(frameFile);
+                                              updateLiveMemoryItem(item.key, {
+                                                status: "completed",
+                                              });
+                                              setSelectedMemoryKey("");
+                                            }}
+                                            className="rounded-xl bg-yellow-400 px-3 py-3 text-xs font-black text-black"
+                                          >
+                                            Scan Plate
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {memoryHistoryItems.length > 0 && (
+                        <div className="rounded-2xl border border-slate-700 bg-slate-900/70 p-4">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setMemoryHistoryOpen((current) => !current)
+                            }
+                            className="flex w-full items-center justify-between gap-3 text-left"
                           >
-                            <span
-                              className={`h-2.5 w-2.5 shrink-0 rounded-full ${
-                                item.status === "completed"
-                                  ? "bg-emerald-400"
-                                  : "bg-slate-500"
-                              }`}
-                            />
-                            <div className="min-w-0 flex-1">
-                              <p className="truncate text-sm font-bold text-white">
-                                {item.title}
+                            <div>
+                              <p className="text-xs font-black uppercase tracking-[0.15em] text-slate-300">
+                                History
                               </p>
-                              <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-slate-500">
-                                {item.status}
+                              <p className="mt-1 text-sm text-slate-400">
+                                Completed and ignored items
                               </p>
                             </div>
+                            <span className="rounded-full border border-slate-600 px-3 py-1 text-xs font-black">
+                              {memoryHistoryItems.length}{" "}
+                              {memoryHistoryOpen ? "⌃" : "⌄"}
+                            </span>
+                          </button>
+
+                          {memoryHistoryOpen && (
+                            <div className="mt-3 space-y-2">
+                              {memoryHistoryItems.map((item) => (
+                                <div
+                                  key={`memory-history-${item.key}`}
+                                  className="flex items-center gap-3 rounded-xl border border-white/5 bg-black/25 p-3"
+                                >
+                                  <span
+                                    className={`h-2.5 w-2.5 shrink-0 rounded-full ${
+                                      item.status === "completed"
+                                        ? "bg-emerald-400"
+                                        : "bg-slate-500"
+                                    }`}
+                                  />
+                                  <div className="min-w-0 flex-1">
+                                    <p className="truncate text-sm font-bold text-white">
+                                      {item.title}
+                                    </p>
+                                    <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-slate-500">
+                                      {item.status}
+                                    </p>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      updateLiveMemoryItem(item.key, {
+                                        status: "active",
+                                      })
+                                    }
+                                    className="rounded-lg border border-slate-600 px-2 py-1 text-[10px] font-black"
+                                  >
+                                    Reopen
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {visibleSuggestions.map((suggestion, index) => (
+                        <div
+                          key={`${createSuggestionKey(suggestion)}-${index}`}
+                          className="rounded-2xl border border-purple-500/40 bg-purple-500/10 p-4"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="text-xs font-black uppercase tracking-[0.15em] text-purple-300">
+                                AI Suggestion
+                              </p>
+                              <h3 className="mt-1 text-lg font-black">
+                                {suggestion.title}
+                              </h3>
+                            </div>
+                            <span className="rounded-full border border-purple-400/40 px-2 py-1 text-xs font-black text-purple-200">
+                              {confidenceLabel(suggestion.confidence)}
+                            </span>
+                          </div>
+
+                          <p className="mt-3 text-sm leading-6 text-slate-200">
+                            {suggestion.observation}
+                          </p>
+
+                          {suggestion.implication && (
+                            <p className="mt-2 text-sm leading-6 text-slate-300">
+                              <strong>Implication:</strong>{" "}
+                              {suggestion.implication}
+                            </p>
+                          )}
+
+                          {suggestion.recommendation && (
+                            <p className="mt-2 text-sm leading-6 text-slate-300">
+                              <strong>Recommendation:</strong>{" "}
+                              {suggestion.recommendation}
+                            </p>
+                          )}
+
+                          <div className="mt-4 grid grid-cols-3 gap-2">
+                            <button
+                              type="button"
+                              onClick={() => ignoreSuggestion(suggestion)}
+                              className="rounded-xl border border-slate-600 px-3 py-3 text-xs font-black"
+                            >
+                              Ignore
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => snoozeSuggestion(suggestion)}
+                              className="rounded-xl border border-yellow-500/60 px-3 py-3 text-xs font-black text-yellow-200"
+                            >
+                              Remind (5m)
+                            </button>
                             <button
                               type="button"
                               onClick={() =>
-                                updateLiveMemoryItem(item.key, {
-                                  status: "active",
-                                })
+                                beginSuggestionEvidenceCapture(suggestion)
                               }
-                              className="rounded-lg border border-slate-600 px-2 py-1 text-[10px] font-black"
+                              className="rounded-xl bg-emerald-400 px-3 py-3 text-xs font-black text-black"
                             >
-                              Reopen
+                              Add Finding + Photo
                             </button>
                           </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
+                        </div>
+                      ))}
 
-                {visibleSuggestions.map((suggestion, index) => (
-                  <div
-                    key={`${createSuggestionKey(suggestion)}-${index}`}
-                    className="rounded-2xl border border-purple-500/40 bg-purple-500/10 p-4"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-xs font-black uppercase tracking-[0.15em] text-purple-300">
-                          AI Suggestion
-                        </p>
-                        <h3 className="mt-1 text-lg font-black">
-                          {suggestion.title}
-                        </h3>
-                      </div>
-                      <span className="rounded-full border border-purple-400/40 px-2 py-1 text-xs font-black text-purple-200">
-                        {confidenceLabel(suggestion.confidence)}
-                      </span>
+                      {visibleReminders.map((reminder, index) => (
+                        <div
+                          key={`${createReminderKey(reminder)}-${index}`}
+                          className="rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-4"
+                        >
+                          <p className="text-xs font-black uppercase tracking-[0.15em] text-emerald-300">
+                            Section Coach
+                          </p>
+                          <h3 className="mt-1 text-lg font-black">
+                            {reminder.title}
+                          </h3>
+                          {reminder.detail && (
+                            <p className="mt-2 text-sm leading-6 text-slate-200">
+                              {reminder.detail}
+                            </p>
+                          )}
+                          <div className="mt-4 grid grid-cols-3 gap-2">
+                            <button
+                              type="button"
+                              onClick={() => ignoreReminder(reminder)}
+                              className="rounded-xl border border-slate-600 px-3 py-3 text-xs font-black"
+                            >
+                              Ignore
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => saveReminderPhoto(reminder)}
+                              className="rounded-xl border border-cyan-500/70 px-3 py-3 text-xs font-black text-cyan-100"
+                            >
+                              Add Photo
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => markReminderChecked(reminder)}
+                              className="rounded-xl bg-emerald-400 px-3 py-3 text-xs font-black text-black"
+                            >
+                              Mark Checked
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+
+                      {(result?.limitations || []).map((limitation, index) => (
+                        <div
+                          key={`${limitation.title}-${index}`}
+                          className="rounded-2xl border border-orange-500/40 bg-orange-500/10 p-4"
+                        >
+                          <p className="text-xs font-black uppercase tracking-[0.15em] text-orange-300">
+                            Possible Limitation
+                          </p>
+                          <h3 className="mt-1 text-lg font-black">
+                            {limitation.title}
+                          </h3>
+                          <p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-200">
+                            {createLimitationText(limitation)}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              beginLimitationEvidenceCapture(limitation, index)
+                            }
+                            disabled={savingLimitationIndex !== null}
+                            className="mt-4 w-full rounded-xl bg-orange-400 px-4 py-3 text-sm font-black text-black disabled:opacity-50"
+                          >
+                            {savingLimitationIndex === index
+                              ? "Adding..."
+                              : "Add Limitation + Photo"}
+                          </button>
+                        </div>
+                      ))}
+
+                      {!pendingCount && (
+                        <div className="rounded-2xl border border-slate-700 bg-slate-900 p-5 text-center text-sm text-slate-300">
+                          AI is watching. No pending suggestions right now.
+                        </div>
+                      )}
                     </div>
-
-                    <p className="mt-3 text-sm leading-6 text-slate-200">
-                      {suggestion.observation}
-                    </p>
-
-                    {suggestion.implication && (
-                      <p className="mt-2 text-sm leading-6 text-slate-300">
-                        <strong>Implication:</strong> {suggestion.implication}
-                      </p>
-                    )}
-
-                    {suggestion.recommendation && (
-                      <p className="mt-2 text-sm leading-6 text-slate-300">
-                        <strong>Recommendation:</strong>{" "}
-                        {suggestion.recommendation}
-                      </p>
-                    )}
-
-                    <div className="mt-4 grid grid-cols-3 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => ignoreSuggestion(suggestion)}
-                        className="rounded-xl border border-slate-600 px-3 py-3 text-xs font-black"
-                      >
-                        Ignore
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => snoozeSuggestion(suggestion)}
-                        className="rounded-xl border border-yellow-500/60 px-3 py-3 text-xs font-black text-yellow-200"
-                      >
-                        Remind (5m)
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => beginSuggestionEvidenceCapture(suggestion)}
-                        className="rounded-xl bg-emerald-400 px-3 py-3 text-xs font-black text-black"
-                      >
-                        Add Finding + Photo
-                      </button>
-                    </div>
-                  </div>
-                ))}
-
-                {visibleReminders.map((reminder, index) => (
-                  <div
-                    key={`${createReminderKey(reminder)}-${index}`}
-                    className="rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-4"
-                  >
-                    <p className="text-xs font-black uppercase tracking-[0.15em] text-emerald-300">
-                      Section Coach
-                    </p>
-                    <h3 className="mt-1 text-lg font-black">{reminder.title}</h3>
-                    {reminder.detail && (
-                      <p className="mt-2 text-sm leading-6 text-slate-200">
-                        {reminder.detail}
-                      </p>
-                    )}
-                    <div className="mt-4 grid grid-cols-3 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => ignoreReminder(reminder)}
-                        className="rounded-xl border border-slate-600 px-3 py-3 text-xs font-black"
-                      >
-                        Ignore
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => saveReminderPhoto(reminder)}
-                        className="rounded-xl border border-cyan-500/70 px-3 py-3 text-xs font-black text-cyan-100"
-                      >
-                        Add Photo
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => markReminderChecked(reminder)}
-                        className="rounded-xl bg-emerald-400 px-3 py-3 text-xs font-black text-black"
-                      >
-                        Mark Checked
-                      </button>
-                    </div>
-                  </div>
-                ))}
-
-                {(result?.limitations || []).map((limitation, index) => (
-                  <div
-                    key={`${limitation.title}-${index}`}
-                    className="rounded-2xl border border-orange-500/40 bg-orange-500/10 p-4"
-                  >
-                    <p className="text-xs font-black uppercase tracking-[0.15em] text-orange-300">
-                      Possible Limitation
-                    </p>
-                    <h3 className="mt-1 text-lg font-black">
-                      {limitation.title}
-                    </h3>
-                    <p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-200">
-                      {createLimitationText(limitation)}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => beginLimitationEvidenceCapture(limitation, index)}
-                      disabled={savingLimitationIndex !== null}
-                      className="mt-4 w-full rounded-xl bg-orange-400 px-4 py-3 text-sm font-black text-black disabled:opacity-50"
-                    >
-                      {savingLimitationIndex === index
-                        ? "Adding..."
-                        : "Add Limitation + Photo"}
-                    </button>
-                  </div>
-                ))}
-
-                {!pendingCount && (
-                  <div className="rounded-2xl border border-slate-700 bg-slate-900 p-5 text-center text-sm text-slate-300">
-                    AI is watching. No pending suggestions right now.
-                  </div>
-                )}
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             )}
           </div>
