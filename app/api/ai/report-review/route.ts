@@ -8,6 +8,7 @@ import {
 } from "../../../../lib/ai";
 import { getAIModel, getAIVersion } from "../../../../lib/openai";
 import { logAIEvent } from "../../../../lib/logging";
+import { classifyAIServiceError } from "../../../../lib/aiServiceError";
 
 export const runtime = "nodejs";
 
@@ -283,19 +284,28 @@ Keep items short and actionable.
     return NextResponse.json(result);
   } catch (error: any) {
     console.error("AI report review error:", error);
+    const serviceError = classifyAIServiceError(error);
 
     await logAIEvent({
       inspectionId,
       tool: "report_review",
       status: "failed",
       response: {
-        error: error?.message || "Failed to review report.",
+        code: serviceError.code,
+        error: serviceError.technicalMessage || serviceError.message,
+        retryable: serviceError.retryable,
       },
     });
 
     return NextResponse.json(
-      { error: error?.message || "Failed to review report." },
-      { status: 500 }
+      {
+        error: serviceError.message,
+        title: serviceError.title,
+        code: serviceError.code,
+        retryable: serviceError.retryable,
+        retryAfterSeconds: serviceError.retryAfterSeconds,
+      },
+      { status: serviceError.status }
     );
   }
 }

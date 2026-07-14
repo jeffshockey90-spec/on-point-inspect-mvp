@@ -126,12 +126,20 @@ export default function AIReportReviewPanel({
   const [review, setReview] = useState<AIReportReviewResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [serviceError, setServiceError] = useState<null | {
+    title: string;
+    message: string;
+    code?: string;
+    retryable?: boolean;
+    retryAfterSeconds?: number;
+  }>(null);
 
   async function runReview() {
     if (loading) return;
 
     setLoading(true);
     setMessage("");
+    setServiceError(null);
 
     try {
       const res = await fetch("/api/ai/report-review", {
@@ -148,14 +156,25 @@ export default function AIReportReviewPanel({
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        setMessage(safeText(data.error) || "AI report review failed.");
+        setServiceError({
+          title: safeText(data.title) || "AI review unavailable",
+          message: safeText(data.error) || "AI report review failed.",
+          code: safeText(data.code),
+          retryable: Boolean(data.retryable),
+          retryAfterSeconds: Number(data.retryAfterSeconds) || undefined,
+        });
         return;
       }
 
       setReview(data);
       setMessage("AI report review completed.");
     } catch (error: any) {
-      setMessage(error?.message || "AI report review failed.");
+      setServiceError({
+        title: "AI connection unavailable",
+        message: "The app could not reach the AI service. Your report is safe; retry when the connection is available.",
+        code: "network_error",
+        retryable: true,
+      });
     } finally {
       setLoading(false);
     }
@@ -201,6 +220,48 @@ export default function AIReportReviewPanel({
       {message && (
         <div className="mt-4 rounded-xl border border-purple-500/40 bg-purple-500/10 p-3 text-sm font-bold text-purple-200">
           {message}
+        </div>
+      )}
+
+      {serviceError && (
+        <div className="mt-4 rounded-xl border border-amber-500/50 bg-amber-500/10 p-4">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-sm font-black text-amber-200">{serviceError.title}</p>
+              <p className="mt-1 max-w-3xl text-sm leading-6 text-amber-100/90">
+                {serviceError.message}
+              </p>
+              <p className="mt-2 text-xs font-bold uppercase tracking-wide text-amber-300/80">
+                Your report is safe. Publish Guard remains available.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {serviceError.retryable && (
+                <button
+                  type="button"
+                  onClick={runReview}
+                  disabled={loading}
+                  className="rounded-lg bg-amber-400 px-4 py-2 text-sm font-black text-black disabled:opacity-60"
+                >
+                  Retry AI Review
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => document.getElementById("publish-guard")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                className="rounded-lg border border-slate-500 bg-slate-900 px-4 py-2 text-sm font-black text-white"
+              >
+                View Publish Guard
+              </button>
+            </div>
+          </div>
+          {serviceError.code && (
+            <details className="mt-3 text-xs text-amber-200/70">
+              <summary className="cursor-pointer font-bold">Owner diagnostics</summary>
+              <p className="mt-2">Code: {serviceError.code}</p>
+              {serviceError.retryAfterSeconds ? <p>Retry after: {serviceError.retryAfterSeconds}s</p> : null}
+            </details>
+          )}
         </div>
       )}
 
