@@ -37,6 +37,8 @@ export type OfflineSyncResult = {
   }>;
 };
 
+import { dispatchInspectionDataChanged, OFFLINE_SYNC_COMPLETE_EVENT } from "./inspectionEvents";
+
 const OFFLINE_QUEUE_KEY = "on_point_offline_sync_queue";
 const QUEUE_CHANGE_EVENT = "on-point-offline-queue-change";
 const AUTO_SYNC_LOCK_KEY = "on_point_offline_sync_running";
@@ -427,11 +429,53 @@ export async function processOfflineQueue({
     setAutoSyncLock(false);
   }
 
+  const remaining = getOfflineQueue().length;
+
+  if (synced > 0) {
+    const grouped = new Map<string, { inspectionId: string; section?: string; types: Set<string> }>();
+
+    for (const syncedItem of syncedItems) {
+      const inspectionId = String(
+        syncedItem.item.payload?.inspectionId ||
+          syncedItem.item.payload?.inspection_id ||
+          "",
+      );
+      const section = String(syncedItem.item.payload?.section || "") || undefined;
+      const key = `${inspectionId}:${section || ""}`;
+      const current = grouped.get(key) || {
+        inspectionId,
+        section,
+        types: new Set<string>(),
+      };
+      current.types.add(syncedItem.item.type);
+      grouped.set(key, current);
+    }
+
+    for (const group of grouped.values()) {
+      dispatchInspectionDataChanged({
+        inspectionId: group.inspectionId || undefined,
+        section: group.section,
+        source: "offline-sync",
+        types: Array.from(group.types),
+        synced,
+        failed,
+        remaining,
+      });
+    }
+
+    const win = safeWindow();
+    win?.dispatchEvent(
+      new CustomEvent(OFFLINE_SYNC_COMPLETE_EVENT, {
+        detail: { synced, failed, remaining, source: "offline-sync" },
+      }),
+    );
+  }
+
   return {
     ok: failed === 0,
     synced,
     failed,
-    remaining: getOfflineQueue().length,
+    remaining,
     offline: false,
     syncedItems,
     failedItems,

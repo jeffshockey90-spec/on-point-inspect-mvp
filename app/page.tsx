@@ -608,7 +608,7 @@ export default async function HomePage() {
   const signedAgreementsResult =
     inspectionIds.length > 0
       ? await supabase
-          .from("signed_agreements")
+          .from("inspection_agreements")
           .select("*")
           .in("inspection_id", inspectionIds)
       : { data: [], error: null };

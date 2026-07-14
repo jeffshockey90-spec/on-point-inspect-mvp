@@ -13,7 +13,6 @@ function getStripe() {
   }
 
   return new Stripe(key, {
-    apiVersion: "2026-05-27.dahlia",
   });
 }
 

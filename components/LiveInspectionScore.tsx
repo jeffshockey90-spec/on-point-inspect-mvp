@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { INSPECTION_DATA_CHANGED_EVENT, matchesInspectionEvent } from "../lib/inspectionEvents";
 
 type CompletenessIssue = {
   id: string;
@@ -94,12 +95,16 @@ function LiveInspectionScore({
     void refresh();
 
     const interval = window.setInterval(() => void refresh(), 20000);
-    const handleChanged = () => void refresh();
+    const handleChanged = (event: Event) => {
+      if (!matchesInspectionEvent(event, inspectionId, section)) return;
+      window.setTimeout(() => void refresh(), 350);
+    };
 
     window.addEventListener("opi:findings-changed", handleChanged);
     window.addEventListener("opi:section-limitations-changed", handleChanged);
     window.addEventListener("opi:offline-sync-complete", handleChanged);
     window.addEventListener("opi:inspection-evidence-changed", handleChanged);
+    window.addEventListener(INSPECTION_DATA_CHANGED_EVENT, handleChanged);
 
     return () => {
       window.clearInterval(interval);
@@ -107,6 +112,7 @@ function LiveInspectionScore({
       window.removeEventListener("opi:section-limitations-changed", handleChanged);
       window.removeEventListener("opi:offline-sync-complete", handleChanged);
       window.removeEventListener("opi:inspection-evidence-changed", handleChanged);
+      window.removeEventListener(INSPECTION_DATA_CHANGED_EVENT, handleChanged);
     };
   }, [refresh]);
 

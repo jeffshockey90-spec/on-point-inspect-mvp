@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { INSPECTION_DATA_CHANGED_EVENT, matchesInspectionEvent } from "../lib/inspectionEvents";
 
 type CoachIssue = {
   id: string;
@@ -99,14 +100,8 @@ export default function LiveSectionCoach({ inspectionId, section, online }: Prop
     }, 30000);
 
     function handleInspectionChange(event: Event) {
-      const detail = (event as CustomEvent)?.detail || {};
-      const eventInspectionId = String(detail.inspectionId || "");
-      const eventSection = String(detail.section || "");
-
-      if (eventInspectionId && eventInspectionId !== String(inspectionId)) return;
-      if (eventSection && eventSection !== String(section)) return;
-
-      window.setTimeout(() => void refresh(), 500);
+      if (!matchesInspectionEvent(event, inspectionId, section)) return;
+      window.setTimeout(() => void refresh(), 350);
     }
 
     const events = [
@@ -116,6 +111,7 @@ export default function LiveSectionCoach({ inspectionId, section, online }: Prop
       "opi:equipment-changed",
       "opi:offline-sync-complete",
       "opi:section-coach-refresh",
+      INSPECTION_DATA_CHANGED_EVENT,
     ];
 
     events.forEach((name) =>

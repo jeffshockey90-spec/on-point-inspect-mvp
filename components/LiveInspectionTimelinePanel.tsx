@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { INSPECTION_DATA_CHANGED_EVENT, matchesInspectionEvent } from "../lib/inspectionEvents";
 
 type TimelineEventTone = "info" | "success" | "warning" | "critical" | "ai";
 
@@ -122,8 +123,25 @@ export default function LiveInspectionTimelinePanel({ inspectionId }: { inspecti
     if (!active) return;
     loadTimeline();
     const interval = window.setInterval(loadTimeline, 15000);
-    return () => window.clearInterval(interval);
-  }, [active, loadTimeline]);
+
+    const handleChanged = (event: Event) => {
+      if (!matchesInspectionEvent(event, inspectionId)) return;
+      window.setTimeout(() => void loadTimeline(), 350);
+    };
+
+    window.addEventListener(INSPECTION_DATA_CHANGED_EVENT, handleChanged);
+    window.addEventListener("opi:findings-changed", handleChanged);
+    window.addEventListener("opi:equipment-changed", handleChanged);
+    window.addEventListener("opi:reference-photos-changed", handleChanged);
+
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener(INSPECTION_DATA_CHANGED_EVENT, handleChanged);
+      window.removeEventListener("opi:findings-changed", handleChanged);
+      window.removeEventListener("opi:equipment-changed", handleChanged);
+      window.removeEventListener("opi:reference-photos-changed", handleChanged);
+    };
+  }, [active, inspectionId, loadTimeline]);
 
   const events = useMemo(() => result?.events || [], [result]);
 
