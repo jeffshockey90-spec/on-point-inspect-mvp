@@ -6,19 +6,6 @@ import LiveSectionCoach from "./LiveSectionCoach";
 import LiveInspectionScore from "./LiveInspectionScore";
 import LiveInspectionTimelinePanel from "./LiveInspectionTimelinePanel";
 import LiveHouseIntelligencePanel from "./LiveHouseIntelligencePanel";
-import LiveVisionPlatformPanel from "./LiveVisionPlatformPanel";
-import {
-  buildVisionSnapshot,
-  extractVisionObjects,
-  findVisionObjectForText,
-  markVisionDocumented,
-  mergeVisionObjects,
-  readInspectorVisionHabits,
-  readVisionSnapshot,
-  reinforceInspectorVisionHabits,
-  writeVisionSnapshot,
-  type VisionSnapshot,
-} from "../lib/ai/visionPlatform";
 import { saveFileToDeviceGallery } from "../lib/nativeGallery";
 import {
   mergeLiveDetections,
@@ -157,6 +144,26 @@ type AILiveResult = {
     equipmentType?: string;
   };
   summary?: string;
+};
+
+type EvidenceReview = {
+  usable: boolean;
+  overallScore: number;
+  sharpness: "good" | "acceptable" | "poor";
+  lighting: "good" | "acceptable" | "poor";
+  framing: "good" | "acceptable" | "poor";
+  distance: "good" | "too_far" | "too_close" | "unknown";
+  subjectVisible: boolean;
+  requiredEvidenceSatisfied: boolean;
+  missingElements: string[];
+  guidance: string;
+  confidence: number;
+};
+
+type PendingEvidenceReview = {
+  review: EvidenceReview;
+  file: File;
+  title: string;
 };
 
 type Props = {
@@ -353,6 +360,16 @@ function dataUrlToFile(dataUrl: string, namePrefix = "ai-live-frame") {
   });
 }
 
+function fileToDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(new Error("Could not prepare the evidence photo."));
+    reader.readAsDataURL(file);
+  });
+}
+
+
 export default function AILiveInspectionCamera({
   online,
   selectedReport,
@@ -374,8 +391,6 @@ export default function AILiveInspectionCamera({
   >({});
   const autoScanRunningRef = useRef(false);
   const hardwareZoomSupportedRef = useRef(false);
-  const visionPersistAtRef = useRef(0);
-  const completedVisionSectionsRef = useRef<Set<string>>(new Set());
 
   const [open, setOpen] = useState(false);
   const [starting, setStarting] = useState(false);
@@ -418,24 +433,19 @@ export default function AILiveInspectionCamera({
   const [selectedMemoryKey, setSelectedMemoryKey] = useState("");
   const [memoryHistoryOpen, setMemoryHistoryOpen] = useState(false);
   const [cockpitView, setCockpitView] = useState<
-    "queue" | "coach" | "vision" | "score" | "timeline" | "house"
+    "queue" | "coach" | "score" | "timeline" | "house"
   >("queue");
-  const [visionSnapshot, setVisionSnapshot] = useState<VisionSnapshot>(() =>
-    readVisionSnapshot(selectedReport),
-  );
   const [coachCaptureIssue, setCoachCaptureIssue] = useState<{
     id: string;
     title: string;
     recommendation?: string;
   } | null>(null);
-
-  useEffect(() => {
-    const next = readVisionSnapshot(selectedReport);
-    setVisionSnapshot(next);
-    completedVisionSectionsRef.current = new Set(
-      next.sections.filter((item) => item.complete).map((item) => item.section),
-    );
-  }, [selectedReport]);
+  const [evidenceChecking, setEvidenceChecking] = useState(false);
+  const [pendingEvidenceReview, setPendingEvidenceReview] =
+    useState<PendingEvidenceReview | null>(null);
+  const pendingEvidenceAcceptRef = useRef<(() => void | Promise<void>) | null>(
+    null,
+  );
 
   useEffect(() => {
     function handleCoachCapture(event: Event) {
@@ -861,100 +871,6 @@ export default function AILiveInspectionCamera({
     }).catch(() => undefined);
   }
 
-  function publishVisionSnapshot(next: VisionSnapshot, persist = false) {
-    writeVisionSnapshot(next);
-    setVisionSnapshot(next);
-
-    window.dispatchEvent(
-      new CustomEvent("opi:vision-platform-updated", {
-        detail: {
-          inspectionId: selectedReport,
-          section: currentSection,
-          score:
-            next.sections.find((item) => item.section === currentSection)?.score || 0,
-        },
-      }),
-    );
-
-    if (persist && selectedReport) {
-      const now = Date.now();
-      if (now - visionPersistAtRef.current >= 12000) {
-        visionPersistAtRef.current = now;
-        const recentObjects = next.objects
-          .filter((item) => now - item.lastSeenAt < 20000)
-          .slice(0, 24);
-
-        void fetch("/api/ai/inspection-memory", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            inspectionId: selectedReport,
-            section: currentSection,
-            eventType: "vision_observation_batch",
-            status: "observed",
-            title: `${recentObjects.length} vision object${recentObjects.length === 1 ? "" : "s"} tracked`,
-            detail: `AI Vision updated ${currentSection}.`,
-            payload: { objects: recentObjects },
-          }),
-        }).catch(() => undefined);
-      }
-    }
-  }
-
-  function ingestVisionResult(data: AILiveResult) {
-    if (!selectedReport) return;
-    const incoming = extractVisionObjects(data, currentSection);
-    if (!incoming.length) return;
-
-    const merged = mergeVisionObjects(visionSnapshot.objects, incoming);
-    const next = buildVisionSnapshot(
-      selectedReport,
-      merged,
-      readInspectorVisionHabits(),
-    );
-
-    const currentCoverage = next.sections.find(
-      (item) => item.section === currentSection,
-    );
-    if (
-      currentCoverage?.complete &&
-      !completedVisionSectionsRef.current.has(currentSection)
-    ) {
-      completedVisionSectionsRef.current.add(currentSection);
-      void fetch("/api/ai/inspection-memory", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          inspectionId: selectedReport,
-          section: currentSection,
-          eventType: "vision_section_complete",
-          status: "completed",
-          title: `${currentSection} vision coverage complete`,
-          detail: `${currentCoverage.score}% coverage with ${currentCoverage.covered.length} expected items documented.`,
-          confidence: currentCoverage.score,
-          payload: currentCoverage,
-        }),
-      }).catch(() => undefined);
-      setMessage(
-        `✓ ${currentSection} reached ${currentCoverage.score}% AI vision coverage. Review the final missing item before moving on.`,
-      );
-    }
-
-    publishVisionSnapshot(next, true);
-  }
-
-  function markCurrentVisionEvidence(keys?: string[]) {
-    if (!selectedReport) return;
-    const documented = markVisionDocumented(
-      visionSnapshot.objects,
-      currentSection,
-      keys,
-    );
-    const habits = reinforceInspectorVisionHabits(documented);
-    const next = buildVisionSnapshot(selectedReport, documented, habits);
-    publishVisionSnapshot(next, true);
-  }
-
   async function startCamera(mode: "environment" | "user" = facingMode) {
     if (starting) return;
 
@@ -1163,56 +1079,211 @@ export default function AILiveInspectionCamera({
     }
   }
 
+  async function validateEvidenceBeforeSave({
+    file,
+    title,
+    evidenceType,
+    requiredElements = [],
+    onAccept,
+  }: {
+    file: File;
+    title: string;
+    evidenceType: string;
+    requiredElements?: string[];
+    onAccept: () => void | Promise<void>;
+  }) {
+    if (!online) {
+      await onAccept();
+      return;
+    }
+
+    setEvidenceChecking(true);
+    setPendingEvidenceReview(null);
+    pendingEvidenceAcceptRef.current = null;
+    setMessage("Checking photo quality and required evidence...");
+
+    try {
+      const imageDataUrl = await fileToDataUrl(file);
+      const response = await fetch("/api/ai/evidence-review", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+        body: JSON.stringify({
+          imageDataUrl,
+          inspectionId: selectedReport,
+          section: currentSection,
+          evidenceType,
+          subject: title,
+          requiredElements,
+        }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok || !data?.review) {
+        setMessage(
+          data?.message ||
+            data?.error ||
+            "Evidence validation was unavailable. The photo was saved normally.",
+        );
+        await onAccept();
+        return;
+      }
+
+      const review = data.review as EvidenceReview;
+
+      recordMemoryEvent({
+        eventType: "evidence_review",
+        status: review.usable ? "accepted" : "retake_requested",
+        title,
+        detail: review.guidance,
+        confidence: review.confidence,
+        payload: {
+          evidenceType,
+          overallScore: review.overallScore,
+          sharpness: review.sharpness,
+          lighting: review.lighting,
+          framing: review.framing,
+          distance: review.distance,
+          requiredEvidenceSatisfied: review.requiredEvidenceSatisfied,
+          missingElements: review.missingElements,
+        },
+      });
+
+      if (review.usable && review.requiredEvidenceSatisfied) {
+        setMessage(`✓ Evidence accepted: ${review.guidance}`);
+        await onAccept();
+        return;
+      }
+
+      pendingEvidenceAcceptRef.current = onAccept;
+      setPendingEvidenceReview({ review, file, title });
+      setMessage("This photo may not provide complete evidence. Review the guidance.");
+    } catch (error: any) {
+      setMessage(
+        error?.message ||
+          "Evidence validation was unavailable. The photo was saved normally.",
+      );
+      await onAccept();
+    } finally {
+      setEvidenceChecking(false);
+    }
+  }
+
+  async function acceptPendingEvidenceAnyway() {
+    const accept = pendingEvidenceAcceptRef.current;
+    pendingEvidenceAcceptRef.current = null;
+    setPendingEvidenceReview(null);
+    setMessage("Photo accepted by inspector.");
+    if (accept) await accept();
+  }
+
+  function retakePendingEvidence() {
+    pendingEvidenceAcceptRef.current = null;
+    setPendingEvidenceReview(null);
+    setFrameDataUrl("");
+    latestFrameRef.current = "";
+    setMessage("Retake the photo using the evidence guidance.");
+  }
+
   async function quickAddPhoto() {
     const captured = captureFrame({ silent: true });
-    if (!captured) return;
+    if (!captured || evidenceChecking) return;
 
     try {
       if (pendingEvidenceCapture?.kind === "finding") {
         const file = dataUrlToFile(captured, "ai-live-finding");
-        completeSuggestionWithEvidence(pendingEvidenceCapture.suggestion, file);
-        setPendingEvidenceCapture(null);
+        await validateEvidenceBeforeSave({
+          file,
+          title: pendingEvidenceCapture.suggestion.title,
+          evidenceType: "finding",
+          requiredElements: [
+            "The reported condition is clearly visible",
+            "Enough surrounding context is shown to identify the location",
+          ],
+          onAccept: async () => {
+            completeSuggestionWithEvidence(
+              pendingEvidenceCapture.suggestion,
+              file,
+            );
+            setPendingEvidenceCapture(null);
+          },
+        });
         return;
       }
 
       if (pendingEvidenceCapture?.kind === "limitation") {
-        await saveLimitationToSection(
-          pendingEvidenceCapture.limitation,
-          pendingEvidenceCapture.index,
-          captured,
-        );
-        setPendingEvidenceCapture(null);
+        const file = dataUrlToFile(captured, "ai-live-limitation");
+        await validateEvidenceBeforeSave({
+          file,
+          title: pendingEvidenceCapture.limitation.title,
+          evidenceType: "limitation",
+          requiredElements: [
+            "The obstruction or access limitation is visible",
+            "Enough context is shown to support the limitation",
+          ],
+          onAccept: async () => {
+            await saveLimitationToSection(
+              pendingEvidenceCapture.limitation,
+              pendingEvidenceCapture.index,
+              captured,
+            );
+            setPendingEvidenceCapture(null);
+          },
+        });
         return;
       }
 
-      const file = dataUrlToFile(captured, coachCaptureIssue ? "ai-coach-evidence" : "ai-live-photo");
-      onAddPhotoOnly(file);
-      markCurrentVisionEvidence();
-      if (coachCaptureIssue) {
-        recordMemoryEvent({
-          eventType: "section_coach_item",
-          status: "saved",
-          title: coachCaptureIssue.title,
-          detail: coachCaptureIssue.recommendation || "Requested evidence photo captured.",
-          payload: { issueId: coachCaptureIssue.id, action: "photo" },
-        });
-        window.dispatchEvent(new CustomEvent("opi:section-coach-refresh", {
-          detail: { inspectionId: selectedReport, section: currentSection },
-        }));
-        setCoachCaptureIssue(null);
-      }
-      void saveSelectedMediaToGallery(file);
-      setFrameDataUrl("");
-      latestFrameRef.current = "";
-      setMessage(
-        "Photo added to the Field Tool. Camera remains open for the next capture.",
+      const file = dataUrlToFile(
+        captured,
+        coachCaptureIssue ? "ai-coach-evidence" : "ai-live-photo",
       );
-      recordMemoryEvent({
-        eventType: "live_camera_media",
-        status: "saved",
-        title: "Live camera photo captured",
-        detail: `Photo added while inspecting ${currentSection}.`,
-        payload: { mediaType: "photo" },
+
+      const saveRegularPhoto = async () => {
+        onAddPhotoOnly(file);
+        if (coachCaptureIssue) {
+          recordMemoryEvent({
+            eventType: "section_coach_item",
+            status: "saved",
+            title: coachCaptureIssue.title,
+            detail:
+              coachCaptureIssue.recommendation ||
+              "Requested evidence photo captured.",
+            payload: { issueId: coachCaptureIssue.id, action: "photo" },
+          });
+          window.dispatchEvent(
+            new CustomEvent("opi:section-coach-refresh", {
+              detail: {
+                inspectionId: selectedReport,
+                section: currentSection,
+              },
+            }),
+          );
+          setCoachCaptureIssue(null);
+        }
+        void saveSelectedMediaToGallery(file);
+        setFrameDataUrl("");
+        latestFrameRef.current = "";
+        setMessage(
+          "Photo added to the Field Tool. Camera remains open for the next capture.",
+        );
+        recordMemoryEvent({
+          eventType: "live_camera_media",
+          status: "saved",
+          title: "Live camera photo captured",
+          detail: `Photo added while inspecting ${currentSection}.`,
+          payload: { mediaType: "photo", evidenceValidated: online },
+        });
+      };
+
+      await validateEvidenceBeforeSave({
+        file,
+        title: coachCaptureIssue?.title || `${currentSection} evidence photo`,
+        evidenceType: coachCaptureIssue ? "section_coach" : "documentation",
+        requiredElements: coachCaptureIssue?.recommendation
+          ? [coachCaptureIssue.recommendation]
+          : ["The intended inspection subject is visible and in focus"],
+        onAccept: saveRegularPhoto,
       });
     } catch (error: any) {
       setMessage(error?.message || "Could not add the live camera photo.");
@@ -1359,7 +1430,6 @@ export default function AILiveInspectionCamera({
       setHandledReminderKeys({});
       setResult(data);
       appendLiveMemory(data);
-      ingestVisionResult(data);
       const hasManualResult =
         (Array.isArray(data.suggestions) && data.suggestions.length > 0) ||
         (Array.isArray(data.limitations) && data.limitations.length > 0) ||
@@ -1421,7 +1491,6 @@ export default function AILiveInspectionCamera({
       // Every AI observation is retained in Live Memory, but only safety,
       // major, strong repair, and high-priority coach items interrupt the camera.
       appendLiveMemory(data);
-      ingestVisionResult(data);
 
       const interruptingSuggestions = suggestions.filter((item: any) =>
         shouldInterruptCamera(item),
@@ -1512,12 +1581,6 @@ export default function AILiveInspectionCamera({
     selectedFrame: File,
   ) {
     onUseSuggestion(suggestion, selectedFrame);
-    const visionObject = findVisionObjectForText(
-      visionSnapshot,
-      suggestion.section || currentSection,
-      `${suggestion.title} ${suggestion.observation}`,
-    );
-    markCurrentVisionEvidence(visionObject ? [visionObject.key] : undefined);
     void saveSelectedMediaToGallery(selectedFrame);
     recordInspectorLearning({
       tool: "ai_live_camera_suggestion",
@@ -1893,7 +1956,6 @@ export default function AILiveInspectionCamera({
     }
 
     onAddPhotoOnly(captured);
-    markCurrentVisionEvidence();
     void saveSelectedMediaToGallery(captured);
     recordInspectorLearning({
       tool: "ai_section_coach",
@@ -1948,7 +2010,6 @@ export default function AILiveInspectionCamera({
       if (!captured) return;
       const nextFile = dataUrlToFile(captured);
       onAddPhotoOnly(nextFile);
-      markCurrentVisionEvidence();
       void saveSelectedMediaToGallery(nextFile);
       setResult(null);
       setWaitingForDecision(false);
@@ -1957,7 +2018,6 @@ export default function AILiveInspectionCamera({
     }
 
     onAddPhotoOnly(frameFile);
-    markCurrentVisionEvidence();
     void saveSelectedMediaToGallery(frameFile);
     setResult(null);
     setWaitingForDecision(false);
@@ -2103,8 +2163,6 @@ export default function AILiveInspectionCamera({
   );
 
   const pendingCount = activeMemoryItems.length;
-  const currentVisionCoverage =
-    visionSnapshot.sections.find((item) => item.section === currentSection) || null;
   const coachMemoryCount = activeMemoryItems.filter(
     (item) => item.kind === "reminder",
   ).length;
@@ -2168,11 +2226,6 @@ export default function AILiveInspectionCamera({
         .slice(0, 1)
         .map((suggestion, index) => {
           const region = suggestion.region!;
-          const trackedVisionObject = findVisionObjectForText(
-            visionSnapshot,
-            suggestion.section || currentSection,
-            `${suggestion.title} ${suggestion.observation}`,
-          );
           return (
             <button
               key={`camera-region-${suggestion.trackId || createSuggestionKey(suggestion)}-${index}`}
@@ -2204,9 +2257,6 @@ export default function AILiveInspectionCamera({
                 {region.label || suggestion.title}
                 <span className="ml-2 text-emerald-100">
                   {confidenceLabel(suggestion.confidence)}
-                  {trackedVisionObject
-                    ? ` · seen ${trackedVisionObject.seenCount}×${trackedVisionObject.documented ? " · documented" : ""}`
-                    : ""}
                   {suggestion.pinned ? " · pinned" : ""}
                 </span>
               </span>
@@ -2304,22 +2354,6 @@ export default function AILiveInspectionCamera({
 
       <button
         type="button"
-        onClick={() => {
-          setCockpitView("vision");
-          setDetailsOpen(true);
-        }}
-        className={`absolute left-4 top-[11.75rem] z-20 inline-flex min-h-11 items-center gap-2 rounded-full border px-3 py-2 text-xs font-black shadow-xl backdrop-blur ${
-          currentVisionCoverage?.complete
-            ? "border-emerald-300/60 bg-emerald-500/80 text-white"
-            : "border-violet-300/50 bg-black/70 text-violet-100"
-        }`}
-      >
-        <span>◉</span>
-        <span>{currentVisionCoverage?.score || 0}%</span>
-      </button>
-
-      <button
-        type="button"
         onClick={toggleFacingCamera}
         className="absolute left-4 top-[15.5rem] z-20 flex h-14 w-14 flex-col items-center justify-center rounded-full border border-white/15 bg-black/70 shadow-2xl backdrop-blur active:scale-95"
       >
@@ -2349,6 +2383,76 @@ export default function AILiveInspectionCamera({
       {analyzing && (
         <div className="absolute left-1/2 top-[46%] z-20 -translate-x-1/2 rounded-full border border-purple-300/40 bg-black/75 px-5 py-3 text-sm font-black text-purple-200 shadow-2xl backdrop-blur">
           ✨ AI analyzing this area…
+        </div>
+      )}
+
+      {evidenceChecking && (
+        <div className="absolute left-1/2 top-[46%] z-30 -translate-x-1/2 rounded-full border border-cyan-300/50 bg-black/85 px-5 py-3 text-sm font-black text-cyan-100 shadow-2xl backdrop-blur">
+          🔎 Checking evidence quality…
+        </div>
+      )}
+
+      {pendingEvidenceReview && (
+        <div className="absolute inset-x-3 bottom-[7.5rem] z-40 mx-auto max-w-[680px] rounded-2xl border border-amber-300/60 bg-[#07111f]/98 p-4 shadow-2xl backdrop-blur-2xl">
+          <div className="flex items-start gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-amber-300/50 bg-amber-400/15 text-xl">
+              ⚠
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-amber-300">
+                Evidence Needs Review
+              </p>
+              <p className="mt-1 truncate text-sm font-black text-white">
+                {pendingEvidenceReview.title}
+              </p>
+              <p className="mt-2 text-sm leading-5 text-slate-200">
+                {pendingEvidenceReview.review.guidance}
+              </p>
+
+              <div className="mt-3 grid grid-cols-4 gap-1.5 text-center text-[10px] font-bold">
+                <span className="rounded-lg border border-white/10 bg-black/25 px-1 py-2">
+                  Focus<br />
+                  {pendingEvidenceReview.review.sharpness}
+                </span>
+                <span className="rounded-lg border border-white/10 bg-black/25 px-1 py-2">
+                  Light<br />
+                  {pendingEvidenceReview.review.lighting}
+                </span>
+                <span className="rounded-lg border border-white/10 bg-black/25 px-1 py-2">
+                  Frame<br />
+                  {pendingEvidenceReview.review.framing}
+                </span>
+                <span className="rounded-lg border border-white/10 bg-black/25 px-1 py-2">
+                  Score<br />
+                  {pendingEvidenceReview.review.overallScore}%
+                </span>
+              </div>
+
+              {pendingEvidenceReview.review.missingElements.length > 0 && (
+                <p className="mt-3 text-xs font-bold text-amber-100">
+                  Missing:{" "}
+                  {pendingEvidenceReview.review.missingElements.join(", ")}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={retakePendingEvidence}
+              className="min-h-12 rounded-xl bg-amber-300 px-4 py-3 text-sm font-black text-black active:scale-[0.98]"
+            >
+              Retake Photo
+            </button>
+            <button
+              type="button"
+              onClick={() => void acceptPendingEvidenceAnyway()}
+              className="min-h-12 rounded-xl border border-white/20 bg-white/5 px-4 py-3 text-sm font-black text-white active:scale-[0.98]"
+            >
+              Use Anyway
+            </button>
+          </div>
         </div>
       )}
 
@@ -2442,7 +2546,7 @@ export default function AILiveInspectionCamera({
           <button
             type="button"
             onClick={quickAddPhoto}
-            disabled={starting || recordingVideo}
+            disabled={starting || recordingVideo || evidenceChecking || Boolean(pendingEvidenceReview)}
             className="flex min-h-[72px] min-w-0 flex-1 flex-col items-center justify-end rounded-2xl pb-1 text-center active:bg-white/10 disabled:opacity-50"
           >
             <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-teal-400/60 bg-black/55 text-xl shadow-xl backdrop-blur">
@@ -2454,7 +2558,7 @@ export default function AILiveInspectionCamera({
           <button
             type="button"
             onClick={quickAddPhoto}
-            disabled={starting || recordingVideo}
+            disabled={starting || recordingVideo || evidenceChecking || Boolean(pendingEvidenceReview)}
             aria-label="Take photo"
             className={`mb-1 h-[82px] w-[82px] shrink-0 rounded-full border-[5px] border-white bg-white shadow-2xl active:scale-95 disabled:opacity-50 ${
               pendingEvidenceCapture
@@ -2500,7 +2604,7 @@ export default function AILiveInspectionCamera({
           }}
         >
           <div
-            className="flex h-[88dvh] w-full flex-col overflow-y-auto overscroll-contain touch-pan-y rounded-t-[2rem] border-t border-white/20 bg-[#06101f]/98 p-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl [-webkit-overflow-scrolling:touch]"
+            className="flex h-[76dvh] w-full flex-col overflow-hidden rounded-t-[2rem] border-t border-white/20 bg-[#06101f]/98 p-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-white/30" />
@@ -2519,35 +2623,45 @@ export default function AILiveInspectionCamera({
 
             {actionsOpen && (
               <div className="space-y-4">
-                <div className="rounded-2xl border border-cyan-500/30 bg-cyan-500/10 p-3">
-                  <div className="flex items-center gap-3">
-                    <div className="min-w-0 flex-1">
+                <div className="rounded-2xl border border-cyan-500/30 bg-cyan-500/10 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
                       <p className="text-sm font-black text-cyan-100">
                         AI scan interval
                       </p>
                       <p className="mt-1 text-xs text-slate-300">
-                        Choose how often AI reviews the live camera.
+                        Analyze the live camera every {scanIntervalSeconds}{" "}
+                        seconds.
                       </p>
                     </div>
+                    <span className="rounded-full bg-cyan-400 px-3 py-1 text-sm font-black text-black">
+                      {scanIntervalSeconds}s
+                    </span>
+                  </div>
+                  <p className="mt-3 text-xs leading-5 text-slate-300">
+                    Safety and repair concerns interrupt the camera.
+                    Maintenance, documentation, Digital Twin context, and
+                    lower-priority guidance are stored quietly in Live Memory.
+                  </p>
 
-                    <label className="shrink-0">
-                      <span className="sr-only">AI scan interval</span>
-                      <select
-                        value={scanIntervalSeconds}
-                        onChange={(event) =>
-                          setScanIntervalSeconds(Number(event.target.value))
-                        }
-                        className="min-h-11 rounded-xl border border-cyan-300/60 bg-slate-950 px-3 py-2 text-sm font-black text-cyan-200 outline-none"
+                  <div className="mt-4 grid grid-cols-6 gap-2">
+                    {LIVE_SCAN_INTERVAL_OPTIONS.map((seconds) => (
+                      <button
+                        key={seconds}
+                        type="button"
+                        onClick={() => setScanIntervalSeconds(seconds)}
+                        className={`rounded-xl border px-2 py-2 text-xs font-black ${
+                          scanIntervalSeconds === seconds
+                            ? "border-cyan-300 bg-cyan-400 text-black"
+                            : "border-slate-600 bg-slate-900 text-slate-200"
+                        }`}
                       >
-                        {LIVE_SCAN_INTERVAL_OPTIONS.map((seconds) => (
-                          <option key={seconds} value={seconds}>
-                            {seconds}s
-                          </option>
-                        ))}
-                      </select>
-                    </label>
+                        {seconds}s
+                      </button>
+                    ))}
                   </div>
                 </div>
+
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
@@ -2611,13 +2725,12 @@ export default function AILiveInspectionCamera({
                     className="mt-3 gap-1.5"
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "repeat(6, minmax(0, 1fr))",
+                      gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
                     }}
                   >
                     {[
                       ["queue", "🧠", String(pendingCount)],
                       ["coach", "📋", String(coachMemoryCount)],
-                      ["vision", "◉", `${currentVisionCoverage?.score || 0}%`],
                       ["score", "✓", "Score"],
                       ["timeline", "◷", "Activity"],
                       ["house", "⌂", "House"],
@@ -2654,14 +2767,6 @@ export default function AILiveInspectionCamera({
                       section={currentSection}
                       online={online}
                       compact
-                    />
-                  )}
-
-                  {cockpitView === "vision" && (
-                    <LiveVisionPlatformPanel
-                      inspectionId={selectedReport}
-                      section={currentSection}
-                      online={online}
                     />
                   )}
 
