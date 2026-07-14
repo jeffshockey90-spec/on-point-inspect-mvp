@@ -90,11 +90,23 @@ function severityFromSpeech(text: string) {
   return "";
 }
 
+type VoiceFindingGeneratorProps = {
+  reportId: string;
+  currentSection?: string;
+  currentSeverity?: string;
+  compact?: boolean;
+  onCaptureCurrentFrame?: () => void;
+  onClose?: () => void;
+};
+
 export default function VoiceFindingGenerator({
   reportId,
-}: {
-  reportId: string;
-}) {
+  currentSection = "Exterior",
+  currentSeverity = "Recommended Repair",
+  compact = false,
+  onCaptureCurrentFrame,
+  onClose,
+}: VoiceFindingGeneratorProps) {
   const recognitionRef = useRef<any>(null);
   const shouldContinueRef = useRef(false);
 
@@ -112,8 +124,14 @@ export default function VoiceFindingGenerator({
 
   const [transcript, setTranscript] = useState("");
   const [title, setTitle] = useState("");
-  const [section, setSection] = useState("Exterior");
-  const [severity, setSeverity] = useState("Recommended Repair");
+  const [section, setSection] = useState(
+    SECTIONS.includes(currentSection) ? currentSection : "Exterior",
+  );
+  const [severity, setSeverity] = useState(
+    SEVERITIES.includes(currentSeverity)
+      ? currentSeverity
+      : "Recommended Repair",
+  );
   const [observation, setObservation] = useState("");
   const [implication, setImplication] = useState("");
   const [recommendation, setRecommendation] = useState("");
@@ -124,6 +142,18 @@ export default function VoiceFindingGenerator({
     observation.trim() ||
     implication.trim() ||
     recommendation.trim();
+
+  useEffect(() => {
+    if (hasDraft) return;
+
+    if (SECTIONS.includes(currentSection)) {
+      setSection(currentSection);
+    }
+
+    if (SEVERITIES.includes(currentSeverity)) {
+      setSeverity(currentSeverity);
+    }
+  }, [currentSection, currentSeverity, hasDraft]);
 
   useEffect(() => {
     try {
@@ -193,8 +223,12 @@ export default function VoiceFindingGenerator({
   function clearDraft() {
     setTranscript("");
     setTitle("");
-    setSection("Exterior");
-    setSeverity("Recommended Repair");
+    setSection(SECTIONS.includes(currentSection) ? currentSection : "Exterior");
+    setSeverity(
+      SEVERITIES.includes(currentSeverity)
+        ? currentSeverity
+        : "Recommended Repair",
+    );
     setObservation("");
     setImplication("");
     setRecommendation("");
@@ -204,6 +238,27 @@ export default function VoiceFindingGenerator({
 
   function applyVoiceCommand(text: string) {
     const clean = normalizeCommand(text);
+
+    if (
+      clean === "take photo" ||
+      clean === "capture photo" ||
+      clean === "capture this" ||
+      clean === "use this frame"
+    ) {
+      onCaptureCurrentFrame?.();
+      showMessage("success", "Current camera frame captured.");
+      return true;
+    }
+
+    if (
+      clean === "stop listening" ||
+      clean === "stop voice" ||
+      clean === "stop dictation"
+    ) {
+      stopVoice();
+      showMessage("info", "Voice mode stopped.");
+      return true;
+    }
 
     if (clean === "new finding" || clean === "clear finding") {
       clearDraft();
@@ -370,6 +425,8 @@ export default function VoiceFindingGenerator({
           transcript,
           section,
           severity,
+          inspectionId: reportId,
+          currentSection,
         }),
       });
 
@@ -437,7 +494,45 @@ export default function VoiceFindingGenerator({
         // Do not block the saved finding if old queue items fail.
       });
 
-      showMessage("success", "Voice finding saved.");
+      window.dispatchEvent(
+        new CustomEvent("opi:findings-changed", {
+          detail: { inspectionId: reportId, section },
+        }),
+      );
+      window.dispatchEvent(
+        new CustomEvent("opi:section-coach-refresh", {
+          detail: { inspectionId: reportId, section },
+        }),
+      );
+      window.dispatchEvent(
+        new CustomEvent("opi:inspection-data-changed", {
+          detail: {
+            inspectionId: reportId,
+            section,
+            source: "voice-finding",
+          },
+        }),
+      );
+
+      void fetch("/api/ai/inspection-memory", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          inspectionId: reportId,
+          section,
+          eventType: "voice_finding",
+          status: "saved",
+          title: findingPayload.title,
+          detail: findingPayload.observation,
+          payload: {
+            severity,
+            implication,
+            recommendation,
+          },
+        }),
+      }).catch(() => undefined);
+
+      showMessage("success", "Voice finding saved and inspection panels refreshed.");
       clearDraft();
     } catch (error: any) {
       try {
@@ -460,19 +555,33 @@ export default function VoiceFindingGenerator({
   }
 
   return (
-    <section className="mt-8 rounded-2xl border border-slate-700 bg-[#0f172a] p-6 print:hidden">
+    <section
+      className={`rounded-2xl border border-slate-700 bg-[#0f172a] print:hidden ${
+        compact ? "p-3" : "mt-8 p-6"
+      }`}
+    >
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-teal-400">
-            Voice Findings 2.0
+          <h2 className={`${compact ? "text-lg" : "text-2xl"} font-bold text-teal-400`}>
+            🎙️ Voice Inspection
           </h2>
 
-          <p className="mt-2 text-slate-300">
-            Dictate field notes, use voice commands, generate a professional
-            finding, and save it directly to the report.
+          <p className={`${compact ? "mt-1 text-xs" : "mt-2"} text-slate-300`}>
+            Dictate a field note, review the structured finding, then save.
           </p>
         </div>
 
+        <div className="flex items-center gap-2">
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/5 text-xl text-white"
+              aria-label="Close voice inspection"
+            >
+              ×
+            </button>
+          )}
         <select
           value={voiceMode}
           onChange={(e) => setVoiceMode(e.target.value as VoiceMode)}
@@ -482,6 +591,7 @@ export default function VoiceFindingGenerator({
           <option value="single">Single Note</option>
           <option value="continuous">Continuous Dictation</option>
         </select>
+        </div>
       </div>
 
       {message && (
@@ -498,7 +608,7 @@ export default function VoiceFindingGenerator({
         </div>
       )}
 
-      <div className="mt-5 flex flex-wrap gap-3">
+      <div className={`${compact ? "mt-3 grid grid-cols-2 gap-2" : "mt-5 flex flex-wrap gap-3"}`}>
         {!listening ? (
           <button
             type="button"
@@ -557,8 +667,8 @@ export default function VoiceFindingGenerator({
       <div className="mt-5 rounded-xl border border-slate-700 bg-slate-950/60 p-4 text-sm leading-6 text-slate-300">
         <p className="font-bold text-teal-300">Voice commands:</p>
         <p>
-          “Generate finding” • “Save finding” • “New finding” • “Set section
-          electrical” • “Safety concern” • “Major concern” • “Maintenance”
+          “Take photo” • “Generate finding” • “Save finding” • “New finding” •
+          “Set section electrical” • “Safety concern” • “Stop listening”
         </p>
       </div>
 
@@ -568,7 +678,7 @@ export default function VoiceFindingGenerator({
         </p>
 
         <textarea
-          rows={5}
+          rows={compact ? 3 : 5}
           value={transcript}
           onChange={(e) => setTranscript(e.target.value)}
           placeholder="Example: Double tapped breaker in panel recommend electrician..."
@@ -605,9 +715,9 @@ export default function VoiceFindingGenerator({
         </select>
       </div>
 
-      <TextArea label="Observation" value={observation} onChange={setObservation} />
-      <TextArea label="Implication" value={implication} onChange={setImplication} />
-      <TextArea label="Recommendation" value={recommendation} onChange={setRecommendation} />
+      <TextArea label="Observation" value={observation} onChange={setObservation} compact={compact} />
+      <TextArea label="Implication" value={implication} onChange={setImplication} compact={compact} />
+      <TextArea label="Recommendation" value={recommendation} onChange={setRecommendation} compact={compact} />
     </section>
   );
 }
@@ -616,10 +726,12 @@ function TextArea({
   label,
   value,
   onChange,
+  compact = false,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  compact?: boolean;
 }) {
   return (
     <label className="mt-5 block">
@@ -628,7 +740,7 @@ function TextArea({
       </p>
 
       <textarea
-        rows={5}
+        rows={compact ? 3 : 5}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="w-full rounded-xl border border-slate-700 bg-slate-950 p-4 text-white outline-none focus:border-teal-400"

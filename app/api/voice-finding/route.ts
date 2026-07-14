@@ -1,5 +1,10 @@
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
+import { classifyAIServiceError } from "../../../lib/aiServiceError";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -137,11 +142,17 @@ ${transcript}
   } catch (error: any) {
     console.error("Voice finding error:", error);
 
+    const classified = classifyAIServiceError(error);
+
     return NextResponse.json(
       {
-        error: error?.message || "Failed to generate voice finding.",
+        error: classified.message,
+        title: classified.title,
+        code: classified.code,
+        retryable: classified.retryable,
+        retryAfterSeconds: classified.retryAfterSeconds,
       },
-      { status: 500 }
+      { status: classified.status },
     );
   }
 }

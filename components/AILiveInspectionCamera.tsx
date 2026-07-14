@@ -6,6 +6,7 @@ import LiveSectionCoach from "./LiveSectionCoach";
 import LiveInspectionScore from "./LiveInspectionScore";
 import LiveInspectionTimelinePanel from "./LiveInspectionTimelinePanel";
 import LiveHouseIntelligencePanel from "./LiveHouseIntelligencePanel";
+import VoiceFindingGenerator from "./VoiceFindingGenerator";
 import { saveFileToDeviceGallery } from "../lib/nativeGallery";
 import {
   mergeLiveDetections,
@@ -433,7 +434,7 @@ export default function AILiveInspectionCamera({
   const [selectedMemoryKey, setSelectedMemoryKey] = useState("");
   const [memoryHistoryOpen, setMemoryHistoryOpen] = useState(false);
   const [cockpitView, setCockpitView] = useState<
-    "queue" | "coach" | "score" | "timeline" | "house"
+    "queue" | "coach" | "score" | "timeline" | "house" | "voice"
   >("queue");
   const [coachCaptureIssue, setCoachCaptureIssue] = useState<{
     id: string;
@@ -2725,7 +2726,7 @@ export default function AILiveInspectionCamera({
                     className="mt-3 gap-1.5"
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
+                      gridTemplateColumns: "repeat(6, minmax(0, 1fr))",
                     }}
                   >
                     {[
@@ -2734,6 +2735,7 @@ export default function AILiveInspectionCamera({
                       ["score", "✓", "Score"],
                       ["timeline", "◷", "Activity"],
                       ["house", "⌂", "House"],
+                      ["voice", "🎙️", "Voice"],
                     ].map(([view, icon, label]) => {
                       const active = cockpitView === view;
 
@@ -2787,6 +2789,18 @@ export default function AILiveInspectionCamera({
 
                   {cockpitView === "house" && (
                     <LiveHouseIntelligencePanel inspectionId={selectedReport} />
+                  )}
+
+                  {cockpitView === "voice" && (
+                    <VoiceFindingGenerator
+                      reportId={selectedReport}
+                      currentSection={currentSection}
+                      currentSeverity={currentSeverity}
+                      compact
+                      onCaptureCurrentFrame={() => {
+                        void quickAddPhoto();
+                      }}
+                    />
                   )}
 
                   {cockpitView === "queue" && (
