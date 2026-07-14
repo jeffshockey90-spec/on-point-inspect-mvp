@@ -6,6 +6,19 @@ import LiveSectionCoach from "./LiveSectionCoach";
 import LiveInspectionScore from "./LiveInspectionScore";
 import LiveInspectionTimelinePanel from "./LiveInspectionTimelinePanel";
 import LiveHouseIntelligencePanel from "./LiveHouseIntelligencePanel";
+import LiveVisionPlatformPanel from "./LiveVisionPlatformPanel";
+import {
+  buildVisionSnapshot,
+  extractVisionObjects,
+  findVisionObjectForText,
+  markVisionDocumented,
+  mergeVisionObjects,
+  readInspectorVisionHabits,
+  readVisionSnapshot,
+  reinforceInspectorVisionHabits,
+  writeVisionSnapshot,
+  type VisionSnapshot,
+} from "../lib/ai/visionPlatform";
 import { saveFileToDeviceGallery } from "../lib/nativeGallery";
 import {
   mergeLiveDetections,
@@ -361,6 +374,8 @@ export default function AILiveInspectionCamera({
   >({});
   const autoScanRunningRef = useRef(false);
   const hardwareZoomSupportedRef = useRef(false);
+  const visionPersistAtRef = useRef(0);
+  const completedVisionSectionsRef = useRef<Set<string>>(new Set());
 
   const [open, setOpen] = useState(false);
   const [starting, setStarting] = useState(false);
@@ -403,13 +418,24 @@ export default function AILiveInspectionCamera({
   const [selectedMemoryKey, setSelectedMemoryKey] = useState("");
   const [memoryHistoryOpen, setMemoryHistoryOpen] = useState(false);
   const [cockpitView, setCockpitView] = useState<
-    "queue" | "coach" | "score" | "timeline" | "house"
+    "queue" | "coach" | "vision" | "score" | "timeline" | "house"
   >("queue");
+  const [visionSnapshot, setVisionSnapshot] = useState<VisionSnapshot>(() =>
+    readVisionSnapshot(selectedReport),
+  );
   const [coachCaptureIssue, setCoachCaptureIssue] = useState<{
     id: string;
     title: string;
     recommendation?: string;
   } | null>(null);
+
+  useEffect(() => {
+    const next = readVisionSnapshot(selectedReport);
+    setVisionSnapshot(next);
+    completedVisionSectionsRef.current = new Set(
+      next.sections.filter((item) => item.complete).map((item) => item.section),
+    );
+  }, [selectedReport]);
 
   useEffect(() => {
     function handleCoachCapture(event: Event) {
@@ -835,6 +861,100 @@ export default function AILiveInspectionCamera({
     }).catch(() => undefined);
   }
 
+  function publishVisionSnapshot(next: VisionSnapshot, persist = false) {
+    writeVisionSnapshot(next);
+    setVisionSnapshot(next);
+
+    window.dispatchEvent(
+      new CustomEvent("opi:vision-platform-updated", {
+        detail: {
+          inspectionId: selectedReport,
+          section: currentSection,
+          score:
+            next.sections.find((item) => item.section === currentSection)?.score || 0,
+        },
+      }),
+    );
+
+    if (persist && selectedReport) {
+      const now = Date.now();
+      if (now - visionPersistAtRef.current >= 12000) {
+        visionPersistAtRef.current = now;
+        const recentObjects = next.objects
+          .filter((item) => now - item.lastSeenAt < 20000)
+          .slice(0, 24);
+
+        void fetch("/api/ai/inspection-memory", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            inspectionId: selectedReport,
+            section: currentSection,
+            eventType: "vision_observation_batch",
+            status: "observed",
+            title: `${recentObjects.length} vision object${recentObjects.length === 1 ? "" : "s"} tracked`,
+            detail: `AI Vision updated ${currentSection}.`,
+            payload: { objects: recentObjects },
+          }),
+        }).catch(() => undefined);
+      }
+    }
+  }
+
+  function ingestVisionResult(data: AILiveResult) {
+    if (!selectedReport) return;
+    const incoming = extractVisionObjects(data, currentSection);
+    if (!incoming.length) return;
+
+    const merged = mergeVisionObjects(visionSnapshot.objects, incoming);
+    const next = buildVisionSnapshot(
+      selectedReport,
+      merged,
+      readInspectorVisionHabits(),
+    );
+
+    const currentCoverage = next.sections.find(
+      (item) => item.section === currentSection,
+    );
+    if (
+      currentCoverage?.complete &&
+      !completedVisionSectionsRef.current.has(currentSection)
+    ) {
+      completedVisionSectionsRef.current.add(currentSection);
+      void fetch("/api/ai/inspection-memory", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          inspectionId: selectedReport,
+          section: currentSection,
+          eventType: "vision_section_complete",
+          status: "completed",
+          title: `${currentSection} vision coverage complete`,
+          detail: `${currentCoverage.score}% coverage with ${currentCoverage.covered.length} expected items documented.`,
+          confidence: currentCoverage.score,
+          payload: currentCoverage,
+        }),
+      }).catch(() => undefined);
+      setMessage(
+        `✓ ${currentSection} reached ${currentCoverage.score}% AI vision coverage. Review the final missing item before moving on.`,
+      );
+    }
+
+    publishVisionSnapshot(next, true);
+  }
+
+  function markCurrentVisionEvidence(keys?: string[]) {
+    if (!selectedReport) return;
+    const documented = markVisionDocumented(
+      visionSnapshot.objects,
+      currentSection,
+      keys,
+    );
+    const habits = reinforceInspectorVisionHabits(documented);
+    const next = buildVisionSnapshot(selectedReport, documented, habits);
+    publishVisionSnapshot(next, true);
+  }
+
   async function startCamera(mode: "environment" | "user" = facingMode) {
     if (starting) return;
 
@@ -1067,6 +1187,7 @@ export default function AILiveInspectionCamera({
 
       const file = dataUrlToFile(captured, coachCaptureIssue ? "ai-coach-evidence" : "ai-live-photo");
       onAddPhotoOnly(file);
+      markCurrentVisionEvidence();
       if (coachCaptureIssue) {
         recordMemoryEvent({
           eventType: "section_coach_item",
@@ -1238,6 +1359,7 @@ export default function AILiveInspectionCamera({
       setHandledReminderKeys({});
       setResult(data);
       appendLiveMemory(data);
+      ingestVisionResult(data);
       const hasManualResult =
         (Array.isArray(data.suggestions) && data.suggestions.length > 0) ||
         (Array.isArray(data.limitations) && data.limitations.length > 0) ||
@@ -1299,6 +1421,7 @@ export default function AILiveInspectionCamera({
       // Every AI observation is retained in Live Memory, but only safety,
       // major, strong repair, and high-priority coach items interrupt the camera.
       appendLiveMemory(data);
+      ingestVisionResult(data);
 
       const interruptingSuggestions = suggestions.filter((item: any) =>
         shouldInterruptCamera(item),
@@ -1389,6 +1512,12 @@ export default function AILiveInspectionCamera({
     selectedFrame: File,
   ) {
     onUseSuggestion(suggestion, selectedFrame);
+    const visionObject = findVisionObjectForText(
+      visionSnapshot,
+      suggestion.section || currentSection,
+      `${suggestion.title} ${suggestion.observation}`,
+    );
+    markCurrentVisionEvidence(visionObject ? [visionObject.key] : undefined);
     void saveSelectedMediaToGallery(selectedFrame);
     recordInspectorLearning({
       tool: "ai_live_camera_suggestion",
@@ -1764,6 +1893,7 @@ export default function AILiveInspectionCamera({
     }
 
     onAddPhotoOnly(captured);
+    markCurrentVisionEvidence();
     void saveSelectedMediaToGallery(captured);
     recordInspectorLearning({
       tool: "ai_section_coach",
@@ -1818,6 +1948,7 @@ export default function AILiveInspectionCamera({
       if (!captured) return;
       const nextFile = dataUrlToFile(captured);
       onAddPhotoOnly(nextFile);
+      markCurrentVisionEvidence();
       void saveSelectedMediaToGallery(nextFile);
       setResult(null);
       setWaitingForDecision(false);
@@ -1826,6 +1957,7 @@ export default function AILiveInspectionCamera({
     }
 
     onAddPhotoOnly(frameFile);
+    markCurrentVisionEvidence();
     void saveSelectedMediaToGallery(frameFile);
     setResult(null);
     setWaitingForDecision(false);
@@ -1971,6 +2103,8 @@ export default function AILiveInspectionCamera({
   );
 
   const pendingCount = activeMemoryItems.length;
+  const currentVisionCoverage =
+    visionSnapshot.sections.find((item) => item.section === currentSection) || null;
   const coachMemoryCount = activeMemoryItems.filter(
     (item) => item.kind === "reminder",
   ).length;
@@ -2034,6 +2168,11 @@ export default function AILiveInspectionCamera({
         .slice(0, 1)
         .map((suggestion, index) => {
           const region = suggestion.region!;
+          const trackedVisionObject = findVisionObjectForText(
+            visionSnapshot,
+            suggestion.section || currentSection,
+            `${suggestion.title} ${suggestion.observation}`,
+          );
           return (
             <button
               key={`camera-region-${suggestion.trackId || createSuggestionKey(suggestion)}-${index}`}
@@ -2065,6 +2204,9 @@ export default function AILiveInspectionCamera({
                 {region.label || suggestion.title}
                 <span className="ml-2 text-emerald-100">
                   {confidenceLabel(suggestion.confidence)}
+                  {trackedVisionObject
+                    ? ` · seen ${trackedVisionObject.seenCount}×${trackedVisionObject.documented ? " · documented" : ""}`
+                    : ""}
                   {suggestion.pinned ? " · pinned" : ""}
                 </span>
               </span>
@@ -2158,6 +2300,22 @@ export default function AILiveInspectionCamera({
       >
         <span>🧠</span>
         <span>{pendingCount}</span>
+      </button>
+
+      <button
+        type="button"
+        onClick={() => {
+          setCockpitView("vision");
+          setDetailsOpen(true);
+        }}
+        className={`absolute left-4 top-[11.75rem] z-20 inline-flex min-h-11 items-center gap-2 rounded-full border px-3 py-2 text-xs font-black shadow-xl backdrop-blur ${
+          currentVisionCoverage?.complete
+            ? "border-emerald-300/60 bg-emerald-500/80 text-white"
+            : "border-violet-300/50 bg-black/70 text-violet-100"
+        }`}
+      >
+        <span>◉</span>
+        <span>{currentVisionCoverage?.score || 0}%</span>
       </button>
 
       <button
@@ -2453,12 +2611,13 @@ export default function AILiveInspectionCamera({
                     className="mt-3 gap-1.5"
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
+                      gridTemplateColumns: "repeat(6, minmax(0, 1fr))",
                     }}
                   >
                     {[
                       ["queue", "🧠", String(pendingCount)],
                       ["coach", "📋", String(coachMemoryCount)],
+                      ["vision", "◉", `${currentVisionCoverage?.score || 0}%`],
                       ["score", "✓", "Score"],
                       ["timeline", "◷", "Activity"],
                       ["house", "⌂", "House"],
@@ -2495,6 +2654,14 @@ export default function AILiveInspectionCamera({
                       section={currentSection}
                       online={online}
                       compact
+                    />
+                  )}
+
+                  {cockpitView === "vision" && (
+                    <LiveVisionPlatformPanel
+                      inspectionId={selectedReport}
+                      section={currentSection}
+                      online={online}
                     />
                   )}
 
