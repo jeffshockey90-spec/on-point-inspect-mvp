@@ -2,6 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import LiveSectionCoach from "./LiveSectionCoach";
+import LiveInspectionScore from "./LiveInspectionScore";
+import LiveInspectionTimelinePanel from "./LiveInspectionTimelinePanel";
+import LiveHouseIntelligencePanel from "./LiveHouseIntelligencePanel";
 import { saveFileToDeviceGallery } from "../lib/nativeGallery";
 import {
   mergeLiveDetections,
@@ -383,6 +387,9 @@ export default function AILiveInspectionCamera({
     useState<PendingEvidenceCapture | null>(null);
   const [selectedMemoryKey, setSelectedMemoryKey] = useState("");
   const [memoryHistoryOpen, setMemoryHistoryOpen] = useState(false);
+  const [cockpitView, setCockpitView] = useState<
+    "queue" | "coach" | "score" | "timeline" | "house"
+  >("queue");
 
   const frameFile = useMemo(() => {
     if (!frameDataUrl) return null;
@@ -2006,7 +2013,10 @@ export default function AILiveInspectionCamera({
 
           <button
             type="button"
-            onClick={() => setDetailsOpen(true)}
+            onClick={() => {
+              setCockpitView("coach");
+              setDetailsOpen(true);
+            }}
             className="inline-flex min-h-12 shrink-0 items-center gap-3 rounded-full border border-teal-400/45 bg-black/70 px-4 py-2 text-sm font-black text-white shadow-2xl backdrop-blur"
           >
             <span className="text-teal-300">Coach</span>
@@ -2018,7 +2028,10 @@ export default function AILiveInspectionCamera({
 
       <button
         type="button"
-        onClick={() => setDetailsOpen(true)}
+        onClick={() => {
+          setCockpitView("queue");
+          setDetailsOpen(true);
+        }}
         className="absolute left-4 top-[8.5rem] z-20 inline-flex min-h-11 items-center gap-2 rounded-full border border-white/15 bg-black/70 px-4 py-2 text-sm font-black text-white shadow-xl backdrop-blur"
       >
         <span>🧠</span>
@@ -2130,7 +2143,10 @@ export default function AILiveInspectionCamera({
         >
           <button
             type="button"
-            onClick={() => setDetailsOpen(true)}
+            onClick={() => {
+              setCockpitView("queue");
+              setDetailsOpen(true);
+            }}
             className="flex min-h-[72px] min-w-0 flex-1 flex-col items-center justify-end rounded-2xl pb-1 text-center active:bg-white/10"
           >
             <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/25 bg-black/55 text-xl shadow-xl backdrop-blur">
@@ -2297,7 +2313,79 @@ export default function AILiveInspectionCamera({
 
             {detailsOpen && (
               <div className="space-y-4">
-                <div className="sticky top-0 z-10 rounded-2xl border border-amber-400/30 bg-[#06101f]/95 p-4 shadow-xl backdrop-blur">
+                <div className="sticky top-0 z-20 -mx-1 rounded-2xl border border-cyan-400/30 bg-[#06101f]/98 p-3 shadow-2xl backdrop-blur">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-300">
+                        Live Inspection Cockpit
+                      </p>
+                      <p className="mt-1 text-sm font-black text-white">
+                        {currentSection || "Inspection"}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setDetailsOpen(false)}
+                      className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/5 text-2xl text-white"
+                      aria-label="Close cockpit"
+                    >
+                      ×
+                    </button>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-5 gap-1.5">
+                    {[
+                      ["queue", "🧠", pendingCount],
+                      ["coach", "📋", coachMemoryCount],
+                      ["score", "✓", "Score"],
+                      ["timeline", "◷", "Activity"],
+                      ["house", "⌂", "House"],
+                    ].map(([view, icon, label]) => (
+                      <button
+                        key={String(view)}
+                        type="button"
+                        onClick={() => setCockpitView(view as typeof cockpitView)}
+                        className={`min-h-12 rounded-xl border px-1.5 py-2 text-[10px] font-black transition active:scale-[0.98] ${
+                          cockpitView === view
+                            ? "border-cyan-300 bg-cyan-400 text-black"
+                            : "border-white/10 bg-black/35 text-slate-200"
+                        }`}
+                      >
+                        <span className="block text-base leading-none">{icon}</span>
+                        <span className="mt-1 block truncate">{label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {cockpitView === "coach" && (
+                  <LiveSectionCoach
+                    inspectionId={selectedReport}
+                    section={currentSection}
+                    online={online}
+                  />
+                )}
+
+                {cockpitView === "score" && (
+                  <LiveInspectionScore
+                    inspectionId={selectedReport}
+                    section={currentSection}
+                    online={online}
+                    compact
+                  />
+                )}
+
+                {cockpitView === "timeline" && (
+                  <LiveInspectionTimelinePanel inspectionId={selectedReport} />
+                )}
+
+                {cockpitView === "house" && (
+                  <LiveHouseIntelligencePanel inspectionId={selectedReport} />
+                )}
+
+                {cockpitView === "queue" && (
+                  <div className="space-y-4">
+                <div className="rounded-2xl border border-amber-400/30 bg-[#06101f]/95 p-4 shadow-xl backdrop-blur">
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="text-xs font-black uppercase tracking-[0.15em] text-amber-300">
@@ -2739,6 +2827,8 @@ export default function AILiveInspectionCamera({
                 {!pendingCount && (
                   <div className="rounded-2xl border border-slate-700 bg-slate-900 p-5 text-center text-sm text-slate-300">
                     AI is watching. No pending suggestions right now.
+                  </div>
+                )}
                   </div>
                 )}
               </div>
