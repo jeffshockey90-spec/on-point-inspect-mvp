@@ -2342,7 +2342,7 @@ export default function AILiveInspectionCamera({
           }}
         >
           <div
-            className="flex h-[76dvh] w-full flex-col overflow-hidden rounded-t-[2rem] border-t border-white/20 bg-[#06101f]/98 p-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl"
+            className="flex h-[88dvh] w-full flex-col overflow-y-auto overscroll-contain touch-pan-y rounded-t-[2rem] border-t border-white/20 bg-[#06101f]/98 p-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl [-webkit-overflow-scrolling:touch]"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-white/30" />
@@ -2361,45 +2361,35 @@ export default function AILiveInspectionCamera({
 
             {actionsOpen && (
               <div className="space-y-4">
-                <div className="rounded-2xl border border-cyan-500/30 bg-cyan-500/10 p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
+                <div className="rounded-2xl border border-cyan-500/30 bg-cyan-500/10 p-3">
+                  <div className="flex items-center gap-3">
+                    <div className="min-w-0 flex-1">
                       <p className="text-sm font-black text-cyan-100">
                         AI scan interval
                       </p>
                       <p className="mt-1 text-xs text-slate-300">
-                        Analyze the live camera every {scanIntervalSeconds}{" "}
-                        seconds.
+                        Choose how often AI reviews the live camera.
                       </p>
                     </div>
-                    <span className="rounded-full bg-cyan-400 px-3 py-1 text-sm font-black text-black">
-                      {scanIntervalSeconds}s
-                    </span>
-                  </div>
-                  <p className="mt-3 text-xs leading-5 text-slate-300">
-                    Safety and repair concerns interrupt the camera.
-                    Maintenance, documentation, Digital Twin context, and
-                    lower-priority guidance are stored quietly in Live Memory.
-                  </p>
 
-                  <div className="mt-4 grid grid-cols-6 gap-2">
-                    {LIVE_SCAN_INTERVAL_OPTIONS.map((seconds) => (
-                      <button
-                        key={seconds}
-                        type="button"
-                        onClick={() => setScanIntervalSeconds(seconds)}
-                        className={`rounded-xl border px-2 py-2 text-xs font-black ${
-                          scanIntervalSeconds === seconds
-                            ? "border-cyan-300 bg-cyan-400 text-black"
-                            : "border-slate-600 bg-slate-900 text-slate-200"
-                        }`}
+                    <label className="shrink-0">
+                      <span className="sr-only">AI scan interval</span>
+                      <select
+                        value={scanIntervalSeconds}
+                        onChange={(event) =>
+                          setScanIntervalSeconds(Number(event.target.value))
+                        }
+                        className="min-h-11 rounded-xl border border-cyan-300/60 bg-slate-950 px-3 py-2 text-sm font-black text-cyan-200 outline-none"
                       >
-                        {seconds}s
-                      </button>
-                    ))}
+                        {LIVE_SCAN_INTERVAL_OPTIONS.map((seconds) => (
+                          <option key={seconds} value={seconds}>
+                            {seconds}s
+                          </option>
+                        ))}
+                      </select>
+                    </label>
                   </div>
                 </div>
-
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
