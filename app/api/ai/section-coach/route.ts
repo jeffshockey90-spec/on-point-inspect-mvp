@@ -71,8 +71,9 @@ export async function POST(req: Request) {
       );
     }
 
-    const [findingsResult, equipmentResult, limitationsResult, checklistResult, referenceResult, memoryResult] =
+    const [inspectionResult, findingsResult, equipmentResult, limitationsResult, checklistResult, referenceResult, memoryResult] =
       await Promise.all([
+        supabase.from("inspections").select("year_built, property_style, property_type").eq("id", inspectionId).maybeSingle(),
         supabase.from("findings").select("*").eq("inspection_id", inspectionId),
         supabase.from("equipment_inventory").select("*").eq("inspection_id", inspectionId),
         supabase.from("section_limitations").select("*").eq("inspection_id", inspectionId),
@@ -127,11 +128,57 @@ export async function POST(req: Request) {
       limitations: limitationsResult.data || [],
     });
 
+    const yearBuilt = Number(inspectionResult.data?.year_built || 0);
+    const adaptiveIssues: any[] = [];
+    const normalizedSection = section.toLowerCase();
+
+    if (yearBuilt > 0 && yearBuilt < 1970 && normalizedSection.includes("electrical")) {
+      adaptiveIssues.push({
+        id: `adaptive-electrical-era-${yearBuilt}`,
+        title: "Older-home branch wiring reviewed",
+        severity: "warning",
+        section,
+        category: "coach",
+        reason: `This home is recorded as built in ${yearBuilt}. Older wiring methods or ungrounded receptacles may be present and should be documented when visible.`,
+        recommendation: "Verify representative receptacle grounding, visible branch wiring, and panel conditions. Capture evidence or add a limitation where concealed.",
+      });
+    }
+
+    if (yearBuilt > 0 && yearBuilt < 1980 && normalizedSection.includes("plumbing")) {
+      adaptiveIssues.push({
+        id: `adaptive-plumbing-era-${yearBuilt}`,
+        title: "Older plumbing materials considered",
+        severity: "info",
+        section,
+        category: "coach",
+        reason: `The ${yearBuilt} construction era increases the likelihood of older supply or drain materials.`,
+        recommendation: "Document visible supply and drain materials and note replacement or mixed-material conditions where present.",
+      });
+    }
+
+    if (yearBuilt > 0 && yearBuilt < 2000 && normalizedSection.includes("garage")) {
+      adaptiveIssues.push({
+        id: `adaptive-garage-safety-${yearBuilt}`,
+        title: "Garage opener safety evidence captured",
+        severity: "warning",
+        section,
+        category: "coach",
+        reason: "Garage-door safety sensors and reversal operation should be clearly documented when an automatic opener is present.",
+        recommendation: "Capture the photo-eye sensors and document the safety-reversal test or add a limitation.",
+      });
+    }
+
+    const existingIds = new Set((review.issues || []).map((issue: any) => issue.id));
+    review.issues = [...(review.issues || []), ...adaptiveIssues.filter((issue) => !existingIds.has(issue.id))];
+    review.canComplete = !review.issues.some((issue: any) => issue.severity === "critical" || issue.severity === "warning");
+    if (adaptiveIssues.length && review.score >= 100) review.score = 95;
+
     return NextResponse.json({
       success: true,
       review,
       generatedAt: new Date().toISOString(),
       sourceCounts: {
+        inspection: inspectionResult.data ? 1 : 0,
         findings: findings.length,
         photos: findingPhotos.length,
         referencePhotos: referencePhotos.length,
@@ -141,6 +188,7 @@ export async function POST(req: Request) {
         memoryEvents: memoryRows.length,
       },
       warnings: [
+        inspectionResult.error?.message,
         findingsResult.error?.message,
         equipmentResult.error?.message,
         limitationsResult.error?.message,

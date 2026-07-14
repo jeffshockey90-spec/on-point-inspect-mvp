@@ -26,6 +26,7 @@ type Props = {
   inspectionId: string;
   section: string;
   online: boolean;
+  compact?: boolean;
 };
 
 function severityClasses(severity: CoachIssue["severity"]) {
@@ -46,7 +47,7 @@ function scoreClasses(score: number) {
   return "border-red-400/50 bg-red-500/10 text-red-100";
 }
 
-export default function LiveSectionCoach({ inspectionId, section, online }: Props) {
+export default function LiveSectionCoach({ inspectionId, section, online, compact = false }: Props) {
   const [review, setReview] = useState<CoachReview | null>(null);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(true);
@@ -164,17 +165,47 @@ export default function LiveSectionCoach({ inspectionId, section, online }: Prop
     }
   }
 
+  function requestEvidencePhoto(issue: CoachIssue) {
+    window.dispatchEvent(
+      new CustomEvent("opi:coach-capture-request", {
+        detail: {
+          inspectionId,
+          section,
+          id: issue.id,
+          title: issue.title,
+          recommendation: issue.recommendation,
+        },
+      }),
+    );
+  }
+
+  function requestLimitation(issue: CoachIssue) {
+    window.dispatchEvent(
+      new CustomEvent("opi:coach-limitation-request", {
+        detail: {
+          inspectionId,
+          section,
+          id: issue.id,
+          title: issue.title,
+          recommendation: issue.recommendation,
+        },
+      }),
+    );
+  }
+
   return (
-    <section className="rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-white">
+    <section className={`rounded-2xl border border-emerald-500/40 bg-emerald-500/10 text-white ${compact ? "p-3" : "p-4"}`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.22em] text-emerald-300">
             Section Coach
           </p>
           <h2 className="mt-1 text-xl font-black">{section}</h2>
-          <p className="mt-1 text-sm text-slate-300">
-            Live completeness guidance based on saved findings, photos, equipment, checklist selections, limitations, and inspector confirmations.
-          </p>
+          {!compact && (
+            <p className="mt-1 text-sm text-slate-300">
+              Live completeness guidance based on saved findings, photos, equipment, checklist selections, limitations, and inspector confirmations.
+            </p>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
@@ -240,13 +271,29 @@ export default function LiveSectionCoach({ inspectionId, section, online }: Prop
                       )}
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => void recordChecked(issue)}
-                      className="min-h-10 shrink-0 rounded-lg border border-current px-3 py-2 text-xs font-black active:scale-[0.98]"
-                    >
-                      Mark Checked
-                    </button>
+                    <div className="grid shrink-0 grid-cols-1 gap-1.5 sm:grid-cols-3">
+                      <button
+                        type="button"
+                        onClick={() => requestEvidencePhoto(issue)}
+                        className="min-h-10 rounded-lg border border-current px-3 py-2 text-xs font-black active:scale-[0.98]"
+                      >
+                        📷 Photo
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => requestLimitation(issue)}
+                        className="min-h-10 rounded-lg border border-current px-3 py-2 text-xs font-black active:scale-[0.98]"
+                      >
+                        Limitation
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void recordChecked(issue)}
+                        className="min-h-10 rounded-lg border border-current px-3 py-2 text-xs font-black active:scale-[0.98]"
+                      >
+                        ✓ Checked
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}

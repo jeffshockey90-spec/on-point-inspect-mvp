@@ -156,19 +156,23 @@ type Props = {
   onScanDataPlate: (frame?: File | null) => void;
 };
 
+function normalizeSuggestionConcept(value: unknown) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/\b(blocked|blocking|blockage|clogged|clogging|debris-filled)\b/g, "obstruction")
+    .replace(/\b(damaged|damage|defective|defect)\b/g, "damage")
+    .replace(/\b(missing|absent|not present)\b/g, "missing")
+    .replace(/\b(improper|incorrect|poorly installed)\b/g, "improper")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 function createSuggestionKey(suggestion: AILiveSuggestion) {
   return [
-    suggestion.section,
-    suggestion.severity,
-    suggestion.title,
-    suggestion.suggestionType,
+    normalizeSuggestionConcept(suggestion.section),
+    normalizeSuggestionConcept(suggestion.suggestionType || "defect"),
+    normalizeSuggestionConcept(suggestion.title),
   ]
-    .map((value) =>
-      String(value || "")
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, ""),
-    )
     .filter(Boolean)
     .join(":");
 }
@@ -401,6 +405,38 @@ export default function AILiveInspectionCamera({
   const [cockpitView, setCockpitView] = useState<
     "queue" | "coach" | "score" | "timeline" | "house"
   >("queue");
+  const [coachCaptureIssue, setCoachCaptureIssue] = useState<{
+    id: string;
+    title: string;
+    recommendation?: string;
+  } | null>(null);
+
+  useEffect(() => {
+    function handleCoachCapture(event: Event) {
+      const detail = (event as CustomEvent).detail || {};
+      setCoachCaptureIssue({
+        id: String(detail.id || detail.title || "coach-evidence"),
+        title: String(detail.title || "Section Coach evidence"),
+        recommendation: String(detail.recommendation || ""),
+      });
+      setDetailsOpen(false);
+      setMessage(`Capture a clear photo for "${String(detail.title || "this coach item")}".`);
+    }
+
+    function handleCoachLimitation(event: Event) {
+      const detail = (event as CustomEvent).detail || {};
+      setCockpitView("queue");
+      setDetailsOpen(false);
+      setMessage(`Add a limitation for "${String(detail.title || "this item")}" from the Field Tool if it could not be inspected.`);
+    }
+
+    window.addEventListener("opi:coach-capture-request", handleCoachCapture as EventListener);
+    window.addEventListener("opi:coach-limitation-request", handleCoachLimitation as EventListener);
+    return () => {
+      window.removeEventListener("opi:coach-capture-request", handleCoachCapture as EventListener);
+      window.removeEventListener("opi:coach-limitation-request", handleCoachLimitation as EventListener);
+    };
+  }, []);
 
   const frameFile = useMemo(() => {
     if (!frameDataUrl) return null;
@@ -1029,8 +1065,21 @@ export default function AILiveInspectionCamera({
         return;
       }
 
-      const file = dataUrlToFile(captured, "ai-live-photo");
+      const file = dataUrlToFile(captured, coachCaptureIssue ? "ai-coach-evidence" : "ai-live-photo");
       onAddPhotoOnly(file);
+      if (coachCaptureIssue) {
+        recordMemoryEvent({
+          eventType: "section_coach_item",
+          status: "saved",
+          title: coachCaptureIssue.title,
+          detail: coachCaptureIssue.recommendation || "Requested evidence photo captured.",
+          payload: { issueId: coachCaptureIssue.id, action: "photo" },
+        });
+        window.dispatchEvent(new CustomEvent("opi:section-coach-refresh", {
+          detail: { inspectionId: selectedReport, section: currentSection },
+        }));
+        setCoachCaptureIssue(null);
+      }
       void saveSelectedMediaToGallery(file);
       setFrameDataUrl("");
       latestFrameRef.current = "";
@@ -2455,6 +2504,7 @@ export default function AILiveInspectionCamera({
                       inspectionId={selectedReport}
                       section={currentSection}
                       online={online}
+                      compact
                     />
                   )}
 
