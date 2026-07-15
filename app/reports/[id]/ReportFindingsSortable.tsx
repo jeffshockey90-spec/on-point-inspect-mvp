@@ -1041,13 +1041,47 @@ function getSeverityStyle(severity: string | null | undefined) {
 }
 
 function getPhotoUrl(photo: any) {
+  const path = String(
+    photo?.file_path ||
+      photo?.storage_path ||
+      photo?.photo_path ||
+      photo?.image_path ||
+      photo?.video_path ||
+      "",
+  ).toLowerCase();
+  const type = String(
+    photo?.mime_type ||
+      photo?.media_type ||
+      photo?.content_type ||
+      photo?.file_type ||
+      "",
+  ).toLowerCase();
+  const isVideo =
+    photo?.is_video === true ||
+    type.startsWith("video/") ||
+    type.includes("quicktime") ||
+    /\.(mp4|mov|m4v|webm|avi|quicktime)$/.test(path);
+
+  if (isVideo) {
+    return (
+      photo?.signed_video_url ||
+      photo?.signedVideoUrl ||
+      photo?.signed_url ||
+      photo?.signedUrl ||
+      photo?.video_url ||
+      photo?.videoUrl ||
+      photo?.public_url ||
+      photo?.publicUrl ||
+      photo?.url ||
+      ""
+    );
+  }
+
+  // Images must prefer their image URL aliases. A stale signed_video_url from
+  // older report hydration must never override a newly marked-up image.
   return (
-    photo?.signed_video_url ||
-    photo?.signedVideoUrl ||
     photo?.signed_url ||
     photo?.signedUrl ||
-    photo?.video_url ||
-    photo?.videoUrl ||
     photo?.public_url ||
     photo?.publicUrl ||
     photo?.image_url ||
@@ -1289,7 +1323,15 @@ function getFindingPhotos(finding: any) {
     isLegacyImage: true,
   };
 
-  if (legacyImage && !hasSeenPhoto(seen, legacyPhoto)) {
+  // Only use the legacy image stored directly on the finding when there are
+  // no normal photo records. Once a finding has photos-table media, showing
+  // the legacy image creates a duplicate/broken card that cannot be deleted
+  // through the normal photo workflow.
+  if (
+    photos.length === 0 &&
+    legacyImage &&
+    !hasSeenPhoto(seen, legacyPhoto)
+  ) {
     photos.unshift(legacyPhoto);
   }
 
@@ -1395,6 +1437,30 @@ async function dataUrlToFile(
   return new File([blob], filename, {
     type: blob.type || "image/jpeg",
     lastModified: Date.now(),
+  });
+}
+
+async function verifyImageCanLoad(url: string): Promise<void> {
+  if (!url) throw new Error("The marked-up image URL was not created.");
+
+  await new Promise<void>((resolve, reject) => {
+    const image = new Image();
+    const timeout = window.setTimeout(() => {
+      image.src = "";
+      reject(new Error("The marked-up image could not be verified."));
+    }, 15000);
+
+    image.onload = () => {
+      window.clearTimeout(timeout);
+      resolve();
+    };
+
+    image.onerror = () => {
+      window.clearTimeout(timeout);
+      reject(new Error("The marked-up image could not be opened after upload."));
+    };
+
+    image.src = url;
   });
 }
 
@@ -2668,6 +2734,21 @@ function FindingCardBase({
                 signedThumbResult.data?.signedUrl ||
                 displayFullUrl;
 
+              // Verify both uploaded files before changing the existing photo
+              // record. If verification fails, the original report photo stays
+              // untouched and the new temporary files are removed.
+              try {
+                await Promise.all([
+                  verifyImageCanLoad(displayFullUrl),
+                  verifyImageCanLoad(displayThumbnailUrl),
+                ]);
+              } catch (verificationError) {
+                await supabase.storage
+                  .from(PHOTO_BUCKET)
+                  .remove([filePath, thumbnailPath]);
+                throw verificationError;
+              }
+
               const { data: savedPhoto, error: photoUpdateError } =
                 await supabase
                   .from("photos")
@@ -2722,8 +2803,25 @@ function FindingCardBase({
                       ? {
                           ...photo,
                           ...savedPhoto,
+                          // One source of truth for the marked-up image.
                           signed_url: displayFullUrl,
+                          signedUrl: displayFullUrl,
+                          public_url: fullPublicData.publicUrl,
+                          publicUrl: fullPublicData.publicUrl,
                           signed_thumbnail_url: displayThumbnailUrl,
+                          signedThumbnailUrl: displayThumbnailUrl,
+                          thumbnail_url: thumbPublicData.publicUrl,
+                          thumbnailUrl: thumbPublicData.publicUrl,
+                          file_path: filePath,
+                          thumbnail_path: thumbnailPath,
+                          mime_type: "image/jpeg",
+                          is_video: false,
+                          // Remove stale video aliases that previously caused
+                          // the expanded viewer to open the original image.
+                          signed_video_url: null,
+                          signedVideoUrl: null,
+                          video_url: null,
+                          videoUrl: null,
                         }
                       : photo,
                 );
