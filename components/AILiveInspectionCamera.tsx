@@ -887,10 +887,21 @@ export default function AILiveInspectionCamera({
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: { ideal: mode },
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
+          width: { ideal: 1920, min: 1280 },
+          height: { ideal: 1080, min: 720 },
+          frameRate: { ideal: 30, min: 24 },
+          advanced: [
+            { focusMode: "continuous" },
+            { exposureMode: "continuous" },
+          ] as any,
         },
-        audio: false,
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          channelCount: { ideal: 2 },
+          sampleRate: { ideal: 48000 },
+        },
       });
 
       streamRef.current = stream;
@@ -1312,17 +1323,22 @@ export default function AILiveInspectionCamera({
 
     try {
       const supportedTypes = [
+        "video/mp4;codecs=h264,aac",
+        "video/mp4;codecs=avc1.42E01E,mp4a.40.2",
+        "video/mp4",
         "video/webm;codecs=vp9,opus",
         "video/webm;codecs=vp8,opus",
         "video/webm",
-        "video/mp4",
       ];
       const mimeType =
         supportedTypes.find((type) => MediaRecorder.isTypeSupported(type)) ||
         "";
-      const recorder = mimeType
-        ? new MediaRecorder(stream, { mimeType })
-        : new MediaRecorder(stream);
+      const recorderOptions: MediaRecorderOptions = {
+        videoBitsPerSecond: 8_000_000,
+        audioBitsPerSecond: 128_000,
+        ...(mimeType ? { mimeType } : {}),
+      };
+      const recorder = new MediaRecorder(stream, recorderOptions);
 
       recordedChunksRef.current = [];
       mediaRecorderRef.current = recorder;

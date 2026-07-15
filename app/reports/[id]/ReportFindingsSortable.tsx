@@ -1170,6 +1170,116 @@ function getVideoPosterUrl(photo: any) {
   return posterUrl;
 }
 
+
+function getVideoMimeType(photo: any, urlValue: any) {
+  const explicit = String(
+    photo?.mime_type ||
+      photo?.media_type ||
+      photo?.content_type ||
+      photo?.file_type ||
+      "",
+  )
+    .trim()
+    .toLowerCase();
+
+  const cleanUrl = String(urlValue || "")
+    .toLowerCase()
+    .split("?")[0];
+
+  if (cleanUrl.endsWith(".mp4") || cleanUrl.endsWith(".m4v")) {
+    return "video/mp4";
+  }
+
+  if (cleanUrl.endsWith(".webm")) {
+    return "video/webm";
+  }
+
+  if (cleanUrl.endsWith(".mov") || cleanUrl.endsWith(".quicktime")) {
+    return "video/quicktime";
+  }
+
+  if (cleanUrl.endsWith(".avi")) {
+    return "video/x-msvideo";
+  }
+
+  if (explicit.startsWith("video/")) {
+    return explicit;
+  }
+
+  return "";
+}
+
+function ReportVideo({
+  photo,
+  url,
+  compact = false,
+}: {
+  photo: any;
+  url: string;
+  compact?: boolean;
+}) {
+  const [failed, setFailed] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
+  const mimeType = getVideoMimeType(photo, url);
+
+  if (failed) {
+    return (
+      <div className="flex min-h-[150px] w-full flex-col items-center justify-center gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-center">
+        <p className="text-sm font-black text-amber-200">
+          This video could not be played in the browser.
+        </p>
+        <p className="max-w-xl text-xs leading-5 text-slate-300">
+          The original may be an older iPhone MOV or an upload that did not finish
+          browser-safe conversion.
+        </p>
+        <div className="flex flex-wrap justify-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setFailed(false);
+              setRetryKey((current) => current + 1);
+            }}
+            className="rounded-lg bg-amber-400 px-4 py-2 text-xs font-black text-slate-950 transition active:scale-[0.98]"
+          >
+            Retry Video
+          </button>
+          <a
+            href={url}
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-lg border border-slate-500 px-4 py-2 text-xs font-black text-white transition active:scale-[0.98] hover:bg-slate-800"
+          >
+            Open Original
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <video
+      key={`${url}-${retryKey}`}
+      poster={getVideoPosterUrl(photo) || undefined}
+      controls
+      playsInline
+      preload="metadata"
+      className={
+        compact
+          ? "h-36 w-full bg-black object-contain"
+          : "mx-auto max-h-[420px] w-full max-w-full rounded-xl bg-black object-contain"
+      }
+      onError={() => {
+        // MediaError properties are not enumerable, which is why logging the
+        // whole object previously appeared as {}. Show a useful UI instead.
+        setFailed(true);
+      }}
+    >
+      {mimeType ? <source src={url} type={mimeType} /> : <source src={url} />}
+      Your browser does not support video playback.
+    </video>
+  );
+}
+
 function isVideoMedia(photo: any) {
   const url = String(getPhotoUrl(photo) || "").toLowerCase();
   const path = String(
@@ -2242,27 +2352,7 @@ function FindingCardBase({
                 >
                   {isVideoMedia(photo) ? (
                     <div className="flex justify-center rounded-xl bg-black p-2">
-                      <video
-                        key={url}
-                        poster={getVideoPosterUrl(photo) || undefined}
-                        controls
-                        playsInline
-                        preload="none"
-                        className="mx-auto max-h-[420px] w-full max-w-full rounded-xl bg-black object-contain"
-                        onError={(event) => {
-                          console.error("OPI report video failed", {
-                            url,
-                            mimeType: photo?.mime_type,
-                            error: event.currentTarget.error,
-                          });
-                        }}
-                      >
-                        <source
-                          src={url}
-                          type={photo?.mime_type || "video/mp4"}
-                        />
-                        Your browser does not support video playback.
-                      </video>
+                      <ReportVideo photo={photo} url={url} />
                     </div>
                   ) : (
                     <ExpandableReportImage
@@ -2559,30 +2649,7 @@ function FindingCardBase({
                         >
                           {url ? (
                             isVideoMedia(photo) ? (
-                              <video
-                                key={url}
-                                poster={getVideoPosterUrl(photo) || undefined}
-                                controls
-                                playsInline
-                                preload="none"
-                                className="h-36 w-full bg-black object-contain"
-                                onError={(event) => {
-                                  console.error(
-                                    "OPI photo picker video failed",
-                                    {
-                                      url,
-                                      mimeType: photo?.mime_type,
-                                      error: event.currentTarget.error,
-                                    },
-                                  );
-                                }}
-                              >
-                                <source
-                                  src={url}
-                                  type={photo?.mime_type || "video/mp4"}
-                                />
-                                Your browser does not support video playback.
-                              </video>
+                              <ReportVideo photo={photo} url={url} compact />
                             ) : (
                               <img
                                 src={previewUrl || url}

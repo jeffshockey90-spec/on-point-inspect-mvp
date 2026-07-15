@@ -58,6 +58,11 @@ function EditableFinding({ finding }: { finding: any }) {
   const [rewriting, setRewriting] = useState(false);
   const [savingRepair, setSavingRepair] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [movePanelOpen, setMovePanelOpen] = useState(false);
+  const [movingSection, setMovingSection] = useState(false);
+  const [moveTargetSection, setMoveTargetSection] = useState(
+    finding.section || "Exterior",
+  );
 
   const [saveLabel, setSaveLabel] = useState("Save Finding");
   const [repairLabel, setRepairLabel] = useState("Save Repair Request");
@@ -298,6 +303,75 @@ function EditableFinding({ finding }: { finding: any }) {
     }
   }
 
+  async function moveFindingToSection() {
+    if (movingSection) return;
+
+    const nextSection = String(moveTargetSection || "").trim();
+    const currentSection = String(finding.section || section || "").trim();
+
+    if (!nextSection) {
+      showMessage("error", "Choose a section first.");
+      return;
+    }
+
+    if (nextSection === currentSection) {
+      setMovePanelOpen(false);
+      showMessage("success", `Finding is already in ${nextSection}.`);
+      return;
+    }
+
+    setMovingSection(true);
+
+    try {
+      const { error } = await supabase
+        .from("findings")
+        .update({ section: nextSection })
+        .eq("id", finding.id)
+        .eq("inspection_id", finding.inspection_id);
+
+      if (error) {
+        showMessage("error", error.message);
+        return;
+      }
+
+      setSection(nextSection);
+      setMovePanelOpen(false);
+      showMessage("success", `Finding moved to ${nextSection}.`);
+
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("opi:findings-changed", {
+            detail: {
+              inspectionId: String(finding.inspection_id || ""),
+              findingId: String(finding.id || ""),
+              section: nextSection,
+              previousSection: currentSection,
+              action: "moved",
+            },
+          }),
+        );
+
+        window.dispatchEvent(
+          new CustomEvent("opi:inspection-data-changed", {
+            detail: {
+              inspectionId: String(finding.inspection_id || ""),
+              source: "move-finding-section",
+            },
+          }),
+        );
+      }
+
+      router.refresh();
+    } catch (error: any) {
+      showMessage(
+        "error",
+        error?.message || "Failed to move finding to the selected section.",
+      );
+    } finally {
+      setMovingSection(false);
+    }
+  }
+
   async function deleteFinding() {
     if (deleting) return;
 
@@ -419,6 +493,20 @@ function EditableFinding({ finding }: { finding: any }) {
 
           <button
             type="button"
+            onClick={() => {
+              setMoveTargetSection(String(finding.section || section || "Exterior"));
+              setMovePanelOpen((current) => !current);
+            }}
+            disabled={movingSection}
+            aria-expanded={movePanelOpen}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-purple-500 bg-purple-500/10 px-3 py-3 text-xs font-black text-purple-200 transition active:scale-[0.98] hover:bg-purple-500/20 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:px-5 sm:text-sm [touch-action:manipulation]"
+          >
+            <Spinner active={movingSection} />
+            {movingSection ? "Moving..." : "Move Finding"}
+          </button>
+
+          <button
+            type="button"
             onClick={saveToLibrary}
             disabled={savingTemplate}
             aria-busy={savingTemplate}
@@ -447,6 +535,61 @@ function EditableFinding({ finding }: { finding: any }) {
             Add Photos
           </FastLinkButton>
         </div>
+
+        {movePanelOpen && (
+          <div className="w-full max-w-full rounded-2xl border border-purple-500/60 bg-purple-950/20 p-3 shadow-xl sm:p-4">
+            <div className="mb-3">
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-purple-300">
+                Move Finding
+              </p>
+              <p className="mt-1 text-sm font-bold text-slate-300">
+                Current section: {String(finding.section || section || "Unknown")}
+              </p>
+              <p className="mt-1 text-xs leading-5 text-slate-400">
+                Photos, videos, wording, severity, and repair-request settings stay attached.
+              </p>
+            </div>
+
+            <select
+              value={moveTargetSection}
+              onChange={(event) => setMoveTargetSection(event.target.value)}
+              disabled={movingSection}
+              className="min-h-[48px] w-full rounded-xl border border-purple-500/50 bg-slate-950 p-3 text-base font-black text-white outline-none focus:border-purple-300 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {SECTIONS.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
+            </select>
+
+            <div className="mt-3 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+              <button
+                type="button"
+                onClick={moveFindingToSection}
+                disabled={
+                  movingSection ||
+                  !moveTargetSection ||
+                  moveTargetSection === String(finding.section || section || "")
+                }
+                aria-busy={movingSection}
+                className="inline-flex min-h-[46px] items-center justify-center gap-2 rounded-xl bg-purple-500 px-4 py-3 text-sm font-black text-white transition active:scale-[0.98] hover:bg-purple-400 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
+              >
+                <Spinner active={movingSection} />
+                {movingSection ? "Moving..." : "Move Now"}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setMovePanelOpen(false)}
+                disabled={movingSection}
+                className="min-h-[46px] rounded-xl border border-slate-600 px-4 py-3 text-sm font-black text-white transition active:scale-[0.98] hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }

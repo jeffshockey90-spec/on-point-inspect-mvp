@@ -1,12 +1,13 @@
 "use client";
 
-import { memo, useEffect, useRef, useState } from "react";
+import { Fragment, memo, useEffect, useRef, useState } from "react";
 import {
   Stage,
   Layer,
   Image as KonvaImage,
   Line,
   Ellipse,
+  Circle as KonvaCircle,
   Text,
 } from "react-konva";
 import useImage from "use-image";
@@ -83,6 +84,14 @@ function makeId() {
   return `markup-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+function cloneItems(items: MarkupItem[]) {
+  return items.map((item) => ({ ...item }));
+}
+
+function itemsEqual(a: MarkupItem[], b: MarkupItem[]) {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
 function buildArrowPolygon(item: MarkupItem) {
   const startX = item.x;
   const startY = item.y;
@@ -142,8 +151,13 @@ function PhotoMarkupEditor({
   const saveTimeoutRef = useRef<number | null>(null);
   const [image] = useImage(imageUrl, "anonymous");
   const [items, setItems] = useState<MarkupItem[]>(initialItems);
+  const [history, setHistory] = useState<MarkupItem[][]>([
+    cloneItems(initialItems),
+  ]);
+  const [historyIndex, setHistoryIndex] = useState(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [tool, setTool] = useState<Tool>("select");
+  const [keepToolActive, setKeepToolActive] = useState(true);
   const [draftId, setDraftId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveLabel, setSaveLabel] = useState("Save");
@@ -176,9 +190,76 @@ function PhotoMarkupEditor({
     if (items.length === 0) setActiveColor(getSeverityColor(severity));
   }, [severity, items.length]);
 
-  const stageWidth = 900;
-  const imageRatio = image ? image.height / image.width : 0.65;
-  const stageHeight = Math.max(420, Math.min(700, stageWidth * imageRatio));
+  useEffect(() => {
+    function handleKeyboard(event: KeyboardEvent) {
+      if (saving) return;
+
+      const target = event.target as HTMLElement | null;
+      const tagName = String(target?.tagName || "").toLowerCase();
+      const isTyping =
+        tagName === "input" ||
+        tagName === "textarea" ||
+        tagName === "select" ||
+        Boolean(target?.isContentEditable);
+
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "z") {
+        if (isTyping) return;
+        event.preventDefault();
+
+        if (event.shiftKey) {
+          redo();
+        } else {
+          undo();
+        }
+        return;
+      }
+
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "y") {
+        if (isTyping) return;
+        event.preventDefault();
+        redo();
+        return;
+      }
+
+      if (
+        !isTyping &&
+        selectedId &&
+        (event.key === "Delete" || event.key === "Backspace")
+      ) {
+        event.preventDefault();
+        deleteSelected();
+      }
+
+      if (!isTyping && event.key === "Escape") {
+        setSelectedId(null);
+        setDraftId(null);
+        setTool("select");
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyboard);
+    return () => window.removeEventListener("keydown", handleKeyboard);
+  }, [saving, selectedId, historyIndex, history]);
+
+  // Keep the canvas in the photo's original aspect ratio.
+  // The previous fixed 900px width plus a capped 700px height stretched
+  // portrait photos into a landscape-shaped flattened image.
+  const maxStageWidth = 900;
+  const maxStageHeight = 700;
+  const sourceWidth = Math.max(1, image?.naturalWidth || image?.width || 900);
+  const sourceHeight = Math.max(1, image?.naturalHeight || image?.height || 585);
+  const sourceRatio = sourceHeight / sourceWidth;
+  const maxRatio = maxStageHeight / maxStageWidth;
+
+  const stageWidth =
+    sourceRatio > maxRatio
+      ? Math.max(1, Math.round(maxStageHeight / sourceRatio))
+      : maxStageWidth;
+
+  const stageHeight =
+    sourceRatio > maxRatio
+      ? maxStageHeight
+      : Math.max(1, Math.round(maxStageWidth * sourceRatio));
 
   function showMessage(type: "success" | "error", text: string) {
     setMessageType(type);
@@ -195,10 +276,84 @@ function PhotoMarkupEditor({
     };
   }
 
-  function updateItem(id: string, patch: Partial<MarkupItem>) {
-    setItems((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, ...patch } : item))
+  function commitItems(nextItems: MarkupItem[], options?: { selectId?: string | null }) {
+    const cleanItems = cloneItems(nextItems);
+    const base = history.slice(0, historyIndex + 1);
+    const latest = base[base.length - 1] || [];
+
+    if (itemsEqual(latest, cleanItems)) {
+      setItems(cleanItems);
+    } else {
+      const nextHistory = [...base, cloneItems(cleanItems)].slice(-75);
+      setHistory(nextHistory);
+      setHistoryIndex(nextHistory.length - 1);
+      setItems(cleanItems);
+    }
+
+    if (options && "selectId" in options) {
+      setSelectedId(options.selectId ?? null);
+    }
+  }
+
+  function updateItem(
+    id: string,
+    patch: Partial<MarkupItem>,
+    options?: { commit?: boolean },
+  ) {
+    const nextItems = items.map((item) =>
+      item.id === id ? { ...item, ...patch } : item,
     );
+
+    if (options?.commit) {
+      commitItems(nextItems, { selectId: id });
+      return;
+    }
+
+    setItems(nextItems);
+  }
+
+  function commitCurrentItems() {
+    const currentSnapshot = history[historyIndex] || [];
+
+    if (!itemsEqual(currentSnapshot, items)) {
+      const nextHistory = [
+        ...history.slice(0, historyIndex + 1),
+        cloneItems(items),
+      ].slice(-75);
+
+      setHistory(nextHistory);
+      setHistoryIndex(nextHistory.length - 1);
+    }
+  }
+
+  function undo() {
+    if (saving || historyIndex <= 0) return;
+
+    const nextIndex = historyIndex - 1;
+    const nextItems = cloneItems(history[nextIndex] || []);
+
+    setHistoryIndex(nextIndex);
+    setItems(nextItems);
+    setSelectedId((current) =>
+      current && nextItems.some((item) => item.id === current) ? current : null,
+    );
+    setDraftId(null);
+    showMessage("success", "Undid last markup change.");
+  }
+
+  function redo() {
+    if (saving || historyIndex >= history.length - 1) return;
+
+    const nextIndex = historyIndex + 1;
+    const nextItems = cloneItems(history[nextIndex] || []);
+
+    setHistoryIndex(nextIndex);
+    setItems(nextItems);
+    setSelectedId((current) =>
+      current && nextItems.some((item) => item.id === current) ? current : null,
+    );
+    setDraftId(null);
+    showMessage("success", "Restored markup change.");
   }
 
   function stopPageGesture(event: any) {
@@ -228,27 +383,29 @@ function PhotoMarkupEditor({
       if (!text) return;
 
       const id = makeId();
-      setItems((prev) => [
-        ...prev,
-        {
-          id,
-          type: "text",
-          x: pos.x,
-          y: pos.y,
-          text,
-          color: activeColor,
-        },
-      ]);
-      setSelectedId(id);
-      setTool("select");
+      commitItems(
+        [
+          ...items,
+          {
+            id,
+            type: "text",
+            x: pos.x,
+            y: pos.y,
+            text,
+            color: activeColor,
+          },
+        ],
+        { selectId: id },
+      );
+      if (!keepToolActive) setTool("select");
       return;
     }
 
     const id = makeId();
 
     if (tool === "arrow") {
-      setItems((prev) => [
-        ...prev,
+      setItems([
+        ...items,
         {
           id,
           type: "arrow",
@@ -262,8 +419,8 @@ function PhotoMarkupEditor({
     }
 
     if (tool === "circle") {
-      setItems((prev) => [
-        ...prev,
+      setItems([
+        ...items,
         {
           id,
           type: "circle",
@@ -312,15 +469,90 @@ function PhotoMarkupEditor({
     if (!draftId) return;
 
     setDraftId(null);
-    setTool("select");
+    commitCurrentItems();
+    if (!keepToolActive) setTool("select");
   }
 
   function deleteSelected() {
     if (!selectedId || saving) return;
-    setItems((prev) => prev.filter((item) => item.id !== selectedId));
-    setSelectedId(null);
-    setMessage("");
-    setMessageType("");
+
+    const nextItems = items.filter((item) => item.id !== selectedId);
+    commitItems(nextItems, { selectId: null });
+    showMessage("success", "Selected markup removed.");
+  }
+
+  function clearAll() {
+    if (saving || items.length === 0) return;
+
+    const confirmed = window.confirm("Remove all markups from this photo?");
+    if (!confirmed) return;
+
+    commitItems([], { selectId: null });
+    setDraftId(null);
+    showMessage("success", "All markups removed.");
+  }
+
+  function duplicateSelected() {
+    if (!selectedId || saving) return;
+
+    const selected = items.find((item) => item.id === selectedId);
+    if (!selected) return;
+
+    const id = makeId();
+    const duplicate: MarkupItem = {
+      ...selected,
+      id,
+      x: Math.min(stageWidth, selected.x + 28),
+      y: Math.min(stageHeight, selected.y + 28),
+      endX:
+        selected.endX === undefined
+          ? undefined
+          : Math.min(stageWidth, selected.endX + 28),
+      endY:
+        selected.endY === undefined
+          ? undefined
+          : Math.min(stageHeight, selected.endY + 28),
+    };
+
+    commitItems([...items, duplicate], { selectId: id });
+    showMessage("success", "Markup duplicated.");
+  }
+
+  function changeActiveColor(color: string) {
+    setActiveColor(color);
+
+    if (!selectedId || saving) return;
+
+    const nextItems = items.map((item) =>
+      item.id === selectedId ? { ...item, color } : item,
+    );
+
+    commitItems(nextItems, { selectId: selectedId });
+  }
+
+  function editSelectedText(itemId = selectedId) {
+    if (!itemId || saving) return;
+
+    const selected = items.find(
+      (item) => item.id === itemId && item.type === "text",
+    );
+    if (!selected) return;
+
+    const nextText = window.prompt("Edit label text:", selected.text || "Label");
+    if (nextText === null) return;
+
+    const cleanText = nextText.trim();
+    if (!cleanText) {
+      deleteSelected();
+      return;
+    }
+
+    const nextItems = items.map((item) =>
+      item.id === itemId ? { ...item, text: cleanText } : item,
+    );
+
+    commitItems(nextItems, { selectId: itemId });
+    showMessage("success", "Text updated.");
   }
 
   async function save() {
@@ -486,16 +718,24 @@ function PhotoMarkupEditor({
                     const dx = (item.endX || item.x) - item.x;
                     const dy = (item.endY || item.y) - item.y;
 
-                    updateItem(item.id, {
-                      x: nextX,
-                      y: nextY,
-                      endX: nextX + dx,
-                      endY: nextY + dy,
-                    });
+                    updateItem(
+                      item.id,
+                      {
+                        x: nextX,
+                        y: nextY,
+                        endX: nextX + dx,
+                        endY: nextY + dy,
+                      },
+                      { commit: true },
+                    );
                     return;
                   }
 
-                  updateItem(item.id, { x: nextX, y: nextY });
+                  updateItem(
+                    item.id,
+                    { x: nextX, y: nextY },
+                    { commit: true },
+                  );
                 },
               };
 
@@ -505,33 +745,117 @@ function PhotoMarkupEditor({
                 });
 
                 return (
-                  <Line
-                    key={item.id}
-                    {...common}
-                    points={points}
-                    closed
-                    fill={item.color}
-                    stroke={isSelected ? "#ffffff" : item.color}
-                    strokeWidth={isSelected ? 1.5 : 0}
-                    opacity={0.97}
-                    lineJoin="round"
-                    lineCap="round"
-                  />
+                  <Fragment key={item.id}>
+                    <Line
+                      {...common}
+                      points={points}
+                      closed
+                      fill={item.color}
+                      stroke={isSelected ? "#ffffff" : item.color}
+                      strokeWidth={isSelected ? 1.5 : 0}
+                      opacity={0.97}
+                      lineJoin="round"
+                      lineCap="round"
+                    />
+
+                    {isSelected && tool === "select" && !saving && (
+                      <>
+                        <KonvaCircle
+                          x={item.x}
+                          y={item.y}
+                          radius={12}
+                          fill="#ffffff"
+                          stroke={item.color}
+                          strokeWidth={4}
+                          draggable
+                          onDragStart={stopPageGesture}
+                          onDragMove={stopPageGesture}
+                          onDragEnd={(event: any) => {
+                            stopPageGesture(event);
+                            updateItem(
+                              item.id,
+                              {
+                                x: event.target.x(),
+                                y: event.target.y(),
+                              },
+                              { commit: true },
+                            );
+                          }}
+                        />
+                        <KonvaCircle
+                          x={item.endX ?? item.x + 180}
+                          y={item.endY ?? item.y}
+                          radius={12}
+                          fill="#ffffff"
+                          stroke={item.color}
+                          strokeWidth={4}
+                          draggable
+                          onDragStart={stopPageGesture}
+                          onDragMove={stopPageGesture}
+                          onDragEnd={(event: any) => {
+                            stopPageGesture(event);
+                            updateItem(
+                              item.id,
+                              {
+                                endX: event.target.x(),
+                                endY: event.target.y(),
+                              },
+                              { commit: true },
+                            );
+                          }}
+                        />
+                      </>
+                    )}
+                  </Fragment>
                 );
               }
 
               if (item.type === "circle") {
                 return (
-                  <Ellipse
-                    key={item.id}
-                    {...common}
-                    radiusX={item.radiusX || 70}
-                    radiusY={item.radiusY || 70}
-                    stroke={item.color}
-                    strokeWidth={getCircleStrokeWidth(item)}
-                    fill="rgba(0,0,0,0)"
-                    opacity={0.96}
-                  />
+                  <Fragment key={item.id}>
+                    <Ellipse
+                      {...common}
+                      radiusX={item.radiusX || 70}
+                      radiusY={item.radiusY || 70}
+                      stroke={item.color}
+                      strokeWidth={getCircleStrokeWidth(item)}
+                      fill="rgba(0,0,0,0)"
+                      opacity={0.96}
+                      shadowColor={isSelected ? "#ffffff" : undefined}
+                      shadowBlur={isSelected ? 8 : 0}
+                    />
+
+                    {isSelected && tool === "select" && !saving && (
+                      <KonvaCircle
+                        x={item.x + (item.radiusX || 70)}
+                        y={item.y + (item.radiusY || 70)}
+                        radius={13}
+                        fill="#ffffff"
+                        stroke={item.color}
+                        strokeWidth={4}
+                        draggable
+                        onDragStart={stopPageGesture}
+                        onDragMove={stopPageGesture}
+                        onDragEnd={(event: any) => {
+                          stopPageGesture(event);
+                          updateItem(
+                            item.id,
+                            {
+                              radiusX: Math.max(
+                                12,
+                                Math.abs(event.target.x() - item.x),
+                              ),
+                              radiusY: Math.max(
+                                12,
+                                Math.abs(event.target.y() - item.y),
+                              ),
+                            },
+                            { commit: true },
+                          );
+                        }}
+                      />
+                    )}
+                  </Fragment>
                 );
               }
 
@@ -546,6 +870,16 @@ function PhotoMarkupEditor({
                   stroke="black"
                   strokeWidth={1}
                   opacity={0.96}
+                  onDblClick={(event: any) => {
+                    stopPageGesture(event);
+                    setSelectedId(item.id);
+                    editSelectedText(item.id);
+                  }}
+                  onDblTap={(event: any) => {
+                    stopPageGesture(event);
+                    setSelectedId(item.id);
+                    editSelectedText(item.id);
+                  }}
                 />
               );
             })}
@@ -557,7 +891,7 @@ function PhotoMarkupEditor({
             <button
               key={option}
               type="button"
-              onClick={() => setActiveColor(option)}
+              onClick={() => changeActiveColor(option)}
               disabled={saving}
               className={`h-12 w-12 rounded-xl border-2 transition active:scale-[0.94] disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation] ${
                 activeColor === option
@@ -572,7 +906,27 @@ function PhotoMarkupEditor({
       </div>
 
       <div className="border-t border-white/10 bg-black px-3 py-4">
-        <div className="mx-auto flex max-w-5xl items-center justify-around gap-2">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-2">
+          <button
+            type="button"
+            onClick={undo}
+            disabled={saving || historyIndex <= 0}
+            className="flex min-w-[72px] flex-col items-center justify-center rounded-xl px-3 py-2 text-xs font-black text-slate-100 transition active:scale-[0.96] hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 [touch-action:manipulation]"
+          >
+            <span className="text-2xl leading-none">↶</span>
+            <span>Undo</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={redo}
+            disabled={saving || historyIndex >= history.length - 1}
+            className="flex min-w-[72px] flex-col items-center justify-center rounded-xl px-3 py-2 text-xs font-black text-slate-100 transition active:scale-[0.96] hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 [touch-action:manipulation]"
+          >
+            <span className="text-2xl leading-none">↷</span>
+            <span>Redo</span>
+          </button>
+
           <button
             type="button"
             onClick={() => setTool("select")}
@@ -622,11 +976,58 @@ function PhotoMarkupEditor({
             <span className="text-3xl leading-none">⌫</span>
             <span>Delete</span>
           </button>
+
+          <button
+            type="button"
+            onClick={duplicateSelected}
+            disabled={!selectedId || saving}
+            className="flex min-w-[72px] flex-col items-center justify-center rounded-xl px-3 py-2 text-xs font-black text-slate-100 transition active:scale-[0.96] hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 [touch-action:manipulation]"
+          >
+            <span className="text-2xl leading-none">⧉</span>
+            <span>Duplicate</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => editSelectedText()}
+            disabled={
+              !selectedId ||
+              saving ||
+              items.find((item) => item.id === selectedId)?.type !== "text"
+            }
+            className="flex min-w-[72px] flex-col items-center justify-center rounded-xl px-3 py-2 text-xs font-black text-slate-100 transition active:scale-[0.96] hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 [touch-action:manipulation]"
+          >
+            <span className="text-2xl leading-none">✎</span>
+            <span>Edit Text</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={clearAll}
+            disabled={items.length === 0 || saving}
+            className="flex min-w-[72px] flex-col items-center justify-center rounded-xl px-3 py-2 text-xs font-black text-red-300 transition active:scale-[0.96] hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-40 [touch-action:manipulation]"
+          >
+            <span className="text-2xl leading-none">✕</span>
+            <span>Clear All</span>
+          </button>
         </div>
 
-        <p className="mt-3 text-center text-sm text-slate-400">
-          Tap a tool above, then tap and drag on the photo
-        </p>
+        <div className="mt-3 flex flex-wrap items-center justify-center gap-3 text-sm text-slate-300">
+          <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+            <input
+              type="checkbox"
+              checked={keepToolActive}
+              onChange={(event) => setKeepToolActive(event.target.checked)}
+              disabled={saving}
+              className="h-4 w-4 accent-[#65c832]"
+            />
+            <span className="font-bold">Keep tool active for multiple markups</span>
+          </label>
+
+          <span className="text-center text-slate-400">
+            Select a markup to move, resize, recolor, duplicate, edit, or delete it.
+          </span>
+        </div>
       </div>
     </div>
   );

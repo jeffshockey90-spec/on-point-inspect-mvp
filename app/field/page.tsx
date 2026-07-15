@@ -57,7 +57,7 @@ const SEVERITIES = [
   "Major Concern",
 ];
 
-type PhotoType = "finding" | "reference_photo";
+type PhotoType = "finding" | "existing_finding" | "reference_photo";
 
 type UploadedPhoto = {
   publicUrl: string;
@@ -993,6 +993,10 @@ function FieldPageContent() {
   const [reports, setReports] = useState<any[]>([]);
   const [selectedReport, setSelectedReport] = useState(reportFromUrl || "");
   const [photoType, setPhotoType] = useState<PhotoType>("finding");
+  const [existingFindings, setExistingFindings] = useState<any[]>([]);
+  const [existingFindingId, setExistingFindingId] = useState("");
+  const [existingFindingSearch, setExistingFindingSearch] = useState("");
+  const [loadingExistingFindings, setLoadingExistingFindings] = useState(false);
   const [title, setTitle] = useState("");
   const [section, setSection] = useState("Exterior");
   const [severity, setSeverity] = useState("Recommended Repair");
@@ -1294,9 +1298,43 @@ function FieldPageContent() {
     });
   }, [selectedReport, reports]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadExistingFindings() {
+      setExistingFindingId("");
+      setExistingFindingSearch("");
+
+      if (!selectedReport || !isOnline()) {
+        setExistingFindings([]);
+        return;
+      }
+
+      setLoadingExistingFindings(true);
+      const { data, error } = await supabase
+        .from("findings")
+        .select("id, title, section, severity, image_url, created_at")
+        .eq("inspection_id", selectedReport)
+        .order("created_at", { ascending: false });
+
+      if (!cancelled) {
+        setExistingFindings(error ? [] : data || []);
+        setLoadingExistingFindings(false);
+        if (error) setMessage(`Could not load existing findings: ${error.message}`);
+      }
+    }
+
+    void loadExistingFindings();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedReport, queueTick]);
+
   function resetForm() {
     setTitle("");
     setPhotoType("finding");
+    setExistingFindingId("");
+    setExistingFindingSearch("");
     setSection("Exterior");
     setSeverity("Recommended Repair");
     setNote("");
@@ -1324,6 +1362,16 @@ function FieldPageContent() {
     setImplication(comment.implication || "");
     setRecommendation(comment.recommendation || "");
     setMessage("Comment loaded into the field form.");
+  }
+
+  function setExistingFindingMode() {
+    setPhotoType("existing_finding");
+    setTitle("");
+    setSeverity("Informational");
+    setObservation("");
+    setImplication("");
+    setRecommendation("");
+    setMessage("Select an existing finding, then add photos or videos.");
   }
 
   function setReferencePhotoMode() {
@@ -2632,6 +2680,52 @@ function FieldPageContent() {
     return saved;
   }
 
+  async function saveMediaToExistingFindingOnline() {
+    if (!existingFindingId) {
+      throw new Error("Select the existing finding that should receive this media.");
+    }
+
+    if (photos.length === 0) {
+      throw new Error("Add at least one photo or video.");
+    }
+
+    const selectedFinding = existingFindings.find(
+      (finding) => String(finding.id) === String(existingFindingId),
+    );
+    if (!selectedFinding) throw new Error("The selected finding could not be found.");
+
+    const uploadedMedia: UploadedPhoto[] = [];
+    for (const media of photos) {
+      uploadedMedia.push(await uploadPhotoFile(media, "field-media"));
+    }
+
+    const photoRows = uploadedMedia.map((media) => ({
+      inspection_id: selectedReport,
+      finding_id: existingFindingId,
+      public_url: media.publicUrl,
+      file_path: media.filePath,
+      is_video: Boolean(media.isVideo),
+      mime_type: media.mimeType || (media.isVideo ? "video/mp4" : null),
+      thumbnail_url: media.thumbnailUrl || null,
+      thumbnail_path: media.thumbnailPath || null,
+    }));
+
+    const { error: photoError } = await supabase.from("photos").insert(photoRows);
+    if (photoError) throw photoError;
+
+    const firstImage = uploadedMedia.find((media) => !media.isVideo);
+    if (!selectedFinding.image_url && firstImage?.publicUrl) {
+      const { error: updateError } = await supabase
+        .from("findings")
+        .update({ image_url: firstImage.publicUrl })
+        .eq("id", existingFindingId)
+        .eq("inspection_id", selectedReport);
+      if (updateError) throw updateError;
+    }
+
+    return { finding: selectedFinding, count: uploadedMedia.length };
+  }
+
   async function saveFindingOnline() {
     const uploadedPhotos: UploadedPhoto[] = [];
 
@@ -2712,11 +2806,28 @@ function FieldPageContent() {
       return;
     }
 
+    if (photoType === "existing_finding" && !existingFindingId) {
+      setMessage("Select an existing finding first.");
+      return;
+    }
+
+    if (photoType === "existing_finding" && photos.length === 0) {
+      setMessage("Add at least one photo or video to attach.");
+      return;
+    }
+
     setSaving(true);
     setMessage("");
 
     try {
       if (!isOnline()) {
+        if (photoType === "existing_finding") {
+          setMessage(
+            "Adding media to an existing finding requires a connection. Your selected media remains here so you can retry when service returns.",
+          );
+          return;
+        }
+
         setMessage("Saving offline locally...");
 
         const { offlinePhotos, skippedCount, skippedVideos } =
@@ -2777,6 +2888,21 @@ function FieldPageContent() {
           photoType === "reference_photo"
             ? `Saved reference photo offline. Queue: ${summary.count} item(s). It will sync when service returns.${skipMessage}`
             : `Saved finding offline. Queue: ${summary.count} item(s). Background sync will retry automatically when service returns. AI will write the finding after sync.${skipMessage}`,
+        );
+        return;
+      }
+
+      if (photoType === "existing_finding") {
+        const result = await saveMediaToExistingFindingOnline();
+        const findingTitle = result.finding?.title || "existing finding";
+        resetForm();
+        setMessage(
+          `${result.count} media item${result.count === 1 ? "" : "s"} added to “${findingTitle}”.`,
+        );
+        window.dispatchEvent(
+          new CustomEvent("opi:inspection-data-changed", {
+            detail: { inspectionId: selectedReport, source: "field-existing-finding-media" },
+          }),
         );
         return;
       }
@@ -2976,7 +3102,7 @@ function FieldPageContent() {
               )}
             </div>
 
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="grid gap-3 md:grid-cols-3">
               <button
                 type="button"
                 onClick={() => setPhotoType("finding")}
@@ -2991,6 +3117,23 @@ function FieldPageContent() {
                 </span>
                 <span className="mt-1 block text-xs text-slate-400">
                   Creates a report finding and can include photos or video.
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={setExistingFindingMode}
+                className={`rounded-xl border p-4 text-left transition active:scale-[0.98] [touch-action:manipulation] ${
+                  photoType === "existing_finding"
+                    ? "border-purple-400 bg-purple-500/20 text-purple-200"
+                    : "border-slate-700 bg-black text-slate-300 hover:bg-slate-900"
+                }`}
+              >
+                <span className="block text-lg font-black">
+                  Add Media to Existing Defect
+                </span>
+                <span className="mt-1 block text-xs text-slate-400">
+                  Appends photos or video without creating a duplicate finding.
                 </span>
               </button>
 
@@ -3012,6 +3155,46 @@ function FieldPageContent() {
               </button>
             </div>
 
+            {photoType === "existing_finding" && (
+              <div className="rounded-2xl border border-purple-500/40 bg-purple-500/10 p-4">
+                <label className="mb-2 block text-sm font-black text-purple-100">
+                  Select Existing Finding
+                </label>
+                <input
+                  value={existingFindingSearch}
+                  onChange={(event) => setExistingFindingSearch(event.target.value)}
+                  placeholder="Search by title, section, or severity..."
+                  className="mb-3 w-full rounded-xl border border-slate-700 bg-black px-4 py-3 text-white outline-none focus:border-purple-400"
+                />
+                <select
+                  value={existingFindingId}
+                  onChange={(event) => setExistingFindingId(event.target.value)}
+                  disabled={loadingExistingFindings}
+                  className="w-full rounded-xl border border-slate-700 bg-black px-4 py-3 text-white outline-none focus:border-purple-400 disabled:opacity-60"
+                >
+                  <option value="">
+                    {loadingExistingFindings ? "Loading findings..." : "Choose a finding"}
+                  </option>
+                  {existingFindings
+                    .filter((finding) => {
+                      const query = existingFindingSearch.trim().toLowerCase();
+                      if (!query) return true;
+                      return `${finding.title || ""} ${finding.section || ""} ${finding.severity || ""}`
+                        .toLowerCase()
+                        .includes(query);
+                    })
+                    .map((finding) => (
+                      <option key={finding.id} value={finding.id}>
+                        {finding.section || "General"} — {finding.title || "Untitled Finding"} ({finding.severity || "No severity"})
+                      </option>
+                    ))}
+                </select>
+                <p className="mt-2 text-xs text-purple-100/80">
+                  Existing wording and current media remain unchanged. New media will be appended.
+                </p>
+              </div>
+            )}
+
             <div className="rounded-2xl border border-slate-700 bg-black/30 p-4">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <div>
@@ -3028,7 +3211,11 @@ function FieldPageContent() {
               </div>
 
               <label className="mb-2 block font-bold">
-                {photoType === "reference_photo" ? "Reference Photos" : "Media"}
+                {photoType === "reference_photo"
+                  ? "Reference Photos"
+                  : photoType === "existing_finding"
+                    ? "Photos / Videos to Append"
+                    : "Media"}
               </label>
               <MediaUploadButtons
                 nativeApp={nativeApp}
@@ -3068,11 +3255,7 @@ function FieldPageContent() {
               onScanDataPlate={startLiveCameraDataPlateScan}
             />
 
-            <LiveSectionCoach
-              inspectionId={selectedReport}
-              section={section}
-              online={online}
-            />
+            
 
             <div className="rounded-2xl border border-purple-500/30 bg-purple-500/10 p-4">
               <div className="mb-3">
@@ -3361,6 +3544,12 @@ function FieldPageContent() {
                     ? "Save Finding to Report"
                     : "Save Finding Offline"}
             </button>
+
+            <LiveSectionCoach
+              inspectionId={selectedReport}
+              section={section}
+              online={online}
+            />
 
             {selectedReport && (
               <button

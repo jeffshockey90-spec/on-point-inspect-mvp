@@ -32,6 +32,7 @@ import AIPublishGuardPanel from "../../../components/AIPublishGuardPanel";
 import ReportDisclaimers from "../../../components/ReportDisclaimers";
 import PropertyPhotoUploader from "../../../components/PropertyPhotoUploader";
 import OpenCommandCenterToolButton from "../../../components/OpenCommandCenterToolButton";
+import PublishReportActionButton from "../../../components/PublishReportActionButton";
 import InspectorToolsDrawer, {
   type WorkspaceNotification,
 } from "../../../components/InspectorToolsDrawer";
@@ -2587,19 +2588,11 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
               Realtor Summary
             </FastLinkButton>
 
-            <form action={publishReport}>
-              <input type="hidden" name="inspection_id" value={inspection.id} />
-              <button
-                type="submit"
-                className={`rounded-xl px-5 py-3 font-bold ${
-                  reportIsPublished
-                    ? "bg-green-700 text-white hover:bg-green-600"
-                    : "bg-green-500 text-slate-950 hover:bg-green-400"
-                }`}
-              >
-                {reportIsPublished ? "Report Published" : "Publish Report"}
-              </button>
-            </form>
+            <PublishReportActionButton
+              action={publishReport}
+              inspectionId={String(inspection.id)}
+              published={reportIsPublished}
+            />
 
             <FastLinkButton
               href={shareHref}

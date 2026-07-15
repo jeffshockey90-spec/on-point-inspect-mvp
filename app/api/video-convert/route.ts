@@ -9,10 +9,12 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-const LOCAL_FFMPEG_PATH =
-  ffmpegStaticPath ||
+const FFMPEG_PATH =
   process.env.FFMPEG_PATH ||
+  ffmpegStaticPath ||
   "C:\\Users\\jeffs\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\\ffmpeg-8.1.2-full_build\\bin\\ffmpeg.exe";
+
+const MAX_INPUT_BYTES = 250 * 1024 * 1024;
 
 function safeExtension(name: string) {
   const ext = path.extname(name || "").toLowerCase().replace(/[^a-z0-9.]/g, "");
@@ -28,94 +30,103 @@ function runProcess(command: string, args: string[]) {
 
     const child = spawn(command, args, {
       stdio: ["ignore", "ignore", "pipe"],
+      windowsHide: true,
     });
 
     let stderr = "";
+    let settled = false;
+
+    const finish = (error?: Error) => {
+      if (settled) return;
+      settled = true;
+      if (error) reject(error);
+      else resolve();
+    };
 
     child.stderr.on("data", (chunk) => {
       stderr += chunk.toString();
-      if (stderr.length > 30000) {
-        stderr = stderr.slice(-30000);
-      }
+      if (stderr.length > 30000) stderr = stderr.slice(-30000);
     });
 
     child.on("error", (error) => {
-      reject(
+      finish(
         new Error(
-          `FFmpeg could not start. ${error?.message || "Unknown process error."}`
-        )
+          `FFmpeg could not start. ${error?.message || "Unknown process error."}`,
+        ),
       );
     });
 
     child.on("close", (code) => {
       if (code === 0) {
-        resolve();
-      } else {
-        reject(new Error(stderr || `FFmpeg failed ${code}`));
+        finish();
+        return;
       }
+
+      finish(
+        new Error(
+          stderr.trim() ||
+            `FFmpeg exited with code ${String(code ?? "unknown")}.`,
+        ),
+      );
     });
   });
 }
 
 async function convertVideo(inputPath: string, outputPath: string) {
-  await runProcess(LOCAL_FFMPEG_PATH, [
+  await runProcess(FFMPEG_PATH, [
     "-y",
+    "-hide_banner",
+    "-loglevel",
+    "error",
 
     "-i",
     inputPath,
 
-    // iPhone files can contain audio first, video second, and Apple metadata streams.
-    // Rebuild only the real video/audio streams and strip all metadata.
+    // Keep only the first real video stream and optional first audio stream.
     "-map",
     "0:v:0",
-
     "-map",
-    "0:a?",
+    "0:a:0?",
 
+    // Strip rotation/location/Apple metadata that can confuse browsers.
     "-map_metadata",
     "-1",
+    "-map_chapters",
+    "-1",
 
-    // Completely rebuild browser-safe frames.
+    // Produce browser-safe H.264 while preserving inspection detail.
+    // Scale down only when a video is larger than 1080p.
     "-vf",
-    "scale=720:-2,setsar=1,format=yuv420p",
+    "scale='min(1920,iw)':-2:force_original_aspect_ratio=decrease,setsar=1,format=yuv420p",
 
     "-r",
     "30",
-
     "-c:v",
     "libx264",
-
     "-preset",
     "veryfast",
-
     "-crf",
-    "23",
-
+    "21",
     "-pix_fmt",
     "yuv420p",
-
     "-profile:v",
-    "baseline",
-
+    "main",
     "-level:v",
-    "3.1",
+    "4.0",
 
-    // Rebuild audio for browser compatibility.
+    // Rebuild audio for Safari/Chrome compatibility.
     "-c:a",
     "aac",
-
     "-b:a",
     "128k",
-
     "-ac",
     "2",
-
     "-ar",
-    "44100",
+    "48000",
 
+    // Put MP4 metadata at the beginning for fast mobile playback.
     "-movflags",
     "+faststart",
-
     "-f",
     "mp4",
 
@@ -124,7 +135,7 @@ async function convertVideo(inputPath: string, outputPath: string) {
 }
 
 export async function POST(request: NextRequest) {
-  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "opi-video-"));
+  let tempDir = "";
 
   try {
     const formData = await request.formData();
@@ -132,10 +143,26 @@ export async function POST(request: NextRequest) {
 
     if (!(video instanceof File)) {
       return NextResponse.json(
-        { error: "Missing video file" },
-        { status: 400 }
+        { error: "Missing video file." },
+        { status: 400 },
       );
     }
+
+    if (!video.size) {
+      return NextResponse.json(
+        { error: "The selected video is empty." },
+        { status: 400 },
+      );
+    }
+
+    if (video.size > MAX_INPUT_BYTES) {
+      return NextResponse.json(
+        { error: "Video is too large to convert. Keep videos under 250 MB." },
+        { status: 413 },
+      );
+    }
+
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "opi-video-"));
 
     const inputPath = path.join(tempDir, `input${safeExtension(video.name)}`);
     const outputPath = path.join(tempDir, "converted.mp4");
@@ -143,11 +170,12 @@ export async function POST(request: NextRequest) {
     await fs.writeFile(inputPath, Buffer.from(await video.arrayBuffer()));
     await convertVideo(inputPath, outputPath);
 
-    const convertedBuffer = await fs.readFile(outputPath);
-
-    if (!convertedBuffer.length) {
-      throw new Error("Converted file empty");
+    const stats = await fs.stat(outputPath);
+    if (!stats.isFile() || stats.size <= 0) {
+      throw new Error("Video conversion returned an empty MP4.");
     }
+
+    const convertedBuffer = await fs.readFile(outputPath);
 
     return new NextResponse(convertedBuffer, {
       status: 200,
@@ -155,19 +183,27 @@ export async function POST(request: NextRequest) {
         "Content-Type": "video/mp4",
         "Content-Length": String(convertedBuffer.length),
         "Content-Disposition": 'inline; filename="converted.mp4"',
-        "Cache-Control": "no-store",
+        "Accept-Ranges": "bytes",
+        "Cache-Control": "no-store, max-age=0",
+        "X-Content-Type-Options": "nosniff",
       },
     });
   } catch (error: any) {
-    console.error("VIDEO CONVERT ERROR:", error);
+    console.error("VIDEO CONVERT ERROR:", {
+      message: error?.message || "Unknown error",
+    });
 
     return NextResponse.json(
       {
-        error: error?.message || "Video conversion failed",
+        error: error?.message || "Video conversion failed.",
       },
-      { status: 500 }
+      { status: 500 },
     );
   } finally {
-    await fs.rm(tempDir, { recursive: true, force: true }).catch(() => undefined);
+    if (tempDir) {
+      await fs
+        .rm(tempDir, { recursive: true, force: true })
+        .catch(() => undefined);
+    }
   }
 }
