@@ -3,6 +3,7 @@
 import { memo, useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { isNativeApp, takeNativePhotoSavedToGallery } from "../lib/nativePhoto";
+import ExpandableReportImage from "./ExpandableReportImage";
 
 const PHOTO_BUCKET = "inspection-photos";
 
@@ -636,16 +637,14 @@ function SectionReferencePhotos({
                     className="overflow-hidden rounded-xl border border-slate-700 bg-[#020617]"
                   >
                     {previewUrl ? (
-                      <a href={fullUrl} target="_blank" rel="noreferrer">
-                        <img
-                          src={previewUrl}
-                          alt={photo.caption || `Reference photo ${index + 1}`}
-                          loading="lazy"
-                          decoding="async"
-                          fetchPriority="low"
-                          className="h-48 w-full object-cover transition hover:scale-[1.02]"
-                        />
-                      </a>
+                      <ExpandableReportImage
+                        src={previewUrl}
+                        fullSrc={fullUrl}
+                        alt={photo.caption || `Reference photo ${index + 1}`}
+                        className="h-48 w-full object-cover transition hover:scale-[1.02]"
+                        buttonClassName="block w-full overflow-hidden bg-black text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
+                        badgeText="Tap to enlarge"
+                      />
                     ) : (
                       <div className="flex h-48 items-center justify-center bg-slate-950 text-slate-500">
                         No preview
@@ -665,14 +664,9 @@ function SectionReferencePhotos({
 
                       <div className="flex flex-wrap justify-between gap-2 text-xs font-bold">
                         {previewUrl && (
-                          <a
-                            href={fullUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="rounded-lg border border-slate-600 px-3 py-2 text-slate-200 transition active:scale-[0.98] hover:bg-slate-800 [touch-action:manipulation]"
-                          >
-                            Open
-                          </a>
+                          <span className="rounded-lg border border-slate-600 px-3 py-2 text-slate-200">
+                            Tap photo to expand
+                          </span>
                         )}
 
                         <button

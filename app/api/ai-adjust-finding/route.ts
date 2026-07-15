@@ -9,9 +9,21 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
 });
 
-/* =========================
-   SAFE JSON PARSER
-========================= */
+const VALID_SECTIONS = [
+  "Exterior",
+  "Roof",
+  "Basement, Foundation, Crawlspace & Structure",
+  "Heating",
+  "Cooling",
+  "Plumbing",
+  "Electrical",
+  "Fireplace",
+  "Attic, Insulation & Ventilation",
+  "Doors, Windows & Interior",
+  "Built-in Appliances",
+  "Garage",
+];
+
 function safeParseAI(input: string) {
   try {
     return JSON.parse(input);
@@ -27,69 +39,91 @@ function safeParseAI(input: string) {
   } catch {}
 
   const match = cleaned.match(/\{[\s\S]*\}/);
-  if (match) {
-    return JSON.parse(match[0]);
-  }
+  if (match) return JSON.parse(match[0]);
 
   throw new Error("AI returned invalid JSON");
 }
 
+function cleanText(value: unknown, fallback = "") {
+  return typeof value === "string" && value.trim()
+    ? value.trim()
+    : fallback;
+}
+
 export async function POST(req: Request) {
   try {
-    console.log("🔥 AI ROUTE HIT");
-
     const body = await req.json();
 
-    const {
-      note,
-      title,
-      observation,
-      implication,
-      recommendation,
-      section,
-      severity,
-    } = body;
+    const mode = String(body?.mode || "create_finding");
+    const isRewrite = mode === "rewrite_existing_finding";
+    const structuredFinding = body?.finding || {};
 
-    if (!note || note.trim() === "") {
+    const inspectorCorrection = cleanText(
+      body?.inspectorCorrection || body?.inspector_note || body?.note,
+    );
+
+    const current = {
+      title: cleanText(structuredFinding?.title || body?.title, "Inspection Finding"),
+      observation: cleanText(structuredFinding?.observation || body?.observation),
+      implication: cleanText(structuredFinding?.implication || body?.implication),
+      recommendation: cleanText(
+        structuredFinding?.recommendation || body?.recommendation,
+      ),
+      section: cleanText(
+        structuredFinding?.section || body?.section,
+        "Inspection Details",
+      ),
+      severity: cleanText(
+        structuredFinding?.severity || body?.severity,
+        "Recommended Repair",
+      ),
+    };
+
+    if (!inspectorCorrection) {
       return NextResponse.json(
         { error: "Inspector note is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
+    const taskInstructions = isRewrite
+      ? `
+TASK: EDIT AN EXISTING FINDING.
+
+The inspector correction is the controlling instruction. The current finding is the source material.
+Do not create a different defect and do not base the rewrite mainly on the title.
+Read the observation, implication, and recommendation together before making changes.
+Preserve every field the inspector did not ask to change.
+Only change the section or severity when the correction clearly requires it.
+Do not invent facts, damage, measurements, code violations, causes, concealed conditions, or contractor conclusions.
+Keep the same professional, non-alarmist meaning unless the inspector specifically asks to change it.
+`
+      : `
+TASK: CREATE A COMPLETE FINDING FROM THE INSPECTOR NOTE.
+Use the current fields as supporting context when present.
+`;
+
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
+      response_format: { type: "json_object" },
       messages: [
         {
           role: "system",
           content: `
-You are a senior licensed home inspector writing professional inspection report findings.
+You are a senior licensed home inspector editing professional home-inspection report findings.
 
-You write in the style of a clear, detailed, realtor-friendly home inspection report.
-
-IMPORTANT:
-- Return ONLY valid JSON.
-- Do NOT use markdown.
-- Do NOT wrap the response in code fences.
-- Do NOT add explanations outside JSON.
-- Do NOT use "General" as a section.
-- Do NOT use "Safety" as a section.
-- Safety is a severity/tag, not a report section.
-- General is a severity/tag, not a report section.
+Return only valid JSON with exactly these string fields:
+{
+  "title": "",
+  "observation": "",
+  "implication": "",
+  "recommendation": "",
+  "section": "",
+  "severity": ""
+}
 
 VALID REPORT SECTIONS:
-- Exterior
-- Roof
-- Basement, Foundation, Crawlspace & Structure
-- Heating
-- Cooling
-- Plumbing
-- Electrical
-- Fireplace
-- Attic, Insulation & Ventilation
-- Doors, Windows & Interior
-- Built-in Appliances
-- Garage
+${VALID_SECTIONS.map((item) => `- ${item}`).join("\n")}
 
 VALID SEVERITIES:
 - Informational
@@ -99,107 +133,76 @@ VALID SEVERITIES:
 - Safety Concern
 - Major Concern
 
-WRITING RULES:
-- Title should be short, clear, and inspection-style.
-- Observation must only describe what is visible or reported.
-- Implication must explain why it matters and possible consequences.
-- Recommendation must explain the next step and who should evaluate/repair.
-- Keep the language professional and non-alarmist.
+RULES:
+- Never use General or Safety as a section.
+- Safety is a severity, not a section.
+- Observation states only what was visible, tested, measured, or reported.
+- Implication explains why the observation matters without exaggeration.
+- Recommendation gives a practical next step and identifies a qualified professional when appropriate.
 - Do not say the home passes or fails.
 - Do not advise whether the client should buy the home.
-- Do not claim code compliance unless directly stated by the inspector.
-- Use "recommend further evaluation and correction by a qualified contractor/professional as needed" where appropriate.
-- Each Observation, Implication, and Recommendation should be detailed but not bloated.
-- Prefer 3–6 strong sentences per section.
-
-Return this exact JSON structure:
-
-{
-  "title": "",
-  "observation": "",
-  "implication": "",
-  "recommendation": "",
-  "section": "",
-  "severity": ""
-}
-          `,
+- Do not claim code noncompliance unless the inspector explicitly states it.
+- Use professional, clear, realtor-friendly, non-alarmist language.
+- Do not add facts that are not present in the inspector note or current finding.
+${taskInstructions}
+          `.trim(),
         },
         {
           role: "user",
-          content: `
-Create or rewrite this inspection finding into a complete professional report comment.
-
-INSPECTOR NOTE:
-${note}
-
-CURRENT FINDING INFO:
-Title: ${title || ""}
-Observation: ${observation || ""}
-Implication: ${implication || ""}
-Recommendation: ${recommendation || ""}
-Section: ${section || ""}
-Severity: ${severity || ""}
-
-IMPORTANT ROUTING RULES:
-- Choose the best matching section from the valid section list.
-- If the issue is electrical, use Electrical.
-- If the issue is plumbing, use Plumbing.
-- If the issue is roof covering, flashing, gutters, chimney, soffit, or fascia, use Roof.
-- If the issue is siding, grading, decks, porches, exterior trim, walkways, or driveways, use Exterior.
-- If the issue is furnace, boiler, heating equipment, flue, or heating distribution, use Heating.
-- If the issue is AC, condenser, evaporator, refrigerant, heat pump cooling mode, or cooling equipment, use Cooling.
-- If the issue is foundation, crawlspace, basement, joists, beams, piers, moisture in crawlspace, or structural support, use Basement, Foundation, Crawlspace & Structure.
-- If the issue is attic, insulation, ventilation, bath fan ducting, or attic access, use Attic, Insulation & Ventilation.
-- If the issue is doors, windows, floors, walls, ceilings, stairs, handrails, guardrails, or interior finishes, use Doors, Windows & Interior.
-- If the issue is dishwasher, range, oven, microwave, disposal, or built-in appliance, use Built-in Appliances.
-- If the issue is garage door, opener, auto-reverse, photo eyes, or garage firewall, use Garage.
-- Never return "General" as the section.
-- Never return "Safety" as the section.
-- If something is a safety issue, put "Safety Concern" in severity.
-
-Return ONLY valid JSON.
-          `,
+          content: JSON.stringify(
+            {
+              mode,
+              inspectorCorrection,
+              currentFinding: current,
+              explicitInstructions: body?.instructions || [],
+            },
+            null,
+            2,
+          ),
         },
       ],
-      temperature: 0.4,
+      temperature: isRewrite ? 0.15 : 0.35,
     });
 
-    const text = response.choices[0].message.content || "";
-
-    console.log("🤖 RAW AI RESPONSE:", text);
-
+    const text = response.choices[0]?.message?.content || "";
     const parsed = safeParseAI(text);
 
-    const routedSection = routeFindingSection({
-      section: parsed.section,
-      title: parsed.title,
-      observation: parsed.observation,
-      implication: parsed.implication,
-      recommendation: parsed.recommendation,
-    });
+    // For an existing finding, preserve the current section unless AI returns a
+    // valid section. For a new finding, use the normal routing helper.
+    const requestedSection = cleanText(parsed?.section, current.section);
+    const finalSection = isRewrite
+      ? VALID_SECTIONS.includes(requestedSection)
+        ? requestedSection
+        : current.section
+      : routeFindingSection({
+          section: requestedSection,
+          title: parsed?.title,
+          observation: parsed?.observation,
+          implication: parsed?.implication,
+          recommendation: parsed?.recommendation,
+        });
 
-    const normalizedSeverity = normalizeSeverity(parsed.severity);
+    const requestedSeverity = cleanText(parsed?.severity, current.severity);
 
     const finalResult = {
-      title: parsed.title || title || "Inspection Finding",
-      observation: parsed.observation || observation || "",
-      implication: parsed.implication || implication || "",
-      recommendation: parsed.recommendation || recommendation || "",
-      section: routedSection,
-      severity: normalizedSeverity,
+      title: cleanText(parsed?.title, current.title),
+      observation: cleanText(parsed?.observation, current.observation),
+      implication: cleanText(parsed?.implication, current.implication),
+      recommendation: cleanText(
+        parsed?.recommendation,
+        current.recommendation,
+      ),
+      section: finalSection,
+      severity: normalizeSeverity(requestedSeverity),
     };
-
-    console.log("✅ FINAL ROUTED RESULT:", finalResult);
 
     return NextResponse.json(finalResult);
   } catch (err: any) {
-    console.error("❌ AI ROUTE ERROR:", err);
+    console.error("AI adjust finding route error:", err);
 
     return NextResponse.json(
-      {
-        error: err.message || "Server error",
-      },
-      { status: 500 }
+      { error: err?.message || "Server error" },
+      { status: 500 },
     );
   }
 }
