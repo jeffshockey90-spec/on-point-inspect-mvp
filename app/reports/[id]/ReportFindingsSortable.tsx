@@ -2649,6 +2649,25 @@ function FindingCardBase({
                 .from(PHOTO_BUCKET)
                 .getPublicUrl(thumbnailPath);
 
+              // The inspection-photos bucket may be private. Public URLs can
+              // therefore appear valid but render as broken images. Generate
+              // fresh signed URLs for immediate report display.
+              const [signedFullResult, signedThumbResult] = await Promise.all([
+                supabase.storage
+                  .from(PHOTO_BUCKET)
+                  .createSignedUrl(filePath, 60 * 60 * 24 * 7),
+                supabase.storage
+                  .from(PHOTO_BUCKET)
+                  .createSignedUrl(thumbnailPath, 60 * 60 * 24 * 7),
+              ]);
+
+              const displayFullUrl =
+                signedFullResult.data?.signedUrl ||
+                fullPublicData.publicUrl;
+              const displayThumbnailUrl =
+                signedThumbResult.data?.signedUrl ||
+                displayFullUrl;
+
               const { data: savedPhoto, error: photoUpdateError } =
                 await supabase
                   .from("photos")
@@ -2703,8 +2722,8 @@ function FindingCardBase({
                       ? {
                           ...photo,
                           ...savedPhoto,
-                          signed_url: fullPublicData.publicUrl,
-                          signed_thumbnail_url: thumbPublicData.publicUrl,
+                          signed_url: displayFullUrl,
+                          signed_thumbnail_url: displayThumbnailUrl,
                         }
                       : photo,
                 );
