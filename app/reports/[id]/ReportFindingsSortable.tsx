@@ -1574,137 +1574,120 @@ function FindingCardBase({
     }
 
     setAiInspectorBusy(true);
-    showMessage("success", "AI Inspector is rewriting this finding...");
+    showMessage("success", "AI Inspector is adjusting this finding...");
 
-    const currentTitle =
-      displayFinding.title ||
-      displayFinding.finding_title ||
-      displayFinding.defect_title ||
-      displayFinding.name ||
-      "Untitled Finding";
-
-    const rewritePrompt = `
-Rewrite this existing inspection finding using the inspector's correction note.
-
-Inspector correction note:
-${cleanNote}
-
-Current title:
-${currentTitle}
-
-Current section:
-${displayFinding.section || "Inspection Details"}
-
-Current severity:
-${displayFinding.severity || "Recommended Repair"}
-
-Current observation:
-${displayFinding.observation || ""}
-
-Current implication:
-${displayFinding.implication || ""}
-
-Current recommendation:
-${displayFinding.recommendation || ""}
-
-Instructions:
-- Keep the same defect and inspector intent.
-- Apply the correction note exactly.
-- If asked to soften wording, make it less alarmist but still accurate.
-- If asked to be more direct, make it clearer without overstating.
-- Return clean report language with title, section, severity, observation, implication, and recommendation.
-`;
-
-    const requestBody = {
-      note: rewritePrompt,
-      inspector_note: cleanNote,
-      prompt: rewritePrompt,
-      title: currentTitle,
+    const currentFinding = {
+      id: finding.id,
+      title:
+        displayFinding.title ||
+        displayFinding.finding_title ||
+        displayFinding.defect_title ||
+        displayFinding.name ||
+        "Untitled Finding",
       section: displayFinding.section || "Inspection Details",
       severity: displayFinding.severity || "Recommended Repair",
       observation: displayFinding.observation || "",
       implication: displayFinding.implication || "",
       recommendation: displayFinding.recommendation || "",
-      finding_id: finding.id,
-      inspection_id: inspectionId,
     };
 
-    const endpoints = [
-      "/api/ai-adjust-finding",
-      "/api/rewrite-finding",
-      "/api/ai-suggest-finding",
-      "/api/generate-finding",
-      "/api/ai/finding",
-    ];
+    const requestBody = {
+      mode: "rewrite_existing_finding",
+      finding: currentFinding,
+      inspectorCorrection: cleanNote,
+
+      // Keep the legacy fields so this remains compatible with the API route
+      // while the structured rewrite data prevents the title from becoming
+      // the primary source of truth.
+      note: cleanNote,
+      inspector_note: cleanNote,
+      title: currentFinding.title,
+      section: currentFinding.section,
+      severity: currentFinding.severity,
+      observation: currentFinding.observation,
+      implication: currentFinding.implication,
+      recommendation: currentFinding.recommendation,
+      finding_id: finding.id,
+      inspection_id: inspectionId,
+      instructions: [
+        "Edit this existing finding; do not create a different defect.",
+        "Treat the observation, implication, and recommendation as the source of truth, not only the title.",
+        "Apply the inspector correction exactly.",
+        "Preserve fields that the inspector did not ask to change.",
+        "Do not invent facts, damage, code violations, or concealed conditions.",
+      ],
+    };
 
     try {
-      let data: any = null;
-      let lastError = "";
+      const response = await fetch("/api/ai-adjust-finding", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody),
+      });
 
-      for (const endpoint of endpoints) {
-        try {
-          const response = await fetch(endpoint, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(requestBody),
-          });
+      const nextData = await response.json().catch(() => ({}));
 
-          const nextData = await response.json().catch(() => ({}));
-
-          if (response.ok) {
-            data =
-              nextData?.finding ||
-              nextData?.result ||
-              nextData?.suggestion ||
-              nextData;
-            break;
-          }
-
-          lastError = nextData?.error || response.statusText || endpoint;
-        } catch (error: any) {
-          lastError = error?.message || endpoint;
-        }
+      if (!response.ok) {
+        throw new Error(
+          nextData?.error || response.statusText || "AI Inspector rewrite failed.",
+        );
       }
 
-      if (!data) {
-        showMessage("error", lastError || "AI Inspector could not rewrite this finding.");
-        return;
-      }
+      const data =
+        nextData?.finding ||
+        nextData?.result ||
+        nextData?.suggestion ||
+        nextData;
 
       const nextTitle =
-        pickAiInspectorValue(data, ["title", "finding_title", "defect_title", "name"]) ||
-        currentTitle;
+        pickAiInspectorValue(data, [
+          "title",
+          "finding_title",
+          "defect_title",
+          "name",
+        ]) || currentFinding.title;
       const nextSection =
         pickAiInspectorValue(data, ["section", "suggested_section"]) ||
-        displayFinding.section ||
-        "Inspection Details";
+        currentFinding.section;
       const nextSeverity =
-        pickAiInspectorValue(data, ["severity", "suggested_severity", "priority", "category"]) ||
-        displayFinding.severity ||
-        "Recommended Repair";
+        pickAiInspectorValue(data, [
+          "severity",
+          "suggested_severity",
+          "priority",
+          "category",
+        ]) || currentFinding.severity;
       const nextObservation =
-        pickAiInspectorValue(data, ["observation", "description", "comment", "summary"]) ||
-        displayFinding.observation ||
-        "";
+        pickAiInspectorValue(data, [
+          "observation",
+          "description",
+          "comment",
+          "summary",
+        ]) || currentFinding.observation;
       const nextImplication =
-        pickAiInspectorValue(data, ["implication", "impact", "why_it_matters"]) ||
-        displayFinding.implication ||
-        "";
+        pickAiInspectorValue(data, [
+          "implication",
+          "impact",
+          "why_it_matters",
+        ]) || currentFinding.implication;
       const nextRecommendation =
-        pickAiInspectorValue(data, ["recommendation", "recommended_action", "action"]) ||
-        displayFinding.recommendation ||
-        "";
+        pickAiInspectorValue(data, [
+          "recommendation",
+          "recommended_action",
+          "action",
+        ]) || currentFinding.recommendation;
+
+      const updatedFinding = {
+        title: nextTitle,
+        section: nextSection,
+        severity: nextSeverity,
+        observation: nextObservation,
+        implication: nextImplication,
+        recommendation: nextRecommendation,
+      };
 
       const { error } = await supabase
         .from("findings")
-        .update({
-          title: nextTitle,
-          section: nextSection,
-          severity: nextSeverity,
-          observation: nextObservation,
-          implication: nextImplication,
-          recommendation: nextRecommendation,
-        })
+        .update(updatedFinding)
         .eq("id", finding.id)
         .eq("inspection_id", inspectionId);
 
@@ -1712,16 +1695,25 @@ Instructions:
 
       setLocalFinding((current: any) => ({
         ...(current || finding),
-        title: nextTitle,
-        section: nextSection,
-        severity: nextSeverity,
-        observation: nextObservation,
-        implication: nextImplication,
-        recommendation: nextRecommendation,
+        ...updatedFinding,
       }));
 
       setAiInspectorNote("");
-      showMessage("success", "AI Inspector rewrite saved. Review the updated finding.");
+      showMessage(
+        "success",
+        "AI Inspector adjustment saved to the actual finding.",
+      );
+
+      window.dispatchEvent(
+        new CustomEvent("opi:findings-changed", {
+          detail: {
+            inspectionId,
+            findingId: finding.id,
+            section: nextSection,
+          },
+        }),
+      );
+      router.refresh();
     } catch (error: any) {
       showMessage("error", error?.message || "AI Inspector rewrite failed.");
     } finally {
@@ -2602,30 +2594,13 @@ Instructions:
         )}
 
         <div className="mb-4 w-full max-w-full overflow-x-hidden rounded-xl border border-purple-500/50 bg-purple-500/10 p-3 sm:p-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <h4 className="text-base font-black text-purple-300">
-                🤖 AI Inspector Note
-              </h4>
-              <p className="mt-1 text-sm leading-6 text-slate-300">
-                Add a correction for this finding, then rerun AI. Example: make this softer, mention a qualified contractor, remove the word missing, or keep it more general.
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                void runAiInspectorNoteRewrite();
-              }}
-              disabled={aiInspectorBusy}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-purple-500 px-4 py-3 text-sm font-black text-white transition active:scale-[0.98] hover:bg-purple-400 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto [touch-action:manipulation]"
-            >
-              {aiInspectorBusy && (
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-              )}
-              {aiInspectorBusy ? "Rewriting..." : "Run AI Inspector"}
-            </button>
+          <div>
+            <h4 className="text-base font-black text-purple-300">
+              🤖 AI Inspector Note
+            </h4>
+            <p className="mt-1 text-sm leading-6 text-slate-300">
+              Add a correction for this existing finding. AI will adjust the actual observation, implication, recommendation, title, severity, or section only as needed.
+            </p>
           </div>
 
           <textarea
@@ -2635,6 +2610,21 @@ Instructions:
             placeholder="Example: make this less aggressive and say further evaluation by a qualified contractor is recommended."
             className="mt-4 min-h-[90px] w-full rounded-xl border border-purple-500/40 bg-slate-950 px-4 py-3 text-white outline-none focus:border-purple-300 disabled:cursor-not-allowed disabled:opacity-60"
           />
+
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              void runAiInspectorNoteRewrite();
+            }}
+            disabled={aiInspectorBusy || !aiInspectorNote.trim()}
+            className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-purple-500 px-4 py-3 text-sm font-black text-white transition active:scale-[0.98] hover:bg-purple-400 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto [touch-action:manipulation]"
+          >
+            {aiInspectorBusy && (
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            )}
+            {aiInspectorBusy ? "Adjusting Finding..." : "Run AI Inspector"}
+          </button>
         </div>
 
         <div
