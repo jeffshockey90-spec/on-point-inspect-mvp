@@ -805,6 +805,8 @@ function buildAgentReportHtml({
   qrCodeDataUrl,
   standardsOfPractice,
   includeStandardsInPdf,
+  clientNameOverride,
+  clientEmailOverride,
 }: {
   inspection: any;
   findings: any[];
@@ -814,6 +816,8 @@ function buildAgentReportHtml({
   qrCodeDataUrl?: string;
   standardsOfPractice: Array<{ title: string; body: string }>;
   includeStandardsInPdf: boolean;
+  clientNameOverride?: string;
+  clientEmailOverride?: string;
 }) {
   const property = getPropertyAddress(inspection);
   const isFull = reportMode === "full";
@@ -839,7 +843,8 @@ function buildAgentReportHtml({
 
   if (otherFindings.length) grouped.push({ section: "Other", findings: otherFindings });
 
-  const clientName = inspection.client_name || inspection.client || "N/A";
+  const clientName = clientNameOverride || inspection.client_name || inspection.client || "N/A";
+  const clientEmail = clientEmailOverride || inspection.client_email || "N/A";
   const realtorName = inspection.realtor_name || inspection.agent_name || inspection.buyer_agent_name || "N/A";
   const inspectorName = inspection.inspector_name || inspection.inspector || "Jeff Shockey";
   const inspectionDate = formatDate(inspection.inspection_date || inspection.scheduled_date || inspection.created_at);
@@ -1636,6 +1641,57 @@ export async function GET(req: Request, { params }: RouteProps) {
       };
     });
 
+    const { data: reportClientContactsRaw, error: reportClientContactsError } =
+      await admin
+        .from("inspection_contacts")
+        .select("id, name, email, role, created_at")
+        .eq("inspection_id", inspectionId)
+        .order("created_at", { ascending: true });
+
+    if (reportClientContactsError) {
+      console.error(
+        "PDF client contacts load error:",
+        reportClientContactsError,
+      );
+    }
+
+    const reportClientContacts = (reportClientContactsRaw || []).filter(
+      (contact: any) => {
+        const role = cleanText(contact?.role).toLowerCase();
+        return role === "client" || role === "co-client" || role.includes("client");
+      },
+    );
+
+    const reportClientNames = Array.from(
+      new Set(
+        reportClientContacts
+          .map((contact: any) => cleanText(contact?.name))
+          .filter(
+            (name: string) =>
+              Boolean(name) &&
+              !["test", "client test", "test client"].includes(name.toLowerCase()),
+          ),
+      ),
+    );
+
+    const reportClientEmails = Array.from(
+      new Set(
+        reportClientContacts
+          .map((contact: any) => cleanEmail(contact?.email))
+          .filter(Boolean),
+      ),
+    );
+
+    const clientNameOverride =
+      reportClientNames.join(" & ") ||
+      cleanText(inspection.client_name || inspection.client) ||
+      "N/A";
+
+    const clientEmailOverride =
+      reportClientEmails.join(", ") ||
+      cleanText(inspection.client_email) ||
+      "N/A";
+
     const rawPropertyPhoto = getPropertyPhoto(inspection);
     const propertyPhotoUrl =
       (propertyPhotoPath && pdfImageMap[propertyPhotoPath]) ||
@@ -1660,6 +1716,8 @@ export async function GET(req: Request, { params }: RouteProps) {
       qrCodeDataUrl,
       standardsOfPractice,
       includeStandardsInPdf,
+      clientNameOverride,
+      clientEmailOverride,
     });
     const property = getPropertyAddress(inspection);
 

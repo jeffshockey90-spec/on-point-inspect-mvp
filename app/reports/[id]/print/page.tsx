@@ -403,6 +403,60 @@ export default async function PrintableReportPage({ params }: PageProps) {
 
   if (inspectionError || !inspection) redirect("/reports");
 
+  // Use the current Client / Co-Client contact records as the report source
+  // of truth. This prevents an old placeholder such as "Test" stored on the
+  // inspections row from continuing to appear in the PDF.
+  const { data: reportClientContactsRaw, error: reportClientContactsError } =
+    await supabase
+      .from("inspection_contacts")
+      .select("id, name, email, role, created_at")
+      .eq("inspection_id", inspection.id)
+      .order("created_at", { ascending: true });
+
+  if (reportClientContactsError) {
+    console.error(
+      "Printable report client contacts load error:",
+      reportClientContactsError,
+    );
+  }
+
+  const reportClientContacts = (reportClientContactsRaw || []).filter(
+    (contact: any) => {
+      const role = String(contact?.role || "").trim().toLowerCase();
+      return role === "client" || role === "co-client" || role.includes("client");
+    },
+  );
+
+  const cleanClientNames = Array.from(
+    new Set(
+      reportClientContacts
+        .map((contact: any) => String(contact?.name || "").trim())
+        .filter(
+          (name: string) =>
+            Boolean(name) &&
+            !["test", "client test", "test client"].includes(name.toLowerCase()),
+        ),
+    ),
+  );
+
+  const cleanClientEmails = Array.from(
+    new Set(
+      reportClientContacts
+        .map((contact: any) => String(contact?.email || "").trim().toLowerCase())
+        .filter(Boolean),
+    ),
+  );
+
+  const printableClientName =
+    cleanClientNames.join(" & ") ||
+    String(inspection.client_name || inspection.client || "N/A").trim() ||
+    "N/A";
+
+  const printableClientEmail =
+    cleanClientEmails.join(", ") ||
+    String(inspection.client_email || "N/A").trim() ||
+    "N/A";
+
   const { data: findingsRaw } = await supabase
     .from("findings")
     .select("*")
@@ -766,8 +820,8 @@ export default async function PrintableReportPage({ params }: PageProps) {
 
           <div className="grid gap-5 p-8 md:grid-cols-2">
             <InfoRow label="Property Address" value={inspection.address} />
-            <InfoRow label="Client" value={inspection.client_name} />
-            <InfoRow label="Client Email" value={inspection.client_email} />
+            <InfoRow label="Client" value={printableClientName} />
+            <InfoRow label="Client Email" value={printableClientEmail} />
             <InfoRow label="Realtor" value={inspection.realtor_name} />
             <InfoRow label="Inspection Date" value={inspection.inspection_date} />
             <InfoRow label="Square Feet" value={inspection.square_feet} />
