@@ -9,6 +9,9 @@ type InspectionPaymentStatus = {
   invoice_amount?: number | string | null;
   amount_paid?: number | string | null;
   balance_due?: number | string | null;
+  agreement_waived?: boolean | null;
+  agreement_waived_at?: string | null;
+  agreement_waiver_reason?: string | null;
 };
 
 function getNumber(value: any) {
@@ -17,7 +20,6 @@ function getNumber(value: any) {
   if (typeof value === "string") {
     const cleaned = value.replace(/[^0-9.-]/g, "");
     const parsed = Number(cleaned);
-
     if (Number.isFinite(parsed)) return parsed;
   }
 
@@ -36,7 +38,7 @@ function isPaymentComplete(payment: InspectionPaymentStatus | null) {
   if (!payment) return false;
 
   const status = String(
-    payment.payment_status || payment.invoice_status || "Unpaid"
+    payment.payment_status || payment.invoice_status || "Unpaid",
   ).toLowerCase();
 
   const invoiceAmount = getNumber(payment.invoice_amount);
@@ -48,7 +50,6 @@ function isPaymentComplete(payment: InspectionPaymentStatus | null) {
       : Math.max(0, invoiceAmount - amountPaid);
 
   if (status === "paid" || status === "waived") return true;
-
   if (invoiceAmount > 0 && amountPaid >= invoiceAmount) return true;
 
   return storedBalance <= 0 && invoiceAmount > 0;
@@ -60,7 +61,8 @@ export default function ReportDeliveryGuard({
   inspectionId: string;
 }) {
   const [contacts, setContacts] = useState<any[]>([]);
-  const [payment, setPayment] = useState<InspectionPaymentStatus | null>(null);
+  const [payment, setPayment] =
+    useState<InspectionPaymentStatus | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -71,10 +73,11 @@ export default function ReportDeliveryGuard({
 
       try {
         const contactsRes = await fetch(
-          `/api/inspection-contacts?inspection_id=${inspectionId}`
+          `/api/inspection-contacts?inspection_id=${inspectionId}`,
+          { cache: "no-store" },
         );
 
-        const contactsData = await contactsRes.json();
+        const contactsData = await contactsRes.json().catch(() => ({}));
         setContacts(contactsData.contacts || []);
       } catch (error) {
         console.error("Failed to load agreement guard contacts:", error);
@@ -85,13 +88,12 @@ export default function ReportDeliveryGuard({
         const { data, error } = await supabase
           .from("inspections")
           .select(
-            "invoice_status, payment_status, invoice_amount, amount_paid, balance_due"
+            "invoice_status, payment_status, invoice_amount, amount_paid, balance_due, agreement_waived, agreement_waived_at, agreement_waiver_reason",
           )
           .eq("id", inspectionId)
           .single();
 
         if (error) throw error;
-
         setPayment(data || null);
       } catch (error) {
         console.error("Failed to load payment guard data:", error);
@@ -101,18 +103,44 @@ export default function ReportDeliveryGuard({
       }
     }
 
-    loadGuardData();
+    void loadGuardData();
+
+    function handleWaiverChanged(event: Event) {
+      const detail = (event as CustomEvent)?.detail || {};
+      if (
+        detail.inspectionId &&
+        String(detail.inspectionId) !== String(inspectionId)
+      ) {
+        return;
+      }
+
+      void loadGuardData();
+    }
+
+    window.addEventListener(
+      "opi:agreement-waiver-changed",
+      handleWaiverChanged as EventListener,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "opi:agreement-waiver-changed",
+        handleWaiverChanged as EventListener,
+      );
+    };
   }, [inspectionId]);
 
   const unsignedRequiredContacts = useMemo(
     () =>
       contacts.filter(
-        (contact) => contact.agreement_required && !contact.agreement_signed
+        (contact) =>
+          contact.agreement_required && !contact.agreement_signed,
       ),
-    [contacts]
+    [contacts],
   );
 
   const paymentComplete = isPaymentComplete(payment);
+  const agreementWaived = payment?.agreement_waived === true;
 
   const invoiceAmount = getNumber(payment?.invoice_amount);
   const amountPaid = getNumber(payment?.amount_paid);
@@ -123,10 +151,11 @@ export default function ReportDeliveryGuard({
       : Math.max(0, invoiceAmount - amountPaid);
 
   const paymentStatus = String(
-    payment?.payment_status || payment?.invoice_status || "Unpaid"
+    payment?.payment_status || payment?.invoice_status || "Unpaid",
   );
 
-  const hasAgreementBlock = unsignedRequiredContacts.length > 0;
+  const hasAgreementBlock =
+    !agreementWaived && unsignedRequiredContacts.length > 0;
   const hasPaymentBlock = !paymentComplete;
 
   if (loading) {
@@ -147,9 +176,23 @@ export default function ReportDeliveryGuard({
         </h2>
 
         <p className="mt-2 text-slate-300">
-          Required agreements are signed and payment is marked complete or waived.
-          Report delivery is cleared.
+          {agreementWaived
+            ? "The agreement requirement is waived and payment is marked complete or waived. Report delivery is cleared."
+            : "Required agreements are signed and payment is marked complete or waived. Report delivery is cleared."}
         </p>
+
+        {agreementWaived && (
+          <div className="mt-4 rounded-xl border border-purple-500/50 bg-purple-500/10 p-4">
+            <p className="font-black text-purple-300">
+              Agreement Requirement Waived
+            </p>
+
+            <p className="mt-2 text-sm text-slate-300">
+              {payment?.agreement_waiver_reason ||
+                "No waiver reason was recorded."}
+            </p>
+          </div>
+        )}
       </div>
     );
   }
@@ -161,8 +204,8 @@ export default function ReportDeliveryGuard({
       </h2>
 
       <p className="mt-2 text-slate-300">
-        Confirm all required agreements are signed and payment is complete before
-        delivering the final report.
+        Confirm all required agreements are signed or intentionally waived and
+        payment is complete before delivering the final report.
       </p>
 
       {hasAgreementBlock && (
