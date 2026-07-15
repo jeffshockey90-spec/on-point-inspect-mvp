@@ -1685,17 +1685,27 @@ function FindingCardBase({
         recommendation: nextRecommendation,
       };
 
-      const { error } = await supabase
+      const { data: savedFinding, error } = await supabase
         .from("findings")
         .update(updatedFinding)
         .eq("id", finding.id)
-        .eq("inspection_id", inspectionId);
+        .eq("inspection_id", inspectionId)
+        .select("*")
+        .single();
 
       if (error) throw error;
 
+      if (!savedFinding?.id) {
+        throw new Error(
+          "The finding update was not confirmed. Please reload and try again.",
+        );
+      }
+
+      // Use the exact row returned by Supabase so the report card and editor
+      // immediately display what was actually saved.
       setLocalFinding((current: any) => ({
         ...(current || finding),
-        ...updatedFinding,
+        ...savedFinding,
       }));
 
       setAiInspectorNote("");
@@ -1704,16 +1714,18 @@ function FindingCardBase({
         "AI Inspector adjustment saved to the actual finding.",
       );
 
+      // Do not immediately refresh the route here. The report-page listener
+      // can replace the fresh local result with stale server props.
       window.dispatchEvent(
-        new CustomEvent("opi:findings-changed", {
+        new CustomEvent("opi:finding-ai-updated", {
           detail: {
             inspectionId,
             findingId: finding.id,
-            section: nextSection,
+            section: savedFinding.section || nextSection,
+            finding: savedFinding,
           },
         }),
       );
-      router.refresh();
     } catch (error: any) {
       showMessage("error", error?.message || "AI Inspector rewrite failed.");
     } finally {
@@ -2631,7 +2643,14 @@ function FindingCardBase({
           onClick={(event) => event.stopPropagation()}
           className="mb-4 w-full max-w-full overflow-x-hidden rounded-xl border border-slate-700 bg-slate-950/40 p-2 sm:p-4"
         >
-          <EditableFinding finding={finding} />
+          <EditableFinding
+            key={`${String(displayFinding.id || finding.id)}-${String(
+              displayFinding.updated_at || "",
+            )}-${String(displayFinding.title || "")}-${String(
+              displayFinding.observation || "",
+            )}`}
+            finding={displayFinding}
+          />
         </div>
 
         {displayFinding.observation && (
@@ -2646,8 +2665,11 @@ function FindingCardBase({
           <ReportBlock title="Recommendation" text={displayFinding.recommendation} />
         )}
 
-        {finding.comment && (
-          <ReportBlock title="Additional Notes" text={finding.comment} />
+        {displayFinding.comment && (
+          <ReportBlock
+            title="Additional Notes"
+            text={displayFinding.comment}
+          />
         )}
       </div>
     </article>
