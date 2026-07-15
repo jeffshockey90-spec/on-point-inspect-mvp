@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { createClient } from "../../../utils/supabase/server";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 function getNumber(value: any) {
   if (typeof value === "number" && Number.isFinite(value)) return value;
 
@@ -40,7 +43,7 @@ function getBalanceDue(inspection: any) {
 
 function isPaymentComplete(inspection: any) {
   const status = String(
-    inspection?.payment_status || inspection?.invoice_status || "Unpaid"
+    inspection?.payment_status || inspection?.invoice_status || "Unpaid",
   ).toLowerCase();
 
   const invoiceAmount = getInvoiceAmount(inspection);
@@ -64,7 +67,7 @@ export async function GET(req: Request) {
     if (!user) {
       return NextResponse.json(
         { error: "Not authenticated." },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -74,7 +77,7 @@ export async function GET(req: Request) {
     if (!inspectionId) {
       return NextResponse.json(
         { error: "Missing inspection ID." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -82,19 +85,20 @@ export async function GET(req: Request) {
       .from("inspections")
       .select("*")
       .eq("id", inspectionId)
+      .eq("inspector_id", user.id)
       .maybeSingle();
 
     if (inspectionError) {
       return NextResponse.json(
         { error: inspectionError.message },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
     if (!inspection) {
       return NextResponse.json(
         { error: "Inspection not found or not accessible." },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -106,13 +110,18 @@ export async function GET(req: Request) {
     if (contactsError) {
       return NextResponse.json(
         { error: contactsError.message },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
-    const unsignedRequiredContacts = (contacts || []).filter(
-      (contact: any) => contact.agreement_required && !contact.agreement_signed
-    );
+    const agreementWaived = inspection.agreement_waived === true;
+
+    const unsignedRequiredContacts = agreementWaived
+      ? []
+      : (contacts || []).filter(
+          (contact: any) =>
+            contact.agreement_required && !contact.agreement_signed,
+        );
 
     const paymentComplete = isPaymentComplete(inspection);
     const invoiceAmount = getInvoiceAmount(inspection);
@@ -121,11 +130,11 @@ export async function GET(req: Request) {
 
     const blockers: string[] = [];
 
-    if (unsignedRequiredContacts.length > 0) {
+    if (!agreementWaived && unsignedRequiredContacts.length > 0) {
       blockers.push(
         `${unsignedRequiredContacts.length} required agreement signature${
           unsignedRequiredContacts.length === 1 ? "" : "s"
-        } pending.`
+        } pending.`,
       );
     }
 
@@ -137,6 +146,9 @@ export async function GET(req: Request) {
       ok: blockers.length === 0,
       canDeliver: blockers.length === 0,
       blockers,
+      agreementWaived,
+      agreementWaivedAt: inspection.agreement_waived_at || null,
+      agreementWaiverReason: inspection.agreement_waiver_reason || null,
       paymentComplete,
       invoiceAmount,
       amountPaid,
@@ -146,7 +158,7 @@ export async function GET(req: Request) {
   } catch (error: any) {
     return NextResponse.json(
       { error: error?.message || "Failed to check delivery status." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
