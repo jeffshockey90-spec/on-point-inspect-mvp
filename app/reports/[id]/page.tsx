@@ -1228,26 +1228,79 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
 
     if (!user) redirect("/login");
 
-    const inspectionId = String(formData.get("inspection_id") || "");
+    const inspectionId = String(formData.get("inspection_id") || "").trim();
+    const clientName = String(formData.get("client_name") || "").trim();
+    const clientEmail = String(formData.get("client_email") || "")
+      .trim()
+      .toLowerCase();
 
-    await supabase
-      .from("inspections")
-      .update({
-        address: String(formData.get("address") || ""),
-        client_name: String(formData.get("client_name") || ""),
-        client_email: String(formData.get("client_email") || ""),
-        realtor_name: String(formData.get("realtor_name") || ""),
-        inspection_date: String(formData.get("inspection_date") || ""),
-        square_feet: String(formData.get("square_feet") || ""),
-        year_built: String(formData.get("year_built") || ""),
-        city: String(formData.get("city") || ""),
-        state: String(formData.get("state") || ""),
-        zip: String(formData.get("zip") || ""),
-      })
-      .eq("id", inspectionId)
-      .eq("inspector_id", user.id);
+    if (!inspectionId) redirect("/reports");
+
+    const { data: updatedInspection, error: inspectionUpdateError } =
+      await supabase
+        .from("inspections")
+        .update({
+          address: String(formData.get("address") || "").trim(),
+          property_address: String(formData.get("address") || "").trim(),
+          client_name: clientName,
+          client_email: clientEmail,
+          realtor_name: String(formData.get("realtor_name") || "").trim(),
+          inspection_date: String(formData.get("inspection_date") || "").trim(),
+          square_feet: String(formData.get("square_feet") || "").trim(),
+          year_built: String(formData.get("year_built") || "").trim(),
+          city: String(formData.get("city") || "").trim(),
+          state: String(formData.get("state") || "").trim(),
+          zip: String(formData.get("zip") || "").trim(),
+        })
+        .eq("id", inspectionId)
+        .eq("inspector_id", user.id)
+        .select("id")
+        .single();
+
+    if (inspectionUpdateError || !updatedInspection) {
+      console.error(
+        "Update inspection details error:",
+        inspectionUpdateError,
+      );
+      redirect(`/reports/${inspectionId}?details_update_error=1`);
+    }
+
+    // Keep the primary client contact synchronized so the report, client
+    // portal, agreements, and email recipient labels do not continue showing
+    // the original placeholder name.
+    const { data: primaryClientContact } = await supabase
+      .from("inspection_contacts")
+      .select("id")
+      .eq("inspection_id", inspectionId)
+      .eq("role", "client")
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    if (primaryClientContact?.id) {
+      const { error: contactUpdateError } = await supabase
+        .from("inspection_contacts")
+        .update({
+          name: clientName,
+          email: clientEmail || null,
+        })
+        .eq("id", primaryClientContact.id)
+        .eq("inspection_id", inspectionId);
+
+      if (contactUpdateError) {
+        console.error(
+          "Primary client contact sync error:",
+          contactUpdateError,
+        );
+      }
+    }
 
     revalidatePath(`/reports/${inspectionId}`);
+    revalidatePath(`/reports/${inspectionId}/print`);
+    revalidatePath(`/share/${inspectionId}`);
+    revalidatePath(`/client-portal/${inspectionId}`);
+    revalidatePath("/reports");
+    redirect(`/reports/${inspectionId}?details_updated=1`);
   }
 
   async function updatePropertyPhoto(formData: FormData) {
@@ -3863,7 +3916,7 @@ Service-life information is a general industry estimate only. Actual service lif
                   value={inspection.address}
                 />
                 <EditItem
-                  label="Client"
+                  label="Client Name"
                   name="client_name"
                   value={inspection.client_name}
                 />
