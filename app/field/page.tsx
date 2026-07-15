@@ -2841,7 +2841,7 @@ function FieldPageContent() {
         }
 
         addOfflineQueueItem({
-          type: photoType,
+          type: photoType === "reference_photo" ? "reference_photo" : "finding",
           payload: {
             inspection_id: selectedReport,
             title,
@@ -2921,7 +2921,9 @@ function FieldPageContent() {
       setMessage("Finding saved to report.");
     } catch (error: any) {
       const shouldQueueAfterFailure =
-        photos.length > 0 && (isLikelyNetworkError(error) || !isOnline());
+        photoType !== "existing_finding" &&
+        photos.length > 0 &&
+        (isLikelyNetworkError(error) || !isOnline());
 
       if (shouldQueueAfterFailure) {
         try {
@@ -2929,7 +2931,7 @@ function FieldPageContent() {
             await prepareOfflinePhotosForQueue(photos);
 
           addOfflineQueueItem({
-            type: photoType,
+            type: photoType === "reference_photo" ? "reference_photo" : "finding",
             payload: {
               inspection_id: selectedReport,
               title,
