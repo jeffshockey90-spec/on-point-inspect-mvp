@@ -2655,7 +2655,6 @@ function FindingCardBase({
                   .update({
                     file_path: filePath,
                     public_url: fullPublicData.publicUrl,
-                    image_url: fullPublicData.publicUrl,
                     thumbnail_path: thumbnailPath,
                     thumbnail_url: thumbPublicData.publicUrl,
                     mime_type: "image/jpeg",
