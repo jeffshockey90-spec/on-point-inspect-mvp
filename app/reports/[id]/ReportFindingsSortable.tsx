@@ -1381,6 +1381,23 @@ async function createThumbnailForUpload(file: File): Promise<File> {
   return createImageVariantForUpload(file, 480, 0.7, "thumb");
 }
 
+async function dataUrlToFile(
+  dataUrl: string,
+  filename: string,
+): Promise<File> {
+  const response = await fetch(dataUrl);
+  const blob = await response.blob();
+
+  if (!blob.size) {
+    throw new Error("The marked-up image was empty.");
+  }
+
+  return new File([blob], filename, {
+    type: blob.type || "image/jpeg",
+    lastModified: Date.now(),
+  });
+}
+
 async function createVideoThumbnailForUpload(file: File): Promise<File | null> {
   if (!file.type.startsWith("video/")) return null;
 
@@ -2573,36 +2590,142 @@ function FindingCardBase({
         )}
 
         {showMarkupEditor && markupPhoto && (
-          <div className="mb-5 rounded-xl border border-purple-700 bg-purple-950/20 p-4">
-            <PhotoMarkupEditor
-              imageUrl={getPhotoUrl(markupPhoto)}
-              severity={displayFinding.severity}
-              onCancel={() => {
-                setShowMarkupEditor(false);
-                setMarkupPhoto(null);
-              }}
-              onSave={async (items) => {
-                const { error } = await supabase
-                  .from("photo_annotations")
-                  .insert({
-                    inspection_id: Number(inspectionId),
-                    finding_id: finding.id,
-                    photo_id: markupPhoto.id || null,
-                    image_url: getPhotoUrl(markupPhoto),
-                    annotation_json: items,
-                  });
+          <PhotoMarkupEditor
+            imageUrl={getPhotoUrl(markupPhoto)}
+            severity={displayFinding.severity}
+            onCancel={() => {
+              setShowMarkupEditor(false);
+              setMarkupPhoto(null);
+              document.body.style.removeProperty("overflow");
+              document.documentElement.style.removeProperty("overflow");
+              document.body.style.removeProperty("touch-action");
+              document.documentElement.style.removeProperty("touch-action");
+            }}
+            onSave={async (items, flattenedDataUrl) => {
+              const photoId = String(markupPhoto?.id || "").trim();
 
-                if (error) {
-                  showMessage("error", error.message);
-                  return;
-                }
+              if (!photoId || markupPhoto?.isLegacyImage) {
+                throw new Error(
+                  "This older photo cannot be replaced by the markup editor. Re-upload it to the finding first.",
+                );
+              }
 
-                showMessage("success", "Photo markup saved.");
-                setShowMarkupEditor(false);
-                setMarkupPhoto(null);
-              }}
-            />
-          </div>
+              const markedFile = await dataUrlToFile(
+                flattenedDataUrl,
+                `marked-photo-${Date.now()}.jpg`,
+              );
+              const thumbnailFile = await createThumbnailForUpload(markedFile);
+              const baseName = `${Date.now()}-${crypto.randomUUID()}-marked`;
+              const filePath = `${inspectionId}/finding-photos/${finding.id}/${baseName}.jpg`;
+              const thumbnailPath = `${inspectionId}/finding-photos/${finding.id}/thumbnails/${baseName}-thumb.jpg`;
+
+              const { error: uploadError } = await supabase.storage
+                .from(PHOTO_BUCKET)
+                .upload(filePath, markedFile, {
+                  cacheControl: "31536000",
+                  upsert: false,
+                  contentType: "image/jpeg",
+                });
+
+              if (uploadError) throw uploadError;
+
+              const { error: thumbnailUploadError } = await supabase.storage
+                .from(PHOTO_BUCKET)
+                .upload(thumbnailPath, thumbnailFile, {
+                  cacheControl: "31536000",
+                  upsert: false,
+                  contentType: "image/jpeg",
+                });
+
+              if (thumbnailUploadError) {
+                await supabase.storage.from(PHOTO_BUCKET).remove([filePath]);
+                throw thumbnailUploadError;
+              }
+
+              const { data: fullPublicData } = supabase.storage
+                .from(PHOTO_BUCKET)
+                .getPublicUrl(filePath);
+              const { data: thumbPublicData } = supabase.storage
+                .from(PHOTO_BUCKET)
+                .getPublicUrl(thumbnailPath);
+
+              const { data: savedPhoto, error: photoUpdateError } =
+                await supabase
+                  .from("photos")
+                  .update({
+                    file_path: filePath,
+                    public_url: fullPublicData.publicUrl,
+                    image_url: fullPublicData.publicUrl,
+                    thumbnail_path: thumbnailPath,
+                    thumbnail_url: thumbPublicData.publicUrl,
+                    mime_type: "image/jpeg",
+                    is_video: false,
+                  })
+                  .eq("id", photoId)
+                  .eq("inspection_id", inspectionId)
+                  .select("*")
+                  .single();
+
+              if (photoUpdateError || !savedPhoto?.id) {
+                await supabase.storage
+                  .from(PHOTO_BUCKET)
+                  .remove([filePath, thumbnailPath]);
+
+                throw new Error(
+                  photoUpdateError?.message ||
+                    "The marked-up photo could not be attached to the finding.",
+                );
+              }
+
+              // Save editable annotation data as a secondary record. The
+              // flattened image above is the report-visible source of truth.
+              const { error: annotationError } = await supabase
+                .from("photo_annotations")
+                .insert({
+                  inspection_id: Number(inspectionId),
+                  finding_id: finding.id,
+                  photo_id: photoId,
+                  image_url: fullPublicData.publicUrl,
+                  annotation_json: items,
+                });
+
+              if (annotationError) {
+                console.warn(
+                  "Marked image saved, but annotation JSON was not saved:",
+                  annotationError,
+                );
+              }
+
+              setLocalFinding((current: any) => {
+                const baseFinding = current || finding;
+                const nextPhotos = (baseFinding.photos || []).map(
+                  (photo: any) =>
+                    String(photo.id) === photoId
+                      ? {
+                          ...photo,
+                          ...savedPhoto,
+                          signed_url: fullPublicData.publicUrl,
+                          signed_thumbnail_url: thumbPublicData.publicUrl,
+                        }
+                      : photo,
+                );
+
+                return {
+                  ...baseFinding,
+                  photos: nextPhotos,
+                };
+              });
+
+              showMessage("success", "Marked-up photo saved to the report.");
+              setShowMarkupEditor(false);
+              setMarkupPhoto(null);
+
+              document.body.style.removeProperty("overflow");
+              document.documentElement.style.removeProperty("overflow");
+              document.body.style.removeProperty("touch-action");
+              document.documentElement.style.removeProperty("touch-action");
+            }}
+          />
         )}
 
         <div className="mb-4 w-full max-w-full overflow-x-hidden rounded-xl border border-purple-500/50 bg-purple-500/10 p-3 sm:p-4">

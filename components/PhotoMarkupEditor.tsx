@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useEffect, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import {
   Stage,
   Layer,
@@ -30,7 +30,7 @@ type Props = {
   imageUrl: string;
   severity?: string | null;
   initialItems?: MarkupItem[];
-  onSave: (items: MarkupItem[]) => void | Promise<void>;
+  onSave: (items: MarkupItem[], flattenedDataUrl: string) => void | Promise<void>;
   onCancel?: () => void;
 };
 
@@ -138,6 +138,8 @@ function PhotoMarkupEditor({
   onSave,
   onCancel,
 }: Props) {
+  const stageRef = useRef<any>(null);
+  const saveTimeoutRef = useRef<number | null>(null);
   const [image] = useImage(imageUrl, "anonymous");
   const [items, setItems] = useState<MarkupItem[]>(initialItems);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -150,6 +152,25 @@ function PhotoMarkupEditor({
   const [activeColor, setActiveColor] = useState(() =>
     getSeverityColor(severity)
   );
+
+  useEffect(() => {
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        window.clearTimeout(saveTimeoutRef.current);
+      }
+
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+      document.body.style.removeProperty("touch-action");
+      document.documentElement.style.removeProperty("touch-action");
+    };
+  }, []);
 
   useEffect(() => {
     if (items.length === 0) setActiveColor(getSeverityColor(severity));
@@ -305,23 +326,55 @@ function PhotoMarkupEditor({
   async function save() {
     if (saving) return;
 
+    const stage = stageRef.current;
+
+    if (!stage) {
+      showMessage("error", "The markup canvas is not ready yet.");
+      return;
+    }
+
     setSaving(true);
     setSaveLabel("Saving...");
     setMessage("");
     setMessageType("");
 
     try {
-      await onSave(items);
+      // Export the visible photo and markup as one permanent image.
+      const flattenedDataUrl = stage.toDataURL({
+        pixelRatio: 2,
+        mimeType: "image/jpeg",
+        quality: 0.9,
+      });
+
+      await Promise.race([
+        Promise.resolve(onSave(items, flattenedDataUrl)),
+        new Promise((_, reject) => {
+          saveTimeoutRef.current = window.setTimeout(() => {
+            reject(
+              new Error(
+                "Saving took too long. Check your connection and try again.",
+              ),
+            );
+          }, 30000);
+        }),
+      ]);
+
+      if (saveTimeoutRef.current) {
+        window.clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = null;
+      }
+
       setSaveLabel("Saved!");
       showMessage("success", "Photo markup saved.");
     } catch (error: any) {
+      if (saveTimeoutRef.current) {
+        window.clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = null;
+      }
+
       setSaveLabel("Failed");
       showMessage("error", error?.message || "Failed to save photo markup.");
-    } finally {
-      window.setTimeout(() => {
-        setSaving(false);
-        setSaveLabel("Save");
-      }, 700);
+      setSaving(false);
     }
   }
 
@@ -337,9 +390,15 @@ function PhotoMarkupEditor({
       <div className="flex items-center justify-between border-b border-white/10 bg-black px-5 py-4">
         <button
           type="button"
-          onClick={onCancel}
-          disabled={saving}
-          className="inline-flex items-center justify-center rounded-xl px-3 py-2 text-lg font-semibold text-white transition active:scale-[0.96] hover:text-slate-300 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
+          onClick={() => {
+            if (saveTimeoutRef.current) {
+              window.clearTimeout(saveTimeoutRef.current);
+              saveTimeoutRef.current = null;
+            }
+            setSaving(false);
+            onCancel?.();
+          }}
+          className="inline-flex items-center justify-center rounded-xl px-3 py-2 text-lg font-semibold text-white transition active:scale-[0.96] hover:text-slate-300 [touch-action:manipulation]"
         >
           Cancel
         </button>
@@ -378,6 +437,7 @@ function PhotoMarkupEditor({
         onTouchMove={(event) => event.preventDefault()}
       >
         <Stage
+          ref={stageRef}
           width={stageWidth}
           height={stageHeight}
           onMouseDown={handleStagePointerDown}
