@@ -770,10 +770,11 @@ export default function FieldCamera({
         type="button"
         onClick={async () => {
           setSessionCaptureCount(0);
+          setCameraError("");
+          setMessage("");
 
           if (nativeCameraAvailable()) {
             setStarting(true);
-            setCameraError("");
 
             try {
               const files = await openNativeFieldCamera({
@@ -782,20 +783,32 @@ export default function FieldCamera({
                 preferredMode: captureMode,
               });
 
-              if (files.length > 0) {
+              // Closing or cancelling the native camera is a normal result.
+              // Never open the legacy web camera after the native camera closes.
+              if (files.length === 0) {
+                setMessage("Field Camera closed.");
+                return;
+              }
+
+              try {
                 onAddMedia(files);
-                setSessionCaptureCount(files.length);
-                setMessage(
-                  `${files.length} native camera item${files.length === 1 ? "" : "s"} added.`,
+              } catch (addError: any) {
+                throw new Error(
+                  addError?.message ||
+                    "The captured media could not be added to the Field Tool.",
                 );
               }
+
+              setSessionCaptureCount(files.length);
+              setMessage(
+                `${files.length} native camera item${files.length === 1 ? "" : "s"} added.`,
+              );
             } catch (error: any) {
+              setOpen(false);
               setCameraError(
                 error?.message ||
-                  "Native camera failed. Opening the fallback camera.",
+                  "The native camera could not return the captured media.",
               );
-              setOpen(true);
-              window.setTimeout(() => void startCamera(facingMode), 50);
             } finally {
               setStarting(false);
             }
@@ -803,6 +816,7 @@ export default function FieldCamera({
             return;
           }
 
+          // The web camera is used only outside a native Capacitor app.
           setOpen(true);
           window.setTimeout(() => void startCamera(facingMode), 50);
         }}

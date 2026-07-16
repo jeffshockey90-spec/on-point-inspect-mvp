@@ -32,17 +32,53 @@ export function nativeCameraAvailable() {
 }
 
 async function nativePathToFile(item: NativeCapturedMedia): Promise<File> {
-  const src = Capacitor.convertFileSrc(item.path);
-  const response = await fetch(src);
-  if (!response.ok) {
-    throw new Error(`Could not read native ${item.mediaType}.`);
+  const rawPath = String(item.path || "").trim();
+
+  if (!rawPath) {
+    throw new Error(`Native ${item.mediaType} did not include a file path.`);
   }
 
-  const blob = await response.blob();
-  return new File([blob], item.fileName, {
-    type: item.mimeType || blob.type || "application/octet-stream",
-    lastModified: Date.now(),
-  });
+  const pathWithoutScheme = rawPath.replace(/^file:\/\//i, "");
+  const candidates = Array.from(
+    new Set(
+      [
+        Capacitor.convertFileSrc(rawPath),
+        Capacitor.convertFileSrc(pathWithoutScheme),
+        rawPath,
+      ].filter(Boolean),
+    ),
+  );
+
+  let lastError = "";
+
+  for (const src of candidates) {
+    try {
+      const response = await fetch(src);
+
+      if (!response.ok) {
+        lastError = `HTTP ${response.status}`;
+        continue;
+      }
+
+      const blob = await response.blob();
+
+      if (!blob.size) {
+        lastError = "The native file was empty.";
+        continue;
+      }
+
+      return new File([blob], item.fileName, {
+        type: item.mimeType || blob.type || "application/octet-stream",
+        lastModified: Date.now(),
+      });
+    } catch (error: any) {
+      lastError = error?.message || "File read failed.";
+    }
+  }
+
+  throw new Error(
+    `Could not read native ${item.mediaType}. ${lastError}`.trim(),
+  );
 }
 
 export async function openNativeFieldCamera(
@@ -58,5 +94,23 @@ export async function openNativeFieldCamera(
 
   if (result?.cancelled || !Array.isArray(result?.media)) return [];
 
-  return await Promise.all(result.media.map(nativePathToFile));
+  const settled = await Promise.allSettled(
+    result.media.map(nativePathToFile),
+  );
+
+  const files = settled.flatMap((entry) =>
+    entry.status === "fulfilled" ? [entry.value] : [],
+  );
+
+  if (files.length > 0) return files;
+
+  const firstFailure = settled.find(
+    (entry): entry is PromiseRejectedResult => entry.status === "rejected",
+  );
+
+  if (firstFailure) {
+    throw firstFailure.reason;
+  }
+
+  return [];
 }
