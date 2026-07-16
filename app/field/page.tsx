@@ -3894,285 +3894,7 @@ function FieldPageContent() {
             />
 
             {photoType === "finding" && (
-              <div className="rounded-2xl border border-purple-500/30 bg-purple-500/10 p-4">
-                <div className="mb-3">
-                  <p className="text-xs font-black uppercase tracking-[0.22em] text-purple-300">
-                    Step 2
-                </p>
-                <h2 className="text-xl font-black text-white">
-                  Let AI Help Write It
-                </h2>
-                <p className="mt-1 text-sm text-slate-300">
-                  Take a photo first, analyze it as a defect, scan it as
-                  equipment, dictate a finding, or type a rough note and
-                  generate from the note.
-                </p>
-              </div>
-
-              <div className="grid gap-3 md:grid-cols-4">
-                <button
-                  type="button"
-                  onClick={analyzePhotoWithAI}
-                  disabled={
-                    analyzingPhoto ||
-                    analyzingEquipment ||
-                    generating ||
-                    dictating ||
-                    saving ||
-                    savingEquipment ||
-                    !online ||
-                    !photos.some((photo) => photo.type.startsWith("image/"))
-                  }
-                  className="w-full rounded-xl border border-purple-500 bg-purple-500/10 p-4 text-lg font-bold text-purple-200 transition active:scale-[0.98] hover:bg-purple-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
-                >
-                  {analyzingPhoto ? "Analyzing Defect..." : "🤖 Analyze Defect"}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={analyzeEquipmentWithAI}
-                  disabled={
-                    analyzingEquipment ||
-                    analyzingPhoto ||
-                    generating ||
-                    dictating ||
-                    saving ||
-                    savingEquipment ||
-                    !online ||
-                    !photos.some((photo) => photo.type.startsWith("image/"))
-                  }
-                  className="w-full rounded-xl border border-cyan-500 bg-cyan-500/10 p-4 text-lg font-bold text-cyan-200 transition active:scale-[0.98] hover:bg-cyan-500 hover:text-black disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
-                >
-                  {analyzingEquipment
-                    ? "Analyzing Equipment..."
-                    : "🔧 Analyze Equipment"}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={dictateFinding}
-                  disabled={
-                    generating ||
-                    analyzingPhoto ||
-                    analyzingEquipment ||
-                    saving ||
-                    savingEquipment
-                  }
-                  className="w-full rounded-xl border border-emerald-500 bg-emerald-500/10 p-4 text-lg font-bold text-emerald-200 transition active:scale-[0.98] hover:bg-emerald-500 hover:text-black disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
-                >
-                  {dictating ? "⏹ Stop Listening" : "🎤 Dictate Finding"}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={generateWithAI}
-                  disabled={
-                    generating ||
-                    dictating ||
-                    analyzingPhoto ||
-                    analyzingEquipment ||
-                    saving ||
-                    savingEquipment ||
-                    !online
-                  }
-                  className="w-full rounded-xl bg-teal-500 p-4 text-lg font-bold text-black transition active:scale-[0.98] hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
-                >
-                  {generating
-                    ? "Generating AI Finding..."
-                    : online
-                      ? "✍️ Generate From Note"
-                      : "AI Available When Back Online"}
-                </button>
-              </div>
-            </div>
-            )}
-
-            {equipmentResult && !equipmentResult.error && (
-              <div className="rounded-2xl border border-cyan-500/40 bg-cyan-950/20 p-4">
-                <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-300">
-                      Equipment Detected
-                    </p>
-                    <h2 className="mt-1 text-xl font-black text-white">
-                      {cleanEquipmentValue(equipmentResult.manufacturer) ||
-                        "Equipment"}{" "}
-                      {cleanEquipmentValue(equipmentResult.equipmentType)}
-                    </h2>
-                    <p className="mt-1 text-sm text-slate-300">
-                      {shouldCreateEquipmentFinding(equipmentResult)
-                        ? "This will save to Equipment Inventory and create a report finding because the analyzer found a reportable condition."
-                        : "This will save to Equipment Inventory only and will not count as a defect."}
-                    </p>
-                  </div>
-
-                  <span className="rounded-full border border-cyan-400/50 bg-cyan-400/10 px-3 py-1 text-xs font-black text-cyan-200">
-                    {shouldCreateEquipmentFinding(equipmentResult)
-                      ? "Equipment + Finding"
-                      : "Inventory Only"}
-                  </span>
-                </div>
-
-                <EquipmentCard equipment={equipmentResult} />
-
-                {equipmentResult.clientSummary && (
-                  <div className="mt-4 rounded-xl border border-slate-700 bg-black/30 p-4 text-sm leading-6 text-slate-200">
-                    {equipmentResult.clientSummary}
-                  </div>
-                )}
-
-                <button
-                  type="button"
-                  onClick={saveEquipmentFromFieldTool}
-                  disabled={savingEquipment || analyzingEquipment || saving}
-                  className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-cyan-400 px-5 py-3 text-sm font-black text-black transition active:scale-[0.98] hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
-                >
-                  {savingEquipment && (
-                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                  )}
-                  {savingEquipment ? equipmentSaveLabel : equipmentSaveLabel}
-                </button>
-              </div>
-            )}
-
-            {photoType === "existing_finding" && (
-              <div className="rounded-2xl border border-purple-500/40 bg-purple-500/10 p-4">
-                <div className="mb-3">
-                  <p className="text-xs font-black uppercase tracking-[0.22em] text-purple-300">
-                    Attach Without Duplicating
-                  </p>
-                  <h2 className="mt-1 text-xl font-black text-white">
-                    Select Existing Finding
-                  </h2>
-                  <p className="mt-1 text-sm text-purple-100/80">
-                    The finding wording, severity, and current media stay unchanged.
-                  </p>
-                </div>
-
-                <input
-                  value={existingFindingSearch}
-                  onChange={(event) =>
-                    setExistingFindingSearch(event.target.value)
-                  }
-                  placeholder="Search title, section, or severity..."
-                  className="mb-4 w-full rounded-xl border border-slate-700 bg-black px-4 py-3 text-white outline-none focus:border-purple-400"
-                />
-
-                {loadingExistingFindings ? (
-                  <div className="rounded-xl border border-slate-700 bg-black/40 p-4 text-sm font-bold text-slate-300">
-                    Loading report findings...
-                  </div>
-                ) : groupedExistingFindings.length === 0 ? (
-                  <div className="rounded-xl border border-slate-700 bg-black/40 p-4 text-sm font-bold text-slate-300">
-                    No matching findings were found.
-                  </div>
-                ) : (
-                  <div className="max-h-[430px] space-y-4 overflow-y-auto pr-1">
-                    {groupedExistingFindings.map(([groupSection, findings]) => (
-                      <div key={groupSection}>
-                        <p className="mb-2 text-xs font-black uppercase tracking-[0.18em] text-purple-200">
-                          {groupSection}
-                        </p>
-
-                        <div className="grid gap-2">
-                          {findings.map((finding) => {
-                            const selected =
-                              String(existingFindingId) === String(finding.id);
-
-                            return (
-                              <button
-                                key={finding.id}
-                                type="button"
-                                onClick={() =>
-                                  setExistingFindingId(String(finding.id))
-                                }
-                                className={`w-full rounded-xl border p-3 text-left transition active:scale-[0.99] [touch-action:manipulation] ${
-                                  selected
-                                    ? "border-purple-300 bg-purple-500/30 ring-2 ring-purple-300/40"
-                                    : "border-slate-700 bg-black/50 hover:border-purple-500/60 hover:bg-black/70"
-                                }`}
-                              >
-                                <div className="flex items-start justify-between gap-3">
-                                  <div className="min-w-0">
-                                    <p className="break-words font-black text-white">
-                                      {finding.title || "Untitled Finding"}
-                                    </p>
-                                    <p className="mt-1 text-xs font-bold text-slate-400">
-                                      {finding.severity || "No severity"}
-                                    </p>
-                                  </div>
-
-                                  <span
-                                    className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-black ${
-                                      selected
-                                        ? "bg-purple-300 text-purple-950"
-                                        : "border border-slate-600 text-slate-300"
-                                    }`}
-                                  >
-                                    {selected ? "Selected" : "Choose"}
-                                  </span>
-                                </div>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {selectedExistingFinding && (
-                  <div className="mt-4 rounded-xl border border-purple-400/50 bg-black/40 p-3">
-                    <p className="text-xs font-black uppercase tracking-[0.18em] text-purple-300">
-                      Adding Media To
-                    </p>
-                    <p className="mt-1 font-black text-white">
-                      {selectedExistingFinding.title || "Untitled Finding"}
-                    </p>
-                    <p className="mt-1 text-xs font-bold text-slate-400">
-                      {selectedExistingFinding.section || "General"} ·{" "}
-                      {selectedExistingFinding.severity || "No severity"}
-                    </p>
-
-                    <div className="mt-3">
-                      <div className="mb-2 flex items-center justify-between gap-2">
-                        <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-300">
-                          Current Media
-                        </p>
-                        <span className="text-xs font-bold text-slate-400">
-                          {loadingExistingFindingMedia
-                            ? "Loading..."
-                            : `${existingFindingMedia.length} item${
-                                existingFindingMedia.length === 1 ? "" : "s"
-                              }`}
-                        </span>
-                      </div>
-
-                      {loadingExistingFindingMedia ? (
-                        <div className="rounded-lg border border-slate-700 p-3 text-xs font-bold text-slate-400">
-                          Loading attached media...
-                        </div>
-                      ) : existingFindingMedia.length > 0 ? (
-                        <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
-                          {existingFindingMedia.map((media) => (
-                            <ExistingFindingMediaPreview
-                              key={String(media.id)}
-                              media={media}
-                            />
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="rounded-lg border border-dashed border-slate-600 p-3 text-xs font-bold text-slate-400">
-                          No media is currently attached.
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div className="rounded-2xl border border-slate-700 bg-black/30 p-4">
+              <div className="rounded-2xl border border-slate-700 bg-black/30 p-4">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <div>
                   <p className="text-xs font-black uppercase tracking-[0.22em] text-teal-300">
@@ -4527,7 +4249,285 @@ function FieldPageContent() {
             </div>
             )}
 
-            {photoType === "finding" && (
+<div className="rounded-2xl border border-purple-500/30 bg-purple-500/10 p-4">
+                <div className="mb-3">
+                  <p className="text-xs font-black uppercase tracking-[0.22em] text-purple-300">
+                    Step 2
+                </p>
+                <h2 className="text-xl font-black text-white">
+                  Let AI Help Write It
+                </h2>
+                <p className="mt-1 text-sm text-slate-300">
+                  Take a photo first, analyze it as a defect, scan it as
+                  equipment, dictate a finding, or type a rough note and
+                  generate from the note.
+                </p>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-4">
+                <button
+                  type="button"
+                  onClick={analyzePhotoWithAI}
+                  disabled={
+                    analyzingPhoto ||
+                    analyzingEquipment ||
+                    generating ||
+                    dictating ||
+                    saving ||
+                    savingEquipment ||
+                    !online ||
+                    !photos.some((photo) => photo.type.startsWith("image/"))
+                  }
+                  className="w-full rounded-xl border border-purple-500 bg-purple-500/10 p-4 text-lg font-bold text-purple-200 transition active:scale-[0.98] hover:bg-purple-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
+                >
+                  {analyzingPhoto ? "Analyzing Defect..." : "🤖 Analyze Defect"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={analyzeEquipmentWithAI}
+                  disabled={
+                    analyzingEquipment ||
+                    analyzingPhoto ||
+                    generating ||
+                    dictating ||
+                    saving ||
+                    savingEquipment ||
+                    !online ||
+                    !photos.some((photo) => photo.type.startsWith("image/"))
+                  }
+                  className="w-full rounded-xl border border-cyan-500 bg-cyan-500/10 p-4 text-lg font-bold text-cyan-200 transition active:scale-[0.98] hover:bg-cyan-500 hover:text-black disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
+                >
+                  {analyzingEquipment
+                    ? "Analyzing Equipment..."
+                    : "🔧 Analyze Equipment"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={dictateFinding}
+                  disabled={
+                    generating ||
+                    analyzingPhoto ||
+                    analyzingEquipment ||
+                    saving ||
+                    savingEquipment
+                  }
+                  className="w-full rounded-xl border border-emerald-500 bg-emerald-500/10 p-4 text-lg font-bold text-emerald-200 transition active:scale-[0.98] hover:bg-emerald-500 hover:text-black disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
+                >
+                  {dictating ? "⏹ Stop Listening" : "🎤 Dictate Finding"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={generateWithAI}
+                  disabled={
+                    generating ||
+                    dictating ||
+                    analyzingPhoto ||
+                    analyzingEquipment ||
+                    saving ||
+                    savingEquipment ||
+                    !online
+                  }
+                  className="w-full rounded-xl bg-teal-500 p-4 text-lg font-bold text-black transition active:scale-[0.98] hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
+                >
+                  {generating
+                    ? "Generating AI Finding..."
+                    : online
+                      ? "✍️ Generate From Note"
+                      : "AI Available When Back Online"}
+                </button>
+              </div>
+            </div>
+            )}
+
+            {equipmentResult && !equipmentResult.error && (
+              <div className="rounded-2xl border border-cyan-500/40 bg-cyan-950/20 p-4">
+                <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-300">
+                      Equipment Detected
+                    </p>
+                    <h2 className="mt-1 text-xl font-black text-white">
+                      {cleanEquipmentValue(equipmentResult.manufacturer) ||
+                        "Equipment"}{" "}
+                      {cleanEquipmentValue(equipmentResult.equipmentType)}
+                    </h2>
+                    <p className="mt-1 text-sm text-slate-300">
+                      {shouldCreateEquipmentFinding(equipmentResult)
+                        ? "This will save to Equipment Inventory and create a report finding because the analyzer found a reportable condition."
+                        : "This will save to Equipment Inventory only and will not count as a defect."}
+                    </p>
+                  </div>
+
+                  <span className="rounded-full border border-cyan-400/50 bg-cyan-400/10 px-3 py-1 text-xs font-black text-cyan-200">
+                    {shouldCreateEquipmentFinding(equipmentResult)
+                      ? "Equipment + Finding"
+                      : "Inventory Only"}
+                  </span>
+                </div>
+
+                <EquipmentCard equipment={equipmentResult} />
+
+                {equipmentResult.clientSummary && (
+                  <div className="mt-4 rounded-xl border border-slate-700 bg-black/30 p-4 text-sm leading-6 text-slate-200">
+                    {equipmentResult.clientSummary}
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={saveEquipmentFromFieldTool}
+                  disabled={savingEquipment || analyzingEquipment || saving}
+                  className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-cyan-400 px-5 py-3 text-sm font-black text-black transition active:scale-[0.98] hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
+                >
+                  {savingEquipment && (
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  )}
+                  {savingEquipment ? equipmentSaveLabel : equipmentSaveLabel}
+                </button>
+              </div>
+            )}
+
+            {photoType === "existing_finding" && (
+              <div className="rounded-2xl border border-purple-500/40 bg-purple-500/10 p-4">
+                <div className="mb-3">
+                  <p className="text-xs font-black uppercase tracking-[0.22em] text-purple-300">
+                    Attach Without Duplicating
+                  </p>
+                  <h2 className="mt-1 text-xl font-black text-white">
+                    Select Existing Finding
+                  </h2>
+                  <p className="mt-1 text-sm text-purple-100/80">
+                    The finding wording, severity, and current media stay unchanged.
+                  </p>
+                </div>
+
+                <input
+                  value={existingFindingSearch}
+                  onChange={(event) =>
+                    setExistingFindingSearch(event.target.value)
+                  }
+                  placeholder="Search title, section, or severity..."
+                  className="mb-4 w-full rounded-xl border border-slate-700 bg-black px-4 py-3 text-white outline-none focus:border-purple-400"
+                />
+
+                {loadingExistingFindings ? (
+                  <div className="rounded-xl border border-slate-700 bg-black/40 p-4 text-sm font-bold text-slate-300">
+                    Loading report findings...
+                  </div>
+                ) : groupedExistingFindings.length === 0 ? (
+                  <div className="rounded-xl border border-slate-700 bg-black/40 p-4 text-sm font-bold text-slate-300">
+                    No matching findings were found.
+                  </div>
+                ) : (
+                  <div className="max-h-[430px] space-y-4 overflow-y-auto pr-1">
+                    {groupedExistingFindings.map(([groupSection, findings]) => (
+                      <div key={groupSection}>
+                        <p className="mb-2 text-xs font-black uppercase tracking-[0.18em] text-purple-200">
+                          {groupSection}
+                        </p>
+
+                        <div className="grid gap-2">
+                          {findings.map((finding) => {
+                            const selected =
+                              String(existingFindingId) === String(finding.id);
+
+                            return (
+                              <button
+                                key={finding.id}
+                                type="button"
+                                onClick={() =>
+                                  setExistingFindingId(String(finding.id))
+                                }
+                                className={`w-full rounded-xl border p-3 text-left transition active:scale-[0.99] [touch-action:manipulation] ${
+                                  selected
+                                    ? "border-purple-300 bg-purple-500/30 ring-2 ring-purple-300/40"
+                                    : "border-slate-700 bg-black/50 hover:border-purple-500/60 hover:bg-black/70"
+                                }`}
+                              >
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="min-w-0">
+                                    <p className="break-words font-black text-white">
+                                      {finding.title || "Untitled Finding"}
+                                    </p>
+                                    <p className="mt-1 text-xs font-bold text-slate-400">
+                                      {finding.severity || "No severity"}
+                                    </p>
+                                  </div>
+
+                                  <span
+                                    className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-black ${
+                                      selected
+                                        ? "bg-purple-300 text-purple-950"
+                                        : "border border-slate-600 text-slate-300"
+                                    }`}
+                                  >
+                                    {selected ? "Selected" : "Choose"}
+                                  </span>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {selectedExistingFinding && (
+                  <div className="mt-4 rounded-xl border border-purple-400/50 bg-black/40 p-3">
+                    <p className="text-xs font-black uppercase tracking-[0.18em] text-purple-300">
+                      Adding Media To
+                    </p>
+                    <p className="mt-1 font-black text-white">
+                      {selectedExistingFinding.title || "Untitled Finding"}
+                    </p>
+                    <p className="mt-1 text-xs font-bold text-slate-400">
+                      {selectedExistingFinding.section || "General"} ·{" "}
+                      {selectedExistingFinding.severity || "No severity"}
+                    </p>
+
+                    <div className="mt-3">
+                      <div className="mb-2 flex items-center justify-between gap-2">
+                        <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-300">
+                          Current Media
+                        </p>
+                        <span className="text-xs font-bold text-slate-400">
+                          {loadingExistingFindingMedia
+                            ? "Loading..."
+                            : `${existingFindingMedia.length} item${
+                                existingFindingMedia.length === 1 ? "" : "s"
+                              }`}
+                        </span>
+                      </div>
+
+                      {loadingExistingFindingMedia ? (
+                        <div className="rounded-lg border border-slate-700 p-3 text-xs font-bold text-slate-400">
+                          Loading attached media...
+                        </div>
+                      ) : existingFindingMedia.length > 0 ? (
+                        <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+                          {existingFindingMedia.map((media) => (
+                            <ExistingFindingMediaPreview
+                              key={String(media.id)}
+                              media={media}
+                            />
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="rounded-lg border border-dashed border-slate-600 p-3 text-xs font-bold text-slate-400">
+                          No media is currently attached.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+                        {photoType === "finding" && (
               <div className="rounded-2xl border border-slate-700 bg-black/20 p-4">
                 <p className="mb-3 text-xs font-black uppercase tracking-[0.22em] text-cyan-300">
                   Step 4
