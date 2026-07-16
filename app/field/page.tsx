@@ -1086,7 +1086,9 @@ function FieldPageContent() {
 
   const [nativeApp, setNativeApp] = useState(false);
   const [voiceOnlyOpen, setVoiceOnlyOpen] = useState(false);
-  const [assistantTab, setAssistantTab] = useState<"live" | "coach">("live");
+  const [assistantTab, setAssistantTab] = useState<
+    "live" | "coach" | "copilot" | "review"
+  >("live");
 
   useEffect(() => {
     setNativeApp(isNativeCapacitorApp());
@@ -4551,34 +4553,60 @@ function FieldPageContent() {
             </div>
 
             <div className="overflow-hidden rounded-2xl border border-slate-700 bg-black/25">
-              <div className="grid grid-cols-2 border-b border-slate-700 bg-slate-950/80 p-1">
-                <button
-                  type="button"
-                  onClick={() => setAssistantTab("live")}
-                  className={`min-h-[44px] rounded-xl px-3 py-2 text-sm font-black transition [touch-action:manipulation] ${
-                    assistantTab === "live"
-                      ? "bg-cyan-400 text-black"
-                      : "text-slate-300 hover:bg-slate-800"
-                  }`}
-                >
-                  📹 Live AI Inspector
-                </button>
+              <div className="overflow-x-auto border-b border-slate-700 bg-slate-950/80 p-1">
+                <div className="grid min-w-[640px] grid-cols-4 gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setAssistantTab("live")}
+                    className={`min-h-[44px] rounded-xl px-3 py-2 text-sm font-black transition [touch-action:manipulation] ${
+                      assistantTab === "live"
+                        ? "bg-cyan-400 text-black"
+                        : "text-slate-300 hover:bg-slate-800"
+                    }`}
+                  >
+                    📹 Live Camera
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={() => setAssistantTab("coach")}
-                  className={`min-h-[44px] rounded-xl px-3 py-2 text-sm font-black transition [touch-action:manipulation] ${
-                    assistantTab === "coach"
-                      ? "bg-purple-400 text-black"
-                      : "text-slate-300 hover:bg-slate-800"
-                  }`}
-                >
-                  🧭 Section Coach
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => setAssistantTab("coach")}
+                    className={`min-h-[44px] rounded-xl px-3 py-2 text-sm font-black transition [touch-action:manipulation] ${
+                      assistantTab === "coach"
+                        ? "bg-emerald-400 text-black"
+                        : "text-slate-300 hover:bg-slate-800"
+                    }`}
+                  >
+                    🧭 Section Coach
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setAssistantTab("copilot")}
+                    className={`min-h-[44px] rounded-xl px-3 py-2 text-sm font-black transition [touch-action:manipulation] ${
+                      assistantTab === "copilot"
+                        ? "bg-indigo-400 text-black"
+                        : "text-slate-300 hover:bg-slate-800"
+                    }`}
+                  >
+                    ✨ AI Assistant
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setAssistantTab("review")}
+                    className={`min-h-[44px] rounded-xl px-3 py-2 text-sm font-black transition [touch-action:manipulation] ${
+                      assistantTab === "review"
+                        ? "bg-purple-400 text-black"
+                        : "text-slate-300 hover:bg-slate-800"
+                    }`}
+                  >
+                    🔎 Live Review
+                  </button>
+                </div>
               </div>
 
               <div className="p-3">
-                {assistantTab === "live" ? (
+                {assistantTab === "live" && (
                   <AILiveInspectionCamera
                     online={online}
                     selectedReport={selectedReport}
@@ -4588,11 +4616,34 @@ function FieldPageContent() {
                     onAddPhotoOnly={addLiveCameraFrameOnly}
                     onScanDataPlate={startLiveCameraDataPlateScan}
                   />
-                ) : (
+                )}
+
+                {assistantTab === "coach" && (
                   <LiveSectionCoach
                     inspectionId={selectedReport}
                     section={section}
                     online={online}
+                  />
+                )}
+
+                {assistantTab === "copilot" &&
+                  (selectedReport ? (
+                    <InspectionCopilotPanel
+                      inspectionId={String(selectedReport)}
+                      compact
+                    />
+                  ) : (
+                    <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm font-bold text-amber-100">
+                      Select a report to use the AI Inspector Assistant.
+                    </div>
+                  ))}
+
+                {assistantTab === "review" && (
+                  <AISecondInspector
+                    suggestions={aiSuggestions}
+                    onAccept={acceptAiSuggestion}
+                    onIgnore={ignoreAiSuggestion}
+                    onClear={() => setAiSuggestions([])}
                   />
                 )}
               </div>
@@ -4731,29 +4782,10 @@ function FieldPageContent() {
               </button>
             )}
 
-            <LiveSectionCoach
-              inspectionId={selectedReport}
-              section={section}
-              online={online}
-            />
           </div>
         </div>
 
         <div className="space-y-4 lg:sticky lg:top-4 lg:self-start">
-          {selectedReport && (
-            <InspectionCopilotPanel
-              inspectionId={String(selectedReport)}
-              compact
-            />
-          )}
-
-          <AISecondInspector
-            suggestions={aiSuggestions}
-            onAccept={acceptAiSuggestion}
-            onIgnore={ignoreAiSuggestion}
-            onClear={() => setAiSuggestions([])}
-          />
-
           <CommentLibrary onUseComment={useComment} />
         </div>
       </div>
