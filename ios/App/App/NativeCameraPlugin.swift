@@ -3,13 +3,15 @@ import Capacitor
 import AVFoundation
 import Photos
 import UIKit
+import AudioToolbox
 
 @objc(NativeCameraPlugin)
 public class NativeCameraPlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "NativeCameraPlugin"
     public let jsName = "NativeCamera"
     public let pluginMethods: [CAPPluginMethod] = [
-        CAPPluginMethod(name: "open", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "open", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "readFileChunk", returnType: CAPPluginReturnPromise)
     ]
 
     @objc func open(_ call: CAPPluginCall) {
@@ -34,6 +36,53 @@ public class NativeCameraPlugin: CAPPlugin, CAPBridgedPlugin {
 
             controller.modalPresentationStyle = .fullScreen
             host.present(controller, animated: true)
+        }
+    }
+
+    @objc func readFileChunk(_ call: CAPPluginCall) {
+        guard let rawPath = call.getString("path"), !rawPath.isEmpty else {
+            call.reject("Missing native media path.")
+            return
+        }
+
+        let offset = max(0, call.getInt("offset") ?? 0)
+        let requestedLength = min(
+            2 * 1024 * 1024,
+            max(1, call.getInt("length") ?? 1024 * 1024)
+        )
+
+        let path: String
+        if rawPath.hasPrefix("file://"),
+           let url = URL(string: rawPath) {
+            path = url.path
+        } else {
+            path = rawPath
+        }
+
+        guard FileManager.default.fileExists(atPath: path) else {
+            call.reject("Native media file no longer exists.")
+            return
+        }
+
+        do {
+            let handle = try FileHandle(forReadingFrom: URL(fileURLWithPath: path))
+            defer { try? handle.close() }
+
+            try handle.seek(toOffset: UInt64(offset))
+            let data = try handle.read(upToCount: requestedLength) ?? Data()
+            let attributes = try FileManager.default.attributesOfItem(atPath: path)
+            let totalSize = (attributes[.size] as? NSNumber)?.intValue ?? 0
+            let nextOffset = offset + data.count
+
+            call.resolve([
+                "base64": data.base64EncodedString(),
+                "bytesRead": data.count,
+                "nextOffset": nextOffset,
+                "totalSize": totalSize,
+                "eof": nextOffset >= totalSize || data.isEmpty
+            ])
+        } catch {
+            call.reject("Could not read native media: \(error.localizedDescription)")
         }
     }
 }
@@ -317,11 +366,19 @@ private final class NativeFieldCameraViewController:
         }
 
         if movieOutput.isRecording {
+            AudioServicesPlaySystemSound(1114)
             movieOutput.stopRecording()
         } else {
+            AudioServicesPlaySystemSound(1113)
+
             let url = FileManager.default.temporaryDirectory
                 .appendingPathComponent("opi-video-\(UUID().uuidString).mov")
-            movieOutput.startRecording(to: url, recordingDelegate: self)
+
+            movieOutput.startRecording(
+                to: url,
+                recordingDelegate: self
+            )
+
             recordingStartedAt = Date()
             recordingLabel.isHidden = false
             recordingLabel.text = "REC 00:00"
