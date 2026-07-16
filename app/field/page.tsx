@@ -57,7 +57,7 @@ const SEVERITIES = [
   "Major Concern",
 ];
 
-type PhotoType = "finding" | "existing_finding" | "reference_photo";
+type PhotoType = "finding" | "existing_finding" | "reference_photo" | "limitation";
 
 type UploadedPhoto = {
   publicUrl: string;
@@ -1027,6 +1027,8 @@ function FieldPageContent() {
   const [generating, setGenerating] = useState(false);
   const [dictating, setDictating] = useState(false);
   const [analyzingPhoto, setAnalyzingPhoto] = useState(false);
+  const [analyzingLimitation, setAnalyzingLimitation] = useState(false);
+  const limitationAutoAnalyzedRef = useRef("");
   const [analyzingEquipment, setAnalyzingEquipment] = useState(false);
   const [equipmentResult, setEquipmentResult] =
     useState<EquipmentResult | null>(null);
@@ -1427,12 +1429,31 @@ function FieldPageContent() {
     [existingFindings, existingFindingId],
   );
 
+  const cameraDestinationLabel = useMemo(() => {
+    if (photoType === "existing_finding") {
+      return selectedExistingFinding?.title
+        ? `Existing Finding: ${selectedExistingFinding.title}`
+        : "Existing Finding — select one first";
+    }
+
+    if (photoType === "reference_photo") {
+      return `Reference Photos: ${section}`;
+    }
+
+    if (photoType === "limitation") {
+      return `Section Limitation: ${section}`;
+    }
+
+    return `New Finding: ${section}`;
+  }, [photoType, selectedExistingFinding, section]);
+
   function resetForm() {
     setTitle("");
     setPhotoType("finding");
     setExistingFindingId("");
     setExistingFindingSearch("");
     setExistingFindingMedia([]);
+    limitationAutoAnalyzedRef.current = "";
     setSection("Exterior");
     setSeverity("Recommended Repair");
     setNote("");
@@ -1485,10 +1506,28 @@ function FieldPageContent() {
     );
   }
 
+  function setLimitationMode() {
+    setPhotoType("limitation");
+    limitationAutoAnalyzedRef.current = "";
+    setExistingFindingId("");
+    setExistingFindingSearch("");
+    setExistingFindingMedia([]);
+    setTitle("");
+    setSeverity("Informational");
+    setObservation("");
+    setImplication("");
+    setRecommendation("");
+    setMessage(
+      "Section limitation mode selected. Choose a section, enter the limitation wording, then capture or choose one photo.",
+    );
+  }
+
   function addFiles(nextFiles: File[]) {
     const validFiles = nextFiles.filter((file) => {
-      if (photoType === "reference_photo")
+      if (photoType === "reference_photo" || photoType === "limitation") {
         return file.type.startsWith("image/");
+      }
+
       return file.type.startsWith("image/") || file.type.startsWith("video/");
     });
 
@@ -1496,12 +1535,32 @@ function FieldPageContent() {
       setMessage(
         photoType === "reference_photo"
           ? "Reference photos must be images. Videos can be saved as finding media."
-          : "Some files were skipped because they were not supported media.",
+          : photoType === "limitation"
+            ? "Limitation evidence currently supports photos. Videos were skipped."
+            : "Some files were skipped because they were not supported media.",
       );
     }
 
     setEquipmentResult(null);
-    setPhotos((current) => [...current, ...validFiles].slice(0, 6));
+    setPhotos((current) =>
+      photoType === "limitation"
+        ? validFiles.slice(0, 1)
+        : [...current, ...validFiles].slice(0, 6),
+    );
+
+    if (photoType === "limitation") {
+      const limitationPhoto = validFiles.find((file) =>
+        file.type.startsWith("image/"),
+      );
+
+      if (limitationPhoto) {
+        window.setTimeout(() => {
+          void analyzeLimitationPhotoWithAI(limitationPhoto, {
+            automatic: true,
+          });
+        }, 0);
+      }
+    }
 
     if (validFiles.some((file) => file.type.startsWith("video/"))) {
       setMessage(
@@ -1634,6 +1693,144 @@ function FieldPageContent() {
     setMessage(
       "Data plate reminder accepted. Use Analyze Equipment after the frame is added, or take a closer data plate photo.",
     );
+  }
+
+  async function analyzeLimitationPhotoWithAI(
+    imageOverride?: File,
+    options: { automatic?: boolean } = {},
+  ) {
+    if (
+      analyzingLimitation ||
+      analyzingPhoto ||
+      analyzingEquipment ||
+      generating ||
+      saving ||
+      savingEquipment
+    ) {
+      return;
+    }
+
+    if (photoType !== "limitation") return;
+
+    if (!online) {
+      if (!options.automatic) {
+        setMessage(
+          "AI limitation drafting needs internet. Your photo and wording remain available.",
+        );
+      }
+      return;
+    }
+
+    const image =
+      imageOverride ||
+      photos.find((photo) => photo.type.startsWith("image/"));
+
+    if (!image) {
+      if (!options.automatic) {
+        setMessage("Add a limitation photo before asking AI to draft the wording.");
+      }
+      return;
+    }
+
+    const mediaKey = createLocalMediaId(image);
+    if (options.automatic && limitationAutoAnalyzedRef.current === mediaKey) {
+      return;
+    }
+
+    limitationAutoAnalyzedRef.current = mediaKey;
+    setAnalyzingLimitation(true);
+    setMessage("AI is reviewing the photo and drafting the limitation...");
+
+    try {
+      const prepared = await compressImageForAiUpload(image);
+      const imageDataUrl = await fileToDataUrl(prepared);
+
+      const response = await fetch("/api/ai/live-inspection-camera", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+        body: JSON.stringify({
+          imageDataUrl,
+          inspectionId: selectedReport,
+          currentSection: section,
+          currentSeverity: "Informational",
+          mode: "limitation_draft",
+          inspectorIntent:
+            "Draft a concise, professional home-inspection limitation based only on visible access, obstruction, stored belongings, vegetation, snow, unsafe conditions, or concealed areas. Do not invent a defect.",
+        }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data?.error || "AI limitation drafting failed.");
+      }
+
+      const limitation = Array.isArray(data?.limitations)
+        ? data.limitations[0]
+        : null;
+
+      const fallbackSuggestion = Array.isArray(data?.suggestions)
+        ? data.suggestions.find((item: any) => {
+            const combined = `${item?.title || ""} ${item?.observation || ""} ${
+              item?.recommendation || ""
+            }`.toLowerCase();
+
+            return /(limited|limitation|obstruct|blocked|stored|belongings|access|not visible|concealed|snow|vegetation|unsafe)/.test(
+              combined,
+            );
+          })
+        : null;
+
+      const nextSection = String(
+        limitation?.section || fallbackSuggestion?.section || section,
+      ).trim();
+
+      const nextTitle = String(
+        limitation?.title ||
+          fallbackSuggestion?.title ||
+          "Inspection Access Limited",
+      ).trim();
+
+      const nextWording = String(
+        limitation?.limitation ||
+          limitation?.reason ||
+          fallbackSuggestion?.observation ||
+          data?.summary ||
+          "",
+      ).trim();
+
+      const nextRecommendation = String(
+        limitation?.recommendation ||
+          fallbackSuggestion?.recommendation ||
+          "",
+      ).trim();
+
+      if (!nextWording) {
+        throw new Error(
+          "AI could not confidently identify a limitation from this photo. Enter the wording manually or take a clearer photo showing the obstruction.",
+        );
+      }
+
+      if (SECTIONS.includes(nextSection)) {
+        setSection(nextSection);
+      }
+
+      setTitle(nextTitle);
+      setNote(nextWording);
+      setRecommendation(nextRecommendation);
+      setMessage(
+        "AI drafted the limitation from the photo. Review or edit the wording before saving.",
+      );
+    } catch (error: any) {
+      limitationAutoAnalyzedRef.current = "";
+      setMessage(
+        error?.message ||
+          "AI could not draft the limitation. You can still enter it manually.",
+      );
+    } finally {
+      setAnalyzingLimitation(false);
+    }
   }
 
   async function analyzePhotoWithAI() {
@@ -2881,6 +3078,70 @@ function FieldPageContent() {
     return finding;
   }
 
+  async function saveLimitationWithPhotoOnline() {
+    const limitationText = String(note || "").trim();
+    const limitationTitle = String(title || "").trim() || "Field Limitation";
+    const image = photos.find((photo) => photo.type.startsWith("image/"));
+
+    if (!limitationText) {
+      throw new Error("Enter the limitation wording before saving.");
+    }
+
+    if (!image) {
+      throw new Error("Add one photo showing why the area or component was limited.");
+    }
+
+    const imageDataUrl = await fileToDataUrl(image);
+
+    const response = await fetch("/api/ai/live-limitation", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      cache: "no-store",
+      body: JSON.stringify({
+        inspectionId: String(selectedReport),
+        section,
+        title: limitationTitle,
+        limitation: limitationText,
+        reason: "",
+        recommendation: recommendation.trim(),
+        imageDataUrl,
+      }),
+    });
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok || !data?.success) {
+      throw new Error(
+        data?.error ||
+          data?.photoError ||
+          "The limitation and photo could not be saved.",
+      );
+    }
+
+    window.dispatchEvent(
+      new CustomEvent("opi:section-limitations-changed", {
+        detail: {
+          inspectionId: selectedReport,
+          section,
+          limitationId: data.limitation?.id || data.limitationId || null,
+          photoId: data.photo?.id || data.photoId || null,
+        },
+      }),
+    );
+
+    window.dispatchEvent(
+      new CustomEvent("opi:inspection-data-changed", {
+        detail: {
+          inspectionId: selectedReport,
+          section,
+          source: "field-limitation-photo",
+        },
+      }),
+    );
+
+    return data;
+  }
+
   async function saveFieldItem() {
     if (!selectedReport) {
       setMessage("Select a report first.");
@@ -2905,6 +3166,17 @@ function FieldPageContent() {
       return;
     }
 
+    if (
+      photoType === "limitation" &&
+      (!note.trim() ||
+        !photos.some((photo) => photo.type.startsWith("image/")))
+    ) {
+      setMessage(
+        "Enter the limitation wording and add one photo showing the limitation.",
+      );
+      return;
+    }
+
     if (photoType === "existing_finding" && !existingFindingId) {
       setMessage("Select an existing finding first.");
       return;
@@ -2923,6 +3195,13 @@ function FieldPageContent() {
         if (photoType === "existing_finding") {
           setMessage(
             "Adding media to an existing finding requires a connection. Your selected media remains here so you can retry when service returns.",
+          );
+          return;
+        }
+
+        if (photoType === "limitation") {
+          setMessage(
+            "Saving a limitation with its photo currently requires a connection. Your wording and selected photo remain here so you can retry.",
           );
           return;
         }
@@ -3015,12 +3294,21 @@ function FieldPageContent() {
         return;
       }
 
+      if (photoType === "limitation") {
+        await saveLimitationWithPhotoOnline();
+        const savedSection = section;
+        resetForm();
+        setMessage(`Limitation and photo saved to ${savedSection}.`);
+        return;
+      }
+
       await saveFindingOnline();
       resetForm();
       setMessage("Finding saved to report.");
     } catch (error: any) {
       const shouldQueueAfterFailure =
         photoType !== "existing_finding" &&
+        photoType !== "limitation" &&
         photos.length > 0 &&
         (isLikelyNetworkError(error) || !isOnline());
 
@@ -3203,7 +3491,7 @@ function FieldPageContent() {
               )}
             </div>
 
-            <div className="grid gap-3 md:grid-cols-3">
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               <button
                 type="button"
                 onClick={() => setPhotoType("finding")}
@@ -3252,6 +3540,23 @@ function FieldPageContent() {
                 </span>
                 <span className="mt-1 block text-xs text-slate-400">
                   Saves photos to Section Reference Photos only, not defects.
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={setLimitationMode}
+                className={`rounded-xl border p-4 text-left transition active:scale-[0.98] [touch-action:manipulation] ${
+                  photoType === "limitation"
+                    ? "border-orange-400 bg-orange-500/20 text-orange-200"
+                    : "border-slate-700 bg-black text-slate-300 hover:bg-slate-900"
+                }`}
+              >
+                <span className="block text-lg font-black">
+                  Section Limitation + Photo
+                </span>
+                <span className="mt-1 block text-xs text-slate-400">
+                  Saves limitation wording and one supporting photo to the selected section.
                 </span>
               </button>
             </div>
@@ -3416,15 +3721,27 @@ function FieldPageContent() {
                     : "Media"}
               </label>
               <MediaUploadButtons
-                nativeApp={nativeApp}
-                takingNativePhoto={takingNativePhoto}
                 photoType={photoType}
-                onNativeTakePhoto={takeNativePhotoAndSaveToGallery}
                 onChange={(e) => {
                   addFiles(Array.from(e.target.files || []));
                   e.currentTarget.value = "";
                 }}
               />
+
+              <p className="mt-3 rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-3 py-2 text-xs font-bold leading-5 text-cyan-100">
+                Use the single camera below for both photos and videos. It stays
+                open while you switch modes. Use these buttons only to choose
+                existing media from your device.
+              </p>
+
+              <div className="mt-3 flex items-center justify-between rounded-xl border border-slate-700 bg-black/35 px-3 py-2">
+                <span className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">
+                  Selected Media
+                </span>
+                <span className="rounded-full bg-teal-400 px-2.5 py-1 text-xs font-black text-black">
+                  {photos.length}
+                </span>
+              </div>
 
               {photos.length > 0 && (
                 <div className="mt-4 grid grid-cols-2 gap-4">
@@ -3451,6 +3768,8 @@ function FieldPageContent() {
               onUseSuggestion={acceptLiveCameraSuggestion}
               onAddPhotoOnly={addLiveCameraFrameOnly}
               onScanDataPlate={startLiveCameraDataPlateScan}
+              destinationLabel={cameraDestinationLabel}
+              selectedMediaCount={photos.length}
             />
 
             
@@ -3624,9 +3943,41 @@ function FieldPageContent() {
               </div>
             )}
 
-            <div className="rounded-2xl border border-slate-700 bg-black/20 p-4">
-              <p className="mb-3 text-xs font-black uppercase tracking-[0.22em] text-cyan-300">
-                Step 3
+            {photoType === "limitation" && (
+              <div className="rounded-xl border border-orange-500/40 bg-orange-950/20 p-4 text-sm leading-6 text-orange-100">
+                <p className="font-black text-orange-300">
+                  Section Limitation + Photo
+                </p>
+                <p className="mt-1">
+                  Add one photo showing the obstruction, access issue, stored
+                  belongings, unsafe condition, or concealed area. AI will
+                  automatically draft the limitation wording for your review.
+                </p>
+
+                <button
+                  type="button"
+                  onClick={() => void analyzeLimitationPhotoWithAI()}
+                  disabled={
+                    analyzingLimitation ||
+                    !online ||
+                    !photos.some((photo) => photo.type.startsWith("image/"))
+                  }
+                  className="mt-3 inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-orange-400 px-4 py-2 text-sm font-black text-black transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
+                >
+                  {analyzingLimitation && (
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  )}
+                  {analyzingLimitation
+                    ? "Drafting Limitation..."
+                    : "Draft Limitation From Photo"}
+                </button>
+              </div>
+            )}
+
+            {photoType !== "existing_finding" && (
+              <div className="rounded-2xl border border-slate-700 bg-black/20 p-4">
+                <p className="mb-3 text-xs font-black uppercase tracking-[0.22em] text-cyan-300">
+                  Step 3
               </p>
 
               <div>
@@ -3648,7 +3999,9 @@ function FieldPageContent() {
                 <label className="mb-2 block font-bold">
                   {photoType === "reference_photo"
                     ? "Reference Photo Caption"
-                    : "Quick Inspector Note"}
+                    : photoType === "limitation"
+                      ? "Limitation Wording"
+                      : "Quick Inspector Note"}
                 </label>
                 <textarea
                   value={note}
@@ -3657,12 +4010,46 @@ function FieldPageContent() {
                   placeholder={
                     photoType === "reference_photo"
                       ? "Example: Main electrical panel overview, attic insulation overview, front elevation..."
-                      : "Example: double tapped neutral in main panel, recommend electrician"
+                      : photoType === "limitation"
+                        ? "Example: The rear roof slope was not fully visible due to dense tree coverage and could not be completely inspected."
+                        : "Example: double tapped neutral in main panel, recommend electrician"
                   }
                   className="w-full rounded-xl border border-slate-700 bg-black p-4 leading-7 text-white"
                 />
               </div>
+
+              {photoType === "limitation" && (
+                <div className="mt-5 grid gap-4">
+                  <div>
+                    <label className="mb-2 block font-bold">
+                      Limitation Title
+                    </label>
+                    <input
+                      value={title}
+                      onChange={(event) => setTitle(event.target.value)}
+                      placeholder="Example: Rear roof slope not fully visible"
+                      className="w-full rounded-xl border border-slate-700 bg-black p-4 text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block font-bold">
+                      Recommendation (Optional)
+                    </label>
+                    <textarea
+                      value={recommendation}
+                      onChange={(event) =>
+                        setRecommendation(event.target.value)
+                      }
+                      rows={3}
+                      placeholder="Example: Reinspect when vegetation is trimmed or access improves."
+                      className="w-full rounded-xl border border-slate-700 bg-black p-4 leading-7 text-white"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
+            )}
 
             {photoType === "finding" && (
               <div className="rounded-2xl border border-slate-700 bg-black/20 p-4">
@@ -3714,14 +4101,43 @@ function FieldPageContent() {
               </div>
             )}
 
+            {photoType === "existing_finding" && (
+              <div className={`rounded-xl border px-4 py-3 text-sm font-bold ${
+                existingFindingId && photos.length > 0 && online
+                  ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-200"
+                  : "border-amber-500/50 bg-amber-500/10 text-amber-100"
+              }`}>
+                {!existingFindingId
+                  ? "Select the finding that should receive the media."
+                  : photos.length === 0
+                    ? "0 media selected. Take a photo/video or choose media first."
+                    : !online
+                      ? "The selected media is preserved, but attaching to an existing finding currently requires internet."
+                      : `${photos.length} media item${photos.length === 1 ? "" : "s"} ready to attach to ${selectedExistingFinding?.title || "the selected finding"}.`}
+              </div>
+            )}
+
             <button
               type="button"
               onClick={saveFieldItem}
-              disabled={saving || savingEquipment}
+              disabled={
+                saving ||
+                savingEquipment ||
+                analyzingLimitation ||
+                (photoType === "existing_finding" &&
+                  (!online || !existingFindingId || photos.length === 0)) ||
+                (photoType === "reference_photo" && photos.length === 0) ||
+                (photoType === "limitation" &&
+                  (!online ||
+                    !note.trim() ||
+                    !photos.some((photo) => photo.type.startsWith("image/"))))
+              }
               className={`w-full rounded-xl p-4 text-lg font-bold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation] ${
                 photoType === "reference_photo"
                   ? "bg-cyan-400 text-black hover:bg-cyan-300"
-                  : "bg-white text-black hover:bg-slate-200"
+                  : photoType === "limitation"
+                    ? "bg-orange-400 text-black hover:bg-orange-300"
+                    : "bg-white text-black hover:bg-slate-200"
               }`}
             >
               {saving
@@ -3736,6 +4152,10 @@ function FieldPageContent() {
                   ? online
                     ? "Save Section Reference Photo"
                     : "Save Section Reference Photo Offline"
+                  : photoType === "limitation"
+                    ? online
+                      ? "Save Limitation + Photo"
+                      : "Limitation Photo Needs Internet"
                   : photoType === "existing_finding"
                     ? online
                       ? "Attach Media to Selected Finding"
@@ -3908,51 +4328,23 @@ function ExistingFindingMediaPreview({
 }
 
 function MediaUploadButtons({
-  nativeApp,
-  takingNativePhoto,
   photoType,
-  onNativeTakePhoto,
   onChange,
 }: {
-  nativeApp: boolean;
-  takingNativePhoto: boolean;
   photoType: PhotoType;
-  onNativeTakePhoto: () => void;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }) {
-  const referenceMode = photoType === "reference_photo";
+  const imageOnlyMode =
+    photoType === "reference_photo" || photoType === "limitation";
 
   return (
-    <div className="grid gap-3 md:grid-cols-4">
-      {nativeApp ? (
-        <button
-          type="button"
-          onClick={onNativeTakePhoto}
-          disabled={takingNativePhoto}
-          className="rounded-xl border border-teal-500 bg-teal-500/10 p-4 text-center font-bold text-teal-300 transition active:scale-[0.98] hover:bg-teal-500 hover:text-black disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
-        >
-          {takingNativePhoto
-            ? "Opening Camera..."
-            : referenceMode
-              ? "📷 Take Reference + Save Gallery"
-              : "📷 Take Photo + Save Gallery"}
-        </button>
-      ) : (
-        <label className="cursor-pointer rounded-xl border border-teal-500 bg-teal-500/10 p-4 text-center font-bold text-teal-300 transition active:scale-[0.98] hover:bg-teal-500 hover:text-black [touch-action:manipulation]">
-          {referenceMode ? "📷 Take Reference Photos" : "📷 Take Photos"}
-          <input
-            type="file"
-            accept="image/*"
-            capture="environment"
-            multiple
-            onChange={onChange}
-            className="hidden"
-          />
-        </label>
-      )}
-
+    <div className={`grid gap-3 ${imageOnlyMode ? "md:grid-cols-1" : "md:grid-cols-2"}`}>
       <label className="cursor-pointer rounded-xl border border-cyan-500 bg-cyan-500/10 p-4 text-center font-bold text-cyan-300 transition active:scale-[0.98] hover:bg-cyan-500 hover:text-black [touch-action:manipulation]">
-        {referenceMode ? "🖼 Choose Reference Photos" : "🖼 Choose Photos"}
+        {photoType === "reference_photo"
+          ? "🖼 Choose Reference Photos"
+          : photoType === "limitation"
+            ? "🖼 Choose Limitation Photo"
+            : "🖼 Choose Photos"}
         <input
           type="file"
           accept="image/*"
@@ -3962,30 +4354,17 @@ function MediaUploadButtons({
         />
       </label>
 
-      {!referenceMode && (
-        <>
-          <label className="cursor-pointer rounded-xl border border-purple-500 bg-purple-500/10 p-4 text-center font-bold text-purple-300 transition active:scale-[0.98] hover:bg-purple-500 hover:text-white [touch-action:manipulation]">
-            🎥 Record Video
-            <input
-              type="file"
-              accept="video/*"
-              capture="environment"
-              onChange={onChange}
-              className="hidden"
-            />
-          </label>
-
-          <label className="cursor-pointer rounded-xl border border-purple-500 bg-purple-500/10 p-4 text-center font-bold text-purple-300 transition active:scale-[0.98] hover:bg-purple-500 hover:text-white [touch-action:manipulation]">
-            🎥 Choose Videos
-            <input
-              type="file"
-              accept="video/*"
-              multiple
-              onChange={onChange}
-              className="hidden"
-            />
-          </label>
-        </>
+      {!imageOnlyMode && (
+        <label className="cursor-pointer rounded-xl border border-purple-500 bg-purple-500/10 p-4 text-center font-bold text-purple-300 transition active:scale-[0.98] hover:bg-purple-500 hover:text-white [touch-action:manipulation]">
+          🎥 Choose Videos
+          <input
+            type="file"
+            accept="video/*"
+            multiple
+            onChange={onChange}
+            className="hidden"
+          />
+        </label>
       )}
     </div>
   );

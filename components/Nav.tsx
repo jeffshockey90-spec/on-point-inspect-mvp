@@ -44,6 +44,8 @@ export default function Navbar() {
   const [loggingOut, setLoggingOut] = useState(false);
   const [openingHref, setOpeningHref] = useState("");
   const openingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const accountRoutingAbortRef = useRef<AbortController | null>(null);
+  const accountRoutingInFlightRef = useRef(false);
   const [isOwner, setIsOwner] = useState(false);
   const [isRealtor, setIsRealtor] = useState(false);
   const [isInspector, setIsInspector] = useState(false);
@@ -93,15 +95,37 @@ export default function Navbar() {
   useEffect(() => {
     let active = true;
 
+    function applyRoutingFallback(fallbackEmail?: string) {
+      if (!active) return;
+
+      const email = String(fallbackEmail || "").toLowerCase();
+      const owner = OWNER_EMAILS.includes(email);
+
+      setIsOwner(owner);
+      setIsRealtor(false);
+      setIsInspector(Boolean(owner || email));
+      setReportsHref(owner || email ? "/reports" : "/realtor-portal");
+      setDashboardHref(owner || email ? "/" : "/realtor-portal");
+      setRoutingResolved(true);
+    }
+
     async function loadAccountRouting(fallbackEmail?: string) {
+      if (accountRoutingInFlightRef.current) return;
+
+      accountRoutingAbortRef.current?.abort();
+      const controller = new AbortController();
+      accountRoutingAbortRef.current = controller;
+      accountRoutingInFlightRef.current = true;
+
       try {
         const response = await fetch("/api/account-routing", {
           cache: "no-store",
+          signal: controller.signal,
         });
 
         const payload = await response.json().catch(() => ({}));
 
-        if (!active) return;
+        if (!active || controller.signal.aborted) return;
 
         if (response.ok && payload?.authenticated) {
           const owner = Boolean(payload.isOwner);
@@ -111,51 +135,72 @@ export default function Navbar() {
           setIsOwner(owner);
           setIsRealtor(realtor);
           setIsInspector(inspector);
-          setReportsHref(payload.reportsHref || (realtor && !inspector ? "/realtor-portal" : "/reports"));
-          setDashboardHref(payload.dashboardHref === "/dashboard" ? "/" : payload.dashboardHref || "/");
+          setReportsHref(
+            payload.reportsHref ||
+              (realtor && !inspector ? "/realtor-portal" : "/reports"),
+          );
+          setDashboardHref(
+            payload.dashboardHref === "/dashboard"
+              ? "/"
+              : payload.dashboardHref || "/",
+          );
           setRoutingResolved(true);
           return;
         }
 
-        const email = String(fallbackEmail || "").toLowerCase();
-        const owner = OWNER_EMAILS.includes(email);
-        setIsOwner(owner);
-        setIsRealtor(false);
-        setIsInspector(owner);
-        setReportsHref(owner ? "/reports" : "/realtor-portal");
-        setDashboardHref(owner ? "/" : "/realtor-portal");
-        setRoutingResolved(true);
-        setRoutingResolved(true);
-      } catch (error) {
-        console.error("Account routing nav check failed:", error);
+        applyRoutingFallback(fallbackEmail);
+      } catch (error: any) {
+        if (!active || error?.name === "AbortError") return;
 
-        if (!active) return;
-
-        const email = String(fallbackEmail || "").toLowerCase();
-        setIsOwner(OWNER_EMAILS.includes(email));
-        setIsRealtor(false);
-        setIsInspector(true);
-        setReportsHref("/reports");
-        setDashboardHref("/");
+        // A temporary network/session refresh failure should not break or hide
+        // the navbar. Fall back to the authenticated email already available.
+        applyRoutingFallback(fallbackEmail);
+      } finally {
+        if (accountRoutingAbortRef.current === controller) {
+          accountRoutingAbortRef.current = null;
+        }
+        accountRoutingInFlightRef.current = false;
       }
     }
 
     async function loadInitialUser() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
 
-      await loadAccountRouting(user?.email || "");
+        await loadAccountRouting(user?.email || "");
+      } catch {
+        applyRoutingFallback();
+      }
     }
 
-    loadInitialUser();
+    void loadInitialUser();
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      loadAccountRouting(session?.user?.email || "");
-    });
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (
+          event === "SIGNED_IN" ||
+          event === "INITIAL_SESSION" ||
+          event === "USER_UPDATED"
+        ) {
+          void loadAccountRouting(session?.user?.email || "");
+          return;
+        }
+
+        if (event === "SIGNED_OUT") {
+          accountRoutingAbortRef.current?.abort();
+          accountRoutingInFlightRef.current = false;
+          setRoutingResolved(false);
+        }
+      },
+    );
 
     return () => {
       active = false;
+      accountRoutingAbortRef.current?.abort();
+      accountRoutingAbortRef.current = null;
+      accountRoutingInFlightRef.current = false;
       listener.subscription.unsubscribe();
     };
   }, []);

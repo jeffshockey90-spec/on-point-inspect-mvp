@@ -175,6 +175,8 @@ type Props = {
   onUseSuggestion: (suggestion: AILiveSuggestion, frame?: File | null) => void;
   onAddPhotoOnly: (frame: File) => void;
   onScanDataPlate: (frame?: File | null) => void;
+  destinationLabel?: string;
+  selectedMediaCount?: number;
 };
 
 function normalizeSuggestionConcept(value: unknown) {
@@ -379,6 +381,8 @@ export default function AILiveInspectionCamera({
   onUseSuggestion,
   onAddPhotoOnly,
   onScanDataPlate,
+  destinationLabel = "New Finding",
+  selectedMediaCount = 0,
 }: Props) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -392,6 +396,7 @@ export default function AILiveInspectionCamera({
   >({});
   const autoScanRunningRef = useRef(false);
   const hardwareZoomSupportedRef = useRef(false);
+  const focusResetTimerRef = useRef<number | null>(null);
 
   const [open, setOpen] = useState(false);
   const [starting, setStarting] = useState(false);
@@ -401,7 +406,10 @@ export default function AILiveInspectionCamera({
     "environment",
   );
   const [torchOn, setTorchOn] = useState(false);
+  const [captureMode, setCaptureMode] = useState<"photo" | "video">("photo");
   const [recordingVideo, setRecordingVideo] = useState(false);
+  const [focusPoint, setFocusPoint] = useState<{ x: number; y: number } | null>(null);
+  const [focusMessage, setFocusMessage] = useState("");
   const [zoomLevel, setZoomLevel] = useState(1);
   const [zoomMin, setZoomMin] = useState(1);
   const [zoomMax, setZoomMax] = useState(3);
@@ -946,6 +954,13 @@ export default function AILiveInspectionCamera({
   }
 
   function stopCamera() {
+    if (focusResetTimerRef.current) {
+      window.clearTimeout(focusResetTimerRef.current);
+      focusResetTimerRef.current = null;
+    }
+    setFocusPoint(null);
+    setFocusMessage("");
+
     if (mediaRecorderRef.current?.state === "recording") {
       try {
         mediaRecorderRef.current.stop();
@@ -1015,6 +1030,66 @@ export default function AILiveInspectionCamera({
       setMessage("Frame captured. Review, analyze, or add it as a photo.");
     }
     return dataUrl;
+  }
+
+  async function handleCameraTapFocus(
+    event: React.PointerEvent<HTMLDivElement>,
+  ) {
+    if (starting || recordingVideo) return;
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+    const y = Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height));
+
+    setFocusPoint({ x, y });
+    setFocusMessage("Focusing…");
+
+    const track = streamRef.current?.getVideoTracks?.()[0];
+
+    try {
+      if (track) {
+        const capabilities = track.getCapabilities?.() as MediaTrackCapabilities & {
+          focusMode?: string[];
+        };
+
+        const advanced: any[] = [];
+        if (Array.isArray(capabilities?.focusMode)) {
+          if (capabilities.focusMode.includes("single-shot")) {
+            advanced.push({ focusMode: "single-shot" });
+          } else if (capabilities.focusMode.includes("continuous")) {
+            advanced.push({ focusMode: "continuous" });
+          }
+        }
+
+        if (advanced.length > 0) {
+          await track.applyConstraints({ advanced } as any);
+          setFocusMessage("Focus adjusted");
+        } else {
+          setFocusMessage("Continuous focus active");
+        }
+      }
+    } catch {
+      setFocusMessage("Continuous focus active");
+    }
+
+    if (focusResetTimerRef.current) {
+      window.clearTimeout(focusResetTimerRef.current);
+    }
+
+    focusResetTimerRef.current = window.setTimeout(() => {
+      setFocusPoint(null);
+      setFocusMessage("");
+      focusResetTimerRef.current = null;
+    }, 1400);
+  }
+
+  async function handlePrimaryCapture() {
+    if (captureMode === "video") {
+      toggleVideoRecording();
+      return;
+    }
+
+    await quickAddPhoto();
   }
 
   async function toggleFacingCamera() {
@@ -1317,7 +1392,7 @@ export default function AILiveInspectionCamera({
 
     if (!stream || typeof MediaRecorder === "undefined") {
       setMessage(
-        "Continuous video recording is not supported by this device/browser. Use the Field Tool video picker instead.",
+        "Video recording is not supported by this device/browser. Use Choose Videos in the Field Tool.",
       );
       return;
     }
@@ -1389,7 +1464,7 @@ export default function AILiveInspectionCamera({
         recordedChunksRef.current = [];
         setRecordingVideo(false);
         setMessage(
-          "Video recording failed. Use the Field Tool video picker instead.",
+          "Video recording failed. Use Choose Videos in the Field Tool.",
         );
       };
 
@@ -2193,12 +2268,12 @@ export default function AILiveInspectionCamera({
   const cameraUi = !open ? (
     <div className="rounded-2xl border border-cyan-500/40 bg-cyan-500/10 p-4 text-white">
       <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-300">
-        AI Live Inspection Camera
+        Field Camera
       </p>
-      <h2 className="mt-1 text-xl font-black">AI Second Inspector Camera</h2>
+      <h2 className="mt-1 text-xl font-black">Photo + Video Camera</h2>
       <p className="mt-1 text-sm text-slate-300">
-        Suggestions only. Inspector approval is required before anything is
-        saved.
+        Open once and switch between Photo and Video without closing the camera.
+        Media is added to <strong>{destinationLabel}</strong>.
       </p>
       <button
         type="button"
@@ -2209,7 +2284,7 @@ export default function AILiveInspectionCamera({
         }}
         className="mt-4 min-h-[48px] w-full rounded-xl bg-cyan-400 px-4 py-3 text-sm font-black text-black transition active:scale-[0.98] hover:bg-cyan-300 [touch-action:manipulation]"
       >
-        📸 Open AI Camera
+        📸 Open Camera
       </button>
     </div>
   ) : (
@@ -2236,6 +2311,30 @@ export default function AILiveInspectionCamera({
               }
         }
       />
+
+      <div
+        className="absolute inset-0 z-[1]"
+        onPointerDown={handleCameraTapFocus}
+        aria-label="Tap camera preview to focus"
+      />
+
+      {focusPoint && (
+        <div
+          className="pointer-events-none absolute z-[22] h-20 w-20 -translate-x-1/2 -translate-y-1/2 rounded-xl border-2 border-yellow-300 shadow-[0_0_18px_rgba(253,224,71,0.7)]"
+          style={{
+            left: `${focusPoint.x * 100}%`,
+            top: `${focusPoint.y * 100}%`,
+          }}
+        >
+          <span className="absolute left-1/2 top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-yellow-300" />
+        </div>
+      )}
+
+      {focusMessage && (
+        <div className="pointer-events-none absolute left-1/2 top-[38%] z-[22] -translate-x-1/2 rounded-full bg-black/75 px-4 py-2 text-xs font-black text-yellow-200 backdrop-blur">
+          {focusMessage}
+        </div>
+      )}
 
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/65" />
 
@@ -2538,6 +2637,44 @@ export default function AILiveInspectionCamera({
             </button>
           )}
 
+        <div className="mx-auto mb-3 flex max-w-[680px] items-center justify-between gap-3 rounded-2xl border border-white/15 bg-black/72 px-3 py-2 shadow-xl backdrop-blur">
+          <div className="min-w-0">
+            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-cyan-300">
+              Saving To
+            </p>
+            <p className="truncate text-sm font-black text-white">
+              {destinationLabel}
+            </p>
+          </div>
+          <span className="shrink-0 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-black text-white">
+            {selectedMediaCount} selected
+          </span>
+        </div>
+
+        <div className="mx-auto mb-2 grid max-w-[260px] grid-cols-2 rounded-full border border-white/15 bg-black/70 p-1 shadow-xl backdrop-blur">
+          <button
+            type="button"
+            onClick={() => {
+              if (!recordingVideo) setCaptureMode("photo");
+            }}
+            disabled={recordingVideo}
+            className={`rounded-full px-5 py-2 text-xs font-black transition ${
+              captureMode === "photo" ? "bg-white text-black" : "text-white"
+            } disabled:opacity-40`}
+          >
+            PHOTO
+          </button>
+          <button
+            type="button"
+            onClick={() => setCaptureMode("video")}
+            className={`rounded-full px-5 py-2 text-xs font-black transition ${
+              captureMode === "video" ? "bg-red-500 text-white" : "text-white"
+            }`}
+          >
+            VIDEO
+          </button>
+        </div>
+
         <div
           className="mx-auto max-w-[680px]"
           style={{
@@ -2558,37 +2695,39 @@ export default function AILiveInspectionCamera({
             <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/25 bg-black/55 text-xl shadow-xl backdrop-blur">
               🖼️
             </span>
-            <span className="mt-1 text-xs font-bold text-white">Gallery</span>
+            <span className="mt-1 text-xs font-bold text-white">Review</span>
           </button>
 
           <button
             type="button"
-            onClick={quickAddPhoto}
-            disabled={starting || recordingVideo || evidenceChecking || Boolean(pendingEvidenceReview)}
-            className="flex min-h-[72px] min-w-0 flex-1 flex-col items-center justify-end rounded-2xl pb-1 text-center active:bg-white/10 disabled:opacity-50"
-          >
-            <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-teal-400/60 bg-black/55 text-xl shadow-xl backdrop-blur">
-              📷
-            </span>
-            <span className="mt-1 text-xs font-black text-teal-300">Photo</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={quickAddPhoto}
-            disabled={starting || recordingVideo || evidenceChecking || Boolean(pendingEvidenceReview)}
-            aria-label="Take photo"
-            className={`mb-1 h-[82px] w-[82px] shrink-0 rounded-full border-[5px] border-white bg-white shadow-2xl active:scale-95 disabled:opacity-50 ${
-              pendingEvidenceCapture
-                ? "ring-4 ring-amber-300 animate-pulse"
-                : "ring-4 ring-teal-400"
+            onClick={() => void handlePrimaryCapture()}
+            disabled={starting || evidenceChecking || Boolean(pendingEvidenceReview)}
+            aria-label={
+              captureMode === "video"
+                ? recordingVideo
+                  ? "Stop recording"
+                  : "Start recording"
+                : "Take photo"
+            }
+            className={`mb-1 h-[82px] w-[82px] shrink-0 rounded-full border-[5px] shadow-2xl active:scale-95 disabled:opacity-50 ${
+              captureMode === "video"
+                ? recordingVideo
+                  ? "border-white bg-red-600 ring-4 ring-red-400 animate-pulse"
+                  : "border-white bg-red-500 ring-4 ring-red-400"
+                : pendingEvidenceCapture
+                  ? "border-white bg-white ring-4 ring-amber-300 animate-pulse"
+                  : "border-white bg-white ring-4 ring-teal-400"
             }`}
-          />
+          >
+            {captureMode === "video" && recordingVideo && (
+              <span className="mx-auto block h-7 w-7 rounded-md bg-white" />
+            )}
+          </button>
 
           <button
             type="button"
             onClick={analyzeCurrentFrame}
-            disabled={starting || analyzing || !online}
+            disabled={starting || analyzing || !online || recordingVideo}
             className="flex min-h-[72px] min-w-0 flex-1 flex-col items-center justify-end rounded-2xl pb-1 text-center active:bg-white/10 disabled:opacity-50"
           >
             <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/25 bg-black/55 text-xl shadow-xl backdrop-blur">
