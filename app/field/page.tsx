@@ -17,6 +17,7 @@ import AILiveInspectionCamera, {
   type AILiveSuggestion,
 } from "../../components/AILiveInspectionCamera";
 import FieldCamera from "../../components/FieldCamera";
+import PhotoMarkupEditor from "../../components/PhotoMarkupEditor";
 import LiveSectionCoach from "../../components/LiveSectionCoach";
 import {
   addOfflineQueueItem,
@@ -1025,6 +1026,9 @@ function FieldPageContent() {
   const [implication, setImplication] = useState("");
   const [recommendation, setRecommendation] = useState("");
   const [photos, setPhotos] = useState<File[]>([]);
+  const [markupPhotoIndex, setMarkupPhotoIndex] = useState<number | null>(null);
+  const [markupPhotoUrl, setMarkupPhotoUrl] = useState("");
+  const [savingMarkup, setSavingMarkup] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [dictating, setDictating] = useState(false);
   const [analyzingPhoto, setAnalyzingPhoto] = useState(false);
@@ -1462,6 +1466,8 @@ function FieldPageContent() {
     setImplication("");
     setRecommendation("");
     setPhotos([]);
+    setMarkupPhotoIndex(null);
+    setMarkupPhotoUrl("");
     setEquipmentResult(null);
     setEquipmentSaveLabel("Save To Equipment Inventory");
     setAiSuggestions([]);
@@ -1569,6 +1575,94 @@ function FieldPageContent() {
           ? "Video added. Keep the original in iPhone Photos as the native backup. The app will attach it to the report with upload status and retry protection."
           : "Video added. The app will attach it to the report with upload status.",
       );
+    }
+  }
+
+  useEffect(() => {
+    if (markupPhotoIndex === null) {
+      setMarkupPhotoUrl("");
+      return;
+    }
+
+    const file = photos[markupPhotoIndex];
+
+    if (!file || !file.type.startsWith("image/")) {
+      setMarkupPhotoIndex(null);
+      setMarkupPhotoUrl("");
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(file);
+    setMarkupPhotoUrl(objectUrl);
+
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [markupPhotoIndex, photos]);
+
+  function openPhotoMarkup(index: number) {
+    const file = photos[index];
+
+    if (!file?.type.startsWith("image/")) {
+      setMessage("Only photos can be marked up.");
+      return;
+    }
+
+    setMarkupPhotoIndex(index);
+  }
+
+  async function saveFieldPhotoMarkup(
+    _items: any[],
+    flattenedDataUrl: string,
+  ) {
+    if (markupPhotoIndex === null || savingMarkup) return;
+
+    setSavingMarkup(true);
+
+    try {
+      const original = photos[markupPhotoIndex];
+
+      if (!original) {
+        throw new Error("The selected photo is no longer available.");
+      }
+
+      const response = await fetch(flattenedDataUrl);
+      const blob = await response.blob();
+
+      if (!blob.size) {
+        throw new Error("The marked-up photo was empty.");
+      }
+
+      const originalBaseName = String(original.name || "field-photo")
+        .replace(/\.[^/.]+$/, "")
+        .replace(/[^a-zA-Z0-9-_]/g, "-")
+        .slice(0, 70);
+
+      const markedFile = new File(
+        [blob],
+        `${originalBaseName}-marked.jpg`,
+        {
+          type: "image/jpeg",
+          lastModified: Date.now(),
+        },
+      );
+
+      setPhotos((current) =>
+        current.map((file, index) =>
+          index === markupPhotoIndex ? markedFile : file,
+        ),
+      );
+
+      setMarkupPhotoIndex(null);
+      setMarkupPhotoUrl("");
+      setMessage(
+        "Photo markup saved. The marked-up copy will be used when this Field Tool item is saved.",
+      );
+    } catch (error: any) {
+      setMessage(error?.message || "Could not save the photo markup.");
+      throw error;
+    } finally {
+      setSavingMarkup(false);
     }
   }
 
@@ -3750,6 +3844,11 @@ function FieldPageContent() {
                     <MediaPreview
                       key={`${photo.name}-${photo.lastModified}-${index}`}
                       file={photo}
+                      onMarkup={
+                        photo.type.startsWith("image/")
+                          ? () => openPhotoMarkup(index)
+                          : undefined
+                      }
                       onRemove={() => removePhoto(index)}
                     />
                   ))}
@@ -4217,6 +4316,19 @@ function FieldPageContent() {
           <CommentLibrary onUseComment={useComment} />
         </div>
       </div>
+
+      {markupPhotoIndex !== null && markupPhotoUrl && (
+        <PhotoMarkupEditor
+          imageUrl={markupPhotoUrl}
+          severity={severity}
+          onSave={saveFieldPhotoMarkup}
+          onCancel={() => {
+            if (savingMarkup) return;
+            setMarkupPhotoIndex(null);
+            setMarkupPhotoUrl("");
+          }}
+        />
+      )}
     </main>
   );
 }
@@ -4381,9 +4493,11 @@ function MediaUploadButtons({
 
 function MediaPreview({
   file,
+  onMarkup,
   onRemove,
 }: {
   file: File;
+  onMarkup?: () => void;
   onRemove: () => void;
 }) {
   const [url, setUrl] = useState("");
@@ -4414,13 +4528,27 @@ function MediaPreview({
         <div className="h-40 w-full bg-black" />
       )}
 
-      <button
-        type="button"
-        onClick={onRemove}
-        className="w-full border-t border-slate-700 px-3 py-2 text-xs font-black text-red-300 transition active:scale-[0.98] hover:bg-red-500/10 [touch-action:manipulation]"
-      >
-        Remove
-      </button>
+      <div className="grid grid-cols-2 border-t border-slate-700">
+        {onMarkup ? (
+          <button
+            type="button"
+            onClick={onMarkup}
+            className="min-h-[42px] border-r border-slate-700 px-3 py-2 text-xs font-black text-cyan-300 transition active:scale-[0.98] hover:bg-cyan-500/10 [touch-action:manipulation]"
+          >
+            ✏️ Mark Up
+          </button>
+        ) : (
+          <div className="border-r border-slate-700" />
+        )}
+
+        <button
+          type="button"
+          onClick={onRemove}
+          className="min-h-[42px] px-3 py-2 text-xs font-black text-red-300 transition active:scale-[0.98] hover:bg-red-500/10 [touch-action:manipulation]"
+        >
+          Remove
+        </button>
+      </div>
     </div>
   );
 }
