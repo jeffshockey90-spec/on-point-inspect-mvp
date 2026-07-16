@@ -175,8 +175,6 @@ type Props = {
   onUseSuggestion: (suggestion: AILiveSuggestion, frame?: File | null) => void;
   onAddPhotoOnly: (frame: File) => void;
   onScanDataPlate: (frame?: File | null) => void;
-  destinationLabel?: string;
-  selectedMediaCount?: number;
 };
 
 function normalizeSuggestionConcept(value: unknown) {
@@ -381,8 +379,6 @@ export default function AILiveInspectionCamera({
   onUseSuggestion,
   onAddPhotoOnly,
   onScanDataPlate,
-  destinationLabel = "New Finding",
-  selectedMediaCount = 0,
 }: Props) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -2268,12 +2264,12 @@ export default function AILiveInspectionCamera({
   const cameraUi = !open ? (
     <div className="rounded-2xl border border-cyan-500/40 bg-cyan-500/10 p-4 text-white">
       <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-300">
-        Field Camera
+        AI Live Inspection Camera
       </p>
-      <h2 className="mt-1 text-xl font-black">Photo + Video Camera</h2>
+      <h2 className="mt-1 text-xl font-black">AI Second Inspector Camera</h2>
       <p className="mt-1 text-sm text-slate-300">
-        Open once and switch between Photo and Video without closing the camera.
-        Media is added to <strong>{destinationLabel}</strong>.
+        Live suggestions, reminders, equipment prompts, and inspection memory.
+        Nothing is saved until the inspector confirms it.
       </p>
       <button
         type="button"
@@ -2284,7 +2280,7 @@ export default function AILiveInspectionCamera({
         }}
         className="mt-4 min-h-[48px] w-full rounded-xl bg-cyan-400 px-4 py-3 text-sm font-black text-black transition active:scale-[0.98] hover:bg-cyan-300 [touch-action:manipulation]"
       >
-        📸 Open Camera
+        🤖 Open AI Camera
       </button>
     </div>
   ) : (
@@ -2636,20 +2632,6 @@ export default function AILiveInspectionCamera({
               <span className="shrink-0 text-lg text-teal-200">›</span>
             </button>
           )}
-
-        <div className="mx-auto mb-3 flex max-w-[680px] items-center justify-between gap-3 rounded-2xl border border-white/15 bg-black/72 px-3 py-2 shadow-xl backdrop-blur">
-          <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-cyan-300">
-              Saving To
-            </p>
-            <p className="truncate text-sm font-black text-white">
-              {destinationLabel}
-            </p>
-          </div>
-          <span className="shrink-0 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-black text-white">
-            {selectedMediaCount} selected
-          </span>
-        </div>
 
         <div className="mx-auto mb-2 grid max-w-[260px] grid-cols-2 rounded-full border border-white/15 bg-black/70 p-1 shadow-xl backdrop-blur">
           <button

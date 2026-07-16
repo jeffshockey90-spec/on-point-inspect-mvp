@@ -16,6 +16,7 @@ import OfflineReportViewer from "../../components/OfflineReportViewer";
 import AILiveInspectionCamera, {
   type AILiveSuggestion,
 } from "../../components/AILiveInspectionCamera";
+import FieldCamera from "../../components/FieldCamera";
 import LiveSectionCoach from "../../components/LiveSectionCoach";
 import {
   addOfflineQueueItem,
@@ -3729,9 +3730,9 @@ function FieldPageContent() {
               />
 
               <p className="mt-3 rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-3 py-2 text-xs font-bold leading-5 text-cyan-100">
-                Use the single camera below for both photos and videos. It stays
-                open while you switch modes. Use these buttons only to choose
-                existing media from your device.
+                Use the Field Camera below for normal photo and video capture.
+                It stays open while you switch modes. The AI Second Inspector
+                Camera remains a separate tool below it.
               </p>
 
               <div className="mt-3 flex items-center justify-between rounded-xl border border-slate-700 bg-black/35 px-3 py-2">
@@ -3760,6 +3761,16 @@ function FieldPageContent() {
               )}
             </div>
 
+            <FieldCamera
+              destinationLabel={cameraDestinationLabel}
+              selectedMediaCount={photos.length}
+              allowVideo={
+                photoType !== "reference_photo" &&
+                photoType !== "limitation"
+              }
+              onAddMedia={(files) => addFiles(files)}
+            />
+
             <AILiveInspectionCamera
               online={online}
               selectedReport={selectedReport}
@@ -3768,8 +3779,6 @@ function FieldPageContent() {
               onUseSuggestion={acceptLiveCameraSuggestion}
               onAddPhotoOnly={addLiveCameraFrameOnly}
               onScanDataPlate={startLiveCameraDataPlateScan}
-              destinationLabel={cameraDestinationLabel}
-              selectedMediaCount={photos.length}
             />
 
             
