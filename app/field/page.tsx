@@ -3893,8 +3893,7 @@ function FieldPageContent() {
               onAddMedia={(files) => addFiles(files)}
             />
 
-            {photoType === "finding" && (
-              <div className="rounded-2xl border border-slate-700 bg-black/30 p-4">
+            <div className="rounded-2xl border border-slate-700 bg-black/30 p-4">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <div>
                   <p className="text-xs font-black uppercase tracking-[0.22em] text-teal-300">
@@ -3983,273 +3982,9 @@ function FieldPageContent() {
               )}
             </div>
 
-            {mediaOrganizerOpen && (
-              <div className="rounded-2xl border border-fuchsia-500/40 bg-fuchsia-500/10 p-4">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-black uppercase tracking-[0.2em] text-fuchsia-300">
-                      AI Media Organization
-                    </p>
-                    <h2 className="mt-1 text-xl font-black text-white">
-                      Review Photo Groups
-                    </h2>
-                    <p className="mt-1 text-sm text-slate-300">
-                      AI grouped related photos. Edit any assignment before
-                      creating the findings.
-                    </p>
-                  </div>
 
-                  <button
-                    type="button"
-                    onClick={() => setMediaOrganizerOpen(false)}
-                    className="rounded-xl border border-slate-600 px-3 py-2 text-xs font-black text-slate-200"
-                  >
-                    Close
-                  </button>
-                </div>
-
-                <div className="mt-4 space-y-3">
-                  {mediaGroups.map((group) => (
-                    <div
-                      key={group.id}
-                      className="rounded-xl border border-slate-700 bg-black/40 p-3"
-                    >
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div>
-                          <p className="font-black text-white">
-                            {group.label}
-                          </p>
-                          <p className="text-xs font-bold text-slate-400">
-                            {group.photoIndexes.length} photo
-                            {group.photoIndexes.length === 1 ? "" : "s"} ·{" "}
-                            {Math.round((group.confidence || 0) * 100)}%
-                          </p>
-                        </div>
-
-                        <select
-                          value={group.classification}
-                          onChange={(event) =>
-                            updateMediaGroup(group.id, {
-                              classification: event.target
-                                .value as AIMediaGroup["classification"],
-                            })
-                          }
-                          className="rounded-lg border border-slate-600 bg-black px-3 py-2 text-sm font-bold text-white"
-                        >
-                          <option value="finding">Finding</option>
-                          <option value="reference">Reference</option>
-                          <option value="equipment">Equipment</option>
-                          <option value="limitation">Limitation</option>
-                          <option value="unassigned">Unassigned</option>
-                        </select>
-                      </div>
-
-                      <div className="mt-3 grid gap-3 md:grid-cols-2">
-                        <select
-                          value={group.section}
-                          onChange={(event) =>
-                            updateMediaGroup(group.id, {
-                              section: event.target.value,
-                            })
-                          }
-                          className="rounded-lg border border-slate-600 bg-black p-2 text-white"
-                        >
-                          {SECTIONS.map((item) => (
-                            <option key={item}>{item}</option>
-                          ))}
-                        </select>
-
-                        <select
-                          value={group.severity}
-                          onChange={(event) =>
-                            updateMediaGroup(group.id, {
-                              severity: event.target.value,
-                            })
-                          }
-                          className="rounded-lg border border-slate-600 bg-black p-2 text-white"
-                        >
-                          {SEVERITIES.map((item) => (
-                            <option key={item}>{item}</option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <input
-                        value={group.title}
-                        onChange={(event) =>
-                          updateMediaGroup(group.id, {
-                            title: event.target.value,
-                          })
-                        }
-                        className="mt-3 w-full rounded-lg border border-slate-600 bg-black p-3 font-black text-white"
-                      />
-
-                      <textarea
-                        value={group.observation}
-                        onChange={(event) =>
-                          updateMediaGroup(group.id, {
-                            observation: event.target.value,
-                          })
-                        }
-                        rows={3}
-                        className="mt-3 w-full rounded-lg border border-slate-600 bg-black p-3 text-white"
-                        placeholder="Observation"
-                      />
-                    </div>
-                  ))}
-                </div>
-
-                <button
-                  type="button"
-                  onClick={saveOrganizedMediaGroups}
-                  disabled={savingOrganizedMedia || organizingMedia}
-                  className="mt-4 inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-fuchsia-400 px-4 py-3 font-black text-black disabled:opacity-50"
-                >
-                  {savingOrganizedMedia && (
-                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                  )}
-                  {savingOrganizedMedia
-                    ? "Saving Groups..."
-                    : "Accept Finding Groups and Save"}
-                </button>
-              </div>
-            )}
-{equipmentResult?.error && (
-              <div className="rounded-xl border border-red-500/60 bg-red-500/10 p-4 text-sm font-bold text-red-200">
-                {equipmentResult.error || "Equipment analysis failed."}
-              </div>
-            )}
-
-            {photoType === "finding" &&
-              photos.some((photo) => photo.type.startsWith("video/")) &&
-              !photos.some((photo) => photo.type.startsWith("image/")) && (
-                <div className="rounded-xl border border-yellow-500/50 bg-yellow-500/10 p-4 text-sm font-bold leading-6 text-yellow-100">
-                  Video is saved with the finding, but AI photo recognition
-                  needs at least one still photo. Add one photo if you want AI
-                  to write the defect from media.
-                </div>
-              )}
-
-            {photoType === "reference_photo" && (
-              <div className="rounded-xl border border-cyan-500/40 bg-cyan-950/20 p-4 text-sm leading-6 text-cyan-100">
-                <p className="font-black text-cyan-300">Reference Photo Mode</p>
-                <p className="mt-1">
-                  Photos saved here will appear under Section Reference Photos
-                  in the report/share/client views. They are not counted as
-                  findings, defects, or repair request items.
-                </p>
-              </div>
-            )}
-
-            {photoType === "limitation" && (
-              <div className="rounded-xl border border-orange-500/40 bg-orange-950/20 p-4 text-sm leading-6 text-orange-100">
-                <p className="font-black text-orange-300">
-                  Section Limitation + Photo
-                </p>
-                <p className="mt-1">
-                  Add one photo showing the obstruction, access issue, stored
-                  belongings, unsafe condition, or concealed area. AI will
-                  automatically draft the limitation wording for your review.
-                </p>
-
-                <button
-                  type="button"
-                  onClick={() => void analyzeLimitationPhotoWithAI()}
-                  disabled={
-                    analyzingLimitation ||
-                    !online ||
-                    !photos.some((photo) => photo.type.startsWith("image/"))
-                  }
-                  className="mt-3 inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-orange-400 px-4 py-2 text-sm font-black text-black transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
-                >
-                  {analyzingLimitation && (
-                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                  )}
-                  {analyzingLimitation
-                    ? "Drafting Limitation..."
-                    : "Draft Limitation From Photo"}
-                </button>
-              </div>
-            )}
-
-            {photoType !== "existing_finding" && (
-              <div className="rounded-2xl border border-slate-700 bg-black/20 p-4">
-                <p className="mb-3 text-xs font-black uppercase tracking-[0.22em] text-cyan-300">
-                  Step 3
-              </p>
-
-              <div>
-                <label className="mb-2 block font-bold">Section</label>
-                <select
-                  value={section}
-                  onChange={(e) => setSection(e.target.value)}
-                  className="w-full rounded-xl border border-slate-700 bg-black p-4 text-white"
-                >
-                  {SECTIONS.map((item) => (
-                    <option key={item} value={item}>
-                      {item}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="mt-5">
-                <label className="mb-2 block font-bold">
-                  {photoType === "reference_photo"
-                    ? "Reference Photo Caption"
-                    : photoType === "limitation"
-                      ? "Limitation Wording"
-                      : "Quick Inspector Note"}
-                </label>
-                <textarea
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  rows={4}
-                  placeholder={
-                    photoType === "reference_photo"
-                      ? "Example: Main electrical panel overview, attic insulation overview, front elevation..."
-                      : photoType === "limitation"
-                        ? "Example: The rear roof slope was not fully visible due to dense tree coverage and could not be completely inspected."
-                        : "Example: double tapped neutral in main panel, recommend electrician"
-                  }
-                  className="w-full rounded-xl border border-slate-700 bg-black p-4 leading-7 text-white"
-                />
-              </div>
-
-              {photoType === "limitation" && (
-                <div className="mt-5 grid gap-4">
-                  <div>
-                    <label className="mb-2 block font-bold">
-                      Limitation Title
-                    </label>
-                    <input
-                      value={title}
-                      onChange={(event) => setTitle(event.target.value)}
-                      placeholder="Example: Rear roof slope not fully visible"
-                      className="w-full rounded-xl border border-slate-700 bg-black p-4 text-white"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="mb-2 block font-bold">
-                      Recommendation (Optional)
-                    </label>
-                    <textarea
-                      value={recommendation}
-                      onChange={(event) =>
-                        setRecommendation(event.target.value)
-                      }
-                      rows={3}
-                      placeholder="Example: Reinspect when vegetation is trimmed or access improves."
-                      className="w-full rounded-xl border border-slate-700 bg-black p-4 leading-7 text-white"
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-            )}
-
-<div className="rounded-2xl border border-purple-500/30 bg-purple-500/10 p-4">
+            {photoType === "finding" && (
+              <div className="rounded-2xl border border-purple-500/30 bg-purple-500/10 p-4">
                 <div className="mb-3">
                   <p className="text-xs font-black uppercase tracking-[0.22em] text-purple-300">
                     Step 2
@@ -4527,7 +4262,273 @@ function FieldPageContent() {
               </div>
             )}
 
-                        {photoType === "finding" && (
+            {mediaOrganizerOpen && (
+              <div className="rounded-2xl border border-fuchsia-500/40 bg-fuchsia-500/10 p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.2em] text-fuchsia-300">
+                      AI Media Organization
+                    </p>
+                    <h2 className="mt-1 text-xl font-black text-white">
+                      Review Photo Groups
+                    </h2>
+                    <p className="mt-1 text-sm text-slate-300">
+                      AI grouped related photos. Edit any assignment before
+                      creating the findings.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setMediaOrganizerOpen(false)}
+                    className="rounded-xl border border-slate-600 px-3 py-2 text-xs font-black text-slate-200"
+                  >
+                    Close
+                  </button>
+                </div>
+
+                <div className="mt-4 space-y-3">
+                  {mediaGroups.map((group) => (
+                    <div
+                      key={group.id}
+                      className="rounded-xl border border-slate-700 bg-black/40 p-3"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <p className="font-black text-white">
+                            {group.label}
+                          </p>
+                          <p className="text-xs font-bold text-slate-400">
+                            {group.photoIndexes.length} photo
+                            {group.photoIndexes.length === 1 ? "" : "s"} ·{" "}
+                            {Math.round((group.confidence || 0) * 100)}%
+                          </p>
+                        </div>
+
+                        <select
+                          value={group.classification}
+                          onChange={(event) =>
+                            updateMediaGroup(group.id, {
+                              classification: event.target
+                                .value as AIMediaGroup["classification"],
+                            })
+                          }
+                          className="rounded-lg border border-slate-600 bg-black px-3 py-2 text-sm font-bold text-white"
+                        >
+                          <option value="finding">Finding</option>
+                          <option value="reference">Reference</option>
+                          <option value="equipment">Equipment</option>
+                          <option value="limitation">Limitation</option>
+                          <option value="unassigned">Unassigned</option>
+                        </select>
+                      </div>
+
+                      <div className="mt-3 grid gap-3 md:grid-cols-2">
+                        <select
+                          value={group.section}
+                          onChange={(event) =>
+                            updateMediaGroup(group.id, {
+                              section: event.target.value,
+                            })
+                          }
+                          className="rounded-lg border border-slate-600 bg-black p-2 text-white"
+                        >
+                          {SECTIONS.map((item) => (
+                            <option key={item}>{item}</option>
+                          ))}
+                        </select>
+
+                        <select
+                          value={group.severity}
+                          onChange={(event) =>
+                            updateMediaGroup(group.id, {
+                              severity: event.target.value,
+                            })
+                          }
+                          className="rounded-lg border border-slate-600 bg-black p-2 text-white"
+                        >
+                          {SEVERITIES.map((item) => (
+                            <option key={item}>{item}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <input
+                        value={group.title}
+                        onChange={(event) =>
+                          updateMediaGroup(group.id, {
+                            title: event.target.value,
+                          })
+                        }
+                        className="mt-3 w-full rounded-lg border border-slate-600 bg-black p-3 font-black text-white"
+                      />
+
+                      <textarea
+                        value={group.observation}
+                        onChange={(event) =>
+                          updateMediaGroup(group.id, {
+                            observation: event.target.value,
+                          })
+                        }
+                        rows={3}
+                        className="mt-3 w-full rounded-lg border border-slate-600 bg-black p-3 text-white"
+                        placeholder="Observation"
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={saveOrganizedMediaGroups}
+                  disabled={savingOrganizedMedia || organizingMedia}
+                  className="mt-4 inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-fuchsia-400 px-4 py-3 font-black text-black disabled:opacity-50"
+                >
+                  {savingOrganizedMedia && (
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  )}
+                  {savingOrganizedMedia
+                    ? "Saving Groups..."
+                    : "Accept Finding Groups and Save"}
+                </button>
+              </div>
+            )}
+{equipmentResult?.error && (
+              <div className="rounded-xl border border-red-500/60 bg-red-500/10 p-4 text-sm font-bold text-red-200">
+                {equipmentResult.error || "Equipment analysis failed."}
+              </div>
+            )}
+
+            {photoType === "finding" &&
+              photos.some((photo) => photo.type.startsWith("video/")) &&
+              !photos.some((photo) => photo.type.startsWith("image/")) && (
+                <div className="rounded-xl border border-yellow-500/50 bg-yellow-500/10 p-4 text-sm font-bold leading-6 text-yellow-100">
+                  Video is saved with the finding, but AI photo recognition
+                  needs at least one still photo. Add one photo if you want AI
+                  to write the defect from media.
+                </div>
+              )}
+
+            {photoType === "reference_photo" && (
+              <div className="rounded-xl border border-cyan-500/40 bg-cyan-950/20 p-4 text-sm leading-6 text-cyan-100">
+                <p className="font-black text-cyan-300">Reference Photo Mode</p>
+                <p className="mt-1">
+                  Photos saved here will appear under Section Reference Photos
+                  in the report/share/client views. They are not counted as
+                  findings, defects, or repair request items.
+                </p>
+              </div>
+            )}
+
+            {photoType === "limitation" && (
+              <div className="rounded-xl border border-orange-500/40 bg-orange-950/20 p-4 text-sm leading-6 text-orange-100">
+                <p className="font-black text-orange-300">
+                  Section Limitation + Photo
+                </p>
+                <p className="mt-1">
+                  Add one photo showing the obstruction, access issue, stored
+                  belongings, unsafe condition, or concealed area. AI will
+                  automatically draft the limitation wording for your review.
+                </p>
+
+                <button
+                  type="button"
+                  onClick={() => void analyzeLimitationPhotoWithAI()}
+                  disabled={
+                    analyzingLimitation ||
+                    !online ||
+                    !photos.some((photo) => photo.type.startsWith("image/"))
+                  }
+                  className="mt-3 inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-orange-400 px-4 py-2 text-sm font-black text-black transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
+                >
+                  {analyzingLimitation && (
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  )}
+                  {analyzingLimitation
+                    ? "Drafting Limitation..."
+                    : "Draft Limitation From Photo"}
+                </button>
+              </div>
+            )}
+
+            {photoType !== "existing_finding" && (
+              <div className="rounded-2xl border border-slate-700 bg-black/20 p-4">
+                <p className="mb-3 text-xs font-black uppercase tracking-[0.22em] text-cyan-300">
+                  Step 3
+              </p>
+
+              <div>
+                <label className="mb-2 block font-bold">Section</label>
+                <select
+                  value={section}
+                  onChange={(e) => setSection(e.target.value)}
+                  className="w-full rounded-xl border border-slate-700 bg-black p-4 text-white"
+                >
+                  {SECTIONS.map((item) => (
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="mt-5">
+                <label className="mb-2 block font-bold">
+                  {photoType === "reference_photo"
+                    ? "Reference Photo Caption"
+                    : photoType === "limitation"
+                      ? "Limitation Wording"
+                      : "Quick Inspector Note"}
+                </label>
+                <textarea
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  rows={4}
+                  placeholder={
+                    photoType === "reference_photo"
+                      ? "Example: Main electrical panel overview, attic insulation overview, front elevation..."
+                      : photoType === "limitation"
+                        ? "Example: The rear roof slope was not fully visible due to dense tree coverage and could not be completely inspected."
+                        : "Example: double tapped neutral in main panel, recommend electrician"
+                  }
+                  className="w-full rounded-xl border border-slate-700 bg-black p-4 leading-7 text-white"
+                />
+              </div>
+
+              {photoType === "limitation" && (
+                <div className="mt-5 grid gap-4">
+                  <div>
+                    <label className="mb-2 block font-bold">
+                      Limitation Title
+                    </label>
+                    <input
+                      value={title}
+                      onChange={(event) => setTitle(event.target.value)}
+                      placeholder="Example: Rear roof slope not fully visible"
+                      className="w-full rounded-xl border border-slate-700 bg-black p-4 text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block font-bold">
+                      Recommendation (Optional)
+                    </label>
+                    <textarea
+                      value={recommendation}
+                      onChange={(event) =>
+                        setRecommendation(event.target.value)
+                      }
+                      rows={3}
+                      placeholder="Example: Reinspect when vegetation is trimmed or access improves."
+                      className="w-full rounded-xl border border-slate-700 bg-black p-4 leading-7 text-white"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+            )}
+
+            {photoType === "finding" && (
               <div className="rounded-2xl border border-slate-700 bg-black/20 p-4">
                 <p className="mb-3 text-xs font-black uppercase tracking-[0.22em] text-cyan-300">
                   Step 4
