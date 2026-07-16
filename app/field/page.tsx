@@ -68,6 +68,20 @@ type UploadedPhoto = {
   thumbnailPath?: string | null;
 };
 
+type ExistingFindingMedia = {
+  id: string | number;
+  finding_id?: string | number | null;
+  public_url?: string | null;
+  signed_url?: string | null;
+  file_path?: string | null;
+  storage_path?: string | null;
+  thumbnail_url?: string | null;
+  thumbnail_path?: string | null;
+  mime_type?: string | null;
+  is_video?: boolean | null;
+  created_at?: string | null;
+};
+
 type UploadProgressItem = {
   id: string;
   name: string;
@@ -997,6 +1011,11 @@ function FieldPageContent() {
   const [existingFindingId, setExistingFindingId] = useState("");
   const [existingFindingSearch, setExistingFindingSearch] = useState("");
   const [loadingExistingFindings, setLoadingExistingFindings] = useState(false);
+  const [existingFindingMedia, setExistingFindingMedia] = useState<
+    ExistingFindingMedia[]
+  >([]);
+  const [loadingExistingFindingMedia, setLoadingExistingFindingMedia] =
+    useState(false);
   const [title, setTitle] = useState("");
   const [section, setSection] = useState("Exterior");
   const [severity, setSeverity] = useState("Recommended Repair");
@@ -1313,7 +1332,7 @@ function FieldPageContent() {
       setLoadingExistingFindings(true);
       const { data, error } = await supabase
         .from("findings")
-        .select("id, title, section, severity, image_url, created_at")
+        .select("id, title, section, severity, image_url, created_at, updated_at")
         .eq("inspection_id", selectedReport)
         .order("created_at", { ascending: false });
 
@@ -1330,11 +1349,90 @@ function FieldPageContent() {
     };
   }, [selectedReport, queueTick]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadExistingFindingMedia() {
+      setExistingFindingMedia([]);
+
+      if (
+        photoType !== "existing_finding" ||
+        !selectedReport ||
+        !existingFindingId ||
+        !isOnline()
+      ) {
+        return;
+      }
+
+      setLoadingExistingFindingMedia(true);
+
+      const { data, error } = await supabase
+        .from("photos")
+        .select(
+          "id, finding_id, public_url, signed_url, file_path, storage_path, thumbnail_url, thumbnail_path, mime_type, is_video, created_at",
+        )
+        .eq("inspection_id", selectedReport)
+        .eq("finding_id", existingFindingId)
+        .order("created_at", { ascending: true });
+
+      if (!cancelled) {
+        setExistingFindingMedia(error ? [] : ((data || []) as ExistingFindingMedia[]));
+        setLoadingExistingFindingMedia(false);
+
+        if (error) {
+          setMessage(`Could not load finding media: ${error.message}`);
+        }
+      }
+    }
+
+    void loadExistingFindingMedia();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [photoType, selectedReport, existingFindingId, queueTick]);
+
+  const filteredExistingFindings = useMemo(() => {
+    const query = existingFindingSearch.trim().toLowerCase();
+
+    return existingFindings.filter((finding) => {
+      if (!query) return true;
+
+      return `${finding.title || ""} ${finding.section || ""} ${
+        finding.severity || ""
+      }`
+        .toLowerCase()
+        .includes(query);
+    });
+  }, [existingFindings, existingFindingSearch]);
+
+  const groupedExistingFindings = useMemo(() => {
+    const groups = new Map<string, any[]>();
+
+    filteredExistingFindings.forEach((finding) => {
+      const group = String(finding.section || "General");
+      const current = groups.get(group) || [];
+      current.push(finding);
+      groups.set(group, current);
+    });
+
+    return Array.from(groups.entries());
+  }, [filteredExistingFindings]);
+
+  const selectedExistingFinding = useMemo(
+    () =>
+      existingFindings.find(
+        (finding) => String(finding.id) === String(existingFindingId),
+      ) || null,
+    [existingFindings, existingFindingId],
+  );
+
   function resetForm() {
     setTitle("");
     setPhotoType("finding");
     setExistingFindingId("");
     setExistingFindingSearch("");
+    setExistingFindingMedia([]);
     setSection("Exterior");
     setSeverity("Recommended Repair");
     setNote("");
@@ -1366,6 +1464,7 @@ function FieldPageContent() {
 
   function setExistingFindingMode() {
     setPhotoType("existing_finding");
+    setExistingFindingMedia([]);
     setTitle("");
     setSeverity("Informational");
     setObservation("");
@@ -3159,41 +3258,138 @@ function FieldPageContent() {
 
             {photoType === "existing_finding" && (
               <div className="rounded-2xl border border-purple-500/40 bg-purple-500/10 p-4">
-                <label className="mb-2 block text-sm font-black text-purple-100">
-                  Select Existing Finding
-                </label>
+                <div className="mb-3">
+                  <p className="text-xs font-black uppercase tracking-[0.22em] text-purple-300">
+                    Attach Without Duplicating
+                  </p>
+                  <h2 className="mt-1 text-xl font-black text-white">
+                    Select Existing Finding
+                  </h2>
+                  <p className="mt-1 text-sm text-purple-100/80">
+                    The finding wording, severity, and current media stay unchanged.
+                  </p>
+                </div>
+
                 <input
                   value={existingFindingSearch}
-                  onChange={(event) => setExistingFindingSearch(event.target.value)}
-                  placeholder="Search by title, section, or severity..."
-                  className="mb-3 w-full rounded-xl border border-slate-700 bg-black px-4 py-3 text-white outline-none focus:border-purple-400"
+                  onChange={(event) =>
+                    setExistingFindingSearch(event.target.value)
+                  }
+                  placeholder="Search title, section, or severity..."
+                  className="mb-4 w-full rounded-xl border border-slate-700 bg-black px-4 py-3 text-white outline-none focus:border-purple-400"
                 />
-                <select
-                  value={existingFindingId}
-                  onChange={(event) => setExistingFindingId(event.target.value)}
-                  disabled={loadingExistingFindings}
-                  className="w-full rounded-xl border border-slate-700 bg-black px-4 py-3 text-white outline-none focus:border-purple-400 disabled:opacity-60"
-                >
-                  <option value="">
-                    {loadingExistingFindings ? "Loading findings..." : "Choose a finding"}
-                  </option>
-                  {existingFindings
-                    .filter((finding) => {
-                      const query = existingFindingSearch.trim().toLowerCase();
-                      if (!query) return true;
-                      return `${finding.title || ""} ${finding.section || ""} ${finding.severity || ""}`
-                        .toLowerCase()
-                        .includes(query);
-                    })
-                    .map((finding) => (
-                      <option key={finding.id} value={finding.id}>
-                        {finding.section || "General"} — {finding.title || "Untitled Finding"} ({finding.severity || "No severity"})
-                      </option>
+
+                {loadingExistingFindings ? (
+                  <div className="rounded-xl border border-slate-700 bg-black/40 p-4 text-sm font-bold text-slate-300">
+                    Loading report findings...
+                  </div>
+                ) : groupedExistingFindings.length === 0 ? (
+                  <div className="rounded-xl border border-slate-700 bg-black/40 p-4 text-sm font-bold text-slate-300">
+                    No matching findings were found.
+                  </div>
+                ) : (
+                  <div className="max-h-[430px] space-y-4 overflow-y-auto pr-1">
+                    {groupedExistingFindings.map(([groupSection, findings]) => (
+                      <div key={groupSection}>
+                        <p className="mb-2 text-xs font-black uppercase tracking-[0.18em] text-purple-200">
+                          {groupSection}
+                        </p>
+
+                        <div className="grid gap-2">
+                          {findings.map((finding) => {
+                            const selected =
+                              String(existingFindingId) === String(finding.id);
+
+                            return (
+                              <button
+                                key={finding.id}
+                                type="button"
+                                onClick={() =>
+                                  setExistingFindingId(String(finding.id))
+                                }
+                                className={`w-full rounded-xl border p-3 text-left transition active:scale-[0.99] [touch-action:manipulation] ${
+                                  selected
+                                    ? "border-purple-300 bg-purple-500/30 ring-2 ring-purple-300/40"
+                                    : "border-slate-700 bg-black/50 hover:border-purple-500/60 hover:bg-black/70"
+                                }`}
+                              >
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="min-w-0">
+                                    <p className="break-words font-black text-white">
+                                      {finding.title || "Untitled Finding"}
+                                    </p>
+                                    <p className="mt-1 text-xs font-bold text-slate-400">
+                                      {finding.severity || "No severity"}
+                                    </p>
+                                  </div>
+
+                                  <span
+                                    className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-black ${
+                                      selected
+                                        ? "bg-purple-300 text-purple-950"
+                                        : "border border-slate-600 text-slate-300"
+                                    }`}
+                                  >
+                                    {selected ? "Selected" : "Choose"}
+                                  </span>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
                     ))}
-                </select>
-                <p className="mt-2 text-xs text-purple-100/80">
-                  Existing wording and current media remain unchanged. New media will be appended.
-                </p>
+                  </div>
+                )}
+
+                {selectedExistingFinding && (
+                  <div className="mt-4 rounded-xl border border-purple-400/50 bg-black/40 p-3">
+                    <p className="text-xs font-black uppercase tracking-[0.18em] text-purple-300">
+                      Adding Media To
+                    </p>
+                    <p className="mt-1 font-black text-white">
+                      {selectedExistingFinding.title || "Untitled Finding"}
+                    </p>
+                    <p className="mt-1 text-xs font-bold text-slate-400">
+                      {selectedExistingFinding.section || "General"} ·{" "}
+                      {selectedExistingFinding.severity || "No severity"}
+                    </p>
+
+                    <div className="mt-3">
+                      <div className="mb-2 flex items-center justify-between gap-2">
+                        <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-300">
+                          Current Media
+                        </p>
+                        <span className="text-xs font-bold text-slate-400">
+                          {loadingExistingFindingMedia
+                            ? "Loading..."
+                            : `${existingFindingMedia.length} item${
+                                existingFindingMedia.length === 1 ? "" : "s"
+                              }`}
+                        </span>
+                      </div>
+
+                      {loadingExistingFindingMedia ? (
+                        <div className="rounded-lg border border-slate-700 p-3 text-xs font-bold text-slate-400">
+                          Loading attached media...
+                        </div>
+                      ) : existingFindingMedia.length > 0 ? (
+                        <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+                          {existingFindingMedia.map((media) => (
+                            <ExistingFindingMediaPreview
+                              key={String(media.id)}
+                              media={media}
+                            />
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="rounded-lg border border-dashed border-slate-600 p-3 text-xs font-bold text-slate-400">
+                          No media is currently attached.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -3259,10 +3455,11 @@ function FieldPageContent() {
 
             
 
-            <div className="rounded-2xl border border-purple-500/30 bg-purple-500/10 p-4">
-              <div className="mb-3">
-                <p className="text-xs font-black uppercase tracking-[0.22em] text-purple-300">
-                  Step 2
+            {photoType === "finding" && (
+              <div className="rounded-2xl border border-purple-500/30 bg-purple-500/10 p-4">
+                <div className="mb-3">
+                  <p className="text-xs font-black uppercase tracking-[0.22em] text-purple-300">
+                    Step 2
                 </p>
                 <h2 className="text-xl font-black text-white">
                   Let AI Help Write It
@@ -3354,6 +3551,7 @@ function FieldPageContent() {
                 </button>
               </div>
             </div>
+            )}
 
             {equipmentResult && !equipmentResult.error && (
               <div className="rounded-2xl border border-cyan-500/40 bg-cyan-950/20 p-4">
@@ -3542,9 +3740,13 @@ function FieldPageContent() {
                   ? online
                     ? "Save Section Reference Photo"
                     : "Save Section Reference Photo Offline"
-                  : online
-                    ? "Save Finding to Report"
-                    : "Save Finding Offline"}
+                  : photoType === "existing_finding"
+                    ? online
+                      ? "Attach Media to Selected Finding"
+                      : "Existing Finding Media Needs Internet"
+                    : online
+                      ? "Save Finding to Report"
+                      : "Save Finding Offline"}
             </button>
 
             <LiveSectionCoach
@@ -3661,6 +3863,51 @@ function UploadProgressPanel({ items }: { items: UploadProgressItem[] }) {
         ))}
       </div>
     </div>
+  );
+}
+
+function ExistingFindingMediaPreview({
+  media,
+}: {
+  media: ExistingFindingMedia;
+}) {
+  const isVideo =
+    Boolean(media.is_video) ||
+    String(media.mime_type || "").toLowerCase().startsWith("video/") ||
+    /\.(mp4|mov|m4v|webm)(\?|$)/i.test(
+      String(media.file_path || media.public_url || ""),
+    );
+
+  const mediaUrl = String(media.signed_url || media.public_url || "");
+  const previewUrl = String(media.thumbnail_url || mediaUrl || "");
+
+  return (
+    <a
+      href={mediaUrl || previewUrl || undefined}
+      target="_blank"
+      rel="noreferrer"
+      className="group relative aspect-square overflow-hidden rounded-lg border border-slate-700 bg-black"
+      title={isVideo ? "Open attached video" : "Open attached photo"}
+    >
+      {previewUrl ? (
+        <img
+          src={previewUrl}
+          alt={isVideo ? "Attached video thumbnail" : "Attached finding photo"}
+          className="h-full w-full object-cover transition group-hover:scale-[1.03]"
+          loading="lazy"
+        />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center text-2xl">
+          {isVideo ? "🎥" : "📷"}
+        </div>
+      )}
+
+      {isVideo && (
+        <span className="absolute bottom-1 left-1 rounded-md bg-black/80 px-1.5 py-0.5 text-[10px] font-black text-white">
+          VIDEO
+        </span>
+      )}
+    </a>
   );
 }
 

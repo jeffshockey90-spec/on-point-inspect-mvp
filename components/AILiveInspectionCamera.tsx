@@ -975,7 +975,8 @@ export default function AILiveInspectionCamera({
       return "";
     }
 
-    const maxWidth = 1100;
+    // Keep enough detail for inspection evidence and photo markup.
+    const maxWidth = 1920;
     const scale = Math.min(1, maxWidth / video.videoWidth);
     const canvas = document.createElement("canvas");
     canvas.width = Math.max(1, Math.round(video.videoWidth * scale));
@@ -1007,7 +1008,7 @@ export default function AILiveInspectionCamera({
       context.drawImage(video, 0, 0, canvas.width, canvas.height);
     }
 
-    const dataUrl = canvas.toDataURL("image/jpeg", 0.78);
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
     latestFrameRef.current = dataUrl;
     setFrameDataUrl(dataUrl);
     if (!options.silent) {
@@ -1334,7 +1335,7 @@ export default function AILiveInspectionCamera({
         supportedTypes.find((type) => MediaRecorder.isTypeSupported(type)) ||
         "";
       const recorderOptions: MediaRecorderOptions = {
-        videoBitsPerSecond: 8_000_000,
+        videoBitsPerSecond: 10_000_000,
         audioBitsPerSecond: 128_000,
         ...(mimeType ? { mimeType } : {}),
       };
@@ -1372,7 +1373,7 @@ export default function AILiveInspectionCamera({
         onAddPhotoOnly(file);
         void saveSelectedMediaToGallery(file);
         setMessage(
-          "Video added to the Field Tool and queued for the device gallery.",
+          "High-quality video added to the current Field Tool destination and queued for the device gallery.",
         );
         recordMemoryEvent({
           eventType: "live_camera_media",
