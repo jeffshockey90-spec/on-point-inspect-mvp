@@ -1332,7 +1332,7 @@ function FieldPageContent() {
       setLoadingExistingFindings(true);
       const { data, error } = await supabase
         .from("findings")
-        .select("id, title, section, severity, image_url, created_at, updated_at")
+        .select("id, title, section, severity, image_url, created_at")
         .eq("inspection_id", selectedReport)
         .order("created_at", { ascending: false });
 
