@@ -3483,7 +3483,6 @@ function FieldPageContent() {
                     saving ||
                     savingEquipment ||
                     !online ||
-                    photoType === "reference_photo" ||
                     !photos.some((photo) => photo.type.startsWith("image/"))
                   }
                   className="w-full rounded-xl border border-purple-500 bg-purple-500/10 p-4 text-lg font-bold text-purple-200 transition active:scale-[0.98] hover:bg-purple-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
@@ -3502,7 +3501,6 @@ function FieldPageContent() {
                     saving ||
                     savingEquipment ||
                     !online ||
-                    photoType === "reference_photo" ||
                     !photos.some((photo) => photo.type.startsWith("image/"))
                   }
                   className="w-full rounded-xl border border-cyan-500 bg-cyan-500/10 p-4 text-lg font-bold text-cyan-200 transition active:scale-[0.98] hover:bg-cyan-500 hover:text-black disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
@@ -3520,8 +3518,7 @@ function FieldPageContent() {
                     analyzingPhoto ||
                     analyzingEquipment ||
                     saving ||
-                    savingEquipment ||
-                    photoType === "reference_photo"
+                    savingEquipment
                   }
                   className="w-full rounded-xl border border-emerald-500 bg-emerald-500/10 p-4 text-lg font-bold text-emerald-200 transition active:scale-[0.98] hover:bg-emerald-500 hover:text-black disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
                 >
@@ -3538,8 +3535,7 @@ function FieldPageContent() {
                     analyzingEquipment ||
                     saving ||
                     savingEquipment ||
-                    !online ||
-                    photoType === "reference_photo"
+                    !online
                   }
                   className="w-full rounded-xl bg-teal-500 p-4 text-lg font-bold text-black transition active:scale-[0.98] hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
                 >
