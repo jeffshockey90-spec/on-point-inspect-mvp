@@ -3,6 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { saveFileToDeviceGallery } from "../lib/nativeGallery";
+import {
+  nativeCameraAvailable,
+  openNativeFieldCamera,
+} from "../lib/nativeCamera";
 
 type Props = {
   destinationLabel: string;
@@ -24,12 +28,18 @@ export default function FieldCamera({
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const focusTimerRef = useRef<number | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const recordingStartedAtRef = useRef(0);
+  const recordingTimerRef = useRef<number | null>(null);
   const hardwareZoomRef = useRef(false);
+  const pinchDistanceRef = useRef<number | null>(null);
+  const pinchStartZoomRef = useRef(1);
 
   const [open, setOpen] = useState(false);
   const [starting, setStarting] = useState(false);
   const [captureMode, setCaptureMode] = useState<CaptureMode>("photo");
   const [recording, setRecording] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [facingMode, setFacingMode] = useState<"environment" | "user">(
     "environment",
   );
@@ -43,6 +53,187 @@ export default function FieldCamera({
   const [focusMessage, setFocusMessage] = useState("");
   const [message, setMessage] = useState("");
   const [cameraError, setCameraError] = useState("");
+  const [focusLocked, setFocusLocked] = useState(false);
+  const [macroMode, setMacroMode] = useState(false);
+  const [autoSaveGallery, setAutoSaveGallery] = useState(true);
+  const [sessionCaptureCount, setSessionCaptureCount] = useState(0);
+
+  function triggerHaptic(pattern: number | number[] = 18) {
+    try {
+      navigator.vibrate?.(pattern);
+    } catch {}
+  }
+
+  function getAudioContext() {
+    if (typeof window === "undefined") return null;
+
+    const AudioContextClass =
+      window.AudioContext ||
+      (window as typeof window & {
+        webkitAudioContext?: typeof AudioContext;
+      }).webkitAudioContext;
+
+    if (!AudioContextClass) return null;
+
+    if (!audioContextRef.current) {
+      audioContextRef.current = new AudioContextClass();
+    }
+
+    return audioContextRef.current;
+  }
+
+  async function resumeAudioContext() {
+    const context = getAudioContext();
+    if (!context) return null;
+
+    if (context.state === "suspended") {
+      await context.resume().catch(() => undefined);
+    }
+
+    return context;
+  }
+
+  async function playTone({
+    frequency,
+    duration,
+    volume = 0.12,
+    type = "sine",
+    delay = 0,
+  }: {
+    frequency: number;
+    duration: number;
+    volume?: number;
+    type?: OscillatorType;
+    delay?: number;
+  }) {
+    const context = await resumeAudioContext();
+    if (!context) return;
+
+    const startAt = context.currentTime + delay;
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+
+    oscillator.type = type;
+    oscillator.frequency.setValueAtTime(frequency, startAt);
+    gain.gain.setValueAtTime(0.0001, startAt);
+    gain.gain.exponentialRampToValueAtTime(volume, startAt + 0.008);
+    gain.gain.exponentialRampToValueAtTime(
+      0.0001,
+      startAt + Math.max(0.03, duration),
+    );
+
+    oscillator.connect(gain);
+    gain.connect(context.destination);
+    oscillator.start(startAt);
+    oscillator.stop(startAt + duration + 0.02);
+  }
+
+  async function playPhotoShutterSound() {
+    // Short two-part shutter click made with Web Audio, so no audio asset is needed.
+    await Promise.all([
+      playTone({
+        frequency: 1180,
+        duration: 0.045,
+        volume: 0.16,
+        type: "square",
+      }),
+      playTone({
+        frequency: 760,
+        duration: 0.065,
+        volume: 0.12,
+        type: "triangle",
+        delay: 0.045,
+      }),
+    ]);
+  }
+
+  async function playRecordStartSound() {
+    await Promise.all([
+      playTone({
+        frequency: 660,
+        duration: 0.09,
+        volume: 0.13,
+        type: "sine",
+      }),
+      playTone({
+        frequency: 880,
+        duration: 0.11,
+        volume: 0.13,
+        type: "sine",
+        delay: 0.08,
+      }),
+    ]);
+  }
+
+  async function playRecordStopSound() {
+    await Promise.all([
+      playTone({
+        frequency: 880,
+        duration: 0.09,
+        volume: 0.13,
+        type: "sine",
+      }),
+      playTone({
+        frequency: 560,
+        duration: 0.13,
+        volume: 0.13,
+        type: "sine",
+        delay: 0.08,
+      }),
+    ]);
+  }
+
+  function startRecordingTimer() {
+    recordingStartedAtRef.current = Date.now();
+    setRecordingSeconds(0);
+
+    if (recordingTimerRef.current) {
+      window.clearInterval(recordingTimerRef.current);
+    }
+
+    recordingTimerRef.current = window.setInterval(() => {
+      setRecordingSeconds(
+        Math.max(
+          0,
+          Math.floor((Date.now() - recordingStartedAtRef.current) / 1000),
+        ),
+      );
+    }, 250);
+  }
+
+  function stopRecordingTimer() {
+    if (recordingTimerRef.current) {
+      window.clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+
+    recordingStartedAtRef.current = 0;
+  }
+
+  function formatRecordingTime(totalSeconds: number) {
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(
+      2,
+      "0",
+    )}`;
+  }
+
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem("opi-field-camera-auto-gallery");
+      if (saved !== null) setAutoSaveGallery(saved !== "false");
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        "opi-field-camera-auto-gallery",
+        String(autoSaveGallery),
+      );
+    } catch {}
+  }, [autoSaveGallery]);
 
   useEffect(() => {
     if (!open) {
@@ -138,6 +329,9 @@ export default function FieldCamera({
   }
 
   function stopCamera() {
+    stopRecordingTimer();
+    setRecordingSeconds(0);
+
     if (focusTimerRef.current) {
       window.clearTimeout(focusTimerRef.current);
       focusTimerRef.current = null;
@@ -164,8 +358,109 @@ export default function FieldCamera({
     }
   }
 
+  async function toggleFocusLock() {
+    const track = streamRef.current?.getVideoTracks()[0];
+    if (!track) return;
+
+    try {
+      const capabilities = track.getCapabilities?.() as
+        | (MediaTrackCapabilities & { focusMode?: string[] })
+        | undefined;
+      const next = !focusLocked;
+      const mode =
+        next && capabilities?.focusMode?.includes("manual")
+          ? "manual"
+          : capabilities?.focusMode?.includes("continuous")
+            ? "continuous"
+            : "";
+
+      if (mode) {
+        await track.applyConstraints({
+          advanced: [{ focusMode: mode } as any],
+        });
+      }
+
+      setFocusLocked(next);
+      setMessage(next ? "Focus locked." : "Continuous autofocus restored.");
+      triggerHaptic(14);
+    } catch {
+      setMessage("Focus lock is not supported by this device.");
+    }
+  }
+
+  async function toggleMacroMode() {
+    const track = streamRef.current?.getVideoTracks()[0];
+    if (!track) return;
+
+    try {
+      const capabilities = track.getCapabilities?.() as
+        | (MediaTrackCapabilities & {
+            focusMode?: string[];
+            focusDistance?: { min?: number; max?: number; step?: number };
+          })
+        | undefined;
+
+      const next = !macroMode;
+      const advanced: any[] = [];
+
+      if (capabilities?.focusMode?.includes("continuous")) {
+        advanced.push({ focusMode: "continuous" });
+      }
+
+      if (next && capabilities?.focusDistance) {
+        advanced.push({
+          focusDistance: Number(capabilities.focusDistance.min || 0),
+        });
+      }
+
+      if (advanced.length) {
+        await track.applyConstraints({ advanced } as any);
+      }
+
+      setMacroMode(next);
+      setMessage(
+        next
+          ? "Close-up mode enabled. Move slowly and tap the label to focus."
+          : "Close-up mode disabled.",
+      );
+      triggerHaptic([10, 20, 10]);
+    } catch {
+      setMessage("Close-up focus control is not supported by this device.");
+    }
+  }
+
+  function getTouchDistance(event: React.TouchEvent<HTMLDivElement>) {
+    if (event.touches.length < 2) return null;
+    const [first, second] = [event.touches[0], event.touches[1]];
+    return Math.hypot(
+      second.clientX - first.clientX,
+      second.clientY - first.clientY,
+    );
+  }
+
+  function handlePinchStart(event: React.TouchEvent<HTMLDivElement>) {
+    const distance = getTouchDistance(event);
+    if (!distance) return;
+    pinchDistanceRef.current = distance;
+    pinchStartZoomRef.current = zoom;
+  }
+
+  function handlePinchMove(event: React.TouchEvent<HTMLDivElement>) {
+    const distance = getTouchDistance(event);
+    const startDistance = pinchDistanceRef.current;
+    if (!distance || !startDistance) return;
+
+    event.preventDefault();
+    const scale = distance / startDistance;
+    void setZoomLevel(pinchStartZoomRef.current * scale);
+  }
+
+  function handlePinchEnd() {
+    pinchDistanceRef.current = null;
+  }
+
   async function toggleFacingCamera() {
-    if (starting || recording) return;
+    if (starting || recording || focusLocked) return;
 
     const next = facingMode === "environment" ? "user" : "environment";
     setFacingMode(next);
@@ -273,6 +568,10 @@ export default function FieldCamera({
   async function capturePhoto() {
     const video = videoRef.current;
 
+    // This is called directly from a tap, which keeps Web Audio allowed on iOS.
+    triggerHaptic(22);
+    void playPhotoShutterSound();
+
     if (!video || !video.videoWidth || !video.videoHeight) {
       setMessage("Camera frame is not ready yet.");
       return;
@@ -326,7 +625,10 @@ export default function FieldCamera({
     });
 
     onAddMedia([file]);
-    void saveFileToDeviceGallery(file).catch(() => false);
+    setSessionCaptureCount((current) => current + 1);
+    if (autoSaveGallery) {
+      void saveFileToDeviceGallery(file).catch(() => false);
+    }
     setMessage("Photo added. Keep capturing or close the camera.");
   }
 
@@ -342,7 +644,7 @@ export default function FieldCamera({
     return choices.find((type) => MediaRecorder.isTypeSupported(type)) || "";
   }
 
-  function startRecording() {
+  async function startRecording() {
     const stream = streamRef.current;
 
     if (!allowVideo) {
@@ -371,11 +673,18 @@ export default function FieldCamera({
       };
 
       recorder.onerror = () => {
+        stopRecordingTimer();
+        setRecordingSeconds(0);
         setRecording(false);
         setMessage("Video recording failed. Use Choose Videos instead.");
       };
 
       recorder.onstop = () => {
+        stopRecordingTimer();
+        setRecordingSeconds(0);
+        triggerHaptic(28);
+        void playRecordStopSound();
+
         const blob = new Blob(chunksRef.current, {
           type: recorder.mimeType || "video/webm",
         });
@@ -400,12 +709,23 @@ export default function FieldCamera({
         );
 
         onAddMedia([file]);
-        void saveFileToDeviceGallery(file).catch(() => false);
+        setSessionCaptureCount((current) => current + 1);
+        if (autoSaveGallery) {
+          void saveFileToDeviceGallery(file).catch(() => false);
+        }
         setMessage("Video added. Keep capturing or close the camera.");
       };
 
       recorderRef.current = recorder;
+
+      // Play the start cue before recording begins so it is not captured by
+      // the video's microphone track.
+      triggerHaptic([20, 30, 20]);
+      await playRecordStartSound();
+      await new Promise((resolve) => window.setTimeout(resolve, 90));
+
       recorder.start(500);
+      startRecordingTimer();
       setRecording(true);
       setMessage("Recording… Tap the red button again to stop.");
     } catch {
@@ -423,7 +743,7 @@ export default function FieldCamera({
       return;
     }
 
-    startRecording();
+    void startRecording();
   }
 
   function handlePrimaryCapture() {
@@ -448,13 +768,47 @@ export default function FieldCamera({
 
       <button
         type="button"
-        onClick={() => {
+        onClick={async () => {
+          setSessionCaptureCount(0);
+
+          if (nativeCameraAvailable()) {
+            setStarting(true);
+            setCameraError("");
+
+            try {
+              const files = await openNativeFieldCamera({
+                allowVideo,
+                autoSaveGallery,
+                preferredMode: captureMode,
+              });
+
+              if (files.length > 0) {
+                onAddMedia(files);
+                setSessionCaptureCount(files.length);
+                setMessage(
+                  `${files.length} native camera item${files.length === 1 ? "" : "s"} added.`,
+                );
+              }
+            } catch (error: any) {
+              setCameraError(
+                error?.message ||
+                  "Native camera failed. Opening the fallback camera.",
+              );
+              setOpen(true);
+              window.setTimeout(() => void startCamera(facingMode), 50);
+            } finally {
+              setStarting(false);
+            }
+
+            return;
+          }
+
           setOpen(true);
           window.setTimeout(() => void startCamera(facingMode), 50);
         }}
         className="mt-4 min-h-[48px] w-full rounded-xl bg-cyan-400 px-4 py-3 text-sm font-black text-black transition active:scale-[0.98] hover:bg-cyan-300 [touch-action:manipulation]"
       >
-        📸 Open Field Camera
+        {starting ? "Opening Camera..." : "📸 Open Field Camera"}
       </button>
     </div>
   ) : (
@@ -478,7 +832,10 @@ export default function FieldCamera({
       <div
         className="absolute inset-0 z-[1]"
         onPointerDown={handleTapFocus}
-        aria-label="Tap camera preview to focus"
+        onTouchStart={handlePinchStart}
+        onTouchMove={handlePinchMove}
+        onTouchEnd={handlePinchEnd}
+        aria-label="Tap to focus or pinch to zoom"
       />
 
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/45 via-transparent to-black/80" />
@@ -518,18 +875,61 @@ export default function FieldCamera({
             {destinationLabel}
           </p>
           <p className="text-[11px] font-bold text-cyan-200">
-            {selectedMediaCount} selected
+            {selectedMediaCount} selected · {sessionCaptureCount} this session
           </p>
         </div>
 
+        {recording ? (
+          <div className="flex h-12 min-w-[88px] items-center justify-center gap-2 rounded-full bg-red-600 px-3 text-sm font-black text-white shadow-xl">
+            <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-white" />
+            {formatRecordingTime(recordingSeconds)}
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={toggleTorch}
+            className={`flex h-12 w-12 items-center justify-center rounded-full text-xl backdrop-blur ${
+              torchOn ? "bg-yellow-300 text-black" : "bg-black/65 text-white"
+            }`}
+          >
+            ⚡
+          </button>
+        )}
+      </div>
+
+      <div className="absolute left-4 top-[calc(max(1rem,env(safe-area-inset-top))+4.25rem)] z-30 flex flex-wrap gap-2">
         <button
           type="button"
-          onClick={toggleTorch}
-          className={`flex h-12 w-12 items-center justify-center rounded-full text-xl backdrop-blur ${
-            torchOn ? "bg-yellow-300 text-black" : "bg-black/65 text-white"
+          onClick={toggleFocusLock}
+          className={`rounded-full px-3 py-2 text-xs font-black backdrop-blur ${
+            focusLocked
+              ? "bg-yellow-300 text-black"
+              : "bg-black/65 text-white"
           }`}
         >
-          ⚡
+          {focusLocked ? "🔒 FOCUS" : "🎯 FOCUS"}
+        </button>
+
+        <button
+          type="button"
+          onClick={toggleMacroMode}
+          className={`rounded-full px-3 py-2 text-xs font-black backdrop-blur ${
+            macroMode ? "bg-cyan-300 text-black" : "bg-black/65 text-white"
+          }`}
+        >
+          🔍 CLOSE-UP
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setAutoSaveGallery((current) => !current)}
+          className={`rounded-full px-3 py-2 text-xs font-black backdrop-blur ${
+            autoSaveGallery
+              ? "bg-emerald-300 text-black"
+              : "bg-black/65 text-white"
+          }`}
+        >
+          {autoSaveGallery ? "✓ GALLERY" : "GALLERY OFF"}
         </button>
       </div>
 

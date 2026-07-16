@@ -18,6 +18,7 @@ import AILiveInspectionCamera, {
 } from "../../components/AILiveInspectionCamera";
 import FieldCamera from "../../components/FieldCamera";
 import PhotoMarkupEditor from "../../components/PhotoMarkupEditor";
+import VoiceOnlyInspectionMode from "../../components/VoiceOnlyInspectionMode";
 import LiveSectionCoach from "../../components/LiveSectionCoach";
 import {
   addOfflineQueueItem,
@@ -82,6 +83,25 @@ type ExistingFindingMedia = {
   mime_type?: string | null;
   is_video?: boolean | null;
   created_at?: string | null;
+};
+
+type AIMediaGroup = {
+  id: string;
+  label: string;
+  photoIndexes: number[];
+  classification:
+    | "finding"
+    | "reference"
+    | "equipment"
+    | "limitation"
+    | "unassigned";
+  section: string;
+  severity: string;
+  title: string;
+  observation: string;
+  implication: string;
+  recommendation: string;
+  confidence: number;
 };
 
 type UploadProgressItem = {
@@ -1045,6 +1065,10 @@ function FieldPageContent() {
   const [uploadProgress, setUploadProgress] = useState<UploadProgressItem[]>(
     [],
   );
+  const [organizingMedia, setOrganizingMedia] = useState(false);
+  const [savingOrganizedMedia, setSavingOrganizedMedia] = useState(false);
+  const [mediaGroups, setMediaGroups] = useState<AIMediaGroup[]>([]);
+  const [mediaOrganizerOpen, setMediaOrganizerOpen] = useState(false);
   const [takingNativePhoto, setTakingNativePhoto] = useState(false);
   const [online, setOnline] = useState(true);
   const [message, setMessage] = useState("");
@@ -2854,6 +2878,187 @@ function FieldPageContent() {
     await startBrowserDictation();
   }
 
+  async function organizeSelectedPhotosWithAI() {
+    if (organizingMedia || savingOrganizedMedia) return;
+
+    const imageEntries = photos
+      .map((file, index) => ({ file, index }))
+      .filter(({ file }) => file.type.startsWith("image/"))
+      .slice(0, 12);
+
+    if (imageEntries.length < 2) {
+      setMessage("Add at least two photos to use AI media organization.");
+      return;
+    }
+
+    if (!online) {
+      setMessage("AI media organization requires internet.");
+      return;
+    }
+
+    setOrganizingMedia(true);
+    setMessage("AI is organizing the selected photos...");
+
+    try {
+      const images = await Promise.all(
+        imageEntries.map(async ({ file, index }) => {
+          const prepared = await compressImageForAiUpload(file);
+          return {
+            originalIndex: index,
+            name: file.name,
+            dataUrl: await fileToDataUrl(prepared),
+          };
+        }),
+      );
+
+      const response = await fetch("/api/ai/media-organize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+        body: JSON.stringify({
+          currentSection: section,
+          images,
+        }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok || !data?.success) {
+        throw new Error(data?.error || "AI could not organize the photos.");
+      }
+
+      const mappedGroups: AIMediaGroup[] = (data.groups || []).map(
+        (group: AIMediaGroup) => ({
+          ...group,
+          photoIndexes: (group.photoIndexes || [])
+            .map((aiIndex) => images[aiIndex]?.originalIndex)
+            .filter((value) => Number.isInteger(value)),
+        }),
+      );
+
+      setMediaGroups(mappedGroups);
+      setMediaOrganizerOpen(true);
+      setMessage(
+        `AI organized ${imageEntries.length} photos into ${mappedGroups.length} group${mappedGroups.length === 1 ? "" : "s"}. Review before saving.`,
+      );
+    } catch (error: any) {
+      setMessage(error?.message || "AI media organization failed.");
+    } finally {
+      setOrganizingMedia(false);
+    }
+  }
+
+  function updateMediaGroup(
+    groupId: string,
+    patch: Partial<AIMediaGroup>,
+  ) {
+    setMediaGroups((current) =>
+      current.map((group) =>
+        group.id === groupId ? { ...group, ...patch } : group,
+      ),
+    );
+  }
+
+  async function saveOrganizedMediaGroups() {
+    if (savingOrganizedMedia || organizingMedia) return;
+
+    const approvedGroups = mediaGroups.filter(
+      (group) =>
+        group.classification === "finding" &&
+        group.photoIndexes.length > 0,
+    );
+
+    if (!approvedGroups.length) {
+      setMessage(
+        "No finding groups are ready. Change at least one group to Finding.",
+      );
+      return;
+    }
+
+    setSavingOrganizedMedia(true);
+    setMessage("Saving AI-organized findings...");
+
+    try {
+      let savedCount = 0;
+
+      for (const group of approvedGroups) {
+        const groupFiles = group.photoIndexes
+          .map((index) => photos[index])
+          .filter(Boolean);
+
+        const uploaded: UploadedPhoto[] = [];
+        for (const file of groupFiles) {
+          uploaded.push(await uploadPhotoFile(file, "field-media"));
+        }
+
+        const { data: finding, error } = await supabase
+          .from("findings")
+          .insert({
+            inspection_id: selectedReport,
+            title: group.title || group.label || "Inspection Finding",
+            section: group.section,
+            severity: group.severity,
+            observation: group.observation,
+            implication: group.implication,
+            recommendation: group.recommendation,
+            image_url:
+              uploaded.find((item) => !item.isVideo)?.publicUrl || null,
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        if (uploaded.length) {
+          const { error: photoError } = await supabase.from("photos").insert(
+            uploaded.map((item) => ({
+              inspection_id: selectedReport,
+              finding_id: finding.id,
+              public_url: item.publicUrl,
+              file_path: item.filePath,
+              is_video: Boolean(item.isVideo),
+              mime_type: item.mimeType || null,
+              thumbnail_url: item.thumbnailUrl || null,
+              thumbnail_path: item.thumbnailPath || null,
+            })),
+          );
+
+          if (photoError) throw photoError;
+        }
+
+        savedCount += 1;
+      }
+
+      const usedIndexes = new Set(
+        approvedGroups.flatMap((group) => group.photoIndexes),
+      );
+      setPhotos((current) =>
+        current.filter((_file, index) => !usedIndexes.has(index)),
+      );
+      setMediaGroups([]);
+      setMediaOrganizerOpen(false);
+      setMessage(
+        `${savedCount} AI-organized finding${savedCount === 1 ? "" : "s"} saved.`,
+      );
+
+      window.dispatchEvent(
+        new CustomEvent("opi:inspection-data-changed", {
+          detail: {
+            inspectionId: selectedReport,
+            source: "ai-media-organizer",
+          },
+        }),
+      );
+    } catch (error: any) {
+      setMessage(
+        error?.message || "Could not save the AI-organized findings.",
+      );
+    } finally {
+      setSavingOrganizedMedia(false);
+      clearCompletedProgressSoon();
+    }
+  }
+
   async function uploadPhotoFile(
     photo: File,
     folder: string,
@@ -3838,6 +4043,28 @@ function FieldPageContent() {
                 </span>
               </div>
 
+              {photos.filter((photo) =>
+                photo.type.startsWith("image/"),
+              ).length >= 2 && photoType === "finding" && (
+                <button
+                  type="button"
+                  onClick={organizeSelectedPhotosWithAI}
+                  disabled={
+                    organizingMedia ||
+                    savingOrganizedMedia ||
+                    !online
+                  }
+                  className="mt-3 inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl border border-fuchsia-400 bg-fuchsia-500/15 px-4 py-3 text-sm font-black text-fuchsia-100 transition active:scale-[0.98] hover:bg-fuchsia-500/25 disabled:opacity-50"
+                >
+                  {organizingMedia && (
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  )}
+                  {organizingMedia
+                    ? "Organizing Photos..."
+                    : "✨ AI Organize Multi-Photo Session"}
+                </button>
+              )}
+
               {photos.length > 0 && (
                 <div className="mt-4 grid grid-cols-2 gap-4">
                   {photos.map((photo, index) => (
@@ -3859,6 +4086,145 @@ function FieldPageContent() {
                 <UploadProgressPanel items={uploadProgress} />
               )}
             </div>
+
+            {mediaOrganizerOpen && (
+              <div className="rounded-2xl border border-fuchsia-500/40 bg-fuchsia-500/10 p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.2em] text-fuchsia-300">
+                      AI Media Organization
+                    </p>
+                    <h2 className="mt-1 text-xl font-black text-white">
+                      Review Photo Groups
+                    </h2>
+                    <p className="mt-1 text-sm text-slate-300">
+                      AI grouped related photos. Edit any assignment before
+                      creating the findings.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setMediaOrganizerOpen(false)}
+                    className="rounded-xl border border-slate-600 px-3 py-2 text-xs font-black text-slate-200"
+                  >
+                    Close
+                  </button>
+                </div>
+
+                <div className="mt-4 space-y-3">
+                  {mediaGroups.map((group) => (
+                    <div
+                      key={group.id}
+                      className="rounded-xl border border-slate-700 bg-black/40 p-3"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <p className="font-black text-white">
+                            {group.label}
+                          </p>
+                          <p className="text-xs font-bold text-slate-400">
+                            {group.photoIndexes.length} photo
+                            {group.photoIndexes.length === 1 ? "" : "s"} ·{" "}
+                            {Math.round((group.confidence || 0) * 100)}%
+                          </p>
+                        </div>
+
+                        <select
+                          value={group.classification}
+                          onChange={(event) =>
+                            updateMediaGroup(group.id, {
+                              classification: event.target
+                                .value as AIMediaGroup["classification"],
+                            })
+                          }
+                          className="rounded-lg border border-slate-600 bg-black px-3 py-2 text-sm font-bold text-white"
+                        >
+                          <option value="finding">Finding</option>
+                          <option value="reference">Reference</option>
+                          <option value="equipment">Equipment</option>
+                          <option value="limitation">Limitation</option>
+                          <option value="unassigned">Unassigned</option>
+                        </select>
+                      </div>
+
+                      <div className="mt-3 grid gap-3 md:grid-cols-2">
+                        <select
+                          value={group.section}
+                          onChange={(event) =>
+                            updateMediaGroup(group.id, {
+                              section: event.target.value,
+                            })
+                          }
+                          className="rounded-lg border border-slate-600 bg-black p-2 text-white"
+                        >
+                          {SECTIONS.map((item) => (
+                            <option key={item}>{item}</option>
+                          ))}
+                        </select>
+
+                        <select
+                          value={group.severity}
+                          onChange={(event) =>
+                            updateMediaGroup(group.id, {
+                              severity: event.target.value,
+                            })
+                          }
+                          className="rounded-lg border border-slate-600 bg-black p-2 text-white"
+                        >
+                          {SEVERITIES.map((item) => (
+                            <option key={item}>{item}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <input
+                        value={group.title}
+                        onChange={(event) =>
+                          updateMediaGroup(group.id, {
+                            title: event.target.value,
+                          })
+                        }
+                        className="mt-3 w-full rounded-lg border border-slate-600 bg-black p-3 font-black text-white"
+                      />
+
+                      <textarea
+                        value={group.observation}
+                        onChange={(event) =>
+                          updateMediaGroup(group.id, {
+                            observation: event.target.value,
+                          })
+                        }
+                        rows={3}
+                        className="mt-3 w-full rounded-lg border border-slate-600 bg-black p-3 text-white"
+                        placeholder="Observation"
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={saveOrganizedMediaGroups}
+                  disabled={savingOrganizedMedia || organizingMedia}
+                  className="mt-4 inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-fuchsia-400 px-4 py-3 font-black text-black disabled:opacity-50"
+                >
+                  {savingOrganizedMedia && (
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  )}
+                  {savingOrganizedMedia
+                    ? "Saving Groups..."
+                    : "Accept Finding Groups and Save"}
+                </button>
+              </div>
+            )}
+
+            <VoiceOnlyInspectionMode
+              inspectionId={selectedReport}
+              currentSection={section}
+              currentSeverity={severity}
+              online={online}
+            />
 
             <FieldCamera
               destinationLabel={cameraDestinationLabel}

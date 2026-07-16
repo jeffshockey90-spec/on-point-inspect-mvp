@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../lib/supabaseClient";
 import FastLinkButton from "./FastLinkButton";
@@ -63,6 +63,11 @@ function EditableFinding({ finding }: { finding: any }) {
   const [moveTargetSection, setMoveTargetSection] = useState(
     finding.section || "Exterior",
   );
+  const [quickActionsOpen, setQuickActionsOpen] = useState(false);
+  const [quickStatus, setQuickStatus] = useState<
+    "complete" | "needs_photo" | "needs_implication" | ""
+  >("");
+  const swipeStartXRef = useRef(0);
 
   const [saveLabel, setSaveLabel] = useState("Save Finding");
   const [repairLabel, setRepairLabel] = useState("Save Repair Request");
@@ -72,6 +77,15 @@ function EditableFinding({ finding }: { finding: any }) {
 
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"success" | "error" | "">("");
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(
+        `opi-finding-quick-status-${String(finding.id)}`,
+      ) as "complete" | "needs_photo" | "needs_implication" | null;
+      setQuickStatus(saved || "");
+    } catch {}
+  }, [finding.id]);
+
   const learningBaselineRef = useRef({
     title: finding.title || "",
     section: finding.section || "",
@@ -370,6 +384,78 @@ function EditableFinding({ finding }: { finding: any }) {
     } finally {
       setMovingSection(false);
     }
+  }
+
+  function getQuickStatusKey() {
+    return `opi-finding-quick-status-${String(finding.id)}`;
+  }
+
+  function setPersistentQuickStatus(
+    next: "complete" | "needs_photo" | "needs_implication" | "",
+  ) {
+    setQuickStatus(next);
+
+    try {
+      if (next) {
+        window.localStorage.setItem(getQuickStatusKey(), next);
+      } else {
+        window.localStorage.removeItem(getQuickStatusKey());
+      }
+    } catch {}
+  }
+
+  async function duplicateFinding() {
+    try {
+      const { data: duplicated, error } = await supabase
+        .from("findings")
+        .insert({
+          inspection_id: finding.inspection_id,
+          title: `${finding.title || "Finding"} Copy`,
+          section: finding.section,
+          severity: finding.severity,
+          observation: finding.observation,
+          implication: finding.implication,
+          recommendation: finding.recommendation,
+          image_url: finding.image_url || null,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      if (Array.isArray(finding.photos) && finding.photos.length > 0) {
+        const rows = finding.photos.map((photo: any) => ({
+          inspection_id: finding.inspection_id,
+          finding_id: duplicated.id,
+          public_url: photo.public_url,
+          file_path: photo.file_path || photo.storage_path || null,
+          is_video: Boolean(photo.is_video),
+          mime_type: photo.mime_type || null,
+          thumbnail_url: photo.thumbnail_url || null,
+          thumbnail_path: photo.thumbnail_path || null,
+        }));
+
+        const { error: photoError } = await supabase.from("photos").insert(rows);
+        if (photoError) throw photoError;
+      }
+
+      showMessage("success", "Finding duplicated.");
+      router.refresh();
+    } catch (error: any) {
+      showMessage("error", error?.message || "Failed to duplicate finding.");
+    }
+  }
+
+  function handleQuickSwipeStart(event: React.TouchEvent<HTMLDivElement>) {
+    swipeStartXRef.current = event.touches[0]?.clientX || 0;
+  }
+
+  function handleQuickSwipeEnd(event: React.TouchEvent<HTMLDivElement>) {
+    const endX = event.changedTouches[0]?.clientX || 0;
+    const delta = endX - swipeStartXRef.current;
+
+    if (delta < -55) setQuickActionsOpen(true);
+    if (delta > 55) setQuickActionsOpen(false);
   }
 
   async function deleteFinding() {
