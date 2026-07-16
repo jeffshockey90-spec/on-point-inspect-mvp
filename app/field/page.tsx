@@ -4866,27 +4866,195 @@ function MediaPreview({
   onMarkup?: () => void;
   onRemove: () => void;
 }) {
+  const isVideo = file.type.startsWith("video/");
   const [url, setUrl] = useState("");
+  const [videoThumbnailUrl, setVideoThumbnailUrl] = useState("");
+  const [videoDuration, setVideoDuration] = useState(0);
+  const [playingVideo, setPlayingVideo] = useState(false);
+  const [thumbnailReady, setThumbnailReady] = useState(false);
 
   useEffect(() => {
     const objectUrl = URL.createObjectURL(file);
     setUrl(objectUrl);
-    return () => URL.revokeObjectURL(objectUrl);
+    setPlayingVideo(false);
+    setVideoThumbnailUrl("");
+    setVideoDuration(0);
+    setThumbnailReady(false);
+
+    if (!file.type.startsWith("video/")) {
+      return () => URL.revokeObjectURL(objectUrl);
+    }
+
+    const video = document.createElement("video");
+    let cancelled = false;
+    let thumbnailObjectUrl = "";
+    let timeoutId = 0;
+
+    const finishWithoutThumbnail = () => {
+      if (cancelled) return;
+      setThumbnailReady(true);
+    };
+
+    const captureFrame = () => {
+      if (cancelled) return;
+
+      try {
+        const sourceWidth = video.videoWidth;
+        const sourceHeight = video.videoHeight;
+
+        if (!sourceWidth || !sourceHeight) {
+          finishWithoutThumbnail();
+          return;
+        }
+
+        const maxWidth = 720;
+        const scale = Math.min(1, maxWidth / sourceWidth);
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(sourceWidth * scale));
+        canvas.height = Math.max(1, Math.round(sourceHeight * scale));
+
+        const context = canvas.getContext("2d", { alpha: false });
+        if (!context) {
+          finishWithoutThumbnail();
+          return;
+        }
+
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        canvas.toBlob(
+          (blob) => {
+            if (cancelled || !blob) {
+              finishWithoutThumbnail();
+              return;
+            }
+
+            thumbnailObjectUrl = URL.createObjectURL(blob);
+            setVideoThumbnailUrl(thumbnailObjectUrl);
+            setThumbnailReady(true);
+          },
+          "image/jpeg",
+          0.82,
+        );
+      } catch {
+        finishWithoutThumbnail();
+      }
+    };
+
+    video.preload = "auto";
+    video.muted = true;
+    video.playsInline = true;
+    video.src = objectUrl;
+
+    video.onloadedmetadata = () => {
+      if (cancelled) return;
+
+      const duration = Number.isFinite(video.duration) ? video.duration : 0;
+      setVideoDuration(duration);
+
+      const targetTime =
+        duration > 0
+          ? Math.min(Math.max(duration * 0.2, 0.1), Math.max(0.1, duration - 0.05))
+          : 0;
+
+      try {
+        video.currentTime = targetTime;
+      } catch {
+        captureFrame();
+      }
+    };
+
+    video.onloadeddata = () => {
+      if (!video.duration || video.currentTime > 0) {
+        captureFrame();
+      }
+    };
+
+    video.onseeked = captureFrame;
+    video.onerror = finishWithoutThumbnail;
+
+    timeoutId = window.setTimeout(finishWithoutThumbnail, 5000);
+    video.load();
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeoutId);
+      video.pause();
+      video.removeAttribute("src");
+      video.load();
+      URL.revokeObjectURL(objectUrl);
+
+      if (thumbnailObjectUrl) {
+        URL.revokeObjectURL(thumbnailObjectUrl);
+      }
+    };
   }, [file]);
+
+  function formatVideoDuration(seconds: number) {
+    if (!Number.isFinite(seconds) || seconds <= 0) return "";
+
+    const rounded = Math.max(0, Math.round(seconds));
+    const minutes = Math.floor(rounded / 60);
+    const remainingSeconds = rounded % 60;
+
+    return `${minutes}:${String(remainingSeconds).padStart(2, "0")}`;
+  }
 
   return (
     <div className="overflow-hidden rounded-xl border border-slate-700 bg-black">
-      {file.type.startsWith("video/") ? (
-        url ? (
+      {isVideo ? (
+        playingVideo && url ? (
           <video
             src={url}
             controls
+            autoPlay
             playsInline
             preload="metadata"
             className="h-40 w-full bg-black object-contain"
+            onEnded={() => setPlayingVideo(false)}
           />
         ) : (
-          <div className="h-40 w-full bg-black" />
+          <button
+            type="button"
+            onClick={() => {
+              if (url) setPlayingVideo(true);
+            }}
+            className="group relative block h-40 w-full overflow-hidden bg-slate-950 text-left"
+            aria-label={`Play video ${file.name || ""}`.trim()}
+          >
+            {videoThumbnailUrl ? (
+              <img
+                src={videoThumbnailUrl}
+                alt="Video thumbnail"
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-900 via-slate-950 to-black">
+                <span
+                  className={`text-4xl transition ${
+                    thumbnailReady ? "opacity-70" : "animate-pulse opacity-35"
+                  }`}
+                >
+                  🎥
+                </span>
+              </div>
+            )}
+
+            <span className="absolute inset-0 bg-black/20 transition group-hover:bg-black/10" />
+
+            <span className="absolute left-1/2 top-1/2 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white/90 bg-black/65 text-2xl text-white shadow-xl backdrop-blur transition group-active:scale-95">
+              ▶
+            </span>
+
+            <span className="absolute left-2 top-2 rounded-full bg-black/75 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-white backdrop-blur">
+              Video
+            </span>
+
+            {videoDuration > 0 && (
+              <span className="absolute bottom-2 right-2 rounded-md bg-black/80 px-2 py-1 text-xs font-black tabular-nums text-white backdrop-blur">
+                {formatVideoDuration(videoDuration)}
+              </span>
+            )}
+          </button>
         )
       ) : url ? (
         <img src={url} alt="Preview" className="h-40 w-full object-cover" />
