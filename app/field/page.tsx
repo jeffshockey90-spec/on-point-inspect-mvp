@@ -1085,6 +1085,8 @@ function FieldPageContent() {
   const swipeBackTriggeredRef = useRef(false);
 
   const [nativeApp, setNativeApp] = useState(false);
+  const [voiceOnlyOpen, setVoiceOnlyOpen] = useState(false);
+  const [assistantTab, setAssistantTab] = useState<"live" | "coach">("live");
 
   useEffect(() => {
     setNativeApp(isNativeCapacitorApp());
@@ -4388,29 +4390,7 @@ function FieldPageContent() {
                 </button>
               </div>
             )}
-
-            <VoiceOnlyInspectionMode
-              inspectionId={selectedReport}
-              currentSection={section}
-              currentSeverity={severity}
-              online={online}
-            />
-
-
-
-            <AILiveInspectionCamera
-              online={online}
-              selectedReport={selectedReport}
-              currentSection={section}
-              currentSeverity={severity}
-              onUseSuggestion={acceptLiveCameraSuggestion}
-              onAddPhotoOnly={addLiveCameraFrameOnly}
-              onScanDataPlate={startLiveCameraDataPlateScan}
-            />
-
-            
-
-            {equipmentResult?.error && (
+{equipmentResult?.error && (
               <div className="rounded-xl border border-red-500/60 bg-red-500/10 p-4 text-sm font-bold text-red-200">
                 {equipmentResult.error || "Equipment analysis failed."}
               </div>
@@ -4544,6 +4524,74 @@ function FieldPageContent() {
               )}
             </div>
             )}
+
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={() => setVoiceOnlyOpen((current) => !current)}
+                className={`inline-flex min-h-[42px] items-center justify-center gap-2 rounded-xl border px-4 py-2 text-sm font-black transition active:scale-[0.98] [touch-action:manipulation] ${
+                  voiceOnlyOpen
+                    ? "border-emerald-400 bg-emerald-400 text-black"
+                    : "border-emerald-500/50 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20"
+                }`}
+              >
+                🎙️ {voiceOnlyOpen ? "Close Voice Inspection" : "Voice-Only Inspection"}
+              </button>
+
+              {voiceOnlyOpen && (
+                <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-3">
+                  <VoiceOnlyInspectionMode
+                    inspectionId={selectedReport}
+                    currentSection={section}
+                    currentSeverity={severity}
+                    online={online}
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="overflow-hidden rounded-2xl border border-slate-700 bg-black/25">
+              <div className="grid grid-cols-2 border-b border-slate-700 bg-slate-950/80 p-1">
+                <button
+                  type="button"
+                  onClick={() => setAssistantTab("live")}
+                  className={`min-h-[44px] rounded-xl px-3 py-2 text-sm font-black transition [touch-action:manipulation] ${
+                    assistantTab === "live"
+                      ? "bg-cyan-400 text-black"
+                      : "text-slate-300 hover:bg-slate-800"
+                  }`}
+                >
+                  📹 Live AI Inspector
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setAssistantTab("coach")}
+                  className={`min-h-[44px] rounded-xl px-3 py-2 text-sm font-black transition [touch-action:manipulation] ${
+                    assistantTab === "coach"
+                      ? "bg-purple-400 text-black"
+                      : "text-slate-300 hover:bg-slate-800"
+                  }`}
+                >
+                  🧭 Section Coach
+                </button>
+              </div>
+
+              <div className="p-3">
+                {assistantTab === "live" ? (
+                  <AILiveInspectionCamera
+                    online={online}
+                    selectedReport={selectedReport}
+                    currentSection={section}
+                    currentSeverity={severity}
+                    onUseSuggestion={acceptLiveCameraSuggestion}
+                    onAddPhotoOnly={addLiveCameraFrameOnly}
+                    onScanDataPlate={startLiveCameraDataPlateScan}
+                  />
+                ) : (
+)}
+              </div>
+            </div>
 
             {photoType === "finding" && (
               <div className="rounded-2xl border border-slate-700 bg-black/20 p-4">
