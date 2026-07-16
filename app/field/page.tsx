@@ -3879,6 +3879,158 @@ function FieldPageContent() {
               </p>
             </div>
 
+            <FieldCamera
+              destinationLabel={cameraDestinationLabel}
+              selectedMediaCount={photos.length}
+              allowVideo={
+                photoType !== "reference_photo" &&
+                photoType !== "limitation"
+              }
+              onAddMedia={(files) => addFiles(files)}
+            />
+
+            {photoType === "finding" && (
+              <div className="rounded-2xl border border-purple-500/30 bg-purple-500/10 p-4">
+                <div className="mb-3">
+                  <p className="text-xs font-black uppercase tracking-[0.22em] text-purple-300">
+                    Step 2
+                </p>
+                <h2 className="text-xl font-black text-white">
+                  Let AI Help Write It
+                </h2>
+                <p className="mt-1 text-sm text-slate-300">
+                  Take a photo first, analyze it as a defect, scan it as
+                  equipment, dictate a finding, or type a rough note and
+                  generate from the note.
+                </p>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-4">
+                <button
+                  type="button"
+                  onClick={analyzePhotoWithAI}
+                  disabled={
+                    analyzingPhoto ||
+                    analyzingEquipment ||
+                    generating ||
+                    dictating ||
+                    saving ||
+                    savingEquipment ||
+                    !online ||
+                    !photos.some((photo) => photo.type.startsWith("image/"))
+                  }
+                  className="w-full rounded-xl border border-purple-500 bg-purple-500/10 p-4 text-lg font-bold text-purple-200 transition active:scale-[0.98] hover:bg-purple-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
+                >
+                  {analyzingPhoto ? "Analyzing Defect..." : "🤖 Analyze Defect"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={analyzeEquipmentWithAI}
+                  disabled={
+                    analyzingEquipment ||
+                    analyzingPhoto ||
+                    generating ||
+                    dictating ||
+                    saving ||
+                    savingEquipment ||
+                    !online ||
+                    !photos.some((photo) => photo.type.startsWith("image/"))
+                  }
+                  className="w-full rounded-xl border border-cyan-500 bg-cyan-500/10 p-4 text-lg font-bold text-cyan-200 transition active:scale-[0.98] hover:bg-cyan-500 hover:text-black disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
+                >
+                  {analyzingEquipment
+                    ? "Analyzing Equipment..."
+                    : "🔧 Analyze Equipment"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={dictateFinding}
+                  disabled={
+                    generating ||
+                    analyzingPhoto ||
+                    analyzingEquipment ||
+                    saving ||
+                    savingEquipment
+                  }
+                  className="w-full rounded-xl border border-emerald-500 bg-emerald-500/10 p-4 text-lg font-bold text-emerald-200 transition active:scale-[0.98] hover:bg-emerald-500 hover:text-black disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
+                >
+                  {dictating ? "⏹ Stop Listening" : "🎤 Dictate Finding"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={generateWithAI}
+                  disabled={
+                    generating ||
+                    dictating ||
+                    analyzingPhoto ||
+                    analyzingEquipment ||
+                    saving ||
+                    savingEquipment ||
+                    !online
+                  }
+                  className="w-full rounded-xl bg-teal-500 p-4 text-lg font-bold text-black transition active:scale-[0.98] hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
+                >
+                  {generating
+                    ? "Generating AI Finding..."
+                    : online
+                      ? "✍️ Generate From Note"
+                      : "AI Available When Back Online"}
+                </button>
+              </div>
+            </div>
+            )}
+
+            {equipmentResult && !equipmentResult.error && (
+              <div className="rounded-2xl border border-cyan-500/40 bg-cyan-950/20 p-4">
+                <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-300">
+                      Equipment Detected
+                    </p>
+                    <h2 className="mt-1 text-xl font-black text-white">
+                      {cleanEquipmentValue(equipmentResult.manufacturer) ||
+                        "Equipment"}{" "}
+                      {cleanEquipmentValue(equipmentResult.equipmentType)}
+                    </h2>
+                    <p className="mt-1 text-sm text-slate-300">
+                      {shouldCreateEquipmentFinding(equipmentResult)
+                        ? "This will save to Equipment Inventory and create a report finding because the analyzer found a reportable condition."
+                        : "This will save to Equipment Inventory only and will not count as a defect."}
+                    </p>
+                  </div>
+
+                  <span className="rounded-full border border-cyan-400/50 bg-cyan-400/10 px-3 py-1 text-xs font-black text-cyan-200">
+                    {shouldCreateEquipmentFinding(equipmentResult)
+                      ? "Equipment + Finding"
+                      : "Inventory Only"}
+                  </span>
+                </div>
+
+                <EquipmentCard equipment={equipmentResult} />
+
+                {equipmentResult.clientSummary && (
+                  <div className="mt-4 rounded-xl border border-slate-700 bg-black/30 p-4 text-sm leading-6 text-slate-200">
+                    {equipmentResult.clientSummary}
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={saveEquipmentFromFieldTool}
+                  disabled={savingEquipment || analyzingEquipment || saving}
+                  className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-cyan-400 px-5 py-3 text-sm font-black text-black transition active:scale-[0.98] hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
+                >
+                  {savingEquipment && (
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  )}
+                  {savingEquipment ? equipmentSaveLabel : equipmentSaveLabel}
+                </button>
+              </div>
+            )}
+
             {photoType === "existing_finding" && (
               <div className="rounded-2xl border border-purple-500/40 bg-purple-500/10 p-4">
                 <div className="mb-3">
@@ -4244,15 +4396,7 @@ function FieldPageContent() {
               online={online}
             />
 
-            <FieldCamera
-              destinationLabel={cameraDestinationLabel}
-              selectedMediaCount={photos.length}
-              allowVideo={
-                photoType !== "reference_photo" &&
-                photoType !== "limitation"
-              }
-              onAddMedia={(files) => addFiles(files)}
-            />
+
 
             <AILiveInspectionCamera
               online={online}
@@ -4265,148 +4409,6 @@ function FieldPageContent() {
             />
 
             
-
-            {photoType === "finding" && (
-              <div className="rounded-2xl border border-purple-500/30 bg-purple-500/10 p-4">
-                <div className="mb-3">
-                  <p className="text-xs font-black uppercase tracking-[0.22em] text-purple-300">
-                    Step 2
-                </p>
-                <h2 className="text-xl font-black text-white">
-                  Let AI Help Write It
-                </h2>
-                <p className="mt-1 text-sm text-slate-300">
-                  Take a photo first, analyze it as a defect, scan it as
-                  equipment, dictate a finding, or type a rough note and
-                  generate from the note.
-                </p>
-              </div>
-
-              <div className="grid gap-3 md:grid-cols-4">
-                <button
-                  type="button"
-                  onClick={analyzePhotoWithAI}
-                  disabled={
-                    analyzingPhoto ||
-                    analyzingEquipment ||
-                    generating ||
-                    dictating ||
-                    saving ||
-                    savingEquipment ||
-                    !online ||
-                    !photos.some((photo) => photo.type.startsWith("image/"))
-                  }
-                  className="w-full rounded-xl border border-purple-500 bg-purple-500/10 p-4 text-lg font-bold text-purple-200 transition active:scale-[0.98] hover:bg-purple-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
-                >
-                  {analyzingPhoto ? "Analyzing Defect..." : "🤖 Analyze Defect"}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={analyzeEquipmentWithAI}
-                  disabled={
-                    analyzingEquipment ||
-                    analyzingPhoto ||
-                    generating ||
-                    dictating ||
-                    saving ||
-                    savingEquipment ||
-                    !online ||
-                    !photos.some((photo) => photo.type.startsWith("image/"))
-                  }
-                  className="w-full rounded-xl border border-cyan-500 bg-cyan-500/10 p-4 text-lg font-bold text-cyan-200 transition active:scale-[0.98] hover:bg-cyan-500 hover:text-black disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
-                >
-                  {analyzingEquipment
-                    ? "Analyzing Equipment..."
-                    : "🔧 Analyze Equipment"}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={dictateFinding}
-                  disabled={
-                    generating ||
-                    analyzingPhoto ||
-                    analyzingEquipment ||
-                    saving ||
-                    savingEquipment
-                  }
-                  className="w-full rounded-xl border border-emerald-500 bg-emerald-500/10 p-4 text-lg font-bold text-emerald-200 transition active:scale-[0.98] hover:bg-emerald-500 hover:text-black disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
-                >
-                  {dictating ? "⏹ Stop Listening" : "🎤 Dictate Finding"}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={generateWithAI}
-                  disabled={
-                    generating ||
-                    dictating ||
-                    analyzingPhoto ||
-                    analyzingEquipment ||
-                    saving ||
-                    savingEquipment ||
-                    !online
-                  }
-                  className="w-full rounded-xl bg-teal-500 p-4 text-lg font-bold text-black transition active:scale-[0.98] hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
-                >
-                  {generating
-                    ? "Generating AI Finding..."
-                    : online
-                      ? "✍️ Generate From Note"
-                      : "AI Available When Back Online"}
-                </button>
-              </div>
-            </div>
-            )}
-
-            {equipmentResult && !equipmentResult.error && (
-              <div className="rounded-2xl border border-cyan-500/40 bg-cyan-950/20 p-4">
-                <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-300">
-                      Equipment Detected
-                    </p>
-                    <h2 className="mt-1 text-xl font-black text-white">
-                      {cleanEquipmentValue(equipmentResult.manufacturer) ||
-                        "Equipment"}{" "}
-                      {cleanEquipmentValue(equipmentResult.equipmentType)}
-                    </h2>
-                    <p className="mt-1 text-sm text-slate-300">
-                      {shouldCreateEquipmentFinding(equipmentResult)
-                        ? "This will save to Equipment Inventory and create a report finding because the analyzer found a reportable condition."
-                        : "This will save to Equipment Inventory only and will not count as a defect."}
-                    </p>
-                  </div>
-
-                  <span className="rounded-full border border-cyan-400/50 bg-cyan-400/10 px-3 py-1 text-xs font-black text-cyan-200">
-                    {shouldCreateEquipmentFinding(equipmentResult)
-                      ? "Equipment + Finding"
-                      : "Inventory Only"}
-                  </span>
-                </div>
-
-                <EquipmentCard equipment={equipmentResult} />
-
-                {equipmentResult.clientSummary && (
-                  <div className="mt-4 rounded-xl border border-slate-700 bg-black/30 p-4 text-sm leading-6 text-slate-200">
-                    {equipmentResult.clientSummary}
-                  </div>
-                )}
-
-                <button
-                  type="button"
-                  onClick={saveEquipmentFromFieldTool}
-                  disabled={savingEquipment || analyzingEquipment || saving}
-                  className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-cyan-400 px-5 py-3 text-sm font-black text-black transition active:scale-[0.98] hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
-                >
-                  {savingEquipment && (
-                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                  )}
-                  {savingEquipment ? equipmentSaveLabel : equipmentSaveLabel}
-                </button>
-              </div>
-            )}
 
             {equipmentResult?.error && (
               <div className="rounded-xl border border-red-500/60 bg-red-500/10 p-4 text-sm font-bold text-red-200">
@@ -4657,11 +4659,7 @@ function FieldPageContent() {
                       : "Save Finding Offline"}
             </button>
 
-            <LiveSectionCoach
-              inspectionId={selectedReport}
-              section={section}
-              online={online}
-            />
+
 
             {selectedReport && (
               <button
@@ -4679,6 +4677,12 @@ function FieldPageContent() {
                 {online ? "Open This Report" : "Open Offline Report"}
               </button>
             )}
+
+            <LiveSectionCoach
+              inspectionId={selectedReport}
+              section={section}
+              online={online}
+            />
           </div>
         </div>
 
@@ -4884,27 +4888,195 @@ function MediaPreview({
   onMarkup?: () => void;
   onRemove: () => void;
 }) {
+  const isVideo = file.type.startsWith("video/");
   const [url, setUrl] = useState("");
+  const [videoThumbnailUrl, setVideoThumbnailUrl] = useState("");
+  const [videoDuration, setVideoDuration] = useState(0);
+  const [playingVideo, setPlayingVideo] = useState(false);
+  const [thumbnailReady, setThumbnailReady] = useState(false);
 
   useEffect(() => {
     const objectUrl = URL.createObjectURL(file);
     setUrl(objectUrl);
-    return () => URL.revokeObjectURL(objectUrl);
+    setPlayingVideo(false);
+    setVideoThumbnailUrl("");
+    setVideoDuration(0);
+    setThumbnailReady(false);
+
+    if (!file.type.startsWith("video/")) {
+      return () => URL.revokeObjectURL(objectUrl);
+    }
+
+    const video = document.createElement("video");
+    let cancelled = false;
+    let thumbnailObjectUrl = "";
+    let timeoutId = 0;
+
+    const finishWithoutThumbnail = () => {
+      if (cancelled) return;
+      setThumbnailReady(true);
+    };
+
+    const captureFrame = () => {
+      if (cancelled) return;
+
+      try {
+        const sourceWidth = video.videoWidth;
+        const sourceHeight = video.videoHeight;
+
+        if (!sourceWidth || !sourceHeight) {
+          finishWithoutThumbnail();
+          return;
+        }
+
+        const maxWidth = 720;
+        const scale = Math.min(1, maxWidth / sourceWidth);
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(sourceWidth * scale));
+        canvas.height = Math.max(1, Math.round(sourceHeight * scale));
+
+        const context = canvas.getContext("2d", { alpha: false });
+        if (!context) {
+          finishWithoutThumbnail();
+          return;
+        }
+
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        canvas.toBlob(
+          (blob) => {
+            if (cancelled || !blob) {
+              finishWithoutThumbnail();
+              return;
+            }
+
+            thumbnailObjectUrl = URL.createObjectURL(blob);
+            setVideoThumbnailUrl(thumbnailObjectUrl);
+            setThumbnailReady(true);
+          },
+          "image/jpeg",
+          0.82,
+        );
+      } catch {
+        finishWithoutThumbnail();
+      }
+    };
+
+    video.preload = "auto";
+    video.muted = true;
+    video.playsInline = true;
+    video.src = objectUrl;
+
+    video.onloadedmetadata = () => {
+      if (cancelled) return;
+
+      const duration = Number.isFinite(video.duration) ? video.duration : 0;
+      setVideoDuration(duration);
+
+      const targetTime =
+        duration > 0
+          ? Math.min(Math.max(duration * 0.2, 0.1), Math.max(0.1, duration - 0.05))
+          : 0;
+
+      try {
+        video.currentTime = targetTime;
+      } catch {
+        captureFrame();
+      }
+    };
+
+    video.onloadeddata = () => {
+      if (!video.duration || video.currentTime > 0) {
+        captureFrame();
+      }
+    };
+
+    video.onseeked = captureFrame;
+    video.onerror = finishWithoutThumbnail;
+
+    timeoutId = window.setTimeout(finishWithoutThumbnail, 5000);
+    video.load();
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeoutId);
+      video.pause();
+      video.removeAttribute("src");
+      video.load();
+      URL.revokeObjectURL(objectUrl);
+
+      if (thumbnailObjectUrl) {
+        URL.revokeObjectURL(thumbnailObjectUrl);
+      }
+    };
   }, [file]);
+
+  function formatVideoDuration(seconds: number) {
+    if (!Number.isFinite(seconds) || seconds <= 0) return "";
+
+    const rounded = Math.max(0, Math.round(seconds));
+    const minutes = Math.floor(rounded / 60);
+    const remainingSeconds = rounded % 60;
+
+    return `${minutes}:${String(remainingSeconds).padStart(2, "0")}`;
+  }
 
   return (
     <div className="overflow-hidden rounded-xl border border-slate-700 bg-black">
-      {file.type.startsWith("video/") ? (
-        url ? (
+      {isVideo ? (
+        playingVideo && url ? (
           <video
             src={url}
             controls
+            autoPlay
             playsInline
             preload="metadata"
             className="h-40 w-full bg-black object-contain"
+            onEnded={() => setPlayingVideo(false)}
           />
         ) : (
-          <div className="h-40 w-full bg-black" />
+          <button
+            type="button"
+            onClick={() => {
+              if (url) setPlayingVideo(true);
+            }}
+            className="group relative block h-40 w-full overflow-hidden bg-slate-950 text-left"
+            aria-label={`Play video ${file.name || ""}`.trim()}
+          >
+            {videoThumbnailUrl ? (
+              <img
+                src={videoThumbnailUrl}
+                alt="Video thumbnail"
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-900 via-slate-950 to-black">
+                <span
+                  className={`text-4xl transition ${
+                    thumbnailReady ? "opacity-70" : "animate-pulse opacity-35"
+                  }`}
+                >
+                  🎥
+                </span>
+              </div>
+            )}
+
+            <span className="absolute inset-0 bg-black/20 transition group-hover:bg-black/10" />
+
+            <span className="absolute left-1/2 top-1/2 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white/90 bg-black/65 text-2xl text-white shadow-xl backdrop-blur transition group-active:scale-95">
+              ▶
+            </span>
+
+            <span className="absolute left-2 top-2 rounded-full bg-black/75 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-white backdrop-blur">
+              Video
+            </span>
+
+            {videoDuration > 0 && (
+              <span className="absolute bottom-2 right-2 rounded-md bg-black/80 px-2 py-1 text-xs font-black tabular-nums text-white backdrop-blur">
+                {formatVideoDuration(videoDuration)}
+              </span>
+            )}
+          </button>
         )
       ) : url ? (
         <img src={url} alt="Preview" className="h-40 w-full object-cover" />
