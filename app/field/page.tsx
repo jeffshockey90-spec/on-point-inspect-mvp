@@ -4589,7 +4589,12 @@ function FieldPageContent() {
                     onScanDataPlate={startLiveCameraDataPlateScan}
                   />
                 ) : (
-)}
+                  <LiveSectionCoach
+                    inspectionId={selectedReport}
+                    section={section}
+                    online={online}
+                  />
+                )}
               </div>
             </div>
 
