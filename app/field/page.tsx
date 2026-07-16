@@ -1514,6 +1514,18 @@ function FieldPageContent() {
     setMessage("Comment loaded into the field form.");
   }
 
+  function setFindingMode() {
+    setPhotoType("finding");
+    setExistingFindingId("");
+    setExistingFindingSearch("");
+    setExistingFindingMedia([]);
+    limitationAutoAnalyzedRef.current = "";
+    setSeverity((current) =>
+      current === "Informational" ? "Recommended Repair" : current,
+    );
+    setMessage("Finding / Defect mode selected.");
+  }
+
   function setExistingFindingMode() {
     setPhotoType("existing_finding");
     setExistingFindingMedia([]);
@@ -1527,6 +1539,10 @@ function FieldPageContent() {
 
   function setReferencePhotoMode() {
     setPhotoType("reference_photo");
+    setExistingFindingId("");
+    setExistingFindingSearch("");
+    setExistingFindingMedia([]);
+    limitationAutoAnalyzedRef.current = "";
     setTitle("");
     setSeverity("Informational");
     setObservation("");
@@ -1551,6 +1567,25 @@ function FieldPageContent() {
     setMessage(
       "Section limitation mode selected. Choose a section, enter the limitation wording, then capture or choose one photo.",
     );
+  }
+
+  function handleWorkflowChange(nextType: PhotoType) {
+    if (nextType === "existing_finding") {
+      setExistingFindingMode();
+      return;
+    }
+
+    if (nextType === "reference_photo") {
+      setReferencePhotoMode();
+      return;
+    }
+
+    if (nextType === "limitation") {
+      setLimitationMode();
+      return;
+    }
+
+    setFindingMode();
   }
 
   function addFiles(nextFiles: File[]) {
@@ -3791,74 +3826,57 @@ function FieldPageContent() {
               )}
             </div>
 
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-              <button
-                type="button"
-                onClick={() => setPhotoType("finding")}
-                className={`rounded-xl border p-4 text-left transition active:scale-[0.98] [touch-action:manipulation] ${
-                  photoType === "finding"
-                    ? "border-teal-400 bg-teal-500/20 text-teal-200"
-                    : "border-slate-700 bg-black text-slate-300 hover:bg-slate-900"
-                }`}
+            <div className="rounded-2xl border border-slate-700 bg-black/35 p-4">
+              <label
+                htmlFor="field-workflow"
+                className="mb-2 block text-xs font-black uppercase tracking-[0.22em] text-slate-400"
               >
-                <span className="block text-lg font-black">
-                  Finding / Defect
-                </span>
-                <span className="mt-1 block text-xs text-slate-400">
-                  Creates a report finding and can include photos or video.
-                </span>
-              </button>
+                Workflow
+              </label>
 
-              <button
-                type="button"
-                onClick={setExistingFindingMode}
-                className={`rounded-xl border p-4 text-left transition active:scale-[0.98] [touch-action:manipulation] ${
-                  photoType === "existing_finding"
-                    ? "border-purple-400 bg-purple-500/20 text-purple-200"
-                    : "border-slate-700 bg-black text-slate-300 hover:bg-slate-900"
-                }`}
-              >
-                <span className="block text-lg font-black">
-                  Add Media to Existing Defect
-                </span>
-                <span className="mt-1 block text-xs text-slate-400">
-                  Appends photos or video without creating a duplicate finding.
-                </span>
-              </button>
+              <div className="relative">
+                <select
+                  id="field-workflow"
+                  value={photoType}
+                  onChange={(event) =>
+                    handleWorkflowChange(event.target.value as PhotoType)
+                  }
+                  className={`min-h-[58px] w-full appearance-none rounded-xl border bg-slate-950 px-4 py-3 pr-12 text-base font-black outline-none transition focus:ring-2 [touch-action:manipulation] ${
+                    photoType === "finding"
+                      ? "border-teal-400/70 text-teal-200 focus:border-teal-300 focus:ring-teal-400/25"
+                      : photoType === "existing_finding"
+                        ? "border-purple-400/70 text-purple-200 focus:border-purple-300 focus:ring-purple-400/25"
+                        : photoType === "reference_photo"
+                          ? "border-cyan-400/70 text-cyan-200 focus:border-cyan-300 focus:ring-cyan-400/25"
+                          : "border-orange-400/70 text-orange-200 focus:border-orange-300 focus:ring-orange-400/25"
+                  }`}
+                >
+                  <option value="finding">Finding / Defect</option>
+                  <option value="existing_finding">
+                    Add Media to Existing Defect
+                  </option>
+                  <option value="reference_photo">
+                    Section Reference Photo
+                  </option>
+                  <option value="limitation">
+                    Section Limitation + Photo
+                  </option>
+                </select>
 
-              <button
-                type="button"
-                onClick={setReferencePhotoMode}
-                className={`rounded-xl border p-4 text-left transition active:scale-[0.98] [touch-action:manipulation] ${
-                  photoType === "reference_photo"
-                    ? "border-cyan-400 bg-cyan-500/20 text-cyan-200"
-                    : "border-slate-700 bg-black text-slate-300 hover:bg-slate-900"
-                }`}
-              >
-                <span className="block text-lg font-black">
-                  Section Reference Photo
+                <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-xl text-slate-300">
+                  ▾
                 </span>
-                <span className="mt-1 block text-xs text-slate-400">
-                  Saves photos to Section Reference Photos only, not defects.
-                </span>
-              </button>
+              </div>
 
-              <button
-                type="button"
-                onClick={setLimitationMode}
-                className={`rounded-xl border p-4 text-left transition active:scale-[0.98] [touch-action:manipulation] ${
-                  photoType === "limitation"
-                    ? "border-orange-400 bg-orange-500/20 text-orange-200"
-                    : "border-slate-700 bg-black text-slate-300 hover:bg-slate-900"
-                }`}
-              >
-                <span className="block text-lg font-black">
-                  Section Limitation + Photo
-                </span>
-                <span className="mt-1 block text-xs text-slate-400">
-                  Saves limitation wording and one supporting photo to the selected section.
-                </span>
-              </button>
+              <p className="mt-2 text-sm leading-relaxed text-slate-400">
+                {photoType === "finding"
+                  ? "Creates a new report finding and can include photos or video."
+                  : photoType === "existing_finding"
+                    ? "Adds photos or video to an existing defect without creating a duplicate."
+                    : photoType === "reference_photo"
+                      ? "Saves photos to the selected section as reference media only."
+                      : "Saves limitation wording and one supporting photo to the selected section."}
+              </p>
             </div>
 
             {photoType === "existing_finding" && (
@@ -4866,195 +4884,27 @@ function MediaPreview({
   onMarkup?: () => void;
   onRemove: () => void;
 }) {
-  const isVideo = file.type.startsWith("video/");
   const [url, setUrl] = useState("");
-  const [videoThumbnailUrl, setVideoThumbnailUrl] = useState("");
-  const [videoDuration, setVideoDuration] = useState(0);
-  const [playingVideo, setPlayingVideo] = useState(false);
-  const [thumbnailReady, setThumbnailReady] = useState(false);
 
   useEffect(() => {
     const objectUrl = URL.createObjectURL(file);
     setUrl(objectUrl);
-    setPlayingVideo(false);
-    setVideoThumbnailUrl("");
-    setVideoDuration(0);
-    setThumbnailReady(false);
-
-    if (!file.type.startsWith("video/")) {
-      return () => URL.revokeObjectURL(objectUrl);
-    }
-
-    const video = document.createElement("video");
-    let cancelled = false;
-    let thumbnailObjectUrl = "";
-    let timeoutId = 0;
-
-    const finishWithoutThumbnail = () => {
-      if (cancelled) return;
-      setThumbnailReady(true);
-    };
-
-    const captureFrame = () => {
-      if (cancelled) return;
-
-      try {
-        const sourceWidth = video.videoWidth;
-        const sourceHeight = video.videoHeight;
-
-        if (!sourceWidth || !sourceHeight) {
-          finishWithoutThumbnail();
-          return;
-        }
-
-        const maxWidth = 720;
-        const scale = Math.min(1, maxWidth / sourceWidth);
-        const canvas = document.createElement("canvas");
-        canvas.width = Math.max(1, Math.round(sourceWidth * scale));
-        canvas.height = Math.max(1, Math.round(sourceHeight * scale));
-
-        const context = canvas.getContext("2d", { alpha: false });
-        if (!context) {
-          finishWithoutThumbnail();
-          return;
-        }
-
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-        canvas.toBlob(
-          (blob) => {
-            if (cancelled || !blob) {
-              finishWithoutThumbnail();
-              return;
-            }
-
-            thumbnailObjectUrl = URL.createObjectURL(blob);
-            setVideoThumbnailUrl(thumbnailObjectUrl);
-            setThumbnailReady(true);
-          },
-          "image/jpeg",
-          0.82,
-        );
-      } catch {
-        finishWithoutThumbnail();
-      }
-    };
-
-    video.preload = "auto";
-    video.muted = true;
-    video.playsInline = true;
-    video.src = objectUrl;
-
-    video.onloadedmetadata = () => {
-      if (cancelled) return;
-
-      const duration = Number.isFinite(video.duration) ? video.duration : 0;
-      setVideoDuration(duration);
-
-      const targetTime =
-        duration > 0
-          ? Math.min(Math.max(duration * 0.2, 0.1), Math.max(0.1, duration - 0.05))
-          : 0;
-
-      try {
-        video.currentTime = targetTime;
-      } catch {
-        captureFrame();
-      }
-    };
-
-    video.onloadeddata = () => {
-      if (!video.duration || video.currentTime > 0) {
-        captureFrame();
-      }
-    };
-
-    video.onseeked = captureFrame;
-    video.onerror = finishWithoutThumbnail;
-
-    timeoutId = window.setTimeout(finishWithoutThumbnail, 5000);
-    video.load();
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timeoutId);
-      video.pause();
-      video.removeAttribute("src");
-      video.load();
-      URL.revokeObjectURL(objectUrl);
-
-      if (thumbnailObjectUrl) {
-        URL.revokeObjectURL(thumbnailObjectUrl);
-      }
-    };
+    return () => URL.revokeObjectURL(objectUrl);
   }, [file]);
-
-  function formatVideoDuration(seconds: number) {
-    if (!Number.isFinite(seconds) || seconds <= 0) return "";
-
-    const rounded = Math.max(0, Math.round(seconds));
-    const minutes = Math.floor(rounded / 60);
-    const remainingSeconds = rounded % 60;
-
-    return `${minutes}:${String(remainingSeconds).padStart(2, "0")}`;
-  }
 
   return (
     <div className="overflow-hidden rounded-xl border border-slate-700 bg-black">
-      {isVideo ? (
-        playingVideo && url ? (
+      {file.type.startsWith("video/") ? (
+        url ? (
           <video
             src={url}
             controls
-            autoPlay
             playsInline
             preload="metadata"
             className="h-40 w-full bg-black object-contain"
-            onEnded={() => setPlayingVideo(false)}
           />
         ) : (
-          <button
-            type="button"
-            onClick={() => {
-              if (url) setPlayingVideo(true);
-            }}
-            className="group relative block h-40 w-full overflow-hidden bg-slate-950 text-left"
-            aria-label={`Play video ${file.name || ""}`.trim()}
-          >
-            {videoThumbnailUrl ? (
-              <img
-                src={videoThumbnailUrl}
-                alt="Video thumbnail"
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-900 via-slate-950 to-black">
-                <span
-                  className={`text-4xl transition ${
-                    thumbnailReady ? "opacity-70" : "animate-pulse opacity-35"
-                  }`}
-                >
-                  🎥
-                </span>
-              </div>
-            )}
-
-            <span className="absolute inset-0 bg-black/20 transition group-hover:bg-black/10" />
-
-            <span className="absolute left-1/2 top-1/2 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white/90 bg-black/65 text-2xl text-white shadow-xl backdrop-blur transition group-active:scale-95">
-              ▶
-            </span>
-
-            <span className="absolute left-2 top-2 rounded-full bg-black/75 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-white backdrop-blur">
-              Video
-            </span>
-
-            {videoDuration > 0 && (
-              <span className="absolute bottom-2 right-2 rounded-md bg-black/80 px-2 py-1 text-xs font-black tabular-nums text-white backdrop-blur">
-                {formatVideoDuration(videoDuration)}
-              </span>
-            )}
-          </button>
+          <div className="h-40 w-full bg-black" />
         )
       ) : url ? (
         <img src={url} alt="Preview" className="h-40 w-full object-cover" />
