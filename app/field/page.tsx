@@ -4527,6 +4527,56 @@ function FieldPageContent() {
             </div>
             )}
 
+            {photoType === "finding" && (
+              <div className="rounded-2xl border border-slate-700 bg-black/20 p-4">
+                <p className="mb-3 text-xs font-black uppercase tracking-[0.22em] text-cyan-300">
+                  Step 4
+                </p>
+
+                <div className="space-y-5">
+                  <div>
+                    <label className="mb-2 block font-bold">Title</label>
+                    <input
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      className="w-full rounded-xl border border-slate-700 bg-black p-4 text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block font-bold">Severity</label>
+                    <select
+                      value={severity}
+                      onChange={(e) => setSeverity(e.target.value)}
+                      className="w-full rounded-xl border border-slate-700 bg-black p-4 text-white"
+                    >
+                      {SEVERITIES.map((item) => (
+                        <option key={item} value={item}>
+                          {item}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <TextArea
+                    label="Observation"
+                    value={observation}
+                    onChange={setObservation}
+                  />
+                  <TextArea
+                    label="Implication"
+                    value={implication}
+                    onChange={setImplication}
+                  />
+                  <TextArea
+                    label="Recommendation"
+                    value={recommendation}
+                    onChange={setRecommendation}
+                  />
+                </div>
+              </div>
+            )}
+
             <div className="space-y-3">
               <button
                 type="button"
@@ -4648,56 +4698,6 @@ function FieldPageContent() {
                 )}
               </div>
             </div>
-
-            {photoType === "finding" && (
-              <div className="rounded-2xl border border-slate-700 bg-black/20 p-4">
-                <p className="mb-3 text-xs font-black uppercase tracking-[0.22em] text-cyan-300">
-                  Step 4
-                </p>
-
-                <div className="space-y-5">
-                  <div>
-                    <label className="mb-2 block font-bold">Title</label>
-                    <input
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      className="w-full rounded-xl border border-slate-700 bg-black p-4 text-white"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="mb-2 block font-bold">Severity</label>
-                    <select
-                      value={severity}
-                      onChange={(e) => setSeverity(e.target.value)}
-                      className="w-full rounded-xl border border-slate-700 bg-black p-4 text-white"
-                    >
-                      {SEVERITIES.map((item) => (
-                        <option key={item} value={item}>
-                          {item}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <TextArea
-                    label="Observation"
-                    value={observation}
-                    onChange={setObservation}
-                  />
-                  <TextArea
-                    label="Implication"
-                    value={implication}
-                    onChange={setImplication}
-                  />
-                  <TextArea
-                    label="Recommendation"
-                    value={recommendation}
-                    onChange={setRecommendation}
-                  />
-                </div>
-              </div>
-            )}
 
             {photoType === "existing_finding" && (
               <div className={`rounded-xl border px-4 py-3 text-sm font-bold ${
