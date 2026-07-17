@@ -4578,6 +4578,74 @@ function FieldPageContent() {
               </div>
             )}
 
+
+            <button
+              type="button"
+              onClick={saveFieldItem}
+              disabled={
+                saving ||
+                savingEquipment ||
+                analyzingLimitation ||
+                (photoType === "existing_finding" &&
+                  (!online || !existingFindingId || photos.length === 0)) ||
+                (photoType === "reference_photo" && photos.length === 0) ||
+                (photoType === "limitation" &&
+                  (!online ||
+                    !note.trim() ||
+                    !photos.some((photo) => photo.type.startsWith("image/"))))
+              }
+              className={`w-full rounded-xl p-4 text-lg font-bold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation] ${
+                photoType === "reference_photo"
+                  ? "bg-cyan-400 text-black hover:bg-cyan-300"
+                  : photoType === "limitation"
+                    ? "bg-orange-400 text-black hover:bg-orange-300"
+                    : "bg-white text-black hover:bg-slate-200"
+              }`}
+            >
+              {saving
+                ? uploadProgress.some(
+                    (item) =>
+                      item.status === "uploading" ||
+                      item.status === "processing",
+                  )
+                  ? "Saving + Uploading Media..."
+                  : "Saving..."
+                : photoType === "reference_photo"
+                  ? online
+                    ? "Save Section Reference Photo"
+                    : "Save Section Reference Photo Offline"
+                  : photoType === "limitation"
+                    ? online
+                      ? "Save Limitation + Photo"
+                      : "Limitation Photo Needs Internet"
+                  : photoType === "existing_finding"
+                    ? online
+                      ? "Attach Media to Selected Finding"
+                      : "Existing Finding Media Needs Internet"
+                    : online
+                      ? "Save Finding to Report"
+                      : "Save Finding Offline"}
+            </button>
+
+
+
+            {selectedReport && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (!isOnline()) {
+                    setShowOfflineReportViewer(true);
+                    return;
+                  }
+
+                  router.push(`/reports/${selectedReport}`);
+                }}
+                className="block w-full rounded-xl border border-teal-500 p-4 text-center font-bold text-teal-400 transition active:scale-[0.98] hover:bg-teal-500 hover:text-black [touch-action:manipulation]"
+              >
+                {online ? "Open This Report" : "Open Offline Report"}
+              </button>
+            )}
+
             <div className="space-y-3">
               <button
                 type="button"
@@ -4716,72 +4784,6 @@ function FieldPageContent() {
               </div>
             )}
 
-            <button
-              type="button"
-              onClick={saveFieldItem}
-              disabled={
-                saving ||
-                savingEquipment ||
-                analyzingLimitation ||
-                (photoType === "existing_finding" &&
-                  (!online || !existingFindingId || photos.length === 0)) ||
-                (photoType === "reference_photo" && photos.length === 0) ||
-                (photoType === "limitation" &&
-                  (!online ||
-                    !note.trim() ||
-                    !photos.some((photo) => photo.type.startsWith("image/"))))
-              }
-              className={`w-full rounded-xl p-4 text-lg font-bold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation] ${
-                photoType === "reference_photo"
-                  ? "bg-cyan-400 text-black hover:bg-cyan-300"
-                  : photoType === "limitation"
-                    ? "bg-orange-400 text-black hover:bg-orange-300"
-                    : "bg-white text-black hover:bg-slate-200"
-              }`}
-            >
-              {saving
-                ? uploadProgress.some(
-                    (item) =>
-                      item.status === "uploading" ||
-                      item.status === "processing",
-                  )
-                  ? "Saving + Uploading Media..."
-                  : "Saving..."
-                : photoType === "reference_photo"
-                  ? online
-                    ? "Save Section Reference Photo"
-                    : "Save Section Reference Photo Offline"
-                  : photoType === "limitation"
-                    ? online
-                      ? "Save Limitation + Photo"
-                      : "Limitation Photo Needs Internet"
-                  : photoType === "existing_finding"
-                    ? online
-                      ? "Attach Media to Selected Finding"
-                      : "Existing Finding Media Needs Internet"
-                    : online
-                      ? "Save Finding to Report"
-                      : "Save Finding Offline"}
-            </button>
-
-
-
-            {selectedReport && (
-              <button
-                type="button"
-                onClick={() => {
-                  if (!isOnline()) {
-                    setShowOfflineReportViewer(true);
-                    return;
-                  }
-
-                  router.push(`/reports/${selectedReport}`);
-                }}
-                className="block w-full rounded-xl border border-teal-500 p-4 text-center font-bold text-teal-400 transition active:scale-[0.98] hover:bg-teal-500 hover:text-black [touch-action:manipulation]"
-              >
-                {online ? "Open This Report" : "Open Offline Report"}
-              </button>
-            )}
 
           </div>
         </div>
