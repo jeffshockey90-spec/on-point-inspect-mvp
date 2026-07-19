@@ -1064,10 +1064,12 @@ function getPhotoUrl(photo: any) {
 
   if (isVideo) {
     return (
-      photo?.signed_video_url ||
-      photo?.signedVideoUrl ||
+      // Prefer the fresh signed URL generated when the report loads.
+      // Older signed_video_url values may be stale or expired.
       photo?.signed_url ||
       photo?.signedUrl ||
+      photo?.signed_video_url ||
+      photo?.signedVideoUrl ||
       photo?.video_url ||
       photo?.videoUrl ||
       photo?.public_url ||
