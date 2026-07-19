@@ -468,8 +468,9 @@ function formatTime(value: any) {
   date.setHours(hours, minutes, 0, 0);
 
   return date.toLocaleTimeString("en-US", {
-    hour: "numeric",
+    hour: "2-digit",
     minute: "2-digit",
+    hour12: false,
   });
 }
 

@@ -1,6 +1,7 @@
 import "./globals.css";
 import Navbar from "../components/Nav";
 import GlobalLiveActivity from "../components/GlobalLiveActivity";
+import TimeLocationEngine from "../components/time-location/TimeLocationEngine";
 
 export const metadata = {
   title: "On Point Inspect",
@@ -51,6 +52,8 @@ export default function RootLayout({
         <Navbar />
 
         <GlobalLiveActivity />
+
+        <TimeLocationEngine />
 
         <div className="min-h-screen pb-28 md:pb-0">
           {children}

@@ -44,7 +44,7 @@ function sourceIcon(source: InspectionTimelineEvent["source"]) {
 function formatTime(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Now";
-  return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  return date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
 }
 
 function SmallStat({ label, value }: { label: string; value: string | number }) {

@@ -152,8 +152,9 @@ function formatTime(value: string) {
   date.setHours(Number(hour), Number(minute));
 
   return date.toLocaleTimeString("en-US", {
-    hour: "numeric",
+    hour: "2-digit",
     minute: "2-digit",
+    hour12: false,
   });
 }
 

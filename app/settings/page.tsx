@@ -8,6 +8,7 @@ import PushNotificationSetup from "../../components/PushNotificationSetup";
 import SupportUnreadBadge from "../../components/SupportUnreadBadge";
 import CompanyImageUploader from "./CompanyImageUploader";
 import StandardsOfPracticeEditor from "./StandardsOfPracticeEditor";
+import TimePreferencesSettings from "../../components/time-location/TimePreferencesSettings";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -927,6 +928,8 @@ export default async function SettingsPage({
             initialIncludeShare={standardsIncludeShare}
             initialIncludePdf={standardsIncludePdf}
           />
+
+          <TimePreferencesSettings />
 
           <section className="rounded-3xl border border-slate-800 bg-[#0b1220] p-5 sm:p-6 md:p-8">
             <h2 className="text-xl font-black text-teal-300 sm:text-2xl">

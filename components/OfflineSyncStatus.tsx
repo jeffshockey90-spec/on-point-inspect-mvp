@@ -88,7 +88,7 @@ export default function OfflineSyncStatus() {
     try {
       const result = await processOfflineQueue({
         onItemSynced: () => {
-          setLastSynced(new Date().toLocaleTimeString());
+          setLastSynced(new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false }));
           refreshStatus();
         },
         onItemFailed: (_item, error) => {
@@ -148,7 +148,7 @@ export default function OfflineSyncStatus() {
       intervalMs: 30000,
       onSynced: (result) => {
         if (result.synced > 0) {
-          setLastSynced(new Date().toLocaleTimeString());
+          setLastSynced(new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false }));
           notifyOfflineSyncComplete();
         }
 
