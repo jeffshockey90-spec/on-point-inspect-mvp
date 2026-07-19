@@ -1225,22 +1225,32 @@ function ReportVideo({
   const [repairing, setRepairing] = useState(false);
   const [repairError, setRepairError] = useState("");
   const [retryKey, setRetryKey] = useState(0);
+  const repairInProgressRef = useRef(false);
   const repairAttemptedRef = useRef(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   const mimeType = getVideoMimeType(photo, currentUrl);
 
   useEffect(() => {
     setCurrentUrl(url);
     setFailed(false);
+    setRepairing(false);
     setRepairError("");
+    repairInProgressRef.current = false;
     repairAttemptedRef.current = false;
   }, [url, photo?.id]);
 
-  async function repairVideo() {
-    if (!photo?.id || repairing) {
+  async function repairVideo({ force = false }: { force?: boolean } = {}) {
+    if (!photo?.id) {
+      setRepairError("The original video record could not be identified.");
       setFailed(true);
       return;
     }
 
+    if (repairInProgressRef.current) return;
+    if (repairAttemptedRef.current && !force) return;
+
+    repairInProgressRef.current = true;
+    repairAttemptedRef.current = true;
     setRepairing(true);
     setFailed(false);
     setRepairError("");
@@ -1255,16 +1265,25 @@ function ReportVideo({
       const result = await response.json().catch(() => ({}));
 
       if (!response.ok || !result?.signedUrl) {
-        throw new Error(result?.error || "Automatic video repair failed.");
+        throw new Error(result?.error || "Automatic video optimization failed.");
       }
 
       setCurrentUrl(String(result.signedUrl));
       setRetryKey((current) => current + 1);
       setFailed(false);
+
+      window.setTimeout(() => {
+        const video = videoRef.current;
+        if (!video) return;
+
+        video.load();
+        void video.play().catch(() => undefined);
+      }, 0);
     } catch (error: any) {
-      setRepairError(error?.message || "Automatic video repair failed.");
+      setRepairError(error?.message || "Automatic video optimization failed.");
       setFailed(true);
     } finally {
+      repairInProgressRef.current = false;
       setRepairing(false);
     }
   }
@@ -1274,10 +1293,10 @@ function ReportVideo({
       <div className="flex min-h-[150px] w-full flex-col items-center justify-center gap-3 rounded-xl border border-teal-500/40 bg-teal-500/10 p-4 text-center">
         <div className="h-7 w-7 animate-spin rounded-full border-2 border-teal-200 border-t-transparent" />
         <p className="text-sm font-black text-teal-200">
-          Repairing this video automatically…
+          Optimizing video for playback…
         </p>
         <p className="max-w-xl text-xs leading-5 text-slate-300">
-          The original is being converted to a browser-safe MP4. Keep this page open.
+          This may take a few seconds. Keep this page open.
         </p>
       </div>
     );
@@ -1287,22 +1306,19 @@ function ReportVideo({
     return (
       <div className="flex min-h-[150px] w-full flex-col items-center justify-center gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-center">
         <p className="text-sm font-black text-amber-200">
-          This video could not be repaired automatically.
+          We couldn&apos;t optimize this video automatically.
         </p>
         <p className="max-w-xl text-xs leading-5 text-slate-300">
           {repairError ||
-            "The original may be incomplete or unavailable in storage. You can retry the repair or open the original file."}
+            "The original may be incomplete or unavailable in storage."}
         </p>
         <div className="flex flex-wrap justify-center gap-2">
           <button
             type="button"
-            onClick={() => {
-              repairAttemptedRef.current = true;
-              void repairVideo();
-            }}
+            onClick={() => void repairVideo({ force: true })}
             className="rounded-lg bg-amber-400 px-4 py-2 text-xs font-black text-slate-950 transition active:scale-[0.98]"
           >
-            Retry Repair
+            Try Again
           </button>
           <a
             href={url}
@@ -1319,6 +1335,7 @@ function ReportVideo({
 
   return (
     <video
+      ref={videoRef}
       key={`${currentUrl}-${retryKey}`}
       poster={getVideoPosterUrl(photo) || undefined}
       controls
@@ -1331,11 +1348,11 @@ function ReportVideo({
       }
       onError={() => {
         if (!repairAttemptedRef.current && photo?.id) {
-          repairAttemptedRef.current = true;
           void repairVideo();
           return;
         }
 
+        setRepairError("The optimized video still could not be played.");
         setFailed(true);
       }}
     >
