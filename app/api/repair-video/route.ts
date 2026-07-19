@@ -14,10 +14,42 @@ export const maxDuration = 60;
 const PHOTO_BUCKET = "inspection-photos";
 const MAX_INPUT_BYTES = 250 * 1024 * 1024;
 
-const FFMPEG_PATH =
-  process.env.FFMPEG_PATH ||
-  ffmpegStaticPath ||
+const LOCAL_FFMPEG_PATH =
   "C:\\Users\\jeffs\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\\ffmpeg-8.1.2-full_build\\bin\\ffmpeg.exe";
+
+async function resolveFfmpegPath() {
+  const candidates = [
+    process.env.FFMPEG_PATH,
+    ffmpegStaticPath,
+    path.join(process.cwd(), "node_modules", "ffmpeg-static", "ffmpeg"),
+    path.join(
+      process.cwd(),
+      ".next",
+      "server",
+      "app",
+      "api",
+      "repair-video",
+      "ffmpeg",
+    ),
+    process.platform === "win32" ? LOCAL_FFMPEG_PATH : "",
+  ].filter(Boolean) as string[];
+
+  for (const candidate of candidates) {
+    try {
+      await fs.access(candidate);
+
+      if (process.platform !== "win32") {
+        await fs.chmod(candidate, 0o755).catch(() => undefined);
+      }
+
+      return candidate;
+    } catch {}
+  }
+
+  throw new Error(
+    `FFmpeg binary was not found. Checked: ${candidates.join(", ")}`,
+  );
+}
 
 async function createUserClient() {
   const cookieStore = await cookies();
@@ -141,7 +173,9 @@ function runProcess(command: string, args: string[]) {
 }
 
 async function convertVideo(inputPath: string, outputPath: string) {
-  await runProcess(FFMPEG_PATH, [
+  const ffmpegPath = await resolveFfmpegPath();
+
+  await runProcess(ffmpegPath, [
     "-y",
     "-hide_banner",
     "-loglevel",
