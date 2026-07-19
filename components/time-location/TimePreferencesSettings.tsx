@@ -1,46 +1,246 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { DEFAULT_TIME_ZONE, detectDeviceTimeZone } from "../../lib/app-time";
+import { useEffect, useMemo, useState } from "react";
+import {
+  DEFAULT_TIME_ZONE,
+  detectDeviceTimeZone,
+} from "../../lib/app-time";
+
+const TIME_ZONES = [
+  {
+    value: "America/New_York",
+    label: "Eastern Time (US & Canada)",
+  },
+  {
+    value: "America/Chicago",
+    label: "Central Time (US & Canada)",
+  },
+  {
+    value: "America/Denver",
+    label: "Mountain Time (US & Canada)",
+  },
+  {
+    value: "America/Phoenix",
+    label: "Arizona",
+  },
+  {
+    value: "America/Los_Angeles",
+    label: "Pacific Time (US & Canada)",
+  },
+  {
+    value: "America/Anchorage",
+    label: "Alaska",
+  },
+  {
+    value: "Pacific/Honolulu",
+    label: "Hawaii",
+  },
+  {
+    value: "UTC",
+    label: "UTC",
+  },
+] as const;
 
 export default function TimePreferencesSettings() {
   const [timeZone, setTimeZone] = useState(DEFAULT_TIME_ZONE);
   const [timeFormat, setTimeFormat] = useState<"12h" | "24h">("24h");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [timeZoneSearch, setTimeZoneSearch] = useState("");
+  const [showTimeZoneMenu, setShowTimeZoneMenu] = useState(false);
 
   useEffect(() => {
     fetch("/api/settings/time-preferences", { cache: "no-store" })
-      .then((r) => r.ok ? r.json() : null)
+      .then((response) => (response.ok ? response.json() : null))
       .then((data) => {
         if (!data) return;
-        setTimeZone(data.timeZone || detectDeviceTimeZone());
+
+        const savedTimeZone =
+          data.timeZone || detectDeviceTimeZone() || DEFAULT_TIME_ZONE;
+
+        setTimeZone(savedTimeZone);
+        setTimeZoneSearch(savedTimeZone);
         setTimeFormat(data.timeFormat === "12h" ? "12h" : "24h");
       })
       .catch(() => {});
   }, []);
 
+  const filteredTimeZones = useMemo(() => {
+    const search = timeZoneSearch.trim().toLowerCase();
+
+    if (!search) return TIME_ZONES;
+
+    return TIME_ZONES.filter((zone) => {
+      return (
+        zone.label.toLowerCase().includes(search) ||
+        zone.value.toLowerCase().includes(search)
+      );
+    });
+  }, [timeZoneSearch]);
+
   async function save() {
     setBusy(true);
     setMessage("");
-    const response = await fetch("/api/settings/time-preferences", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ timeZone, timeFormat, deviceTimeZone: detectDeviceTimeZone() }),
-    });
-    const data = await response.json().catch(() => ({}));
-    setBusy(false);
-    setMessage(response.ok ? "Time preferences saved everywhere in the app." : data.error || "Unable to save time preferences.");
+
+    try {
+      const response = await fetch("/api/settings/time-preferences", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          timeZone,
+          timeFormat,
+          deviceTimeZone: detectDeviceTimeZone(),
+        }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      setMessage(
+        response.ok
+          ? "Time preferences saved everywhere in the app."
+          : data.error || "Unable to save time preferences.",
+      );
+    } catch {
+      setMessage("Unable to save time preferences.");
+    } finally {
+      setBusy(false);
+    }
   }
 
-  return <section className="rounded-3xl border border-slate-800 bg-[#0b1220] p-5 sm:p-6 md:p-8">
-    <h2 className="text-xl font-black text-teal-300 sm:text-2xl">Time & Location</h2>
-    <p className="mt-2 text-sm leading-6 text-slate-300">Appointments, reports, notifications, mileage logs, and activity timestamps use your local time zone. The default clock is 24-hour.</p>
-    <div className="mt-5 grid gap-4 md:grid-cols-2">
-      <label className="block"><span className="mb-2 block text-xs font-black uppercase tracking-wide text-slate-400">Time zone</span><input value={timeZone} onChange={(e) => setTimeZone(e.target.value)} className="w-full rounded-xl border border-slate-700 bg-[#020617] p-3 text-white" /></label>
-      <label className="block"><span className="mb-2 block text-xs font-black uppercase tracking-wide text-slate-400">Clock format</span><select value={timeFormat} onChange={(e) => setTimeFormat(e.target.value === "12h" ? "12h" : "24h")} className="w-full rounded-xl border border-slate-700 bg-[#020617] p-3 text-white"><option value="24h">24-hour (16:30)</option><option value="12h">12-hour (4:30 PM)</option></select></label>
-    </div>
-    <div className="mt-5 flex flex-col gap-3 sm:flex-row"><button type="button" onClick={() => setTimeZone(detectDeviceTimeZone())} className="rounded-xl border border-slate-700 px-5 py-3 font-bold text-slate-200">Use Device Location</button><button type="button" disabled={busy} onClick={save} className="rounded-xl bg-teal-500 px-5 py-3 font-black text-slate-950">{busy ? "Saving…" : "Save Time Settings"}</button><a href="/mileage" className="rounded-xl border border-teal-500/50 px-5 py-3 text-center font-black text-teal-300">Open Mileage Tracker →</a></div>
-    {message && <p className="mt-3 text-sm font-bold text-slate-300">{message}</p>}
-  </section>;
+  function useDeviceTimeZone() {
+    const detectedTimeZone =
+      detectDeviceTimeZone() || DEFAULT_TIME_ZONE;
+
+    setTimeZone(detectedTimeZone);
+    setTimeZoneSearch(detectedTimeZone);
+    setShowTimeZoneMenu(false);
+    setMessage(`Device time zone detected: ${detectedTimeZone}`);
+  }
+
+  function selectTimeZone(value: string) {
+    setTimeZone(value);
+    setTimeZoneSearch(value);
+    setShowTimeZoneMenu(false);
+    setMessage("");
+  }
+
+  return (
+    <section className="rounded-3xl border border-slate-800 bg-[#0b1220] p-5 sm:p-6 md:p-8">
+      <h2 className="text-xl font-black text-teal-300 sm:text-2xl">
+        Time &amp; Location
+      </h2>
+
+      <p className="mt-2 text-sm leading-6 text-slate-300">
+        Appointments, reports, notifications, mileage logs, and activity
+        timestamps use your local time zone.
+      </p>
+
+      <div className="mt-5 grid gap-4 md:grid-cols-2">
+        <div className="relative">
+          <label htmlFor="time-zone-search" className="block">
+            <span className="mb-2 block text-xs font-black uppercase tracking-wide text-slate-400">
+              Time zone
+            </span>
+
+            <input
+              id="time-zone-search"
+              type="text"
+              value={timeZoneSearch}
+              onFocus={() => setShowTimeZoneMenu(true)}
+              onChange={(event) => {
+                setTimeZoneSearch(event.target.value);
+                setShowTimeZoneMenu(true);
+              }}
+              placeholder="Search time zones"
+              autoComplete="off"
+              className="w-full rounded-xl border border-slate-700 bg-[#020617] p-3 text-white outline-none transition focus:border-teal-400"
+            />
+          </label>
+
+          {showTimeZoneMenu && (
+            <div className="absolute z-50 mt-2 max-h-72 w-full overflow-y-auto rounded-xl border border-slate-700 bg-[#020617] shadow-2xl">
+              {filteredTimeZones.length > 0 ? (
+                filteredTimeZones.map((zone) => (
+                  <button
+                    key={zone.value}
+                    type="button"
+                    onClick={() => selectTimeZone(zone.value)}
+                    className="block w-full border-b border-slate-800 px-4 py-3 text-left transition last:border-b-0 hover:bg-slate-900"
+                  >
+                    <span className="block font-bold text-white">
+                      {zone.label}
+                    </span>
+                    <span className="mt-1 block text-xs text-slate-400">
+                      {zone.value}
+                    </span>
+                  </button>
+                ))
+              ) : (
+                <div className="px-4 py-3 text-sm text-slate-400">
+                  No matching time zones.
+                </div>
+              )}
+            </div>
+          )}
+
+          <p className="mt-2 text-xs text-slate-500">
+            Selected: {timeZone}
+          </p>
+        </div>
+
+        <label className="block">
+          <span className="mb-2 block text-xs font-black uppercase tracking-wide text-slate-400">
+            Clock format
+          </span>
+
+          <select
+            value={timeFormat}
+            onChange={(event) =>
+              setTimeFormat(
+                event.target.value === "12h" ? "12h" : "24h",
+              )
+            }
+            className="w-full rounded-xl border border-slate-700 bg-[#020617] p-3 text-white outline-none transition focus:border-teal-400"
+          >
+            <option value="24h">24-hour (16:30)</option>
+            <option value="12h">12-hour (4:30 PM)</option>
+          </select>
+        </label>
+      </div>
+
+      <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+        <button
+          type="button"
+          onClick={useDeviceTimeZone}
+          className="rounded-xl border border-slate-700 px-5 py-3 font-bold text-slate-200 transition hover:border-teal-400 hover:text-teal-300"
+        >
+          Use Device Time Zone
+        </button>
+
+        <button
+          type="button"
+          disabled={busy}
+          onClick={save}
+          className="rounded-xl bg-teal-500 px-5 py-3 font-black text-slate-950 transition hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {busy ? "Saving…" : "Save Time Settings"}
+        </button>
+
+        <a
+          href="/mileage"
+          className="rounded-xl border border-teal-500/50 px-5 py-3 text-center font-black text-teal-300 transition hover:bg-teal-500/10"
+        >
+          Open Mileage Tracker →
+        </a>
+      </div>
+
+      {message && (
+        <p className="mt-3 text-sm font-bold text-slate-300">
+          {message}
+        </p>
+      )}
+    </section>
+  );
 }
