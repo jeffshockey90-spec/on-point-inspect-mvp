@@ -1,44 +1,20 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   DEFAULT_TIME_ZONE,
   detectDeviceTimeZone,
 } from "../../lib/app-time";
 
 const TIME_ZONES = [
-  {
-    value: "America/New_York",
-    label: "Eastern Time (US & Canada)",
-  },
-  {
-    value: "America/Chicago",
-    label: "Central Time (US & Canada)",
-  },
-  {
-    value: "America/Denver",
-    label: "Mountain Time (US & Canada)",
-  },
-  {
-    value: "America/Phoenix",
-    label: "Arizona",
-  },
-  {
-    value: "America/Los_Angeles",
-    label: "Pacific Time (US & Canada)",
-  },
-  {
-    value: "America/Anchorage",
-    label: "Alaska",
-  },
-  {
-    value: "Pacific/Honolulu",
-    label: "Hawaii",
-  },
-  {
-    value: "UTC",
-    label: "UTC",
-  },
+  { value: "America/New_York", label: "Eastern Time (US & Canada)" },
+  { value: "America/Chicago", label: "Central Time (US & Canada)" },
+  { value: "America/Denver", label: "Mountain Time (US & Canada)" },
+  { value: "America/Phoenix", label: "Arizona" },
+  { value: "America/Los_Angeles", label: "Pacific Time (US & Canada)" },
+  { value: "America/Anchorage", label: "Alaska" },
+  { value: "Pacific/Honolulu", label: "Hawaii" },
+  { value: "UTC", label: "UTC" },
 ] as const;
 
 export default function TimePreferencesSettings() {
@@ -46,8 +22,6 @@ export default function TimePreferencesSettings() {
   const [timeFormat, setTimeFormat] = useState<"12h" | "24h">("24h");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
-  const [timeZoneSearch, setTimeZoneSearch] = useState("");
-  const [showTimeZoneMenu, setShowTimeZoneMenu] = useState(false);
 
   useEffect(() => {
     fetch("/api/settings/time-preferences", { cache: "no-store" })
@@ -55,28 +29,13 @@ export default function TimePreferencesSettings() {
       .then((data) => {
         if (!data) return;
 
-        const savedTimeZone =
-          data.timeZone || detectDeviceTimeZone() || DEFAULT_TIME_ZONE;
-
-        setTimeZone(savedTimeZone);
-        setTimeZoneSearch(savedTimeZone);
+        setTimeZone(
+          data.timeZone || detectDeviceTimeZone() || DEFAULT_TIME_ZONE,
+        );
         setTimeFormat(data.timeFormat === "12h" ? "12h" : "24h");
       })
       .catch(() => {});
   }, []);
-
-  const filteredTimeZones = useMemo(() => {
-    const search = timeZoneSearch.trim().toLowerCase();
-
-    if (!search) return TIME_ZONES;
-
-    return TIME_ZONES.filter((zone) => {
-      return (
-        zone.label.toLowerCase().includes(search) ||
-        zone.value.toLowerCase().includes(search)
-      );
-    });
-  }, [timeZoneSearch]);
 
   async function save() {
     setBusy(true);
@@ -85,9 +44,7 @@ export default function TimePreferencesSettings() {
     try {
       const response = await fetch("/api/settings/time-preferences", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           timeZone,
           timeFormat,
@@ -110,20 +67,15 @@ export default function TimePreferencesSettings() {
   }
 
   function useDeviceTimeZone() {
-    const detectedTimeZone =
-      detectDeviceTimeZone() || DEFAULT_TIME_ZONE;
+    const detectedTimeZone = detectDeviceTimeZone() || DEFAULT_TIME_ZONE;
+    const supportedTimeZone = TIME_ZONES.some(
+      (option) => option.value === detectedTimeZone,
+    )
+      ? detectedTimeZone
+      : DEFAULT_TIME_ZONE;
 
-    setTimeZone(detectedTimeZone);
-    setTimeZoneSearch(detectedTimeZone);
-    setShowTimeZoneMenu(false);
+    setTimeZone(supportedTimeZone);
     setMessage(`Device time zone detected: ${detectedTimeZone}`);
-  }
-
-  function selectTimeZone(value: string) {
-    setTimeZone(value);
-    setTimeZoneSearch(value);
-    setShowTimeZoneMenu(false);
-    setMessage("");
   }
 
   return (
@@ -138,57 +90,28 @@ export default function TimePreferencesSettings() {
       </p>
 
       <div className="mt-5 grid gap-4 md:grid-cols-2">
-        <div className="relative">
-          <label htmlFor="time-zone-search" className="block">
-            <span className="mb-2 block text-xs font-black uppercase tracking-wide text-slate-400">
-              Time zone
-            </span>
+        <label className="block">
+          <span className="mb-2 block text-xs font-black uppercase tracking-wide text-slate-400">
+            Time zone
+          </span>
 
-            <input
-              id="time-zone-search"
-              type="text"
-              value={timeZoneSearch}
-              onFocus={() => setShowTimeZoneMenu(true)}
-              onChange={(event) => {
-                setTimeZoneSearch(event.target.value);
-                setShowTimeZoneMenu(true);
-              }}
-              placeholder="Search time zones"
-              autoComplete="off"
-              className="w-full rounded-xl border border-slate-700 bg-[#020617] p-3 text-white outline-none transition focus:border-teal-400"
-            />
-          </label>
+          <select
+            value={timeZone}
+            onChange={(event) => {
+              setTimeZone(event.target.value);
+              setMessage("");
+            }}
+            className="w-full rounded-xl border border-slate-700 bg-[#020617] p-3 text-white outline-none transition focus:border-teal-400"
+          >
+            {TIME_ZONES.map((zone) => (
+              <option key={zone.value} value={zone.value}>
+                {zone.label}
+              </option>
+            ))}
+          </select>
 
-          {showTimeZoneMenu && (
-            <div className="absolute z-50 mt-2 max-h-72 w-full overflow-y-auto rounded-xl border border-slate-700 bg-[#020617] shadow-2xl">
-              {filteredTimeZones.length > 0 ? (
-                filteredTimeZones.map((zone) => (
-                  <button
-                    key={zone.value}
-                    type="button"
-                    onClick={() => selectTimeZone(zone.value)}
-                    className="block w-full border-b border-slate-800 px-4 py-3 text-left transition last:border-b-0 hover:bg-slate-900"
-                  >
-                    <span className="block font-bold text-white">
-                      {zone.label}
-                    </span>
-                    <span className="mt-1 block text-xs text-slate-400">
-                      {zone.value}
-                    </span>
-                  </button>
-                ))
-              ) : (
-                <div className="px-4 py-3 text-sm text-slate-400">
-                  No matching time zones.
-                </div>
-              )}
-            </div>
-          )}
-
-          <p className="mt-2 text-xs text-slate-500">
-            Selected: {timeZone}
-          </p>
-        </div>
+          <p className="mt-2 text-xs text-slate-500">{timeZone}</p>
+        </label>
 
         <label className="block">
           <span className="mb-2 block text-xs font-black uppercase tracking-wide text-slate-400">
@@ -198,9 +121,7 @@ export default function TimePreferencesSettings() {
           <select
             value={timeFormat}
             onChange={(event) =>
-              setTimeFormat(
-                event.target.value === "12h" ? "12h" : "24h",
-              )
+              setTimeFormat(event.target.value === "12h" ? "12h" : "24h")
             }
             className="w-full rounded-xl border border-slate-700 bg-[#020617] p-3 text-white outline-none transition focus:border-teal-400"
           >
@@ -237,9 +158,7 @@ export default function TimePreferencesSettings() {
       </div>
 
       {message && (
-        <p className="mt-3 text-sm font-bold text-slate-300">
-          {message}
-        </p>
+        <p className="mt-3 text-sm font-bold text-slate-300">{message}</p>
       )}
     </section>
   );
