@@ -1220,30 +1220,89 @@ function ReportVideo({
   url: string;
   compact?: boolean;
 }) {
+  const [currentUrl, setCurrentUrl] = useState(url);
   const [failed, setFailed] = useState(false);
+  const [repairing, setRepairing] = useState(false);
+  const [repairError, setRepairError] = useState("");
   const [retryKey, setRetryKey] = useState(0);
-  const mimeType = getVideoMimeType(photo, url);
+  const repairAttemptedRef = useRef(false);
+  const mimeType = getVideoMimeType(photo, currentUrl);
+
+  useEffect(() => {
+    setCurrentUrl(url);
+    setFailed(false);
+    setRepairError("");
+    repairAttemptedRef.current = false;
+  }, [url, photo?.id]);
+
+  async function repairVideo() {
+    if (!photo?.id || repairing) {
+      setFailed(true);
+      return;
+    }
+
+    setRepairing(true);
+    setFailed(false);
+    setRepairError("");
+
+    try {
+      const response = await fetch("/api/repair-video", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ photoId: photo.id }),
+      });
+
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok || !result?.signedUrl) {
+        throw new Error(result?.error || "Automatic video repair failed.");
+      }
+
+      setCurrentUrl(String(result.signedUrl));
+      setRetryKey((current) => current + 1);
+      setFailed(false);
+    } catch (error: any) {
+      setRepairError(error?.message || "Automatic video repair failed.");
+      setFailed(true);
+    } finally {
+      setRepairing(false);
+    }
+  }
+
+  if (repairing) {
+    return (
+      <div className="flex min-h-[150px] w-full flex-col items-center justify-center gap-3 rounded-xl border border-teal-500/40 bg-teal-500/10 p-4 text-center">
+        <div className="h-7 w-7 animate-spin rounded-full border-2 border-teal-200 border-t-transparent" />
+        <p className="text-sm font-black text-teal-200">
+          Repairing this video automatically…
+        </p>
+        <p className="max-w-xl text-xs leading-5 text-slate-300">
+          The original is being converted to a browser-safe MP4. Keep this page open.
+        </p>
+      </div>
+    );
+  }
 
   if (failed) {
     return (
       <div className="flex min-h-[150px] w-full flex-col items-center justify-center gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-center">
         <p className="text-sm font-black text-amber-200">
-          This video could not be played in the browser.
+          This video could not be repaired automatically.
         </p>
         <p className="max-w-xl text-xs leading-5 text-slate-300">
-          The original may be an older iPhone MOV or an upload that did not finish
-          browser-safe conversion.
+          {repairError ||
+            "The original may be incomplete or unavailable in storage. You can retry the repair or open the original file."}
         </p>
         <div className="flex flex-wrap justify-center gap-2">
           <button
             type="button"
             onClick={() => {
-              setFailed(false);
-              setRetryKey((current) => current + 1);
+              repairAttemptedRef.current = true;
+              void repairVideo();
             }}
             className="rounded-lg bg-amber-400 px-4 py-2 text-xs font-black text-slate-950 transition active:scale-[0.98]"
           >
-            Retry Video
+            Retry Repair
           </button>
           <a
             href={url}
@@ -1260,7 +1319,7 @@ function ReportVideo({
 
   return (
     <video
-      key={`${url}-${retryKey}`}
+      key={`${currentUrl}-${retryKey}`}
       poster={getVideoPosterUrl(photo) || undefined}
       controls
       playsInline
@@ -1271,12 +1330,20 @@ function ReportVideo({
           : "mx-auto max-h-[420px] w-full max-w-full rounded-xl bg-black object-contain"
       }
       onError={() => {
-        // MediaError properties are not enumerable, which is why logging the
-        // whole object previously appeared as {}. Show a useful UI instead.
+        if (!repairAttemptedRef.current && photo?.id) {
+          repairAttemptedRef.current = true;
+          void repairVideo();
+          return;
+        }
+
         setFailed(true);
       }}
     >
-      {mimeType ? <source src={url} type={mimeType} /> : <source src={url} />}
+      {mimeType ? (
+        <source src={currentUrl} type={mimeType} />
+      ) : (
+        <source src={currentUrl} />
+      )}
       Your browser does not support video playback.
     </video>
   );
