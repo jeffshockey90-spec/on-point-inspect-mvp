@@ -3,7 +3,6 @@
 import { memo, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../lib/supabaseClient";
-import FastLinkButton from "./FastLinkButton";
 
 const SECTIONS = [
   "Exterior",
@@ -612,14 +611,6 @@ function EditableFinding({ finding }: { finding: any }) {
             <Spinner active={deleting} />
             {deleteLabel}
           </button>
-
-          <FastLinkButton
-            href={`/ai-capture?inspection_id=${finding.inspection_id}`}
-            loadingText="Opening AI Capture..."
-            className="w-full rounded-xl border border-blue-500 bg-blue-500/10 px-3 py-3 text-center text-xs font-black text-blue-300 transition active:scale-[0.98] hover:bg-blue-500/20 sm:w-auto sm:px-5 sm:text-sm"
-          >
-            Add Photos
-          </FastLinkButton>
         </div>
 
         {movePanelOpen && (
