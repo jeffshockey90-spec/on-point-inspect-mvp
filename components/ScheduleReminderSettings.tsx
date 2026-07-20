@@ -28,50 +28,68 @@ const DEFAULT_SETTINGS: ReminderSettings = {
 
 type SettingKey = Exclude<keyof ReminderSettings, "enabled">;
 
-const REMINDER_OPTIONS: Array<{
-  key: SettingKey;
+const GROUPS: Array<{
   title: string;
-  description: string;
+  options: Array<{
+    key: SettingKey;
+    title: string;
+    description: string;
+  }>;
 }> = [
   {
-    key: "reminder_24h_enabled",
-    title: "24-hour reminder",
-    description: "Sends the day before the inspection.",
+    title: "Inspection reminders",
+    options: [
+      {
+        key: "reminder_24h_enabled",
+        title: "24-hour reminder",
+        description: "Day before inspection",
+      },
+      {
+        key: "reminder_2h_enabled",
+        title: "2-hour reminder",
+        description: "Two hours before inspection",
+      },
+      {
+        key: "reminder_30m_enabled",
+        title: "30-minute reminder",
+        description: "Final reminder before inspection",
+      },
+    ],
   },
   {
-    key: "reminder_2h_enabled",
-    title: "2-hour reminder",
-    description: "Sends two hours before the inspection.",
+    title: "Inspection workflow",
+    options: [
+      {
+        key: "arrival_detection_enabled",
+        title: "Arrival detection",
+        description: "Detect arrival at the property",
+      },
+      {
+        key: "departure_detection_enabled",
+        title: "Finished inspection prompt",
+        description: "Ask whether the inspection is complete",
+      },
+      {
+        key: "mileage_prompt_enabled",
+        title: "Start mileage prompt",
+        description: "Offer to start mileage tracking",
+      },
+    ],
   },
   {
-    key: "reminder_30m_enabled",
-    title: "30-minute reminder",
-    description: "Sends a final reminder shortly before the inspection.",
-  },
-  {
-    key: "arrival_detection_enabled",
-    title: "Arrival detection",
-    description: "Detects when you arrive within the property radius.",
-  },
-  {
-    key: "departure_detection_enabled",
-    title: "Finished-inspection prompt",
-    description: "Asks whether you are finished after leaving the property.",
-  },
-  {
-    key: "mileage_prompt_enabled",
-    title: "Start mileage prompt",
-    description: "Offers to begin mileage after the inspection is finished.",
-  },
-  {
-    key: "radon_deployment_reminder_enabled",
-    title: "Radon deployment reminder",
-    description: "Reminds you when a radon device is scheduled for deployment.",
-  },
-  {
-    key: "radon_retrieval_reminder_enabled",
-    title: "Radon retrieval reminder",
-    description: "Reminds you when a radon device is due for pickup.",
+    title: "Radon",
+    options: [
+      {
+        key: "radon_deployment_reminder_enabled",
+        title: "Deployment reminder",
+        description: "Remind before device deployment",
+      },
+      {
+        key: "radon_retrieval_reminder_enabled",
+        title: "Retrieval reminder",
+        description: "Remind when the device is due for pickup",
+      },
+    ],
   },
 ];
 
@@ -98,14 +116,8 @@ function normalizeSettings(data: any): ReminderSettings {
     reminder_24h_enabled: readBoolean(source, "reminder_24h_enabled"),
     reminder_2h_enabled: readBoolean(source, "reminder_2h_enabled"),
     reminder_30m_enabled: readBoolean(source, "reminder_30m_enabled"),
-    arrival_detection_enabled: readBoolean(
-      source,
-      "arrival_detection_enabled",
-    ),
-    departure_detection_enabled: readBoolean(
-      source,
-      "departure_detection_enabled",
-    ),
+    arrival_detection_enabled: readBoolean(source, "arrival_detection_enabled"),
+    departure_detection_enabled: readBoolean(source, "departure_detection_enabled"),
     mileage_prompt_enabled: readBoolean(source, "mileage_prompt_enabled"),
     radon_deployment_reminder_enabled: readBoolean(
       source,
@@ -116,6 +128,31 @@ function normalizeSettings(data: any): ReminderSettings {
       "radon_retrieval_reminder_enabled",
     ),
   };
+}
+
+function ToggleSwitch({
+  checked,
+  disabled,
+}: {
+  checked: boolean;
+  disabled: boolean;
+}) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`relative inline-flex h-7 w-12 shrink-0 rounded-full border transition ${
+        checked
+          ? "border-teal-400/60 bg-teal-500"
+          : "border-slate-600 bg-slate-800"
+      } ${disabled ? "opacity-50" : ""}`}
+    >
+      <span
+        className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
+          checked ? "translate-x-5" : "translate-x-0.5"
+        }`}
+      />
+    </span>
+  );
 }
 
 export default function ScheduleReminderSettings() {
@@ -218,35 +255,33 @@ export default function ScheduleReminderSettings() {
     );
   }
 
-  function toggleSetting(key: SettingKey, checked: boolean) {
+  function toggleSetting(key: SettingKey) {
     if (loading || saving || !mainEnabled) return;
 
     void saveSettings(
       {
         ...settings,
-        [key]: checked,
+        [key]: !settings[key],
       },
       key,
     );
   }
 
   return (
-    <div className="mb-6 rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <p className="text-xs font-black uppercase tracking-widest text-teal-300">
+    <section className="mb-6 overflow-hidden rounded-3xl border border-teal-500/30 bg-[#0b1220] shadow-2xl shadow-black/20">
+      <div className="flex flex-col gap-4 border-b border-slate-800 px-5 py-5 sm:flex-row sm:items-start sm:justify-between sm:px-6">
+        <div className="min-w-0">
+          <p className="text-xs font-black uppercase tracking-[0.22em] text-teal-300">
             Notifications
           </p>
 
-          <h2 className="mt-2 text-xl font-black text-white">
+          <h2 className="mt-2 text-xl font-black text-white sm:text-2xl">
             Inspection, mileage and radon alerts
           </h2>
 
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-400">
-            Control all scheduled inspection reminders, arrival and departure
-            alerts, mileage prompts, and radon reminders in one place. Normal
-            booking, payment, report, and support push notifications are not
-            affected.
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
+            Manage scheduled reminders, property arrival and departure alerts,
+            mileage prompts, and radon notifications.
           </p>
         </div>
 
@@ -254,10 +289,10 @@ export default function ScheduleReminderSettings() {
           type="button"
           disabled={loading || saving}
           onClick={toggleMaster}
-          className={`rounded-2xl px-5 py-3 text-sm font-black transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 ${
+          className={`shrink-0 rounded-xl border px-4 py-3 text-sm font-black transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 ${
             mainEnabled
-              ? "border border-teal-400/40 bg-teal-500 text-black hover:bg-teal-300"
-              : "border border-zinc-700 bg-zinc-950 text-zinc-300 hover:bg-zinc-800"
+              ? "border-teal-400/50 bg-teal-500 text-slate-950 hover:bg-teal-400"
+              : "border-slate-700 bg-slate-950 text-slate-300 hover:border-slate-500"
           }`}
         >
           {loading
@@ -265,61 +300,70 @@ export default function ScheduleReminderSettings() {
             : savingKey === "enabled"
               ? "Saving..."
               : mainEnabled
-                ? "All Alerts On"
-                : "All Alerts Off"}
+                ? "Time & Location Alerts: On"
+                : "Time & Location Alerts: Off"}
         </button>
       </div>
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-2">
-        {REMINDER_OPTIONS.map((option) => {
-          const enabled = mainEnabled && settings[option.key];
-          const isSaving = savingKey === option.key;
+      <div className="space-y-6 px-5 py-5 sm:px-6">
+        {GROUPS.map((group) => (
+          <section key={group.title}>
+            <h3 className="mb-2 text-xs font-black uppercase tracking-[0.2em] text-slate-500">
+              {group.title}
+            </h3>
 
-          return (
-            <label
-              key={option.key}
-              className={`flex cursor-pointer items-center justify-between gap-4 rounded-xl border p-4 transition ${
-                mainEnabled
-                  ? "border-zinc-700 bg-black/30 hover:border-teal-500/50"
-                  : "border-zinc-800 bg-black/20 opacity-60"
-              }`}
-            >
-              <div className="min-w-0">
-                <p className="font-bold text-white">{option.title}</p>
-                <p className="mt-1 text-xs leading-5 text-zinc-400">
-                  {option.description}
-                </p>
-                {isSaving ? (
-                  <p className="mt-1 text-xs font-bold text-teal-300">
-                    Saving…
-                  </p>
-                ) : null}
-              </div>
+            <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/40">
+              {group.options.map((option, index) => {
+                const checked = mainEnabled && settings[option.key];
+                const isSaving = savingKey === option.key;
 
-              <input
-                type="checkbox"
-                disabled={!mainEnabled || loading || saving}
-                checked={settings[option.key]}
-                onChange={(event) =>
-                  toggleSetting(option.key, event.target.checked)
-                }
-                className="h-5 w-5 shrink-0 accent-teal-400"
-              />
-            </label>
-          );
-        })}
-      </div>
+                return (
+                  <button
+                    key={option.key}
+                    type="button"
+                    role="switch"
+                    aria-checked={checked}
+                    disabled={!mainEnabled || loading || saving}
+                    onClick={() => toggleSetting(option.key)}
+                    className={`flex w-full items-center justify-between gap-4 px-4 py-3 text-left transition hover:bg-slate-900/80 disabled:cursor-not-allowed ${
+                      index > 0 ? "border-t border-slate-800" : ""
+                    }`}
+                  >
+                    <span className="min-w-0">
+                      <span className="block text-sm font-black text-white sm:text-base">
+                        {option.title}
+                      </span>
+                      <span className="mt-0.5 block text-xs leading-5 text-slate-400 sm:text-sm">
+                        {option.description}
+                      </span>
+                      {isSaving ? (
+                        <span className="mt-1 block text-xs font-bold text-teal-300">
+                          Saving…
+                        </span>
+                      ) : null}
+                    </span>
 
-      <p className="mt-4 text-xs leading-5 text-zinc-500">
-        New accounts and notification preferences that have never been changed
-        default to On.
-      </p>
+                    <ToggleSwitch
+                      checked={checked}
+                      disabled={!mainEnabled || loading || saving}
+                    />
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        ))}
 
-      {message ? (
-        <p className="mt-4 rounded-xl border border-zinc-700 bg-black/40 px-3 py-2 text-sm font-bold text-zinc-200">
-          {message}
+        <p className="text-xs leading-5 text-slate-500">
+          New accounts and previously unset preferences default to On.
         </p>
-      ) : null}
-    </div>
+
+        {message ? (
+          <p className="rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm font-bold text-slate-200">
+            {message}
+          </p>
+        ) : null}
+      </div>
+    </section>
   );
 }
