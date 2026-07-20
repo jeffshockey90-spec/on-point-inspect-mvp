@@ -4,8 +4,9 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { DEFAULT_TIME_ZONE, detectDeviceTimeZone } from "../lib/app-time";
 
 type InspectionRow = Record<string, any>;
 
@@ -72,7 +73,7 @@ function cleanTime(value: any) {
   return "09:00";
 }
 
-function formatTime(value: any) {
+function formatTime(value: any, timeFormat: "12h" | "24h") {
   const time = cleanTime(value);
   const [hoursRaw, minutesRaw] = time.split(":");
 
@@ -83,14 +84,13 @@ function formatTime(value: any) {
     return "";
   }
 
-  const date = new Date();
-  date.setHours(hours, minutes, 0, 0);
+  const date = new Date(2000, 0, 1, hours, minutes, 0, 0);
 
-  return date.toLocaleTimeString("en-US", {
-    hour: "2-digit",
+  return new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
     minute: "2-digit",
-    hour12: false,
-  });
+    hour12: timeFormat === "12h",
+  }).format(date);
 }
 
 function getAddress(inspection: InspectionRow) {
@@ -138,13 +138,28 @@ function getType(inspection: InspectionRow) {
   return inspection.inspection_type || inspection.type || "Home Inspection";
 }
 
-function todayKey() {
-  const date = new Date();
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, "0");
-  const day = `${date.getDate()}`.padStart(2, "0");
+function todayKey(timeZone: string) {
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(new Date());
 
-  return `${year}-${month}-${day}`;
+    const values = Object.fromEntries(
+      parts.map((part) => [part.type, part.value]),
+    );
+
+    return `${values.year}-${values.month}-${values.day}`;
+  } catch {
+    const date = new Date();
+    const year = date.getFullYear();
+    const month = `${date.getMonth() + 1}`.padStart(2, "0");
+    const day = `${date.getDate()}`.padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+  }
 }
 
 function localDateKey(date: Date) {
@@ -232,6 +247,32 @@ export default function ScheduleCalendar({
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [message, setMessage] = useState("");
+  const [timeZone, setTimeZone] = useState(DEFAULT_TIME_ZONE);
+  const [timeFormat, setTimeFormat] = useState<"12h" | "24h">("24h");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch("/api/settings/time-preferences", { cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => {
+        if (cancelled || !data) return;
+
+        setTimeZone(
+          data.timeZone || detectDeviceTimeZone() || DEFAULT_TIME_ZONE,
+        );
+        setTimeFormat(data.timeFormat === "12h" ? "12h" : "24h");
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setTimeZone(detectDeviceTimeZone() || DEFAULT_TIME_ZONE);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const events = useMemo(() => {
     return inspections
@@ -241,7 +282,7 @@ export default function ScheduleCalendar({
         if (!date) return null;
 
         const time = cleanTime(getInspectionTime(inspection));
-        const displayTime = formatTime(time);
+        const displayTime = formatTime(time, timeFormat);
         const address = getAddress(inspection);
         const client = getClient(inspection);
         const realtor = getRealtor(inspection);
@@ -270,17 +311,17 @@ export default function ScheduleCalendar({
         };
       })
       .filter(Boolean) as any[];
-  }, [inspections]);
+  }, [inspections, timeFormat]);
 
   const todaysEvents = useMemo(() => {
-    const today = todayKey();
+    const today = todayKey(timeZone);
 
     return events
       .filter((event) => event.extendedProps.date === today)
       .sort((a, b) =>
         String(a.extendedProps.time).localeCompare(String(b.extendedProps.time))
       );
-  }, [events]);
+  }, [events, timeZone]);
 
   async function saveScheduleUpdate(eventToSave: SelectedEvent) {
     setSaving(true);
@@ -447,6 +488,16 @@ export default function ScheduleCalendar({
           slotMinTime="06:00:00"
           slotMaxTime="21:00:00"
           allDaySlot={false}
+          slotLabelFormat={{
+            hour: "numeric",
+            minute: "2-digit",
+            hour12: timeFormat === "12h",
+          }}
+          eventTimeFormat={{
+            hour: "numeric",
+            minute: "2-digit",
+            hour12: timeFormat === "12h",
+          }}
           headerToolbar={{
             left: "prev,next today",
             center: "title",
