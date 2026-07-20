@@ -1,6 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  DEFAULT_TIME_ZONE,
+  detectDeviceTimeZone,
+  isValidTimeZone,
+} from "../lib/app-time";
 
 const DAY_OPTIONS = [
   { id: "MO", label: "Mon" },
@@ -10,145 +15,570 @@ const DAY_OPTIONS = [
   { id: "FR", label: "Fri" },
   { id: "SA", label: "Sat" },
   { id: "SU", label: "Sun" },
-];
+] as const;
+
+type TimeFormat = "12h" | "24h";
+
+const DEFAULT_DAYS = ["MO", "TU", "WE", "TH", "FR"];
+const DEFAULT_TIMES = ["10:00", "14:00", "16:30"];
+
+function normalizeTime(value: unknown) {
+  const match = String(value || "")
+    .trim()
+    .match(/^([01]\d|2[0-3]):([0-5]\d)$/);
+
+  return match ? `${match[1]}:${match[2]}` : "";
+}
+
+function normalizeDate(value: unknown) {
+  const clean = String(value || "").trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(clean) ? clean : "";
+}
+
+function uniqueSorted(values: string[]) {
+  return [...new Set(values.filter(Boolean))].sort((a, b) =>
+    a.localeCompare(b),
+  );
+}
+
+function formatTime(value: string, format: TimeFormat) {
+  const normalized = normalizeTime(value);
+  if (!normalized) return value;
+
+  if (format === "24h") return normalized;
+
+  const [hoursText, minutes] = normalized.split(":");
+  const hours = Number(hoursText);
+  const suffix = hours >= 12 ? "PM" : "AM";
+  const displayHours = hours % 12 || 12;
+
+  return `${displayHours}:${minutes} ${suffix}`;
+}
+
+function formatDate(value: string, timeZone: string) {
+  const normalized = normalizeDate(value);
+  if (!normalized) return value;
+
+  const [year, month, day] = normalized.split("-").map(Number);
+  const safeDate = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+
+  try {
+    return new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    }).format(safeDate);
+  } catch {
+    return normalized;
+  }
+}
 
 export default function InspectorAvailabilitySettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+
   const [bookingEnabled, setBookingEnabled] = useState(true);
-  const [availableDays, setAvailableDays] = useState<string[]>(["MO", "TU", "WE", "TH", "FR"]);
-  const [defaultTimes, setDefaultTimes] = useState("10:00, 14:00, 16:30");
-  const [blockedDates, setBlockedDates] = useState("");
+  const [availableDays, setAvailableDays] = useState<string[]>(DEFAULT_DAYS);
+  const [defaultTimes, setDefaultTimes] = useState<string[]>(DEFAULT_TIMES);
+  const [blockedDates, setBlockedDates] = useState<string[]>([]);
+
+  const [newTime, setNewTime] = useState("");
+  const [newBlockedDate, setNewBlockedDate] = useState("");
+
+  const [timeZone, setTimeZone] = useState(DEFAULT_TIME_ZONE);
+  const [timeFormat, setTimeFormat] = useState<TimeFormat>("24h");
+
+  const orderedDays = useMemo(
+    () =>
+      DAY_OPTIONS.map((day) => day.id).filter((day) =>
+        availableDays.includes(day),
+      ),
+    [availableDays],
+  );
 
   useEffect(() => {
     let active = true;
 
     async function load() {
+      setLoading(true);
+      setError("");
+
       try {
-        const response = await fetch("/api/inspector-availability", { cache: "no-store" });
-        const result = await response.json().catch(() => ({}));
+        const [availabilityResponse, preferencesResponse] = await Promise.all([
+          fetch("/api/inspector-availability", { cache: "no-store" }),
+          fetch("/api/settings/time-preferences", { cache: "no-store" }),
+        ]);
+
+        const availabilityResult = await availabilityResponse
+          .json()
+          .catch(() => ({}));
+        const preferencesResult = await preferencesResponse
+          .json()
+          .catch(() => ({}));
 
         if (!active) return;
 
-        if (response.ok && result?.availability) {
-          setBookingEnabled(result.availability.booking_enabled !== false);
-          setAvailableDays(Array.isArray(result.availability.available_days) ? result.availability.available_days : ["MO", "TU", "WE", "TH", "FR"]);
-          setDefaultTimes(Array.isArray(result.availability.default_times) ? result.availability.default_times.join(", ") : "10:00, 14:00, 16:30");
-          setBlockedDates(Array.isArray(result.availability.blocked_dates) ? result.availability.blocked_dates.join(", ") : "");
+        const availability = availabilityResult?.availability;
+
+        if (availabilityResponse.ok && availability) {
+          setBookingEnabled(availability.booking_enabled !== false);
+
+          setAvailableDays(
+            Array.isArray(availability.available_days)
+              ? availability.available_days.filter((day: unknown) =>
+                  DAY_OPTIONS.some((option) => option.id === day),
+                )
+              : DEFAULT_DAYS,
+          );
+
+          const loadedTimes = Array.isArray(availability.default_times)
+            ? uniqueSorted(
+                availability.default_times
+                  .map(normalizeTime)
+                  .filter(Boolean),
+              )
+            : DEFAULT_TIMES;
+
+          setDefaultTimes(
+            loadedTimes.length > 0 ? loadedTimes : DEFAULT_TIMES,
+          );
+
+          setBlockedDates(
+            Array.isArray(availability.blocked_dates)
+              ? uniqueSorted(
+                  availability.blocked_dates
+                    .map(normalizeDate)
+                    .filter(Boolean),
+                )
+              : [],
+          );
+
+          const savedAvailabilityZone = String(
+            availability.timezone || "",
+          ).trim();
+
+          if (isValidTimeZone(savedAvailabilityZone)) {
+            setTimeZone(savedAvailabilityZone);
+          }
+        } else if (!availabilityResponse.ok) {
+          throw new Error(
+            availabilityResult?.error ||
+              "Availability settings could not load.",
+          );
         }
-      } catch {
-        if (active) setError("Availability settings could not load. Run the booking SQL migration if this is the first install.");
+
+        if (preferencesResponse.ok) {
+          const preferredZone = isValidTimeZone(preferencesResult?.timeZone)
+            ? preferencesResult.timeZone
+            : detectDeviceTimeZone() || DEFAULT_TIME_ZONE;
+
+          setTimeZone(preferredZone);
+          setTimeFormat(
+            preferencesResult?.timeFormat === "12h" ? "12h" : "24h",
+          );
+        }
+      } catch (loadError: any) {
+        if (active) {
+          setError(
+            loadError?.message ||
+              "Availability settings could not load. Run the booking SQL migration if this is the first install.",
+          );
+        }
       } finally {
         if (active) setLoading(false);
       }
     }
 
-    load();
+    void load();
 
     return () => {
       active = false;
     };
   }, []);
 
-  function toggleDay(day: string) {
-    setAvailableDays((current) => current.includes(day) ? current.filter((item) => item !== day) : [...current, day]);
+  function clearStatus() {
+    setMessage("");
+    setError("");
   }
 
-  function splitList(value: string) {
-    return value.split(",").map((item) => item.trim()).filter(Boolean);
+  function toggleDay(day: string) {
+    clearStatus();
+
+    setAvailableDays((current) =>
+      current.includes(day)
+        ? current.filter((item) => item !== day)
+        : [...current, day],
+    );
+  }
+
+  function addTime() {
+    clearStatus();
+
+    const normalized = normalizeTime(newTime);
+
+    if (!normalized) {
+      setError("Choose a valid appointment time.");
+      return;
+    }
+
+    if (defaultTimes.includes(normalized)) {
+      setError(`${formatTime(normalized, timeFormat)} is already listed.`);
+      return;
+    }
+
+    setDefaultTimes((current) => uniqueSorted([...current, normalized]));
+    setNewTime("");
+  }
+
+  function removeTime(time: string) {
+    clearStatus();
+    setDefaultTimes((current) => current.filter((item) => item !== time));
+  }
+
+  function addBlockedDate() {
+    clearStatus();
+
+    const normalized = normalizeDate(newBlockedDate);
+
+    if (!normalized) {
+      setError("Choose a valid blocked date.");
+      return;
+    }
+
+    if (blockedDates.includes(normalized)) {
+      setError(`${formatDate(normalized, timeZone)} is already blocked.`);
+      return;
+    }
+
+    setBlockedDates((current) => uniqueSorted([...current, normalized]));
+    setNewBlockedDate("");
+  }
+
+  function removeBlockedDate(date: string) {
+    clearStatus();
+    setBlockedDates((current) => current.filter((item) => item !== date));
   }
 
   async function save() {
+    clearStatus();
+
+    if (bookingEnabled && orderedDays.length === 0) {
+      setError("Select at least one available day while public booking is enabled.");
+      return;
+    }
+
+    if (bookingEnabled && defaultTimes.length === 0) {
+      setError("Add at least one appointment time while public booking is enabled.");
+      return;
+    }
+
     setSaving(true);
-    setMessage("");
-    setError("");
 
     try {
+      const resolvedTimeZone = isValidTimeZone(timeZone)
+        ? timeZone
+        : detectDeviceTimeZone() || DEFAULT_TIME_ZONE;
+
       const response = await fetch("/api/inspector-availability", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           booking_enabled: bookingEnabled,
-          available_days: availableDays,
-          default_times: splitList(defaultTimes),
-          blocked_dates: splitList(blockedDates),
-          timezone: "America/New_York",
+          available_days: orderedDays,
+          default_times: uniqueSorted(defaultTimes),
+          blocked_dates: uniqueSorted(blockedDates),
+          timezone: resolvedTimeZone,
         }),
       });
 
       const result = await response.json().catch(() => ({}));
 
-      if (!response.ok) throw new Error(result?.error || "Availability could not be saved.");
+      if (!response.ok) {
+        throw new Error(
+          result?.error || "Availability could not be saved.",
+        );
+      }
 
+      setTimeZone(resolvedTimeZone);
       setMessage("Availability saved.");
-    } catch (err: any) {
-      setError(err?.message || "Availability could not be saved.");
+    } catch (saveError: any) {
+      setError(
+        saveError?.message || "Availability could not be saved.",
+      );
     } finally {
       setSaving(false);
     }
   }
 
   return (
-    <section className="mb-6 rounded-2xl border border-teal-500/30 bg-teal-950/10 p-5">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <h2 className="text-lg font-black text-teal-200">Booking Availability</h2>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-400">
-            These settings power the booking request system and give you a central place to control public scheduling.
+    <section className="mb-6 rounded-3xl border border-teal-500/30 bg-teal-950/10 p-5 sm:p-6">
+      <div>
+        <p className="text-xs font-black uppercase tracking-[0.2em] text-teal-400">
+          Public Scheduling
+        </p>
+
+        <h2 className="mt-2 text-xl font-black text-teal-200 sm:text-2xl">
+          Booking Availability
+        </h2>
+
+        <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-400">
+          Control when clients and realtors may request inspections. Times
+          display in your saved {timeFormat === "12h" ? "12-hour" : "24-hour"}{" "}
+          format and use {timeZone}.
+        </p>
+      </div>
+
+      {loading ? (
+        <div className="mt-5 rounded-2xl border border-zinc-800 bg-black/30 p-5">
+          <p className="text-sm font-bold text-zinc-400">
+            Loading availability…
           </p>
         </div>
+      ) : (
+        <>
+          <div className="mt-6 grid gap-4 lg:grid-cols-2">
+            <div className="rounded-2xl border border-zinc-800 bg-black/30 p-4 sm:p-5">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-wide text-zinc-500">
+                    Public Booking
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-zinc-300">
+                    Allow clients and realtors to submit inspection requests
+                    online.
+                  </p>
+                </div>
 
-        <button
-          type="button"
-          onClick={save}
-          disabled={saving || loading}
-          className="rounded-xl bg-teal-400 px-4 py-3 text-sm font-black text-black transition hover:bg-teal-300 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {saving ? "Saving..." : "Save Availability"}
-        </button>
-      </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={bookingEnabled}
+                  onClick={() => {
+                    clearStatus();
+                    setBookingEnabled((current) => !current);
+                  }}
+                  className={`relative h-8 w-14 shrink-0 rounded-full border transition ${
+                    bookingEnabled
+                      ? "border-teal-300 bg-teal-400"
+                      : "border-zinc-700 bg-zinc-900"
+                  }`}
+                >
+                  <span
+                    className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${
+                      bookingEnabled ? "left-8" : "left-1"
+                    }`}
+                  />
+                  <span className="sr-only">
+                    {bookingEnabled
+                      ? "Disable public booking"
+                      : "Enable public booking"}
+                  </span>
+                </button>
+              </div>
 
-      <div className="mt-5 grid gap-4 lg:grid-cols-[.7fr_1.3fr_1fr]">
-        <label className="rounded-xl border border-zinc-800 bg-black/30 p-4">
-          <span className="text-xs font-black uppercase tracking-wide text-zinc-500">Public Booking</span>
-          <div className="mt-3 flex items-center gap-3">
-            <input type="checkbox" checked={bookingEnabled} onChange={(event) => setBookingEnabled(event.target.checked)} className="h-5 w-5" />
-            <span className="text-sm font-bold text-white">Enabled</span>
-          </div>
-        </label>
-
-        <div className="rounded-xl border border-zinc-800 bg-black/30 p-4">
-          <p className="text-xs font-black uppercase tracking-wide text-zinc-500">Available Days</p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {DAY_OPTIONS.map((day) => (
-              <button
-                key={day.id}
-                type="button"
-                onClick={() => toggleDay(day.id)}
-                className={`rounded-full border px-3 py-2 text-xs font-black ${availableDays.includes(day.id) ? "border-teal-400 bg-teal-400 text-black" : "border-zinc-700 bg-zinc-950 text-zinc-300"}`}
+              <p
+                className={`mt-4 text-sm font-black ${
+                  bookingEnabled ? "text-emerald-300" : "text-zinc-500"
+                }`}
               >
-                {day.label}
-              </button>
-            ))}
+                {bookingEnabled ? "Enabled" : "Disabled"}
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-zinc-800 bg-black/30 p-4 sm:p-5">
+              <p className="text-xs font-black uppercase tracking-wide text-zinc-500">
+                Available Days
+              </p>
+
+              <p className="mt-2 text-sm leading-6 text-zinc-400">
+                Select every weekday on which booking requests may be made.
+              </p>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                {DAY_OPTIONS.map((day) => {
+                  const selected = availableDays.includes(day.id);
+
+                  return (
+                    <button
+                      key={day.id}
+                      type="button"
+                      aria-pressed={selected}
+                      onClick={() => toggleDay(day.id)}
+                      className={`min-w-12 rounded-full border px-3 py-2 text-xs font-black transition ${
+                        selected
+                          ? "border-teal-300 bg-teal-400 text-black"
+                          : "border-zinc-700 bg-zinc-950 text-zinc-300 hover:border-teal-500/60"
+                      }`}
+                    >
+                      {day.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-zinc-800 bg-black/30 p-4 sm:p-5 lg:col-span-2">
+              <p className="text-xs font-black uppercase tracking-wide text-zinc-500">
+                Default Times
+              </p>
+
+              <p className="mt-2 text-sm leading-6 text-zinc-400">
+                Add the appointment start times shown in the booking form.
+              </p>
+
+              <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                <input
+                  type="time"
+                  value={newTime}
+                  onChange={(event) => {
+                    setNewTime(event.target.value);
+                    clearStatus();
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      addTime();
+                    }
+                  }}
+                  className="min-h-12 w-full rounded-xl border border-zinc-700 bg-black px-3 py-2 text-sm text-white outline-none transition focus:border-teal-400 sm:max-w-xs"
+                />
+
+                <button
+                  type="button"
+                  onClick={addTime}
+                  className="min-h-12 rounded-xl border border-teal-500/60 px-5 py-3 text-sm font-black text-teal-300 transition hover:bg-teal-500/10"
+                >
+                  + Add Time
+                </button>
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                {defaultTimes.length > 0 ? (
+                  defaultTimes.map((time) => (
+                    <div
+                      key={time}
+                      className="inline-flex items-center gap-2 rounded-full border border-teal-500/40 bg-teal-500/10 py-2 pl-4 pr-2 text-sm font-black text-teal-200"
+                    >
+                      <span>{formatTime(time, timeFormat)}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeTime(time)}
+                        aria-label={`Remove ${formatTime(time, timeFormat)}`}
+                        className="flex h-7 w-7 items-center justify-center rounded-full text-lg leading-none text-zinc-300 transition hover:bg-red-500/20 hover:text-red-200"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm font-bold text-amber-300">
+                    No appointment times have been added.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-zinc-800 bg-black/30 p-4 sm:p-5 lg:col-span-2">
+              <p className="text-xs font-black uppercase tracking-wide text-zinc-500">
+                Blocked Dates
+              </p>
+
+              <p className="mt-2 text-sm leading-6 text-zinc-400">
+                Block holidays, vacations, personal days, or any date on which
+                requests should not be accepted.
+              </p>
+
+              <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                <input
+                  type="date"
+                  value={newBlockedDate}
+                  onChange={(event) => {
+                    setNewBlockedDate(event.target.value);
+                    clearStatus();
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      addBlockedDate();
+                    }
+                  }}
+                  className="min-h-12 w-full rounded-xl border border-zinc-700 bg-black px-3 py-2 text-sm text-white outline-none transition focus:border-teal-400 sm:max-w-xs"
+                />
+
+                <button
+                  type="button"
+                  onClick={addBlockedDate}
+                  className="min-h-12 rounded-xl border border-teal-500/60 px-5 py-3 text-sm font-black text-teal-300 transition hover:bg-teal-500/10"
+                >
+                  + Block Date
+                </button>
+              </div>
+
+              <div className="mt-4 space-y-2">
+                {blockedDates.length > 0 ? (
+                  blockedDates.map((date) => (
+                    <div
+                      key={date}
+                      className="flex items-center justify-between gap-3 rounded-xl border border-zinc-800 bg-zinc-950/80 px-4 py-3"
+                    >
+                      <div className="min-w-0">
+                        <p className="font-black text-white">
+                          {formatDate(date, timeZone)}
+                        </p>
+                        <p className="mt-1 text-xs text-zinc-500">{date}</p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => removeBlockedDate(date)}
+                        className="shrink-0 rounded-lg border border-red-500/30 px-3 py-2 text-xs font-black text-red-300 transition hover:bg-red-500/10"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-zinc-500">
+                    No dates are currently blocked.
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
-        </div>
 
-        <label className="rounded-xl border border-zinc-800 bg-black/30 p-4">
-          <span className="text-xs font-black uppercase tracking-wide text-zinc-500">Default Times</span>
-          <input value={defaultTimes} onChange={(event) => setDefaultTimes(event.target.value)} className="mt-3 w-full rounded-xl border border-zinc-700 bg-black px-3 py-2 text-sm text-white outline-none focus:border-teal-400" placeholder="10:00, 14:00, 16:30" />
-        </label>
+          {message ? (
+            <div
+              role="status"
+              className="mt-5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm font-bold text-emerald-200"
+            >
+              ✓ {message}
+            </div>
+          ) : null}
 
-        <label className="rounded-xl border border-zinc-800 bg-black/30 p-4 lg:col-span-3">
-          <span className="text-xs font-black uppercase tracking-wide text-zinc-500">Blocked Dates</span>
-          <input value={blockedDates} onChange={(event) => setBlockedDates(event.target.value)} className="mt-3 w-full rounded-xl border border-zinc-700 bg-black px-3 py-2 text-sm text-white outline-none focus:border-teal-400" placeholder="2026-07-04, 2026-12-25" />
-          <p className="mt-2 text-xs text-zinc-500">Separate dates with commas.</p>
-        </label>
-      </div>
+          {error ? (
+            <div
+              role="alert"
+              className="mt-5 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm font-bold text-red-200"
+            >
+              {error}
+            </div>
+          ) : null}
 
-      {message ? <p className="mt-4 text-sm font-bold text-emerald-300">{message}</p> : null}
-      {error ? <p className="mt-4 text-sm font-bold text-red-300">{error}</p> : null}
+          <div className="mt-6 border-t border-zinc-800 pt-5">
+            <button
+              type="button"
+              onClick={save}
+              disabled={saving}
+              className="w-full rounded-xl bg-teal-400 px-5 py-4 text-sm font-black text-black transition hover:bg-teal-300 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:min-w-52"
+            >
+              {saving ? "Saving Availability…" : "Save Availability"}
+            </button>
+          </div>
+        </>
+      )}
     </section>
   );
 }
