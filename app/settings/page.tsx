@@ -409,8 +409,8 @@ export default async function SettingsPage({
         live_activity_sound_enabled:
           String(formData.get("live_activity_sound_enabled") || "") === "on",
         online_payment_fee_enabled: onlinePaymentFeeEnabled,
-        online_payment_fee_type: "flat",
-        online_payment_fee_amount: feeAmount || 0,
+        online_payment_fee_type: "percentage",
+        online_payment_fee_amount: feeAmount || 3.95,
         standards_of_practice_title: String(
           formData.get("standards_of_practice_title") || "Standards of Practice",
         ).trim(),
@@ -430,10 +430,11 @@ export default async function SettingsPage({
 
   const feeEnabled = company.online_payment_fee_enabled !== false;
   const feeAmount =
+    company.online_payment_fee_type === "percentage" &&
     company.online_payment_fee_amount !== null &&
     company.online_payment_fee_amount !== undefined
       ? company.online_payment_fee_amount
-      : 15;
+      : 3.95;
 
   const publicProfileUrl = getPublicProfileUrl(company);
   const standardsTitle = String(
@@ -979,8 +980,8 @@ export default async function SettingsPage({
               </h3>
 
               <p className="mt-2 text-sm leading-6 text-slate-300">
-                This lets each inspector choose whether to pass a flat online
-                card payment fee to the client.
+                This lets each inspector choose whether to pass a percentage-based
+                online card payment fee to the client.
               </p>
 
               <div className="mt-5 grid gap-4 md:grid-cols-2">
@@ -997,13 +998,14 @@ export default async function SettingsPage({
 
                 <label className="block min-w-0">
                   <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
-                    Flat Fee Amount
+                    Fee Percentage
                   </p>
                   <input
                     name="online_payment_fee_amount"
                     type="number"
                     step="0.01"
                     min="0"
+                    max="100"
                     defaultValue={String(feeAmount)}
                     className="w-full min-w-0 rounded-xl border border-slate-700 bg-[#020617] p-3 text-white outline-none focus:border-teal-400"
                   />

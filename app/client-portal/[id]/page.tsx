@@ -229,12 +229,14 @@ function getBalanceDue(inspection: any) {
   return Math.max(0, getInvoiceAmount(inspection) - getAmountPaid(inspection));
 }
 
-const PORTAL_PROCESSING_FEE_DOLLARS = 15;
+const PORTAL_PROCESSING_FEE_PERCENT = 3.95;
 
 function getPortalProcessingFee(balanceDue: number) {
   if (!balanceDue || balanceDue <= 0) return 0;
 
-  return PORTAL_PROCESSING_FEE_DOLLARS;
+  return Number(
+    (balanceDue * (PORTAL_PROCESSING_FEE_PERCENT / 100)).toFixed(2),
+  );
 }
 
 function isPaymentComplete(inspection: any) {
