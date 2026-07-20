@@ -9,6 +9,7 @@ import SupportUnreadBadge from "../../components/SupportUnreadBadge";
 import CompanyImageUploader from "./CompanyImageUploader";
 import StandardsOfPracticeEditor from "./StandardsOfPracticeEditor";
 import TimePreferencesSettings from "../../components/time-location/TimePreferencesSettings";
+import SettingsToggle from "../../components/SettingsToggle";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -657,41 +658,41 @@ export default async function SettingsPage({
             </div>
 
             <div className="mt-6 grid gap-4 lg:grid-cols-2">
-              <label className="group grid w-full cursor-pointer grid-cols-[auto_minmax(0,1fr)] gap-4 rounded-2xl border border-slate-700 bg-slate-950/80 p-4 transition active:scale-[0.98] hover:border-amber-400/70 hover:bg-slate-900 sm:p-5">
-                <input
-                  name="live_activity_enabled"
-                  type="checkbox"
-                  defaultChecked={company.live_activity_enabled !== false}
-                  className="mt-1 h-5 w-5 shrink-0 accent-teal-400"
-                />
-                <span className="min-w-0">
-                  <span className="block break-words text-base font-black leading-6 text-white">
+              <div className="group flex w-full items-start justify-between gap-4 rounded-2xl border border-slate-700 bg-slate-950/80 p-4 transition hover:border-amber-400/70 hover:bg-slate-900 sm:p-5">
+                <div className="min-w-0">
+                  <p className="break-words text-base font-black leading-6 text-white">
                     Show live activity popups
-                  </span>
-                  <span className="mt-1 block break-words text-sm leading-6 text-slate-400">
+                  </p>
+                  <p className="mt-1 break-words text-sm leading-6 text-slate-400">
                     Shows the floating alert card when someone views a report,
                     signs an agreement, makes a payment, or submits a review.
-                  </span>
-                </span>
-              </label>
-
-              <label className="group grid w-full cursor-pointer grid-cols-[auto_minmax(0,1fr)] gap-4 rounded-2xl border border-slate-700 bg-slate-950/80 p-4 transition active:scale-[0.98] hover:border-amber-400/70 hover:bg-slate-900 sm:p-5">
-                <input
-                  name="live_activity_sound_enabled"
-                  type="checkbox"
-                  defaultChecked={company.live_activity_sound_enabled !== false}
-                  className="mt-1 h-5 w-5 shrink-0 accent-teal-400"
+                  </p>
+                </div>
+                <SettingsToggle
+                  name="live_activity_enabled"
+                  defaultChecked={company.live_activity_enabled !== false}
+                  ariaLabel="Show live activity popups"
+                  className="mt-0.5"
                 />
-                <span className="min-w-0">
-                  <span className="block break-words text-base font-black leading-6 text-white">
+              </div>
+
+              <div className="group flex w-full items-start justify-between gap-4 rounded-2xl border border-slate-700 bg-slate-950/80 p-4 transition hover:border-amber-400/70 hover:bg-slate-900 sm:p-5">
+                <div className="min-w-0">
+                  <p className="break-words text-base font-black leading-6 text-white">
                     Play notification sound
-                  </span>
-                  <span className="mt-1 block break-words text-sm leading-6 text-slate-400">
+                  </p>
+                  <p className="mt-1 break-words text-sm leading-6 text-slate-400">
                     Keep alerts visible but mute the sound when this is turned
                     off.
-                  </span>
-                </span>
-              </label>
+                  </p>
+                </div>
+                <SettingsToggle
+                  name="live_activity_sound_enabled"
+                  defaultChecked={company.live_activity_sound_enabled !== false}
+                  ariaLabel="Play notification sound"
+                  className="mt-0.5"
+                />
+              </div>
             </div>
 
             <div className="mt-6 rounded-3xl border border-slate-700/80 bg-[#020817]/80 p-4 sm:p-5">
@@ -807,17 +808,16 @@ export default async function SettingsPage({
                 />
               </label>
 
-              <label className="flex flex-col gap-3 rounded-xl border border-slate-700 bg-slate-950 p-4 md:col-span-2 sm:flex-row sm:items-start">
-                <input
-                  name="show_powered_by"
-                  type="checkbox"
-                  defaultChecked={company.show_powered_by !== false}
-                  className="mt-0.5 h-5 w-5 shrink-0"
-                />
-                <span className="flex-1 text-sm font-bold leading-6 text-slate-200 break-words sm:text-base">
+              <div className="flex items-center justify-between gap-4 rounded-xl border border-slate-700 bg-slate-950 p-4 md:col-span-2">
+                <p className="min-w-0 flex-1 break-words text-sm font-bold leading-6 text-slate-200 sm:text-base">
                   Show “Powered by On Point Inspect” on client-facing pages
-                </span>
-              </label>
+                </p>
+                <SettingsToggle
+                  name="show_powered_by"
+                  defaultChecked={company.show_powered_by !== false}
+                  ariaLabel="Show Powered by On Point Inspect on client-facing pages"
+                />
+              </div>
             </div>
           </section>
 
@@ -984,17 +984,16 @@ export default async function SettingsPage({
               </p>
 
               <div className="mt-5 grid gap-4 md:grid-cols-2">
-                <label className="flex flex-col gap-3 rounded-xl border border-slate-700 bg-[#020617] p-4 sm:flex-row sm:items-start">
-                  <input
-                    name="online_payment_fee_enabled"
-                    type="checkbox"
-                    defaultChecked={feeEnabled}
-                    className="mt-0.5 h-5 w-5 shrink-0"
-                  />
-                  <span className="flex-1 text-sm font-bold leading-6 text-slate-200 break-words sm:text-base">
+                <div className="flex items-center justify-between gap-4 rounded-xl border border-slate-700 bg-[#020617] p-4">
+                  <p className="min-w-0 flex-1 break-words text-sm font-bold leading-6 text-slate-200 sm:text-base">
                     Pass online payment fee to client
-                  </span>
-                </label>
+                  </p>
+                  <SettingsToggle
+                    name="online_payment_fee_enabled"
+                    defaultChecked={feeEnabled}
+                    ariaLabel="Pass online payment fee to client"
+                  />
+                </div>
 
                 <label className="block min-w-0">
                   <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
