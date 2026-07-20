@@ -1,3 +1,5 @@
+
+import { formatAppValue } from "../../lib/app-time";
 import FastLinkButton from "../../components/FastLinkButton";
 import EmailAddendumButton from "../../components/EmailAddendumButton";
 import ReportDownloadLink from "../../components/ReportDownloadLink";
@@ -48,7 +50,7 @@ function formatDate(value: any) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return cleanText(value) || "N/A";
 
-  return date.toLocaleDateString("en-US", {
+  return formatAppValue(date, {
     month: "short",
     day: "numeric",
     year: "numeric",

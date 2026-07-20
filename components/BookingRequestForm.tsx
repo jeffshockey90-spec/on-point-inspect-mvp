@@ -1,5 +1,7 @@
 "use client";
 
+
+import { formatAppValue } from "../lib/app-time";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 const SERVICE_OPTIONS = [
@@ -109,11 +111,6 @@ function toIsoDate(date: Date) {
 }
 
 function buildDateOptions(days = 45) {
-  const formatter = new Intl.DateTimeFormat("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  });
 
   return Array.from({ length: days }, (_, index) => {
     const date = new Date();
@@ -122,7 +119,7 @@ function buildDateOptions(days = 45) {
 
     return {
       value: toIsoDate(date),
-      label: index === 0 ? `Today - ${formatter.format(date)}` : formatter.format(date),
+      label: index === 0 ? `Today - ${formatAppValue(date, { weekday: "short", month: "short", day: "numeric" })}` : formatAppValue(date, { weekday: "short", month: "short", day: "numeric" }),
     };
   });
 }

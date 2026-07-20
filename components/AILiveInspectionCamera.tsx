@@ -1,5 +1,7 @@
 "use client";
 
+
+import { formatAppValue } from "../lib/app-time";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import LiveSectionCoach from "./LiveSectionCoach";
@@ -224,10 +226,7 @@ function confidenceLabel(value: any) {
 
 function formatMemoryTime(value: number) {
   try {
-    return new Intl.DateTimeFormat("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-    }).format(new Date(value));
+    return formatAppValue(value, { hour: "numeric", minute: "2-digit" });
   } catch {
     return "";
   }

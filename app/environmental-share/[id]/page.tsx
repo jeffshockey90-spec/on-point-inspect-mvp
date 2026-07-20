@@ -1,3 +1,5 @@
+
+import { formatAppValue } from "../../../lib/app-time";
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 import PdfExportButton from "../../../components/PdfExportButton";
@@ -64,7 +66,7 @@ function formatDate(value: any) {
   if (!value) return "N/A";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return String(value);
-  return date.toLocaleDateString("en-US", {
+  return formatAppValue(date, {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -75,7 +77,7 @@ function formatDateTime(value: any) {
   if (!value) return "N/A";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return String(value);
-  return date.toLocaleString("en-US", {
+  return formatAppValue(date, {
     month: "short",
     day: "numeric",
     year: "numeric",

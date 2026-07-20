@@ -1,3 +1,5 @@
+
+import { formatAppValue } from "../../../lib/app-time";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
@@ -436,7 +438,7 @@ function formatEmailStatusDate(value: any) {
 
   if (Number.isNaN(date.getTime())) return String(value);
 
-  return date.toLocaleString("en-US", {
+  return formatAppValue(date, {
     month: "short",
     day: "numeric",
     year: "numeric",

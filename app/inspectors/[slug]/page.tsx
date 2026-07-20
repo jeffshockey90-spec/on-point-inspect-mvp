@@ -1,3 +1,5 @@
+
+import { formatAppValue } from "../../../lib/app-time";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cookies } from "next/headers";
@@ -95,7 +97,7 @@ function formatSampleDate(value: any) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return String(value);
 
-  return date.toLocaleDateString("en-US", {
+  return formatAppValue(date, {
     month: "short",
     year: "numeric",
   });

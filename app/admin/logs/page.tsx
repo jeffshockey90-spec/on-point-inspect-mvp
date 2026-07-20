@@ -1,3 +1,5 @@
+
+import { formatAppValue } from "../../../lib/app-time";
 import { createClient } from "../../../utils/supabase/server";
 
 type LogRow = {
@@ -8,7 +10,7 @@ type LogRow = {
 
 function formatDate(value: string) {
   if (!value) return "";
-  return new Date(value).toLocaleString();
+  return formatAppValue(new Date(value), {});
 }
 
 function LogTable({

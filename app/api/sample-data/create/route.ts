@@ -1,3 +1,5 @@
+
+import { toLocalDateKey } from "../../../../lib/app-time";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
@@ -31,7 +33,7 @@ async function createSupabaseServerClient() {
 function tomorrowDate() {
   const date = new Date();
   date.setDate(date.getDate() + 1);
-  return date.toISOString().slice(0, 10);
+  return toLocalDateKey(date, "UTC");
 }
 
 export async function POST() {

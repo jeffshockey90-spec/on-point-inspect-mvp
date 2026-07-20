@@ -1,3 +1,5 @@
+
+import { formatAppValue } from "../../lib/app-time";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
@@ -145,7 +147,7 @@ function formatViewDate(value: any) {
 
   if (Number.isNaN(date.getTime())) return "N/A";
 
-  return date.toLocaleString("en-US", {
+  return formatAppValue(date, {
     month: "short",
     day: "numeric",
     hour: "numeric",

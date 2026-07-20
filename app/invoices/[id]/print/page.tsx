@@ -1,3 +1,5 @@
+
+import { formatAppValue } from "../../../../lib/app-time";
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -92,7 +94,7 @@ function formatDate(value: any) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return String(value);
 
-  return date.toLocaleDateString("en-US", {
+  return formatAppValue(date, {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -100,7 +102,7 @@ function formatDate(value: any) {
 }
 
 function today() {
-  return new Date().toLocaleDateString("en-US", {
+  return formatAppValue(new Date(), {
     month: "short",
     day: "numeric",
     year: "numeric",

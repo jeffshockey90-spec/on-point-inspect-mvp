@@ -1,5 +1,7 @@
 "use client";
 
+
+import { currentLocalDate } from "../../lib/app-time";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "../../utils/supabase/client";
@@ -59,7 +61,7 @@ const EMPTY_PARSED_REPORT: ParsedReport = {
 };
 
 function todayString() {
-  return new Date().toISOString().slice(0, 10);
+  return currentLocalDate();
 }
 
 function normalizeSeverity(value: string) {

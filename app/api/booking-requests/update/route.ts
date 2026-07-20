@@ -1,3 +1,5 @@
+
+import { formatAppValue } from "../../../../lib/app-time";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
@@ -446,7 +448,7 @@ function formatDate(value: any) {
   const date = new Date(`${value}T12:00:00`);
   if (Number.isNaN(date.getTime())) return cleanText(value);
 
-  return date.toLocaleDateString("en-US", {
+  return formatAppValue(date, {
     weekday: "long",
     month: "long",
     day: "numeric",
@@ -467,7 +469,7 @@ function formatTime(value: any) {
   const date = new Date();
   date.setHours(hours, minutes, 0, 0);
 
-  return date.toLocaleTimeString("en-US", {
+  return formatAppValue(date, {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,

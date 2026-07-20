@@ -1,3 +1,5 @@
+
+import { formatAppValue } from "../../../../lib/app-time";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
@@ -273,7 +275,7 @@ function formatDate(value: any) {
   if (!value) return "N/A";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return cleanText(value) || "N/A";
-  return date.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  return formatAppValue(date, { month: "long", day: "numeric", year: "numeric" });
 }
 
 function getInspectionShareToken(inspection: any) {

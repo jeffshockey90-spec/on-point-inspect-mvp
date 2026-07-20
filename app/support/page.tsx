@@ -1,5 +1,7 @@
 "use client";
 
+
+import { formatAppValue } from "../../lib/app-time";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "../../utils/supabase/client";
@@ -24,7 +26,7 @@ function formatDate(value: string | null | undefined) {
   if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleString("en-US", {
+  return formatAppValue(date, {
     month: "short",
     day: "numeric",
     hour: "numeric",

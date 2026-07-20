@@ -1,5 +1,7 @@
 "use client";
 
+
+import { formatAppValue } from "../lib/app-time";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
@@ -56,7 +58,7 @@ function formatDate(value: any) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return String(value);
 
-  return date.toLocaleString("en-US", {
+  return formatAppValue(date, {
     month: "short",
     day: "numeric",
     year: "numeric",

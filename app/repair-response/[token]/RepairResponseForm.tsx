@@ -1,5 +1,7 @@
 "use client";
 
+
+import { formatAppValue } from "../../../lib/app-time";
 import { useMemo, useState } from "react";
 
 type Finding = Record<string, any>;
@@ -165,7 +167,7 @@ function formatSignedDate(value: any) {
 
   if (Number.isNaN(date.getTime())) return String(value || "");
 
-  return date.toLocaleString("en-US", {
+  return formatAppValue(date, {
     month: "short",
     day: "numeric",
     year: "numeric",

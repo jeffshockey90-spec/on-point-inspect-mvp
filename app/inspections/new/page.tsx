@@ -1,5 +1,7 @@
 "use client";
 
+
+import { formatAppValue, toLocalDateKey } from "../../../lib/app-time";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "../../../utils/supabase/client";
@@ -151,7 +153,7 @@ function formatTime(value: string) {
   const date = new Date();
   date.setHours(Number(hour), Number(minute));
 
-  return date.toLocaleTimeString("en-US", {
+  return formatAppValue(date, {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
@@ -1393,9 +1395,9 @@ export default function NewInspectionPage() {
                   const date = new Date();
                   date.setDate(date.getDate() + i);
 
-                  const value = date.toISOString().split("T")[0];
+                  const value = toLocalDateKey(date);
 
-                  const label = date.toLocaleDateString("en-US", {
+                  const label = formatAppValue(date, {
                     weekday: "short",
                     month: "short",
                     day: "numeric",

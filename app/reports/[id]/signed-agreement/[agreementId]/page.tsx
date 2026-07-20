@@ -1,3 +1,5 @@
+
+import { formatAppValue } from "../../../../../lib/app-time";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
@@ -57,7 +59,7 @@ function formatSignedDate(value: any) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return String(value);
 
-  return date.toLocaleString("en-US", {
+  return formatAppValue(date, {
     month: "long",
     day: "numeric",
     year: "numeric",

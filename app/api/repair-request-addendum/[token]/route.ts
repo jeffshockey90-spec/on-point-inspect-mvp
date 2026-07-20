@@ -1,3 +1,5 @@
+
+import { formatAppValue } from "../../../../lib/app-time";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { existsSync } from "fs";
@@ -377,7 +379,7 @@ function formatSignedDate(value: any) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return cleanText(value);
 
-  return date.toLocaleString("en-US", {
+  return formatAppValue(date, {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -559,7 +561,7 @@ async function loadAddendumData(token: string) {
 }
 
 function buildAddendumHtml(data: Awaited<ReturnType<typeof loadAddendumData>>) {
-  const createdDate = new Date().toLocaleDateString("en-US", {
+  const createdDate = formatAppValue(new Date(), {
     year: "numeric",
     month: "long",
     day: "numeric",
@@ -746,7 +748,7 @@ function buildAddendumHtml(data: Awaited<ReturnType<typeof loadAddendumData>>) {
         <div class="highlight"><span>Buyer Requested Credits</span><strong>${escapeHtml(formatMoney(data.requestedCreditTotal))}</strong></div>
         <div class="highlight"><span>Seller Offered Credits</span><strong>${escapeHtml(formatMoney(data.sellerCreditTotal))}</strong></div>
         <div class="highlight"><span>Credit Difference</span><strong class="${data.differenceTotal < 0 ? "negative" : data.differenceTotal > 0 ? "positive" : ""}">${escapeHtml(formatMoney(data.differenceTotal))}</strong></div>
-        <div><span>Responded</span><strong>${data.share.responded_at ? escapeHtml(new Date(data.share.responded_at).toLocaleDateString("en-US")) : "Not submitted"}</strong></div>
+        <div><span>Responded</span><strong>${data.share.responded_at ? escapeHtml(formatAppValue(new Date(data.share.responded_at), {})) : "Not submitted"}</strong></div>
       </div>
 
       <h2>Negotiation Summary</h2>

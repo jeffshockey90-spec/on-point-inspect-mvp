@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { detectDeviceTimeZone, inspectionLocalToUtc } from "../../lib/app-time";
+import { detectDeviceTimeZone, inspectionLocalToUtc, writeStoredTimePreferences } from "../../lib/app-time";
 
 type ActiveTrip = { id: string; inspection_id?: string | null; total_miles?: number; inspections?: { property_address?: string; property_latitude?: number | null; property_longitude?: number | null } | null } | null;
 
@@ -29,7 +29,7 @@ export default function TimeLocationEngine() {
           body: JSON.stringify({ timeZone: deviceTimeZone, deviceTimeZone, timeFormat: current.timeFormat || "24h" }),
         });
       }
-      window.localStorage.setItem("onpoint-time-preferences", JSON.stringify({ timeZone: deviceTimeZone, timeFormat: current.timeFormat || "24h" }));
+      writeStoredTimePreferences({ timeZone: deviceTimeZone, timeFormat: current.timeFormat || "24h" });
     } catch {}
   }, []);
 
@@ -40,7 +40,24 @@ export default function TimeLocationEngine() {
     } catch {}
   }, []);
 
-  useEffect(() => { syncTimeZone(); loadActiveTrip(); }, [syncTimeZone, loadActiveTrip]);
+  useEffect(() => {
+    syncTimeZone();
+    loadActiveTrip();
+
+    const refresh = () => syncTimeZone();
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", onVisibility);
+    const interval = window.setInterval(refresh, 15 * 60 * 1000);
+
+    return () => {
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.clearInterval(interval);
+    };
+  }, [syncTimeZone, loadActiveTrip]);
 
   useEffect(() => {
     if (!activeTrip?.id || !navigator.geolocation) return;

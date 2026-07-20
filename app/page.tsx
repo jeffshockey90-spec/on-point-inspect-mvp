@@ -1,3 +1,5 @@
+
+import { formatAppValue, currentLocalDate } from "../lib/app-time";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
@@ -234,7 +236,7 @@ function formatActivityDate(value: any) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "N/A";
 
-  return date.toLocaleString("en-US", {
+  return formatAppValue(date, {
     month: "short",
     day: "numeric",
     hour: "numeric",
@@ -247,7 +249,7 @@ function formatInspectionDate(value: any) {
   const date = new Date(`${String(value).slice(0, 10)}T12:00:00`);
   if (Number.isNaN(date.getTime())) return String(value);
 
-  return date.toLocaleDateString("en-US", {
+  return formatAppValue(date, {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -369,7 +371,7 @@ function isPublished(inspection: any) {
 function isTodayInspection(inspection: any) {
   if (!inspection?.inspection_date) return false;
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = currentLocalDate();
   return String(inspection.inspection_date).slice(0, 10) === today;
 }
 

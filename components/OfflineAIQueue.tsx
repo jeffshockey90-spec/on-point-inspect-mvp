@@ -1,5 +1,7 @@
 "use client";
 
+
+import { formatAppValue } from "../lib/app-time";
 import { useEffect, useState } from "react";
 
 type QueuedFinding = {
@@ -206,7 +208,7 @@ export default function OfflineAIQueue({ reportId }: { reportId: string }) {
                   <p className="font-bold text-white">{item.section}</p>
                   <p className="text-sm text-slate-400">{item.note}</p>
                   <p className="mt-1 text-xs text-slate-500">
-                    {new Date(item.createdAt).toLocaleString()}
+                    {formatAppValue(new Date(item.createdAt), {})}
                   </p>
                 </div>
 

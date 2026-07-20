@@ -1,5 +1,7 @@
 "use client";
 
+
+import { formatAppValue } from "../lib/app-time";
 import { useEffect, useMemo, useState } from "react";
 import {
   getCachedInspectionPreload,
@@ -114,7 +116,7 @@ export default function OfflineReportViewer({
   }
 
   const label = cache?.inspection?.label || getInspectionLabel(cache?.inspection?.raw || cache?.clientInfo || {});
-  const cachedAt = cache?.cachedAt ? new Date(cache.cachedAt).toLocaleString() : "Unknown";
+  const cachedAt = cache?.cachedAt ? formatAppValue(new Date(cache.cachedAt), {}) : "Unknown";
 
   return (
     <div className="space-y-4 rounded-2xl border border-cyan-500/40 bg-[#071224] p-4 text-white">

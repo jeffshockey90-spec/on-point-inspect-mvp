@@ -1,5 +1,7 @@
 "use client";
 
+
+import { formatAppValue } from "../../../lib/app-time";
 import { useState } from "react";
 
 type GooglePlaceResult = {
@@ -159,7 +161,7 @@ export default function GoogleBusinessConnect({
         <div className="mt-4 rounded-xl border border-slate-700 bg-slate-950/70 p-4 text-sm text-slate-300">
           <p className="font-black text-white">{connectedName}</p>
           <p className="mt-1 break-all text-xs text-slate-500">Place ID: {connectedPlaceId}</p>
-          {syncedAt && <p className="mt-2 text-xs text-slate-400">Last synced: {new Date(syncedAt).toLocaleString()}</p>}
+          {syncedAt && <p className="mt-2 text-xs text-slate-400">Last synced: {formatAppValue(new Date(syncedAt), {})}</p>}
           <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:flex lg:flex-wrap">
             <button
               type="button"

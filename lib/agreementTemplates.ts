@@ -1,3 +1,5 @@
+
+import { formatAppValue } from "./app-time";
 import { createClient } from "@supabase/supabase-js";
 
 export type AgreementState = "MD" | "WV" | "PA";
@@ -39,12 +41,12 @@ function formatFee(fee?: string | number | null) {
 }
 
 function formatDate(date?: string | null) {
-  if (!date) return new Date().toLocaleDateString();
+  if (!date) return formatAppValue(new Date(), {});
 
   const parsed = new Date(date);
   if (Number.isNaN(parsed.getTime())) return date;
 
-  return parsed.toLocaleDateString();
+  return formatAppValue(parsed, {});
 }
 
 function getLicenseNumber(state?: string | null) {

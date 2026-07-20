@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import {
   DEFAULT_TIME_ZONE,
   detectDeviceTimeZone,
+  isValidTimeZone,
+  writeStoredTimePreferences,
 } from "../../lib/app-time";
 
 const TIME_ZONES = [
@@ -29,9 +31,14 @@ export default function TimePreferencesSettings() {
       .then((data) => {
         if (!data) return;
 
-        setTimeZone(
-          data.timeZone || detectDeviceTimeZone() || DEFAULT_TIME_ZONE,
-        );
+        const resolvedZone = isValidTimeZone(data.timeZone)
+          ? data.timeZone
+          : detectDeviceTimeZone();
+        setTimeZone(resolvedZone);
+        writeStoredTimePreferences({
+          timeZone: resolvedZone,
+          timeFormat: data.timeFormat === "12h" ? "12h" : "24h",
+        });
         setTimeFormat(data.timeFormat === "12h" ? "12h" : "24h");
       })
       .catch(() => {});
@@ -54,6 +61,9 @@ export default function TimePreferencesSettings() {
 
       const data = await response.json().catch(() => ({}));
 
+      if (response.ok) {
+        writeStoredTimePreferences({ timeZone, timeFormat });
+      }
       setMessage(
         response.ok
           ? "Time preferences saved everywhere in the app."
@@ -68,13 +78,7 @@ export default function TimePreferencesSettings() {
 
   function useDeviceTimeZone() {
     const detectedTimeZone = detectDeviceTimeZone() || DEFAULT_TIME_ZONE;
-    const supportedTimeZone = TIME_ZONES.some(
-      (option) => option.value === detectedTimeZone,
-    )
-      ? detectedTimeZone
-      : DEFAULT_TIME_ZONE;
-
-    setTimeZone(supportedTimeZone);
+    setTimeZone(detectedTimeZone);
     setMessage(`Device time zone detected: ${detectedTimeZone}`);
   }
 
@@ -103,6 +107,9 @@ export default function TimePreferencesSettings() {
             }}
             className="w-full rounded-xl border border-slate-700 bg-[#020617] p-3 text-white outline-none transition focus:border-teal-400"
           >
+            {!TIME_ZONES.some((zone) => zone.value === timeZone) && (
+              <option value={timeZone}>{timeZone}</option>
+            )}
             {TIME_ZONES.map((zone) => (
               <option key={zone.value} value={zone.value}>
                 {zone.label}

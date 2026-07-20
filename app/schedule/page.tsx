@@ -1,3 +1,5 @@
+
+import { formatAppValue } from "../../lib/app-time";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
@@ -77,7 +79,7 @@ function formatDate(value: string | null) {
     return String(value);
   }
 
-  return date.toLocaleDateString("en-US", {
+  return formatAppValue(date, {
     weekday: "short",
     month: "short",
     day: "numeric",
@@ -101,7 +103,7 @@ function formatTime(value: string) {
 
       date.setHours(hours, minutes, 0, 0);
 
-      return date.toLocaleTimeString("en-US", {
+      return formatAppValue(date, {
         hour: "numeric",
         minute: "2-digit",
       });
@@ -111,7 +113,7 @@ function formatTime(value: string) {
   const date = new Date(clean);
 
   if (!Number.isNaN(date.getTime())) {
-    return date.toLocaleTimeString("en-US", {
+    return formatAppValue(date, {
       hour: "numeric",
       minute: "2-digit",
     });
@@ -125,7 +127,7 @@ function formatBookingDate(value: any) {
   if (!value) return "Date not entered";
   const date = new Date(`${value}T00:00:00`);
   if (Number.isNaN(date.getTime())) return String(value);
-  return date.toLocaleDateString("en-US", {
+  return formatAppValue(date, {
     weekday: "short",
     month: "short",
     day: "numeric",

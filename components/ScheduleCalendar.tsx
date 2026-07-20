@@ -6,7 +6,7 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { DEFAULT_TIME_ZONE, detectDeviceTimeZone } from "../lib/app-time";
+import { DEFAULT_TIME_ZONE, detectDeviceTimeZone, formatAppValue, toLocalDateKey } from "../lib/app-time";
 
 type InspectionRow = Record<string, any>;
 
@@ -86,11 +86,7 @@ function formatTime(value: any, timeFormat: "12h" | "24h") {
 
   const date = new Date(2000, 0, 1, hours, minutes, 0, 0);
 
-  return new Intl.DateTimeFormat("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: timeFormat === "12h",
-  }).format(date);
+  return formatAppValue(date, { hour: "numeric", minute: "2-digit" }, { timeFormat });
 }
 
 function getAddress(inspection: InspectionRow) {
@@ -139,27 +135,7 @@ function getType(inspection: InspectionRow) {
 }
 
 function todayKey(timeZone: string) {
-  try {
-    const parts = new Intl.DateTimeFormat("en-US", {
-      timeZone,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).formatToParts(new Date());
-
-    const values = Object.fromEntries(
-      parts.map((part) => [part.type, part.value]),
-    );
-
-    return `${values.year}-${values.month}-${values.day}`;
-  } catch {
-    const date = new Date();
-    const year = date.getFullYear();
-    const month = `${date.getMonth() + 1}`.padStart(2, "0");
-    const day = `${date.getDate()}`.padStart(2, "0");
-
-    return `${year}-${month}-${day}`;
-  }
+  return toLocalDateKey(new Date(), timeZone);
 }
 
 function localDateKey(date: Date) {

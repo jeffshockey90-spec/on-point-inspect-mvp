@@ -1,5 +1,7 @@
 "use client";
 
+
+import { formatAppValue } from "../lib/app-time";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { INSPECTION_DATA_CHANGED_EVENT, matchesInspectionEvent } from "../lib/inspectionEvents";
 
@@ -44,7 +46,7 @@ function sourceIcon(source: InspectionTimelineEvent["source"]) {
 function formatTime(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Now";
-  return date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
+  return formatAppValue(date, { hour: "2-digit", minute: "2-digit", hour12: false });
 }
 
 function SmallStat({ label, value }: { label: string; value: string | number }) {

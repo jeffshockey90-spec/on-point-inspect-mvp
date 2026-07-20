@@ -1,3 +1,5 @@
+
+import { formatAppValue } from "../../../lib/app-time";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "../../../utils/supabase/server";
@@ -22,7 +24,7 @@ function formatDate(value: any) {
 
   if (Number.isNaN(date.getTime())) return String(value);
 
-  return date.toLocaleDateString("en-US", {
+  return formatAppValue(date, {
     month: "short",
     day: "numeric",
     year: "numeric",

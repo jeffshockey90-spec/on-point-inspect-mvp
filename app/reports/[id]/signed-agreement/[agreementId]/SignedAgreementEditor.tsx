@@ -1,5 +1,7 @@
 "use client";
 
+
+import { formatAppValue } from "../../../../../lib/app-time";
 import { useMemo, useState } from "react";
 
 type SignedAgreement = {
@@ -21,7 +23,7 @@ function formatSignedDate(value: any) {
     return String(value);
   }
 
-  return date.toLocaleString("en-US", {
+  return formatAppValue(date, {
     month: "long",
     day: "numeric",
     year: "numeric",

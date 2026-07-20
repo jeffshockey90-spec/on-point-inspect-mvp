@@ -1,3 +1,5 @@
+
+import { formatAppValue, currentLocalDate } from "../../../lib/app-time";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -10,7 +12,7 @@ function formatDate(value: any) {
   if (!value) return "N/A";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return String(value);
-  return date.toLocaleDateString("en-US", {
+  return formatAppValue(date, {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -163,7 +165,7 @@ export default async function RealtorDetailPage({ params }: PageProps) {
     const realtorId = String(formData.get("realtor_id") || "");
     const contactDate =
       String(formData.get("contact_date") || "") ||
-      new Date().toISOString().slice(0, 10);
+      currentLocalDate();
     const contactType = String(formData.get("contact_type") || "General").trim();
     const notes = String(formData.get("notes") || "").trim();
 
@@ -403,7 +405,7 @@ export default async function RealtorDetailPage({ params }: PageProps) {
                 name="contact_date"
                 label="Contact Date"
                 type="date"
-                defaultValue={new Date().toISOString().slice(0, 10)}
+                defaultValue={currentLocalDate()}
               />
 
               <label>

@@ -1,3 +1,5 @@
+
+import { formatAppValue } from "../../../../lib/app-time";
 import { NextResponse } from "next/server";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import crypto from "crypto";
@@ -117,7 +119,7 @@ function formatTime(value: any) {
   const date = new Date();
   date.setHours(hours, minutes, 0, 0);
 
-  return date.toLocaleTimeString("en-US", {
+  return formatAppValue(date, {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
@@ -130,7 +132,7 @@ function formatDate(value: any) {
   const date = new Date(`${value}T12:00:00`);
   if (Number.isNaN(date.getTime())) return cleanText(value);
 
-  return date.toLocaleDateString("en-US", {
+  return formatAppValue(date, {
     weekday: "short",
     month: "short",
     day: "numeric",

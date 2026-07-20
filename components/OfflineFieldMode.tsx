@@ -1,5 +1,7 @@
 "use client";
 
+
+import { formatAppValue } from "../lib/app-time";
 import { useEffect, useMemo, useState } from "react";
 import {
   addOfflineQueueItem,
@@ -400,7 +402,7 @@ export default function OfflineFieldMode({
 
                     <p className="text-sm text-slate-400">
                       {draft.section} • {draft.severity} •{" "}
-                      {new Date(draft.createdAt).toLocaleString()}
+                      {formatAppValue(new Date(draft.createdAt), {})}
                     </p>
 
                     <p className="mt-2 inline-flex rounded-full border border-yellow-500/40 bg-yellow-500/10 px-2 py-1 text-xs font-bold text-yellow-300">
