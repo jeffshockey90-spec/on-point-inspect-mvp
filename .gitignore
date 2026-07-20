@@ -1,4 +1,8 @@
 node_modules
 .next
 .env.local
-.vercel
+.vercel.env
+.env.*
+!.env.example
+on-point-inspect-audit.zip
+*.zip
