@@ -15,7 +15,7 @@ type PushPayload = {
 
 type InspectionRow = Record<string, any>;
 
-type ReminderKind = "24h" | "2h";
+type ReminderKind = "24h" | "2h" | "30m";
 
 function createAdminClient() {
   return createServiceClient(
@@ -270,6 +270,10 @@ function cleanTime(value: any) {
 }
 
 function getInspectionStart(row: InspectionRow) {
+  if (row.scheduled_start_at) {
+    const instant = new Date(row.scheduled_start_at);
+    if (!Number.isNaN(instant.getTime())) return instant;
+  }
   const date = cleanDate(getInspectionDate(row));
   const time = cleanTime(getInspectionTime(row));
 
@@ -352,6 +356,7 @@ async function getReminderSettingsForInspection(admin: any, row: InspectionRow) 
       enabled: true,
       reminder_24h_enabled: true,
       reminder_2h_enabled: true,
+      reminder_30m_enabled: true,
     };
   }
 
@@ -366,6 +371,7 @@ async function getReminderSettingsForInspection(admin: any, row: InspectionRow) 
     enabled: data?.enabled !== false,
     reminder_24h_enabled: data?.reminder_24h_enabled !== false,
     reminder_2h_enabled: data?.reminder_2h_enabled !== false,
+    reminder_30m_enabled: data?.reminder_30m_enabled !== false,
   };
 }
 
@@ -377,7 +383,9 @@ function inReminderWindow(
   const targetMs =
     kind === "24h"
       ? 24 * 60 * 60 * 1000
-      : 2 * 60 * 60 * 1000;
+      : kind === "2h"
+        ? 2 * 60 * 60 * 1000
+        : 30 * 60 * 1000;
 
   const reminderTime = new Date(inspectionStart.getTime() - targetMs);
   const diffMs = reminderTime.getTime() - now.getTime();
@@ -393,13 +401,13 @@ function reminderBody(row: InspectionRow, kind: ReminderKind) {
     return `Reminder: inspection tomorrow at ${address}${client ? ` for ${client}` : ""}.`;
   }
 
-  return `Reminder: inspection in about 2 hours at ${address}${client ? ` for ${client}` : ""}.`;
+  if (kind === "2h") return `Reminder: inspection in about 2 hours at ${address}${client ? ` for ${client}` : ""}.`;
+
+  return `Reminder: inspection in about 30 minutes at ${address}${client ? ` for ${client}` : ""}.`;
 }
 
 function reminderTitle(kind: ReminderKind) {
-  return kind === "24h"
-    ? "Inspection Tomorrow"
-    : "Inspection Soon";
+  return kind === "24h" ? "Inspection Tomorrow" : kind === "2h" ? "Inspection Soon" : "Inspection in 30 Minutes";
 }
 
 function getTargetUrl(row: InspectionRow) {
@@ -599,7 +607,7 @@ export async function GET(req: Request) {
 
       if (!start) continue;
 
-      for (const kind of ["24h", "2h"] as ReminderKind[]) {
+      for (const kind of ["24h", "2h", "30m"] as ReminderKind[]) {
         if (!inReminderWindow(start, now, kind)) {
           continue;
         }
@@ -615,6 +623,10 @@ export async function GET(req: Request) {
         }
 
         if (kind === "2h" && !settings.reminder_2h_enabled) {
+          continue;
+        }
+
+        if (kind === "30m" && !settings.reminder_30m_enabled) {
           continue;
         }
 

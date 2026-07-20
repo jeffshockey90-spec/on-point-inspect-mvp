@@ -14,7 +14,7 @@ export async function GET() {
 
   let query = supabase
     .from("inspections")
-    .select("id,property_address,inspection_date,inspection_time,scheduled_date,scheduled_time,scheduled_start_at,inspector_id,company_id,status")
+    .select("id,property_address,property_latitude,property_longitude,inspection_date,inspection_time,scheduled_date,scheduled_time,scheduled_start_at,inspector_id,company_id,status")
     .not("inspection_date", "is", null)
     .order("inspection_date", { ascending: true })
     .limit(50);

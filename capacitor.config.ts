@@ -11,6 +11,9 @@ const config: CapacitorConfig = {
   ios: {
     contentInset: "automatic",
   },
+  android: {
+    useLegacyBridge: true,
+  },
 };
 
 export default config;

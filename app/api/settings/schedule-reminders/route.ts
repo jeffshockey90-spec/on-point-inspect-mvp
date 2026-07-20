@@ -74,6 +74,11 @@ async function getOrCreateSettings(admin: any, userId: string, userEmail: string
       enabled: true,
       reminder_24h_enabled: true,
       reminder_2h_enabled: true,
+      reminder_30m_enabled: true,
+      arrival_detection_enabled: true,
+      departure_detection_enabled: true,
+      geofence_radius_meters: 220,
+      radon_reminders_enabled: true,
     })
     .select("*")
     .single();
@@ -105,6 +110,11 @@ export async function GET() {
       enabled: settings.enabled !== false,
       reminder_24h_enabled: settings.reminder_24h_enabled !== false,
       reminder_2h_enabled: settings.reminder_2h_enabled !== false,
+      reminder_30m_enabled: settings.reminder_30m_enabled !== false,
+      arrival_detection_enabled: settings.arrival_detection_enabled !== false,
+      departure_detection_enabled: settings.departure_detection_enabled !== false,
+      geofence_radius_meters: Number(settings.geofence_radius_meters || 220),
+      radon_reminders_enabled: settings.radon_reminders_enabled !== false,
     });
   } catch (error: any) {
     return NextResponse.json(
@@ -138,6 +148,11 @@ export async function POST(request: Request) {
         enabled: body.enabled !== false,
         reminder_24h_enabled: body.reminder_24h_enabled !== false,
         reminder_2h_enabled: body.reminder_2h_enabled !== false,
+        reminder_30m_enabled: body.reminder_30m_enabled !== false,
+        arrival_detection_enabled: body.arrival_detection_enabled !== false,
+        departure_detection_enabled: body.departure_detection_enabled !== false,
+        geofence_radius_meters: Math.min(1000, Math.max(100, Number(body.geofence_radius_meters || 220))),
+        radon_reminders_enabled: body.radon_reminders_enabled !== false,
         updated_at: new Date().toISOString(),
       })
       .eq("user_id", user.id)
@@ -153,6 +168,11 @@ export async function POST(request: Request) {
       enabled: data.enabled !== false,
       reminder_24h_enabled: data.reminder_24h_enabled !== false,
       reminder_2h_enabled: data.reminder_2h_enabled !== false,
+      reminder_30m_enabled: data.reminder_30m_enabled !== false,
+      arrival_detection_enabled: data.arrival_detection_enabled !== false,
+      departure_detection_enabled: data.departure_detection_enabled !== false,
+      geofence_radius_meters: Number(data.geofence_radius_meters || 220),
+      radon_reminders_enabled: data.radon_reminders_enabled !== false,
     });
   } catch (error: any) {
     return NextResponse.json(

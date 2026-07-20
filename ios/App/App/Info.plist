@@ -26,6 +26,10 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>On Point Inspect uses the camera to capture inspection photos for reports.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>On Point Inspect uses your location to detect arrival and departure at inspection properties and record business mileage.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>On Point Inspect uses background location during active inspection travel and property presence monitoring so it can prompt you to start mileage when you leave.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>On Point Inspect uses the microphone to record inspection videos and dictate inspection findings.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
@@ -41,6 +45,7 @@
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>
+		<string>location</string>
 	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>

@@ -210,6 +210,9 @@ export default function NativePushSetup() {
 
     await PushNotifications.addListener("pushNotificationActionPerformed", (event: any) => {
       console.log("Push action performed:", event);
+      const notification = event?.notification || {};
+      const data = notification?.data || notification?.extra || {};
+      window.dispatchEvent(new CustomEvent("onpoint:push-action", { detail: { ...data, actionId: event?.actionId || "tap" } }));
       openDeepLink(getPushUrl(event));
     });
   }
