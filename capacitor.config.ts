@@ -14,6 +14,14 @@ const config: CapacitorConfig = {
   android: {
     useLegacyBridge: true,
   },
+  plugins: {
+    SplashScreen: {
+      backgroundColor: "#020617",
+      launchAutoHide: true,
+      androidSplashResourceName: "splash",
+      showSpinner: false,
+    },
+  },
 };
 
 export default config;
