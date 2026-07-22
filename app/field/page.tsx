@@ -5,6 +5,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Capacitor } from "@capacitor/core";
 import { SpeechRecognition as NativeSpeechRecognition } from "@capgo/capacitor-speech-recognition";
 import { supabase } from "../../lib/supabaseClient";
+import {
+  createFullImageForUpload,
+  createThumbnailForUpload,
+} from "../../lib/imageVariants";
 import CommentLibrary from "../../components/CommentLibrary";
 import OfflineSyncStatus from "../../components/OfflineSyncStatus";
 import EquipmentCard from "../../components/EquipmentCard";
@@ -315,71 +319,6 @@ async function fileToDataUrl(file: File): Promise<string> {
     reader.onerror = () => reject(new Error("Could not read photo for AI Report Writer 3.0."));
     reader.readAsDataURL(file);
   });
-}
-
-const REPORT_IMAGE_MAX_DIMENSION = 1600;
-const REPORT_THUMBNAIL_MAX_DIMENSION = 420;
-const REPORT_IMAGE_QUALITY = 0.8;
-const REPORT_THUMBNAIL_QUALITY = 0.62;
-
-async function createImageVariantForUpload(
-  file: File,
-  maxDimension: number,
-  quality: number,
-  suffix: string,
-): Promise<File> {
-  if (!file.type.startsWith("image/")) return file;
-
-  const image = await loadImageForAiCompression(file);
-  const originalWidth = image.naturalWidth || image.width;
-  const originalHeight = image.naturalHeight || image.height;
-  const longestSide = Math.max(originalWidth, originalHeight);
-  const scale = Math.min(1, maxDimension / Math.max(1, longestSide));
-  const width = Math.max(1, Math.round(originalWidth * scale));
-  const height = Math.max(1, Math.round(originalHeight * scale));
-
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-
-  const context = canvas.getContext("2d", { alpha: false });
-  if (!context) throw new Error("Could not prepare inspection photo.");
-
-  context.drawImage(image, 0, 0, width, height);
-
-  const blob = await new Promise<Blob | null>((resolve) => {
-    canvas.toBlob(resolve, "image/jpeg", quality);
-  });
-
-  if (!blob) throw new Error("Could not optimize inspection photo.");
-
-  const originalName = String(file.name || "inspection-photo")
-    .replace(/\.[^/.]+$/, "")
-    .replace(/[^a-zA-Z0-9-_]/g, "-")
-    .slice(0, 50);
-
-  return new File([blob], `${originalName}-${suffix}.jpg`, {
-    type: "image/jpeg",
-    lastModified: Date.now(),
-  });
-}
-
-function createFullImageForUpload(file: File) {
-  return createImageVariantForUpload(
-    file,
-    REPORT_IMAGE_MAX_DIMENSION,
-    REPORT_IMAGE_QUALITY,
-    "optimized",
-  );
-}
-
-function createThumbnailForUpload(file: File) {
-  return createImageVariantForUpload(
-    file,
-    REPORT_THUMBNAIL_MAX_DIMENSION,
-    REPORT_THUMBNAIL_QUALITY,
-    "thumb",
-  );
 }
 
 async function createVideoThumbnailForUpload(file: File): Promise<File | null> {
@@ -3736,7 +3675,7 @@ function FieldPageContent() {
       <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[1fr_380px]">
         <div className="rounded-2xl bg-[#111827] p-5 shadow-2xl">
           <h1 className="mb-2 text-3xl font-bold text-teal-400">
-            On Point Field Workflow
+            FLOW Field Workflow
           </h1>
 
           <p className="mb-4 text-slate-400">

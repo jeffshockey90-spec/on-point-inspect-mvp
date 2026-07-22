@@ -1296,7 +1296,7 @@ export async function POST(req: Request) {
 
     // 1) RentCast first. This runs during scheduling/property lookup and can
     // provide square footage and any available property image before falling
-    // back to public records, Google Street View, and On Point cache/history.
+    // back to public records, Google Street View, and FLOW cache/history.
     const rentCastProperty = await lookupRentCastProperty({
       address,
       city,
@@ -1420,7 +1420,7 @@ export async function POST(req: Request) {
       }
     }
 
-    // 4) On Point property cache fallback. Exact match only.
+    // 4) FLOW property cache fallback. Exact match only.
     let cacheQuery = propertyDb
       .from("properties")
       .select(

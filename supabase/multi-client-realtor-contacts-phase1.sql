@@ -1,4 +1,4 @@
--- On Point Inspect Multi-Client/Realtor Contacts Phase 1
+-- FLOW Multi-Client/Realtor Contacts Phase 1
 -- Run in Supabase SQL Editor.
 
 create table if not exists public.inspection_contacts (

@@ -801,8 +801,8 @@ export default async function HomePage() {
         <section className="overflow-hidden rounded-3xl border border-teal-500/30 bg-gradient-to-br from-[#0b1220] via-[#071827] to-[#020617] p-6 shadow-2xl shadow-teal-950/30 md:p-8">
           <div className="grid gap-6 xl:grid-cols-[1.35fr_0.65fr] xl:items-start">
             <div>
-              <p className="mb-3 text-sm font-black uppercase tracking-[0.35em] text-teal-300">
-                On Point Inspect
+              <p className="mb-3 text-sm font-black uppercase tracking-[0.35em] text-[#14c8d2]">
+                FLOW
               </p>
 
               <h1 className="text-4xl font-black tracking-tight text-white md:text-6xl">

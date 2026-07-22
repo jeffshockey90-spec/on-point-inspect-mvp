@@ -4,8 +4,8 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
-import DeleteInspectionButton from "../../components/DeleteInspectionButton";
 import FastLinkButton from "../../components/FastLinkButton";
+import ReportsGrid, { type PreparedReport } from "../../components/ReportsGrid";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -323,6 +323,57 @@ export default async function ReportsPage() {
     (activity: any) => activity.realtorViewed
   ).length;
 
+  const preparedReports: PreparedReport[] = rows.map((inspection: any) => {
+    const isInspectorOwner =
+      inspection.inspector_id && inspection.inspector_id === user.id;
+
+    const propertyPhotoRaw = getInspectionPropertyPhoto(inspection);
+    const propertyPhotoPath = getStoragePathFromUrl(propertyPhotoRaw);
+    const propertyPhoto =
+      signedPropertyPhotoMap[propertyPhotoPath] || propertyPhotoRaw || "";
+
+    const activity =
+      activityByInspectionId[String(inspection.id)] || {
+        totalViews: 0,
+        clientViewed: false,
+        realtorViewed: false,
+        inspectorViewed: false,
+        emailClicked: false,
+        lastViewedAt: null,
+      };
+
+    const createdAtMs = inspection.created_at
+      ? new Date(inspection.created_at).getTime() || 0
+      : 0;
+
+    return {
+      id: inspection.id,
+      address: inspection.property_address || "Untitled Inspection",
+      cityStateZip: [
+        inspection.city || "",
+        inspection.state ? `, ${inspection.state}` : "",
+        inspection.zip ? ` ${inspection.zip}` : "",
+      ].join(""),
+      clientName: inspection.client_name || "N/A",
+      realtorName: inspection.realtor_name || "N/A",
+      inspectionDate: inspection.inspection_date || "N/A",
+      propertyPhoto,
+      isInspectorOwner: Boolean(isInspectorOwner),
+      createdAtMs,
+      activity: {
+        totalViews: activity.totalViews,
+        clientViewed: activity.clientViewed,
+        realtorViewed: activity.realtorViewed,
+        inspectorViewed: activity.inspectorViewed,
+        emailClicked: activity.emailClicked,
+        lastViewedAt: activity.lastViewedAt,
+        lastViewedLabel: activity.lastViewedAt
+          ? getRelativeTime(activity.lastViewedAt)
+          : "No views yet",
+      },
+    };
+  });
+
   return (
     <main className="min-h-screen bg-[#020617] px-6 py-10 text-white">
       <div className="mx-auto max-w-7xl">
@@ -371,150 +422,7 @@ export default async function ReportsPage() {
           <ReportMetric label="Realtor Viewed" value={String(realtorViewedCount)} />
         </section>
 
-        {rows.length === 0 ? (
-          <div className="rounded-2xl border border-slate-800 bg-slate-900 p-8">
-            <p className="text-slate-300">No saved inspections found.</p>
-          </div>
-        ) : (
-          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-            {rows.map((inspection: any, index: number) => {
-              const isInspectorOwner =
-                inspection.inspector_id && inspection.inspector_id === user.id;
-
-              const propertyPhotoRaw = getInspectionPropertyPhoto(inspection);
-              const propertyPhotoPath = getStoragePathFromUrl(propertyPhotoRaw);
-              const propertyPhoto =
-                signedPropertyPhotoMap[propertyPhotoPath] || propertyPhotoRaw || "";
-
-              const activity =
-                activityByInspectionId[String(inspection.id)] || {
-                  totalViews: 0,
-                  clientViewed: false,
-                  realtorViewed: false,
-                  inspectorViewed: false,
-                  emailClicked: false,
-                  lastViewedAt: null,
-                };
-
-              return (
-                <div
-                  key={inspection.id}
-                  className="group overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 shadow-xl transition duration-150 hover:-translate-y-0.5 hover:border-teal-500/70 hover:bg-[#13213a] hover:shadow-[0_0_28px_rgba(20,184,166,0.14)] active:scale-[0.99]"
-                >
-                  <div className="relative flex h-56 items-center justify-center overflow-hidden bg-slate-950 text-slate-500">
-                    {!propertyPhoto ? (
-                      <span className="absolute inset-0 flex items-center justify-center px-4 text-center text-sm font-bold text-slate-500">
-                        No Property Photo
-                      </span>
-                    ) : null}
-
-                    {propertyPhoto ? (
-                      <img
-                        src={propertyPhoto}
-                        alt="Property"
-                        loading={index < 8 ? "eager" : "lazy"}
-                        decoding="async"
-                        fetchPriority={index < 4 ? "high" : "auto"}
-                        className="relative z-10 h-full w-full object-cover transition duration-200 group-hover:scale-[1.03]"
-                      />
-                    ) : null}
-                  </div>
-
-                  <div className="p-6">
-                    <h2 className="text-2xl font-bold text-white transition group-hover:text-teal-300">
-                      {inspection.property_address || "Untitled Inspection"}
-                    </h2>
-
-                    <p className="mt-3 text-slate-300">
-                      {inspection.city || ""}
-                      {inspection.state ? `, ${inspection.state}` : ""}{" "}
-                      {inspection.zip || ""}
-                    </p>
-
-                    <div className="mt-5 space-y-2 text-sm text-slate-300">
-                      <p>
-                        <span className="font-bold text-white">Client:</span>{" "}
-                        {inspection.client_name || "N/A"}
-                      </p>
-
-                      <p>
-                        <span className="font-bold text-white">Realtor:</span>{" "}
-                        {inspection.realtor_name || "N/A"}
-                      </p>
-
-                      <p>
-                        <span className="font-bold text-white">
-                          Inspection Date:
-                        </span>{" "}
-                        {inspection.inspection_date || "N/A"}
-                      </p>
-                    </div>
-
-                    <div className="mt-5 rounded-2xl border border-slate-800 bg-[#020617]/70 p-4">
-                      <p className="text-xs font-black uppercase tracking-wide text-teal-300">
-                        Report Engagement
-                      </p>
-
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        <EngagementBadge
-                          active={activity.clientViewed}
-                          activeLabel="👤 Client Viewed"
-                          inactiveLabel="👤 Client Not Viewed"
-                        />
-
-                        <EngagementBadge
-                          active={activity.realtorViewed}
-                          activeLabel="🏡 Realtor Viewed"
-                          inactiveLabel="🏡 Realtor Not Viewed"
-                        />
-
-                        <EngagementBadge
-                          active={activity.emailClicked}
-                          activeLabel="📧 Email Clicked"
-                          inactiveLabel="📧 No Email Click"
-                        />
-
-                        {activity.inspectorViewed && (
-                          <span className="rounded-full border border-blue-500/40 bg-blue-500/10 px-3 py-1 text-xs font-black text-blue-300">
-                            🔎 Inspector Viewed
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="mt-3 grid gap-2 text-xs text-slate-400">
-                        <p>
-                          <span className="font-bold text-slate-300">Views:</span>{" "}
-                          {activity.totalViews}
-                        </p>
-
-                        <p>
-                          <span className="font-bold text-slate-300">Last View:</span>{" "}
-                          {activity.lastViewedAt
-                            ? getRelativeTime(activity.lastViewedAt)
-                            : "No views yet"}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="mt-6 flex flex-col gap-3">
-                      <FastLinkButton
-                        href={`/reports/${inspection.id}`}
-                        loadingText="Opening Report..."
-                        className="rounded-xl bg-teal-500 px-5 py-3 text-center font-bold text-black hover:bg-teal-400"
-                      >
-                        Open Report
-                      </FastLinkButton>
-
-                      {isInspectorOwner && (
-                        <DeleteInspectionButton inspectionId={inspection.id} />
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+        <ReportsGrid reports={preparedReports} />
       </div>
     </main>
   );
@@ -529,24 +437,3 @@ function ReportMetric({ label, value }: { label: string; value: string }) {
   );
 }
 
-function EngagementBadge({
-  active,
-  activeLabel,
-  inactiveLabel,
-}: {
-  active: boolean;
-  activeLabel: string;
-  inactiveLabel: string;
-}) {
-  return (
-    <span
-      className={
-        active
-          ? "rounded-full border border-green-500/40 bg-green-500/10 px-3 py-1 text-xs font-black text-green-300"
-          : "rounded-full border border-slate-700 bg-slate-800/70 px-3 py-1 text-xs font-black text-slate-400"
-      }
-    >
-      {active ? activeLabel : inactiveLabel}
-    </span>
-  );
-}

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
+import { getOrCreateShareToken } from "../../../lib/shareToken";
 
 export const runtime = "nodejs";
 
@@ -81,6 +82,7 @@ export async function POST(req: Request) {
     }
 
     const baseUrl = getBaseUrl(req);
+    const portalShareToken = await getOrCreateShareToken(supabase, inspection);
 
     const propertyAddress =
       inspection.address ||
@@ -99,7 +101,7 @@ export async function POST(req: Request) {
       if (!email) continue;
 
       const agreementUrl = `${baseUrl}/client-agreement/${inspectionId}?contact=${contact.id}&source=reminder`;
-      const portalUrl = `${baseUrl}/client-portal/${inspectionId}`;
+      const portalUrl = `${baseUrl}/client-portal/${portalShareToken}`;
       const subject = `Reminder: Inspection Agreement for ${propertyAddress}`;
 
       const html = `

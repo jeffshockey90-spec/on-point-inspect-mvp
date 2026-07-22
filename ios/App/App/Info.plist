@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>On Point Inspect</string>
+	<string>FLOW</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -25,23 +25,23 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>On Point Inspect uses the camera to capture inspection photos for reports.</string>
+	<string>FLOW uses the camera to capture inspection photos for reports.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>On Point Inspect uses your location to detect arrival and departure at inspection properties and record business mileage.</string>
+	<string>FLOW uses your location to detect arrival and departure at inspection properties and record business mileage.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>On Point Inspect uses background location during active inspection travel and property presence monitoring so it can prompt you to start mileage when you leave.</string>
+	<string>FLOW uses background location during active inspection travel and property presence monitoring so it can prompt you to start mileage when you leave.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>On Point Inspect uses the microphone to record inspection videos and dictate inspection findings.</string>
+	<string>FLOW uses the microphone to record inspection videos and dictate inspection findings.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>On Point Inspect uses speech recognition to convert dictated inspection notes into report findings.</string>
+	<string>FLOW uses speech recognition to convert dictated inspection notes into report findings.</string>
 	<key>LSApplicationCategoryType</key>
 	<string></string>
 	<key>CFBundleGetInfoString</key>
 	<string></string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>On Point Inspect may save inspection photos or report images to your photo library when requested.</string>
+	<string>FLOW may save inspection photos or report images to your photo library when requested.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>On Point Inspect uses your photo library so you can attach inspection photos and videos to reports.</string>
+	<string>FLOW uses your photo library so you can attach inspection photos and videos to reports.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

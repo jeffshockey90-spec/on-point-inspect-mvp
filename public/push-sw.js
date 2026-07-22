@@ -7,7 +7,7 @@ self.addEventListener("push", (event) => {
     data = event.data.json();
   } catch {
     data = {
-      title: "On Point Inspect",
+      title: "FLOW",
       body: event.data.text(),
       url: "/",
     };
@@ -26,12 +26,12 @@ self.addEventListener("push", (event) => {
     data.event_type ||
     "push";
 
-  console.log("On Point push payload:", data);
-  console.log("On Point push URL:", url);
+  console.log("FLOW push payload:", data);
+  console.log("FLOW push URL:", url);
 
   event.waitUntil(
     self.registration.showNotification(
-      data.title || "On Point Inspect",
+      data.title || "FLOW",
       {
         body: data.body || "",
         icon: "/icons/icon-192.png",
@@ -52,7 +52,7 @@ self.addEventListener("notificationclick", (event) => {
     event.notification?.data?.url ||
     "/";
 
-  console.log("On Point notification click URL:", targetUrl);
+  console.log("FLOW notification click URL:", targetUrl);
 
   try {
     if (

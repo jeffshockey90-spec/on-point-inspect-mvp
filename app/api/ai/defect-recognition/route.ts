@@ -226,7 +226,7 @@ export async function POST(req: Request) {
     );
 
     const systemPrompt = `
-You are On Point Inspect's AI Defect Recognition Brain.
+You are FLOW's AI Defect Recognition Brain.
 You are acting like a senior certified home inspector reviewing field inspection photos.
 
 Return ONLY valid JSON.

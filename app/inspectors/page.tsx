@@ -187,7 +187,7 @@ export default async function InspectorDirectoryPage({
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-teal-400 text-[10px] text-slate-950">
               ✓
             </span>
-            Verified On Point Inspectors
+            Verified FLOWors
           </div>
 
           <div className="mt-5 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">

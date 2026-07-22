@@ -4,6 +4,10 @@ import { memo, useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { isNativeApp, takeNativePhotoSavedToGallery } from "../lib/nativePhoto";
 import ExpandableReportImage from "./ExpandableReportImage";
+import {
+  createFullImageForUpload,
+  createThumbnailForUpload,
+} from "../lib/imageVariants";
 
 const PHOTO_BUCKET = "inspection-photos";
 
@@ -21,88 +25,6 @@ type ReferencePhoto = {
   created_at?: string | null;
 };
 
-async function readFileAsDataUrl(file: File): Promise<string> {
-  return await new Promise((resolve, reject) => {
-    const reader = new FileReader();
-
-    reader.onload = () => {
-      if (typeof reader.result === "string") {
-        resolve(reader.result);
-        return;
-      }
-
-      reject(new Error("Unable to read image file."));
-    };
-
-    reader.onerror = () => reject(new Error("Unable to read image file."));
-    reader.readAsDataURL(file);
-  });
-}
-
-async function loadImageFromDataUrl(dataUrl: string): Promise<HTMLImageElement> {
-  return await new Promise((resolve, reject) => {
-    const image = new Image();
-
-    image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error("Unable to load image."));
-    image.src = dataUrl;
-  });
-}
-
-async function createImageVariantForUpload(
-  file: File,
-  maxDimension: number,
-  quality: number,
-  suffix: string
-): Promise<File> {
-  if (!file.type.startsWith("image/")) return file;
-
-  try {
-    const originalDataUrl = await readFileAsDataUrl(file);
-    const image = await loadImageFromDataUrl(originalDataUrl);
-
-    const originalWidth = image.naturalWidth || image.width;
-    const originalHeight = image.naturalHeight || image.height;
-
-    const scale = Math.min(
-      1,
-      maxDimension / Math.max(originalWidth, originalHeight)
-    );
-    const width = Math.max(1, Math.round(originalWidth * scale));
-    const height = Math.max(1, Math.round(originalHeight * scale));
-
-    const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return file;
-
-    ctx.drawImage(image, 0, 0, width, height);
-
-    const blob = await new Promise<Blob | null>((resolve) => {
-      canvas.toBlob(resolve, "image/jpeg", quality);
-    });
-
-    if (!blob) return file;
-
-    const originalName = file.name.replace(/\.[^/.]+$/, "");
-    return new File([blob], `${originalName}-${suffix}.jpg`, {
-      type: "image/jpeg",
-      lastModified: Date.now(),
-    });
-  } catch {
-    return file;
-  }
-}
-
-async function createFullImageForUpload(file: File): Promise<File> {
-  return createImageVariantForUpload(file, 1800, 0.8, "optimized");
-}
-
-async function createThumbnailForUpload(file: File): Promise<File> {
-  return createImageVariantForUpload(file, 480, 0.7, "thumb");
-}
 
 function SmallSpinner() {
   return (

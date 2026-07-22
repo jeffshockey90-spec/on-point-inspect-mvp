@@ -1,4 +1,4 @@
-# On Point Inspect MVP
+# FLOW MVP
 
 A starter web app for On Point Home Inspections LLC. This is designed as a phone-friendly inspection workflow app, not a full Spectora replacement yet.
 

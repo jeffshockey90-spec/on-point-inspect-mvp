@@ -11,8 +11,8 @@ export default async function PaymentCancelledPage({ searchParams }: PageProps) 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#020617] p-6 text-white">
       <section className="w-full max-w-2xl rounded-2xl border border-slate-800 bg-[#0f172a] p-8 shadow-xl">
-        <p className="text-sm font-black uppercase tracking-[0.35em] text-orange-300">
-          On Point Inspect
+        <p className="text-sm font-black uppercase tracking-[0.35em] text-[#14c8d2]">
+          FLOW
         </p>
 
         <h1 className="mt-4 text-4xl font-black text-white">

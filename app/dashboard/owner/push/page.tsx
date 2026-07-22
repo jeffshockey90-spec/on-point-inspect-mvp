@@ -155,7 +155,7 @@ function RestrictedOwner() {
         </p>
         <h1 className="mt-4 text-4xl font-black">Access Restricted</h1>
         <p className="mt-4 text-slate-300">
-          This owner tool is only available to the On Point Inspect owner account.
+          This owner tool is only available to the FLOW owner account.
         </p>
         <Link
           href="/dashboard"

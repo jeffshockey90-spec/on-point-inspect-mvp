@@ -144,7 +144,7 @@ export async function POST(req: Request) {
           unit_amount: priceCents,
           recurring: { interval: "month" },
           product_data: {
-            name: "On Point Inspect Professional",
+            name: "FLOW Professional",
             description: "Monthly inspector subscription",
           },
         },

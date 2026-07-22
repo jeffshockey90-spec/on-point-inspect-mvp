@@ -194,7 +194,7 @@ function RestrictedOwner() {
       <div className="mx-auto max-w-3xl rounded-3xl border border-red-500/40 bg-red-950/20 p-8 shadow-2xl">
         <p className="text-sm font-black uppercase tracking-[0.35em] text-red-300">Owner Only</p>
         <h1 className="mt-4 text-4xl font-black">Access Restricted</h1>
-        <p className="mt-4 text-slate-300">This owner tool is only available to the On Point Inspect owner account.</p>
+        <p className="mt-4 text-slate-300">This owner tool is only available to the FLOW owner account.</p>
         <Link href="/dashboard" className="mt-6 inline-flex rounded-xl border border-red-400 px-5 py-3 font-black text-red-300 hover:bg-red-500/10">
           Back to Dashboard
         </Link>

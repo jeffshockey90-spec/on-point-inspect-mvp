@@ -3,6 +3,7 @@ import { formatAppValue } from "../../../lib/app-time";
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 import PdfExportButton from "../../../components/PdfExportButton";
+import { getInspectionShareToken } from "../../../lib/shareToken";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -216,13 +217,29 @@ function resultClass(result: string) {
 }
 
 export default async function PublicEnvironmentalSharePage({ params }: PageProps) {
-  const { id } = await params;
+  const { id: shareLookup } = await params;
 
-  const { data: inspection, error: inspectionError } = await supabase
+  const { data: inspectionByToken, error: tokenLookupError } = await supabase
     .from("inspections")
     .select("*")
-    .eq("id", id)
-    .single();
+    .eq("public_share_token", shareLookup)
+    .maybeSingle();
+
+  let inspection = inspectionByToken;
+  let inspectionError = tokenLookupError;
+
+  if (!inspection && /^\d+$/.test(shareLookup)) {
+    const fallbackResult = await supabase
+      .from("inspections")
+      .select("*")
+      .eq("id", shareLookup)
+      .maybeSingle();
+
+    inspection = fallbackResult.data;
+    inspectionError = fallbackResult.error;
+  }
+
+  const id = inspection ? String(inspection.id) : shareLookup;
 
   if (inspectionError || !inspection) {
     return (
@@ -296,7 +313,7 @@ export default async function PublicEnvironmentalSharePage({ params }: PageProps
             <PdfExportButton />
 
             <Link
-              href={`/client-portal/${inspection.id}`}
+              href={`/client-portal/${getInspectionShareToken(inspection) || inspection.id}`}
               className="rounded-xl border border-emerald-500 px-5 py-3 font-bold text-emerald-300 transition hover:bg-emerald-500/10"
             >
               Client Portal

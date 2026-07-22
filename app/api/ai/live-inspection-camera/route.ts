@@ -473,7 +473,7 @@ export async function POST(req: Request) {
     const image = imageDataUrlParts(imageDataUrl);
 
     const systemPrompt = `
-You are On Point AI Second Inspector, a senior home inspection assistant watching a live inspection camera frame.
+You are FLOW AI Second Inspector, a senior home inspection assistant watching a live inspection camera frame.
 
 You are suggestions-only. Never say a defect is saved. Never imply the inspector must write something up.
 The inspector must approve every finding before anything is saved.

@@ -357,17 +357,14 @@ export default function Navbar() {
               className="flex min-w-[265px] shrink-0 items-center gap-4 border-r border-slate-700/70 pr-5 transition active:scale-[0.98] [touch-action:manipulation]"
             >
               <img
-                src="/logo.jpg?v=2"
-                alt="On Point Logo"
-                className="h-16 w-16 shrink-0 rounded-full border border-teal-500/40 object-cover shadow-lg shadow-teal-500/10"
+                src="/icons/icon-192.png?v=3"
+                alt="FLOW Logo"
+                className="h-16 w-16 shrink-0 rounded-2xl border border-teal-500/40 object-cover shadow-lg shadow-teal-500/10"
               />
 
               <div className="min-w-0 leading-tight">
-                <div className="whitespace-nowrap text-2xl font-black text-teal-400">
-                  On Point
-                </div>
-                <div className="whitespace-nowrap text-2xl font-black text-white">
-                  Inspect
+                <div className="whitespace-nowrap text-3xl font-black text-[#14c8d2]">
+                  FLOW
                 </div>
               </div>
             </Link>
@@ -388,12 +385,12 @@ export default function Navbar() {
                     aria-busy={opening}
                     className={`inline-flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-extrabold transition active:scale-[0.98] [touch-action:manipulation] ${
                       active
-                        ? "border-white/40 bg-gradient-to-r from-cyan-400 to-teal-400 text-black shadow-2xl shadow-cyan-500/40"
+                        ? "border-white/40 bg-teal-400 text-black shadow-2xl shadow-teal-500/40"
                         : opening
-                          ? "border-teal-500 bg-[#111827] text-teal-300 opacity-80"
+                          ? "border-teal-500 bg-[#111827] text-teal-400 opacity-80"
                           : item.href === "/dashboard/owner"
                             ? "border-yellow-500/60 bg-yellow-500/10 text-yellow-300 hover:border-yellow-400 hover:bg-yellow-500/20 hover:text-yellow-200"
-                            : "border-slate-700 bg-[#050816] text-teal-300 hover:border-teal-500 hover:bg-[#111827] hover:text-white"
+                            : "border-slate-700 bg-[#050816] text-teal-400 hover:border-teal-500 hover:bg-[#111827] hover:text-white"
                     }`}
                   >
                     <NavSpinner active={opening} />

@@ -12,7 +12,7 @@ export default function PrivacyPolicyPage() {
 
         <div className="space-y-6 text-slate-200 leading-7">
           <p>
-            On Point Inspect ("Platform", "we", "our", or "us") provides
+            FLOW ("Platform", "we", "our", or "us") provides
             software tools for home inspectors and inspection companies to
             manage inspections, reports, agreements, payments, scheduling,
             communications, photos, analytics, and related business operations.

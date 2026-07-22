@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "../../../../lib/supabaseClient";
+import { createFullImageForUpload } from "../../../../lib/imageVariants";
 
 const MAX_PHOTOS = 25;
 
@@ -567,7 +568,7 @@ export default function BulkAICapturePage() {
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="text-sm font-bold uppercase tracking-[0.35em] text-teal-400">
-              On Point AI
+              FLOW AI
             </p>
 
             <h1 className="mt-2 text-4xl font-extrabold">Bulk AI Capture</h1>
@@ -1247,13 +1248,17 @@ function buildFullRecommendation(item: BulkItem) {
 }
 
 async function uploadMediaFile(inspectionId: string, file: File, index: number) {
-  const originalExt = file.name.split(".").pop() || "jpg";
-  const safeBaseName = safeFileName(file.name);
+  const uploadFile = file.type.startsWith("image/")
+    ? await createFullImageForUpload(file)
+    : file;
+
+  const originalExt = uploadFile.name.split(".").pop() || "jpg";
+  const safeBaseName = safeFileName(uploadFile.name);
   const filePath = `${inspectionId}/${Date.now()}-${index}-${crypto.randomUUID()}-${safeBaseName}.${originalExt}`;
 
   const { error: uploadError } = await supabase.storage
     .from("inspection-photos")
-    .upload(filePath, file);
+    .upload(filePath, uploadFile);
 
   if (uploadError) throw uploadError;
 

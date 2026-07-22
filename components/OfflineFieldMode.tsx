@@ -258,7 +258,7 @@ export default function OfflineFieldMode({
 
           <p className="mt-2 text-slate-300">
             Save findings and photos during weak signal. They sync through the
-            On Point offline queue when connection returns.
+            FLOW offline queue when connection returns.
           </p>
         </div>
 

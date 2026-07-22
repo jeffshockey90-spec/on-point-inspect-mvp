@@ -642,9 +642,9 @@ export default function NewInspectionPage() {
       if (foundData) {
         setPropertyLookupStatus("Property info found. Please verify before creating the inspection.");
       } else if (image) {
-        setPropertyLookupStatus("No saved property details found yet. Street View loaded; enter details manually and On Point will remember them next time.");
+        setPropertyLookupStatus("No saved property details found yet. Street View loaded; enter details manually and FLOW will remember them next time.");
       } else {
-        setPropertyLookupStatus("No saved property details found yet. Enter details manually and On Point will remember them next time.");
+        setPropertyLookupStatus("No saved property details found yet. Enter details manually and FLOW will remember them next time.");
       }
     } catch (error) {
       console.log("Property autofill skipped:", error);
@@ -771,7 +771,7 @@ export default function NewInspectionPage() {
 
     if (used >= limit) {
       setBillingMessage(
-        `You have used all ${limit} free inspections. Activate your On Point Inspect subscription to continue creating reports.`
+        `You have used all ${limit} free inspections. Activate your FLOW subscription to continue creating reports.`
       );
       setShowBillingPopup(true);
 
@@ -924,7 +924,7 @@ export default function NewInspectionPage() {
         return;
       }
 
-      // Save every completed inspection's property details into On Point's
+      // Save every completed inspection's property details into FLOW's
       // property cache so future inspections can auto-fill instantly.
       // IMPORTANT: this matches the exact properties table columns:
       // property_image_url exists, property_image does not.
@@ -1546,7 +1546,7 @@ export default function NewInspectionPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
           <div className="w-full max-w-lg rounded-2xl border border-teal-500 bg-[#0b1220] p-6 shadow-2xl">
             <p className="text-sm font-black uppercase tracking-[0.2em] text-teal-400">
-              On Point Inspect Billing
+              FLOW Billing
             </p>
 
             <h2 className="mt-3 text-3xl font-black text-white">

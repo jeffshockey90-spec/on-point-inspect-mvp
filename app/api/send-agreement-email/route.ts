@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
+import { getOrCreateShareToken } from "../../../lib/shareToken";
 
 export const runtime = "nodejs";
 
@@ -247,7 +248,8 @@ export async function POST(req: Request) {
     }
 
     const baseUrl = getBaseUrl(req);
-    const portalUrl = `${baseUrl}/client-portal/${inspectionId}`;
+    const portalShareToken = await getOrCreateShareToken(supabase, inspection);
+    const portalUrl = `${baseUrl}/client-portal/${portalShareToken}`;
 
     const property =
       inspection.address ||

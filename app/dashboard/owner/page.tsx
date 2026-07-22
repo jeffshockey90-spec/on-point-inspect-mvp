@@ -358,7 +358,7 @@ export default async function OwnerDashboardPage() {
         <div className="mx-auto max-w-3xl rounded-3xl border border-red-500/40 bg-red-950/20 p-8 shadow-2xl">
           <p className="text-sm font-black uppercase tracking-[0.35em] text-red-300">Owner Only</p>
           <h1 className="mt-4 text-4xl font-black">Access Restricted</h1>
-          <p className="mt-4 text-slate-300">This dashboard is only available to the On Point Inspect owner account.</p>
+          <p className="mt-4 text-slate-300">This dashboard is only available to the FLOW owner account.</p>
           <FastLinkButton href="/dashboard" className="mt-6 inline-flex rounded-xl border border-red-400 px-5 py-3 font-black text-red-300 hover:bg-red-500/10">
             Back to Dashboard
           </FastLinkButton>
@@ -623,7 +623,7 @@ export default async function OwnerDashboardPage() {
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div>
               <p className="text-sm font-black uppercase tracking-[0.35em] text-teal-400">Owner Dashboard</p>
-              <h1 className="mt-4 text-5xl font-black text-white">On Point Inspect Growth Center</h1>
+              <h1 className="mt-4 text-5xl font-black text-white">FLOW Growth Center</h1>
               <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-300">
                 System-wide owner metrics for users, inspectors, reports, revenue, app growth, push notifications, and client engagement.
               </p>

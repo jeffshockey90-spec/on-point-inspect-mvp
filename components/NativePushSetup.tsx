@@ -273,8 +273,8 @@ export default function NativePushSetup() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          title: "On Point Inspect",
-          body: "Native iOS push test from On Point Inspect.",
+          title: "FLOW",
+          body: "Native iOS push test from FLOW.",
           url: "/schedule",
           eventType: "native_test",
         }),

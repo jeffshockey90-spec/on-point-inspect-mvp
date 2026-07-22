@@ -271,7 +271,7 @@ export default function PublicProfileActions({
             <div class="qr-wrap">${svgMarkup}${logoHtml}</div>
             <h1>Scan to View Profile</h1>
             <p>Learn more and request an inspection.</p>
-            <div class="powered">Powered by On Point Inspect</div>
+            <div class="powered">Powered by FLOW</div>
           </div>
           <script>window.onload = () => window.print();</script>
         </body>
@@ -306,7 +306,7 @@ export default function PublicProfileActions({
           </h2>
 
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">
-            Share your permanent On Point Inspect profile QR code so clients and realtors can view your profile and request an inspection.
+            Share your permanent FLOW profile QR code so clients and realtors can view your profile and request an inspection.
           </p>
 
           <div className="mt-5 max-w-full overflow-hidden rounded-2xl border border-slate-700 bg-slate-950 p-4">
@@ -449,7 +449,7 @@ export default function PublicProfileActions({
             )}
 
             <p className="mt-4 text-center text-[10px] font-black uppercase tracking-[0.28em] text-slate-500">
-              Powered by On Point Inspect
+              Powered by FLOW
             </p>
           </div>
         </div>

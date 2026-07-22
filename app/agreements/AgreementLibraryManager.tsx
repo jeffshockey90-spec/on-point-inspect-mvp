@@ -370,7 +370,7 @@ export default function AgreementLibraryManager() {
       display_order: Number(template.display_order || 0),
       body: template.body || "",
       is_active: template.is_active !== false,
-      exported_from: "On Point Inspect",
+      exported_from: "FLOW",
       exported_at: new Date().toISOString(),
     };
 

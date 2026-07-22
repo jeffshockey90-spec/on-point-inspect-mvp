@@ -217,14 +217,48 @@ function groupLimitations(rows: any[], photosByLimitationId: Record<string, any[
   return grouped;
 }
 
-async function createSignedUrl(supabase: any, filePath: string) {
-  if (!filePath) return "";
+async function createSignedUrlMap(supabase: any, paths: string[]) {
+  const uniquePaths = Array.from(new Set(paths.filter(Boolean)));
+  const signedMap: Record<string, string> = {};
 
-  const { data } = await supabase.storage
-    .from("inspection-photos")
-    .createSignedUrl(filePath, 60 * 60 * 24 * 7);
+  if (uniquePaths.length === 0) return signedMap;
 
-  return data?.signedUrl || "";
+  const chunkSize = 50;
+
+  for (let index = 0; index < uniquePaths.length; index += chunkSize) {
+    const chunk = uniquePaths.slice(index, index + chunkSize);
+
+    const { data, error } = await supabase.storage
+      .from("inspection-photos")
+      .createSignedUrls(chunk, 60 * 60 * 24 * 7);
+
+    if (error) {
+      console.error("Batch signed photo URL error:", error);
+      continue;
+    }
+
+    (data || []).forEach((item: any, itemIndex: number) => {
+      const path = item?.path || chunk[itemIndex];
+
+      if (path && item?.signedUrl) {
+        signedMap[path] = item.signedUrl;
+      }
+    });
+  }
+
+  return signedMap;
+}
+
+function getPhotoFilePath(photo: any) {
+  return (
+    photo.file_path ||
+    photo.storage_path ||
+    photo.photo_path ||
+    getStoragePathFromUrl(photo.public_url) ||
+    getStoragePathFromUrl(photo.image_url) ||
+    getStoragePathFromUrl(photo.photo_url) ||
+    ""
+  );
 }
 
 
@@ -470,44 +504,25 @@ export default async function PrintableReportPage({ params }: PageProps) {
       ? await supabase.from("photos").select("*").in("finding_id", findingIds)
       : { data: [] };
 
-  const photosWithUrls = await Promise.all(
-    (photosRaw || []).map(async (photo: any) => {
-      const filePath =
-        photo.file_path ||
-        photo.storage_path ||
-        photo.photo_path ||
-        getStoragePathFromUrl(photo.public_url) ||
-        getStoragePathFromUrl(photo.image_url) ||
-        getStoragePathFromUrl(photo.photo_url);
-
-      if (!filePath) {
-        return {
-          ...photo,
-          signed_url:
-            photo.signed_url ||
-            photo.public_url ||
-            photo.image_url ||
-            photo.photo_url ||
-            null,
-        };
-      }
-
-      const { data } = await supabase.storage
-        .from("inspection-photos")
-        .createSignedUrl(filePath, 60 * 60 * 24 * 7);
-
-      return {
-        ...photo,
-        signed_url:
-          data?.signedUrl ||
-          photo.signed_url ||
-          photo.public_url ||
-          photo.image_url ||
-          photo.photo_url ||
-          null,
-      };
-    })
+  const photoSignedUrlMap = await createSignedUrlMap(
+    supabase,
+    (photosRaw || []).map((photo: any) => getPhotoFilePath(photo))
   );
+
+  const photosWithUrls = (photosRaw || []).map((photo: any) => {
+    const filePath = getPhotoFilePath(photo);
+
+    return {
+      ...photo,
+      signed_url:
+        (filePath && photoSignedUrlMap[filePath]) ||
+        photo.signed_url ||
+        photo.public_url ||
+        photo.image_url ||
+        photo.photo_url ||
+        null,
+    };
+  });
 
   const photosByFindingId = photosWithUrls.reduce(
     (acc: Record<string, any[]>, photo: any) => {
@@ -519,27 +534,23 @@ export default async function PrintableReportPage({ params }: PageProps) {
     {}
   );
 
-  const findings = await Promise.all(
-    (findingsRaw || []).map(async (finding: any) => {
-      let signedImageUrl = finding.image_url || "";
-      const oldImagePath = getStoragePathFromUrl(finding.image_url);
-
-      if (oldImagePath) {
-        const { data } = await supabase.storage
-          .from("inspection-photos")
-          .createSignedUrl(oldImagePath, 60 * 60 * 24 * 7);
-
-        if (data?.signedUrl) signedImageUrl = data.signedUrl;
-      }
-
-      return {
-        ...finding,
-        section: normalizeSection(finding.section),
-        image_url: signedImageUrl || finding.image_url || null,
-        photos: photosByFindingId[finding.id] || [],
-      };
-    })
+  const findingImageSignedUrlMap = await createSignedUrlMap(
+    supabase,
+    (findingsRaw || []).map((finding: any) => getStoragePathFromUrl(finding.image_url))
   );
+
+  const findings = (findingsRaw || []).map((finding: any) => {
+    const oldImagePath = getStoragePathFromUrl(finding.image_url);
+    const signedImageUrl =
+      (oldImagePath && findingImageSignedUrlMap[oldImagePath]) || finding.image_url || "";
+
+    return {
+      ...finding,
+      section: normalizeSection(finding.section),
+      image_url: signedImageUrl || finding.image_url || null,
+      photos: photosByFindingId[finding.id] || [],
+    };
+  });
 
 
   const { data: checklistRows } = await supabase
@@ -564,15 +575,18 @@ export default async function PrintableReportPage({ params }: PageProps) {
           .in("limitation_id", limitationIds)
       : { data: [] };
 
-  const limitationPhotosWithUrls = await Promise.all(
-    (limitationPhotosRaw || []).map(async (photo: any) => ({
-      ...photo,
-      signed_url:
-        (await createSignedUrl(supabase, photo.file_path)) ||
-        photo.public_url ||
-        "",
-    }))
+  const limitationPhotoSignedUrlMap = await createSignedUrlMap(
+    supabase,
+    (limitationPhotosRaw || []).map((photo: any) => photo.file_path)
   );
+
+  const limitationPhotosWithUrls = (limitationPhotosRaw || []).map((photo: any) => ({
+    ...photo,
+    signed_url:
+      (photo.file_path && limitationPhotoSignedUrlMap[photo.file_path]) ||
+      photo.public_url ||
+      "",
+  }));
 
   const photosByLimitationId = limitationPhotosWithUrls.reduce(
     (acc: Record<string, any[]>, photo: any) => {
@@ -596,15 +610,18 @@ export default async function PrintableReportPage({ params }: PageProps) {
     .eq("inspection_id", inspection.id)
     .order("created_at", { ascending: true });
 
-  const sectionReferencePhotos = await Promise.all(
-    (sectionReferencePhotosRaw || []).map(async (photo: any) => ({
-      ...photo,
-      signed_url:
-        (await createSignedUrl(supabase, photo.file_path)) ||
-        photo.public_url ||
-        "",
-    }))
+  const referencePhotoSignedUrlMap = await createSignedUrlMap(
+    supabase,
+    (sectionReferencePhotosRaw || []).map((photo: any) => photo.file_path)
   );
+
+  const sectionReferencePhotos = (sectionReferencePhotosRaw || []).map((photo: any) => ({
+    ...photo,
+    signed_url:
+      (photo.file_path && referencePhotoSignedUrlMap[photo.file_path]) ||
+      photo.public_url ||
+      "",
+  }));
 
   const referencePhotosBySection = sectionReferencePhotos.reduce(
     (acc: Record<string, any[]>, photo: any) => {
@@ -633,15 +650,18 @@ export default async function PrintableReportPage({ params }: PageProps) {
     console.error("Print equipment inventory load error:", equipmentInventoryError);
   }
 
-  const equipmentInventory = await Promise.all(
-    (equipmentInventoryRaw || []).map(async (item: any) => ({
-      ...item,
-      signed_image_url:
-        (await createSignedUrl(supabase, item.file_path)) ||
-        item.image_url ||
-        "",
-    }))
+  const equipmentSignedUrlMap = await createSignedUrlMap(
+    supabase,
+    (equipmentInventoryRaw || []).map((item: any) => item.file_path)
   );
+
+  const equipmentInventory = (equipmentInventoryRaw || []).map((item: any) => ({
+    ...item,
+    signed_image_url:
+      (item.file_path && equipmentSignedUrlMap[item.file_path]) ||
+      item.image_url ||
+      "",
+  }));
 
   const numberedFindings = buildFindingItemNumbers(findings);
 

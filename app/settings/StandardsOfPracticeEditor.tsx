@@ -46,7 +46,7 @@ export default function StandardsOfPracticeEditor({
             </h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">
               Paste your own inspection Standards of Practice here. Leave it blank
-              to use the On Point default SOP. These settings are saved to your
+              to use the FLOW default SOP. These settings are saved to your
               company and are used automatically in shared reports and PDF downloads.
             </p>
           </div>
@@ -58,7 +58,7 @@ export default function StandardsOfPracticeEditor({
                 : "border-cyan-400/60 bg-cyan-500/15 text-cyan-200"
             }`}
           >
-            {usingDefault ? "Using On Point Default" : "Custom SOP Active"}
+            {usingDefault ? "Using FLOW Default" : "Custom SOP Active"}
           </span>
         </div>
       </div>
@@ -83,7 +83,7 @@ export default function StandardsOfPracticeEditor({
               Quick Setup
             </p>
             <h3 className="mt-2 text-lg font-black text-white">
-              Start from the On Point default
+              Start from the FLOW default
             </h3>
             <p className="mt-2 text-sm leading-6 text-slate-400">
               Copy Jeff’s default SOP into the editor, then adjust it for your
@@ -96,7 +96,7 @@ export default function StandardsOfPracticeEditor({
                 onClick={copyDefaultStandards}
                 className="w-full rounded-xl bg-cyan-500 px-4 py-3 text-sm font-black text-slate-950 transition active:scale-[0.98] hover:bg-cyan-400 sm:w-auto lg:w-full xl:w-auto"
               >
-                Use On Point Default SOP
+                Use FLOW Default SOP
               </button>
 
               <button
@@ -162,7 +162,7 @@ export default function StandardsOfPracticeEditor({
             value={body}
             onChange={(event) => setBody(event.target.value)}
             rows={22}
-            placeholder="Paste your Standards of Practice here. Leave blank to use the On Point default SOP."
+            placeholder="Paste your Standards of Practice here. Leave blank to use the FLOW default SOP."
             className="min-h-[420px] w-full min-w-0 rounded-xl border border-slate-700 bg-[#020617] p-4 text-sm leading-6 text-white outline-none focus:border-cyan-400"
           />
           <p className="mt-2 text-xs leading-5 text-slate-500">

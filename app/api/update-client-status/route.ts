@@ -17,16 +17,26 @@ export async function POST(req: Request) {
       );
     }
 
-    const allowedFields = [
-      "agreement_status",
-      "payment_status",
-      "review_status",
-      "report_status",
-    ];
+    // This endpoint is reachable from the public, unauthenticated client
+    // portal (clients have no login). Only allow the one field/value a
+    // client is legitimately meant to self-report here - never
+    // payment_status, agreement_status, or report_status, which must only
+    // ever be set by the inspector or a verified payment webhook.
+    const allowedFields = ["review_status"];
+    const allowedValuesByField: Record<string, string[]> = {
+      review_status: ["Submitted"],
+    };
 
     if (!allowedFields.includes(field)) {
       return NextResponse.json(
         { error: "Invalid field" },
+        { status: 400 }
+      );
+    }
+
+    if (!allowedValuesByField[field].includes(value)) {
+      return NextResponse.json(
+        { error: "Invalid value" },
         { status: 400 }
       );
     }

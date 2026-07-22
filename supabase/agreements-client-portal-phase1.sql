@@ -1,4 +1,4 @@
--- On Point Inspect Agreement + Client Portal Phase 1
+-- FLOW Agreement + Client Portal Phase 1
 -- Run this in Supabase SQL Editor.
 
 create table if not exists public.inspection_agreements (

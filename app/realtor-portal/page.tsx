@@ -347,8 +347,8 @@ export default async function RealtorPortalPage() {
         <section className="rounded-3xl border border-slate-800 bg-[#0f172a] p-6 shadow-2xl md:p-8">
           <div className="flex flex-wrap items-start justify-between gap-5">
             <div>
-              <p className="text-sm font-black uppercase tracking-[0.35em] text-teal-400">
-                On Point Inspect
+              <p className="text-sm font-black uppercase tracking-[0.35em] text-[#14c8d2]">
+                FLOW
               </p>
 
               <h1 className="mt-4 text-4xl font-black text-white md:text-5xl">

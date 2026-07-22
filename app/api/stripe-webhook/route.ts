@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import crypto from "crypto";
 import http2 from "http2";
+import { formatUsd } from "../../../lib/currency";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -136,12 +137,7 @@ async function logEmailEvent(
   }
 }
 
-function money(value: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(value || 0);
-}
+const money = formatUsd;
 
 function getPropertyLabel(inspection: any) {
   return (
@@ -745,7 +741,7 @@ export async function POST(req: Request) {
 
         await sendOwnerPushNotification(supabase, {
           title: "🎉 New Subscription",
-          body: `${customerEmail} started an On Point Inspect subscription${amount ? ` for ${money(amount)}/month` : ""}.`,
+          body: `${customerEmail} started an FLOW subscription${amount ? ` for ${money(amount)}/month` : ""}.`,
           url: "/dashboard/owner/revenue",
           eventType: "subscription_created",
           metadata: {
@@ -902,14 +898,15 @@ export async function POST(req: Request) {
     }
 
     if (event.type === "invoice.paid") {
-      const invoice = event.data.object as any;
+      const invoice = event.data.object as Stripe.Invoice;
       const supabase = getSupabaseAdmin();
 
+      const invoiceSubscription = invoice.parent?.subscription_details?.subscription;
       const subscriptionId =
-        typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription?.id || null;
+        typeof invoiceSubscription === "string" ? invoiceSubscription : invoiceSubscription?.id || null;
       const customerId =
         typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id || null;
-      const customerEmail = invoice.customer_email || invoice.customer_details?.email || "Inspector";
+      const customerEmail = invoice.customer_email || "Inspector";
       const amountPaid = Number(invoice.amount_paid || 0) / 100;
 
       if (customerId) {
@@ -954,14 +951,15 @@ export async function POST(req: Request) {
     }
 
     if (event.type === "invoice.payment_failed") {
-      const invoice = event.data.object as any;
+      const invoice = event.data.object as Stripe.Invoice;
       const supabase = getSupabaseAdmin();
 
+      const invoiceSubscription = invoice.parent?.subscription_details?.subscription;
       const subscriptionId =
-        typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription?.id || null;
+        typeof invoiceSubscription === "string" ? invoiceSubscription : invoiceSubscription?.id || null;
       const customerId =
         typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id || null;
-      const customerEmail = invoice.customer_email || invoice.customer_details?.email || "Inspector";
+      const customerEmail = invoice.customer_email || "Inspector";
 
       if (customerId) {
         await supabase
@@ -1002,7 +1000,7 @@ export async function POST(req: Request) {
 
 
     if (event.type === "customer.subscription.updated") {
-      const subscription = event.data.object as any;
+      const subscription = event.data.object as Stripe.Subscription;
       const supabase = getSupabaseAdmin();
 
       const subscriptionId = subscription.id || null;
@@ -1012,8 +1010,9 @@ export async function POST(req: Request) {
           : subscription.customer?.id || null;
 
       const cancelAtPeriodEnd = subscription.cancel_at_period_end === true;
-      const currentPeriodEnd = subscription.current_period_end
-        ? new Date(subscription.current_period_end * 1000).toISOString()
+      const subscriptionPeriodEnd = subscription.items.data[0]?.current_period_end;
+      const currentPeriodEnd = subscriptionPeriodEnd
+        ? new Date(subscriptionPeriodEnd * 1000).toISOString()
         : null;
 
       const stripeStatus = String(subscription.status || "inactive").toLowerCase();
@@ -1074,7 +1073,7 @@ export async function POST(req: Request) {
     }
 
     if (event.type === "customer.subscription.deleted") {
-      const subscription = event.data.object as any;
+      const subscription = event.data.object as Stripe.Subscription;
       const supabase = getSupabaseAdmin();
 
       const subscriptionId = subscription.id || null;

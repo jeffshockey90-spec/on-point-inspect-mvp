@@ -96,7 +96,7 @@ export default async function RealtorsPage() {
         <section className="rounded-3xl border border-slate-800 bg-[#0f172a] p-8 shadow-2xl">
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div>
-              <p className="text-sm font-black uppercase tracking-[0.35em] text-teal-400">On Point Inspect</p>
+              <p className="text-sm font-black uppercase tracking-[0.35em] text-teal-400">FLOW</p>
               <h1 className="mt-4 text-5xl font-black text-white">Realtor Contacts</h1>
               <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-300">Store realtor contact info once, then select them when creating inspections. Report emails include realtors automatically; agreement emails stay client-only.</p>
             </div>

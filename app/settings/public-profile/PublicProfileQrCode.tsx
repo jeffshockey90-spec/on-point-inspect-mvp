@@ -206,7 +206,7 @@ export default function PublicProfileQrCode({
         </head>
         <body>
           <div class="card">
-            <div class="eyebrow">On Point Inspect</div>
+            <div class="eyebrow">FLOW</div>
             <h1>${escapeHtml(companyName)}</h1>
             <p>Scan to view my inspector profile and request an inspection.</p>
             <div class="qr-wrap">${qrSvg}${logoHtml}</div>
@@ -245,7 +245,7 @@ export default function PublicProfileQrCode({
           </h2>
 
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">
-            Share your permanent On Point Inspect profile QR code so clients and realtors can view your profile and request an inspection.
+            Share your permanent FLOW profile QR code so clients and realtors can view your profile and request an inspection.
           </p>
 
           <div className="mt-5 rounded-2xl border border-slate-700 bg-slate-950 p-4">
@@ -344,7 +344,7 @@ export default function PublicProfileQrCode({
               Learn more and request an inspection.
             </p>
             <p className="mt-4 text-center text-[10px] font-black uppercase tracking-[0.28em] text-slate-500">
-              Powered by On Point Inspect
+              Powered by FLOW
             </p>
           </div>
         </div>

@@ -280,7 +280,7 @@ export default async function OwnerDeviceAnalyticsPage() {
           </p>
           <h1 className="mt-4 text-4xl font-black">Access Restricted</h1>
           <p className="mt-4 text-slate-300">
-            This device analytics page is only available to the On Point Inspect owner account.
+            This device analytics page is only available to the FLOW owner account.
           </p>
           <Link
             href="/dashboard"
@@ -540,7 +540,7 @@ export default async function OwnerDeviceAnalyticsPage() {
         </Panel>
 
         <section className="rounded-2xl border border-yellow-500/30 bg-yellow-950/10 p-5 text-sm leading-6 text-yellow-100">
-          <strong>Important:</strong> These are internal On Point Inspect usage metrics from Supabase. Official App Store download numbers still come from App Store Connect. This page shows devices that opened/used the app after tracking was installed.
+          <strong>Important:</strong> These are internal FLOW usage metrics from Supabase. Official App Store download numbers still come from App Store Connect. This page shows devices that opened/used the app after tracking was installed.
         </section>
       </div>
     </main>

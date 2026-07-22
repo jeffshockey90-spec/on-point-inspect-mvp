@@ -4,8 +4,8 @@ export default function NotFound() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#020617] px-4 py-10 text-white">
       <section className="w-full max-w-2xl rounded-3xl border border-slate-800 bg-[#0b1220] p-6 shadow-2xl md:p-8">
-        <p className="text-xs font-black uppercase tracking-[0.35em] text-teal-300">
-          On Point Inspect
+        <p className="text-xs font-black uppercase tracking-[0.35em] text-[#14c8d2]">
+          FLOW
         </p>
 
         <h1 className="mt-4 text-3xl font-black md:text-5xl">

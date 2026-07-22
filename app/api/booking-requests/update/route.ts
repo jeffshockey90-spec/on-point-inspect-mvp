@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
+import { getOrCreateShareToken } from "../../../../lib/shareToken";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -547,7 +548,18 @@ async function sendAppointmentConfirmedEmails(
   const services = requestedServices(bookingRequest);
   const dateText = formatDate(bookingRequest.preferred_date);
   const timeText = formatTime(bookingRequest.preferred_time);
-  const portalUrl = `${getBaseUrl(request)}/client-portal/${inspectionId}`;
+
+  const { data: inspectionForToken } = await admin
+    .from("inspections")
+    .select("id, public_share_token, share_token, report_share_token")
+    .eq("id", inspectionId)
+    .maybeSingle();
+
+  const portalShareToken = inspectionForToken
+    ? await getOrCreateShareToken(admin, inspectionForToken)
+    : inspectionId;
+
+  const portalUrl = `${getBaseUrl(request)}/client-portal/${portalShareToken}`;
 
   const fromEmail =
     process.env.RESEND_FROM_EMAIL ||

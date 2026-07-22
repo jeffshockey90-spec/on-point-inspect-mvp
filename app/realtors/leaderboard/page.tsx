@@ -248,7 +248,7 @@ export default async function RealtorLeaderboardPage() {
 
               <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-300">
                 See which realtor relationships are driving inspections, revenue,
-                paid revenue, and outstanding balances for On Point Inspect.
+                paid revenue, and outstanding balances for FLOW.
               </p>
             </div>
 

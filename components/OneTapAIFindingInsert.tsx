@@ -318,7 +318,7 @@ export default function OneTapAIFindingInsert({ inspectionId }: Props) {
             <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
               <div>
                 <p className="text-sm font-bold uppercase tracking-[0.3em] text-teal-400">
-                  On Point AI
+                  FLOW AI
                 </p>
 
                 <h2 className="mt-2 text-3xl font-extrabold">

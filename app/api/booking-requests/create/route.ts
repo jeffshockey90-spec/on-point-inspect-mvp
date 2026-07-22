@@ -430,7 +430,7 @@ function buildEmailHtml(booking: any, request: Request) {
   return `
     <div style="font-family:Arial,sans-serif;line-height:1.5;color:#111827">
       <h2 style="margin:0 0 12px;color:#0f766e">New Booking Request</h2>
-      <p>A new inspection request was submitted through On Point Inspect.</p>
+      <p>A new inspection request was submitted through FLOW.</p>
       <table cellpadding="6" cellspacing="0" style="border-collapse:collapse;width:100%;max-width:680px">
         <tr><td><strong>Client</strong></td><td>${booking.client_name || ""}</td></tr>
         <tr><td><strong>Client Phone</strong></td><td>${booking.client_phone || ""}</td></tr>

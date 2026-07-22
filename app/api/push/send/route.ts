@@ -324,7 +324,7 @@ export async function POST(req: Request) {
 
     const body = await req.json().catch(() => ({}));
 
-    const title = cleanString(body.title, "On Point Inspect", 120);
+    const title = cleanString(body.title, "FLOW", 120);
     const message = cleanString(
       body.body || body.message,
       "New activity recorded.",

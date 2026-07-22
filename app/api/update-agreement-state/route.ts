@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import {
   getAgreementVersion,
@@ -10,8 +12,40 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+async function createSupabaseServerClient() {
+  const cookieStore = await cookies();
+
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll() {},
+      },
+    }
+  );
+}
+
 export async function POST(req: Request) {
   try {
+    // This route uses the service-role key, which bypasses RLS - it must
+    // verify the caller is logged in and owns this inspection itself.
+    const authedSupabase = await createSupabaseServerClient();
+
+    const {
+      data: { user },
+    } = await authedSupabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json(
+        { error: "Unauthorized. You must be logged in." },
+        { status: 401 }
+      );
+    }
+
     const body = await req.json();
 
     const inspectionId = String(body.inspectionId || "");
@@ -27,6 +61,20 @@ export async function POST(req: Request) {
       return NextResponse.json(
         { error: "Missing inspection ID." },
         { status: 400 }
+      );
+    }
+
+    const { data: ownedInspection, error: ownershipError } = await supabase
+      .from("inspections")
+      .select("id")
+      .eq("id", inspectionId)
+      .eq("inspector_id", user.id)
+      .single();
+
+    if (ownershipError || !ownedInspection) {
+      return NextResponse.json(
+        { error: "Inspection not found." },
+        { status: 404 }
       );
     }
 

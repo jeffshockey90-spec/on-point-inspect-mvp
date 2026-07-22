@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import SubscriptionCheckoutButton from "../../components/SubscriptionCheckoutButton";
 import ManageSubscriptionButton from "../../components/ManageSubscriptionButton";
+import { formatUsdFromCents } from "../../lib/currency";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -26,14 +27,6 @@ async function createUserClient() {
       },
     }
   );
-}
-
-function dollars(cents: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format((cents || 0) / 100);
 }
 
 function isActiveStatus(status: any) {
@@ -97,10 +90,10 @@ export default async function BillingPage({
     <main className="min-h-screen bg-[#020617] px-4 py-8 text-white md:px-6 md:py-10">
       <div className="mx-auto max-w-4xl space-y-6">
         <section className="rounded-3xl border border-teal-500/40 bg-[#0f172a] p-8 shadow-2xl">
-          <p className="text-sm font-black uppercase tracking-[0.35em] text-teal-400">On Point Inspect Billing</p>
+          <p className="text-sm font-black uppercase tracking-[0.35em] text-teal-400">FLOW Billing</p>
           <h1 className="mt-4 text-4xl font-black text-white">Inspector Subscription</h1>
           <p className="mt-4 max-w-2xl text-slate-300">
-            Your first {freeLimit} real inspections are free. After that, On Point Inspect is {dollars(priceCents)}/month unless the owner has set custom pricing or exempted your account.
+            Your first {freeLimit} real inspections are free. After that, FLOW is {formatUsdFromCents(priceCents)}/month unless the owner has set custom pricing or exempted your account.
           </p>
 
           <div className="mt-6 flex flex-wrap gap-3">
@@ -143,7 +136,7 @@ export default async function BillingPage({
           </div>
           <div className="rounded-2xl border border-slate-700 bg-[#0f172a] p-5">
             <p className="text-xs font-black uppercase text-slate-400">Monthly Price</p>
-            <p className="mt-3 text-3xl font-black text-green-300">{exempt ? "Free" : `${dollars(priceCents)}/mo`}</p>
+            <p className="mt-3 text-3xl font-black text-green-300">{exempt ? "Free" : `${formatUsdFromCents(priceCents)}/mo`}</p>
           </div>
         </section>
 
@@ -172,7 +165,7 @@ export default async function BillingPage({
                   <ManageSubscriptionButton />
                 </>
               ) : (
-                <SubscriptionCheckoutButton priceLabel={`${dollars(priceCents)}/month`} />
+                <SubscriptionCheckoutButton priceLabel={`${formatUsdFromCents(priceCents)}/month`} />
               )}
 
               <Link

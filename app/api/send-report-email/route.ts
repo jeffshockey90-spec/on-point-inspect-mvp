@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
+import { getOrCreateShareToken } from "../../../lib/shareToken";
 
 async function createSupabaseServerClient() {
   const cookieStore = await cookies();
@@ -479,9 +480,11 @@ export async function POST(req: Request) {
         ? `https://${process.env.VERCEL_URL}`
         : "http://localhost:3000");
 
+    const shareToken = await getOrCreateShareToken(supabase, inspection);
+
     const finalShareUrl = isStandaloneEnvironmentalService(inspection)
-      ? `${appUrl}/environmental-share/${inspectionId}`
-      : `${appUrl}/share/${inspectionId}`;
+      ? `${appUrl}/environmental-share/${shareToken}`
+      : `${appUrl}/share/${shareToken}`;
 
     const { data: moldTest } = await supabase
       .from("mold_tests")

@@ -20,24 +20,28 @@ export default function PublishReportButton({
     setLoading(true);
     setMessage("");
 
-    const res = await fetch("/api/reports/publish", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ inspectionId }),
-    });
+    try {
+      const res = await fetch("/api/reports/publish", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ inspectionId }),
+      });
 
-    const data = await res.json();
+      const data = await res.json().catch(() => ({}));
 
-    if (!res.ok) {
-      setMessage(data.error || "Failed to publish report.");
+      if (!res.ok) {
+        setMessage(data.error || "Failed to publish report.");
+        return;
+      }
+
+      setMessage("Report published and emails sent.");
+    } catch {
+      setMessage("Could not reach the server. Check your connection and try again.");
+    } finally {
       setLoading(false);
-      return;
     }
-
-    setMessage("Report published and emails sent.");
-    setLoading(false);
   }
 
   return (

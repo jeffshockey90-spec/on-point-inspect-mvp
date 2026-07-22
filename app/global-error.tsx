@@ -31,13 +31,13 @@ export default function GlobalError({
             padding: "32px",
           }}>
             <p style={{
-              color: "#5eead4",
+              color: "#14c8d2",
               fontSize: "12px",
               fontWeight: 900,
               letterSpacing: "0.28em",
               textTransform: "uppercase",
             }}>
-              On Point Inspect
+              FLOW
             </p>
 
             <h1 style={{

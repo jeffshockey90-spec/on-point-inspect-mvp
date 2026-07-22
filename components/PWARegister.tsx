@@ -111,7 +111,7 @@ export default function PWARegister() {
           </p>
 
           <h3 className="mt-1 text-lg font-extrabold">
-            Add On Point Inspect to your home screen
+            Add FLOW to your home screen
           </h3>
 
           <p className="mt-2 text-sm text-slate-300">

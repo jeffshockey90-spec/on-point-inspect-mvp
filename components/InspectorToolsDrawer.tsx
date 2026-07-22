@@ -1224,8 +1224,8 @@ export default function InspectorToolsDrawer({
             <div className="shrink-0 overflow-hidden border-b border-slate-800 bg-gradient-to-r from-[#0f172a] via-[#0b1326] to-[#061826] p-3 sm:p-5">
               <div className="flex min-w-0 items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-[11px] font-black uppercase tracking-[0.24em] text-teal-300">
-                    On Point Inspect
+                  <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[#14c8d2]">
+                    FLOW
                   </p>
                   <h2 className="mt-1 text-2xl font-black text-white sm:text-3xl">
                     Inspector Command Center

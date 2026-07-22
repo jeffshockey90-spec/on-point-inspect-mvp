@@ -555,7 +555,7 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
                   className="w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-cyan-400"
                 />
                 <p className="mt-2 text-xs text-slate-500">
-                  Leave blank to use your On Point Inspect booking page.
+                  Leave blank to use your FLOW booking page.
                 </p>
               </label>
             </div>

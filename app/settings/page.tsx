@@ -354,7 +354,7 @@ export default async function SettingsPage({
             <div className="mt-6 rounded-2xl border border-cyan-500/30 bg-cyan-500/10 p-4">
               <h2 className="font-black text-cyan-200">What happens next?</h2>
               <p className="mt-2 text-sm leading-6 text-slate-300">
-                On Point Inspect will create your company record, link it to your inspector account as the owner, and unlock Settings, public profile management, QR code tools, payments, and branding.
+                FLOW will create your company record, link it to your inspector account as the owner, and unlock Settings, public profile management, QR code tools, payments, and branding.
               </p>
             </div>
 
@@ -451,8 +451,8 @@ export default async function SettingsPage({
     <main className="min-h-screen overflow-x-hidden bg-[#050816] px-4 py-4 pb-28 text-white md:p-8 md:pb-10">
       <div className="mx-auto max-w-6xl space-y-6">
         <section className="rounded-3xl border border-slate-800 bg-[#0b1220] p-5 shadow-2xl shadow-black/20 sm:p-6 md:p-8">
-          <p className="text-xs font-black uppercase tracking-[0.25em] text-teal-300 sm:tracking-[0.35em]">
-            On Point Inspect
+          <p className="text-xs font-black uppercase tracking-[0.25em] text-[#14c8d2] sm:tracking-[0.35em]">
+            FLOW
           </p>
 
           <h1 className="mt-3 text-3xl font-black tracking-tight text-white md:text-4xl">
@@ -483,7 +483,7 @@ export default async function SettingsPage({
 
             <p className="mt-3 text-sm leading-6 text-slate-400">
               If this mentions signing up for Connect, your live Stripe account
-              still needs Stripe Connect enabled before On Point Inspect can
+              still needs Stripe Connect enabled before FLOW can
               create connected inspector accounts.
             </p>
           </div>
@@ -591,7 +591,7 @@ export default async function SettingsPage({
                 Marketing Images
               </h2>
               <p className="mt-2 text-sm leading-6 text-slate-400">
-                Create inspected property graphics using your exact On Point template.
+                Create inspected property graphics using your exact FLOW template.
               </p>
               <p className="mt-4 text-sm font-black text-teal-300 group-hover:text-teal-200">
                 Open Template →
@@ -811,12 +811,12 @@ export default async function SettingsPage({
 
               <div className="flex items-center justify-between gap-4 rounded-xl border border-slate-700 bg-slate-950 p-4 md:col-span-2">
                 <p className="min-w-0 flex-1 break-words text-sm font-bold leading-6 text-slate-200 sm:text-base">
-                  Show “Powered by On Point Inspect” on client-facing pages
+                  Show “Powered by FLOW” on client-facing pages
                 </p>
                 <SettingsToggle
                   name="show_powered_by"
                   defaultChecked={company.show_powered_by !== false}
-                  ariaLabel="Show Powered by On Point Inspect on client-facing pages"
+                  ariaLabel="Show Powered by FLOW on client-facing pages"
                 />
               </div>
             </div>

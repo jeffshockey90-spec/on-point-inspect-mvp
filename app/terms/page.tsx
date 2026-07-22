@@ -12,7 +12,7 @@ export default function TermsPage() {
 
         <div className="space-y-6 text-slate-200 leading-7">
           <p>
-            By accessing or using On Point Inspect, you agree to these Terms of
+            By accessing or using FLOW, you agree to these Terms of
             Service.
           </p>
 
@@ -21,7 +21,7 @@ export default function TermsPage() {
           </h2>
 
           <p>
-            On Point Inspect provides software tools for inspection businesses
+            FLOW provides software tools for inspection businesses
             including reporting, agreements, payments, scheduling,
             communications, analytics, and related business operations.
           </p>

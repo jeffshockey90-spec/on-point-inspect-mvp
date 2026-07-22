@@ -364,7 +364,7 @@ export default async function PublicInspectorProfilePage({
                   <span className="flex h-5 w-5 items-center justify-center rounded-full bg-teal-400 text-[10px] text-slate-950">
                     ✓
                   </span>
-                  Verified On Point Inspector
+                  Verified FLOWor
                 </div>
 
                 <h1 className="mt-5 max-w-3xl text-4xl font-black leading-tight text-white sm:text-6xl">
@@ -808,8 +808,8 @@ function FeaturedSampleReport({
           ) : (
             <div className="flex h-full min-h-[320px] items-center justify-center bg-[radial-gradient(circle_at_center,rgba(20,184,166,0.25),transparent_45%)] sm:min-h-[440px]">
               <div className="rounded-3xl border border-teal-500/30 bg-teal-500/10 px-8 py-6 text-center">
-                <p className="text-xs font-black uppercase tracking-[0.25em] text-teal-300">
-                  On Point Inspect
+                <p className="text-xs font-black uppercase tracking-[0.25em] text-[#14c8d2]">
+                  FLOW
                 </p>
                 <p className="mt-2 text-2xl font-black text-white">
                   Featured Report
@@ -891,8 +891,8 @@ function SampleReportCard({ sample }: { sample: any }) {
       ) : (
         <div className="flex h-48 items-center justify-center bg-[radial-gradient(circle_at_center,rgba(20,184,166,0.22),transparent_45%)] sm:h-56">
           <div className="rounded-3xl border border-teal-500/30 bg-teal-500/10 px-6 py-4 text-center">
-            <p className="text-xs font-black uppercase tracking-[0.25em] text-teal-300">
-              On Point Inspect
+            <p className="text-xs font-black uppercase tracking-[0.25em] text-[#14c8d2]">
+              FLOW
             </p>
             <p className="mt-2 text-xl font-black text-white">Sample Report</p>
           </div>

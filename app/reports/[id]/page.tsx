@@ -7,6 +7,7 @@ import { createServerClient } from "@supabase/ssr";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 
 import PrintButton from "../../../components/PrintButton";
+import CollapsibleReportSection from "../../../components/CollapsibleReportSection";
 import ReportFindingsSortable from "./ReportFindingsSortable";
 import OfflineReportCacheBridge from "../../../components/OfflineReportCacheBridge";
 import SendReportEmailButtons from "../../../components/SendReportEmailButtons";
@@ -570,7 +571,7 @@ function getSampleReportDescription(inspection: any) {
       "Home Inspection"
   ).trim();
 
-  return `${service || "Home Inspection"} sample report from On Point Inspect.`;
+  return `${service || "Home Inspection"} sample report from FLOW.`;
 }
 
 function getSampleReportCoverUrl(inspection: any) {
@@ -2701,6 +2702,15 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
             </p>
           </div>
 
+          <CollapsibleReportSection
+            title="AI Inspection Watchlist"
+            subtitle={
+              inspectionWatchlistItems.length > 0
+                ? `${inspectionWatchlistItems.length} item${inspectionWatchlistItems.length === 1 ? "" : "s"} to review before you finish`
+                : "No watchlist items yet"
+            }
+            accentClassName="border-cyan-500/40 text-cyan-100"
+          >
           <section className="mb-8 rounded-2xl border border-cyan-500/40 bg-cyan-500/10 p-5 shadow-xl">
             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
               <div>
@@ -2750,6 +2760,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
               </div>
             )}
           </section>
+          </CollapsibleReportSection>
 
           <div id="report-disclaimers" data-command-target="report-disclaimers" className="mb-8">
             <ReportDisclaimers inspectionId={String(inspection.id)} />

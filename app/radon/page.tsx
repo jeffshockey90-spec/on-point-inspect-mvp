@@ -218,8 +218,8 @@ export default function RadonPage() {
         <section className="rounded-3xl border border-slate-800 bg-[#0f172a] p-8 shadow-2xl">
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div>
-              <p className="text-sm font-black uppercase tracking-[0.35em] text-teal-400">
-                On Point Inspect
+              <p className="text-sm font-black uppercase tracking-[0.35em] text-[#14c8d2]">
+                FLOW
               </p>
 
               <h1 className="mt-4 text-5xl font-black text-white">

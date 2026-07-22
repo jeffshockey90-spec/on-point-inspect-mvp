@@ -418,7 +418,7 @@ export default function GlobalLiveActivity() {
 
           playNotificationSound();
           maybeShowBrowserNotification(
-            "On Point Inspect",
+            "FLOW",
             `${title} • ${address}`,
             `/reports/${inspectionId}`
           );

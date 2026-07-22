@@ -1,4 +1,4 @@
--- On Point Inspect MVP Database Schema
+-- FLOW MVP Database Schema
 -- Run this in Supabase SQL Editor, then create a public storage bucket named: inspection-photos
 
 create table if not exists clients (
@@ -136,7 +136,7 @@ create table if not exists ai_photo_reviews (
 );
 
 insert into ai_comment_presets (name, tone, default_recommendation)
-values ('On Point Default', 'Professional, clear, concise, realtor-friendly, non-alarmist, using Observation / Implication / Recommendation format.', 'Recommend further evaluation and correction by a qualified professional as needed.')
+values ('FLOW Default', 'Professional, clear, concise, realtor-friendly, non-alarmist, using Observation / Implication / Recommendation format.', 'Recommend further evaluation and correction by a qualified professional as needed.')
 on conflict do nothing;
 
 -- Basic demo-friendly access. For a real paid app, enable Supabase Auth + row level security policies.

@@ -8,8 +8,8 @@ type TargetMode = "all" | "inspectors" | "users" | "native" | "web" | "user";
 export default function OwnerPushNotificationCenter({ users, nativeCount, webCount }: { users: PushTarget[]; nativeCount: number; webCount: number }) {
   const [target, setTarget] = useState<TargetMode>("all");
   const [selectedUser, setSelectedUser] = useState("");
-  const [title, setTitle] = useState("On Point Inspect");
-  const [body, setBody] = useState("New On Point Inspect update available.");
+  const [title, setTitle] = useState("FLOW");
+  const [body, setBody] = useState("New FLOW update available.");
   const [url, setUrl] = useState("/dashboard");
   const [eventType, setEventType] = useState("owner_broadcast");
   const [busy, setBusy] = useState(false);
@@ -75,11 +75,11 @@ export default function OwnerPushNotificationCenter({ users, nativeCount, webCou
 
   function applyPreset(type: string) {
     const presets: Record<string, { title: string; body: string; url: string; eventType: string }> = {
-      update: { title: "On Point Inspect Update", body: "A new On Point Inspect update is available. Open the app to view the latest improvements.", url: "/dashboard", eventType: "app_update_notice" },
-      maintenance: { title: "On Point Inspect Maintenance", body: "Scheduled maintenance is planned. Some features may be briefly unavailable.", url: "/dashboard/owner/system", eventType: "maintenance_notice" },
-      training: { title: "On Point Inspect Tip", body: "New training and workflow improvements are available in your dashboard.", url: "/dashboard", eventType: "training_notice" },
+      update: { title: "FLOW Update", body: "A new FLOW update is available. Open the app to view the latest improvements.", url: "/dashboard", eventType: "app_update_notice" },
+      maintenance: { title: "FLOW Maintenance", body: "Scheduled maintenance is planned. Some features may be briefly unavailable.", url: "/dashboard/owner/system", eventType: "maintenance_notice" },
+      training: { title: "FLOW Tip", body: "New training and workflow improvements are available in your dashboard.", url: "/dashboard", eventType: "training_notice" },
       agreement: { title: "Agreement Reminder", body: "Please check your dashboard for pending agreements or client updates.", url: "/dashboard", eventType: "agreement_reminder" },
-      report: { title: "Report Activity", body: "New report activity has been recorded in On Point Inspect.", url: "/dashboard/owner/live", eventType: "report_activity_notice" },
+      report: { title: "Report Activity", body: "New report activity has been recorded in FLOW.", url: "/dashboard/owner/live", eventType: "report_activity_notice" },
     };
     const preset = presets[type];
     if (!preset) return;

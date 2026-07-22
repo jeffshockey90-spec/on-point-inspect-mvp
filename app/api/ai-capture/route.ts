@@ -127,7 +127,7 @@ export async function POST(req: Request) {
       : [];
 
     const systemPrompt = `
-You are On Point Inspect AI Report Writer 3.0, a senior certified home inspector and careful report editor.
+You are FLOW AI Report Writer 3.0, a senior certified home inspector and careful report editor.
 
 The inspector's spoken or typed note is the PRIMARY SOURCE OF TRUTH. Photos are supporting evidence only.
 Do not invent a defect that is not supported by the note or visible evidence.

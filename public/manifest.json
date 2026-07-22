@@ -1,7 +1,7 @@
 {
-  "name": "On Point Inspect",
-  "short_name": "On Point",
-  "description": "On Point Inspect field reporting platform",
+  "name": "FLOW",
+  "short_name": "FLOW",
+  "description": "FLOW field reporting platform",
   "start_url": "/login",
   "scope": "/",
   "display": "standalone",

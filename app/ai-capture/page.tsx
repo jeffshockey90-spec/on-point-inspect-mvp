@@ -465,7 +465,7 @@ function AICaptureContent() {
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="text-sm font-bold uppercase tracking-[0.35em] text-teal-400">
-              On Point AI
+              FLOW AI
             </p>
 
             <h1 className="mt-2 text-4xl font-extrabold">AI Capture</h1>

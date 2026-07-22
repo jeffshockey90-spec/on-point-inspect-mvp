@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 import { createClient } from "../../../../utils/supabase/server";
 import { aiPublishGuard } from "../../../../lib/ai";
+import { getOrCreateShareToken } from "../../../../lib/shareToken";
 
-function makeToken() {
-  return crypto.randomUUID();
-}
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 async function sendReportEmail({
   to,
@@ -18,22 +17,17 @@ async function sendReportEmail({
   propertyAddress?: string;
   reportLink: string;
 }) {
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    throw new Error("Missing EMAIL_USER or EMAIL_PASS in .env.local");
+  if (!process.env.RESEND_API_KEY) {
+    throw new Error("Missing RESEND_API_KEY.");
   }
 
-  const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 465,
-    secure: true,
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-  });
+  const from =
+    process.env.REPORT_EMAIL_FROM ||
+    process.env.RESEND_FROM_EMAIL ||
+    "On Point Home Inspections <reports@onpointhomeinspect.com>";
 
-  await transporter.sendMail({
-    from: `"On Point Home Inspections" <${process.env.EMAIL_USER}>`,
+  const { error } = await resend.emails.send({
+    from,
     to,
     subject: "Your Home Inspection Report Is Ready",
     html: `
@@ -100,6 +94,10 @@ async function sendReportEmail({
       </div>
     `,
   });
+
+  if (error) {
+    throw new Error(error.message || "Report email failed to send.");
+  }
 }
 
 function normalizeSection(value: any) {
@@ -217,14 +215,11 @@ export async function POST(req: Request) {
       );
     }
 
-    const shareToken = makeToken();
-
     const { data: inspection, error: inspectionError } = await supabase
       .from("inspections")
       .update({
         published: true,
         published_at: new Date().toISOString(),
-        share_token: shareToken,
       })
       .eq("id", inspectionId)
       .select("*")
@@ -237,10 +232,12 @@ export async function POST(req: Request) {
       );
     }
 
+    const shareToken = await getOrCreateShareToken(supabase, inspection);
+
     const baseUrl =
       process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
-    const reportLink = `${baseUrl}/reports/${inspectionId}?token=${shareToken}`;
+    const reportLink = `${baseUrl}/share/${shareToken}`;
 
     const sentEmails: string[] = [];
 

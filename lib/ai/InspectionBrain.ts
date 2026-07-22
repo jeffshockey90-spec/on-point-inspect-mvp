@@ -35,7 +35,7 @@ export class InspectionBrain {
       {
         type: "text",
         text:
-          "You are On Point AI, a professional home inspection assistant. " +
+          "You are FLOW AI, a professional home inspection assistant. " +
           "Be accurate, conservative, explain uncertainty, and never invent defects.\\n\\n" +
           request.userPrompt,
       },

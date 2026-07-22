@@ -347,9 +347,13 @@ function getClientPdfHref(inspection: any, inspectionId: string) {
 export default function ClientPortalPage() {
   const params = useParams();
   const router = useRouter();
-  const inspectionId = params.id as string;
+  const shareLookup = params.id as string;
 
   const [inspection, setInspection] = useState<any>(null);
+  // The real numeric inspections.id, resolved from shareLookup (which may be
+  // a share token or, for older links, the raw numeric id). Every query for
+  // this inspection's related data must use this, not the raw URL param.
+  const [inspectionId, setInspectionId] = useState("");
   const [moldTest, setMoldTest] = useState<any>(null);
   const [radonTest, setRadonTest] = useState<any>(null);
   const [checklistRows, setChecklistRows] = useState<any[]>([]);
@@ -362,7 +366,7 @@ export default function ClientPortalPage() {
 
   useEffect(() => {
     loadInspection();
-  }, [inspectionId]);
+  }, [shareLookup]);
 
   useEffect(() => {
     async function trackClientPortalView() {
@@ -378,7 +382,7 @@ export default function ClientPortalPage() {
             inspection_id: inspectionId,
             view_type: "client_portal",
             viewer_role: "client",
-            path: `/client-portal/${inspectionId}`,
+            path: `/client-portal/${shareLookup}`,
           }),
         });
       } catch (error) {
@@ -393,7 +397,7 @@ export default function ClientPortalPage() {
     return () => {
       window.clearTimeout(timer);
     };
-  }, [inspectionId]);
+  }, [inspectionId, shareLookup]);
 
   function showMessage(type: "success" | "error", text: string) {
     setMessageType(type);
@@ -401,24 +405,51 @@ export default function ClientPortalPage() {
   }
 
   async function loadInspection() {
-    if (!inspectionId) return;
+    if (!shareLookup) return;
 
     setLoading(true);
 
-    const inspectionQuery = supabase
+    const { data: inspectionByToken, error: tokenError } = await supabase
       .from("inspections")
       .select("*")
-      .eq("id", inspectionId)
-      .single();
+      .eq("public_share_token", shareLookup)
+      .maybeSingle();
+
+    let resolvedInspection = inspectionByToken;
+    let resolvedError = tokenError;
+
+    if (!resolvedInspection && /^\d+$/.test(shareLookup)) {
+      const fallbackResult = await supabase
+        .from("inspections")
+        .select("*")
+        .eq("id", shareLookup)
+        .maybeSingle();
+
+      resolvedInspection = fallbackResult.data;
+      resolvedError = fallbackResult.error;
+    }
+
+    if (resolvedError || !resolvedInspection) {
+      console.error(resolvedError);
+      setLoading(false);
+      return;
+    }
+
+    const resolvedId = String(resolvedInspection.id);
+    setInspectionId(resolvedId);
+
+    const inspectionQuery = Promise.resolve({ data: resolvedInspection, error: null });
+
+    const checklistQueryId = resolvedId;
 
     const checklistQuery = supabase
       .from("section_checklist_selections")
       .select("*")
-      .eq("inspection_id", inspectionId)
+      .eq("inspection_id", checklistQueryId)
       .order("created_at", { ascending: true });
 
     const environmentalQuery = fetch(
-      `/api/environmental-links?inspection_id=${inspectionId}`,
+      `/api/environmental-links?inspection_id=${checklistQueryId}`,
       { cache: "no-store" }
     )
       .then(async (res) => {

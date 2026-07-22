@@ -2,7 +2,7 @@ import type { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
   appId: "com.onpointhomeinspect.inspect",
-  appName: "On Point Inspect",
+  appName: "FLOW",
   webDir: "public",
   server: {
     url: "https://on-point-inspect-mvp.vercel.app",

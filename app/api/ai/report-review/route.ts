@@ -133,7 +133,7 @@ export async function POST(req: Request) {
 
     const systemPrompt = promptEngine.buildSystemPrompt(
       `
-You are On Point Inspect's AI Report Review Brain.
+You are FLOW's AI Report Review Brain.
 
 You are reviewing a home inspection report before it is published.
 

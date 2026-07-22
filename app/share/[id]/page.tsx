@@ -2427,7 +2427,7 @@ export default async function PublicSharePage({
                                                 src={getVideoPreviewSrc(image)}
                                                 muted
                                                 playsInline
-                                                preload="auto"
+                                                preload="none"
                                                 className="h-full w-full object-cover opacity-80"
                                               />
                                             )}

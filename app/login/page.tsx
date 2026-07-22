@@ -60,11 +60,19 @@ export default function LoginPage() {
   return (
     <main className="min-h-screen bg-slate-950 flex items-center justify-center p-6">
       <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-2xl">
-        <h1 className="text-3xl font-bold text-teal-400">
-          On Point Login
-        </h1>
+        <div className="flex justify-center">
+          <img
+            src="/flow-logo-mark.png"
+            alt="FLOW"
+            className="h-32 w-auto"
+          />
+        </div>
 
-        <p className="mt-2 text-slate-400">
+        <p className="mt-3 text-center text-sm font-semibold uppercase tracking-[0.2em] text-slate-300 sm:text-base">
+          Capture. <span className="text-teal-400">Organize.</span> Complete.
+        </p>
+
+        <p className="mt-4 text-center text-slate-400">
           Inspector, Client, and Realtor Access
         </p>
 

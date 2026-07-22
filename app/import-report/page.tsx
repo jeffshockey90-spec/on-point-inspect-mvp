@@ -805,7 +805,7 @@ export default function ImportReportPage() {
       <div className="mx-auto max-w-6xl">
         <header className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
           <p className="text-sm font-black uppercase tracking-[0.2em] text-amber-300">
-            On Point Inspect 1.5
+            FLOW 1.5
           </p>
 
           <h1 className="mt-2 text-4xl font-black text-white md:text-5xl">
@@ -813,7 +813,7 @@ export default function ImportReportPage() {
           </h1>
 
           <p className="mt-3 max-w-3xl text-slate-300">
-            Upload a legacy PDF or paste a public Spectora report link and convert it into a new On Point Inspect draft. This optional importer does not change your normal report workflow.
+            Upload a legacy PDF or paste a public Spectora report link and convert it into a new FLOW draft. This optional importer does not change your normal report workflow.
           </p>
         </header>
 
@@ -880,7 +880,7 @@ export default function ImportReportPage() {
               </button>
 
               <p className="mt-3 text-sm text-slate-400">
-                This uses the public Spectora report link to build a native On Point Inspect draft.
+                This uses the public Spectora report link to build a native FLOW draft.
               </p>
             </div>
           ) : (

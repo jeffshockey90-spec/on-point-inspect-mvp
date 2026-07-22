@@ -159,7 +159,7 @@ export default function PushNotificationSetup() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          title: "On Point Inspect",
+          title: "FLOW",
           body: nativeApp
             ? "Test notification from the iOS app."
             : "Test notification from Owner Dashboard.",
@@ -231,7 +231,7 @@ export default function PushNotificationSetup() {
               {permission}
             </p>
             <p className="mt-2 text-sm leading-6 text-slate-400">
-              Browser permission controls whether On Point Inspect can show notifications on this device.
+              Browser permission controls whether FLOW can show notifications on this device.
             </p>
           </div>
 

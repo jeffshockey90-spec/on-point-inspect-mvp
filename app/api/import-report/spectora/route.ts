@@ -484,7 +484,7 @@ function isFindingObservation(value: any) {
   if (commentType === "safety") return true;
   if (commentType === "maintenance") return true;
 
-  // Import important Spectora informational data too, so the On Point draft
+  // Import important Spectora informational data too, so the FLOW draft
   // carries property details, equipment details, reference photos, and section snapshot info.
   if (commentType === "info") {
     if (text.length > 20 || rawValue || hasPhotos) return true;

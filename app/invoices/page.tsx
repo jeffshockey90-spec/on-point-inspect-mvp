@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "../../utils/supabase/server";
 import InvoicePaymentButton from "../../components/InvoicePaymentButton";
 import InvoiceReminderButton from "../../components/InvoiceReminderButton";
+import { formatUsd } from "../../lib/currency";
 
 function getNumber(value: any) {
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -19,11 +20,7 @@ function getNumber(value: any) {
 }
 
 function money(value: any) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(getNumber(value));
+  return formatUsd(getNumber(value));
 }
 
 function calculatePriceFromSqft(squareFeet: any) {
@@ -184,8 +181,8 @@ export default async function InvoicesPage() {
         <section className="rounded-3xl border border-slate-800 bg-[#0f172a] p-8 shadow-2xl">
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div>
-              <p className="text-sm font-black uppercase tracking-[0.35em] text-teal-400">
-                On Point Inspect
+              <p className="text-sm font-black uppercase tracking-[0.35em] text-[#14c8d2]">
+                FLOW
               </p>
 
               <h1 className="mt-4 text-5xl font-black text-white">

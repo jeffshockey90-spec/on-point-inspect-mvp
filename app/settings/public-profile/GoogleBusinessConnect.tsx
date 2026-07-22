@@ -141,7 +141,7 @@ export default function GoogleBusinessConnect({
             {connectedPlaceId ? "Google Connected" : "Connect Google Reviews"}
           </h3>
           <p className="mt-2 text-sm leading-6 text-slate-300">
-            Search for your Google Business Profile, connect it, and On Point Inspect will display your rating and recent review snippets on your public profile.
+            Search for your Google Business Profile, connect it, and FLOW will display your rating and recent review snippets on your public profile.
           </p>
         </div>
 

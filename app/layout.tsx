@@ -4,16 +4,16 @@ import GlobalLiveActivity from "../components/GlobalLiveActivity";
 import TimeLocationEngine from "../components/time-location/TimeLocationEngine";
 
 export const metadata = {
-  title: "On Point Inspect",
+  title: "FLOW",
   description:
     "Inspection management, reports, agreements, payments, analytics, and client portals for home inspectors.",
   manifest: "/manifest.json",
-  applicationName: "On Point Inspect",
+  applicationName: "FLOW",
 
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "On Point Inspect",
+    title: "FLOW",
   },
 
   icons: {
