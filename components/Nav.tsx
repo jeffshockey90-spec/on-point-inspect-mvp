@@ -346,7 +346,7 @@ export default function Navbar() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 hidden border-b border-zinc-800 bg-[#050816]/95 backdrop-blur xl:block">
+      <header className="sticky top-0 z-50 hidden border-b border-zinc-800 bg-[#050816]/95 pt-[env(safe-area-inset-top)] backdrop-blur xl:block">
         <div className="mx-auto max-w-[1600px] px-5 py-3">
           <div className="flex items-center gap-5 rounded-2xl border border-slate-800 bg-[#0b1220]/95 px-5 py-4 shadow-2xl shadow-black/20">
             <Link

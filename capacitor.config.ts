@@ -9,7 +9,7 @@ const config: CapacitorConfig = {
     cleartext: false,
   },
   ios: {
-    contentInset: "automatic",
+    contentInset: "never",
   },
   android: {
     useLegacyBridge: true,
@@ -20,6 +20,10 @@ const config: CapacitorConfig = {
       launchAutoHide: true,
       androidSplashResourceName: "splash",
       showSpinner: false,
+    },
+    StatusBar: {
+      overlaysWebView: true,
+      style: "DARK",
     },
   },
 };

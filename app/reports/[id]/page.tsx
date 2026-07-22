@@ -2993,6 +2993,10 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
             </div>
           </section>
 
+          <div id="report-findings" data-command-target="report-findings" className="w-full max-w-none overflow-visible">
+            <ReportFindingsSortable groupedFindings={groupedFindingsArray} />
+          </div>
+
           <InspectorToolsDrawer
             badge={inspectorWorkspaceBadge}
             notifications={inspectorWorkspaceNotifications}
@@ -3972,10 +3976,6 @@ Service-life information is a general industry estimate only. Actual service lif
               </div>
             </div>
           </form>
-        </div>
-
-        <div id="report-findings" data-command-target="report-findings" className="w-full max-w-none overflow-visible">
-          <ReportFindingsSortable groupedFindings={groupedFindingsArray} />
         </div>
       </div>
     </main>

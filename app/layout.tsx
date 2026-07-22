@@ -39,6 +39,7 @@ export const viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -55,7 +56,7 @@ export default function RootLayout({
 
         <TimeLocationEngine />
 
-        <div className="min-h-screen pb-28 md:pb-0">
+        <div className="min-h-screen pt-[env(safe-area-inset-top)] pb-28 xl:pt-0 md:pb-0">
           {children}
         </div>
       </body>
