@@ -797,7 +797,7 @@ export default async function HomePage() {
 
   return (
     <main className="min-h-screen bg-[#020617] px-4 py-8 text-white">
-      <div className="mx-auto max-w-7xl space-y-8">
+      <div className="mx-auto max-w-[96rem] space-y-8">
         <section className="overflow-hidden rounded-3xl border border-teal-500/30 bg-gradient-to-br from-[#0b1220] via-[#071827] to-[#020617] p-6 shadow-2xl shadow-teal-950/30 md:p-8">
           <div className="grid gap-6 xl:grid-cols-[1.35fr_0.65fr] xl:items-start">
             <div>
@@ -1087,7 +1087,7 @@ export default async function HomePage() {
             </div>
           </section>
 
-          <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+          <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {cards.map((card) => (
               <Link
                 key={card.href + card.title}

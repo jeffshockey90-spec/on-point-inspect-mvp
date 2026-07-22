@@ -84,7 +84,8 @@ export default function ShareReportTabs({
                 ? "equipment"
                 : hash === "#inspection-findings" ||
                     hash === "#report-limitations" ||
-                    hash.startsWith("#section-")
+                    hash.startsWith("#section-") ||
+                    hash.startsWith("#finding-")
                   ? "full"
                   : null;
 
@@ -95,20 +96,30 @@ export default function ShareReportTabs({
 
       const targetId = hash.replace(/^#/, "");
 
-      window.requestAnimationFrame(() => {
-        window.requestAnimationFrame(() => {
-          const destination = document.getElementById(targetId);
+      // A double-rAF used to gate this (to let the newly-unhidden panel
+      // finish its layout pass first), but requestAnimationFrame can stall
+      // indefinitely when the tab isn't actively compositing frames -
+      // setTimeout fires reliably regardless and a task-queue tick is
+      // already enough time for the unhide to have taken effect.
+      window.setTimeout(() => {
+        const destination = document.getElementById(targetId);
 
-          if (destination) {
-            destination.scrollIntoView({
-              block: "start",
-              behavior: "smooth",
-            });
+        if (destination) {
+          // scrollIntoView (and smooth window.scrollTo) are unreliable here
+          // (this section was just unhidden and the resulting huge layout
+          // shift seems to abort the browser's own scroll animation) -
+          // compute the target position manually and jump instantly
+          // instead. Offset matches the scroll-margin-top set globally for
+          // [id] elements on this page.
+          const headerOffset = window.innerWidth >= 768 ? 220 : 180;
+          const destinationTop =
+            destination.getBoundingClientRect().top + window.scrollY - headerOffset;
 
-            window.history.replaceState(null, "", hash);
-          }
-        });
-      });
+          window.scrollTo(0, Math.max(0, destinationTop));
+
+          window.history.replaceState(null, "", hash);
+        }
+      }, 0);
     }
 
     parent.addEventListener("click", handleClick);

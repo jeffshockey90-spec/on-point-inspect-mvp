@@ -376,7 +376,7 @@ export default async function ReportsPage() {
 
   return (
     <main className="min-h-screen bg-[#020617] px-6 py-10 text-white">
-      <div className="mx-auto max-w-7xl">
+      <div className="mx-auto max-w-[96rem]">
         <div className="mb-10 flex flex-wrap items-center justify-between gap-4">
           <div>
             <h1 className="text-5xl font-bold text-teal-400">

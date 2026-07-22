@@ -59,6 +59,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Inspection not found." }, { status: 404 });
     }
 
+    if (inspection.agreement_waived === true) {
+      return NextResponse.json(
+        {
+          error:
+            "The agreement requirement is waived for this inspection. Remove the waiver first if you need to send a reminder.",
+        },
+        { status: 400 }
+      );
+    }
+
     let query = supabase
       .from("inspection_contacts")
       .select("*")

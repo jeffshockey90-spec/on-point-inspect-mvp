@@ -209,6 +209,16 @@ export async function POST(req: Request) {
       );
     }
 
+    if (inspection.agreement_waived === true) {
+      return NextResponse.json(
+        {
+          error:
+            "The agreement requirement is waived for this inspection. Remove the waiver first if you need to send a signing request.",
+        },
+        { status: 400 }
+      );
+    }
+
     const { data: contacts, error: contactsError } = await supabase
       .from("inspection_contacts")
       .select("*")

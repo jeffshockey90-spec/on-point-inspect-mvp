@@ -696,6 +696,7 @@ function AddSectionFindingForm({
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [severity, setSeverity] = useState("Recommended Repair");
+  const [location, setLocation] = useState("");
   const [observation, setObservation] = useState("");
   const [implication, setImplication] = useState("");
   const [recommendation, setRecommendation] = useState("");
@@ -839,6 +840,7 @@ function AddSectionFindingForm({
         section,
         severity,
         title: cleanTitle || cleanObservation.slice(0, 80) || "New Defect",
+        location: location.trim() || null,
         observation: cleanObservation,
         implication: implication.trim(),
         recommendation: recommendation.trim(),
@@ -848,6 +850,7 @@ function AddSectionFindingForm({
       if (error) throw error;
 
       setTitle("");
+      setLocation("");
       setObservation("");
       setImplication("");
       setRecommendation("");
@@ -967,6 +970,14 @@ function AddSectionFindingForm({
                 <option key={item}>{item}</option>
               ))}
             </select>
+
+            <input
+              value={location}
+              onChange={(event) => setLocation(event.target.value)}
+              disabled={saving}
+              placeholder="Location (e.g. Northeast corner, Master bathroom)"
+              className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60 md:col-span-2"
+            />
 
             <textarea
               value={observation}
@@ -2347,6 +2358,12 @@ function FindingCardBase({
               {findingTitle}
             </h3>
 
+            {displayFinding.location && (
+              <p className="mt-1 line-clamp-1 text-xs font-bold text-slate-400 sm:text-sm">
+                📍 {displayFinding.location}
+              </p>
+            )}
+
             {displayFinding.observation && (
               <p className="mt-1 line-clamp-1 text-xs font-semibold leading-5 text-slate-300 sm:mt-2 sm:line-clamp-2 sm:text-sm sm:leading-6">
                 {displayFinding.observation}
@@ -2530,9 +2547,15 @@ function FindingCardBase({
           )}
         </div>
 
-        <h3 className="mb-4 break-words text-2xl font-black text-white">
+        <h3 className="mb-1 break-words text-2xl font-black text-white">
           {findingTitle}{" "}
         </h3>
+
+        {displayFinding.location && (
+          <p className="mb-4 flex items-center gap-1 text-sm font-bold text-slate-400">
+            📍 {displayFinding.location}
+          </p>
+        )}
 
         <div className="mb-4 grid w-full grid-cols-2 gap-2 sm:flex sm:flex-row sm:flex-wrap">
           <button

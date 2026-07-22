@@ -570,7 +570,7 @@ export default function AgreementLibraryManager() {
           </div>
         )}
 
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
           {filteredTemplates.map((template) => {
             const templateState = template.state || template.state_code || "GENERAL";
             const templateService = template.service_type || template.template_type || "home_inspection";
@@ -745,9 +745,9 @@ export default function AgreementLibraryManager() {
               type="checkbox"
               checked={isActive}
               onChange={(e) => setIsActive(e.target.checked)}
-              className="h-4 w-4"
+              className="h-4 w-4 shrink-0"
             />
-            <span>Active</span>
+            <span className="min-w-0">Active</span>
           </label>
 
           <label className="flex items-center gap-3 rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-slate-300">
@@ -755,9 +755,9 @@ export default function AgreementLibraryManager() {
               type="checkbox"
               checked={isDefault}
               onChange={(e) => setIsDefault(e.target.checked)}
-              className="h-4 w-4"
+              className="h-4 w-4 shrink-0"
             />
-            <span>Default option for this service/state</span>
+            <span className="min-w-0">Default option for this service/state</span>
           </label>
         </div>
 

@@ -7,6 +7,8 @@ const OWNER_EMAILS = [
   "jeffshockey90@gmail.com",
 ];
 
+const OWNER_ONLY_PREFIXES = ["/dashboard", "/admin"];
+
 const INSPECTOR_ONLY_PREFIXES = [
   "/dashboard",
   "/reports",
@@ -103,6 +105,7 @@ async function getAccountRoute(user: { id: string; email?: string | null }) {
       isInspector: true,
       isRealtor: false,
       isClient: false,
+      isOwner: true,
       destination: "/",
     };
   }
@@ -115,6 +118,7 @@ async function getAccountRoute(user: { id: string; email?: string | null }) {
       isInspector: false,
       isRealtor: false,
       isClient: false,
+      isOwner: false,
       destination: "/login",
     };
   }
@@ -189,11 +193,15 @@ async function getAccountRoute(user: { id: string; email?: string | null }) {
   }
 
   // Inspector status always wins if an account has multiple relationships.
+  // Note: being an inspector does not make this account the platform owner -
+  // owner-only surfaces (/dashboard, /admin) are gated separately below,
+  // since other inspection companies' accounts are also "inspectors" here.
   if (isInspector) {
     return {
       isInspector: true,
       isRealtor,
       isClient,
+      isOwner: false,
       destination: "/",
     };
   }
@@ -203,6 +211,7 @@ async function getAccountRoute(user: { id: string; email?: string | null }) {
       isInspector: false,
       isRealtor: true,
       isClient,
+      isOwner: false,
       destination: "/realtor-portal",
     };
   }
@@ -212,6 +221,7 @@ async function getAccountRoute(user: { id: string; email?: string | null }) {
       isInspector: false,
       isRealtor: false,
       isClient: true,
+      isOwner: false,
       destination: `/client-portal/${encodeURIComponent(clientInspectionId)}`,
     };
   }
@@ -220,6 +230,7 @@ async function getAccountRoute(user: { id: string; email?: string | null }) {
     isInspector: false,
     isRealtor: false,
     isClient: false,
+    isOwner: false,
     destination: "/login",
   };
 }
@@ -291,6 +302,17 @@ export default async function proxy(request: NextRequest) {
   );
 
   if (isInspectorOnly && !account.isInspector) {
+    return NextResponse.redirect(new URL(account.destination, request.url));
+  }
+
+  // Platform-owner-only surfaces: every logged-in inspector account belongs
+  // to some inspection company on this platform, but only OWNER_EMAILS
+  // should see cross-company admin data (all users, push tokens, logs).
+  const isOwnerOnly = OWNER_ONLY_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+
+  if (isOwnerOnly && !account.isOwner) {
     return NextResponse.redirect(new URL(account.destination, request.url));
   }
 

@@ -278,7 +278,7 @@ export default async function PublicEnvironmentalSharePage({ params }: PageProps
 
   return (
     <main className="min-h-screen bg-[#020617] p-4 text-white md:p-8">
-      <div className="mx-auto max-w-5xl overflow-hidden rounded-3xl border border-slate-800 bg-[#0f172a] shadow-2xl">
+      <div className="mx-auto max-w-[80rem] overflow-hidden rounded-3xl border border-slate-800 bg-[#0f172a] shadow-2xl">
         <section className="relative overflow-hidden border-b border-slate-800 bg-[#020617]">
           {propertyPhoto ? (
             <>

@@ -92,7 +92,7 @@ export default async function RealtorsPage() {
 
   return (
     <main className="min-h-screen bg-[#020617] px-6 py-10 text-white">
-      <div className="mx-auto max-w-7xl">
+      <div className="mx-auto max-w-[96rem]">
         <section className="rounded-3xl border border-slate-800 bg-[#0f172a] p-8 shadow-2xl">
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div>

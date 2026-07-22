@@ -3,7 +3,7 @@ import AgreementLibraryManager from "./AgreementLibraryManager";
 export default function AgreementsPage() {
   return (
     <main className="min-h-screen bg-[#020617] p-4 text-white md:p-8">
-      <div className="mx-auto max-w-7xl">
+      <div className="mx-auto max-w-[96rem]">
         <div className="mb-6 rounded-2xl border border-slate-800 bg-[#0b1220] p-6">
           <p className="text-sm font-bold uppercase tracking-[0.3em] text-[#14c8d2]">
             FLOW

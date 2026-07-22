@@ -240,10 +240,12 @@ function CompactSummaryCard({
     };
   }, [videoOpen]);
 
-  function openFullFinding() {
-    const target = document.getElementById("inspection-findings");
-    target?.scrollIntoView({ block: "start" });
-  }
+  // A plain onClick + scrollIntoView doesn't work here: the Full Report
+  // panel is hidden (`hidden` attribute) until ShareReportTabs' own click
+  // listener switches tabs, which it only does for real `<a href="#...">`
+  // clicks. Rendering a real anchor lets that existing tab-switch-then-scroll
+  // logic handle this correctly instead of scrolling to a hidden element.
+  const fullFindingHref = `#finding-${finding.id}`;
 
   return (
     <article
@@ -388,6 +390,61 @@ function CompactSummaryCard({
 
       {open && (
         <div className="border-t border-slate-800 px-4 pb-4 pt-4">
+          {(() => {
+            const allMedia = (Array.isArray(finding?.photos) ? finding.photos : []).filter(
+              (item: any) => Boolean(getMediaUrl(item)),
+            );
+
+            if (allMedia.length === 0) return null;
+
+            const photoItems = allMedia.filter(
+              (item: any) => !isVideoMedia(item, getMediaUrl(item)),
+            );
+            const galleryImages = photoItems.map((item: any) => ({
+              src: getPreviewUrl(item) || getMediaUrl(item),
+              fullSrc: getMediaUrl(item),
+              alt: title,
+            }));
+
+            return (
+              <div className={`mb-4 grid gap-3 ${allMedia.length > 1 ? "sm:grid-cols-2" : ""}`}>
+                {allMedia.map((item: any, mediaIndex: number) => {
+                  const itemUrl = getMediaUrl(item);
+                  const itemPreviewUrl = getPreviewUrl(item);
+                  const itemIsVideo = isVideoMedia(item, itemUrl);
+                  const photoIndex = photoItems.indexOf(item);
+
+                  return itemIsVideo ? (
+                    <video
+                      key={item.id || item.file_path || itemUrl || mediaIndex}
+                      src={itemUrl}
+                      poster={itemPreviewUrl && itemPreviewUrl !== itemUrl ? itemPreviewUrl : undefined}
+                      controls
+                      muted
+                      playsInline
+                      preload="metadata"
+                      className="max-h-[360px] w-full rounded-xl border border-slate-700 bg-black object-contain"
+                    >
+                      Your browser does not support video playback.
+                    </video>
+                  ) : (
+                    <ExpandableReportImage
+                      key={item.id || item.file_path || itemUrl || mediaIndex}
+                      src={itemPreviewUrl || itemUrl}
+                      fullSrc={itemUrl}
+                      alt={`${title} photo ${mediaIndex + 1}`}
+                      badgeText="Tap to enlarge"
+                      className="max-h-[360px] w-full rounded-xl border border-slate-700 object-contain"
+                      buttonClassName="block w-full overflow-hidden rounded-xl border border-slate-700 bg-black text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
+                      images={galleryImages}
+                      index={photoIndex >= 0 ? photoIndex : 0}
+                    />
+                  );
+                })}
+              </div>
+            );
+          })()}
+
           <div className="grid gap-3">
             {finding.observation && (
               <div className="rounded-xl border border-blue-500/40 bg-blue-500/10 p-4">
@@ -423,14 +480,13 @@ function CompactSummaryCard({
             )}
           </div>
 
-          <button
-            type="button"
-            onClick={openFullFinding}
+          <a
+            href={fullFindingHref}
             data-fast-click="true"
-            className="mt-4 min-h-11 rounded-xl border border-cyan-500 px-4 py-2 text-sm font-black text-cyan-200 active:scale-[0.98] active:opacity-80 [touch-action:manipulation]"
+            className="mt-4 inline-flex min-h-11 items-center rounded-xl border border-cyan-500 px-4 py-2 text-sm font-black text-cyan-200 active:scale-[0.98] active:opacity-80 [touch-action:manipulation]"
           >
             Open Full Report Finding
-          </button>
+          </a>
         </div>
       )}
     </article>

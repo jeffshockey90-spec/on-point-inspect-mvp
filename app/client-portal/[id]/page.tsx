@@ -256,7 +256,13 @@ function isPaymentComplete(inspection: any) {
   return false;
 }
 
+function isAgreementWaived(inspection: any) {
+  return inspection?.agreement_waived === true;
+}
+
 function isAgreementSigned(inspection: any) {
+  if (isAgreementWaived(inspection)) return true;
+
   const agreementStatus = String(
     inspection?.agreement_status ||
       inspection?.agreement_state ||
@@ -568,6 +574,7 @@ export default function ClientPortalPage() {
     paymentComplete || paymentStatusLower === "waived";
 
   const agreementSigned = isAgreementSigned(inspection);
+  const agreementWaived = isAgreementWaived(inspection);
   const reportPublished = isReportPublished(inspection);
   const reportUnlocked =
     agreementSigned && paymentRequirementComplete && reportPublished;
@@ -594,11 +601,8 @@ export default function ClientPortalPage() {
   );
 
   return (
-    <main
-      className="min-h-screen bg-[#020617] px-4 pb-6 text-white md:px-8 md:pb-8"
-      style={{ paddingTop: "max(16px, env(safe-area-inset-top))" }}
-    >
-      <div className="mx-auto max-w-6xl space-y-6">
+    <main className="min-h-screen bg-[#020617] px-4 pb-6 pt-4 text-white md:px-8 md:pb-8">
+      <div className="mx-auto max-w-[80rem] space-y-6">
         <button
           type="button"
           onClick={goBack}
@@ -681,9 +685,9 @@ export default function ClientPortalPage() {
         <section className="grid gap-4 md:grid-cols-3">
           <StatusCard
             title="Agreement"
-            status={agreementSigned ? "Signed" : agreementStatus}
+            status={agreementSigned ? (agreementWaived ? "Waived" : "Signed") : agreementStatus}
             complete={agreementSigned}
-            completeLabel="Agreement Signed"
+            completeLabel={agreementWaived ? "Agreement Waived" : "Agreement Signed"}
             incompleteLabel="Needs Signature"
           />
 
@@ -719,7 +723,7 @@ export default function ClientPortalPage() {
             <div className="mt-5 grid gap-3 md:grid-cols-3">
               <RequirementRow
                 complete={agreementSigned}
-                label="Agreement Signed"
+                label={agreementWaived ? "Agreement Waived" : "Agreement Signed"}
               />
               <RequirementRow
                 complete={paymentRequirementComplete}
@@ -915,7 +919,9 @@ export default function ClientPortalPage() {
           <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {agreementSigned ? (
               <div className="rounded-xl border border-green-500/40 bg-green-500/10 px-6 py-4 text-left font-bold text-green-300">
-                <span className="block text-lg">Agreement Signed</span>
+                <span className="block text-lg">
+                  {agreementWaived ? "Agreement Waived" : "Agreement Signed"}
+                </span>
                 <span className="mt-1 block text-sm font-medium opacity-80">
                   This requirement is complete.
                 </span>

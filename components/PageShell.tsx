@@ -9,8 +9,8 @@ export default function PageShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div
-      className={`min-h-screen pt-[env(safe-area-inset-top)] pb-28 xl:pt-0 md:pb-0 ${
-        showsNavShell ? "xl:pl-64" : ""
+      className={`min-h-screen pt-[env(safe-area-inset-top)] xl:pt-0 ${
+        showsNavShell ? "pb-28 md:pb-0 xl:pl-64" : ""
       }`}
     >
       {children}

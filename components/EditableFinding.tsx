@@ -38,6 +38,7 @@ function EditableFinding({ finding }: { finding: any }) {
   const [severity, setSeverity] = useState(
     finding.severity || "Recommended Repair"
   );
+  const [location, setLocation] = useState(finding.location || "");
   const [observation, setObservation] = useState(finding.observation || "");
   const [implication, setImplication] = useState(finding.implication || "");
   const [recommendation, setRecommendation] = useState(
@@ -117,6 +118,7 @@ function EditableFinding({ finding }: { finding: any }) {
           title,
           section,
           severity,
+          location: location.trim() || null,
           observation,
           implication,
           recommendation,
@@ -676,6 +678,14 @@ function EditableFinding({ finding }: { finding: any }) {
       <InlineStatusMessage type={messageType} message={message} />
       <Input label="Title" value={title} onChange={setTitle} disabled={saving} />
 
+      <Input
+        label="Location"
+        value={location}
+        onChange={setLocation}
+        disabled={saving}
+        placeholder="e.g. Northeast corner, Master bathroom"
+      />
+
       <div className="grid w-full max-w-full gap-3 md:grid-cols-2">
         <Select
           label="Section"
@@ -769,11 +779,13 @@ function Input({
   value,
   onChange,
   disabled = false,
+  placeholder,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   disabled?: boolean;
+  placeholder?: string;
 }) {
   return (
     <label className="block">
@@ -782,6 +794,7 @@ function Input({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
+        placeholder={placeholder}
         className="min-h-[46px] w-full min-w-0 rounded-xl border border-slate-700 bg-black p-3 text-base font-bold text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
       />
     </label>

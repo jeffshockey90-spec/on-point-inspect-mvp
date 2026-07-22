@@ -216,7 +216,7 @@ export default async function SchedulePage() {
 
   return (
     <main className="min-h-screen bg-[#020617] p-4 text-white sm:p-6">
-      <div className="mx-auto max-w-7xl">
+      <div className="mx-auto max-w-[96rem]">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold text-teal-400 sm:text-4xl">

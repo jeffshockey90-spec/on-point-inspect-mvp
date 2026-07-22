@@ -66,81 +66,70 @@ function normalizeSection(section: string | null | undefined) {
   return aliases[clean] || clean;
 }
 
-function getReportFindingTitle(finding: any) {
-  return (
+// Matches the identical numbering scheme used by the report builder
+// (app/reports/[id]/page.tsx) and the client-facing share page
+// (app/share/[id]/page.tsx) - this used to be a separate, differently
+// grouped algorithm (grouped by matching title text, always recomputed),
+// which caused the PDF's item numbers to disagree with the report.
+function getRepairNumberTitle(finding: any) {
+  const rawTitle = String(
     finding?.title ||
-    finding?.finding_title ||
-    finding?.defect_title ||
-    finding?.name ||
-    "Untitled Finding"
-  );
+      finding?.finding_title ||
+      finding?.defect_title ||
+      finding?.name ||
+      "Untitled Finding"
+  ).trim();
+
+  return rawTitle.replace(/^\d+\.\d+\.\d+\s*[-–—:]\s*/g, "");
 }
 
-function isNumberedReportFinding(finding: any) {
-  const section = String(finding?.section || "").toLowerCase().trim();
-  const title = String(getReportFindingTitle(finding) || "").toLowerCase().trim();
-
-  if (section === "inspection details") return false;
-  if (section === "disclaimers") return false;
-  if (
-    [
-      "in attendance",
-      "occupancy",
-      "style",
-      "temperature",
-      "type of building",
-      "weather conditions",
-    ].includes(title)
-  ) {
-    return false;
-  }
-  if (title.includes("section reference photo")) return false;
-  if (title.includes("reference photo")) return false;
-
-  return true;
+function getRepairItemGroupLabel(finding: any) {
+  return String(
+    finding?.component ||
+      finding?.subsection ||
+      finding?.category ||
+      finding?.system ||
+      finding?.group_title ||
+      finding?.item_group ||
+      "General"
+  ).trim() || "General";
 }
 
 function buildFindingItemNumbers(findings: any[]) {
-  const titleIndexesBySection = new Map<string, Map<string, number>>();
-  const itemCountersBySectionTitle = new Map<string, Map<number, number>>();
+  const sectionGroupMap = new Map<string, number>();
+  const sectionGroupCounts = new Map<string, number>();
 
   return (findings || []).map((finding: any) => {
     const section = normalizeSection(finding?.section);
+    const sectionNumberRaw = SECTION_ORDER.indexOf(section) + 1;
+    const sectionNumber = sectionNumberRaw > 0 ? sectionNumberRaw : SECTION_ORDER.length + 1;
+    const groupLabel = getRepairItemGroupLabel(finding).toLowerCase();
+    const sectionGroupKey = `${sectionNumber}:${groupLabel}`;
 
-    if (!isNumberedReportFinding({ ...finding, section })) {
-      return { ...finding, section };
+    if (!sectionGroupMap.has(sectionGroupKey)) {
+      const existingGroupsForSection = Array.from(sectionGroupMap.keys()).filter((key) =>
+        key.startsWith(`${sectionNumber}:`)
+      ).length;
+
+      sectionGroupMap.set(sectionGroupKey, existingGroupsForSection + 1);
     }
 
-    const sectionIndex = SECTION_ORDER.indexOf(section);
-    const sectionNumber = sectionIndex >= 0 ? sectionIndex + 1 : SECTION_ORDER.length + 1;
-    const titleKey = String(getReportFindingTitle(finding) || "Untitled Finding")
-      .toLowerCase()
-      .replace(/\s+/g, " ")
-      .trim();
+    const groupNumber = sectionGroupMap.get(sectionGroupKey) || 1;
+    const countKey = `${sectionNumber}.${groupNumber}`;
+    const nextCount = (sectionGroupCounts.get(countKey) || 0) + 1;
+    sectionGroupCounts.set(countKey, nextCount);
 
-    if (!titleIndexesBySection.has(section)) {
-      titleIndexesBySection.set(section, new Map<string, number>());
-    }
-
-    if (!itemCountersBySectionTitle.has(section)) {
-      itemCountersBySectionTitle.set(section, new Map<number, number>());
-    }
-
-    const titleIndexes = titleIndexesBySection.get(section)!;
-
-    if (!titleIndexes.has(titleKey)) {
-      titleIndexes.set(titleKey, titleIndexes.size + 1);
-    }
-
-    const titleNumber = titleIndexes.get(titleKey)!;
-    const itemCounters = itemCountersBySectionTitle.get(section)!;
-    const itemNumber = (itemCounters.get(titleNumber) || 0) + 1;
-    itemCounters.set(titleNumber, itemNumber);
+    const repairItemNumber =
+      finding?.repair_item_number ||
+      finding?.item_number ||
+      finding?.finding_number ||
+      `${sectionNumber}.${groupNumber}.${nextCount}`;
 
     return {
       ...finding,
       section,
-      report_item_number: `${sectionNumber}.${titleNumber}.${itemNumber}`,
+      original_title: getRepairNumberTitle(finding),
+      report_item_number: repairItemNumber,
     };
   });
 }
@@ -607,18 +596,31 @@ export default async function PrintableReportPage({ params }: PageProps) {
           .in("limitation_id", limitationIds)
       : { data: [] };
 
-  const limitationPhotoSignedUrlMap = await createSignedUrlMap(
-    supabase,
-    (limitationPhotosRaw || []).map((photo: any) => photo.file_path)
+  // limitation_photos has no file_path column (unlike section_reference_photos
+  // below), and the inspection-photos bucket is private, so its stored
+  // photo_url/thumbnail_url values 404 if used directly - derive the real
+  // storage path from the URL and sign it, same as every other photo table.
+  const limitationPhotoStoragePaths = (limitationPhotosRaw || []).map((photo: any) =>
+    getStoragePathFromUrl(photo.thumbnail_url || photo.photo_url)
   );
 
-  const limitationPhotosWithUrls = (limitationPhotosRaw || []).map((photo: any) => ({
-    ...photo,
-    signed_url:
-      (photo.file_path && limitationPhotoSignedUrlMap[photo.file_path]) ||
-      photo.public_url ||
-      "",
-  }));
+  const limitationPhotoSignedUrlMap = await createSignedUrlMap(
+    supabase,
+    limitationPhotoStoragePaths
+  );
+
+  const limitationPhotosWithUrls = (limitationPhotosRaw || []).map((photo: any) => {
+    const storagePath = getStoragePathFromUrl(photo.thumbnail_url || photo.photo_url);
+
+    return {
+      ...photo,
+      signed_url:
+        (storagePath && limitationPhotoSignedUrlMap[storagePath]) ||
+        photo.thumbnail_url ||
+        photo.photo_url ||
+        "",
+    };
+  });
 
   const photosByLimitationId = limitationPhotosWithUrls.reduce(
     (acc: Record<string, any[]>, photo: any) => {
@@ -1192,6 +1194,12 @@ export default async function PrintableReportPage({ params }: PageProps) {
                             <h4 className="mt-1 text-2xl font-black text-slate-950">
                               {finding.title || "Untitled Finding"}
                             </h4>
+
+                            {finding.location && (
+                              <p className="mt-1 text-sm font-bold text-slate-600">
+                                📍 {finding.location}
+                              </p>
+                            )}
                           </div>
 
                           {finding.severity && (
@@ -1207,27 +1215,44 @@ export default async function PrintableReportPage({ params }: PageProps) {
                       </div>
 
                       <div className="p-6">
-                        {(finding.image_url ||
-                          (finding.photos && finding.photos.length > 0)) && (
-                          <div className="mb-6 grid gap-4 md:grid-cols-2 print:grid-cols-2">
-                            {finding.image_url && (
-                              <img
-                                src={finding.image_url}
-                                alt={finding.title || "Finding photo"} loading="lazy" decoding="async" fetchPriority="low"
-                              className="finding-photo-print max-h-[360px] w-full rounded-xl border object-contain"
-                              />
-                            )}
+                        {(() => {
+                          // finding.image_url is a legacy field that duplicates
+                          // whichever photo is also saved as a row in the
+                          // photos table - only fall back to it when there are
+                          // no photos rows at all, otherwise it renders twice.
+                          const hasPhotoRows = (finding.photos?.length || 0) > 0;
+                          const showLegacyImage = Boolean(finding.image_url) && !hasPhotoRows;
 
-                            {(finding.photos || []).map((photo: any) => (
-                              <img
-                                key={photo.id}
-                                src={photo.signed_url}
-                                alt={finding.title || "Finding photo"}
-                              className="finding-photo-print max-h-[360px] w-full rounded-xl border object-contain"
-                              />
-                            ))}
-                          </div>
-                        )}
+                          if (!showLegacyImage && !hasPhotoRows) return null;
+
+                          const photoCount =
+                            (showLegacyImage ? 1 : 0) + (finding.photos?.length || 0);
+                          const gridClass =
+                            photoCount > 1 ? "md:grid-cols-2 print:grid-cols-2" : "";
+                          const photoHeightClass =
+                            photoCount > 1 ? "max-h-[360px]" : "max-h-[480px]";
+
+                          return (
+                            <div className={`mb-6 grid gap-4 ${gridClass}`}>
+                              {showLegacyImage && (
+                                <img
+                                  src={finding.image_url}
+                                  alt={finding.title || "Finding photo"} loading="lazy" decoding="async" fetchPriority="low"
+                                className={`finding-photo-print w-full rounded-xl border object-contain ${photoHeightClass}`}
+                                />
+                              )}
+
+                              {(finding.photos || []).map((photo: any) => (
+                                <img
+                                  key={photo.id}
+                                  src={photo.signed_url}
+                                  alt={finding.title || "Finding photo"}
+                                className={`finding-photo-print w-full rounded-xl border object-contain ${photoHeightClass}`}
+                                />
+                              ))}
+                            </div>
+                          );
+                        })()}
 
                         <FindingTextBlock
                           title="Observation"

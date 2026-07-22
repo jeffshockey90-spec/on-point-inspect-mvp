@@ -1,6 +1,9 @@
 
+import { redirect } from "next/navigation";
 import { formatAppValue } from "../../../lib/app-time";
 import { createClient } from "../../../utils/supabase/server";
+
+const OWNER_EMAILS = ["jeff@onpointhomeinspect.com", "jeffshockey90@gmail.com"];
 
 type LogRow = {
   id: number;
@@ -72,6 +75,15 @@ function LogTable({
 
 export default async function AdminLogsPage() {
   const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const userEmail = String(user?.email || "").toLowerCase();
+  if (!user || !OWNER_EMAILS.includes(userEmail)) {
+    redirect("/");
+  }
 
   const { data: appLogs } = await supabase
     .from("app_logs")

@@ -1175,8 +1175,13 @@ export default async function PublicSharePage({
           .in("limitation_id", limitationIds)
       : { data: [] };
 
+  // limitation_photos has no file_path column - it stores photo_url (full
+  // size) and thumbnail_path/thumbnail_url instead. The inspection-photos
+  // bucket is private, so photo_url's "public" URL 404s if used directly -
+  // derive the real storage path from it and sign it, same as every other
+  // photo table.
   const limitationPhotoPaths = (limitationPhotosRaw || [])
-    .map((photo: any) => photo.file_path)
+    .map((photo: any) => getStoragePathFromUrl(photo.photo_url))
     .filter(Boolean);
 
   const limitationThumbnailPaths = (limitationPhotosRaw || [])
@@ -1186,21 +1191,21 @@ export default async function PublicSharePage({
   const limitationSignedUrlMap = await createSignedUrlMap(limitationPhotoPaths);
   const limitationThumbnailSignedUrlMap = await createSignedUrlMap(limitationThumbnailPaths);
 
-  const limitationPhotosWithUrls = (limitationPhotosRaw || []).map((photo: any) => ({
-    ...photo,
-    signed_url:
-      (photo.file_path && limitationSignedUrlMap[photo.file_path]) ||
-      photo.signed_url ||
-      photo.public_url ||
-      "",
-    signed_thumbnail_url:
-      (photo.thumbnail_path && limitationThumbnailSignedUrlMap[photo.thumbnail_path]) ||
-      photo.thumbnail_url ||
-      (photo.file_path && limitationSignedUrlMap[photo.file_path]) ||
-      photo.signed_url ||
-      photo.public_url ||
-      "",
-  }));
+  const limitationPhotosWithUrls = (limitationPhotosRaw || []).map((photo: any) => {
+    const photoPath = getStoragePathFromUrl(photo.photo_url);
+
+    return {
+      ...photo,
+      signed_url:
+        (photoPath && limitationSignedUrlMap[photoPath]) ||
+        (photo.thumbnail_path && limitationThumbnailSignedUrlMap[photo.thumbnail_path]) ||
+        "",
+      signed_thumbnail_url:
+        (photo.thumbnail_path && limitationThumbnailSignedUrlMap[photo.thumbnail_path]) ||
+        (photoPath && limitationSignedUrlMap[photoPath]) ||
+        "",
+    };
+  });
 
   const photosByLimitationId = limitationPhotosWithUrls.reduce(
     (acc: Record<string, any[]>, photo: any) => {
@@ -1524,7 +1529,7 @@ export default async function PublicSharePage({
         />
       )}
 
-      <div className="mx-auto w-full max-w-7xl overflow-x-hidden rounded-3xl border border-slate-800 bg-[#0f172a] shadow-2xl">
+      <div className="mx-auto w-full max-w-[96rem] overflow-x-hidden rounded-3xl border border-slate-800 bg-[#0f172a] shadow-2xl">
         <section className="relative overflow-hidden border-b border-slate-800 bg-[#020617]">
           {propertyPhoto ? (
             <>
@@ -2405,7 +2410,7 @@ export default async function PublicSharePage({
                           const isVideo = isVideoMedia(primaryMedia || finding, image);
 
                           return (
-                            <div key={finding.id}>
+                            <div key={finding.id} id={`finding-${finding.id}`} className="scroll-mt-[180px] md:scroll-mt-[220px]">
                               <details className="group overflow-hidden rounded-2xl border border-slate-700 bg-[#0f172a] shadow-xl md:hidden">
                                 <summary className="cursor-pointer list-none">
                                   <div className="flex gap-3 p-3">
@@ -2468,6 +2473,12 @@ export default async function PublicSharePage({
                                         {title}
                                       </h4>
 
+                                      {finding.location && (
+                                        <p className="mt-1 truncate text-xs font-bold text-slate-400">
+                                          📍 {finding.location}
+                                        </p>
+                                      )}
+
                                       <p className="mt-1 truncate text-[11px] font-bold uppercase tracking-wide text-teal-300">
                                         {finding.section}
                                       </p>
@@ -2484,7 +2495,17 @@ export default async function PublicSharePage({
                                 </summary>
 
                                 <div className="border-t border-slate-700 p-4">
-                                  {mediaList.length > 0 && (
+                                  {mediaList.length > 0 && (() => {
+                                    const photoItems = mediaList.filter(
+                                      (media: any) => !isVideoMedia(media, getMediaUrl(media))
+                                    );
+                                    const galleryImages = photoItems.map((media: any) => ({
+                                      src: getMediaPreviewUrl(media) || getMediaUrl(media),
+                                      fullSrc: getMediaUrl(media),
+                                      alt: title,
+                                    }));
+
+                                    return (
                                     <div className="mb-4 grid gap-3">
                                       {mediaList.map((media: any, mediaIndex: number) => {
                                         const mediaUrl = getMediaUrl(media);
@@ -2492,6 +2513,8 @@ export default async function PublicSharePage({
                                         const mediaIsVideo = isVideoMedia(media, mediaUrl);
 
                                         if (!mediaUrl) return null;
+
+                                        const photoIndex = photoItems.indexOf(media);
 
                                         return mediaIsVideo ? (
                                           <video
@@ -2515,11 +2538,14 @@ export default async function PublicSharePage({
                                             badgeText="Tap to enlarge"
                                             className="max-h-[520px] w-full object-contain"
                                             buttonClassName="block w-full overflow-hidden rounded-xl border border-slate-700 bg-black text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
+                                            images={galleryImages}
+                                            index={photoIndex >= 0 ? photoIndex : 0}
                                           />
                                         );
                                       })}
                                     </div>
-                                  )}
+                                    );
+                                  })()}
 
                                   <div className="grid gap-3">
                                     <FindingTextCard
@@ -2567,6 +2593,12 @@ export default async function PublicSharePage({
                                       <h4 className="mt-2 text-2xl font-black text-teal-300">
                                         {title}
                                       </h4>
+
+                                      {finding.location && (
+                                        <p className="mt-1 text-sm font-bold text-slate-400">
+                                          📍 {finding.location}
+                                        </p>
+                                      )}
                                     </div>
 
                                     <span
@@ -2580,14 +2612,30 @@ export default async function PublicSharePage({
                                 </div>
 
                                 <div className="p-5">
-                                  {mediaList.length > 0 && (
-                                    <div className="mb-5 grid gap-4 md:grid-cols-2">
+                                  {mediaList.length > 0 && (() => {
+                                    const photoItems = mediaList.filter(
+                                      (media: any) => !isVideoMedia(media, getMediaUrl(media))
+                                    );
+                                    const galleryImages = photoItems.map((media: any) => ({
+                                      src: getMediaPreviewUrl(media) || getMediaUrl(media),
+                                      fullSrc: getMediaUrl(media),
+                                      alt: title,
+                                    }));
+
+                                    return (
+                                    <div
+                                      className={`mb-5 grid gap-4 ${
+                                        mediaList.length > 1 ? "md:grid-cols-2" : ""
+                                      }`}
+                                    >
                                       {mediaList.map((media: any, mediaIndex: number) => {
                                         const mediaUrl = getMediaUrl(media);
                                         const mediaPreviewUrl = getMediaPreviewUrl(media);
                                         const mediaIsVideo = isVideoMedia(media, mediaUrl);
 
                                         if (!mediaUrl) return null;
+
+                                        const photoIndex = photoItems.indexOf(media);
 
                                         return mediaIsVideo ? (
                                           <video
@@ -2598,7 +2646,9 @@ export default async function PublicSharePage({
                                             muted
                                             playsInline
                                             preload="metadata"
-                                            className="max-h-[520px] w-full rounded-xl border border-slate-700 bg-black object-contain"
+                                            className={`w-full rounded-xl border border-slate-700 bg-black object-contain ${
+                                              mediaList.length > 1 ? "max-h-[520px]" : "max-h-[640px]"
+                                            }`}
                                           >
                                             Your browser does not support video playback.
                                           </video>
@@ -2609,13 +2659,18 @@ export default async function PublicSharePage({
                                             fullSrc={mediaUrl}
                                             alt={`Inspection finding photo ${mediaIndex + 1}`}
                                             badgeText="Tap to enlarge"
-                                            className="max-h-[520px] w-full object-contain"
+                                            className={`w-full object-contain ${
+                                              mediaList.length > 1 ? "max-h-[520px]" : "max-h-[640px]"
+                                            }`}
                                             buttonClassName="block w-full overflow-hidden rounded-xl border border-slate-700 bg-black text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
+                                            images={galleryImages}
+                                            index={photoIndex >= 0 ? photoIndex : 0}
                                           />
                                         );
                                       })}
                                     </div>
-                                  )}
+                                    );
+                                  })()}
 
                                   <div className="grid gap-4">
                                     <FindingTextCard
@@ -2754,6 +2809,12 @@ function ClientSummaryFindingCard({
             {title}
           </h4>
 
+          {finding.location && (
+            <p className="mt-1 line-clamp-1 text-xs font-bold text-slate-400">
+              📍 {finding.location}
+            </p>
+          )}
+
           <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-300 group-open:line-clamp-none">
             {summary}
           </p>
@@ -2766,42 +2827,61 @@ function ClientSummaryFindingCard({
       </summary>
 
       <div className="border-t border-slate-800 p-4">
-        {mediaList.length > 0 && (
-          <div className="mb-4 grid gap-3">
-            {mediaList.map((item: any, mediaIndex: number) => {
-              const itemUrl = getMediaUrl(item);
-              const itemPreviewUrl = getMediaPreviewUrl(item);
-              const itemIsVideo = isVideoMedia(item, itemUrl);
+        {mediaList.length > 0 && (() => {
+          const photoItems = mediaList.filter(
+            (item: any) => !isVideoMedia(item, getMediaUrl(item))
+          );
+          const galleryImages = photoItems.map((item: any) => ({
+            src: getMediaPreviewUrl(item) || getMediaUrl(item),
+            fullSrc: getMediaUrl(item),
+            alt: title,
+          }));
 
-              if (!itemUrl) return null;
+          return (
+            <div className="mb-4 grid gap-3">
+              {mediaList.map((item: any, mediaIndex: number) => {
+                const itemUrl = getMediaUrl(item);
+                const itemPreviewUrl = getMediaPreviewUrl(item);
+                const itemIsVideo = isVideoMedia(item, itemUrl);
 
-              return itemIsVideo ? (
-                <video
-                  key={item.id || item.file_path || itemUrl || mediaIndex}
-                  src={getVideoPreviewSrc(itemUrl)}
-                  poster={itemPreviewUrl && itemPreviewUrl !== itemUrl ? itemPreviewUrl : undefined}
-                  controls
-                  muted
-                  playsInline
-                  preload="metadata"
-                  className="max-h-[360px] w-full rounded-xl border border-slate-700 bg-black object-contain"
-                >
-                  Your browser does not support video playback.
-                </video>
-              ) : (
-                <img
-                  key={item.id || item.file_path || itemUrl || mediaIndex}
-                  src={itemPreviewUrl || itemUrl}
-                  alt={`Summary finding media ${mediaIndex + 1}`}
-                  loading="lazy"
-                  decoding="async"
-                  fetchPriority="low"
-                  className="max-h-[360px] w-full rounded-xl border border-slate-700 object-contain"
-                />
-              );
-            })}
-          </div>
-        )}
+                if (!itemUrl) return null;
+
+                if (itemIsVideo) {
+                  return (
+                    <video
+                      key={item.id || item.file_path || itemUrl || mediaIndex}
+                      src={getVideoPreviewSrc(itemUrl)}
+                      poster={itemPreviewUrl && itemPreviewUrl !== itemUrl ? itemPreviewUrl : undefined}
+                      controls
+                      muted
+                      playsInline
+                      preload="metadata"
+                      className="max-h-[360px] w-full rounded-xl border border-slate-700 bg-black object-contain"
+                    >
+                      Your browser does not support video playback.
+                    </video>
+                  );
+                }
+
+                const photoIndex = photoItems.indexOf(item);
+
+                return (
+                  <ExpandableReportImage
+                    key={item.id || item.file_path || itemUrl || mediaIndex}
+                    src={itemPreviewUrl || itemUrl}
+                    fullSrc={itemUrl}
+                    alt={`Summary finding media ${mediaIndex + 1}`}
+                    badgeText="Tap to enlarge"
+                    className="max-h-[360px] w-full rounded-xl border border-slate-700 object-contain"
+                    buttonClassName="block w-full overflow-hidden rounded-xl border border-slate-700 bg-black text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
+                    images={galleryImages}
+                    index={photoIndex >= 0 ? photoIndex : 0}
+                  />
+                );
+              })}
+            </div>
+          );
+        })()}
 
         <div className="grid gap-3 lg:grid-cols-3">
           <FindingTextCard title="Observation" value={finding.observation} tone="blue" />

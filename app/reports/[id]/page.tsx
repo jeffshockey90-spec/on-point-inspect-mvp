@@ -2567,7 +2567,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
         sections={SECTION_ORDER}
         clientInfo={inspection}
       />
-      <div className="mx-auto w-full max-w-none px-1 py-2 sm:px-2 md:px-4 lg:max-w-7xl lg:py-8">
+      <div className="mx-auto w-full max-w-none px-1 py-2 sm:px-2 md:px-4 lg:max-w-[96rem] lg:py-8">
         <div className="mb-4 overflow-x-hidden overflow-y-visible rounded-2xl border border-slate-800 bg-[#0f172a] p-1.5 shadow-xl sm:p-3 md:rounded-3xl md:p-6">
           <div className="mb-6 flex max-w-full flex-wrap gap-3 overflow-x-hidden overflow-y-visible">
             <PrintButton
@@ -3992,7 +3992,7 @@ Service-life information is a general industry estimate only. Actual service lif
                   value={inspection.year_built}
                 />
 
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                   <EditItem label="City" name="city" value={inspection.city} />
                   <EditItem
                     label="State"

@@ -283,7 +283,7 @@ export default function ReportSummaryPage() {
 
   return (
     <main className="min-h-screen bg-[#020617] px-6 py-10 text-white">
-      <div className="mx-auto max-w-7xl">
+      <div className="mx-auto max-w-[96rem]">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-4xl font-extrabold text-teal-400">
