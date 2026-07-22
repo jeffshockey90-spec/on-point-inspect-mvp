@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { supabase } from "../../../lib/supabaseClient";
 import FastLinkButton from "../../../components/FastLinkButton";
 import { getInspectionShareToken } from "../../../lib/shareToken";
 
@@ -334,9 +333,11 @@ function isStandaloneEnvironmentalService(inspection: any) {
 }
 
 function getClientReportHref(inspection: any, inspectionId: string) {
+  const token = getInspectionShareToken(inspection) || inspectionId;
+
   return isStandaloneEnvironmentalService(inspection)
-    ? `/environmental-share/${inspectionId}`
-    : `/share/${inspectionId}`;
+    ? `/environmental-share/${token}`
+    : `/share/${token}`;
 }
 
 function getClientPdfHref(inspection: any, inspectionId: string) {
@@ -412,80 +413,31 @@ export default function ClientPortalPage() {
 
     setLoading(true);
 
-    const { data: inspectionByToken, error: tokenError } = await supabase
-      .from("inspections")
-      .select("*")
-      .eq("public_share_token", shareLookup)
-      .maybeSingle();
+    try {
+      const res = await fetch(
+        `/api/client-portal-data?lookup=${encodeURIComponent(shareLookup)}`,
+        { cache: "no-store" }
+      );
+      const data = await res.json().catch(() => ({}));
 
-    let resolvedInspection = inspectionByToken;
-    let resolvedError = tokenError;
+      if (!res.ok || !data.inspection) {
+        console.error(data?.error || "Failed to load client portal data.");
+        setInspection(null);
+        setLoading(false);
+        return;
+      }
 
-    if (!resolvedInspection && /^\d+$/.test(shareLookup)) {
-      const fallbackResult = await supabase
-        .from("inspections")
-        .select("*")
-        .eq("id", shareLookup)
-        .maybeSingle();
-
-      resolvedInspection = fallbackResult.data;
-      resolvedError = fallbackResult.error;
-    }
-
-    if (resolvedError || !resolvedInspection) {
-      console.error(resolvedError);
+      setInspectionId(String(data.inspection.id));
+      setInspection(data.inspection);
+      setMoldTest(data.moldTest || null);
+      setRadonTest(data.radonTest || null);
+      setChecklistRows(data.checklistRows || []);
+    } catch (error) {
+      console.error("Client portal load error:", error);
+      setInspection(null);
+    } finally {
       setLoading(false);
-      return;
     }
-
-    const resolvedId = String(resolvedInspection.id);
-    setInspectionId(resolvedId);
-
-    const inspectionQuery = Promise.resolve({ data: resolvedInspection, error: null });
-
-    const checklistQueryId = resolvedId;
-
-    const checklistQuery = supabase
-      .from("section_checklist_selections")
-      .select("*")
-      .eq("inspection_id", checklistQueryId)
-      .order("created_at", { ascending: true });
-
-    const environmentalQuery = fetch(
-      `/api/environmental-links?inspection_id=${checklistQueryId}`,
-      { cache: "no-store" }
-    )
-      .then(async (res) => {
-        const data = await res.json().catch(() => ({}));
-        return { ok: res.ok, data };
-      })
-      .catch((error) => {
-        console.error("Could not load environmental links:", error);
-        return { ok: false, data: {} };
-      });
-
-    const [inspectionResult, checklistResult, environmentalResult] =
-      await Promise.all([inspectionQuery, checklistQuery, environmentalQuery]);
-
-    if (inspectionResult.error) {
-      console.error(inspectionResult.error);
-      setLoading(false);
-      return;
-    }
-
-    if (checklistResult.error) {
-      console.error("Checklist selections load error:", checklistResult.error);
-    }
-
-    if (!environmentalResult.ok && environmentalResult.data?.error) {
-      console.error("Environmental links load error:", environmentalResult.data.error);
-    }
-
-    setInspection(inspectionResult.data);
-    setMoldTest(environmentalResult.data?.mold_test || null);
-    setRadonTest(environmentalResult.data?.radon_test || null);
-    setChecklistRows(checklistResult.data || []);
-    setLoading(false);
   }
 
   async function updateStatus(field: string, value: string) {

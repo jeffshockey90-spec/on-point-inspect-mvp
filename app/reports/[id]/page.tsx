@@ -3499,6 +3499,12 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
 
           </InspectorToolsDrawer>
 
+          <CollapsibleReportSection
+            title="Executive Summary"
+            subtitle={executiveSummary ? "Saved" : "Not generated yet"}
+            defaultOpen={Boolean(executiveSummary)}
+            accentClassName="border-purple-500/40 text-purple-100"
+          >
           <section className="mb-8 rounded-2xl border border-purple-500/40 bg-[#071224] p-4 shadow-xl">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
@@ -3535,7 +3541,14 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                 "Click Generate AI Summary to create and save the executive summary for this report."}
             </div>
           </section>
+          </CollapsibleReportSection>
 
+          <CollapsibleReportSection
+            title="Contacts & Email Delivery"
+            subtitle="Send the report and manage client/realtor contact info"
+            defaultOpen={false}
+            accentClassName="border-teal-500/40 text-teal-100"
+          >
           <div className="mb-8 rounded-2xl border border-slate-700 bg-[#071224] p-4">
             <h2 className="mb-4 text-2xl font-bold text-teal-300">
               Email Report
@@ -3557,6 +3570,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
               inspection.realtor_email || inspection.agent_email
             }
           />
+          </CollapsibleReportSection>
 
           <div id="agreement-status" data-command-target="agreement-status">
           <AgreementSelector
@@ -3570,6 +3584,12 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
           <AgreementStatusPanel inspectionId={String(inspection.id)} />
           </div>
 
+          <CollapsibleReportSection
+            title="Signed Agreements"
+            subtitle={`${signedAgreements.length} signed`}
+            defaultOpen={signedAgreements.length > 0}
+            accentClassName="border-emerald-500/40 text-emerald-100"
+          >
           <section className="mb-6 rounded-2xl border border-emerald-500/40 bg-[#071224] p-4 shadow-xl">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
@@ -3626,6 +3646,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
               </div>
             )}
           </section>
+          </CollapsibleReportSection>
 
           <div id="report-delivery-guard" data-command-target="report-delivery-guard">
           <ReportDeliveryGuard inspectionId={String(inspection.id)} />
@@ -3635,6 +3656,12 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
           <PaymentInvoicePanel inspection={inspection} />
           </div>
 
+          <CollapsibleReportSection
+            title="Property Photo"
+            subtitle={propertyPhoto ? "Photo saved" : "No photo saved yet"}
+            defaultOpen={Boolean(propertyPhotoUpdated || propertyPhotoError)}
+            accentClassName="border-slate-600 text-slate-100"
+          >
           <section className="mb-6 overflow-hidden rounded-2xl border border-slate-700 bg-[#071224]">
             {propertyPhotoUpdated && (
               <div className="border-b border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm font-bold text-emerald-300">
@@ -3667,6 +3694,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
               returnTo={`/reports/${inspection.id}`}
             />
           </section>
+          </CollapsibleReportSection>
 
           <h1 className="break-words text-4xl font-extrabold text-teal-400 sm:text-5xl">
             On Point Home Inspections

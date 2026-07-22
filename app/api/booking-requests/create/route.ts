@@ -2,8 +2,11 @@
 import { formatAppValue } from "../../../../lib/app-time";
 import { NextResponse } from "next/server";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
+import { Resend } from "resend";
 import crypto from "crypto";
 import http2 from "http2";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -466,37 +469,36 @@ async function sendOwnerEmail(booking: any, request: Request) {
   const subject = `New Booking Request - ${booking.client_name || "Inspection"}`;
   const html = buildEmailHtml(booking, request);
 
+  if (!process.env.RESEND_API_KEY) {
+    return {
+      sent: 0,
+      skipped: true,
+      reason: "Missing RESEND_API_KEY.",
+    };
+  }
+
+  const from =
+    process.env.BOOKING_ALERT_EMAIL_FROM ||
+    process.env.RESEND_FROM_EMAIL ||
+    "FLOW <alerts@onpointhomeinspect.com>";
+
   try {
-    const nodemailer = eval("require")("nodemailer");
-
-    const host = process.env.SMTP_HOST;
-    const port = Number(process.env.SMTP_PORT || 587);
-    const user = process.env.SMTP_USER || process.env.SMTP_USERNAME;
-    const pass = process.env.SMTP_PASS || process.env.SMTP_PASSWORD;
-    const from = process.env.SMTP_FROM || process.env.EMAIL_FROM || user;
-
-    if (!host || !user || !pass || !from) {
-      return {
-        sent: 0,
-        skipped: true,
-        reason: "SMTP email env vars are missing.",
-      };
-    }
-
-    const transporter = nodemailer.createTransport({
-      host,
-      port,
-      secure: port === 465,
-      auth: { user, pass },
-    });
-
-    await transporter.sendMail({
+    const { error } = await resend.emails.send({
       from,
       to,
       subject,
       html,
       text: `New Booking Request\n\nClient: ${booking.client_name || ""}\nClient Phone: ${booking.client_phone || ""}\nClient Email: ${booking.client_email || ""}\nRealtor: ${booking.realtor_name || ""}\nRealtor Phone: ${booking.realtor_phone || ""}\nRealtor Email: ${booking.realtor_email || ""}\nProperty: ${[booking.property_address, booking.city, booking.state, booking.zip].filter(Boolean).join(", ")}\nServices: ${Array.isArray(booking.services_requested) ? booking.services_requested.join(", ") : booking.service_type || ""}\nPreferred: ${formatDate(booking.preferred_date)} at ${formatTime(booking.preferred_time)}\n\nOpen schedule: ${getBaseUrl(request)}/schedule?bookingRequestId=${booking.id}`,
     });
+
+    if (error) {
+      console.error("Booking email failed:", error);
+      return {
+        sent: 0,
+        skipped: false,
+        error: error.message || "Booking alert email failed.",
+      };
+    }
 
     return { sent: to.length, skipped: false };
   } catch (error: any) {
