@@ -263,7 +263,14 @@ export default async function proxy(request: NextRequest) {
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   );
 
-  if (isPublicRoute) return response;
+  // Narrow exception: the printable/PDF report view is opened by clients
+  // (no account) from a share token via the client portal's "Download PDF"
+  // link. The page itself only serves published reports for a valid token,
+  // or falls back to requiring inspector login/ownership - everything else
+  // under /reports stays inspector-only.
+  const isPublicReportPrint = /^\/reports\/[^/]+\/print\/?$/.test(pathname);
+
+  if (isPublicRoute || isPublicReportPrint) return response;
 
   if (!user) {
     const url = request.nextUrl.clone();

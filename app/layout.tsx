@@ -2,6 +2,7 @@ import "./globals.css";
 import Navbar from "../components/Nav";
 import GlobalLiveActivity from "../components/GlobalLiveActivity";
 import TimeLocationEngine from "../components/time-location/TimeLocationEngine";
+import PageShell from "../components/PageShell";
 
 export const metadata = {
   title: "FLOW",
@@ -56,9 +57,7 @@ export default function RootLayout({
 
         <TimeLocationEngine />
 
-        <div className="min-h-screen pt-[env(safe-area-inset-top)] pb-28 xl:pt-0 md:pb-0">
-          {children}
-        </div>
+        <PageShell>{children}</PageShell>
       </body>
     </html>
   );

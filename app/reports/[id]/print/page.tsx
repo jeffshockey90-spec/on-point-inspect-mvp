@@ -419,23 +419,55 @@ function isHvacEquipmentItem(item: any) {
 }
 
 export default async function PrintableReportPage({ params }: PageProps) {
-  const { id } = await params;
+  const { id: shareLookup } = await params;
   const supabase = await createSupabaseServerClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) redirect("/login");
-
-  const { data: inspection, error: inspectionError } = await supabase
+  // Two ways in: (1) a client/realtor opening this from a public share
+  // token (no login - matches /share, /client-portal, /environmental-share),
+  // or (2) the inspector opening their own report by numeric id while
+  // logged in. Published-only RLS covers the token path; ownership covers
+  // the inspector path.
+  const { data: inspectionByToken } = await supabase
     .from("inspections")
     .select("*")
-    .eq("id", id)
-    .eq("inspector_id", user.id)
-    .single();
+    .eq("public_share_token", shareLookup)
+    .eq("published", true)
+    .maybeSingle();
 
-  if (inspectionError || !inspection) redirect("/reports");
+  let inspection = inspectionByToken;
+
+  // Legacy fallback: reports published before share tokens existed on every
+  // row won't match above. Still safe - restricted to published reports
+  // only, same condition the public RLS policy itself enforces.
+  if (!inspection && /^\d+$/.test(shareLookup)) {
+    const { data: inspectionByPublishedId } = await supabase
+      .from("inspections")
+      .select("*")
+      .eq("id", shareLookup)
+      .eq("published", true)
+      .maybeSingle();
+
+    inspection = inspectionByPublishedId;
+  }
+
+  if (!inspection) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) redirect("/login");
+
+    const { data: inspectionByOwner, error: inspectionError } = await supabase
+      .from("inspections")
+      .select("*")
+      .eq("id", shareLookup)
+      .eq("inspector_id", user.id)
+      .single();
+
+    if (inspectionError || !inspectionByOwner) redirect("/reports");
+
+    inspection = inspectionByOwner;
+  }
 
   // Use the current Client / Co-Client contact records as the report source
   // of truth. This prevents an old placeholder such as "Test" stored on the

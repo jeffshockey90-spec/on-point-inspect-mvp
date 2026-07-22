@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "../../../lib/supabaseClient";
 import FastLinkButton from "../../../components/FastLinkButton";
+import { getInspectionShareToken } from "../../../lib/shareToken";
 
 const SECTION_ORDER = [
   "Inspection Details",
@@ -339,9 +340,11 @@ function getClientReportHref(inspection: any, inspectionId: string) {
 }
 
 function getClientPdfHref(inspection: any, inspectionId: string) {
+  const token = getInspectionShareToken(inspection) || inspectionId;
+
   return isStandaloneEnvironmentalService(inspection)
-    ? `/environmental-share/${inspectionId}`
-    : `/reports/${inspectionId}/print`;
+    ? `/environmental-share/${token}`
+    : `/reports/${token}/print`;
 }
 
 export default function ClientPortalPage() {

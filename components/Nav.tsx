@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import SupportUnreadBadge from "./SupportUnreadBadge";
+import { isPortalRoute } from "../lib/navVisibility";
 
 const OWNER_EMAILS = ["jeff@onpointhomeinspect.com", "jeffshockey90@gmail.com"];
 
@@ -52,6 +53,7 @@ export default function Navbar() {
   const [routingResolved, setRoutingResolved] = useState(false);
   const [reportsHref, setReportsHref] = useState("/reports");
   const [dashboardHref, setDashboardHref] = useState("/");
+  const [userEmail, setUserEmail] = useState("");
 
   function clearOpeningHref() {
     setOpeningHref("");
@@ -205,6 +207,28 @@ export default function Navbar() {
     };
   }, []);
 
+  useEffect(() => {
+    let active = true;
+
+    supabase.auth.getUser().then(({ data }) => {
+      if (active) setUserEmail(data?.user?.email || "");
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!active) return;
+      if (event === "SIGNED_OUT") {
+        setUserEmail("");
+        return;
+      }
+      setUserEmail(session?.user?.email || "");
+    });
+
+    return () => {
+      active = false;
+      listener.subscription.unsubscribe();
+    };
+  }, []);
+
   const visibleNavItems = useMemo(() => {
     let items = baseNavItems.map((item) => {
       if (item.href === "/") return { ...item, href: dashboardHref };
@@ -329,96 +353,100 @@ export default function Navbar() {
     );
   }
 
-  const hideNavbarForPortal =
-    pathname.startsWith("/client") ||
-    pathname.startsWith("/client-portal") ||
-    pathname.startsWith("/client-agreement") ||
-    pathname.startsWith("/share") ||
-    pathname.startsWith("/environmental-share") ||
-    pathname.startsWith("/repair-request") ||
-    pathname.startsWith("/repair-response") ||
-    pathname.startsWith("/login") ||
-    pathname.startsWith("/signup");
-
-  if (hideNavbarForPortal || !routingResolved) {
+  if (isPortalRoute(pathname) || !routingResolved) {
     return null;
   }
 
   return (
     <>
-      <header className="sticky top-0 z-50 hidden border-b border-zinc-800 bg-[#050816]/95 pt-[env(safe-area-inset-top)] backdrop-blur xl:block">
-        <div className="mx-auto max-w-[1600px] px-5 py-3">
-          <div className="flex items-center gap-5 rounded-2xl border border-slate-800 bg-[#0b1220]/95 px-5 py-4 shadow-2xl shadow-black/20">
-            <Link
-              href={dashboardHref}
-              prefetch
-              onPointerEnter={() => prefetchRoute(dashboardHref)}
-              onClick={() => handleNavClick(dashboardHref)}
-              className="flex min-w-[265px] shrink-0 items-center gap-4 border-r border-slate-700/70 pr-5 transition active:scale-[0.98] [touch-action:manipulation]"
-            >
-              <img
-                src="/icons/icon-192.png?v=3"
-                alt="FLOW Logo"
-                className="h-16 w-16 shrink-0 rounded-2xl border border-teal-500/40 object-cover shadow-lg shadow-teal-500/10"
-              />
+      <aside className="fixed inset-y-0 left-0 z-50 hidden w-64 flex-col border-r border-zinc-800 bg-[#050816]/95 pt-[env(safe-area-inset-top)] backdrop-blur xl:flex">
+        <Link
+          href={dashboardHref}
+          prefetch
+          onPointerEnter={() => prefetchRoute(dashboardHref)}
+          onClick={() => handleNavClick(dashboardHref)}
+          className="flex shrink-0 items-center gap-3 border-b border-slate-800 px-5 py-5 transition active:scale-[0.98] [touch-action:manipulation]"
+        >
+          <img
+            src="/icons/icon-192.png?v=3"
+            alt="FLOW Logo"
+            className="h-11 w-11 shrink-0 rounded-xl border border-teal-500/40 object-cover shadow-lg shadow-teal-500/10"
+          />
 
-              <div className="min-w-0 leading-tight">
-                <div className="whitespace-nowrap text-3xl font-black text-[#14c8d2]">
-                  FLOW
-                </div>
+          <div className="min-w-0 leading-tight">
+            <div className="whitespace-nowrap text-2xl font-black text-[#14c8d2]">
+              FLOW
+            </div>
+          </div>
+        </Link>
+
+        <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-3 py-4">
+          {visibleNavItems.map((item) => {
+            const active = isActive(item.href);
+            const opening = openingHref === item.href && !active;
+
+            return (
+              <Link
+                key={`${item.title}-${item.href}`}
+                href={item.href}
+                prefetch
+                onPointerEnter={() => prefetchRoute(item.href)}
+                onTouchStart={() => prefetchRoute(item.href)}
+                onClick={() => handleNavClick(item.href)}
+                aria-busy={opening}
+                className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 text-sm font-extrabold transition active:scale-[0.98] [touch-action:manipulation] ${
+                  active
+                    ? "border-white/40 bg-teal-400 text-black shadow-lg shadow-teal-500/30"
+                    : opening
+                      ? "border-teal-500 bg-[#111827] text-teal-400 opacity-80"
+                      : item.href === "/dashboard/owner"
+                        ? "border-yellow-500/60 bg-yellow-500/10 text-yellow-300 hover:border-yellow-400 hover:bg-yellow-500/20 hover:text-yellow-200"
+                        : "border-transparent text-teal-400 hover:border-teal-500 hover:bg-[#111827] hover:text-white"
+                }`}
+              >
+                <NavSpinner active={opening} />
+                {!opening && <span className="shrink-0 text-base leading-none">{item.icon}</span>}
+                <span className="flex min-w-0 flex-1 items-center gap-1 truncate">
+                  {opening ? "Opening..." : item.title}
+                </span>
+                {!opening && item.mobileLabel === "Support" && <SupportUnreadBadge />}
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="shrink-0 border-t border-slate-800 p-3">
+          <div className="flex items-center gap-3 rounded-xl bg-[#0b1220]/95 px-3 py-2.5 shadow-lg shadow-black/20">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-teal-400/15 text-sm font-black text-teal-300">
+              {userEmail ? userEmail.charAt(0).toUpperCase() : "U"}
+            </div>
+
+            <div className="min-w-0 flex-1 leading-tight">
+              <div className="truncate text-xs font-bold text-white">
+                {userEmail || "Signed in"}
               </div>
-            </Link>
-
-            <nav className="flex min-w-0 flex-1 flex-wrap items-center gap-3">
-              {visibleNavItems.map((item) => {
-                const active = isActive(item.href);
-                const opening = openingHref === item.href && !active;
-
-                return (
-                  <Link
-                    key={`${item.title}-${item.href}`}
-                    href={item.href}
-                    prefetch
-                    onPointerEnter={() => prefetchRoute(item.href)}
-                    onTouchStart={() => prefetchRoute(item.href)}
-                    onClick={() => handleNavClick(item.href)}
-                    aria-busy={opening}
-                    className={`inline-flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-extrabold transition active:scale-[0.98] [touch-action:manipulation] ${
-                      active
-                        ? "border-white/40 bg-teal-400 text-black shadow-2xl shadow-teal-500/40"
-                        : opening
-                          ? "border-teal-500 bg-[#111827] text-teal-400 opacity-80"
-                          : item.href === "/dashboard/owner"
-                            ? "border-yellow-500/60 bg-yellow-500/10 text-yellow-300 hover:border-yellow-400 hover:bg-yellow-500/20 hover:text-yellow-200"
-                            : "border-slate-700 bg-[#050816] text-teal-400 hover:border-teal-500 hover:bg-[#111827] hover:text-white"
-                    }`}
-                  >
-                    <NavSpinner active={opening} />
-                    {!opening && <span className="text-base leading-none">{item.icon}</span>}
-                    <span className="flex items-center gap-1 whitespace-nowrap">
-                      {opening ? "Opening..." : item.title}
-                      {!opening && item.mobileLabel === "Support" && <SupportUnreadBadge />}
-                    </span>
-                  </Link>
-                );
-              })}
-            </nav>
+              <div className="truncate text-[10px] font-bold uppercase tracking-wide text-slate-400">
+                {isOwner ? "Owner" : isRealtor && !isInspector ? "Realtor" : "Inspector"}
+              </div>
+            </div>
 
             <button
               type="button"
               onClick={handleLogout}
               disabled={loggingOut}
               aria-busy={loggingOut}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-red-500 bg-red-950/30 px-4 py-3 text-sm font-extrabold text-red-300 transition active:scale-[0.98] hover:bg-red-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
+              title="Logout"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-red-500/60 text-red-300 transition active:scale-[0.98] hover:bg-red-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
             >
-              {loggingOut && (
+              {loggingOut ? (
                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+              ) : (
+                "🚪"
               )}
-              {loggingOut ? "Logging Out..." : "🚪 Logout"}
             </button>
           </div>
         </div>
-      </header>
+      </aside>
 
       <nav
         className="fixed inset-x-0 bottom-0 z-[100] border-t border-zinc-800 bg-[#0b1220]/95 shadow-2xl shadow-black/60 backdrop-blur md:hidden portrait:block landscape:hidden [transform:translateZ(0)] [will-change:transform]"
