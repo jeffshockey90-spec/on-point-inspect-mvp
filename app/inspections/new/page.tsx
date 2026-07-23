@@ -8,6 +8,7 @@ import { createClient } from "../../../utils/supabase/client";
 import { getCompanyId } from "../../../lib/getCompanyId";
 import { calculateHomeInspectionPrice } from "../../../lib/propertyPricing";
 import { useAddressAutocomplete } from "../../../hooks/useAddressAutocomplete";
+import NewInspectionAgreementPicker from "../../../components/NewInspectionAgreementPicker";
 
 declare global {
   interface Window {
@@ -368,6 +369,9 @@ function NewInspectionPageContent() {
 
   const [loadingProperty, setLoadingProperty] = useState(false);
   const [propertyLookupStatus, setPropertyLookupStatus] = useState("");
+
+  const [agreementState, setAgreementState] = useState("MD");
+  const [agreementTemplateIds, setAgreementTemplateIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [showBillingPopup, setShowBillingPopup] = useState(false);
   const [billingMessage, setBillingMessage] = useState("");
@@ -991,6 +995,43 @@ function NewInspectionPageContent() {
         }
       }
 
+      const hasAgreement = agreementTemplateIds.length > 0;
+
+      const sendResults = await Promise.allSettled([
+        hasAgreement
+          ? fetch("/api/update-agreement-state", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                inspectionId: data.id,
+                agreementState,
+                agreementTemplateIds,
+              }),
+            })
+          : Promise.resolve(null),
+        fetch("/api/send-schedule-confirmation", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ inspectionId: data.id }),
+        }),
+        hasAgreement
+          ? fetch("/api/send-agreement-email", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ inspectionId: data.id }),
+            })
+          : Promise.resolve(null),
+      ]);
+
+      sendResults.forEach((result, index) => {
+        if (result.status === "rejected") {
+          console.warn(
+            `Post-creation step ${index} failed:`,
+            result.reason
+          );
+        }
+      });
+
       router.push(`/reports/${data.id}`);
     } finally {
       setSaving(false);
@@ -1312,6 +1353,23 @@ function NewInspectionPageContent() {
               ) : null}
             </div>
           </Card>
+        </section>
+
+        <section className="mt-6 rounded-2xl border border-zinc-800 bg-[#0b1220] p-5">
+          <h2 className="mb-4 text-xl font-bold text-teal-400">Agreement</h2>
+
+          <p className="mb-4 text-sm text-zinc-400">
+            This will be emailed to the client automatically once the inspection is created. The
+            realtor is never sent the agreement. You can still change it later from the report.
+          </p>
+
+          <NewInspectionAgreementPicker
+            propertyState={stateValue}
+            onChange={(state, templateIds) => {
+              setAgreementState(state);
+              setAgreementTemplateIds(templateIds);
+            }}
+          />
         </section>
 
         <section className="mt-6 rounded-2xl border border-zinc-800 bg-[#0b1220] p-5">

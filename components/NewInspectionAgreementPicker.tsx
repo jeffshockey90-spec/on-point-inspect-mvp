@@ -1,0 +1,206 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+
+type AgreementTemplate = Record<string, any>;
+
+function formatServiceType(value: string) {
+  return String(value || "home_inspection")
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function Badge({ children, tone = "slate" }: { children: React.ReactNode; tone?: "teal" | "green" | "yellow" | "slate" }) {
+  const classes =
+    tone === "teal"
+      ? "border-teal-500/40 bg-teal-500/10 text-teal-300"
+      : tone === "green"
+        ? "border-green-500/40 bg-green-500/10 text-green-300"
+        : tone === "yellow"
+          ? "border-yellow-500/40 bg-yellow-500/10 text-yellow-300"
+          : "border-slate-600 bg-slate-800/60 text-slate-300";
+
+  return (
+    <span className={`inline-flex max-w-full items-center rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-wide ${classes}`}>
+      {children}
+    </span>
+  );
+}
+
+// Picks the agreement(s) for a not-yet-created inspection. Unlike
+// AgreementSelector (report builder), there's no inspectionId to save
+// against yet - the selection just lives here and is lifted to the parent
+// via onChange, then submitted together with the rest of the New Inspection
+// form when the inspection is actually created.
+export default function NewInspectionAgreementPicker({
+  propertyState,
+  onChange,
+}: {
+  propertyState?: string | null;
+  onChange: (state: string, templateIds: string[]) => void;
+}) {
+  const defaultState = (propertyState || "MD").toUpperCase();
+
+  const [agreementState, setAgreementState] = useState(defaultState);
+  const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>([]);
+  const [templates, setTemplates] = useState<AgreementTemplate[]>([]);
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    loadTemplates(agreementState);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [agreementState]);
+
+  useEffect(() => {
+    onChange(agreementState, selectedTemplateIds);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [agreementState, selectedTemplateIds]);
+
+  async function loadTemplates(state: string) {
+    const res = await fetch(`/api/agreement-templates?state=${state}&activeOnly=true`);
+    const data = await res.json();
+    const loadedTemplates = data.templates || [];
+
+    setTemplates(loadedTemplates);
+
+    setSelectedTemplateIds((current) => {
+      if (current.length > 0) return current;
+
+      const defaultTemplates = loadedTemplates.filter((template: any) => template.is_default);
+
+      if (defaultTemplates.length > 0) {
+        return defaultTemplates.map((template: any) => template.id);
+      }
+
+      return loadedTemplates[0]?.id ? [loadedTemplates[0].id] : [];
+    });
+  }
+
+  function handleStateChange(nextState: string) {
+    setAgreementState(nextState);
+    setSelectedTemplateIds([]);
+  }
+
+  function toggleTemplate(templateId: string) {
+    setSelectedTemplateIds((current) =>
+      current.includes(templateId)
+        ? current.filter((id) => id !== templateId)
+        : [...current, templateId]
+    );
+  }
+
+  const selectedTemplates = useMemo(
+    () => templates.filter((template) => selectedTemplateIds.includes(template.id)),
+    [templates, selectedTemplateIds]
+  );
+
+  const templatesByServiceType = useMemo(() => {
+    return templates.reduce((acc: Record<string, AgreementTemplate[]>, template) => {
+      const key = template.service_type || "home_inspection";
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(template);
+      return acc;
+    }, {});
+  }, [templates]);
+
+  return (
+    <div className="rounded-2xl border border-slate-700 bg-[#020817]/80 p-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap gap-2">
+            <Badge tone="teal">{agreementState}</Badge>
+            <Badge tone={selectedTemplateIds.length > 0 ? "green" : "yellow"}>
+              {selectedTemplateIds.length} Selected
+            </Badge>
+          </div>
+
+          <div className="mt-3 space-y-2">
+            {selectedTemplates.length > 0 ? (
+              selectedTemplates.map((template) => (
+                <div key={template.id} className="rounded-xl border border-slate-700 bg-[#071224] px-4 py-3">
+                  <p className="min-w-0 break-words text-sm font-black text-white">{template.title}</p>
+                  {template.version && <p className="mt-1 text-xs text-slate-400">{template.version}</p>}
+                </div>
+              ))
+            ) : (
+              <p className="rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 text-sm font-bold text-yellow-300">
+                No agreement selected. The client won&apos;t be sent one to sign.
+              </p>
+            )}
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setExpanded((current) => !current)}
+          className="w-full shrink-0 rounded-2xl border border-slate-600 px-5 py-3 text-sm font-black text-slate-200 transition hover:bg-slate-800 sm:w-auto"
+        >
+          {expanded ? "Hide Options" : "Change Agreement"}
+        </button>
+      </div>
+
+      {expanded && (
+        <div className="mt-4 space-y-4">
+          <div className="grid w-full grid-cols-3 gap-2">
+            {["MD", "WV", "PA"].map((state) => {
+              const active = state === agreementState;
+              return (
+                <button
+                  key={state}
+                  type="button"
+                  onClick={() => handleStateChange(state)}
+                  className={`rounded-2xl border px-3 py-3 text-center text-sm font-black transition ${
+                    active
+                      ? "border-teal-400 bg-teal-500/15 text-teal-300"
+                      : "border-slate-700 bg-slate-950 text-white hover:border-teal-500"
+                  }`}
+                >
+                  {state}
+                </button>
+              );
+            })}
+          </div>
+
+          {Object.entries(templatesByServiceType).map(([serviceType, serviceTemplates]) => (
+            <div key={serviceType} className="rounded-2xl border border-slate-700 bg-slate-950 p-4">
+              <h3 className="text-base font-black text-teal-300">{formatServiceType(serviceType)}</h3>
+
+              <div className="mt-3 grid w-full grid-cols-1 gap-3 md:grid-cols-2">
+                {serviceTemplates.map((template: any) => {
+                  const checked = selectedTemplateIds.includes(template.id);
+                  return (
+                    <label
+                      key={template.id}
+                      className={`block w-full min-w-0 cursor-pointer rounded-xl border p-4 transition ${
+                        checked
+                          ? "border-teal-400 bg-teal-500/10"
+                          : "border-slate-700 bg-[#071224] hover:border-teal-500"
+                      }`}
+                    >
+                      <div className="flex min-w-0 items-start gap-3">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleTemplate(template.id)}
+                          className="mt-1 h-5 w-5 shrink-0 accent-teal-400"
+                        />
+                        <div className="min-w-0">
+                          <p className="break-words font-bold text-white">{template.title}</p>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {template.version && <Badge>{template.version}</Badge>}
+                            {template.is_default && <Badge tone="teal">Default</Badge>}
+                            {checked && <Badge tone="green">Selected</Badge>}
+                          </div>
+                        </div>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
