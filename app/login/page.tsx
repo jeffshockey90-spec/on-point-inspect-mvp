@@ -110,6 +110,15 @@ export default function LoginPage() {
               }
               className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
             />
+
+            <div className="mt-2 text-right">
+              <a
+                href="/forgot-password"
+                className="text-sm text-teal-400 hover:underline"
+              >
+                Forgot password?
+              </a>
+            </div>
           </div>
 
           {message && (
