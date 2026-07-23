@@ -2,8 +2,8 @@
 
 
 import { formatAppValue, toLocalDateKey } from "../../../lib/app-time";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "../../../utils/supabase/client";
 import { getCompanyId } from "../../../lib/getCompanyId";
 import { calculateHomeInspectionPrice } from "../../../lib/propertyPricing";
@@ -282,7 +282,22 @@ function getUploadImageUrl(result: any) {
 }
 
 export default function NewInspectionPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-[#050816] p-10 text-white">
+          Loading...
+        </main>
+      }
+    >
+      <NewInspectionPageContent />
+    </Suspense>
+  );
+}
+
+function NewInspectionPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = createClient();
   const addressInputRef = useAddressAutocomplete((parsed) => {
     clearPropertyAutofill();
@@ -306,24 +321,40 @@ export default function NewInspectionPage() {
   const [realtors, setRealtors] = useState<RealtorContact[]>([]);
   const [showRealtorMatches, setShowRealtorMatches] = useState(false);
 
-  const [propertyAddress, setPropertyAddress] = useState("");
-  const [city, setCity] = useState("");
-  const [stateValue, setStateValue] = useState("MD");
-  const [zip, setZip] = useState("");
+  const [propertyAddress, setPropertyAddress] = useState(
+    () => searchParams.get("address") || ""
+  );
+  const [city, setCity] = useState(() => searchParams.get("city") || "");
+  const [stateValue, setStateValue] = useState(
+    () => searchParams.get("state") || "MD"
+  );
+  const [zip, setZip] = useState(() => searchParams.get("zip") || "");
 
   const [inspectionDate, setInspectionDate] = useState("");
   const [inspectionTime, setInspectionTime] = useState("");
 
-  const [squareFeet, setSquareFeet] = useState("");
-  const [serviceMode, setServiceMode] = useState<ServiceMode>("home");
+  const [squareFeet, setSquareFeet] = useState(
+    () => searchParams.get("squareFeet") || ""
+  );
+  const [serviceMode, setServiceMode] = useState<ServiceMode>(
+    () => (searchParams.get("serviceMode") as ServiceMode) || "home"
+  );
   const [price, setPrice] = useState("500");
   const [services, setServices] = useState("Home Inspection");
   const [notes, setNotes] = useState("");
 
-  const [moldAirSamples, setMoldAirSamples] = useState("0");
-  const [moldSurfaceSamples, setMoldSurfaceSamples] = useState("0");
-  const [travelFee, setTravelFee] = useState("0");
-  const [discount, setDiscount] = useState("0");
+  const [moldAirSamples, setMoldAirSamples] = useState(
+    () => searchParams.get("moldAirSamples") || "0"
+  );
+  const [moldSurfaceSamples, setMoldSurfaceSamples] = useState(
+    () => searchParams.get("moldSurfaceSamples") || "0"
+  );
+  const [travelFee, setTravelFee] = useState(
+    () => searchParams.get("travelFee") || "0"
+  );
+  const [discount, setDiscount] = useState(
+    () => searchParams.get("discount") || "0"
+  );
 
   const [yearBuilt, setYearBuilt] = useState("");
   const [propertyStyle, setPropertyStyle] = useState("");

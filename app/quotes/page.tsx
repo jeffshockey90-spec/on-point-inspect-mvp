@@ -149,7 +149,6 @@ export default function QuotePage() {
   const [moldAirSamples, setMoldAirSamples] = useState(0);
   const [moldSurfaceSamples, setMoldSurfaceSamples] = useState(0);
   const [discount, setDiscount] = useState(0);
-  const [creating, setCreating] = useState(false);
 
   async function lookupPropertySqft(
     address: string,
@@ -260,53 +259,29 @@ export default function QuotePage() {
     alert("Quote message copied");
   }
 
-  async function convertToInspection() {
-    try {
-      setCreating(true);
+  function convertToInspection() {
+    // Quotes never collects a client name, inspection date, or the other
+    // fields a real inspection needs - rather than creating an incomplete
+    // record directly, hand off to the full New Inspection form (same
+    // pricing logic, same field names) with everything Quotes does know
+    // already filled in, so the user only has to add what's missing.
+    const params = new URLSearchParams();
 
-      const services = quote.serviceLabel;
-
-      const res = await fetch("/api/create-inspection-from-quote", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          square_feet: quote.includesHome ? sqft : null,
-          sqft: quote.includesHome ? sqft : null,
-          price: quote.total,
-          invoice_amount: quote.total,
-          balance_due: quote.total,
-          amount_paid: 0,
-          service_mode: serviceMode,
-          radon: quote.includesRadon,
-          radon_fee: quote.radonFee,
-          mold: quote.includesMold,
-          mold_air_samples: quote.airSamples,
-          mold_surface_samples: quote.surfaceSamples,
-          mold_setup_fee: quote.moldSetupFee,
-          mold_fee: quote.moldFee,
-          travel_fee: quote.travelFee,
-          discount: quote.discount,
-          services,
-          inspection_type: services,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        alert(data.error || "Failed to create inspection");
-        return;
-      }
-
-      window.location.href = `/inspections/${data.id}`;
-    } catch (err) {
-      console.error(err);
-      alert("Error creating inspection");
-    } finally {
-      setCreating(false);
+    if (propertyAddress) params.set("address", propertyAddress);
+    if (city) params.set("city", city);
+    if (stateValue) params.set("state", stateValue);
+    if (zip) params.set("zip", zip);
+    if (quote.includesHome) params.set("squareFeet", String(sqft));
+    params.set("serviceMode", serviceMode);
+    if (travelFee) params.set("travelFee", String(travelFee));
+    if (discount) params.set("discount", String(discount));
+    if (quote.includesMold) {
+      if (moldAirSamples) params.set("moldAirSamples", String(moldAirSamples));
+      if (moldSurfaceSamples)
+        params.set("moldSurfaceSamples", String(moldSurfaceSamples));
     }
+
+    window.location.href = `/inspections/new?${params.toString()}`;
   }
 
   return (
@@ -495,10 +470,9 @@ export default function QuotePage() {
 
             <button
               onClick={convertToInspection}
-              disabled={creating}
-              className="rounded-2xl bg-white px-6 py-4 font-bold text-black transition hover:bg-zinc-200 disabled:opacity-50"
+              className="rounded-2xl bg-white px-6 py-4 font-bold text-black transition hover:bg-zinc-200"
             >
-              {creating ? "Creating..." : "Convert To Inspection"}
+              Continue in New Inspection
             </button>
           </div>
         </Card>
