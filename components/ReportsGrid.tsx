@@ -15,6 +15,10 @@ export type PreparedReport = {
   propertyPhoto: string;
   isInspectorOwner: boolean;
   createdAtMs: number;
+  published: boolean;
+  paymentComplete: boolean;
+  agreementRequiredCount: number;
+  agreementUnsignedCount: number;
   activity: {
     totalViews: number;
     clientViewed: boolean;
@@ -152,6 +156,28 @@ export default function ReportsGrid({ reports }: { reports: PreparedReport[] }) 
 
                 <p className="mt-3 text-slate-300">{report.cityStateZip}</p>
 
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <StatusBadge
+                    good={report.published}
+                    goodLabel="✅ Published"
+                    badLabel="📝 Draft"
+                  />
+
+                  <StatusBadge
+                    good={report.paymentComplete}
+                    goodLabel="💰 Paid"
+                    badLabel="💰 Unpaid"
+                  />
+
+                  {report.agreementRequiredCount > 0 && (
+                    <StatusBadge
+                      good={report.agreementUnsignedCount === 0}
+                      goodLabel="📝 Signed"
+                      badLabel={`📝 Unsigned (${report.agreementUnsignedCount})`}
+                    />
+                  )}
+                </div>
+
                 <div className="mt-5 space-y-2 text-sm text-slate-300">
                   <p>
                     <span className="font-bold text-white">Client:</span>{" "}
@@ -232,6 +258,28 @@ export default function ReportsGrid({ reports }: { reports: PreparedReport[] }) 
         </div>
       )}
     </div>
+  );
+}
+
+function StatusBadge({
+  good,
+  goodLabel,
+  badLabel,
+}: {
+  good: boolean;
+  goodLabel: string;
+  badLabel: string;
+}) {
+  return (
+    <span
+      className={
+        good
+          ? "rounded-full border border-green-500/40 bg-green-500/10 px-3 py-1 text-xs font-black text-green-300"
+          : "rounded-full border border-red-500/40 bg-red-500/10 px-3 py-1 text-xs font-black text-red-300"
+      }
+    >
+      {good ? goodLabel : badLabel}
+    </span>
   );
 }
 

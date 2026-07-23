@@ -6,6 +6,12 @@ import { createServerClient } from "@supabase/ssr";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import FastLinkButton from "../../components/FastLinkButton";
 import ReportsGrid, { type PreparedReport } from "../../components/ReportsGrid";
+import {
+  isPaymentComplete,
+  isPublished,
+  getSignedAgreementKey,
+  getAgreementStatsForInspection,
+} from "../../lib/inspectionStatus";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -312,6 +318,50 @@ export default async function ReportsPage() {
     console.error("Reports page view logs error:", viewLogsError);
   }
 
+  const { data: contactsRaw, error: contactsError } =
+    inspectionIds.length > 0
+      ? await supabase
+          .from("inspection_contacts")
+          .select("*")
+          .in("inspection_id", inspectionIds)
+      : { data: [], error: null };
+
+  if (contactsError) {
+    console.error("Reports page contacts error:", contactsError);
+  }
+
+  const { data: signedAgreementsRaw, error: signedAgreementsError } =
+    inspectionIds.length > 0
+      ? await supabase
+          .from("inspection_agreements")
+          .select("*")
+          .in("inspection_id", inspectionIds)
+      : { data: [], error: null };
+
+  if (signedAgreementsError) {
+    console.error("Reports page signed agreements error:", signedAgreementsError);
+  }
+
+  const contactsByInspectionId = (contactsRaw || []).reduce(
+    (acc: Record<string, any[]>, contact: any) => {
+      const inspectionId = String(contact?.inspection_id || "");
+      if (!inspectionId) return acc;
+      if (!acc[inspectionId]) acc[inspectionId] = [];
+      acc[inspectionId].push(contact);
+      return acc;
+    },
+    {}
+  );
+
+  const signedAgreementMap = new Map<string, any>();
+  (signedAgreementsRaw || []).forEach((agreement: any) => {
+    const key = getSignedAgreementKey(agreement);
+    if (key && !signedAgreementMap.has(key)) signedAgreementMap.set(key, agreement);
+
+    const email = String(agreement?.client_email || "").trim().toLowerCase();
+    if (email && !signedAgreementMap.has(email)) signedAgreementMap.set(email, agreement);
+  });
+
   const activityByInspectionId = buildReportActivityMap(viewLogsRaw || []);
   const reportsViewedCount = Object.values(activityByInspectionId).filter(
     (activity: any) => activity.totalViews > 0
@@ -346,8 +396,18 @@ export default async function ReportsPage() {
       ? new Date(inspection.created_at).getTime() || 0
       : 0;
 
+    const agreementStats = getAgreementStatsForInspection({
+      inspection,
+      contactsByInspectionId,
+      signedAgreementMap,
+    });
+
     return {
       id: inspection.id,
+      published: isPublished(inspection),
+      paymentComplete: isPaymentComplete(inspection),
+      agreementRequiredCount: agreementStats.requiredCount,
+      agreementUnsignedCount: agreementStats.unsignedCount,
       address: inspection.property_address || "Untitled Inspection",
       cityStateZip: [
         inspection.city || "",

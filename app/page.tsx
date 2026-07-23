@@ -5,6 +5,13 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
+import {
+  getBalanceDue,
+  isPaymentComplete,
+  isPublished,
+  getSignedAgreementKey,
+  getAgreementStatsForInspection,
+} from "../lib/inspectionStatus";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -182,55 +189,6 @@ function money(value: any) {
   }).format(getNumber(value));
 }
 
-function getInvoiceAmount(inspection: any) {
-  return (
-    getNumber(inspection?.invoice_amount) ||
-    getNumber(inspection?.total_price) ||
-    0
-  );
-}
-
-function getBalanceDue(inspection: any) {
-  const storedBalance = inspection?.balance_due;
-
-  if (storedBalance !== null && storedBalance !== undefined) {
-    return Math.max(0, getNumber(storedBalance));
-  }
-
-  const invoiceAmount = getInvoiceAmount(inspection);
-  const amountPaid = getNumber(inspection?.amount_paid);
-
-  return Math.max(0, invoiceAmount - amountPaid);
-}
-
-function isPaymentComplete(inspection: any) {
-  const hasPaymentFields =
-    inspection &&
-    ("payment_status" in inspection ||
-      "invoice_status" in inspection ||
-      "invoice_amount" in inspection ||
-      "amount_paid" in inspection ||
-      "balance_due" in inspection ||
-      "total_price" in inspection);
-
-  if (!hasPaymentFields) return true;
-
-  const status = String(
-    inspection?.payment_status || inspection?.invoice_status || ""
-  ).toLowerCase();
-
-  const invoiceAmount = getInvoiceAmount(inspection);
-  const amountPaid = getNumber(inspection?.amount_paid);
-  const balanceDue = getBalanceDue(inspection);
-
-  if (status === "paid" || status === "waived") return true;
-  if (status === "unpaid" || status === "partial") return false;
-  if (invoiceAmount > 0 && amountPaid >= invoiceAmount) return true;
-  if (invoiceAmount > 0 && balanceDue <= 0) return true;
-
-  return true;
-}
-
 function formatActivityDate(value: any) {
   if (!value) return "N/A";
   const date = new Date(value);
@@ -361,13 +319,6 @@ function isRecentActivity(value: any) {
   return Date.now() - date.getTime() <= sevenDaysMs;
 }
 
-function isPublished(inspection: any) {
-  return (
-    inspection?.published === true ||
-    String(inspection?.report_status || "").toLowerCase() === "published"
-  );
-}
-
 function isTodayInspection(inspection: any) {
   if (!inspection?.inspection_date) return false;
 
@@ -406,51 +357,6 @@ function hasActivityForInspection(activityLogs: any[], inspectionId: any, types:
   });
 }
 
-function getSignedAgreementKey(agreement: any) {
-  return (
-    String(agreement?.contact_id || "").trim() ||
-    String(agreement?.client_email || "").trim().toLowerCase()
-  );
-}
-
-function getContactKey(contact: any) {
-  return (
-    String(contact?.id || "").trim() ||
-    String(contact?.email || "").trim().toLowerCase()
-  );
-}
-
-function getAgreementStatsForInspection({
-  inspection,
-  contactsByInspectionId,
-  signedAgreementMap,
-}: {
-  inspection: any;
-  contactsByInspectionId: Record<string, any[]>;
-  signedAgreementMap: Map<string, any>;
-}) {
-  const inspectionId = String(inspection?.id || "");
-  const contacts = contactsByInspectionId[inspectionId] || [];
-  const requiredContacts = contacts.filter((contact) => Boolean(contact?.agreement_required));
-
-  const unsignedRequiredContacts = requiredContacts.filter((contact) => {
-    if (contact?.agreement_signed) return false;
-
-    const contactKey = getContactKey(contact);
-    if (contactKey && signedAgreementMap.has(contactKey)) return false;
-
-    const email = String(contact?.email || "").trim().toLowerCase();
-    if (email && signedAgreementMap.has(email)) return false;
-
-    return true;
-  });
-
-  return {
-    requiredCount: requiredContacts.length,
-    unsignedCount: unsignedRequiredContacts.length,
-    signedCount: Math.max(0, requiredContacts.length - unsignedRequiredContacts.length),
-  };
-}
 
 function getRepairShareStatus(share: any, responseCount = 0) {
   const status = String(share?.status || "").toLowerCase();
