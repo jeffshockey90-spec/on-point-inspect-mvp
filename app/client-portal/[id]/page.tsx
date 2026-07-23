@@ -368,6 +368,7 @@ export default function ClientPortalPage() {
   const [radonTest, setRadonTest] = useState<any>(null);
   const [checklistRows, setChecklistRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [paying, setPaying] = useState(false);
   const [updatingReview, setUpdatingReview] = useState(false);
   const [propertyPhotoFailed, setPropertyPhotoFailed] = useState(false);
@@ -418,6 +419,7 @@ export default function ClientPortalPage() {
     if (!shareLookup) return;
 
     setLoading(true);
+    setLoadFailed(false);
 
     try {
       const res = await fetch(
@@ -429,6 +431,7 @@ export default function ClientPortalPage() {
       if (!res.ok || !data.inspection) {
         console.error(data?.error || "Failed to load client portal data.");
         setInspection(null);
+        setLoadFailed(true);
         setLoading(false);
         return;
       }
@@ -441,6 +444,7 @@ export default function ClientPortalPage() {
     } catch (error) {
       console.error("Client portal load error:", error);
       setInspection(null);
+      setLoadFailed(true);
     } finally {
       setLoading(false);
     }
@@ -553,8 +557,21 @@ export default function ClientPortalPage() {
 
   if (!inspection) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#020617] text-white">
-        Inspection not found.
+      <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#020617] px-6 text-center text-white">
+        <p>
+          {loadFailed
+            ? "Couldn't load this report link. This may be a temporary connection issue, or the link may be invalid or expired."
+            : "Inspection not found."}
+        </p>
+        {loadFailed && (
+          <button
+            type="button"
+            onClick={loadInspection}
+            className="rounded-xl border border-teal-500 px-5 py-3 font-bold text-teal-300 hover:bg-teal-500/10"
+          >
+            Try Again
+          </button>
+        )}
       </main>
     );
   }

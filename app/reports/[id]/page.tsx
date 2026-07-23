@@ -24,6 +24,7 @@ import PaymentInvoicePanel from "../../../components/PaymentInvoicePanel";
 import GenerateSummaryButton from "../../../components/GenerateSummaryButton";
 import SendReviewRequestButton from "../../../components/SendReviewRequestButton";
 import DeleteSummaryButton from "../../../components/DeleteSummaryButton";
+import ConfirmSubmitButton from "../../../components/ConfirmSubmitButton";
 import FastLinkButton from "../../../components/FastLinkButton";
 import CreateDemoReportButton from "../../../components/CreateDemoReportButton";
 import SampleReportManager from "../../../components/SampleReportManager";
@@ -1220,6 +1221,10 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const propertyPhotoUpdated = getSingleSearchParam(resolvedSearchParams, "property_photo_updated") === "1";
   const propertyPhotoError = getSingleSearchParam(resolvedSearchParams, "property_photo_error");
+  const detailsUpdated = getSingleSearchParam(resolvedSearchParams, "details_updated") === "1";
+  const detailsUpdateError = getSingleSearchParam(resolvedSearchParams, "details_update_error") === "1";
+  const equipmentUpdateError = getSingleSearchParam(resolvedSearchParams, "equipment_update_error") === "1";
+  const equipmentDeleteError = getSingleSearchParam(resolvedSearchParams, "equipment_delete_error") === "1";
   const supabase = await createSupabaseServerClient();
 
   async function updateInspectionDetails(formData: FormData) {
@@ -3784,6 +3789,18 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                 </p>
               </div>
 
+              {equipmentUpdateError && (
+                <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-200">
+                  Couldn&apos;t save that equipment note. Please try again.
+                </div>
+              )}
+
+              {equipmentDeleteError && (
+                <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-200">
+                  Couldn&apos;t delete that equipment record. Please try again.
+                </div>
+              )}
+
               <div className="grid gap-4">
                 {equipmentInventory.map((item: any) => {
                   const equipmentImage =
@@ -3931,12 +3948,12 @@ Service-life information is a general industry estimate only. Actual service lif
                       <form action={deleteEquipmentInventoryItem} className="mt-4">
                         <input type="hidden" name="inspection_id" value={inspection.id} />
                         <input type="hidden" name="equipment_id" value={item.id} />
-                        <button
-                          type="submit"
+                        <ConfirmSubmitButton
+                          confirmMessage="Delete this equipment record? This cannot be undone."
                           className="w-full rounded-xl border border-red-500/50 bg-red-500/10 px-4 py-3 text-sm font-black text-red-300 transition hover:bg-red-500/20"
                         >
                           Delete Equipment
-                        </button>
+                        </ConfirmSubmitButton>
                       </form>
                     </div>
                   );
@@ -3963,6 +3980,18 @@ Service-life information is a general industry estimate only. Actual service lif
                 Save Inspection Details
               </button>
             </div>
+
+            {detailsUpdated && (
+              <div className="mb-6 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm font-bold text-emerald-300">
+                Inspection details saved.
+              </div>
+            )}
+
+            {detailsUpdateError && (
+              <div className="mb-6 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-200">
+                Couldn&apos;t save inspection details. Please try again.
+              </div>
+            )}
 
             <div className="grid gap-6 md:grid-cols-2">
               <div>

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "../../../utils/supabase/server";
 import SendRealtorReportDropdown from "../../../components/SendRealtorReportDropdown";
+import ConfirmSubmitButton from "../../../components/ConfirmSubmitButton";
 
 type PageProps = { params: Promise<{ id: string }> };
 
@@ -515,12 +516,12 @@ export default async function RealtorDetailPage({ params }: PageProps) {
                       <input type="hidden" name="log_id" value={log.id} />
                       <input type="hidden" name="realtor_id" value={realtor.id} />
 
-                      <button
-                        type="submit"
+                      <ConfirmSubmitButton
+                        confirmMessage="Delete this contact log entry? This cannot be undone."
                         className="rounded-xl border border-red-500 px-4 py-2 font-bold text-red-300 hover:bg-red-500/10"
                       >
                         Delete
-                      </button>
+                      </ConfirmSubmitButton>
                     </form>
                   </div>
                 </div>

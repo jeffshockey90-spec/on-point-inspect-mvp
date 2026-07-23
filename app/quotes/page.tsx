@@ -255,8 +255,12 @@ export default function QuotePage() {
   }. This includes a clear digital report for the selected service(s).`;
 
   async function copyQuote() {
-    await navigator.clipboard.writeText(message);
-    alert("Quote message copied");
+    try {
+      await navigator.clipboard.writeText(message);
+      alert("Quote message copied");
+    } catch (error) {
+      alert("Couldn't copy automatically. Select and copy the quote message manually.");
+    }
   }
 
   function convertToInspection() {

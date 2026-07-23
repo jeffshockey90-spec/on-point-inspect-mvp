@@ -4,6 +4,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "../../utils/supabase/server";
+import ConfirmSubmitButton from "../../components/ConfirmSubmitButton";
 
 function formatDate(value: any) {
   if (!value) return "N/A";
@@ -147,7 +148,7 @@ export default async function RealtorsPage() {
                   {realtor.lastInspection && <Link href={`/reports/${realtor.lastInspection.id}`} className="rounded-xl border border-teal-500 px-4 py-2 font-bold text-teal-300 hover:bg-teal-500/10">Open Last Inspection</Link>}
                   {realtor.email && <a href={`mailto:${realtor.email}`} className="rounded-xl border border-cyan-500 px-4 py-2 font-bold text-cyan-300 hover:bg-cyan-500/10">Email</a>}
                   {realtor.phone && <a href={`tel:${realtor.phone}`} className="rounded-xl border border-green-500 px-4 py-2 font-bold text-green-300 hover:bg-green-500/10">Call</a>}
-                  <form action={deleteRealtor}><input type="hidden" name="id" value={realtor.id} /><button type="submit" className="rounded-xl border border-red-500 px-4 py-2 font-bold text-red-300 hover:bg-red-500/10">Delete</button></form>
+                  <form action={deleteRealtor}><input type="hidden" name="id" value={realtor.id} /><ConfirmSubmitButton confirmMessage={`Delete realtor "${realtor.name}"? This cannot be undone.`} className="rounded-xl border border-red-500 px-4 py-2 font-bold text-red-300 hover:bg-red-500/10">Delete</ConfirmSubmitButton></form>
                 </div>
               </article>
             ))

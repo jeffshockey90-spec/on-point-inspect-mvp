@@ -124,6 +124,8 @@ export default function AgreementLibraryManager() {
   const [templates, setTemplates] = useState<any[]>([]);
   const [selected, setSelected] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState("");
+  const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
 
@@ -178,14 +180,18 @@ export default function AgreementLibraryManager() {
 
   async function loadTemplates() {
     setLoading(true);
+    setLoadError("");
 
     try {
       const res = await fetch("/api/agreement-templates?activeOnly=false");
       const data = await res.json();
 
+      if (!res.ok) throw new Error(data.error || "Failed to load agreements.");
+
       setTemplates(data.templates || []);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to load agreement templates:", error);
+      setLoadError(error?.message || "Failed to load agreements.");
     } finally {
       setLoading(false);
     }
@@ -240,24 +246,32 @@ export default function AgreementLibraryManager() {
       is_default: isDefault,
     };
 
-    const res = await fetch("/api/agreement-templates", {
-      method: selected ? "PATCH" : "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
+    setSaving(true);
 
-    const data = await res.json();
+    try {
+      const res = await fetch("/api/agreement-templates", {
+        method: selected ? "PATCH" : "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
 
-    if (!res.ok) {
-      alert(data.error || "Failed to save agreement.");
-      return;
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.error || "Failed to save agreement.");
+        return;
+      }
+
+      alert("Agreement saved.");
+      resetForm();
+      await loadTemplates();
+    } catch (error: any) {
+      alert(error?.message || "Failed to save agreement.");
+    } finally {
+      setSaving(false);
     }
-
-    alert("Agreement saved.");
-    resetForm();
-    await loadTemplates();
   }
 
   async function deleteTemplate(templateToDelete = selected) {
@@ -564,7 +578,20 @@ export default function AgreementLibraryManager() {
 
         {loading && <p className="text-sm text-slate-400">Loading templates...</p>}
 
-        {!loading && filteredTemplates.length === 0 && (
+        {!loading && loadError && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm font-bold text-red-200">
+            {loadError}
+            <button
+              type="button"
+              onClick={loadTemplates}
+              className="rounded-lg border border-red-400/60 px-3 py-1.5 text-xs font-bold text-red-200 hover:bg-red-500/20"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
+        {!loading && !loadError && filteredTemplates.length === 0 && (
           <div className="rounded-xl border border-slate-700 bg-slate-950 p-4 text-sm text-slate-400">
             No agreements found. Create a new agreement or clear your filters.
           </div>
@@ -862,9 +889,10 @@ export default function AgreementLibraryManager() {
           <button
             type="button"
             onClick={saveTemplate}
-            className="rounded-xl bg-teal-500 px-5 py-3 font-bold text-slate-950 hover:bg-teal-400"
+            disabled={saving}
+            className="rounded-xl bg-teal-500 px-5 py-3 font-bold text-slate-950 hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Save Agreement
+            {saving ? "Saving..." : "Save Agreement"}
           </button>
 
           <button
