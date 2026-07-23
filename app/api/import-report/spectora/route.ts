@@ -165,7 +165,7 @@ async function fetchJson(url: string) {
     headers: {
       accept: "application/json, text/plain, */*",
       "user-agent":
-        "Mozilla/5.0 (compatible; OnPointInspectImporter/1.5; +https://on-point-inspect-mvp.vercel.app)",
+        "Mozilla/5.0 (compatible; OnPointInspectImporter/1.5; +https://app.flowinspect.app)",
       origin: "https://reports.spectora.com",
       referer: "https://reports.spectora.com/",
     },
@@ -194,7 +194,7 @@ async function readPdfTextFromUrl(pdfUrl: string) {
     method: "GET",
     headers: {
       "user-agent":
-        "Mozilla/5.0 (compatible; OnPointInspectImporter/1.5; +https://on-point-inspect-mvp.vercel.app)",
+        "Mozilla/5.0 (compatible; OnPointInspectImporter/1.5; +https://app.flowinspect.app)",
     },
     cache: "no-store",
   });

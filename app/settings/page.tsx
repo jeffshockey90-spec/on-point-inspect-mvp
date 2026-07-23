@@ -36,7 +36,7 @@ function getPublicProfileUrl(company: any) {
   const baseUrl =
     process.env.NEXT_PUBLIC_SITE_URL ||
     process.env.NEXT_PUBLIC_APP_URL ||
-    "https://on-point-inspect-mvp.vercel.app";
+    "https://app.flowinspect.app";
 
   return `${baseUrl.replace(/\/$/, "")}/inspectors/${slug}`;
 }
@@ -889,7 +889,7 @@ export default async function SettingsPage({
                   {publicProfileUrl && (
                     <FastLinkButton
                       href={publicProfileUrl.replace(
-                        (process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || "https://on-point-inspect-mvp.vercel.app").replace(/\/$/, ""),
+                        (process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || "https://app.flowinspect.app").replace(/\/$/, ""),
                         ""
                       )}
                       className="inline-flex items-center justify-center rounded-xl border border-cyan-500/60 px-4 py-3 text-sm font-black text-cyan-300 hover:bg-cyan-500/10"

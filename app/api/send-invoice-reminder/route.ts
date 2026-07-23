@@ -153,7 +153,7 @@ export async function POST(req: Request) {
     const appUrl =
       process.env.NEXT_PUBLIC_APP_URL ||
       process.env.NEXT_PUBLIC_BASE_URL ||
-      "https://on-point-inspect-mvp.vercel.app";
+      "https://app.flowinspect.app";
 
     const property =
       inspection.address ||

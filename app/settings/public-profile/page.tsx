@@ -35,7 +35,7 @@ function getPublicProfileUrl(company: any) {
   const baseUrl =
     process.env.NEXT_PUBLIC_SITE_URL ||
     process.env.NEXT_PUBLIC_APP_URL ||
-    "https://on-point-inspect-mvp.vercel.app";
+    "https://app.flowinspect.app";
 
   return `${baseUrl.replace(/\/$/, "")}/inspectors/${slug}`;
 }

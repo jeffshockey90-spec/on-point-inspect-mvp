@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: "FLOW",
   webDir: "public",
   server: {
-    url: "https://on-point-inspect-mvp.vercel.app",
+    url: "https://app.flowinspect.app",
     cleartext: false,
   },
   ios: {
