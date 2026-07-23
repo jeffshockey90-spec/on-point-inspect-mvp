@@ -6,6 +6,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "../../../utils/supabase/client";
 import { getCompanyId } from "../../../lib/getCompanyId";
+import { calculateHomeInspectionPrice } from "../../../lib/propertyPricing";
+import { useAddressAutocomplete } from "../../../hooks/useAddressAutocomplete";
 
 declare global {
   interface Window {
@@ -160,15 +162,6 @@ function formatTime(value: string) {
   });
 }
 
-function calculateHomeInspectionPrice(squareFeet: string | number) {
-  const sqft = getNumber(squareFeet);
-
-  if (!sqft || sqft <= 0) return 500;
-  if (sqft <= 2000) return 500;
-
-  return 500 + Math.ceil((sqft - 2000) / 1000) * 50;
-}
-
 function hasHomeInspection(serviceMode: ServiceMode) {
   return (
     serviceMode === "home" ||
@@ -291,7 +284,14 @@ function getUploadImageUrl(result: any) {
 export default function NewInspectionPage() {
   const router = useRouter();
   const supabase = createClient();
-  const addressInputRef = useRef<HTMLInputElement | null>(null);
+  const addressInputRef = useAddressAutocomplete((parsed) => {
+    clearPropertyAutofill();
+    setPropertyAddress(parsed.address);
+    setCity(parsed.city);
+    setStateValue(parsed.state);
+    setZip(parsed.zip);
+    autofillPropertyDetails(parsed.address, parsed.city, parsed.state, parsed.zip);
+  });
   const propertyLookupRequestId = useRef(0);
 
   const [clientName, setClientName] = useState("");
@@ -367,10 +367,6 @@ export default function NewInspectionPage() {
       )
       .slice(0, 8);
   }, [realtorName, realtors]);
-
-  useEffect(() => {
-    loadGooglePlaces();
-  }, []);
 
 
   useEffect(() => {
@@ -519,27 +515,6 @@ export default function NewInspectionPage() {
     setPropertyPhotoDragging(false);
   }
 
-  function loadGooglePlaces() {
-    if (window.google?.maps?.places) {
-      setupAutocomplete();
-      return;
-    }
-
-    const existingScript = document.getElementById("google-places-script");
-
-    if (existingScript) return;
-
-    const script = document.createElement("script");
-
-    script.id = "google-places-script";
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`;
-    script.async = true;
-    script.defer = true;
-    script.onload = setupAutocomplete;
-
-    document.body.appendChild(script);
-  }
-
   function clearPropertyAutofill() {
     setSquareFeet("");
     setYearBuilt("");
@@ -654,71 +629,6 @@ export default function NewInspectionPage() {
         setLoadingProperty(false);
       }
     }
-  }
-
-  function setupAutocomplete() {
-    if (!addressInputRef.current || !window.google?.maps?.places) return;
-
-    const autocomplete = new window.google.maps.places.Autocomplete(
-      addressInputRef.current,
-      {
-        types: ["address"],
-        componentRestrictions: { country: "us" },
-        fields: ["address_components", "formatted_address"],
-      }
-    );
-
-    autocomplete.addListener("place_changed", () => {
-      const place = autocomplete.getPlace();
-
-      if (!place.address_components) return;
-
-      let streetNumber = "";
-      let route = "";
-      let locality = "";
-      let adminArea = "";
-      let postalCode = "";
-
-      place.address_components.forEach((component: any) => {
-        const types = component.types;
-
-        if (types.includes("street_number")) {
-          streetNumber = component.long_name;
-        }
-
-        if (types.includes("route")) {
-          route = component.long_name;
-        }
-
-        if (types.includes("locality")) {
-          locality = component.long_name;
-        }
-
-        if (types.includes("administrative_area_level_1")) {
-          adminArea = component.short_name;
-        }
-
-        if (types.includes("postal_code")) {
-          postalCode = component.long_name;
-        }
-      });
-
-      const streetAddress = `${streetNumber} ${route}`.trim();
-      const finalAddress = streetAddress || place.formatted_address || "";
-
-      clearPropertyAutofill();
-      setPropertyAddress(finalAddress);
-      setCity(locality);
-      setStateValue(adminArea || "MD");
-      setZip(postalCode);
-
-      autofillPropertyDetails(
-        finalAddress,
-        locality,
-        adminArea || "MD",
-        postalCode
-      );
-    });
   }
 
   async function checkSubscriptionAccess(userId: string) {

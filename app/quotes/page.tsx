@@ -1,7 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Card } from "../../components/Card";
+import { calculateHomeInspectionPrice } from "../../lib/propertyPricing";
+import { useAddressAutocomplete } from "../../hooks/useAddressAutocomplete";
 
 type ServiceMode =
   | "home"
@@ -33,15 +35,6 @@ function getNumber(value: any) {
   }
 
   return 0;
-}
-
-function calculateHomeInspectionPrice(squareFeet: number) {
-  const sqft = getNumber(squareFeet);
-
-  if (!sqft || sqft <= 0) return 500;
-  if (sqft <= 2000) return 500;
-
-  return 500 + Math.ceil((sqft - 2000) / 1000) * 50;
 }
 
 function hasHomeInspection(serviceMode: ServiceMode) {
@@ -142,13 +135,95 @@ function calculateQuote({
 }
 
 export default function QuotePage() {
+  const [propertyAddress, setPropertyAddress] = useState("");
+  const [city, setCity] = useState("");
+  const [stateValue, setStateValue] = useState("MD");
+  const [zip, setZip] = useState("");
   const [sqft, setSqft] = useState(2500);
+  const [sqftAutoFilled, setSqftAutoFilled] = useState(false);
+  const [loadingProperty, setLoadingProperty] = useState(false);
+  const [propertyLookupStatus, setPropertyLookupStatus] = useState("");
+  const propertyLookupRequestId = useRef(0);
   const [serviceMode, setServiceMode] = useState<ServiceMode>("home");
   const [travelFee, setTravelFee] = useState(0);
   const [moldAirSamples, setMoldAirSamples] = useState(0);
   const [moldSurfaceSamples, setMoldSurfaceSamples] = useState(0);
   const [discount, setDiscount] = useState(0);
   const [creating, setCreating] = useState(false);
+
+  async function lookupPropertySqft(
+    address: string,
+    cityName: string,
+    stateName: string,
+    zipCode: string
+  ) {
+    if (!address.trim()) {
+      setPropertyLookupStatus("Enter an address first.");
+      return;
+    }
+
+    const lookupId = propertyLookupRequestId.current + 1;
+    propertyLookupRequestId.current = lookupId;
+
+    try {
+      setLoadingProperty(true);
+      setPropertyLookupStatus("Looking up property info...");
+
+      const res = await fetch("/api/property-lookup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          address,
+          city: cityName,
+          state: stateName,
+          zip: zipCode,
+        }),
+      });
+
+      if (!res.ok) return;
+
+      const data = await res.json();
+      if (lookupId !== propertyLookupRequestId.current) return;
+
+      const foundSqft =
+        data.square_feet || data.squareFeet || data.livingArea || data.living_area;
+
+      if (foundSqft) {
+        setSqft(Number(foundSqft));
+        setSqftAutoFilled(true);
+        setPropertyLookupStatus(
+          data.source === "rentcast_active_listing"
+            ? "Square footage pulled from an active market listing - the freshest source available."
+            : "Property info found. Please verify before quoting."
+        );
+      } else {
+        setPropertyLookupStatus(
+          "No property data found for that address. Enter square footage manually."
+        );
+      }
+    } catch (error) {
+      console.log("Property lookup skipped:", error);
+      setPropertyLookupStatus(
+        "Property lookup was skipped. Enter square footage manually."
+      );
+    } finally {
+      if (lookupId === propertyLookupRequestId.current) {
+        setLoadingProperty(false);
+      }
+    }
+  }
+
+  const addressInputRef = useAddressAutocomplete((parsed) => {
+    setPropertyAddress(parsed.address);
+    setCity(parsed.city);
+    setStateValue(parsed.state);
+    setZip(parsed.zip);
+    void lookupPropertySqft(parsed.address, parsed.city, parsed.state, parsed.zip);
+  });
+
+  async function runManualPropertyLookup() {
+    await lookupPropertySqft(propertyAddress, city, stateValue, zip);
+  }
 
   const quote = useMemo(
     () =>
@@ -257,6 +332,38 @@ export default function QuotePage() {
             <div className="grid gap-5 md:grid-cols-2">
               <label className="space-y-2 md:col-span-2">
                 <span className="text-sm font-bold text-zinc-300">
+                  Property Address (optional - auto-fills square footage)
+                </span>
+                <input
+                  ref={addressInputRef}
+                  type="text"
+                  value={propertyAddress}
+                  onChange={(e) => setPropertyAddress(e.target.value)}
+                  placeholder="Start typing an address..."
+                  className="w-full rounded-xl border border-zinc-700 bg-black p-3 text-white"
+                />
+              </label>
+
+              {propertyAddress && (
+                <div className="flex flex-wrap items-center gap-3 md:col-span-2">
+                  <button
+                    type="button"
+                    onClick={runManualPropertyLookup}
+                    disabled={loadingProperty}
+                    className="rounded-xl border border-zinc-700 bg-black px-4 py-2 text-sm font-bold text-white transition hover:border-teal-500 disabled:opacity-50"
+                  >
+                    {loadingProperty ? "Looking Up..." : "Lookup Property Info"}
+                  </button>
+                  {propertyLookupStatus && (
+                    <span className="text-xs text-zinc-400">
+                      {propertyLookupStatus}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              <label className="space-y-2 md:col-span-2">
+                <span className="text-sm font-bold text-zinc-300">
                   Service Type
                 </span>
                 <select
@@ -273,11 +380,21 @@ export default function QuotePage() {
               </label>
 
               {quote.includesHome && (
-                <Input
-                  label="Square Footage"
-                  value={sqft}
-                  onChange={setSqft}
-                />
+                <div className="space-y-1">
+                  <Input
+                    label="Square Footage"
+                    value={sqft}
+                    onChange={(value) => {
+                      setSqft(value);
+                      setSqftAutoFilled(false);
+                    }}
+                  />
+                  {sqftAutoFilled && (
+                    <p className="text-xs font-bold text-teal-400">
+                      Auto-filled — verify before quoting
+                    </p>
+                  )}
+                </div>
               )}
 
               <Input

@@ -70,6 +70,12 @@ type NormalizedProperty = {
   DESCSTYL?: string | null;
   DESCLU?: string | null;
   ACRES?: string | number | null;
+  // Active-listing-only metadata (from RentCast's /v1/listings/sale, not
+  // present on static property-record lookups).
+  listedDate?: string | null;
+  daysOnMarket?: number | null;
+  listingStatus?: string | null;
+  updated_at?: string | null;
 };
 
 const MARYLAND_PROPERTY_DATA_URL =
@@ -302,6 +308,13 @@ function responsePayload({
     city,
     state,
     zip,
+    // Freshness metadata - only populated when sourced from an active
+    // listing (listedDate/daysOnMarket) or the FLOW cache (updated_at).
+    // Not surfaced in the UI yet, but no longer silently dropped.
+    listedDate: property?.listedDate || null,
+    daysOnMarket:
+      typeof property?.daysOnMarket === "number" ? property.daysOnMarket : null,
+    dataAsOf: property?.updated_at || null,
   };
 }
 
@@ -524,6 +537,73 @@ async function lookupRentCastProperty({
     return parseRentCastRecord(record);
   } catch (error) {
     console.warn("RentCast property lookup skipped:", error);
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function parseRentCastListingRecord(record: any): NormalizedProperty | null {
+  const base = parseRentCastRecord(record);
+  if (!base) return null;
+
+  return {
+    ...base,
+    listedDate: record?.listedDate || null,
+    daysOnMarket:
+      typeof record?.daysOnMarket === "number" ? record.daysOnMarket : null,
+    listingStatus: record?.status || null,
+  };
+}
+
+async function lookupRentCastActiveListing({
+  address,
+  city,
+  state,
+  zip,
+}: {
+  address: string;
+  city: string;
+  state: string;
+  zip: string;
+}) {
+  if (!rentcastApiKey || !address) return null;
+
+  const fullAddress = buildFullAddress({ address, city, state, zip });
+  const params = new URLSearchParams({
+    address: fullAddress,
+    status: "Active",
+    limit: "1",
+  });
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+
+  try {
+    const response = await fetch(
+      `https://api.rentcast.io/v1/listings/sale?${params.toString()}`,
+      {
+        method: "GET",
+        cache: "no-store",
+        signal: controller.signal,
+        headers: {
+          Accept: "application/json",
+          "X-Api-Key": rentcastApiKey,
+        },
+      },
+    );
+
+    if (!response.ok) {
+      console.warn("RentCast active listing lookup failed:", response.status);
+      return null;
+    }
+
+    const data = await response.json();
+    const record = Array.isArray(data) ? data[0] : data?.listings?.[0];
+
+    return parseRentCastListingRecord(record);
+  } catch (error) {
+    console.warn("RentCast active listing lookup skipped:", error);
     return null;
   } finally {
     clearTimeout(timeout);
@@ -1293,6 +1373,43 @@ export async function POST(req: Request) {
 
     const fullAddress = buildFullAddress({ address, city, state, zip });
     const streetViewImage = buildStreetViewImage(fullAddress);
+
+    // 0) RentCast active listing. If this property is currently for sale,
+    // its listed square footage is seller/agent-reported and typically far
+    // fresher than tax-assessor records, since it reflects what's actually
+    // being told to buyers right now. Most properties have no active
+    // listing at any given time, so this is expected to be null often and
+    // fall through to the existing chain below unchanged.
+    const rentCastListing = await lookupRentCastActiveListing({
+      address,
+      city,
+      state,
+      zip,
+    });
+
+    if (rentCastListing) {
+      await saveToPropertiesTable({
+        address,
+        city,
+        state,
+        zip,
+        property: rentCastListing,
+        source: "rentcast_active_listing",
+        streetViewImage,
+      });
+
+      return NextResponse.json(
+        responsePayload({
+          source: "rentcast_active_listing",
+          property: rentCastListing,
+          address,
+          city,
+          state,
+          zip,
+          streetViewImage,
+        }),
+      );
+    }
 
     // 1) RentCast first. This runs during scheduling/property lookup and can
     // provide square footage and any available property image before falling
