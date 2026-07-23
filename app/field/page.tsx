@@ -18,9 +18,11 @@ import AISecondInspector, {
 } from "../../components/AISecondInspector";
 import InspectionCopilotPanel from "../../components/InspectionCopilotPanel";
 import OfflineReportViewer from "../../components/OfflineReportViewer";
-import AILiveInspectionCamera, {
-  type AILiveSuggestion,
-} from "../../components/AILiveInspectionCamera";
+import AILiveInspectionCamera from "../../components/AILiveInspectionCamera";
+import type {
+  CaptureCategory,
+  CaptureDraft,
+} from "../../lib/ai/captureTypes";
 import FieldCamera from "../../components/FieldCamera";
 import PhotoMarkupEditor from "../../components/PhotoMarkupEditor";
 import VoiceOnlyInspectionMode from "../../components/VoiceOnlyInspectionMode";
@@ -395,7 +397,7 @@ async function createVideoThumbnailForUpload(file: File): Promise<File | null> {
   });
 }
 
-type EquipmentResult = {
+export type EquipmentResult = {
   equipmentType?: string;
   manufacturer?: string;
   model?: string;
@@ -1741,39 +1743,85 @@ function FieldPageContent() {
     ignoreAiSuggestion(suggestion.id);
   }
 
-  function acceptLiveCameraSuggestion(suggestion: AILiveSuggestion, frame?: File | null) {
-    setPhotoType("finding");
-    setTitle(suggestion.title || "");
-    setSection(SECTIONS.includes(suggestion.section) ? suggestion.section : section);
-    setSeverity(SEVERITIES.includes(suggestion.severity) ? suggestion.severity : severity);
-    setObservation(suggestion.observation || "");
-    setImplication(suggestion.implication || "");
-    setRecommendation(suggestion.recommendation || "");
+  async function handleCameraAccept(
+    category: CaptureCategory,
+    draft: CaptureDraft,
+    file: File,
+  ) {
+    if (category === "finding" && draft.kind === "finding") {
+      const effectiveSection = SECTIONS.includes(draft.section)
+        ? draft.section
+        : section;
+      const effectiveSeverity = SEVERITIES.includes(draft.severity)
+        ? draft.severity
+        : severity;
 
-    if (frame) {
-      addFiles([frame]);
+      setPhotoType("finding");
+      setPhotos([file]);
+      setTitle(draft.title || "");
+      setSection(effectiveSection);
+      setSeverity(effectiveSeverity);
+      setNote("");
+      setObservation(draft.observation || "");
+      setImplication(draft.implication || "");
+      setRecommendation(draft.recommendation || "");
+
+      await saveFindingOnline({
+        photos: [file],
+        title: draft.title || "",
+        note: "",
+        section: effectiveSection,
+        severity: effectiveSeverity,
+        observation: draft.observation || "",
+        implication: draft.implication || "",
+        recommendation: draft.recommendation || "",
+      });
+      resetForm();
+      return;
     }
 
-    setMessage(
-      "AI Live Camera suggestion loaded into the Field Tool. Review it, edit if needed, then tap Save Finding yourself.",
-    );
-  }
+    if (category === "limitation" && draft.kind === "limitation") {
+      if (!file.type.startsWith("image/")) {
+        throw new Error(
+          "Limitations need a photo, not a video - retake using PHOTO mode.",
+        );
+      }
 
-  function addLiveCameraFrameOnly(frame: File) {
-    addFiles([frame]);
-    setMessage("Live camera photo added. Add notes or analyze before saving.");
-  }
+      const effectiveSection = SECTIONS.includes(draft.section)
+        ? draft.section
+        : section;
 
-  function startLiveCameraDataPlateScan(frame?: File | null) {
-    setPhotoType("finding");
+      setPhotoType("limitation");
+      setPhotos([file]);
+      setTitle(draft.title || "");
+      setSection(effectiveSection);
+      setNote(draft.limitation || "");
+      setRecommendation(draft.recommendation || "");
 
-    if (frame) {
-      addFiles([frame]);
+      await saveLimitationWithPhotoOnline({
+        photos: [file],
+        title: draft.title || "",
+        note: draft.limitation || "",
+        section: effectiveSection,
+        recommendation: draft.recommendation || "",
+      });
+      resetForm();
+      return;
     }
 
-    setMessage(
-      "Data plate reminder accepted. Use Analyze Equipment after the frame is added, or take a closer data plate photo.",
-    );
+    if (category === "equipment" && draft.kind === "equipment") {
+      const equipmentDraft = draft as unknown as EquipmentResult;
+
+      setPhotoType("finding");
+      setPhotos([file]);
+      setEquipmentResult(equipmentDraft);
+
+      await saveEquipmentFromFieldTool({
+        photos: [file],
+        equipmentResult: equipmentDraft,
+      });
+      return;
+    }
   }
 
   async function analyzeLimitationPhotoWithAI(
@@ -2207,9 +2255,14 @@ function FieldPageContent() {
     }
   }
 
-  async function saveEquipmentFromFieldTool() {
-    if (!equipmentResult || savingEquipment || analyzingEquipment || saving)
-      return;
+  async function saveEquipmentFromFieldTool(overrides?: {
+    photos?: File[];
+    equipmentResult?: EquipmentResult;
+  }) {
+    const er = overrides?.equipmentResult ?? equipmentResult;
+    const effectivePhotos = overrides?.photos ?? photos;
+
+    if (!er || savingEquipment || analyzingEquipment || saving) return;
 
     if (!selectedReport) {
       setMessage("Select a report before saving equipment.");
@@ -2225,7 +2278,7 @@ function FieldPageContent() {
 
     setSavingEquipment(true);
     setEquipmentSaveLabel(
-      shouldCreateEquipmentFinding(equipmentResult)
+      shouldCreateEquipmentFinding(er)
         ? "Preparing Equipment + Finding..."
         : "Preparing Equipment Save...",
     );
@@ -2234,7 +2287,7 @@ function FieldPageContent() {
     try {
       const uploadedPhotos: UploadedPhoto[] = [];
 
-      for (const photo of photos) {
+      for (const photo of effectivePhotos) {
         uploadedPhotos.push(await uploadPhotoFile(photo, "equipment-media"));
       }
 
@@ -2246,25 +2299,25 @@ function FieldPageContent() {
 
       const baseInventoryPayload = {
         inspection_id: Number(selectedReport),
-        equipment_type: cleanEquipmentValue(equipmentResult.equipmentType),
-        manufacturer: cleanEquipmentValue(equipmentResult.manufacturer),
-        model: cleanEquipmentValue(equipmentResult.model),
-        serial: cleanEquipmentValue(equipmentResult.serial),
+        equipment_type: cleanEquipmentValue(er.equipmentType),
+        manufacturer: cleanEquipmentValue(er.manufacturer),
+        model: cleanEquipmentValue(er.model),
+        serial: cleanEquipmentValue(er.serial),
         manufacture_year: cleanEquipmentValue(
-          equipmentResult.manufactureYear,
+          er.manufactureYear,
         ),
-        estimated_age: cleanEquipmentValue(equipmentResult.estimatedAge),
+        estimated_age: cleanEquipmentValue(er.estimatedAge),
         expected_service_life: cleanEquipmentValue(
-          equipmentResult.expectedServiceLife,
+          er.expectedServiceLife,
         ),
         estimated_life_remaining: "",
-        refrigerant: cleanEquipmentValue(equipmentResult.refrigerant),
+        refrigerant: cleanEquipmentValue(er.refrigerant),
         condition: meaningfulEquipmentValue(
-          cleanServiceLifeCondition(equipmentResult.condition),
+          cleanServiceLifeCondition(er.condition),
         ),
-        inspector_note: getAiInspectorNote(equipmentResult, note),
-        maintenance_note: getAiMaintenanceNote(equipmentResult),
-        equipment_status: getEquipmentStatusLabel(equipmentResult),
+        inspector_note: getAiInspectorNote(er, note),
+        maintenance_note: getAiMaintenanceNote(er),
+        equipment_status: getEquipmentStatusLabel(er),
         image_url: mainImage?.publicUrl || "",
         file_path: mainImage?.filePath || "",
       };
@@ -2272,18 +2325,18 @@ function FieldPageContent() {
       const enhancedInventoryPayload = {
         ...baseInventoryPayload,
         maintenance_schedule:
-          cleanEquipmentValue(equipmentResult.maintenanceSchedule) || null,
+          cleanEquipmentValue(er.maintenanceSchedule) || null,
         recall_awareness:
-          cleanEquipmentValue(equipmentResult.recallAwareness) || null,
+          cleanEquipmentValue(er.recallAwareness) || null,
         known_failure_patterns: Array.isArray(
-          equipmentResult.knownFailurePatterns,
+          er.knownFailurePatterns,
         )
-          ? equipmentResult.knownFailurePatterns
+          ? er.knownFailurePatterns
           : [],
         replacement_cost_estimate:
-          cleanEquipmentValue(equipmentResult.replacementCostEstimate) || null,
+          cleanEquipmentValue(er.replacementCostEstimate) || null,
         life_expectancy_percent:
-          Number(equipmentResult.lifeExpectancyPercent) || null,
+          Number(er.lifeExpectancyPercent) || null,
       };
 
       const { error: enhancedInventoryError } = await supabase
@@ -2298,7 +2351,7 @@ function FieldPageContent() {
         if (fallbackInventoryError) throw fallbackInventoryError;
       }
 
-      const createFinding = shouldCreateEquipmentFinding(equipmentResult);
+      const createFinding = shouldCreateEquipmentFinding(er);
 
       if (!createFinding) {
         resetForm();
@@ -2309,11 +2362,11 @@ function FieldPageContent() {
       }
 
       let equipmentTitle =
-        `${cleanEquipmentValue(equipmentResult.manufacturer) || "Equipment"} ${
-          cleanEquipmentValue(equipmentResult.equipmentType) || "Finding"
+        `${cleanEquipmentValue(er.manufacturer) || "Equipment"} ${
+          cleanEquipmentValue(er.equipmentType) || "Finding"
         }`.trim();
 
-      const titlePrefix = getFindingTitlePrefix(equipmentResult);
+      const titlePrefix = getFindingTitlePrefix(er);
 
       if (
         titlePrefix &&
@@ -2322,13 +2375,13 @@ function FieldPageContent() {
         equipmentTitle = `${titlePrefix} – ${equipmentTitle}`;
       }
 
-      const observationText = getCalmFindingObservation(equipmentResult);
-      const implicationText = getCalmFindingImplication(equipmentResult);
-      const recommendationText = getCalmFindingRecommendation(equipmentResult);
+      const observationText = getCalmFindingObservation(er);
+      const implicationText = getCalmFindingImplication(er);
+      const recommendationText = getCalmFindingRecommendation(er);
       const findingSeverity =
         titlePrefix === "Older Equipment"
           ? "Monitor"
-          : equipmentResult.severity || "Informational";
+          : er.severity || "Informational";
 
       setEquipmentSaveLabel("Creating Finding...");
 
@@ -2336,7 +2389,7 @@ function FieldPageContent() {
         .from("findings")
         .insert({
           inspection_id: selectedReport,
-          section: equipmentResult.section || "Heating",
+          section: er.section || "Heating",
           severity: findingSeverity,
           title: equipmentTitle,
           observation: observationText,
@@ -2378,7 +2431,7 @@ function FieldPageContent() {
     } finally {
       setSavingEquipment(false);
       setEquipmentSaveLabel(
-        equipmentResult && shouldCreateEquipmentFinding(equipmentResult)
+        er && shouldCreateEquipmentFinding(er)
           ? "Save Equipment + Create Finding"
           : "Save To Equipment Inventory",
       );
@@ -3284,29 +3337,47 @@ function FieldPageContent() {
     return { finding: selectedFinding, count: uploadedMedia.length };
   }
 
-  async function saveFindingOnline() {
+  async function saveFindingOnline(overrides?: {
+    photos?: File[];
+    title?: string;
+    note?: string;
+    section?: string;
+    severity?: string;
+    observation?: string;
+    implication?: string;
+    recommendation?: string;
+  }) {
+    const effectivePhotos = overrides?.photos ?? photos;
+    const effectiveTitle = overrides?.title ?? title;
+    const effectiveNote = overrides?.note ?? note;
+    const effectiveSection = overrides?.section ?? section;
+    const effectiveSeverity = overrides?.severity ?? severity;
+    const effectiveObservation = overrides?.observation ?? observation;
+    const effectiveImplication = overrides?.implication ?? implication;
+    const effectiveRecommendation = overrides?.recommendation ?? recommendation;
+
     const uploadedPhotos: UploadedPhoto[] = [];
 
-    for (const photo of photos) {
+    for (const photo of effectivePhotos) {
       uploadedPhotos.push(await uploadPhotoFile(photo, "field-media"));
     }
 
     const fallbackTitle =
-      title.trim() || note.trim().slice(0, 80) || "Field Finding";
+      effectiveTitle.trim() || effectiveNote.trim().slice(0, 80) || "Field Finding";
     const fallbackObservation =
-      observation.trim() ||
-      (note.trim() ? `Inspector field note: ${note.trim()}` : "");
+      effectiveObservation.trim() ||
+      (effectiveNote.trim() ? `Inspector field note: ${effectiveNote.trim()}` : "");
 
     const { data: finding, error } = await supabase
       .from("findings")
       .insert({
         inspection_id: selectedReport,
         title: fallbackTitle,
-        section,
-        severity,
+        section: effectiveSection,
+        severity: effectiveSeverity,
         observation: fallbackObservation,
-        implication,
-        recommendation,
+        implication: effectiveImplication,
+        recommendation: effectiveRecommendation,
         image_url:
           uploadedPhotos.find((photo) =>
             String(photo.filePath || "").match(
@@ -3340,10 +3411,20 @@ function FieldPageContent() {
     return finding;
   }
 
-  async function saveLimitationWithPhotoOnline() {
-    const limitationText = String(note || "").trim();
-    const limitationTitle = String(title || "").trim() || "Field Limitation";
-    const image = photos.find((photo) => photo.type.startsWith("image/"));
+  async function saveLimitationWithPhotoOnline(overrides?: {
+    photos?: File[];
+    title?: string;
+    note?: string;
+    section?: string;
+    recommendation?: string;
+  }) {
+    const effectivePhotos = overrides?.photos ?? photos;
+    const effectiveSection = overrides?.section ?? section;
+    const effectiveRecommendation = overrides?.recommendation ?? recommendation;
+    const limitationText = String(overrides?.note ?? note ?? "").trim();
+    const limitationTitle =
+      String(overrides?.title ?? title ?? "").trim() || "Field Limitation";
+    const image = effectivePhotos.find((photo) => photo.type.startsWith("image/"));
 
     if (!limitationText) {
       throw new Error("Enter the limitation wording before saving.");
@@ -3361,11 +3442,11 @@ function FieldPageContent() {
       cache: "no-store",
       body: JSON.stringify({
         inspectionId: String(selectedReport),
-        section,
+        section: effectiveSection,
         title: limitationTitle,
         limitation: limitationText,
         reason: "",
-        recommendation: recommendation.trim(),
+        recommendation: effectiveRecommendation.trim(),
         imageDataUrl,
       }),
     });
@@ -3384,7 +3465,7 @@ function FieldPageContent() {
       new CustomEvent("opi:section-limitations-changed", {
         detail: {
           inspectionId: selectedReport,
-          section,
+          section: effectiveSection,
           limitationId: data.limitation?.id || data.limitationId || null,
           photoId: data.photo?.id || data.photoId || null,
         },
@@ -3395,7 +3476,7 @@ function FieldPageContent() {
       new CustomEvent("opi:inspection-data-changed", {
         detail: {
           inspectionId: selectedReport,
-          section,
+          section: effectiveSection,
           source: "field-limitation-photo",
         },
       }),
@@ -3655,9 +3736,9 @@ function FieldPageContent() {
   }
 
   return (
-    <main className="min-h-screen bg-[#0f172a] p-4 text-white">
-      <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[1fr_380px]">
-        <div className="rounded-2xl bg-[#111827] p-5 shadow-2xl">
+    <main className="min-h-screen overflow-x-hidden bg-[#0f172a] p-4 text-white">
+      <div className="mx-auto grid min-w-0 max-w-7xl gap-6 lg:grid-cols-[1fr_380px]">
+        <div className="min-w-0 rounded-2xl bg-[#111827] p-5 shadow-2xl">
           <h1 className="mb-2 text-3xl font-bold text-teal-400">
             FLOW Field Workflow
           </h1>
@@ -4036,7 +4117,7 @@ function FieldPageContent() {
 
                 <button
                   type="button"
-                  onClick={saveEquipmentFromFieldTool}
+                  onClick={() => void saveEquipmentFromFieldTool()}
                   disabled={savingEquipment || analyzingEquipment || saving}
                   className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-cyan-400 px-5 py-3 text-sm font-black text-black transition active:scale-[0.98] hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
                 >
@@ -4654,9 +4735,7 @@ function FieldPageContent() {
                     selectedReport={selectedReport}
                     currentSection={section}
                     currentSeverity={severity}
-                    onUseSuggestion={acceptLiveCameraSuggestion}
-                    onAddPhotoOnly={addLiveCameraFrameOnly}
-                    onScanDataPlate={startLiveCameraDataPlateScan}
+                    onAccept={handleCameraAccept}
                   />
                 )}
 
@@ -4711,7 +4790,7 @@ function FieldPageContent() {
           </div>
         </div>
 
-        <div className="space-y-4 lg:sticky lg:top-4 lg:self-start">
+        <div className="min-w-0 space-y-4 lg:sticky lg:top-4 lg:self-start">
           <CommentLibrary onUseComment={useComment} />
         </div>
       </div>

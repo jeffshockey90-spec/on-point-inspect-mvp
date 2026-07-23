@@ -4,10 +4,7 @@ import { memo, useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { isNativeApp, takeNativePhotoSavedToGallery } from "../lib/nativePhoto";
 import ExpandableReportImage from "./ExpandableReportImage";
-import {
-  createFullImageForUpload,
-  createThumbnailForUpload,
-} from "../lib/imageVariants";
+import { uploadSectionReferencePhoto } from "../lib/sectionReferencePhotos";
 
 const PHOTO_BUCKET = "inspection-photos";
 
@@ -149,95 +146,23 @@ function SectionReferencePhotos({
     }
 
     setUploading(true);
-    setUploadLabel(savedToGallery ? "Saving Gallery Photo..." : "Preparing Photo...");
+    setUploadLabel(savedToGallery ? "Saving Gallery Photo..." : "Uploading Photo...");
 
     try {
-      const uploadFile = await createFullImageForUpload(file);
-      setUploadLabel("Creating Thumbnail...");
-      const thumbnailFile = await createThumbnailForUpload(file);
-
-      const fileExt = "jpg";
-      const safeSection = section.replace(/[^a-zA-Z0-9-_]/g, "-").slice(0, 50);
-      const safeName = uploadFile.name
-        .replace(/\.[^/.]+$/, "")
-        .replace(/[^a-zA-Z0-9-_]/g, "-")
-        .slice(0, 40);
-
-      const baseName = `${Date.now()}-${crypto.randomUUID()}-${safeName}`;
-      const filePath = `${inspectionId}/reference-photos/${safeSection}/${baseName}.${fileExt}`;
-      const thumbnailPath = `${inspectionId}/reference-photos/${safeSection}/thumbnails/${baseName}-thumb.jpg`;
-
-      setUploadLabel("Uploading Photo...");
-
-      const { error: uploadError } = await supabase.storage
-        .from(PHOTO_BUCKET)
-        .upload(filePath, uploadFile, {
-          cacheControl: "31536000",
-          upsert: false,
-          contentType: uploadFile.type || "image/jpeg",
-        });
-
-      if (uploadError) throw uploadError;
-
-      const { data: publicData } = supabase.storage
-        .from(PHOTO_BUCKET)
-        .getPublicUrl(filePath);
-
-      let thumbnailUrl = "";
-
-      setUploadLabel("Uploading Thumbnail...");
-
-      const { error: thumbnailUploadError } = await supabase.storage
-        .from(PHOTO_BUCKET)
-        .upload(thumbnailPath, thumbnailFile, {
-          cacheControl: "31536000",
-          upsert: false,
-          contentType: "image/jpeg",
-        });
-
-      if (!thumbnailUploadError) {
-        const { data: thumbnailData } = supabase.storage
-          .from(PHOTO_BUCKET)
-          .getPublicUrl(thumbnailPath);
-
-        thumbnailUrl = thumbnailData.publicUrl;
-      }
-
-      setUploadLabel("Saving Reference Photo...");
-
-      const { data, error } = await supabase
-        .from("section_reference_photos")
-        .insert({
-          inspection_id: inspectionId,
+      const { row, signedUrl, signedThumbnailUrl } =
+        await uploadSectionReferencePhoto({
+          inspectionId,
           section,
-          caption: caption.trim() || null,
-          file_path: filePath,
-          public_url: publicData.publicUrl,
-          thumbnail_path: thumbnailUrl ? thumbnailPath : null,
-          thumbnail_url: thumbnailUrl || null,
-        })
-        .select("*")
-        .single();
-
-      if (error) throw error;
-
-      const [signedFullMap, signedThumbnailMap] = await Promise.all([
-        createSignedUrlMap([filePath]),
-        thumbnailUrl ? createSignedUrlMap([thumbnailPath]) : Promise.resolve({} as Record<string, string>),
-      ]);
+          file,
+          caption,
+        });
 
       setPhotos((prev) => [
         ...prev,
         {
-          ...data,
-          signed_url: signedFullMap[filePath] || publicData.publicUrl,
-          signed_thumbnail_url:
-            signedThumbnailMap[thumbnailPath] ||
-            thumbnailUrl ||
-            signedFullMap[filePath] ||
-            publicData.publicUrl,
-          thumbnail_path: thumbnailUrl ? thumbnailPath : null,
-          thumbnail_url: thumbnailUrl || null,
+          ...row,
+          signed_url: signedUrl,
+          signed_thumbnail_url: signedThumbnailUrl,
         },
       ]);
 

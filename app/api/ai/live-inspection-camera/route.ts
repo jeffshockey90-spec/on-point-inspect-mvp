@@ -457,11 +457,7 @@ export async function POST(req: Request) {
     const currentSeverity = cleanText(body.currentSeverity) || "Recommended Repair";
     const mode = cleanText(body.mode) || "manual";
     const isLiveWatch = mode === "live_watch";
-    const recentMemory = await loadRecentInspectionMemory(inspectionId, currentSection);
-    const inspectorLearningPatterns = await learningEngine.getPatterns(180);
-    const inspectorLearningMemory = learningEngine.formatPatternsForPrompt(
-      inspectorLearningPatterns,
-    );
+    const focus = cleanText(body.focus);
 
     if (!imageDataUrl) {
       return NextResponse.json(
@@ -471,6 +467,80 @@ export async function POST(req: Request) {
     }
 
     const image = imageDataUrlParts(imageDataUrl);
+
+    // Lean path for the button-driven capture camera's Limitations button:
+    // draft a single limitation from one deliberate photo, skipping the
+    // multi-suggestion/reminder/data-plate analysis and the memory/learning
+    // context lookups the full live-watch/manual path needs.
+    if (focus === "limitation") {
+      const inspectorNote = cleanText(body.note);
+
+      const limitationSystemPrompt = `
+You are FLOW AI, identifying ONE inspection limitation from a single photo an inspector just captured on purpose.
+
+An inspection limitation means access or visibility was limited by something like personal belongings,
+stored items, coverings, obstructions, unsafe access, weather, snow, locked areas, low clearance, or
+utilities being off.
+
+Return ONLY valid JSON in this exact structure:
+{
+  "limitation": {
+    "title": "",
+    "section": "",
+    "limitation": "",
+    "reason": "",
+    "recommendation": "",
+    "confidence": 0.0
+  }
+}
+
+If the photo does not show anything limiting inspection access or visibility, return {"limitation": null}.
+
+Rules:
+- Use cautious wording such as "appeared", "was observed", "may", and "recommend verification".
+- Do not overstate the limitation. If only possible, say "appeared" or "may have limited visibility."
+- Explain what was limited, why, and recommend further evaluation only when appropriate.
+- Do not include markdown or any text outside JSON.
+
+Allowed sections:
+${VALID_SECTIONS.join(", ")}.
+`;
+
+      const limitationUserPrompt = `
+Current selected section: ${currentSection}
+Inspector note (optional): ${inspectorNote || "None"}
+
+Describe the single most likely inspection limitation visible in this photo, using the inspector's note
+as supporting context if provided, or return {"limitation": null} if nothing about this photo suggests
+limited access or visibility.
+`;
+
+      const brainResult = await inspectionBrain.run({
+        task: "defect",
+        systemPrompt: limitationSystemPrompt,
+        userPrompt: limitationUserPrompt,
+        images: [image],
+        temperature: 0.1,
+        responseFormat: "json_object",
+      });
+
+      const parsed = safeJsonParse(brainResult.text || "{}");
+      const limitation = parsed?.limitation
+        ? cleanLimitation(parsed.limitation, 0, currentSection)
+        : null;
+
+      return NextResponse.json({
+        limitation,
+        mode: "manual",
+        model: brainResult.model,
+      });
+    }
+
+    const recentMemory = await loadRecentInspectionMemory(inspectionId, currentSection);
+    const inspectorLearningPatterns = await learningEngine.getPatterns(180);
+    const inspectorLearningMemory = learningEngine.formatPatternsForPrompt(
+      inspectorLearningPatterns,
+    );
 
     const systemPrompt = `
 You are FLOW AI Second Inspector, a senior home inspection assistant watching a live inspection camera frame.

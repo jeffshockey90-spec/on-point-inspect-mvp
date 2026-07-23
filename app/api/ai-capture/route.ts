@@ -98,20 +98,6 @@ export async function POST(req: Request) {
     note = cleanText(body.note || body.transcript);
     inspectionId = body.inspectionId || body.inspection_id || null;
 
-    if (!note) {
-      return NextResponse.json(
-        { error: "Missing inspector note." },
-        { status: 400 },
-      );
-    }
-
-    if (!process.env.OPENAI_API_KEY) {
-      return NextResponse.json(
-        { error: "Missing OPENAI_API_KEY." },
-        { status: 500 },
-      );
-    }
-
     const requestedSection = cleanText(body.section);
     const requestedSeverity = cleanText(body.severity);
     const propertyYear = cleanText(body.propertyYear || body.yearBuilt || body.year_built);
@@ -126,11 +112,31 @@ export async function POST(req: Request) {
           .slice(0, 3)
       : [];
 
+    if (!note && imageDataUrls.length === 0) {
+      return NextResponse.json(
+        { error: "Add a note or at least one photo." },
+        { status: 400 },
+      );
+    }
+
+    if (!process.env.OPENAI_API_KEY) {
+      return NextResponse.json(
+        { error: "Missing OPENAI_API_KEY." },
+        { status: 500 },
+      );
+    }
+
     const systemPrompt = `
 You are FLOW AI Report Writer 3.0, a senior certified home inspector and careful report editor.
 
-The inspector's spoken or typed note is the PRIMARY SOURCE OF TRUTH. Photos are supporting evidence only.
-Do not invent a defect that is not supported by the note or visible evidence.
+${
+  note
+    ? `The inspector's spoken or typed note is the PRIMARY SOURCE OF TRUTH. Photos are supporting evidence only.
+Do not invent a defect that is not supported by the note or visible evidence.`
+    : `No inspector note was provided. Base the finding entirely on the photo(s): describe only what is
+visibly evident, do not fabricate specifics you cannot see, and keep confidence conservative (60 or
+below) since there is no inspector narration to confirm your read of the image.`
+}
 Do not state concealed conditions as fact.
 Do not claim code violations.
 Preserve uncertainty words such as possible, appeared, may, suspected, and could.
@@ -175,7 +181,7 @@ ${VALID_SEVERITIES.join(", ")}.
 Create one complete inspection finding.
 
 Inspector note / voice transcript:
-${note}
+${note || "None — describe the finding based solely on the photo(s) provided."}
 
 Preferred section:
 ${requestedSection || "Choose the best section."}
