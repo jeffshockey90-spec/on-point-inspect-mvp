@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { logAIEvent } from "../../../lib/logging";
 import { routeFindingSection, normalizeSeverity } from "../../../lib/routeFindingSection";
 import { getAIModel, getAIVersion } from "../../../lib/openai";
+import { learningEngine } from "../../../lib/ai/LearningEngine";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -126,6 +127,11 @@ export async function POST(req: Request) {
       );
     }
 
+    const inspectorLearningPatterns = await learningEngine.getPatterns(180);
+    const inspectorLearningMemory = learningEngine.formatPatternsForPrompt(
+      inspectorLearningPatterns,
+    );
+
     const systemPrompt = `
 You are FLOW AI Report Writer 3.0, a senior certified home inspector and careful report editor.
 
@@ -142,6 +148,10 @@ Do not claim code violations.
 Preserve uncertainty words such as possible, appeared, may, suspected, and could.
 Write client-friendly, realtor-friendly language that remains accurate and non-alarmist.
 Use the property's age and equipment context only to improve relevance, not to invent conditions.
+
+If inspector-specific learning memory is provided below, match this inspector's demonstrated wording,
+recommendation style, and severity/section choices when supported by the visible evidence. Treat it as
+a style preference, not permission to invent or overlook evidence.
 
 Return ONLY valid JSON in this exact structure:
 {
@@ -204,6 +214,9 @@ ${existingImplication || "None"}
 Existing recommendation:
 ${existingRecommendation || "None"}
 
+Inspector-specific learning memory from prior edits and decisions:
+${inspectorLearningMemory || "None yet"}
+
 Keep the inspector's intent. Improve the writing without drifting away from the documented condition.
 `,
       },
@@ -221,7 +234,7 @@ Keep the inspector's intent. Improve the writing without drifting away from the 
         { role: "user", content: userContent },
       ],
       temperature: 0.2,
-      max_tokens: 1400,
+      max_completion_tokens: 1400,
     });
 
     const parsed = safeJsonParse(response.choices[0]?.message?.content || "{}");
