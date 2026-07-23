@@ -1,5 +1,6 @@
 
 import { formatAppValue } from "../../../../lib/app-time";
+import { resolveActiveSections } from "../../../../lib/reportSections";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
@@ -32,8 +33,8 @@ const SECTION_ORDER = [
   "Attic, Insulation & Ventilation",
   "Doors, Windows & Interior",
   "Built-in Appliances",
-  "Garage",
   "Disclaimers",
+  "Garage",
 ];
 
 const STANDARDS_OF_PRACTICE = [
@@ -166,10 +167,64 @@ function normalizeSection(section: any) {
   return aliases[clean] || clean;
 }
 
-function getSectionNumber(section: any) {
+function getSectionNumber(section: any, sectionOrder: string[] = SECTION_ORDER) {
   const clean = normalizeSection(section);
-  const index = SECTION_ORDER.findIndex((item) => item === clean);
-  return index >= 0 ? index + 1 : SECTION_ORDER.length + 1;
+  const index = sectionOrder.findIndex((item) => item === clean);
+  return index >= 0 ? index + 1 : sectionOrder.length + 1;
+}
+
+// Matches the identical numbering scheme used by the report builder
+// (app/reports/[id]/page.tsx), the client-facing share page
+// (app/share/[id]/page.tsx), and the print page - this PDF used its own
+// simpler `${sectionNumber}.${index + 1}` scheme, which disagreed with the
+// item numbers shown everywhere else in the app.
+function getRepairItemGroupLabel(finding: any) {
+  return String(
+    finding?.component ||
+      finding?.subsection ||
+      finding?.category ||
+      finding?.system ||
+      finding?.group_title ||
+      finding?.item_group ||
+      "General"
+  ).trim() || "General";
+}
+
+function addRepairItemNumbers(findings: any[], sectionOrder: string[] = SECTION_ORDER) {
+  const sectionGroupMap = new Map<string, number>();
+  const sectionGroupCounts = new Map<string, number>();
+
+  return (findings || []).map((finding: any) => {
+    const section = normalizeSection(finding?.section);
+    const sectionNumber = getSectionNumber(section, sectionOrder);
+    const groupLabel = getRepairItemGroupLabel(finding).toLowerCase();
+    const sectionGroupKey = `${sectionNumber}:${groupLabel}`;
+
+    if (!sectionGroupMap.has(sectionGroupKey)) {
+      const existingGroupsForSection = Array.from(sectionGroupMap.keys()).filter((key) =>
+        key.startsWith(`${sectionNumber}:`)
+      ).length;
+
+      sectionGroupMap.set(sectionGroupKey, existingGroupsForSection + 1);
+    }
+
+    const groupNumber = sectionGroupMap.get(sectionGroupKey) || 1;
+    const countKey = `${sectionNumber}.${groupNumber}`;
+    const nextCount = (sectionGroupCounts.get(countKey) || 0) + 1;
+    sectionGroupCounts.set(countKey, nextCount);
+
+    const repairItemNumber =
+      finding?.repair_item_number ||
+      finding?.item_number ||
+      finding?.finding_number ||
+      `${sectionNumber}.${groupNumber}.${nextCount}`;
+
+    return {
+      ...finding,
+      section,
+      report_item_number: repairItemNumber,
+    };
+  });
 }
 
 function getFindingTitle(finding: any) {
@@ -801,6 +856,7 @@ function buildStandardsOfPracticePagesHtml({
 function buildAgentReportHtml({
   inspection,
   findings,
+  sectionOrder,
   reportMode,
   propertyPhotoUrl,
   branding,
@@ -812,6 +868,7 @@ function buildAgentReportHtml({
 }: {
   inspection: any;
   findings: any[];
+  sectionOrder?: string[];
   reportMode: "agent" | "full";
   propertyPhotoUrl?: string;
   branding: any;
@@ -823,7 +880,9 @@ function buildAgentReportHtml({
 }) {
   const property = getPropertyAddress(inspection);
   const isFull = reportMode === "full";
-  const defects = findings.filter(isReportDefect);
+  const activeSectionOrder = sectionOrder || SECTION_ORDER;
+  const numberedFindings = addRepairItemNumbers(findings, activeSectionOrder);
+  const defects = numberedFindings.filter(isReportDefect);
 
   const counts = defects.reduce(
     (acc: Record<string, number>, finding: any) => {
@@ -834,13 +893,13 @@ function buildAgentReportHtml({
     {}
   );
 
-  const grouped = SECTION_ORDER.map((section) => ({
+  const grouped = activeSectionOrder.map((section) => ({
     section,
     findings: defects.filter((finding) => normalizeSection(finding.section) === section),
   })).filter((group) => group.findings.length > 0);
 
   const otherFindings = defects.filter(
-    (finding) => !SECTION_ORDER.includes(normalizeSection(finding.section))
+    (finding) => !activeSectionOrder.includes(normalizeSection(finding.section))
   );
 
   if (otherFindings.length) grouped.push({ section: "Other", findings: otherFindings });
@@ -884,7 +943,7 @@ function buildAgentReportHtml({
     : `<div class="cover-photo no-photo">Property photo not available</div>`;
 
   const tocHtml = grouped.map((group) => {
-    const sectionNumber = getSectionNumber(group.section);
+    const sectionNumber = getSectionNumber(group.section, activeSectionOrder);
     return `
       <div class="toc-row">
         <span class="toc-num">${escapeHtml(String(sectionNumber))}</span>
@@ -906,14 +965,13 @@ function buildAgentReportHtml({
     `
     : "";
 
-  const keyFindingsHtml = defects.map((finding: any, index: number) => {
+  const keyFindingsHtml = defects.map((finding: any) => {
     const section = normalizeSection(finding.section);
-    const sectionNumber = getSectionNumber(section);
     const bucket = getSeverityBucket(finding.severity);
     return `
       <li>
         <span class="key-dot ${severityKey(finding.severity)}"></span>
-        <span><strong>${escapeHtml(`${sectionNumber}.${index + 1}`)}</strong> ${escapeHtml(section)} — ${escapeHtml(getFindingTitle(finding))}</span>
+        <span><strong>${escapeHtml(String(finding.report_item_number || ""))}</strong> ${escapeHtml(section)} — ${escapeHtml(getFindingTitle(finding))}</span>
         <em>${escapeHtml(bucket)}</em>
       </li>
     `;
@@ -945,10 +1003,10 @@ function buildAgentReportHtml({
   `;
 
   const pagesHtml = grouped.map((group) => {
-    const sectionNumber = getSectionNumber(group.section);
+    const sectionNumber = getSectionNumber(group.section, activeSectionOrder);
 
-    const findingsHtml = group.findings.map((finding: any, index: number) => {
-      const sectionItemNumber = `${sectionNumber}.${index + 1}`;
+    const findingsHtml = group.findings.map((finding: any) => {
+      const sectionItemNumber = String(finding.report_item_number || "");
       const photos = Array.isArray(finding.photos)
         ? finding.photos.slice(0, isFull ? 4 : 2)
         : [];
@@ -1564,6 +1622,14 @@ export async function GET(req: Request, { params }: RouteProps) {
       section: normalizeSection(finding.section),
     }));
 
+    const { data: reportSectionsRaw } = await admin
+      .from("report_section_overrides")
+      .select("*")
+      .eq("inspection_id", inspectionId)
+      .order("sort_order", { ascending: true });
+
+    const activeSectionOrder = resolveActiveSections(SECTION_ORDER, reportSectionsRaw || []);
+
     const findingIds = normalizedFindings.map((finding: any) => cleanText(finding.id)).filter(Boolean);
     const photosRaw = await loadPhotos(admin, inspectionId, findingIds);
 
@@ -1720,6 +1786,7 @@ export async function GET(req: Request, { params }: RouteProps) {
       includeStandardsInPdf,
       clientNameOverride,
       clientEmailOverride,
+      sectionOrder: activeSectionOrder,
     });
     const property = getPropertyAddress(inspection);
 

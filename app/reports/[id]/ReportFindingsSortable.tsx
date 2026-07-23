@@ -136,10 +136,96 @@ function DeferredOpenSection({
   );
 }
 
-export default function ReportFindingsSortable({ groupedFindings }: any) {
+export default function ReportFindingsSortable({ groupedFindings, deletedSections }: any) {
   const params = useParams();
   const router = useRouter();
   const inspectionId = String(params?.id || "");
+
+  const [addSectionOpen, setAddSectionOpen] = useState(false);
+  const [newSectionName, setNewSectionName] = useState("");
+  const [savingSection, setSavingSection] = useState(false);
+  const [deletingSection, setDeletingSection] = useState<string | null>(null);
+  const [restoringSection, setRestoringSection] = useState<string | null>(null);
+  const [sectionMessage, setSectionMessage] = useState("");
+  const [deletedSectionsOpen, setDeletedSectionsOpen] = useState(false);
+
+  async function callReportSectionsApi(action: "create" | "delete" | "restore", sectionName: string) {
+    const res = await fetch("/api/report-sections", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ inspectionId, sectionName, action }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      throw new Error(data.error || `Failed to ${action} section.`);
+    }
+
+    return data;
+  }
+
+  async function addCustomSection() {
+    const cleanName = newSectionName.trim();
+
+    if (!cleanName) {
+      setSectionMessage("Enter a section name.");
+      return;
+    }
+
+    setSavingSection(true);
+    setSectionMessage("");
+
+    try {
+      await callReportSectionsApi("create", cleanName);
+      setNewSectionName("");
+      setAddSectionOpen(false);
+      router.refresh();
+    } catch (error: any) {
+      setSectionMessage(error?.message || "Failed to add section.");
+    } finally {
+      setSavingSection(false);
+    }
+  }
+
+  async function deleteSection(sectionName: string, findingCount: number) {
+    if (deletingSection) return;
+
+    const warning =
+      findingCount > 0
+        ? `Delete "${sectionName}"? Its ${findingCount} finding${findingCount === 1 ? "" : "s"} will be hidden from the report until you restore this section.`
+        : `Delete "${sectionName}"?`;
+
+    if (!window.confirm(warning)) return;
+
+    setDeletingSection(sectionName);
+    setSectionMessage("");
+
+    try {
+      await callReportSectionsApi("delete", sectionName);
+      router.refresh();
+    } catch (error: any) {
+      setSectionMessage(error?.message || "Failed to delete section.");
+    } finally {
+      setDeletingSection(null);
+    }
+  }
+
+  async function restoreSection(sectionName: string) {
+    if (restoringSection) return;
+
+    setRestoringSection(sectionName);
+    setSectionMessage("");
+
+    try {
+      await callReportSectionsApi("restore", sectionName);
+      router.refresh();
+    } catch (error: any) {
+      setSectionMessage(error?.message || "Failed to restore section.");
+    } finally {
+      setRestoringSection(null);
+    }
+  }
 
   function getAllSectionsClosed(groups: any[]) {
     const next: Record<string, boolean> = {};
@@ -523,7 +609,93 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
             Drag section headers to reorder
           </span>
         </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            setAddSectionOpen((value) => !value);
+            setSectionMessage("");
+          }}
+          className="w-full rounded-xl border border-cyan-500 px-4 py-3 text-sm font-black text-cyan-300 transition active:scale-[0.98] hover:bg-cyan-500/10 sm:w-auto sm:py-2"
+        >
+          + Add Section
+        </button>
+
+        {deletedSections && deletedSections.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setDeletedSectionsOpen((value) => !value)}
+            className="w-full rounded-xl border border-orange-500/60 px-4 py-3 text-sm font-black text-orange-300 transition active:scale-[0.98] hover:bg-orange-500/10 sm:w-auto sm:py-2"
+          >
+            {deletedSectionsOpen ? "Hide" : "Show"} Deleted Sections ({deletedSections.length})
+          </button>
+        )}
       </div>
+
+      {addSectionOpen && (
+        <div className="w-full rounded-2xl border border-cyan-500/40 bg-[#0f172a] p-4">
+          <p className="mb-3 text-sm font-bold text-slate-300">
+            Add a custom section (e.g. Pool, Guest House, Outbuilding).
+          </p>
+
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <input
+              value={newSectionName}
+              onChange={(event) => setNewSectionName(event.target.value)}
+              disabled={savingSection}
+              placeholder="Section name"
+              className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60 sm:flex-1"
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  void addCustomSection();
+                }
+              }}
+            />
+
+            <button
+              type="button"
+              onClick={addCustomSection}
+              disabled={savingSection}
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-cyan-500 px-5 py-3 text-sm font-black text-slate-950 transition active:scale-[0.98] hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {savingSection ? "Adding..." : "Add Section"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {sectionMessage && (
+        <div className="w-full rounded-xl border border-red-500/40 bg-red-950/30 p-3 text-sm font-bold text-red-300">
+          {sectionMessage}
+        </div>
+      )}
+
+      {deletedSectionsOpen && deletedSections && deletedSections.length > 0 && (
+        <div className="w-full space-y-2 rounded-2xl border border-orange-500/40 bg-[#0f172a] p-4">
+          <p className="mb-1 text-sm font-bold text-slate-300">
+            Deleted sections - restoring brings the section and any findings still tagged with it back into the report.
+          </p>
+
+          {deletedSections.map((row: any) => (
+            <div
+              key={row.id || row.section_name}
+              className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-700 bg-[#020617] px-4 py-3"
+            >
+              <span className="font-bold text-slate-200">{row.section_name}</span>
+
+              <button
+                type="button"
+                onClick={() => restoreSection(row.section_name)}
+                disabled={restoringSection === row.section_name}
+                className="inline-flex min-h-9 items-center justify-center gap-2 rounded-xl border border-teal-500 px-4 py-2 text-xs font-black text-teal-300 transition active:scale-[0.98] hover:bg-teal-500/10 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {restoringSection === row.section_name ? "Restoring..." : "Restore"}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {(orderedGroups || []).map((group: any, index: number) => {
         const findings = group.findings || [];
@@ -622,6 +794,19 @@ export default function ReportFindingsSortable({ groupedFindings }: any) {
                   ↓
                 </button>
               </div>
+
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  void deleteSection(group.section, findings.length);
+                }}
+                disabled={deletingSection === group.section}
+                title="Delete section"
+                className="flex shrink-0 items-center justify-center border-l border-slate-700 px-3 text-sm font-black text-red-400 hover:bg-red-950/40 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {deletingSection === group.section ? "…" : "🗑"}
+              </button>
             </div>
 
             <DeferredOpenSection active={!isClosed}>

@@ -1,5 +1,6 @@
 
 import { formatAppValue } from "../../../lib/app-time";
+import { resolveActiveSections } from "../../../lib/reportSections";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
@@ -149,14 +150,14 @@ function getRepairItemGroupLabel(finding: any) {
   ).trim() || "General";
 }
 
-function addRepairItemNumbers(findings: any[]) {
+function addRepairItemNumbers(findings: any[], sectionOrder: string[] = SECTION_ORDER) {
   const sectionGroupMap = new Map<string, number>();
   const sectionGroupCounts = new Map<string, number>();
 
   return (findings || []).map((finding: any) => {
     const section = normalizeSection(finding?.section);
-    const sectionNumberRaw = SECTION_ORDER.indexOf(section) + 1;
-    const sectionNumber = sectionNumberRaw > 0 ? sectionNumberRaw : SECTION_ORDER.length + 1;
+    const sectionNumberRaw = sectionOrder.indexOf(section) + 1;
+    const sectionNumber = sectionNumberRaw > 0 ? sectionNumberRaw : sectionOrder.length + 1;
     const groupLabel = getRepairItemGroupLabel(finding).toLowerCase();
     const sectionGroupKey = `${sectionNumber}:${groupLabel}`;
 
@@ -1756,7 +1757,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
 
   const executiveSummary = String(inspection.executive_summary || "").trim();
 
-  const [emailLogsResult, viewLogsResult, equipmentResult, findingsResult] =
+  const [emailLogsResult, viewLogsResult, equipmentResult, findingsResult, reportSectionsResult] =
     await Promise.all([
       loadEmailLogs(supabase, inspection.id),
       supabase
@@ -1774,7 +1775,25 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
         .select("*")
         .eq("inspection_id", inspection.id)
         .order("created_at", { ascending: true }),
+      supabase
+        .from("report_section_overrides")
+        .select("*")
+        .eq("inspection_id", inspection.id)
+        .order("sort_order", { ascending: true }),
     ]);
+
+  if (reportSectionsResult.error) {
+    console.error("Report sections load error:", reportSectionsResult.error);
+  }
+
+  const activeSectionOrder = resolveActiveSections(
+    SECTION_ORDER,
+    reportSectionsResult.data || [],
+  );
+
+  const deletedReportSections = (reportSectionsResult.data || []).filter(
+    (row: any) => row.deleted_at,
+  );
 
   if (emailLogsResult.error) {
     console.error("Email logs load error:", emailLogsResult.error);
@@ -2110,13 +2129,13 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
     };
   });
 
-  const numberedFindings = addRepairItemNumbers(findings);
+  const numberedFindings = addRepairItemNumbers(findings, activeSectionOrder);
   const findingsForEditor = numberedFindings.map((finding: any) => ({
     ...finding,
     title: getNumberedFindingTitle(finding),
   }));
 
-  const groupedFindingsArray = SECTION_ORDER.map((section) => ({
+  const groupedFindingsArray = activeSectionOrder.map((section) => ({
     section,
     findings: findingsForEditor.filter((finding: any) => finding.section === section),
   }));
@@ -2564,7 +2583,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
         inspectionId={String(inspection.id)}
         inspection={inspection}
         groupedFindings={groupedFindingsArray}
-        sections={SECTION_ORDER}
+        sections={activeSectionOrder}
         clientInfo={inspection}
       />
       <div className="mx-auto w-full max-w-none px-1 py-2 sm:px-2 md:px-4 lg:max-w-[96rem] lg:py-8">
@@ -2994,7 +3013,10 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
           </section>
 
           <div id="report-findings" data-command-target="report-findings" className="w-full max-w-none overflow-visible">
-            <ReportFindingsSortable groupedFindings={groupedFindingsArray} />
+            <ReportFindingsSortable
+              groupedFindings={groupedFindingsArray}
+              deletedSections={deletedReportSections}
+            />
           </div>
 
           <InspectorToolsDrawer

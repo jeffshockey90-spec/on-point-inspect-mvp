@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
+import { resolveActiveSections } from "../../../../lib/reportSections";
 
 import PrintControls from "./PrintControls";
 
@@ -95,14 +96,14 @@ function getRepairItemGroupLabel(finding: any) {
   ).trim() || "General";
 }
 
-function buildFindingItemNumbers(findings: any[]) {
+function buildFindingItemNumbers(findings: any[], sectionOrder: string[] = SECTION_ORDER) {
   const sectionGroupMap = new Map<string, number>();
   const sectionGroupCounts = new Map<string, number>();
 
   return (findings || []).map((finding: any) => {
     const section = normalizeSection(finding?.section);
-    const sectionNumberRaw = SECTION_ORDER.indexOf(section) + 1;
-    const sectionNumber = sectionNumberRaw > 0 ? sectionNumberRaw : SECTION_ORDER.length + 1;
+    const sectionNumberRaw = sectionOrder.indexOf(section) + 1;
+    const sectionNumber = sectionNumberRaw > 0 ? sectionNumberRaw : sectionOrder.length + 1;
     const groupLabel = getRepairItemGroupLabel(finding).toLowerCase();
     const sectionGroupKey = `${sectionNumber}:${groupLabel}`;
 
@@ -518,6 +519,14 @@ export default async function PrintableReportPage({ params }: PageProps) {
     .eq("inspection_id", inspection.id)
     .order("created_at", { ascending: true });
 
+  const { data: reportSectionsRaw } = await supabase
+    .from("report_section_overrides")
+    .select("*")
+    .eq("inspection_id", inspection.id)
+    .order("sort_order", { ascending: true });
+
+  const activeSectionOrder = resolveActiveSections(SECTION_ORDER, reportSectionsRaw || []);
+
   const findingIds = (findingsRaw || []).map((finding: any) => finding.id);
 
   const { data: photosRaw } =
@@ -697,7 +706,7 @@ export default async function PrintableReportPage({ params }: PageProps) {
       "",
   }));
 
-  const numberedFindings = buildFindingItemNumbers(findings);
+  const numberedFindings = buildFindingItemNumbers(findings, activeSectionOrder);
 
   const defectFindings = numberedFindings.filter((finding: any) => {
     const section = String(finding.section || "").toLowerCase();
@@ -758,7 +767,7 @@ export default async function PrintableReportPage({ params }: PageProps) {
     }
   );
 
-  const groupedFindingsArray = SECTION_ORDER.map((section) => ({
+  const groupedFindingsArray = activeSectionOrder.map((section) => ({
     section,
     findings: numberedFindings.filter((finding: any) => finding.section === section),
   }));

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
+import { resolveActiveSections } from "../../../lib/reportSections";
 import PdfExportButton from "../../../components/PdfExportButton";
 import ReportTimeTracker from "../../../components/ReportTimeTracker";
 import ClientSummaryAccordion from "../../../components/ClientSummaryAccordion";
@@ -363,14 +364,14 @@ function getRepairItemGroupLabel(finding: any) {
   ).trim() || "General";
 }
 
-function addRepairItemNumbers(findings: any[]) {
+function addRepairItemNumbers(findings: any[], sectionOrder: string[] = SECTION_ORDER) {
   const sectionGroupMap = new Map<string, number>();
   const sectionGroupCounts = new Map<string, number>();
 
   return (findings || []).map((finding: any) => {
     const section = normalizeSection(finding?.section);
-    const sectionNumberRaw = SECTION_ORDER.indexOf(section) + 1;
-    const sectionNumber = sectionNumberRaw > 0 ? sectionNumberRaw : SECTION_ORDER.length + 1;
+    const sectionNumberRaw = sectionOrder.indexOf(section) + 1;
+    const sectionNumber = sectionNumberRaw > 0 ? sectionNumberRaw : sectionOrder.length + 1;
     const groupLabel = getRepairItemGroupLabel(finding).toLowerCase();
     const sectionGroupKey = `${sectionNumber}:${groupLabel}`;
 
@@ -1046,6 +1047,14 @@ export default async function PublicSharePage({
     .eq("inspection_id", inspectionId)
     .order("created_at", { ascending: true });
 
+  const { data: reportSectionsRaw } = await supabase
+    .from("report_section_overrides")
+    .select("*")
+    .eq("inspection_id", inspectionId)
+    .order("sort_order", { ascending: true });
+
+  const activeSectionOrder = resolveActiveSections(SECTION_ORDER, reportSectionsRaw || []);
+
   if (findingsError) {
     return (
       <main className="min-h-screen bg-[#020617] p-10 text-white">
@@ -1151,7 +1160,7 @@ export default async function PublicSharePage({
     };
   });
 
-  const numberedFindings = addRepairItemNumbers(findings);
+  const numberedFindings = addRepairItemNumbers(findings, activeSectionOrder);
 
   const { data: checklistRows } = await supabase
     .from("section_checklist_selections")
@@ -1412,7 +1421,7 @@ export default async function PublicSharePage({
             getSeverityBucket(finding.severity) === activeDefectFilter
         );
 
-  const groupedFindings = SECTION_ORDER.map((section) => ({
+  const groupedFindings = activeSectionOrder.map((section) => ({
     section,
     findings: displayFindings.filter((finding: any) => finding.section === section),
   })).filter((group) => {
@@ -1427,7 +1436,7 @@ export default async function PublicSharePage({
   });
 
   const otherFindings = displayFindings.filter(
-    (finding: any) => !SECTION_ORDER.includes(finding.section)
+    (finding: any) => !activeSectionOrder.includes(finding.section)
   );
 
   if (otherFindings.length > 0) {
@@ -1437,7 +1446,7 @@ export default async function PublicSharePage({
     });
   }
 
-  const sectionStats = SECTION_ORDER.map((section) => ({
+  const sectionStats = activeSectionOrder.map((section) => ({
     section,
     defectCount: numberedFindings.filter(
       (finding: any) =>
