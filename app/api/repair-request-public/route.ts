@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
+import { getCompanyBrandingById } from "../../../lib/companyBranding";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -201,11 +202,12 @@ function addItemNumbers(findings: any[]) {
   });
 }
 
-function safeInspectionForPublic(inspection: any) {
+function safeInspectionForPublic(inspection: any, companyName: string) {
   if (!inspection) return null;
 
   return {
     id: inspection.id,
+    company_name: companyName,
     property_address:
       inspection.property_address ||
       inspection.address ||
@@ -436,9 +438,11 @@ export async function GET(req: Request) {
       console.error("Public repair request contact load skipped:", error);
     }
 
+    const branding = await getCompanyBrandingById(inspection?.company_id);
+
     const response = NextResponse.json({
       success: true,
-      inspection: safeInspectionForPublic(inspection),
+      inspection: safeInspectionForPublic(inspection, branding.name),
       findings: hydratedFindings,
       contacts,
       selected_ids: selectedIdsFromUrl,

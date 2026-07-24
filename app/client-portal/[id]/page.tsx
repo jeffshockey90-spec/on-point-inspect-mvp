@@ -360,6 +360,7 @@ export default function ClientPortalPage() {
   const shareLookup = params.id as string;
 
   const [inspection, setInspection] = useState<any>(null);
+  const [companyBranding, setCompanyBranding] = useState<{ name: string } | null>(null);
   // The real numeric inspections.id, resolved from shareLookup (which may be
   // a share token or, for older links, the raw numeric id). Every query for
   // this inspection's related data must use this, not the raw URL param.
@@ -438,6 +439,7 @@ export default function ClientPortalPage() {
 
       setInspectionId(String(data.inspection.id));
       setInspection(data.inspection);
+      setCompanyBranding(data.companyBranding || null);
       setMoldTest(data.moldTest || null);
       setRadonTest(data.radonTest || null);
       setChecklistRows(data.checklistRows || []);
@@ -658,7 +660,7 @@ export default function ClientPortalPage() {
 
           <div className="p-6 md:p-8">
             <p className="text-xs font-black uppercase tracking-[0.35em] text-teal-400">
-              On Point Home Inspections
+              {companyBranding?.name || "Your Home Inspection Company"}
             </p>
 
             <div className="mt-4 flex flex-wrap items-end justify-between gap-6">
@@ -1069,7 +1071,7 @@ export default function ClientPortalPage() {
         )}
 
         <footer className="border-t border-slate-800 py-6 text-center text-sm text-slate-500">
-          On Point Home Inspections LLC • Client Portal
+          {companyBranding?.name || "Your Home Inspection Company"} • Client Portal
         </footer>
       </div>
     </main>

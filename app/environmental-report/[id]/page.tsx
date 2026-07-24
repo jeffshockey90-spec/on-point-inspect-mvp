@@ -4,6 +4,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "../../../utils/supabase/server";
 import PrintButton from "../../../components/PrintButton";
+import { getCompanyBrandingById } from "../../../lib/companyBranding";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -212,6 +213,8 @@ export default async function EnvironmentalReportPage({ params }: PageProps) {
 
   if (inspectionError || !inspection) redirect("/reports");
 
+  const branding = await getCompanyBrandingById(inspection.company_id);
+
   const { data: radonTest } = await supabase
     .from("radon_tests")
     .select("*")
@@ -294,7 +297,7 @@ export default async function EnvironmentalReportPage({ params }: PageProps) {
 
           <div className="bg-slate-950 p-8 text-white print:bg-slate-950">
             <p className="text-sm font-black uppercase tracking-[0.32em] text-teal-300">
-              On Point Home Inspections
+              {branding.name}
             </p>
 
             <h1 className="mt-4 text-5xl font-black tracking-tight">

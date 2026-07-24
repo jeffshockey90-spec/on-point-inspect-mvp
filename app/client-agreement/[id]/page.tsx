@@ -10,6 +10,7 @@ import {
   normalizeAgreementState,
 } from "../../../lib/agreementTemplates";
 import AgreementSignatureForm from "./AgreementSignatureForm";
+import { getCompanyBrandingById } from "../../../lib/companyBranding";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -149,6 +150,8 @@ export default async function ClientAgreementPage({
     inspection,
   });
 
+  const branding = await getCompanyBrandingById(inspection.company_id);
+
   const agreementBody =
     signedAgreement?.agreement_body ||
     mergeMultipleAgreementBodies({
@@ -157,7 +160,7 @@ export default async function ClientAgreementPage({
       clientName: selectedContact?.name || inspection.client_name,
       propertyAddress: inspection.address || inspection.property_address,
       fee: inspection.invoice_amount || inspection.fee || inspection.price,
-      inspectorName: "On Point Home Inspections",
+      inspectorName: branding.name,
       inspectionDate: inspection.inspection_date,
     });
 
@@ -172,7 +175,7 @@ export default async function ClientAgreementPage({
       <div className="mx-auto max-w-5xl space-y-6">
         <div className="rounded-2xl border border-slate-800 bg-[#0b1220] p-6 shadow-xl print:border-none print:bg-white print:text-black print:shadow-none">
           <p className="text-sm font-bold uppercase tracking-[0.3em] text-teal-400 print:text-black">
-            On Point Home Inspections
+            {branding.name}
           </p>
 
           <h1 className="mt-3 text-4xl font-extrabold text-white print:text-black">

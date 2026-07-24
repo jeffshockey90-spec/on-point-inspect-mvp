@@ -124,7 +124,11 @@ function buildDateOptions(days = 45) {
   });
 }
 
-export default function BookingRequestForm() {
+export default function BookingRequestForm({
+  companySlug,
+}: {
+  companySlug?: string;
+}) {
   const dateOptions = useMemo(() => buildDateOptions(), []);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -304,6 +308,7 @@ export default function BookingRequestForm() {
           service_type: services.join(", "),
           services_requested: services,
           additional_clients: cleanAdditionalClients(),
+          company_slug: companySlug || "",
         }),
       });
 

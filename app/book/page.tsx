@@ -1,15 +1,51 @@
 import Link from "next/link";
+import { createClient as createServiceClient } from "@supabase/supabase-js";
 import BookingRequestForm from "../../components/BookingRequestForm";
 
 export const dynamic = "force-dynamic";
 
-export default function BookInspectionPage() {
+function createAdminClient() {
+  return createServiceClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    }
+  );
+}
+
+async function getCompanyBySlug(slug: string) {
+  if (!slug) return null;
+
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("companies")
+    .select("name, display_name")
+    .eq("profile_slug", slug)
+    .maybeSingle();
+
+  return data;
+}
+
+export default async function BookInspectionPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ inspector?: string }>;
+}) {
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const companySlug = String(resolvedSearchParams?.inspector || "").trim();
+  const company = companySlug ? await getCompanyBySlug(companySlug) : null;
+  const companyName = company?.display_name || company?.name || "FLOW";
+
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#020617] px-4 py-6 text-white sm:px-6 sm:py-10">
       <div className="mx-auto grid w-full max-w-7xl gap-6 xl:grid-cols-[0.85fr_1.15fr] xl:items-start">
         <section className="rounded-3xl border border-slate-800 bg-[#0f172a] p-5 shadow-2xl sm:p-8 xl:sticky xl:top-6">
           <p className="text-[11px] font-black uppercase tracking-[0.35em] text-teal-300">
-            On Point Home Inspections
+            {companyName}
           </p>
           <h1 className="mt-4 text-4xl font-black leading-tight text-white sm:text-5xl">
             Request an Inspection
@@ -42,7 +78,7 @@ export default function BookInspectionPage() {
           </Link>
         </section>
 
-        <BookingRequestForm />
+        <BookingRequestForm companySlug={companySlug} />
       </div>
     </main>
   );

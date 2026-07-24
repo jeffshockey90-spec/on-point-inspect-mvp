@@ -192,6 +192,8 @@ function buildPrintableRepairRequestHtml({
     inspection?.address ||
     "Property address not entered";
 
+  const companyName = inspection?.company_name || "Your Home Inspection Company";
+
   const requestedCreditTotal = selectedFindings.reduce(
     (sum, finding) => sum + parseMoneyValue(finding.requested_credit_amount),
     0,
@@ -577,7 +579,7 @@ function buildPrintableRepairRequestHtml({
     <section class="report-panel">
       <div class="brand-bar">
         <div>
-          <p class="eyebrow">On Point Home Inspections</p>
+          <p class="eyebrow">${printSafe(companyName)}</p>
           <h1>Requested Repairs / Corrections</h1>
           <p class="property-line">${printSafe(property)}</p>
         </div>
@@ -1157,7 +1159,7 @@ function RepairRequestContent() {
 
         <section className="mb-8 overflow-hidden rounded-2xl border border-slate-800 bg-[#0f172a] p-5 shadow-xl md:p-6">
           <p className="break-words text-sm font-bold uppercase tracking-[0.22em] text-teal-400 md:tracking-[0.3em]">
-            On Point Home Inspections
+            {inspection?.company_name || "Your Home Inspection Company"}
           </p>
 
           <h1 className="mt-3 break-words text-3xl font-black text-white md:text-4xl">

@@ -1,10 +1,10 @@
 
 import { formatAppValue } from "../../../../lib/app-time";
-import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "../../../../utils/supabase/server";
 import InvoicePrintButton from "../../../../components/InvoicePrintButton";
+import { getCompanyBrandingById } from "../../../../lib/companyBranding";
 
 function getNumber(value: any) {
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -152,6 +152,7 @@ export default async function InvoicePrintPage({
     inspection.address || inspection.property_address || "Inspection Property";
   const clientName = inspection.client_name || inspection.client || "Client";
   const invoiceNumber = inspection.invoice_number || `INV-${inspection.id}`;
+  const branding = await getCompanyBrandingById(inspection.company_id);
 
   return (
     <main className="min-h-screen bg-slate-200 px-4 py-8 text-slate-950 print:bg-white print:px-0 print:py-0">
@@ -176,25 +177,31 @@ export default async function InvoicePrintPage({
         <section className="flex flex-wrap items-start justify-between gap-8 border-b-4 border-teal-500 pb-8">
           <div className="flex items-center gap-5">
             <div className="relative h-20 w-20 overflow-hidden rounded-full border border-teal-500 bg-slate-950">
-              <Image
-                src="/logo.jpg"
-                alt="On Point Home Inspections"
-                fill
-                className="object-cover"
-                priority
-              />
+              {branding.logoUrl ? (
+                <img
+                  src={branding.logoUrl}
+                  alt={branding.name}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center text-xs font-black text-teal-300">
+                  {branding.name.slice(0, 2).toUpperCase()}
+                </div>
+              )}
             </div>
 
             <div>
               <p className="text-sm font-black uppercase tracking-[0.25em] text-teal-700">
-                On Point Home Inspections LLC
+                {branding.name}
               </p>
               <h1 className="mt-2 text-4xl font-black text-slate-950">
                 Invoice
               </h1>
-              <p className="mt-2 text-sm text-slate-600">
-                onpointhomeinspect.com
-              </p>
+              {(branding.website || branding.email) && (
+                <p className="mt-2 text-sm text-slate-600">
+                  {branding.website || branding.email}
+                </p>
+              )}
             </div>
           </div>
 
@@ -294,7 +301,7 @@ export default async function InvoicePrintPage({
           <p className="font-bold text-slate-950">Thank you for your business.</p>
           <p className="mt-2">
             Please keep this invoice for your records. Reports are released according
-            to On Point Home Inspections LLC delivery requirements, including signed
+            to {branding.name} delivery requirements, including signed
             agreement and completed payment where applicable.
           </p>
         </section>

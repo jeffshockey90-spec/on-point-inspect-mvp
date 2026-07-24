@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import RepairResponseForm from "./RepairResponseForm";
+import { getCompanyBrandingById } from "../../../lib/companyBranding";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -234,6 +235,8 @@ export default async function RepairResponsePage({ params }: PageProps) {
     .eq("id", inspectionId)
     .maybeSingle();
 
+  const branding = await getCompanyBrandingById(inspection?.company_id);
+
   const { data: findingsRaw } = await admin
     .from("findings")
     .select("*")
@@ -339,7 +342,7 @@ export default async function RepairResponsePage({ params }: PageProps) {
     <main className="min-h-screen bg-[#020617] p-4 pb-20 text-white md:p-8">
       <section className="mx-auto mb-5 max-w-5xl rounded-2xl border border-slate-700 bg-[#0f172a] p-5 md:p-6">
         <p className="text-xs font-black uppercase tracking-[0.35em] text-teal-300">
-          On Point Home Inspections
+          {branding.name}
         </p>
         <h1 className="mt-3 text-3xl font-black text-white">
           Repair Request Response

@@ -353,9 +353,49 @@ async function getOwnerIds(admin: any) {
   return ids;
 }
 
-async function sendOwnerPush(admin: any, payload: PushPayload) {
+async function getCompanyMembers(admin: any, companyId: string | number | null) {
+  const ids = new Set<string>();
+  const emails = new Set<string>();
+
+  if (!companyId) return { ids, emails };
+
+  const { data: members } = await admin
+    .from("company_users")
+    .select("user_id")
+    .eq("company_id", companyId);
+
+  const userIds = (members || []).map((row: any) => String(row.user_id || "")).filter(Boolean);
+  userIds.forEach((id: string) => ids.add(id));
+
+  if (userIds.length) {
+    const { data: profiles } = await admin
+      .from("profiles")
+      .select("id,user_id,email")
+      .in("user_id", userIds);
+
+    for (const row of profiles || []) {
+      [row.id, row.user_id].filter(Boolean).forEach((value: any) => ids.add(String(value)));
+      if (row.email) emails.add(String(row.email).toLowerCase());
+    }
+  }
+
+  const { data: company } = await admin
+    .from("companies")
+    .select("email")
+    .eq("id", companyId)
+    .maybeSingle();
+
+  if (company?.email) emails.add(String(company.email).toLowerCase());
+
+  return { ids, emails };
+}
+
+async function sendOwnerPush(admin: any, payload: PushPayload, companyId: string | number | null) {
   const ownerEmails = new Set(OWNER_EMAILS.map((email) => email.toLowerCase()));
   const ownerIds = await getOwnerIds(admin);
+  const companyMembers = await getCompanyMembers(admin, companyId);
+  companyMembers.ids.forEach((id) => ownerIds.add(id));
+  companyMembers.emails.forEach((email) => ownerEmails.add(email));
 
   const { data: webRows } = await admin
     .from("app_push_subscriptions")
@@ -456,11 +496,16 @@ function buildEmailHtml(booking: any, request: Request) {
   `;
 }
 
-async function sendOwnerEmail(booking: any, request: Request) {
-  const to = (process.env.BOOKING_ALERT_EMAILS || OWNER_EMAILS.join(","))
-    .split(",")
-    .map((email) => email.trim())
-    .filter(Boolean);
+async function sendOwnerEmail(booking: any, request: Request, companyEmails: Set<string>) {
+  const to = Array.from(
+    new Set([
+      ...(process.env.BOOKING_ALERT_EMAILS || OWNER_EMAILS.join(","))
+        .split(",")
+        .map((email) => email.trim().toLowerCase())
+        .filter(Boolean),
+      ...companyEmails,
+    ])
+  );
 
   if (to.length === 0) {
     return { sent: 0, skipped: true, reason: "No alert email recipients configured." };
@@ -511,16 +556,17 @@ async function sendOwnerEmail(booking: any, request: Request) {
   }
 }
 
-async function notifyOwner(admin: any, booking: any, request: Request) {
+async function notifyOwner(admin: any, booking: any, request: Request, companyId: string | number | null) {
   const payload = buildAlertPayload(booking, request);
+  const companyMembers = await getCompanyMembers(admin, companyId);
 
   const [push, email] = await Promise.all([
-    sendOwnerPush(admin, payload).catch((error: any) => ({
+    sendOwnerPush(admin, payload, companyId).catch((error: any) => ({
       sent: 0,
       failed: 1,
       error: error?.message || "Owner push failed.",
     })),
-    sendOwnerEmail(booking, request).catch((error: any) => ({
+    sendOwnerEmail(booking, request, companyMembers.emails).catch((error: any) => ({
       sent: 0,
       error: error?.message || "Owner email failed.",
     })),
@@ -570,10 +616,24 @@ export async function POST(request: Request) {
 
     const admin = createAdminClient();
 
+    let companyId: number | null = null;
+    const companySlug = cleanText(body.company_slug);
+
+    if (companySlug) {
+      const { data: company } = await admin
+        .from("companies")
+        .select("id")
+        .eq("profile_slug", companySlug)
+        .maybeSingle();
+
+      companyId = company?.id || null;
+    }
+
     const { data, error } = await admin
       .from("booking_requests")
       .insert({
         status: "pending",
+        company_id: companyId,
         requester_name: requesterName || clientName,
         requester_email: requesterEmail || clientEmail || realtorEmail,
         requester_phone: requesterPhone || clientPhone || realtorPhone,
@@ -611,7 +671,7 @@ export async function POST(request: Request) {
       notes: stripPropertyPhotoMarker(data?.notes),
     };
 
-    const notifications = await notifyOwner(admin, bookingForNotifications, request);
+    const notifications = await notifyOwner(admin, bookingForNotifications, request, companyId);
 
     return NextResponse.json({ ok: true, request: data, notifications });
   } catch (error: any) {

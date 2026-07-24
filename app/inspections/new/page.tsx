@@ -1043,7 +1043,7 @@ function NewInspectionPageContent() {
       <div className="mx-auto max-w-6xl">
         <header className="mb-6 rounded-2xl border border-zinc-800 bg-[#0b1220] p-5 md:p-8">
           <p className="text-sm font-bold uppercase tracking-[0.2em] text-teal-400">
-            On Point Home Inspections
+            FLOW
           </p>
 
           <h1 className="mt-2 text-3xl font-black md:text-5xl">

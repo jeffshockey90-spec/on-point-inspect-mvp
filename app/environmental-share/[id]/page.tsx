@@ -4,6 +4,7 @@ import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 import PdfExportButton from "../../../components/PdfExportButton";
 import { getInspectionShareToken } from "../../../lib/shareToken";
+import { getCompanyBrandingById } from "../../../lib/companyBranding";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -251,6 +252,8 @@ export default async function PublicEnvironmentalSharePage({ params }: PageProps
 
   await recordInspectionView(id);
 
+  const branding = await getCompanyBrandingById(inspection.company_id);
+
   const { data: radonTest } = await supabase
     .from("radon_tests")
     .select("*")
@@ -295,7 +298,7 @@ export default async function PublicEnvironmentalSharePage({ params }: PageProps
 
           <div className="absolute inset-x-0 bottom-0 p-6 md:p-10">
             <p className="text-xs font-black uppercase tracking-[0.38em] text-teal-300">
-              On Point Home Inspections
+              {branding.name}
             </p>
 
             <h1 className="mt-4 text-4xl font-black tracking-tight text-white md:text-6xl">

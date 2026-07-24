@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient as createSupabaseAdmin } from "@supabase/supabase-js";
+import { getCompanyBrandingById } from "../../../lib/companyBranding";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -163,8 +164,11 @@ export async function GET(req: Request) {
       console.error("Client portal radon link error:", radonResult.error);
     }
 
+    const branding = await getCompanyBrandingById((inspection as any).company_id);
+
     return NextResponse.json({
       inspection: pickInspectionFields(inspection),
+      companyBranding: branding,
       checklistRows: checklistResult.data || [],
       moldTest: moldResult.data || null,
       radonTest: radonResult.data || null,
