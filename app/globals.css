@@ -102,7 +102,7 @@ img {
 }
 
 .animate-attention-flash {
-  animation: attention-flash 1.6s ease-in-out 1;
+  animation: attention-flash 1.6s ease-in-out infinite;
 }
 
 /* FULLCALENDAR CUSTOM DARK THEME */

@@ -527,8 +527,10 @@ function ShowMoreButton({
     <button
       ref={buttonRef}
       type="button"
-      onClick={onClick}
-      onAnimationEnd={() => setFlash(false)}
+      onClick={() => {
+        setFlash(false);
+        onClick();
+      }}
       data-fast-click="true"
       className={`mt-4 min-h-12 w-full rounded-xl border border-slate-600 bg-slate-900 px-4 py-3 text-sm font-black text-white active:scale-[0.99] active:opacity-80 [touch-action:manipulation] ${
         flash ? "animate-attention-flash" : ""
