@@ -388,6 +388,10 @@ export default async function SettingsPage({
       String(formData.get("online_payment_fee_enabled") || "") === "on";
 
     const feeAmount = getNumber(formData.get("online_payment_fee_amount"));
+    const feeType =
+      String(formData.get("online_payment_fee_type") || "").trim() === "flat"
+        ? "flat"
+        : "percentage";
 
     await supabase
       .from("companies")
@@ -409,8 +413,8 @@ export default async function SettingsPage({
         live_activity_sound_enabled:
           String(formData.get("live_activity_sound_enabled") || "") === "on",
         online_payment_fee_enabled: onlinePaymentFeeEnabled,
-        online_payment_fee_type: "percentage",
-        online_payment_fee_amount: feeAmount || 3.95,
+        online_payment_fee_type: feeType,
+        online_payment_fee_amount: feeAmount || (feeType === "flat" ? 15 : 3.95),
         standards_of_practice_title: String(
           formData.get("standards_of_practice_title") || "Standards of Practice",
         ).trim(),
@@ -429,12 +433,13 @@ export default async function SettingsPage({
   }
 
   const feeEnabled = company.online_payment_fee_enabled !== false;
+  const feeType = company.online_payment_fee_type === "flat" ? "flat" : "percentage";
   const feeAmount =
-    company.online_payment_fee_type === "percentage" &&
-    company.online_payment_fee_amount !== null &&
-    company.online_payment_fee_amount !== undefined
+    company.online_payment_fee_amount !== null && company.online_payment_fee_amount !== undefined
       ? company.online_payment_fee_amount
-      : 3.95;
+      : feeType === "flat"
+        ? 15
+        : 3.95;
 
   const publicProfileUrl = getPublicProfileUrl(company);
   const standardsTitle = String(
@@ -980,12 +985,15 @@ export default async function SettingsPage({
               </h3>
 
               <p className="mt-2 text-sm leading-6 text-slate-300">
-                This lets each inspector choose whether to pass a percentage-based
-                online card payment fee to the client.
+                Choose whether to pass an online card payment fee to the client when they pay
+                their balance through the client portal - either a percentage of the balance or a
+                flat dollar amount, whatever you want to charge. The client always sees this as
+                its own clearly labeled line item before they pay, separate from the inspection
+                balance.
               </p>
 
-              <div className="mt-5 grid gap-4 md:grid-cols-2">
-                <div className="flex items-center justify-between gap-4 rounded-xl border border-slate-700 bg-[#020617] p-4">
+              <div className="mt-5 grid gap-4 md:grid-cols-3">
+                <div className="flex items-center justify-between gap-4 rounded-xl border border-slate-700 bg-[#020617] p-4 md:col-span-1">
                   <p className="min-w-0 flex-1 break-words text-sm font-bold leading-6 text-slate-200 sm:text-base">
                     Pass online payment fee to client
                   </p>
@@ -998,17 +1006,35 @@ export default async function SettingsPage({
 
                 <label className="block min-w-0">
                   <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
-                    Fee Percentage
+                    Fee Type
+                  </p>
+                  <select
+                    name="online_payment_fee_type"
+                    defaultValue={feeType}
+                    className="w-full min-w-0 rounded-xl border border-slate-700 bg-[#020617] p-3 text-white outline-none focus:border-teal-400"
+                  >
+                    <option value="percentage">Percentage of balance</option>
+                    <option value="flat">Flat dollar amount</option>
+                  </select>
+                </label>
+
+                <label className="block min-w-0">
+                  <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
+                    Fee Amount
                   </p>
                   <input
                     name="online_payment_fee_amount"
                     type="number"
                     step="0.01"
                     min="0"
-                    max="100"
                     defaultValue={String(feeAmount)}
+                    placeholder="e.g. 3.95 for 3.95%, or 15 for $15 flat"
                     className="w-full min-w-0 rounded-xl border border-slate-700 bg-[#020617] p-3 text-white outline-none focus:border-teal-400"
                   />
+                  <p className="mt-1 text-xs text-slate-500">
+                    Enter a percent (e.g. 3.95) if Fee Type is Percentage, or a dollar amount
+                    (e.g. 15) if Fee Type is Flat.
+                  </p>
                 </label>
               </div>
             </div>

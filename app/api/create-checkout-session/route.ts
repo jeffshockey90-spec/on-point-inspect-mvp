@@ -141,7 +141,16 @@ function getPortalProcessingFee(balanceDue: number, company: any) {
   if (company?.online_payment_fee_enabled === false) return 0;
 
   const amount = getNumber(company?.online_payment_fee_amount);
-  return amount > 0 ? amount : 0;
+  if (amount <= 0) return 0;
+
+  const feeType = String(company?.online_payment_fee_type || "percentage").toLowerCase();
+
+  if (feeType === "flat") {
+    return Math.round(amount * 100) / 100;
+  }
+
+  // percentage (default) - amount is a percent of the balance due, e.g. 3.95 = 3.95%
+  return Math.round(balanceDue * (amount / 100) * 100) / 100;
 }
 
 async function logStripeEvent(supabase: any, payload: any) {
