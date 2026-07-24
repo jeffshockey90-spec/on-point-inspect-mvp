@@ -5,6 +5,7 @@ import { saveFileToDeviceGallery } from "../lib/nativeGallery";
 import { uploadSectionReferencePhoto } from "../lib/sectionReferencePhotos";
 import type { CaptureCategory, CaptureDraft } from "../lib/ai/captureTypes";
 import CaptureConfirmCard from "./ai-camera/CaptureConfirmCard";
+import PhotoMarkupEditor from "./PhotoMarkupEditor";
 
 type Stage =
   | "idle"
@@ -130,6 +131,8 @@ export default function AILiveInspectionCamera({
   const [draftError, setDraftError] = useState("");
   const [referenceCaption, setReferenceCaption] = useState("");
   const [referenceSection, setReferenceSection] = useState(currentSection);
+  const [showMarkup, setShowMarkup] = useState(false);
+  const [savingMarkup, setSavingMarkup] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [toast, setToast] = useState("");
@@ -670,6 +673,50 @@ export default function AILiveInspectionCamera({
     }
   }
 
+  function openMarkup() {
+    if (!capturedFile || capturedIsVideo) return;
+    setShowMarkup(true);
+  }
+
+  async function saveMarkup(_items: any[], flattenedDataUrl: string) {
+    if (!capturedFile || savingMarkup) return;
+
+    setSavingMarkup(true);
+
+    try {
+      const response = await fetch(flattenedDataUrl);
+      const blob = await response.blob();
+
+      if (!blob.size) {
+        throw new Error("The marked-up photo was empty.");
+      }
+
+      const originalBaseName = String(capturedFile.name || "ai-camera-photo")
+        .replace(/\.[^/.]+$/, "")
+        .replace(/[^a-zA-Z0-9-_]/g, "-")
+        .slice(0, 70);
+
+      const markedFile = new File(
+        [blob],
+        `${originalBaseName}-marked.jpg`,
+        {
+          type: "image/jpeg",
+          lastModified: Date.now(),
+        },
+      );
+
+      setCapturedFile(markedFile);
+      setCapturedPreviewUrl(flattenedDataUrl);
+      setCapturedFrameForAi(flattenedDataUrl);
+      setShowMarkup(false);
+    } catch (error: any) {
+      setSaveError(error?.message || "Could not save the photo markup.");
+      throw error;
+    } finally {
+      setSavingMarkup(false);
+    }
+  }
+
   async function handleAccept(editedDraft: CaptureDraft) {
     if (!category || !capturedFile) return;
 
@@ -710,6 +757,7 @@ export default function AILiveInspectionCamera({
     setDraftError("");
     setReferenceCaption("");
     setNoteText("");
+    setShowMarkup(false);
   }
 
   function handleRetake() {
@@ -1016,6 +1064,7 @@ export default function AILiveInspectionCamera({
           error={saveError}
           onAccept={handleAccept}
           onRetake={handleRetake}
+          onMarkup={openMarkup}
         />
       )}
 
@@ -1029,6 +1078,16 @@ export default function AILiveInspectionCamera({
                 className="max-h-64 w-full object-cover"
               />
             </div>
+
+            <button
+              type="button"
+              onClick={openMarkup}
+              disabled={saving}
+              className="mt-3 w-full rounded-xl border border-cyan-400/60 bg-cyan-500/10 px-4 py-2.5 text-sm font-black text-cyan-200 disabled:opacity-50"
+            >
+              🖊 Markup Photo (optional)
+            </button>
+
             <div className="mt-4">
               <label className="text-[11px] font-black uppercase tracking-wide text-slate-400">
                 Section
@@ -1098,6 +1157,20 @@ export default function AILiveInspectionCamera({
       {!online && (
         <div className="pointer-events-none absolute bottom-2 left-1/2 z-20 -translate-x-1/2 rounded-full bg-black/70 px-3 py-1 text-[10px] font-black text-amber-300">
           Offline — AI drafting needs a connection
+        </div>
+      )}
+
+      {showMarkup && capturedPreviewUrl && (
+        <div className="absolute inset-0 z-50">
+          <PhotoMarkupEditor
+            imageUrl={capturedPreviewUrl}
+            severity={currentSeverity}
+            onSave={saveMarkup}
+            onCancel={() => {
+              if (savingMarkup) return;
+              setShowMarkup(false);
+            }}
+          />
         </div>
       )}
     </div>

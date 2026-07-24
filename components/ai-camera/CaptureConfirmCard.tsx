@@ -12,6 +12,7 @@ type Props = {
   error?: string;
   onAccept: (editedDraft: CaptureDraft) => void;
   onRetake: () => void;
+  onMarkup?: () => void;
 };
 
 const inputClass =
@@ -48,6 +49,7 @@ export default function CaptureConfirmCard({
   error,
   onAccept,
   onRetake,
+  onMarkup,
 }: Props) {
   const [edited, setEdited] = useState<CaptureDraft>(draft);
 
@@ -80,6 +82,17 @@ export default function CaptureConfirmCard({
             />
           )}
         </div>
+
+        {!isVideo && onMarkup && (
+          <button
+            type="button"
+            onClick={onMarkup}
+            disabled={busy}
+            className="mt-3 w-full rounded-xl border border-cyan-400/60 bg-cyan-500/10 px-4 py-2.5 text-sm font-black text-cyan-200 disabled:opacity-50"
+          >
+            🖊 Markup Photo (optional)
+          </button>
+        )}
 
         <div className="mt-4 space-y-3">
           {edited.kind === "finding" && (
