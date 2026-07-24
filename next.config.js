@@ -1,3 +1,5 @@
+const { withSentryConfig } = require("@sentry/nextjs");
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
@@ -27,4 +29,9 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+module.exports = withSentryConfig(nextConfig, {
+  silent: true,
+  // No org/project/authToken set - source map upload is opt-in later once
+  // SENTRY_ORG/SENTRY_PROJECT/SENTRY_AUTH_TOKEN exist. Error capture and
+  // alerting work fully without it; you'd just see minified stack traces.
+});
