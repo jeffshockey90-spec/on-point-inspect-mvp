@@ -9,6 +9,7 @@ import { createServerClient } from "@supabase/ssr";
 import PushNotificationSetup from "../../../components/PushNotificationSetup";
 import DeleteDemoReportButton from "../../../components/DeleteDemoReportButton";
 import SupportUnreadBadge from "../../../components/SupportUnreadBadge";
+import AIBudgetStatus from "../../../components/AIBudgetStatus";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -696,6 +697,8 @@ export default async function OwnerDashboardPage() {
             </div>
           </div>
         </section>
+
+        <AIBudgetStatus />
 
         <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
           <MetricCard label="Total Users" value={String(totalUsers)} helper="Profiles or company user records." tone="teal" />

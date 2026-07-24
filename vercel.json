@@ -1,1 +1,8 @@
-{}
+{
+  "crons": [
+    {
+      "path": "/api/cron/ai-budget-check",
+      "schedule": "0 */4 * * *"
+    }
+  ]
+}
