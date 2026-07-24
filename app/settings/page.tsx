@@ -10,6 +10,7 @@ import CompanyImageUploader from "./CompanyImageUploader";
 import StandardsOfPracticeEditor from "./StandardsOfPracticeEditor";
 import TimePreferencesSettings from "../../components/time-location/TimePreferencesSettings";
 import SettingsToggle from "../../components/SettingsToggle";
+import OnlinePaymentFeeFields from "../../components/OnlinePaymentFeeFields";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -1008,41 +1009,7 @@ export default async function SettingsPage({
                   />
                 </div>
 
-                <label className="block min-w-0">
-                  <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
-                    Fee Type
-                  </p>
-                  <select
-                    name="online_payment_fee_type"
-                    defaultValue={feeType}
-                    className="w-full min-w-0 rounded-xl border border-slate-700 bg-[#020617] p-3 text-white outline-none focus:border-teal-400"
-                  >
-                    <option value="percentage">Percentage of balance</option>
-                    <option value="flat">Flat dollar amount</option>
-                    <option value="stripe_fee">Cover Stripe's fee (2.9% + $0.30)</option>
-                  </select>
-                </label>
-
-                <label className="block min-w-0">
-                  <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
-                    Fee Amount
-                  </p>
-                  <input
-                    name="online_payment_fee_amount"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    defaultValue={String(feeAmount)}
-                    placeholder="e.g. 3.95 for 3.95%, or 15 for $15 flat"
-                    className="w-full min-w-0 rounded-xl border border-slate-700 bg-[#020617] p-3 text-white outline-none focus:border-teal-400"
-                  />
-                  <p className="mt-1 text-xs text-slate-500">
-                    Enter a percent (e.g. 3.95) if Fee Type is Percentage, or a dollar amount
-                    (e.g. 15) if Fee Type is Flat. Ignored if Fee Type is "Cover Stripe's fee" -
-                    that one calculates automatically so your payout always matches the invoice
-                    balance exactly.
-                  </p>
-                </label>
+                <OnlinePaymentFeeFields defaultFeeType={feeType} defaultFeeAmount={feeAmount} />
               </div>
             </div>
           </section>
