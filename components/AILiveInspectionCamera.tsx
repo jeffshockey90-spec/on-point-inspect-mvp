@@ -19,6 +19,7 @@ type Props = {
   selectedReport: string;
   currentSection: string;
   currentSeverity: string;
+  sections: string[];
   onAccept: (
     category: CaptureCategory,
     draft: CaptureDraft,
@@ -90,6 +91,7 @@ export default function AILiveInspectionCamera({
   selectedReport,
   currentSection,
   currentSeverity,
+  sections,
   onAccept,
 }: Props) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -127,6 +129,7 @@ export default function AILiveInspectionCamera({
   const [draft, setDraft] = useState<CaptureDraft | null>(null);
   const [draftError, setDraftError] = useState("");
   const [referenceCaption, setReferenceCaption] = useState("");
+  const [referenceSection, setReferenceSection] = useState(currentSection);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [toast, setToast] = useState("");
@@ -456,6 +459,7 @@ export default function AILiveInspectionCamera({
 
     if (category === "reference") {
       setReferenceCaption("");
+      setReferenceSection(currentSection);
       setStage("ref_preview");
       return;
     }
@@ -676,7 +680,7 @@ export default function AILiveInspectionCamera({
       if (category === "reference") {
         await uploadSectionReferencePhoto({
           inspectionId: selectedReport,
-          section: currentSection,
+          section: referenceSection,
           file: capturedFile,
           caption: referenceCaption,
         });
@@ -1025,6 +1029,23 @@ export default function AILiveInspectionCamera({
                 className="max-h-64 w-full object-cover"
               />
             </div>
+            <div className="mt-4">
+              <label className="text-[11px] font-black uppercase tracking-wide text-slate-400">
+                Section
+              </label>
+              <select
+                className="mt-1 w-full rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400"
+                value={referenceSection}
+                onChange={(event) => setReferenceSection(event.target.value)}
+              >
+                {sections.map((sectionOption) => (
+                  <option key={sectionOption} value={sectionOption}>
+                    {sectionOption}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div className="mt-4">
               <label className="text-[11px] font-black uppercase tracking-wide text-slate-400">
                 Caption (optional)

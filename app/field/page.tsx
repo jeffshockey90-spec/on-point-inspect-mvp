@@ -3894,6 +3894,7 @@ function FieldPageContent() {
                     selectedReport={selectedReport}
                     currentSection={section}
                     currentSeverity={severity}
+                    sections={SECTIONS}
                     onAccept={handleCameraAccept}
                   />
                 )}
