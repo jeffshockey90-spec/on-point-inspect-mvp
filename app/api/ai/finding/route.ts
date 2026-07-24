@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
+import { getAIModel } from "../../../../lib/openai";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -65,7 +66,7 @@ Rules:
     }
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: getAIModel(),
       messages: [
         {
           role: "system",
@@ -78,7 +79,7 @@ Rules:
         },
       ],
       temperature: 0.3,
-      max_tokens: 900,
+      max_completion_tokens: 900,
     });
 
     const raw = response.choices[0]?.message?.content || "{}";

@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { getAIModel } from "../openai";
 
 export type InspectionAIRequest = {
   task:
@@ -17,17 +18,11 @@ export type InspectionAIRequest = {
 
 export class InspectionBrain {
   private client: OpenAI;
-  private model: string;
 
   constructor() {
     this.client = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
     });
-
-    this.model =
-      process.env.OPENAI_SMARTEST_MODEL ||
-      process.env.OPENAI_DEFAULT_MODEL ||
-      "gpt-4o";
   }
 
   async run(request: InspectionAIRequest) {
@@ -52,8 +47,10 @@ export class InspectionBrain {
       }
     }
 
+    const model = getAIModel();
+
     const response = await this.client.chat.completions.create({
-      model: this.model,
+      model,
       temperature: request.temperature ?? 0.2,
       response_format:
         request.responseFormat === "json_object"
@@ -72,7 +69,7 @@ export class InspectionBrain {
     });
 
     return {
-      model: this.model,
+      model,
       text: response.choices[0]?.message?.content ?? "",
       usage: response.usage,
     };

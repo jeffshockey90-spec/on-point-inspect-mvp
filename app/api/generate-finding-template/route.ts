@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getAIModel } from "../../../lib/openai";
 
 export async function POST(req: Request) {
   try {
@@ -24,7 +25,7 @@ export async function POST(req: Request) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: getAIModel(),
         temperature: 0.25,
         messages: [
           {

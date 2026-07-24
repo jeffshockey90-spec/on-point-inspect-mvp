@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { getAIModel } from "../../../lib/openai";
 
 export const runtime = "nodejs";
 
@@ -154,7 +155,7 @@ ${findingsText}
 `;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4.1-mini",
+      model: getAIModel(),
       messages: [
         {
           role: "system",

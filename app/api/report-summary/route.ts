@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
+import { getAIModel } from "../../../lib/openai";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -134,7 +135,7 @@ Square Feet: ${cleanText(inspection.square_feet || inspection.sqft)}
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: getAIModel(),
         temperature: 0.25,
         messages: [
           {

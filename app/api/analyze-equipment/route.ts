@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { logAIEvent } from "../../../lib/logging";
 import { getAIModel, getAIVersion } from "../../../lib/openai";
 import { inspectionBrain } from "../../../lib/ai";
+import { learningEngine } from "../../../lib/ai/LearningEngine";
 
 export const runtime = "nodejs";
 
@@ -1631,14 +1632,22 @@ export async function POST(req: Request) {
       })
     );
 
+    const inspectorLearningPatterns = await learningEngine.getPatterns(180);
+    const inspectorLearningMemory = learningEngine.formatPatternsForPrompt(
+      inspectorLearningPatterns,
+    );
+
     const systemPrompt =
-      "You are the FLOW Equipment Intelligence Engine, an expert home inspection equipment analyst and data-plate reader. Return ONLY valid JSON. Think in passes: first read all visible text, then identify logos/brand marks, then identify equipment type, model, serial, manufacture date, capacity, fuel/refrigerant, and finally cross-check the result. Be accurate and conservative, but work hard before using Unknown. Carefully read visible labels, model numbers, serial numbers, capacity codes, refrigerant markings, manufacture dates, and brand/manufacturer markings. Use known HVAC, water heater, appliance, and electrical data-plate conventions only when strongly supported by visible evidence. Never invent a serial number, model number, manufacture year, refrigerant, capacity, or fuel type. If a value cannot be confirmed or strongly inferred, use Unknown. Include confidence scores and evidence for inspector review. Keep maintenance recommendations separate from identification notes.";
+      "You are the FLOW Equipment Intelligence Engine, an expert home inspection equipment analyst and data-plate reader. Return ONLY valid JSON. Think in passes: first read all visible text, then identify logos/brand marks, then identify equipment type, model, serial, manufacture date, capacity, fuel/refrigerant, and finally cross-check the result. Be accurate and conservative, but work hard before using Unknown. Carefully read visible labels, model numbers, serial numbers, capacity codes, refrigerant markings, manufacture dates, and brand/manufacturer markings. Use known HVAC, water heater, appliance, and electrical data-plate conventions only when strongly supported by visible evidence. Never invent a serial number, model number, manufacture year, refrigerant, capacity, or fuel type. If a value cannot be confirmed or strongly inferred, use Unknown. Include confidence scores and evidence for inspector review. Keep maintenance recommendations separate from identification notes. If inspector-specific learning memory is provided below, match this inspector's demonstrated wording and style in the observation/implication/recommendation/clientSummary fields without changing factual identification data.";
 
     const userPrompt = `
 Analyze these equipment photos together. Use all provided images as one equipment record. One photo may show the full unit, another may show the data plate, and another may show the serial/model label.
 
 Number of photos provided: ${imageFiles.length}
 Inspector-provided context, if any: ${inspectorNote || "None"}
+
+Inspector-specific learning memory from prior edits and decisions:
+${inspectorLearningMemory || "None yet"}
 
 Return ONLY valid JSON in this exact format:
 

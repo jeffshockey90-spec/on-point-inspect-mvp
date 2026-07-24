@@ -4,6 +4,7 @@ import {
   routeFindingSection,
   normalizeSeverity,
 } from "../../../lib/routeFindingSection";
+import { getAIModel } from "../../../lib/openai";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
@@ -104,7 +105,7 @@ Use the current fields as supporting context when present.
 `;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: getAIModel(),
       response_format: { type: "json_object" },
       messages: [
         {

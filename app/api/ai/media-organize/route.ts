@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
 import { classifyAIServiceError } from "../../../../lib/aiServiceError";
+import { getAIModel } from "../../../../lib/openai";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -77,7 +78,7 @@ export async function POST(request: Request) {
     ]);
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: getAIModel(),
       response_format: { type: "json_object" },
       temperature: 0.2,
       messages: [

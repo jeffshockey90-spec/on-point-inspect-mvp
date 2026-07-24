@@ -470,10 +470,17 @@ export async function POST(req: Request) {
 
     // Lean path for the button-driven capture camera's Limitations button:
     // draft a single limitation from one deliberate photo, skipping the
-    // multi-suggestion/reminder/data-plate analysis and the memory/learning
-    // context lookups the full live-watch/manual path needs.
+    // multi-suggestion/reminder/data-plate analysis and the heavier
+    // recent-inspection-memory lookup the full live-watch/manual path needs -
+    // but still pulls the inspector's own learning memory, since that's cheap
+    // (one query) and this is the same "match Findings' quality" path.
     if (focus === "limitation") {
       const inspectorNote = cleanText(body.note);
+
+      const limitationLearningPatterns = await learningEngine.getPatterns(180);
+      const limitationLearningMemory = learningEngine.formatPatternsForPrompt(
+        limitationLearningPatterns,
+      );
 
       const limitationSystemPrompt = `
 You are FLOW AI, identifying ONE inspection limitation from a single photo an inspector just captured on purpose.
@@ -501,6 +508,7 @@ Rules:
 - Do not overstate the limitation. If only possible, say "appeared" or "may have limited visibility."
 - Explain what was limited, why, and recommend further evaluation only when appropriate.
 - Do not include markdown or any text outside JSON.
+- If inspector-specific learning memory is provided below, match this inspector's demonstrated wording and style.
 
 Allowed sections:
 ${VALID_SECTIONS.join(", ")}.
@@ -509,6 +517,9 @@ ${VALID_SECTIONS.join(", ")}.
       const limitationUserPrompt = `
 Current selected section: ${currentSection}
 Inspector note (optional): ${inspectorNote || "None"}
+
+Inspector-specific learning memory from prior edits and decisions:
+${limitationLearningMemory || "None yet"}
 
 Describe the single most likely inspection limitation visible in this photo, using the inspector's note
 as supporting context if provided, or return {"limitation": null} if nothing about this photo suggests
