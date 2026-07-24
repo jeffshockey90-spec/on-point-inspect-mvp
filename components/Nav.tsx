@@ -30,6 +30,24 @@ const ownerNavItem = {
   mobileLabel: "Owner",
 };
 
+// Mirrors the tab list built in app/reports/[id]/page.tsx (reportSectionTabs)
+// and the panel ids rendered by ReportBuilderSectionTabs - keep both in sync
+// if a section's anchor id ever changes. Shown as a desktop-only (xl+)
+// sidebar shortcut into the same tabs; clicking one just updates the URL
+// hash, which ReportBuilderSectionTabs already listens for.
+const REPORT_SECTION_LINKS = [
+  { key: "disclaimers", label: "Disclaimers", anchorId: "report-disclaimers" },
+  { key: "agreement", label: "Agreement", anchorId: "agreement-status" },
+  { key: "payment", label: "Payment", anchorId: "payment-invoice" },
+  { key: "delivery", label: "Delivery Guard", anchorId: "report-delivery-guard" },
+  { key: "defects", label: "Defect Totals", anchorId: "defect-totals" },
+  { key: "equipment", label: "Equipment", anchorId: "equipment-inventory" },
+];
+
+function isReportBuilderRoute(pathname: string) {
+  return /^\/reports\/[^/]+$/.test(pathname);
+}
+
 const baseMobileItems = [
   { title: "Dashboard", href: "/", icon: "🏠", mobileLabel: "Home" },
   { title: "Reports", href: "/reports", icon: "📋", mobileLabel: "Reports" },
@@ -54,6 +72,7 @@ export default function Navbar() {
   const [reportsHref, setReportsHref] = useState("/reports");
   const [dashboardHref, setDashboardHref] = useState("/");
   const [userEmail, setUserEmail] = useState("");
+  const [activeReportAnchor, setActiveReportAnchor] = useState("");
 
   function clearOpeningHref() {
     setOpeningHref("");
@@ -292,6 +311,38 @@ export default function Navbar() {
     return isOwner ? [...supportAwareItems, ownerNavItem] : supportAwareItems;
   }, [dashboardHref, reportsHref, isOwner, isRealtor, isInspector]);
 
+  useEffect(() => {
+    if (!isReportBuilderRoute(pathname)) {
+      setActiveReportAnchor("");
+      return;
+    }
+
+    function syncHash() {
+      const hash = window.location.hash.replace(/^#/, "");
+      setActiveReportAnchor(
+        REPORT_SECTION_LINKS.some((link) => link.anchorId === hash)
+          ? hash
+          : REPORT_SECTION_LINKS[0].anchorId
+      );
+    }
+
+    // ReportBuilderSectionTabs updates the hash via history.replaceState
+    // (not a real navigation), which doesn't fire hashchange - it broadcasts
+    // this event instead whenever the active tab changes.
+    function handleTabChanged(event: Event) {
+      const anchorId = (event as CustomEvent).detail?.anchorId;
+      if (anchorId) setActiveReportAnchor(anchorId);
+    }
+
+    syncHash();
+    window.addEventListener("hashchange", syncHash);
+    window.addEventListener("opi:report-tab-changed", handleTabChanged);
+    return () => {
+      window.removeEventListener("hashchange", syncHash);
+      window.removeEventListener("opi:report-tab-changed", handleTabChanged);
+    };
+  }, [pathname]);
+
   function normalizeHref(href: string) {
     if (!href) return "/";
     return href.split("?")[0].replace(/\/$/, "") || "/";
@@ -413,6 +464,34 @@ export default function Navbar() {
               </Link>
             );
           })}
+
+          {isReportBuilderRoute(pathname) && (
+            <div className="mt-4 border-t border-slate-800 pt-4">
+              <p className="px-3 text-[10px] font-black uppercase tracking-wide text-slate-500">
+                Report Sections
+              </p>
+
+              <div className="mt-2 flex flex-col gap-1">
+                {REPORT_SECTION_LINKS.map(({ key, label, anchorId }) => {
+                  const active = activeReportAnchor === anchorId;
+
+                  return (
+                    <a
+                      key={key}
+                      href={`#${anchorId}`}
+                      className={`rounded-xl border px-3 py-2 text-sm font-extrabold transition active:scale-[0.98] [touch-action:manipulation] ${
+                        active
+                          ? "border-white/40 bg-teal-400 text-black shadow-lg shadow-teal-500/30"
+                          : "border-transparent text-teal-400 hover:border-teal-500 hover:bg-[#111827] hover:text-white"
+                      }`}
+                    >
+                      {label}
+                    </a>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </nav>
 
         <div className="shrink-0 border-t border-slate-800 p-3">

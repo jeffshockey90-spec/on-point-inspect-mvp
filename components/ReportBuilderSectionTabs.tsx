@@ -31,6 +31,17 @@ export default function ReportBuilderSectionTabs({
 
       setActiveKey(nextKey);
 
+      const activeAnchorId = tabs.find((tab) => tab.key === nextKey)?.anchorId;
+      if (activeAnchorId) {
+        // history.replaceState (below, in the click handler) doesn't fire
+        // hashchange, so anything outside this component that wants to know
+        // the active tab (e.g. the sidebar shortcut in Nav.tsx) listens for
+        // this instead.
+        window.dispatchEvent(
+          new CustomEvent("opi:report-tab-changed", { detail: { anchorId: activeAnchorId } })
+        );
+      }
+
       if (scrollTo) {
         const activeTab = tabs.find((tab) => tab.key === nextKey);
 
@@ -110,7 +121,7 @@ export default function ReportBuilderSectionTabs({
   return (
     <div className="mb-8">
       <div
-        className="sticky top-0 z-40 border-y border-slate-700 bg-[#0f172a]/95 px-3 py-3 backdrop-blur"
+        className="sticky top-0 z-40 border-y border-slate-700 bg-[#0f172a]/95 px-3 py-3 backdrop-blur xl:hidden"
         aria-label="Report sections"
       >
         <div className="flex gap-2 overflow-x-auto overscroll-x-contain pb-1">
