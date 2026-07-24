@@ -2605,127 +2605,155 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
       />
       <div className="mx-auto w-full max-w-none px-1 py-2 sm:px-2 md:px-4 lg:max-w-[96rem] lg:py-8">
         <div className="mb-4 overflow-x-hidden overflow-y-visible rounded-2xl border border-slate-800 bg-[#0f172a] p-1.5 shadow-xl sm:p-3 md:rounded-3xl md:p-6">
-          <div className="mb-6 flex max-w-full flex-wrap gap-3 overflow-x-hidden overflow-y-visible">
-            <PrintButton
-              label="Print / Save PDF"
-              className="rounded-xl bg-black px-5 py-3 font-bold text-white hover:bg-slate-800"
-            />
+          <div className="mb-6 max-w-full space-y-4 overflow-x-hidden overflow-y-visible">
+            <div>
+              <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-500">
+                Report &amp; Share
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <PrintButton
+                  label="Print / Save PDF"
+                  className="rounded-xl bg-black px-5 py-3 font-bold text-white hover:bg-slate-800"
+                />
 
-            <FastLinkButton
-              href={`/reports/${inspection.id}/print`}
-              loadingText="Opening PDF..."
-              className="rounded-xl bg-white px-5 py-3 font-bold text-black hover:bg-slate-200"
-            >
-              Export PDF
-            </FastLinkButton>
+                <FastLinkButton
+                  href={`/reports/${inspection.id}/print`}
+                  loadingText="Opening PDF..."
+                  className="rounded-xl bg-white px-5 py-3 font-bold text-black hover:bg-slate-200"
+                >
+                  Export PDF
+                </FastLinkButton>
 
-            <FastLinkButton
-              href={`/reports/${inspection.id}/summary`}
-              loadingText="Opening Summary..."
-              className="rounded-xl border border-cyan-500 px-5 py-3 font-bold text-cyan-300 hover:bg-cyan-500/10"
-            >
-              Realtor Summary
-            </FastLinkButton>
+                <FastLinkButton
+                  href={`/reports/${inspection.id}/summary`}
+                  loadingText="Opening Summary..."
+                  className="rounded-xl border border-cyan-500 px-5 py-3 font-bold text-cyan-300 hover:bg-cyan-500/10"
+                >
+                  Realtor Summary
+                </FastLinkButton>
 
-            <PublishReportActionButton
-              action={publishReport}
-              inspectionId={String(inspection.id)}
-              published={reportIsPublished}
-            />
+                <PublishReportActionButton
+                  action={publishReport}
+                  inspectionId={String(inspection.id)}
+                  published={reportIsPublished}
+                />
 
-            <FastLinkButton
-              href={shareHref}
-              loadingText="Opening Share Page..."
-              className="rounded-xl border border-cyan-500 px-5 py-3 font-bold text-cyan-300 hover:bg-cyan-500/10"
-            >
-              Copy Share Link
-            </FastLinkButton>
+                <FastLinkButton
+                  href={shareHref}
+                  loadingText="Opening Share Page..."
+                  className="rounded-xl border border-cyan-500 px-5 py-3 font-bold text-cyan-300 hover:bg-cyan-500/10"
+                >
+                  Copy Share Link
+                </FastLinkButton>
 
-            <CreateDemoReportButton inspectionId={String(inspection.id)} />
+                <CreateDemoReportButton inspectionId={String(inspection.id)} />
 
-            {isStandaloneEnvironmentalReport && (
-              <FastLinkButton
-                href={editableEnvironmentalHref}
-                loadingText="Opening Environmental Report..."
-                className="rounded-xl border border-lime-500 px-5 py-3 font-bold text-lime-300 hover:bg-lime-500/10"
-              >
-                Environmental Report
-              </FastLinkButton>
-            )}
+                {isStandaloneEnvironmentalReport && (
+                  <FastLinkButton
+                    href={editableEnvironmentalHref}
+                    loadingText="Opening Environmental Report..."
+                    className="rounded-xl border border-lime-500 px-5 py-3 font-bold text-lime-300 hover:bg-lime-500/10"
+                  >
+                    Environmental Report
+                  </FastLinkButton>
+                )}
 
-            <FastLinkButton
-              href={`/client-portal/${inspection.id}`}
-              loadingText="Opening Client Portal..."
-              className="rounded-xl border border-emerald-500 px-5 py-3 font-bold text-emerald-300 hover:bg-emerald-500/10"
-            >
-              Client Portal
-            </FastLinkButton>
+                <FastLinkButton
+                  href={`/client-portal/${inspection.id}`}
+                  loadingText="Opening Client Portal..."
+                  className="rounded-xl border border-emerald-500 px-5 py-3 font-bold text-emerald-300 hover:bg-emerald-500/10"
+                >
+                  Client Portal
+                </FastLinkButton>
+              </div>
+            </div>
 
-            <SendFullReportButton
-              inspectionId={String(inspection.id)}
-              clientEmail={inspection.client_email}
-              realtorEmail={inspection.realtor_email || inspection.agent_email}
-            />
+            <div>
+              <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-500">
+                Send &amp; Communicate
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <SendFullReportButton
+                  inspectionId={String(inspection.id)}
+                  clientEmail={inspection.client_email}
+                  realtorEmail={inspection.realtor_email || inspection.agent_email}
+                />
 
-            <SendReviewRequestButton
-              inspectionId={String(inspection.id)}
-              clientEmail={inspection.client_email}
-              reviewStatus={inspection.review_status}
-            />
+                <SendReviewRequestButton
+                  inspectionId={String(inspection.id)}
+                  clientEmail={inspection.client_email}
+                  reviewStatus={inspection.review_status}
+                />
 
-            <FastLinkButton
-              href={`/repair-request?inspection_id=${inspection.id}`}
-              loadingText="Opening Repair Request..."
-              className="rounded-xl bg-orange-600 px-5 py-3 font-bold text-white hover:bg-orange-500"
-            >
-              Repair Request Builder
-            </FastLinkButton>
+                <SendAgreementButton inspectionId={String(inspection.id)} />
 
-            <SendAgreementButton inspectionId={String(inspection.id)} />
+                <FastLinkButton
+                  href={`/repair-request?inspection_id=${inspection.id}`}
+                  loadingText="Opening Repair Request..."
+                  className="rounded-xl bg-orange-600 px-5 py-3 font-bold text-white hover:bg-orange-500"
+                >
+                  Repair Request Builder
+                </FastLinkButton>
+              </div>
+            </div>
 
-            <InsertFavoriteFindingButton inspectionId={String(inspection.id)} />
+            <div>
+              <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-500">
+                Findings Tools
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <InsertFavoriteFindingButton inspectionId={String(inspection.id)} />
 
-            <FastLinkButton
-              href={`/reports/${inspection.id}/templates`}
-              loadingText="Opening Library..."
-              className="rounded-xl border border-yellow-500 px-5 py-3 font-bold text-yellow-300 hover:bg-yellow-500/10"
-            >
-              Favorite Findings Library
-            </FastLinkButton>
+                <FastLinkButton
+                  href={`/reports/${inspection.id}/templates`}
+                  loadingText="Opening Library..."
+                  className="rounded-xl border border-yellow-500 px-5 py-3 font-bold text-yellow-300 hover:bg-yellow-500/10"
+                >
+                  Favorite Findings Library
+                </FastLinkButton>
 
-            <OneTapAIFindingInsert inspectionId={String(inspection.id)} />
+                <OneTapAIFindingInsert inspectionId={String(inspection.id)} />
+              </div>
+            </div>
 
-            <FastLinkButton
-              href={`/field?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`}
-              loadingText="Opening Field Tool..."
-              className="rounded-xl border border-teal-500 bg-[#071224] px-5 py-3 font-bold text-teal-300 hover:bg-teal-500/10"
-            >
-              Field Tool
-            </FastLinkButton>
+            <div>
+              <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-500">
+                Capture Tools
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <FastLinkButton
+                  href={`/field?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`}
+                  loadingText="Opening Field Tool..."
+                  className="rounded-xl border border-teal-500 bg-[#071224] px-5 py-3 font-bold text-teal-300 hover:bg-teal-500/10"
+                >
+                  Field Tool
+                </FastLinkButton>
 
-            <FastLinkButton
-              href={`/ai-capture?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`}
-              loadingText="Opening AI Capture..."
-              className="rounded-xl bg-teal-500 px-5 py-3 font-bold text-slate-950 hover:bg-teal-400"
-            >
-              Open Full AI Capture
-            </FastLinkButton>
+                <FastLinkButton
+                  href={`/ai-capture?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`}
+                  loadingText="Opening AI Capture..."
+                  className="rounded-xl bg-teal-500 px-5 py-3 font-bold text-slate-950 hover:bg-teal-400"
+                >
+                  Open Full AI Capture
+                </FastLinkButton>
 
-            <FastLinkButton
-              href={`/reports/${inspection.id}/bulk-ai-capture`}
-              loadingText="Opening Bulk AI..."
-              className="rounded-xl bg-purple-600 px-5 py-3 font-bold text-white hover:bg-purple-500"
-            >
-              📸 Bulk AI Capture
-            </FastLinkButton>
+                <FastLinkButton
+                  href={`/reports/${inspection.id}/bulk-ai-capture`}
+                  loadingText="Opening Bulk AI..."
+                  className="rounded-xl bg-purple-600 px-5 py-3 font-bold text-white hover:bg-purple-500"
+                >
+                  📸 Bulk AI Capture
+                </FastLinkButton>
 
-            <FastLinkButton
-              href={`/equipment-analyzer?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`}
-              loadingText="Opening Equipment Analyzer..."
-              className="rounded-xl border border-blue-500 px-5 py-3 font-bold text-blue-300 hover:bg-blue-500/10"
-            >
-              Equipment Analyzer
-            </FastLinkButton>
+                <FastLinkButton
+                  href={`/equipment-analyzer?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`}
+                  loadingText="Opening Equipment Analyzer..."
+                  className="rounded-xl border border-blue-500 px-5 py-3 font-bold text-blue-300 hover:bg-blue-500/10"
+                >
+                  Equipment Analyzer
+                </FastLinkButton>
+              </div>
+            </div>
           </div>
 
           <ReportBuilderSectionTabs tabs={reportSectionTabs}>
