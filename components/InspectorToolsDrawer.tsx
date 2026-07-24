@@ -944,6 +944,11 @@ export default function InspectorToolsDrawer({
         })
       );
 
+      // If this anchor lives inside the report builder's section tabs (agreement,
+      // payment, disclaimers, etc.), reveal the right tab before scrolling -
+      // otherwise the target may be hidden behind an inactive tab.
+      (window as any).__revealReportBuilderTab?.(targetAnchor);
+
       const element = document.getElementById(targetAnchor) || document.querySelector(`[data-command-target="${CSS.escape(targetAnchor)}"]`);
 
       if (element instanceof HTMLElement) {

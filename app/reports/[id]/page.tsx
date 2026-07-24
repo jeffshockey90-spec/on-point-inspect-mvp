@@ -25,6 +25,7 @@ import GenerateSummaryButton from "../../../components/GenerateSummaryButton";
 import SendReviewRequestButton from "../../../components/SendReviewRequestButton";
 import DeleteSummaryButton from "../../../components/DeleteSummaryButton";
 import ConfirmSubmitButton from "../../../components/ConfirmSubmitButton";
+import ReportBuilderSectionTabs from "../../../components/ReportBuilderSectionTabs";
 import FastLinkButton from "../../../components/FastLinkButton";
 import CreateDemoReportButton from "../../../components/CreateDemoReportButton";
 import SampleReportManager from "../../../components/SampleReportManager";
@@ -2582,6 +2583,17 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                   commandTool: "",
                 };
 
+  const reportSectionTabs = [
+    { key: "disclaimers", label: "Disclaimers", anchorId: "report-disclaimers" },
+    { key: "agreement", label: "Agreement", anchorId: "agreement-status" },
+    { key: "payment", label: "Payment", anchorId: "payment-invoice" },
+    { key: "delivery", label: "Delivery Guard", anchorId: "report-delivery-guard" },
+    { key: "defects", label: "Defect Totals", anchorId: "defect-totals" },
+    ...(equipmentInventory.length > 0
+      ? [{ key: "equipment", label: "Equipment", anchorId: "equipment-inventory" }]
+      : []),
+  ];
+
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#020617] pb-[calc(100px+env(safe-area-inset-bottom))] text-white">
       <OfflineReportCacheBridge
@@ -2716,15 +2728,262 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
             </FastLinkButton>
           </div>
 
-          <div className="mb-8 rounded-2xl border border-yellow-500 bg-yellow-950/30 p-4 text-yellow-200">
-            <h2 className="text-2xl font-black">Report Tools</h2>
-            <p className="mt-2">
-              All report tools are enabled, including Send Report, Realtor
-              Summary, email, agreements, Copy Share Link, Favorite Findings
-              Library, Insert Favorite Finding, One-Tap AI, Field Tool, Full AI
-              Capture, Equipment Analyzer, repair requests, and findings.
-            </p>
-          </div>
+          <ReportBuilderSectionTabs tabs={reportSectionTabs}>
+            <div id="report-disclaimers" data-command-target="report-disclaimers" className="mb-8">
+              <ReportDisclaimers inspectionId={String(inspection.id)} />
+            </div>
+
+            <div id="agreement-status" data-command-target="agreement-status">
+            <AgreementSelector
+              inspectionId={String(inspection.id)}
+              initialAgreementState={inspection.agreement_state}
+              initialAgreementTemplateId={inspection.agreement_template_id}
+              initialAgreementTemplateIds={inspection.agreement_template_ids}
+              propertyState={inspection.state}
+            />
+
+            <AgreementStatusPanel inspectionId={String(inspection.id)} />
+            </div>
+
+            <div id="payment-invoice" data-command-target="payment-invoice">
+            <PaymentInvoicePanel inspection={inspection} />
+            </div>
+
+            <div id="report-delivery-guard" data-command-target="report-delivery-guard">
+            <ReportDeliveryGuard inspectionId={String(inspection.id)} />
+            </div>
+
+            <section id="defect-totals" className="rounded-2xl border border-slate-700 bg-[#071224] p-4">
+              <div className="mb-4">
+                <h2 className="text-2xl font-extrabold text-teal-300">
+                  Defect Totals
+                </h2>
+
+                <p className="mt-1 text-sm text-slate-400">
+                  Quick count of true defects. Informational items are tracked
+                  separately and are not included in Total Defects.
+                </p>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                <DefectCountCard
+                  label="Total Defects"
+                  value={defectTotals.total}
+                  tone="text-white"
+                />
+                <DefectCountCard
+                  label="Safety / Major"
+                  value={defectTotals.safety}
+                  tone="text-red-300"
+                />
+                <DefectCountCard
+                  label="Recommended Repair"
+                  value={defectTotals.repair}
+                  tone="text-teal-300"
+                />
+                <DefectCountCard
+                  label="Maintenance / Monitor"
+                  value={defectTotals.maintenance}
+                  tone="text-yellow-300"
+                />
+                <DefectCountCard
+                  label="Informational"
+                  value={defectTotals.information}
+                  tone="text-blue-300"
+                />
+              </div>
+            </section>
+
+            {equipmentInventory.length > 0 && (
+              <section
+                id="equipment-inventory"
+                className="rounded-2xl border border-cyan-500/40 bg-cyan-950/20 p-4"
+              >
+                <div className="mb-4">
+                  <h2 className="text-2xl font-extrabold text-cyan-300">
+                    Equipment Inventory
+                  </h2>
+
+                  <p className="mt-1 text-sm text-slate-400">
+                    Major equipment documented during the inspection. These
+                    inventory records are informational and are not counted as
+                    defects unless a separate finding is created.
+                  </p>
+                </div>
+
+                {equipmentUpdateError && (
+                  <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-200">
+                    Couldn&apos;t save that equipment note. Please try again.
+                  </div>
+                )}
+
+                {equipmentDeleteError && (
+                  <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-200">
+                    Couldn&apos;t delete that equipment record. Please try again.
+                  </div>
+                )}
+
+                <div className="grid gap-4">
+                  {equipmentInventory.map((item: any) => {
+                    const equipmentImage =
+                      item.signed_image_url ||
+                      item.image_url ||
+                      item.public_url ||
+                      item.photo_url ||
+                      item.signed_thumbnail_url ||
+                      item.thumbnail_url ||
+                      item.thumbnail_public_url ||
+                      "";
+
+                    return (
+                      <div
+                        key={item.id}
+                        className="rounded-xl border border-slate-700 bg-[#020817]/80 p-4"
+                      >
+                        {equipmentImage && (
+                          <img
+                            src={equipmentImage}
+                            alt={item.equipment_type || "Equipment"}
+                            loading="lazy"
+                            decoding="async"
+                            className="mb-4 max-h-56 w-full rounded-xl border border-slate-700 object-contain"
+                          />
+                        )}
+
+                        <p className="text-xs font-black uppercase tracking-wide text-cyan-300">
+                          {item.equipment_type || "Equipment"}
+                        </p>
+
+                        <h3 className="mt-2 text-xl font-black text-white">
+                          {[item.manufacturer, item.model]
+                            .filter(Boolean)
+                            .join(" ") || "Equipment Record"}
+                        </h3>
+
+                        <div className="mt-4 grid gap-3 text-sm text-slate-300 md:grid-cols-3">
+                          <InventoryLine label="Serial" value={item.serial} />
+                          <InventoryLine
+                            label="Manufacture Year"
+                            value={item.manufacture_year}
+                          />
+                          <InventoryLine
+                            label="Estimated Age"
+                            value={item.estimated_age}
+                          />
+                          <InventoryLine
+                            label="Typical Industry Range"
+                            value={getTypicalIndustryRange(item.expected_service_life)}
+                          />
+                          <InventoryLine
+                            label="Service Life"
+                            value="Industry estimate only"
+                          />
+                          <InventoryLine
+                            label="Refrigerant"
+                            value={item.refrigerant}
+                          />
+                          <InventoryLine
+                            label="Condition"
+                            value={getEquipmentConditionNote(item.condition)}
+                          />
+                        </div>
+
+                        <EquipmentNoteBlock
+                          label="Inspector Note"
+                          value={getEquipmentLongNote(item, [
+                            "inspector_note",
+                            "inspection_note",
+                            "note",
+                            "notes",
+                          ])}
+                        />
+
+                        <EquipmentNoteBlock
+                          label="Maintenance Note"
+                          value={getEquipmentLongNote(item, [
+                            "maintenance_note",
+                            "maintenance",
+                            "service_note",
+                          ])}
+                        />
+
+                        <p className="mt-4 rounded-xl border border-slate-700 bg-slate-950 p-3 text-xs leading-5 text-slate-400">
+Service-life information is a general industry estimate only. Actual service life can vary based on installation quality, maintenance history, operating conditions, environment, and usage. This should not be treated as a prediction or guarantee of remaining equipment life.
+                        </p>
+
+                        <details className="mt-4 rounded-xl border border-slate-700 bg-[#020817]/70 p-3">
+                          <summary className="cursor-pointer select-none text-sm font-black text-cyan-300">
+                            Edit Equipment Note
+                          </summary>
+
+                          <form action={updateEquipmentInventoryItem} className="mt-4 space-y-3">
+                            <input type="hidden" name="inspection_id" value={inspection.id} />
+                            <input type="hidden" name="equipment_id" value={item.id} />
+
+                            <div>
+                              <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-400">
+                                Condition
+                              </label>
+                              <input
+                                name="condition"
+                                defaultValue={getEquipmentConditionLabel(item.condition)}
+                                placeholder="No specific deficiency noted"
+                                className="w-full rounded-lg border border-slate-700 bg-[#020617] px-3 py-2 text-sm text-white outline-none focus:border-cyan-400"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-400">
+                                Inspector Note
+                              </label>
+                              <textarea
+                                name="inspector_note"
+                                defaultValue={getEquipmentInspectorNote(item)}
+                                placeholder="Example: Data plate documented. Unit operated normally at time of inspection."
+                                rows={3}
+                                className="w-full rounded-lg border border-slate-700 bg-[#020617] px-3 py-2 text-sm text-white outline-none focus:border-cyan-400"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-400">
+                                Maintenance Note
+                              </label>
+                              <textarea
+                                name="maintenance_note"
+                                defaultValue={getEquipmentMaintenanceNote(item)}
+                                placeholder="Example: Recommend routine HVAC servicing and filter maintenance."
+                                rows={3}
+                                className="w-full rounded-lg border border-slate-700 bg-[#020617] px-3 py-2 text-sm text-white outline-none focus:border-cyan-400"
+                              />
+                            </div>
+
+                            <button
+                              type="submit"
+                              className="w-full rounded-xl bg-cyan-500 px-4 py-2 text-sm font-black text-slate-950 hover:bg-cyan-400"
+                            >
+                              Save Equipment Note
+                            </button>
+                          </form>
+                        </details>
+
+                        <form action={deleteEquipmentInventoryItem} className="mt-4">
+                          <input type="hidden" name="inspection_id" value={inspection.id} />
+                          <input type="hidden" name="equipment_id" value={item.id} />
+                          <ConfirmSubmitButton
+                            confirmMessage="Delete this equipment record? This cannot be undone."
+                            className="w-full rounded-xl border border-red-500/50 bg-red-500/10 px-4 py-3 text-sm font-black text-red-300 transition hover:bg-red-500/20"
+                          >
+                            Delete Equipment
+                          </ConfirmSubmitButton>
+                        </form>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+          </ReportBuilderSectionTabs>
 
           <CollapsibleReportSection
             title="AI Inspection Watchlist"
@@ -2785,10 +3044,6 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
             )}
           </section>
           </CollapsibleReportSection>
-
-          <div id="report-disclaimers" data-command-target="report-disclaimers" className="mb-8">
-            <ReportDisclaimers inspectionId={String(inspection.id)} />
-          </div>
 
           <section className="mb-8 overflow-hidden rounded-[2rem] border border-teal-400/30 bg-gradient-to-br from-[#071224] via-[#071224] to-[#020617] p-5 shadow-xl sm:p-6">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -3599,18 +3854,6 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
           />
           </CollapsibleReportSection>
 
-          <div id="agreement-status" data-command-target="agreement-status">
-          <AgreementSelector
-            inspectionId={String(inspection.id)}
-            initialAgreementState={inspection.agreement_state}
-            initialAgreementTemplateId={inspection.agreement_template_id}
-            initialAgreementTemplateIds={inspection.agreement_template_ids}
-            propertyState={inspection.state}
-          />
-
-          <AgreementStatusPanel inspectionId={String(inspection.id)} />
-          </div>
-
           <CollapsibleReportSection
             title="Signed Agreements"
             subtitle={`${signedAgreements.length} signed`}
@@ -3675,14 +3918,6 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
           </section>
           </CollapsibleReportSection>
 
-          <div id="report-delivery-guard" data-command-target="report-delivery-guard">
-          <ReportDeliveryGuard inspectionId={String(inspection.id)} />
-          </div>
-
-          <div id="payment-invoice" data-command-target="payment-invoice">
-          <PaymentInvoicePanel inspection={inspection} />
-          </div>
-
           <CollapsibleReportSection
             title="Property Photo"
             subtitle={propertyPhoto ? "Photo saved" : "No photo saved yet"}
@@ -3722,245 +3957,6 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
             />
           </section>
           </CollapsibleReportSection>
-
-          <h1 className="break-words text-4xl font-extrabold text-teal-400 sm:text-5xl">
-            On Point Home Inspections
-          </h1>
-
-          <p className="mt-3 text-xl text-slate-200">
-            Residential Home Inspection Report
-          </p>
-
-          <section className="mt-6 rounded-2xl border border-slate-700 bg-[#071224] p-4">
-            <div className="mb-4">
-              <h2 className="text-2xl font-extrabold text-teal-300">
-                Defect Totals
-              </h2>
-
-              <p className="mt-1 text-sm text-slate-400">
-                Quick count of true defects. Informational items are tracked
-                separately and are not included in Total Defects.
-              </p>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-              <DefectCountCard
-                label="Total Defects"
-                value={defectTotals.total}
-                tone="text-white"
-              />
-              <DefectCountCard
-                label="Safety / Major"
-                value={defectTotals.safety}
-                tone="text-red-300"
-              />
-              <DefectCountCard
-                label="Recommended Repair"
-                value={defectTotals.repair}
-                tone="text-teal-300"
-              />
-              <DefectCountCard
-                label="Maintenance / Monitor"
-                value={defectTotals.maintenance}
-                tone="text-yellow-300"
-              />
-              <DefectCountCard
-                label="Informational"
-                value={defectTotals.information}
-                tone="text-blue-300"
-              />
-            </div>
-          </section>
-
-          {equipmentInventory.length > 0 && (
-            <section
-              id="equipment-inventory"
-              className="mt-6 rounded-2xl border border-cyan-500/40 bg-cyan-950/20 p-4"
-            >
-              <div className="mb-4">
-                <h2 className="text-2xl font-extrabold text-cyan-300">
-                  Equipment Inventory
-                </h2>
-
-                <p className="mt-1 text-sm text-slate-400">
-                  Major equipment documented during the inspection. These
-                  inventory records are informational and are not counted as
-                  defects unless a separate finding is created.
-                </p>
-              </div>
-
-              {equipmentUpdateError && (
-                <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-200">
-                  Couldn&apos;t save that equipment note. Please try again.
-                </div>
-              )}
-
-              {equipmentDeleteError && (
-                <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-200">
-                  Couldn&apos;t delete that equipment record. Please try again.
-                </div>
-              )}
-
-              <div className="grid gap-4">
-                {equipmentInventory.map((item: any) => {
-                  const equipmentImage =
-                    item.signed_image_url ||
-                    item.image_url ||
-                    item.public_url ||
-                    item.photo_url ||
-                    item.signed_thumbnail_url ||
-                    item.thumbnail_url ||
-                    item.thumbnail_public_url ||
-                    "";
-
-                  return (
-                    <div
-                      key={item.id}
-                      className="rounded-xl border border-slate-700 bg-[#020817]/80 p-4"
-                    >
-                      {equipmentImage && (
-                        <img
-                          src={equipmentImage}
-                          alt={item.equipment_type || "Equipment"}
-                          loading="lazy"
-                          decoding="async"
-                          className="mb-4 max-h-56 w-full rounded-xl border border-slate-700 object-contain"
-                        />
-                      )}
-
-                      <p className="text-xs font-black uppercase tracking-wide text-cyan-300">
-                        {item.equipment_type || "Equipment"}
-                      </p>
-
-                      <h3 className="mt-2 text-xl font-black text-white">
-                        {[item.manufacturer, item.model]
-                          .filter(Boolean)
-                          .join(" ") || "Equipment Record"}
-                      </h3>
-
-                      <div className="mt-4 grid gap-3 text-sm text-slate-300 md:grid-cols-3">
-                        <InventoryLine label="Serial" value={item.serial} />
-                        <InventoryLine
-                          label="Manufacture Year"
-                          value={item.manufacture_year}
-                        />
-                        <InventoryLine
-                          label="Estimated Age"
-                          value={item.estimated_age}
-                        />
-                        <InventoryLine
-                          label="Typical Industry Range"
-                          value={getTypicalIndustryRange(item.expected_service_life)}
-                        />
-                        <InventoryLine
-                          label="Service Life"
-                          value="Industry estimate only"
-                        />
-                        <InventoryLine
-                          label="Refrigerant"
-                          value={item.refrigerant}
-                        />
-                        <InventoryLine
-                          label="Condition"
-                          value={getEquipmentConditionNote(item.condition)}
-                        />
-                      </div>
-
-                      <EquipmentNoteBlock
-                        label="Inspector Note"
-                        value={getEquipmentLongNote(item, [
-                          "inspector_note",
-                          "inspection_note",
-                          "note",
-                          "notes",
-                        ])}
-                      />
-
-                      <EquipmentNoteBlock
-                        label="Maintenance Note"
-                        value={getEquipmentLongNote(item, [
-                          "maintenance_note",
-                          "maintenance",
-                          "service_note",
-                        ])}
-                      />
-
-                      <p className="mt-4 rounded-xl border border-slate-700 bg-slate-950 p-3 text-xs leading-5 text-slate-400">
-Service-life information is a general industry estimate only. Actual service life can vary based on installation quality, maintenance history, operating conditions, environment, and usage. This should not be treated as a prediction or guarantee of remaining equipment life.
-                      </p>
-
-                      <details className="mt-4 rounded-xl border border-slate-700 bg-[#020817]/70 p-3">
-                        <summary className="cursor-pointer select-none text-sm font-black text-cyan-300">
-                          Edit Equipment Note
-                        </summary>
-
-                        <form action={updateEquipmentInventoryItem} className="mt-4 space-y-3">
-                          <input type="hidden" name="inspection_id" value={inspection.id} />
-                          <input type="hidden" name="equipment_id" value={item.id} />
-
-                          <div>
-                            <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-400">
-                              Condition
-                            </label>
-                            <input
-                              name="condition"
-                              defaultValue={getEquipmentConditionLabel(item.condition)}
-                              placeholder="No specific deficiency noted"
-                              className="w-full rounded-lg border border-slate-700 bg-[#020617] px-3 py-2 text-sm text-white outline-none focus:border-cyan-400"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-400">
-                              Inspector Note
-                            </label>
-                            <textarea
-                              name="inspector_note"
-                              defaultValue={getEquipmentInspectorNote(item)}
-                              placeholder="Example: Data plate documented. Unit operated normally at time of inspection."
-                              rows={3}
-                              className="w-full rounded-lg border border-slate-700 bg-[#020617] px-3 py-2 text-sm text-white outline-none focus:border-cyan-400"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-400">
-                              Maintenance Note
-                            </label>
-                            <textarea
-                              name="maintenance_note"
-                              defaultValue={getEquipmentMaintenanceNote(item)}
-                              placeholder="Example: Recommend routine HVAC servicing and filter maintenance."
-                              rows={3}
-                              className="w-full rounded-lg border border-slate-700 bg-[#020617] px-3 py-2 text-sm text-white outline-none focus:border-cyan-400"
-                            />
-                          </div>
-
-                          <button
-                            type="submit"
-                            className="w-full rounded-xl bg-cyan-500 px-4 py-2 text-sm font-black text-slate-950 hover:bg-cyan-400"
-                          >
-                            Save Equipment Note
-                          </button>
-                        </form>
-                      </details>
-
-                      <form action={deleteEquipmentInventoryItem} className="mt-4">
-                        <input type="hidden" name="inspection_id" value={inspection.id} />
-                        <input type="hidden" name="equipment_id" value={item.id} />
-                        <ConfirmSubmitButton
-                          confirmMessage="Delete this equipment record? This cannot be undone."
-                          className="w-full rounded-xl border border-red-500/50 bg-red-500/10 px-4 py-3 text-sm font-black text-red-300 transition hover:bg-red-500/20"
-                        >
-                          Delete Equipment
-                        </ConfirmSubmitButton>
-                      </form>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-          )}
 
           <form
             action={updateInspectionDetails}
