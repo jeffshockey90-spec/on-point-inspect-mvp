@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { Webhook } from "svix";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -19,7 +21,44 @@ function getEventTime(event: any) {
 
 export async function POST(req: Request) {
   try {
-    const event = await req.json();
+    const body = await req.text();
+
+    const svixId = req.headers.get("svix-id");
+    const svixTimestamp = req.headers.get("svix-timestamp");
+    const svixSignature = req.headers.get("svix-signature");
+
+    if (!svixId || !svixTimestamp || !svixSignature) {
+      return NextResponse.json(
+        { error: "Missing webhook signature headers." },
+        { status: 400 }
+      );
+    }
+
+    if (!process.env.RESEND_WEBHOOK_SECRET) {
+      return NextResponse.json(
+        { error: "Missing RESEND_WEBHOOK_SECRET." },
+        { status: 500 }
+      );
+    }
+
+    let event: any;
+
+    try {
+      const webhook = new Webhook(process.env.RESEND_WEBHOOK_SECRET);
+
+      event = webhook.verify(body, {
+        "svix-id": svixId,
+        "svix-timestamp": svixTimestamp,
+        "svix-signature": svixSignature,
+      });
+    } catch (error: any) {
+      console.error("Resend webhook signature error:", error?.message);
+
+      return NextResponse.json(
+        { error: "Invalid webhook signature." },
+        { status: 400 }
+      );
+    }
 
     const type = String(event?.type || event?.event || "").toLowerCase();
     const data = event?.data || event;
