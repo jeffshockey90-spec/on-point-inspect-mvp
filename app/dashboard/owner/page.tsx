@@ -373,7 +373,7 @@ export default async function OwnerDashboardPage() {
   const sevenDaysAgo = new Date(now.getTime() - 1000 * 60 * 60 * 24 * 7);
   const thirtyDaysAgo = new Date(now.getTime() - 1000 * 60 * 60 * 24 * 30);
 
-  const [profiles, inspectorProfiles, companyUsers, inspections, events, pushSubscriptions, nativePushTokens, deviceEvents, findings, photos, agreements, invoices, templates] = await Promise.all([
+  const [profiles, inspectorProfiles, companyUsers, inspections, events, pushSubscriptions, nativePushTokens, deviceEvents, findings, photos, agreements, invoices, templates, inspectionContacts] = await Promise.all([
     safeSelect(admin.from("profiles").select("*"), "profiles"),
     safeSelect(admin.from("inspector_profiles").select("*"), "inspector_profiles"),
     safeSelect(admin.from("company_users").select("*"), "company_users"),
@@ -387,7 +387,52 @@ export default async function OwnerDashboardPage() {
     safeSelect(admin.from("inspection_agreements").select("*"), "inspection_agreements"),
     Promise.resolve([]),
     safeSelect(admin.from("finding_templates").select("*"), "finding_templates"),
+    safeSelect(admin.from("inspection_contacts").select("inspection_id,role,email,portal_access"), "inspection_contacts"),
   ]);
+
+  function roleLooksLikeRealtorPreview(value: unknown) {
+    const role = String(value || "").trim().toLowerCase();
+    return role.includes("realtor") || role.includes("agent") || role.includes("transaction") || role.includes("coordinator");
+  }
+
+  function roleLooksLikeClientPreview(value: unknown) {
+    const role = String(value || "").trim().toLowerCase();
+    return role === "client" || role.includes("buyer") || role.includes("co-client") || role.includes("coclient") || role.includes("homeowner");
+  }
+
+  const inspectionById = new Map(inspections.map((row: any) => [String(row.id), row]));
+
+  const realtorReportCounts = new Map<string, number>();
+  (inspectionContacts || []).forEach((contact: any) => {
+    if (contact?.portal_access === false) return;
+    if (!roleLooksLikeRealtorPreview(contact?.role)) return;
+    const email = String(contact?.email || "").trim().toLowerCase();
+    if (!email) return;
+    realtorReportCounts.set(email, (realtorReportCounts.get(email) || 0) + 1);
+  });
+
+  const previewRealtors = Array.from(realtorReportCounts.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6)
+    .map(([email, count]) => ({ email, count }));
+
+  const clientPreviewIds = new Set<string>();
+  (inspectionContacts || []).forEach((contact: any) => {
+    if (contact?.portal_access === false) return;
+    if (!roleLooksLikeClientPreview(contact?.role)) return;
+    const id = String(contact?.inspection_id || "").trim();
+    if (id) clientPreviewIds.add(id);
+  });
+
+  const previewClientReports = Array.from(clientPreviewIds)
+    .map((id) => inspectionById.get(id))
+    .filter(Boolean)
+    .sort((a: any, b: any) => new Date(b?.created_at || 0).getTime() - new Date(a?.created_at || 0).getTime())
+    .slice(0, 6)
+    .map((row: any) => ({
+      id: String(row.id),
+      address: row.property_address || row.address || "Untitled Inspection",
+    }));
 
   const allUserRows = profiles.length > 0 ? profiles : companyUsers;
   const totalUsers = allUserRows.length;
@@ -740,6 +785,62 @@ export default async function OwnerDashboardPage() {
           <MetricCard label="Push Subscriptions" value={String(pushSubscriptions.length)} helper="Saved browser/device push subscriptions." tone="purple" />
           <MetricCard label="Demo Reports" value={String(demoReports.length)} helper="Public sample reports created for marketing." tone="purple" />
         </section>
+
+        <Panel title="Preview Portals" subtitle="See what real inspectors' realtors and clients actually see, using your live data - no test accounts needed.">
+          <div className="grid gap-6 md:grid-cols-2">
+            <div>
+              <p className="mb-3 text-xs font-black uppercase tracking-wide text-slate-400">
+                Realtor Portal
+              </p>
+              {previewRealtors.length === 0 ? (
+                <EmptyState text="No realtor contacts found yet." />
+              ) : (
+                <div className="space-y-2">
+                  {previewRealtors.map((realtor) => (
+                    <a
+                      key={realtor.email}
+                      href={`/realtor-portal?preview=${encodeURIComponent(realtor.email)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-between rounded-xl border border-slate-700 bg-[#020817]/70 px-4 py-3 transition hover:border-purple-500/50"
+                    >
+                      <span className="truncate text-sm font-bold text-white">{realtor.email}</span>
+                      <span className="ml-3 shrink-0 rounded-full border border-purple-500/40 bg-purple-500/10 px-3 py-1 text-xs font-black text-purple-300">
+                        {realtor.count} report{realtor.count === 1 ? "" : "s"}
+                      </span>
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <p className="mb-3 text-xs font-black uppercase tracking-wide text-slate-400">
+                Client Portal
+              </p>
+              {previewClientReports.length === 0 ? (
+                <EmptyState text="No client-linked reports found yet." />
+              ) : (
+                <div className="space-y-2">
+                  {previewClientReports.map((report) => (
+                    <a
+                      key={report.id}
+                      href={`/client-portal/${encodeURIComponent(report.id)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-between rounded-xl border border-slate-700 bg-[#020817]/70 px-4 py-3 transition hover:border-emerald-500/50"
+                    >
+                      <span className="truncate text-sm font-bold text-white">{report.address}</span>
+                      <span className="ml-3 shrink-0 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-black text-emerald-300">
+                        Open
+                      </span>
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </Panel>
 
         <Panel title="Demo Report Management" subtitle="Public sample reports created from real reports with client, realtor, agreement, and payment details removed.">
           {demoReports.length === 0 ? (

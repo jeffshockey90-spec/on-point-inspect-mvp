@@ -31,6 +31,11 @@ function cleanEmail(value: any) {
   return cleanText(value).toLowerCase();
 }
 
+const OWNER_EMAILS = [
+  "jeffshockey90@gmail.com",
+  "jeff@onpointhomeinspect.com",
+];
+
 function parseMoneyValue(value: any) {
   const number = Number(String(value || "").replace(/[^0-9.-]/g, ""));
   return Number.isFinite(number) ? number : 0;
@@ -213,7 +218,11 @@ function getStatusLabel(status: string) {
   return "Sent";
 }
 
-export default async function RealtorPortalPage() {
+export default async function RealtorPortalPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ preview?: string }>;
+}) {
   const supabase = await createClient();
 
   const {
@@ -223,8 +232,12 @@ export default async function RealtorPortalPage() {
   if (!user) redirect("/login");
 
   const userEmail = cleanEmail(user.email);
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const previewEmail = cleanEmail(resolvedSearchParams?.preview);
+  const isOwnerPreview = OWNER_EMAILS.includes(userEmail) && Boolean(previewEmail);
+  const lookupEmail = isOwnerPreview ? previewEmail : userEmail;
 
-  if (!userEmail) {
+  if (!lookupEmail) {
     return (
       <main className="min-h-screen bg-[#020617] px-5 py-10 text-white">
         <section className="mx-auto max-w-4xl rounded-3xl border border-red-500/40 bg-red-500/10 p-8">
@@ -242,7 +255,7 @@ export default async function RealtorPortalPage() {
   const { data: contactMatchesRaw } = await admin
     .from("inspection_contacts")
     .select("*")
-    .ilike("email", userEmail);
+    .ilike("email", lookupEmail);
 
   const contactMatches = (contactMatchesRaw || []).filter((contact: any) => {
     if (contact?.portal_access === false) return false;
@@ -269,11 +282,11 @@ export default async function RealtorPortalPage() {
     .select("*")
     .or(
       [
-        `realtor_email.ilike.${userEmail}`,
-        `agent_email.ilike.${userEmail}`,
-        `buyer_agent_email.ilike.${userEmail}`,
-        `buyers_agent_email.ilike.${userEmail}`,
-        `transaction_coordinator_email.ilike.${userEmail}`,
+        `realtor_email.ilike.${lookupEmail}`,
+        `agent_email.ilike.${lookupEmail}`,
+        `buyer_agent_email.ilike.${lookupEmail}`,
+        `buyers_agent_email.ilike.${lookupEmail}`,
+        `transaction_coordinator_email.ilike.${lookupEmail}`,
       ].join(",")
     );
 
@@ -344,6 +357,18 @@ export default async function RealtorPortalPage() {
   return (
     <main className="min-h-screen bg-[#020617] px-5 py-10 text-white md:px-8">
       <div className="mx-auto max-w-7xl">
+        {isOwnerPreview && (
+          <div className="mb-6 rounded-2xl border border-purple-500/50 bg-purple-500/10 px-6 py-4">
+            <p className="text-sm font-black uppercase tracking-wide text-purple-300">
+              👁 Owner Preview Mode
+            </p>
+            <p className="mt-1 text-sm text-purple-100">
+              Viewing the Realtor Portal as <strong>{lookupEmail}</strong> would see it. This is not
+              your own account&apos;s data.
+            </p>
+          </div>
+        )}
+
         <section className="rounded-3xl border border-slate-800 bg-[#0f172a] p-6 shadow-2xl md:p-8">
           <div className="flex flex-wrap items-start justify-between gap-5">
             <div>
@@ -360,7 +385,7 @@ export default async function RealtorPortalPage() {
               </p>
 
               <p className="mt-3 break-words rounded-full border border-teal-500/40 bg-teal-500/10 px-4 py-2 text-sm font-bold text-teal-200">
-                Logged in as {userEmail}
+                {isOwnerPreview ? `Previewing as ${lookupEmail}` : `Logged in as ${userEmail}`}
               </p>
             </div>
 
@@ -480,7 +505,7 @@ export default async function RealtorPortalPage() {
 
                       <div className="grid gap-3 sm:grid-cols-2 lg:min-w-[460px]">
                         <FastLinkButton
-                          href={`/share/${id}?role=realtor&email=${encodeURIComponent(userEmail)}`}
+                          href={`/share/${id}?role=realtor&email=${encodeURIComponent(lookupEmail)}`}
                           loadingText="Opening Report..."
                           className="rounded-xl border border-teal-500 px-4 py-3 text-center font-black text-teal-300 hover:bg-teal-500/10"
                         >
@@ -504,7 +529,7 @@ export default async function RealtorPortalPage() {
                         </ReportDownloadLink>
 
                         <FastLinkButton
-                          href={`/repair-request?inspection_id=${encodeURIComponent(id)}&role=realtor&email=${encodeURIComponent(userEmail)}`}
+                          href={`/repair-request?inspection_id=${encodeURIComponent(id)}&role=realtor&email=${encodeURIComponent(lookupEmail)}`}
                           loadingText="Opening Builder..."
                           className="rounded-xl border border-cyan-500 px-4 py-3 text-center font-black text-cyan-300 hover:bg-cyan-500/10"
                         >
@@ -624,7 +649,7 @@ export default async function RealtorPortalPage() {
 
                                   <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                                     <FastLinkButton
-                                      href={`/repair-request?inspection_id=${encodeURIComponent(id)}&role=realtor&email=${encodeURIComponent(userEmail)}&selected=${encodeURIComponent(Array.isArray(share.selected_finding_ids) ? share.selected_finding_ids.join(",") : "")}&share=${encodeURIComponent(String(share.id || ""))}`}
+                                      href={`/repair-request?inspection_id=${encodeURIComponent(id)}&role=realtor&email=${encodeURIComponent(lookupEmail)}&selected=${encodeURIComponent(Array.isArray(share.selected_finding_ids) ? share.selected_finding_ids.join(",") : "")}&share=${encodeURIComponent(String(share.id || ""))}`}
                                       loadingText="Opening Request..."
                                       className="rounded-xl border border-cyan-500 px-4 py-3 text-center text-sm font-black text-cyan-300 hover:bg-cyan-500/10"
                                     >
