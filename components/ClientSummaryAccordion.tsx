@@ -493,6 +493,52 @@ function CompactSummaryCard({
   );
 }
 
+function ShowMoreButton({
+  label,
+  onClick,
+}: {
+  label: string;
+  onClick: () => void;
+}) {
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const [flash, setFlash] = useState(false);
+  const hasFlashedRef = useRef(false);
+
+  useEffect(() => {
+    const node = buttonRef.current;
+    if (!node || hasFlashedRef.current) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !hasFlashedRef.current) {
+          hasFlashedRef.current = true;
+          setFlash(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.6 },
+    );
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <button
+      ref={buttonRef}
+      type="button"
+      onClick={onClick}
+      onAnimationEnd={() => setFlash(false)}
+      data-fast-click="true"
+      className={`mt-4 min-h-12 w-full rounded-xl border border-slate-600 bg-slate-900 px-4 py-3 text-sm font-black text-white active:scale-[0.99] active:opacity-80 [touch-action:manipulation] ${
+        flash ? "animate-attention-flash" : ""
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
+
 export default function ClientSummaryAccordion({
   groups,
 }: {
@@ -578,19 +624,15 @@ export default function ClientSummaryAccordion({
             </div>
 
             {remaining > 0 && (
-              <button
-                type="button"
+              <ShowMoreButton
+                label={`Show ${Math.min(remaining, LOAD_MORE_ITEMS)} More`}
                 onClick={() =>
                   setVisibleCounts((current) => ({
                     ...current,
                     [group.key]: Math.min(group.findings.length, visibleCount + LOAD_MORE_ITEMS),
                   }))
                 }
-                data-fast-click="true"
-                className="mt-4 min-h-12 w-full rounded-xl border border-slate-600 bg-slate-900 px-4 py-3 text-sm font-black text-white active:scale-[0.99] active:opacity-80 [touch-action:manipulation]"
-              >
-                Show {Math.min(remaining, LOAD_MORE_ITEMS)} More
-              </button>
+              />
             )}
           </section>
         );

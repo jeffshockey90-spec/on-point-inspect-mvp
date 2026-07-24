@@ -80,6 +80,31 @@ img {
   background: #475569;
 }
 
+@keyframes attention-flash {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(45, 212, 191, 0);
+    border-color: #475569;
+    background-color: #0f172a;
+  }
+  20%,
+  60% {
+    box-shadow: 0 0 0 5px rgba(45, 212, 191, 0.3);
+    border-color: #2dd4bf;
+    background-color: rgba(45, 212, 191, 0.12);
+  }
+  40%,
+  80% {
+    box-shadow: 0 0 0 0 rgba(45, 212, 191, 0);
+    border-color: #475569;
+    background-color: #0f172a;
+  }
+}
+
+.animate-attention-flash {
+  animation: attention-flash 1.6s ease-in-out 1;
+}
+
 /* FULLCALENDAR CUSTOM DARK THEME */
 
 .fc {
