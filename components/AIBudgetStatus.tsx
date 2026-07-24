@@ -13,7 +13,7 @@ type BudgetStatus = {
 };
 
 function money(value: number) {
-  return `$${value.toFixed(2)}`;
+  return value < 0 ? `-$${Math.abs(value).toFixed(2)}` : `$${value.toFixed(2)}`;
 }
 
 export default function AIBudgetStatus() {
