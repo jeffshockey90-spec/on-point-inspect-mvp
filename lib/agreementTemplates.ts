@@ -101,9 +101,14 @@ export function applyAgreementMergeFields({
   const displayDate = formatDate(inspectionDate);
   const displaySignedDate = formatDate(signedDate || inspectionDate);
 
-  const inspectorCompany = "On Point Home Inspections";
-  const inspectorOwner = "Jeff Shockey";
-  const inspectorTitle = "Owner / Licensed Home Inspector";
+  // {{INSPECTOR_COMPANY}}/{{INSPECTOR_OWNER}} are separate merge tokens some
+  // templates use directly (not just {{INSPECTOR_NAME}}), so they need a
+  // generic fallback too - printing a specific person's real name on another
+  // company's signed client agreement would be a genuine legal-document bug,
+  // not just cosmetic.
+  const inspectorCompany = inspectorName || "Your Home Inspection Company";
+  const inspectorOwner = "Owner";
+  const inspectorTitle = "Licensed Home Inspector";
   const inspectorDisplay =
     inspectorName || `${inspectorCompany} — ${inspectorOwner}, ${inspectorTitle}`;
 
@@ -198,6 +203,7 @@ export function mergeAgreementBody({
   const displayProperty = propertyAddress || "Inspection Property";
   const displayFee = formatFee(fee);
   const displayDate = formatDate(inspectionDate);
+  const displayInspector = inspectorName || "Your Home Inspection Company";
 
   const filledAgreement = applyAgreementMergeFields({
     templateBody,
@@ -218,7 +224,7 @@ Agreement Version: ${getAgreementVersion(normalized)}
 Agreement Date: ${displayDate}
 Client: ${displayClient}
 ${coClientName ? `Co-Client: ${coClientName}` : ""}
-Inspector: On Point Home Inspections — Jeff Shockey, Owner / Licensed Home Inspector
+Inspector: ${displayInspector}
 Property: ${displayProperty}
 Fee: ${displayFee}
 

@@ -6,6 +6,7 @@ import { createServerClient } from "@supabase/ssr";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { getOrCreateShareToken } from "../../../../lib/shareToken";
+import { getCompanyBrandingById, buildBrandedFromHeader } from "../../../../lib/companyBranding";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -551,7 +552,7 @@ async function sendAppointmentConfirmedEmails(
 
   const { data: inspectionForToken } = await admin
     .from("inspections")
-    .select("id, public_share_token, share_token, report_share_token")
+    .select("id, company_id, public_share_token, share_token, report_share_token")
     .eq("id", inspectionId)
     .maybeSingle();
 
@@ -561,10 +562,12 @@ async function sendAppointmentConfirmedEmails(
 
   const portalUrl = `${getBaseUrl(request)}/client-portal/${portalShareToken}`;
 
-  const fromEmail =
-    process.env.RESEND_FROM_EMAIL ||
-    process.env.REPORT_EMAIL_FROM ||
-    "On Point Home Inspections <agreements@onpointhomeinspect.com>";
+  const branding = await getCompanyBrandingById(inspectionForToken?.company_id);
+
+  const fromEmail = buildBrandedFromHeader(
+    branding,
+    "On Point Home Inspections <agreements@onpointhomeinspect.com>"
+  );
 
   const sent: any[] = [];
   const failed: any[] = [];
@@ -573,7 +576,7 @@ async function sendAppointmentConfirmedEmails(
     const isRealtor =
       recipient.role.includes("realtor") || recipient.role.includes("transaction");
 
-    const subject = `Inspection Confirmed - ${address || "On Point Home Inspections"}`;
+    const subject = `Inspection Confirmed - ${address || branding.name}`;
 
     const greeting = recipient.name ? `Hi ${escapeHtml(recipient.name)},` : "Hello,";
 
@@ -583,7 +586,7 @@ async function sendAppointmentConfirmedEmails(
 
     const html = `
       <div style="font-family:Arial,sans-serif;line-height:1.6;color:#0f172a;padding:24px;">
-        <h2 style="color:#0f766e;margin:0 0 16px;">On Point Home Inspections</h2>
+        <h2 style="color:#0f766e;margin:0 0 16px;">${escapeHtml(branding.name)}</h2>
 
         <p>${greeting}</p>
 
@@ -607,8 +610,8 @@ async function sendAppointmentConfirmedEmails(
         </p>
 
         <p style="margin-top:30px;font-size:12px;color:#64748b;">
-          On Point Home Inspections<br />
-          Protecting Your Investment. One Inspection at a Time.
+          ${escapeHtml(branding.name)}<br />
+          ${escapeHtml(branding.tagline)}
         </p>
       </div>
     `;
@@ -627,7 +630,7 @@ Your inspection agreement and payment information may be sent separately if requ
 Client Portal:
 ${portalUrl}
 
-On Point Home Inspections`;
+${branding.name}`;
 
     try {
       const result = await resend.emails.send({

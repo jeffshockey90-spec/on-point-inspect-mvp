@@ -18,10 +18,10 @@ export async function POST(req: Request) {
       inspectionDate,
       inspectionTime,
       reportLink,
-      inspectorName = "Jeff Shockey",
-      companyName = "On Point Home Inspections",
-      phone = "240-527-7172",
-      website = "https://onpointhomeinspect.com",
+      inspectorName = "",
+      companyName = "Your Home Inspection Company",
+      phone = "",
+      website = "",
     } = body;
 
     if (!emailType) {

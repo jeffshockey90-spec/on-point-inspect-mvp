@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { getOrCreateShareToken } from "../../../lib/shareToken";
+import { getCompanyBrandingById, buildBrandedFromHeader, type CompanyBranding } from "../../../lib/companyBranding";
 
 async function createSupabaseServerClient() {
   const cookieStore = await cookies();
@@ -213,6 +214,7 @@ async function sendReportEmail({
   radonReportUrl,
   emailOpenPixelUrl,
   html,
+  branding,
 }: {
   supabase: any;
   inspection: any;
@@ -227,11 +229,12 @@ async function sendReportEmail({
   radonReportUrl: string;
   emailOpenPixelUrl: string;
   html: string;
+  branding: CompanyBranding;
 }) {
-  const from =
-    process.env.REPORT_EMAIL_FROM ||
-    process.env.RESEND_FROM_EMAIL ||
-    "On Point Home Inspections <reports@onpointhomeinspect.com>";
+  const from = buildBrandedFromHeader(
+    branding,
+    "On Point Home Inspections <reports@onpointhomeinspect.com>"
+  );
 
   const resendRes = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -318,6 +321,7 @@ function buildEmailHtml({
   emailOpenPixelUrl,
   moldReportUrl,
   radonReportUrl,
+  branding,
 }: {
   inspection: any;
   property: string;
@@ -325,6 +329,7 @@ function buildEmailHtml({
   emailOpenPixelUrl: string;
   moldReportUrl: string;
   radonReportUrl: string;
+  branding: CompanyBranding;
 }) {
   const hasEnvironmentalLinks = Boolean(moldReportUrl || radonReportUrl);
 
@@ -373,7 +378,7 @@ function buildEmailHtml({
   return `
     <div style="font-family: Arial, sans-serif; background:#020617; color:#f8fafc; padding:24px;">
       <div style="max-width:640px; margin:auto; background:#0f172a; border:1px solid #1e293b; border-radius:16px; padding:24px;">
-        <h1 style="color:#2dd4bf; margin-top:0;">On Point Home Inspections</h1>
+        <h1 style="color:#2dd4bf; margin-top:0;">${escapeHtml(branding.name)}</h1>
 
         <p>Hello,</p>
 
@@ -416,8 +421,8 @@ function buildEmailHtml({
         <hr style="border:0; border-top:1px solid #334155; margin:24px 0;" />
 
         <p style="color:#94a3b8; font-size:14px;">
-          On Point Home Inspections LLC<br />
-          Protecting Your Investment. One Inspection at a Time.
+          ${escapeHtml(branding.name)}<br />
+          ${escapeHtml(branding.tagline)}
         </p>
       </div>
     </div>
@@ -468,6 +473,8 @@ export async function POST(req: Request) {
         { status: 404 }
       );
     }
+
+    const branding = await getCompanyBrandingById(inspection.company_id);
 
     const { data: contacts } = await supabase
       .from("inspection_contacts")
@@ -627,6 +634,7 @@ export async function POST(req: Request) {
         emailOpenPixelUrl,
         moldReportUrl,
         radonReportUrl,
+        branding,
       });
 
       const result = await sendReportEmail({
@@ -643,6 +651,7 @@ export async function POST(req: Request) {
         radonReportUrl,
         emailOpenPixelUrl,
         html,
+        branding,
       });
 
       results.push(result);

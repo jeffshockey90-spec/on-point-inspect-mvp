@@ -5,6 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 import { existsSync } from "fs";
 import chromium from "@sparticuz/chromium";
 import puppeteer from "puppeteer-core";
+import { getCompanyBrandingById, buildBrandedFromHeader, type CompanyBranding } from "../../../../lib/companyBranding";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -449,6 +450,8 @@ async function loadAddendumData(token: string) {
         .eq("share_id", share.id),
     ]);
 
+  const branding = await getCompanyBrandingById(inspection?.company_id);
+
   const orderedFindings = groupFindingsInSelectedOrder(findingsRaw || [], selectedIds);
   const findingIds = orderedFindings.map((finding: any) => cleanText(finding.id)).filter(Boolean);
   const requestedCredits = getRequestedCreditsFromShare(share);
@@ -548,6 +551,7 @@ async function loadAddendumData(token: string) {
   return {
     share,
     inspection,
+    branding,
     property: getPropertyLabel(inspection),
     propertyPhotoUrl,
     selectedIds,
@@ -731,7 +735,7 @@ function buildAddendumHtml(data: Awaited<ReturnType<typeof loadAddendumData>>) {
     <section class="paper">
       <div class="brand">
         <div>
-          <p class="eyebrow">On Point Home Inspections</p>
+          <p class="eyebrow">${escapeHtml(data.branding.name)}</p>
           <h1>Repair Request Addendum</h1>
           <p class="property">${escapeHtml(data.property)}</p>
         </div>
@@ -965,10 +969,10 @@ export async function POST(req: Request, { params }: RouteProps) {
 
     const addendumUrl = `${appUrl}/api/repair-request-addendum/${encodeURIComponent(cleanToken)}`;
     const subject = `Repair Request Addendum - ${data.property}`;
-    const from =
-      process.env.REPORT_EMAIL_FROM ||
-      process.env.RESEND_FROM_EMAIL ||
-      "On Point Home Inspections <reports@onpointhomeinspect.com>";
+    const from = buildBrandedFromHeader(
+      data.branding,
+      "On Point Home Inspections <reports@onpointhomeinspect.com>"
+    );
 
     const html = `
       <div style="font-family:Arial,Helvetica,sans-serif; color:#0f172a; line-height:1.55;">
@@ -980,7 +984,7 @@ export async function POST(req: Request, { params }: RouteProps) {
         <p>
           <a href="${escapeHtml(addendumUrl)}" style="display:inline-block; background:#14b8a6; color:#020617; padding:14px 20px; border-radius:10px; text-decoration:none; font-weight:700;">Open Addendum</a>
         </p>
-        <p style="color:#64748b; font-size:13px;">On Point Home Inspections LLC</p>
+        <p style="color:#64748b; font-size:13px;">${escapeHtml(data.branding.name)}</p>
       </div>
     `;
 

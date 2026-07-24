@@ -7,6 +7,7 @@ import ClientSummaryAccordion from "../../../components/ClientSummaryAccordion";
 import ExpandableReportImage from "../../../components/ExpandableReportImage";
 import ReportDownloadLink from "../../../components/ReportDownloadLink";
 import ShareReportTabs from "../../../components/ShareReportTabs";
+import { normalizeCompanyBranding } from "../../../lib/companyBranding";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -1294,6 +1295,7 @@ export default async function PublicSharePage({
 
   const standardsOfPractice = getCompanyStandards(standardsCompany);
   const showStandardsInShare = shouldShowStandardsInShare(standardsCompany);
+  const branding = normalizeCompanyBranding(standardsCompany);
 
   const { data: equipmentInventoryRaw, error: equipmentInventoryError } = await supabase
     .from("equipment_inventory")
@@ -1559,7 +1561,7 @@ export default async function PublicSharePage({
           <div className="absolute inset-x-0 bottom-0 p-6 md:p-10">
             <div className="max-w-5xl">
               <p className="text-xs font-black uppercase tracking-[0.38em] text-teal-300">
-                On Point Home Inspections
+                {branding.name}
               </p>
 
               <h1 className="mt-4 text-4xl font-black tracking-tight text-white md:text-6xl">
@@ -2720,7 +2722,7 @@ export default async function PublicSharePage({
           </section>
 
           <footer className="mt-12 border-t border-slate-700 pt-6 text-sm text-slate-400">
-            <p>On Point Home Inspections LLC • Shared Report Portal</p>
+            <p>{branding.name} • Shared Report Portal</p>
           </footer>
         </div>
       </div>

@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { createClient as createSupabaseAdminClient } from "@supabase/supabase-js";
 import crypto from "crypto";
+import { getCompanyBrandingById, buildBrandedFromHeader, type CompanyBranding } from "../../../lib/companyBranding";
 
 export const runtime = "nodejs";
 
@@ -211,6 +212,7 @@ function buildRepairRequestEmailHtml({
   summary,
   selectedCount,
   requestedCreditTotal = 0,
+  branding,
 }: {
   property: string;
   trackedRepairRequestUrl: string;
@@ -218,6 +220,7 @@ function buildRepairRequestEmailHtml({
   summary: string;
   selectedCount: number;
   requestedCreditTotal?: number;
+  branding: CompanyBranding;
 }) {
   return `
 <!doctype html>
@@ -225,7 +228,7 @@ function buildRepairRequestEmailHtml({
   <body style="margin:0; padding:0; background:#f8fafc; font-family:Arial, Helvetica, sans-serif; color:#0f172a;">
     <div style="max-width:680px; margin:0 auto; padding:24px;">
       <div style="background:#ffffff; border:1px solid #cbd5e1; border-radius:14px; padding:24px;">
-        <h1 style="margin:0 0 10px 0; color:#0f8f8f; font-size:26px;">On Point Home Inspections</h1>
+        <h1 style="margin:0 0 10px 0; color:#0f8f8f; font-size:26px;">${escapeHtml(branding.name)}</h1>
         <p style="font-size:16px; line-height:1.5; margin:0 0 16px 0;">Hello,</p>
         <p style="font-size:16px; line-height:1.5; margin:0 0 8px 0;">The repair request summary for:</p>
         <p style="font-size:20px; font-weight:700; color:#0f172a; margin:0 0 18px 0;">${escapeHtml(property)}</p>
@@ -248,7 +251,7 @@ function buildRepairRequestEmailHtml({
           <a href="${escapeHtml(trackedResponseUrl)}" style="color:#0f8f8f; word-break:break-all;">${escapeHtml(trackedResponseUrl)}</a>
         </p>
         <hr style="border:0; border-top:1px solid #cbd5e1; margin:24px 0;" />
-        <p style="color:#64748b; font-size:14px; margin:0;">On Point Home Inspections LLC<br />Protecting Your Investment. One Inspection at a Time.</p>
+        <p style="color:#64748b; font-size:14px; margin:0;">${escapeHtml(branding.name)}<br />${escapeHtml(branding.tagline)}</p>
       </div>
     </div>
   </body>
@@ -262,6 +265,7 @@ function buildRepairRequestEmailText({
   summary,
   selectedCount,
   requestedCreditTotal = 0,
+  branding,
 }: {
   property: string;
   repairRequestUrl: string;
@@ -269,6 +273,7 @@ function buildRepairRequestEmailText({
   summary: string;
   selectedCount: number;
   requestedCreditTotal?: number;
+  branding: CompanyBranding;
 }) {
   return `Hello,
 
@@ -287,8 +292,8 @@ ${summary}
 
 Please review the requested repair/correction items and submit a response for each item.
 
-On Point Home Inspections LLC
-Protecting Your Investment. One Inspection at a Time.`;
+${branding.name}
+${branding.tagline}`;
 }
 
 function repairRequestRoleLooksLikeRealtor(roleValue: any) {
@@ -475,6 +480,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Inspection not found." }, { status: 404 });
     }
 
+    const branding = await getCompanyBrandingById(inspection.company_id);
+
     const { data: contactsRaw, error: contactsError } = await db
       .from("inspection_contacts")
       .select("*")
@@ -566,10 +573,10 @@ export async function POST(req: Request) {
     }`;
 
     subject = `Repair Request Summary - ${property}`;
-    const from =
-      process.env.REPORT_EMAIL_FROM ||
-      process.env.RESEND_FROM_EMAIL ||
-      "On Point Home Inspections <reports@onpointhomeinspect.com>";
+    const from = buildBrandedFromHeader(
+      branding,
+      "On Point Home Inspections <reports@onpointhomeinspect.com>"
+    );
 
     const finalSummary =
       summary || "The selected inspection findings are ready for repair request review and negotiation.";
@@ -675,6 +682,7 @@ export async function POST(req: Request) {
         summary: summaryWithCredit,
         selectedCount: finalSelectedIds.length,
         requestedCreditTotal: totalRequestedCredit,
+        branding,
       });
 
       const text = buildRepairRequestEmailText({
@@ -684,6 +692,7 @@ export async function POST(req: Request) {
         summary: summaryWithCredit,
         selectedCount: finalSelectedIds.length,
         requestedCreditTotal: totalRequestedCredit,
+        branding,
       });
 
       const resendRes = await fetch("https://api.resend.com/emails", {

@@ -250,7 +250,7 @@ export default function QuotePage() {
       : "",
   ].filter(Boolean);
 
-  const message = `Hi, this is Jeff with On Point Home Inspections. For this property, the quote is $${quote.total}. Services selected: ${
+  const message = `Hi, for this property the quote is $${quote.total}. Services selected: ${
     selectedAddOns.length > 0 ? selectedAddOns.join(", ") : quote.serviceLabel
   }. This includes a clear digital report for the selected service(s).`;
 
@@ -293,7 +293,7 @@ export default function QuotePage() {
       <div className="mx-auto max-w-6xl space-y-6">
         <section className="rounded-3xl border border-zinc-800 bg-[#0b1220] p-6 md:p-8">
           <p className="text-sm font-bold uppercase tracking-[0.25em] text-teal-400">
-            On Point Home Inspections
+            FLOW
           </p>
 
           <h1 className="mt-2 text-4xl font-black md:text-5xl">

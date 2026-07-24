@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { getOrCreateShareToken } from "../../../lib/shareToken";
+import { getCompanyBrandingById, buildBrandedFromHeader } from "../../../lib/companyBranding";
 
 export const runtime = "nodejs";
 
@@ -22,6 +23,14 @@ function getBaseUrl(req: Request) {
 
 function cleanText(value: any) {
   return String(value || "").trim();
+}
+
+function escapeHtml(value: any) {
+  return cleanText(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
 }
 
 function isClientAgreementRecipient(contact: any) {
@@ -209,6 +218,8 @@ export async function POST(req: Request) {
       );
     }
 
+    const branding = await getCompanyBrandingById(inspection.company_id);
+
     if (inspection.agreement_waived === true) {
       return NextResponse.json(
         {
@@ -266,10 +277,10 @@ export async function POST(req: Request) {
       inspection.property_address ||
       "Inspection Property";
 
-    const fromEmail =
-      process.env.RESEND_FROM_EMAIL ||
-      process.env.REPORT_EMAIL_FROM ||
-      "On Point Home Inspections <agreements@onpointhomeinspect.com>";
+    const fromEmail = buildBrandedFromHeader(
+      branding,
+      "On Point Home Inspections <agreements@onpointhomeinspect.com>"
+    );
 
     const sent: any[] = [];
     const failed: any[] = [];
@@ -290,7 +301,7 @@ export async function POST(req: Request) {
           subject,
           html: `
             <div style="font-family:Arial,sans-serif;padding:24px;line-height:1.6;color:#0f172a;">
-              <h2 style="color:#0f766e;">On Point Home Inspections</h2>
+              <h2 style="color:#0f766e;">${escapeHtml(branding.name)}</h2>
 
               <p>Hi ${contact.name || "there"},</p>
 
@@ -310,7 +321,7 @@ export async function POST(req: Request) {
               </p>
 
               <p style="margin-top:30px;font-size:12px;color:#64748b;">
-                On Point Home Inspections
+                ${escapeHtml(branding.name)}
               </p>
             </div>
           `,
@@ -324,7 +335,7 @@ ${agreementUrl}
 Client Portal:
 ${portalUrl}
 
-On Point Home Inspections`,
+${branding.name}`,
         });
 
         await logEmailEvent({

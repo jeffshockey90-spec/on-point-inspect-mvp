@@ -3,28 +3,39 @@ import { Resend } from "resend";
 import { createClient } from "../../../../utils/supabase/server";
 import { aiPublishGuard } from "../../../../lib/ai";
 import { getOrCreateShareToken } from "../../../../lib/shareToken";
+import { getCompanyBrandingById, buildBrandedFromHeader, type CompanyBranding } from "../../../../lib/companyBranding";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+
+function escapeHtml(value: any) {
+  return String(value || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
 
 async function sendReportEmail({
   to,
   name,
   propertyAddress,
   reportLink,
+  branding,
 }: {
   to: string;
   name?: string;
   propertyAddress?: string;
   reportLink: string;
+  branding: CompanyBranding;
 }) {
   if (!process.env.RESEND_API_KEY) {
     throw new Error("Missing RESEND_API_KEY.");
   }
 
-  const from =
-    process.env.REPORT_EMAIL_FROM ||
-    process.env.RESEND_FROM_EMAIL ||
-    "On Point Home Inspections <reports@onpointhomeinspect.com>";
+  const from = buildBrandedFromHeader(
+    branding,
+    "On Point Home Inspections <reports@onpointhomeinspect.com>"
+  );
 
   const { error } = await resend.emails.send({
     from,
@@ -34,10 +45,10 @@ async function sendReportEmail({
       <div style="font-family: Arial, sans-serif; line-height: 1.7; color: #0f172a; max-width: 700px; margin: auto;">
         <div style="background:#0f172a;padding:30px;border-radius:12px 12px 0 0;text-align:center;">
           <h1 style="color:#14b8a6;margin:0;">
-            On Point Home Inspections
+            ${escapeHtml(branding.name)}
           </h1>
           <p style="color:#cbd5e1;margin-top:10px;">
-            Protecting Your Investment. One Inspection at a Time.
+            ${escapeHtml(branding.tagline)}
           </p>
         </div>
 
@@ -87,8 +98,7 @@ async function sendReportEmail({
 
           <p>
             Thank you,<br />
-            <strong>Jeff Shockey</strong><br />
-            On Point Home Inspections LLC
+            <strong>${escapeHtml(branding.name)}</strong>
           </p>
         </div>
       </div>
@@ -232,6 +242,8 @@ export async function POST(req: Request) {
       );
     }
 
+    const branding = await getCompanyBrandingById(inspection.company_id);
+
     const shareToken = await getOrCreateShareToken(supabase, inspection);
 
     const baseUrl =
@@ -247,6 +259,7 @@ export async function POST(req: Request) {
         name: inspection.client_name,
         propertyAddress: inspection.property_address || inspection.address,
         reportLink,
+        branding,
       });
 
       sentEmails.push(inspection.client_email);
@@ -258,6 +271,7 @@ export async function POST(req: Request) {
         name: inspection.realtor_name,
         propertyAddress: inspection.property_address || inspection.address,
         reportLink,
+        branding,
       });
 
       sentEmails.push(inspection.realtor_email);

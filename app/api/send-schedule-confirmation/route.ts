@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { getOrCreateShareToken } from "../../../lib/shareToken";
 import { formatAppValue } from "../../../lib/app-time";
+import { getCompanyBrandingById, buildBrandedFromHeader } from "../../../lib/companyBranding";
 
 export const runtime = "nodejs";
 
@@ -89,6 +90,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Inspection not found." }, { status: 404 });
     }
 
+    const branding = await getCompanyBrandingById(inspection.company_id);
+
     const { data: contacts, error: contactsError } = await supabase
       .from("inspection_contacts")
       .select("*")
@@ -145,10 +148,10 @@ export async function POST(req: Request) {
     const portalShareToken = await getOrCreateShareToken(supabase, inspection);
     const portalUrl = `${getBaseUrl(req)}/client-portal/${portalShareToken}`;
 
-    const fromEmail =
-      process.env.RESEND_FROM_EMAIL ||
-      process.env.REPORT_EMAIL_FROM ||
-      "On Point Home Inspections <agreements@onpointhomeinspect.com>";
+    const fromEmail = buildBrandedFromHeader(
+      branding,
+      "On Point Home Inspections <agreements@onpointhomeinspect.com>"
+    );
 
     const sent: any[] = [];
     const failed: any[] = [];
@@ -157,7 +160,7 @@ export async function POST(req: Request) {
       const isRealtor =
         recipient.role.includes("realtor") || recipient.role.includes("transaction");
 
-      const subject = `Inspection Confirmed - ${address || "On Point Home Inspections"}`;
+      const subject = `Inspection Confirmed - ${address || branding.name}`;
       const greeting = recipient.name ? `Hi ${escapeHtml(recipient.name)},` : "Hello,";
 
       const note = isRealtor
@@ -166,7 +169,7 @@ export async function POST(req: Request) {
 
       const html = `
         <div style="font-family:Arial,sans-serif;line-height:1.6;color:#0f172a;padding:24px;">
-          <h2 style="color:#0f766e;margin:0 0 16px;">On Point Home Inspections</h2>
+          <h2 style="color:#0f766e;margin:0 0 16px;">${escapeHtml(branding.name)}</h2>
 
           <p>${greeting}</p>
 
@@ -190,7 +193,7 @@ export async function POST(req: Request) {
           </p>
 
           <p style="margin-top:30px;font-size:12px;color:#64748b;">
-            On Point Home Inspections
+            ${escapeHtml(branding.name)}
           </p>
         </div>
       `;
@@ -209,7 +212,7 @@ Your inspection agreement and payment information may be sent separately if requ
 Client Portal:
 ${portalUrl}
 
-On Point Home Inspections`;
+${branding.name}`;
 
       try {
         const result = await resend.emails.send({

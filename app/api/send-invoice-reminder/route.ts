@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
 import { Resend } from "resend";
+import { getCompanyBrandingById, buildBrandedFromHeader } from "../../../lib/companyBranding";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -99,6 +100,14 @@ function getValidEmail(value: any) {
   return email;
 }
 
+function escapeHtml(value: any) {
+  return String(value || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
 export async function POST(req: Request) {
   try {
     const { inspectionId } = await req.json();
@@ -131,6 +140,8 @@ export async function POST(req: Request) {
         { status: 404 }
       );
     }
+
+    const branding = await getCompanyBrandingById(inspection.company_id);
 
     const to = getValidEmail(inspection.client_email);
 
@@ -181,7 +192,7 @@ export async function POST(req: Request) {
             unit_amount: Math.round(balanceDue * 100),
             product_data: {
               name: "Home Inspection Payment",
-              description: `On Point Home Inspections - ${property}`,
+              description: `${branding.name} - ${property}`,
             },
           },
         },
@@ -199,10 +210,10 @@ export async function POST(req: Request) {
       })
       .eq("id", inspectionId);
 
-    const from =
-      process.env.REPORT_EMAIL_FROM ||
-      process.env.RESEND_FROM_EMAIL ||
-      "On Point Home Inspections <agreements@onpointhomeinspect.com>";
+    const from = buildBrandedFromHeader(
+      branding,
+      "On Point Home Inspections <agreements@onpointhomeinspect.com>"
+    );
 
     const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -216,7 +227,7 @@ export async function POST(req: Request) {
             <div style="border:1px solid #1e293b;background:#0f172a;border-radius:20px;overflow:hidden;">
               <div style="background:#071224;padding:28px;border-bottom:1px solid #1e293b;">
                 <p style="margin:0;color:#2dd4bf;font-size:12px;font-weight:800;letter-spacing:3px;text-transform:uppercase;">
-                  On Point Home Inspections
+                  ${escapeHtml(branding.name)}
                 </p>
                 <h1 style="margin:12px 0 0;color:#ffffff;font-size:30px;line-height:1.2;">
                   Invoice Reminder
@@ -259,13 +270,17 @@ export async function POST(req: Request) {
 
                 <p style="margin:24px 0 0;color:#cbd5e1;font-size:14px;line-height:1.7;">
                   Thank you,<br />
-                  On Point Home Inspections LLC
+                  ${escapeHtml(branding.name)}
                 </p>
               </div>
             </div>
 
             <p style="text-align:center;margin:18px 0 0;color:#64748b;font-size:12px;">
-              On Point Home Inspections LLC • onpointhomeinspect.com
+              ${escapeHtml(branding.name)}${
+                branding.website || branding.email
+                  ? ` • ${escapeHtml(branding.website || branding.email || "")}`
+                  : ""
+              }
             </p>
           </div>
         </div>

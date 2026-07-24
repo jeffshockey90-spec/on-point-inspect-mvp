@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { resolveActiveSections } from "../../../../lib/reportSections";
+import { getCompanyBrandingById } from "../../../../lib/companyBranding";
 
 import PrintControls from "./PrintControls";
 
@@ -459,6 +460,8 @@ export default async function PrintableReportPage({ params }: PageProps) {
     inspection = inspectionByOwner;
   }
 
+  const branding = await getCompanyBrandingById(inspection.company_id);
+
   // Use the current Client / Co-Client contact records as the report source
   // of truth. This prevents an old placeholder such as "Test" stored on the
   // inspections row from continuing to appear in the PDF.
@@ -853,11 +856,11 @@ export default async function PrintableReportPage({ params }: PageProps) {
                 </p>
 
                 <h1 className="mt-4 text-5xl font-black tracking-tight">
-                  On Point Home Inspections
+                  {branding.name}
                 </h1>
 
                 <p className="mt-3 text-lg font-semibold text-slate-300">
-                  Protecting Your Investment. One Inspection at a Time.
+                  {branding.tagline}
                 </p>
               </div>
 
@@ -865,18 +868,21 @@ export default async function PrintableReportPage({ params }: PageProps) {
                 <p className="text-sm font-bold text-teal-300">
                   Licensed Home Inspector
                 </p>
-                <p className="mt-1 text-sm text-slate-200">
-                  MD License #35912
-                </p>
-                <p className="text-sm text-slate-200">
-                  WV License #HI5277172-0226
-                </p>
-                <p className="mt-2 text-sm text-slate-200">
-                  240-527-7172
-                </p>
-                <p className="text-sm text-slate-200">
-                  onpointhomeinspect.com
-                </p>
+                {branding.licenseInfo && (
+                  <p className="mt-1 whitespace-pre-line text-sm text-slate-200">
+                    {branding.licenseInfo}
+                  </p>
+                )}
+                {branding.phone && (
+                  <p className="mt-2 text-sm text-slate-200">
+                    {branding.phone}
+                  </p>
+                )}
+                {(branding.website || branding.email) && (
+                  <p className="text-sm text-slate-200">
+                    {branding.website || branding.email}
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -1287,8 +1293,9 @@ export default async function PrintableReportPage({ params }: PageProps) {
         </section>
 
         <footer className="print-footer mt-12 border-t border-slate-300 pt-4 text-center text-xs text-slate-500">
-          On Point Home Inspections • MD #35912 • WV #HI5277172-0226 •
-          240-527-7172 • onpointhomeinspect.com
+          {[branding.name, branding.licenseInfo, branding.phone, branding.website || branding.email]
+            .filter(Boolean)
+            .join(" • ")}
         </footer>
       </div>
     </main>

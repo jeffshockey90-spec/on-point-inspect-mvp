@@ -5,6 +5,7 @@ import { Resend } from "resend";
 import crypto from "crypto";
 import http2 from "http2";
 import { formatUsd } from "../../../lib/currency";
+import { getCompanyBrandingById, buildBrandedFromHeader, type CompanyBranding } from "../../../lib/companyBranding";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -426,6 +427,7 @@ function buildReceiptHtml({
   sessionId,
   portalProcessingFee,
   totalCharged,
+  branding,
 }: {
   inspection: any;
   amountPaid: number;
@@ -434,6 +436,7 @@ function buildReceiptHtml({
   sessionId: string;
   portalProcessingFee: number;
   totalCharged: number;
+  branding: CompanyBranding;
 }) {
   const property =
     inspection?.property_address ||
@@ -448,7 +451,7 @@ function buildReceiptHtml({
         <div style="border:1px solid #1e293b;background:#0f172a;border-radius:20px;overflow:hidden;">
           <div style="background:#071224;padding:28px;border-bottom:1px solid #1e293b;">
             <p style="margin:0;color:#2dd4bf;font-size:12px;font-weight:800;letter-spacing:3px;text-transform:uppercase;">
-              On Point Home Inspections
+              ${branding.name}
             </p>
             <h1 style="margin:12px 0 0;color:#ffffff;font-size:30px;line-height:1.2;">
               Payment Received
@@ -526,7 +529,7 @@ function buildReceiptHtml({
         </div>
 
         <p style="text-align:center;margin:18px 0 0;color:#64748b;font-size:12px;">
-          On Point Home Inspections LLC • onpointhomeinspect.com
+          ${[branding.name, branding.website || branding.email].filter(Boolean).join(" • ")}
         </p>
       </div>
     </div>
@@ -592,10 +595,12 @@ async function sendReceiptEmail({
 
   const property = inspection?.property_address || inspection?.address || "Inspection";
 
-  const from =
-    process.env.REPORT_EMAIL_FROM ||
-    process.env.RESEND_FROM_EMAIL ||
-    "On Point Home Inspections <agreements@onpointhomeinspect.com>";
+  const branding = await getCompanyBrandingById(inspection?.company_id);
+
+  const from = buildBrandedFromHeader(
+    branding,
+    "On Point Home Inspections <agreements@onpointhomeinspect.com>"
+  );
 
   const html = buildReceiptHtml({
     inspection,
@@ -605,6 +610,7 @@ async function sendReceiptEmail({
     sessionId: session.id,
     portalProcessingFee,
     totalCharged,
+    branding,
   });
 
   const subject = `Payment Received - ${property}`;

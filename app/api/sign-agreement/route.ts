@@ -9,6 +9,7 @@ import {
   mergeMultipleAgreementBodies,
   normalizeAgreementState,
 } from "../../../lib/agreementTemplates";
+import { getCompanyBrandingById } from "../../../lib/companyBranding";
 
 export const runtime = "nodejs";
 
@@ -284,13 +285,15 @@ export async function POST(req: Request) {
       inspection,
     });
 
+    const branding = await getCompanyBrandingById(inspection.company_id);
+
     const agreementBody = mergeMultipleAgreementBodies({
       templates,
       state,
       clientName,
       propertyAddress: inspection.address || inspection.property_address,
       fee: inspection.invoice_amount || inspection.fee || inspection.price,
-      inspectorName: "On Point Home Inspections",
+      inspectorName: branding.name,
       inspectionDate: inspection.inspection_date,
     });
 

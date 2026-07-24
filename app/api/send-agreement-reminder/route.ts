@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { getOrCreateShareToken } from "../../../lib/shareToken";
+import { getCompanyBrandingById, buildBrandedFromHeader } from "../../../lib/companyBranding";
 
 export const runtime = "nodejs";
 
@@ -21,6 +22,14 @@ function getBaseUrl(req: Request) {
   if (envUrl) return envUrl.startsWith("http") ? envUrl : `https://${envUrl}`;
 
   return new URL(req.url).origin;
+}
+
+function escapeHtml(value: any) {
+  return String(value || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
 }
 
 function isClientAgreementRecipient(contact: any) {
@@ -58,6 +67,8 @@ export async function POST(req: Request) {
     if (inspectionError || !inspection) {
       return NextResponse.json({ error: "Inspection not found." }, { status: 404 });
     }
+
+    const branding = await getCompanyBrandingById(inspection.company_id);
 
     if (inspection.agreement_waived === true) {
       return NextResponse.json(
@@ -99,9 +110,10 @@ export async function POST(req: Request) {
       inspection.property_address ||
       "the inspection property";
 
-    const fromEmail =
-      process.env.RESEND_FROM_EMAIL ||
-      "On Point Home Inspections <agreements@onpointhomeinspect.com>";
+    const fromEmail = buildBrandedFromHeader(
+      branding,
+      "On Point Home Inspections <agreements@onpointhomeinspect.com>"
+    );
 
     const sent: any[] = [];
     const failed: any[] = [];
@@ -116,7 +128,7 @@ export async function POST(req: Request) {
 
       const html = `
         <div style="font-family:Arial,sans-serif;line-height:1.6;color:#0f172a;">
-          <h2 style="color:#0f766e;">On Point Home Inspections</h2>
+          <h2 style="color:#0f766e;">${escapeHtml(branding.name)}</h2>
           <p>Hi ${contact.name || "there"},</p>
           <p>This is a reminder to review and sign your residential inspection agreement for:</p>
           <p><strong>${propertyAddress}</strong></p>
@@ -126,7 +138,7 @@ export async function POST(req: Request) {
             </a>
           </p>
           <p>Client Portal:<br /><a href="${portalUrl}">${portalUrl}</a></p>
-          <p>Thank you,<br />On Point Home Inspections</p>
+          <p>Thank you,<br />${escapeHtml(branding.name)}</p>
         </div>
       `;
 
@@ -143,7 +155,7 @@ Client Portal:
 ${portalUrl}
 
 Thank you,
-On Point Home Inspections`;
+${branding.name}`;
 
       const result = await resend.emails.send({
         from: fromEmail,

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
+import { getCompanyBrandingById, buildBrandedFromHeader } from "../../../lib/companyBranding";
 
 export const runtime = "nodejs";
 
@@ -250,6 +251,8 @@ export async function POST(req: Request) {
       );
     }
 
+    const branding = await getCompanyBrandingById(inspection.company_id);
+
     let contactEmail = String(recipientEmail || "").trim();
 
     if (!contactEmail) {
@@ -284,17 +287,17 @@ export async function POST(req: Request) {
 
     const clientName = inspection.client_name || inspection.client || "there";
 
-    const subject = `Thank you for choosing On Point Home Inspections`;
+    const subject = `Thank you for choosing ${branding.name}`;
 
     const html = `
       <div style="font-family: Arial, sans-serif; background:#020617; color:#f8fafc; padding:24px;">
         <div style="max-width:640px; margin:auto; background:#0f172a; border:1px solid #1e293b; border-radius:16px; padding:24px;">
-          <h1 style="color:#2dd4bf; margin-top:0;">On Point Home Inspections</h1>
+          <h1 style="color:#2dd4bf; margin-top:0;">${escapeHtml(branding.name)}</h1>
 
           <p>Hello ${escapeHtml(clientName)},</p>
 
           <p style="line-height:1.6;">
-            Thank you for choosing On Point Home Inspections for:
+            Thank you for choosing ${escapeHtml(branding.name)} for:
           </p>
 
           <p style="font-size:18px; font-weight:bold; color:#ffffff;">
@@ -321,18 +324,17 @@ export async function POST(req: Request) {
           <hr style="border:0; border-top:1px solid #334155; margin:24px 0;" />
 
           <p style="color:#94a3b8; font-size:14px;">
-            On Point Home Inspections LLC<br />
-            Protecting Your Investment. One Inspection at a Time.
+            ${escapeHtml(branding.name)}<br />
+            ${escapeHtml(branding.tagline)}
           </p>
         </div>
       </div>
     `;
 
-    const from =
-      process.env.REVIEW_EMAIL_FROM ||
-      process.env.REPORT_EMAIL_FROM ||
-      process.env.RESEND_FROM_EMAIL ||
-      "On Point Home Inspections <reports@onpointhomeinspect.com>";
+    const from = buildBrandedFromHeader(
+      branding,
+      "On Point Home Inspections <reports@onpointhomeinspect.com>"
+    );
 
     const resendRes = await fetch("https://api.resend.com/emails", {
       method: "POST",
