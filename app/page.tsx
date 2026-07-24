@@ -251,6 +251,42 @@ function getViewerLabel(log: any) {
   return "Inspector";
 }
 
+function formatEmailType(value: any) {
+  const type = String(value || "").toLowerCase();
+
+  if (type === "appointment_confirmed") return "Schedule Confirmation";
+  if (type === "agreement_email") return "Agreement";
+  if (type === "inspection_report") return "Report";
+  if (type === "repair_request") return "Repair Request";
+  if (type === "review_request") return "Review Request";
+
+  return type
+    .split("_")
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ") || "Email";
+}
+
+function getEmailLogStatus(log: any) {
+  if (log?.bounced_at || log?.failed_at || log?.status === "failed") {
+    return { label: "Failed", tone: "border-red-500/40 bg-red-500/10 text-red-300" };
+  }
+
+  if (log?.clicked_at) {
+    return { label: "Clicked", tone: "border-teal-400/40 bg-teal-500/10 text-teal-200" };
+  }
+
+  if (log?.opened_at) {
+    return { label: "Opened", tone: "border-blue-400/40 bg-blue-500/10 text-blue-200" };
+  }
+
+  if (log?.delivered_at) {
+    return { label: "Delivered", tone: "border-emerald-400/40 bg-emerald-500/10 text-emerald-200" };
+  }
+
+  return { label: "Sent", tone: "border-slate-600 bg-slate-800/60 text-slate-300" };
+}
+
 function getActivityIcon(log: any) {
   const type = getViewType(log);
 
@@ -537,6 +573,22 @@ export default async function HomePage() {
   if (repairSharesResult.error) {
     console.warn("Dashboard repair request shares load error:", repairSharesResult.error);
   }
+
+  const emailLogsResult =
+    inspectionIds.length > 0
+      ? await supabase
+          .from("email_logs")
+          .select("*")
+          .in("inspection_id_bigint", inspectionIds)
+          .order("created_at", { ascending: false })
+          .limit(20)
+      : { data: [], error: null };
+
+  if (emailLogsResult.error) {
+    console.warn("Dashboard email logs load error:", emailLogsResult.error);
+  }
+
+  const recentEmailLogs = emailLogsResult.data || [];
 
   const repairShares = repairSharesResult.data || [];
   const repairShareIds = repairShares.map((share: any) => share.id).filter(Boolean);
@@ -1018,6 +1070,71 @@ export default async function HomePage() {
               </Link>
             ))}
           </section>
+        </section>
+
+        <section className="rounded-2xl border border-slate-800 bg-[#0b1220] p-6 shadow-xl">
+          <div>
+            <h2 className="text-2xl font-black text-teal-300">
+              Recent Email Activity
+            </h2>
+
+            <p className="mt-2 text-sm text-slate-400">
+              Schedule confirmations, agreements, and reports sent from FLOW, with delivery and open status.
+            </p>
+          </div>
+
+          <div className="mt-6 space-y-3">
+            {recentEmailLogs.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-slate-700 bg-[#020617]/70 p-6 text-center text-sm text-slate-400">
+                No emails sent yet.
+              </div>
+            ) : (
+              recentEmailLogs.map((log: any) => {
+                const inspection: any = inspectionMap.get(
+                  String(log.inspection_id_bigint || log.inspection_id || "")
+                );
+
+                const address =
+                  inspection?.property_address ||
+                  inspection?.address ||
+                  "Unknown inspection";
+
+                const status = getEmailLogStatus(log);
+
+                return (
+                  <Link
+                    key={log.id || `${log.created_at}-${log.recipient_email}`}
+                    href={`/reports/${log.inspection_id_bigint || log.inspection_id}`}
+                    className="block rounded-xl border border-slate-700 bg-[#020617]/70 p-4 transition hover:border-teal-500/70 active:scale-[0.99]"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-black text-white">
+                          {formatEmailType(log.email_type)}
+                        </p>
+
+                        <p className="mt-1 truncate text-sm text-slate-400">
+                          {log.recipient_email || log.recipient || "Unknown recipient"} · {address}
+                        </p>
+                      </div>
+
+                      <div className="flex shrink-0 flex-col items-end gap-1">
+                        <span
+                          className={`rounded-full border px-3 py-1 text-xs font-black uppercase tracking-wide ${status.tone}`}
+                        >
+                          {status.label}
+                        </span>
+
+                        <span className="text-xs font-bold text-slate-500">
+                          {getRelativeTime(log.sent_at || log.created_at)}
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })
+            )}
+          </div>
         </section>
       </div>
     </main>
