@@ -2640,10 +2640,10 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
 
                 <FastLinkButton
                   href={shareHref}
-                  loadingText="Opening Share Page..."
+                  loadingText="Opening Client Report..."
                   className="rounded-xl border border-cyan-500 px-5 py-3 font-bold text-cyan-300 hover:bg-cyan-500/10"
                 >
-                  Copy Share Link
+                  Client Report
                 </FastLinkButton>
 
                 <CreateDemoReportButton inspectionId={String(inspection.id)} />
