@@ -154,17 +154,25 @@ async function getDashboardDestination(user: any) {
     if (realtorInspection?.length) return "/realtor-portal";
   } catch {}
 
-  const clientContact = (contacts || []).find(
-    (contact: any) =>
-      contact?.portal_access !== false &&
-      roleLooksLikeClientForRouting(contact?.role) &&
-      contact?.inspection_id,
+  const clientInspectionIds = Array.from(
+    new Set(
+      (contacts || [])
+        .filter(
+          (contact: any) =>
+            contact?.portal_access !== false &&
+            roleLooksLikeClientForRouting(contact?.role) &&
+            contact?.inspection_id,
+        )
+        .map((contact: any) => String(contact.inspection_id).trim()),
+    ),
   );
 
-  if (clientContact?.inspection_id) {
-    return `/client-portal/${encodeURIComponent(
-      String(clientContact.inspection_id),
-    )}`;
+  if (clientInspectionIds.length === 1) {
+    return `/client-portal/${encodeURIComponent(clientInspectionIds[0])}`;
+  }
+
+  if (clientInspectionIds.length > 1) {
+    return "/client-portal";
   }
 
   return "/login";
