@@ -136,14 +136,30 @@ function getStripeConnectBlocker(company: any) {
   return "";
 }
 
+// Stripe's standard published US card rate. Can't know the literal per-charge
+// fee before the charge happens (it depends on the card type and settles
+// after processing), but "grossing up" by this rate means the inspector's
+// payout lands exactly on the invoice balance while the client's card covers
+// Stripe's cut - the standard way payment processors implement "pass the
+// processing fee to the customer." May be off by a few cents from the exact
+// real fee for non-standard cards (Amex, international, negotiated custom
+// Stripe pricing), but matches for the vast majority of US card charges.
+const STRIPE_STANDARD_PERCENT = 0.029;
+const STRIPE_STANDARD_FIXED = 0.3;
+
 function getPortalProcessingFee(balanceDue: number, company: any) {
   if (!balanceDue || balanceDue <= 0) return 0;
   if (company?.online_payment_fee_enabled === false) return 0;
 
+  const feeType = String(company?.online_payment_fee_type || "percentage").toLowerCase();
+
+  if (feeType === "stripe_fee") {
+    const totalCharged = (balanceDue + STRIPE_STANDARD_FIXED) / (1 - STRIPE_STANDARD_PERCENT);
+    return Math.round((totalCharged - balanceDue) * 100) / 100;
+  }
+
   const amount = getNumber(company?.online_payment_fee_amount);
   if (amount <= 0) return 0;
-
-  const feeType = String(company?.online_payment_fee_type || "percentage").toLowerCase();
 
   if (feeType === "flat") {
     return Math.round(amount * 100) / 100;
@@ -267,7 +283,9 @@ export async function POST(req: Request) {
                     product_data: {
                       name: "Online Payment Processing Fee",
                       description:
-                        "Optional online card payment fee set by the inspector.",
+                        company?.online_payment_fee_type === "stripe_fee"
+                          ? "Covers the card processing fee for this payment."
+                          : "Optional online card payment fee set by the inspector.",
                     },
                   },
                 },

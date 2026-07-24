@@ -388,9 +388,10 @@ export default async function SettingsPage({
       String(formData.get("online_payment_fee_enabled") || "") === "on";
 
     const feeAmount = getNumber(formData.get("online_payment_fee_amount"));
+    const submittedFeeType = String(formData.get("online_payment_fee_type") || "").trim();
     const feeType =
-      String(formData.get("online_payment_fee_type") || "").trim() === "flat"
-        ? "flat"
+      submittedFeeType === "flat" || submittedFeeType === "stripe_fee"
+        ? submittedFeeType
         : "percentage";
 
     await supabase
@@ -433,7 +434,10 @@ export default async function SettingsPage({
   }
 
   const feeEnabled = company.online_payment_fee_enabled !== false;
-  const feeType = company.online_payment_fee_type === "flat" ? "flat" : "percentage";
+  const feeType =
+    company.online_payment_fee_type === "flat" || company.online_payment_fee_type === "stripe_fee"
+      ? company.online_payment_fee_type
+      : "percentage";
   const feeAmount =
     company.online_payment_fee_amount !== null && company.online_payment_fee_amount !== undefined
       ? company.online_payment_fee_amount
@@ -1015,6 +1019,7 @@ export default async function SettingsPage({
                   >
                     <option value="percentage">Percentage of balance</option>
                     <option value="flat">Flat dollar amount</option>
+                    <option value="stripe_fee">Cover Stripe's fee (2.9% + $0.30)</option>
                   </select>
                 </label>
 
@@ -1033,7 +1038,9 @@ export default async function SettingsPage({
                   />
                   <p className="mt-1 text-xs text-slate-500">
                     Enter a percent (e.g. 3.95) if Fee Type is Percentage, or a dollar amount
-                    (e.g. 15) if Fee Type is Flat.
+                    (e.g. 15) if Fee Type is Flat. Ignored if Fee Type is "Cover Stripe's fee" -
+                    that one calculates automatically so your payout always matches the invoice
+                    balance exactly.
                   </p>
                 </label>
               </div>
