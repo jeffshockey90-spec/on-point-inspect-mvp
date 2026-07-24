@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { formatUsdFromCents } from "../../lib/currency";
+import { getSubscriptionPricing } from "../../lib/subscriptionPricing";
 
-export const dynamic = "force-static";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
-const DEFAULT_MONTHLY_PRICE_CENTS = 6900;
-const FOUNDING_MEMBER_PRICE_CENTS = 4900;
 const FREE_INSPECTIONS = 3;
 
 const FEATURES = [
@@ -19,7 +19,9 @@ const FEATURES = [
   "Mobile app for iOS and Android",
 ];
 
-export default function PricingPage() {
+export default async function PricingPage() {
+  const pricing = await getSubscriptionPricing();
+
   return (
     <main className="min-h-screen bg-[#020617] px-4 py-10 text-white md:px-6 md:py-16">
       <div className="mx-auto max-w-5xl">
@@ -66,13 +68,13 @@ export default function PricingPage() {
               Standard
             </p>
             <p className="mt-4 text-5xl font-black text-white">
-              {formatUsdFromCents(DEFAULT_MONTHLY_PRICE_CENTS)}
+              {formatUsdFromCents(pricing.standardPriceCents)}
               <span className="text-lg font-bold text-slate-400">/mo</span>
             </p>
             <p className="mt-2 text-slate-400">Unlimited inspections, cancel anytime</p>
             <p className="mt-6 text-sm leading-6 text-slate-300">
               Everything in the free trial, unlocked for as many inspections as you run. Reduced
-              founding-member pricing ({formatUsdFromCents(FOUNDING_MEMBER_PRICE_CENTS)}/mo) is
+              founding-member pricing ({formatUsdFromCents(pricing.foundingMemberPriceCents)}/mo) is
               available for a limited number of early customers - ask when you sign up.
             </p>
             <Link

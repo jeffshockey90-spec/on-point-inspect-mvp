@@ -6,6 +6,7 @@ import { cookies } from "next/headers";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import FastLinkButton from "../../../../components/FastLinkButton";
+import SubscriptionPricingEditor from "../../../../components/SubscriptionPricingEditor";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -167,6 +168,8 @@ export default async function OwnerCompaniesPage() {
             </div>
           </div>
         </section>
+
+        <SubscriptionPricingEditor />
 
         <section className="grid gap-5 md:grid-cols-3">
           <div className="rounded-2xl border border-teal-500/40 bg-teal-950/20 p-6 shadow-xl">

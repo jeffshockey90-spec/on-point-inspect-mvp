@@ -5,12 +5,10 @@ import { createServerClient } from "@supabase/ssr";
 import SubscriptionCheckoutButton from "../../components/SubscriptionCheckoutButton";
 import ManageSubscriptionButton from "../../components/ManageSubscriptionButton";
 import { formatUsdFromCents } from "../../lib/currency";
+import { getSubscriptionPricing } from "../../lib/subscriptionPricing";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
-
-const DEFAULT_MONTHLY_PRICE_CENTS = 6900;
-const FOUNDING_MEMBER_PRICE_CENTS = 4900;
 
 async function createUserClient() {
   const cookieStore = await cookies();
@@ -73,6 +71,8 @@ export default async function BillingPage({
   const used = Number(profile?.free_inspections_used ?? count ?? 0);
   const remaining = Math.max(0, freeLimit - used);
 
+  const pricing = await getSubscriptionPricing();
+
   const exempt = profile?.subscription_exempt === true || profile?.subscription_required === false;
   const active = isActiveStatus(profile?.subscription_status);
   const customPrice = Number(profile?.subscription_price_override_cents || 0);
@@ -81,8 +81,8 @@ export default async function BillingPage({
     : customPrice > 0
       ? customPrice
       : profile?.founding_member
-        ? FOUNDING_MEMBER_PRICE_CENTS
-        : DEFAULT_MONTHLY_PRICE_CENTS;
+        ? pricing.foundingMemberPriceCents
+        : pricing.standardPriceCents;
 
   const needsSubscription = !exempt && !active && used >= freeLimit;
 
