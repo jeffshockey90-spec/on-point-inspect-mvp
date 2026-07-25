@@ -869,6 +869,18 @@ function NewInspectionPageContent() {
         return;
       }
 
+      // Best-effort: geocode the property and cache driving distance from
+      // the company's office address, if set. Never blocks inspection
+      // creation - the report page just won't show a distance yet if this
+      // is still slow or fails.
+      fetch("/api/inspections/enrich-location", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inspectionId: data.id }),
+      }).catch((enrichError) => {
+        console.warn("Location enrichment failed:", enrichError);
+      });
+
       // Save every completed inspection's property details into FLOW's
       // property cache so future inspections can auto-fill instantly.
       // IMPORTANT: this matches the exact properties table columns:

@@ -1,4 +1,5 @@
 import FastLinkButton from "../../components/FastLinkButton";
+import { OWNER_EMAILS } from "../../lib/ownerEmails";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "../../utils/supabase/server";
@@ -11,6 +12,7 @@ import StandardsOfPracticeEditor from "./StandardsOfPracticeEditor";
 import TimePreferencesSettings from "../../components/time-location/TimePreferencesSettings";
 import SettingsToggle from "../../components/SettingsToggle";
 import OnlinePaymentFeeFields from "../../components/OnlinePaymentFeeFields";
+import { geocodeAddress } from "../../lib/geocode";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -395,7 +397,14 @@ export default async function SettingsPage({
         ? submittedFeeType
         : "percentage";
 
-    await supabase
+    const officeAddress = String(formData.get("office_address") || "").trim();
+    let officeLocation: { lat: number; lng: number } | null = null;
+
+    if (officeAddress && officeAddress !== String(company.office_address || "").trim()) {
+      officeLocation = await geocodeAddress(officeAddress);
+    }
+
+    const { error: updateError } = await supabase
       .from("companies")
       .update({
         name: String(formData.get("name") || "").trim(),
@@ -417,6 +426,12 @@ export default async function SettingsPage({
         online_payment_fee_enabled: onlinePaymentFeeEnabled,
         online_payment_fee_type: feeType,
         online_payment_fee_amount: feeAmount || (feeType === "flat" ? 15 : 3.95),
+        office_address: officeAddress || null,
+        ...(officeLocation
+          ? { office_latitude: officeLocation.lat, office_longitude: officeLocation.lng }
+          : !officeAddress
+            ? { office_latitude: null, office_longitude: null }
+            : {}),
         standards_of_practice_title: String(
           formData.get("standards_of_practice_title") || "Standards of Practice",
         ).trim(),
@@ -429,6 +444,10 @@ export default async function SettingsPage({
           String(formData.get("standards_include_in_pdf") || "") === "on",
       })
       .eq("id", company.id);
+
+    if (updateError) {
+      redirect(`/settings?error=${encodeURIComponent(updateError.message)}`);
+    }
 
     revalidatePath("/settings");
     redirect("/settings?saved=1");
@@ -453,9 +472,9 @@ export default async function SettingsPage({
   const standardsBody = String(company?.standards_of_practice_body || "");
   const standardsIncludeShare = company?.standards_include_in_share !== false;
   const standardsIncludePdf = company?.standards_include_in_pdf !== false;
-  const isOnPointOwner =
-    String(user.email || "").trim().toLowerCase() ===
-    "jeff@onpointhomeinspect.com";
+  const isOnPointOwner = OWNER_EMAILS.includes(
+    String(user.email || "").trim().toLowerCase(),
+  );
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#050816] px-4 py-4 pb-28 text-white md:p-8 md:pb-10">
@@ -805,6 +824,22 @@ export default async function SettingsPage({
                   rows={3}
                   className="w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
                 />
+              </label>
+
+              <label className="block min-w-0 md:col-span-2">
+                <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
+                  Business Starting Address
+                </p>
+                <input
+                  name="office_address"
+                  defaultValue={company.office_address || ""}
+                  placeholder="Where you drive from before each inspection"
+                  className="w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+                />
+                <p className="mt-1 text-xs text-slate-500">
+                  Used to show driving distance and a map on each report, and to log mileage.
+                  Only used when it changes, so save this once and it's set.
+                </p>
               </label>
 
               <label className="block min-w-0 md:col-span-2">

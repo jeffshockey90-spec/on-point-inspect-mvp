@@ -26,6 +26,7 @@ import SendReviewRequestButton from "../../../components/SendReviewRequestButton
 import DeleteSummaryButton from "../../../components/DeleteSummaryButton";
 import ConfirmSubmitButton from "../../../components/ConfirmSubmitButton";
 import ReportBuilderSectionTabs from "../../../components/ReportBuilderSectionTabs";
+import InspectionRouteCard from "../../../components/InspectionRouteCard";
 import FastLinkButton from "../../../components/FastLinkButton";
 import CreateDemoReportButton from "../../../components/CreateDemoReportButton";
 import SampleReportManager from "../../../components/SampleReportManager";
@@ -1763,7 +1764,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
 
   const executiveSummary = String(inspection.executive_summary || "").trim();
 
-  const [emailLogsResult, viewLogsResult, equipmentResult, findingsResult, reportSectionsResult] =
+  const [emailLogsResult, viewLogsResult, equipmentResult, findingsResult, reportSectionsResult, officeAddressResult] =
     await Promise.all([
       loadEmailLogs(supabase, inspection.id),
       supabase
@@ -1786,7 +1787,16 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
         .select("*")
         .eq("inspection_id", inspection.id)
         .order("sort_order", { ascending: true }),
+      inspection.company_id
+        ? supabase
+            .from("companies")
+            .select("office_address")
+            .eq("id", inspection.company_id)
+            .maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
     ]);
+
+  const officeAddress = officeAddressResult?.data?.office_address || null;
 
   if (reportSectionsResult.error) {
     console.error("Report sections load error:", reportSectionsResult.error);
@@ -2754,6 +2764,18 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                 </FastLinkButton>
               </div>
             </div>
+          </div>
+
+          <div className="mb-6">
+            <InspectionRouteCard
+              propertyAddress={inspection.property_address || inspection.address || ""}
+              city={inspection.city}
+              state={inspection.state}
+              zip={inspection.zip}
+              officeAddress={officeAddress}
+              distanceMiles={inspection.distance_miles}
+              driveMinutes={inspection.drive_minutes}
+            />
           </div>
 
           <ReportBuilderSectionTabs tabs={reportSectionTabs}>
