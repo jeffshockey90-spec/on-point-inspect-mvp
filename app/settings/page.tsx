@@ -399,9 +399,10 @@ export default async function SettingsPage({
         : "percentage";
 
     const officeAddress = String(formData.get("office_address") || "").trim();
+    const officeAddressChanged = officeAddress !== String(company.office_address || "").trim();
     let officeLocation: { lat: number; lng: number } | null = null;
 
-    if (officeAddress && officeAddress !== String(company.office_address || "").trim()) {
+    if (officeAddress && officeAddressChanged) {
       officeLocation = await geocodeAddress(officeAddress);
     }
 
@@ -448,6 +449,16 @@ export default async function SettingsPage({
 
     if (updateError) {
       redirect(`/settings?error=${encodeURIComponent(updateError.message)}`);
+    }
+
+    if (officeAddressChanged) {
+      // Cached distance/drive-time on every inspection was computed from the
+      // old office address - clear it so each report recomputes against the
+      // new one the next time it's opened, instead of showing stale mileage.
+      await supabase
+        .from("inspections")
+        .update({ distance_miles: null, drive_minutes: null })
+        .eq("company_id", company.id);
     }
 
     revalidatePath("/settings");
