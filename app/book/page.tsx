@@ -23,11 +23,34 @@ async function getCompanyBySlug(slug: string) {
   const admin = createAdminClient();
   const { data } = await admin
     .from("companies")
-    .select("name, display_name")
+    .select("id, name, display_name")
     .eq("profile_slug", slug)
     .maybeSingle();
 
   return data;
+}
+
+async function getAvailabilityForCompany(companyId: number | null) {
+  if (!companyId) return null;
+
+  const admin = createAdminClient();
+
+  const { data: companyUser } = await admin
+    .from("company_users")
+    .select("user_id")
+    .eq("company_id", companyId)
+    .eq("role", "owner")
+    .maybeSingle();
+
+  if (!companyUser?.user_id) return null;
+
+  const { data: availability } = await admin
+    .from("inspector_availability")
+    .select("booking_enabled, available_days, default_times, blocked_dates, timezone")
+    .eq("user_id", companyUser.user_id)
+    .maybeSingle();
+
+  return availability;
 }
 
 export default async function BookInspectionPage({
@@ -39,6 +62,7 @@ export default async function BookInspectionPage({
   const companySlug = String(resolvedSearchParams?.inspector || "").trim();
   const company = companySlug ? await getCompanyBySlug(companySlug) : null;
   const companyName = company?.display_name || company?.name || "FLOW";
+  const availability = await getAvailabilityForCompany(company?.id || null);
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#020617] px-4 py-6 text-white sm:px-6 sm:py-10">
@@ -78,7 +102,13 @@ export default async function BookInspectionPage({
           </Link>
         </section>
 
-        <BookingRequestForm companySlug={companySlug} />
+        <BookingRequestForm
+          companySlug={companySlug}
+          bookingEnabled={availability?.booking_enabled !== false}
+          availableDays={availability?.available_days || undefined}
+          availableTimes={availability?.default_times || undefined}
+          blockedDates={availability?.blocked_dates || undefined}
+        />
       </div>
     </main>
   );

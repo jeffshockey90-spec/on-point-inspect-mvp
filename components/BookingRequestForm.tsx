@@ -110,26 +110,85 @@ function toIsoDate(date: Date) {
   return `${year}-${month}-${day}`;
 }
 
-function buildDateOptions(days = 45) {
+const DAY_CODE_BY_WEEKDAY = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
 
-  return Array.from({ length: days }, (_, index) => {
+function buildDateOptions(
+  count = 45,
+  availableDays?: string[],
+  blockedDates?: string[],
+) {
+  const allowedDays =
+    availableDays && availableDays.length > 0 ? new Set(availableDays) : null;
+  const blocked = new Set(blockedDates || []);
+  const today = new Date();
+  today.setHours(12, 0, 0, 0);
+  const todayIso = toIsoDate(today);
+
+  const options: { value: string; label: string }[] = [];
+
+  for (let offset = 0; offset < 180 && options.length < count; offset += 1) {
     const date = new Date();
     date.setHours(12, 0, 0, 0);
-    date.setDate(date.getDate() + index);
+    date.setDate(date.getDate() + offset);
 
-    return {
-      value: toIsoDate(date),
-      label: index === 0 ? `Today - ${formatAppValue(date, { weekday: "short", month: "short", day: "numeric" })}` : formatAppValue(date, { weekday: "short", month: "short", day: "numeric" }),
-    };
-  });
+    const iso = toIsoDate(date);
+    const dayCode = DAY_CODE_BY_WEEKDAY[date.getDay()];
+
+    if (allowedDays && !allowedDays.has(dayCode)) continue;
+    if (blocked.has(iso)) continue;
+
+    options.push({
+      value: iso,
+      label:
+        iso === todayIso
+          ? `Today - ${formatAppValue(date, { weekday: "short", month: "short", day: "numeric" })}`
+          : formatAppValue(date, { weekday: "short", month: "short", day: "numeric" }),
+    });
+  }
+
+  return options;
+}
+
+function formatTimeLabel(value: string) {
+  const match = String(value || "").match(/^([01]\d|2[0-3]):([0-5]\d)$/);
+  if (!match) return value;
+
+  const hours = Number(match[1]);
+  const minutes = match[2];
+  const suffix = hours >= 12 ? "PM" : "AM";
+  const displayHours = hours % 12 || 12;
+
+  return `${displayHours}:${minutes} ${suffix}`;
+}
+
+function buildTimeOptions(availableTimes?: string[]) {
+  if (!availableTimes || availableTimes.length === 0) return TIME_OPTIONS;
+
+  return [
+    { label: "Select a time", value: "" },
+    ...availableTimes.map((time) => ({ label: formatTimeLabel(time), value: time })),
+    { label: "Flexible / Call Me", value: "Flexible" },
+  ];
 }
 
 export default function BookingRequestForm({
   companySlug,
+  bookingEnabled = true,
+  availableDays,
+  availableTimes,
+  blockedDates,
 }: {
   companySlug?: string;
+  bookingEnabled?: boolean;
+  availableDays?: string[];
+  availableTimes?: string[];
+  blockedDates?: string[];
 }) {
-  const dateOptions = useMemo(() => buildDateOptions(), []);
+  const dateOptions = useMemo(
+    () => buildDateOptions(45, availableDays, blockedDates),
+    [availableDays, blockedDates],
+  );
+  const timeOptions = useMemo(() => buildTimeOptions(availableTimes), [availableTimes]);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
@@ -345,6 +404,23 @@ export default function BookingRequestForm({
     }
   }
 
+  if (!bookingEnabled) {
+    return (
+      <div className="mx-auto box-border w-full max-w-2xl overflow-hidden rounded-3xl border border-slate-800 bg-[#0f172a] p-6 text-center text-white shadow-2xl sm:p-8">
+        <p className="text-[11px] font-black uppercase tracking-[0.35em] text-teal-300">
+          Request an Inspection
+        </p>
+        <h2 className="mt-3 text-2xl font-black text-white sm:text-3xl">
+          Not Currently Accepting Online Requests
+        </h2>
+        <p className="mt-3 text-sm leading-6 text-zinc-400">
+          This inspector isn't accepting online booking requests right now. Please contact them
+          directly to schedule an inspection.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <form
       onSubmit={submit}
@@ -533,9 +609,9 @@ export default function BookingRequestForm({
 
         <Section title="Preferred Appointment Time">
           <Select label="Preferred Date" value={form.preferred_date} onChange={(v) => update("preferred_date", v)} options={[{ label: "Select a date", value: "" }, ...dateOptions]} required />
-          <Select label="Preferred Time" value={form.preferred_time} onChange={(v) => update("preferred_time", v)} options={TIME_OPTIONS} required />
+          <Select label="Preferred Time" value={form.preferred_time} onChange={(v) => update("preferred_time", v)} options={timeOptions} required />
           <Select label="Alternate Date" value={form.alternate_date} onChange={(v) => update("alternate_date", v)} options={[{ label: "No alternate date", value: "" }, ...dateOptions]} />
-          <Select label="Alternate Time" value={form.alternate_time} onChange={(v) => update("alternate_time", v)} options={TIME_OPTIONS} />
+          <Select label="Alternate Time" value={form.alternate_time} onChange={(v) => update("alternate_time", v)} options={timeOptions} />
         </Section>
 
         <div>
