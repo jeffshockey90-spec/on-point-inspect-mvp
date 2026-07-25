@@ -27,7 +27,7 @@ import DeleteSummaryButton from "../../../components/DeleteSummaryButton";
 import ConfirmSubmitButton from "../../../components/ConfirmSubmitButton";
 import ReportBuilderSectionTabs from "../../../components/ReportBuilderSectionTabs";
 import InspectionRouteCard from "../../../components/InspectionRouteCard";
-import { geocodeAddress, getDrivingDistance } from "../../../lib/geocode";
+import { getDrivingDistance } from "../../../lib/geocode";
 import FastLinkButton from "../../../components/FastLinkButton";
 import CreateDemoReportButton from "../../../components/CreateDemoReportButton";
 import SampleReportManager from "../../../components/SampleReportManager";
@@ -1791,45 +1791,32 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
       inspection.company_id
         ? supabase
             .from("companies")
-            .select("office_address, office_latitude, office_longitude")
+            .select("office_address")
             .eq("id", inspection.company_id)
             .maybeSingle()
         : Promise.resolve({ data: null, error: null }),
     ]);
 
   const officeAddress = officeAddressResult?.data?.office_address || null;
-  const officeLatitude = officeAddressResult?.data?.office_latitude ?? null;
-  const officeLongitude = officeAddressResult?.data?.office_longitude ?? null;
 
   let liveDistanceMiles = inspection.distance_miles ?? null;
   let liveDriveMinutes = inspection.drive_minutes ?? null;
 
-  if (!liveDistanceMiles && officeLatitude && officeLongitude) {
-    let propertyLat = inspection.property_latitude ?? null;
-    let propertyLng = inspection.property_longitude ?? null;
+  if (!liveDistanceMiles && officeAddress) {
+    const fullPropertyAddress = [
+      inspection.property_address || inspection.address,
+      inspection.city,
+      inspection.state,
+      inspection.zip,
+    ]
+      .filter(Boolean)
+      .join(", ");
 
-    if (!propertyLat || !propertyLng) {
-      const fullPropertyAddress = [
-        inspection.property_address || inspection.address,
-        inspection.city,
-        inspection.state,
-        inspection.zip,
-      ]
-        .filter(Boolean)
-        .join(", ");
-
-      const geocoded = fullPropertyAddress ? await geocodeAddress(fullPropertyAddress) : null;
-      if (geocoded) {
-        propertyLat = geocoded.lat;
-        propertyLng = geocoded.lng;
-      }
-    }
-
-    if (propertyLat && propertyLng) {
-      const distance = await getDrivingDistance(
-        { lat: officeLatitude, lng: officeLongitude },
-        { lat: propertyLat, lng: propertyLng },
-      );
+    if (fullPropertyAddress) {
+      // Use the same address text the embedded map resolves for its route,
+      // rather than separately-geocoded coordinates, so the mileage/time
+      // shown always matches what the map actually draws.
+      const distance = await getDrivingDistance(officeAddress, fullPropertyAddress);
 
       if (distance) {
         liveDistanceMiles = distance.miles;
@@ -1838,8 +1825,6 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
         supabase
           .from("inspections")
           .update({
-            property_latitude: propertyLat,
-            property_longitude: propertyLng,
             distance_miles: distance.miles,
             drive_minutes: distance.minutes,
           })

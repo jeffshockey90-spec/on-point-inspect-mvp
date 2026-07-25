@@ -69,15 +69,15 @@ export async function POST(req: Request) {
     if (inspection.company_id) {
       const { data: company } = await admin
         .from("companies")
-        .select("office_latitude,office_longitude")
+        .select("office_address")
         .eq("id", inspection.company_id)
         .maybeSingle();
 
-      if (company?.office_latitude && company?.office_longitude) {
-        const distance = await getDrivingDistance(
-          { lat: Number(company.office_latitude), lng: Number(company.office_longitude) },
-          propertyLocation
-        );
+      if (company?.office_address) {
+        // Use the office address text (same as the embedded map's origin)
+        // rather than separately-geocoded coordinates, so the cached
+        // mileage/time always matches what the map itself draws.
+        const distance = await getDrivingDistance(company.office_address, fullAddress);
 
         if (distance) {
           update.distance_miles = distance.miles;

@@ -32,9 +32,21 @@ export async function geocodeAddress(address: string): Promise<LatLng | null> {
   }
 }
 
+type DistancePoint = LatLng | string;
+
+function formatDistancePoint(point: DistancePoint) {
+  return typeof point === "string" ? point : `${point.lat},${point.lng}`;
+}
+
+// Accepts either coordinates or a raw address string for origin/destination.
+// Prefer passing the same address text used for the embedded map (rather than
+// separately-geocoded coordinates) so the computed distance always matches
+// what the map itself resolves and displays - geocoding the same address
+// twice through different Google endpoints can snap to slightly different
+// points, especially for rural/county-road addresses.
 export async function getDrivingDistance(
-  origin: LatLng,
-  destination: LatLng
+  origin: DistancePoint,
+  destination: DistancePoint
 ): Promise<{ miles: number; minutes: number } | null> {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   if (!apiKey) return null;
@@ -42,8 +54,8 @@ export async function getDrivingDistance(
   try {
     const url =
       `https://maps.googleapis.com/maps/api/distancematrix/json` +
-      `?origins=${origin.lat},${origin.lng}` +
-      `&destinations=${destination.lat},${destination.lng}` +
+      `?origins=${encodeURIComponent(formatDistancePoint(origin))}` +
+      `&destinations=${encodeURIComponent(formatDistancePoint(destination))}` +
       `&units=imperial&key=${apiKey}`;
 
     const response = await fetch(url, { cache: "no-store" });
