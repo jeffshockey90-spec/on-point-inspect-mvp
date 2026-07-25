@@ -19,6 +19,7 @@ const INSPECTOR_ONLY_PREFIXES = [
   "/agreements",
   "/templates",
   "/schedule",
+  "/dispatch",
   "/quotes",
   "/invoices",
   "/analytics",
