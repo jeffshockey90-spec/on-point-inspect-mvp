@@ -12,6 +12,7 @@ import StandardsOfPracticeEditor from "./StandardsOfPracticeEditor";
 import TimePreferencesSettings from "../../components/time-location/TimePreferencesSettings";
 import SettingsToggle from "../../components/SettingsToggle";
 import OnlinePaymentFeeFields from "../../components/OnlinePaymentFeeFields";
+import OfficeAddressField from "../../components/OfficeAddressField";
 import { geocodeAddress } from "../../lib/geocode";
 
 export const dynamic = "force-dynamic";
@@ -809,12 +810,7 @@ export default async function SettingsPage({
                 <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
                   Business Starting Address
                 </p>
-                <input
-                  name="office_address"
-                  defaultValue={company.office_address || ""}
-                  placeholder="Where you drive from before each inspection"
-                  className="w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
-                />
+                <OfficeAddressField defaultValue={company.office_address || ""} />
                 <p className="mt-1 text-xs text-slate-500">
                   Used to show driving distance and a map on each report, and to log mileage.
                   Only used when it changes, so save this once and it's set.
