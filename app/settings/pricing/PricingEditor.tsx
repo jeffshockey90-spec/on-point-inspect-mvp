@@ -1,0 +1,224 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import {
+  DEFAULT_PRICING_CONFIG,
+  type InspectorPricingConfig,
+  type PricingService,
+} from "../../../lib/inspectorPricing";
+
+function NumberField({
+  label,
+  value,
+  onChange,
+  prefix = "$",
+}: {
+  label: string;
+  value: number | undefined;
+  onChange: (value: number) => void;
+  prefix?: string;
+}) {
+  return (
+    <label className="block min-w-0">
+      <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">{label}</p>
+      <div className="flex items-center gap-2 rounded-xl border border-slate-700 bg-[#020617] px-3">
+        {prefix && <span className="text-slate-500">{prefix}</span>}
+        <input
+          type="number"
+          step="0.01"
+          min="0"
+          value={value ?? 0}
+          onChange={(e) => onChange(Number(e.target.value) || 0)}
+          className="w-full min-w-0 bg-transparent p-3 pl-0 text-white outline-none"
+        />
+      </div>
+    </label>
+  );
+}
+
+export default function PricingEditor() {
+  const [config, setConfig] = useState<InspectorPricingConfig | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    fetch("/api/pricing", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((data) => setConfig(data.config || DEFAULT_PRICING_CONFIG))
+      .catch(() => setConfig(DEFAULT_PRICING_CONFIG))
+      .finally(() => setLoading(false));
+  }, []);
+
+  function updateService(id: string, patch: Partial<PricingService>) {
+    setConfig((current) => {
+      if (!current) return current;
+
+      return {
+        ...current,
+        services: current.services.map((service) =>
+          service.id === id ? { ...service, ...patch } : service,
+        ),
+      };
+    });
+
+    setSaved(false);
+  }
+
+  function getService(id: string) {
+    return config?.services.find((service) => service.id === id) || null;
+  }
+
+  async function handleSave() {
+    if (!config) return;
+
+    setSaving(true);
+    setError("");
+
+    try {
+      const res = await fetch("/api/pricing", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ config }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Could not save pricing.");
+
+      setSaved(true);
+    } catch (err: any) {
+      setError(err?.message || "Could not save pricing.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="rounded-2xl border border-slate-800 bg-[#0b1220] p-8 text-center text-slate-400">
+        Loading your pricing...
+      </div>
+    );
+  }
+
+  const home = getService("home");
+  const radon = getService("radon");
+  const mold = getService("mold");
+
+  return (
+    <div className="space-y-6">
+      {error && (
+        <div className="rounded-xl border border-red-500/40 bg-red-950/20 p-4 text-sm font-bold text-red-300">
+          {error}
+        </div>
+      )}
+
+      {saved && (
+        <div className="rounded-xl border border-emerald-500/40 bg-emerald-950/20 p-4 text-sm font-bold text-emerald-300">
+          Pricing saved. The Quotes calculator will use these rates.
+        </div>
+      )}
+
+      {home && (
+        <section className="rounded-2xl border border-slate-800 bg-[#0b1220] p-5 sm:p-6">
+          <h2 className="text-xl font-black text-teal-300">Home Inspection</h2>
+          <p className="mt-2 text-sm leading-6 text-slate-400">
+            A base price up to a square footage limit, then a step-up amount for every block of
+            square footage over that.
+          </p>
+
+          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+            <NumberField
+              label="Base Price"
+              value={home.basePrice}
+              onChange={(value) => updateService("home", { basePrice: value })}
+            />
+            <NumberField
+              label="Up To (Sqft)"
+              prefix=""
+              value={home.baseSqftLimit}
+              onChange={(value) => updateService("home", { baseSqftLimit: value })}
+            />
+            <NumberField
+              label="Then Add"
+              value={home.incrementPrice}
+              onChange={(value) => updateService("home", { incrementPrice: value })}
+            />
+            <NumberField
+              label="Per Every (Sqft)"
+              prefix=""
+              value={home.incrementSqftBlock}
+              onChange={(value) => updateService("home", { incrementSqftBlock: value })}
+            />
+          </div>
+
+          <p className="mt-4 text-xs text-slate-500">
+            Example: ${home.basePrice || 0} for up to {home.baseSqftLimit || 0} sqft, then +$
+            {home.incrementPrice || 0} for every {home.incrementSqftBlock || 0} sqft over that.
+          </p>
+        </section>
+      )}
+
+      {radon && (
+        <section className="rounded-2xl border border-slate-800 bg-[#0b1220] p-5 sm:p-6">
+          <h2 className="text-xl font-black text-teal-300">Radon Test</h2>
+          <p className="mt-2 text-sm leading-6 text-slate-400">
+            A flat fee. You can charge less when radon testing is booked alongside a home
+            inspection.
+          </p>
+
+          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+            <NumberField
+              label="Standalone Price"
+              value={radon.flatPrice}
+              onChange={(value) => updateService("radon", { flatPrice: value })}
+            />
+            <NumberField
+              label="Price When Paired With Home Inspection"
+              value={radon.pairedPrice}
+              onChange={(value) => updateService("radon", { pairedPrice: value })}
+            />
+          </div>
+        </section>
+      )}
+
+      {mold && (
+        <section className="rounded-2xl border border-slate-800 bg-[#0b1220] p-5 sm:p-6">
+          <h2 className="text-xl font-black text-teal-300">Mold Testing</h2>
+          <p className="mt-2 text-sm leading-6 text-slate-400">
+            A setup fee plus a fee per air/surface sample collected. The setup fee can be lower
+            when paired with a home inspection.
+          </p>
+
+          <div className="mt-5 grid gap-4 sm:grid-cols-3">
+            <NumberField
+              label="Standalone Setup Fee"
+              value={mold.baseFee}
+              onChange={(value) => updateService("mold", { baseFee: value })}
+            />
+            <NumberField
+              label="Setup Fee When Paired"
+              value={mold.pairedBaseFee}
+              onChange={(value) => updateService("mold", { pairedBaseFee: value })}
+            />
+            <NumberField
+              label="Fee Per Sample"
+              value={mold.perUnitFee}
+              onChange={(value) => updateService("mold", { perUnitFee: value })}
+            />
+          </div>
+        </section>
+      )}
+
+      <button
+        type="button"
+        onClick={handleSave}
+        disabled={saving}
+        className="w-full rounded-xl bg-teal-500 px-8 py-4 font-black text-slate-950 hover:bg-teal-400 disabled:opacity-60 sm:w-auto"
+      >
+        {saving ? "Saving..." : "Save Pricing"}
+      </button>
+    </div>
+  );
+}

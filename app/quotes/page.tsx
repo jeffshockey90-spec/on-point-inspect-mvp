@@ -1,9 +1,15 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { Card } from "../../components/Card";
-import { calculateHomeInspectionPrice } from "../../lib/propertyPricing";
 import { useAddressAutocomplete } from "../../hooks/useAddressAutocomplete";
+import {
+  DEFAULT_PRICING_CONFIG,
+  calculateServiceFee,
+  getService,
+  type InspectorPricingConfig,
+} from "../../lib/inspectorPricing";
 
 type ServiceMode =
   | "home"
@@ -78,6 +84,7 @@ function calculateQuote({
   moldSurfaceSamples,
   travelFee,
   discount,
+  pricingConfig,
 }: {
   sqft: number;
   serviceMode: ServiceMode;
@@ -85,13 +92,23 @@ function calculateQuote({
   moldSurfaceSamples: number;
   travelFee: number;
   discount: number;
+  pricingConfig: InspectorPricingConfig;
 }) {
   const includesHome = hasHomeInspection(serviceMode);
   const includesRadon = hasRadon(serviceMode);
   const includesMold = hasMold(serviceMode);
 
-  const base = includesHome ? calculateHomeInspectionPrice(sqft) : 0;
-  const radonFee = includesRadon ? (includesHome ? 175 : 225) : 0;
+  const homeService = getService(pricingConfig, "home");
+  const radonService = getService(pricingConfig, "radon");
+  const moldService = getService(pricingConfig, "mold");
+
+  const base =
+    includesHome && homeService ? calculateServiceFee(homeService, { sqft }) : 0;
+
+  const radonFee =
+    includesRadon && radonService
+      ? calculateServiceFee(radonService, { paired: includesHome })
+      : 0;
 
   const airSamples = includesMold
     ? Math.max(0, Math.floor(getNumber(moldAirSamples)))
@@ -102,9 +119,12 @@ function calculateQuote({
 
   const totalMoldSamples = airSamples + surfaceSamples;
 
-  const moldSetupFee = includesMold ? (includesHome ? 175 : 225) : 0;
-  const moldAirFee = airSamples * 75;
-  const moldSurfaceFee = surfaceSamples * 75;
+  const moldSetupFee =
+    includesMold && moldService
+      ? calculateServiceFee(moldService, { paired: includesHome, units: 0 })
+      : 0;
+  const moldAirFee = airSamples * (moldService?.perUnitFee ?? 0);
+  const moldSurfaceFee = surfaceSamples * (moldService?.perUnitFee ?? 0);
   const moldFee = moldSetupFee + moldAirFee + moldSurfaceFee;
 
   const safeTravelFee = Math.max(0, getNumber(travelFee));
@@ -149,6 +169,18 @@ export default function QuotePage() {
   const [moldAirSamples, setMoldAirSamples] = useState(0);
   const [moldSurfaceSamples, setMoldSurfaceSamples] = useState(0);
   const [discount, setDiscount] = useState(0);
+  const [pricingConfig, setPricingConfig] = useState<InspectorPricingConfig>(
+    DEFAULT_PRICING_CONFIG,
+  );
+
+  useEffect(() => {
+    fetch("/api/pricing", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.config) setPricingConfig(data.config);
+      })
+      .catch(() => {});
+  }, []);
 
   async function lookupPropertySqft(
     address: string,
@@ -233,9 +265,36 @@ export default function QuotePage() {
         moldSurfaceSamples,
         travelFee,
         discount,
+        pricingConfig,
       }),
-    [sqft, serviceMode, moldAirSamples, moldSurfaceSamples, travelFee, discount]
+    [sqft, serviceMode, moldAirSamples, moldSurfaceSamples, travelFee, discount, pricingConfig]
   );
+
+  const pricingRulesSummary = useMemo(() => {
+    const home = getService(pricingConfig, "home");
+    const radon = getService(pricingConfig, "radon");
+    const mold = getService(pricingConfig, "mold");
+
+    const homeText = home
+      ? `Home inspection is $${home.basePrice ?? 0} up to ${home.baseSqftLimit ?? 0} sq ft, then +$${
+          home.incrementPrice ?? 0
+        } per additional ${home.incrementSqftBlock ?? 0} sq ft or portion.`
+      : "";
+
+    const radonText = radon
+      ? ` Radon is $${radon.pairedPrice ?? radon.flatPrice ?? 0} with a home inspection or $${
+          radon.flatPrice ?? 0
+        } standalone.`
+      : "";
+
+    const moldText = mold
+      ? ` Mold is $${mold.pairedBaseFee ?? mold.baseFee ?? 0} setup/admin with a home inspection or $${
+          mold.baseFee ?? 0
+        } standalone, plus $${mold.perUnitFee ?? 0} per sample.`
+      : "";
+
+    return `${homeText}${radonText}${moldText}`.trim();
+  }, [pricingConfig]);
 
   const selectedAddOns = [
     quote.includesHome ? "Home inspection" : "",
@@ -292,18 +351,29 @@ export default function QuotePage() {
     <main className="min-h-screen bg-[#050816] px-4 pb-24 pt-6 text-white md:px-8">
       <div className="mx-auto max-w-6xl space-y-6">
         <section className="rounded-3xl border border-zinc-800 bg-[#0b1220] p-6 md:p-8">
-          <p className="text-sm font-bold uppercase tracking-[0.25em] text-teal-400">
-            FLOW
-          </p>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-sm font-bold uppercase tracking-[0.25em] text-teal-400">
+                FLOW
+              </p>
 
-          <h1 className="mt-2 text-4xl font-black md:text-5xl">
-            Quote Calculator
-          </h1>
+              <h1 className="mt-2 text-4xl font-black md:text-5xl">
+                Quote Calculator
+              </h1>
 
-          <p className="mt-4 max-w-2xl text-sm leading-6 text-zinc-400 md:text-base">
-            Generate pricing for home inspections, radon-only tests, mold-only
-            sampling, Radon + Mold, and bundled services.
-          </p>
+              <p className="mt-4 max-w-2xl text-sm leading-6 text-zinc-400 md:text-base">
+                Generate pricing for home inspections, radon-only tests, mold-only
+                sampling, Radon + Mold, and bundled services.
+              </p>
+            </div>
+
+            <Link
+              href="/settings/pricing"
+              className="shrink-0 rounded-xl border border-teal-500/60 px-4 py-2 text-sm font-black text-teal-300 hover:bg-teal-500/10"
+            >
+              Manage My Pricing →
+            </Link>
+          </div>
         </section>
 
         <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
@@ -445,13 +515,11 @@ export default function QuotePage() {
               </div>
 
               <div className="rounded-2xl border border-zinc-800 bg-black/40 p-4 text-sm leading-6 text-zinc-400">
-                <p className="font-bold text-white">Pricing Rules</p>
-                <p className="mt-2">
-                  Home inspection is $500 up to 2,000 sq ft, then +$50 per
-                  additional 1,000 sq ft or portion. Radon is $175 with a home
-                  inspection or $225 standalone. Mold is $175 setup/admin with a
-                  home inspection or $225 standalone, plus $75 per sample.
-                </p>
+                <p className="font-bold text-white">Your Pricing Rules</p>
+                <p className="mt-2">{pricingRulesSummary}</p>
+                <Link href="/settings/pricing" className="mt-2 inline-block font-bold text-teal-400 hover:text-teal-300">
+                  Edit these rates →
+                </Link>
               </div>
             </div>
           </Card>

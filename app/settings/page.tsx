@@ -577,6 +577,27 @@ export default async function SettingsPage({
           </FastLinkButton>
 
           <FastLinkButton
+            href="/settings/pricing"
+            className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-slate-800 bg-[#0b1220] p-4 transition active:scale-[0.98] hover:border-emerald-400/70 hover:bg-emerald-500/10 sm:p-5 [touch-action:manipulation]"
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 text-2xl">
+              💲
+            </div>
+            <p className="mt-4 text-xs font-black uppercase tracking-[0.2em] text-emerald-300">
+              Personal
+            </p>
+            <h2 className="mt-2 text-lg font-black text-white sm:text-xl">
+              My Pricing
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-slate-400">
+              Set your own rates for the Quotes calculator.
+            </p>
+            <p className="mt-4 text-sm font-black text-emerald-300 group-hover:text-emerald-200">
+              Manage Pricing →
+            </p>
+          </FastLinkButton>
+
+          <FastLinkButton
             href="/billing"
             className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-slate-800 bg-[#0b1220] p-4 transition active:scale-[0.98] hover:border-teal-400/70 hover:bg-teal-500/10 sm:p-5 [touch-action:manipulation]"
           >

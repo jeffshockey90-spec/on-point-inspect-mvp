@@ -29,6 +29,7 @@ const INSPECTOR_ONLY_PREFIXES = [
   "/onboarding",
   "/mileage",
   "/emails",
+  "/settings/pricing",
 ];
 
 const REALTOR_ACCOUNT_PREFIXES: string[] = [
