@@ -13,6 +13,7 @@ import {
   getSignedAgreementKey,
   getAgreementStatsForInspection,
 } from "../lib/inspectionStatus";
+import DashboardTour from "../components/DashboardTour";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -763,6 +764,7 @@ export default async function HomePage() {
 
   return (
     <main className="min-h-screen bg-[#020617] px-4 py-8 text-white">
+      <DashboardTour />
       <div className="mx-auto max-w-[96rem] space-y-8">
         <section className="overflow-hidden rounded-3xl border border-teal-500/30 bg-gradient-to-br from-[#0b1220] via-[#071827] to-[#020617] p-6 shadow-2xl shadow-teal-950/30 md:p-8">
           <div className="grid gap-6 xl:grid-cols-[1.35fr_0.65fr] xl:items-start">
@@ -783,6 +785,7 @@ export default async function HomePage() {
               <div className="mt-6 flex flex-wrap gap-3">
                 <Link
                   href="/inspections/new"
+                  data-tour="tour-new-inspection"
                   className="rounded-2xl bg-teal-400 px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-teal-300 active:scale-[0.98]"
                 >
                   + New Inspection
@@ -790,6 +793,7 @@ export default async function HomePage() {
 
                 <Link
                   href="/field"
+                  data-tour="tour-field-tool"
                   className="rounded-2xl border border-cyan-400/60 bg-cyan-500/10 px-5 py-3 text-sm font-black text-cyan-200 transition hover:bg-cyan-500/20 active:scale-[0.98]"
                 >
                   📱 Field Tool
@@ -797,6 +801,7 @@ export default async function HomePage() {
 
                 <Link
                   href="/schedule"
+                  data-tour="tour-schedule"
                   className="rounded-2xl border border-slate-600 bg-slate-900 px-5 py-3 text-sm font-black text-slate-200 transition hover:border-teal-400 active:scale-[0.98]"
                 >
                   🗓️ Schedule
@@ -811,7 +816,7 @@ export default async function HomePage() {
               </div>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div data-tour="tour-metrics" className="grid gap-3 sm:grid-cols-2">
               <CommandMetric label="Today" value={String(todayInspections.length)} helper="Scheduled today" tone="teal" />
               <CommandMetric label="Drafts" value={String(draftReports.length)} helper="Not published yet" tone="yellow" />
               <CommandMetric label="Unpaid" value={String(unpaidInspections.length)} helper={totalBalanceDue > 0 ? `${money(totalBalanceDue)} due` : "Need review"} tone="orange" />
@@ -1058,6 +1063,7 @@ export default async function HomePage() {
               <Link
                 key={card.href + card.title}
                 href={card.href}
+                data-tour={card.title === "Getting Started" ? "tour-getting-started" : undefined}
                 className="group rounded-2xl border border-slate-800 bg-[#0b1220] p-6 shadow-lg transition hover:-translate-y-0.5 hover:border-teal-500 hover:bg-[#13213a] active:scale-[0.99]"
               >
                 <div className="mb-5 text-4xl">
