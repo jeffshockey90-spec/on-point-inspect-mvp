@@ -64,6 +64,7 @@ export default function InspectionContactsManager({
 }) {
   const [contacts, setContacts] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState("");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -81,12 +82,17 @@ export default function InspectionContactsManager({
   async function loadContacts() {
     if (!inspectionId) return;
     setLoading(true);
+    setLoadError("");
     try {
       const res = await fetch(`/api/inspection-contacts?inspection_id=${inspectionId}`);
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.error || "Could not load contacts.");
+      }
       setContacts(data.contacts || []);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to load contacts:", error);
+      setLoadError(error?.message || "Could not load contacts.");
     } finally {
       setLoading(false);
     }
@@ -118,7 +124,7 @@ export default function InspectionContactsManager({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ inspection_id: inspectionId, ...payload }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         if (!override?.silent) alert(data.error || "Failed to add contact.");
         return;
@@ -132,6 +138,10 @@ export default function InspectionContactsManager({
         setPortalAccess(true);
         setShowAddForm(false);
         await loadContacts();
+      }
+    } catch (error: any) {
+      if (!override?.silent) {
+        alert(error?.message || "Failed to add contact. Check your connection and try again.");
       }
     } finally {
       setSaving(false);
@@ -212,14 +222,28 @@ export default function InspectionContactsManager({
 
         {loading && <div className="rounded-2xl border border-slate-700 bg-[#020817]/80 p-4 text-sm text-slate-400">Loading contacts...</div>}
 
-        {!loading && contacts.length === 0 && (
+        {!loading && loadError && (
+          <div className="rounded-2xl border border-red-500/40 bg-red-950/20 p-6 text-center">
+            <p className="text-lg font-bold text-red-200">Could not load contacts.</p>
+            <p className="mt-2 text-sm text-red-300/80">{loadError}</p>
+            <button
+              type="button"
+              onClick={loadContacts}
+              className="mt-4 rounded-xl border border-red-400/60 px-5 py-2 text-sm font-black text-red-200 transition hover:bg-red-500/10"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
+        {!loading && !loadError && contacts.length === 0 && (
           <div className="rounded-2xl border border-dashed border-slate-700 bg-[#020817]/70 p-6 text-center">
             <p className="text-lg font-bold text-white">No contacts added yet.</p>
             <p className="mt-2 text-sm text-slate-400">Add the client and realtor so delivery, portal access, and agreement requirements stay organized.</p>
           </div>
         )}
 
-        {!loading && contacts.length > 0 && (
+        {!loading && !loadError && contacts.length > 0 && (
           <div className="space-y-3">
             {contacts.map((contact) => (
               <article key={contact.id} className="w-full overflow-hidden rounded-2xl border border-slate-700 bg-[#020817]/80 p-4 shadow-xl">

@@ -149,6 +149,24 @@ function getStoragePathFromUrl(url: string | null | undefined) {
   return decodeURIComponent(url.substring(index + marker.length));
 }
 
+const RESPONSE_STATUS_OPTIONS: Record<string, { label: string; icon: string; tone: string }> = {
+  agree_to_repair: { label: "Agree to Repair", icon: "✅", tone: "border-green-500/40 bg-green-500/10 text-green-300" },
+  already_repaired: { label: "Already Repaired", icon: "🔧", tone: "border-green-500/40 bg-green-500/10 text-green-300" },
+  credit_buyer: { label: "Credit Buyer", icon: "💲", tone: "border-cyan-500/40 bg-cyan-500/10 text-cyan-300" },
+  decline: { label: "Decline", icon: "❌", tone: "border-red-500/40 bg-red-500/10 text-red-300" },
+  needs_discussion: { label: "Needs Discussion", icon: "💬", tone: "border-yellow-500/40 bg-yellow-500/10 text-yellow-300" },
+};
+
+function getResponseStatusMeta(status: string) {
+  return (
+    RESPONSE_STATUS_OPTIONS[String(status || "")] || {
+      label: "Not Answered",
+      icon: "○",
+      tone: "border-slate-600 bg-slate-800/60 text-slate-300",
+    }
+  );
+}
+
 function isRepairFinding(finding: Finding) {
   const section = String(finding.section || "").toLowerCase();
   const title = String(finding.title || "").toLowerCase();
@@ -621,6 +639,9 @@ function RepairRequestContent() {
   const [recipientType, setRecipientType] = useState("realtor");
   const [customRecipientEmail, setCustomRecipientEmail] = useState("");
   const [visibleFindingCount, setVisibleFindingCount] = useState(FINDING_RENDER_PAGE_SIZE);
+  const [responseShares, setResponseShares] = useState<any[]>([]);
+  const [responseItems, setResponseItems] = useState<any[]>([]);
+  const [responsesLoaded, setResponsesLoaded] = useState(false);
 
   const [requestIntro, setRequestIntro] = useState(
     "The following items are requested for repair, correction, evaluation, or further review by qualified professionals prior to closing, unless otherwise negotiated by the parties involved.",
@@ -649,6 +670,32 @@ function RepairRequestContent() {
     }
 
     trackRepairRequestView();
+  }, [inspectionId]);
+
+  useEffect(() => {
+    async function loadResponseStatus() {
+      if (!inspectionId) return;
+
+      try {
+        const response = await fetch(
+          `/api/repair-response/status?inspection_id=${inspectionId}`,
+          { cache: "no-store" },
+        );
+
+        if (!response.ok) return;
+
+        const payload = await response.json().catch(() => ({}));
+        setResponseShares(Array.isArray(payload?.shares) ? payload.shares : []);
+        setResponseItems(Array.isArray(payload?.responses) ? payload.responses : []);
+      } catch {
+        // Not signed in as the inspector (e.g. a client/realtor viewing this
+        // page) or a transient error - the status panel just stays hidden.
+      } finally {
+        setResponsesLoaded(true);
+      }
+    }
+
+    loadResponseStatus();
   }, [inspectionId]);
 
   useEffect(() => {
@@ -1142,6 +1189,80 @@ function RepairRequestContent() {
             </button>
           </div>
         </div>
+
+        {responsesLoaded && responseShares.length > 0 && (
+          <div className="mb-6 space-y-4 rounded-2xl border border-purple-500/40 bg-purple-500/5 p-4 print:hidden md:p-5">
+            <p className="text-xs font-black uppercase tracking-[0.25em] text-purple-300">
+              Seller / Agent Responses
+            </p>
+
+            {responseShares.map((share: any) => {
+              const shareResponses = responseItems.filter(
+                (item: any) => String(item.share_id) === String(share.id),
+              );
+              const hasResponded = Boolean(share.responded_at) || shareResponses.length > 0;
+
+              return (
+                <div
+                  key={share.id}
+                  className="rounded-xl border border-slate-700 bg-[#020617] p-4"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="font-bold text-white">
+                        {share.recipient_email || "Recipient"}
+                        <span className="ml-2 text-xs font-bold uppercase text-slate-500">
+                          {share.recipient_type || ""}
+                        </span>
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        Sent {share.created_at ? new Date(share.created_at).toLocaleDateString() : ""}
+                      </p>
+                    </div>
+                    <span
+                      className={`rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-wide ${
+                        hasResponded
+                          ? "border-green-500/40 bg-green-500/10 text-green-300"
+                          : "border-yellow-500/40 bg-yellow-500/10 text-yellow-300"
+                      }`}
+                    >
+                      {hasResponded ? "Responded" : "Waiting"}
+                    </span>
+                  </div>
+
+                  {shareResponses.length > 0 && (
+                    <div className="mt-3 space-y-2 border-t border-slate-800 pt-3">
+                      {shareResponses.map((item: any) => {
+                        const finding = findings.find(
+                          (f) => String(f.id) === String(item.finding_id),
+                        );
+                        const meta = getResponseStatusMeta(item.response_status);
+
+                        return (
+                          <div key={item.id} className="rounded-lg bg-slate-900/60 p-3">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <p className="text-sm font-bold text-white">
+                                {finding?.title || finding?.recommendation || "Repair item"}
+                              </p>
+                              <span
+                                className={`rounded-full border px-2 py-0.5 text-[10px] font-black uppercase tracking-wide ${meta.tone}`}
+                              >
+                                {meta.icon} {meta.label}
+                              </span>
+                            </div>
+                            {item.notes && (
+                              <p className="mt-1 text-sm text-slate-400">{item.notes}</p>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         {pdfMessage ? (
           <p className="mb-6 rounded-xl border border-teal-500/40 bg-teal-500/10 px-4 py-3 text-sm font-bold text-teal-200 print:hidden">
