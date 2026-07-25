@@ -311,15 +311,6 @@ export default function PublicProfileActions({
             Share your permanent FLOW profile QR code so clients and realtors can view your profile and request an inspection.
           </p>
 
-          <div className="mt-5 max-w-full overflow-hidden rounded-2xl border border-slate-700 bg-slate-950 p-4">
-            <p className="text-xs font-black uppercase tracking-wide text-slate-500">
-              Profile Link
-            </p>
-            <p className="mt-2 break-words text-sm font-bold text-white">
-              {url}
-            </p>
-          </div>
-
           <div className="mt-5">
             <p className="text-xs font-black uppercase tracking-wide text-teal-300">
               Great For
