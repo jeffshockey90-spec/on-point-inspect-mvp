@@ -7,28 +7,11 @@ import { useAddressAutocomplete } from "../../hooks/useAddressAutocomplete";
 import {
   DEFAULT_PRICING_CONFIG,
   calculateServiceFee,
+  getBaseService,
   getService,
   type InspectorPricingConfig,
+  type PricingService,
 } from "../../lib/inspectorPricing";
-
-type ServiceMode =
-  | "home"
-  | "radon_only"
-  | "mold_only"
-  | "radon_mold"
-  | "home_radon"
-  | "home_mold"
-  | "home_radon_mold";
-
-const serviceOptions: { value: ServiceMode; label: string }[] = [
-  { value: "home", label: "Home Inspection" },
-  { value: "radon_only", label: "Radon Only" },
-  { value: "mold_only", label: "Mold Only" },
-  { value: "radon_mold", label: "Radon + Mold" },
-  { value: "home_radon", label: "Home + Radon" },
-  { value: "home_mold", label: "Home + Mold" },
-  { value: "home_radon_mold", label: "Home + Radon + Mold" },
-];
 
 function getNumber(value: any) {
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -43,114 +26,90 @@ function getNumber(value: any) {
   return 0;
 }
 
-function hasHomeInspection(serviceMode: ServiceMode) {
-  return (
-    serviceMode === "home" ||
-    serviceMode === "home_radon" ||
-    serviceMode === "home_mold" ||
-    serviceMode === "home_radon_mold"
-  );
+// Maps a dynamic service selection back onto the legacy fixed ServiceMode
+// enum that app/inspections/new/page.tsx still uses for its own separate
+// estimate field - only possible when the selection is exactly some subset
+// of the three default services. Custom services can't be represented
+// there, so the New Inspection handoff just omits serviceMode in that case
+// and the inspector fills in price manually (same as any other custom quote).
+function toLegacyServiceMode(selectedServiceIds: string[]) {
+  const set = new Set(selectedServiceIds);
+  const hasHome = set.has("home");
+  const hasRadon = set.has("radon");
+  const hasMold = set.has("mold");
+  const onlyDefaults = selectedServiceIds.every((id) => id === "home" || id === "radon" || id === "mold");
+
+  if (!onlyDefaults) return null;
+  if (hasHome && hasRadon && hasMold) return "home_radon_mold";
+  if (hasHome && hasRadon) return "home_radon";
+  if (hasHome && hasMold) return "home_mold";
+  if (hasRadon && hasMold) return "radon_mold";
+  if (hasHome) return "home";
+  if (hasRadon) return "radon_only";
+  if (hasMold) return "mold_only";
+  return null;
 }
 
-function hasRadon(serviceMode: ServiceMode) {
-  return (
-    serviceMode === "radon_only" ||
-    serviceMode === "radon_mold" ||
-    serviceMode === "home_radon" ||
-    serviceMode === "home_radon_mold"
-  );
-}
-
-function hasMold(serviceMode: ServiceMode) {
-  return (
-    serviceMode === "mold_only" ||
-    serviceMode === "radon_mold" ||
-    serviceMode === "home_mold" ||
-    serviceMode === "home_radon_mold"
-  );
-}
-
-function getServiceLabel(serviceMode: ServiceMode) {
-  return (
-    serviceOptions.find((option) => option.value === serviceMode)?.label ||
-    "Home Inspection"
-  );
-}
+type QuoteLineItem = {
+  id: string;
+  name: string;
+  type: PricingService["type"];
+  unitLabel?: string;
+  units: number;
+  fee: number;
+};
 
 function calculateQuote({
   sqft,
-  serviceMode,
-  moldAirSamples,
-  moldSurfaceSamples,
+  selectedServiceIds,
+  serviceUnits,
   travelFee,
   discount,
   pricingConfig,
 }: {
   sqft: number;
-  serviceMode: ServiceMode;
-  moldAirSamples: number;
-  moldSurfaceSamples: number;
+  selectedServiceIds: string[];
+  serviceUnits: Record<string, number>;
   travelFee: number;
   discount: number;
   pricingConfig: InspectorPricingConfig;
 }) {
-  const includesHome = hasHomeInspection(serviceMode);
-  const includesRadon = hasRadon(serviceMode);
-  const includesMold = hasMold(serviceMode);
+  const baseService = getBaseService(pricingConfig);
+  const includesBase = Boolean(baseService && selectedServiceIds.includes(baseService.id));
 
-  const homeService = getService(pricingConfig, "home");
-  const radonService = getService(pricingConfig, "radon");
-  const moldService = getService(pricingConfig, "mold");
+  const lineItems: QuoteLineItem[] = selectedServiceIds
+    .map((id) => getService(pricingConfig, id))
+    .filter((service): service is PricingService => Boolean(service))
+    .map((service) => {
+      const paired = includesBase && service.id !== baseService?.id;
+      const units = Math.max(0, Math.floor(getNumber(serviceUnits[service.id])));
+      const fee = calculateServiceFee(service, { sqft, units, paired });
 
-  const base =
-    includesHome && homeService ? calculateServiceFee(homeService, { sqft }) : 0;
+      return {
+        id: service.id,
+        name: service.name,
+        type: service.type,
+        unitLabel: service.unitLabel,
+        units,
+        fee,
+      };
+    });
 
-  const radonFee =
-    includesRadon && radonService
-      ? calculateServiceFee(radonService, { paired: includesHome })
-      : 0;
-
-  const airSamples = includesMold
-    ? Math.max(0, Math.floor(getNumber(moldAirSamples)))
-    : 0;
-  const surfaceSamples = includesMold
-    ? Math.max(0, Math.floor(getNumber(moldSurfaceSamples)))
-    : 0;
-
-  const totalMoldSamples = airSamples + surfaceSamples;
-
-  const moldSetupFee =
-    includesMold && moldService
-      ? calculateServiceFee(moldService, { paired: includesHome, units: 0 })
-      : 0;
-  const moldAirFee = airSamples * (moldService?.perUnitFee ?? 0);
-  const moldSurfaceFee = surfaceSamples * (moldService?.perUnitFee ?? 0);
-  const moldFee = moldSetupFee + moldAirFee + moldSurfaceFee;
-
+  const servicesSubtotal = lineItems.reduce((sum, item) => sum + item.fee, 0);
   const safeTravelFee = Math.max(0, getNumber(travelFee));
   const safeDiscount = Math.max(0, getNumber(discount));
-
-  const subtotal = base + radonFee + moldFee + safeTravelFee;
+  const subtotal = servicesSubtotal + safeTravelFee;
   const total = Math.max(0, subtotal - safeDiscount);
 
   return {
-    base,
-    radonFee,
-    moldSetupFee,
-    moldAirFee,
-    moldSurfaceFee,
-    moldFee,
-    airSamples,
-    surfaceSamples,
-    totalMoldSamples,
+    lineItems,
+    includesBase,
+    baseServiceId: baseService?.id || null,
     travelFee: safeTravelFee,
     discount: safeDiscount,
     subtotal,
     total,
-    includesHome,
-    includesRadon,
-    includesMold,
-    serviceLabel: getServiceLabel(serviceMode),
+    serviceLabel: lineItems.map((item) => item.name).join(" + ") || "No services selected",
   };
 }
 
@@ -164,10 +123,9 @@ export default function QuotePage() {
   const [loadingProperty, setLoadingProperty] = useState(false);
   const [propertyLookupStatus, setPropertyLookupStatus] = useState("");
   const propertyLookupRequestId = useRef(0);
-  const [serviceMode, setServiceMode] = useState<ServiceMode>("home");
+  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>(["home"]);
   const [travelFee, setTravelFee] = useState(0);
-  const [moldAirSamples, setMoldAirSamples] = useState(0);
-  const [moldSurfaceSamples, setMoldSurfaceSamples] = useState(0);
+  const [serviceUnits, setServiceUnits] = useState<Record<string, number>>({});
   const [discount, setDiscount] = useState(0);
   const [pricingConfig, setPricingConfig] = useState<InspectorPricingConfig>(
     DEFAULT_PRICING_CONFIG,
@@ -181,6 +139,16 @@ export default function QuotePage() {
       })
       .catch(() => {});
   }, []);
+
+  function toggleService(id: string) {
+    setSelectedServiceIds((current) =>
+      current.includes(id) ? current.filter((existing) => existing !== id) : [...current, id],
+    );
+  }
+
+  function setUnitsForService(id: string, units: number) {
+    setServiceUnits((current) => ({ ...current, [id]: units }));
+  }
 
   async function lookupPropertySqft(
     address: string,
@@ -260,57 +228,50 @@ export default function QuotePage() {
     () =>
       calculateQuote({
         sqft,
-        serviceMode,
-        moldAirSamples,
-        moldSurfaceSamples,
+        selectedServiceIds,
+        serviceUnits,
         travelFee,
         discount,
         pricingConfig,
       }),
-    [sqft, serviceMode, moldAirSamples, moldSurfaceSamples, travelFee, discount, pricingConfig]
+    [sqft, selectedServiceIds, serviceUnits, travelFee, discount, pricingConfig]
   );
 
   const pricingRulesSummary = useMemo(() => {
-    const home = getService(pricingConfig, "home");
-    const radon = getService(pricingConfig, "radon");
-    const mold = getService(pricingConfig, "mold");
+    return pricingConfig.services
+      .map((service) => {
+        if (service.type === "sqft_formula") {
+          return `${service.name} is $${service.basePrice ?? 0} up to ${
+            service.baseSqftLimit ?? 0
+          } sq ft, then +$${service.incrementPrice ?? 0} per additional ${
+            service.incrementSqftBlock ?? 0
+          } sq ft or portion.`;
+        }
 
-    const homeText = home
-      ? `Home inspection is $${home.basePrice ?? 0} up to ${home.baseSqftLimit ?? 0} sq ft, then +$${
-          home.incrementPrice ?? 0
-        } per additional ${home.incrementSqftBlock ?? 0} sq ft or portion.`
-      : "";
+        if (service.type === "flat") {
+          return service.pairedPrice !== undefined
+            ? `${service.name} is $${service.pairedPrice} with a home inspection or $${
+                service.flatPrice ?? 0
+              } standalone.`
+            : `${service.name} is $${service.flatPrice ?? 0}.`;
+        }
 
-    const radonText = radon
-      ? ` Radon is $${radon.pairedPrice ?? radon.flatPrice ?? 0} with a home inspection or $${
-          radon.flatPrice ?? 0
-        } standalone.`
-      : "";
+        const setupText =
+          service.pairedBaseFee !== undefined
+            ? `$${service.pairedBaseFee} setup with a home inspection or $${
+                service.baseFee ?? 0
+              } standalone`
+            : `$${service.baseFee ?? 0} setup`;
 
-    const moldText = mold
-      ? ` Mold is $${mold.pairedBaseFee ?? mold.baseFee ?? 0} setup/admin with a home inspection or $${
-          mold.baseFee ?? 0
-        } standalone, plus $${mold.perUnitFee ?? 0} per sample.`
-      : "";
-
-    return `${homeText}${radonText}${moldText}`.trim();
+        return `${service.name} is ${setupText}, plus $${service.perUnitFee ?? 0} per ${
+          service.unitLabel || "unit"
+        }.`;
+      })
+      .join(" ");
   }, [pricingConfig]);
 
-  const selectedAddOns = [
-    quote.includesHome ? "Home inspection" : "",
-    quote.includesRadon ? "Radon testing" : "",
-    quote.includesMold && quote.airSamples > 0
-      ? `${quote.airSamples} mold air sample${quote.airSamples === 1 ? "" : "s"}`
-      : "",
-    quote.includesMold && quote.surfaceSamples > 0
-      ? `${quote.surfaceSamples} mold surface sample${
-          quote.surfaceSamples === 1 ? "" : "s"
-        }`
-      : "",
-  ].filter(Boolean);
-
   const message = `Hi, for this property the quote is $${quote.total}. Services selected: ${
-    selectedAddOns.length > 0 ? selectedAddOns.join(", ") : quote.serviceLabel
+    quote.serviceLabel
   }. This includes a clear digital report for the selected service(s).`;
 
   async function copyQuote() {
@@ -327,21 +288,29 @@ export default function QuotePage() {
     // fields a real inspection needs - rather than creating an incomplete
     // record directly, hand off to the full New Inspection form (same
     // pricing logic, same field names) with everything Quotes does know
-    // already filled in, so the user only has to add what's missing.
+    // already filled in, so the user only has to add what's missing. New
+    // Inspection has its own separate legacy service-mode estimate field
+    // that only knows about the three default services - custom services
+    // aren't representable there, so serviceMode is omitted when a custom
+    // service is part of the selection and the inspector fills price in
+    // manually on that page instead.
     const params = new URLSearchParams();
 
     if (propertyAddress) params.set("address", propertyAddress);
     if (city) params.set("city", city);
     if (stateValue) params.set("state", stateValue);
     if (zip) params.set("zip", zip);
-    if (quote.includesHome) params.set("squareFeet", String(sqft));
-    params.set("serviceMode", serviceMode);
+    if (quote.includesBase) params.set("squareFeet", String(sqft));
+
+    const legacyServiceMode = toLegacyServiceMode(selectedServiceIds);
+    if (legacyServiceMode) params.set("serviceMode", legacyServiceMode);
+
     if (travelFee) params.set("travelFee", String(travelFee));
     if (discount) params.set("discount", String(discount));
-    if (quote.includesMold) {
-      if (moldAirSamples) params.set("moldAirSamples", String(moldAirSamples));
-      if (moldSurfaceSamples)
-        params.set("moldSurfaceSamples", String(moldSurfaceSamples));
+
+    const moldUnits = serviceUnits["mold"];
+    if (selectedServiceIds.includes("mold") && moldUnits) {
+      params.set("moldAirSamples", String(moldUnits));
     }
 
     window.location.href = `/inspections/new?${params.toString()}`;
@@ -411,24 +380,37 @@ export default function QuotePage() {
                 </div>
               )}
 
-              <label className="space-y-2 md:col-span-2">
+              <div className="space-y-2 md:col-span-2">
                 <span className="text-sm font-bold text-zinc-300">
-                  Service Type
+                  Services
                 </span>
-                <select
-                  value={serviceMode}
-                  onChange={(e) => setServiceMode(e.target.value as ServiceMode)}
-                  className="w-full rounded-xl border border-zinc-700 bg-black p-3 text-white"
-                >
-                  {serviceOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {pricingConfig.services.map((service) => {
+                    const checked = selectedServiceIds.includes(service.id);
 
-              {quote.includesHome && (
+                    return (
+                      <label
+                        key={service.id}
+                        className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition ${
+                          checked
+                            ? "border-teal-500 bg-teal-500/10"
+                            : "border-zinc-700 bg-black hover:border-zinc-500"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleService(service.id)}
+                          className="h-4 w-4 shrink-0 accent-teal-500"
+                        />
+                        <span className="text-sm font-bold text-white">{service.name}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {quote.includesBase && (
                 <div className="space-y-1">
                   <Input
                     label="Square Footage"
@@ -452,34 +434,16 @@ export default function QuotePage() {
                 onChange={setTravelFee}
               />
 
-              {quote.includesMold && (
-                <div className="rounded-2xl border border-zinc-700 bg-black p-4 md:col-span-2">
-                  <div className="mb-4">
-                    <p className="font-bold text-white">Mold Sampling</p>
-                    <p className="text-sm leading-6 text-zinc-400">
-                      {quote.includesHome
-                        ? "$175 setup/admin fee with inspection"
-                        : "$225 standalone setup/admin fee"}
-                      , plus $75 per air sample and $75 per
-                      surface/tape/swab sample.
-                    </p>
-                  </div>
-
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <Input
-                      label="Mold Air Samples"
-                      value={moldAirSamples}
-                      onChange={setMoldAirSamples}
-                    />
-
-                    <Input
-                      label="Mold Surface / Tape / Swab Samples"
-                      value={moldSurfaceSamples}
-                      onChange={setMoldSurfaceSamples}
-                    />
-                  </div>
-                </div>
-              )}
+              {quote.lineItems
+                .filter((item) => item.type === "flat_plus_per_unit")
+                .map((item) => (
+                  <Input
+                    key={item.id}
+                    label={`${item.name} - # of ${item.unitLabel || "unit"}s`}
+                    value={serviceUnits[item.id] ?? 0}
+                    onChange={(value) => setUnitsForService(item.id, value)}
+                  />
+                ))}
 
               <div className="md:col-span-2">
                 <Input
@@ -493,14 +457,13 @@ export default function QuotePage() {
 
           <Card title="Quote Summary">
             <div className="space-y-3 text-zinc-300">
-              <SummaryLine label="Home Inspection" value={quote.base} />
-              <SummaryLine label="Radon" value={quote.radonFee} />
-              <SummaryLine label="Mold Setup/Admin" value={quote.moldSetupFee} />
-              <SummaryLine label="Mold Air Samples" value={quote.moldAirFee} />
-              <SummaryLine
-                label="Mold Surface Samples"
-                value={quote.moldSurfaceFee}
-              />
+              {quote.lineItems.length === 0 ? (
+                <p className="text-sm text-zinc-500">No services selected yet.</p>
+              ) : (
+                quote.lineItems.map((item) => (
+                  <SummaryLine key={item.id} label={item.name} value={item.fee} />
+                ))
+              )}
               <SummaryLine label="Travel Fee" value={quote.travelFee} />
               <SummaryLine label="Discount" value={-quote.discount} />
 

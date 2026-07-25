@@ -3,9 +3,14 @@
 import { useEffect, useState } from "react";
 import {
   DEFAULT_PRICING_CONFIG,
+  PRICING_SERVICE_TYPE_OPTIONS,
+  createCustomService,
   type InspectorPricingConfig,
   type PricingService,
+  type PricingServiceType,
 } from "../../../lib/inspectorPricing";
+
+const DEFAULT_SERVICE_IDS = new Set(["home", "radon", "mold"]);
 
 function NumberField({
   label,
@@ -70,6 +75,22 @@ export default function PricingEditor() {
     return config?.services.find((service) => service.id === id) || null;
   }
 
+  function addService(type: PricingServiceType) {
+    setConfig((current) => {
+      if (!current) return current;
+      return { ...current, services: [...current.services, createCustomService(type)] };
+    });
+    setSaved(false);
+  }
+
+  function removeService(id: string) {
+    setConfig((current) => {
+      if (!current) return current;
+      return { ...current, services: current.services.filter((service) => service.id !== id) };
+    });
+    setSaved(false);
+  }
+
   async function handleSave() {
     if (!config) return;
 
@@ -105,6 +126,9 @@ export default function PricingEditor() {
   const home = getService("home");
   const radon = getService("radon");
   const mold = getService("mold");
+  const customServices = (config?.services || []).filter(
+    (service) => !DEFAULT_SERVICE_IDS.has(service.id),
+  );
 
   return (
     <div className="space-y-6">
@@ -211,6 +235,40 @@ export default function PricingEditor() {
         </section>
       )}
 
+      <section className="rounded-2xl border border-slate-800 bg-[#0b1220] p-5 sm:p-6">
+        <h2 className="text-xl font-black text-teal-300">Custom Services</h2>
+        <p className="mt-2 text-sm leading-6 text-slate-400">
+          Add any service beyond Home, Radon, and Mold - sewer scope, well testing, termite
+          inspection, whatever you offer. Each one can be a flat fee, a flat fee plus a per-unit
+          fee, or its own square-footage formula.
+        </p>
+
+        <div className="mt-5 space-y-5">
+          {customServices.map((service) => (
+            <CustomServiceCard
+              key={service.id}
+              service={service}
+              onChange={(patch) => updateService(service.id, patch)}
+              onRemove={() => removeService(service.id)}
+            />
+          ))}
+        </div>
+
+        <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-slate-800 pt-5">
+          <span className="text-sm font-bold text-slate-400">Add a new service:</span>
+          {PRICING_SERVICE_TYPE_OPTIONS.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => addService(option.value)}
+              className="rounded-xl border border-teal-500/50 px-4 py-2 text-sm font-black text-teal-300 hover:bg-teal-500/10"
+            >
+              + {option.label}
+            </button>
+          ))}
+        </div>
+      </section>
+
       <button
         type="button"
         onClick={handleSave}
@@ -219,6 +277,115 @@ export default function PricingEditor() {
       >
         {saving ? "Saving..." : "Save Pricing"}
       </button>
+    </div>
+  );
+}
+
+function CustomServiceCard({
+  service,
+  onChange,
+  onRemove,
+}: {
+  service: PricingService;
+  onChange: (patch: Partial<PricingService>) => void;
+  onRemove: () => void;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-700 bg-[#020617] p-4 sm:p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <label className="min-w-0 flex-1">
+          <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
+            Service Name
+          </p>
+          <input
+            type="text"
+            value={service.name}
+            onChange={(e) => onChange({ name: e.target.value })}
+            className="w-full min-w-0 rounded-xl border border-slate-700 bg-[#0b1220] p-3 text-white outline-none focus:border-teal-400"
+          />
+        </label>
+
+        <button
+          type="button"
+          onClick={onRemove}
+          className="mt-6 shrink-0 rounded-xl border border-red-500/50 px-3 py-2 text-xs font-black text-red-300 hover:bg-red-500/10"
+        >
+          Remove
+        </button>
+      </div>
+
+      {service.type === "sqft_formula" && (
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <NumberField
+            label="Base Price"
+            value={service.basePrice}
+            onChange={(value) => onChange({ basePrice: value })}
+          />
+          <NumberField
+            label="Up To (Sqft)"
+            prefix=""
+            value={service.baseSqftLimit}
+            onChange={(value) => onChange({ baseSqftLimit: value })}
+          />
+          <NumberField
+            label="Then Add"
+            value={service.incrementPrice}
+            onChange={(value) => onChange({ incrementPrice: value })}
+          />
+          <NumberField
+            label="Per Every (Sqft)"
+            prefix=""
+            value={service.incrementSqftBlock}
+            onChange={(value) => onChange({ incrementSqftBlock: value })}
+          />
+        </div>
+      )}
+
+      {service.type === "flat" && (
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <NumberField
+            label="Standalone Price"
+            value={service.flatPrice}
+            onChange={(value) => onChange({ flatPrice: value })}
+          />
+          <NumberField
+            label="Price When Paired With Home Inspection (Optional)"
+            value={service.pairedPrice}
+            onChange={(value) => onChange({ pairedPrice: value })}
+          />
+        </div>
+      )}
+
+      {service.type === "flat_plus_per_unit" && (
+        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          <NumberField
+            label="Standalone Setup Fee"
+            value={service.baseFee}
+            onChange={(value) => onChange({ baseFee: value })}
+          />
+          <NumberField
+            label="Setup Fee When Paired (Optional)"
+            value={service.pairedBaseFee}
+            onChange={(value) => onChange({ pairedBaseFee: value })}
+          />
+          <NumberField
+            label="Fee Per Unit"
+            value={service.perUnitFee}
+            onChange={(value) => onChange({ perUnitFee: value })}
+          />
+          <label className="block min-w-0 sm:col-span-3">
+            <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
+              Unit Label (e.g. "sample", "hour")
+            </p>
+            <input
+              type="text"
+              value={service.unitLabel || ""}
+              onChange={(e) => onChange({ unitLabel: e.target.value })}
+              className="w-full min-w-0 rounded-xl border border-slate-700 bg-[#0b1220] p-3 text-white outline-none focus:border-teal-400"
+            />
+          </label>
+        </div>
+      )}
     </div>
   );
 }

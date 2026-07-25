@@ -102,3 +102,47 @@ export function calculateServiceFee(
 export function getService(config: InspectorPricingConfig, id: string) {
   return config.services.find((service) => service.id === id) || null;
 }
+
+export function getBaseService(config: InspectorPricingConfig) {
+  return config.services.find((service) => service.isBaseService) || null;
+}
+
+export const PRICING_SERVICE_TYPE_OPTIONS: { value: PricingServiceType; label: string }[] = [
+  { value: "flat", label: "Flat Fee" },
+  { value: "flat_plus_per_unit", label: "Flat Fee + Per-Unit Fee" },
+  { value: "sqft_formula", label: "Square-Footage Formula" },
+];
+
+export function createCustomService(type: PricingServiceType): PricingService {
+  const id = `custom_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+
+  if (type === "sqft_formula") {
+    return {
+      id,
+      name: "New Service",
+      type,
+      basePrice: 0,
+      baseSqftLimit: 0,
+      incrementPrice: 0,
+      incrementSqftBlock: 1000,
+    };
+  }
+
+  if (type === "flat_plus_per_unit") {
+    return {
+      id,
+      name: "New Service",
+      type,
+      baseFee: 0,
+      perUnitFee: 0,
+      unitLabel: "unit",
+    };
+  }
+
+  return {
+    id,
+    name: "New Service",
+    type: "flat",
+    flatPrice: 0,
+  };
+}
