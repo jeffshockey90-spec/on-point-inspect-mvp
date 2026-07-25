@@ -132,21 +132,12 @@ async function getAccountRoute(user: { id: string; email?: string | null }) {
   let clientInspectionId = "";
 
   try {
-    const [{ data: inspectors }, { data: companies }, { data: contacts }] =
+    const [{ data: companyUsers }, { data: contacts }] =
       await Promise.all([
         admin
-          .from("inspectors")
-          .select("id,email,user_id,owner_email")
-          .or(
-            `user_id.eq.${user.id},email.ilike.${email},owner_email.ilike.${email}`,
-          )
-          .limit(1),
-        admin
-          .from("companies")
-          .select("id,email,owner_email,user_id")
-          .or(
-            `user_id.eq.${user.id},email.ilike.${email},owner_email.ilike.${email}`,
-          )
+          .from("company_users")
+          .select("company_id")
+          .eq("user_id", user.id)
           .limit(1),
         admin
           .from("inspection_contacts")
@@ -155,7 +146,7 @@ async function getAccountRoute(user: { id: string; email?: string | null }) {
           .limit(100),
       ]);
 
-    isInspector = Boolean(inspectors?.length || companies?.length);
+    isInspector = Boolean(companyUsers?.length);
 
     for (const contact of contacts || []) {
       if (contact?.portal_access === false) continue;
