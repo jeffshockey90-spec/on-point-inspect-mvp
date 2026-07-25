@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "../../utils/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import DeleteAccountSection from "./DeleteAccountSection";
+import SettingsSectionNav from "../../components/SettingsSectionNav";
 import PushNotificationSetup from "../../components/PushNotificationSetup";
 import SupportUnreadBadge from "../../components/SupportUnreadBadge";
 import CompanyImageUploader from "./CompanyImageUploader";
@@ -641,6 +642,11 @@ export default async function SettingsPage({
           )}
         </section>
 
+        <div className="lg:grid lg:grid-cols-[200px_1fr] lg:items-start lg:gap-8">
+        <SettingsSectionNav />
+
+        <div className="min-w-0 space-y-6">
+
         <form action={saveCompanySettings} className="space-y-6">
           <section
             id="notifications"
@@ -721,7 +727,7 @@ export default async function SettingsPage({
             </div>
           </section>
 
-          <section className="rounded-3xl border border-slate-800 bg-[#0b1220] p-5 sm:p-6 md:p-8">
+          <section id="company-profile" className="rounded-3xl border border-slate-800 bg-[#0b1220] p-5 sm:p-6 md:p-8">
             <h2 className="text-xl font-black text-teal-300 sm:text-2xl">
               Company Profile
             </h2>
@@ -853,7 +859,7 @@ export default async function SettingsPage({
             </div>
           </section>
 
-          <section className="rounded-3xl border border-slate-800 bg-[#0b1220] p-5 sm:p-6 md:p-8">
+          <section id="payments" className="rounded-3xl border border-slate-800 bg-[#0b1220] p-5 sm:p-6 md:p-8">
             <h2 className="text-xl font-black text-teal-300 sm:text-2xl">
               Payments
             </h2>
@@ -1026,14 +1032,18 @@ export default async function SettingsPage({
             </div>
           </section>
 
-          <StandardsOfPracticeEditor
-            initialTitle={standardsTitle}
-            initialBody={standardsBody}
-            initialIncludeShare={standardsIncludeShare}
-            initialIncludePdf={standardsIncludePdf}
-          />
+          <div id="standards-of-practice">
+            <StandardsOfPracticeEditor
+              initialTitle={standardsTitle}
+              initialBody={standardsBody}
+              initialIncludeShare={standardsIncludeShare}
+              initialIncludePdf={standardsIncludePdf}
+            />
+          </div>
 
-          <TimePreferencesSettings />
+          <div id="time-location">
+            <TimePreferencesSettings />
+          </div>
 
           <div className="flex flex-col gap-3 sm:flex-row">
             <button
@@ -1045,8 +1055,11 @@ export default async function SettingsPage({
           </div>
         </form>
 
-        <div className="pb-8">
+        <div id="delete-account" className="pb-8">
           <DeleteAccountSection />
+        </div>
+
+        </div>
         </div>
       </div>
     </main>
