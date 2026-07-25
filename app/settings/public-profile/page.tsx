@@ -352,6 +352,7 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
                     profileUrl={publicProfileUrl}
                     logoUrl={company.logo_url || ""}
                     companyName={company.display_name || company.name || "Inspector Profile"}
+                    showPoweredBy={company.show_powered_by !== false}
                   />
                 </div>
               </div>

@@ -191,6 +191,24 @@ export default async function SchedulePage() {
     redirect("/login");
   }
 
+  const { data: companyUser } = await supabase
+    .from("company_users")
+    .select("company_id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  const { data: company } = companyUser?.company_id
+    ? await supabase
+        .from("companies")
+        .select("profile_slug")
+        .eq("id", companyUser.company_id)
+        .maybeSingle()
+    : { data: null };
+
+  const bookingPageHref = company?.profile_slug
+    ? `/book?inspector=${encodeURIComponent(company.profile_slug)}`
+    : "/book";
+
   const { data: inspections, error } = await supabase
     .from("inspections")
     .select("*")
@@ -300,7 +318,7 @@ export default async function SchedulePage() {
             </div>
 
             <Link
-              href="/book"
+              href={bookingPageHref}
               className="rounded-xl border border-teal-500/40 bg-teal-500/10 px-4 py-3 text-center text-sm font-black text-teal-200 transition hover:bg-teal-500/20"
             >
               Open Booking Page

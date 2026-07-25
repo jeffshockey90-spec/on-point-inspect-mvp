@@ -7,6 +7,7 @@ type PublicProfileActionsProps = {
   profileUrl?: string;
   logoUrl?: string;
   companyName?: string;
+  showPoweredBy?: boolean;
 };
 
 const TEAL = "#14b8a6";
@@ -54,6 +55,7 @@ export default function PublicProfileActions({
   profileUrl,
   logoUrl,
   companyName = "Inspector Profile",
+  showPoweredBy = true,
 }: PublicProfileActionsProps) {
   const url = String(profileUrl || "").trim();
   const [svgMarkup, setSvgMarkup] = useState("");
@@ -271,7 +273,7 @@ export default function PublicProfileActions({
             <div class="qr-wrap">${svgMarkup}${logoHtml}</div>
             <h1>Scan to View Profile</h1>
             <p>Learn more and request an inspection.</p>
-            <div class="powered">Powered by FLOW</div>
+            ${showPoweredBy ? '<div class="powered">Powered by FLOW</div>' : ""}
           </div>
           <script>window.onload = () => window.print();</script>
         </body>
@@ -448,9 +450,11 @@ export default function PublicProfileActions({
               </div>
             )}
 
-            <p className="mt-4 text-center text-[10px] font-black uppercase tracking-[0.28em] text-slate-500">
-              Powered by FLOW
-            </p>
+            {showPoweredBy && (
+              <p className="mt-4 text-center text-[10px] font-black uppercase tracking-[0.28em] text-slate-500">
+                Powered by FLOW
+              </p>
+            )}
           </div>
         </div>
       </div>
