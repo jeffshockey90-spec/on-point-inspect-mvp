@@ -7,6 +7,7 @@ import http2 from "http2";
 import { formatUsd } from "../../../lib/currency";
 import { getCompanyBrandingById, buildBrandedFromHeader, type CompanyBranding } from "../../../lib/companyBranding";
 import { OWNER_EMAILS } from "../../../lib/ownerEmails";
+import { sendPushNotification } from "../../../lib/push";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -865,22 +866,22 @@ export async function POST(req: Request) {
                 },
               });
         
-              await sendOwnerPushNotification(supabase, {
-                title: "Payment Received",
-                body: `${money(totalCharged)} received for ${getPropertyLabel(
-                  existingInspection
-                )}.`,
-                url: `/reports/${inspectionId}`,
-                eventType: "payment_received",
-                metadata: {
-                  inspection_id: inspectionId,
-                  amount_paid: amountPaid,
-                  total_charged: totalCharged,
-                  portal_processing_fee: portalProcessingFee,
-                  session_id: session.id,
-                  property: getPropertyLabel(existingInspection),
-                },
-              });
+              // Money here goes to the inspecting company, not to FLOW - this
+              // should notify that company's inspector, not the platform
+              // owner (unlike the subscription-billing pushes elsewhere in
+              // this file, which are genuinely about payments made to FLOW).
+              if (existingInspection?.inspector_id) {
+                await sendPushNotification({
+                  title: "Payment Received",
+                  body: `${money(totalCharged)} received for ${getPropertyLabel(
+                    existingInspection
+                  )}.`,
+                  url: `/reports/${inspectionId}`,
+                  eventType: "payment_received",
+                  target: "user",
+                  targetUserId: existingInspection.inspector_id,
+                });
+              }
         
               if (existingInspection) {
                 await sendReceiptEmail({

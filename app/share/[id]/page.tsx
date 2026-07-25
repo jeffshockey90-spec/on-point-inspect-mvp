@@ -8,6 +8,7 @@ import ExpandableReportImage from "../../../components/ExpandableReportImage";
 import ReportDownloadLink from "../../../components/ReportDownloadLink";
 import ShareReportTabs from "../../../components/ShareReportTabs";
 import { normalizeCompanyBranding } from "../../../lib/companyBranding";
+import { sendPushNotification } from "../../../lib/push";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -52,6 +53,32 @@ async function recordInspectionView({
         source: "public_share_page",
       },
     });
+
+    // This insert bypasses /api/track-inspection-view, so it needs its own
+    // push - otherwise report views via a public share link (which is how
+    // realtors typically see a report) never notify the inspector at all.
+    const { data: inspection } = await supabase
+      .from("inspections")
+      .select("id, inspector_id, property_address, address")
+      .eq("id", numericInspectionId)
+      .maybeSingle();
+
+    if (inspection?.inspector_id) {
+      const property =
+        inspection.property_address || inspection.address || "your report";
+      const role = String(viewerRole || "").trim().toLowerCase();
+      const isRealtor = role.includes("realtor") || role.includes("agent") || role.includes("coordinator");
+      const viewerLabel = isRealtor ? "A realtor" : viewerEmail || "Someone";
+
+      await sendPushNotification({
+        title: isRealtor ? "Realtor Viewed Report" : "Report Viewed",
+        body: `${viewerLabel} opened ${property}.`,
+        url: `/reports/${numericInspectionId}`,
+        eventType: "report_share",
+        target: "user",
+        targetUserId: inspection.inspector_id,
+      });
+    }
   } catch (error) {
     console.error("Share view tracking error:", error);
   }
