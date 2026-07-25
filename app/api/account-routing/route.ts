@@ -89,23 +89,13 @@ export async function GET() {
       const admin = createAdminClient();
 
       try {
-        const { data: inspectorRows } = await admin
-          .from("inspectors")
-          .select("id,email,user_id")
-          .or(`user_id.eq.${user.id},email.ilike.${email}`)
+        const { data: companyUserRows } = await admin
+          .from("company_users")
+          .select("company_id")
+          .eq("user_id", user.id)
           .limit(1);
 
-        isInspector = Boolean(inspectorRows?.length);
-      } catch {}
-
-      try {
-        const { data: companyRows } = await admin
-          .from("companies")
-          .select("id,owner_email,email,user_id")
-          .or(`user_id.eq.${user.id},owner_email.ilike.${email},email.ilike.${email}`)
-          .limit(1);
-
-        if (companyRows?.length) isInspector = true;
+        isInspector = Boolean(companyUserRows?.length);
       } catch {}
 
       try {

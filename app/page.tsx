@@ -100,21 +100,12 @@ async function getDashboardDestination(user: any) {
     },
   });
 
-  const [{ data: inspectors }, { data: companies }, { data: contacts }] =
+  const [{ data: companyUsers }, { data: contacts }] =
     await Promise.all([
       admin
-        .from("inspectors")
-        .select("id")
-        .or(
-          `user_id.eq.${user.id},email.ilike.${email},owner_email.ilike.${email}`,
-        )
-        .limit(1),
-      admin
-        .from("companies")
-        .select("id")
-        .or(
-          `user_id.eq.${user.id},email.ilike.${email},owner_email.ilike.${email}`,
-        )
+        .from("company_users")
+        .select("company_id")
+        .eq("user_id", user.id)
         .limit(1),
       admin
         .from("inspection_contacts")
@@ -123,7 +114,7 @@ async function getDashboardDestination(user: any) {
         .limit(100),
     ]);
 
-  if (inspectors?.length || companies?.length) return "/";
+  if (companyUsers?.length) return "/";
 
   const realtorContact = (contacts || []).some(
     (contact: any) =>
