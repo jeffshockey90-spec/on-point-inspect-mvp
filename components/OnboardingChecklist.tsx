@@ -5,13 +5,11 @@ import CreateSampleDataButton from "./CreateSampleDataButton";
 
 type OnboardingChecklistProps = {
   inspectionCount?: number;
-  sampleInspectionCount?: number;
   draftReportCount?: number;
   publishedReportCount?: number;
-  agreementCount?: number;
-  paidReportCount?: number;
   companyProfileReady?: boolean;
-  repairRequestCount?: number;
+  hasOfficeAddress?: boolean;
+  agreementSetupReady?: boolean;
 };
 
 type Step = {
@@ -78,80 +76,60 @@ function StepCard({ step, index }: { step: Step; index: number }) {
 
 export default function OnboardingChecklist({
   inspectionCount = 0,
-  sampleInspectionCount = 0,
   draftReportCount = 0,
   publishedReportCount = 0,
-  agreementCount = 0,
-  paidReportCount = 0,
   companyProfileReady = false,
-  repairRequestCount = 0,
+  hasOfficeAddress = false,
+  agreementSetupReady = false,
 }: OnboardingChecklistProps) {
-  const hasRealInspection = inspectionCount > sampleInspectionCount;
   const hasAnyInspection = inspectionCount > 0;
+  const hasSectionContent = draftReportCount > 0 || publishedReportCount > 0;
 
   const steps: Step[] = [
     {
-      title: "Finish your company setup",
+      title: "Company Info & Address",
       description:
-        "Add your logo, public profile details, contact information, and brand settings so reports look complete.",
+        "Add your logo, contact info, brand settings, and business starting address so reports and mileage tracking are ready.",
       href: "/settings",
       action: "Open Settings",
-      complete: companyProfileReady,
+      complete: companyProfileReady && hasOfficeAddress,
       icon: "🏢",
     },
     {
-      title: "Create or load an inspection",
+      title: "Agreements & Standards of Practice",
       description:
-        "Start a real inspection, or create sample data so you can test the workflow without using a client job.",
-      href: hasAnyInspection ? "/reports" : "/inspections/new",
-      action: hasAnyInspection ? "View Reports" : "Create Inspection",
-      complete: hasRealInspection || sampleInspectionCount > 0,
-      icon: "🏠",
-    },
-    {
-      title: "Use the Field Tool",
-      description:
-        "Capture photos, dictate findings, use AI assistance, and build report content from the field.",
-      href: "/field",
-      action: "Open Field Tool",
-      complete: draftReportCount > 0 || publishedReportCount > 0,
-      icon: "📱",
-    },
-    {
-      title: "Send agreements",
-      description:
-        "Use agreement templates, required signer tracking, and reminders before final delivery.",
+        "Set up your agreement templates and customize your Standards of Practice so every report is ready to send.",
       href: "/agreements",
-      action: "Review Agreements",
-      complete: agreementCount > 0,
+      action: "Set Up Agreements",
+      complete: agreementSetupReady,
       icon: "📝",
     },
     {
-      title: "Confirm payment",
+      title: "Schedule an Inspection",
       description:
-        "Use invoice and payment status tracking so delivery requirements are clear before publishing.",
-      href: "/invoices",
-      action: "Open Invoices",
-      complete: paidReportCount > 0,
-      icon: "💰",
+        "Create your first inspection with a date, time, and property address - or load sample data to try the workflow.",
+      href: hasAnyInspection ? "/reports" : "/inspections/new",
+      action: hasAnyInspection ? "View Reports" : "Create Inspection",
+      complete: hasAnyInspection,
+      icon: "🗓️",
     },
     {
-      title: "Publish and deliver",
+      title: "Inspection Section Info",
       description:
-        "Run AI review, check the publish guard, publish the report, and send client/realtor delivery links.",
+        "Open the inspection and fill in section details - exterior, roof, systems, and everything in between.",
       href: "/reports",
       action: "Open Reports",
-      complete: publishedReportCount > 0,
-      icon: "🚀",
+      complete: hasSectionContent,
+      icon: "🏠",
     },
     {
-      title: "Try repair requests",
+      title: "Field Tool",
       description:
-        "Build a repair request, send a secure response link, and collect seller responses/credits.",
-      href: "/reports",
-      action: "Open a Report",
-      complete: repairRequestCount > 0,
-      icon: "🛠️",
+        "Capture photos, dictate findings, and use AI assistance to build your report directly from the field.",
+      href: "/field",
+      action: "Open Field Tool",
+      complete: hasSectionContent,
+      icon: "📱",
     },
   ];
 
@@ -172,9 +150,8 @@ export default function OnboardingChecklist({
             </h1>
 
             <p className="mt-4 max-w-3xl text-base leading-7 text-slate-300 md:text-lg">
-              Follow this checklist to go from a blank account to a complete inspection workflow:
-              company setup, sample inspection, Field Tool, agreements, payment, publishing,
-              and repair requests.
+              Five steps to a complete inspection workflow: company info, agreements and
+              standards, scheduling, section content, and the Field Tool.
             </p>
 
             <div className="mt-6 flex flex-wrap gap-3">

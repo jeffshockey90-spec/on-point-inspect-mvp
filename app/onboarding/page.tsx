@@ -30,29 +30,6 @@ function isPublished(inspection: any) {
   );
 }
 
-function isPaid(inspection: any) {
-  const status = String(
-    inspection?.payment_status || inspection?.invoice_status || ""
-  ).toLowerCase();
-
-  return status === "paid" || status === "waived";
-}
-
-function isSampleInspection(inspection: any) {
-  const text = [
-    inspection?.property_address,
-    inspection?.address,
-    inspection?.client_name,
-    inspection?.report_status,
-    inspection?.notes,
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-
-  return text.includes("sample") || text.includes("demo");
-}
-
 export default async function OnboardingPage() {
   const supabase = await createSupabaseServerClient();
 
@@ -96,18 +73,6 @@ export default async function OnboardingPage() {
           .eq("agreement_required", true)
       : { data: [] };
 
-  const { data: repairRequestsRaw } =
-    inspections.length > 0
-      ? await supabase
-          .from("repair_request_shares")
-          .select("id")
-          .in(
-            "inspection_id",
-            inspections.map((inspection: any) => inspection.id)
-          )
-          .limit(1)
-      : { data: [] };
-
   const companyProfileReady = Boolean(
     company?.name ||
       company?.company_name ||
@@ -116,18 +81,25 @@ export default async function OnboardingPage() {
       company?.email
   );
 
+  const hasOfficeAddress = Boolean(String(company?.office_address || "").trim());
+
+  const hasCustomStandardsOfPractice = Boolean(
+    String(company?.standards_of_practice_body || "").trim()
+  );
+
+  const agreementSetupReady =
+    (agreementsRaw || []).length > 0 || hasCustomStandardsOfPractice;
+
   return (
     <main className="min-h-screen bg-[#020617] px-4 py-8 text-white">
       <div className="mx-auto max-w-7xl">
         <OnboardingChecklist
           inspectionCount={inspections.length}
-          sampleInspectionCount={inspections.filter(isSampleInspection).length}
           draftReportCount={inspections.filter((inspection: any) => !isPublished(inspection)).length}
           publishedReportCount={inspections.filter(isPublished).length}
-          agreementCount={(agreementsRaw || []).length}
-          paidReportCount={inspections.filter(isPaid).length}
           companyProfileReady={companyProfileReady}
-          repairRequestCount={(repairRequestsRaw || []).length}
+          hasOfficeAddress={hasOfficeAddress}
+          agreementSetupReady={agreementSetupReady}
         />
       </div>
     </main>
