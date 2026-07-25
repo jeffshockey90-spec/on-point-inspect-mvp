@@ -11,6 +11,7 @@ type OnboardingChecklistProps = {
   agreementCount?: number;
   paidReportCount?: number;
   companyProfileReady?: boolean;
+  repairRequestCount?: number;
 };
 
 type Step = {
@@ -83,6 +84,7 @@ export default function OnboardingChecklist({
   agreementCount = 0,
   paidReportCount = 0,
   companyProfileReady = false,
+  repairRequestCount = 0,
 }: OnboardingChecklistProps) {
   const hasRealInspection = inspectionCount > sampleInspectionCount;
   const hasAnyInspection = inspectionCount > 0;
@@ -148,7 +150,7 @@ export default function OnboardingChecklist({
         "Build a repair request, send a secure response link, and collect seller responses/credits.",
       href: "/reports",
       action: "Open a Report",
-      complete: false,
+      complete: repairRequestCount > 0,
       icon: "🛠️",
     },
   ];
@@ -251,22 +253,6 @@ export default function OnboardingChecklist({
             </div>
           ))}
         </div>
-      </section>
-
-      <section className="rounded-3xl border border-yellow-500/30 bg-yellow-500/10 p-6 shadow-xl">
-        <p className="text-xs font-black uppercase tracking-[0.28em] text-yellow-300">
-          Help Videos
-        </p>
-
-        <h2 className="mt-2 text-3xl font-black text-white">
-          Training library placeholder
-        </h2>
-
-        <p className="mt-3 max-w-3xl text-sm leading-6 text-yellow-100">
-          Add short Loom/YouTube links here later for “Create First Inspection,”
-          “Use Field Tool,” “Send Agreements,” “Publish Report,” and “Repair Requests.”
-          The layout is ready; the videos can be dropped in when recorded.
-        </p>
       </section>
     </section>
   );

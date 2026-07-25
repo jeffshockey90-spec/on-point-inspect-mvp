@@ -96,6 +96,18 @@ export default async function OnboardingPage() {
           .eq("agreement_required", true)
       : { data: [] };
 
+  const { data: repairRequestsRaw } =
+    inspections.length > 0
+      ? await supabase
+          .from("repair_request_shares")
+          .select("id")
+          .in(
+            "inspection_id",
+            inspections.map((inspection: any) => inspection.id)
+          )
+          .limit(1)
+      : { data: [] };
+
   const companyProfileReady = Boolean(
     company?.name ||
       company?.company_name ||
@@ -115,6 +127,7 @@ export default async function OnboardingPage() {
           agreementCount={(agreementsRaw || []).length}
           paidReportCount={inspections.filter(isPaid).length}
           companyProfileReady={companyProfileReady}
+          repairRequestCount={(repairRequestsRaw || []).length}
         />
       </div>
     </main>

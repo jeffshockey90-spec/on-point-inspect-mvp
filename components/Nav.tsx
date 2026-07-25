@@ -13,6 +13,7 @@ import { isPortalRoute } from "../lib/navVisibility";
 const baseNavItems = [
   { title: "Dashboard", href: "/", icon: "🏠", mobileLabel: "Home" },
   { title: "New Inspection", href: "/inspections/new", icon: "➕", mobileLabel: "New" },
+  { title: "Field Tool", href: "/field", icon: "📱", mobileLabel: "Field" },
   { title: "Reports", href: "/reports", icon: "📋", mobileLabel: "Reports" },
   { title: "Realtors", href: "/realtors", icon: "🏡", mobileLabel: "Realtors" },
   { title: "Agreements", href: "/agreements", icon: "📄", mobileLabel: "Agreements" },

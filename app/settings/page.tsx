@@ -627,27 +627,6 @@ export default async function SettingsPage({
               </p>
             </FastLinkButton>
           )}
-
-          <a
-            href="#notifications"
-            className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-slate-800 bg-[#0b1220] p-4 transition active:scale-[0.98] hover:border-amber-400/70 hover:bg-amber-500/10 sm:p-5 [touch-action:manipulation]"
-          >
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/10 text-2xl">
-              🔔
-            </div>
-            <p className="mt-4 text-xs font-black uppercase tracking-[0.2em] text-amber-300">
-              Alerts
-            </p>
-            <h2 className="mt-2 text-lg font-black text-white sm:text-xl">
-              Live Activity
-            </h2>
-            <p className="mt-2 text-sm leading-6 text-slate-400">
-              iPhone alerts, browser push, popups, and sounds.
-            </p>
-            <p className="mt-4 text-sm font-black text-amber-300 group-hover:text-amber-200">
-              Manage Alerts →
-            </p>
-          </a>
         </section>
 
         <form action={saveCompanySettings} className="space-y-6">
@@ -867,6 +846,78 @@ export default async function SettingsPage({
             </div>
           </section>
 
+          <section className="rounded-3xl border border-slate-800 bg-[#0b1220] p-5 sm:p-6 md:p-8">
+            <h2 className="text-xl font-black text-teal-300 sm:text-2xl">
+              Payments
+            </h2>
+
+            <div className="mt-6 grid gap-5 lg:grid-cols-2">
+              <StripeStatusCard company={company} />
+
+              <div className="rounded-2xl border border-slate-700 bg-slate-950 p-4 sm:p-5">
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 sm:tracking-[0.25em]">
+                  Stripe Setup
+                </p>
+
+                <h3 className="mt-2 text-xl font-black text-white sm:text-2xl">
+                  Connect Your Stripe Account
+                </h3>
+
+                <p className="mt-3 text-sm leading-6 text-slate-300">
+                  Each inspector connects their own Stripe account once. Online
+                  inspection payments are blocked until Stripe setup is
+                  complete, so another inspector’s payment will never fall back
+                  to your account.
+                </p>
+
+                <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+                  <a
+                    href="/api/stripe/connect/onboard"
+                    className="w-full rounded-xl bg-teal-500 px-5 py-3 text-center font-black text-slate-950 hover:bg-teal-400 sm:w-auto"
+                  >
+                    Connect / Update Stripe
+                  </a>
+
+                  <a
+                    href="/api/stripe/connect/refresh"
+                    className="w-full rounded-xl border border-slate-700 px-5 py-3 text-center font-bold text-slate-200 hover:border-teal-400 hover:text-teal-300 sm:w-auto"
+                  >
+                    Refresh Stripe Status
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 rounded-2xl border border-slate-700 bg-slate-950 p-4 sm:p-5">
+              <h3 className="text-lg font-black text-white sm:text-xl">
+                Online Payment Fee
+              </h3>
+
+              <p className="mt-2 text-sm leading-6 text-slate-300">
+                Choose whether to pass an online card payment fee to the client when they pay
+                their balance through the client portal - either a percentage of the balance or a
+                flat dollar amount, whatever you want to charge. The client always sees this as
+                its own clearly labeled line item before they pay, separate from the inspection
+                balance.
+              </p>
+
+              <div className="mt-5 grid gap-4 md:grid-cols-3">
+                <div className="flex items-center justify-between gap-4 rounded-xl border border-slate-700 bg-[#020617] p-4 md:col-span-1">
+                  <p className="min-w-0 flex-1 break-words text-sm font-bold leading-6 text-slate-200 sm:text-base">
+                    Pass online payment fee to client
+                  </p>
+                  <SettingsToggle
+                    name="online_payment_fee_enabled"
+                    defaultChecked={feeEnabled}
+                    ariaLabel="Pass online payment fee to client"
+                  />
+                </div>
+
+                <OnlinePaymentFeeFields defaultFeeType={feeType} defaultFeeAmount={feeAmount} />
+              </div>
+            </div>
+          </section>
+
           <section
             id="public-profile"
             className="overflow-hidden rounded-3xl border border-cyan-500/30 bg-[#0b1220] shadow-2xl shadow-black/20"
@@ -977,78 +1028,6 @@ export default async function SettingsPage({
 
           <TimePreferencesSettings />
 
-          <section className="rounded-3xl border border-slate-800 bg-[#0b1220] p-5 sm:p-6 md:p-8">
-            <h2 className="text-xl font-black text-teal-300 sm:text-2xl">
-              Payments
-            </h2>
-
-            <div className="mt-6 grid gap-5 lg:grid-cols-2">
-              <StripeStatusCard company={company} />
-
-              <div className="rounded-2xl border border-slate-700 bg-slate-950 p-4 sm:p-5">
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 sm:tracking-[0.25em]">
-                  Stripe Setup
-                </p>
-
-                <h3 className="mt-2 text-xl font-black text-white sm:text-2xl">
-                  Connect Your Stripe Account
-                </h3>
-
-                <p className="mt-3 text-sm leading-6 text-slate-300">
-                  Each inspector connects their own Stripe account once. Online
-                  inspection payments are blocked until Stripe setup is
-                  complete, so another inspector’s payment will never fall back
-                  to your account.
-                </p>
-
-                <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-                  <a
-                    href="/api/stripe/connect/onboard"
-                    className="w-full rounded-xl bg-teal-500 px-5 py-3 text-center font-black text-slate-950 hover:bg-teal-400 sm:w-auto"
-                  >
-                    Connect / Update Stripe
-                  </a>
-
-                  <a
-                    href="/api/stripe/connect/refresh"
-                    className="w-full rounded-xl border border-slate-700 px-5 py-3 text-center font-bold text-slate-200 hover:border-teal-400 hover:text-teal-300 sm:w-auto"
-                  >
-                    Refresh Stripe Status
-                  </a>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-6 rounded-2xl border border-slate-700 bg-slate-950 p-4 sm:p-5">
-              <h3 className="text-lg font-black text-white sm:text-xl">
-                Online Payment Fee
-              </h3>
-
-              <p className="mt-2 text-sm leading-6 text-slate-300">
-                Choose whether to pass an online card payment fee to the client when they pay
-                their balance through the client portal - either a percentage of the balance or a
-                flat dollar amount, whatever you want to charge. The client always sees this as
-                its own clearly labeled line item before they pay, separate from the inspection
-                balance.
-              </p>
-
-              <div className="mt-5 grid gap-4 md:grid-cols-3">
-                <div className="flex items-center justify-between gap-4 rounded-xl border border-slate-700 bg-[#020617] p-4 md:col-span-1">
-                  <p className="min-w-0 flex-1 break-words text-sm font-bold leading-6 text-slate-200 sm:text-base">
-                    Pass online payment fee to client
-                  </p>
-                  <SettingsToggle
-                    name="online_payment_fee_enabled"
-                    defaultChecked={feeEnabled}
-                    ariaLabel="Pass online payment fee to client"
-                  />
-                </div>
-
-                <OnlinePaymentFeeFields defaultFeeType={feeType} defaultFeeAmount={feeAmount} />
-              </div>
-            </div>
-          </section>
-
           <div className="flex flex-col gap-3 sm:flex-row">
             <button
               type="submit"
@@ -1059,7 +1038,7 @@ export default async function SettingsPage({
           </div>
         </form>
 
-        <div className="pb-80">
+        <div className="pb-8">
           <DeleteAccountSection />
         </div>
       </div>

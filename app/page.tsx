@@ -524,6 +524,11 @@ export default async function HomePage() {
   }
 
   const inspections = inspectionsResult.data || [];
+
+  if (inspections.length === 0) {
+    redirect("/onboarding");
+  }
+
   const inspectionIds = inspections.map((inspection: any) => Number(inspection.id)).filter(Boolean);
 
   const { data: activityRaw, error: activityError } =
