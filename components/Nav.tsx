@@ -20,6 +20,7 @@ const baseNavItems = [
   { title: "Templates", href: "/templates", icon: "📚", mobileLabel: "Templates" },
   { title: "Quotes", href: "/quotes", icon: "💬", mobileLabel: "Quotes" },
   { title: "Schedule", href: "/schedule", icon: "🗓️", mobileLabel: "Schedule" },
+  { title: "Mileage", href: "/mileage", icon: "🚗", mobileLabel: "Mileage" },
   { title: "Support", href: "/support", icon: "💬", mobileLabel: "Support" },
   { title: "Settings", href: "/settings", icon: "⚙️", mobileLabel: "Settings" },
 ];
