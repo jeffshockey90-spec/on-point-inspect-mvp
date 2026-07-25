@@ -27,6 +27,8 @@ const INSPECTOR_ONLY_PREFIXES = [
   "/environmental-report",
   "/realtors",
   "/onboarding",
+  "/mileage",
+  "/emails",
 ];
 
 const REALTOR_ACCOUNT_PREFIXES: string[] = [

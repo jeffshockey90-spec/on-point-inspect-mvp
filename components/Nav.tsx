@@ -17,6 +17,7 @@ const baseNavItems = [
   { title: "Reports", href: "/reports", icon: "📋", mobileLabel: "Reports" },
   { title: "Realtors", href: "/realtors", icon: "🏡", mobileLabel: "Realtors" },
   { title: "Agreements", href: "/agreements", icon: "📄", mobileLabel: "Agreements" },
+  { title: "Sent Emails", href: "/emails", icon: "📧", mobileLabel: "Emails" },
   { title: "AI Capture", href: "/ai-capture", icon: "✨", mobileLabel: "AI" },
   { title: "Templates", href: "/templates", icon: "📚", mobileLabel: "Templates" },
   { title: "Quotes", href: "/quotes", icon: "💬", mobileLabel: "Quotes" },
