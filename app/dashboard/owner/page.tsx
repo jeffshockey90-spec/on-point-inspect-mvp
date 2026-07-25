@@ -911,8 +911,8 @@ export default async function OwnerDashboardPage() {
           {userManagementRows.length === 0 ? (
             <EmptyState text="No users found." />
           ) : (
-            <div className="overflow-hidden rounded-2xl border border-slate-700">
-              <div className="overflow-x-auto">
+            <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-700">
+              <div className="min-w-0 overflow-x-auto">
                 <table className="min-w-full divide-y divide-slate-800 text-sm">
                   <thead className="bg-[#020817] text-left text-xs uppercase tracking-wide text-slate-400">
                     <tr>
