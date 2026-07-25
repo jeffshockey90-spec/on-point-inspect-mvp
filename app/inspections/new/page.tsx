@@ -716,7 +716,7 @@ function NewInspectionPageContent() {
 
     if (used >= limit) {
       setBillingMessage(
-        `You have used all ${limit} free inspections. Activate your FLOW subscription to continue creating reports.`
+        `Your free trial is over - you've used all ${limit} free inspections. Activate your FLOW subscription to keep creating inspections.`
       );
       setShowBillingPopup(true);
 
@@ -865,6 +865,18 @@ function NewInspectionPageContent() {
         .single();
 
       if (error) {
+        const blockedByTrialLimit =
+          error.code === "42501" ||
+          /row-level security/i.test(error.message || "");
+
+        if (blockedByTrialLimit) {
+          setBillingMessage(
+            "Your free trial is over - you've used all 3 free inspections. Activate your FLOW subscription to keep creating inspections."
+          );
+          setShowBillingPopup(true);
+          return;
+        }
+
         alert(error.message);
         return;
       }
@@ -1561,7 +1573,7 @@ function NewInspectionPageContent() {
             </p>
 
             <h2 className="mt-3 text-3xl font-black text-white">
-              Subscription Required
+              Your Trial Has Ended
             </h2>
 
             <p className="mt-4 leading-7 text-zinc-300">
@@ -1569,7 +1581,7 @@ function NewInspectionPageContent() {
             </p>
 
             <p className="mt-3 text-sm leading-6 text-zinc-400">
-              Go to Billing to activate your subscription and continue creating inspections.
+              Go to Billing to activate your subscription and keep creating inspections.
             </p>
 
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
