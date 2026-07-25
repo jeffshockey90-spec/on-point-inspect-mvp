@@ -531,7 +531,7 @@ export default function Navbar() {
       </aside>
 
       <nav
-        className="fixed inset-x-0 bottom-0 z-[100] border-t border-zinc-800 bg-[#0b1220]/95 shadow-2xl shadow-black/60 backdrop-blur md:hidden portrait:block landscape:hidden [transform:translateZ(0)] [will-change:transform]"
+        className="fixed inset-x-0 bottom-0 z-[100] border-t border-zinc-800 bg-[#0b1220]/95 shadow-2xl shadow-black/60 backdrop-blur xl:hidden [transform:translateZ(0)] [will-change:transform]"
         style={{ bottom: 0, paddingBottom: "env(safe-area-inset-bottom)", transform: "translateZ(0)" }}
       >
         <div className="flex h-[78px] w-full flex-row flex-nowrap items-center justify-between">
