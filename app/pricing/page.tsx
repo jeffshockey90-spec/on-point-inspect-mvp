@@ -101,9 +101,9 @@ export default async function PricingPage() {
         <div className="mt-12 text-center">
           <p className="text-slate-400">
             Questions before you sign up?{" "}
-            <Link href="/support" className="font-bold text-teal-300 hover:text-teal-200">
+            <a href="mailto:support@onpointhomeinspect.com" className="font-bold text-teal-300 hover:text-teal-200">
               Contact us
-            </Link>
+            </a>
           </p>
           <p className="mt-2 text-slate-400">
             Already have an account?{" "}

@@ -14,6 +14,7 @@ import {
   getAgreementStatsForInspection,
 } from "../lib/inspectionStatus";
 import DashboardTour from "../components/DashboardTour";
+import MarketingHomepage from "../components/MarketingHomepage";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -460,7 +461,7 @@ export default async function HomePage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) redirect("/login");
+  if (!user) return <MarketingHomepage />;
 
   const dashboardDestination = await getDashboardDestination(user);
 

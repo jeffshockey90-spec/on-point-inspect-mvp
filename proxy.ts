@@ -276,7 +276,12 @@ export default async function middleware(request: NextRequest) {
   // under /reports stays inspector-only.
   const isPublicReportPrint = /^\/reports\/[^/]+\/print\/?$/.test(pathname);
 
-  if (isPublicRoute || isPublicReportPrint) return response;
+  // The root path serves the public marketing homepage to signed-out
+  // visitors and the inspector Command Center to signed-in ones - app/page.tsx
+  // branches on auth state itself, so let both through here.
+  const isPublicRoot = pathname === "/" && !user;
+
+  if (isPublicRoute || isPublicReportPrint || isPublicRoot) return response;
 
   if (!user) {
     const url = request.nextUrl.clone();
