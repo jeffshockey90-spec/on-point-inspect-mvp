@@ -69,14 +69,14 @@ export async function POST(req: Request) {
 
     let { data: profile } = await admin
       .from("profiles")
-      .select("id,email,stripe_customer_id")
+      .select("id,email,stripe_customer_id,stripe_subscription_id")
       .eq("id", user.id)
       .maybeSingle();
 
     if (!profile && user.email) {
       const fallback = await admin
         .from("profiles")
-        .select("id,email,stripe_customer_id")
+        .select("id,email,stripe_customer_id,stripe_subscription_id")
         .eq("email", user.email.toLowerCase())
         .maybeSingle();
 
@@ -90,6 +90,9 @@ export async function POST(req: Request) {
       );
     }
 
+    const body = await req.json().catch(() => ({}));
+    const wantsCancelFlow = body?.flow === "cancel";
+
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
       });
 
@@ -98,6 +101,16 @@ export async function POST(req: Request) {
     const session = await stripe.billingPortal.sessions.create({
       customer: profile.stripe_customer_id,
       return_url: `${baseUrl}/billing`,
+      ...(wantsCancelFlow && profile.stripe_subscription_id
+        ? {
+            flow_data: {
+              type: "subscription_cancel" as const,
+              subscription_cancel: {
+                subscription: profile.stripe_subscription_id,
+              },
+            },
+          }
+        : {}),
     });
 
     return NextResponse.json({ url: session.url });
