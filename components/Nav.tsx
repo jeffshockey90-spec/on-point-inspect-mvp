@@ -1,5 +1,6 @@
 "use client";
 
+import { OWNER_EMAILS } from "../lib/ownerEmails";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -7,7 +8,7 @@ import { supabase } from "../lib/supabaseClient";
 import SupportUnreadBadge from "./SupportUnreadBadge";
 import { isPortalRoute } from "../lib/navVisibility";
 
-const OWNER_EMAILS = ["jeff@onpointhomeinspect.com", "jeffshockey90@gmail.com"];
+
 
 const baseNavItems = [
   { title: "Dashboard", href: "/", icon: "🏠", mobileLabel: "Home" },

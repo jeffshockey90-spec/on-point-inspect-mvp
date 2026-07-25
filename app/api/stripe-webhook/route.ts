@@ -6,14 +6,10 @@ import crypto from "crypto";
 import http2 from "http2";
 import { formatUsd } from "../../../lib/currency";
 import { getCompanyBrandingById, buildBrandedFromHeader, type CompanyBranding } from "../../../lib/companyBranding";
+import { OWNER_EMAILS } from "../../../lib/ownerEmails";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const OWNER_EMAILS = [
-  "jeffshockey90@gmail.com",
-  "jeff@onpointhomeinspect.com",
-];
 
 function getStripe() {
   const key = process.env.STRIPE_SECRET_KEY;
@@ -148,7 +144,6 @@ function getPropertyLabel(inspection: any) {
     "Inspection report"
   );
 }
-
 
 function base64Url(input: Buffer | string) {
   return Buffer.from(input)
@@ -1003,7 +998,6 @@ export async function POST(req: Request) {
         },
       });
     }
-
 
     if (event.type === "customer.subscription.updated") {
       const subscription = event.data.object as Stripe.Subscription;

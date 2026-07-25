@@ -1,9 +1,10 @@
+import { OWNER_EMAILS } from "../../../lib/ownerEmails";
 
 import { redirect } from "next/navigation";
 import { formatAppValue } from "../../../lib/app-time";
 import { createClient } from "../../../utils/supabase/server";
 
-const OWNER_EMAILS = ["jeff@onpointhomeinspect.com", "jeffshockey90@gmail.com"];
+
 
 type LogRow = {
   id: number;

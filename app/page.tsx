@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
+import { OWNER_EMAILS } from "../lib/ownerEmails";
 import {
   getBalanceDue,
   isPaymentComplete,
@@ -53,11 +54,6 @@ async function createSupabaseServerClient() {
     }
   );
 }
-
-const OWNER_EMAILS = [
-  "jeff@onpointhomeinspect.com",
-  "jeffshockey90@gmail.com",
-];
 
 function cleanEmailForRouting(value: unknown) {
   return String(value || "").trim().toLowerCase();
@@ -400,7 +396,6 @@ function hasActivityForInspection(activityLogs: any[], inspectionId: any, types:
     return logInspectionId === cleanId && types.includes(getViewType(log));
   });
 }
-
 
 function getRepairShareStatus(share: any, responseCount = 0) {
   const status = String(share?.status || "").toLowerCase();

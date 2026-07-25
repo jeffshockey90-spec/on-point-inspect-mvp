@@ -1,3 +1,4 @@
+import { OWNER_EMAILS } from "../../../../../lib/ownerEmails";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
@@ -9,7 +10,7 @@ import webpush from "web-push";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const OWNER_EMAILS = ["jeff@onpointhomeinspect.com", "jeffshockey90@gmail.com"];
+
 
 type PushPayload = {
   title: string;

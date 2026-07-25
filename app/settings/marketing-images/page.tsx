@@ -1,9 +1,12 @@
+import { OWNER_EMAILS } from "../../../lib/ownerEmails";
 import { redirect } from "next/navigation";
 import { createClient } from "../../../utils/supabase/server";
 import MarketingImageStudio from "./MarketingImageStudio";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+
+
 
 function cleanUrl(value: any) {
   const text = String(value || "").trim();
@@ -48,6 +51,7 @@ export default async function MarketingImagesSettingsPage() {
   } = await supabase.auth.getUser();
 
   if (!user?.email) redirect("/login");
+  if (!OWNER_EMAILS.includes(String(user.email).toLowerCase())) redirect("/settings");
 
   const userId = user.id;
   const email = user.email;

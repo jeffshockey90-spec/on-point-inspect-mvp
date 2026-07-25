@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import FastLinkButton from "../../components/FastLinkButton";
 import FastCard from "../../components/FastCard";
+import { OWNER_EMAILS } from "../../lib/ownerEmails";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -214,10 +215,7 @@ export default async function DashboardPage() {
 
   if (!user) redirect("/login");
 
-  const isOwner =
-    ["jeffshockey90@gmail.com", "jeff@onpointhomeinspect.com"].includes(
-      String(user.email || "").toLowerCase()
-    );
+  const isOwner = OWNER_EMAILS.includes(String(user.email || "").toLowerCase());
 
   const dashboardCards = isOwner ? [ownerDashboardCard, ...cards] : cards;
 

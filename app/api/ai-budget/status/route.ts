@@ -2,14 +2,10 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { getAIBudgetStatus } from "../../../../lib/aiBudget";
+import { OWNER_EMAILS } from "../../../../lib/ownerEmails";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const OWNER_EMAILS = [
-  "jeffshockey90@gmail.com",
-  "jeff@onpointhomeinspect.com",
-];
 
 async function createUserClient() {
   const cookieStore = await cookies();

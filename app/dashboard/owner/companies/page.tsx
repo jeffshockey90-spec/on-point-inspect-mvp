@@ -7,11 +7,10 @@ import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import FastLinkButton from "../../../../components/FastLinkButton";
 import SubscriptionPricingEditor from "../../../../components/SubscriptionPricingEditor";
+import { OWNER_EMAILS } from "../../../../lib/ownerEmails";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
-
-const OWNER_EMAILS = ["jeff@onpointhomeinspect.com", "jeffshockey90@gmail.com"];
 
 async function createUserClient() {
   const cookieStore = await cookies();

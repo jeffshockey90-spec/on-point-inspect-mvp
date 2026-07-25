@@ -1,3 +1,4 @@
+import { OWNER_EMAILS } from "../../../lib/ownerEmails";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
@@ -6,7 +7,7 @@ import { createClient as createServiceClient } from "@supabase/supabase-js";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const OWNER_EMAILS = ["jeff@onpointhomeinspect.com", "jeffshockey90@gmail.com"];
+
 
 async function createSupabaseServerClient() {
   const cookieStore = await cookies();

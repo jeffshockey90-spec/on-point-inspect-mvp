@@ -1,13 +1,11 @@
+import { OWNER_EMAILS } from "./lib/ownerEmails";
 import { createServerClient } from "@supabase/ssr";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
 
-const OWNER_EMAILS = [
-  "jeff@onpointhomeinspect.com",
-  "jeffshockey90@gmail.com",
-];
 
-const OWNER_ONLY_PREFIXES = ["/dashboard", "/admin"];
+
+const OWNER_ONLY_PREFIXES = ["/dashboard", "/admin", "/settings/marketing-images"];
 
 const INSPECTOR_ONLY_PREFIXES = [
   "/dashboard",
@@ -235,7 +233,7 @@ async function getAccountRoute(user: { id: string; email?: string | null }) {
   };
 }
 
-export default async function proxy(request: NextRequest) {
+export default async function middleware(request: NextRequest) {
   let response = NextResponse.next({
     request: { headers: request.headers },
   });

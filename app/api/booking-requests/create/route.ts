@@ -1,3 +1,4 @@
+import { OWNER_EMAILS } from "../../../../lib/ownerEmails";
 
 import { formatAppValue } from "../../../../lib/app-time";
 import { NextResponse } from "next/server";
@@ -11,9 +12,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const OWNER_EMAILS = [
-  "jeff@onpointhomeinspect.com",
-];
+
 
 type PushPayload = {
   title: string;

@@ -1,3 +1,4 @@
+import { OWNER_EMAILS } from "../../lib/ownerEmails";
 
 import { formatAppValue } from "../../lib/app-time";
 import FastLinkButton from "../../components/FastLinkButton";
@@ -31,10 +32,7 @@ function cleanEmail(value: any) {
   return cleanText(value).toLowerCase();
 }
 
-const OWNER_EMAILS = [
-  "jeffshockey90@gmail.com",
-  "jeff@onpointhomeinspect.com",
-];
+
 
 function parseMoneyValue(value: any) {
   const number = Number(String(value || "").replace(/[^0-9.-]/g, ""));

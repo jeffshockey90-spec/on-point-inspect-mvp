@@ -1,3 +1,4 @@
+import { OWNER_EMAILS } from "../../../lib/ownerEmails";
 
 import { formatAppValue } from "../../../lib/app-time";
 import Link from "next/link";
@@ -14,7 +15,7 @@ import AIBudgetStatus from "../../../components/AIBudgetStatus";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-const OWNER_EMAILS = ["jeff@onpointhomeinspect.com", "jeffshockey90@gmail.com"];
+
 
 type Tone = "teal" | "green" | "blue" | "purple" | "orange" | "yellow" | "red";
 
