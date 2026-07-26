@@ -106,47 +106,91 @@ function SectionEyebrow({ children }: { children: React.ReactNode }) {
   );
 }
 
+// Reproduces the real "Confirm Finding" screen from
+// components/ai-camera/CaptureConfirmCard.tsx - same header treatment,
+// field labels, and layout order the app actually uses after a capture.
 function FieldCaptureMockup() {
+  const fieldLabel = "text-[9px] font-black uppercase tracking-wide text-slate-400";
+  const fieldBox = "mt-1 rounded-lg border border-white/15 bg-black/40 p-2 text-[10px] leading-snug text-white";
+
   return (
-    <div className="rounded-3xl border border-slate-700 bg-[#0b1220] p-6 shadow-2xl shadow-black/40 md:p-7">
-      <div className="flex items-center justify-between">
-        <p className="text-xs font-black uppercase tracking-[0.25em] text-teal-300">Live Field Tool</p>
-        <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-[10px] font-black uppercase text-emerald-300">
+    <div className="overflow-hidden rounded-3xl border border-slate-700 bg-black shadow-2xl shadow-black/40">
+      <div className="flex items-center justify-between px-5 pt-5">
+        <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-300">
+          Confirm Finding
+        </p>
+        <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-[9px] font-black uppercase text-emerald-300">
           Offline Ready
         </span>
       </div>
 
-      <div className="mt-5 overflow-hidden rounded-2xl border border-slate-800 bg-[#020617]">
-        <div className="flex aspect-video items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900">
-          <span className="text-5xl">📷</span>
+      <div className="p-5">
+        <div className="flex aspect-[16/10] items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-slate-800 to-slate-900">
+          <span className="text-4xl">📷</span>
         </div>
-        <div className="p-4">
-          <p className="text-xs font-black uppercase tracking-wide text-teal-300">Exterior &middot; Roofing</p>
-          <p className="mt-2 text-sm font-bold text-white">"Missing shingles near the chimney flashing, moderate wear"</p>
-          <div className="mt-3 rounded-xl border border-teal-500/30 bg-teal-500/10 p-3">
-            <p className="text-[10px] font-black uppercase tracking-wide text-teal-300">AI Draft</p>
-            <p className="mt-1 text-xs leading-5 text-slate-300">
-              Several shingles are missing near the chimney flashing. This can allow water
-              intrusion. Recommend evaluation and repair by a qualified roofing contractor.
-            </p>
+
+        <div className="mt-4 space-y-2.5">
+          <div>
+            <p className={fieldLabel}>Title</p>
+            <p className={fieldBox}>Missing Shingles Near Chimney Flashing</p>
+          </div>
+          <div className="grid grid-cols-2 gap-2.5">
+            <div>
+              <p className={fieldLabel}>Section</p>
+              <p className={fieldBox}>Roofing</p>
+            </div>
+            <div>
+              <p className={fieldLabel}>Severity</p>
+              <p className={`${fieldBox} text-orange-300`}>Recommended Repair</p>
+            </div>
+          </div>
+          <div>
+            <p className={fieldLabel}>Observation</p>
+            <p className={fieldBox}>Several shingles are missing near the chimney flashing.</p>
+          </div>
+          <div>
+            <p className={fieldLabel}>Recommendation</p>
+            <p className={fieldBox}>Recommend evaluation and repair by a qualified roofing contractor.</p>
           </div>
         </div>
       </div>
+    </div>
+  );
+}
 
-      <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-        <div className="rounded-xl border border-slate-800 bg-[#020617] p-2">
-          <p className="text-[10px] font-bold uppercase text-slate-500">Findings</p>
-          <p className="text-lg font-black text-white">14</p>
+// Reproduces the real "AI Equipment Scanner" result screen from
+// app/equipment-analyzer/page.tsx - the "Enhanced Equipment Intelligence"
+// card and its IntelligenceItem grid. The values below are read directly
+// off a real HVAC condenser data plate, not invented.
+function EquipmentAnalyzerMockup() {
+  const items = [
+    { label: "Model", value: "YHE30B21SA" },
+    { label: "Serial", value: "W1K6947529" },
+    { label: "Refrigerant", value: "R-410A" },
+    { label: "Factory Charge", value: "7 lbs 15 oz" },
+    { label: "Compressor RLA / LRA", value: "13.4 / 72.5" },
+    { label: "Min Circuit Ampacity", value: "18.1 A" },
+    { label: "Max Breaker", value: "30 A" },
+    { label: "Voltage", value: "208-230V, 1PH, 60Hz" },
+  ];
+
+  return (
+    <div className="rounded-3xl border border-slate-700 bg-[#0b1220] p-6 shadow-2xl shadow-black/40 md:p-7">
+      <p className="text-lg font-bold text-white">AI Equipment Scanner</p>
+      <p className="mt-1 text-xs text-slate-400">Data plate photo scanned automatically</p>
+
+      <section className="mt-4 rounded-2xl border border-teal-500/40 bg-teal-950/20 p-4">
+        <h3 className="text-sm font-bold text-teal-300">Enhanced Equipment Intelligence</h3>
+
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          {items.map((item) => (
+            <div key={item.label} className="rounded-lg border border-slate-700 bg-slate-950 p-2.5">
+              <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">{item.label}</p>
+              <p className="mt-0.5 text-xs font-bold text-white">{item.value}</p>
+            </div>
+          ))}
         </div>
-        <div className="rounded-xl border border-slate-800 bg-[#020617] p-2">
-          <p className="text-[10px] font-bold uppercase text-slate-500">Photos</p>
-          <p className="text-lg font-black text-white">62</p>
-        </div>
-        <div className="rounded-xl border border-slate-800 bg-[#020617] p-2">
-          <p className="text-[10px] font-bold uppercase text-slate-500">Synced</p>
-          <p className="text-lg font-black text-teal-300">✓</p>
-        </div>
-      </div>
+      </section>
     </div>
   );
 }
@@ -377,6 +421,17 @@ const SPOTLIGHTS: Spotlight[] = [
       "Equipment data-plate reader",
     ],
     mockup: <FieldCaptureMockup />,
+  },
+  {
+    eyebrow: "Equipment Analyzer",
+    title: "Point the camera at a data plate. Skip the typing.",
+    body: "Photograph the equipment data plate and FLOW reads the model, serial, refrigerant, electrical specs, and more straight into the report - along with an estimated service life and condition assessment.",
+    bullets: [
+      "Model, serial, and electrical specs read automatically",
+      "Refrigerant type and capacity flagged (including R-22 alerts)",
+      "Estimated service life and maintenance guidance included",
+    ],
+    mockup: <EquipmentAnalyzerMockup />,
   },
   {
     eyebrow: "Booking",
