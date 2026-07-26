@@ -72,11 +72,11 @@ const MORE_FEATURES = [
     ],
   },
   {
-    category: "Everywhere You Work",
+    category: "Getting Started",
     items: [
-      { title: "Native iOS & Android Apps", body: "The full Field Tool and Command Center, as real native apps - not just a mobile browser tab." },
-      { title: "Works Offline", body: "Capture findings and photos with no signal in the field; everything syncs the moment you're back online." },
-      { title: "Push Notifications", body: "Get notified the moment a client views, signs, or pays - on your phone, not just in your inbox." },
+      { title: "5-Step Setup Guide", body: "Company info, agreements, scheduling, report sections, and the Field Tool - a guided checklist gets your account ready in one sitting." },
+      { title: "Sample Inspection", body: "Generate a full sample report with one click to see exactly how a finished FLOW report looks before your first real job." },
+      { title: "Guided Dashboard Tour", body: "A quick walkthrough of the Command Center the first time you log in, so nothing important is hidden." },
       { title: "Free Trial, No Card", body: "Your first 3 real inspections are free. See your whole business running on FLOW before you pay anything." },
     ],
   },
@@ -280,6 +280,84 @@ function DispatchMockup() {
   );
 }
 
+function PhoneFrame({
+  children,
+  label,
+}: {
+  children: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <div className="w-full max-w-[220px]">
+      <div className="relative aspect-[9/19] w-full rounded-[2.25rem] border-[6px] border-slate-700 bg-black p-1.5 shadow-2xl shadow-black/50">
+        <div className="absolute left-1/2 top-1.5 z-10 h-4 w-20 -translate-x-1/2 rounded-full bg-black" />
+        <div className="relative h-full w-full overflow-hidden rounded-[1.65rem] bg-[#020617]">
+          {children}
+        </div>
+      </div>
+      <p className="mt-3 text-center text-xs font-black uppercase tracking-wide text-slate-500">
+        {label}
+      </p>
+    </div>
+  );
+}
+
+function MobileAppMockup() {
+  return (
+    <div className="flex flex-wrap items-end justify-center gap-6 sm:gap-8">
+      <PhoneFrame label="Field Tool">
+        <div className="flex h-full flex-col">
+          <div className="flex items-center justify-between px-3 pt-6 text-[9px] font-bold text-slate-400">
+            <span>9:41</span>
+            <span>●●●</span>
+          </div>
+          <div className="mt-3 flex-1 bg-gradient-to-br from-slate-800 to-slate-900" />
+          <div className="space-y-2 p-2.5">
+            <div className="rounded-lg border border-teal-500/30 bg-teal-500/10 p-2">
+              <p className="text-[7px] font-black uppercase tracking-wide text-teal-300">AI Draft Ready</p>
+              <p className="mt-0.5 text-[8px] leading-tight text-slate-300">Missing shingles near chimney flashing...</p>
+            </div>
+            <div className="flex items-center justify-center rounded-full bg-teal-400 py-2 text-[8px] font-black text-slate-950">
+              ● Capture Finding
+            </div>
+          </div>
+          <div className="mt-auto flex justify-around border-t border-slate-800 bg-[#050816] py-2.5">
+            {["🏠", "📷", "📋", "⚙️"].map((icon, i) => (
+              <span key={i} className={`text-[10px] ${i === 1 ? "opacity-100" : "opacity-40"}`}>{icon}</span>
+            ))}
+          </div>
+        </div>
+      </PhoneFrame>
+
+      <PhoneFrame label="Push Notifications">
+        <div className="flex h-full flex-col">
+          <div className="flex items-center justify-between px-3 pt-6 text-[9px] font-bold text-slate-400">
+            <span>9:41</span>
+            <span>●●●</span>
+          </div>
+          <div className="mt-6 space-y-2 px-2">
+            <div className="rounded-xl border border-slate-700 bg-[#0f172a]/95 p-2 shadow-lg">
+              <p className="text-[7px] font-black uppercase tracking-wide text-emerald-300">FLOW &middot; Payment</p>
+              <p className="mt-0.5 text-[8px] font-bold text-white">Payment Received</p>
+              <p className="text-[7px] text-slate-400">$450 for 711 Sampson Rock Rd</p>
+            </div>
+            <div className="rounded-xl border border-slate-700 bg-[#0f172a]/95 p-2 shadow-lg">
+              <p className="text-[7px] font-black uppercase tracking-wide text-cyan-300">FLOW &middot; Report</p>
+              <p className="mt-0.5 text-[8px] font-bold text-white">Realtor Viewed Report</p>
+              <p className="text-[7px] text-slate-400">Just now</p>
+            </div>
+            <div className="rounded-xl border border-slate-700 bg-[#0f172a]/95 p-2 shadow-lg">
+              <p className="text-[7px] font-black uppercase tracking-wide text-yellow-300">FLOW &middot; Reminder</p>
+              <p className="mt-0.5 text-[8px] font-bold text-white">Inspection Tomorrow</p>
+              <p className="text-[7px] text-slate-400">9:00 AM &middot; 1099 Specks Run Rd</p>
+            </div>
+          </div>
+        </div>
+      </PhoneFrame>
+    </div>
+  );
+}
+
 type Spotlight = {
   eyebrow: string;
   title: string;
@@ -332,6 +410,17 @@ const SPOTLIGHTS: Spotlight[] = [
       "Owner-only visibility across the whole team",
     ],
     mockup: <DispatchMockup />,
+  },
+  {
+    eyebrow: "Native Mobile Apps",
+    title: "The real app, not a browser tab pretending to be one.",
+    body: "FLOW is a real native app on iOS and Android - the Field Tool and Command Center in your pocket, with push notifications the moment something happens.",
+    bullets: [
+      "Full Field Tool on iOS & Android",
+      "Push alerts for payments, signatures, and views",
+      "Works offline, syncs automatically",
+    ],
+    mockup: <MobileAppMockup />,
   },
 ];
 
