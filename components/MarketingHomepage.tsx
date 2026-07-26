@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 const CORE_FEATURES = [
   {
@@ -125,14 +126,20 @@ function FieldCaptureMockup() {
       </div>
 
       <div className="p-5">
-        <div className="flex aspect-[16/10] items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-slate-800 to-slate-900">
-          <span className="text-4xl">📷</span>
+        <div className="relative aspect-[16/10] overflow-hidden rounded-xl border border-white/10 bg-slate-900">
+          <Image
+            src="/marketing/field-finding-roof.jpeg"
+            alt="Missing and damaged roof shingles, photographed from a drone during a real FLOW inspection"
+            fill
+            sizes="(max-width: 768px) 90vw, 420px"
+            className="object-cover"
+          />
         </div>
 
         <div className="mt-4 space-y-2.5">
           <div>
             <p className={fieldLabel}>Title</p>
-            <p className={fieldBox}>Missing Shingles Near Chimney Flashing</p>
+            <p className={fieldBox}>Missing and Damaged Roof Shingles</p>
           </div>
           <div className="grid grid-cols-2 gap-2.5">
             <div>
@@ -146,12 +153,28 @@ function FieldCaptureMockup() {
           </div>
           <div>
             <p className={fieldLabel}>Observation</p>
-            <p className={fieldBox}>Several shingles are missing near the chimney flashing.</p>
+            <p className={fieldBox}>Several roof shingles are missing or damaged, exposing the underlayment.</p>
           </div>
           <div>
             <p className={fieldLabel}>Recommendation</p>
             <p className={fieldBox}>Recommend evaluation and repair by a qualified roofing contractor.</p>
           </div>
+        </div>
+
+        <p className="mt-4 text-[9px] font-black uppercase tracking-wide text-slate-500">
+          Also Captured This Visit
+        </p>
+        <div className="relative mt-2 aspect-[16/9] overflow-hidden rounded-xl border border-white/10">
+          <Image
+            src="/marketing/field-finding-water-heater.jpeg"
+            alt="Active water leak at a well pressure tank, photographed during a real FLOW inspection"
+            fill
+            sizes="(max-width: 768px) 90vw, 420px"
+            className="object-cover"
+          />
+          <span className="absolute bottom-2 left-2 rounded-full border border-red-400/60 bg-red-950/80 px-2 py-0.5 text-[9px] font-black uppercase text-red-200">
+            Water Leak at Pressure Tank
+          </span>
         </div>
       </div>
     </div>
@@ -160,24 +183,35 @@ function FieldCaptureMockup() {
 
 // Reproduces the real "AI Equipment Scanner" result screen from
 // app/equipment-analyzer/page.tsx - the "Enhanced Equipment Intelligence"
-// card and its IntelligenceItem grid. The values below are read directly
-// off a real HVAC condenser data plate, not invented.
+// card and its IntelligenceItem grid. Both the photo and the values below
+// are real - read directly off the data plate pictured, from an actual
+// FLOW inspection.
 function EquipmentAnalyzerMockup() {
   const items = [
-    { label: "Model", value: "YHE30B21SA" },
-    { label: "Serial", value: "W1K6947529" },
+    { label: "Unit", value: "Fan Coil 612T" },
+    { label: "Model", value: "AHE30B3XH21B" },
+    { label: "Serial", value: "W1H6916544" },
     { label: "Refrigerant", value: "R-410A" },
-    { label: "Factory Charge", value: "7 lbs 15 oz" },
-    { label: "Compressor RLA / LRA", value: "13.4 / 72.5" },
-    { label: "Min Circuit Ampacity", value: "18.1 A" },
-    { label: "Max Breaker", value: "30 A" },
-    { label: "Voltage", value: "208-230V, 1PH, 60Hz" },
+    { label: "Motor", value: "2.8 FLA, 1/3 HP" },
+    { label: "Voltage", value: "208/230V, 60Hz" },
+    { label: "Design Pressure", value: "500 PSIG" },
+    { label: "Manufacturer", value: "Johnson Controls" },
   ];
 
   return (
     <div className="rounded-3xl border border-slate-700 bg-[#0b1220] p-6 shadow-2xl shadow-black/40 md:p-7">
       <p className="text-lg font-bold text-white">AI Equipment Scanner</p>
       <p className="mt-1 text-xs text-slate-400">Data plate photo scanned automatically</p>
+
+      <div className="relative mt-4 aspect-[4/3] overflow-hidden rounded-xl border border-white/10">
+        <Image
+          src="/marketing/equipment-dataplate.jpeg"
+          alt="HVAC fan coil unit data plate, photographed during a real FLOW inspection"
+          fill
+          sizes="(max-width: 768px) 90vw, 420px"
+          className="object-cover"
+        />
+      </div>
 
       <section className="mt-4 rounded-2xl border border-teal-500/40 bg-teal-950/20 p-4">
         <h3 className="text-sm font-bold text-teal-300">Enhanced Equipment Intelligence</h3>
