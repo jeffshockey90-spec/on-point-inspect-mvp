@@ -1303,7 +1303,7 @@ export default function InspectorToolsDrawer({
               </div>
 
               <div className="mt-3 grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_360px]">
-                <div className="flex max-w-full gap-2 overflow-x-auto overscroll-x-contain pb-2">
+                <div className="-mx-3 flex max-w-full gap-2 overflow-x-auto overscroll-x-contain px-3 pb-2 pr-6 [-webkit-overflow-scrolling:touch] sm:mx-0 sm:px-0">
                   {categories.map((category) => {
                     const active = activeCategory === category;
 
@@ -1420,7 +1420,7 @@ export default function InspectorToolsDrawer({
               <div className="min-h-0 min-w-0 scroll-smooth p-3 sm:p-5 xl:overflow-y-auto" ref={bodyRef}>
                 <div className="sticky top-0 z-10 -mx-3 mb-4 overflow-hidden border-b border-slate-800 bg-[#071224]/95 px-3 py-3 backdrop-blur xl:hidden">
                   <p className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Quick Actions</p>
-                  <div className="flex max-w-full gap-2 overflow-x-auto overscroll-x-contain pb-2">
+                  <div className="flex max-w-full gap-2 overflow-x-auto overscroll-x-contain pb-2 pr-6 [-webkit-overflow-scrolling:touch]">
                   {quickActions.map((item) => (
                     <button
                       key={item.title}

@@ -678,7 +678,11 @@ function getViewerLabel(log: any) {
   const viewerRole = String(log?.viewer_role || "").trim();
   const contactId = String(log?.contact_id || "").trim();
 
-  return viewerEmail || viewerRole || (contactId ? `Contact ${contactId}` : "Unknown viewer");
+  return (
+    viewerEmail ||
+    viewerRole ||
+    (contactId ? `Contact ${contactId}` : "Unidentified Visitor")
+  );
 }
 
 function getViewerKey(log: any) {
@@ -756,7 +760,7 @@ function formatViewType(value: any) {
 
   if (!clean) return "Activity";
 
-  return clean.replace(/\w/g, (letter) => letter.toUpperCase());
+  return clean.replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function normalizeEmail(value: any) {
@@ -3802,7 +3806,10 @@ Service-life information is a general industry estimate only. Actual service lif
                       Viewers Detected
                     </p>
                     <p className="mt-1 text-xs leading-5 text-slate-500">
-                      Every person detected across email opens, link clicks, portal opens, report opens, agreement views, and reading-time events.
+                      Every person detected across email opens, link clicks, portal opens, report opens, agreement views, and reading-time events. This never includes your own visits to this page - only real client, realtor, and outside visitors.
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-slate-500">
+                      &quot;Unidentified Visitor&quot; means someone opened a link that didn&apos;t carry their role or email (e.g. a link forwarded without going through FLOW&apos;s send flow) - still a real visit, just not personally identified.
                     </p>
                   </div>
 

@@ -651,6 +651,12 @@ function RepairRequestContent() {
     async function trackRepairRequestView() {
       if (!inspectionId) return;
 
+      // No role in the URL means this is the inspector opening their own
+      // builder (the link they use has no role/email params) - not a real
+      // client/realtor visit, so don't log it as one. Only track visits
+      // that arrived via an actual shared link with an identified role.
+      if (!initialUrlParams.role) return;
+
       try {
         await fetch("/api/track-inspection-view", {
           method: "POST",
@@ -660,7 +666,8 @@ function RepairRequestContent() {
           body: JSON.stringify({
             inspection_id: inspectionId,
             view_type: "repair_request",
-            viewer_role: "client",
+            viewer_role: initialUrlParams.role,
+            viewer_email: initialUrlParams.email || null,
             path: `/repair-request?inspection_id=${inspectionId}`,
           }),
         });
@@ -670,7 +677,7 @@ function RepairRequestContent() {
     }
 
     trackRepairRequestView();
-  }, [inspectionId]);
+  }, [inspectionId, initialUrlParams.role, initialUrlParams.email]);
 
   useEffect(() => {
     async function loadResponseStatus() {
