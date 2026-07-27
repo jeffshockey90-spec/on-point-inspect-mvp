@@ -1232,10 +1232,10 @@ export default function InspectorToolsDrawer({
                   <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[#14c8d2]">
                     FLOW
                   </p>
-                  <h2 className="mt-1 text-2xl font-black text-white sm:text-3xl">
+                  <h2 className="mt-1 text-lg font-black text-white sm:text-2xl lg:text-3xl">
                     Inspector Command Center
                   </h2>
-                  <p className="mt-1 text-sm leading-6 text-slate-400">
+                  <p className="mt-1 hidden text-sm leading-6 text-slate-400 sm:block">
                     Business operations, report intelligence, delivery controls, repair requests, and activity in one workspace.
                   </p>
                 </div>
@@ -1243,13 +1243,13 @@ export default function InspectorToolsDrawer({
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
-                  className="shrink-0 rounded-xl border border-slate-600 bg-[#020617] px-4 py-2 text-sm font-black text-slate-200 transition hover:bg-slate-800 active:scale-[0.98]"
+                  className="shrink-0 rounded-xl border border-slate-600 bg-[#020617] px-3 py-1.5 text-sm font-black text-slate-200 transition hover:bg-slate-800 active:scale-[0.98] sm:px-4 sm:py-2"
                 >
                   Close
                 </button>
               </div>
 
-              <div className="mt-3 -mx-3 flex max-w-full gap-3 overflow-x-auto overscroll-x-contain px-3 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:px-0 sm:overflow-visible lg:grid-cols-6">
+              <div className="mt-2 -mx-3 flex max-w-full gap-3 overflow-x-auto overscroll-x-contain px-3 pb-2 sm:mx-0 sm:mt-3 sm:grid sm:grid-cols-2 sm:px-0 sm:overflow-visible lg:grid-cols-6">
                 {statusTiles.map((tile) => {
                   const style = urgencyStyles[tile.urgency] || urgencyStyles.success;
                   return (
@@ -1257,7 +1257,7 @@ export default function InspectorToolsDrawer({
                       key={tile.title}
                       type="button"
                       onClick={() => handleStatusTileClick(tile)}
-                      className={`min-w-[190px] rounded-2xl border p-4 text-left transition hover:scale-[1.01] active:scale-[0.99] sm:min-w-0 ${style.shell}`}
+                      className={`min-w-[190px] rounded-2xl border p-2.5 text-left transition hover:scale-[1.01] active:scale-[0.99] sm:min-w-0 sm:p-4 ${style.shell}`}
                     >
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-[10px] font-black uppercase tracking-[0.14em] opacity-80">
@@ -1265,23 +1265,23 @@ export default function InspectorToolsDrawer({
                         </span>
                         <span className={`h-2.5 w-2.5 rounded-full ${style.dot}`} />
                       </div>
-                      <p className="mt-2 text-sm font-black text-white">{tile.label}</p>
-                      <p className="mt-1 text-xs font-bold text-slate-300">{tile.badge}</p>
+                      <p className="mt-1 text-sm font-black text-white sm:mt-2">{tile.label}</p>
+                      <p className="mt-0.5 text-xs font-bold text-slate-300 sm:mt-1">{tile.badge}</p>
                     </button>
                   );
                 })}
               </div>
 
-              <div className={`mt-3 rounded-3xl border p-4 ${nextAttentionNotification ? "border-red-400/60 bg-red-500/10" : "border-emerald-400/50 bg-emerald-500/10"}`}>
-                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div className={`mt-2 rounded-2xl border p-2.5 sm:mt-3 sm:rounded-3xl sm:p-4 ${nextAttentionNotification ? "border-red-400/60 bg-red-500/10" : "border-emerald-400/50 bg-emerald-500/10"}`}>
+                <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between md:gap-3">
                   <div className="min-w-0">
                     <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">
                       {nextTaskCopy.eyebrow}
                     </p>
-                    <h3 className="mt-1 break-words text-xl font-black text-white">
+                    <h3 className="mt-1 break-words text-base font-black text-white sm:text-xl">
                       {nextTaskCopy.title}
                     </h3>
-                    <p className="mt-1 max-w-3xl text-sm font-bold leading-6 text-slate-300">
+                    <p className="mt-1 line-clamp-2 max-w-3xl text-xs font-bold leading-5 text-slate-300 sm:line-clamp-none sm:text-sm sm:leading-6">
                       {nextTaskCopy.helper}
                     </p>
                   </div>
@@ -1290,19 +1290,19 @@ export default function InspectorToolsDrawer({
                     <button
                       type="button"
                       onClick={() => openNotification(nextAttentionNotification)}
-                      className="inline-flex min-h-[46px] shrink-0 items-center justify-center rounded-2xl bg-red-500 px-5 py-3 text-sm font-black text-white transition hover:bg-red-400 active:scale-[0.98]"
+                      className="inline-flex min-h-[42px] shrink-0 items-center justify-center rounded-2xl bg-red-500 px-4 py-2.5 text-sm font-black text-white transition hover:bg-red-400 active:scale-[0.98] sm:min-h-[46px] sm:px-5 sm:py-3"
                     >
                       {nextTaskCopy.action} →
                     </button>
                   ) : (
-                    <span className="inline-flex min-h-[46px] shrink-0 items-center justify-center rounded-2xl border border-emerald-400/60 bg-emerald-500/15 px-5 py-3 text-sm font-black text-emerald-100">
+                    <span className="inline-flex min-h-[42px] shrink-0 items-center justify-center rounded-2xl border border-emerald-400/60 bg-emerald-500/15 px-4 py-2.5 text-sm font-black text-emerald-100 sm:min-h-[46px] sm:px-5 sm:py-3">
                       All clear
                     </span>
                   )}
                 </div>
               </div>
 
-              <div className="mt-3 grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_360px]">
+              <div className="mt-2 grid min-w-0 gap-2 sm:mt-3 sm:gap-3 xl:grid-cols-[minmax(0,1fr)_360px]">
                 <div className="-mx-3 flex max-w-full gap-2 overflow-x-auto overscroll-x-contain px-3 pb-2 pr-6 [-webkit-overflow-scrolling:touch] sm:mx-0 sm:px-0">
                   {categories.map((category) => {
                     const active = activeCategory === category;
