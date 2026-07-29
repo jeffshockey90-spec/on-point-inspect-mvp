@@ -5,7 +5,17 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "../../utils/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import DeleteAccountSection from "./DeleteAccountSection";
-import SettingsSectionNav from "../../components/SettingsSectionNav";
+import SettingsSectionTabs from "../../components/SettingsSectionTabs";
+
+const SETTINGS_TABS = [
+  { key: "notifications", label: "Notifications", anchorId: "notifications" },
+  { key: "company-profile", label: "Company Profile", anchorId: "company-profile" },
+  { key: "payments", label: "Payments", anchorId: "payments" },
+  { key: "public-profile", label: "Public Profile", anchorId: "public-profile" },
+  { key: "standards-of-practice", label: "Standards of Practice", anchorId: "standards-of-practice" },
+  { key: "time-location", label: "Time & Location", anchorId: "time-location" },
+  { key: "delete-account", label: "Delete Account", anchorId: "delete-account" },
+];
 import PushNotificationSetup from "../../components/PushNotificationSetup";
 import SupportUnreadBadge from "../../components/SupportUnreadBadge";
 import CompanyImageUploader from "./CompanyImageUploader";
@@ -663,10 +673,7 @@ export default async function SettingsPage({
           )}
         </section>
 
-        <div className="lg:grid lg:grid-cols-[200px_1fr] lg:items-start lg:gap-8">
-        <SettingsSectionNav />
-
-        <div className="min-w-0 space-y-6">
+        <SettingsSectionTabs tabs={SETTINGS_TABS}>
 
         <form action={saveCompanySettings} className="space-y-6">
           <section
@@ -1080,8 +1087,7 @@ export default async function SettingsPage({
           <DeleteAccountSection />
         </div>
 
-        </div>
-        </div>
+        </SettingsSectionTabs>
       </div>
     </main>
   );
