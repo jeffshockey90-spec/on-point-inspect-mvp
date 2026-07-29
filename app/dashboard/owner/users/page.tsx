@@ -621,7 +621,7 @@ export default async function OwnerUsersPage() {
                   key={row.id}
                   className="rounded-2xl border border-slate-700 bg-[#020817]/70 p-4 shadow-lg"
                 >
-                  <div className="grid gap-4 xl:grid-cols-[minmax(240px,1.25fr)_minmax(520px,2fr)_minmax(180px,0.8fr)] xl:items-start">
+                  <div className="flex flex-wrap items-start justify-between gap-4">
                     <div className="min-w-0">
                       <p className="truncate font-black text-white">{row.name}</p>
                       <p className="mt-1 truncate text-xs text-slate-400">{row.email || "No email"}</p>
@@ -639,7 +639,7 @@ export default async function OwnerUsersPage() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3 text-xs sm:grid-cols-3 lg:grid-cols-6">
+                    <div className="grid grid-cols-3 gap-3 text-xs sm:grid-cols-6">
                       <MiniStat label="Reports" value={String(row.reports)} tone="white" />
                       <MiniStat label="30d" value={String(row.reports30)} tone="blue" />
                       <MiniStat label="Revenue" value={money(row.revenue)} tone="green" />
@@ -654,25 +654,23 @@ export default async function OwnerUsersPage() {
                         </div>
                       </div>
                     </div>
+                  </div>
 
-                    <div className="space-y-3">
-                      <div className="grid grid-cols-2 gap-3 text-xs xl:grid-cols-1">
-                        <div className="rounded-xl border border-slate-800 bg-slate-950/50 p-3">
-                          <p className="text-[10px] font-black uppercase tracking-wide text-slate-500">Platform</p>
-                          <p className="mt-1 font-black text-slate-200">{row.platform}</p>
-                          <p className="mt-1 text-slate-500">Version: {row.appVersion}</p>
-                        </div>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-[180px_180px_1fr]">
+                    <div className="rounded-xl border border-slate-800 bg-slate-950/50 p-3">
+                      <p className="text-[10px] font-black uppercase tracking-wide text-slate-500">Platform</p>
+                      <p className="mt-1 font-black text-slate-200">{row.platform}</p>
+                      <p className="mt-1 text-slate-500">Version: {row.appVersion}</p>
+                    </div>
 
-                        <div className="rounded-xl border border-slate-800 bg-slate-950/50 p-3">
-                          <p className="text-[10px] font-black uppercase tracking-wide text-slate-500">Last Activity</p>
-                          <p className="mt-1 font-black text-slate-200">{formatDateTime(row.lastActivity || row.createdAt)}</p>
-                        </div>
-                      </div>
+                    <div className="rounded-xl border border-slate-800 bg-slate-950/50 p-3">
+                      <p className="text-[10px] font-black uppercase tracking-wide text-slate-500">Last Activity</p>
+                      <p className="mt-1 font-black text-slate-200">{formatDateTime(row.lastActivity || row.createdAt)}</p>
+                    </div>
 
-                      <div className="rounded-xl border border-slate-800 bg-slate-950/50 p-3">
-                        <p className="mb-2 text-[10px] font-black uppercase tracking-wide text-slate-500">Actions</p>
-                        <OwnerAccountActions userId={row.id} email={row.email} currentRole={row.role} compact />
-                      </div>
+                    <div className="rounded-xl border border-slate-800 bg-slate-950/50 p-3">
+                      <p className="mb-2 text-[10px] font-black uppercase tracking-wide text-slate-500">Actions</p>
+                      <OwnerAccountActions userId={row.id} email={row.email} currentRole={row.role} compact />
                     </div>
                   </div>
                 </div>
