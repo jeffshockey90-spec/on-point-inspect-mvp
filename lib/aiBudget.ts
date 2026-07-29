@@ -20,7 +20,13 @@ export type AIBudgetRow = {
   balance_set_at: string;
   last_alert_sent_at: string | null;
   updated_at: string;
+  cached_spent_since_set_usd: number | null;
+  cached_spent_fetched_at: string | null;
 };
+
+// OpenAI's Costs API has a low rate limit not meant for frequent polling -
+// reuse a recent result instead of calling it every page load/click/cron tick.
+const SPENT_CACHE_TTL_MS = 3 * 60 * 1000;
 
 export type AIBudgetStatus = {
   startingBalanceUsd: number;
@@ -119,8 +125,40 @@ export async function getAIBudgetStatus(): Promise<AIBudgetStatus> {
   const admin = createAdminClient();
   const row = await getRow(admin);
 
-  const balanceSetAtUnix = Math.floor(new Date(row.balance_set_at).getTime() / 1000);
-  const spentSinceSetUsd = await fetchOpenAICostsSince(balanceSetAtUnix);
+  const cacheAgeMs = row.cached_spent_fetched_at
+    ? Date.now() - new Date(row.cached_spent_fetched_at).getTime()
+    : Infinity;
+  const cacheIsFresh = cacheAgeMs < SPENT_CACHE_TTL_MS && row.cached_spent_since_set_usd !== null;
+
+  let spentSinceSetUsd: number;
+
+  if (cacheIsFresh) {
+    spentSinceSetUsd = Number(row.cached_spent_since_set_usd);
+  } else {
+    const balanceSetAtUnix = Math.floor(new Date(row.balance_set_at).getTime() / 1000);
+
+    try {
+      spentSinceSetUsd = await fetchOpenAICostsSince(balanceSetAtUnix);
+
+      await admin
+        .from("ai_budget_status")
+        .update({
+          cached_spent_since_set_usd: spentSinceSetUsd,
+          cached_spent_fetched_at: new Date().toISOString(),
+        })
+        .eq("id", 1);
+    } catch (error) {
+      // If OpenAI's rate limit is hit, fall back to the last known value
+      // rather than breaking the whole dashboard - a few-minutes-stale
+      // number is fine for a "watch your balance" widget.
+      if (row.cached_spent_since_set_usd !== null) {
+        spentSinceSetUsd = Number(row.cached_spent_since_set_usd);
+      } else {
+        throw error;
+      }
+    }
+  }
+
   const remainingUsd = Number(row.starting_balance_usd) - spentSinceSetUsd;
 
   return {
@@ -145,6 +183,8 @@ export async function setAIBudget(input: { startingBalanceUsd: number; threshold
       balance_set_at: new Date().toISOString(),
       last_alert_sent_at: null,
       updated_at: new Date().toISOString(),
+      cached_spent_since_set_usd: 0,
+      cached_spent_fetched_at: new Date().toISOString(),
     })
     .eq("id", 1);
 
