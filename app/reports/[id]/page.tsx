@@ -1030,37 +1030,42 @@ function AttentionPanel({
   badge,
   helper,
   defaultOpen = false,
+  category,
   children,
 }: any) {
   return (
     <details
       open={defaultOpen}
-      className="mb-8 overflow-hidden rounded-2xl border border-slate-700 bg-[#071224] shadow-xl"
+      data-tool-category={category || undefined}
+      className="mb-4 overflow-hidden rounded-2xl border border-slate-700 bg-[#071224] shadow-xl sm:mb-6"
     >
-      <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 border-b border-slate-800 px-4 py-4 hover:bg-slate-800/40">
-        <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.22em] text-teal-300">
+      <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-2 border-b border-slate-800 px-3 py-3 hover:bg-slate-800/40 sm:gap-3 sm:px-4 sm:py-4">
+        <div className="min-w-0">
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-teal-300 sm:text-[11px] sm:tracking-[0.22em]">
             {eyebrow}
           </p>
-          <h2 className="mt-1 text-lg font-black text-white">{title}</h2>
+          <h2 className="mt-1 text-base font-black text-white sm:text-lg">{title}</h2>
           {helper ? (
-            <p className="mt-1 text-xs leading-5 text-slate-400">{helper}</p>
+            <p className="mt-1 hidden text-xs leading-5 text-slate-400 sm:block">{helper}</p>
           ) : null}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           {badge ? (
-            <span className="rounded-full border border-yellow-500/50 bg-yellow-500/10 px-3 py-1 text-xs font-black text-yellow-200">
+            <span className="rounded-full border border-yellow-500/50 bg-yellow-500/10 px-2.5 py-1 text-[11px] font-black text-yellow-200 sm:px-3 sm:text-xs">
               {badge}
             </span>
           ) : null}
-          <span className="rounded-full border border-slate-600 bg-black/30 px-3 py-1 text-xs font-black text-slate-300">
+          <span className="rounded-full border border-slate-600 bg-black/30 px-2.5 py-1 text-[11px] font-black text-slate-300 sm:hidden">
+            Open
+          </span>
+          <span className="hidden rounded-full border border-slate-600 bg-black/30 px-3 py-1 text-xs font-black text-slate-300 sm:inline-block">
             Tap to open
           </span>
         </div>
       </summary>
 
-      <div className="p-4">{children}</div>
+      <div className="p-3 sm:p-4">{children}</div>
     </details>
   );
 }
@@ -3439,6 +3444,7 @@ Service-life information is a general industry estimate only. Actual service lif
           <AttentionPanel
             title="Repair Request History"
             eyebrow="Negotiation"
+            category="negotiation"
             badge={repairRequestHistoryBadge}
             helper="Every repair request stays saved here. Open older requests, check requested credit, seller credit, status, and download the executed addendum."
             defaultOpen={repairRequestHistory.length > 0}
@@ -3584,6 +3590,7 @@ Service-life information is a general industry estimate only. Actual service lif
           <div id="ai-report-review" data-command-target="ai-report-review">
           <AttentionPanel
             title="AI Report Review"
+            category="ai"
             badge={defectTotals.total > 0 ? `${defectTotals.total} defects` : "Ready"}
             helper="Collapsed by default. Open when you want the full AI report safety review."
           >
@@ -3593,6 +3600,7 @@ Service-life information is a general industry estimate only. Actual service lif
 
           <AttentionPanel
             title="House Intelligence"
+            category="ai"
             badge="Memory"
             helper="Property history, repeated concerns, and house-specific intelligence."
           >
@@ -3601,6 +3609,7 @@ Service-life information is a general industry estimate only. Actual service lif
 
           <AttentionPanel
             title="Live AI Inspector Assistant"
+            category="ai"
             badge={defectTotals.safety > 0 ? `${defectTotals.safety} safety` : "AI checks"}
             helper="Open this when the badge suggests missing items, contradictions, or publish-readiness concerns."
           >
@@ -3609,6 +3618,7 @@ Service-life information is a general industry estimate only. Actual service lif
 
           <AttentionPanel
             title="Connected Finding Intelligence"
+            category="ai"
             badge="Related findings"
             helper="Possible relationships between defects, systems, and recommended next steps."
           >
@@ -3617,6 +3627,7 @@ Service-life information is a general industry estimate only. Actual service lif
 
           <AttentionPanel
             title="AI Activity Timeline"
+            category="activity"
             badge={`${findings.length} findings`}
             helper="Live activity log. Open when you need to audit what changed during the inspection."
           >
@@ -3626,6 +3637,7 @@ Service-life information is a general industry estimate only. Actual service lif
           <div id="publish-guard" data-command-target="publish-guard">
           <AttentionPanel
             title="Final Publish Guard"
+            category="delivery"
             badge={reportIsPublished ? "Complete" : publishGuardNeedsAttention ? "Needs Attention" : "Review Before Publish"}
             helper="Collapsed by default. It opens automatically only when publishing is blocked or errors need attention."
             defaultOpen={publishGuardNeedsAttention}
@@ -3637,6 +3649,7 @@ Service-life information is a general industry estimate only. Actual service lif
           <AttentionPanel
             title="Sample Report"
             eyebrow="Public Profile"
+            category="profile"
             badge={sampleReportBadge}
             helper="Open only when you need to add or update this inspection as a public sample report."
           >
@@ -3652,6 +3665,7 @@ Service-life information is a general industry estimate only. Actual service lif
           <AttentionPanel
             title="Report Engagement"
             eyebrow="Client Activity"
+            category="activity"
             badge={engagementBadge}
             helper="Collapsed by default to keep the report editor fast. Open to review email opens, link clicks, client/realtor views, and reading time."
           >

@@ -859,13 +859,15 @@ export default function InspectorToolsDrawer({
 
     details.forEach((detail) => {
       const text = normalizeText(detail.textContent || "");
+      const explicitCategory = detail.dataset.toolCategory || "";
       const toolTitle = detail.dataset.workspaceTool || "";
       const item = enrichedItems.find((next) => next.title === toolTitle);
+      const panelCategory = explicitCategory || item?.category || "";
       const categoryMatch =
         activeCategory === "all" ||
         activeCategory === "attention" ||
-        !item ||
-        item.category === activeCategory;
+        !panelCategory ||
+        panelCategory === activeCategory;
       const searchMatch = !cleanQuery || text.includes(cleanQuery);
 
       detail.style.display = categoryMatch && searchMatch ? "" : "none";
@@ -1023,95 +1025,15 @@ export default function InspectorToolsDrawer({
   }
 
 
-  function findNotificationByKeywords(keywords: string[]) {
-    return attentionNotifications.find((item) => {
-      const text = normalizeText(`${item.id || ""} ${item.title} ${item.message || ""} ${item.badge || ""}`);
-      return keywords.some((keyword) => text.includes(keyword));
-    });
-  }
-
-  function openFirstToolByKeywords(keywords: string[], fallbackTitle = "") {
-    const match = getBestToolMatch(keywords, enrichedItems);
-    if (match) {
-      openTool(match.title);
-      return true;
-    }
-
-    if (fallbackTitle) {
-      openTool(fallbackTitle);
-      return true;
-    }
-
-    return false;
-  }
-
   function handleCategoryClick(category: WorkspaceCategory) {
     setActiveCategory(category);
     setQuery("");
+    setActiveTool("");
 
-    if (category === "all") {
-      setActiveTool("");
-      return;
-    }
+    if (category !== "attention") return;
 
-    if (category === "attention") {
-      const firstAlert = attentionNotifications[0];
-      if (firstAlert) {
-        openNotification(firstAlert);
-        return;
-      }
-      return;
-    }
-
-    if (category === "negotiation") {
-      const repairAlert = findNotificationByKeywords(["repair", "seller", "addendum", "response", "negotiation"]);
-      if (repairAlert) {
-        openNotification(repairAlert);
-        return;
-      }
-
-      openFirstToolByKeywords(["repair request", "seller", "addendum", "negotiation"], "Repair Request History");
-      return;
-    }
-
-    if (category === "activity") {
-      const activityAlert = findNotificationByKeywords(["view", "opened", "read", "engagement", "client"]);
-      if (activityAlert) {
-        openNotification(activityAlert);
-        return;
-      }
-
-      openFirstToolByKeywords(["engagement", "view", "opened", "timeline", "activity", "client views"], "Report Engagement");
-      return;
-    }
-
-    if (category === "ai") {
-      const aiAlert = findNotificationByKeywords(["safety", "defect", "major", "finding", "ai", "review"]);
-      if (aiAlert) {
-        openNotification(aiAlert);
-        return;
-      }
-
-      openFirstToolByKeywords(["ai report review", "ai review", "live ai", "copilot", "house intelligence", "equipment"], "AI Report Review");
-      return;
-    }
-
-    if (category === "delivery") {
-      const deliveryAlert =
-        findNotificationByKeywords(["agreement", "signature", "payment", "invoice", "publish", "guard", "delivery", "email"]);
-
-      if (deliveryAlert) {
-        openNotification(deliveryAlert);
-        return;
-      }
-
-      openFirstToolByKeywords(["agreement", "payment", "invoice", "publish", "delivery", "email", "client portal"], "Report Delivery Guard");
-      return;
-    }
-
-    if (category === "profile") {
-      openFirstToolByKeywords(["sample", "public profile", "profile"], "Sample Report");
-    }
+    const firstAlert = attentionNotifications[0];
+    if (firstAlert) openNotification(firstAlert);
   }
 
   const totalBadgeText =
