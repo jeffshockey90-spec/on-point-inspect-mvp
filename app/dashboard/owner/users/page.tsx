@@ -621,7 +621,7 @@ export default async function OwnerUsersPage() {
                   key={row.id}
                   className="rounded-2xl border border-slate-700 bg-[#020817]/70 p-4 shadow-lg"
                 >
-                  <div className="grid gap-4 xl:grid-cols-[minmax(240px,1.25fr)_minmax(520px,2fr)_minmax(180px,0.8fr)] xl:items-center">
+                  <div className="grid gap-4 xl:grid-cols-[minmax(240px,1.25fr)_minmax(520px,2fr)_minmax(180px,0.8fr)] xl:items-start">
                     <div className="min-w-0">
                       <p className="truncate font-black text-white">{row.name}</p>
                       <p className="mt-1 truncate text-xs text-slate-400">{row.email || "No email"}</p>
