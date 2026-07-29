@@ -1038,32 +1038,34 @@ function AttentionPanel({
     <details
       open={defaultOpen}
       data-tool-category={category || undefined}
-      className="mb-4 overflow-hidden rounded-2xl border border-slate-700 bg-[#071224] shadow-xl sm:mb-6"
+      className="group mb-2 overflow-hidden rounded-xl border border-slate-800 bg-[#0b1220] sm:mb-3"
     >
-      <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-2 border-b border-slate-800 px-3 py-3 hover:bg-slate-800/40 sm:gap-3 sm:px-4 sm:py-4">
-        <div className="min-w-0">
-          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-teal-300 sm:text-[11px] sm:tracking-[0.22em]">
-            {eyebrow}
-          </p>
-          <h2 className="mt-1 text-base font-black text-white sm:text-lg">{title}</h2>
-          {helper ? (
-            <p className="mt-1 hidden text-xs leading-5 text-slate-400 sm:block">{helper}</p>
-          ) : null}
+      <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-2 px-3 py-3 transition group-open:border-b group-open:border-slate-800 hover:bg-slate-900/60 sm:gap-3 sm:px-4 sm:py-3.5">
+        <div className="flex min-w-0 items-center gap-3">
+          <svg
+            viewBox="0 0 20 20"
+            className="h-3.5 w-3.5 shrink-0 text-slate-500 transition-transform duration-150 group-open:[transform:rotate(90deg)]"
+            fill="currentColor"
+          >
+            <path d="M7 4l6 6-6 6V4z" />
+          </svg>
+
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">
+              {eyebrow}
+            </p>
+            <h2 className="mt-0.5 text-sm font-black text-white sm:text-base">{title}</h2>
+            {helper ? (
+              <p className="mt-1 hidden text-xs leading-5 text-slate-400 sm:block">{helper}</p>
+            ) : null}
+          </div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-2">
-          {badge ? (
-            <span className="rounded-full border border-yellow-500/50 bg-yellow-500/10 px-2.5 py-1 text-[11px] font-black text-yellow-200 sm:px-3 sm:text-xs">
-              {badge}
-            </span>
-          ) : null}
-          <span className="rounded-full border border-slate-600 bg-black/30 px-2.5 py-1 text-[11px] font-black text-slate-300 sm:hidden">
-            Open
+        {badge ? (
+          <span className="shrink-0 rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-[11px] font-black text-amber-200 sm:px-3 sm:text-xs">
+            {badge}
           </span>
-          <span className="hidden rounded-full border border-slate-600 bg-black/30 px-3 py-1 text-xs font-black text-slate-300 sm:inline-block">
-            Tap to open
-          </span>
-        </div>
+        ) : null}
       </summary>
 
       <div className="p-3 sm:p-4">{children}</div>
