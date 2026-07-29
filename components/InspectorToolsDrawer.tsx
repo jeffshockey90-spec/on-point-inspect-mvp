@@ -1170,59 +1170,6 @@ export default function InspectorToolsDrawer({
                 </button>
               </div>
 
-              <div className="mt-2 -mx-3 flex max-w-full gap-2 overflow-x-auto overscroll-x-contain px-3 pb-2 sm:mx-0 sm:mt-3 sm:grid sm:grid-cols-2 sm:px-0 sm:overflow-visible lg:grid-cols-6">
-                {statusTiles.map((tile) => {
-                  const style = urgencyStyles[tile.urgency] || urgencyStyles.success;
-                  return (
-                    <button
-                      key={tile.title}
-                      type="button"
-                      onClick={() => handleStatusTileClick(tile)}
-                      className="min-w-[170px] rounded-xl border border-slate-800 bg-[#0f172a] p-2.5 text-left transition hover:border-slate-700 active:scale-[0.99] sm:min-w-0 sm:p-3.5"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
-                          {tile.title}
-                        </span>
-                        <span className={`h-2 w-2 shrink-0 rounded-full ${style.dot}`} />
-                      </div>
-                      <p className="mt-1 text-sm font-black text-white sm:mt-1.5">{tile.label}</p>
-                      <p className="mt-0.5 text-xs font-bold text-slate-500">{tile.badge}</p>
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className={`mt-2 rounded-xl border p-2.5 sm:mt-3 sm:rounded-2xl sm:p-4 ${nextAttentionNotification ? "border-red-500/40 bg-red-500/[0.07]" : "border-emerald-500/40 bg-emerald-500/[0.07]"}`}>
-                <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between md:gap-3">
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">
-                      {nextTaskCopy.eyebrow}
-                    </p>
-                    <h3 className="mt-1 break-words text-base font-black text-white sm:text-xl">
-                      {nextTaskCopy.title}
-                    </h3>
-                    <p className="mt-1 line-clamp-2 max-w-3xl text-xs font-bold leading-5 text-slate-300 sm:line-clamp-none sm:text-sm sm:leading-6">
-                      {nextTaskCopy.helper}
-                    </p>
-                  </div>
-
-                  {nextAttentionNotification ? (
-                    <button
-                      type="button"
-                      onClick={() => openNotification(nextAttentionNotification)}
-                      className="inline-flex min-h-[42px] shrink-0 items-center justify-center rounded-2xl bg-red-500 px-4 py-2.5 text-sm font-black text-white transition hover:bg-red-400 active:scale-[0.98] sm:min-h-[46px] sm:px-5 sm:py-3"
-                    >
-                      {nextTaskCopy.action} →
-                    </button>
-                  ) : (
-                    <span className="inline-flex min-h-[42px] shrink-0 items-center justify-center rounded-2xl border border-emerald-400/60 bg-emerald-500/15 px-4 py-2.5 text-sm font-black text-emerald-100 sm:min-h-[46px] sm:px-5 sm:py-3">
-                      All clear
-                    </span>
-                  )}
-                </div>
-              </div>
-
               <div className="mt-2 grid min-w-0 gap-2 sm:mt-3 sm:gap-3 xl:grid-cols-[minmax(0,1fr)_360px]">
                 <div className="-mx-3 flex max-w-full gap-2 overflow-x-auto overscroll-x-contain px-3 pb-2 pr-6 [-webkit-overflow-scrolling:touch] sm:mx-0 sm:px-0">
                   {categories.map((category) => {
@@ -1321,6 +1268,59 @@ export default function InspectorToolsDrawer({
               </nav>
 
               <div className="min-h-0 min-w-0 scroll-smooth p-3 sm:p-5 xl:overflow-y-auto" ref={bodyRef}>
+                <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+                  {statusTiles.map((tile) => {
+                    const style = urgencyStyles[tile.urgency] || urgencyStyles.success;
+                    return (
+                      <button
+                        key={tile.title}
+                        type="button"
+                        onClick={() => handleStatusTileClick(tile)}
+                        className="rounded-xl border border-slate-800 bg-[#0f172a] p-2.5 text-left transition hover:border-slate-700 active:scale-[0.99] sm:p-3.5"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
+                            {tile.title}
+                          </span>
+                          <span className={`h-2 w-2 shrink-0 rounded-full ${style.dot}`} />
+                        </div>
+                        <p className="mt-1 text-sm font-black text-white sm:mt-1.5">{tile.label}</p>
+                        <p className="mt-0.5 text-xs font-bold text-slate-500">{tile.badge}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className={`mb-4 rounded-xl border p-2.5 sm:rounded-2xl sm:p-4 ${nextAttentionNotification ? "border-red-500/40 bg-red-500/[0.07]" : "border-emerald-500/40 bg-emerald-500/[0.07]"}`}>
+                  <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between md:gap-3">
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">
+                        {nextTaskCopy.eyebrow}
+                      </p>
+                      <h3 className="mt-1 break-words text-base font-black text-white sm:text-xl">
+                        {nextTaskCopy.title}
+                      </h3>
+                      <p className="mt-1 text-xs font-bold leading-5 text-slate-300 sm:text-sm sm:leading-6">
+                        {nextTaskCopy.helper}
+                      </p>
+                    </div>
+
+                    {nextAttentionNotification ? (
+                      <button
+                        type="button"
+                        onClick={() => openNotification(nextAttentionNotification)}
+                        className="inline-flex min-h-[42px] shrink-0 items-center justify-center rounded-2xl bg-red-500 px-4 py-2.5 text-sm font-black text-white transition hover:bg-red-400 active:scale-[0.98] sm:min-h-[46px] sm:px-5 sm:py-3"
+                      >
+                        {nextTaskCopy.action} →
+                      </button>
+                    ) : (
+                      <span className="inline-flex min-h-[42px] shrink-0 items-center justify-center rounded-2xl border border-emerald-400/60 bg-emerald-500/15 px-4 py-2.5 text-sm font-black text-emerald-100 sm:min-h-[46px] sm:px-5 sm:py-3">
+                        All clear
+                      </span>
+                    )}
+                  </div>
+                </div>
+
                 <div className="sticky top-0 z-10 -mx-3 mb-4 overflow-hidden border-b border-slate-800 bg-[#071224]/95 px-3 py-3 backdrop-blur xl:hidden">
                   <p className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Quick Actions</p>
                   <div className="flex max-w-full gap-2 overflow-x-auto overscroll-x-contain pb-2 pr-6 [-webkit-overflow-scrolling:touch]">
