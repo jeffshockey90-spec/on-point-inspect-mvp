@@ -25,6 +25,7 @@ const baseNavItems = [
   { title: "Dispatch", href: "/dispatch", icon: "🧭", mobileLabel: "Dispatch" },
   { title: "Mileage", href: "/mileage", icon: "🚗", mobileLabel: "Mileage" },
   { title: "Support", href: "/support", icon: "💬", mobileLabel: "Support" },
+  { title: "What's New", href: "/whats-new", icon: "🚀", mobileLabel: "New" },
   { title: "Settings", href: "/settings", icon: "⚙️", mobileLabel: "Settings" },
 ];
 

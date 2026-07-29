@@ -1,0 +1,272 @@
+"use client";
+
+import { formatAppValue } from "../../../../lib/app-time";
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+
+type FeatureRequest = {
+  id: number;
+  user_name: string | null;
+  user_email: string | null;
+  message: string;
+  status: string;
+  owner_note: string | null;
+  created_at: string;
+};
+
+const STATUS_OPTIONS = ["new", "planned", "in_progress", "shipped", "declined"];
+
+const STATUS_STYLES: Record<string, string> = {
+  new: "border-cyan-400/40 bg-cyan-500/10 text-cyan-300",
+  planned: "border-purple-400/40 bg-purple-500/10 text-purple-300",
+  in_progress: "border-amber-400/40 bg-amber-500/10 text-amber-300",
+  shipped: "border-emerald-400/40 bg-emerald-500/10 text-emerald-300",
+  declined: "border-slate-500/40 bg-slate-500/10 text-slate-400",
+};
+
+function formatDate(value: string | null | undefined) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return formatAppValue(date, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+export default function OwnerSuggestions() {
+  const [requests, setRequests] = useState<FeatureRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [filter, setFilter] = useState("all");
+  const [publishTarget, setPublishTarget] = useState<FeatureRequest | null>(null);
+  const [publishTitle, setPublishTitle] = useState("");
+  const [publishBody, setPublishBody] = useState("");
+  const [publishCredit, setPublishCredit] = useState(true);
+  const [publishing, setPublishing] = useState(false);
+  const [publishError, setPublishError] = useState("");
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  async function load() {
+    try {
+      setError("");
+      const res = await fetch("/api/owner/feature-requests/list", { cache: "no-store" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Could not load suggestions.");
+      setRequests(data.requests || []);
+    } catch (err: any) {
+      setError(err?.message || "Could not load suggestions.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const filtered = useMemo(() => {
+    if (filter === "all") return requests;
+    return requests.filter((r) => r.status === filter);
+  }, [requests, filter]);
+
+  async function updateStatus(id: number, status: string) {
+    setRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)));
+    try {
+      await fetch("/api/owner/feature-requests/update-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, status }),
+      });
+    } catch {
+      load();
+    }
+  }
+
+  function openPublish(request: FeatureRequest) {
+    setPublishTarget(request);
+    setPublishTitle("");
+    setPublishBody(request.message);
+    setPublishCredit(true);
+    setPublishError("");
+  }
+
+  async function submitPublish() {
+    if (!publishTarget || !publishTitle.trim() || !publishBody.trim() || publishing) return;
+
+    try {
+      setPublishing(true);
+      setPublishError("");
+
+      const res = await fetch("/api/owner/changelog/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: publishTitle.trim(),
+          body: publishBody.trim(),
+          creditedUserName: publishCredit ? publishTarget.user_name : null,
+          featureRequestId: publishTarget.id,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Could not publish.");
+
+      setPublishTarget(null);
+      await load();
+    } catch (err: any) {
+      setPublishError(err?.message || "Could not publish.");
+    } finally {
+      setPublishing(false);
+    }
+  }
+
+  return (
+    <main className="min-h-screen bg-[#020617] px-4 py-8 text-white md:px-6 md:py-10">
+      <div className="mx-auto max-w-5xl space-y-6">
+        <section className="rounded-3xl border border-teal-500/40 bg-[#0f172a] p-6 shadow-2xl md:p-8">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="text-sm font-black uppercase tracking-[0.3em] text-teal-400">Suggestion Box</p>
+              <h1 className="mt-3 text-4xl font-black md:text-5xl">Feature Requests</h1>
+              <p className="mt-4 text-slate-300">What inspectors are asking for, straight from the app.</p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Link href="/dashboard/owner/changelog" className="rounded-xl border border-teal-500 px-5 py-3 font-black text-teal-300 hover:bg-teal-500/10">
+                Changelog
+              </Link>
+              <Link href="/dashboard/owner" className="rounded-xl border border-slate-700 px-5 py-3 font-black text-slate-300 hover:bg-slate-800">
+                Owner Dashboard
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {error && <div className="rounded-xl border border-red-500/30 bg-red-950/20 p-4 text-sm font-bold text-red-300">{error}</div>}
+
+        <div className="flex flex-wrap gap-2">
+          {["all", ...STATUS_OPTIONS].map((status) => (
+            <button
+              key={status}
+              onClick={() => setFilter(status)}
+              className={`rounded-full border px-4 py-2 text-xs font-black uppercase tracking-wide transition ${
+                filter === status
+                  ? "border-teal-400 bg-teal-500/15 text-teal-200"
+                  : "border-slate-700 bg-[#0f172a] text-slate-400 hover:border-teal-500/50"
+              }`}
+            >
+              {status.replace("_", " ")}
+            </button>
+          ))}
+        </div>
+
+        <div className="space-y-4">
+          {loading ? (
+            <p className="text-slate-400">Loading...</p>
+          ) : filtered.length === 0 ? (
+            <p className="rounded-xl border border-slate-700 bg-[#0f172a] p-6 text-center text-slate-400">
+              No suggestions here yet.
+            </p>
+          ) : (
+            filtered.map((request) => (
+              <div key={request.id} className="rounded-2xl border border-slate-800 bg-[#0f172a] p-5">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="font-black text-white">{request.user_name || "Inspector"}</p>
+                    <p className="text-xs text-slate-400">{request.user_email || "No email"} · {formatDate(request.created_at)}</p>
+                  </div>
+                  <span className={`shrink-0 rounded-full border px-3 py-1 text-xs font-black uppercase ${STATUS_STYLES[request.status] || STATUS_STYLES.new}`}>
+                    {request.status.replace("_", " ")}
+                  </span>
+                </div>
+
+                <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-200">{request.message}</p>
+
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  {STATUS_OPTIONS.map((status) => (
+                    <button
+                      key={status}
+                      onClick={() => updateStatus(request.id, status)}
+                      className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition ${
+                        request.status === status
+                          ? "border-teal-400 bg-teal-500/15 text-teal-200"
+                          : "border-slate-700 text-slate-400 hover:border-teal-500/50 hover:text-teal-300"
+                      }`}
+                    >
+                      {status.replace("_", " ")}
+                    </button>
+                  ))}
+
+                  <button
+                    onClick={() => openPublish(request)}
+                    className="ml-auto rounded-lg bg-teal-500 px-4 py-1.5 text-xs font-black text-black hover:bg-teal-400"
+                  >
+                    Post to Changelog
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      {publishTarget && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal="true">
+          <div className="w-full max-w-lg rounded-2xl border border-teal-500/40 bg-[#0f172a] p-6 shadow-2xl">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-xl font-black text-white">Post to Changelog</h2>
+              <button
+                type="button"
+                onClick={() => setPublishTarget(null)}
+                className="rounded-lg border border-slate-700 px-3 py-1 text-sm font-bold text-slate-300 hover:bg-slate-800"
+              >
+                Close
+              </button>
+            </div>
+
+            {publishError && (
+              <p className="mt-3 rounded-lg border border-red-500/30 bg-red-950/20 p-2 text-xs font-bold text-red-300">
+                {publishError}
+              </p>
+            )}
+
+            <input
+              value={publishTitle}
+              onChange={(e) => setPublishTitle(e.target.value)}
+              placeholder="Feature title, e.g. Custom section fields"
+              className="mt-4 w-full rounded-xl border border-slate-700 bg-black px-4 py-2.5 text-sm text-white outline-none focus:border-teal-400"
+            />
+
+            <textarea
+              value={publishBody}
+              onChange={(e) => setPublishBody(e.target.value)}
+              rows={4}
+              className="mt-3 w-full rounded-xl border border-slate-700 bg-black px-4 py-3 text-sm text-white outline-none focus:border-teal-400"
+            />
+
+            <label className="mt-3 flex items-center gap-2 text-sm font-bold text-slate-300">
+              <input
+                type="checkbox"
+                checked={publishCredit}
+                onChange={(e) => setPublishCredit(e.target.checked)}
+                className="h-4 w-4 rounded border-slate-600 bg-black"
+              />
+              Credit {publishTarget.user_name || "this inspector"}
+            </label>
+
+            <button
+              type="button"
+              onClick={submitPublish}
+              disabled={!publishTitle.trim() || !publishBody.trim() || publishing}
+              className="mt-4 w-full rounded-xl bg-teal-500 px-5 py-3 font-black text-black hover:bg-teal-400 disabled:opacity-50"
+            >
+              {publishing ? "Publishing..." : "Publish"}
+            </button>
+          </div>
+        </div>
+      )}
+    </main>
+  );
+}

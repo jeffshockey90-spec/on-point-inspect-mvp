@@ -11,6 +11,12 @@ type TourStep = {
 
 const STORAGE_KEY = "flow_dashboard_tour_v1_dismissed";
 
+async function persistDismissed() {
+  try {
+    await fetch("/api/dashboard-tour/dismiss", { method: "POST" });
+  } catch {}
+}
+
 const STEPS: TourStep[] = [
   {
     target: "tour-new-inspection",
@@ -58,17 +64,21 @@ function writeDismissed() {
   } catch {}
 }
 
-export default function DashboardTour() {
+export default function DashboardTour({
+  initialDismissed = false,
+}: {
+  initialDismissed?: boolean;
+}) {
   const [ready, setReady] = useState(false);
   const [stepIndex, setStepIndex] = useState(-1);
   const [rect, setRect] = useState<DOMRect | null>(null);
 
   useEffect(() => {
     setReady(true);
-    if (!readDismissed()) {
+    if (!initialDismissed && !readDismissed()) {
       setStepIndex(0);
     }
-  }, []);
+  }, [initialDismissed]);
 
   const step = stepIndex >= 0 ? STEPS[stepIndex] : null;
 
@@ -109,6 +119,7 @@ export default function DashboardTour() {
 
   function finishTour() {
     writeDismissed();
+    persistDismissed();
     setStepIndex(-1);
   }
 

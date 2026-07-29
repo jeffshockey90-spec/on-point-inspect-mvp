@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { sendPushNotification } from "../../../lib/push";
+import { OWNER_EMAILS } from "../../../lib/ownerEmails";
 
 export async function POST(req: Request) {
   try {
@@ -88,6 +90,19 @@ export async function POST(req: Request) {
         { error: companyUserError.message },
         { status: 500 }
       );
+    }
+
+    for (const ownerEmail of OWNER_EMAILS) {
+      sendPushNotification({
+        title: "🎉 New Account Created",
+        body: `${fullName} (${email}) just signed up as "${businessName}".`,
+        url: "/dashboard/owner",
+        eventType: "new_account",
+        target: "user",
+        targetUserEmail: ownerEmail,
+      }).catch((error) => {
+        console.error("New account owner push failed:", error);
+      });
     }
 
     return NextResponse.json({

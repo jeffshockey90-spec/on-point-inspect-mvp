@@ -43,6 +43,38 @@ export default function SupportPage() {
   const [thread, setThread] = useState<Thread | null>(null);
   const [error, setError] = useState("");
 
+  const [suggestion, setSuggestion] = useState("");
+  const [suggestionSending, setSuggestionSending] = useState(false);
+  const [suggestionError, setSuggestionError] = useState("");
+  const [suggestionSent, setSuggestionSent] = useState(false);
+
+  async function sendSuggestion() {
+    const clean = suggestion.trim();
+    if (!clean || suggestionSending) return;
+
+    try {
+      setSuggestionSending(true);
+      setSuggestionError("");
+      setSuggestionSent(false);
+
+      const res = await fetch("/api/feature-requests/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: clean }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Could not submit suggestion.");
+
+      setSuggestion("");
+      setSuggestionSent(true);
+    } catch (err: any) {
+      setSuggestionError(err?.message || "Could not submit suggestion.");
+    } finally {
+      setSuggestionSending(false);
+    }
+  }
+
   useEffect(() => {
     loadThread();
     const timer = setInterval(loadThread, 15000);
@@ -158,6 +190,43 @@ export default function SupportPage() {
               </div>
             </>
           )}
+        </section>
+
+        <section className="rounded-2xl border border-slate-800 bg-[#0f172a] p-5 shadow-xl">
+          <p className="text-sm font-black uppercase tracking-[0.3em] text-teal-400">Suggestion Box</p>
+          <h2 className="mt-2 text-2xl font-black text-white">Suggest a Feature or Report a Bug</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">
+            Jeff gets notified the moment you submit this. Good ones get built - and you get credited when they ship.
+          </p>
+
+          {suggestionSent && (
+            <p className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-950/20 p-3 text-sm font-bold text-emerald-300">
+              Sent! Jeff was notified right away.
+            </p>
+          )}
+
+          {suggestionError && (
+            <p className="mt-4 rounded-xl border border-red-500/30 bg-red-950/20 p-3 text-sm font-bold text-red-300">
+              {suggestionError}
+            </p>
+          )}
+
+          <div className="mt-4 space-y-3">
+            <textarea
+              value={suggestion}
+              onChange={(e) => setSuggestion(e.target.value)}
+              rows={4}
+              placeholder="What feature would make FLOW better for you? Or what's broken?"
+              className="w-full rounded-xl border border-slate-700 bg-black px-4 py-3 text-white outline-none focus:border-teal-400"
+            />
+            <button
+              onClick={sendSuggestion}
+              disabled={suggestionSending || !suggestion.trim()}
+              className="w-full rounded-xl border border-teal-500 bg-teal-500/10 px-5 py-4 font-black text-teal-300 hover:bg-teal-500/20 disabled:opacity-50"
+            >
+              {suggestionSending ? "Sending..." : "Submit Suggestion"}
+            </button>
+          </div>
         </section>
       </div>
     </main>

@@ -469,6 +469,12 @@ export default async function HomePage() {
     redirect(dashboardDestination);
   }
 
+  const { data: tourProfile } = await supabase
+    .from("profiles")
+    .select("dashboard_tour_dismissed_at")
+    .eq("id", user.id)
+    .maybeSingle();
+
   const inspectionSelectFields = [
     "id",
     "property_address",
@@ -756,7 +762,7 @@ export default async function HomePage() {
 
   return (
     <main className="min-h-screen bg-[#020617] px-4 py-8 text-white">
-      <DashboardTour />
+      <DashboardTour initialDismissed={Boolean(tourProfile?.dashboard_tour_dismissed_at)} />
       <div className="mx-auto max-w-[96rem] space-y-8">
         <section className="overflow-hidden rounded-3xl border border-teal-500/30 bg-gradient-to-br from-[#0b1220] via-[#071827] to-[#020617] p-6 shadow-2xl shadow-teal-950/30 md:p-8">
           <div className="grid gap-6 xl:grid-cols-[1.35fr_0.65fr] xl:items-start">

@@ -37,6 +37,13 @@ function formatDate(value: string | null | undefined) {
   });
 }
 
+type Inspector = {
+  id: string;
+  name: string;
+  email: string | null;
+  companyName: string | null;
+};
+
 export default function OwnerSupportChat() {
   const [threads, setThreads] = useState<Thread[]>([]);
   const [selectedId, setSelectedId] = useState("");
@@ -45,10 +52,30 @@ export default function OwnerSupportChat() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
 
+  const [showNewMessage, setShowNewMessage] = useState(false);
+  const [inspectors, setInspectors] = useState<Inspector[]>([]);
+  const [inspectorsLoading, setInspectorsLoading] = useState(false);
+  const [inspectorQuery, setInspectorQuery] = useState("");
+  const [selectedInspectorId, setSelectedInspectorId] = useState("");
+  const [newMessage, setNewMessage] = useState("");
+  const [startingThread, setStartingThread] = useState(false);
+  const [newMessageError, setNewMessageError] = useState("");
+
   const selected = useMemo(
     () => threads.find((thread) => thread.id === selectedId) || threads[0] || null,
     [threads, selectedId]
   );
+
+  const filteredInspectors = useMemo(() => {
+    const q = inspectorQuery.trim().toLowerCase();
+    if (!q) return inspectors;
+    return inspectors.filter(
+      (i) =>
+        i.name.toLowerCase().includes(q) ||
+        (i.email || "").toLowerCase().includes(q) ||
+        (i.companyName || "").toLowerCase().includes(q)
+    );
+  }, [inspectors, inspectorQuery]);
 
   useEffect(() => {
     loadThreads();
@@ -59,6 +86,52 @@ export default function OwnerSupportChat() {
   useEffect(() => {
     if (!selectedId && threads[0]) setSelectedId(threads[0].id);
   }, [threads, selectedId]);
+
+  async function openNewMessage() {
+    setShowNewMessage(true);
+    setNewMessageError("");
+    if (inspectors.length > 0) return;
+
+    try {
+      setInspectorsLoading(true);
+      const res = await fetch("/api/owner/support/inspectors", { cache: "no-store" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Could not load inspectors.");
+      setInspectors(data.inspectors || []);
+    } catch (err: any) {
+      setNewMessageError(err?.message || "Could not load inspectors.");
+    } finally {
+      setInspectorsLoading(false);
+    }
+  }
+
+  async function startNewThread() {
+    if (!selectedInspectorId || !newMessage.trim() || startingThread) return;
+
+    try {
+      setStartingThread(true);
+      setNewMessageError("");
+      const res = await fetch("/api/owner/support/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inspectorId: selectedInspectorId, message: newMessage.trim() }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Could not send message.");
+
+      setNewMessage("");
+      setSelectedInspectorId("");
+      setInspectorQuery("");
+      setShowNewMessage(false);
+      await loadThreads();
+      if (data.threadId) setSelectedId(data.threadId);
+    } catch (err: any) {
+      setNewMessageError(err?.message || "Could not send message.");
+    } finally {
+      setStartingThread(false);
+    }
+  }
 
   async function loadThreads() {
     try {
@@ -108,11 +181,94 @@ export default function OwnerSupportChat() {
               <h1 className="mt-3 text-4xl font-black md:text-5xl">Inspector Messages</h1>
               <p className="mt-4 text-slate-300">Read and reply to inspector support messages.</p>
             </div>
-            <Link href="/dashboard/owner" className="rounded-xl border border-teal-500 px-5 py-3 font-black text-teal-300 hover:bg-teal-500/10">
-              Owner Dashboard
-            </Link>
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={openNewMessage}
+                className="rounded-xl bg-teal-500 px-5 py-3 font-black text-black hover:bg-teal-400"
+              >
+                + New Message
+              </button>
+              <Link href="/dashboard/owner" className="rounded-xl border border-teal-500 px-5 py-3 font-black text-teal-300 hover:bg-teal-500/10">
+                Owner Dashboard
+              </Link>
+            </div>
           </div>
         </section>
+
+        {showNewMessage && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal="true">
+            <div className="w-full max-w-lg rounded-2xl border border-teal-500/40 bg-[#0f172a] p-6 shadow-2xl">
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-xl font-black text-white">Message an Inspector</h2>
+                <button
+                  type="button"
+                  onClick={() => setShowNewMessage(false)}
+                  className="rounded-lg border border-slate-700 px-3 py-1 text-sm font-bold text-slate-300 hover:bg-slate-800"
+                >
+                  Close
+                </button>
+              </div>
+
+              {newMessageError && (
+                <p className="mt-3 rounded-lg border border-red-500/30 bg-red-950/20 p-2 text-xs font-bold text-red-300">
+                  {newMessageError}
+                </p>
+              )}
+
+              <input
+                value={inspectorQuery}
+                onChange={(e) => setInspectorQuery(e.target.value)}
+                placeholder="Search inspectors by name, email, or company..."
+                className="mt-4 w-full rounded-xl border border-slate-700 bg-black px-4 py-2.5 text-sm text-white outline-none focus:border-teal-400"
+              />
+
+              <div className="mt-3 max-h-56 space-y-2 overflow-y-auto">
+                {inspectorsLoading ? (
+                  <p className="text-sm text-slate-400">Loading inspectors...</p>
+                ) : filteredInspectors.length === 0 ? (
+                  <p className="text-sm text-slate-400">No inspectors match.</p>
+                ) : (
+                  filteredInspectors.map((inspector) => (
+                    <button
+                      key={inspector.id}
+                      type="button"
+                      onClick={() => setSelectedInspectorId(inspector.id)}
+                      className={`w-full rounded-xl border p-3 text-left transition ${
+                        selectedInspectorId === inspector.id
+                          ? "border-teal-400 bg-teal-500/10"
+                          : "border-slate-700 bg-[#020817] hover:bg-slate-900"
+                      }`}
+                    >
+                      <p className="truncate text-sm font-black text-white">{inspector.name}</p>
+                      <p className="truncate text-xs text-slate-400">
+                        {inspector.email || "No email"}
+                        {inspector.companyName ? ` · ${inspector.companyName}` : ""}
+                      </p>
+                    </button>
+                  ))
+                )}
+              </div>
+
+              <textarea
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                rows={4}
+                placeholder="Write your message..."
+                className="mt-4 w-full rounded-xl border border-slate-700 bg-black px-4 py-3 text-white outline-none focus:border-teal-400"
+              />
+
+              <button
+                type="button"
+                onClick={startNewThread}
+                disabled={!selectedInspectorId || !newMessage.trim() || startingThread}
+                className="mt-4 w-full rounded-xl bg-teal-500 px-5 py-3 font-black text-black hover:bg-teal-400 disabled:opacity-50"
+              >
+                {startingThread ? "Sending..." : "Send Message"}
+              </button>
+            </div>
+          </div>
+        )}
 
         {error && <div className="rounded-xl border border-red-500/30 bg-red-950/20 p-4 text-sm font-bold text-red-300">{error}</div>}
 
