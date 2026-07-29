@@ -6,10 +6,12 @@ import { createClient } from "../../utils/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import DeleteAccountSection from "./DeleteAccountSection";
 import SettingsSectionTabs from "../../components/SettingsSectionTabs";
+import TeamManagement from "../../components/TeamManagement";
 
 const SETTINGS_TABS = [
   { key: "notifications", label: "Notifications", anchorId: "notifications" },
   { key: "company-profile", label: "Company Profile", anchorId: "company-profile" },
+  { key: "team", label: "Team", anchorId: "team" },
   { key: "payments", label: "Payments", anchorId: "payments" },
   { key: "public-profile", label: "Public Profile", anchorId: "public-profile" },
   { key: "standards-of-practice", label: "Standards of Practice", anchorId: "standards-of-practice" },
@@ -886,6 +888,10 @@ export default async function SettingsPage({
               </div>
             </div>
           </section>
+
+          <div id="team">
+            <TeamManagement />
+          </div>
 
           <section id="payments" className="rounded-3xl border border-slate-800 bg-[#0b1220] p-5 sm:p-6 md:p-8">
             <h2 className="text-xl font-black text-teal-300 sm:text-2xl">
