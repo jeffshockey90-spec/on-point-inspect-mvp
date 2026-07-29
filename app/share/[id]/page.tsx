@@ -1083,6 +1083,17 @@ export default async function PublicSharePage({
 
   const activeSectionOrder = resolveActiveSections(SECTION_ORDER, reportSectionsRaw || []);
 
+  const { data: sectionNotesRaw } = await supabase
+    .from("report_section_notes")
+    .select("section_name, notes")
+    .eq("inspection_id", inspectionId);
+
+  const sectionNotesByName = new Map(
+    (sectionNotesRaw || [])
+      .filter((row: any) => String(row.notes || "").trim())
+      .map((row: any) => [row.section_name, row.notes as string])
+  );
+
   if (findingsError) {
     return (
       <main className="min-h-screen bg-[#020617] p-10 text-white">
@@ -2387,6 +2398,14 @@ export default async function PublicSharePage({
                           {sectionDefects} defect{sectionDefects === 1 ? "" : "s"}
                         </span>
                       </div>
+
+                      {sectionNotesByName.get(group.section) && (
+                        <div className="mb-6 rounded-xl border border-slate-600 bg-[#0b1220] p-4">
+                          <p className="whitespace-pre-wrap text-sm leading-6 text-slate-300">
+                            {sectionNotesByName.get(group.section)}
+                          </p>
+                        </div>
+                      )}
 
                       {referencePhotosBySection[group.section]?.length > 0 && (
                         <div className="mb-6 rounded-xl border border-cyan-500/30 bg-cyan-950/20 p-4">

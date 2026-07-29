@@ -26,6 +26,7 @@ import SendReviewRequestButton from "../../../components/SendReviewRequestButton
 import DeleteSummaryButton from "../../../components/DeleteSummaryButton";
 import ConfirmSubmitButton from "../../../components/ConfirmSubmitButton";
 import ReportBuilderSectionTabs from "../../../components/ReportBuilderSectionTabs";
+import SectionNotesEditor from "../../../components/SectionNotesEditor";
 import InspectionRouteCard from "../../../components/InspectionRouteCard";
 import { getDrivingDistance } from "../../../lib/geocode";
 import FastLinkButton from "../../../components/FastLinkButton";
@@ -1774,7 +1775,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
 
   const executiveSummary = String(inspection.executive_summary || "").trim();
 
-  const [emailLogsResult, viewLogsResult, equipmentResult, findingsResult, reportSectionsResult, officeAddressResult] =
+  const [emailLogsResult, viewLogsResult, equipmentResult, findingsResult, reportSectionsResult, officeAddressResult, sectionNotesResult] =
     await Promise.all([
       loadEmailLogs(supabase, inspection.id),
       supabase
@@ -1804,6 +1805,10 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
             .eq("id", inspection.company_id)
             .maybeSingle()
         : Promise.resolve({ data: null, error: null }),
+      supabase
+        .from("report_section_notes")
+        .select("*")
+        .eq("inspection_id", inspection.id),
     ]);
 
   const officeAddress = officeAddressResult?.data?.office_address || null;
@@ -1854,6 +1859,18 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
 
   const deletedReportSections = (reportSectionsResult.data || []).filter(
     (row: any) => row.deleted_at,
+  );
+
+  const customSectionNames = (reportSectionsResult.data || [])
+    .filter((row: any) => row.is_custom && !row.deleted_at)
+    .map((row: any) => row.section_name);
+
+  if (sectionNotesResult?.error) {
+    console.error("Section notes load error:", sectionNotesResult.error);
+  }
+
+  const sectionNotesByName = new Map(
+    (sectionNotesResult?.data || []).map((row: any) => [row.section_name, row.notes || ""]),
   );
 
   if (emailLogsResult.error) {
@@ -2647,6 +2664,9 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
     ...(equipmentInventory.length > 0
       ? [{ key: "equipment", label: "Equipment", anchorId: "equipment-inventory" }]
       : []),
+    ...(customSectionNames.length > 0
+      ? [{ key: "custom-info", label: "Custom Info", anchorId: "custom-section-info" }]
+      : []),
   ];
 
   return (
@@ -3077,6 +3097,16 @@ Service-life information is a general industry estimate only. Actual service lif
                   })}
                 </div>
               </section>
+            )}
+
+            {customSectionNames.length > 0 && (
+              <div id="custom-section-info">
+                <SectionNotesEditor
+                  inspectionId={String(inspection.id)}
+                  sectionNames={customSectionNames}
+                  initialNotes={Object.fromEntries(sectionNotesByName)}
+                />
+              </div>
             )}
           </ReportBuilderSectionTabs>
 

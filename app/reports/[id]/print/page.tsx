@@ -530,6 +530,17 @@ export default async function PrintableReportPage({ params }: PageProps) {
 
   const activeSectionOrder = resolveActiveSections(SECTION_ORDER, reportSectionsRaw || []);
 
+  const { data: sectionNotesRaw } = await supabase
+    .from("report_section_notes")
+    .select("section_name, notes")
+    .eq("inspection_id", inspection.id);
+
+  const sectionNotesByName = new Map(
+    (sectionNotesRaw || [])
+      .filter((row: any) => String(row.notes || "").trim())
+      .map((row: any) => [row.section_name, row.notes as string])
+  );
+
   const findingIds = (findingsRaw || []).map((finding: any) => finding.id);
 
   const { data: photosRaw } =
@@ -1186,6 +1197,14 @@ export default async function PrintableReportPage({ params }: PageProps) {
                   <h3 className="border-b-4 border-teal-600 pb-2 text-3xl font-black text-teal-800">
                     {group.section}
                   </h3>
+
+                  {sectionNotesByName.get(group.section) && (
+                    <div className="avoid-break rounded-xl border border-slate-300 bg-slate-50 p-4">
+                      <p className="whitespace-pre-wrap text-base leading-6 text-slate-700">
+                        {sectionNotesByName.get(group.section)}
+                      </p>
+                    </div>
+                  )}
 
                   {group.findings.map((finding: any) => (
                     <article
