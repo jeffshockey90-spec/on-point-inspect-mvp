@@ -475,6 +475,12 @@ export default async function HomePage() {
     .eq("id", user.id)
     .maybeSingle();
 
+  const { data: latestChangelogEntries } = await supabase
+    .from("changelog_entries")
+    .select("id, title, body, credited_user_name, published_at")
+    .order("published_at", { ascending: false })
+    .limit(3);
+
   const inspectionSelectFields = [
     "id",
     "property_address",
@@ -820,6 +826,62 @@ export default async function HomePage() {
               <CommandMetric label="Unpaid" value={String(unpaidInspections.length)} helper={totalBalanceDue > 0 ? `${money(totalBalanceDue)} due` : "Need review"} tone="orange" />
               <CommandMetric label="Repair" value={String(repairStats.waiting)} helper="Waiting response" tone="cyan" />
             </div>
+          </div>
+        </section>
+
+        <section className="overflow-hidden rounded-3xl border border-amber-500/30 bg-gradient-to-br from-[#0b1220] via-[#0b1220] to-amber-950/10 p-6 shadow-xl">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.3em] text-amber-300">
+                🚀 What&apos;s New
+              </p>
+              <h2 className="mt-2 text-2xl font-black text-white">
+                Latest updates to FLOW
+              </h2>
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href="/whats-new"
+                className="rounded-xl border border-slate-600 px-4 py-2.5 text-sm font-black text-slate-200 transition hover:border-teal-400 hover:text-teal-200"
+              >
+                See All Updates
+              </Link>
+              <Link
+                href="/support"
+                className="rounded-xl border border-amber-400/60 bg-amber-500/10 px-4 py-2.5 text-sm font-black text-amber-200 transition hover:bg-amber-500/20"
+              >
+                💡 Suggest a Feature
+              </Link>
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-3 md:grid-cols-3">
+            {(latestChangelogEntries || []).length === 0 ? (
+              <div className="md:col-span-3 rounded-xl border border-dashed border-slate-700 bg-[#020617]/70 p-5 text-sm text-slate-400">
+                No updates posted yet. Got an idea for FLOW? Use the suggestion box above - Jeff sees it the moment
+                you submit it.
+              </div>
+            ) : (
+              latestChangelogEntries!.map((entry: any) => (
+                <Link
+                  key={entry.id}
+                  href="/whats-new"
+                  className="block rounded-xl border border-slate-700 bg-[#020617]/70 p-4 transition hover:border-amber-400/60 active:scale-[0.99]"
+                >
+                  <p className="text-xs font-bold text-slate-500">
+                    {getRelativeTime(entry.published_at)}
+                  </p>
+                  <p className="mt-1 font-black text-white">{entry.title}</p>
+                  <p className="mt-1 line-clamp-2 text-sm text-slate-400">{entry.body}</p>
+                  {entry.credited_user_name && (
+                    <p className="mt-2 text-xs font-black text-amber-300">
+                      ✨ Requested by {entry.credited_user_name}
+                    </p>
+                  )}
+                </Link>
+              ))
+            )}
           </div>
         </section>
 

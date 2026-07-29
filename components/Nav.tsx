@@ -596,6 +596,15 @@ export default function Navbar() {
           </button>
         </div>
       </nav>
+
+      {userEmail && !isOwner && !isPortalRoute(pathname) && (
+        <Link
+          href="/support"
+          className="fixed bottom-40 right-4 z-[150] flex items-center gap-2 rounded-full border border-amber-400/60 bg-[#0b1220] px-4 py-3 text-xs font-black uppercase tracking-wide text-amber-300 shadow-2xl shadow-black/40 transition hover:border-amber-300 hover:text-amber-200 active:scale-[0.97] xl:bottom-20"
+        >
+          💡 Suggest
+        </Link>
+      )}
     </>
   );
 }
