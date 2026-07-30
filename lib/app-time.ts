@@ -1,7 +1,7 @@
 ﻿export type TimeFormat = "12h" | "24h";
 
 export const DEFAULT_TIME_ZONE = "America/New_York";
-export const DEFAULT_TIME_FORMAT: TimeFormat = "24h";
+export const DEFAULT_TIME_FORMAT: TimeFormat = "12h";
 export const TIME_PREFERENCES_STORAGE_KEY = "onpoint-time-preferences";
 export const TIME_PREFERENCES_EVENT = "onpoint:time-preferences-changed";
 
