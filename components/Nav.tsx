@@ -15,6 +15,8 @@ const baseNavItems = [
   { title: "New Inspection", href: "/inspections/new", icon: "➕", mobileLabel: "New" },
   { title: "Field Tool", href: "/field", icon: "📱", mobileLabel: "Field" },
   { title: "Reports", href: "/reports", icon: "📋", mobileLabel: "Reports" },
+  { title: "Mold", href: "/mold", icon: "🧪", mobileLabel: "Mold" },
+  { title: "Radon", href: "/radon", icon: "☢️", mobileLabel: "Radon" },
   { title: "Realtors", href: "/realtors", icon: "🏡", mobileLabel: "Realtors" },
   { title: "Agreements", href: "/agreements", icon: "📄", mobileLabel: "Agreements" },
   { title: "Sent Emails", href: "/emails", icon: "📧", mobileLabel: "Emails" },

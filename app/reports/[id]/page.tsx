@@ -15,6 +15,7 @@ import OfflineReportCacheBridge from "../../../components/OfflineReportCacheBrid
 import SendReportEmailButtons from "../../../components/SendReportEmailButtons";
 import SendW9Button from "../../../components/SendW9Button";
 import InspectionContactsManager from "../../../components/InspectionContactsManager";
+import EnvironmentalTestPanel from "../../../components/EnvironmentalTestPanel";
 import AgreementSelector from "../../../components/AgreementSelector";
 import AgreementStatusPanel from "../../../components/AgreementStatusPanel";
 import ReportDeliveryGuard from "../../../components/ReportDeliveryGuard";
@@ -2375,7 +2376,36 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
   const sampleShareTitle = getSampleReportTitle(inspection);
   const sampleShareDescription = getSampleReportDescription(inspection);
 
-  
+  const inspectionServiceType = String(
+    inspection.service_mode || inspection.inspection_type || inspection.services || ""
+  ).toLowerCase();
+  const hasMoldService =
+    inspectionServiceType.includes("mold") || inspection.mold === true;
+  const hasRadonService =
+    inspectionServiceType.includes("radon") || inspection.radon === true;
+
+  let moldTestForPanel = null;
+  let radonTestForPanel = null;
+
+  if (hasMoldService) {
+    const { data } = await supabase
+      .from("mold_tests")
+      .select("air_samples, surface_samples, lab_name, lab_report_url, lab_status, notes")
+      .eq("inspection_id", inspection.id)
+      .maybeSingle();
+
+    moldTestForPanel = data;
+  }
+
+  if (hasRadonService) {
+    const { data } = await supabase
+      .from("radon_tests")
+      .select("average_pci, device_name, report_url, report_status, notes")
+      .eq("inspection_id", inspection.id)
+      .maybeSingle();
+
+    radonTestForPanel = data;
+  }
 
   const { data: signedAgreementsRaw, error: signedAgreementsError } = await supabase
     .from("inspection_agreements")
@@ -3989,6 +4019,23 @@ Service-life information is a general industry estimate only. Actual service lif
             }
           />
           </CollapsibleReportSection>
+
+          {(hasMoldService || hasRadonService) && (
+            <CollapsibleReportSection
+              title="Environmental Testing"
+              subtitle="Mold/radon test details and the lab report link shown on the client report"
+              defaultOpen={false}
+              accentClassName="border-purple-500/40 text-purple-100"
+            >
+              <EnvironmentalTestPanel
+                inspectionId={String(inspection.id)}
+                hasMold={hasMoldService}
+                hasRadon={hasRadonService}
+                moldTest={moldTestForPanel}
+                radonTest={radonTestForPanel}
+              />
+            </CollapsibleReportSection>
+          )}
 
           <CollapsibleReportSection
             title="Signed Agreements"
