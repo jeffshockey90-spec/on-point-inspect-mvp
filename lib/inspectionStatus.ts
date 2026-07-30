@@ -58,8 +58,13 @@ export function isPaymentComplete(inspection: any) {
   if (status === "unpaid" || status === "partial") return false;
   if (invoiceAmount > 0 && amountPaid >= invoiceAmount) return true;
   if (invoiceAmount > 0 && balanceDue <= 0) return true;
+  if (invoiceAmount > 0) return false;
 
-  return true;
+  // No invoice amount set at all and status doesn't say paid/waived - only
+  // treat it as complete when there's truly no payment status on record
+  // (e.g. payment tracking unused for this inspection), not for an
+  // unrecognized/pending status.
+  return status === "";
 }
 
 export function isPublished(inspection: any) {
