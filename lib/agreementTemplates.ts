@@ -68,7 +68,10 @@ function getLicenseLine(state?: string | null) {
 }
 
 function fillBlankLine(label: string, value: string) {
-  return new RegExp(`${label}:\\s*(?:_+)?\\s*(?=\\n|$)`, "i");
+  // Some template authors write "Fee: $______" with a literal currency sign
+  // ahead of the blank - tolerate an optional "$" between the colon and the
+  // underscore run so those still get recognized as fillable blanks.
+  return new RegExp(`${label}:\\s*\\$?\\s*(?:_+)?\\s*(?=\\n|$)`, "i");
 }
 
 export function applyAgreementMergeFields({
@@ -175,14 +178,18 @@ export function applyAgreementMergeFields({
     );
   }
   body = body.replace(fillBlankLine("Inspector", inspectorDisplay), `Inspector: ${inspectorDisplay}\n`);
+  body = body.replace(fillBlankLine("Property Address", displayProperty), `Property Address: ${displayProperty}\n`);
   body = body.replace(fillBlankLine("Common Street Address", displayProperty), `Common Street Address: ${displayProperty}\n`);
+  body = body.replace(fillBlankLine("Inspection Date", displayDate), `Inspection Date: ${displayDate}\n`);
   body = body.replace(fillBlankLine("Fee", displayFee), `Fee: ${displayFee}\n`);
   body = body.replace(fillBlankLine("State License No\\.", inspectorLicense), `State License No.: ${inspectorLicense}\n`);
   body = body.replace(fillBlankLine("License Expiration Date", inspectorLicenseExpiration), `License Expiration Date: ${inspectorLicenseExpiration}\n`);
 
+  // Template authors write this signature-date blank as either "Date:" or
+  // "Dated:" - match either, but keep whichever label they actually used.
   body = body.replace(
-    /Dated:\s*(?:_+)?\s*(?=\n|$)/i,
-    `Dated: ${displaySignedDate}\n`
+    /(Dated|Date):\s*(?:_+)?\s*(?=\n|$)/i,
+    (_match, label) => `${label}: ${displaySignedDate}\n`
   );
 
   return body;
@@ -211,14 +218,6 @@ export function mergeAgreementBody({
   inspectionDate?: string | null;
   signedDate?: string | null;
 }) {
-  const normalized = normalizeAgreementState(state);
-
-  const displayClient = clientName || "Client";
-  const displayProperty = propertyAddress || "Inspection Property";
-  const displayFee = formatFee(fee);
-  const displayDate = formatDate(inspectionDate);
-  const displayInspector = inspectorName || "Your Home Inspection Company";
-
   const filledAgreement = applyAgreementMergeFields({
     templateBody,
     state,
@@ -232,21 +231,7 @@ export function mergeAgreementBody({
     signedDate,
   });
 
-  return `AGREEMENT DETAILS
-
-Agreement State: ${normalized}
-Agreement Version: ${getAgreementVersion(normalized)}
-Agreement Date: ${displayDate}
-Client: ${displayClient}
-${coClientName ? `Co-Client: ${coClientName}` : ""}
-${clientOrganization ? `Business/Organization: ${clientOrganization}` : ""}
-Inspector: ${displayInspector}
-Property: ${displayProperty}
-Fee: ${displayFee}
-
-----------------------------------------------------------------
-
-${filledAgreement}
+  return `${filledAgreement}
 
 ----------------------------------------------------------------
 
@@ -294,8 +279,25 @@ export function mergeMultipleAgreementBodies({
     });
   }
 
+  const showGroupHeaders = templates.length > 1;
+
   return templates
     .map((template, index) => {
+      const body = mergeAgreementBody({
+        templateBody: template?.body || "",
+        state,
+        clientName,
+        coClientName,
+        clientOrganization,
+        propertyAddress,
+        fee,
+        inspectorName,
+        inspectionDate,
+        signedDate,
+      });
+
+      if (!showGroupHeaders) return body;
+
       const title = template?.title || `Agreement ${index + 1}`;
       const version = template?.version || "v1";
       const serviceType = template?.service_type || "home_inspection";
@@ -304,18 +306,7 @@ export function mergeMultipleAgreementBodies({
 Version: ${version}
 Service Type: ${serviceType}
 
-${mergeAgreementBody({
-  templateBody: template?.body || "",
-  state,
-  clientName,
-  coClientName,
-  clientOrganization,
-  propertyAddress,
-  fee,
-  inspectorName,
-  inspectionDate,
-  signedDate,
-})}`;
+${body}`;
     })
     .join("\n\n\n============================================================\n\n\n");
 }
