@@ -187,9 +187,20 @@ async function logAuditEvent({
   }
 }
 
+function getInspectionRealtor(inspection: any) {
+  const name =
+    cleanText(inspection?.realtor_name) || cleanText(inspection?.agent_name);
+
+  const email =
+    cleanText(inspection?.realtor_email) || cleanText(inspection?.agent_email);
+
+  return { name, email };
+}
+
 export async function POST(req: Request) {
   try {
-    const { inspectionId } = await req.json();
+    const { inspectionId, recipientType } = await req.json();
+    const sendToRealtor = String(recipientType || "client") === "realtor";
 
     if (!inspectionId) {
       return NextResponse.json(
@@ -281,6 +292,117 @@ export async function POST(req: Request) {
       branding,
       "On Point Home Inspections <agreements@onpointhomeinspect.com>"
     );
+
+    // Explicit, opt-in path: an inspector chooses this because the realtor
+    // asked to receive and forward the agreement themselves - never sent
+    // automatically alongside the normal client send.
+    if (sendToRealtor) {
+      const realtor = getInspectionRealtor(inspection);
+
+      if (!realtor.email) {
+        return NextResponse.json(
+          {
+            error:
+              "No realtor email found on this inspection. Add a realtor email first.",
+          },
+          { status: 400 }
+        );
+      }
+
+      const links = clientContacts.map((contact: any) => ({
+        name: contact.name || "Client",
+        url: `${baseUrl}/client-agreement/${inspectionId}?contact=${contact.id}`,
+      }));
+
+      const subject = `Inspection Agreement To Forward - ${property}`;
+      const email = realtor.email;
+
+      try {
+        const result = await resend.emails.send({
+          from: fromEmail,
+          to: email,
+          subject,
+          html: `
+            <div style="font-family:Arial,sans-serif;padding:24px;line-height:1.6;color:#0f172a;">
+              <h2 style="color:#0f766e;">${escapeHtml(branding.name)}</h2>
+
+              <p>Hi ${escapeHtml(realtor.name || "there")},</p>
+
+              <p>Please forward the link below to the client so they can review and sign their inspection agreement for <strong>${escapeHtml(property)}</strong>.</p>
+
+              ${links
+                .map(
+                  (link: any) => `
+                <p>
+                  <strong>${escapeHtml(link.name)}</strong><br />
+                  <a href="${link.url}" style="display:inline-block;margin-top:6px;background:#14b8a6;color:#020617;font-weight:bold;padding:14px 22px;border-radius:10px;text-decoration:none;">
+                    Review & Sign Agreement
+                  </a>
+                </p>
+              `
+                )
+                .join("")}
+
+              <p style="margin-top:30px;font-size:12px;color:#64748b;">
+                ${escapeHtml(branding.name)}
+              </p>
+            </div>
+          `,
+          text: `Hi ${realtor.name || "there"},
+
+Please forward the link below to the client so they can review and sign their inspection agreement for ${property}.
+
+${links.map((link: any) => `${link.name}: ${link.url}`).join("\n")}
+
+${branding.name}`,
+        });
+
+        await logEmailEvent({
+          inspectionId,
+          recipient: email,
+          subject,
+          status: "sent",
+          resendId: result?.data?.id || null,
+          metadata: {
+            type: "agreement_realtor_email",
+            links,
+            recipientRule: "realtor_forward",
+          },
+        });
+
+        await logAuditEvent({
+          action: "agreement_email_sent_to_realtor",
+          resourceType: "inspection",
+          resourceId: inspectionId,
+          metadata: { realtorEmail: email, links },
+        });
+
+        return NextResponse.json({
+          success: true,
+          message: `Agreement forwarding email sent to ${email}.`,
+          sent: [{ email, links }],
+          failed: [],
+        });
+      } catch (error: any) {
+        await logEmailEvent({
+          inspectionId,
+          recipient: email,
+          subject,
+          status: "failed",
+          metadata: {
+            type: "agreement_realtor_email",
+            links,
+            recipientRule: "realtor_forward",
+            error: error?.message || "Failed to send agreement to realtor.",
+          },
+        });
+
+        return NextResponse.json(
+          { error: error?.message || "Failed to send agreement to realtor." },
+          { status: 500 }
+        );
+      }
+    }
 
     const sent: any[] = [];
     const failed: any[] = [];
