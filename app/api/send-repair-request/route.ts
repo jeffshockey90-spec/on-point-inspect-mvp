@@ -166,6 +166,7 @@ async function logEmailEvent(
       recipient_email: recipient,
       email_type: "repair_request",
       subject,
+      message: status === "sent" ? `Repair request sent to ${recipient}.` : metadata?.error || "Repair request send failed.",
       status,
       resend_id: resendId || null,
       sent_at: status === "sent" ? new Date().toISOString() : null,

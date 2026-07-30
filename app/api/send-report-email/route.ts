@@ -162,6 +162,7 @@ async function logEmailEvent(
       recipient_email: recipient,
       email_type: metadata?.type || "inspection_report",
       subject,
+      message: status === "sent" ? `Report email sent to ${recipient}.` : metadata?.error || "Report email send failed.",
       status,
       resend_id: resendId || null,
       sent_at: status === "sent" ? new Date().toISOString() : null,

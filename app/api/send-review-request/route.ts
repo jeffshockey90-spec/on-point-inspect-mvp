@@ -162,6 +162,7 @@ async function logEmailEvent(
       recipient_email: recipient,
       email_type: "review_request",
       subject,
+      message: status === "sent" ? `Review request sent to ${recipient}.` : metadata?.error || "Review request send failed.",
       status,
       resend_id: resendId || null,
       sent_at: status === "sent" ? new Date().toISOString() : null,

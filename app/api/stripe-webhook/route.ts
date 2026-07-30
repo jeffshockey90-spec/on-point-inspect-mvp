@@ -124,10 +124,15 @@ async function logEmailEvent(
   try {
     await supabase.from("email_logs").insert({
       inspection_id: Number(inspectionId),
+      inspection_id_bigint: Number(inspectionId),
       recipient,
+      recipient_email: recipient,
+      email_type: "payment_receipt",
       subject,
+      message: status === "sent" ? `Receipt sent to ${recipient}.` : metadata?.error || "Receipt send failed.",
       status,
       resend_id: resendId || null,
+      sent_at: status === "sent" ? new Date().toISOString() : null,
       metadata,
     });
   } catch (error) {

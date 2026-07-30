@@ -66,6 +66,7 @@ async function logEmailEvent({
       recipient_email: recipient,
       email_type: "w9_email",
       subject,
+      message: status === "sent" ? `W9 sent to ${recipient}.` : metadata?.error || "W9 send failed.",
       status,
       resend_id: resendId || null,
       sent_at: status === "sent" ? new Date().toISOString() : null,
