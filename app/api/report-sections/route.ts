@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { createClient } from "../../../utils/supabase/server";
+import { resolveInspectionAccessFilter } from "../../../lib/inspectionAccess";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -56,11 +57,13 @@ export async function GET(req: Request) {
 }
 
 async function getOwnedInspectionId(supabase: any, inspectionId: string, userId: string) {
+  const accessFilter = await resolveInspectionAccessFilter(supabase, userId);
+
   const { data, error } = await supabase
     .from("inspections")
     .select("id")
     .eq("id", inspectionId)
-    .eq("inspector_id", userId)
+    .eq(accessFilter.column, accessFilter.value)
     .maybeSingle();
 
   if (error || !data) return null;

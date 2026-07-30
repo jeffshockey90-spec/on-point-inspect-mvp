@@ -1077,7 +1077,10 @@ function SectionInformationChecklist({
     setMessage(text);
   }
 
-  const baseGroups = useMemo(() => CHECKLIST_LIBRARY[section] || [], [section]);
+  const baseGroups = useMemo(
+    () => CHECKLIST_LIBRARY[section] || [{ title: "Custom Info", options: [] }],
+    [section]
+  );
 
   useEffect(() => {
     async function load() {

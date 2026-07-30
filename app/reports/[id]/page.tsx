@@ -1,6 +1,7 @@
 
 import { formatAppValue } from "../../../lib/app-time";
 import { resolveActiveSections } from "../../../lib/reportSections";
+import { resolveInspectionAccessFilter } from "../../../lib/inspectionAccess";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
@@ -26,7 +27,6 @@ import SendReviewRequestButton from "../../../components/SendReviewRequestButton
 import DeleteSummaryButton from "../../../components/DeleteSummaryButton";
 import ConfirmSubmitButton from "../../../components/ConfirmSubmitButton";
 import ReportBuilderSectionTabs from "../../../components/ReportBuilderSectionTabs";
-import SectionNotesEditor from "../../../components/SectionNotesEditor";
 import InspectionRouteCard from "../../../components/InspectionRouteCard";
 import { getDrivingDistance } from "../../../lib/geocode";
 import FastLinkButton from "../../../components/FastLinkButton";
@@ -1261,6 +1261,8 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
 
     if (!inspectionId) redirect("/reports");
 
+    const accessFilter = await resolveInspectionAccessFilter(supabase, user.id);
+
     const { data: updatedInspection, error: inspectionUpdateError } =
       await supabase
         .from("inspections")
@@ -1278,7 +1280,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
           zip: String(formData.get("zip") || "").trim(),
         })
         .eq("id", inspectionId)
-        .eq("inspector_id", user.id)
+        .eq(accessFilter.column, accessFilter.value)
         .select("id")
         .single();
 
@@ -1350,11 +1352,13 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
       redirect(`/reports/${inspectionId}?property_photo_error=type`);
     }
 
+    const accessFilter = await resolveInspectionAccessFilter(supabase, user.id);
+
     const { data: ownedInspection } = await supabase
       .from("inspections")
       .select("id")
       .eq("id", inspectionId)
-      .eq("inspector_id", user.id)
+      .eq(accessFilter.column, accessFilter.value)
       .single();
 
     if (!ownedInspection) redirect("/reports");
@@ -1413,7 +1417,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
         cover_photo_url: publicUrl,
       })
       .eq("id", inspectionId)
-      .eq("inspector_id", user.id);
+      .eq(accessFilter.column, accessFilter.value);
 
     if (updateError) {
       console.error("Property photo save error:", updateError);
@@ -1446,11 +1450,13 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
       redirect(`/reports/${inspectionId || id}`);
     }
 
+    const accessFilter = await resolveInspectionAccessFilter(supabase, user.id);
+
     const { data: ownedInspection } = await supabase
       .from("inspections")
       .select("id")
       .eq("id", inspectionId)
-      .eq("inspector_id", user.id)
+      .eq(accessFilter.column, accessFilter.value)
       .single();
 
     if (!ownedInspection) {
@@ -1493,11 +1499,13 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
     const maintenanceNote = String(formData.get("maintenance_note") || "").trim();
     const equipmentStatus = String(formData.get("equipment_status") || "").trim();
 
+    const accessFilter = await resolveInspectionAccessFilter(supabase, user.id);
+
     const { data: ownedInspection } = await supabase
       .from("inspections")
       .select("id")
       .eq("id", inspectionId)
-      .eq("inspector_id", user.id)
+      .eq(accessFilter.column, accessFilter.value)
       .single();
 
     if (!ownedInspection) {
@@ -1540,13 +1548,15 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
 
     const inspectionId = String(formData.get("inspection_id") || "");
 
+    const accessFilter = await resolveInspectionAccessFilter(supabase, user.id);
+
     const [guardInspectionResult, guardFindingsResult, guardEquipmentResult] =
       await Promise.all([
         supabase
           .from("inspections")
           .select("*")
           .eq("id", inspectionId)
-          .eq("inspector_id", user.id)
+          .eq(accessFilter.column, accessFilter.value)
           .single(),
         supabase
           .from("findings")
@@ -1616,7 +1626,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
         published_at: now,
       })
       .eq("id", inspectionId)
-      .eq("inspector_id", user.id);
+      .eq(accessFilter.column, accessFilter.value);
 
     if (error) {
       console.error("Publish report error:", error);
@@ -1660,7 +1670,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
       .from("inspections")
       .select("service_mode, inspection_type, services")
       .eq("id", inspectionId)
-      .eq("inspector_id", user.id)
+      .eq(accessFilter.column, accessFilter.value)
       .single();
 
     const serviceType = String(
@@ -1706,11 +1716,13 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
       redirect(`/reports/${inspectionId || id}?sample_error=missing`);
     }
 
+    const accessFilter = await resolveInspectionAccessFilter(supabase, user.id);
+
     const { data: ownedInspection, error: ownedInspectionError } = await supabase
       .from("inspections")
       .select("*")
       .eq("id", inspectionId)
-      .eq("inspector_id", user.id)
+      .eq(accessFilter.column, accessFilter.value)
       .single();
 
     if (ownedInspectionError || !ownedInspection) {
@@ -1761,11 +1773,13 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
 
   if (!user) redirect("/login");
 
+  const pageAccessFilter = await resolveInspectionAccessFilter(supabase, user.id);
+
   const { data: inspection, error: inspectionError } = await supabase
     .from("inspections")
     .select("*")
     .eq("id", id)
-    .eq("inspector_id", user.id)
+    .eq(pageAccessFilter.column, pageAccessFilter.value)
     .single();
 
   if (inspectionError || !inspection) redirect("/reports");
@@ -1777,7 +1791,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
 
   const executiveSummary = String(inspection.executive_summary || "").trim();
 
-  const [emailLogsResult, viewLogsResult, equipmentResult, findingsResult, reportSectionsResult, officeAddressResult, sectionNotesResult] =
+  const [emailLogsResult, viewLogsResult, equipmentResult, findingsResult, reportSectionsResult, officeAddressResult] =
     await Promise.all([
       loadEmailLogs(supabase, inspection.id),
       supabase
@@ -1807,10 +1821,6 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
             .eq("id", inspection.company_id)
             .maybeSingle()
         : Promise.resolve({ data: null, error: null }),
-      supabase
-        .from("report_section_notes")
-        .select("*")
-        .eq("inspection_id", inspection.id),
     ]);
 
   const officeAddress = officeAddressResult?.data?.office_address || null;
@@ -1861,18 +1871,6 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
 
   const deletedReportSections = (reportSectionsResult.data || []).filter(
     (row: any) => row.deleted_at,
-  );
-
-  const customSectionNames = (reportSectionsResult.data || [])
-    .filter((row: any) => row.is_custom && !row.deleted_at)
-    .map((row: any) => row.section_name);
-
-  if (sectionNotesResult?.error) {
-    console.error("Section notes load error:", sectionNotesResult.error);
-  }
-
-  const sectionNotesByName = new Map(
-    (sectionNotesResult?.data || []).map((row: any) => [row.section_name, row.notes || ""]),
   );
 
   if (emailLogsResult.error) {
@@ -2666,9 +2664,6 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
     ...(equipmentInventory.length > 0
       ? [{ key: "equipment", label: "Equipment", anchorId: "equipment-inventory" }]
       : []),
-    ...(customSectionNames.length > 0
-      ? [{ key: "custom-info", label: "Custom Info", anchorId: "custom-section-info" }]
-      : []),
   ];
 
   return (
@@ -3101,15 +3096,6 @@ Service-life information is a general industry estimate only. Actual service lif
               </section>
             )}
 
-            {customSectionNames.length > 0 && (
-              <div id="custom-section-info">
-                <SectionNotesEditor
-                  inspectionId={String(inspection.id)}
-                  sectionNames={customSectionNames}
-                  initialNotes={Object.fromEntries(sectionNotesByName)}
-                />
-              </div>
-            )}
           </ReportBuilderSectionTabs>
 
           <CollapsibleReportSection

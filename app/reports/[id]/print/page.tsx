@@ -530,17 +530,6 @@ export default async function PrintableReportPage({ params }: PageProps) {
 
   const activeSectionOrder = resolveActiveSections(SECTION_ORDER, reportSectionsRaw || []);
 
-  const { data: sectionNotesRaw } = await supabase
-    .from("report_section_notes")
-    .select("section_name, notes")
-    .eq("inspection_id", inspection.id);
-
-  const sectionNotesByName = new Map(
-    (sectionNotesRaw || [])
-      .filter((row: any) => String(row.notes || "").trim())
-      .map((row: any) => [row.section_name, row.notes as string])
-  );
-
   const findingIds = (findingsRaw || []).map((finding: any) => finding.id);
 
   const { data: photosRaw } =
@@ -1026,7 +1015,7 @@ export default async function PrintableReportPage({ params }: PageProps) {
             </h2>
 
             <div className="mt-6 space-y-6">
-              {SECTION_ORDER.filter((section) => checklistBySection[section]).map(
+              {activeSectionOrder.filter((section) => checklistBySection[section]).map(
                 (section) => (
                   <div key={section} className="avoid-break rounded-xl border border-slate-300 p-5">
                     <h3 className="mb-4 text-2xl font-black text-teal-800">
@@ -1065,7 +1054,7 @@ export default async function PrintableReportPage({ params }: PageProps) {
             </h2>
 
             <div className="mt-6 space-y-6">
-              {SECTION_ORDER.filter((section) => limitationsBySection[section]).map(
+              {activeSectionOrder.filter((section) => limitationsBySection[section]).map(
                 (section) => (
                   <div key={section} className="avoid-break rounded-xl border border-slate-300 bg-white p-5">
                     <h3 className="mb-4 text-2xl font-black text-slate-950">
@@ -1118,7 +1107,7 @@ export default async function PrintableReportPage({ params }: PageProps) {
             </p>
 
             <div className="mt-6 space-y-6">
-              {SECTION_ORDER.filter((section) => referencePhotosBySection[section]).map(
+              {activeSectionOrder.filter((section) => referencePhotosBySection[section]).map(
                 (section) => (
                   <div
                     key={section}
@@ -1197,14 +1186,6 @@ export default async function PrintableReportPage({ params }: PageProps) {
                   <h3 className="border-b-4 border-teal-600 pb-2 text-3xl font-black text-teal-800">
                     {group.section}
                   </h3>
-
-                  {sectionNotesByName.get(group.section) && (
-                    <div className="avoid-break rounded-xl border border-slate-300 bg-slate-50 p-4">
-                      <p className="whitespace-pre-wrap text-base leading-6 text-slate-700">
-                        {sectionNotesByName.get(group.section)}
-                      </p>
-                    </div>
-                  )}
 
                   {group.findings.map((finding: any) => (
                     <article
