@@ -50,6 +50,7 @@ export default function OwnerSuggestions() {
   const [publishError, setPublishError] = useState("");
   const [noteDrafts, setNoteDrafts] = useState<Record<number, string>>({});
   const [savingNoteId, setSavingNoteId] = useState<number | null>(null);
+  const [noteErrorId, setNoteErrorId] = useState<number | null>(null);
 
   useEffect(() => {
     load();
@@ -94,6 +95,7 @@ export default function OwnerSuggestions() {
   async function saveNote(request: FeatureRequest) {
     const note = getNoteDraft(request).trim();
     setSavingNoteId(request.id);
+    setNoteErrorId(null);
 
     try {
       const res = await fetch("/api/owner/feature-requests/update-status", {
@@ -113,7 +115,9 @@ export default function OwnerSuggestions() {
         return next;
       });
     } catch {
-      // Leave the draft in place so the owner can retry.
+      // Leave the draft in place so the owner can retry, but make sure
+      // they know it didn't save rather than assuming it did.
+      setNoteErrorId(request.id);
     } finally {
       setSavingNoteId(null);
     }
@@ -239,6 +243,11 @@ export default function OwnerSuggestions() {
                     >
                       {savingNoteId === request.id ? "Saving..." : "Save Reply"}
                     </button>
+                  )}
+                  {noteErrorId === request.id && (
+                    <p className="mt-2 text-xs font-bold text-red-400">
+                      Could not save the reply. Try again.
+                    </p>
                   )}
                 </div>
 

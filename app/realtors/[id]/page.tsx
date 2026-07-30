@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "../../../utils/supabase/server";
 import SendRealtorReportDropdown from "../../../components/SendRealtorReportDropdown";
 import ConfirmSubmitButton from "../../../components/ConfirmSubmitButton";
+import { resolveTeamInspectorIds } from "../../../lib/inspectionAccess";
 
 type PageProps = { params: Promise<{ id: string }> };
 
@@ -136,6 +137,8 @@ export default async function RealtorDetailPage({ params }: PageProps) {
 
     if (!realtorId || !name) return;
 
+    const teamIds = await resolveTeamInspectorIds(supabase, user.id);
+
     await supabase
       .from("realtors")
       .update({
@@ -146,7 +149,7 @@ export default async function RealtorDetailPage({ params }: PageProps) {
         updated_at: new Date().toISOString(),
       })
       .eq("id", realtorId)
-      .eq("inspector_id", user.id);
+      .in("inspector_id", teamIds);
 
     revalidatePath(`/realtors/${realtorId}`);
     revalidatePath("/realtors");
@@ -180,6 +183,8 @@ export default async function RealtorDetailPage({ params }: PageProps) {
       notes: notes || null,
     });
 
+    const teamIds = await resolveTeamInspectorIds(supabase, user.id);
+
     await supabase
       .from("realtors")
       .update({
@@ -187,7 +192,7 @@ export default async function RealtorDetailPage({ params }: PageProps) {
         updated_at: new Date().toISOString(),
       })
       .eq("id", realtorId)
-      .eq("inspector_id", user.id);
+      .in("inspector_id", teamIds);
 
     revalidatePath(`/realtors/${realtorId}`);
     revalidatePath("/realtors");
@@ -209,20 +214,24 @@ export default async function RealtorDetailPage({ params }: PageProps) {
 
     if (!logId || !realtorId) return;
 
+    const teamIds = await resolveTeamInspectorIds(supabase, user.id);
+
     await supabase
       .from("realtor_contact_logs")
       .delete()
       .eq("id", logId)
-      .eq("inspector_id", user.id);
+      .in("inspector_id", teamIds);
 
     revalidatePath(`/realtors/${realtorId}`);
   }
+
+  const pageTeamIds = await resolveTeamInspectorIds(supabase, user.id);
 
   const { data: realtor, error: realtorError } = await supabase
     .from("realtors")
     .select("*")
     .eq("id", id)
-    .eq("inspector_id", user.id)
+    .in("inspector_id", pageTeamIds)
     .single();
 
   if (realtorError || !realtor) redirect("/realtors");
@@ -230,7 +239,7 @@ export default async function RealtorDetailPage({ params }: PageProps) {
   const { data: inspectionsRaw } = await supabase
     .from("inspections")
     .select("*")
-    .eq("inspector_id", user.id)
+    .in("inspector_id", pageTeamIds)
     .order("created_at", { ascending: false });
 
   const inspections = inspectionsRaw || [];
@@ -288,7 +297,7 @@ export default async function RealtorDetailPage({ params }: PageProps) {
     .from("realtor_contact_logs")
     .select("*")
     .eq("realtor_id", realtor.id)
-    .eq("inspector_id", user.id)
+    .in("inspector_id", pageTeamIds)
     .order("contact_date", { ascending: false })
     .order("created_at", { ascending: false });
 

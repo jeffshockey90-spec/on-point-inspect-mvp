@@ -3,6 +3,7 @@ import { formatAppValue } from "../../lib/app-time";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "../../utils/supabase/server";
+import { resolveInspectionAccessFilter } from "../../lib/inspectionAccess";
 
 function getNumber(value: any) {
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -327,10 +328,12 @@ export default async function AnalyticsPage() {
 
   if (!user) redirect("/login");
 
+  const accessFilter = await resolveInspectionAccessFilter(supabase, user.id);
+
   const { data: inspections, error } = await supabase
     .from("inspections")
     .select("*")
-    .eq("inspector_id", user.id)
+    .eq(accessFilter.column, accessFilter.value)
     .order("created_at", { ascending: false });
 
   if (error) {

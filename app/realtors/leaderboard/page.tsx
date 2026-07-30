@@ -3,6 +3,7 @@ import { formatAppValue } from "../../../lib/app-time";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "../../../utils/supabase/server";
+import { resolveTeamInspectorIds } from "../../../lib/inspectionAccess";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -179,10 +180,12 @@ export default async function RealtorLeaderboardPage() {
 
   if (!user) redirect("/login");
 
+  const teamIds = await resolveTeamInspectorIds(supabase, user.id);
+
   const { data: realtorsRaw, error: realtorsError } = await supabase
     .from("realtors")
     .select("*")
-    .eq("inspector_id", user.id)
+    .in("inspector_id", teamIds)
     .order("name", { ascending: true });
 
   if (realtorsError) {
@@ -192,7 +195,7 @@ export default async function RealtorLeaderboardPage() {
   const { data: inspectionsRaw, error: inspectionsError } = await supabase
     .from("inspections")
     .select("*")
-    .eq("inspector_id", user.id)
+    .in("inspector_id", teamIds)
     .order("created_at", { ascending: false });
 
   if (inspectionsError) {

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "../../utils/supabase/server";
 import ConfirmSubmitButton from "../../components/ConfirmSubmitButton";
+import { resolveTeamInspectorIds } from "../../lib/inspectionAccess";
 
 function formatDate(value: any) {
   if (!value) return "N/A";
@@ -62,12 +63,14 @@ export default async function RealtorsPage() {
     if (!user) redirect("/login");
     const id = String(formData.get("id") || "");
     if (!id) return;
-    await supabase.from("realtors").delete().eq("id", id).eq("inspector_id", user.id);
+    const teamIds = await resolveTeamInspectorIds(supabase, user.id);
+    await supabase.from("realtors").delete().eq("id", id).in("inspector_id", teamIds);
     revalidatePath("/realtors");
   }
 
-  const { data: realtorsRaw } = await supabase.from("realtors").select("*").eq("inspector_id", user.id).order("name", { ascending: true });
-  const { data: inspectionsRaw } = await supabase.from("inspections").select("*").eq("inspector_id", user.id);
+  const teamInspectorIds = await resolveTeamInspectorIds(supabase, user.id);
+  const { data: realtorsRaw } = await supabase.from("realtors").select("*").in("inspector_id", teamInspectorIds).order("name", { ascending: true });
+  const { data: inspectionsRaw } = await supabase.from("inspections").select("*").in("inspector_id", teamInspectorIds);
   const inspections = inspectionsRaw || [];
 
   const realtors = (realtorsRaw || []).map((realtor: any) => {

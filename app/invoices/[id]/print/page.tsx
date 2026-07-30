@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "../../../../utils/supabase/server";
 import InvoicePrintButton from "../../../../components/InvoicePrintButton";
 import { getCompanyBrandingById } from "../../../../lib/companyBranding";
+import { resolveInspectionAccessFilter } from "../../../../lib/inspectionAccess";
 
 function getNumber(value: any) {
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -123,11 +124,13 @@ export default async function InvoicePrintPage({
 
   if (!user) redirect("/login");
 
+  const accessFilter = await resolveInspectionAccessFilter(supabase, user.id);
+
   const { data: inspection, error } = await supabase
     .from("inspections")
     .select("*")
     .eq("id", id)
-    .eq("inspector_id", user.id)
+    .eq(accessFilter.column, accessFilter.value)
     .single();
 
   if (error || !inspection) {

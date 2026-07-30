@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
+import { resolveTeamInspectorIds } from "../../../lib/inspectionAccess";
 
 async function createSupabaseServerClient() {
   const cookieStore = await cookies();
@@ -37,10 +38,12 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const teamIds = await resolveTeamInspectorIds(supabase, user.id);
+
     const { data, error } = await supabase
       .from("realtors")
       .select("*")
-      .eq("inspector_id", user.id)
+      .in("inspector_id", teamIds)
       .order("name", { ascending: true });
 
     if (error) throw error;

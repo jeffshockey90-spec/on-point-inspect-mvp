@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "../../../utils/supabase/server";
 import PrintButton from "../../../components/PrintButton";
 import { getCompanyBrandingById } from "../../../lib/companyBranding";
+import { resolveInspectionAccessFilter } from "../../../lib/inspectionAccess";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -204,11 +205,13 @@ export default async function EnvironmentalReportPage({ params }: PageProps) {
 
   if (!user) redirect("/login");
 
+  const accessFilter = await resolveInspectionAccessFilter(supabase, user.id);
+
   const { data: inspection, error: inspectionError } = await supabase
     .from("inspections")
     .select("*")
     .eq("id", id)
-    .eq("inspector_id", user.id)
+    .eq(accessFilter.column, accessFilter.value)
     .single();
 
   if (inspectionError || !inspection) redirect("/reports");

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "../../utils/supabase/server";
 import EmailsList from "./EmailsList";
+import { resolveInspectionAccessFilter } from "../../lib/inspectionAccess";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -14,10 +15,12 @@ export default async function EmailsPage() {
 
   if (!user) redirect("/login");
 
+  const accessFilter = await resolveInspectionAccessFilter(supabase, user.id);
+
   const { data: inspectionsRaw } = await supabase
     .from("inspections")
     .select("id, property_address, address, client_name")
-    .eq("inspector_id", user.id)
+    .eq(accessFilter.column, accessFilter.value)
     .order("created_at", { ascending: false });
 
   const inspections = inspectionsRaw || [];

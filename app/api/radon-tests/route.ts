@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient as createSupabaseAdmin } from "@supabase/supabase-js";
 import { createClient } from "../../../utils/supabase/server";
+import { resolveInspectionAccessFilter } from "../../../lib/inspectionAccess";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -57,11 +58,12 @@ export async function GET() {
     }
 
     const supabase = getSupabaseAdmin();
+    const accessFilter = await resolveInspectionAccessFilter(supabase, user.id);
 
     const { data: inspections, error: inspectionError } = await supabase
       .from("inspections")
       .select("*")
-      .eq("inspector_id", user.id)
+      .eq(accessFilter.column, accessFilter.value)
       .or(
         "radon.eq.true,service_mode.ilike.%radon%,inspection_type.ilike.%radon%,services.ilike.%radon%"
       )
@@ -139,11 +141,13 @@ export async function POST(req: Request) {
     }
 
     const supabase = getSupabaseAdmin();
+    const postAccessFilter = await resolveInspectionAccessFilter(supabase, user.id);
 
     const { data: inspection, error: inspectionError } = await supabase
       .from("inspections")
       .select("id, inspector_id")
       .eq("id", inspectionId)
+      .eq(postAccessFilter.column, postAccessFilter.value)
       .single();
 
     if (inspectionError || !inspection) {
@@ -151,10 +155,6 @@ export async function POST(req: Request) {
         { error: "Inspection not found." },
         { status: 404 }
       );
-    }
-
-    if (inspection.inspector_id !== user.id) {
-      return NextResponse.json({ error: "Forbidden." }, { status: 403 });
     }
 
     const averagePci = getNumber(body.average_pci);

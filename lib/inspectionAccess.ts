@@ -25,3 +25,32 @@ export async function resolveInspectionAccessFilter(supabase: any, userId: strin
 
   return { column: "inspector_id" as const, value: userId };
 }
+
+// Some tables (e.g. realtors) are scoped by inspector_id with no company_id
+// column of their own to fall back on. For those, a company owner's access
+// has to be expressed as "any inspector_id belonging to my team" instead of
+// a single company_id equality check - this resolves that list of ids.
+export async function resolveTeamInspectorIds(supabase: any, userId: string) {
+  const { data: ownerRows } = await supabase
+    .from("company_users")
+    .select("company_id")
+    .eq("user_id", userId)
+    .eq("role", "owner")
+    .not("company_id", "is", null)
+    .limit(1);
+
+  const ownedCompanyId = ownerRows?.[0]?.company_id;
+
+  if (!ownedCompanyId) {
+    return [userId];
+  }
+
+  const { data: teamRows } = await supabase
+    .from("company_users")
+    .select("user_id")
+    .eq("company_id", ownedCompanyId);
+
+  const ids = (teamRows || []).map((row: any) => row.user_id).filter(Boolean);
+
+  return ids.length > 0 ? ids : [userId];
+}
