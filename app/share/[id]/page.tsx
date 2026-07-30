@@ -1380,9 +1380,13 @@ export default async function PublicSharePage({
 
   const moldReportUrl = moldTest?.lab_report_url || "";
   const radonReportUrl = radonTest?.report_url || "";
-  const showEnvironmentalLinks =
-    (hasMoldService(inspection) && moldReportUrl) ||
-    (hasRadonService(inspection) && radonReportUrl);
+  const hasMold = hasMoldService(inspection);
+  const hasRadon = hasRadonService(inspection);
+  // FLOW's own mold/radon sampling report (environmental-share) is always
+  // reachable once that service was performed, whether or not the raw
+  // third-party lab file has been uploaded yet - the client shouldn't need
+  // a separate link the inspector has to remember to send.
+  const showEnvironmentalLinks = hasMold || hasRadon;
 
   const rawPropertyPhoto = getPropertyPhoto(inspection);
   let propertyPhoto = rawPropertyPhoto;
@@ -2074,42 +2078,74 @@ export default async function PublicSharePage({
           {showEnvironmentalLinks && (
             <section className="mt-8 rounded-2xl border border-purple-500/40 bg-[#071224] p-6">
               <h2 className="text-2xl font-bold text-purple-300">
-                Official Environmental Reports
+                Environmental Testing Reports
               </h2>
 
               <p className="mt-2 text-sm text-slate-400">
-                These links open the official third-party environmental reports from the lab or testing device.
+                {hasMold && hasRadon
+                  ? "Your mold and radon sampling reports."
+                  : hasMold
+                    ? "Your mold sampling report."
+                    : "Your radon sampling report."}
               </p>
 
               <div className="mt-5 grid gap-4 md:grid-cols-2">
-                {hasMoldService(inspection) && moldReportUrl && (
+                {hasMold && (
                   <a
-                    href={moldReportUrl}
-                    target="_blank"
-                    rel="noreferrer"
+                    href={`/environmental-share/${sharePathId}`}
                     className="rounded-xl border border-purple-500 bg-[#0f172a] p-5 font-bold text-purple-300 transition hover:bg-purple-500/10"
                   >
                     <span className="block text-lg">
-                      View Official Mold Report
+                      View Mold Sampling Report
                     </span>
                     <span className="mt-2 block text-sm font-medium text-slate-400">
-                      Open the official mold lab report.
+                      Sample count, lab status, and results summary.
                     </span>
                   </a>
                 )}
 
-                {hasRadonService(inspection) && radonReportUrl && (
+                {hasRadon && (
+                  <a
+                    href={`/environmental-share/${sharePathId}`}
+                    className="rounded-xl border border-purple-500 bg-[#0f172a] p-5 font-bold text-purple-300 transition hover:bg-purple-500/10"
+                  >
+                    <span className="block text-lg">
+                      View Radon Sampling Report
+                    </span>
+                    <span className="mt-2 block text-sm font-medium text-slate-400">
+                      Device readings and results summary.
+                    </span>
+                  </a>
+                )}
+
+                {hasMold && moldReportUrl && (
+                  <a
+                    href={moldReportUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded-xl border border-purple-500/50 bg-[#0f172a] p-5 font-bold text-purple-300 transition hover:bg-purple-500/10"
+                  >
+                    <span className="block text-lg">
+                      View Official Mold Lab Report
+                    </span>
+                    <span className="mt-2 block text-sm font-medium text-slate-400">
+                      Open the raw third-party lab file.
+                    </span>
+                  </a>
+                )}
+
+                {hasRadon && radonReportUrl && (
                   <a
                     href={radonReportUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="rounded-xl border border-purple-500 bg-[#0f172a] p-5 font-bold text-purple-300 transition hover:bg-purple-500/10"
+                    className="rounded-xl border border-purple-500/50 bg-[#0f172a] p-5 font-bold text-purple-300 transition hover:bg-purple-500/10"
                   >
                     <span className="block text-lg">
-                      View Official Radon Report
+                      View Official Radon Device Report
                     </span>
                     <span className="mt-2 block text-sm font-medium text-slate-400">
-                      Open the official radon device report.
+                      Open the raw third-party device file.
                     </span>
                   </a>
                 )}
