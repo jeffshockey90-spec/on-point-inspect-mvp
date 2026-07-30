@@ -83,6 +83,7 @@ export function applyAgreementMergeFields({
   propertyAddress,
   fee,
   inspectorName,
+  ownerName,
   inspectionDate,
   signedDate,
 }: {
@@ -94,6 +95,7 @@ export function applyAgreementMergeFields({
   propertyAddress?: string | null;
   fee?: string | number | null;
   inspectorName?: string | null;
+  ownerName?: string | null;
   inspectionDate?: string | null;
   signedDate?: string | null;
 }) {
@@ -108,12 +110,11 @@ export function applyAgreementMergeFields({
   const displaySignedDate = formatDate(signedDate || inspectionDate);
 
   // {{INSPECTOR_COMPANY}}/{{INSPECTOR_OWNER}} are separate merge tokens some
-  // templates use directly (not just {{INSPECTOR_NAME}}), so they need a
-  // generic fallback too - printing a specific person's real name on another
-  // company's signed client agreement would be a genuine legal-document bug,
-  // not just cosmetic.
+  // templates use directly (not just {{INSPECTOR_NAME}}) - ownerName comes
+  // from the signed-in company's actual owner profile, falling back to the
+  // generic word "Owner" only when that lookup comes back empty.
   const inspectorCompany = inspectorName || "Your Home Inspection Company";
-  const inspectorOwner = "Owner";
+  const inspectorOwner = ownerName || "Owner";
   const inspectorTitle = "Licensed Home Inspector";
   const inspectorDisplay =
     inspectorName || `${inspectorCompany} — ${inspectorOwner}, ${inspectorTitle}`;
@@ -204,6 +205,7 @@ export function mergeAgreementBody({
   propertyAddress,
   fee,
   inspectorName,
+  ownerName,
   inspectionDate,
   signedDate,
 }: {
@@ -215,6 +217,7 @@ export function mergeAgreementBody({
   propertyAddress?: string | null;
   fee?: string | number | null;
   inspectorName?: string | null;
+  ownerName?: string | null;
   inspectionDate?: string | null;
   signedDate?: string | null;
 }) {
@@ -227,6 +230,7 @@ export function mergeAgreementBody({
     propertyAddress,
     fee,
     inspectorName,
+    ownerName,
     inspectionDate,
     signedDate,
   });
@@ -249,6 +253,7 @@ export function mergeMultipleAgreementBodies({
   propertyAddress,
   fee,
   inspectorName,
+  ownerName,
   inspectionDate,
   signedDate,
 }: {
@@ -260,6 +265,7 @@ export function mergeMultipleAgreementBodies({
   propertyAddress?: string | null;
   fee?: string | number | null;
   inspectorName?: string | null;
+  ownerName?: string | null;
   inspectionDate?: string | null;
   signedDate?: string | null;
 }) {
@@ -274,6 +280,7 @@ export function mergeMultipleAgreementBodies({
       propertyAddress,
       fee,
       inspectorName,
+      ownerName,
       inspectionDate,
       signedDate,
     });
@@ -292,6 +299,7 @@ export function mergeMultipleAgreementBodies({
         propertyAddress,
         fee,
         inspectorName,
+        ownerName,
         inspectionDate,
         signedDate,
       });

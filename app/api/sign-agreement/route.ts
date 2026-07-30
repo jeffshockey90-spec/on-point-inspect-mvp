@@ -9,7 +9,7 @@ import {
   mergeMultipleAgreementBodies,
   normalizeAgreementState,
 } from "../../../lib/agreementTemplates";
-import { getCompanyBrandingById } from "../../../lib/companyBranding";
+import { getCompanyBrandingById, getCompanyOwnerName } from "../../../lib/companyBranding";
 import { sendPushNotification } from "../../../lib/push";
 
 export const runtime = "nodejs";
@@ -213,6 +213,7 @@ export async function POST(req: Request) {
     });
 
     const branding = await getCompanyBrandingById(inspection.company_id);
+    const ownerName = await getCompanyOwnerName(inspection.company_id);
 
     const agreementBody = mergeMultipleAgreementBodies({
       templates,
@@ -222,6 +223,7 @@ export async function POST(req: Request) {
       propertyAddress: inspection.address || inspection.property_address,
       fee: inspection.invoice_amount || inspection.fee || inspection.price,
       inspectorName: branding.name,
+      ownerName,
       inspectionDate: inspection.inspection_date,
     });
 

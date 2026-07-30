@@ -87,3 +87,32 @@ export async function getCompanyBrandingById(
 
   return normalizeCompanyBranding(data);
 }
+
+// Agreement templates that use {{INSPECTOR_OWNER}} expect an actual person's
+// name (for the "Inspector Signature: ..." line) - looks up whoever owns the
+// inspection's company and returns their profile name.
+export async function getCompanyOwnerName(
+  companyId: number | string | null | undefined
+): Promise<string | null> {
+  if (!companyId) return null;
+
+  const admin = createAdminClient();
+
+  const { data: ownerRow } = await admin
+    .from("company_users")
+    .select("user_id")
+    .eq("company_id", companyId)
+    .eq("role", "owner")
+    .limit(1)
+    .maybeSingle();
+
+  if (!ownerRow?.user_id) return null;
+
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("full_name")
+    .eq("id", ownerRow.user_id)
+    .maybeSingle();
+
+  return profile?.full_name || null;
+}

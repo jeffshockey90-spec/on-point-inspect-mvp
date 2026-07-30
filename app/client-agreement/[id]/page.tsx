@@ -10,7 +10,7 @@ import {
   normalizeAgreementState,
 } from "../../../lib/agreementTemplates";
 import AgreementSignatureForm from "./AgreementSignatureForm";
-import { getCompanyBrandingById } from "../../../lib/companyBranding";
+import { getCompanyBrandingById, getCompanyOwnerName } from "../../../lib/companyBranding";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -151,6 +151,7 @@ export default async function ClientAgreementPage({
   });
 
   const branding = await getCompanyBrandingById(inspection.company_id);
+  const ownerName = await getCompanyOwnerName(inspection.company_id);
 
   const agreementBody =
     signedAgreement?.agreement_body ||
@@ -162,6 +163,7 @@ export default async function ClientAgreementPage({
       propertyAddress: inspection.address || inspection.property_address,
       fee: inspection.invoice_amount || inspection.fee || inspection.price,
       inspectorName: branding.name,
+      ownerName,
       inspectionDate: inspection.inspection_date,
     });
 
