@@ -22,6 +22,30 @@ type Thread = {
   messages?: Message[];
 };
 
+type FeatureRequest = {
+  id: number;
+  message: string;
+  status: string;
+  owner_note: string | null;
+  created_at: string;
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  new: "New",
+  planned: "Planned",
+  in_progress: "In Progress",
+  shipped: "Shipped",
+  declined: "Declined",
+};
+
+const STATUS_STYLES: Record<string, string> = {
+  new: "border-cyan-400/40 bg-cyan-500/10 text-cyan-300",
+  planned: "border-purple-400/40 bg-purple-500/10 text-purple-300",
+  in_progress: "border-amber-400/40 bg-amber-500/10 text-amber-300",
+  shipped: "border-emerald-400/40 bg-emerald-500/10 text-emerald-300",
+  declined: "border-slate-500/40 bg-slate-500/10 text-slate-400",
+};
+
 function formatDate(value: string | null | undefined) {
   if (!value) return "";
   const date = new Date(value);
@@ -48,6 +72,25 @@ export default function SupportPage() {
   const [suggestionError, setSuggestionError] = useState("");
   const [suggestionSent, setSuggestionSent] = useState(false);
 
+  const [myRequests, setMyRequests] = useState<FeatureRequest[]>([]);
+  const [myRequestsLoading, setMyRequestsLoading] = useState(true);
+
+  async function loadMyRequests() {
+    try {
+      const res = await fetch("/api/feature-requests/mine", { cache: "no-store" });
+      const data = await res.json();
+      if (res.ok) setMyRequests(data.requests || []);
+    } catch {
+      // Non-critical - the submit form still works without this list.
+    } finally {
+      setMyRequestsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadMyRequests();
+  }, []);
+
   async function sendSuggestion() {
     const clean = suggestion.trim();
     if (!clean || suggestionSending) return;
@@ -68,6 +111,7 @@ export default function SupportPage() {
 
       setSuggestion("");
       setSuggestionSent(true);
+      await loadMyRequests();
     } catch (err: any) {
       setSuggestionError(err?.message || "Could not submit suggestion.");
     } finally {
@@ -227,6 +271,29 @@ export default function SupportPage() {
               {suggestionSending ? "Sending..." : "Submit Suggestion"}
             </button>
           </div>
+
+          {!myRequestsLoading && myRequests.length > 0 && (
+            <div className="mt-6 space-y-3 border-t border-slate-800 pt-6">
+              <p className="text-xs font-black uppercase tracking-wide text-slate-500">Your Suggestions</p>
+              {myRequests.map((request) => (
+                <div key={request.id} className="rounded-xl border border-slate-800 bg-[#020817] p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <p className="text-sm leading-6 text-slate-200">{request.message}</p>
+                    <span className={`shrink-0 rounded-full border px-3 py-1 text-xs font-black uppercase ${STATUS_STYLES[request.status] || STATUS_STYLES.new}`}>
+                      {STATUS_LABELS[request.status] || request.status}
+                    </span>
+                  </div>
+                  {request.owner_note && (
+                    <div className="mt-3 rounded-lg border border-teal-500/30 bg-teal-950/20 p-3">
+                      <p className="text-xs font-black uppercase tracking-wide text-teal-400">Reply from Jeff</p>
+                      <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-slate-200">{request.owner_note}</p>
+                    </div>
+                  )}
+                  <p className="mt-2 text-xs text-slate-500">{formatDate(request.created_at)}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
       </div>
     </main>

@@ -48,6 +48,8 @@ export default function OwnerSuggestions() {
   const [publishCredit, setPublishCredit] = useState(true);
   const [publishing, setPublishing] = useState(false);
   const [publishError, setPublishError] = useState("");
+  const [noteDrafts, setNoteDrafts] = useState<Record<number, string>>({});
+  const [savingNoteId, setSavingNoteId] = useState<number | null>(null);
 
   useEffect(() => {
     load();
@@ -82,6 +84,38 @@ export default function OwnerSuggestions() {
       });
     } catch {
       load();
+    }
+  }
+
+  function getNoteDraft(request: FeatureRequest) {
+    return noteDrafts[request.id] ?? request.owner_note ?? "";
+  }
+
+  async function saveNote(request: FeatureRequest) {
+    const note = getNoteDraft(request).trim();
+    setSavingNoteId(request.id);
+
+    try {
+      const res = await fetch("/api/owner/feature-requests/update-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: request.id, status: request.status, ownerNote: note }),
+      });
+
+      if (!res.ok) throw new Error();
+
+      setRequests((prev) =>
+        prev.map((r) => (r.id === request.id ? { ...r, owner_note: note } : r)),
+      );
+      setNoteDrafts((prev) => {
+        const next = { ...prev };
+        delete next[request.id];
+        return next;
+      });
+    } catch {
+      // Leave the draft in place so the owner can retry.
+    } finally {
+      setSavingNoteId(null);
     }
   }
 
@@ -183,6 +217,30 @@ export default function OwnerSuggestions() {
                 </div>
 
                 <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-200">{request.message}</p>
+
+                <div className="mt-4">
+                  <p className="mb-1.5 text-xs font-black uppercase tracking-wide text-slate-500">
+                    Reply to {request.user_name || "this inspector"}
+                  </p>
+                  <textarea
+                    value={getNoteDraft(request)}
+                    onChange={(e) =>
+                      setNoteDrafts((prev) => ({ ...prev, [request.id]: e.target.value }))
+                    }
+                    rows={2}
+                    placeholder="Optional note the inspector will see on their suggestion..."
+                    className="w-full rounded-xl border border-slate-700 bg-black px-3 py-2 text-sm text-white outline-none focus:border-teal-400"
+                  />
+                  {getNoteDraft(request) !== (request.owner_note ?? "") && (
+                    <button
+                      onClick={() => saveNote(request)}
+                      disabled={savingNoteId === request.id}
+                      className="mt-2 rounded-lg bg-teal-500 px-3 py-1.5 text-xs font-black text-black hover:bg-teal-400 disabled:opacity-50"
+                    >
+                      {savingNoteId === request.id ? "Saving..." : "Save Reply"}
+                    </button>
+                  )}
+                </div>
 
                 <div className="mt-4 flex flex-wrap items-center gap-2">
                   {STATUS_OPTIONS.map((status) => (
