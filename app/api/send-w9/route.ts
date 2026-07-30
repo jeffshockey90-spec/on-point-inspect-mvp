@@ -126,22 +126,27 @@ export async function POST(req: Request) {
       return NextResponse.json(
         {
           error:
-            "No W9 is on file yet. Upload your completed W9 in Settings → Company Profile first.",
+            "No W9 is on file yet. Upload or fill one out in Settings → Company Profile first.",
         },
         { status: 400 }
       );
     }
 
-    const pdfResponse = await fetch(company.w9_document_url);
+    // w9_document_url actually holds a storage PATH in the private
+    // company-documents bucket, not a public URL - download it with the
+    // service-role client, which bypasses the bucket's RLS entirely.
+    const { data: pdfFile, error: downloadError } = await supabase.storage
+      .from("company-documents")
+      .download(company.w9_document_url);
 
-    if (!pdfResponse.ok) {
+    if (downloadError || !pdfFile) {
       return NextResponse.json(
         { error: "Could not load the saved W9 file. Try re-uploading it in Settings." },
         { status: 500 }
       );
     }
 
-    const pdfBuffer = Buffer.from(await pdfResponse.arrayBuffer());
+    const pdfBuffer = Buffer.from(await pdfFile.arrayBuffer());
 
     const branding = await getCompanyBrandingById(inspection.company_id);
     const property = inspection.address || inspection.property_address || "your inspection";

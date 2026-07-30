@@ -21,7 +21,7 @@ const SETTINGS_TABS = [
 import PushNotificationSetup from "../../components/PushNotificationSetup";
 import SupportUnreadBadge from "../../components/SupportUnreadBadge";
 import CompanyImageUploader from "./CompanyImageUploader";
-import CompanyDocumentUploader from "./CompanyDocumentUploader";
+import W9Section from "./W9Section";
 import StandardsOfPracticeEditor from "./StandardsOfPracticeEditor";
 import TimePreferencesSettings from "../../components/time-location/TimePreferencesSettings";
 import SettingsToggle from "../../components/SettingsToggle";
@@ -849,15 +849,10 @@ export default async function SettingsPage({
                 previewClassName="max-h-28 max-w-[220px] rounded-2xl border border-slate-700 bg-black/30 object-contain p-3"
               />
 
-              <CompanyDocumentUploader
-                name="w9_document_url"
-                label="W9 Form"
-                helper="Upload your completed, signed W9 (PDF). Keep it here and send it from any report's toolbar when a realtor or client requests one."
+              <W9Section
                 companyId={String(company.id)}
-                initialUrl={company.w9_document_url || ""}
+                initialPath={company.w9_document_url || ""}
                 initialUploadedAt={company.w9_document_uploaded_at || null}
-                folder="documents"
-                buttonText="Upload W9"
               />
 
               <label className="block min-w-0 md:col-span-2">

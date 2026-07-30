@@ -8,7 +8,7 @@ type Props = {
   label: string;
   helper?: string;
   companyId: string;
-  initialUrl?: string;
+  initialPath?: string;
   initialUploadedAt?: string | null;
   folder: string;
   buttonText: string;
@@ -16,7 +16,12 @@ type Props = {
 
 type MessageType = "success" | "error" | "info" | "";
 
-const STORAGE_BUCKET = "company-assets";
+// Private bucket - a completed W9 has a real SSN/EIN in it, so unlike the
+// company logo (company-assets, public) this must never be reachable by a
+// guessable public URL. Access is view-only via short-lived signed URLs
+// generated on demand, gated by storage RLS scoped to company membership
+// (see supabase/add-company-documents-private-bucket.sql).
+const STORAGE_BUCKET = "company-documents";
 
 function safePathPart(value: any, fallback: string) {
   const clean = String(value || "")
@@ -33,14 +38,15 @@ export default function CompanyDocumentUploader({
   label,
   helper,
   companyId,
-  initialUrl = "",
+  initialPath = "",
   initialUploadedAt = null,
   folder,
   buttonText,
 }: Props) {
-  const [url, setUrl] = useState(initialUrl);
+  const [path, setPath] = useState(initialPath);
   const [uploadedAt, setUploadedAt] = useState(initialUploadedAt);
   const [uploading, setUploading] = useState(false);
+  const [viewing, setViewing] = useState(false);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<MessageType>("");
 
@@ -77,54 +83,70 @@ export default function CompanyDocumentUploader({
       const { error: uploadError } = await supabase.storage
         .from(STORAGE_BUCKET)
         .upload(filePath, file, {
-          cacheControl: "31536000",
+          cacheControl: "3600",
           upsert: false,
           contentType: "application/pdf",
         });
 
       if (uploadError) throw uploadError;
 
-      const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(filePath);
-
-      if (!data?.publicUrl) {
-        throw new Error("Upload finished but no public URL was returned.");
-      }
-
-      setUrl(data.publicUrl);
+      setPath(filePath);
       setUploadedAt(new Date().toISOString());
       showMessage("success", "Uploaded. Click Save Settings to keep it.");
     } catch (error: any) {
       showMessage(
         "error",
         error?.message ||
-          "Upload failed. Confirm the company-assets bucket exists and is public."
+          "Upload failed. Confirm the company-documents storage bucket exists."
       );
     } finally {
       setUploading(false);
     }
   }
 
+  async function viewCurrentFile() {
+    if (viewing || !path) return;
+
+    setViewing(true);
+
+    try {
+      const { data, error } = await supabase.storage
+        .from(STORAGE_BUCKET)
+        .createSignedUrl(path, 300);
+
+      if (error || !data?.signedUrl) {
+        throw error || new Error("Could not create a link for this file.");
+      }
+
+      window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+    } catch (error: any) {
+      showMessage("error", error?.message || "Could not open the file.");
+    } finally {
+      setViewing(false);
+    }
+  }
+
   return (
     <div className="min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-4 md:col-span-2">
-      <input type="hidden" name={name} value={url} />
+      <input type="hidden" name={name} value={path} />
 
       <p className="text-xs font-black uppercase tracking-wide text-slate-400">{label}</p>
 
       {helper && <p className="mt-2 max-w-xl text-xs leading-5 text-slate-500">{helper}</p>}
 
-      {url && (
+      {path && (
         <div className="mt-3 flex flex-wrap items-center gap-3 rounded-xl border border-slate-800 bg-[#020617] p-3">
           <p className="text-xs font-bold text-emerald-300">
             W9 on file{uploadedAt ? ` · uploaded ${new Date(uploadedAt).toLocaleDateString()}` : ""}
           </p>
-          <a
-            href={url}
-            target="_blank"
-            rel="noreferrer"
-            className="text-xs font-bold text-teal-300 underline underline-offset-2 hover:text-teal-200"
+          <button
+            type="button"
+            onClick={viewCurrentFile}
+            disabled={viewing}
+            className="text-xs font-bold text-teal-300 underline underline-offset-2 hover:text-teal-200 disabled:opacity-60"
           >
-            View current file
-          </a>
+            {viewing ? "Opening..." : "View / download current file"}
+          </button>
         </div>
       )}
 
@@ -144,12 +166,12 @@ export default function CompanyDocumentUploader({
           />
         </label>
 
-        {url && (
+        {path && (
           <button
             type="button"
             disabled={uploading}
             onClick={() => {
-              setUrl("");
+              setPath("");
               setUploadedAt(null);
               showMessage("info", "Cleared. Click Save Settings to keep this change.");
             }}
