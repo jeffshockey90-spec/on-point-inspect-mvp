@@ -1678,7 +1678,9 @@ function Input({
         placeholder.toLowerCase().includes("zip") ||
         placeholder.toLowerCase().includes("name") ||
         placeholder.toLowerCase().includes("style") ||
-        placeholder.toLowerCase().includes("services")
+        placeholder.toLowerCase().includes("services") ||
+        placeholder.toLowerCase().includes("business") ||
+        placeholder.toLowerCase().includes("organization")
           ? "text"
           : "number"
       }
