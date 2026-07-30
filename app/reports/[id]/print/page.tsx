@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
-import { resolveActiveSections } from "../../../../lib/reportSections";
+import { resolveActiveSections, filterSectionsForServiceMode } from "../../../../lib/reportSections";
 import { getCompanyBrandingById } from "../../../../lib/companyBranding";
 import { resolveInspectionAccessFilter } from "../../../../lib/inspectionAccess";
 
@@ -531,7 +531,10 @@ export default async function PrintableReportPage({ params }: PageProps) {
     .eq("inspection_id", inspection.id)
     .order("sort_order", { ascending: true });
 
-  const activeSectionOrder = resolveActiveSections(SECTION_ORDER, reportSectionsRaw || []);
+  const activeSectionOrder = filterSectionsForServiceMode(
+    resolveActiveSections(SECTION_ORDER, reportSectionsRaw || []),
+    inspection.service_mode,
+  );
 
   const findingIds = (findingsRaw || []).map((finding: any) => finding.id);
 

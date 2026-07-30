@@ -1,6 +1,6 @@
 
 import { formatAppValue } from "../../../lib/app-time";
-import { resolveActiveSections } from "../../../lib/reportSections";
+import { resolveActiveSections, filterSectionsForServiceMode } from "../../../lib/reportSections";
 import { resolveInspectionAccessFilter } from "../../../lib/inspectionAccess";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
@@ -1867,9 +1867,9 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
     console.error("Report sections load error:", reportSectionsResult.error);
   }
 
-  const activeSectionOrder = resolveActiveSections(
-    SECTION_ORDER,
-    reportSectionsResult.data || [],
+  const activeSectionOrder = filterSectionsForServiceMode(
+    resolveActiveSections(SECTION_ORDER, reportSectionsResult.data || []),
+    inspection.service_mode,
   );
 
   const deletedReportSections = (reportSectionsResult.data || []).filter(

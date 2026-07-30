@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
-import { resolveActiveSections } from "../../../lib/reportSections";
+import { resolveActiveSections, filterSectionsForServiceMode } from "../../../lib/reportSections";
 import PdfExportButton from "../../../components/PdfExportButton";
 import ReportTimeTracker from "../../../components/ReportTimeTracker";
 import ClientSummaryAccordion from "../../../components/ClientSummaryAccordion";
@@ -1081,7 +1081,10 @@ export default async function PublicSharePage({
     .eq("inspection_id", inspectionId)
     .order("sort_order", { ascending: true });
 
-  const activeSectionOrder = resolveActiveSections(SECTION_ORDER, reportSectionsRaw || []);
+  const activeSectionOrder = filterSectionsForServiceMode(
+    resolveActiveSections(SECTION_ORDER, reportSectionsRaw || []),
+    inspection.service_mode,
+  );
 
   if (findingsError) {
     return (

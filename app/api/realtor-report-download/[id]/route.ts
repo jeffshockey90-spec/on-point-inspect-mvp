@@ -1,6 +1,6 @@
 
 import { formatAppValue } from "../../../../lib/app-time";
-import { resolveActiveSections } from "../../../../lib/reportSections";
+import { resolveActiveSections, filterSectionsForServiceMode } from "../../../../lib/reportSections";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
@@ -1628,7 +1628,10 @@ export async function GET(req: Request, { params }: RouteProps) {
       .eq("inspection_id", inspectionId)
       .order("sort_order", { ascending: true });
 
-    const activeSectionOrder = resolveActiveSections(SECTION_ORDER, reportSectionsRaw || []);
+    const activeSectionOrder = filterSectionsForServiceMode(
+      resolveActiveSections(SECTION_ORDER, reportSectionsRaw || []),
+      inspection.service_mode,
+    );
 
     const findingIds = normalizedFindings.map((finding: any) => cleanText(finding.id)).filter(Boolean);
     const photosRaw = await loadPhotos(admin, inspectionId, findingIds);
