@@ -21,6 +21,7 @@ const SETTINGS_TABS = [
 import PushNotificationSetup from "../../components/PushNotificationSetup";
 import SupportUnreadBadge from "../../components/SupportUnreadBadge";
 import CompanyImageUploader from "./CompanyImageUploader";
+import CompanyDocumentUploader from "./CompanyDocumentUploader";
 import StandardsOfPracticeEditor from "./StandardsOfPracticeEditor";
 import TimePreferencesSettings from "../../components/time-location/TimePreferencesSettings";
 import SettingsToggle from "../../components/SettingsToggle";
@@ -415,6 +416,9 @@ export default async function SettingsPage({
     const officeAddressChanged = officeAddress !== String(company.office_address || "").trim();
     let officeLocation: { lat: number; lng: number } | null = null;
 
+    const w9DocumentUrl = String(formData.get("w9_document_url") || "").trim();
+    const w9DocumentChanged = w9DocumentUrl !== String(company.w9_document_url || "").trim();
+
     if (officeAddress && officeAddressChanged) {
       officeLocation = await geocodeAddress(officeAddress);
     }
@@ -457,6 +461,10 @@ export default async function SettingsPage({
           String(formData.get("standards_include_in_share") || "") === "on",
         standards_include_in_pdf:
           String(formData.get("standards_include_in_pdf") || "") === "on",
+        w9_document_url: w9DocumentUrl || null,
+        ...(w9DocumentChanged
+          ? { w9_document_uploaded_at: w9DocumentUrl ? new Date().toISOString() : null }
+          : {}),
       })
       .eq("id", company.id);
 
@@ -839,6 +847,17 @@ export default async function SettingsPage({
                 folder="company-logo"
                 buttonText="Upload Company Logo"
                 previewClassName="max-h-28 max-w-[220px] rounded-2xl border border-slate-700 bg-black/30 object-contain p-3"
+              />
+
+              <CompanyDocumentUploader
+                name="w9_document_url"
+                label="W9 Form"
+                helper="Upload your completed, signed W9 (PDF). Keep it here and send it from any report's toolbar when a realtor or client requests one."
+                companyId={String(company.id)}
+                initialUrl={company.w9_document_url || ""}
+                initialUploadedAt={company.w9_document_uploaded_at || null}
+                folder="documents"
+                buttonText="Upload W9"
               />
 
               <label className="block min-w-0 md:col-span-2">

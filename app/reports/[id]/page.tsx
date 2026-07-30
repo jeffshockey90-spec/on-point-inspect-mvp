@@ -13,6 +13,7 @@ import CollapsibleReportSection from "../../../components/CollapsibleReportSecti
 import ReportFindingsSortable from "./ReportFindingsSortable";
 import OfflineReportCacheBridge from "../../../components/OfflineReportCacheBridge";
 import SendReportEmailButtons from "../../../components/SendReportEmailButtons";
+import SendW9Button from "../../../components/SendW9Button";
 import InspectionContactsManager from "../../../components/InspectionContactsManager";
 import AgreementSelector from "../../../components/AgreementSelector";
 import AgreementStatusPanel from "../../../components/AgreementStatusPanel";
@@ -3966,6 +3967,14 @@ Service-life information is a general industry estimate only. Actual service lif
               clientEmail={inspection.client_email}
               realtorEmail={inspection.realtor_email || inspection.agent_email}
             />
+          </div>
+
+          <div className="mb-8 rounded-2xl border border-slate-700 bg-[#071224] p-4">
+            <h2 className="mb-4 text-2xl font-bold text-amber-300">
+              Email W9 Form
+            </h2>
+
+            <SendW9Button inspectionId={String(inspection.id)} />
           </div>
 
           <InspectionContactsManager
