@@ -181,6 +181,9 @@ export default async function SignedAgreementPage({ params }: PageProps) {
             <p><strong>Agreement:</strong> {agreement.agreement_title || "Inspection Agreement"}</p>
             <p><strong>Property:</strong> {propertyAddress}</p>
             <p><strong>Client:</strong> {agreement.client_name || "N/A"}</p>
+            {agreement.client_organization_name && (
+              <p><strong>Business/Organization:</strong> {agreement.client_organization_name}</p>
+            )}
             <p><strong>Email:</strong> {agreement.client_email || "N/A"}</p>
             <p><strong>Role:</strong> {agreement.signature_role || "client"}</p>
             <p><strong>Signed:</strong> {formatSignedDate(agreement.signed_at)}</p>

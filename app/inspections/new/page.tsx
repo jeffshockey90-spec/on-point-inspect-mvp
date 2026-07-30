@@ -313,6 +313,7 @@ function NewInspectionPageContent() {
   const [clientName, setClientName] = useState("");
   const [clientEmail, setClientEmail] = useState("");
   const [clientPhone, setClientPhone] = useState("");
+  const [clientOrganization, setClientOrganization] = useState("");
   const [coClients, setCoClients] = useState<CoClient[]>([]);
 
   const [realtorId, setRealtorId] = useState("");
@@ -806,6 +807,7 @@ function NewInspectionPageContent() {
             client_name: clientName,
             client_email: clientEmail.trim().toLowerCase(),
             client_phone: clientPhone,
+            client_organization_name: clientOrganization.trim() || null,
 
             realtor_id: realtorId || null,
             realtor_contact_id: realtorId || null,
@@ -1099,6 +1101,12 @@ function NewInspectionPageContent() {
                   value={clientPhone}
                   onChange={setClientPhone}
                   placeholder="Client Phone"
+                />
+
+                <Input
+                  value={clientOrganization}
+                  onChange={setClientOrganization}
+                  placeholder="Business/Organization (optional, if hiring on behalf of one)"
                 />
               </div>
             </div>

@@ -1960,6 +1960,9 @@ export default async function PublicSharePage({
               {!isDemo && (
                 <>
                   <Info label="Client" value={inspection.client_name} />
+                  {inspection.client_organization_name && (
+                    <Info label="Business/Organization" value={inspection.client_organization_name} />
+                  )}
                   <Info label="Realtor" value={inspection.realtor_name} />
                 </>
               )}

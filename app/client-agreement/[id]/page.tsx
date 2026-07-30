@@ -158,6 +158,7 @@ export default async function ClientAgreementPage({
       templates,
       state,
       clientName: selectedContact?.name || inspection.client_name,
+      clientOrganization: inspection.client_organization_name,
       propertyAddress: inspection.address || inspection.property_address,
       fee: inspection.invoice_amount || inspection.fee || inspection.price,
       inspectorName: branding.name,
@@ -189,6 +190,13 @@ export default async function ClientAgreementPage({
           <p className="mt-1 text-slate-400 print:text-black">
             Client: {selectedContact?.name || inspection.client_name || "Client"}
           </p>
+
+          {(signedAgreement?.client_organization_name || inspection.client_organization_name) && (
+            <p className="mt-1 text-slate-400 print:text-black">
+              Business/Organization:{" "}
+              {signedAgreement?.client_organization_name || inspection.client_organization_name}
+            </p>
+          )}
 
           <p className="mt-1 text-slate-400 print:text-black">
             Agreement Selected: {state}
@@ -242,6 +250,11 @@ export default async function ClientAgreementPage({
               <p>
                 <strong>Signed by:</strong> {signedAgreement.client_name || "Client"}
               </p>
+              {signedAgreement.client_organization_name && (
+                <p>
+                  <strong>Business/Organization:</strong> {signedAgreement.client_organization_name}
+                </p>
+              )}
               <p>
                 <strong>Email:</strong> {signedAgreement.client_email || "N/A"}
               </p>

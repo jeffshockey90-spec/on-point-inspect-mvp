@@ -73,6 +73,7 @@ const INSPECTION_FIELDS = [
   "address",
   "executive_summary",
   "client_name",
+  "client_organization_name",
   "inspection_date",
   "inspection_time",
   "year_built",

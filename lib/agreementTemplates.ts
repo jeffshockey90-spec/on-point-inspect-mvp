@@ -76,6 +76,7 @@ export function applyAgreementMergeFields({
   state,
   clientName,
   coClientName,
+  clientOrganization,
   propertyAddress,
   fee,
   inspectorName,
@@ -86,6 +87,7 @@ export function applyAgreementMergeFields({
   state?: string | null;
   clientName?: string | null;
   coClientName?: string | null;
+  clientOrganization?: string | null;
   propertyAddress?: string | null;
   fee?: string | number | null;
   inspectorName?: string | null;
@@ -96,6 +98,7 @@ export function applyAgreementMergeFields({
 
   const displayClient = clientName || "Client";
   const displayCoClient = coClientName || "";
+  const displayOrganization = clientOrganization || "";
   const displayProperty = propertyAddress || "Inspection Property";
   const displayFee = formatFee(fee);
   const displayDate = formatDate(inspectionDate);
@@ -129,6 +132,9 @@ export function applyAgreementMergeFields({
     "{{CLIENT}}": displayClient,
     "{{CO_CLIENT_NAME}}": displayCoClient,
     "{{COCLIENT_NAME}}": displayCoClient,
+    "{{CLIENT_ORGANIZATION}}": displayOrganization,
+    "{{ORGANIZATION}}": displayOrganization,
+    "{{BUSINESS_NAME}}": displayOrganization,
 
     "{{PROPERTY_ADDRESS}}": displayProperty,
     "{{COMMON_STREET_ADDRESS}}": displayProperty,
@@ -162,6 +168,12 @@ export function applyAgreementMergeFields({
   );
 
   body = body.replace(fillBlankLine("Client", displayClient), `Client: ${displayClient}\n`);
+  if (displayOrganization) {
+    body = body.replace(
+      fillBlankLine("Business/Organization", displayOrganization),
+      `Business/Organization: ${displayOrganization}\n`
+    );
+  }
   body = body.replace(fillBlankLine("Inspector", inspectorDisplay), `Inspector: ${inspectorDisplay}\n`);
   body = body.replace(fillBlankLine("Common Street Address", displayProperty), `Common Street Address: ${displayProperty}\n`);
   body = body.replace(fillBlankLine("Fee", displayFee), `Fee: ${displayFee}\n`);
@@ -181,6 +193,7 @@ export function mergeAgreementBody({
   state,
   clientName,
   coClientName,
+  clientOrganization,
   propertyAddress,
   fee,
   inspectorName,
@@ -191,6 +204,7 @@ export function mergeAgreementBody({
   state?: string | null;
   clientName?: string | null;
   coClientName?: string | null;
+  clientOrganization?: string | null;
   propertyAddress?: string | null;
   fee?: string | number | null;
   inspectorName?: string | null;
@@ -210,6 +224,7 @@ export function mergeAgreementBody({
     state,
     clientName,
     coClientName,
+    clientOrganization,
     propertyAddress,
     fee,
     inspectorName,
@@ -224,6 +239,7 @@ Agreement Version: ${getAgreementVersion(normalized)}
 Agreement Date: ${displayDate}
 Client: ${displayClient}
 ${coClientName ? `Co-Client: ${coClientName}` : ""}
+${clientOrganization ? `Business/Organization: ${clientOrganization}` : ""}
 Inspector: ${displayInspector}
 Property: ${displayProperty}
 Fee: ${displayFee}
@@ -244,6 +260,7 @@ export function mergeMultipleAgreementBodies({
   state,
   clientName,
   coClientName,
+  clientOrganization,
   propertyAddress,
   fee,
   inspectorName,
@@ -254,6 +271,7 @@ export function mergeMultipleAgreementBodies({
   state?: string | null;
   clientName?: string | null;
   coClientName?: string | null;
+  clientOrganization?: string | null;
   propertyAddress?: string | null;
   fee?: string | number | null;
   inspectorName?: string | null;
@@ -267,6 +285,7 @@ export function mergeMultipleAgreementBodies({
       state,
       clientName,
       coClientName,
+      clientOrganization,
       propertyAddress,
       fee,
       inspectorName,
@@ -290,6 +309,7 @@ ${mergeAgreementBody({
   state,
   clientName,
   coClientName,
+  clientOrganization,
   propertyAddress,
   fee,
   inspectorName,

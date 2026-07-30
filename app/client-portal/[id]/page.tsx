@@ -856,6 +856,9 @@ export default function ClientPortalPage() {
             <div className="mt-5 grid gap-4 md:grid-cols-2">
               <Info label="Property" value={propertyAddress} />
               <Info label="Client" value={inspection.client_name || "N/A"} />
+              {inspection.client_organization_name && (
+                <Info label="Business/Organization" value={inspection.client_organization_name} />
+              )}
               <Info label="Inspection Date" value={inspection.inspection_date || "N/A"} />
               <Info label="Inspection Time" value={inspection.inspection_time || "N/A"} />
               <Info label="Year Built" value={inspection.year_built || "N/A"} />

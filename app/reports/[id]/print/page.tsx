@@ -893,6 +893,9 @@ export default async function PrintableReportPage({ params }: PageProps) {
           <div className="grid gap-5 p-8 md:grid-cols-2">
             <InfoRow label="Property Address" value={inspection.address} />
             <InfoRow label="Client" value={printableClientName} />
+            {inspection.client_organization_name && (
+              <InfoRow label="Business/Organization" value={inspection.client_organization_name} />
+            )}
             <InfoRow label="Client Email" value={printableClientEmail} />
             <InfoRow label="Realtor" value={inspection.realtor_name} />
             <InfoRow label="Inspection Date" value={inspection.inspection_date} />

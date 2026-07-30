@@ -1272,6 +1272,8 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
           property_address: String(formData.get("address") || "").trim(),
           client_name: clientName,
           client_email: clientEmail,
+          client_organization_name:
+            String(formData.get("client_organization_name") || "").trim() || null,
           realtor_name: String(formData.get("realtor_name") || "").trim(),
           inspection_date: String(formData.get("inspection_date") || "").trim(),
           square_feet: String(formData.get("square_feet") || "").trim(),
@@ -4143,6 +4145,11 @@ Service-life information is a general industry estimate only. Actual service lif
                   label="Client Email"
                   name="client_email"
                   value={inspection.client_email}
+                />
+                <EditItem
+                  label="Business/Organization (if hiring on behalf of one)"
+                  name="client_organization_name"
+                  value={inspection.client_organization_name}
                 />
                 <EditItem
                   label="Realtor"
