@@ -472,6 +472,14 @@ export default async function SettingsPage({
       redirect(`/settings?error=${encodeURIComponent(updateError.message)}`);
     }
 
+    if (w9DocumentChanged && w9DocumentUrl) {
+      await supabase.from("w9_documents").insert({
+        company_id: company.id,
+        storage_path: w9DocumentUrl,
+        uploaded_by: user.id,
+      });
+    }
+
     if (officeAddressChanged) {
       // Cached distance/drive-time on every inspection was computed from the
       // old office address - clear it so each report recomputes against the
@@ -485,6 +493,12 @@ export default async function SettingsPage({
     revalidatePath("/settings");
     redirect("/settings?saved=1");
   }
+
+  const { data: w9History } = await supabase
+    .from("w9_documents")
+    .select("id, storage_path, created_at")
+    .eq("company_id", company.id)
+    .order("created_at", { ascending: false });
 
   const feeEnabled = company.online_payment_fee_enabled !== false;
   const feeType =
@@ -853,6 +867,7 @@ export default async function SettingsPage({
                 companyId={String(company.id)}
                 initialPath={company.w9_document_url || ""}
                 initialUploadedAt={company.w9_document_uploaded_at || null}
+                initialHistory={w9History || []}
               />
 
               <label className="block min-w-0 md:col-span-2">

@@ -272,6 +272,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: updateError.message }, { status: 500 });
     }
 
+    await admin.from("w9_documents").insert({
+      company_id: companyUser.company_id,
+      storage_path: filePath,
+      uploaded_by: user.id,
+    });
+
     const { data: signedUrlData } = await admin.storage
       .from("company-documents")
       .createSignedUrl(filePath, 300);
