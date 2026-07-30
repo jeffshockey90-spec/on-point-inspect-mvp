@@ -55,7 +55,7 @@ export default function OwnerChangelog() {
   }
 
   async function submitEntry() {
-    if (!title.trim() || !body.trim() || posting) return;
+    if (!body.trim() || posting) return;
 
     try {
       setPosting(true);
@@ -114,7 +114,7 @@ export default function OwnerChangelog() {
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Title, e.g. Custom section fields"
+              placeholder="Title, e.g. Custom section fields (leave blank to auto-number, e.g. update 1.9.10)"
               className="w-full rounded-xl border border-slate-700 bg-black px-4 py-2.5 text-sm text-white outline-none focus:border-teal-400"
             />
             <textarea
@@ -132,7 +132,7 @@ export default function OwnerChangelog() {
             />
             <button
               onClick={submitEntry}
-              disabled={!title.trim() || !body.trim() || posting}
+              disabled={!body.trim() || posting}
               className="w-full rounded-xl bg-teal-500 px-5 py-3 font-black text-black hover:bg-teal-400 disabled:opacity-50"
             >
               {posting ? "Posting..." : "Publish Update"}

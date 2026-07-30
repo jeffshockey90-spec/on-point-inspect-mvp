@@ -8,6 +8,18 @@ import { createServerClient } from "@supabase/ssr";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+function nextVersionTitle(lastTitle: string | null | undefined) {
+  const match = String(lastTitle || "").match(/(\d+)\.(\d+)\.(\d+)/);
+
+  if (!match) return "update 1.0.0";
+
+  const major = Number(match[1]);
+  const minor = Number(match[2]);
+  const patch = Number(match[3]) + 1;
+
+  return `update ${major}.${minor}.${patch}`;
+}
+
 async function requireOwner() {
   const cookieStore = await cookies();
 
@@ -41,13 +53,13 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json().catch(() => ({}));
-  const title = String(body.title || "").trim();
+  const requestedTitle = String(body.title || "").trim();
   const entryBody = String(body.body || "").trim();
   const creditedUserName = body.creditedUserName ? String(body.creditedUserName).trim() : null;
   const featureRequestId = body.featureRequestId ? Number(body.featureRequestId) : null;
 
-  if (!title || !entryBody) {
-    return NextResponse.json({ error: "Title and description are required." }, { status: 400 });
+  if (!entryBody) {
+    return NextResponse.json({ error: "Description is required." }, { status: 400 });
   }
 
   const admin = createServiceClient(
@@ -60,6 +72,22 @@ export async function POST(req: Request) {
       },
     }
   );
+
+  // Leaving the title blank continues the owner's own "update x.y.z"
+  // numbering from whichever entry was published most recently, instead of
+  // requiring them to remember and type the next number by hand.
+  let title = requestedTitle;
+
+  if (!title) {
+    const { data: lastEntry } = await admin
+      .from("changelog_entries")
+      .select("title")
+      .order("id", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    title = nextVersionTitle(lastEntry?.title);
+  }
 
   const { data, error } = await admin
     .from("changelog_entries")
