@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { getOrCreateShareToken } from "../../../lib/shareToken";
 import { getCompanyBrandingById, buildBrandedFromHeader, type CompanyBranding } from "../../../lib/companyBranding";
+import { resolveInspectionAccessFilter } from "../../../lib/inspectionAccess";
 
 async function createSupabaseServerClient() {
   const cookieStore = await cookies();
@@ -460,11 +461,13 @@ export async function POST(req: Request) {
       );
     }
 
+    const accessFilter = await resolveInspectionAccessFilter(supabase, user.id);
+
     const { data: inspection, error } = await supabase
       .from("inspections")
       .select("*")
       .eq("id", inspectionId)
-      .eq("inspector_id", user.id)
+      .eq(accessFilter.column, accessFilter.value)
       .single();
 
     if (error || !inspection) {

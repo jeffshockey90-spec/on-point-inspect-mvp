@@ -9,6 +9,7 @@ import {
 import { getAIModel, getAIVersion } from "../../../../lib/openai";
 import { logAIEvent } from "../../../../lib/logging";
 import { classifyAIServiceError } from "../../../../lib/aiServiceError";
+import { resolveInspectionAccessFilter } from "../../../../lib/inspectionAccess";
 
 export const runtime = "nodejs";
 
@@ -61,11 +62,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
     }
 
+    const accessFilter = await resolveInspectionAccessFilter(supabase, user.id);
+
     const { data: inspection, error: inspectionError } = await supabase
       .from("inspections")
       .select("*")
       .eq("id", inspectionId)
-      .eq("inspector_id", user.id)
+      .eq(accessFilter.column, accessFilter.value)
       .maybeSingle();
 
     if (inspectionError || !inspection) {

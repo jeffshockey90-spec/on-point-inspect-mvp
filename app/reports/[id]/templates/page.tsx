@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createServerClient } from "@supabase/ssr";
 
 import AITemplateGenerator from "./AITemplateGenerator";
+import { resolveInspectionAccessFilter } from "../../../../lib/inspectionAccess";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -47,12 +48,14 @@ export default async function FindingTemplatesPage({
 
   if (!user) redirect("/login");
 
+  const accessFilter = await resolveInspectionAccessFilter(supabase, user.id);
+
   const { data: inspection } =
     await supabase
       .from("inspections")
       .select("*")
       .eq("id", id)
-      .eq("inspector_id", user.id)
+      .eq(accessFilter.column, accessFilter.value)
       .single();
 
   if (!inspection) redirect("/reports");

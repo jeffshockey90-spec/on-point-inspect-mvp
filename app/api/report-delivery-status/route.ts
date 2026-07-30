@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "../../../utils/supabase/server";
+import { resolveInspectionAccessFilter } from "../../../lib/inspectionAccess";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -81,11 +82,13 @@ export async function GET(req: Request) {
       );
     }
 
+    const accessFilter = await resolveInspectionAccessFilter(supabase, user.id);
+
     const { data: inspection, error: inspectionError } = await supabase
       .from("inspections")
       .select("*")
       .eq("id", inspectionId)
-      .eq("inspector_id", user.id)
+      .eq(accessFilter.column, accessFilter.value)
       .maybeSingle();
 
     if (inspectionError) {

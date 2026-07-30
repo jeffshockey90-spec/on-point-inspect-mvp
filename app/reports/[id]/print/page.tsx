@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { resolveActiveSections } from "../../../../lib/reportSections";
 import { getCompanyBrandingById } from "../../../../lib/companyBranding";
+import { resolveInspectionAccessFilter } from "../../../../lib/inspectionAccess";
 
 import PrintControls from "./PrintControls";
 
@@ -448,11 +449,13 @@ export default async function PrintableReportPage({ params }: PageProps) {
 
     if (!user) redirect("/login");
 
+    const accessFilter = await resolveInspectionAccessFilter(supabase, user.id);
+
     const { data: inspectionByOwner, error: inspectionError } = await supabase
       .from("inspections")
       .select("*")
       .eq("id", shareLookup)
-      .eq("inspector_id", user.id)
+      .eq(accessFilter.column, accessFilter.value)
       .single();
 
     if (inspectionError || !inspectionByOwner) redirect("/reports");

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
+import { resolveInspectionAccessFilter } from "../../../lib/inspectionAccess";
 
 async function createSupabaseServerClient() {
   const cookieStore = await cookies();
@@ -49,14 +50,14 @@ function normalizeServiceType(value: any) {
 async function clearCompetingDefault({
   supabase,
   companyId,
-  userId,
+  scope,
   state,
   serviceType,
   excludeId,
 }: {
   supabase: any;
   companyId: any;
-  userId: string;
+  scope: { column: "inspector_id" | "company_id"; value: any };
   state: string;
   serviceType: string;
   excludeId?: string;
@@ -67,7 +68,7 @@ async function clearCompetingDefault({
       is_default: false,
       updated_at: new Date().toISOString(),
     })
-    .eq("inspector_id", userId)
+    .eq(scope.column, scope.value)
     .eq("state", state)
     .eq("service_type", serviceType);
 
@@ -99,6 +100,7 @@ export async function GET(req: Request) {
     }
 
     const companyId = await getCompanyIdForUser(supabase, user.id);
+    const accessFilter = await resolveInspectionAccessFilter(supabase, user.id);
 
     const url = new URL(req.url);
     const state = url.searchParams.get("state");
@@ -107,7 +109,7 @@ export async function GET(req: Request) {
     let query = supabase
       .from("agreement_templates")
       .select("*")
-      .eq("inspector_id", user.id)
+      .eq(accessFilter.column, accessFilter.value)
       .order("state", { ascending: true })
       .order("service_type", { ascending: true })
       .order("display_order", { ascending: true })
@@ -181,7 +183,7 @@ export async function POST(req: Request) {
       await clearCompetingDefault({
         supabase,
         companyId,
-        userId: user.id,
+        scope: { column: "inspector_id", value: user.id },
         state,
         serviceType,
       });
@@ -236,6 +238,7 @@ export async function PATCH(req: Request) {
     }
 
     const companyId = await getCompanyIdForUser(supabase, user.id);
+    const accessFilter = await resolveInspectionAccessFilter(supabase, user.id);
     const body = await req.json();
     const id = String(body.id || "");
 
@@ -287,13 +290,13 @@ export async function PATCH(req: Request) {
         .from("agreement_templates")
         .select("state, service_type")
         .eq("id", id)
-        .eq("inspector_id", user.id)
+        .eq(accessFilter.column, accessFilter.value)
         .maybeSingle();
 
       await clearCompetingDefault({
         supabase,
         companyId,
-        userId: user.id,
+        scope: accessFilter,
         state: updates.state || existing?.state || "GENERAL",
         serviceType: updates.service_type || existing?.service_type || "home_inspection",
         excludeId: id,
@@ -304,7 +307,7 @@ export async function PATCH(req: Request) {
       .from("agreement_templates")
       .update(updates)
       .eq("id", id)
-      .eq("inspector_id", user.id);
+      .eq(accessFilter.column, accessFilter.value);
 
     if (companyId) {
       query = query.eq("company_id", companyId);
@@ -342,6 +345,7 @@ export async function DELETE(req: Request) {
     }
 
     const companyId = await getCompanyIdForUser(supabase, user.id);
+    const accessFilter = await resolveInspectionAccessFilter(supabase, user.id);
 
     const url = new URL(req.url);
     const id = String(url.searchParams.get("id") || "");
@@ -357,7 +361,7 @@ export async function DELETE(req: Request) {
       .from("agreement_templates")
       .delete()
       .eq("id", id)
-      .eq("inspector_id", user.id);
+      .eq(accessFilter.column, accessFilter.value);
 
     if (companyId) {
       query = query.eq("company_id", companyId);

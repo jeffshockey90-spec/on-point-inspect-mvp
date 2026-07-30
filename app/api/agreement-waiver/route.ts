@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "../../../utils/supabase/server";
+import { resolveInspectionAccessFilter } from "../../../lib/inspectionAccess";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,13 +14,15 @@ async function getOwnedInspection(
   inspectionId: string,
   userId: string,
 ) {
+  const accessFilter = await resolveInspectionAccessFilter(supabase, userId);
+
   return await supabase
     .from("inspections")
     .select(
       "id, inspector_id, agreement_waived, agreement_waived_at, agreement_waived_by, agreement_waived_by_name, agreement_waiver_reason",
     )
     .eq("id", inspectionId)
-    .eq("inspector_id", userId)
+    .eq(accessFilter.column, accessFilter.value)
     .single();
 }
 
@@ -158,11 +161,13 @@ export async function POST(req: Request) {
             agreement_waiver_reason: null,
           };
 
+    const updateAccessFilter = await resolveInspectionAccessFilter(supabase, user.id);
+
     const { data: savedInspection, error: updateError } = await supabase
       .from("inspections")
       .update(update)
       .eq("id", inspectionId)
-      .eq("inspector_id", user.id)
+      .eq(updateAccessFilter.column, updateAccessFilter.value)
       .select(
         "id, agreement_waived, agreement_waived_at, agreement_waived_by, agreement_waived_by_name, agreement_waiver_reason",
       )

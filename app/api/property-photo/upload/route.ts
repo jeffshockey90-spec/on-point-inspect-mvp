@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { createServerClient } from "@supabase/ssr";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
+import { resolveInspectionAccessFilter } from "../../../../lib/inspectionAccess";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -173,12 +174,16 @@ export async function POST(request: Request) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
 
+    let accessFilter: { column: "inspector_id" | "company_id"; value: any } | null = null;
+
     if (inspectionId) {
+      accessFilter = await resolveInspectionAccessFilter(userSupabase, user.id);
+
       const { data: ownedInspection, error: ownershipError } = await userSupabase
         .from("inspections")
         .select("id")
         .eq("id", inspectionId)
-        .eq("inspector_id", user.id)
+        .eq(accessFilter.column, accessFilter.value)
         .single();
 
       if (ownershipError || !ownedInspection) {
@@ -241,7 +246,7 @@ export async function POST(request: Request) {
           cover_photo_url: savedUrl,
         })
         .eq("id", inspectionId)
-        .eq("inspector_id", user.id);
+        .eq(accessFilter!.column, accessFilter!.value);
 
       if (updateError) {
         console.error("Property photo save error:", updateError);

@@ -6,6 +6,7 @@ import {
   getAgreementVersion,
   normalizeAgreementState,
 } from "../../../lib/agreementTemplates";
+import { resolveInspectionAccessFilter } from "../../../lib/inspectionAccess";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -64,11 +65,13 @@ export async function POST(req: Request) {
       );
     }
 
+    const accessFilter = await resolveInspectionAccessFilter(supabase, user.id);
+
     const { data: ownedInspection, error: ownershipError } = await supabase
       .from("inspections")
       .select("id")
       .eq("id", inspectionId)
-      .eq("inspector_id", user.id)
+      .eq(accessFilter.column, accessFilter.value)
       .single();
 
     if (ownershipError || !ownedInspection) {

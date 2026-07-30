@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import { getCompanyBrandingById, buildBrandedFromHeader } from "../../../lib/companyBranding";
+import { resolveInspectionAccessFilter } from "../../../lib/inspectionAccess";
 
 export const runtime = "nodejs";
 
@@ -237,11 +238,13 @@ export async function POST(req: Request) {
       );
     }
 
+    const accessFilter = await resolveInspectionAccessFilter(supabase, user.id);
+
     const { data: inspection, error: inspectionError } = await supabase
       .from("inspections")
       .select("*")
       .eq("id", inspectionId)
-      .eq("inspector_id", user.id)
+      .eq(accessFilter.column, accessFilter.value)
       .single();
 
     if (inspectionError || !inspection) {
@@ -379,7 +382,7 @@ export async function POST(req: Request) {
         review_status: "Requested",
       })
       .eq("id", inspectionId)
-      .eq("inspector_id", user.id);
+      .eq(accessFilter.column, accessFilter.value);
 
     await logEmailEvent(supabase, {
       inspectionId,

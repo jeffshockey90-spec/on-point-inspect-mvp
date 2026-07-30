@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { getAIModel } from "../../../lib/openai";
+import { resolveInspectionAccessFilter } from "../../../lib/inspectionAccess";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -69,11 +70,13 @@ export async function GET(req: Request) {
       );
     }
 
+    const accessFilter = await resolveInspectionAccessFilter(supabase, user.id);
+
     const { data: inspection, error: inspectionError } = await supabase
       .from("inspections")
       .select("*")
       .eq("id", id)
-      .eq("inspector_id", user.id)
+      .eq(accessFilter.column, accessFilter.value)
       .single();
 
     if (inspectionError || !inspection) {
@@ -226,13 +229,15 @@ export async function POST(req: Request) {
       );
     }
 
+    const accessFilter = await resolveInspectionAccessFilter(supabase, user.id);
+
     const { error } = await supabase
       .from("inspections")
       .update({
         report_summary: String(summary).trim(),
       })
       .eq("id", id)
-      .eq("inspector_id", user.id);
+      .eq(accessFilter.column, accessFilter.value);
 
     if (error) {
       return NextResponse.json(

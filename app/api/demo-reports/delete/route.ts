@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
+import { resolveInspectionAccessFilter } from "../../../../lib/inspectionAccess";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -73,12 +74,13 @@ export async function POST(req: Request) {
     }
 
     const admin = createAdminClient();
+    const accessFilter = await resolveInspectionAccessFilter(admin, user.id);
 
     const { data: demoInspection, error: demoError } = await admin
       .from("inspections")
       .select("id, inspector_id, is_demo")
       .eq("id", demoInspectionId)
-      .eq("inspector_id", user.id)
+      .eq(accessFilter.column, accessFilter.value)
       .eq("is_demo", true)
       .single();
 
@@ -116,7 +118,7 @@ export async function POST(req: Request) {
       .from("inspections")
       .delete()
       .eq("id", demoInspectionId)
-      .eq("inspector_id", user.id)
+      .eq(accessFilter.column, accessFilter.value)
       .eq("is_demo", true);
 
     if (deleteInspectionError) {
