@@ -44,6 +44,21 @@ function isClientAgreementRecipient(contact: any) {
   );
 }
 
+// The realtor-forward path exists specifically for when the inspector
+// doesn't have the client's own email yet - the realtor forwards it, and
+// the client fills in their own email when they actually sign. So unlike
+// the direct-to-client send, a contact doesn't need an email on file here,
+// just a stable id to anchor the per-signer link.
+function isClientAgreementRecipientForRealtor(contact: any) {
+  const role = String(contact?.role || "").toLowerCase().trim();
+
+  return (
+    Boolean(contact?.agreement_required) &&
+    !Boolean(contact?.agreement_signed) &&
+    (role === "client" || role === "co-client")
+  );
+}
+
 function getInspectionClient(inspection: any) {
   const name =
     cleanText(inspection?.client_name) ||
@@ -120,6 +135,70 @@ async function ensureClientContact({
 
   if (error) {
     console.error("Auto-create client contact failed:", error);
+    return null;
+  }
+
+  return inserted;
+}
+
+// Same idea as ensureClientContact, but for the realtor-forward path where
+// the inspector may only have the client's name - creates the contact
+// without requiring an email so a signing link can still be generated.
+async function ensureClientContactWithoutEmail({
+  inspection,
+  inspectionId,
+}: {
+  inspection: any;
+  inspectionId: any;
+}) {
+  const client = getInspectionClient(inspection);
+
+  if (!client.name || client.name === "Client") return null;
+
+  const { data: existing } = await supabase
+    .from("inspection_contacts")
+    .select("*")
+    .eq("inspection_id", inspectionId)
+    .eq("name", client.name)
+    .in("role", ["client", "co-client"])
+    .maybeSingle();
+
+  if (existing?.id) {
+    const { data: updated } = await supabase
+      .from("inspection_contacts")
+      .update({
+        agreement_required: true,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", existing.id)
+      .select("*")
+      .single();
+
+    return updated || existing;
+  }
+
+  const { data: inserted, error } = await supabase
+    .from("inspection_contacts")
+    .insert({
+      inspection_id: inspectionId,
+      inspector_id: inspection.inspector_id || inspection.user_id || null,
+      name: client.name,
+      // inspection_contacts.email is NOT NULL in the database (a migration
+      // to drop that exists at supabase/fix-inspection-contacts-email-not-null.sql
+      // but may not have been run yet) - fall back to "" rather than null so
+      // this insert succeeds either way. Every read of this field already
+      // treats falsy (including "") as "no email on file".
+      email: client.email ? client.email.toLowerCase() : "",
+      phone: client.phone || null,
+      role: "client",
+      agreement_required: true,
+      portal_access: Boolean(client.email),
+    })
+    .select("*")
+    .single();
+
+  if (error) {
+    console.error("Auto-create name-only client contact failed:", error);
     return null;
   }
 
@@ -255,25 +334,44 @@ export async function POST(req: Request) {
       );
     }
 
-    let clientContacts = (contacts || []).filter(isClientAgreementRecipient);
+    let clientContacts = sendToRealtor
+      ? (contacts || []).filter(isClientAgreementRecipientForRealtor)
+      : (contacts || []).filter(isClientAgreementRecipient);
 
     // Backfill older reports that only have the primary client saved on the inspection row.
     if (clientContacts.length === 0) {
-      const createdClientContact = await ensureClientContact({
-        inspection,
-        inspectionId,
-      });
+      if (sendToRealtor) {
+        // Forwarding through the realtor doesn't require a client email on
+        // file yet - the client supplies their own when they sign.
+        const createdClientContact = await ensureClientContactWithoutEmail({
+          inspection,
+          inspectionId,
+        });
 
-      if (createdClientContact && isClientAgreementRecipient(createdClientContact)) {
-        clientContacts = [createdClientContact];
+        if (
+          createdClientContact &&
+          isClientAgreementRecipientForRealtor(createdClientContact)
+        ) {
+          clientContacts = [createdClientContact];
+        }
+      } else {
+        const createdClientContact = await ensureClientContact({
+          inspection,
+          inspectionId,
+        });
+
+        if (createdClientContact && isClientAgreementRecipient(createdClientContact)) {
+          clientContacts = [createdClientContact];
+        }
       }
     }
 
     if (!clientContacts.length) {
       return NextResponse.json(
         {
-          error:
-            "No unsigned client/co-client agreement recipient found. Add a client/co-client contact with an email and mark Agreement Required.",
+          error: sendToRealtor
+            ? "No client name found on this inspection to generate a signing link for."
+            : "No unsigned client/co-client agreement recipient found. Add a client/co-client contact with an email and mark Agreement Required.",
         },
         { status: 400 }
       );
