@@ -2049,7 +2049,12 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
 
   const { data: photosRaw, error: photosError } =
     findingIds.length > 0
-      ? await supabase.from("photos").select("*").in("finding_id", findingIds)
+      ? await supabase
+          .from("photos")
+          .select("*")
+          .in("finding_id", findingIds)
+          .order("sort_order", { ascending: true })
+          .order("created_at", { ascending: true })
       : { data: [], error: null };
 
   if (photosError) console.error("Photos load error:", photosError);

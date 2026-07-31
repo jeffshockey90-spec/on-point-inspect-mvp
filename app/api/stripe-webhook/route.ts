@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import crypto from "crypto";
 import http2 from "http2";
-import { formatUsd } from "../../../lib/currency";
+import { formatUsd, formatUsdExact } from "../../../lib/currency";
 import { getCompanyBrandingById, buildBrandedFromHeader, type CompanyBranding } from "../../../lib/companyBranding";
 import { OWNER_EMAILS } from "../../../lib/ownerEmails";
 import { sendPushNotification } from "../../../lib/push";
@@ -445,6 +445,10 @@ function buildReceiptHtml({
     "Inspection Property";
 
   const client = inspection?.client_name || "Client";
+
+  // Customer-facing receipt shows exact cents (e.g. "$499.50"), unlike the
+  // whole-dollar module-level `money` alias used for internal notes.
+  const money = formatUsdExact;
 
   return `
     <div style="margin:0;padding:0;background:#020617;font-family:Arial,sans-serif;color:#ffffff;">

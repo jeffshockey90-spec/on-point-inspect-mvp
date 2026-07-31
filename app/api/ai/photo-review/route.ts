@@ -179,7 +179,7 @@ Analyze this inspection image carefully and generate a professional finding.
     });
 
     const text =
-      response.choices[0].message.content || "";
+      response.choices[0]?.message?.content ?? "";
 
     console.log("🤖 AI VISION RAW:", text);
 

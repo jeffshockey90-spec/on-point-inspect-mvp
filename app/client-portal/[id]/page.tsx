@@ -248,7 +248,7 @@ function isPaymentComplete(inspection: any) {
   const amountPaid = getAmountPaid(inspection);
   const balanceDue = getBalanceDue(inspection);
 
-  if (status === "paid") return true;
+  if (status === "paid" || status === "waived") return true;
 
   if (invoiceAmount > 0 && amountPaid >= invoiceAmount) return true;
   if (amountPaid > 0 && balanceDue <= 0) return true;

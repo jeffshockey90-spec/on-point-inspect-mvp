@@ -540,7 +540,12 @@ export default async function PrintableReportPage({ params }: PageProps) {
 
   const { data: photosRaw } =
     findingIds.length > 0
-      ? await supabase.from("photos").select("*").in("finding_id", findingIds)
+      ? await supabase
+          .from("photos")
+          .select("*")
+          .in("finding_id", findingIds)
+          .order("sort_order", { ascending: true })
+          .order("created_at", { ascending: true })
       : { data: [] };
 
   const photoSignedUrlMap = await createSignedUrlMap(

@@ -49,12 +49,9 @@ function getAmountPaid(inspection: any) {
 }
 
 function getBalanceDue(inspection: any) {
-  if (
-    inspection?.balance_due !== null &&
-    inspection?.balance_due !== undefined
-  ) {
-    const value = getNumber(inspection.balance_due);
-    if (value > 0) return value;
+  const value = inspection?.balance_due;
+  if (value !== null && value !== undefined) {
+    return Math.max(0, getNumber(value));
   }
 
   return Math.max(0, getInvoiceAmount(inspection) - getAmountPaid(inspection));

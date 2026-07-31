@@ -1149,7 +1149,12 @@ export default async function PublicSharePage({
 
   const { data: photosRaw, error: photosError } =
     findingIds.length > 0
-      ? await supabase.from("photos").select("*").in("finding_id", findingIds)
+      ? await supabase
+          .from("photos")
+          .select("*")
+          .in("finding_id", findingIds)
+          .order("sort_order", { ascending: true })
+          .order("created_at", { ascending: true })
       : { data: [], error: null };
 
   if (photosError) {

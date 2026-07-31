@@ -550,11 +550,11 @@ ${branding.name}`,
             <div style="font-family:Arial,sans-serif;padding:24px;line-height:1.6;color:#0f172a;">
               <h2 style="color:#0f766e;">${escapeHtml(branding.name)}</h2>
 
-              <p>Hi ${contact.name || "there"},</p>
+              <p>Hi ${escapeHtml(contact.name || "there")},</p>
 
               <p>Please review and sign your inspection agreement before the report is delivered.</p>
 
-              <p><strong>Property:</strong> ${property}</p>
+              <p><strong>Property:</strong> ${escapeHtml(property)}</p>
 
               <p>
                 <a href="${agreementUrl}" style="display:inline-block;background:#14b8a6;color:#020617;font-weight:bold;padding:14px 22px;border-radius:10px;text-decoration:none;">

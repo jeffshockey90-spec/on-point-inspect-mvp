@@ -66,7 +66,7 @@ Return JSON:
       temperature: 0.4,
     });
 
-    const text = response.choices[0].message.content || "{}";
+    const text = response.choices[0]?.message?.content ?? "{}";
 
     // SAFE JSON PARSE (IMPORTANT)
     let parsed;

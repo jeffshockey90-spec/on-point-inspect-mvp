@@ -225,7 +225,7 @@ function RadonForm({
             className="w-full rounded-xl border border-slate-700 bg-black px-4 py-3 text-white outline-none focus:border-teal-400"
           >
             <option value="Pending">Pending</option>
-            <option value="Complete">Complete</option>
+            <option value="Completed">Completed</option>
           </select>
         </label>
 
