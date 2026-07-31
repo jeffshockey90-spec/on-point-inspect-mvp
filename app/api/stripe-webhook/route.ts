@@ -790,13 +790,36 @@ export async function POST(req: Request) {
                 .select("*")
                 .eq("id", inspectionId)
                 .single();
-        
+
+              const priorPaid =
+                Number(
+                  String(existingInspection?.amount_paid ?? "").replace(/[^0-9.-]/g, "")
+                ) || 0;
+              const invoiceAmountForPay =
+                Number(
+                  String(
+                    existingInspection?.invoice_amount ??
+                      existingInspection?.total_price ??
+                      existingInspection?.total ??
+                      existingInspection?.price ??
+                      ""
+                  ).replace(/[^0-9.-]/g, "")
+                ) || 0;
+              // Marking Paid means the full invoice is now collected. Record the
+              // invoice total (idempotent, and preserves any earlier offline
+              // partial payment) instead of overwriting amount_paid with only
+              // the amount charged online (audit finding H9).
+              const paidTotal =
+                invoiceAmountForPay > 0
+                  ? invoiceAmountForPay
+                  : priorPaid + amountPaid;
+
               const { error } = await supabase
                 .from("inspections")
                 .update({
                   payment_status: "Paid",
                   invoice_status: "Paid",
-                  amount_paid: amountPaid,
+                  amount_paid: paidTotal,
                   balance_due: 0,
                   payment_method: "Stripe",
                   payment_notes: `Stripe payment completed. Inspection balance paid: ${money(

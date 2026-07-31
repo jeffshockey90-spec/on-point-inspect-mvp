@@ -222,34 +222,29 @@ export async function POST(req: Request) {
       );
     }
 
-    const airSamples =
-      getNumber(body.air_samples) || getNumber(inspection.mold_air_samples);
-    const surfaceSamples =
-      getNumber(body.surface_samples) ||
-      getNumber(inspection.mold_surface_samples);
-    const result = classifyMold(body.result || body.status);
-    const findings = body.findings || "";
-    const labStatus = body.lab_status || "Pending Collection";
+    // Only write fields the caller sent, so a partial save (e.g. editing from
+    // the report builder) doesn't wipe result/findings entered elsewhere
+    // (audit finding H5).
+    const patch: Record<string, any> = {};
 
-    const summary = buildSummary({
-      airSamples,
-      surfaceSamples,
-      result,
-      findings,
-      labStatus,
-    });
+    // An explicit 0 samples must win, not fall back to the inspection default
+    // (audit L2), so check presence rather than truthiness.
+    if (body.air_samples !== undefined) patch.air_samples = getNumber(body.air_samples);
+    if (body.surface_samples !== undefined) patch.surface_samples = getNumber(body.surface_samples);
+    if (body.lab_name !== undefined) patch.lab_name = body.lab_name || "";
+    if (body.lab_report_url !== undefined) patch.lab_report_url = body.lab_report_url || "";
+    if (body.lab_status !== undefined) patch.lab_status = body.lab_status || "Pending Collection";
+    if (body.findings !== undefined) patch.findings = body.findings || "";
+    if (body.notes !== undefined) patch.notes = body.notes || "";
 
-    const payload = {
-      inspection_id: inspectionId,
-      air_samples: airSamples,
-      surface_samples: surfaceSamples,
-      lab_name: body.lab_name || "",
-      lab_report_url: body.lab_report_url || "",
-      lab_status: labStatus,
-      findings,
-      result,
-      notes: body.notes || "",
-    };
+    // Classification: an explicit result/status wins; otherwise derive it from
+    // the chosen lab status so picking "Normal" / "Action Recommended" actually
+    // sets the mold result instead of staying Pending (audit finding M9).
+    if (body.result !== undefined || body.status !== undefined) {
+      patch.result = classifyMold(body.result || body.status);
+    } else if (body.lab_status !== undefined) {
+      patch.result = classifyMold(body.lab_status);
+    }
 
     const { data: existing } = await supabase
       .from("mold_tests")
@@ -262,7 +257,7 @@ export async function POST(req: Request) {
     if (existing?.id) {
       const { data, error } = await supabase
         .from("mold_tests")
-        .update(payload)
+        .update(patch)
         .eq("id", existing.id)
         .select()
         .single();
@@ -275,7 +270,16 @@ export async function POST(req: Request) {
     } else {
       const { data, error } = await supabase
         .from("mold_tests")
-        .insert(payload)
+        .insert({
+          inspection_id: inspectionId,
+          air_samples:
+            patch.air_samples ?? getNumber(inspection.mold_air_samples),
+          surface_samples:
+            patch.surface_samples ?? getNumber(inspection.mold_surface_samples),
+          lab_status: patch.lab_status ?? "Pending Collection",
+          result: patch.result ?? "Pending",
+          ...patch,
+        })
         .select()
         .single();
 
@@ -286,10 +290,18 @@ export async function POST(req: Request) {
       saved = data;
     }
 
+    const summary = buildSummary({
+      airSamples: getNumber(saved?.air_samples),
+      surfaceSamples: getNumber(saved?.surface_samples),
+      result: saved?.result || "Pending",
+      findings: saved?.findings || "",
+      labStatus: saved?.lab_status || "Pending Collection",
+    });
+
     return NextResponse.json({
       success: true,
       mold_test: saved,
-      result,
+      result: saved?.result ?? null,
       summary,
     });
   } catch (error: any) {

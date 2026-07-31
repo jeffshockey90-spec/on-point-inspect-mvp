@@ -177,12 +177,31 @@ export default async function PaymentSuccessPage({ searchParams }: PageProps) {
           ? session.payment_intent
           : null;
 
+      const { data: existingForPay } = await supabase
+        .from("inspections")
+        .select("amount_paid, invoice_amount, total_price, total, price")
+        .eq("id", inspectionId)
+        .maybeSingle();
+
+      const priorPaid = getNumber(existingForPay?.amount_paid);
+      const invoiceAmountForPay = getNumber(
+        existingForPay?.invoice_amount ??
+          existingForPay?.total_price ??
+          existingForPay?.total ??
+          existingForPay?.price
+      );
+      // The full invoice is now collected; record the total (idempotent, and
+      // preserves any earlier offline partial payment) instead of overwriting
+      // amount_paid with only the online balance (audit finding H9).
+      const paidTotal =
+        invoiceAmountForPay > 0 ? invoiceAmountForPay : priorPaid + balancePaid;
+
       await supabase
         .from("inspections")
         .update({
           invoice_status: "Paid",
           payment_status: "Paid",
-          amount_paid: balancePaid,
+          amount_paid: paidTotal,
           balance_due: 0,
           payment_method: "Stripe",
           payment_notes: `Stripe payment completed. Inspection balance paid: ${money(

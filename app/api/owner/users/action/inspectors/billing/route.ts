@@ -72,31 +72,47 @@ export async function POST(req: Request) {
 
   const admin = createAdminClient();
 
+  // The client (OwnerInspectorBillingControls) sends camelCase keys; accept
+  // both camelCase and snake_case so a mismatch can't silently drop every
+  // field and reset the row to defaults on save (audit finding C4).
+  const pick = (camel: string, snake: string) =>
+    body[camel] !== undefined ? body[camel] : body[snake];
+
+  const customPriceRaw = pick(
+    "subscriptionPriceOverrideCents",
+    "subscription_price_override_cents"
+  );
+
   const customPrice =
-    body.subscription_price_override_cents === null ||
-    body.subscription_price_override_cents === undefined ||
-    body.subscription_price_override_cents === ""
+    customPriceRaw === null ||
+    customPriceRaw === undefined ||
+    customPriceRaw === ""
       ? null
-      : Number(body.subscription_price_override_cents);
+      : Number(customPriceRaw);
 
   if (customPrice !== null && (!Number.isFinite(customPrice) || customPrice < 0)) {
     return NextResponse.json({ error: "Invalid custom price." }, { status: 400 });
   }
 
-  const freeLimit = Number(body.free_inspection_limit ?? 3);
+  const freeLimit = Number(
+    pick("freeInspectionLimit", "free_inspection_limit") ?? 3
+  );
 
   if (!Number.isFinite(freeLimit) || freeLimit < 0) {
     return NextResponse.json({ error: "Invalid free inspection limit." }, { status: 400 });
   }
 
   const updatePayload = {
-    subscription_required: Boolean(body.subscription_required),
-    subscription_exempt: Boolean(body.subscription_exempt),
-    subscription_exempt_reason: body.subscription_exempt_reason || null,
+    subscription_required: Boolean(pick("subscriptionRequired", "subscription_required")),
+    subscription_exempt: Boolean(pick("subscriptionExempt", "subscription_exempt")),
+    subscription_exempt_reason:
+      pick("subscriptionExemptReason", "subscription_exempt_reason") || null,
     subscription_price_override_cents: customPrice,
-    subscription_price_override_reason: body.subscription_price_override_reason || null,
+    subscription_price_override_reason:
+      pick("subscriptionPriceOverrideReason", "subscription_price_override_reason") ||
+      null,
     free_inspection_limit: Math.floor(freeLimit),
-    founding_member: Boolean(body.founding_member),
+    founding_member: Boolean(pick("foundingMember", "founding_member")),
     updated_at: new Date().toISOString(),
   };
 
