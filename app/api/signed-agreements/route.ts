@@ -1,22 +1,22 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import {
+  authorizeInspection,
+  getAdminClient,
+  getSessionUser,
+  notFound,
+  unauthorized,
+} from "../../../lib/apiAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-    },
-  }
-);
+const supabase = getAdminClient();
 
 export async function GET(req: Request) {
   try {
+    const user = await getSessionUser();
+    if (!user) return unauthorized();
+
     const { searchParams } = new URL(req.url);
     const inspectionId = String(
       searchParams.get("inspection_id") ||
@@ -30,6 +30,9 @@ export async function GET(req: Request) {
         { status: 400 }
       );
     }
+
+    const inspection = await authorizeInspection(supabase, user.id, inspectionId);
+    if (!inspection) return notFound("Inspection not found.");
 
     const { data, error } = await supabase
       .from("inspection_agreements")
@@ -58,6 +61,9 @@ export async function GET(req: Request) {
 
 export async function PATCH(req: Request) {
   try {
+    const user = await getSessionUser();
+    if (!user) return unauthorized();
+
     const body = await req.json();
 
     const agreementId = String(body.agreementId || body.id || "").trim();
@@ -81,6 +87,9 @@ export async function PATCH(req: Request) {
         { status: 400 }
       );
     }
+
+    const inspection = await authorizeInspection(supabase, user.id, inspectionId);
+    if (!inspection) return notFound("Inspection not found.");
 
     if (!agreementBody) {
       return NextResponse.json(

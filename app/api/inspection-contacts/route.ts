@@ -1,13 +1,41 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import {
+  authorizeInspection,
+  getAdminClient,
+  getSessionUser,
+  notFound,
+  unauthorized,
+} from "../../../lib/apiAuth";
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const supabaseAdmin = getAdminClient();
+
+// Loads a contact row and confirms the signed-in user may act on its
+// inspection. Returns the contact row, or a NextResponse to return early.
+async function authorizeContact(userId: string, contactId: string) {
+  const { data: contact } = await supabaseAdmin
+    .from("inspection_contacts")
+    .select("id, inspection_id")
+    .eq("id", contactId)
+    .maybeSingle();
+
+  if (!contact) return { error: notFound("Contact not found.") };
+
+  const inspection = await authorizeInspection(
+    supabaseAdmin,
+    userId,
+    contact.inspection_id
+  );
+
+  if (!inspection) return { error: notFound("Contact not found.") };
+
+  return { contact };
+}
 
 export async function GET(req: Request) {
   try {
+    const user = await getSessionUser();
+    if (!user) return unauthorized();
+
     const url = new URL(req.url);
     const inspectionId = url.searchParams.get("inspection_id");
 
@@ -17,6 +45,13 @@ export async function GET(req: Request) {
         { status: 400 }
       );
     }
+
+    const inspection = await authorizeInspection(
+      supabaseAdmin,
+      user.id,
+      inspectionId
+    );
+    if (!inspection) return notFound("Inspection not found.");
 
     const { data, error } = await supabaseAdmin
       .from("inspection_contacts")
@@ -39,6 +74,9 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
+    const user = await getSessionUser();
+    if (!user) return unauthorized();
+
     const body = await req.json();
 
     const inspectionId = String(body.inspection_id || "");
@@ -59,18 +97,14 @@ export async function POST(req: Request) {
       );
     }
 
-    const { data: inspection, error: inspectionError } = await supabaseAdmin
-      .from("inspections")
-      .select("id, inspector_id")
-      .eq("id", inspectionId)
-      .single();
+    const inspection = await authorizeInspection(
+      supabaseAdmin,
+      user.id,
+      inspectionId,
+      "id, inspector_id"
+    );
 
-    if (inspectionError || !inspection) {
-      return NextResponse.json(
-        { error: "Inspection not found." },
-        { status: 404 }
-      );
-    }
+    if (!inspection) return notFound("Inspection not found.");
 
     const { data, error } = await supabaseAdmin
       .from("inspection_contacts")
@@ -102,6 +136,9 @@ export async function POST(req: Request) {
 
 export async function PATCH(req: Request) {
   try {
+    const user = await getSessionUser();
+    if (!user) return unauthorized();
+
     const body = await req.json();
 
     const id = String(body.id || "");
@@ -112,6 +149,9 @@ export async function PATCH(req: Request) {
         { status: 400 }
       );
     }
+
+    const check = await authorizeContact(user.id, id);
+    if ("error" in check) return check.error;
 
     const updates: Record<string, any> = {};
 
@@ -150,6 +190,9 @@ export async function PATCH(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
+    const user = await getSessionUser();
+    if (!user) return unauthorized();
+
     const url = new URL(req.url);
     const id = url.searchParams.get("id");
 
@@ -159,6 +202,9 @@ export async function DELETE(req: Request) {
         { status: 400 }
       );
     }
+
+    const check = await authorizeContact(user.id, id);
+    if ("error" in check) return check.error;
 
     const { error } = await supabaseAdmin
       .from("inspection_contacts")
