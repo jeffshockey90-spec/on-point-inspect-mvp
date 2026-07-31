@@ -4,6 +4,7 @@ import { createServerClient } from "@supabase/ssr";
 import { createClient as createSupabaseAdminClient } from "@supabase/supabase-js";
 import crypto from "crypto";
 import { getCompanyBrandingById, buildBrandedFromHeader, type CompanyBranding } from "../../../lib/companyBranding";
+import { authorizeInspection, notFound } from "../../../lib/apiAuth";
 
 export const runtime = "nodejs";
 
@@ -480,6 +481,9 @@ export async function POST(req: Request) {
     if (inspectionError || !inspection) {
       return NextResponse.json({ error: "Inspection not found." }, { status: 404 });
     }
+
+    const authorizedInspection = await authorizeInspection(db, user.id, inspectionId);
+    if (!authorizedInspection) return notFound("Inspection not found.");
 
     const branding = await getCompanyBrandingById(inspection.company_id);
 

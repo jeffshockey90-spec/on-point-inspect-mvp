@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { getOrCreateShareToken } from "../../../lib/shareToken";
 import { getCompanyBrandingById, buildBrandedFromHeader } from "../../../lib/companyBranding";
+import { getSessionUser, unauthorized, notFound, authorizeInspection } from "../../../lib/apiAuth";
 
 export const runtime = "nodejs";
 
@@ -278,6 +279,9 @@ function getInspectionRealtor(inspection: any) {
 
 export async function POST(req: Request) {
   try {
+    const user = await getSessionUser();
+    if (!user) return unauthorized();
+
     const { inspectionId, recipientType } = await req.json();
     const sendToRealtor = String(recipientType || "client") === "realtor";
 
@@ -294,6 +298,9 @@ export async function POST(req: Request) {
         { status: 500 }
       );
     }
+
+    const authorizedInspection = await authorizeInspection(supabase, user.id, inspectionId);
+    if (!authorizedInspection) return notFound("Inspection not found.");
 
     const { data: inspection, error: inspectionError } = await supabase
       .from("inspections")
@@ -455,6 +462,26 @@ ${links.map((link: any) => `${link.name}: ${link.url}`).join("\n")}
 ${branding.name}`,
         });
 
+        if (result.error) {
+          await logEmailEvent({
+            inspectionId,
+            recipient: email,
+            subject,
+            status: "failed",
+            metadata: {
+              type: "agreement_realtor_email",
+              links,
+              recipientRule: "realtor_forward",
+              error: result.error.message || "Failed to send agreement to realtor.",
+            },
+          });
+
+          return NextResponse.json(
+            { error: result.error.message || "Failed to send agreement to realtor." },
+            { status: 500 }
+          );
+        }
+
         await logEmailEvent({
           inspectionId,
           recipient: email,
@@ -557,6 +584,33 @@ ${portalUrl}
 
 ${branding.name}`,
         });
+
+        if (result.error) {
+          await logEmailEvent({
+            inspectionId,
+            recipient: email,
+            subject,
+            status: "failed",
+            metadata: {
+              type: "agreement_email",
+              agreementUrl,
+              portalUrl,
+              contactId: contact.id,
+              contactRole: contact.role || "client",
+              recipientRule: "client_or_co_client_only_contact_specific",
+              error: result.error.message || "Failed to send agreement email.",
+            },
+          });
+
+          failed.push({
+            email,
+            contact_id: contact.id,
+            role: contact.role,
+            error: result.error.message || "Failed to send agreement email.",
+          });
+
+          continue;
+        }
 
         await logEmailEvent({
           inspectionId,

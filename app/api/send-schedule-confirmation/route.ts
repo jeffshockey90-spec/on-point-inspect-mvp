@@ -4,6 +4,7 @@ import { Resend } from "resend";
 import { getOrCreateShareToken } from "../../../lib/shareToken";
 import { formatAppValue } from "../../../lib/app-time";
 import { getCompanyBrandingById, buildBrandedFromHeader } from "../../../lib/companyBranding";
+import { getSessionUser, unauthorized, notFound, authorizeInspection } from "../../../lib/apiAuth";
 
 export const runtime = "nodejs";
 
@@ -70,6 +71,9 @@ function formatTime(value: any) {
 
 export async function POST(req: Request) {
   try {
+    const user = await getSessionUser();
+    if (!user) return unauthorized();
+
     const { inspectionId } = await req.json();
 
     if (!inspectionId) {
@@ -79,6 +83,9 @@ export async function POST(req: Request) {
     if (!process.env.RESEND_API_KEY) {
       return NextResponse.json({ error: "Missing RESEND_API_KEY." }, { status: 500 });
     }
+
+    const authorizedInspection = await authorizeInspection(supabase, user.id, inspectionId);
+    if (!authorizedInspection) return notFound("Inspection not found.");
 
     const { data: inspection, error: inspectionError } = await supabase
       .from("inspections")
@@ -222,6 +229,34 @@ ${branding.name}`;
           html,
           text,
         });
+
+        if (result.error) {
+          failed.push({
+            email: recipient.email,
+            role: recipient.role,
+            error: result.error.message || "Failed to send appointment confirmation.",
+          });
+
+          await supabase.from("email_logs").insert({
+            inspection_id_bigint: Number(inspectionId),
+            recipient: recipient.email,
+            recipient_email: recipient.email,
+            email_type: "appointment_confirmed",
+            subject,
+            message: portalUrl,
+            status: "failed",
+            resend_id: null,
+            sent_at: null,
+            metadata: {
+              type: "appointment_confirmed",
+              role: recipient.role,
+              portalUrl,
+              error: result.error.message || "Failed to send appointment confirmation.",
+            },
+          });
+
+          continue;
+        }
 
         sent.push({ email: recipient.email, role: recipient.role, resend_id: result?.data?.id || null });
 

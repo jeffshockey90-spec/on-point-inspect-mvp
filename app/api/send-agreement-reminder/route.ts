@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { getOrCreateShareToken } from "../../../lib/shareToken";
 import { getCompanyBrandingById, buildBrandedFromHeader } from "../../../lib/companyBranding";
+import { getSessionUser, unauthorized, notFound, authorizeInspection } from "../../../lib/apiAuth";
 
 export const runtime = "nodejs";
 
@@ -45,6 +46,9 @@ function isClientAgreementRecipient(contact: any) {
 
 export async function POST(req: Request) {
   try {
+    const user = await getSessionUser();
+    if (!user) return unauthorized();
+
     const body = await req.json();
 
     const inspectionId = String(body.inspectionId || "");
@@ -57,6 +61,9 @@ export async function POST(req: Request) {
     if (!process.env.RESEND_API_KEY) {
       return NextResponse.json({ error: "Missing RESEND_API_KEY." }, { status: 500 });
     }
+
+    const authorizedInspection = await authorizeInspection(supabase, user.id, inspectionId);
+    if (!authorizedInspection) return notFound("Inspection not found.");
 
     const { data: inspection, error: inspectionError } = await supabase
       .from("inspections")

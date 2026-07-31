@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
 import { Resend } from "resend";
 import { getCompanyBrandingById, buildBrandedFromHeader } from "../../../lib/companyBranding";
+import { getSessionUser, unauthorized, notFound, authorizeInspection } from "../../../lib/apiAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -110,6 +111,9 @@ function escapeHtml(value: any) {
 
 export async function POST(req: Request) {
   try {
+    const user = await getSessionUser();
+    if (!user) return unauthorized();
+
     const { inspectionId } = await req.json();
 
     if (!inspectionId) {
@@ -127,6 +131,9 @@ export async function POST(req: Request) {
     }
 
     const supabase = getSupabaseAdmin();
+
+    const authorizedInspection = await authorizeInspection(supabase, user.id, inspectionId);
+    if (!authorizedInspection) return notFound("Inspection not found.");
 
     const { data: inspection, error } = await supabase
       .from("inspections")

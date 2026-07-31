@@ -185,6 +185,21 @@ export async function POST(req: Request) {
         ],
       });
 
+      if (result.error) {
+        await logEmailEvent({
+          inspectionId,
+          recipient: email,
+          subject,
+          status: "failed",
+          metadata: { error: result.error.message || "Failed to send W9." },
+        });
+
+        return NextResponse.json(
+          { error: result.error.message || "Failed to send W9." },
+          { status: 500 }
+        );
+      }
+
       await logEmailEvent({
         inspectionId,
         recipient: email,
