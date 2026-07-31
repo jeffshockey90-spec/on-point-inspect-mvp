@@ -795,6 +795,19 @@ export async function POST(req: Request) {
                 .eq("id", inspectionId)
                 .single();
 
+              // Payment side effects (receipt email, inspector push, and the
+              // payment_received analytics/audit/stripe-receipt logs) must fire
+              // only the first time this session is processed. The webhook can
+              // be re-delivered and the payment-success page also processes the
+              // same session, so gate them on the inspection not already being
+              // marked paid. The DB update below stays unconditional (idempotent).
+              const alreadyPaid =
+                String(
+                  existingInspection?.payment_status ||
+                    existingInspection?.invoice_status ||
+                    ""
+                ).toLowerCase() === "paid" || Boolean(existingInspection?.paid_at);
+
               const priorPaid =
                 Number(
                   String(existingInspection?.amount_paid ?? "").replace(/[^0-9.-]/g, "")
@@ -852,82 +865,84 @@ export async function POST(req: Request) {
                 );
               }
         
-              await logStripeEvent(supabase, {
-                inspectionId,
-                paymentIntentId:
-                  typeof session.payment_intent === "string" ? session.payment_intent : null,
-                amount: totalCharged,
-                status: "payment_completed",
-                metadata: {
-                  sessionId: session.id,
-                  eventId: event.id,
-                  amountPaid,
-                  portalProcessingFee,
-                  totalCharged,
-                  paidAt,
-                },
-              });
-        
-              await logAuditEvent(supabase, {
-                action: "stripe_payment_completed",
-                resourceType: "inspection",
-                resourceId: inspectionId,
-                metadata: {
-                  sessionId: session.id,
-                  eventId: event.id,
-                  amountPaid,
-                  portalProcessingFee,
-                  totalCharged,
-                  paidAt,
-                },
-              });
-        
-              await supabase.from("inspection_view_events").insert({
-                inspection_id_bigint: Number(inspectionId),
-                view_type: "payment_received",
-                viewer_role: "system",
-                viewer_email: null,
-                path: "/payment",
-                metadata: {
-                  source: "stripe_webhook",
-                  amount_paid: amountPaid,
-                  total_charged: totalCharged,
-                  portal_processing_fee: portalProcessingFee,
-                  session_id: session.id,
-                  paid_at: paidAt,
-                },
-              });
-        
-              // Money here goes to the inspecting company, not to FLOW - this
-              // should notify that company's inspector, not the platform
-              // owner (unlike the subscription-billing pushes elsewhere in
-              // this file, which are genuinely about payments made to FLOW).
-              if (existingInspection?.inspector_id) {
-                await sendPushNotification({
-                  title: "Payment Received",
-                  body: `${money(totalCharged)} received for ${getPropertyLabel(
-                    existingInspection
-                  )}.`,
-                  url: `/reports/${inspectionId}`,
-                  eventType: "payment_received",
-                  target: "user",
-                  targetUserId: existingInspection.inspector_id,
+              if (!alreadyPaid) {
+                await logStripeEvent(supabase, {
+                  inspectionId,
+                  paymentIntentId:
+                    typeof session.payment_intent === "string" ? session.payment_intent : null,
+                  amount: totalCharged,
+                  status: "payment_completed",
+                  metadata: {
+                    sessionId: session.id,
+                    eventId: event.id,
+                    amountPaid,
+                    portalProcessingFee,
+                    totalCharged,
+                    paidAt,
+                  },
                 });
-              }
-        
-              if (existingInspection) {
-                await sendReceiptEmail({
-                  supabase,
-                  inspection: existingInspection,
-                  session,
-                  amountPaid,
-                  balanceDue: 0,
-                  paidAt,
-                  portalProcessingFee,
-                  totalCharged,
+
+                await logAuditEvent(supabase, {
+                  action: "stripe_payment_completed",
+                  resourceType: "inspection",
+                  resourceId: inspectionId,
+                  metadata: {
+                    sessionId: session.id,
+                    eventId: event.id,
+                    amountPaid,
+                    portalProcessingFee,
+                    totalCharged,
+                    paidAt,
+                  },
                 });
+
+                await supabase.from("inspection_view_events").insert({
+                  inspection_id_bigint: Number(inspectionId),
+                  view_type: "payment_received",
+                  viewer_role: "system",
+                  viewer_email: null,
+                  path: "/payment",
+                  metadata: {
+                    source: "stripe_webhook",
+                    amount_paid: amountPaid,
+                    total_charged: totalCharged,
+                    portal_processing_fee: portalProcessingFee,
+                    session_id: session.id,
+                    paid_at: paidAt,
+                  },
+                });
+
+                // Money here goes to the inspecting company, not to FLOW - this
+                // should notify that company's inspector, not the platform
+                // owner (unlike the subscription-billing pushes elsewhere in
+                // this file, which are genuinely about payments made to FLOW).
+                if (existingInspection?.inspector_id) {
+                  await sendPushNotification({
+                    title: "Payment Received",
+                    body: `${money(totalCharged)} received for ${getPropertyLabel(
+                      existingInspection
+                    )}.`,
+                    url: `/reports/${inspectionId}`,
+                    eventType: "payment_received",
+                    target: "user",
+                    targetUserId: existingInspection.inspector_id,
+                  });
+                }
+
+                if (existingInspection) {
+                  await sendReceiptEmail({
+                    supabase,
+                    inspection: existingInspection,
+                    session,
+                    amountPaid,
+                    balanceDue: 0,
+                    paidAt,
+                    portalProcessingFee,
+                    totalCharged,
+                  });
+                }
               }
-        
+
       }
     }
 

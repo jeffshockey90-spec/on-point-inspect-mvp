@@ -2227,6 +2227,22 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
     findings: findingsForEditor.filter((finding: any) => finding.section === section),
   }));
 
+  // Mirror the share page: findings whose (normalized) section is no longer in
+  // the active section list - e.g. tagged to a section that was later deleted
+  // or hidden by service mode - would otherwise silently vanish for the
+  // inspector. Bucket them into "Other" so they still render, appended after
+  // the normal sections. Only added when such orphaned findings exist.
+  const otherFindingsForEditor = findingsForEditor.filter(
+    (finding: any) => !activeSectionOrder.includes(finding.section),
+  );
+
+  if (otherFindingsForEditor.length > 0) {
+    groupedFindingsArray.push({
+      section: "Other",
+      findings: otherFindingsForEditor,
+    });
+  }
+
   const defectFindings = numberedFindings.filter((finding: any) => {
     const section = String(finding.section || "").toLowerCase();
     const title = String(finding.title || "").toLowerCase();

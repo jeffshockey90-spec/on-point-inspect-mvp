@@ -179,9 +179,20 @@ export default async function PaymentSuccessPage({ searchParams }: PageProps) {
 
       const { data: existingForPay } = await supabase
         .from("inspections")
-        .select("amount_paid, invoice_amount, total_price, total, price")
+        .select(
+          "amount_paid, invoice_amount, total_price, total, price, payment_status, invoice_status, paid_at"
+        )
         .eq("id", inspectionId)
         .maybeSingle();
+
+      // The webhook processes this same checkout session too, so the receipt/
+      // analytics side effects can double-fire. Gate the duplicate logging on
+      // the inspection not already being marked paid. The DB update and the
+      // page render below stay unconditional (the update is idempotent).
+      const alreadyPaid =
+        String(
+          existingForPay?.payment_status || existingForPay?.invoice_status || ""
+        ).toLowerCase() === "paid" || Boolean(existingForPay?.paid_at);
 
       const priorPaid = getNumber(existingForPay?.amount_paid);
       const invoiceAmountForPay = getNumber(
@@ -232,52 +243,54 @@ export default async function PaymentSuccessPage({ searchParams }: PageProps) {
         })
         .eq("id", inspectionId);
 
-      await logStripeEvent(supabase, {
-        inspectionId,
-        paymentIntentId,
-        amount: totalPaid,
-        status: "payment_success_page_verified",
-        metadata: {
-          sessionId: session.id,
-          stripeAccountId: verifiedStripeAccount || null,
-          chargeType: chargeType || null,
-          balancePaid,
-          portalProcessingFee,
-          totalPaid,
-        },
-      });
+      if (!alreadyPaid) {
+        await logStripeEvent(supabase, {
+          inspectionId,
+          paymentIntentId,
+          amount: totalPaid,
+          status: "payment_success_page_verified",
+          metadata: {
+            sessionId: session.id,
+            stripeAccountId: verifiedStripeAccount || null,
+            chargeType: chargeType || null,
+            balancePaid,
+            portalProcessingFee,
+            totalPaid,
+          },
+        });
 
-      await logAuditEvent(supabase, {
-        action: "payment_success_page_verified",
-        resourceType: "inspection",
-        resourceId: inspectionId,
-        metadata: {
-          sessionId: session.id,
-          stripeAccountId: verifiedStripeAccount || null,
-          chargeType: chargeType || null,
-          balancePaid,
-          portalProcessingFee,
-          totalPaid,
-        },
-      });
+        await logAuditEvent(supabase, {
+          action: "payment_success_page_verified",
+          resourceType: "inspection",
+          resourceId: inspectionId,
+          metadata: {
+            sessionId: session.id,
+            stripeAccountId: verifiedStripeAccount || null,
+            chargeType: chargeType || null,
+            balancePaid,
+            portalProcessingFee,
+            totalPaid,
+          },
+        });
 
-      await supabase.from("inspection_view_events").insert({
-        inspection_id_bigint: Number(inspectionId),
-        view_type: "payment_received",
-        viewer_role: "system",
-        viewer_email: null,
-        path: "/payment-success",
-        metadata: {
-          source: "payment_success_page",
-          amount_paid: balancePaid,
-          total_charged: totalPaid,
-          portal_processing_fee: portalProcessingFee,
-          session_id: session.id,
-          stripe_account_id: verifiedStripeAccount || null,
-          charge_type: chargeType || null,
-          paid_at: new Date().toISOString(),
-        },
-      });
+        await supabase.from("inspection_view_events").insert({
+          inspection_id_bigint: Number(inspectionId),
+          view_type: "payment_received",
+          viewer_role: "system",
+          viewer_email: null,
+          path: "/payment-success",
+          metadata: {
+            source: "payment_success_page",
+            amount_paid: balancePaid,
+            total_charged: totalPaid,
+            portal_processing_fee: portalProcessingFee,
+            session_id: session.id,
+            stripe_account_id: verifiedStripeAccount || null,
+            charge_type: chargeType || null,
+            paid_at: new Date().toISOString(),
+          },
+        });
+      }
 
       message = "Payment complete. Your inspection portal has been updated.";
     } else {

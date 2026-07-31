@@ -786,6 +786,21 @@ export default async function PrintableReportPage({ params }: PageProps) {
     findings: numberedFindings.filter((finding: any) => finding.section === section),
   }));
 
+  // Mirror the share page: findings whose (normalized) section is no longer in
+  // the active section list - e.g. tagged to a deleted or service-mode-hidden
+  // section - would otherwise silently vanish from the printed report. Bucket
+  // them into "Other" so they still print, appended after the normal sections.
+  const otherFindings = numberedFindings.filter(
+    (finding: any) => !activeSectionOrder.includes(finding.section),
+  );
+
+  if (otherFindings.length > 0) {
+    groupedFindingsArray.push({
+      section: "Other",
+      findings: otherFindings,
+    });
+  }
+
   const propertyPhoto =
     inspection.property_image ||
     inspection.street_view_url ||

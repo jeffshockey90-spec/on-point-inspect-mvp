@@ -42,6 +42,38 @@ function formatDate(value: any) {
   });
 }
 
+function pad(value: number) {
+  return String(value).padStart(2, "0");
+}
+
+// Convert a stored UTC/ISO timestamp into the local "YYYY-MM-DDTHH:MM" string a
+// <input type="datetime-local"> expects, built from local getters so the
+// inspector sees the wall-clock time they entered rather than a UTC-shifted one.
+function toLocalDateTimeInput(value: any) {
+  if (!value) return "";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) return "";
+
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
+    date.getDate()
+  )}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+// Convert a local "YYYY-MM-DDTHH:MM" datetime-local value into a real ISO
+// instant before saving, so a timestamptz column records the correct moment
+// instead of interpreting the offset-less local string as UTC. Empty stays "".
+function toIsoInstant(value: any) {
+  if (!value || typeof value !== "string") return "";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) return "";
+
+  return date.toISOString();
+}
+
 function classifyRadon(value: any) {
   const average = getNumber(value);
 
@@ -123,8 +155,8 @@ export default function RadonPage() {
           average_pci: test.average_pci ?? "",
           highest_pci: test.highest_pci ?? "",
           lowest_pci: test.lowest_pci ?? "",
-          start_time: test.start_time ? String(test.start_time).slice(0, 16) : "",
-          end_time: test.end_time ? String(test.end_time).slice(0, 16) : "",
+          start_time: toLocalDateTimeInput(test.start_time),
+          end_time: toLocalDateTimeInput(test.end_time),
           device_name: test.device_name || "",
           serial_number: test.serial_number || "",
           report_url: test.report_url || "",
@@ -168,6 +200,10 @@ export default function RadonPage() {
         body: JSON.stringify({
           inspection_id: inspectionId,
           ...form,
+          // Store real instants so timestamptz round-trips correctly; the
+          // datetime-local inputs hold offset-less local strings.
+          start_time: toIsoInstant(form.start_time),
+          end_time: toIsoInstant(form.end_time),
         }),
       });
 

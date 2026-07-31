@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
+import { getAdminClient, authorizeInspection, notFound } from "../../../../lib/apiAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -38,6 +39,16 @@ export async function POST(request: Request) {
 
     if (userError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Defense-in-depth: confirm this inspection belongs to the caller (or their
+    // team, for company owners) before deleting. The RLS-scoped delete below is
+    // still the primary gate; this returns a clean 404 for foreign ids instead
+    // of relying solely on RLS silently affecting zero rows.
+    const allowed = await authorizeInspection(getAdminClient(), user.id, inspectionId);
+
+    if (!allowed) {
+      return notFound("Inspection not found");
     }
 
     const { error } = await supabase
