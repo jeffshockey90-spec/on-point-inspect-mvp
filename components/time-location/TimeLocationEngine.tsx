@@ -85,6 +85,10 @@ export default function TimeLocationEngine() {
     departurePrompted.current = true;
     localStorage.setItem(STATE_KEY, JSON.stringify({ pendingDeparture: true, inspectionId: session.inspection_id, at: new Date().toISOString() }));
     await fetch("/api/inspection-presence", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "depart", latitude: coords.latitude, longitude: coords.longitude, recordedAt: new Date().toISOString() }) }).catch(() => null);
+    // "Start mileage prompt" toggle: departure is recorded above regardless,
+    // but only offer to start mileage tracking when the inspector left it on.
+    const mileageSettings = await fetch("/api/settings/schedule-reminders", { cache: "no-store" }).then(r => r.ok ? r.json() : null).catch(() => null);
+    if (mileageSettings?.mileage_prompt_enabled === false) return;
     if (isNative()) {
       try {
         const { LocalNotifications } = await import("@capacitor/local-notifications");

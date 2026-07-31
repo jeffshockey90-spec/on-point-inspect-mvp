@@ -77,6 +77,7 @@ async function getOrCreateSettings(admin: any, userId: string, userEmail: string
       reminder_30m_enabled: true,
       arrival_detection_enabled: true,
       departure_detection_enabled: true,
+      mileage_prompt_enabled: true,
       geofence_radius_meters: 220,
       radon_reminders_enabled: true,
       radon_deployment_reminder_enabled: true,
@@ -115,6 +116,7 @@ export async function GET() {
       reminder_30m_enabled: settings.reminder_30m_enabled !== false,
       arrival_detection_enabled: settings.arrival_detection_enabled !== false,
       departure_detection_enabled: settings.departure_detection_enabled !== false,
+      mileage_prompt_enabled: settings.mileage_prompt_enabled !== false,
       geofence_radius_meters: Number(settings.geofence_radius_meters || 220),
       radon_reminders_enabled: settings.radon_reminders_enabled !== false,
       radon_deployment_reminder_enabled:
@@ -162,6 +164,7 @@ export async function POST(request: Request) {
         reminder_30m_enabled: body.reminder_30m_enabled !== false,
         arrival_detection_enabled: body.arrival_detection_enabled !== false,
         departure_detection_enabled: body.departure_detection_enabled !== false,
+        mileage_prompt_enabled: body.mileage_prompt_enabled !== false,
         geofence_radius_meters: Math.min(1000, Math.max(100, Number(body.geofence_radius_meters || 220))),
         radon_deployment_reminder_enabled: radonDeploymentEnabled,
         radon_retrieval_reminder_enabled: radonRetrievalEnabled,
@@ -186,6 +189,7 @@ export async function POST(request: Request) {
       reminder_30m_enabled: data.reminder_30m_enabled !== false,
       arrival_detection_enabled: data.arrival_detection_enabled !== false,
       departure_detection_enabled: data.departure_detection_enabled !== false,
+      mileage_prompt_enabled: data.mileage_prompt_enabled !== false,
       geofence_radius_meters: Number(data.geofence_radius_meters || 220),
       radon_reminders_enabled: data.radon_reminders_enabled !== false,
       radon_deployment_reminder_enabled:
