@@ -239,11 +239,11 @@ export default function TimeLocationEngine() {
           for (const test of (radonPayload?.tests || [])) {
             const address = test.inspections?.property_address || "Radon test";
             const events = [
-              { key: "deploy", value: test.start_time, minutes: 30, title: "Radon Deployment in 30 Minutes" },
-              { key: "retrieve", value: test.end_time, minutes: 30, title: "Radon Retrieval in 30 Minutes" },
+              { key: "deploy", value: test.start_time, minutes: 30, title: "Radon Deployment in 30 Minutes", on: settings?.radon_deployment_reminder_enabled !== false },
+              { key: "retrieve", value: test.end_time, minutes: 30, title: "Radon Retrieval in 30 Minutes", on: settings?.radon_retrieval_reminder_enabled !== false },
             ];
             for (const event of events) {
-              if (!event.value) continue;
+              if (!event.on || !event.value) continue;
               const instant = new Date(event.value);
               const at = new Date(instant.getTime() - event.minutes * 60000);
               if (Number.isNaN(at.getTime()) || at.getTime() <= Date.now()) continue;

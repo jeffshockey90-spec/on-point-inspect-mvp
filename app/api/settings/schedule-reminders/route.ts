@@ -79,6 +79,8 @@ async function getOrCreateSettings(admin: any, userId: string, userEmail: string
       departure_detection_enabled: true,
       geofence_radius_meters: 220,
       radon_reminders_enabled: true,
+      radon_deployment_reminder_enabled: true,
+      radon_retrieval_reminder_enabled: true,
     })
     .select("*")
     .single();
@@ -115,6 +117,10 @@ export async function GET() {
       departure_detection_enabled: settings.departure_detection_enabled !== false,
       geofence_radius_meters: Number(settings.geofence_radius_meters || 220),
       radon_reminders_enabled: settings.radon_reminders_enabled !== false,
+      radon_deployment_reminder_enabled:
+        settings.radon_deployment_reminder_enabled !== false,
+      radon_retrieval_reminder_enabled:
+        settings.radon_retrieval_reminder_enabled !== false,
     });
   } catch (error: any) {
     return NextResponse.json(
@@ -142,6 +148,11 @@ export async function POST(request: Request) {
       String(user.email || "").toLowerCase()
     );
 
+    const radonDeploymentEnabled =
+      body.radon_deployment_reminder_enabled !== false;
+    const radonRetrievalEnabled =
+      body.radon_retrieval_reminder_enabled !== false;
+
     const { data, error } = await admin
       .from("schedule_reminder_settings")
       .update({
@@ -152,7 +163,11 @@ export async function POST(request: Request) {
         arrival_detection_enabled: body.arrival_detection_enabled !== false,
         departure_detection_enabled: body.departure_detection_enabled !== false,
         geofence_radius_meters: Math.min(1000, Math.max(100, Number(body.geofence_radius_meters || 220))),
-        radon_reminders_enabled: body.radon_reminders_enabled !== false,
+        radon_deployment_reminder_enabled: radonDeploymentEnabled,
+        radon_retrieval_reminder_enabled: radonRetrievalEnabled,
+        // Legacy master flag still gates the native local-notification path;
+        // keep it in sync so it's on when either granular reminder is on.
+        radon_reminders_enabled: radonDeploymentEnabled || radonRetrievalEnabled,
         updated_at: new Date().toISOString(),
       })
       .eq("user_id", user.id)
@@ -173,6 +188,10 @@ export async function POST(request: Request) {
       departure_detection_enabled: data.departure_detection_enabled !== false,
       geofence_radius_meters: Number(data.geofence_radius_meters || 220),
       radon_reminders_enabled: data.radon_reminders_enabled !== false,
+      radon_deployment_reminder_enabled:
+        data.radon_deployment_reminder_enabled !== false,
+      radon_retrieval_reminder_enabled:
+        data.radon_retrieval_reminder_enabled !== false,
     });
   } catch (error: any) {
     return NextResponse.json(

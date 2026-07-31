@@ -314,6 +314,45 @@ function getStatus(row: InspectionRow) {
   return String(row.status || row.inspection_status || "").toLowerCase();
 }
 
+function getServiceMode(row: InspectionRow) {
+  return String(row.service_mode || "").toLowerCase().trim();
+}
+
+function includesHomeService(row: InspectionRow) {
+  // Blank/legacy service_mode predates mold/radon-only jobs; treat it as a
+  // full home inspection so those reminders keep their existing behavior.
+  const mode = getServiceMode(row);
+  if (!mode) return true;
+  return mode.startsWith("home");
+}
+
+function includesRadonService(row: InspectionRow) {
+  return row.radon === true || getServiceMode(row).includes("radon");
+}
+
+function includesMoldService(row: InspectionRow) {
+  return row.mold === true || getServiceMode(row).includes("mold");
+}
+
+function isEnvironmentalOnly(row: InspectionRow) {
+  return (
+    !includesHomeService(row) &&
+    (includesRadonService(row) || includesMoldService(row))
+  );
+}
+
+// Title-cased noun for push titles; lower-cased for inline body text.
+function getInspectionNoun(row: InspectionRow) {
+  if (!isEnvironmentalOnly(row)) return "Inspection";
+
+  const radon = includesRadonService(row);
+  const mold = includesMoldService(row);
+
+  if (radon && mold) return "Mold & Radon Inspection";
+  if (radon) return "Radon Test";
+  return "Mold Inspection";
+}
+
 function isCancelledOrComplete(row: InspectionRow) {
   const status = getStatus(row);
 
@@ -357,6 +396,8 @@ async function getReminderSettingsForInspection(admin: any, row: InspectionRow) 
       reminder_24h_enabled: true,
       reminder_2h_enabled: true,
       reminder_30m_enabled: true,
+      radon_deployment_reminder_enabled: true,
+      radon_retrieval_reminder_enabled: true,
     };
   }
 
@@ -372,6 +413,12 @@ async function getReminderSettingsForInspection(admin: any, row: InspectionRow) 
     reminder_24h_enabled: data?.reminder_24h_enabled !== false,
     reminder_2h_enabled: data?.reminder_2h_enabled !== false,
     reminder_30m_enabled: data?.reminder_30m_enabled !== false,
+    // Columns may not exist yet on installs that haven't run the
+    // add-radon-deploy-retrieve-reminders migration; undefined -> on.
+    radon_deployment_reminder_enabled:
+      data?.radon_deployment_reminder_enabled !== false,
+    radon_retrieval_reminder_enabled:
+      data?.radon_retrieval_reminder_enabled !== false,
   };
 }
 
@@ -396,27 +443,32 @@ function inReminderWindow(
 function reminderBody(row: InspectionRow, kind: ReminderKind) {
   const address = getAddress(row);
   const client = getClient(row);
+  const kindLabel = getInspectionNoun(row).toLowerCase();
 
   if (kind === "24h") {
-    return `Reminder: inspection tomorrow at ${address}${client ? ` for ${client}` : ""}.`;
+    return `Reminder: ${kindLabel} tomorrow at ${address}${client ? ` for ${client}` : ""}.`;
   }
 
-  if (kind === "2h") return `Reminder: inspection in about 2 hours at ${address}${client ? ` for ${client}` : ""}.`;
+  if (kind === "2h") return `Reminder: ${kindLabel} in about 2 hours at ${address}${client ? ` for ${client}` : ""}.`;
 
-  return `Reminder: inspection in about 30 minutes at ${address}${client ? ` for ${client}` : ""}.`;
+  return `Reminder: ${kindLabel} in about 30 minutes at ${address}${client ? ` for ${client}` : ""}.`;
 }
 
-function reminderTitle(kind: ReminderKind) {
-  return kind === "24h" ? "Inspection Tomorrow" : kind === "2h" ? "Inspection Soon" : "Inspection in 30 Minutes";
+function reminderTitle(row: InspectionRow, kind: ReminderKind) {
+  const noun = getInspectionNoun(row);
+
+  return kind === "24h" ? `${noun} Tomorrow` : kind === "2h" ? `${noun} Soon` : `${noun} in 30 Minutes`;
 }
 
 function getTargetUrl(row: InspectionRow) {
   const id = row.id;
 
-  return id ? `/reports/${id}` : "/schedule";
+  if (!id) return "/schedule";
+
+  return isEnvironmentalOnly(row) ? `/environmental-report/${id}` : `/reports/${id}`;
 }
 
-async function alreadySent(admin: any, inspectionId: string, kind: ReminderKind) {
+async function alreadySent(admin: any, inspectionId: string, kind: string) {
   const { data, error } = await admin
     .from("schedule_reminder_logs")
     .select("id")
@@ -469,20 +521,16 @@ function tokenMatchesInspection(row: any, ids: Set<string>, emails: Set<string>)
   );
 }
 
-async function sendReminderForInspection(
+// Sends one push payload to every web + native device belonging to the
+// inspection's owner. Shared by the scheduled inspection reminders and the
+// radon deployment/retrieval reminders so both deliver the same way.
+async function deliverToInspection(
   admin: any,
   row: InspectionRow,
-  kind: ReminderKind
+  payload: PushPayload
 ) {
   const ids = new Set(getInspectionOwnerIds(row));
   const emails = new Set(getInspectionEmails(row));
-
-  const payload: PushPayload = {
-    title: reminderTitle(kind),
-    body: reminderBody(row, kind),
-    url: getTargetUrl(row),
-    eventType: `schedule_reminder_${kind}`,
-  };
 
   const { data: webRows } = await admin
     .from("app_push_subscriptions")
@@ -543,16 +591,208 @@ async function sendReminderForInspection(
     }
   }
 
-  await markSent(admin, row, kind, sent, failed);
-
   return {
-    inspectionId: row.id,
-    kind,
     sent,
     failed,
     webTargets: webTargets.length,
     nativeTargets: nativeTargets.length,
   };
+}
+
+async function sendReminderForInspection(
+  admin: any,
+  row: InspectionRow,
+  kind: ReminderKind
+) {
+  const payload: PushPayload = {
+    title: reminderTitle(row, kind),
+    body: reminderBody(row, kind),
+    url: getTargetUrl(row),
+    eventType: `schedule_reminder_${kind}`,
+  };
+
+  const result = await deliverToInspection(admin, row, payload);
+
+  await markSent(admin, row, kind, result.sent, result.failed);
+
+  return {
+    inspectionId: row.id,
+    kind,
+    ...result,
+  };
+}
+
+type RadonReminderKind = "radon_deploy" | "radon_retrieve";
+
+// Fire 30 minutes before the device is due, matching the on-device native
+// reminders in TimeLocationEngine so web-push and native stay consistent.
+const RADON_LEAD_MS = 30 * 60 * 1000;
+
+function radonReminderContent(row: InspectionRow, kind: RadonReminderKind) {
+  const address = getAddress(row);
+  const client = getClient(row);
+  const suffix = client ? ` for ${client}` : "";
+
+  if (kind === "radon_deploy") {
+    return {
+      title: "Radon Deployment in 30 Minutes",
+      body: `Reminder: deploy the radon monitor at ${address}${suffix}.`,
+    };
+  }
+
+  return {
+    title: "Radon Retrieval in 30 Minutes",
+    body: `Reminder: pick up the radon monitor at ${address}${suffix}.`,
+  };
+}
+
+async function sendRadonReminder(
+  admin: any,
+  inspection: InspectionRow,
+  test: Record<string, any>,
+  kind: RadonReminderKind,
+  dueAt: Date
+) {
+  const content = radonReminderContent(inspection, kind);
+
+  const payload: PushPayload = {
+    title: content.title,
+    body: content.body,
+    url: inspection.id
+      ? `/environmental-report/${inspection.id}`
+      : "/radon",
+    eventType: kind,
+  };
+
+  const result = await deliverToInspection(admin, inspection, payload);
+
+  await admin.from("schedule_reminder_logs").insert({
+    inspection_id: String(inspection.id),
+    reminder_type: kind,
+    scheduled_for: dueAt.toISOString(),
+    sent_at: new Date().toISOString(),
+    sent_count: result.sent,
+    failed_count: result.failed,
+    metadata: {
+      address: getAddress(inspection),
+      client: getClient(inspection),
+      radon_test_id: test.id ?? null,
+      device_name: test.device_name || null,
+    },
+  });
+
+  return {
+    inspectionId: inspection.id,
+    kind,
+    ...result,
+  };
+}
+
+async function processRadonReminders(admin: any, now: Date) {
+  const results: any[] = [];
+
+  // Widen the fetch window generously; precise "is it due right now" gating
+  // happens per-test below via inReminderWindow against (due - 30m).
+  const rangeStart = new Date(now.getTime() - 3 * 60 * 60 * 1000).toISOString();
+
+  const { data: tests, error } = await admin
+    .from("radon_tests")
+    .select("*")
+    .or(`start_time.gte.${rangeStart},end_time.gte.${rangeStart}`)
+    .limit(500);
+
+  if (error || !tests || tests.length === 0) {
+    return results;
+  }
+
+  const inspectionIds = Array.from(
+    new Set(
+      tests
+        .map((test: any) => (test.inspection_id ? String(test.inspection_id) : ""))
+        .filter(Boolean)
+    )
+  );
+
+  if (inspectionIds.length === 0) {
+    return results;
+  }
+
+  const { data: inspectionRows } = await admin
+    .from("inspections")
+    .select("*")
+    .in("id", inspectionIds);
+
+  const inspectionMap = new Map<string, InspectionRow>(
+    (inspectionRows || []).map((row: any) => [String(row.id), row])
+  );
+
+  for (const test of tests) {
+    const inspection = inspectionMap.get(String(test.inspection_id));
+
+    if (!inspection || isCancelledOrComplete(inspection)) {
+      continue;
+    }
+
+    const settings = await getReminderSettingsForInspection(admin, inspection);
+
+    if (!settings.enabled) {
+      continue;
+    }
+
+    const stages: Array<{
+      kind: RadonReminderKind;
+      enabled: boolean;
+      value: any;
+    }> = [
+      {
+        kind: "radon_deploy",
+        enabled: settings.radon_deployment_reminder_enabled,
+        value: test.start_time,
+      },
+      {
+        kind: "radon_retrieve",
+        enabled: settings.radon_retrieval_reminder_enabled,
+        value: test.end_time,
+      },
+    ];
+
+    for (const stage of stages) {
+      if (!stage.enabled || !stage.value) {
+        continue;
+      }
+
+      const dueAt = new Date(stage.value);
+
+      if (Number.isNaN(dueAt.getTime())) {
+        continue;
+      }
+
+      const reminderTime = new Date(dueAt.getTime() - RADON_LEAD_MS);
+      const diffMs = reminderTime.getTime() - now.getTime();
+
+      // Same trailing catch window as inReminderWindow: fire once the lead
+      // time has passed, but not for stale events older than ~35 minutes.
+      if (diffMs > 0 || diffMs <= -35 * 60 * 1000) {
+        continue;
+      }
+
+      if (await alreadySent(admin, String(inspection.id), stage.kind)) {
+        continue;
+      }
+
+      const result = await sendRadonReminder(
+        admin,
+        inspection,
+        test,
+        stage.kind,
+        dueAt
+      );
+
+      results.push(result);
+    }
+  }
+
+  return results;
 }
 
 function isAuthorized(req: Request) {
@@ -641,9 +881,13 @@ export async function GET(req: Request) {
       }
     }
 
+    const radonResults = await processRadonReminders(admin, now);
+    results.push(...radonResults);
+
     return NextResponse.json({
       ok: true,
       checked: candidates.length,
+      radonChecked: radonResults.length,
       sent: results.reduce((sum, result) => sum + Number(result.sent || 0), 0),
       failed: results.reduce((sum, result) => sum + Number(result.failed || 0), 0),
       results,
