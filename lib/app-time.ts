@@ -69,11 +69,26 @@ export function writeStoredTimePreferences(
   return preferences;
 }
 
+// The server always formats with the fixed DEFAULT_TIME_ZONE. If the client
+// immediately used the device's stored zone, the first (hydration) render would
+// produce different text than the server sent and React would report a
+// hydration mismatch (#418). So until the client signals it has hydrated
+// (markTimePreferencesReady, called from PageShell after mount), the client
+// also uses the default zone - matching the server - and only then switches to
+// the user's stored zone.
+let clientTimePreferencesReady = false;
+
+export function markTimePreferencesReady() {
+  clientTimePreferencesReady = true;
+}
+
 function resolvePreferences(
   value?: Partial<TimePreferences> | null,
 ): TimePreferences {
   if (value) return normalizeTimePreferences(value);
-  if (typeof window !== "undefined") return readStoredTimePreferences();
+  if (typeof window !== "undefined" && clientTimePreferencesReady) {
+    return readStoredTimePreferences();
+  }
   return normalizeTimePreferences();
 }
 
