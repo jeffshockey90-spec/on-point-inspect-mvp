@@ -6,6 +6,7 @@ import { createClient } from "../../utils/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import DeleteAccountSection from "./DeleteAccountSection";
 import SettingsSectionTabs from "../../components/SettingsSectionTabs";
+import AppVersionTag from "../../components/AppVersionTag";
 import TeamManagement from "../../components/TeamManagement";
 
 const SETTINGS_TABS = [
@@ -1123,6 +1124,8 @@ export default async function SettingsPage({
         </div>
 
         </SettingsSectionTabs>
+
+        <AppVersionTag />
       </div>
     </main>
   );
