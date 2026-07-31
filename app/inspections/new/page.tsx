@@ -7,6 +7,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "../../../utils/supabase/client";
 import { getCompanyId } from "../../../lib/getCompanyId";
 import { calculateHomeInspectionPrice } from "../../../lib/propertyPricing";
+import {
+  DEFAULT_PRICING_CONFIG,
+  calculateSqftFormulaPrice,
+  getService,
+  type InspectorPricingConfig,
+} from "../../../lib/inspectorPricing";
 import { useAddressAutocomplete } from "../../../hooks/useAddressAutocomplete";
 import NewInspectionAgreementPicker from "../../../components/NewInspectionAgreementPicker";
 
@@ -204,6 +210,7 @@ function calculateFullInspectionPrice({
   moldSurfaceSamples,
   travelFee,
   discount,
+  config,
 }: {
   squareFeet: string | number;
   serviceMode: ServiceMode;
@@ -211,13 +218,32 @@ function calculateFullInspectionPrice({
   moldSurfaceSamples: string | number;
   travelFee: string | number;
   discount: string | number;
+  config: InspectorPricingConfig;
 }) {
   const includesHome = hasHomeInspection(serviceMode);
   const includesRadon = hasRadon(serviceMode);
   const includesMold = hasMold(serviceMode);
 
-  const base = includesHome ? calculateHomeInspectionPrice(squareFeet) : 0;
-  const radonFee = includesRadon ? (includesHome ? 175 : 225) : 0;
+  // Price from the inspector's saved pricing config (same source as the Quote
+  // calculator) instead of hardcoded rates, so the saved inspection matches
+  // what was quoted (audit finding H6). Falls back to default rates per service
+  // when the inspector hasn't customized one.
+  const homeService = getService(config, "home");
+  const radonService = getService(config, "radon");
+  const moldService = getService(config, "mold");
+
+  const base =
+    includesHome && homeService
+      ? calculateSqftFormulaPrice(homeService, getNumber(squareFeet))
+      : includesHome
+        ? calculateHomeInspectionPrice(squareFeet)
+        : 0;
+
+  const radonFee = includesRadon
+    ? includesHome && radonService?.pairedPrice !== undefined
+      ? Number(radonService.pairedPrice)
+      : Number(radonService?.flatPrice ?? (includesHome ? 175 : 225))
+    : 0;
 
   const airSamples = includesMold
     ? Math.max(0, Math.floor(getNumber(moldAirSamples)))
@@ -227,9 +253,14 @@ function calculateFullInspectionPrice({
     : 0;
   const totalMoldSamples = airSamples + surfaceSamples;
 
-  const moldSetupFee = includesMold ? (includesHome ? 175 : 225) : 0;
-  const moldAirFee = airSamples * 75;
-  const moldSurfaceFee = surfaceSamples * 75;
+  const moldSetupFee = includesMold
+    ? includesHome && moldService?.pairedBaseFee !== undefined
+      ? Number(moldService.pairedBaseFee)
+      : Number(moldService?.baseFee ?? (includesHome ? 175 : 225))
+    : 0;
+  const moldPerSample = Number(moldService?.perUnitFee ?? 75);
+  const moldAirFee = airSamples * moldPerSample;
+  const moldSurfaceFee = surfaceSamples * moldPerSample;
   const moldFee = moldSetupFee + moldAirFee + moldSurfaceFee;
 
   const safeTravelFee = Math.max(0, getNumber(travelFee));
@@ -376,6 +407,18 @@ function NewInspectionPageContent() {
   const [saving, setSaving] = useState(false);
   const [showBillingPopup, setShowBillingPopup] = useState(false);
   const [billingMessage, setBillingMessage] = useState("");
+  const [pricingConfig, setPricingConfig] = useState<InspectorPricingConfig>(
+    DEFAULT_PRICING_CONFIG,
+  );
+
+  useEffect(() => {
+    fetch("/api/pricing", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.config) setPricingConfig(data.config);
+      })
+      .catch(() => {});
+  }, []);
 
   const quote = useMemo(
     () =>
@@ -386,8 +429,17 @@ function NewInspectionPageContent() {
         moldSurfaceSamples,
         travelFee,
         discount,
+        config: pricingConfig,
       }),
-    [squareFeet, serviceMode, moldAirSamples, moldSurfaceSamples, travelFee, discount]
+    [
+      squareFeet,
+      serviceMode,
+      moldAirSamples,
+      moldSurfaceSamples,
+      travelFee,
+      discount,
+      pricingConfig,
+    ]
   );
 
   const filteredRealtors = useMemo(() => {

@@ -628,6 +628,65 @@ export async function POST(request: Request) {
       companyId = company?.id || null;
     }
 
+    // Enforce the company's availability on the server, not just in the form's
+    // date/time dropdowns (audit M2): reject a request on a disabled booking
+    // page, a blocked date, or a day the inspector doesn't work.
+    if (companyId) {
+      const { data: availOwner } = await admin
+        .from("company_users")
+        .select("user_id")
+        .eq("company_id", companyId)
+        .eq("role", "owner")
+        .maybeSingle();
+
+      if (availOwner?.user_id) {
+        const { data: availability } = await admin
+          .from("inspector_availability")
+          .select("booking_enabled, available_days, blocked_dates")
+          .eq("user_id", availOwner.user_id)
+          .maybeSingle();
+
+        if (availability) {
+          if (availability.booking_enabled === false) {
+            return NextResponse.json(
+              { error: "This inspector isn't accepting online booking requests right now." },
+              { status: 400 }
+            );
+          }
+
+          const blocked = new Set(
+            (availability.blocked_dates || []).map((d: any) => String(d))
+          );
+          if (blocked.has(preferredDate)) {
+            return NextResponse.json(
+              { error: "That date isn't available. Please choose another day." },
+              { status: 400 }
+            );
+          }
+
+          const allowedDays =
+            Array.isArray(availability.available_days) &&
+            availability.available_days.length
+              ? new Set(availability.available_days.map((d: any) => String(d)))
+              : null;
+
+          const dm = preferredDate.match(/^(\d{4})-(\d{2})-(\d{2})/);
+          const weekdayCode = dm
+            ? ["SU", "MO", "TU", "WE", "TH", "FR", "SA"][
+                new Date(Number(dm[1]), Number(dm[2]) - 1, Number(dm[3]), 12).getDay()
+              ]
+            : null;
+
+          if (allowedDays && weekdayCode && !allowedDays.has(weekdayCode)) {
+            return NextResponse.json(
+              { error: "That day isn't available for booking. Please choose another day." },
+              { status: 400 }
+            );
+          }
+        }
+      }
+    }
+
     const { data, error } = await admin
       .from("booking_requests")
       .insert({

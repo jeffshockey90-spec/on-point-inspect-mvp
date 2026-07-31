@@ -2,8 +2,7 @@
 import { formatAppValue } from "../../../lib/app-time";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { cookies } from "next/headers";
-import { createServerClient } from "@supabase/ssr";
+import { createClient as createServiceClient } from "@supabase/supabase-js";
 import SharePublicSampleReportButton from "../../../components/SharePublicSampleReportButton";
 import PublicProfileAnalyticsTracker from "../../../components/PublicProfileAnalyticsTracker";
 import PublicProfileGallery from "../../../components/PublicProfileGallery";
@@ -18,19 +17,15 @@ type PageProps = {
 };
 
 async function createSupabaseServerClient() {
-  const cookieStore = await cookies();
-
-  return createServerClient(
+  // Public directory pages must read the public profile with the service-role
+  // client, not the anon/RLS client: RLS only exposes a company row to its own
+  // members, so a logged-out visitor gets zero rows and every public inspector
+  // page 404s (audit finding C5). Only public_profile_enabled companies are
+  // returned below, so this exposes nothing that isn't already public.
+  return createServiceClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll() {},
-      },
-    },
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { persistSession: false, autoRefreshToken: false } },
   );
 }
 

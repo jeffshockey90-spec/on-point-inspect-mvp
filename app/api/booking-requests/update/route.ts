@@ -146,7 +146,11 @@ function getContactValues(request: AnyRow) {
   };
 }
 
-function getInspectionPayload(request: AnyRow, userId: string) {
+function getInspectionPayload(
+  request: AnyRow,
+  userId: string,
+  companyId: string | number | null
+) {
   const serviceType = requestedServices(request);
   const {
     clientName,
@@ -160,7 +164,23 @@ function getInspectionPayload(request: AnyRow, userId: string) {
 
   const address = cleanText(request.property_address);
   const squareFeet = cleanText(request.square_feet);
-  const calculatedPrice = calculatePriceFromSqft(squareFeet);
+
+  // Price the requested add-ons, not just the home base, so a radon/mold
+  // booking isn't saved at $0 and the mold/radon flags are set (audit M1).
+  // Sample counts aren't known at booking time; the inspector adjusts later.
+  const servicesText = serviceType.toLowerCase();
+  const includesRadon = servicesText.includes("radon");
+  const includesMold = servicesText.includes("mold");
+  const includesHome =
+    getNumber(squareFeet) > 0 ||
+    servicesText.includes("home") ||
+    servicesText.includes("buyer") ||
+    servicesText.includes("full");
+
+  const homeFee = includesHome ? calculatePriceFromSqft(squareFeet) : 0;
+  const radonFee = includesRadon ? (includesHome ? 175 : 225) : 0;
+  const moldFee = includesMold ? (includesHome ? 175 : 225) : 0;
+  const calculatedPrice = homeFee + radonFee + moldFee;
   const propertyPhotoUrl =
     getPropertyPhotoUrl(request.notes) ||
     cleanText(request.property_image_url) ||
@@ -174,6 +194,12 @@ function getInspectionPayload(request: AnyRow, userId: string) {
     user_id: userId,
     owner_id: userId,
     created_by: userId,
+    // Without this the inspection is invisible in Dispatch and to co-owners,
+    // which filter by company_id (audit H7).
+    company_id: companyId || null,
+
+    radon: includesRadon,
+    mold: includesMold,
 
     property_address: address,
     address,
@@ -750,6 +776,43 @@ export async function POST(request: Request) {
       );
     }
 
+    // Company scoping (audit H8): the admin read above bypasses the
+    // booking_requests RLS, so only act on a request that belongs to the
+    // caller's company or is still unclaimed (the shared pool). Otherwise an
+    // inspector could confirm or decline another company's lead by guessing id.
+    const { data: callerCompanies } = await admin
+      .from("company_users")
+      .select("company_id")
+      .eq("user_id", user.id);
+
+    const callerCompanyIds = new Set(
+      (callerCompanies || [])
+        .map((row: any) => (row.company_id ? String(row.company_id) : ""))
+        .filter(Boolean)
+    );
+
+    const reqCompanyId = bookingRequest.company_id
+      ? String(bookingRequest.company_id)
+      : "";
+    const reqInspectorId = bookingRequest.inspector_id
+      ? String(bookingRequest.inspector_id)
+      : "";
+
+    const canActOnRequest =
+      (!reqCompanyId && !reqInspectorId) ||
+      (reqCompanyId !== "" && callerCompanyIds.has(reqCompanyId)) ||
+      reqInspectorId === String(user.id);
+
+    if (!canActOnRequest) {
+      return NextResponse.json(
+        { error: "Booking request not found." },
+        { status: 404 }
+      );
+    }
+
+    const inspectionCompanyId =
+      reqCompanyId || callerCompanies?.[0]?.company_id || null;
+
     if (action === "decline") {
       const { data, error } = await admin
         .from("booking_requests")
@@ -776,7 +839,11 @@ export async function POST(request: Request) {
     let removedColumns: string[] = [];
 
     if (!inspectionId) {
-      const payload = getInspectionPayload(bookingRequest, user.id);
+      const payload = getInspectionPayload(
+        bookingRequest,
+        user.id,
+        inspectionCompanyId
+      );
 
       try {
         const result = await insertInspectionWithSchemaFallback(

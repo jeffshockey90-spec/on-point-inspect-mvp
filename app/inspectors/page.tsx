@@ -1,21 +1,15 @@
 import Link from "next/link";
-import { cookies } from "next/headers";
-import { createServerClient } from "@supabase/ssr";
+import { createClient as createServiceClient } from "@supabase/supabase-js";
 
 async function createClient() {
-  const cookieStore = await cookies();
-
-  return createServerClient(
+  // Public inspector directory: read with the service-role client so logged-out
+  // visitors see opted-in companies. The anon/RLS client returns zero rows to
+  // an anonymous visitor, so the directory always showed "No inspectors found"
+  // (audit finding C5). Only public_profile_enabled companies are listed.
+  return createServiceClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll() {},
-      },
-    },
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { persistSession: false, autoRefreshToken: false } },
   );
 }
 
