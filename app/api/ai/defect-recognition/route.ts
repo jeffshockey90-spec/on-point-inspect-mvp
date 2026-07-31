@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAIModel, getAIVersion } from "../../../../lib/openai";
 import { inspectionBrain } from "../../../../lib/ai";
+import { getSessionUser, unauthorized } from "../../../../lib/apiAuth";
 
 export const runtime = "nodejs";
 
@@ -182,6 +183,9 @@ function defaultGuidance(confidence: number, photoQuality: string, flags: string
 
 export async function POST(req: Request) {
   try {
+    const user = await getSessionUser();
+    if (!user) return unauthorized();
+
     if (!process.env.OPENAI_API_KEY) {
       return NextResponse.json(
         { error: "Missing OPENAI_API_KEY" },

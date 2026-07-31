@@ -1,8 +1,12 @@
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
+import { getSessionUser, unauthorized } from "../../../../lib/apiAuth";
 
 export async function POST(request: Request) {
   try {
+    const user = await getSessionUser();
+    if (!user) return unauthorized();
+
     if (!process.env.OPENAI_API_KEY) {
       return NextResponse.json(
         { error: "OPENAI_API_KEY is missing" },

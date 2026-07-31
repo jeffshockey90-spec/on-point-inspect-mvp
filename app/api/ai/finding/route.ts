@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
 import { getAIModel } from "../../../../lib/openai";
+import { getSessionUser, unauthorized } from "../../../../lib/apiAuth";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -8,6 +9,9 @@ const openai = new OpenAI({
 
 export async function POST(request: Request) {
   try {
+    const user = await getSessionUser();
+    if (!user) return unauthorized();
+
     const { imageUrl, section, note } = await request.json();
 
     if (!imageUrl && !note) {

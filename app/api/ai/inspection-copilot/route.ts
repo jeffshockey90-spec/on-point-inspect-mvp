@@ -1,9 +1,19 @@
 import { NextResponse } from "next/server";
 import { createClient } from "../../../../utils/supabase/server";
 import { houseMemory, inspectionCopilot } from "../../../../lib/ai";
+import {
+  getSessionUser,
+  unauthorized,
+  notFound,
+  getAdminClient,
+  authorizeInspection,
+} from "../../../../lib/apiAuth";
 
 export async function POST(req: Request) {
   try {
+    const user = await getSessionUser();
+    if (!user) return unauthorized();
+
     const body = await req.json().catch(() => ({}));
     const inspectionId = body.inspectionId || body.inspection_id || body.id;
     const question = String(body.question || "").trim();
@@ -14,6 +24,10 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
+
+    const admin = getAdminClient();
+    const authorizedInspection = await authorizeInspection(admin, user.id, inspectionId);
+    if (!authorizedInspection) return notFound("Inspection not found.");
 
     const supabase = await createClient();
 

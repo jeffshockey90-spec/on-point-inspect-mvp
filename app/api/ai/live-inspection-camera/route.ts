@@ -6,6 +6,7 @@ import {
   routeFindingSection,
   normalizeSeverity,
 } from "../../../../lib/routeFindingSection";
+import { getSessionUser, unauthorized } from "../../../../lib/apiAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -443,6 +444,9 @@ function sectionFallbackReminders(section: string, isLiveWatch: boolean) {
 
 export async function POST(req: Request) {
   try {
+    const user = await getSessionUser();
+    if (!user) return unauthorized();
+
     if (!process.env.OPENAI_API_KEY) {
       return NextResponse.json(
         { error: "Missing OPENAI_API_KEY." },

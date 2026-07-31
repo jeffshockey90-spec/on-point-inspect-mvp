@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
 import { createClient } from "../../../../utils/supabase/server";
 import { aiPublishGuard, inspectionCompleteness } from "../../../../lib/ai";
+import {
+  getSessionUser,
+  unauthorized,
+  notFound,
+  getAdminClient,
+  authorizeInspection,
+} from "../../../../lib/apiAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -46,6 +53,9 @@ function enrichIssue(item: any) {
 
 export async function POST(req: Request) {
   try {
+    const user = await getSessionUser();
+    if (!user) return unauthorized();
+
     const body = await req.json().catch(() => ({}));
     const inspectionId = body.inspectionId || body.inspection_id || body.id;
 
@@ -55,6 +65,10 @@ export async function POST(req: Request) {
         { status: 400 },
       );
     }
+
+    const admin = getAdminClient();
+    const authorizedInspection = await authorizeInspection(admin, user.id, inspectionId);
+    if (!authorizedInspection) return notFound("Inspection not found.");
 
     const supabase = await createClient();
 

@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
 import { classifyAIServiceError } from "../../../../lib/aiServiceError";
+import { getSessionUser, unauthorized } from "../../../../lib/apiAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -55,6 +56,9 @@ function cleanDistance(
 
 export async function POST(request: Request) {
   try {
+    const user = await getSessionUser();
+    if (!user) return unauthorized();
+
     if (!process.env.OPENAI_API_KEY) {
       return NextResponse.json(
         {

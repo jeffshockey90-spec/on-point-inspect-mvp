@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import { learningEngine } from "../../../../lib/ai/LearningEngine";
+import { getSessionUser, unauthorized } from "../../../../lib/apiAuth";
 
 export async function GET() {
   try {
+    const user = await getSessionUser();
+    if (!user) return unauthorized();
+
     const patterns = await learningEngine.getPatterns();
     return NextResponse.json({ success: true, patterns });
   } catch (error: any) {
@@ -15,6 +19,9 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
+    const user = await getSessionUser();
+    if (!user) return unauthorized();
+
     const body = await req.json();
     const {
       inspectionId,

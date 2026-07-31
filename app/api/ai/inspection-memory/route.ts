@@ -1,5 +1,11 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import {
+  getSessionUser,
+  unauthorized,
+  notFound,
+  authorizeInspection,
+} from "../../../../lib/apiAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,6 +36,9 @@ function normalizeConfidence(value: unknown) {
 }
 
 export async function GET(req: Request) {
+  const user = await getSessionUser();
+  if (!user) return unauthorized();
+
   const url = new URL(req.url);
   const inspectionId = cleanText(url.searchParams.get("inspectionId"));
   const section = cleanText(url.searchParams.get("section"));
@@ -43,6 +52,9 @@ export async function GET(req: Request) {
   if (!supabase) {
     return NextResponse.json({ events: [], persisted: false, reason: "Supabase admin credentials are unavailable." });
   }
+
+  const inspection = await authorizeInspection(supabase, user.id, inspectionId);
+  if (!inspection) return notFound("Inspection not found.");
 
   let query = supabase
     .from("inspection_ai_memory_events")
@@ -68,6 +80,9 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const user = await getSessionUser();
+  if (!user) return unauthorized();
+
   const body = await req.json().catch(() => ({}));
   const inspectionId = cleanText(body.inspectionId || body.inspection_id);
   const eventType = cleanText(body.eventType || body.event_type);
@@ -83,6 +98,9 @@ export async function POST(req: Request) {
   if (!supabase) {
     return NextResponse.json({ saved: false, persisted: false });
   }
+
+  const inspection = await authorizeInspection(supabase, user.id, inspectionId);
+  if (!inspection) return notFound("Inspection not found.");
 
   const row = {
     inspection_id: inspectionId,

@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { inspectionCompleteness } from "../../../../lib/ai";
+import {
+  getSessionUser,
+  unauthorized,
+  notFound,
+  authorizeInspection,
+} from "../../../../lib/apiAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -52,6 +58,9 @@ function makeMemoryEvidence(rows: any[]) {
 
 export async function POST(req: Request) {
   try {
+    const user = await getSessionUser();
+    if (!user) return unauthorized();
+
     const body = await req.json().catch(() => ({}));
     const inspectionId = cleanText(body.inspectionId || body.inspection_id);
     const section = cleanText(body.section);
@@ -70,6 +79,9 @@ export async function POST(req: Request) {
         { status: 500 },
       );
     }
+
+    const inspection = await authorizeInspection(supabase, user.id, inspectionId);
+    if (!inspection) return notFound("Inspection not found.");
 
     const [inspectionResult, findingsResult, equipmentResult, limitationsResult, checklistResult, referenceResult, memoryResult] =
       await Promise.all([

@@ -4,6 +4,7 @@ import {
   routeFindingSection,
   normalizeSeverity,
 } from "../../../../lib/routeFindingSection";
+import { getSessionUser, unauthorized } from "../../../../lib/apiAuth";
 
 export const runtime = "nodejs";
 
@@ -47,6 +48,9 @@ function cleanConfidence(value: unknown): number {
 
 export async function POST(req: Request) {
   try {
+    const user = await getSessionUser();
+    if (!user) return unauthorized();
+
     const { imageUrl, caption, currentSection } =
       await req.json();
 

@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@supabase/supabase-js";
+import {
+  getSessionUser,
+  unauthorized,
+  notFound,
+  authorizeInspection,
+} from "../../../../lib/apiAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -75,6 +81,9 @@ export async function POST(req: Request) {
   let uploadedFilePath = "";
 
   try {
+    const user = await getSessionUser();
+    if (!user) return unauthorized();
+
     const body = await req.json();
 
     const inspectionId = cleanText(body.inspectionId);
@@ -89,6 +98,9 @@ export async function POST(req: Request) {
     if (!inspectionId) {
       return NextResponse.json({ error: "Missing inspectionId." }, { status: 400 });
     }
+
+    const inspection = await authorizeInspection(supabase, user.id, inspectionId);
+    if (!inspection) return notFound("Inspection not found.");
 
     if (!observation && !title) {
       return NextResponse.json(

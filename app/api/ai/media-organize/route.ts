@@ -2,6 +2,7 @@ import OpenAI from "openai";
 import { NextResponse } from "next/server";
 import { classifyAIServiceError } from "../../../../lib/aiServiceError";
 import { getAIModel } from "../../../../lib/openai";
+import { getSessionUser, unauthorized } from "../../../../lib/apiAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -50,6 +51,9 @@ function safeJsonParse(value: string) {
 
 export async function POST(request: Request) {
   try {
+    const user = await getSessionUser();
+    if (!user) return unauthorized();
+
     const body = await request.json();
     const images = Array.isArray(body.images) ? body.images.slice(0, 12) : [];
     const currentSection = VALID_SECTIONS.includes(body.currentSection)
