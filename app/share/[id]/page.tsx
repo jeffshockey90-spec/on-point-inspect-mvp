@@ -9,6 +9,8 @@ import ReportDownloadLink from "../../../components/ReportDownloadLink";
 import ShareReportTabs from "../../../components/ShareReportTabs";
 import { normalizeCompanyBranding } from "../../../lib/companyBranding";
 import { sendPushNotification } from "../../../lib/push";
+import { getReportDeliveryState } from "../../../lib/reportDelivery";
+import { getSessionUser, authorizeInspection } from "../../../lib/apiAuth";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -1047,6 +1049,55 @@ export default async function PublicSharePage({
     return (
       <main className="min-h-screen bg-[#020617] p-10 text-white">
         Report not found.
+      </main>
+    );
+  }
+
+  // --- Delivery gate (audit findings C3, H10) -----------------------------
+  // A real client report is only viewable once it is deliverable: published
+  // AND (payment + required agreements complete, OR an owner/inspector set the
+  // "Deliver anyway" override). Public demo reports and inspector sample
+  // reports stay open, and the owning inspector/owner can always preview an
+  // undelivered report.
+  let allowShareView = isDemo || (inspection as any).is_demo === true;
+
+  if (!allowShareView) {
+    const { data: sampleRow } = await supabase
+      .from("public_sample_reports")
+      .select("inspection_id")
+      .eq("inspection_id", inspectionId)
+      .maybeSingle();
+    if (sampleRow) allowShareView = true;
+  }
+
+  if (!allowShareView) {
+    const delivery = await getReportDeliveryState(supabase, inspection as any);
+
+    if (delivery.deliverable) {
+      allowShareView = true;
+    } else {
+      const viewer = await getSessionUser();
+      if (viewer) {
+        const owned = await authorizeInspection(supabase, viewer.id, inspectionId);
+        if (owned) allowShareView = true;
+      }
+    }
+  }
+
+  if (!allowShareView) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#020617] p-6 text-white">
+        <div className="max-w-md rounded-2xl border border-slate-700 bg-slate-900/60 p-8 text-center">
+          <h1 className="text-2xl font-black text-teal-300">
+            Report not available yet
+          </h1>
+          <p className="mt-3 leading-7 text-slate-300">
+            This inspection report hasn&apos;t been released for viewing yet.
+            Once your inspector completes delivery, this link will show your
+            full report. Please contact your inspector if you believe this is a
+            mistake.
+          </p>
+        </div>
       </main>
     );
   }

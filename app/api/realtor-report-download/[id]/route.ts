@@ -1,6 +1,8 @@
 
 import { formatAppValue } from "../../../../lib/app-time";
 import { resolveActiveSections, filterSectionsForServiceMode } from "../../../../lib/reportSections";
+import { getReportDeliveryState } from "../../../../lib/reportDelivery";
+import { authorizeInspection } from "../../../../lib/apiAuth";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
@@ -1593,6 +1595,35 @@ export async function GET(req: Request, { params }: RouteProps) {
 
     if (!allowed) {
       return NextResponse.json({ error: "You do not have access to this report." }, { status: 403 });
+    }
+
+    // Delivery gate (audit C3): the owning inspector/owner may always download,
+    // but everyone else (public share token, realtor, portal client) only gets
+    // the PDF once the report is deliverable - published + payment/agreement
+    // complete, or an owner "Deliver anyway" override. Public demo and sample
+    // reports stay open.
+    let isPrivilegedViewer = false;
+    if (user?.id) {
+      const owned = await authorizeInspection(admin, user.id, inspectionId);
+      if (owned) isPrivilegedViewer = true;
+    }
+
+    if (!isPrivilegedViewer && inspection.is_demo !== true) {
+      const { data: sampleRow } = await admin
+        .from("public_sample_reports")
+        .select("inspection_id")
+        .eq("inspection_id", inspectionId)
+        .maybeSingle();
+
+      if (!sampleRow) {
+        const delivery = await getReportDeliveryState(admin, inspection);
+        if (!delivery.deliverable) {
+          return NextResponse.json(
+            { error: "This report isn't available for download yet." },
+            { status: 403 }
+          );
+        }
+      }
     }
 
     const secureOnlineReportUrl = onlineReportUrlForInspection(inspection);

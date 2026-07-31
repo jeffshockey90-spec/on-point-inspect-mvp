@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
+import { isPaymentComplete } from "../lib/reportDelivery";
 
 type InspectionPaymentStatus = {
   invoice_status?: string | null;
@@ -12,6 +13,7 @@ type InspectionPaymentStatus = {
   agreement_waived?: boolean | null;
   agreement_waived_at?: string | null;
   agreement_waiver_reason?: string | null;
+  delivery_override?: boolean | null;
 };
 
 function getNumber(value: any) {
@@ -34,27 +36,6 @@ function money(value: number) {
   }).format(value || 0);
 }
 
-function isPaymentComplete(payment: InspectionPaymentStatus | null) {
-  if (!payment) return false;
-
-  const status = String(
-    payment.payment_status || payment.invoice_status || "Unpaid",
-  ).toLowerCase();
-
-  const invoiceAmount = getNumber(payment.invoice_amount);
-  const amountPaid = getNumber(payment.amount_paid);
-
-  const storedBalance =
-    payment.balance_due !== null && payment.balance_due !== undefined
-      ? getNumber(payment.balance_due)
-      : Math.max(0, invoiceAmount - amountPaid);
-
-  if (status === "paid" || status === "waived") return true;
-  if (invoiceAmount > 0 && amountPaid >= invoiceAmount) return true;
-
-  return storedBalance <= 0 && invoiceAmount > 0;
-}
-
 export default function ReportDeliveryGuard({
   inspectionId,
 }: {
@@ -64,6 +45,41 @@ export default function ReportDeliveryGuard({
   const [payment, setPayment] =
     useState<InspectionPaymentStatus | null>(null);
   const [loading, setLoading] = useState(true);
+  const [override, setOverrideState] = useState(false);
+  const [savingOverride, setSavingOverride] = useState(false);
+  const [overrideMessage, setOverrideMessage] = useState("");
+
+  async function toggleOverride(next: boolean) {
+    setSavingOverride(true);
+    setOverrideMessage("");
+
+    try {
+      const res = await fetch("/api/reports/delivery-override", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inspectionId, enabled: next }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.error || "Could not update delivery override.");
+      }
+
+      setOverrideState(data.delivery_override === true);
+      setOverrideMessage(
+        next
+          ? "Report released — the client and realtor can now view it."
+          : "Override turned off — the report is locked again.",
+      );
+    } catch (error: any) {
+      setOverrideMessage(
+        error?.message || "Could not update delivery override.",
+      );
+    } finally {
+      setSavingOverride(false);
+    }
+  }
 
   useEffect(() => {
     async function loadGuardData() {
@@ -88,13 +104,14 @@ export default function ReportDeliveryGuard({
         const { data, error } = await supabase
           .from("inspections")
           .select(
-            "invoice_status, payment_status, invoice_amount, amount_paid, balance_due, agreement_waived, agreement_waived_at, agreement_waiver_reason",
+            "invoice_status, payment_status, invoice_amount, amount_paid, balance_due, agreement_waived, agreement_waived_at, agreement_waiver_reason, delivery_override",
           )
           .eq("id", inspectionId)
           .single();
 
         if (error) throw error;
         setPayment(data || null);
+        setOverrideState((data as any)?.delivery_override === true);
       } catch (error) {
         console.error("Failed to load payment guard data:", error);
         setPayment(null);
@@ -193,6 +210,19 @@ export default function ReportDeliveryGuard({
             </p>
           </div>
         )}
+
+        {override && (
+          <button
+            type="button"
+            disabled={savingOverride}
+            onClick={() => toggleOverride(false)}
+            className="mt-4 rounded-xl border border-slate-600 px-4 py-2 text-sm font-black text-slate-300 transition hover:border-slate-400 disabled:opacity-60"
+          >
+            {savingOverride
+              ? "Working…"
+              : "Turn off delivery override (no longer needed)"}
+          </button>
+        )}
       </div>
     );
   }
@@ -273,6 +303,51 @@ export default function ReportDeliveryGuard({
           </p>
         </div>
       )}
+
+      <div className="mt-5 rounded-xl border border-teal-500/40 bg-teal-500/5 p-4">
+        {override ? (
+          <>
+            <h3 className="font-black text-teal-300">Delivered via override</h3>
+            <p className="mt-2 text-sm text-slate-300">
+              You released this report to the client and realtor even though the
+              items above aren&apos;t complete in FLOW (e.g. the agreement or
+              payment was handled in another system). The client&apos;s share
+              link and PDF download work now.
+            </p>
+            <button
+              type="button"
+              disabled={savingOverride}
+              onClick={() => toggleOverride(false)}
+              className="mt-3 rounded-xl border border-slate-600 px-4 py-2 text-sm font-black text-slate-200 transition hover:border-slate-400 disabled:opacity-60"
+            >
+              {savingOverride ? "Working…" : "Turn off override & re-lock"}
+            </button>
+          </>
+        ) : (
+          <>
+            <h3 className="font-black text-teal-300">Need to deliver anyway?</h3>
+            <p className="mt-2 text-sm text-slate-300">
+              If the agreement or payment was handled outside FLOW and you still
+              need the client and realtor to see this report, release it here.
+              The report must be published first.
+            </p>
+            <button
+              type="button"
+              disabled={savingOverride}
+              onClick={() => toggleOverride(true)}
+              className="mt-3 rounded-xl border border-teal-400/60 bg-teal-500 px-4 py-2 text-sm font-black text-slate-950 transition hover:bg-teal-400 disabled:opacity-60"
+            >
+              {savingOverride ? "Releasing…" : "Deliver anyway"}
+            </button>
+          </>
+        )}
+
+        {overrideMessage ? (
+          <p className="mt-3 text-sm font-bold text-teal-200">
+            {overrideMessage}
+          </p>
+        ) : null}
+      </div>
     </div>
   );
 }

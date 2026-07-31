@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
 import { createClient as createSupabaseAdmin } from "@supabase/supabase-js";
 import { getCompanyBrandingById } from "../../../lib/companyBranding";
+import { getReportDeliveryState } from "../../../lib/reportDelivery";
+
+const SHARE_TOKEN_FIELDS = [
+  "public_share_token",
+  "share_token",
+  "report_share_token",
+];
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -167,8 +174,23 @@ export async function GET(req: Request) {
 
     const branding = await getCompanyBrandingById((inspection as any).company_id);
 
+    // Enforce the delivery gate here, not just in the portal UI: the portal can
+    // show its "locked" state from the payment/agreement fields, but it must not
+    // receive the share token (which opens the full report at /share) until the
+    // report is actually deliverable (audit finding C3).
+    const delivery = await getReportDeliveryState(supabase, inspection as any);
+
+    const pickedInspection = pickInspectionFields(inspection);
+
+    if (!delivery.deliverable) {
+      for (const field of SHARE_TOKEN_FIELDS) {
+        delete pickedInspection[field];
+      }
+    }
+
     return NextResponse.json({
-      inspection: pickInspectionFields(inspection),
+      inspection: pickedInspection,
+      deliverable: delivery.deliverable,
       companyBranding: branding,
       checklistRows: checklistResult.data || [],
       moldTest: moldResult.data || null,

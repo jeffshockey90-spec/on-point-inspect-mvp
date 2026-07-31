@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { createClient } from "../../../../utils/supabase/server";
+import { resolveInspectionAccessFilter } from "../../../../lib/inspectionAccess";
 import { aiPublishGuard } from "../../../../lib/ai";
 import { getOrCreateShareToken } from "../../../../lib/shareToken";
 import { getCompanyBrandingById, buildBrandedFromHeader, type CompanyBranding } from "../../../../lib/companyBranding";
@@ -157,10 +158,17 @@ export async function POST(req: Request) {
       );
     }
 
+    // Defense in depth on top of RLS: scope the inspection to what this user
+    // may act on (own inspections, or the whole team for a company owner) so
+    // publishing can't be driven against someone else's inspection even if an
+    // RLS policy is ever misconfigured (audit finding H2).
+    const accessFilter = await resolveInspectionAccessFilter(supabase, user.id);
+
     const { data: guardInspection, error: guardInspectionError } = await supabase
       .from("inspections")
       .select("*")
       .eq("id", inspectionId)
+      .eq(accessFilter.column, accessFilter.value)
       .single();
 
     if (guardInspectionError || !guardInspection) {
