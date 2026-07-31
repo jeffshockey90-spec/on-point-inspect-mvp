@@ -82,13 +82,16 @@ export default function TimeLocationEngine() {
 
   const promptDeparture = useCallback(async (session: NonNullable<PresenceSession>, coords: { latitude: number; longitude: number }) => {
     if (departurePrompted.current || activeTrip?.id) return;
+    // One settings read gates both the departure recording and the mileage offer.
+    const settings = await fetch("/api/settings/schedule-reminders", { cache: "no-store" }).then(r => r.ok ? r.json() : null).catch(() => null);
+    // "Departure detection" off: don't record a departure or prompt at all.
+    if (settings?.departure_detection_enabled === false) return;
     departurePrompted.current = true;
     localStorage.setItem(STATE_KEY, JSON.stringify({ pendingDeparture: true, inspectionId: session.inspection_id, at: new Date().toISOString() }));
     await fetch("/api/inspection-presence", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "depart", latitude: coords.latitude, longitude: coords.longitude, recordedAt: new Date().toISOString() }) }).catch(() => null);
-    // "Start mileage prompt" toggle: departure is recorded above regardless,
-    // but only offer to start mileage tracking when the inspector left it on.
-    const mileageSettings = await fetch("/api/settings/schedule-reminders", { cache: "no-store" }).then(r => r.ok ? r.json() : null).catch(() => null);
-    if (mileageSettings?.mileage_prompt_enabled === false) return;
+    // "Start mileage prompt" off: departure is recorded above, but skip the
+    // offer to start mileage tracking.
+    if (settings?.mileage_prompt_enabled === false) return;
     if (isNative()) {
       try {
         const { LocalNotifications } = await import("@capacitor/local-notifications");
@@ -109,7 +112,11 @@ export default function TimeLocationEngine() {
         fetch("/api/settings/time-preferences", { cache: "no-store" }).then(r => r.ok ? r.json() : ({ timeZone: detectDeviceTimeZone() })),
         fetch("/api/settings/schedule-reminders", { cache: "no-store" }).then(r => r.ok ? r.json() : null),
       ]);
-      if (settings?.arrival_detection_enabled === false || settings?.departure_detection_enabled === false) return;
+      // Only skip presence tracking when BOTH detections are off. Departure
+      // still needs the geofence to be watching, so a single toggle being off
+      // must not disable the other (the departure prompt itself is gated
+      // separately in promptDeparture).
+      if (settings?.arrival_detection_enabled === false && settings?.departure_detection_enabled === false) return;
       const now = Date.now();
       const inspections: Inspection[] = payload?.inspections || [];
       const candidate = inspections.map(i => ({ i, start: inspectionStart(i, prefs.timeZone) })).filter(x => x.start && Number.isFinite(Number(x.i.property_latitude)) && Number.isFinite(Number(x.i.property_longitude)) && x.start!.getTime() >= now - 4 * 3600000 && x.start!.getTime() <= now + 8 * 3600000).sort((a,b) => Math.abs(a.start!.getTime()-now)-Math.abs(b.start!.getTime()-now))[0];
@@ -221,44 +228,19 @@ export default function TimeLocationEngine() {
 
   useEffect(() => {
     if (!isNative()) return;
-    let cancelled = false;
     (async () => {
       try {
+        // The 24h/2h/30m inspection reminders and the radon deploy/retrieve
+        // reminders are delivered by the server push cron
+        // (/api/cron/schedule-reminders) so they fire even when the app is
+        // closed. We only ensure notification permission here (needed for the
+        // departure "Leaving the inspection?" prompt) - scheduling them
+        // locally too would double-notify.
         const { LocalNotifications } = await import("@capacitor/local-notifications");
-        const permission = await LocalNotifications.checkPermissions(); if (permission.display !== "granted") await LocalNotifications.requestPermissions();
-        const [payload, prefs, settings] = await Promise.all([
-          fetch("/api/native/upcoming-inspections", { cache: "no-store" }).then(r => r.ok ? r.json() : null),
-          fetch("/api/settings/time-preferences", { cache: "no-store" }).then(r => r.ok ? r.json() : ({ timeZone: detectDeviceTimeZone() })),
-          fetch("/api/settings/schedule-reminders", { cache: "no-store" }).then(r => r.ok ? r.json() : null),
-        ]);
-        if (cancelled || settings?.enabled === false) return;
-        const notifications: any[] = [];
-        for (const i of (payload?.inspections || []).slice(0, 50) as Inspection[]) {
-          const start = inspectionStart(i, prefs.timeZone); if (!start) continue;
-          const reminders = [{ m: 1440, on: settings?.reminder_24h_enabled !== false, title: "Inspection Tomorrow" }, { m: 120, on: settings?.reminder_2h_enabled !== false, title: "Inspection in 2 Hours" }, { m: 30, on: settings?.reminder_30m_enabled !== false, title: "Inspection in 30 Minutes" }];
-          for (const r of reminders) { const at = new Date(start.getTime() - r.m * 60000); if (!r.on || at.getTime() <= Date.now()) continue; notifications.push({ id: hashId(`inspection-${i.id}-${r.m}`), title: r.title, body: i.property_address || "Upcoming inspection", schedule: { at }, extra: { eventType: `schedule_reminder_${r.m}`, inspectionId: i.id, url: `/reports/${i.id}` } }); }
-        }
-        if (settings?.radon_reminders_enabled !== false) {
-          const radonPayload = await fetch("/api/native/upcoming-radon", { cache: "no-store" }).then(r => r.ok ? r.json() : null).catch(() => null);
-          for (const test of (radonPayload?.tests || [])) {
-            const address = test.inspections?.property_address || "Radon test";
-            const events = [
-              { key: "deploy", value: test.start_time, minutes: 30, title: "Radon Deployment in 30 Minutes", on: settings?.radon_deployment_reminder_enabled !== false },
-              { key: "retrieve", value: test.end_time, minutes: 30, title: "Radon Retrieval in 30 Minutes", on: settings?.radon_retrieval_reminder_enabled !== false },
-            ];
-            for (const event of events) {
-              if (!event.on || !event.value) continue;
-              const instant = new Date(event.value);
-              const at = new Date(instant.getTime() - event.minutes * 60000);
-              if (Number.isNaN(at.getTime()) || at.getTime() <= Date.now()) continue;
-              notifications.push({ id: hashId(`radon-${test.id}-${event.key}`), title: event.title, body: address, schedule: { at }, extra: { eventType: `radon_${event.key}`, inspectionId: test.inspection_id, url: "/radon" } });
-            }
-          }
-        }
-        if (notifications.length) await LocalNotifications.schedule({ notifications });
-      } catch (e) { console.warn("Local reminder scheduling unavailable", e); }
+        const permission = await LocalNotifications.checkPermissions();
+        if (permission.display !== "granted") await LocalNotifications.requestPermissions();
+      } catch (e) { console.warn("Local notifications unavailable", e); }
     })();
-    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {

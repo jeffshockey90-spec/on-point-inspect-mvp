@@ -12,6 +12,7 @@ type ReminderSettings = {
   mileage_prompt_enabled: boolean;
   radon_deployment_reminder_enabled: boolean;
   radon_retrieval_reminder_enabled: boolean;
+  geofence_radius_meters: number;
 };
 
 const DEFAULT_SETTINGS: ReminderSettings = {
@@ -24,9 +25,28 @@ const DEFAULT_SETTINGS: ReminderSettings = {
   mileage_prompt_enabled: true,
   radon_deployment_reminder_enabled: true,
   radon_retrieval_reminder_enabled: true,
+  geofence_radius_meters: 220,
 };
 
-type SettingKey = Exclude<keyof ReminderSettings, "enabled">;
+// The boolean toggle machinery excludes the master switch and the numeric
+// geofence radius (handled by its own control).
+type SettingKey = Exclude<
+  keyof ReminderSettings,
+  "enabled" | "geofence_radius_meters"
+>;
+
+const GEOFENCE_OPTIONS: Array<{ value: number; label: string }> = [
+  { value: 150, label: "150 m — tight" },
+  { value: 220, label: "220 m — default" },
+  { value: 300, label: "300 m — relaxed" },
+  { value: 450, label: "450 m — loose" },
+];
+
+function clampRadius(value: unknown) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return 220;
+  return Math.min(1000, Math.max(100, Math.round(parsed)));
+}
 
 const GROUPS: Array<{
   title: string;
@@ -66,8 +86,8 @@ const GROUPS: Array<{
       },
       {
         key: "departure_detection_enabled",
-        title: "Finished inspection prompt",
-        description: "Ask whether the inspection is complete",
+        title: "Departure detection",
+        description: "Detect leaving the property to offer mileage tracking",
       },
       {
         key: "mileage_prompt_enabled",
@@ -126,6 +146,9 @@ function normalizeSettings(data: any): ReminderSettings {
     radon_retrieval_reminder_enabled: readBoolean(
       source,
       "radon_retrieval_reminder_enabled",
+    ),
+    geofence_radius_meters: clampRadius(
+      (source as Record<string, unknown>)?.geofence_radius_meters ?? 220,
     ),
   };
 }
@@ -250,6 +273,7 @@ export default function ScheduleReminderSettings() {
         mileage_prompt_enabled: enabled,
         radon_deployment_reminder_enabled: enabled,
         radon_retrieval_reminder_enabled: enabled,
+        geofence_radius_meters: settings.geofence_radius_meters,
       },
       "enabled",
     );
@@ -264,6 +288,21 @@ export default function ScheduleReminderSettings() {
         [key]: !settings[key],
       },
       key,
+    );
+  }
+
+  function changeRadius(value: number) {
+    if (loading || saving || !mainEnabled) return;
+
+    const next = clampRadius(value);
+    if (next === settings.geofence_radius_meters) return;
+
+    void saveSettings(
+      {
+        ...settings,
+        geofence_radius_meters: next,
+      },
+      "geofence_radius_meters",
     );
   }
 
@@ -353,6 +392,51 @@ export default function ScheduleReminderSettings() {
             </div>
           </section>
         ))}
+
+        <section>
+          <h3 className="mb-2 text-xs font-black uppercase tracking-[0.2em] text-slate-500">
+            Location detection
+          </h3>
+
+          <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/40">
+            <div className="flex w-full items-center justify-between gap-4 px-4 py-3">
+              <span className="min-w-0">
+                <span className="block text-sm font-black text-white sm:text-base">
+                  Geofence radius
+                </span>
+                <span className="mt-0.5 block text-xs leading-5 text-slate-400 sm:text-sm">
+                  How close counts as &ldquo;at the property&rdquo; for arrival
+                  and departure detection
+                </span>
+                {savingKey === "geofence_radius_meters" ? (
+                  <span className="mt-1 block text-xs font-bold text-teal-300">
+                    Saving…
+                  </span>
+                ) : null}
+              </span>
+
+              <select
+                value={settings.geofence_radius_meters}
+                disabled={!mainEnabled || loading || saving}
+                onChange={(event) => changeRadius(Number(event.target.value))}
+                className="shrink-0 rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {GEOFENCE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+                {GEOFENCE_OPTIONS.every(
+                  (option) => option.value !== settings.geofence_radius_meters,
+                ) ? (
+                  <option value={settings.geofence_radius_meters}>
+                    {settings.geofence_radius_meters} m — custom
+                  </option>
+                ) : null}
+              </select>
+            </div>
+          </div>
+        </section>
 
         <p className="text-xs leading-5 text-slate-500">
           New accounts and previously unset preferences default to On.
