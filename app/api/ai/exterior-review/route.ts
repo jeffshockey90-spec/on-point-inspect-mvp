@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
 import { getSessionUser, unauthorized } from "../../../../lib/apiAuth";
+import { classifyAIServiceError } from "../../../../lib/aiServiceError";
 
 export async function POST(request: Request) {
   try {
@@ -94,12 +95,15 @@ Unknown
   } catch (error) {
     console.log(error);
 
+    const serviceError = classifyAIServiceError(error);
     return NextResponse.json(
       {
-        error:
-          error instanceof Error ? error.message : "AI exterior review failed",
+        error: serviceError.message,
+        code: serviceError.code,
+        retryable: serviceError.retryable,
+        retryAfterSeconds: serviceError.retryAfterSeconds,
       },
-      { status: 500 }
+      { status: serviceError.status }
     );
   }
 }

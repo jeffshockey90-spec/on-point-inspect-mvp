@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import { getSessionUser, unauthorized } from "../../../../lib/apiAuth";
+import { classifyAIServiceError } from "../../../../lib/aiServiceError";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
@@ -82,9 +83,15 @@ Return JSON:
   } catch (err: any) {
     console.error("AI ROUTE ERROR:", err);
 
+    const serviceError = classifyAIServiceError(err);
     return NextResponse.json(
-      { error: err.message || "Server error" },
-      { status: 500 }
+      {
+        error: serviceError.message,
+        code: serviceError.code,
+        retryable: serviceError.retryable,
+        retryAfterSeconds: serviceError.retryAfterSeconds,
+      },
+      { status: serviceError.status }
     );
   }
 }

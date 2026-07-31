@@ -5,6 +5,7 @@ import {
   normalizeSeverity,
 } from "../../../../lib/routeFindingSection";
 import { getSessionUser, unauthorized } from "../../../../lib/apiAuth";
+import { classifyAIServiceError } from "../../../../lib/aiServiceError";
 
 export const runtime = "nodejs";
 
@@ -236,14 +237,15 @@ Analyze this inspection image carefully and generate a professional finding.
   } catch (error) {
     console.error("AI photo review error:", error);
 
+    const serviceError = classifyAIServiceError(error);
     return NextResponse.json(
       {
-        error:
-          error instanceof Error
-            ? error.message
-            : "AI photo review failed.",
+        error: serviceError.message,
+        code: serviceError.code,
+        retryable: serviceError.retryable,
+        retryAfterSeconds: serviceError.retryAfterSeconds,
       },
-      { status: 500 }
+      { status: serviceError.status }
     );
   }
 }

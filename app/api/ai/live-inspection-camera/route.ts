@@ -7,6 +7,7 @@ import {
   normalizeSeverity,
 } from "../../../../lib/routeFindingSection";
 import { getSessionUser, unauthorized } from "../../../../lib/apiAuth";
+import { classifyAIServiceError } from "../../../../lib/aiServiceError";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -797,11 +798,15 @@ If mode is "live_watch":
   } catch (error: any) {
     console.error("AI live inspection camera error:", error);
 
+    const serviceError = classifyAIServiceError(error);
     return NextResponse.json(
       {
-        error: error?.message || "AI Live Inspection Camera failed.",
+        error: serviceError.message,
+        code: serviceError.code,
+        retryable: serviceError.retryable,
+        retryAfterSeconds: serviceError.retryAfterSeconds,
       },
-      { status: 500 },
+      { status: serviceError.status },
     );
   }
 }

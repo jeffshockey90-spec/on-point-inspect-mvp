@@ -2,6 +2,7 @@ import OpenAI from "openai";
 import { NextResponse } from "next/server";
 import { getAIModel } from "../../../../lib/openai";
 import { getSessionUser, unauthorized } from "../../../../lib/apiAuth";
+import { classifyAIServiceError } from "../../../../lib/aiServiceError";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -91,11 +92,15 @@ Rules:
   } catch (error: any) {
     console.error("OpenAI Vision Error:", error);
 
+    const serviceError = classifyAIServiceError(error);
     return NextResponse.json(
       {
-        error: error?.message || "AI analysis failed",
+        error: serviceError.message,
+        code: serviceError.code,
+        retryable: serviceError.retryable,
+        retryAfterSeconds: serviceError.retryAfterSeconds,
       },
-      { status: 500 }
+      { status: serviceError.status }
     );
   }
 }

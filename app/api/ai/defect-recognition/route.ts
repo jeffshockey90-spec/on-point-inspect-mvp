@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getAIModel, getAIVersion } from "../../../../lib/openai";
 import { inspectionBrain } from "../../../../lib/ai";
 import { getSessionUser, unauthorized } from "../../../../lib/apiAuth";
+import { classifyAIServiceError } from "../../../../lib/aiServiceError";
 
 export const runtime = "nodejs";
 
@@ -445,9 +446,15 @@ Important:
     });
   } catch (error: any) {
     console.error("AI defect recognition error", error);
+    const serviceError = classifyAIServiceError(error);
     return NextResponse.json(
-      { error: error?.message || "Failed to analyze photo." },
-      { status: 500 }
+      {
+        error: serviceError.message,
+        code: serviceError.code,
+        retryable: serviceError.retryable,
+        retryAfterSeconds: serviceError.retryAfterSeconds,
+      },
+      { status: serviceError.status }
     );
   }
 }
