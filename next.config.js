@@ -20,8 +20,17 @@ function safeGit(command) {
 const buildSha = (
   process.env.VERCEL_GIT_COMMIT_SHA || safeGit("git rev-parse HEAD")
 ).slice(0, 7);
-const buildNumber = safeGit("git rev-list --count HEAD");
 const buildTime = new Date().toISOString();
+// A UTC timestamp-based build number (YYYYMMDD.HHMM). Reliable everywhere and
+// always increments per deploy - unlike `git rev-list --count`, which returns
+// a wrong small value on Vercel's shallow clone.
+const buildDate = new Date(buildTime);
+const pad = (n) => String(n).padStart(2, "0");
+const buildNumber = `${buildDate.getUTCFullYear()}${pad(
+  buildDate.getUTCMonth() + 1,
+)}${pad(buildDate.getUTCDate())}.${pad(buildDate.getUTCHours())}${pad(
+  buildDate.getUTCMinutes(),
+)}`;
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {

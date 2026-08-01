@@ -289,15 +289,24 @@ export default function ScheduleCalendar({
       .filter(Boolean) as any[];
   }, [inspections, timeFormat]);
 
+  // Compute "today" only after mount. Deriving it from new Date() during render
+  // makes the server (its clock/zone) and the client disagree on the current
+  // day, so the "today's events" list differs between the server HTML and the
+  // first client render - a hydration mismatch (#418).
+  const [today, setToday] = useState("");
+  useEffect(() => {
+    setToday(todayKey(timeZone));
+  }, [timeZone]);
+
   const todaysEvents = useMemo(() => {
-    const today = todayKey(timeZone);
+    if (!today) return [];
 
     return events
       .filter((event) => event.extendedProps.date === today)
       .sort((a, b) =>
         String(a.extendedProps.time).localeCompare(String(b.extendedProps.time))
       );
-  }, [events, timeZone]);
+  }, [events, today]);
 
   async function saveScheduleUpdate(eventToSave: SelectedEvent) {
     setSaving(true);
