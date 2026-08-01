@@ -17,6 +17,7 @@ import DeleteAccountSection from "./DeleteAccountSection";
 import SettingsSectionTabs from "../../components/SettingsSectionTabs";
 import AppVersionTag from "../../components/AppVersionTag";
 import TeamManagement from "../../components/TeamManagement";
+import SmsStatusCard from "../../components/SmsStatusCard";
 
 const SETTINGS_TABS = [
   { key: "notifications", label: "Notifications", anchorId: "notifications" },
@@ -738,6 +739,12 @@ export default async function SettingsPage({
             </FastLinkButton>
           )}
         </section>
+
+        {isOnPointOwner && (
+          <div className="mt-6">
+            <SmsStatusCard />
+          </div>
+        )}
 
         <SettingsSectionTabs tabs={SETTINGS_TABS}>
 

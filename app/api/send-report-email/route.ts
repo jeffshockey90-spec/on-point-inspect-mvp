@@ -4,6 +4,8 @@ import { createServerClient } from "@supabase/ssr";
 import { getOrCreateShareToken } from "../../../lib/shareToken";
 import { getCompanyBrandingById, buildBrandedFromHeader, type CompanyBranding } from "../../../lib/companyBranding";
 import { resolveInspectionAccessFilter } from "../../../lib/inspectionAccess";
+import { isSmsConfigured, sendSms } from "../../../lib/sms";
+import { smsReportReadyClient, smsReportReadyAgent } from "../../../lib/smsTemplates";
 
 async function createSupabaseServerClient() {
   const cookieStore = await cookies();
@@ -659,6 +661,32 @@ export async function POST(req: Request) {
       });
 
       results.push(result);
+    }
+
+    // Best-effort: also text the report link to any recipient with a phone on
+    // file. Never blocks or fails the email response.
+    if (isSmsConfigured()) {
+      for (const recipient of recipients) {
+        const phone =
+          recipient.recipientType === "client"
+            ? inspection.client_phone
+            : recipient.recipientType === "realtor"
+              ? inspection.realtor_phone || inspection.agent_phone
+              : null;
+
+        if (!phone) continue;
+
+        const link = `${finalShareUrl}?role=${encodeURIComponent(
+          recipient.recipientType
+        )}`;
+
+        const body =
+          recipient.recipientType === "realtor"
+            ? smsReportReadyAgent({ company: branding.name, address: property, link })
+            : smsReportReadyClient({ company: branding.name, address: property, link });
+
+        await sendSms({ to: phone, body }).catch(() => null);
+      }
     }
 
     const sent = results.filter((item) => item.ok);
