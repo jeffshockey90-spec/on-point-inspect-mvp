@@ -3051,29 +3051,49 @@ function DefectSummaryCard({
   href: string;
   active?: boolean;
 }) {
-  const color =
-    tone === "red"
-      ? "text-red-300 border-red-500/30 bg-red-500/10 hover:bg-red-500/20"
-      : tone === "yellow"
-      ? "text-yellow-300 border-yellow-500/30 bg-yellow-500/10 hover:bg-yellow-500/20"
-      : tone === "blue"
-      ? "text-blue-300 border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20"
-      : "text-teal-300 border-teal-500/30 bg-teal-500/10 hover:bg-teal-500/20";
+  const toneMap = {
+    red: {
+      wrap: "border-red-500/30 bg-red-500/10 hover:border-red-500/60 hover:bg-red-500/20",
+      num: "text-red-300",
+      dot: "bg-red-400",
+    },
+    teal: {
+      wrap: "border-teal-500/30 bg-teal-500/10 hover:border-teal-500/60 hover:bg-teal-500/20",
+      num: "text-teal-300",
+      dot: "bg-teal-400",
+    },
+    yellow: {
+      wrap: "border-yellow-500/30 bg-yellow-500/10 hover:border-yellow-500/60 hover:bg-yellow-500/20",
+      num: "text-yellow-300",
+      dot: "bg-yellow-400",
+    },
+    blue: {
+      wrap: "border-blue-500/30 bg-blue-500/10 hover:border-blue-500/60 hover:bg-blue-500/20",
+      num: "text-blue-300",
+      dot: "bg-blue-400",
+    },
+  } as const;
+
+  const t = toneMap[tone] ?? toneMap.teal;
 
   return (
     <Link
       href={href}
-      className={`rounded-xl border p-4 text-center transition ${color} ${
+      className={`group flex flex-col rounded-2xl border p-5 transition duration-150 hover:-translate-y-0.5 ${t.wrap} ${
         active ? "ring-2 ring-white/70" : ""
       }`}
     >
-      <p className="text-xs font-bold uppercase tracking-wide text-slate-300">
-        {label}
-      </p>
+      <div className="flex items-center gap-2">
+        <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${t.dot}`} />
+        <p className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-300">
+          {label}
+        </p>
+      </div>
 
-      <p className="mt-2 text-3xl font-black text-white">{value}</p>
-      <p className="mt-1 text-xs font-semibold text-slate-400">
-        Click to filter
+      <p className={`mt-3 text-4xl font-black tabular-nums ${t.num}`}>{value}</p>
+
+      <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-slate-400 opacity-70 transition group-hover:opacity-100">
+        {active ? "Filtering ✓" : "Click to filter"}
       </p>
     </Link>
   );
