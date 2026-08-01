@@ -1,9 +1,18 @@
 import "./globals.css";
+import { Inter } from "next/font/google";
 import Navbar from "../components/Nav";
 import GlobalLiveActivity from "../components/GlobalLiveActivity";
 import TimeLocationEngine from "../components/time-location/TimeLocationEngine";
 import PageShell from "../components/PageShell";
 import CommandPalette from "../components/CommandPalette";
+
+// App-wide UI typeface. Self-hosted by next/font at build time (no runtime
+// CDN), exposed as a CSS variable that globals.css maps onto the body font.
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-sans",
+});
 
 export const metadata = {
   title: "FLOW",
@@ -50,7 +59,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="overflow-x-hidden">
+    <html lang="en" className={`${inter.variable} overflow-x-hidden`}>
       <body className="min-h-screen overflow-x-hidden bg-[#050816] text-white antialiased">
         <Navbar />
 

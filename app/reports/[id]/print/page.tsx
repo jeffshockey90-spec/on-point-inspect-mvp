@@ -544,7 +544,6 @@ export default async function PrintableReportPage({ params }: PageProps) {
           .from("photos")
           .select("*")
           .in("finding_id", findingIds)
-          .order("sort_order", { ascending: true })
           .order("created_at", { ascending: true })
       : { data: [] };
 
