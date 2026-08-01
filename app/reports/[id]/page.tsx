@@ -1,6 +1,7 @@
 
 import { formatAppValue } from "../../../lib/app-time";
 import { isPaymentComplete } from "../../../lib/inspectionStatus";
+import { Camera } from "lucide-react";
 import { resolveActiveSections, filterSectionsForServiceMode } from "../../../lib/reportSections";
 import { resolveInspectionAccessFilter } from "../../../lib/inspectionAccess";
 import { redirect } from "next/navigation";
@@ -2920,9 +2921,9 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                 <FastLinkButton
                   href={`/reports/${inspection.id}/bulk-ai-capture`}
                   loadingText="Opening Bulk AI..."
-                  className="rounded-xl border border-slate-600 px-5 py-3 font-bold text-slate-200 transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-teal-200"
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-600 px-5 py-3 font-bold text-slate-200 transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-teal-200"
                 >
-                  📸 Bulk AI Capture
+                  <Camera className="h-4 w-4" strokeWidth={2.25} /> Bulk AI Capture
                 </FastLinkButton>
 
                 <FastLinkButton
