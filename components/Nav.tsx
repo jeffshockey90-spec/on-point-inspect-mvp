@@ -7,34 +7,55 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import SupportUnreadBadge from "./SupportUnreadBadge";
 import { isPortalRoute } from "../lib/navVisibility";
+import {
+  Home,
+  Plus,
+  Smartphone,
+  FileText,
+  FlaskConical,
+  Radiation,
+  Building2,
+  FileSignature,
+  Mail,
+  Sparkles,
+  LayoutTemplate,
+  Calculator,
+  CalendarDays,
+  Compass,
+  Car,
+  LifeBuoy,
+  Rocket,
+  Settings,
+  Crown,
+} from "lucide-react";
 
 
 
 const baseNavItems = [
-  { title: "Dashboard", href: "/", icon: "🏠", mobileLabel: "Home" },
-  { title: "New Inspection", href: "/inspections/new", icon: "➕", mobileLabel: "New" },
-  { title: "Field Tool", href: "/field", icon: "📱", mobileLabel: "Field" },
-  { title: "Reports", href: "/reports", icon: "📋", mobileLabel: "Reports" },
-  { title: "Mold", href: "/mold", icon: "🧪", mobileLabel: "Mold" },
-  { title: "Radon", href: "/radon", icon: "☢️", mobileLabel: "Radon" },
-  { title: "Realtors", href: "/realtors", icon: "🏡", mobileLabel: "Realtors" },
-  { title: "Agreements", href: "/agreements", icon: "📄", mobileLabel: "Agreements" },
-  { title: "Sent Emails", href: "/emails", icon: "📧", mobileLabel: "Emails" },
-  { title: "AI Capture", href: "/ai-capture", icon: "✨", mobileLabel: "AI" },
-  { title: "Templates", href: "/templates", icon: "📚", mobileLabel: "Templates" },
-  { title: "Quotes", href: "/quotes", icon: "💬", mobileLabel: "Quotes" },
-  { title: "Schedule", href: "/schedule", icon: "🗓️", mobileLabel: "Schedule" },
-  { title: "Dispatch", href: "/dispatch", icon: "🧭", mobileLabel: "Dispatch" },
-  { title: "Mileage", href: "/mileage", icon: "🚗", mobileLabel: "Mileage" },
-  { title: "Support", href: "/support", icon: "💬", mobileLabel: "Support" },
-  { title: "What's New", href: "/whats-new", icon: "🚀", mobileLabel: "New" },
-  { title: "Settings", href: "/settings", icon: "⚙️", mobileLabel: "Settings" },
+  { title: "Dashboard", href: "/", icon: Home, mobileLabel: "Home" },
+  { title: "New Inspection", href: "/inspections/new", icon: Plus, mobileLabel: "New" },
+  { title: "Field Tool", href: "/field", icon: Smartphone, mobileLabel: "Field" },
+  { title: "Reports", href: "/reports", icon: FileText, mobileLabel: "Reports" },
+  { title: "Mold", href: "/mold", icon: FlaskConical, mobileLabel: "Mold" },
+  { title: "Radon", href: "/radon", icon: Radiation, mobileLabel: "Radon" },
+  { title: "Realtors", href: "/realtors", icon: Building2, mobileLabel: "Realtors" },
+  { title: "Agreements", href: "/agreements", icon: FileSignature, mobileLabel: "Agreements" },
+  { title: "Sent Emails", href: "/emails", icon: Mail, mobileLabel: "Emails" },
+  { title: "AI Capture", href: "/ai-capture", icon: Sparkles, mobileLabel: "AI" },
+  { title: "Templates", href: "/templates", icon: LayoutTemplate, mobileLabel: "Templates" },
+  { title: "Quotes", href: "/quotes", icon: Calculator, mobileLabel: "Quotes" },
+  { title: "Schedule", href: "/schedule", icon: CalendarDays, mobileLabel: "Schedule" },
+  { title: "Dispatch", href: "/dispatch", icon: Compass, mobileLabel: "Dispatch" },
+  { title: "Mileage", href: "/mileage", icon: Car, mobileLabel: "Mileage" },
+  { title: "Support", href: "/support", icon: LifeBuoy, mobileLabel: "Support" },
+  { title: "What's New", href: "/whats-new", icon: Rocket, mobileLabel: "New" },
+  { title: "Settings", href: "/settings", icon: Settings, mobileLabel: "Settings" },
 ];
 
 const ownerNavItem = {
   title: "Owner",
   href: "/dashboard/owner",
-  icon: "📈",
+  icon: Crown,
   mobileLabel: "Owner",
 };
 
@@ -57,12 +78,12 @@ function isReportBuilderRoute(pathname: string) {
 }
 
 const baseMobileItems = [
-  { title: "Dashboard", href: "/", icon: "🏠", mobileLabel: "Home" },
-  { title: "Reports", href: "/reports", icon: "📋", mobileLabel: "Reports" },
-  { title: "New Inspection", href: "/inspections/new", icon: "➕", mobileLabel: "New" },
-  { title: "AI Capture", href: "/ai-capture", icon: "✨", mobileLabel: "AI" },
-  { title: "Support", href: "/support", icon: "💬", mobileLabel: "Support" },
-  { title: "Settings", href: "/settings", icon: "⚙️", mobileLabel: "Settings" },
+  { title: "Dashboard", href: "/", icon: Home, mobileLabel: "Home" },
+  { title: "Reports", href: "/reports", icon: FileText, mobileLabel: "Reports" },
+  { title: "New Inspection", href: "/inspections/new", icon: Plus, mobileLabel: "New" },
+  { title: "AI Capture", href: "/ai-capture", icon: Sparkles, mobileLabel: "AI" },
+  { title: "Support", href: "/support", icon: LifeBuoy, mobileLabel: "Support" },
+  { title: "Settings", href: "/settings", icon: Settings, mobileLabel: "Settings" },
 ];
 
 export default function Navbar() {
@@ -301,10 +322,10 @@ export default function Navbar() {
 
     if (isRealtor && !isInspector) {
       items = [
-        { title: "Portal", href: "/realtor-portal", icon: "🏡", mobileLabel: "Portal" },
-        { title: "Reports", href: "/realtor-portal", icon: "📋", mobileLabel: "Reports" },
-        { title: "Support", href: "/support", icon: "💬", mobileLabel: "Support" },
-        { title: "Settings", href: "/settings", icon: "⚙️", mobileLabel: "Settings" },
+        { title: "Portal", href: "/realtor-portal", icon: Building2, mobileLabel: "Portal" },
+        { title: "Reports", href: "/realtor-portal", icon: FileText, mobileLabel: "Reports" },
+        { title: "Support", href: "/support", icon: LifeBuoy, mobileLabel: "Support" },
+        { title: "Settings", href: "/settings", icon: Settings, mobileLabel: "Settings" },
       ];
     }
 
@@ -443,6 +464,7 @@ export default function Navbar() {
           {visibleNavItems.map((item) => {
             const active = isActive(item.href);
             const opening = openingHref === item.href && !active;
+            const ItemIcon = item.icon;
 
             return (
               <Link
@@ -464,7 +486,7 @@ export default function Navbar() {
                 }`}
               >
                 <NavSpinner active={opening} />
-                {!opening && <span className="shrink-0 text-base leading-none">{item.icon}</span>}
+                {!opening && <ItemIcon className="h-[18px] w-[18px] shrink-0" strokeWidth={2.25} />}
                 <span className="flex min-w-0 flex-1 items-center gap-1 truncate">
                   {opening ? "Opening..." : item.title}
                 </span>
@@ -543,6 +565,7 @@ export default function Navbar() {
           {visibleMobileItems.map((item) => {
             const active = isActive(item.href);
             const opening = openingHref === item.href && !active;
+            const ItemIcon = item.icon;
 
             return (
               <Link
@@ -563,11 +586,11 @@ export default function Navbar() {
                         : "text-zinc-300 hover:bg-slate-800/70 hover:text-teal-300"
                 }`}
               >
-                <span className="flex w-full items-center justify-center text-xl leading-none">
+                <span className="flex w-full items-center justify-center leading-none">
                   {opening ? (
                     <span className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
                   ) : (
-                    item.icon
+                    <ItemIcon className="h-5 w-5" strokeWidth={2.25} />
                   )}
                 </span>
                 <span className="mt-1 flex w-full items-center justify-center gap-1 text-center text-[10px] font-black leading-none whitespace-nowrap">
