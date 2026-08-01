@@ -53,6 +53,8 @@ const PUBLIC_PREFIXES = [
   "/reset-password",
   "/book",
   "/pricing",
+  "/privacy",
+  "/terms",
 ];
 
 function cleanText(value: unknown) {
