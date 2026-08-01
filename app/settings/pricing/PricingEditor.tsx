@@ -41,20 +41,53 @@ function NumberField({
   );
 }
 
-export default function PricingEditor() {
+export default function PricingEditor({
+  endpoint = "/api/pricing",
+  mode = "personal",
+}: {
+  endpoint?: string;
+  mode?: "personal" | "company";
+} = {}) {
   const [config, setConfig] = useState<InspectorPricingConfig | null>(null);
+  const [source, setSource] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [reverting, setReverting] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    fetch("/api/pricing", { cache: "no-store" })
+  function load() {
+    setLoading(true);
+    fetch(endpoint, { cache: "no-store" })
       .then((res) => res.json())
-      .then((data) => setConfig(data.config || DEFAULT_PRICING_CONFIG))
+      .then((data) => {
+        setConfig(data.config || DEFAULT_PRICING_CONFIG);
+        setSource(data.source || "");
+      })
       .catch(() => setConfig(DEFAULT_PRICING_CONFIG))
       .finally(() => setLoading(false));
-  }, []);
+  }
+
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [endpoint]);
+
+  async function handleRevert() {
+    setReverting(true);
+    setError("");
+    try {
+      const res = await fetch("/api/pricing", { method: "DELETE" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || "Could not reset pricing.");
+      setSaved(false);
+      load();
+    } catch (err: any) {
+      setError(err?.message || "Could not reset pricing.");
+    } finally {
+      setReverting(false);
+    }
+  }
 
   function updateService(id: string, patch: Partial<PricingService>) {
     setConfig((current) => {
@@ -98,7 +131,7 @@ export default function PricingEditor() {
     setError("");
 
     try {
-      const res = await fetch("/api/pricing", {
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ config }),
@@ -108,6 +141,7 @@ export default function PricingEditor() {
       if (!res.ok) throw new Error(data?.error || "Could not save pricing.");
 
       setSaved(true);
+      setSource(mode === "company" ? "company" : "override");
     } catch (err: any) {
       setError(err?.message || "Could not save pricing.");
     } finally {
@@ -132,6 +166,45 @@ export default function PricingEditor() {
 
   return (
     <div className="space-y-6">
+      {mode === "company" && (
+        <div className="rounded-xl border border-amber-500/40 bg-amber-950/20 p-4 text-sm text-amber-200">
+          This is your <span className="font-black">company price sheet</span>. Every
+          inspector on your team uses it unless they set their own override.
+        </div>
+      )}
+
+      {mode === "personal" && source === "override" && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-teal-500/40 bg-teal-950/20 p-4 text-sm text-teal-200">
+          <span className="font-bold">
+            You have a personal price override — these rates apply to your jobs
+            instead of the company pricing.
+          </span>
+          <button
+            type="button"
+            onClick={handleRevert}
+            disabled={reverting}
+            className="shrink-0 rounded-lg border border-teal-500/50 px-3 py-1.5 text-xs font-black text-teal-200 hover:bg-teal-500/10 disabled:opacity-60"
+          >
+            {reverting ? "Resetting..." : "Use company pricing instead"}
+          </button>
+        </div>
+      )}
+
+      {mode === "personal" && source === "company" && (
+        <div className="rounded-xl border border-slate-700 bg-[#0b1220] p-4 text-sm text-slate-300">
+          You're currently using your{" "}
+          <span className="font-black text-white">company's pricing</span>. Saving here
+          creates a personal override that applies only to your jobs.
+        </div>
+      )}
+
+      {mode === "personal" && source === "default" && (
+        <div className="rounded-xl border border-slate-700 bg-[#0b1220] p-4 text-sm text-slate-300">
+          You're using the <span className="font-black text-white">default</span> pricing.
+          Save to set your own rates.
+        </div>
+      )}
+
       {error && (
         <div className="rounded-xl border border-red-500/40 bg-red-950/20 p-4 text-sm font-bold text-red-300">
           {error}

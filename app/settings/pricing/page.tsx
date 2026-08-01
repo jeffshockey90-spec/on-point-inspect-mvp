@@ -23,8 +23,9 @@ export default async function PricingSettingsPage() {
           </p>
           <h1 className="mt-3 text-4xl font-black md:text-5xl">My Pricing</h1>
           <p className="mt-4 text-slate-300">
-            Set your own rates for the Quotes calculator. These are yours alone - other
-            inspectors on your team set their own rates independently.
+            Your personal rates for Quotes and new inspections. These override your
+            company&apos;s pricing for your jobs only. If you don&apos;t set anything here,
+            your company&apos;s pricing applies automatically.
           </p>
         </div>
 

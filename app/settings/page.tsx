@@ -7,6 +7,7 @@ import {
   Globe,
   Image as ImageIcon,
   Bell,
+  Building2,
 } from "lucide-react";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -532,6 +533,15 @@ export default async function SettingsPage({
     String(user.email || "").trim().toLowerCase(),
   );
 
+  const { data: ownerMembership } = await supabase
+    .from("company_users")
+    .select("role")
+    .eq("user_id", user.id)
+    .eq("role", "owner")
+    .limit(1)
+    .maybeSingle();
+  const isCompanyOwner = Boolean(ownerMembership);
+
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#050816] px-4 py-4 pb-28 text-white md:p-8 md:pb-10">
       <div className="mx-auto max-w-6xl space-y-6">
@@ -639,6 +649,29 @@ export default async function SettingsPage({
               Manage Pricing →
             </p>
           </FastLinkButton>
+
+          {isCompanyOwner && (
+            <FastLinkButton
+              href="/settings/company-pricing"
+              className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-amber-500/30 bg-[#0b1220] p-4 transition active:scale-[0.98] hover:border-amber-400/70 hover:bg-amber-500/10 sm:p-5 [touch-action:manipulation]"
+            >
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-300">
+                <Building2 className="h-6 w-6" strokeWidth={2} />
+              </div>
+              <p className="mt-4 text-xs font-black uppercase tracking-[0.2em] text-amber-300">
+                Owner Only
+              </p>
+              <h2 className="mt-2 text-lg font-black text-white sm:text-xl">
+                Company Pricing
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-slate-400">
+                Set the default price sheet your whole team uses.
+              </p>
+              <p className="mt-4 text-sm font-black text-amber-300 group-hover:text-amber-200">
+                Manage Company Pricing →
+              </p>
+            </FastLinkButton>
+          )}
 
           <FastLinkButton
             href="/billing"
