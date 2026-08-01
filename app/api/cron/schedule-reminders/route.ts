@@ -269,7 +269,72 @@ function cleanTime(value: any) {
   return "09:00";
 }
 
-function getInspectionStart(row: InspectionRow) {
+// The app schedules and displays everything in this zone server-side. Inspection
+// times are stored as naive wall-clock ("12:00"), so they must be interpreted
+// in this zone - not the serverless runtime's UTC, which would read noon-local
+// as noon-UTC and fire reminders hours early.
+const REMINDER_TIME_ZONE = "America/New_York";
+
+function isValidTimeZone(value: unknown): value is string {
+  if (typeof value !== "string" || !value) return false;
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: value }).format(new Date());
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// Offset (ms) to add to a UTC instant to get the wall-clock time in `timeZone`.
+function tzOffsetMs(instant: Date, timeZone: string) {
+  const dtf = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hour12: false,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+
+  const map: Record<string, string> = {};
+  for (const part of dtf.formatToParts(instant)) map[part.type] = part.value;
+
+  const asUtc = Date.UTC(
+    Number(map.year),
+    Number(map.month) - 1,
+    Number(map.day),
+    Number(map.hour === "24" ? "0" : map.hour),
+    Number(map.minute),
+    Number(map.second)
+  );
+
+  return asUtc - instant.getTime();
+}
+
+// Interpret "YYYY-MM-DD" + "HH:MM" as wall-clock time in `timeZone` and return
+// the correct UTC instant (DST-aware).
+function zonedWallClockToUtc(date: string, time: string, timeZone: string) {
+  const utcGuess = new Date(`${date}T${time}:00Z`);
+  if (Number.isNaN(utcGuess.getTime())) return null;
+
+  const offsetAtGuess = tzOffsetMs(utcGuess, timeZone);
+  let result = new Date(utcGuess.getTime() - offsetAtGuess);
+
+  // Re-check in case the first guess fell on the other side of a DST switch.
+  const offsetAtResult = tzOffsetMs(result, timeZone);
+  if (offsetAtResult !== offsetAtGuess) {
+    result = new Date(utcGuess.getTime() - offsetAtResult);
+  }
+
+  return Number.isNaN(result.getTime()) ? null : result;
+}
+
+function getInspectionStart(
+  row: InspectionRow,
+  timeZone: string = REMINDER_TIME_ZONE
+) {
   if (row.scheduled_start_at) {
     const instant = new Date(row.scheduled_start_at);
     if (!Number.isNaN(instant.getTime())) return instant;
@@ -279,13 +344,7 @@ function getInspectionStart(row: InspectionRow) {
 
   if (!date) return null;
 
-  const start = new Date(`${date}T${time}:00`);
-
-  if (Number.isNaN(start.getTime())) {
-    return null;
-  }
-
-  return start;
+  return zonedWallClockToUtc(date, time, timeZone || REMINDER_TIME_ZONE);
 }
 
 function getAddress(row: InspectionRow) {
@@ -488,9 +547,10 @@ async function markSent(
   row: InspectionRow,
   kind: ReminderKind,
   sent: number,
-  failed: number
+  failed: number,
+  timeZone?: string
 ) {
-  const inspectionStart = getInspectionStart(row);
+  const inspectionStart = getInspectionStart(row, timeZone);
 
   await admin.from("schedule_reminder_logs").insert({
     inspection_id: String(row.id),
@@ -602,7 +662,8 @@ async function deliverToInspection(
 async function sendReminderForInspection(
   admin: any,
   row: InspectionRow,
-  kind: ReminderKind
+  kind: ReminderKind,
+  timeZone?: string
 ) {
   const payload: PushPayload = {
     title: reminderTitle(row, kind),
@@ -613,7 +674,7 @@ async function sendReminderForInspection(
 
   const result = await deliverToInspection(admin, row, payload);
 
-  await markSent(admin, row, kind, result.sent, result.failed);
+  await markSent(admin, row, kind, result.sent, result.failed, timeZone);
 
   return {
     inspectionId: row.id,
@@ -830,10 +891,39 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    // Resolve each owner's saved timezone so reminders follow the inspector's
+    // own local (device) time, not the server's UTC. Falls back to Eastern.
+    const ownerIds = Array.from(
+      new Set((inspections || []).flatMap((row) => getInspectionOwnerIds(row)))
+    );
+
+    const tzByOwnerId = new Map<string, string>();
+    if (ownerIds.length > 0) {
+      const { data: tzProfiles } = await admin
+        .from("profiles")
+        .select("id, time_zone, device_time_zone")
+        .in("id", ownerIds);
+
+      for (const profile of tzProfiles || []) {
+        const tz = profile?.time_zone || profile?.device_time_zone;
+        if (tz && isValidTimeZone(tz)) {
+          tzByOwnerId.set(String(profile.id), tz);
+        }
+      }
+    }
+
+    const resolveTimeZone = (row: InspectionRow) => {
+      for (const id of getInspectionOwnerIds(row)) {
+        const tz = tzByOwnerId.get(String(id));
+        if (tz) return tz;
+      }
+      return REMINDER_TIME_ZONE;
+    };
+
     const candidates = (inspections || []).filter((row: InspectionRow) => {
       if (!row.id || isCancelledOrComplete(row)) return false;
 
-      const start = getInspectionStart(row);
+      const start = getInspectionStart(row, resolveTimeZone(row));
 
       if (!start) return false;
 
@@ -843,7 +933,8 @@ export async function GET(req: Request) {
     const results: any[] = [];
 
     for (const row of candidates) {
-      const start = getInspectionStart(row);
+      const timeZone = resolveTimeZone(row);
+      const start = getInspectionStart(row, timeZone);
 
       if (!start) continue;
 
@@ -876,7 +967,7 @@ export async function GET(req: Request) {
           continue;
         }
 
-        const result = await sendReminderForInspection(admin, row, kind);
+        const result = await sendReminderForInspection(admin, row, kind, timeZone);
         results.push(result);
       }
     }
