@@ -11,7 +11,7 @@
 
 create table if not exists public.company_pricing (
   id bigint generated always as identity primary key,
-  company_id uuid not null references public.companies(id) on delete cascade,
+  company_id bigint not null references public.companies(id) on delete cascade,
   config jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()

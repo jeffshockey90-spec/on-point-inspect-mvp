@@ -46,7 +46,8 @@ async function resolveCompany(supabase: any, userId: string) {
   const primary = owned || rows[0] || null;
 
   return {
-    companyId: primary?.company_id ? String(primary.company_id) : null,
+    // Keep the raw numeric company id (companies.id is bigint).
+    companyId: primary?.company_id ?? null,
     isOwner: Boolean(owned),
   };
 }
