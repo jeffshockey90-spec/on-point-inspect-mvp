@@ -5,6 +5,8 @@ import { getOrCreateShareToken } from "../../../lib/shareToken";
 import { formatAppValue } from "../../../lib/app-time";
 import { getCompanyBrandingById, buildBrandedFromHeader } from "../../../lib/companyBranding";
 import { getSessionUser, unauthorized, notFound, authorizeInspection } from "../../../lib/apiAuth";
+import { isSmsConfigured, sendSms } from "../../../lib/sms";
+import { smsConfirmation } from "../../../lib/smsTemplates";
 
 export const runtime = "nodejs";
 
@@ -296,6 +298,31 @@ ${branding.name}`;
             error: error?.message || "Failed to send appointment confirmation.",
           },
         });
+      }
+    }
+
+    // Best-effort confirmation text to the client + agent (if a phone is on
+    // file and SMS is configured). Never blocks the response.
+    if (isSmsConfigured()) {
+      const seen = new Set<string>();
+      const phones = [
+        inspection.client_phone,
+        inspection.realtor_phone || inspection.agent_phone,
+      ].filter(Boolean);
+
+      for (const phone of phones) {
+        const key = String(phone);
+        if (seen.has(key)) continue;
+        seen.add(key);
+
+        const body = smsConfirmation({
+          company: branding.name,
+          address,
+          date: dateText,
+          time: timeText,
+        });
+
+        await sendSms({ to: phone, body }).catch(() => null);
       }
     }
 

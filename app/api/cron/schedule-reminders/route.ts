@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import crypto from "crypto";
 import http2 from "http2";
+import { isSmsConfigured, sendSms } from "../../../../lib/sms";
+import { smsReminder } from "../../../../lib/smsTemplates";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -969,6 +971,63 @@ export async function GET(req: Request) {
 
         const result = await sendReminderForInspection(admin, row, kind, timeZone);
         results.push(result);
+      }
+
+      // Client SMS reminder - one text ~24h before, sent to the client (not
+      // the inspector push above). Deduped via schedule_reminder_logs.
+      if (
+        isSmsConfigured() &&
+        row.client_phone &&
+        inReminderWindow(start, now, "24h")
+      ) {
+        const settings = await getReminderSettingsForInspection(admin, row);
+        const smsKind = "client_sms_24h";
+
+        if (
+          settings.enabled &&
+          !(await alreadySent(admin, String(row.id), smsKind))
+        ) {
+          const { data: company } = await admin
+            .from("companies")
+            .select("name")
+            .eq("id", row.company_id)
+            .maybeSingle();
+
+          const whenStr = new Intl.DateTimeFormat("en-US", {
+            timeZone,
+            weekday: "short",
+            month: "short",
+            day: "numeric",
+            hour: "numeric",
+            minute: "2-digit",
+          }).format(start);
+
+          const smsResult = await sendSms({
+            to: row.client_phone,
+            body: smsReminder({
+              company: company?.name || "Your inspector",
+              address: getAddress(row),
+              date: whenStr,
+            }),
+          });
+
+          await admin.from("schedule_reminder_logs").insert({
+            inspection_id: String(row.id),
+            reminder_type: smsKind,
+            scheduled_for: start.toISOString(),
+            sent_at: new Date().toISOString(),
+            sent_count: smsResult.ok ? 1 : 0,
+            failed_count: smsResult.ok ? 0 : 1,
+            metadata: {
+              channel: "sms",
+              to: smsResult.to || null,
+              error: smsResult.error || null,
+              address: getAddress(row),
+            },
+          });
+
+          results.push({ inspectionId: row.id, kind: smsKind, smsSent: smsResult.ok });
+        }
       }
     }
 
