@@ -2863,6 +2863,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                 <SendReviewRequestButton
                   inspectionId={String(inspection.id)}
                   clientEmail={inspection.client_email}
+                  realtorEmail={inspection.realtor_email || inspection.agent_email}
                   reviewStatus={inspection.review_status}
                 />
 

@@ -202,7 +202,12 @@ async function logAuditEvent(
 
 export async function POST(req: Request) {
   try {
-    const { inspectionId, recipientEmail } = await req.json();
+    const { inspectionId, recipientEmail, recipientType: recipientTypeRaw } =
+      await req.json();
+    const recipientType =
+      String(recipientTypeRaw || "client").toLowerCase() === "realtor"
+        ? "realtor"
+        : "client";
 
     if (!inspectionId) {
       return NextResponse.json(
@@ -258,28 +263,59 @@ export async function POST(req: Request) {
     const branding = await getCompanyBrandingById(inspection.company_id);
 
     let contactEmail = String(recipientEmail || "").trim();
+    let recipientName = "there";
 
-    if (!contactEmail) {
-      const { data: contacts } = await supabase
-        .from("inspection_contacts")
-        .select("email, role")
-        .eq("inspection_id", inspectionId);
+    const { data: contacts } = await supabase
+      .from("inspection_contacts")
+      .select("email, role, name")
+      .eq("inspection_id", inspectionId);
 
+    if (recipientType === "realtor") {
+      const realtorContact = (contacts || []).find((item: any) => {
+        const role = String(item.role || "").toLowerCase();
+        return /realtor|agent|transaction/.test(role) && item.email;
+      });
+
+      if (!contactEmail) {
+        contactEmail =
+          realtorContact?.email ||
+          inspection.realtor_email ||
+          inspection.agent_email ||
+          inspection.buyer_agent_email ||
+          "";
+      }
+
+      recipientName =
+        realtorContact?.name ||
+        inspection.realtor_name ||
+        inspection.agent_name ||
+        "there";
+    } else {
       const clientContact = (contacts || []).find((item: any) => {
         const role = String(item.role || "").toLowerCase();
         return ["client", "co-client"].includes(role) && item.email;
       });
 
-      contactEmail =
-        clientContact?.email ||
-        inspection.client_email ||
-        inspection.email ||
-        "";
+      if (!contactEmail) {
+        contactEmail =
+          clientContact?.email ||
+          inspection.client_email ||
+          inspection.email ||
+          "";
+      }
+
+      recipientName =
+        clientContact?.name || inspection.client_name || inspection.client || "there";
     }
 
     if (!contactEmail) {
       return NextResponse.json(
-        { error: "No client email found for this inspection." },
+        {
+          error:
+            recipientType === "realtor"
+              ? "No agent email found for this inspection."
+              : "No client email found for this inspection.",
+        },
         { status: 400 }
       );
     }
@@ -287,21 +323,39 @@ export async function POST(req: Request) {
     const property =
       inspection.property_address ||
       inspection.address ||
-      "your inspected property";
+      "the inspected property";
 
-    const clientName = inspection.client_name || inspection.client || "there";
+    const subject =
+      recipientType === "realtor"
+        ? `Thanks for trusting ${branding.name} with your client`
+        : `Thank you for choosing ${branding.name}`;
 
-    const subject = `Thank you for choosing ${branding.name}`;
+    const introLine =
+      recipientType === "realtor"
+        ? `Thank you for referring your client to ${escapeHtml(
+            branding.name
+          )} for the inspection at:`
+        : `Thank you for choosing ${escapeHtml(branding.name)} for:`;
+
+    const askLine =
+      recipientType === "realtor"
+        ? `If your client had a great experience, a quick Google review would mean a lot &mdash; and it helps other agents find an inspector they can rely on for their deals.`
+        : `If you were happy with your inspection experience, would you mind leaving a quick Google review? Reviews help other homeowners and real estate professionals find a reliable inspector.`;
+
+    const outroLine =
+      recipientType === "realtor"
+        ? `Thank you for the referral and for trusting us with your client.`
+        : `I appreciate your business and the opportunity to help protect your investment.`;
 
     const html = `
       <div style="font-family: Arial, sans-serif; background:#020617; color:#f8fafc; padding:24px;">
         <div style="max-width:640px; margin:auto; background:#0f172a; border:1px solid #1e293b; border-radius:16px; padding:24px;">
           <h1 style="color:#2dd4bf; margin-top:0;">${escapeHtml(branding.name)}</h1>
 
-          <p>Hello ${escapeHtml(clientName)},</p>
+          <p>Hello ${escapeHtml(recipientName)},</p>
 
           <p style="line-height:1.6;">
-            Thank you for choosing ${escapeHtml(branding.name)} for:
+            ${introLine}
           </p>
 
           <p style="font-size:18px; font-weight:bold; color:#ffffff;">
@@ -309,8 +363,7 @@ export async function POST(req: Request) {
           </p>
 
           <p style="line-height:1.6;">
-            If you were happy with your inspection experience, would you mind leaving a quick Google review?
-            Reviews help other homeowners and real estate professionals find a reliable inspector.
+            ${askLine}
           </p>
 
           <p style="margin:24px 0;">
@@ -322,7 +375,7 @@ export async function POST(req: Request) {
           </p>
 
           <p style="color:#cbd5e1; line-height:1.6;">
-            I appreciate your business and the opportunity to help protect your investment.
+            ${outroLine}
           </p>
 
           <hr style="border:0; border-top:1px solid #334155; margin:24px 0;" />
@@ -377,13 +430,17 @@ export async function POST(req: Request) {
       );
     }
 
-    await supabase
-      .from("inspections")
-      .update({
-        review_status: "Requested",
-      })
-      .eq("id", inspectionId)
-      .eq(accessFilter.column, accessFilter.value);
+    // review_status tracks the CLIENT review request; don't overwrite it when
+    // asking the agent for a review.
+    if (recipientType === "client") {
+      await supabase
+        .from("inspections")
+        .update({
+          review_status: "Requested",
+        })
+        .eq("id", inspectionId)
+        .eq(accessFilter.column, accessFilter.value);
+    }
 
     await logEmailEvent(supabase, {
       inspectionId,
@@ -393,6 +450,7 @@ export async function POST(req: Request) {
       resendId: resendData?.id || null,
       metadata: {
         type: "review_request",
+        recipient_type: recipientType,
         googleReviewUrl,
       },
     });
@@ -404,8 +462,8 @@ export async function POST(req: Request) {
     });
 
     await sendOwnerPushNotification({
-      title: "Review Request Sent",
-      body: `Review request sent to ${contactEmail} for ${getPropertyLabel(
+      title: recipientType === "realtor" ? "Agent Review Request Sent" : "Review Request Sent",
+      body: `Review request sent to ${recipientType === "realtor" ? "agent " : ""}${contactEmail} for ${getPropertyLabel(
         inspection
       )}.`,
       url: `/reports/${inspectionId}`,
@@ -413,13 +471,14 @@ export async function POST(req: Request) {
       metadata: {
         inspection_id: inspectionId,
         recipient: contactEmail,
+        recipient_type: recipientType,
         property: getPropertyLabel(inspection),
       },
     });
 
     return NextResponse.json({
       success: true,
-      message: `Review request sent to ${contactEmail}.`,
+      message: `Review request sent to ${recipientType === "realtor" ? "the agent" : "the client"} (${contactEmail}).`,
     });
   } catch (error: any) {
     console.error("Send review request error:", error);
