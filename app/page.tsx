@@ -766,6 +766,52 @@ export default async function HomePage() {
     0
   );
 
+  const collectedRevenue = inspections.reduce(
+    (sum: number, inspection: any) => sum + getNumber(inspection.amount_paid),
+    0
+  );
+
+  // Assign every inspection to a single pipeline stage - its earliest
+  // incomplete step - so the funnel reads as a true funnel.
+  const todayKey = currentLocalDate();
+
+  const stageForInspection = (inspection: any): string => {
+    if (!isPublished(inspection)) {
+      const dateKey = String(inspection.inspection_date || "").slice(0, 10);
+      return dateKey && dateKey >= todayKey ? "scheduled" : "report";
+    }
+
+    const unsigned = getAgreementStatsForInspection({
+      inspection,
+      contactsByInspectionId,
+      signedAgreementMap,
+    }).unsignedCount;
+
+    if (unsigned > 0) return "agreement";
+    if (!isPaymentComplete(inspection)) return "payment";
+    return "delivered";
+  };
+
+  const jobsWithStage = inspections.map((inspection: any) => ({
+    inspection,
+    stage: stageForInspection(inspection),
+  }));
+
+  const pipelineCounts = [
+    { key: "scheduled", label: "Scheduled", hint: "Upcoming" },
+    { key: "report", label: "In Report", hint: "Being written" },
+    { key: "agreement", label: "Agreement", hint: "Awaiting signature" },
+    { key: "payment", label: "Payment", hint: "Awaiting payment" },
+    { key: "delivered", label: "Delivered", hint: "Complete" },
+  ].map((stage) => ({
+    ...stage,
+    count: jobsWithStage.filter((job: any) => job.stage === stage.key).length,
+  }));
+
+  const activeJobs = jobsWithStage
+    .filter((job: any) => job.stage !== "delivered")
+    .slice(0, 8);
+
   return (
     <main className="min-h-screen bg-[#020617] px-4 py-8 text-white">
       <DashboardTour initialDismissed={Boolean(tourProfile?.dashboard_tour_dismissed_at)} />
@@ -827,6 +873,53 @@ export default async function HomePage() {
               <CommandMetric label="Repair" value={String(repairStats.waiting)} helper="Waiting response" tone="cyan" />
             </div>
           </div>
+        </section>
+
+        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <KpiTile label="Collected" value={money(collectedRevenue)} sub="Payments received" accent="teal" />
+          <KpiTile label="Outstanding" value={money(totalBalanceDue)} sub={`${unpaidInspections.length} unpaid`} accent="amber" />
+          <KpiTile label="Needs Attention" value={String(needsAttentionCount)} sub="Items to follow up" accent="rose" />
+          <KpiTile label="Published" value={`${publishedReports.length}/${inspections.length}`} sub="Reports delivered" accent="emerald" />
+        </section>
+
+        <section className="rounded-3xl border border-slate-800 bg-[#0b1220] p-6 shadow-xl">
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.3em] text-teal-300">
+                Pipeline
+              </p>
+              <h2 className="mt-1 text-2xl font-black text-white">
+                Every job, at a glance
+              </h2>
+            </div>
+            <Link
+              href="/reports"
+              className="rounded-xl border border-slate-700 px-4 py-2 text-sm font-black text-slate-200 transition hover:border-teal-400 hover:text-teal-200"
+            >
+              All Reports
+            </Link>
+          </div>
+          <PipelineFunnel stages={pipelineCounts} />
+        </section>
+
+        <section className="rounded-3xl border border-slate-800 bg-[#0b1220] p-6 shadow-xl">
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.3em] text-teal-300">
+                Active Jobs
+              </p>
+              <h2 className="mt-1 text-2xl font-black text-white">
+                {activeJobs.length} in progress
+              </h2>
+            </div>
+            <Link
+              href="/reports"
+              className="rounded-xl border border-slate-700 px-4 py-2 text-sm font-black text-slate-200 transition hover:border-teal-400 hover:text-teal-200"
+            >
+              View all
+            </Link>
+          </div>
+          <JobsTable jobs={activeJobs} />
         </section>
 
         <section className="overflow-hidden rounded-3xl border border-amber-500/30 bg-gradient-to-br from-[#0b1220] via-[#0b1220] to-amber-950/10 p-6 shadow-xl">
@@ -1034,13 +1127,6 @@ export default async function HomePage() {
           <ActivityMetric label="Read Time" value={formatDuration(totalReadSeconds)} helper="Completed report reading sessions." />
         </section>
 
-        <section className="grid gap-4 md:grid-cols-4">
-          <ActivityMetric label="Unsigned Agreements" value={String(agreementStats.unsigned)} helper={`${agreementStats.required} required signer${agreementStats.required === 1 ? "" : "s"}.`} />
-          <ActivityMetric label="Unpaid Reports" value={String(unpaidInspections.length)} helper={totalBalanceDue > 0 ? `${money(totalBalanceDue)} total balance due.` : "Payment status needs review."} />
-          <ActivityMetric label="Repair Waiting" value={String(repairStats.waiting)} helper={`${repairStats.responded} seller response${repairStats.responded === 1 ? "" : "s"} received.`} />
-          <ActivityMetric label="Published" value={String(publishedReports.length)} helper="Reports marked published." />
-        </section>
-
         <section className="grid gap-6 xl:grid-cols-[1.1fr_1.9fr]">
           <section className="rounded-2xl border border-slate-800 bg-[#0b1220] p-6 shadow-xl">
             <div className="flex items-center justify-between gap-4">
@@ -1118,31 +1204,29 @@ export default async function HomePage() {
             </div>
           </section>
 
-          <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-            {cards.map((card) => (
-              <Link
-                key={card.href + card.title}
-                href={card.href}
-                data-tour={card.title === "Getting Started" ? "tour-getting-started" : undefined}
-                className="group rounded-2xl border border-slate-800 bg-[#0b1220] p-6 shadow-lg transition hover:-translate-y-0.5 hover:border-teal-500 hover:bg-[#13213a] active:scale-[0.99]"
-              >
-                <div className="mb-5 text-4xl">
-                  {card.icon}
-                </div>
+          <section className="rounded-2xl border border-slate-800 bg-[#0b1220] p-6 shadow-xl">
+            <h2 className="mb-5 text-2xl font-black text-teal-300">All Tools</h2>
 
-                <h2 className="text-2xl font-bold text-white group-hover:text-teal-300">
-                  {card.title}
-                </h2>
-
-                <p className="mt-3 min-h-[48px] text-sm leading-6 text-slate-400">
-                  {card.description}
-                </p>
-
-                <p className="mt-5 font-bold text-teal-400">
-                  Open →
-                </p>
-              </Link>
-            ))}
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {cards.map((card) => (
+                <Link
+                  key={card.href + card.title}
+                  href={card.href}
+                  data-tour={card.title === "Getting Started" ? "tour-getting-started" : undefined}
+                  className="group flex items-center gap-3 rounded-xl border border-slate-800 bg-[#020617]/70 p-3 transition hover:border-teal-500 hover:bg-[#13213a] active:scale-[0.99]"
+                >
+                  <span className="text-2xl">{card.icon}</span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-black text-white group-hover:text-teal-300">
+                      {card.title}
+                    </span>
+                    <span className="block truncate text-xs text-slate-500">
+                      {card.description}
+                    </span>
+                  </span>
+                </Link>
+              ))}
+            </div>
           </section>
         </section>
 
@@ -1300,6 +1384,187 @@ function ActivityMetric({
       <p className="mt-2 text-sm leading-5 text-slate-400">
         {helper}
       </p>
+    </div>
+  );
+}
+
+const STAGE_META: Record<
+  string,
+  { label: string; color: string; chip: string; dot: string }
+> = {
+  scheduled: { label: "Scheduled", color: "text-sky-300", chip: "border-sky-500/40 bg-sky-500/10", dot: "bg-sky-400" },
+  report: { label: "In Report", color: "text-violet-300", chip: "border-violet-500/40 bg-violet-500/10", dot: "bg-violet-400" },
+  agreement: { label: "Agreement", color: "text-amber-300", chip: "border-amber-500/40 bg-amber-500/10", dot: "bg-amber-400" },
+  payment: { label: "Payment", color: "text-orange-300", chip: "border-orange-500/40 bg-orange-500/10", dot: "bg-orange-400" },
+  delivered: { label: "Delivered", color: "text-emerald-300", chip: "border-emerald-500/40 bg-emerald-500/10", dot: "bg-emerald-400" },
+};
+
+function KpiTile({
+  label,
+  value,
+  sub,
+  accent,
+}: {
+  label: string;
+  value: string;
+  sub: string;
+  accent: "teal" | "amber" | "rose" | "emerald";
+}) {
+  const ring = {
+    teal: "border-teal-500/30",
+    amber: "border-amber-500/30",
+    rose: "border-rose-500/30",
+    emerald: "border-emerald-500/30",
+  }[accent];
+
+  const dot = {
+    teal: "bg-teal-400",
+    amber: "bg-amber-400",
+    rose: "bg-rose-400",
+    emerald: "bg-emerald-400",
+  }[accent];
+
+  return (
+    <div className={`rounded-2xl border ${ring} bg-[#0b1220] p-5 shadow-xl`}>
+      <div className="flex items-center gap-2">
+        <span className={`h-2 w-2 rounded-full ${dot}`} />
+        <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">
+          {label}
+        </p>
+      </div>
+      <p className="mt-3 text-4xl font-black tracking-tight text-white tabular-nums">
+        {value}
+      </p>
+      <p className="mt-1 text-sm text-slate-500">{sub}</p>
+    </div>
+  );
+}
+
+function PipelineFunnel({
+  stages,
+}: {
+  stages: { key: string; label: string; hint: string; count: number }[];
+}) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      {stages.map((stage, index) => {
+        const meta = STAGE_META[stage.key] || STAGE_META.report;
+
+        return (
+          <div
+            key={stage.key}
+            className="relative rounded-2xl border border-slate-800 bg-[#020617]/70 p-4"
+          >
+            <div className="flex items-center justify-between">
+              <span className={`h-2.5 w-2.5 rounded-full ${meta.dot}`} />
+              <span className="text-3xl font-black tabular-nums text-white">
+                {stage.count}
+              </span>
+            </div>
+            <p className={`mt-3 text-sm font-black ${meta.color}`}>
+              {stage.label}
+            </p>
+            <p className="mt-0.5 text-xs text-slate-500">{stage.hint}</p>
+            {index < stages.length - 1 ? (
+              <span className="pointer-events-none absolute -right-3 top-1/2 hidden -translate-y-1/2 text-xl font-black text-slate-700 lg:block">
+                ›
+              </span>
+            ) : null}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function StagePill({ stage }: { stage: string }) {
+  const meta = STAGE_META[stage] || STAGE_META.report;
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-black ${meta.chip} ${meta.color}`}
+    >
+      <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
+      {meta.label}
+    </span>
+  );
+}
+
+function PaymentChip({ inspection }: { inspection: any }) {
+  const paid = isPaymentComplete(inspection);
+  const balance = getBalanceDue(inspection);
+
+  return (
+    <span
+      className={
+        paid
+          ? "text-xs font-black text-emerald-300"
+          : "text-xs font-black text-orange-300"
+      }
+    >
+      {paid ? "Paid" : balance > 0 ? `${money(balance)} due` : "Due"}
+    </span>
+  );
+}
+
+function JobsTable({
+  jobs,
+}: {
+  jobs: { inspection: any; stage: string }[];
+}) {
+  if (jobs.length === 0) {
+    return (
+      <div className="rounded-2xl border border-dashed border-slate-700 bg-[#020617]/70 p-8 text-center text-sm text-slate-400">
+        No active jobs - everything is delivered. Nice work.
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[640px] border-collapse text-left">
+        <thead>
+          <tr className="border-b border-slate-800 text-[11px] font-black uppercase tracking-wider text-slate-500">
+            <th className="px-3 py-2">Property / Client</th>
+            <th className="px-3 py-2">Stage</th>
+            <th className="px-3 py-2">Payment</th>
+            <th className="px-3 py-2">Date</th>
+            <th className="px-3 py-2 text-right">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {jobs.map(({ inspection, stage }) => (
+            <tr
+              key={inspection.id}
+              className="border-b border-slate-800/70 transition hover:bg-[#13213a]"
+            >
+              <td className="px-3 py-3">
+                <p className="font-black text-white">{getAddress(inspection)}</p>
+                <p className="text-xs text-slate-500">
+                  {inspection.client_name || "No client listed"}
+                </p>
+              </td>
+              <td className="px-3 py-3">
+                <StagePill stage={stage} />
+              </td>
+              <td className="px-3 py-3">
+                <PaymentChip inspection={inspection} />
+              </td>
+              <td className="px-3 py-3 text-sm tabular-nums text-slate-400">
+                {formatInspectionDate(inspection.inspection_date)}
+              </td>
+              <td className="px-3 py-3 text-right">
+                <Link
+                  href={`/reports/${inspection.id}`}
+                  className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-black text-teal-300 transition hover:border-teal-400 hover:bg-teal-500/10"
+                >
+                  Open
+                </Link>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
