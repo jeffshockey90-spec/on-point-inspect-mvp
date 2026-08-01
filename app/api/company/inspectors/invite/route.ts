@@ -176,16 +176,20 @@ export async function POST(req: Request) {
       }
     }
 
-    for (const ownerEmail of OWNER_EMAILS) {
-      sendPushNotification({
-        title: "🎉 New Account Created",
-        body: `${name} (${email}) was invited as an inspector.`,
-        url: "/dashboard/owner",
-        eventType: "new_account",
-        target: "user",
-        targetUserEmail: ownerEmail,
-      }).catch(() => {});
-    }
+    // Await so the push actually sends - a fire-and-forget promise can be
+    // frozen when the serverless function returns.
+    await Promise.allSettled(
+      OWNER_EMAILS.map((ownerEmail) =>
+        sendPushNotification({
+          title: "🎉 New Account Created",
+          body: `${name} (${email}) was invited as an inspector.`,
+          url: "/dashboard/owner",
+          eventType: "new_account",
+          target: "user",
+          targetUserEmail: ownerEmail,
+        })
+      )
+    );
 
     return NextResponse.json({ ok: true });
   } catch (error: any) {

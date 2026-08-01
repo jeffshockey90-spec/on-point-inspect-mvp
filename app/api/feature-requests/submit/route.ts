@@ -81,18 +81,24 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    for (const ownerEmail of OWNER_EMAILS) {
-      sendPushNotification({
-        title: "💡 New Suggestion",
-        body: `${userName}: ${cleanPreview(message)}`,
-        url: "/dashboard/owner/suggestions",
-        eventType: "feature_request",
-        target: "user",
-        targetUserEmail: ownerEmail,
-      }).catch((err) => {
-        console.error("Feature request owner push failed:", err);
-      });
-    }
+    // Await so the push actually sends before the serverless function returns.
+    const pushResults = await Promise.allSettled(
+      OWNER_EMAILS.map((ownerEmail) =>
+        sendPushNotification({
+          title: "💡 New Suggestion",
+          body: `${userName}: ${cleanPreview(message)}`,
+          url: "/dashboard/owner/suggestions",
+          eventType: "feature_request",
+          target: "user",
+          targetUserEmail: ownerEmail,
+        })
+      )
+    );
+    pushResults.forEach((r) => {
+      if (r.status === "rejected") {
+        console.error("Feature request owner push failed:", r.reason);
+      }
+    });
 
     return NextResponse.json({ ok: true, request: created });
   } catch (error: any) {

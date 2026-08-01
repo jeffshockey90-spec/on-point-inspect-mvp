@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
-import webpush from "web-push";
+import { sendPushNotification } from "../../../../lib/push";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -44,76 +44,22 @@ function cleanPreview(message: string) {
   return message.replace(/\s+/g, " ").trim().slice(0, 140);
 }
 
-async function sendOwnerPush(admin: any, title: string, body: string, url: string) {
-  try {
-    const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-    const privateKey = process.env.VAPID_PRIVATE_KEY;
-    const subject =
-      process.env.VAPID_SUBJECT || "mailto:jeff@onpointhomeinspect.com";
-
-    if (!publicKey || !privateKey) {
-      console.warn("Support owner push skipped: missing VAPID keys.");
-      return;
-    }
-
-    webpush.setVapidDetails(subject, publicKey, privateKey);
-
-    const { data: rows, error } = await admin
-      .from("app_push_subscriptions")
-      .select("*")
-      .eq("enabled", true)
-      .in("user_email", OWNER_EMAILS);
-
-    if (error) {
-      console.error("Support owner push subscription lookup failed:", error);
-      return;
-    }
-
-    let sent = 0;
-    let failed = 0;
-
-    for (const row of rows || []) {
-      try {
-        await webpush.sendNotification(
-          row.subscription,
-          JSON.stringify({
-            title,
-            body,
-            url,
-            eventType: "support_message",
-          })
-        );
-        sent += 1;
-      } catch (error: any) {
-        failed += 1;
-
-        if (error?.statusCode === 404 || error?.statusCode === 410) {
-          await admin
-            .from("app_push_subscriptions")
-            .update({
-              enabled: false,
-              updated_at: new Date().toISOString(),
-            })
-            .eq("endpoint", row.endpoint);
-        }
-      }
-    }
-
-    await admin.from("app_notification_logs").insert({
-      title,
-      body,
-      event_type: "support_message",
-      target_url: url,
-      sent_count: sent,
-      failed_count: failed,
-      metadata: {
-        source: "support_chat",
-        target: "owner",
-      },
-    });
-  } catch (error) {
-    console.error("Support owner push failed:", error);
-  }
+// Notify every owner across BOTH web and native (iOS) devices. The previous
+// implementation only sent web push, so owners who use the native app - with
+// web subscriptions disabled - never got alerted to inspector messages.
+async function sendOwnerPush(title: string, body: string, url: string) {
+  await Promise.allSettled(
+    OWNER_EMAILS.map((ownerEmail) =>
+      sendPushNotification({
+        title,
+        body,
+        url,
+        eventType: "support_message",
+        target: "user",
+        targetUserEmail: ownerEmail,
+      })
+    )
+  );
 }
 
 export async function POST(req: Request) {
@@ -217,7 +163,6 @@ export async function POST(req: Request) {
       .order("created_at", { ascending: true });
 
     await sendOwnerPush(
-      admin,
       "💬 New Inspector Message",
       `${inspectorName}: ${cleanPreview(message)}`,
       "/dashboard/owner/support"

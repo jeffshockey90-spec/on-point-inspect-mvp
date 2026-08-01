@@ -153,17 +153,20 @@ export async function POST(req: Request) {
       })
       .eq("id", thread.id);
 
-    sendPushNotification({
-      title: "💬 Message from Jeff",
-      body: cleanPreview(message),
-      url: "/support",
-      eventType: "support_reply",
-      target: "user",
-      targetUserId: inspectorId,
-      targetUserEmail: inspectorProfile.email || undefined,
-    }).catch((error) => {
+    // Await so the inspector's push actually sends before the function returns.
+    try {
+      await sendPushNotification({
+        title: "💬 Message from Jeff",
+        body: cleanPreview(message),
+        url: "/support",
+        eventType: "support_reply",
+        target: "user",
+        targetUserId: inspectorId,
+        targetUserEmail: inspectorProfile.email || undefined,
+      });
+    } catch (error) {
       console.error("Owner-initiated support push failed:", error);
-    });
+    }
 
     return NextResponse.json({ ok: true, threadId: thread.id });
   } catch (error: any) {

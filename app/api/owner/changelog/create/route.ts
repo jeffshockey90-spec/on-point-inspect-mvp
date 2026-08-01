@@ -111,15 +111,18 @@ export async function POST(req: Request) {
       .eq("id", featureRequestId);
   }
 
-  sendPushNotification({
-    title: `🚀 What's New: ${title}`,
-    body: entryBody.slice(0, 140),
-    url: "/whats-new",
-    eventType: "changelog_entry",
-    target: "inspectors",
-  }).catch((err) => {
+  // Await so the broadcast push actually sends before the function returns.
+  try {
+    await sendPushNotification({
+      title: `🚀 What's New: ${title}`,
+      body: entryBody.slice(0, 140),
+      url: "/whats-new",
+      eventType: "changelog_entry",
+      target: "inspectors",
+    });
+  } catch (err) {
     console.error("Changelog push failed:", err);
-  });
+  }
 
   return NextResponse.json({ ok: true, entry: data });
 }
