@@ -3,13 +3,28 @@ import { createClient } from "@supabase/supabase-js";
 import { sendPushNotification } from "../../../lib/push";
 import { OWNER_EMAILS } from "../../../lib/ownerEmails";
 
+const ALLOWED_ROLES = ["inspector", "client", "realtor"];
+
+// Finalizes a new signup with the service-role client so it works even before
+// the user's email is confirmed (no session yet, so a client-side write would
+// be blocked by RLS). Creates the profile for every role, and a company +
+// owner membership for inspectors.
 export async function POST(req: Request) {
   try {
-    const { userId, email, fullName, businessName } = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const { userId, email, fullName, businessName } = body;
+    const role = ALLOWED_ROLES.includes(body?.role) ? body.role : "inspector";
 
-    if (!userId || !email || !fullName || !businessName) {
+    if (!userId || !email || !fullName) {
       return NextResponse.json(
-        { error: "Missing required signup company fields." },
+        { error: "Missing required signup fields." },
+        { status: 400 }
+      );
+    }
+
+    if (role === "inspector" && !String(businessName || "").trim()) {
+      return NextResponse.json(
+        { error: "Please enter your business name." },
         { status: 400 }
       );
     }
@@ -27,14 +42,20 @@ export async function POST(req: Request) {
         id: userId,
         email,
         full_name: fullName,
-        role: "inspector",
+        role,
+        updated_at: now,
       });
 
     if (profileError) {
       return NextResponse.json(
-        { error: profileError.message },
+        { error: profileError.message || "Could not create your profile." },
         { status: 500 }
       );
+    }
+
+    // Only inspectors get a company + owner membership.
+    if (role !== "inspector") {
+      return NextResponse.json({ success: true });
     }
 
     const { data: existingCompanyUser, error: existingError } =
@@ -46,7 +67,7 @@ export async function POST(req: Request) {
 
     if (existingError) {
       return NextResponse.json(
-        { error: existingError.message },
+        { error: existingError.message || "Could not check existing company." },
         { status: 500 }
       );
     }
@@ -62,7 +83,7 @@ export async function POST(req: Request) {
     const { data: company, error: companyError } = await supabaseAdmin
       .from("companies")
       .insert({
-        name: businessName,
+        name: String(businessName).trim(),
         email,
         created_at: now,
       })
@@ -71,7 +92,7 @@ export async function POST(req: Request) {
 
     if (companyError) {
       return NextResponse.json(
-        { error: companyError.message },
+        { error: companyError.message || "Could not create your company." },
         { status: 500 }
       );
     }
@@ -87,7 +108,7 @@ export async function POST(req: Request) {
 
     if (companyUserError) {
       return NextResponse.json(
-        { error: companyUserError.message },
+        { error: companyUserError.message || "Could not link you to your company." },
         { status: 500 }
       );
     }
@@ -95,7 +116,7 @@ export async function POST(req: Request) {
     for (const ownerEmail of OWNER_EMAILS) {
       sendPushNotification({
         title: "🎉 New Account Created",
-        body: `${fullName} (${email}) just signed up as "${businessName}".`,
+        body: `${fullName} (${email}) just signed up as "${String(businessName).trim()}".`,
         url: "/dashboard/owner",
         eventType: "new_account",
         target: "user",

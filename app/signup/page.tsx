@@ -60,69 +60,81 @@ export default function SignupPage() {
       return;
     }
 
-    const { data, error } = await supabase.auth.signUp({
-      email: cleanedEmail,
-      password,
-      options: {
-        data: {
-          full_name: cleanedName,
-          role,
-          business_name: cleanedBusinessName,
-        },
-      },
-    });
-
-    if (error) {
-      setMessage(error.message);
-      setLoading(false);
-      return;
-    }
-
-    const userId = data.user?.id;
-
-    if (userId) {
-      const { error: profileError } = await supabase.from("profiles").upsert({
-        id: userId,
-        full_name: cleanedName,
+    let signUpData;
+    try {
+      const { data, error } = await supabase.auth.signUp({
         email: cleanedEmail,
-        role,
-        updated_at: new Date().toISOString(),
+        password,
+        options: {
+          data: {
+            full_name: cleanedName,
+            role,
+            business_name: cleanedBusinessName,
+          },
+        },
       });
 
-      if (profileError) {
-        setMessage(profileError.message);
+      if (error) {
+        setMessage(error.message || "We couldn't create your account.");
         setLoading(false);
         return;
       }
 
-      if (role === "inspector") {
-        const companyRes = await fetch("/api/signup-company", {
+      signUpData = data;
+    } catch (err: any) {
+      setMessage(
+        err?.message ||
+          "We couldn't reach the sign-up service. Please try again."
+      );
+      setLoading(false);
+      return;
+    }
+
+    const userId = signUpData?.user?.id;
+
+    // Finalize the account server-side (service role). This creates the
+    // profile for every role, and a company + owner membership for
+    // inspectors, so it works even before the email is confirmed (no
+    // session yet, which would block a client-side write via RLS).
+    if (userId) {
+      try {
+        const finalizeRes = await fetch("/api/signup-company", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             userId,
             email: cleanedEmail,
             fullName: cleanedName,
+            role,
             businessName: cleanedBusinessName,
           }),
         });
 
-        const companyData = await companyRes.json();
+        const finalizeData = await finalizeRes.json().catch(() => null);
 
-        if (!companyRes.ok) {
+        if (!finalizeRes.ok) {
+          const detail =
+            typeof finalizeData?.error === "string"
+              ? finalizeData.error
+              : finalizeData?.error?.message;
           setMessage(
-            companyData.error ||
-              "Account created, but company setup failed. Contact support."
+            detail ||
+              "Your account was created, but setup didn't finish. Please contact support."
           );
           setLoading(false);
           return;
         }
+      } catch (err: any) {
+        setMessage(
+          err?.message ||
+            "Your account was created, but setup didn't finish. Please contact support."
+        );
+        setLoading(false);
+        return;
       }
     }
 
-    setMessage("Account created successfully.");
+    setMessage("Account created successfully. Redirecting to sign in...");
 
     setLoading(false);
 
