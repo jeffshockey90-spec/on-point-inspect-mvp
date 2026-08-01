@@ -12,7 +12,14 @@ export default function SupportUnreadBadge({ className = "", pollMs = 30000 }: P
 
   async function loadCount() {
     try {
-      const res = await fetch("/api/support/unread-count", { cache: "no-store" });
+      // Canonical endpoint - resolves the viewer's role and counts the right
+      // direction: for the owner, unread inspector messages; for an inspector,
+      // unread owner replies. (The old /api/support/unread-count referenced
+      // columns that don't exist and always returned 0, so the badge never
+      // appeared.)
+      const res = await fetch("/api/owner/support/unread-count", {
+        cache: "no-store",
+      });
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {

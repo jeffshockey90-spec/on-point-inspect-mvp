@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { Resend } from "resend";
 import { sendPushNotification } from "../../../lib/push";
 import { OWNER_EMAILS } from "../../../lib/ownerEmails";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const ALLOWED_ROLES = ["inspector", "client", "realtor"];
 
@@ -113,18 +116,51 @@ export async function POST(req: Request) {
       );
     }
 
-    for (const ownerEmail of OWNER_EMAILS) {
-      sendPushNotification({
-        title: "🎉 New Account Created",
-        body: `${fullName} (${email}) just signed up as "${String(businessName).trim()}".`,
-        url: "/dashboard/owner",
-        eventType: "new_account",
-        target: "user",
-        targetUserEmail: ownerEmail,
-      }).catch((error) => {
-        console.error("New account owner push failed:", error);
-      });
-    }
+    // Notify the owner(s) of the new account over BOTH push and email, and
+    // AWAIT them. In a serverless runtime, fire-and-forget promises can be
+    // frozen the moment the response returns - which is why the previous
+    // push often never actually sent. Email is the reliable channel (push
+    // tokens go stale); failures are logged but never block signup.
+    const businessLabel = String(businessName).trim();
+
+    const notifyResults = await Promise.allSettled([
+      ...OWNER_EMAILS.map((ownerEmail) =>
+        sendPushNotification({
+          title: "🎉 New Account Created",
+          body: `${fullName} (${email}) just signed up as "${businessLabel}".`,
+          url: "/dashboard/owner",
+          eventType: "new_account",
+          target: "user",
+          targetUserEmail: ownerEmail,
+        })
+      ),
+      resend.emails.send({
+        from: "FLOW <alerts@onpointhomeinspect.com>",
+        to: OWNER_EMAILS,
+        subject: `New FLOW signup: ${fullName} (${businessLabel})`,
+        html: `
+          <div style="font-family:sans-serif;max-width:520px;margin:0 auto;">
+            <h2 style="margin:0 0 8px;">🎉 New inspector signed up</h2>
+            <p style="margin:0 0 4px;"><strong>${fullName}</strong></p>
+            <p style="margin:0 0 4px;color:#334155;">${email}</p>
+            <p style="margin:0 0 16px;color:#334155;">Business: <strong>${businessLabel}</strong></p>
+            <p style="margin:16px 0;">
+              <a href="https://app.flowinspect.app/dashboard/owner/users" style="display:inline-block;background:#14b8a6;color:#020617;font-weight:bold;padding:12px 18px;border-radius:10px;text-decoration:none;">
+                View in Owner Dashboard
+              </a>
+            </p>
+            <p style="font-size:12px;color:#64748b;">FLOW</p>
+          </div>
+        `,
+        text: `New inspector signed up on FLOW\n\n${fullName}\n${email}\nBusiness: ${businessLabel}\n\nhttps://app.flowinspect.app/dashboard/owner/users`,
+      }),
+    ]);
+
+    notifyResults.forEach((result) => {
+      if (result.status === "rejected") {
+        console.error("New account owner alert failed:", result.reason);
+      }
+    });
 
     return NextResponse.json({
       success: true,

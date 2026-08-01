@@ -363,6 +363,10 @@ function buildRows({
 
     const current = rows.get(inspectorId)!;
     const date = getInspectionDate(inspection);
+    // Use the real report-creation timestamp for "last activity" - NOT the
+    // scheduled inspection_date, which is date-only and renders as a
+    // misleading fixed time (midnight UTC shifted into the local timezone).
+    const activityTs = inspection?.created_at || null;
 
     current.reports += 1;
     if (isAfter(date, sevenDaysAgo)) current.reports7 += 1;
@@ -372,10 +376,10 @@ function buildRows({
     const currentTime = current.lastActivity
       ? new Date(current.lastActivity).getTime()
       : 0;
-    const nextTime = date ? new Date(date).getTime() : 0;
+    const nextTime = activityTs ? new Date(activityTs).getTime() : 0;
 
     if (!Number.isNaN(nextTime) && nextTime > currentTime) {
-      current.lastActivity = date;
+      current.lastActivity = activityTs;
     }
   });
 
