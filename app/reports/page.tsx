@@ -439,11 +439,15 @@ export default async function ReportsPage() {
       <div className="mx-auto max-w-[96rem]">
         <div className="mb-10 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 className="text-5xl font-bold text-teal-400">
+            <p className="mb-2 text-xs font-black uppercase tracking-[0.35em] text-teal-300">
+              Reports
+            </p>
+
+            <h1 className="text-4xl font-black tracking-tight text-white md:text-5xl">
               Saved Inspections
             </h1>
 
-            <p className="mt-3 text-slate-300">
+            <p className="mt-3 max-w-2xl text-slate-400">
               Manage inspection reports, publishing, client delivery, and live report engagement.
             </p>
           </div>

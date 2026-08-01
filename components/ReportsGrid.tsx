@@ -31,7 +31,22 @@ export type PreparedReport = {
 };
 
 type SortOption = "newest" | "oldest" | "address" | "most-viewed";
-type StatusFilter = "all" | "client-viewed" | "not-viewed" | "email-clicked";
+type StatusFilter =
+  | "all"
+  | "draft"
+  | "published"
+  | "unpaid"
+  | "client-viewed"
+  | "not-viewed";
+
+const STATUS_TABS: { key: StatusFilter; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "draft", label: "Drafts" },
+  { key: "published", label: "Published" },
+  { key: "unpaid", label: "Unpaid" },
+  { key: "client-viewed", label: "Client Viewed" },
+  { key: "not-viewed", label: "No Views" },
+];
 
 function matchesSearch(report: PreparedReport, query: string) {
   if (!query) return true;
@@ -50,9 +65,11 @@ function matchesSearch(report: PreparedReport, query: string) {
 
 function matchesStatus(report: PreparedReport, status: StatusFilter) {
   if (status === "all") return true;
+  if (status === "draft") return !report.published;
+  if (status === "published") return report.published;
+  if (status === "unpaid") return !report.paymentComplete;
   if (status === "client-viewed") return report.activity.clientViewed;
   if (status === "not-viewed") return report.activity.totalViews === 0;
-  if (status === "email-clicked") return report.activity.emailClicked;
   return true;
 }
 
@@ -77,42 +94,80 @@ export default function ReportsGrid({ reports }: { reports: PreparedReport[] }) 
     return sorted;
   }, [reports, search, status, sort]);
 
+  const counts = useMemo(() => {
+    const searched = reports.filter((report) => matchesSearch(report, search));
+    return {
+      all: searched.length,
+      draft: searched.filter((report) => !report.published).length,
+      published: searched.filter((report) => report.published).length,
+      unpaid: searched.filter((report) => !report.paymentComplete).length,
+      "client-viewed": searched.filter((report) => report.activity.clientViewed)
+        .length,
+      "not-viewed": searched.filter(
+        (report) => report.activity.totalViews === 0,
+      ).length,
+    } as Record<StatusFilter, number>;
+  }, [reports, search]);
+
   return (
     <div>
-      <div className="mb-6 flex flex-wrap items-center gap-3 rounded-2xl border border-slate-800 bg-[#0b1220] p-4">
-        <input
-          type="text"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder="Search by address, client, or realtor..."
-          className="min-w-[220px] flex-1 rounded-xl border border-slate-700 bg-slate-950 px-4 py-2.5 text-sm text-white placeholder:text-slate-500 outline-none focus:border-teal-400"
-        />
+      <div className="mb-6 space-y-3 rounded-2xl border border-slate-800 bg-[#0b1220] p-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex min-w-[220px] flex-1 items-center gap-2 rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 focus-within:border-teal-400">
+            <span className="text-slate-500">🔎</span>
+            <input
+              type="text"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search by address, client, or realtor..."
+              className="flex-1 bg-transparent text-sm text-white placeholder:text-slate-500 outline-none"
+            />
+          </div>
 
-        <select
-          value={status}
-          onChange={(event) => setStatus(event.target.value as StatusFilter)}
-          className="rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm font-bold text-slate-200 outline-none focus:border-teal-400"
-        >
-          <option value="all">All Reports</option>
-          <option value="client-viewed">Client Viewed</option>
-          <option value="not-viewed">No Views Yet</option>
-          <option value="email-clicked">Email Clicked</option>
-        </select>
+          <select
+            value={sort}
+            onChange={(event) => setSort(event.target.value as SortOption)}
+            className="rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm font-bold text-slate-200 outline-none focus:border-teal-400"
+          >
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+            <option value="most-viewed">Most Viewed</option>
+            <option value="address">Address A-Z</option>
+          </select>
 
-        <select
-          value={sort}
-          onChange={(event) => setSort(event.target.value as SortOption)}
-          className="rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm font-bold text-slate-200 outline-none focus:border-teal-400"
-        >
-          <option value="newest">Newest First</option>
-          <option value="oldest">Oldest First</option>
-          <option value="most-viewed">Most Viewed</option>
-          <option value="address">Address A-Z</option>
-        </select>
+          <span className="text-xs font-bold text-slate-500 tabular-nums">
+            {visibleReports.length} of {reports.length}
+          </span>
+        </div>
 
-        <span className="text-xs font-bold text-slate-500">
-          {visibleReports.length} of {reports.length}
-        </span>
+        <div className="flex flex-wrap gap-2">
+          {STATUS_TABS.map((tab) => {
+            const isActive = status === tab.key;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setStatus(tab.key)}
+                className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-black transition ${
+                  isActive
+                    ? "border-teal-400/60 bg-teal-500/15 text-teal-200"
+                    : "border-slate-700 bg-slate-950 text-slate-400 hover:border-slate-500 hover:text-slate-200"
+                }`}
+              >
+                {tab.label}
+                <span
+                  className={`rounded-full px-1.5 py-0.5 text-[10px] tabular-nums ${
+                    isActive
+                      ? "bg-teal-500/25 text-teal-100"
+                      : "bg-slate-800 text-slate-400"
+                  }`}
+                >
+                  {counts[tab.key]}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {visibleReports.length === 0 ? (
@@ -274,8 +329,8 @@ function StatusBadge({
     <span
       className={
         good
-          ? "rounded-full border border-green-500/40 bg-green-500/10 px-3 py-1 text-xs font-black text-green-300"
-          : "rounded-full border border-red-500/40 bg-red-500/10 px-3 py-1 text-xs font-black text-red-300"
+          ? "rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-black text-emerald-300"
+          : "rounded-full border border-amber-500/40 bg-amber-500/10 px-3 py-1 text-xs font-black text-amber-300"
       }
     >
       {good ? goodLabel : badLabel}
