@@ -18,30 +18,50 @@ import MarketingHomepage from "../components/MarketingHomepage";
 import CommandSearchTrigger from "../components/CommandSearchTrigger";
 import SetupChecklist from "../components/SetupChecklist";
 import DashboardTrends from "../components/DashboardTrends";
-import { Plus, Smartphone, CalendarDays, FileDown } from "lucide-react";
+import {
+  Plus,
+  Smartphone,
+  CalendarDays,
+  FileDown,
+  Rocket,
+  FileText,
+  BarChart3,
+  Building2,
+  Trophy,
+  DollarSign,
+  FileSignature,
+  Lock,
+  Wrench,
+  Radiation,
+  FlaskConical,
+  Sparkles,
+  Search,
+  LayoutTemplate,
+  Calculator,
+} from "lucide-react";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 const cards = [
-  { title: "Getting Started", description: "Set up your account, create sample data, and walk through your first inspection.", href: "/onboarding", icon: "🚀" },
-  { title: "New Inspection", description: "Start a new inspection.", href: "/inspections/new", icon: "🏠" },
-  { title: "Reports", description: "View and edit reports.", href: "/reports", icon: "📋" },
-  { title: "Analytics", description: "Track revenue, inspections, payments, agreements, and reports.", href: "/analytics", icon: "📊" },
-  { title: "Realtors", description: "Manage realtor contacts, referrals, and revenue.", href: "/realtors", icon: "🏡" },
-  { title: "Referral Leaderboard", description: "Rank realtor referrals, revenue, paid inspections, and outstanding balances.", href: "/realtors/leaderboard", icon: "🏆" },
-  { title: "Invoices", description: "Track paid, pending, overdue, and outstanding balances.", href: "/invoices", icon: "💰" },
-  { title: "Agreements", description: "Manage agreement templates, sending, and signed status.", href: "/agreements", icon: "📝" },
-  { title: "Client Portal", description: "Open client portals from reports after selecting an inspection.", href: "/reports", icon: "🔐" },
-  { title: "Repair Requests", description: "Open repair requests from reports after selecting an inspection.", href: "/reports", icon: "🛠️" },
-  { title: "Radon", description: "Manage radon tests, readings, devices, and results.", href: "/radon", icon: "☢️" },
-  { title: "Mold", description: "Track mold samples, lab reports, results, and summaries.", href: "/mold", icon: "🧫" },
-  { title: "AI Capture", description: "Create findings from photos.", href: "/ai-capture", icon: "🤖" },
-  { title: "Equipment Analyzer", description: "Read data plates and document equipment inventory.", href: "/equipment-analyzer", icon: "🔎" },
-  { title: "Field Tool", description: "Mobile AI inspection workflow.", href: "/field", icon: "📱" },
-  { title: "Templates", description: "Manage favorite findings, templates, and reusable language.", href: "/templates", icon: "🧩" },
-  { title: "Quotes", description: "Calculate pricing.", href: "/quotes", icon: "💲" },
-  { title: "Schedule", description: "View inspection schedule.", href: "/schedule", icon: "🗓️" },
+  { title: "Getting Started", description: "Set up your account, create sample data, and walk through your first inspection.", href: "/onboarding", icon: Rocket },
+  { title: "New Inspection", description: "Start a new inspection.", href: "/inspections/new", icon: Plus },
+  { title: "Reports", description: "View and edit reports.", href: "/reports", icon: FileText },
+  { title: "Analytics", description: "Track revenue, inspections, payments, agreements, and reports.", href: "/analytics", icon: BarChart3 },
+  { title: "Realtors", description: "Manage realtor contacts, referrals, and revenue.", href: "/realtors", icon: Building2 },
+  { title: "Referral Leaderboard", description: "Rank realtor referrals, revenue, paid inspections, and outstanding balances.", href: "/realtors/leaderboard", icon: Trophy },
+  { title: "Invoices", description: "Track paid, pending, overdue, and outstanding balances.", href: "/invoices", icon: DollarSign },
+  { title: "Agreements", description: "Manage agreement templates, sending, and signed status.", href: "/agreements", icon: FileSignature },
+  { title: "Client Portal", description: "Open client portals from reports after selecting an inspection.", href: "/reports", icon: Lock },
+  { title: "Repair Requests", description: "Open repair requests from reports after selecting an inspection.", href: "/reports", icon: Wrench },
+  { title: "Radon", description: "Manage radon tests, readings, devices, and results.", href: "/radon", icon: Radiation },
+  { title: "Mold", description: "Track mold samples, lab reports, results, and summaries.", href: "/mold", icon: FlaskConical },
+  { title: "AI Capture", description: "Create findings from photos.", href: "/ai-capture", icon: Sparkles },
+  { title: "Equipment Analyzer", description: "Read data plates and document equipment inventory.", href: "/equipment-analyzer", icon: Search },
+  { title: "Field Tool", description: "Mobile AI inspection workflow.", href: "/field", icon: Smartphone },
+  { title: "Templates", description: "Manage favorite findings, templates, and reusable language.", href: "/templates", icon: LayoutTemplate },
+  { title: "Quotes", description: "Calculate pricing.", href: "/quotes", icon: Calculator },
+  { title: "Schedule", description: "View inspection schedule.", href: "/schedule", icon: CalendarDays },
 ];
 
 async function createSupabaseServerClient() {
@@ -1241,14 +1261,18 @@ export default async function HomePage() {
             <h2 className="mb-5 text-2xl font-black text-teal-300">All Tools</h2>
 
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {cards.map((card) => (
+              {cards.map((card) => {
+                const CardIcon = card.icon;
+                return (
                 <Link
                   key={card.href + card.title}
                   href={card.href}
                   data-tour={card.title === "Getting Started" ? "tour-getting-started" : undefined}
                   className="group flex items-center gap-3 rounded-xl border border-slate-800 bg-[#020617]/70 p-3 transition hover:border-teal-500 hover:bg-[#13213a] active:scale-[0.99]"
                 >
-                  <span className="text-2xl">{card.icon}</span>
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-700 bg-slate-900 text-teal-300 transition group-hover:border-teal-500/60 group-hover:text-teal-200">
+                    <CardIcon className="h-5 w-5" strokeWidth={2} />
+                  </span>
                   <span className="min-w-0">
                     <span className="block truncate text-sm font-black text-white group-hover:text-teal-300">
                       {card.title}
@@ -1258,7 +1282,8 @@ export default async function HomePage() {
                     </span>
                   </span>
                 </Link>
-              ))}
+                );
+              })}
             </div>
           </section>
         </section>
