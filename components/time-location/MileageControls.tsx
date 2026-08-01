@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 function formatTripDate(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return date.toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric" });
 }
 
 export default function MileageControls({ inspectionId, purpose = "Inspection travel" }: { inspectionId?: string; purpose?: string }) {

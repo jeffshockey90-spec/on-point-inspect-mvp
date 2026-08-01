@@ -1223,7 +1223,7 @@ function RepairRequestContent() {
                         </span>
                       </p>
                       <p className="mt-1 text-xs text-slate-500">
-                        Sent {share.created_at ? new Date(share.created_at).toLocaleDateString() : ""}
+                        Sent {share.created_at ? new Date(share.created_at).toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" }) : ""}
                       </p>
                     </div>
                     <span

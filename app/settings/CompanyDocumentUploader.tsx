@@ -137,7 +137,7 @@ export default function CompanyDocumentUploader({
       {path && (
         <div className="mt-3 flex flex-wrap items-center gap-3 rounded-xl border border-slate-800 bg-[#020617] p-3">
           <p className="text-xs font-bold text-emerald-300">
-            W9 on file{uploadedAt ? ` · uploaded ${new Date(uploadedAt).toLocaleDateString()}` : ""}
+            W9 on file{uploadedAt ? ` · uploaded ${new Date(uploadedAt).toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" })}` : ""}
           </p>
           <button
             type="button"

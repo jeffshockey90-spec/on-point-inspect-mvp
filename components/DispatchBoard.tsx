@@ -18,7 +18,15 @@ function formatDate(value: string) {
   if (!value) return "No date set";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  // Pin locale + timeZone so the server (UTC) and client (local) render the
+  // same text - otherwise the date differs between them and React reports a
+  // hydration mismatch (#418). UTC also keeps a date-only value on its own day.
+  return date.toLocaleDateString("en-US", {
+    timeZone: "UTC",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 }
 
 export default function DispatchBoard({

@@ -41,7 +41,7 @@ function HistoryRow({ entry, isCurrent }: { entry: HistoryEntry; isCurrent: bool
     <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-800 bg-[#020617] px-3 py-2">
       <div>
         <p className="text-xs font-bold text-slate-200">
-          {new Date(entry.created_at).toLocaleString()}
+          {new Date(entry.created_at).toLocaleString("en-US", { timeZone: "UTC", month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}
           {isCurrent && (
             <span className="ml-2 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-black uppercase text-emerald-300">
               Current
