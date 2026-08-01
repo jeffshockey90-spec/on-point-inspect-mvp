@@ -373,6 +373,9 @@ function NewInspectionPageContent() {
     () => (searchParams.get("serviceMode") as ServiceMode) || "home"
   );
   const [price, setPrice] = useState("500");
+  // True once the inspector types a custom price, so auto-pricing stops
+  // overwriting it. They can reset back to auto at any time.
+  const [priceOverridden, setPriceOverridden] = useState(false);
   const [services, setServices] = useState("Home Inspection");
   const [notes, setNotes] = useState("");
 
@@ -442,6 +445,14 @@ function NewInspectionPageContent() {
     ]
   );
 
+  // The price actually used (and saved): the inspector's custom price when
+  // they've overridden (and left the field non-empty), otherwise the
+  // auto-calculated total.
+  const effectiveTotal =
+    priceOverridden && String(price).trim() !== ""
+      ? Number(price) || 0
+      : quote.total;
+
   const filteredRealtors = useMemo(() => {
     const search = realtorName.trim().toLowerCase();
 
@@ -462,9 +473,10 @@ function NewInspectionPageContent() {
   }, []);
 
   useEffect(() => {
-    setPrice(String(quote.total));
+    // Only auto-fill the price while the inspector hasn't set a custom one.
+    if (!priceOverridden) setPrice(String(quote.total));
     setServices(quote.serviceLabel);
-  }, [quote.total, quote.serviceLabel]);
+  }, [quote.total, quote.serviceLabel, priceOverridden]);
 
   async function loadRealtors() {
     try {
@@ -834,7 +846,7 @@ function NewInspectionPageContent() {
         return;
       }
 
-      const totalPrice = Number(price || quote.total || 500);
+      const totalPrice = Number(effectiveTotal) || quote.total || 500;
 
       const fullAddressForImage = `${propertyAddress}, ${city || ""}, ${
         stateValue || ""
@@ -1533,7 +1545,15 @@ function NewInspectionPageContent() {
               </select>
             </div>
 
-            <LabeledInput label="Price" value={price} onChange={setPrice} placeholder="Price" />
+            <LabeledInput
+              label="Price"
+              value={price}
+              onChange={(value) => {
+                setPrice(value);
+                setPriceOverridden(true);
+              }}
+              placeholder="Price"
+            />
 
             {quote.includesHome && (
               <LabeledInput
@@ -1582,12 +1602,25 @@ function NewInspectionPageContent() {
           </div>
 
           <div className="mt-5 rounded-2xl border border-teal-500/40 bg-teal-500/10 p-5">
-            <p className="text-sm font-bold uppercase tracking-wide text-zinc-400">
-              Auto Pricing
-            </p>
-            <p className="mt-2 text-4xl font-black text-teal-300">
-              ${quote.total}
-            </p>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-bold uppercase tracking-wide text-zinc-400">
+                  {priceOverridden ? "Custom Price" : "Auto Pricing"}
+                </p>
+                <p className="mt-2 text-4xl font-black text-teal-300">
+                  ${effectiveTotal}
+                </p>
+              </div>
+              {priceOverridden && (
+                <button
+                  type="button"
+                  onClick={() => setPriceOverridden(false)}
+                  className="shrink-0 rounded-lg border border-teal-500/50 px-3 py-1.5 text-xs font-black text-teal-200 transition hover:bg-teal-500/10"
+                >
+                  Reset to auto (${quote.total})
+                </button>
+              )}
+            </div>
             <div className="mt-4 grid gap-2 text-sm text-zinc-300 md:grid-cols-2">
               <p>Home Inspection: ${quote.base}</p>
               <p>Radon: ${quote.radonFee}</p>
@@ -1596,8 +1629,14 @@ function NewInspectionPageContent() {
               <p>Mold Surface Samples: ${quote.moldSurfaceFee}</p>
               <p>Travel Fee: ${quote.travelFee}</p>
               <p>Discount: -${quote.discount}</p>
-              <p className="font-bold text-white">Total: ${quote.total}</p>
+              <p className="font-bold text-white">Total: ${effectiveTotal}</p>
             </div>
+            {priceOverridden && (
+              <p className="mt-3 text-xs text-teal-200/80">
+                Using your custom price. The breakdown above shows the
+                auto-calculated amounts for reference.
+              </p>
+            )}
           </div>
 
           <Input
