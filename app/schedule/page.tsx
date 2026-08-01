@@ -125,7 +125,10 @@ function formatTime(value: string) {
 
 function formatBookingDate(value: any) {
   if (!value) return "Date not entered";
-  const date = new Date(`${value}T00:00:00`);
+  // Noon anchor, not midnight: new Date("...T00:00:00") is midnight UTC, which
+  // formatAppValue then renders in Eastern as the previous day. Noon keeps the
+  // calendar date stable across US timezones.
+  const date = new Date(`${String(value).slice(0, 10)}T12:00:00`);
   if (Number.isNaN(date.getTime())) return String(value);
   return formatAppValue(date, {
     weekday: "short",
