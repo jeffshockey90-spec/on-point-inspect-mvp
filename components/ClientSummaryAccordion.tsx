@@ -163,23 +163,27 @@ function toneClasses(tone: SummaryTone) {
     return {
       border: "border-red-500/55",
       count: "border-red-500/40 bg-red-500/10 text-red-200",
+      stripe: "border-l-red-500",
     };
   }
   if (tone === "yellow") {
     return {
       border: "border-yellow-500/45",
       count: "border-yellow-500/40 bg-yellow-500/10 text-yellow-200",
+      stripe: "border-l-yellow-500",
     };
   }
   if (tone === "blue") {
     return {
       border: "border-blue-500/45",
       count: "border-blue-500/40 bg-blue-500/10 text-blue-200",
+      stripe: "border-l-blue-500",
     };
   }
   return {
     border: "border-teal-500/45",
     count: "border-teal-500/40 bg-teal-500/10 text-teal-200",
+    stripe: "border-l-teal-500",
   };
 }
 
@@ -250,7 +254,7 @@ function CompactSummaryCard({
   return (
     <article
       data-summary-card-id={cardId}
-      className={`overflow-hidden rounded-2xl border bg-[#0b1426] ${toneStyle.border}`}
+      className={`overflow-hidden rounded-2xl border border-l-4 bg-[#0b1426] transition hover:bg-[#0e1830] ${toneStyle.border} ${toneStyle.stripe}`}
     >
       <div className="grid w-full grid-cols-[116px_minmax(0,1fr)] gap-4 p-4 sm:grid-cols-[132px_minmax(0,1fr)]">
         <div className="relative h-[116px] w-[116px] overflow-hidden rounded-xl border border-slate-700 bg-slate-900 sm:h-[132px] sm:w-[132px]">
