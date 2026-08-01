@@ -23,8 +23,13 @@ export default async function PricingPage() {
   const pricing = await getSubscriptionPricing();
 
   return (
-    <main className="min-h-screen bg-[#020617] px-4 py-10 text-white md:px-6 md:py-16">
-      <div className="mx-auto max-w-5xl">
+    <main className="relative min-h-screen overflow-hidden bg-[#050816] px-4 py-10 text-white md:px-6 md:py-16">
+      <div aria-hidden className="pointer-events-none absolute inset-0">
+        <div className="absolute left-1/2 top-[-8%] h-[420px] w-[720px] -translate-x-1/2 rounded-full bg-teal-500/15 blur-[150px]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(20,200,210,0.08),transparent_50%)]" />
+      </div>
+
+      <div className="relative mx-auto max-w-5xl">
         <div className="text-center">
           <p className="text-sm font-black uppercase tracking-[0.35em] text-teal-400">
             FLOW Pricing
@@ -60,8 +65,8 @@ export default async function PricingPage() {
             </Link>
           </div>
 
-          <div className="relative rounded-3xl border border-teal-500 bg-[#0f172a] p-8 shadow-2xl">
-            <div className="absolute -top-3 left-8 rounded-full bg-teal-500 px-4 py-1 text-xs font-black uppercase text-slate-950">
+          <div className="relative rounded-3xl border border-teal-500/70 bg-gradient-to-b from-teal-500/10 to-[#0f172a] p-8 shadow-[0_24px_80px_-24px_rgba(20,200,210,0.35)]">
+            <div className="absolute -top-3 left-8 rounded-full bg-teal-500 px-4 py-1 text-xs font-black uppercase text-slate-950 shadow-lg shadow-teal-500/30">
               Most Inspectors
             </div>
             <p className="text-sm font-black uppercase tracking-wide text-teal-300">
