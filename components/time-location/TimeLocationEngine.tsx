@@ -73,6 +73,21 @@ export default function TimeLocationEngine() {
   }, []);
 
   const getCoords = useCallback(async () => {
+    // On the native app, use Capacitor Geolocation for a reliable,
+    // permission-aware fix (so we capture the exact spot a trip starts/stops).
+    if (isNative()) {
+      try {
+        const { Geolocation } = await import("@capacitor/geolocation");
+        const perm = await Geolocation.checkPermissions();
+        if (perm.location !== "granted" && perm.coarseLocation !== "granted") {
+          await Geolocation.requestPermissions({ permissions: ["location", "coarseLocation"] });
+        }
+        const p = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 20000, maximumAge: 5000 });
+        return { latitude: p.coords.latitude, longitude: p.coords.longitude };
+      } catch (error) {
+        console.warn("Native getCurrentPosition failed; falling back to browser.", error);
+      }
+    }
     if (!navigator.geolocation) return undefined;
     try {
       const p = await new Promise<GeolocationPosition>((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 }));
@@ -159,8 +174,14 @@ export default function TimeLocationEngine() {
   useEffect(() => {
     const i = presence?.inspections;
     const lat = Number(i?.property_latitude), lng = Number(i?.property_longitude);
-    if (!presence?.id || !Number.isFinite(lat) || !Number.isFinite(lng)) return;
-    const enterRadius = Math.max(100, Number(presence.geofence_radius_meters || 220));
+    const hasGeofence = Boolean(presence?.id) && Number.isFinite(lat) && Number.isFinite(lng);
+    const hasActiveTrip = Boolean(activeTrip?.id);
+    // Watch GPS whenever we need it: for geofence arrive/depart OR to record
+    // mileage points. This used to run only during a geofence presence
+    // session, so a manually-started trip (e.g. from the interstate) logged
+    // zero points and stopped at 0.0 miles.
+    if (!hasGeofence && !hasActiveTrip) return;
+    const enterRadius = Math.max(100, Number(presence?.geofence_radius_meters || 220));
     const exitRadius = Math.max(enterRadius + 120, enterRadius * 1.8);
     let stopped = false;
     let nativeWatchId: string | null = null;
@@ -172,16 +193,23 @@ export default function TimeLocationEngine() {
       const timestamp = Number(raw?.time ?? raw?.timestamp ?? Date.now());
       if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || accuracy > 150 || stopped) return;
       const coords = { latitude, longitude };
-      const meters = distanceMeters(latitude, longitude, lat, lng);
-      if (meters <= enterRadius) { insideCount.current += 1; outsideCount.current = 0; }
-      else if (meters >= exitRadius) { outsideCount.current += 1; insideCount.current = 0; }
-      else { insideCount.current = 0; outsideCount.current = 0; }
-      if (!presence.arrived_at && insideCount.current >= 2) {
-        const at = new Date(timestamp).toISOString();
-        await fetch("/api/inspection-presence", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "arrive", ...coords, recordedAt: at }) });
-        setPresence(current => current ? { ...current, arrived_at: at } : current);
+
+      // Geofence arrive/depart - only when there's a presence session with
+      // property coordinates.
+      if (hasGeofence && presence) {
+        const meters = distanceMeters(latitude, longitude, lat, lng);
+        if (meters <= enterRadius) { insideCount.current += 1; outsideCount.current = 0; }
+        else if (meters >= exitRadius) { outsideCount.current += 1; insideCount.current = 0; }
+        else { insideCount.current = 0; outsideCount.current = 0; }
+        if (!presence.arrived_at && insideCount.current >= 2) {
+          const at = new Date(timestamp).toISOString();
+          await fetch("/api/inspection-presence", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "arrive", ...coords, recordedAt: at }) });
+          setPresence(current => current ? { ...current, arrived_at: at } : current);
+        }
+        if (presence.arrived_at && outsideCount.current >= 3) await promptDeparture(presence, coords);
       }
-      if (presence.arrived_at && outsideCount.current >= 3) await promptDeparture(presence, coords);
+
+      // Mileage points - whenever a trip is active, independent of presence.
       if (activeTrip?.id && Date.now() - lastPointSent.current >= 10000) {
         lastPointSent.current = Date.now();
         const r = await fetch("/api/mileage", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "point", tripId: activeTrip.id, ...coords, accuracy, recordedAt: new Date(timestamp).toISOString() }) });
