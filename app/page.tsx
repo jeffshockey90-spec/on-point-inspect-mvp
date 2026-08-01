@@ -38,6 +38,8 @@ import {
   Search,
   LayoutTemplate,
   Calculator,
+  Lightbulb,
+  Zap,
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -978,8 +980,8 @@ export default async function HomePage() {
         <section className="overflow-hidden rounded-3xl border border-amber-500/30 bg-gradient-to-br from-[#0b1220] via-[#0b1220] to-amber-950/10 p-6 shadow-xl">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.3em] text-amber-300">
-                🚀 What&apos;s New
+              <p className="inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-[0.3em] text-amber-300">
+                <Rocket className="h-3.5 w-3.5" strokeWidth={2.5} /> What&apos;s New
               </p>
               <h2 className="mt-2 text-2xl font-black text-white">
                 Latest updates to FLOW
@@ -995,9 +997,9 @@ export default async function HomePage() {
               </Link>
               <Link
                 href="/support"
-                className="rounded-xl border border-amber-400/60 bg-amber-500/10 px-4 py-2.5 text-sm font-black text-amber-200 transition hover:bg-amber-500/20"
+                className="inline-flex items-center gap-2 rounded-xl border border-amber-400/60 bg-amber-500/10 px-4 py-2.5 text-sm font-black text-amber-200 transition hover:bg-amber-500/20"
               >
-                💡 Suggest a Feature
+                <Lightbulb className="h-4 w-4" strokeWidth={2.5} /> Suggest a Feature
               </Link>
             </div>
           </div>
@@ -1021,8 +1023,8 @@ export default async function HomePage() {
                   <p className="mt-1 font-black text-white">{entry.title}</p>
                   <p className="mt-1 line-clamp-2 text-sm text-slate-400">{entry.body}</p>
                   {entry.credited_user_name && (
-                    <p className="mt-2 text-xs font-black text-amber-300">
-                      ✨ Requested by {entry.credited_user_name}
+                    <p className="mt-2 inline-flex items-center gap-1.5 text-xs font-black text-amber-300">
+                      <Sparkles className="h-3.5 w-3.5" strokeWidth={2.5} /> Requested by {entry.credited_user_name}
                     </p>
                   )}
                 </Link>
@@ -1142,8 +1144,8 @@ export default async function HomePage() {
                 </p>
               </div>
 
-              <span className="rounded-2xl bg-yellow-500/10 p-4 text-3xl">
-                ⚡
+              <span className="flex items-center justify-center rounded-2xl bg-yellow-500/10 p-4 text-yellow-300">
+                <Zap className="h-7 w-7" strokeWidth={2.25} />
               </span>
             </div>
 

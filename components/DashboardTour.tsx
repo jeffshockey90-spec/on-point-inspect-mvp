@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, type CSSProperties } from "react";
+import { Compass } from "lucide-react";
 
 type TourStep = {
   target: string;
@@ -151,7 +152,7 @@ export default function DashboardTour({
         onClick={restartTour}
         className="fixed bottom-24 right-4 z-[150] flex items-center gap-2 rounded-full border border-teal-500/50 bg-[#0b1220] px-4 py-3 text-xs font-black uppercase tracking-wide text-teal-300 shadow-2xl shadow-black/40 transition hover:border-teal-300 hover:text-teal-200 active:scale-[0.97] xl:bottom-6"
       >
-        🧭 Take the Tour
+        <Compass className="h-4 w-4" strokeWidth={2.5} /> Take the Tour
       </button>
     );
   }
