@@ -1,5 +1,6 @@
 
 import { formatAppValue } from "../../../lib/app-time";
+import { isPaymentComplete } from "../../../lib/inspectionStatus";
 import { resolveActiveSections, filterSectionsForServiceMode } from "../../../lib/reportSections";
 import { resolveInspectionAccessFilter } from "../../../lib/inspectionAccess";
 import { redirect } from "next/navigation";
@@ -2729,6 +2730,60 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
         clientInfo={inspection}
       />
       <div className="mx-auto w-full max-w-none px-1 py-2 sm:px-2 md:px-4 lg:max-w-[96rem] lg:py-8">
+        {/* Report context header - always shows which report you're editing + its live status */}
+        <div className="mb-4 rounded-2xl border border-slate-800 bg-[#0f172a] px-4 py-3 shadow-lg md:rounded-3xl md:px-6 md:py-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-teal-400">
+                Editing Report
+              </p>
+              <h1 className="truncate text-xl font-black tracking-tight text-white md:text-2xl">
+                {inspection.property_address || inspection.address || "Untitled Report"}
+              </h1>
+              <p className="mt-0.5 truncate text-sm text-slate-400">
+                {[
+                  inspection.client_name,
+                  [inspection.city, inspection.state].filter(Boolean).join(", "),
+                ]
+                  .filter(Boolean)
+                  .join("  ·  ") || "No client on file"}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span
+                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-black ${
+                  reportIsPublished
+                    ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+                    : "border-amber-500/40 bg-amber-500/10 text-amber-300"
+                }`}
+              >
+                <span className={`h-1.5 w-1.5 rounded-full ${reportIsPublished ? "bg-emerald-400" : "bg-amber-400"}`} />
+                {reportIsPublished ? "Published" : "Draft"}
+              </span>
+              <span
+                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-black ${
+                  isPaymentComplete(inspection)
+                    ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+                    : "border-amber-500/40 bg-amber-500/10 text-amber-300"
+                }`}
+              >
+                <span className={`h-1.5 w-1.5 rounded-full ${isPaymentComplete(inspection) ? "bg-emerald-400" : "bg-amber-400"}`} />
+                {isPaymentComplete(inspection) ? "Paid" : "Unpaid"}
+              </span>
+              <span
+                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-black ${
+                  agreementComplete
+                    ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+                    : "border-amber-500/40 bg-amber-500/10 text-amber-300"
+                }`}
+              >
+                <span className={`h-1.5 w-1.5 rounded-full ${agreementComplete ? "bg-emerald-400" : "bg-amber-400"}`} />
+                {agreementComplete ? "Signed" : "Agreement"}
+              </span>
+            </div>
+          </div>
+        </div>
+
         <div className="mb-4 overflow-x-hidden overflow-y-visible rounded-2xl border border-slate-800 bg-[#0f172a] p-1.5 shadow-xl sm:p-3 md:rounded-3xl md:p-6">
           <div className="mb-6 max-w-full space-y-4 overflow-x-hidden overflow-y-visible">
             <div>
@@ -2752,7 +2807,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                 <FastLinkButton
                   href={`/reports/${inspection.id}/summary`}
                   loadingText="Opening Summary..."
-                  className="rounded-xl border border-cyan-500 px-5 py-3 font-bold text-cyan-300 hover:bg-cyan-500/10"
+                  className="rounded-xl border border-slate-600 px-5 py-3 font-bold text-slate-200 transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-teal-200"
                 >
                   Realtor Summary
                 </FastLinkButton>
@@ -2766,7 +2821,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                 <FastLinkButton
                   href={shareHref}
                   loadingText="Opening Client Report..."
-                  className="rounded-xl border border-cyan-500 px-5 py-3 font-bold text-cyan-300 hover:bg-cyan-500/10"
+                  className="rounded-xl border border-slate-600 px-5 py-3 font-bold text-slate-200 transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-teal-200"
                 >
                   Client Report
                 </FastLinkButton>
@@ -2777,7 +2832,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                   <FastLinkButton
                     href={editableEnvironmentalHref}
                     loadingText="Opening Environmental Report..."
-                    className="rounded-xl border border-lime-500 px-5 py-3 font-bold text-lime-300 hover:bg-lime-500/10"
+                    className="rounded-xl border border-slate-600 px-5 py-3 font-bold text-slate-200 transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-teal-200"
                   >
                     Environmental Report
                   </FastLinkButton>
@@ -2786,7 +2841,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                 <FastLinkButton
                   href={`/client-portal/${inspection.id}`}
                   loadingText="Opening Client Portal..."
-                  className="rounded-xl border border-emerald-500 px-5 py-3 font-bold text-emerald-300 hover:bg-emerald-500/10"
+                  className="rounded-xl border border-slate-600 px-5 py-3 font-bold text-slate-200 transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-teal-200"
                 >
                   Client Portal
                 </FastLinkButton>
@@ -2832,7 +2887,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                 <FastLinkButton
                   href={`/reports/${inspection.id}/templates`}
                   loadingText="Opening Library..."
-                  className="rounded-xl border border-yellow-500 px-5 py-3 font-bold text-yellow-300 hover:bg-yellow-500/10"
+                  className="rounded-xl border border-slate-600 px-5 py-3 font-bold text-slate-200 transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-teal-200"
                 >
                   Favorite Findings Library
                 </FastLinkButton>
@@ -2849,7 +2904,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                 <FastLinkButton
                   href={`/field?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`}
                   loadingText="Opening Field Tool..."
-                  className="rounded-xl border border-teal-500 bg-[#071224] px-5 py-3 font-bold text-teal-300 hover:bg-teal-500/10"
+                  className="rounded-xl border border-slate-600 px-5 py-3 font-bold text-slate-200 transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-teal-200"
                 >
                   Field Tool
                 </FastLinkButton>
@@ -2865,7 +2920,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                 <FastLinkButton
                   href={`/reports/${inspection.id}/bulk-ai-capture`}
                   loadingText="Opening Bulk AI..."
-                  className="rounded-xl bg-purple-600 px-5 py-3 font-bold text-white hover:bg-purple-500"
+                  className="rounded-xl border border-slate-600 px-5 py-3 font-bold text-slate-200 transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-teal-200"
                 >
                   📸 Bulk AI Capture
                 </FastLinkButton>
@@ -2873,7 +2928,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                 <FastLinkButton
                   href={`/equipment-analyzer?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`}
                   loadingText="Opening Equipment Analyzer..."
-                  className="rounded-xl border border-blue-500 px-5 py-3 font-bold text-blue-300 hover:bg-blue-500/10"
+                  className="rounded-xl border border-slate-600 px-5 py-3 font-bold text-slate-200 transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-teal-200"
                 >
                   Equipment Analyzer
                 </FastLinkButton>
