@@ -143,22 +143,33 @@ export default function SignupPage() {
     }, 1200);
   }
 
-  return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-950 p-6">
-      <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-2xl">
-        <h1 className="text-3xl font-bold text-teal-400">Create Account</h1>
+  const isSuccess = /success/i.test(message);
 
-        <p className="mt-2 text-slate-400">
+  return (
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#050816] p-6">
+      {/* Ambient brand glow */}
+      <div aria-hidden className="pointer-events-none absolute inset-0">
+        <div className="absolute left-1/2 top-[-12%] h-[440px] w-[600px] -translate-x-1/2 rounded-full bg-teal-500/20 blur-[140px]" />
+        <div className="absolute bottom-[-18%] right-[-8%] h-[380px] w-[440px] rounded-full bg-cyan-500/10 blur-[130px]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_-10%,rgba(20,200,210,0.10),transparent_55%)]" />
+      </div>
+
+      <div className="relative w-full max-w-md rounded-3xl border border-white/10 bg-slate-900/70 p-8 shadow-[0_28px_90px_-24px_rgba(0,0,0,0.9)] backdrop-blur-xl">
+        <h1 className="text-3xl font-black tracking-tight text-white">
+          Create <span className="text-teal-400">Account</span>
+        </h1>
+
+        <p className="mt-2 text-sm text-slate-400">
           Inspector, Client, and Realtor access for reports and repair requests.
         </p>
 
-        <form onSubmit={handleSignup} className="mt-6 space-y-4">
+        <form onSubmit={handleSignup} className="mt-7 space-y-4">
           <input
             required
             placeholder="Full name"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
-            className="w-full rounded-lg border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+            className="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3.5 text-white outline-none transition placeholder:text-slate-500 focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20"
           />
 
           <input
@@ -167,13 +178,13 @@ export default function SignupPage() {
             placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-lg border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+            className="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3.5 text-white outline-none transition placeholder:text-slate-500 focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20"
           />
 
           <select
             value={role}
             onChange={(e) => setRole(e.target.value)}
-            className="w-full rounded-lg border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+            className="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3.5 text-white outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20"
           >
             <option value="inspector">Inspector</option>
             <option value="client">Client</option>
@@ -186,7 +197,7 @@ export default function SignupPage() {
               placeholder="Business name"
               value={businessName}
               onChange={(e) => setBusinessName(e.target.value)}
-              className="w-full rounded-lg border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+              className="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3.5 text-white outline-none transition placeholder:text-slate-500 focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20"
             />
           )}
 
@@ -196,7 +207,7 @@ export default function SignupPage() {
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-lg border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+            className="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3.5 text-white outline-none transition placeholder:text-slate-500 focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20"
           />
 
           <input
@@ -205,11 +216,17 @@ export default function SignupPage() {
             placeholder="Confirm password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            className="w-full rounded-lg border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+            className="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3.5 text-white outline-none transition placeholder:text-slate-500 focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20"
           />
 
           {message && (
-            <div className="rounded-lg border border-slate-700 bg-slate-950 p-3 text-sm text-slate-300">
+            <div
+              className={`rounded-xl border p-3 text-sm ${
+                isSuccess
+                  ? "border-emerald-700 bg-emerald-950/60 text-emerald-300"
+                  : "border-red-800 bg-red-950/60 text-red-300"
+              }`}
+            >
               {message}
             </div>
           )}
@@ -217,14 +234,14 @@ export default function SignupPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-lg bg-teal-500 px-4 py-3 font-semibold text-slate-950 transition hover:bg-teal-400 disabled:opacity-50"
+            className="w-full rounded-xl bg-gradient-to-b from-teal-400 to-teal-500 px-4 py-3.5 font-bold text-slate-950 shadow-lg shadow-teal-500/20 transition hover:from-teal-300 hover:to-teal-400 active:scale-[0.99] disabled:opacity-50"
           >
             {loading ? "Creating..." : "Create Account"}
           </button>
 
           <p className="text-center text-sm text-slate-400">
             Already have an account?{" "}
-            <a href="/login" className="text-teal-400 hover:underline">
+            <a href="/login" className="font-semibold text-teal-400 hover:underline">
               Sign in
             </a>
           </p>
