@@ -40,6 +40,11 @@ import {
   Calculator,
   Lightbulb,
   Zap,
+  MailOpen,
+  MousePointerClick,
+  CheckCircle2,
+  Clock,
+  Bell,
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -313,18 +318,19 @@ function getEmailLogStatus(log: any) {
 function getActivityIcon(log: any) {
   const type = getViewType(log);
 
-  if (type === "client_portal") return "🔐";
-  if (type === "report_share") return "📋";
-  if (type === "environmental_share") return "🧪";
-  if (type === "email_open") return "📬";
-  if (type === "email_click") return "👆";
-  if (type === "agreement_page") return "📝";
-  if (type === "agreement_signed") return "✅";
-  if (type === "payment_received") return "💰";
-  if (type === "repair_request") return "🛠️";
-  if (type === "report_time_final" || type === "report_time_checkpoint") return "⏱️";
+  const cls = "h-5 w-5";
+  if (type === "client_portal") return <Lock className={cls} />;
+  if (type === "report_share") return <FileText className={cls} />;
+  if (type === "environmental_share") return <FlaskConical className={cls} />;
+  if (type === "email_open") return <MailOpen className={cls} />;
+  if (type === "email_click") return <MousePointerClick className={cls} />;
+  if (type === "agreement_page") return <FileSignature className={cls} />;
+  if (type === "agreement_signed") return <CheckCircle2 className={cls} />;
+  if (type === "payment_received") return <DollarSign className={cls} />;
+  if (type === "repair_request") return <Wrench className={cls} />;
+  if (type === "report_time_final" || type === "report_time_checkpoint") return <Clock className={cls} />;
 
-  return "🔔";
+  return <Bell className={cls} />;
 }
 
 function getActivityTitle(log: any) {
@@ -1226,7 +1232,7 @@ export default async function HomePage() {
                       className="block rounded-xl border border-slate-700 bg-[#020617]/70 p-4 transition hover:border-teal-500/70 active:scale-[0.99]"
                     >
                       <div className="flex gap-3">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-500/10 text-xl">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-500/10 text-teal-300">
                           {getActivityIcon(log)}
                         </div>
 
