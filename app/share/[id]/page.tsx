@@ -1778,6 +1778,51 @@ export default async function PublicSharePage({
               />
             </div>
 
+            {defectTotals.total > 0 && (
+              <div className="mt-5">
+                <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-slate-800">
+                  {defectTotals.safety > 0 && (
+                    <div
+                      className="bg-red-500"
+                      style={{ width: `${(defectTotals.safety / defectTotals.total) * 100}%` }}
+                      title={`Safety / Major: ${defectTotals.safety}`}
+                    />
+                  )}
+                  {defectTotals.repair > 0 && (
+                    <div
+                      className="bg-teal-400"
+                      style={{ width: `${(defectTotals.repair / defectTotals.total) * 100}%` }}
+                      title={`Recommended Repair: ${defectTotals.repair}`}
+                    />
+                  )}
+                  {defectTotals.maintenance > 0 && (
+                    <div
+                      className="bg-yellow-400"
+                      style={{ width: `${(defectTotals.maintenance / defectTotals.total) * 100}%` }}
+                      title={`Maintenance / Monitor: ${defectTotals.maintenance}`}
+                    />
+                  )}
+                  {defectTotals.information > 0 && (
+                    <div
+                      className="bg-blue-400"
+                      style={{ width: `${(defectTotals.information / defectTotals.total) * 100}%` }}
+                      title={`Informational: ${defectTotals.information}`}
+                    />
+                  )}
+                </div>
+                <p className="mt-2 text-xs font-semibold text-slate-500">
+                  {defectTotals.total} total findings across {" "}
+                  {[
+                    defectTotals.safety > 0 && "safety",
+                    defectTotals.repair > 0 && "repair",
+                    defectTotals.maintenance > 0 && "maintenance",
+                    defectTotals.information > 0 && "informational",
+                  ].filter(Boolean).length}{" "}
+                  categories
+                </p>
+              </div>
+            )}
+
             <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-slate-400">
               <span>Click a defect type above to filter the findings list.</span>
               {activeDefectFilter !== "all" && (
