@@ -1,5 +1,13 @@
 import FastLinkButton from "../../components/FastLinkButton";
 import { OWNER_EMAILS } from "../../lib/ownerEmails";
+import {
+  MessageCircle,
+  DollarSign,
+  CreditCard,
+  Globe,
+  Image as ImageIcon,
+  Bell,
+} from "lucide-react";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "../../utils/supabase/server";
@@ -592,8 +600,8 @@ export default async function SettingsPage({
             className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-slate-800 bg-[#0b1220] p-4 transition active:scale-[0.98] hover:border-fuchsia-400/70 hover:bg-fuchsia-500/10 sm:p-5 [touch-action:manipulation]"
           >
             <div className="flex items-start justify-between gap-3">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-fuchsia-500/10 text-2xl">
-                💬
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-fuchsia-500/10 text-fuchsia-300">
+                <MessageCircle className="h-6 w-6" strokeWidth={2} />
               </div>
               <SupportUnreadBadge />
             </div>
@@ -615,8 +623,8 @@ export default async function SettingsPage({
             href="/settings/pricing"
             className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-slate-800 bg-[#0b1220] p-4 transition active:scale-[0.98] hover:border-emerald-400/70 hover:bg-emerald-500/10 sm:p-5 [touch-action:manipulation]"
           >
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 text-2xl">
-              💲
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-300">
+              <DollarSign className="h-6 w-6" strokeWidth={2} />
             </div>
             <p className="mt-4 text-xs font-black uppercase tracking-[0.2em] text-emerald-300">
               Personal
@@ -636,8 +644,8 @@ export default async function SettingsPage({
             href="/billing"
             className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-slate-800 bg-[#0b1220] p-4 transition active:scale-[0.98] hover:border-teal-400/70 hover:bg-teal-500/10 sm:p-5 [touch-action:manipulation]"
           >
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-500/10 text-2xl">
-              💳
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-500/10 text-teal-300">
+              <CreditCard className="h-6 w-6" strokeWidth={2} />
             </div>
             <p className="mt-4 text-xs font-black uppercase tracking-[0.2em] text-teal-300">
               Billing
@@ -657,8 +665,8 @@ export default async function SettingsPage({
             href="/settings/public-profile"
             className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-slate-800 bg-[#0b1220] p-4 transition active:scale-[0.98] hover:border-cyan-400/70 hover:bg-cyan-500/10 sm:p-5 [touch-action:manipulation]"
           >
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-500/10 text-2xl">
-              🌐
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-500/10 text-cyan-300">
+              <Globe className="h-6 w-6" strokeWidth={2} />
             </div>
             <p className="mt-4 text-xs font-black uppercase tracking-[0.2em] text-cyan-300">
               Public Profile
@@ -679,8 +687,8 @@ export default async function SettingsPage({
               href="/settings/marketing-images"
               className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-teal-500/30 bg-[#0b1220] p-4 transition active:scale-[0.98] hover:border-teal-400/70 hover:bg-teal-500/10 sm:p-5 [touch-action:manipulation]"
             >
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-500/10 text-2xl">
-                🏠
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-500/10 text-teal-300">
+                <ImageIcon className="h-6 w-6" strokeWidth={2} />
               </div>
               <p className="mt-4 text-xs font-black uppercase tracking-[0.2em] text-teal-300">
                 Owner Only
@@ -707,8 +715,8 @@ export default async function SettingsPage({
           >
             <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
               <div className="flex gap-4">
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-amber-500/30 bg-amber-500/10 text-3xl">
-                  🔔
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-amber-500/30 bg-amber-500/10 text-amber-300">
+                  <Bell className="h-7 w-7" strokeWidth={2} />
                 </div>
                 <div>
                   <p className="text-xs font-black uppercase tracking-[0.25em] text-amber-300">
