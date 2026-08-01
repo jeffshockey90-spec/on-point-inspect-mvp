@@ -3,6 +3,7 @@ import Navbar from "../components/Nav";
 import GlobalLiveActivity from "../components/GlobalLiveActivity";
 import TimeLocationEngine from "../components/time-location/TimeLocationEngine";
 import PageShell from "../components/PageShell";
+import CommandPalette from "../components/CommandPalette";
 
 export const metadata = {
   title: "FLOW",
@@ -56,6 +57,8 @@ export default function RootLayout({
         <GlobalLiveActivity />
 
         <TimeLocationEngine />
+
+        <CommandPalette />
 
         <PageShell>{children}</PageShell>
       </body>

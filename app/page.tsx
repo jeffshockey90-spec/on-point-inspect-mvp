@@ -15,6 +15,9 @@ import {
 } from "../lib/inspectionStatus";
 import DashboardTour from "../components/DashboardTour";
 import MarketingHomepage from "../components/MarketingHomepage";
+import CommandSearchTrigger from "../components/CommandSearchTrigger";
+import SetupChecklist from "../components/SetupChecklist";
+import DashboardTrends from "../components/DashboardTrends";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -812,6 +815,29 @@ export default async function HomePage() {
     .filter((job: any) => job.stage !== "delivered")
     .slice(0, 8);
 
+  // Last 6 months of inspections + collected revenue, bucketed by created_at.
+  const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const trendNow = new Date();
+  const monthlyTrends = Array.from({ length: 6 }, (_, index) => {
+    const date = new Date(trendNow.getFullYear(), trendNow.getMonth() - (5 - index), 1);
+    return {
+      key: `${date.getFullYear()}-${date.getMonth()}`,
+      label: MONTH_LABELS[date.getMonth()],
+      inspections: 0,
+      revenue: 0,
+    };
+  });
+  const trendBucketMap = new Map(monthlyTrends.map((bucket) => [bucket.key, bucket]));
+  inspections.forEach((inspection: any) => {
+    if (!inspection.created_at) return;
+    const created = new Date(inspection.created_at);
+    if (Number.isNaN(created.getTime())) return;
+    const bucket = trendBucketMap.get(`${created.getFullYear()}-${created.getMonth()}`);
+    if (!bucket) return;
+    bucket.inspections += 1;
+    bucket.revenue += getNumber(inspection.amount_paid);
+  });
+
   return (
     <main className="min-h-screen bg-[#020617] px-4 py-8 text-white">
       <DashboardTour initialDismissed={Boolean(tourProfile?.dashboard_tour_dismissed_at)} />
@@ -866,14 +892,18 @@ export default async function HomePage() {
               </div>
             </div>
 
-            <div data-tour="tour-metrics" className="grid gap-3 sm:grid-cols-2">
-              <CommandMetric label="Today" value={String(todayInspections.length)} helper="Scheduled today" tone="teal" />
-              <CommandMetric label="Drafts" value={String(draftReports.length)} helper="Not published yet" tone="yellow" />
-              <CommandMetric label="Unpaid" value={String(unpaidInspections.length)} helper={totalBalanceDue > 0 ? `${money(totalBalanceDue)} due` : "Need review"} tone="orange" />
-              <CommandMetric label="Repair" value={String(repairStats.waiting)} helper="Waiting response" tone="cyan" />
+            <div data-tour="tour-metrics" className="flex flex-col gap-3 xl:justify-end">
+              <CommandSearchTrigger />
+              <div className="grid grid-cols-3 gap-3">
+                <CommandMetric label="Today" value={String(todayInspections.length)} helper="Scheduled" tone="teal" />
+                <CommandMetric label="Drafts" value={String(draftReports.length)} helper="Unpublished" tone="yellow" />
+                <CommandMetric label="Repair" value={String(repairStats.waiting)} helper="Waiting" tone="cyan" />
+              </div>
             </div>
           </div>
         </section>
+
+        <SetupChecklist />
 
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <KpiTile label="Collected" value={money(collectedRevenue)} sub="Payments received" accent="teal" />
@@ -921,6 +951,8 @@ export default async function HomePage() {
           </div>
           <JobsTable jobs={activeJobs} />
         </section>
+
+        <DashboardTrends data={monthlyTrends} />
 
         <section className="overflow-hidden rounded-3xl border border-amber-500/30 bg-gradient-to-br from-[#0b1220] via-[#0b1220] to-amber-950/10 p-6 shadow-xl">
           <div className="flex flex-wrap items-start justify-between gap-4">
