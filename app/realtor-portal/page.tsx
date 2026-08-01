@@ -1,4 +1,5 @@
 import { OWNER_EMAILS } from "../../lib/ownerEmails";
+import { Eye, ChevronDown } from "lucide-react";
 
 import { formatAppValue } from "../../lib/app-time";
 import FastLinkButton from "../../components/FastLinkButton";
@@ -357,8 +358,8 @@ export default async function RealtorPortalPage({
       <div className="mx-auto max-w-7xl">
         {isOwnerPreview && (
           <div className="mb-6 rounded-2xl border border-purple-500/50 bg-purple-500/10 px-6 py-4">
-            <p className="text-sm font-black uppercase tracking-wide text-purple-300">
-              👁 Owner Preview Mode
+            <p className="inline-flex items-center gap-1.5 text-sm font-black uppercase tracking-wide text-purple-300">
+              <Eye className="h-4 w-4" strokeWidth={2.5} /> Owner Preview Mode
             </p>
             <p className="mt-1 text-sm text-purple-100">
               Viewing the Realtor Portal as <strong>{lookupEmail}</strong> would see it. This is not
@@ -607,7 +608,7 @@ export default async function RealtorPortalPage({
                                     <MiniMoneyCard label="Difference" value={responses.length ? formatMoney(difference) : "—"} negative={difference < 0} />
                                     <div className="rounded-xl border border-orange-400/40 bg-orange-500/10 p-3 text-center">
                                       <p className="text-[10px] font-black uppercase tracking-wide text-orange-200">Open</p>
-                                      <p className="mt-1 text-lg font-black text-white transition group-open:rotate-180">⌄</p>
+                                      <p className="mt-1 flex justify-center text-white transition group-open:rotate-180"><ChevronDown className="h-5 w-5" strokeWidth={2.5} /></p>
                                     </div>
                                   </div>
                                 </summary>
