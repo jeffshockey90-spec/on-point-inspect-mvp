@@ -18,6 +18,7 @@ import MarketingHomepage from "../components/MarketingHomepage";
 import CommandSearchTrigger from "../components/CommandSearchTrigger";
 import SetupChecklist from "../components/SetupChecklist";
 import DashboardTrends from "../components/DashboardTrends";
+import { Plus, Smartphone, CalendarDays, FileDown } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -862,32 +863,32 @@ export default async function HomePage() {
                 <Link
                   href="/inspections/new"
                   data-tour="tour-new-inspection"
-                  className="rounded-2xl bg-teal-400 px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-teal-300 active:scale-[0.98]"
+                  className="inline-flex items-center gap-2 rounded-2xl bg-teal-400 px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-teal-300 active:scale-[0.98]"
                 >
-                  + New Inspection
+                  <Plus className="h-4 w-4" strokeWidth={2.5} /> New Inspection
                 </Link>
 
                 <Link
                   href="/field"
                   data-tour="tour-field-tool"
-                  className="rounded-2xl border border-cyan-400/60 bg-cyan-500/10 px-5 py-3 text-sm font-black text-cyan-200 transition hover:bg-cyan-500/20 active:scale-[0.98]"
+                  className="inline-flex items-center gap-2 rounded-2xl border border-cyan-400/60 bg-cyan-500/10 px-5 py-3 text-sm font-black text-cyan-200 transition hover:bg-cyan-500/20 active:scale-[0.98]"
                 >
-                  📱 Field Tool
+                  <Smartphone className="h-4 w-4" strokeWidth={2.5} /> Field Tool
                 </Link>
 
                 <Link
                   href="/schedule"
                   data-tour="tour-schedule"
-                  className="rounded-2xl border border-slate-600 bg-slate-900 px-5 py-3 text-sm font-black text-slate-200 transition hover:border-teal-400 active:scale-[0.98]"
+                  className="inline-flex items-center gap-2 rounded-2xl border border-slate-600 bg-slate-900 px-5 py-3 text-sm font-black text-slate-200 transition hover:border-teal-400 active:scale-[0.98]"
                 >
-                  🗓️ Schedule
+                  <CalendarDays className="h-4 w-4" strokeWidth={2.5} /> Schedule
                 </Link>
 
                 <Link
                   href="/import-report"
-                  className="rounded-2xl border border-amber-400/60 bg-amber-500/10 px-5 py-3 text-sm font-black text-amber-200 transition hover:bg-amber-500/20 active:scale-[0.98]"
+                  className="inline-flex items-center gap-2 rounded-2xl border border-amber-400/60 bg-amber-500/10 px-5 py-3 text-sm font-black text-amber-200 transition hover:bg-amber-500/20 active:scale-[0.98]"
                 >
-                  📄 Import Report
+                  <FileDown className="h-4 w-4" strokeWidth={2.5} /> Import Report
                 </Link>
               </div>
             </div>
