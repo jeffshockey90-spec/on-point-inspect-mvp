@@ -49,6 +49,13 @@ const PUBLIC_PREFIXES = [
   "/client",
   "/client-portal",
   "/client-agreement",
+  // Stripe redirects the (anonymous, token-portal) client back to these after
+  // checkout, so they must be reachable without a session. The success page is
+  // gated by the unguessable Stripe session_id; the cancelled page shows no
+  // sensitive data. Payment itself is recorded server-side via /api/stripe
+  // -webhook, independent of these pages.
+  "/payment-success",
+  "/payment-cancelled",
   "/forgot-password",
   "/reset-password",
   "/book",
