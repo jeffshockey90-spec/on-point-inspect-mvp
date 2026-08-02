@@ -129,7 +129,7 @@ export async function POST(req: Request) {
       const email = String(contact.email || "").trim().toLowerCase();
       if (!email) continue;
 
-      const agreementUrl = `${baseUrl}/client-agreement/${inspectionId}?contact=${contact.id}&source=reminder`;
+      const agreementUrl = `${baseUrl}/client-agreement/${portalShareToken}?contact=${contact.id}&source=reminder`;
       const portalUrl = `${baseUrl}/client-portal/${portalShareToken}`;
       const subject = `Reminder: Inspection Agreement for ${propertyAddress}`;
 

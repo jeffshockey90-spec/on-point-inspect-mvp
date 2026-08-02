@@ -5,11 +5,13 @@ import { useRouter } from "next/navigation";
 
 export default function AgreementSignatureForm({
   inspectionId,
+  shareToken,
   contactId,
   defaultClientName,
   defaultClientEmail,
 }: {
   inspectionId: string;
+  shareToken?: string;
   contactId?: string;
   defaultClientName: string;
   defaultClientEmail: string;
@@ -83,6 +85,7 @@ export default function AgreementSignatureForm({
         },
         body: JSON.stringify({
           inspectionId,
+          shareToken,
           contactId,
           clientName: clientName.trim(),
           clientEmail: clientEmail.trim(),

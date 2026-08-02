@@ -226,19 +226,11 @@ export default async function PublicEnvironmentalSharePage({ params }: PageProps
     .eq("public_share_token", shareLookup)
     .maybeSingle();
 
-  let inspection = inspectionByToken;
-  let inspectionError = tokenLookupError;
-
-  if (!inspection && /^\d+$/.test(shareLookup)) {
-    const fallbackResult = await supabase
-      .from("inspections")
-      .select("*")
-      .eq("id", shareLookup)
-      .maybeSingle();
-
-    inspection = fallbackResult.data;
-    inspectionError = fallbackResult.error;
-  }
+  // Resolve ONLY by the unguessable share token. The old numeric-id fallback
+  // let anyone enumerate sequential ids to pull mold/radon lab results, so it
+  // has been removed — legitimate share links always carry the token.
+  const inspection = inspectionByToken;
+  const inspectionError = tokenLookupError;
 
   const id = inspection ? String(inspection.id) : shareLookup;
 

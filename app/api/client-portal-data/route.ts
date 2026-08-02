@@ -110,23 +110,14 @@ export async function GET(req: Request) {
 
     const supabase = getSupabaseAdmin();
 
-    let { data: inspection, error } = await supabase
+    // Resolve ONLY by the unguessable share token. A numeric-id fallback used
+    // to exist for pre-token links, but it let anyone enumerate sequential ids
+    // to pull client name/address/summary/financials, so it has been removed.
+    const { data: inspection, error } = await supabase
       .from("inspections")
       .select("*")
       .eq("public_share_token", lookup)
       .maybeSingle();
-
-    // Legacy fallback for portal links sent out before share tokens existed.
-    if (!inspection && /^\d+$/.test(lookup)) {
-      const fallback = await supabase
-        .from("inspections")
-        .select("*")
-        .eq("id", lookup)
-        .maybeSingle();
-
-      inspection = fallback.data;
-      error = fallback.error;
-    }
 
     if (error) {
       console.error("Client portal inspection lookup error:", error);

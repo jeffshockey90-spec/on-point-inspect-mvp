@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { sendPushNotification } from "../../../lib/push";
 import { OWNER_EMAILS } from "../../../lib/ownerEmails";
+import { createClient as createServerSupabase } from "../../../utils/supabase/server";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -36,6 +37,47 @@ export async function POST(req: Request) {
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
+
+    // Bind the finalize call to the real account. `userId` arrives in the body
+    // because there may be no session yet on a confirm-email flow, so it can't
+    // be trusted on its own — anyone could otherwise overwrite another user's
+    // profile by posting their uid.
+    //
+    //  - If the request DOES carry a session (the normal, confirmation-off
+    //    case), its uid must match the body uid.
+    //  - Either way, the uid must be a real auth user whose email matches the
+    //    submitted email, so a caller can't finalize signup for an id/email
+    //    pair they don't actually control.
+    try {
+      const authClient = await createServerSupabase();
+      const {
+        data: { user: sessionUser },
+      } = await authClient.auth.getUser();
+
+      if (sessionUser && sessionUser.id !== userId) {
+        return NextResponse.json(
+          { error: "Signup session does not match this account." },
+          { status: 403 }
+        );
+      }
+    } catch {
+      // No/!invalid session cookie — fall through to the auth-record check.
+    }
+
+    const { data: authRecord, error: authLookupError } =
+      await supabaseAdmin.auth.admin.getUserById(String(userId));
+
+    if (
+      authLookupError ||
+      !authRecord?.user ||
+      String(authRecord.user.email || "").trim().toLowerCase() !==
+        String(email || "").trim().toLowerCase()
+    ) {
+      return NextResponse.json(
+        { error: "Could not verify this account." },
+        { status: 403 }
+      );
+    }
 
     const now = new Date().toISOString();
 

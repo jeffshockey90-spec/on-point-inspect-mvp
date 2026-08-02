@@ -517,6 +517,7 @@ export default function ClientPortalPage() {
         },
         body: JSON.stringify({
           inspectionId,
+          shareToken: shareLookup,
         }),
       });
 
@@ -790,7 +791,7 @@ export default function ClientPortalPage() {
               />
 
               <ActionLink
-                href={`/repair-request?inspection_id=${inspectionId}`}
+                href={`/repair-request?inspection_id=${inspectionId}&token=${shareLookup}`}
                 title="Repair Request"
                 description="View or create the repair request list."
                 tone="orange"
@@ -950,7 +951,7 @@ export default function ClientPortalPage() {
               </div>
             ) : (
               <FastLinkButton
-                href={`/client-agreement/${inspectionId}`}
+                href={`/client-agreement/${shareLookup}`}
                 loadingText="Opening Agreement..."
                 className="rounded-xl bg-teal-500 px-6 py-4 text-left font-bold text-slate-950 hover:bg-teal-400"
               >
@@ -988,7 +989,7 @@ export default function ClientPortalPage() {
                 </a>
 
                 <a
-                  href={`/repair-request?inspection_id=${inspectionId}`}
+                  href={`/repair-request?inspection_id=${inspectionId}&token=${shareLookup}`}
                   target="_blank"
                   className="rounded-xl border border-orange-500 bg-[#071224] px-6 py-4 font-bold text-orange-300 hover:bg-orange-500/10"
                 >

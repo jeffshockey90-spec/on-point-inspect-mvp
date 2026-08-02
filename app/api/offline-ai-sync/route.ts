@@ -3,6 +3,12 @@ import { createClient } from "@supabase/supabase-js";
 import { logAIEvent } from "../../../lib/logging";
 import { inspectionBrain } from "../../../lib/ai";
 import { getAIModel, getAIVersion } from "../../../lib/openai";
+import {
+  getSessionUser,
+  unauthorized,
+  notFound,
+  authorizeInspection,
+} from "../../../lib/apiAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -431,6 +437,9 @@ Preserve the inspector's intent. Improve the report language, but do not drift a
 
 export async function POST(req: Request) {
   try {
+    const user = await getSessionUser();
+    if (!user) return unauthorized();
+
     const item = await req.json().catch(() => ({}));
 
     if (!item?.type) {
@@ -447,6 +456,12 @@ export async function POST(req: Request) {
     if (!inspectionId) {
       return NextResponse.json({ error: "Missing inspection_id." }, { status: 400 });
     }
+
+    // Ownership gate: the caller may only sync into an inspection they own (or
+    // one on their team, for company owners). Without this, any signed-in user
+    // could write findings/photos into another company's inspection by id.
+    const authorized = await authorizeInspection(supabase, user.id, inspectionId, "id");
+    if (!authorized) return notFound();
 
     const queueItemId = cleanText(item.id);
     const existingReceipt = await getSyncReceipt(queueItemId);

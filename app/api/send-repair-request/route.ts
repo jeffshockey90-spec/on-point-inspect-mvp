@@ -5,6 +5,7 @@ import { createClient as createSupabaseAdminClient } from "@supabase/supabase-js
 import crypto from "crypto";
 import { getCompanyBrandingById, buildBrandedFromHeader, type CompanyBranding } from "../../../lib/companyBranding";
 import { authorizeInspection, notFound } from "../../../lib/apiAuth";
+import { getOrCreateShareToken } from "../../../lib/shareToken";
 
 export const runtime = "nodejs";
 
@@ -573,9 +574,13 @@ export async function POST(req: Request) {
     }
 
     const selectedParam = finalSelectedIds.join(",");
+    // Include the unguessable share token so the recipient's link passes the
+    // repair-request access gate without exposing the raw enumerable id as the
+    // only key.
+    const repairShareToken = await getOrCreateShareToken(db, inspection);
     const baseRepairRequestUrl = `${appUrl}/repair-request?inspection_id=${encodeURIComponent(String(inspectionId))}${
       selectedParam ? `&selected=${encodeURIComponent(selectedParam)}` : ""
-    }`;
+    }${repairShareToken ? `&token=${encodeURIComponent(String(repairShareToken))}` : ""}`;
 
     subject = `Repair Request Summary - ${property}`;
     const from = buildBrandedFromHeader(

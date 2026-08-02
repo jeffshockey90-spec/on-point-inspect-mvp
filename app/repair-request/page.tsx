@@ -625,6 +625,7 @@ function RepairRequestContent() {
     selected: String(searchParams.get("selected") || ""),
     role: String(searchParams.get("role") || ""),
     email: String(searchParams.get("email") || ""),
+    token: String(searchParams.get("token") || ""),
   }));
   const [inspection, setInspection] = useState<Inspection | null>(null);
   const [findings, setFindings] = useState<Finding[]>([]);
@@ -733,6 +734,7 @@ function RepairRequestContent() {
 
         if (roleFromUrl) query.set("role", roleFromUrl);
         if (emailFromUrl) query.set("email", emailFromUrl);
+        if (initialUrlParams.token) query.set("token", initialUrlParams.token);
 
         const response = await fetch(
           `/api/repair-request-public?${query.toString()}`,

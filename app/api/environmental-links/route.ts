@@ -1,5 +1,11 @@
 import { NextResponse } from "next/server";
 import { createClient as createSupabaseAdmin } from "@supabase/supabase-js";
+import {
+  getSessionUser,
+  unauthorized,
+  notFound,
+  authorizeInspection,
+} from "../../../lib/apiAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -33,6 +39,19 @@ export async function GET(req: Request) {
     }
 
     const supabase = getSupabaseAdmin();
+
+    // Lab results (mold/radon) are sensitive. Only the inspection's own
+    // inspector/company may pull them; no anonymous id enumeration.
+    const user = await getSessionUser();
+    if (!user) return unauthorized();
+
+    const authorized = await authorizeInspection(
+      supabase,
+      user.id,
+      Number(inspectionId),
+      "id"
+    );
+    if (!authorized) return notFound();
 
     const { data: moldTest, error: moldError } = await supabase
       .from("mold_tests")

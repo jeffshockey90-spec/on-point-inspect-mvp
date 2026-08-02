@@ -1,5 +1,11 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import {
+  getSessionUser,
+  unauthorized,
+  notFound,
+  authorizeInspection,
+} from "../../../lib/apiAuth";
 
 export const runtime = "nodejs";
 
@@ -16,6 +22,9 @@ const supabaseAdmin = createClient(
 
 export async function POST(req: Request) {
   try {
+    const user = await getSessionUser();
+    if (!user) return unauthorized();
+
     const { inspectionId } = await req.json();
 
     const numericInspectionId = Number(inspectionId);
@@ -26,6 +35,14 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
+
+    const authorized = await authorizeInspection(
+      supabaseAdmin,
+      user.id,
+      numericInspectionId,
+      "id"
+    );
+    if (!authorized) return notFound();
 
     const { data, error } = await supabaseAdmin
       .from("inspections")

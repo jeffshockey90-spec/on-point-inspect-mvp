@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
+import {
+  getSessionUser,
+  unauthorized,
+  authorizeInspection,
+} from "../../../lib/apiAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -186,23 +191,44 @@ async function logStripeEvent(supabase: any, payload: any) {
 export async function POST(req: Request) {
   try {
     const stripe = getStripe();
-    const { inspectionId } = await req.json();
+    const body = await req.json();
+    const rawInspectionId = body?.inspectionId;
+    const shareToken = String(body?.shareToken || "").trim();
 
-    if (!inspectionId) {
-      return NextResponse.json({ error: "Missing inspection ID." }, { status: 400 });
+    if (!shareToken && !rawInspectionId) {
+      return NextResponse.json({ error: "Missing inspection reference." }, { status: 400 });
     }
 
     const supabase = getSupabaseAdmin();
 
-    const { data: inspection, error } = await supabase
-      .from("inspections")
-      .select("*")
-      .eq("id", inspectionId)
-      .single();
+    // Resolve + authorize before touching payment state. Public portal callers
+    // present the unguessable share token; a signed-in inspector is authorized
+    // against their own inspections. A bare numeric id with neither is rejected,
+    // so payment status can't be flipped by enumerating sequential ids.
+    let inspection: any = null;
+    if (shareToken) {
+      const { data } = await supabase
+        .from("inspections")
+        .select("*")
+        .eq("public_share_token", shareToken)
+        .maybeSingle();
+      inspection = data || null;
+    } else {
+      const user = await getSessionUser();
+      if (!user) return unauthorized();
+      inspection = await authorizeInspection(
+        supabase,
+        user.id,
+        Number(rawInspectionId),
+        "*"
+      );
+    }
 
-    if (error || !inspection) {
+    if (!inspection) {
       return NextResponse.json({ error: "Inspection not found." }, { status: 404 });
     }
+
+    const inspectionId = inspection.id;
 
     const company = await getCompanyForInspection(supabase, inspection);
     const stripeBlocker = getStripeConnectBlocker(company);

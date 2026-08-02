@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import {
+  getSessionUser,
+  unauthorized,
+  authorizeInspection,
+} from "../../../lib/apiAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -39,6 +44,9 @@ function getFallbackUrl(photo: any) {
 
 export async function POST(req: Request) {
   try {
+    const user = await getSessionUser();
+    if (!user) return unauthorized();
+
     const body = await req.json();
     const limitationIds = Array.from(
       new Set((Array.isArray(body?.limitationIds) ? body.limitationIds : []).map(cleanId).filter(Boolean)),
@@ -48,10 +56,45 @@ export async function POST(req: Request) {
       return NextResponse.json({ photos: [] });
     }
 
+    // Ownership gate: resolve each limitation's parent inspection and keep only
+    // the limitation ids whose inspection the caller is allowed to access.
+    // limitation_photos has no inspection_id, so we go through section_limitations.
+    const { data: parentLimitations } = await supabase
+      .from("section_limitations")
+      .select("id, inspection_id")
+      .in("id", limitationIds);
+
+    const inspectionAuthCache = new Map<string, boolean>();
+    const allowedLimitationIds = new Set<string>();
+
+    for (const limitation of parentLimitations || []) {
+      const limitationId = cleanId(limitation?.id);
+      const inspectionId = cleanId(limitation?.inspection_id);
+      if (!limitationId || !inspectionId) continue;
+
+      let allowed = inspectionAuthCache.get(inspectionId);
+      if (allowed === undefined) {
+        const authorized = await authorizeInspection(
+          supabase,
+          user.id,
+          inspectionId,
+          "id",
+        );
+        allowed = Boolean(authorized);
+        inspectionAuthCache.set(inspectionId, allowed);
+      }
+
+      if (allowed) allowedLimitationIds.add(limitationId);
+    }
+
+    if (allowedLimitationIds.size === 0) {
+      return NextResponse.json({ photos: [] });
+    }
+
     const { data, error } = await supabase
       .from("limitation_photos")
       .select("*")
-      .in("limitation_id", limitationIds)
+      .in("limitation_id", Array.from(allowedLimitationIds))
       .order("created_at", { ascending: true });
 
     if (error) {

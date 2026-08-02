@@ -6,7 +6,12 @@ import {
   routeFindingSection,
   normalizeSeverity,
 } from "../../../../lib/routeFindingSection";
-import { getSessionUser, unauthorized } from "../../../../lib/apiAuth";
+import {
+  getSessionUser,
+  unauthorized,
+  notFound,
+  authorizeInspection,
+} from "../../../../lib/apiAuth";
 import { classifyAIServiceError } from "../../../../lib/aiServiceError";
 
 export const runtime = "nodejs";
@@ -550,6 +555,21 @@ limited access or visibility.
         mode: "manual",
         model: brainResult.model,
       });
+    }
+
+    // Authorize the inspection before loading its AI memory so a signed-in
+    // user cannot read another company's inspection memory by supplying its id.
+    if (inspectionId) {
+      const authAdmin = createAdminClient();
+      if (authAdmin) {
+        const authorized = await authorizeInspection(
+          authAdmin,
+          user.id,
+          inspectionId,
+          "id",
+        );
+        if (!authorized) return notFound();
+      }
     }
 
     const recentMemory = await loadRecentInspectionMemory(inspectionId, currentSection);

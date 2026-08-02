@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import { createClient } from "@supabase/supabase-js";
+import { getSessionUser, unauthorized } from "../../../lib/apiAuth";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -13,15 +14,14 @@ const supabase = createClient(
 
 export async function POST(req: Request) {
   try {
-    const { title, observation, inspectorId } =
-      await req.json();
+    const user = await getSessionUser();
+    if (!user) return unauthorized();
 
-    if (!inspectorId) {
-      return NextResponse.json(
-        { error: "Missing inspectorId" },
-        { status: 400 }
-      );
-    }
+    const { title, observation } = await req.json();
+
+    // Always scope to the authenticated user's own templates. Any body-supplied
+    // inspectorId is ignored so a user cannot read another inspector's templates.
+    const inspectorId = user.id;
 
     const { data: templates, error } = await supabase
       .from("finding_templates")

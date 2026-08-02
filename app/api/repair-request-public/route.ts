@@ -321,6 +321,72 @@ export async function GET(req: Request) {
       );
     }
 
+    // Access gate: this endpoint returns every finding (with photos) plus
+    // property details, so it must NOT be reachable by enumerating sequential
+    // inspection ids. Allow only:
+    //   (1) the signed-in inspector/company that owns the inspection,
+    //   (2) a caller presenting the inspection's unguessable share token, or
+    //   (3) a caller whose ?email= matches a contact on THIS inspection
+    //       (the realtor/client model the portals already use).
+    const shareToken = url.searchParams.get("token");
+    const callerEmail = String(url.searchParams.get("email") || "")
+      .trim()
+      .toLowerCase();
+
+    let accessGranted = false;
+
+    if (
+      shareToken &&
+      String((inspection as any).public_share_token || "") === shareToken
+    ) {
+      accessGranted = true;
+    }
+
+    if (!accessGranted) {
+      try {
+        const server = await createSupabaseServerClient();
+        const {
+          data: { user },
+        } = await server.auth.getUser();
+
+        if (user) {
+          if (String((inspection as any).inspector_id || "") === user.id) {
+            accessGranted = true;
+          } else if ((inspection as any).company_id) {
+            const { data: membership } = await admin
+              .from("company_users")
+              .select("company_id")
+              .eq("user_id", user.id)
+              .eq("company_id", (inspection as any).company_id)
+              .maybeSingle();
+
+            if (membership) accessGranted = true;
+          }
+        }
+      } catch {
+        // fall through to email match
+      }
+    }
+
+    if (!accessGranted && callerEmail) {
+      const { data: contactMatch } = await admin
+        .from("inspection_contacts")
+        .select("id")
+        .eq("inspection_id", (inspection as any).id)
+        .ilike("email", callerEmail)
+        .limit(1)
+        .maybeSingle();
+
+      if (contactMatch) accessGranted = true;
+    }
+
+    if (!accessGranted) {
+      return NextResponse.json(
+        { error: "Inspection not found." },
+        { status: 404 }
+      );
+    }
+
     let findingsQuery = admin
       .from("findings")
       .select("*")

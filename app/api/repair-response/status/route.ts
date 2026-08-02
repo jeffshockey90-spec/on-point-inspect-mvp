@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { createClient as createSupabaseAdminClient } from "@supabase/supabase-js";
+import { notFound, authorizeInspection } from "../../../../lib/apiAuth";
 
 export const runtime = "nodejs";
 
@@ -64,6 +65,11 @@ export async function GET(req: Request) {
     }
 
     const db = createDatabaseClient(authClient);
+
+    // Authorize: the signed-in user must own (or be the company owner of) this
+    // inspection before its repair-request shares/responses are returned.
+    const authorized = await authorizeInspection(db, user.id, Number(inspectionId), "id");
+    if (!authorized) return notFound();
 
     const { data: shares, error: sharesError } = await db
       .from("repair_request_shares")

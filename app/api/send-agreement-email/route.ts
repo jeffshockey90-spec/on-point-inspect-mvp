@@ -416,7 +416,7 @@ export async function POST(req: Request) {
 
       const links = clientContacts.map((contact: any) => ({
         name: contact.name || "Client",
-        url: `${baseUrl}/client-agreement/${inspectionId}?contact=${contact.id}`,
+        url: `${baseUrl}/client-agreement/${portalShareToken}?contact=${contact.id}`,
       }));
 
       const subject = `Inspection Agreement To Forward - ${property}`;
@@ -538,7 +538,7 @@ ${branding.name}`,
 
       // IMPORTANT: every signer gets their own contact-specific agreement link.
       // This prevents one client from signing for every client/co-client.
-      const agreementUrl = `${baseUrl}/client-agreement/${inspectionId}?contact=${contact.id}`;
+      const agreementUrl = `${baseUrl}/client-agreement/${portalShareToken}?contact=${contact.id}`;
       const subject = `Inspection Agreement - ${property}`;
 
       try {

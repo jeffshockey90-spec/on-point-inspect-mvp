@@ -83,11 +83,33 @@ export default async function ClientAgreementPage({
   const { id } = await params;
   const { contact, source } = await searchParams;
 
-  const { data: inspection } = await supabase
+  // Resolve by the unguessable share token (NOT the sequential inspection id),
+  // so agreement links can't be enumerated to harvest client PII / signatures.
+  let { data: inspection } = await supabase
     .from("inspections")
     .select("*")
-    .eq("id", id)
-    .single();
+    .eq("public_share_token", id)
+    .maybeSingle();
+
+  // Legacy fallback: an old raw-id link is only honored for a signed-in owner
+  // of that inspection (never anonymously).
+  if (!inspection && /^\d+$/.test(String(id || ""))) {
+    const {
+      data: { user },
+    } = await (await import("../../../utils/supabase/server")).createClient().then((c) => c.auth.getUser());
+    if (user) {
+      const filter = await (
+        await import("../../../lib/inspectionAccess")
+      ).resolveInspectionAccessFilter(supabase, user.id);
+      const owned = await supabase
+        .from("inspections")
+        .select("*")
+        .eq("id", id)
+        .eq(filter.column, filter.value)
+        .maybeSingle();
+      inspection = owned.data || null;
+    }
+  }
 
   if (!inspection) {
     return (
@@ -112,14 +134,14 @@ export default async function ClientAgreementPage({
       .from("inspection_contacts")
       .select("*")
       .eq("id", contact)
-      .eq("inspection_id", id)
+      .eq("inspection_id", inspection.id)
       .maybeSingle();
 
     selectedContact = data;
   }
 
   await recordInspectionView({
-    inspectionId: id,
+    inspectionId: inspection.id,
     contactId: selectedContact?.id || contact || null,
     viewerEmail: selectedContact?.email || inspection.client_email || null,
     source,
@@ -128,7 +150,7 @@ export default async function ClientAgreementPage({
   let signedAgreementQuery = supabase
     .from("inspection_agreements")
     .select("*")
-    .eq("inspection_id", id)
+    .eq("inspection_id", inspection.id)
     .eq("status", "signed")
     .order("signed_at", { ascending: false })
     .limit(1);
@@ -276,7 +298,8 @@ export default async function ClientAgreementPage({
           </div>
         ) : (
           <AgreementSignatureForm
-            inspectionId={id}
+            inspectionId={String(inspection.id)}
+            shareToken={String(id)}
             contactId={selectedContact?.id || ""}
             defaultClientName={selectedContact?.name || inspection.client_name || ""}
             defaultClientEmail={selectedContact?.email || inspection.client_email || ""}

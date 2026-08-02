@@ -124,16 +124,17 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    const inspectionId = String(body.inspectionId || "");
+    const rawInspectionId = String(body.inspectionId || "");
+    const shareToken = String(body.shareToken || "").trim();
     const contactId = body.contactId ? String(body.contactId) : "";
     const clientName = String(body.clientName || "");
     const clientEmail = String(body.clientEmail || "");
     const signature = String(body.signature || "");
     const accepted = Boolean(body.accepted);
 
-    if (!inspectionId) {
+    if (!shareToken && !rawInspectionId) {
       return NextResponse.json(
-        { error: "Missing inspection ID." },
+        { error: "Missing agreement reference." },
         { status: 400 }
       );
     }
@@ -152,11 +153,17 @@ export async function POST(req: Request) {
       );
     }
 
-    const { data: inspection } = await supabase
-      .from("inspections")
-      .select("*")
-      .eq("id", inspectionId)
-      .single();
+    // Resolve the inspection by the unguessable share token so a signature can't
+    // be forged against a guessed sequential inspection id. A legacy raw-id path
+    // is only honored when no token was supplied at all (old in-flight links).
+    let inspectionQuery = supabase.from("inspections").select("*");
+    if (shareToken) {
+      inspectionQuery = inspectionQuery.eq("public_share_token", shareToken);
+    } else {
+      inspectionQuery = inspectionQuery.eq("id", rawInspectionId);
+    }
+
+    const { data: inspection } = await inspectionQuery.maybeSingle();
 
     if (!inspection) {
       return NextResponse.json(
@@ -164,6 +171,9 @@ export async function POST(req: Request) {
         { status: 404 }
       );
     }
+
+    // From here on, always use the authoritative numeric id from the resolved row.
+    const inspectionId = String(inspection.id);
 
     const contact = await findMatchingContact({
       inspectionId,

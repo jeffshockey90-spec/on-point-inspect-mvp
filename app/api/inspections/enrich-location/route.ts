@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { geocodeAddress, getDrivingDistance } from "../../../../lib/geocode";
+import {
+  getSessionUser,
+  unauthorized,
+  notFound,
+  authorizeInspection,
+} from "../../../../lib/apiAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,6 +33,9 @@ function createAdminClient() {
 // every load.
 export async function POST(req: Request) {
   try {
+    const user = await getSessionUser();
+    if (!user) return unauthorized();
+
     const body = await req.json().catch(() => ({}));
     const inspectionId = body.inspectionId;
 
@@ -35,6 +44,9 @@ export async function POST(req: Request) {
     }
 
     const admin = createAdminClient();
+
+    const authorized = await authorizeInspection(admin, user.id, inspectionId, "id");
+    if (!authorized) return notFound();
 
     const { data: inspection } = await admin
       .from("inspections")
