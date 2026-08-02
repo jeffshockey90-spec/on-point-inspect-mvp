@@ -13,6 +13,7 @@ import { createClient as createServiceClient } from "@supabase/supabase-js";
 import PrintButton from "../../../components/PrintButton";
 import CollapsibleReportSection from "../../../components/CollapsibleReportSection";
 import SendSignedAgreementButton from "../../../components/SendSignedAgreementButton";
+import ResendConfirmationButton from "../../../components/ResendConfirmationButton";
 import ReportFindingsSortable from "./ReportFindingsSortable";
 import OfflineReportCacheBridge from "../../../components/OfflineReportCacheBridge";
 import SendReportEmailButtons from "../../../components/SendReportEmailButtons";
@@ -4082,6 +4083,10 @@ Service-life information is a general industry estimate only. Actual service lif
               clientEmail={inspection.client_email}
               realtorEmail={inspection.realtor_email || inspection.agent_email}
             />
+          </div>
+
+          <div className="mb-8">
+            <ResendConfirmationButton inspectionId={String(inspection.id)} />
           </div>
 
           <div className="mb-8 rounded-2xl border border-slate-700 bg-[#071224] p-4">

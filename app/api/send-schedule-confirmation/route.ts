@@ -76,7 +76,7 @@ export async function POST(req: Request) {
     const user = await getSessionUser();
     if (!user) return unauthorized();
 
-    const { inspectionId } = await req.json();
+    const { inspectionId, recipientRole, recipientEmail } = await req.json();
 
     if (!inspectionId) {
       return NextResponse.json({ error: "Missing inspection ID." }, { status: 400 });
@@ -127,9 +127,23 @@ export async function POST(req: Request) {
         role: cleanText(contact.role).toLowerCase(),
       }));
 
-    const uniqueRecipients: Array<{ email: string; name: string; role: string }> = Array.from(
+    let uniqueRecipients: Array<{ email: string; name: string; role: string }> = Array.from(
       new Map(recipients.map((recipient) => [recipient.email, recipient])).values()
     );
+
+    // Optional targeting for a manual resend (e.g. resend to just the realtor
+    // when their copy was delayed). No filter = resend to everyone.
+    const emailFilter = cleanText(recipientEmail).toLowerCase();
+    const roleFilter = cleanText(recipientRole).toLowerCase();
+    if (emailFilter) {
+      uniqueRecipients = uniqueRecipients.filter((r) => r.email === emailFilter);
+    } else if (roleFilter) {
+      uniqueRecipients = uniqueRecipients.filter(
+        (r) =>
+          r.role.includes(roleFilter) ||
+          (roleFilter === "realtor" && r.role.includes("transaction"))
+      );
+    }
 
     if (uniqueRecipients.length === 0) {
       return NextResponse.json({
