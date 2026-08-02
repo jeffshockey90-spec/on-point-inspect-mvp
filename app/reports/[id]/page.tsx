@@ -2460,9 +2460,12 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
   }
 
   const agreementContacts = agreementContactsRaw || [];
-  const requiredAgreementContacts = agreementContacts.filter((contact: any) =>
-    Boolean(contact.agreement_required)
-  );
+  // Only clients / co-clients are ever required to sign — never realtors or
+  // other roles, even if agreement_required is set on them.
+  const requiredAgreementContacts = agreementContacts.filter((contact: any) => {
+    const role = String(contact.role || "").toLowerCase();
+    return Boolean(contact.agreement_required) && (role === "client" || role === "co-client");
+  });
   const unsignedRequiredAgreementContacts = requiredAgreementContacts.filter(
     (contact: any) => !Boolean(contact.agreement_signed)
   );

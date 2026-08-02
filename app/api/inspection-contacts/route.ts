@@ -106,6 +106,21 @@ export async function POST(req: Request) {
 
     if (!inspection) return notFound("Inspection not found.");
 
+    // Don't create a duplicate contact for the same inspection + email + role
+    // (duplicate clients were showing up as extra required-signature rows).
+    const { data: existingContact } = await supabaseAdmin
+      .from("inspection_contacts")
+      .select("*")
+      .eq("inspection_id", inspection.id)
+      .ilike("email", email)
+      .eq("role", role)
+      .limit(1)
+      .maybeSingle();
+
+    if (existingContact) {
+      return NextResponse.json({ contact: existingContact, deduped: true });
+    }
+
     const { data, error } = await supabaseAdmin
       .from("inspection_contacts")
       .insert({

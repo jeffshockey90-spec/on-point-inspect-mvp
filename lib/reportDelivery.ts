@@ -71,12 +71,16 @@ export async function isAgreementComplete(
 
   const { data } = await admin
     .from("inspection_contacts")
-    .select("agreement_required, agreement_signed")
+    .select("agreement_required, agreement_signed, role")
     .eq("inspection_id", inspectionRow.id);
 
-  const unsigned = (data || []).filter(
-    (contact: any) => contact.agreement_required && !contact.agreement_signed
-  );
+  // Only clients / co-clients can be required to sign — never realtors or other
+  // roles, even if agreement_required got set on them.
+  const unsigned = (data || []).filter((contact: any) => {
+    const role = String(contact.role || "").toLowerCase();
+    const isSigner = role === "client" || role === "co-client";
+    return isSigner && contact.agreement_required && !contact.agreement_signed;
+  });
 
   return unsigned.length === 0;
 }

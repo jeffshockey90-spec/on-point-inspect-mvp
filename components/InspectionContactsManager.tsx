@@ -107,11 +107,19 @@ export default function InspectionContactsManager({
   }
 
   async function seedDefaults() {
+    // Skip anyone already on the inspection so "Add Existing" can't create
+    // duplicate contacts (duplicate clients were showing up as extra "required
+    // signature" rows).
+    const existingEmails = new Set(
+      contacts
+        .map((c: any) => String(c.email || "").trim().toLowerCase())
+        .filter(Boolean)
+    );
     const tasks: Promise<any>[] = [];
-    if (defaultClientEmail) {
+    if (defaultClientEmail && !existingEmails.has(String(defaultClientEmail).trim().toLowerCase())) {
       tasks.push(addContact({ name: defaultClientName || "Client", email: defaultClientEmail, phone: "", role: "client", agreement_required: true, portal_access: true, silent: true }));
     }
-    if (defaultRealtorEmail) {
+    if (defaultRealtorEmail && !existingEmails.has(String(defaultRealtorEmail).trim().toLowerCase())) {
       tasks.push(addContact({ name: defaultRealtorName || "Realtor", email: defaultRealtorEmail, phone: "", role: "realtor", agreement_required: false, portal_access: true, silent: true }));
     }
     await Promise.all(tasks);
@@ -291,8 +299,13 @@ export default function InspectionContactsManager({
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="break-words text-lg font-black text-white">{contact.name}</h3>
                       <span className={`rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-wide ${roleBadgeClass(contact.role)}`}>{formatRole(contact.role)}</span>
-                      <StatusBadge active={Boolean(contact.agreement_signed)} activeText="Signed" inactiveText="Not Signed" />
-                      <StatusBadge active={Boolean(contact.agreement_required)} activeText="Agreement" inactiveText="No Agreement" />
+                      {contact.agreement_required ? (
+                        <StatusBadge active={Boolean(contact.agreement_signed)} activeText="Signed" inactiveText="Not Signed" />
+                      ) : (
+                        <span className="rounded-full border border-slate-600 bg-slate-800/60 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-slate-400">
+                          No Signature Needed
+                        </span>
+                      )}
                       <StatusBadge active={Boolean(contact.portal_access)} activeText="Portal" inactiveText="No Portal" />
                     </div>
                     <div className="mt-3 space-y-1 text-sm text-slate-400">
