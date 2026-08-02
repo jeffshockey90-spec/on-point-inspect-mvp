@@ -36,6 +36,12 @@ export default function OwnerChangelog() {
   const [posting, setPosting] = useState(false);
   const [postError, setPostError] = useState("");
 
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editBody, setEditBody] = useState("");
+  const [editCredited, setEditCredited] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+
   useEffect(() => {
     load();
   }, []);
@@ -82,6 +88,49 @@ export default function OwnerChangelog() {
       setPostError(err?.message || "Could not post entry.");
     } finally {
       setPosting(false);
+    }
+  }
+
+  function startEdit(entry: ChangelogEntry) {
+    setEditingId(entry.id);
+    setEditTitle(entry.title || "");
+    setEditBody(entry.body || "");
+    setEditCredited(entry.credited_user_name || "");
+  }
+
+  async function saveEdit(id: number) {
+    if (!editBody.trim() || savingEdit) return;
+    try {
+      setSavingEdit(true);
+      const res = await fetch(`/api/owner/changelog/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: editTitle.trim(),
+          body: editBody.trim(),
+          creditedUserName: editCredited.trim() || null,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || "Could not update entry.");
+      setEditingId(null);
+      await load();
+    } catch (err: any) {
+      alert(err?.message || "Could not update entry.");
+    } finally {
+      setSavingEdit(false);
+    }
+  }
+
+  async function deleteEntry(id: number) {
+    if (!window.confirm("Delete this changelog post? This can't be undone.")) return;
+    try {
+      const res = await fetch(`/api/owner/changelog/${id}`, { method: "DELETE" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || "Could not delete entry.");
+      await load();
+    } catch (err: any) {
+      alert(err?.message || "Could not delete entry.");
     }
   }
 
@@ -152,16 +201,70 @@ export default function OwnerChangelog() {
           ) : (
             entries.map((entry) => (
               <article key={entry.id} className="rounded-2xl border border-slate-800 bg-[#0f172a] p-5">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-xs font-black uppercase tracking-wide text-teal-400">{formatDate(entry.published_at)}</p>
-                  {entry.credited_user_name && (
-                    <span className="rounded-full border border-amber-400/40 bg-amber-500/10 px-3 py-1 text-xs font-black text-amber-300">
-                      ✨ Requested by {entry.credited_user_name}
-                    </span>
-                  )}
-                </div>
-                <h3 className="mt-2 text-xl font-black text-white">{entry.title}</h3>
-                <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-300">{entry.body}</p>
+                {editingId === entry.id ? (
+                  <div className="space-y-3">
+                    <input
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                      placeholder="Title"
+                      className="w-full rounded-xl border border-slate-700 bg-black px-4 py-2.5 text-sm text-white outline-none focus:border-teal-400"
+                    />
+                    <textarea
+                      value={editBody}
+                      onChange={(e) => setEditBody(e.target.value)}
+                      rows={6}
+                      className="w-full rounded-xl border border-slate-700 bg-black px-4 py-3 text-sm text-white outline-none focus:border-teal-400"
+                    />
+                    <input
+                      value={editCredited}
+                      onChange={(e) => setEditCredited(e.target.value)}
+                      placeholder="Credit someone (optional)"
+                      className="w-full rounded-xl border border-slate-700 bg-black px-4 py-2.5 text-sm text-white outline-none focus:border-teal-400"
+                    />
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={() => saveEdit(entry.id)}
+                        disabled={!editBody.trim() || savingEdit}
+                        className="rounded-xl bg-teal-500 px-5 py-2.5 text-sm font-black text-black hover:bg-teal-400 disabled:opacity-50"
+                      >
+                        {savingEdit ? "Saving..." : "Save"}
+                      </button>
+                      <button
+                        onClick={() => setEditingId(null)}
+                        className="rounded-xl border border-slate-600 px-5 py-2.5 text-sm font-black text-slate-300 hover:bg-slate-800"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-xs font-black uppercase tracking-wide text-teal-400">{formatDate(entry.published_at)}</p>
+                      <div className="flex items-center gap-2">
+                        {entry.credited_user_name && (
+                          <span className="rounded-full border border-amber-400/40 bg-amber-500/10 px-3 py-1 text-xs font-black text-amber-300">
+                            ✨ Requested by {entry.credited_user_name}
+                          </span>
+                        )}
+                        <button
+                          onClick={() => startEdit(entry)}
+                          className="rounded-lg border border-slate-600 px-3 py-1.5 text-xs font-black text-slate-300 hover:border-teal-400 hover:text-teal-200"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => deleteEntry(entry.id)}
+                          className="rounded-lg border border-red-500/50 px-3 py-1.5 text-xs font-black text-red-300 hover:bg-red-500/10"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                    <h3 className="mt-2 text-xl font-black text-white">{entry.title}</h3>
+                    <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-300">{entry.body}</p>
+                  </>
+                )}
               </article>
             ))
           )}
