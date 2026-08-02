@@ -941,14 +941,27 @@ export default function ClientPortalPage() {
 
           <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {agreementSigned ? (
-              <div className="rounded-xl border border-green-500/40 bg-green-500/10 px-6 py-4 text-left font-bold text-green-300">
-                <span className="block text-lg">
-                  {agreementWaived ? "Agreement Waived" : "Agreement Signed"}
-                </span>
-                <span className="mt-1 block text-sm font-medium opacity-80">
-                  This requirement is complete.
-                </span>
-              </div>
+              agreementWaived ? (
+                <div className="rounded-xl border border-green-500/40 bg-green-500/10 px-6 py-4 text-left font-bold text-green-300">
+                  <span className="block text-lg">Agreement Waived</span>
+                  <span className="mt-1 block text-sm font-medium opacity-80">
+                    This requirement is complete.
+                  </span>
+                </div>
+              ) : (
+                <FastLinkButton
+                  href={`/client-agreement/${shareLookup}`}
+                  loadingText="Opening Signed Agreement..."
+                  className="rounded-xl border border-green-500/50 bg-green-500/10 px-6 py-4 text-left font-bold text-green-300 hover:bg-green-500/20"
+                >
+                  <span>
+                    <span className="block text-lg">✓ Agreement Signed</span>
+                    <span className="mt-1 block text-sm font-medium opacity-80">
+                      View or download your signed copy.
+                    </span>
+                  </span>
+                </FastLinkButton>
+              )
             ) : (
               <FastLinkButton
                 href={`/client-agreement/${shareLookup}`}
