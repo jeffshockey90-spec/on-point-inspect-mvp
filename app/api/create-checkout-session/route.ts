@@ -6,6 +6,7 @@ import {
   unauthorized,
   authorizeInspection,
 } from "../../../lib/apiAuth";
+import { reportSecurityEvent } from "../../../lib/securityAlerts";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -232,7 +233,14 @@ export async function POST(req: Request) {
 
       if (numericId) {
         const user = await getSessionUser();
-        if (!user) return unauthorized();
+        if (!user) {
+          await reportSecurityEvent({
+            req,
+            type: "checkout_enum",
+            detail: { numericId },
+          });
+          return unauthorized();
+        }
 
         // owner / company member
         inspection = await authorizeInspection(

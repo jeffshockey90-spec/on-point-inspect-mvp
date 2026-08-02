@@ -6,6 +6,7 @@ import {
   notFound,
   authorizeInspection,
 } from "../../../lib/apiAuth";
+import { reportSecurityEvent } from "../../../lib/securityAlerts";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -43,7 +44,10 @@ export async function GET(req: Request) {
     // Lab results (mold/radon) are sensitive. Only the inspection's own
     // inspector/company may pull them; no anonymous id enumeration.
     const user = await getSessionUser();
-    if (!user) return unauthorized();
+    if (!user) {
+      await reportSecurityEvent({ req, type: "env_enum", detail: { inspection_id: inspectionId } });
+      return unauthorized();
+    }
 
     const authorized = await authorizeInspection(
       supabase,
@@ -51,7 +55,10 @@ export async function GET(req: Request) {
       Number(inspectionId),
       "id"
     );
-    if (!authorized) return notFound();
+    if (!authorized) {
+      await reportSecurityEvent({ req, type: "env_enum", detail: { inspection_id: inspectionId, user_id: user.id } });
+      return notFound();
+    }
 
     const { data: moldTest, error: moldError } = await supabase
       .from("mold_tests")

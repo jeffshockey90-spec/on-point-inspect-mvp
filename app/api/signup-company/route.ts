@@ -4,6 +4,7 @@ import { Resend } from "resend";
 import { sendPushNotification } from "../../../lib/push";
 import { OWNER_EMAILS } from "../../../lib/ownerEmails";
 import { createClient as createServerSupabase } from "../../../utils/supabase/server";
+import { reportSecurityEvent } from "../../../lib/securityAlerts";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -55,6 +56,11 @@ export async function POST(req: Request) {
       } = await authClient.auth.getUser();
 
       if (sessionUser && sessionUser.id !== userId) {
+        await reportSecurityEvent({
+          req,
+          type: "signup_hijack",
+          detail: { claimedUserId: userId, sessionUserId: sessionUser.id },
+        });
         return NextResponse.json(
           { error: "Signup session does not match this account." },
           { status: 403 }
@@ -73,6 +79,11 @@ export async function POST(req: Request) {
       String(authRecord.user.email || "").trim().toLowerCase() !==
         String(email || "").trim().toLowerCase()
     ) {
+      await reportSecurityEvent({
+        req,
+        type: "signup_hijack",
+        detail: { claimedUserId: userId, submittedEmail: email },
+      });
       return NextResponse.json(
         { error: "Could not verify this account." },
         { status: 403 }

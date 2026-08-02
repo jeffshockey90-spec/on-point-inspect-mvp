@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import { getCompanyBrandingById } from "../../../lib/companyBranding";
+import { reportSecurityEvent } from "../../../lib/securityAlerts";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -381,6 +382,11 @@ export async function GET(req: Request) {
     }
 
     if (!accessGranted) {
+      await reportSecurityEvent({
+        req,
+        type: "repair_enum",
+        detail: { inspection_id: inspectionId },
+      });
       return NextResponse.json(
         { error: "Inspection not found." },
         { status: 404 }

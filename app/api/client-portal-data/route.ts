@@ -4,6 +4,7 @@ import { createClient as createSupabaseAdmin } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import { getCompanyBrandingById } from "../../../lib/companyBranding";
 import { getReportDeliveryState } from "../../../lib/reportDelivery";
+import { reportSecurityEvent } from "../../../lib/securityAlerts";
 
 // Resolves whether the currently signed-in user (if any) is allowed to open a
 // portal by raw inspection id: the owning inspector, a member of the owning
@@ -202,6 +203,11 @@ export async function GET(req: Request) {
     }
 
     if (!inspection) {
+      // A failed NUMERIC lookup means someone tried a guessed sequential id
+      // rather than a real share token — log it as a possible enumeration probe.
+      if (/^\d+$/.test(lookup)) {
+        await reportSecurityEvent({ req, type: "portal_enum", detail: { lookup } });
+      }
       return NextResponse.json({ error: "Inspection not found." }, { status: 404 });
     }
 
