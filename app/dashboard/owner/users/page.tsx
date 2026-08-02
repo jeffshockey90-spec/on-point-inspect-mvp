@@ -7,6 +7,16 @@ import { cookies } from "next/headers";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import OwnerAccountActions from "../../../../components/OwnerAccountActions";
+import UserRoleTabs from "../../../../components/UserRoleTabs";
+
+function userRoleCategory(role: string, reports = 0) {
+  if (reports > 0) return "inspector";
+  const r = String(role || "").toLowerCase();
+  if (r.includes("inspector")) return "inspector";
+  if (r.includes("realtor") || r.includes("agent")) return "realtor";
+  if (r.includes("client") || r.includes("buyer") || r.includes("co-client")) return "client";
+  return "other";
+}
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -536,6 +546,12 @@ export default async function OwnerUsersPage() {
 
   const totalUsers = userRows.length;
   const inspectors = userRows.filter((row) => row.role.includes("inspector") || row.reports > 0);
+  const roleCounts = {
+    all: userRows.length,
+    inspector: userRows.filter((row) => userRoleCategory(row.role, row.reports) === "inspector").length,
+    client: userRows.filter((row) => userRoleCategory(row.role, row.reports) === "client").length,
+    realtor: userRows.filter((row) => userRoleCategory(row.role, row.reports) === "realtor").length,
+  };
   const active7 = userRows.filter((row) => row.active7);
   const active30 = userRows.filter((row) => row.active30);
   const pushEnabled = userRows.filter((row) => row.nativePush || row.webPush);
@@ -616,6 +632,10 @@ export default async function OwnerUsersPage() {
             </p>
           </div>
 
+          <div className="mt-5">
+            <UserRoleTabs counts={roleCounts} />
+          </div>
+
           <div className="mt-6 space-y-4">
             {userRows.length === 0 ? (
               <EmptyState text="No users found yet." />
@@ -623,6 +643,7 @@ export default async function OwnerUsersPage() {
               userRows.map((row) => (
                 <div
                   key={row.id}
+                  data-user-role={userRoleCategory(row.role, row.reports)}
                   className="rounded-2xl border border-slate-700 bg-[#020817]/70 p-4 shadow-lg"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-4">
