@@ -4128,7 +4128,7 @@ Service-life information is a general industry estimate only. Actual service lif
           <CollapsibleReportSection
             title="Signed Agreements"
             subtitle={`${signedAgreements.length} signed`}
-            defaultOpen={signedAgreements.length > 0}
+            defaultOpen={false}
             accentClassName="border-emerald-500/40 text-emerald-100"
           >
           <section className="mb-6 rounded-2xl border border-emerald-500/40 bg-[#071224] p-4 shadow-xl">

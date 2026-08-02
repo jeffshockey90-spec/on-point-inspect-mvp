@@ -414,10 +414,15 @@ export async function POST(req: Request) {
         );
       }
 
-      const links = clientContacts.map((contact: any) => ({
-        name: contact.name || "Client",
-        url: `${baseUrl}/client-agreement/${portalShareToken}?contact=${contact.id}`,
-      }));
+      const links = clientContacts.map((contact: any) => {
+        const rawUrl = `${baseUrl}/client-agreement/${portalShareToken}?contact=${contact.id}`;
+        const url = `${baseUrl}/api/email-click?inspection_id=${encodeURIComponent(
+          String(inspection.id)
+        )}&recipient_type=client&recipient_email=${encodeURIComponent(
+          String(contact.email || "")
+        )}&target=${encodeURIComponent(rawUrl)}`;
+        return { name: contact.name || "Client", url };
+      });
 
       const subject = `Inspection Agreement To Forward - ${property}`;
       const email = realtor.email;
@@ -539,6 +544,13 @@ ${branding.name}`,
       // IMPORTANT: every signer gets their own contact-specific agreement link.
       // This prevents one client from signing for every client/co-client.
       const agreementUrl = `${baseUrl}/client-agreement/${portalShareToken}?contact=${contact.id}`;
+      // Wrap the link through /api/email-click so a click is recorded (email
+      // link clicks were showing 0 because agreement links weren't tracked).
+      const trackedAgreementUrl = `${baseUrl}/api/email-click?inspection_id=${encodeURIComponent(
+        String(inspection.id)
+      )}&recipient_type=${encodeURIComponent(
+        contact.role || "client"
+      )}&recipient_email=${encodeURIComponent(email)}&target=${encodeURIComponent(agreementUrl)}`;
       const subject = `Inspection Agreement - ${property}`;
 
       try {
@@ -557,7 +569,7 @@ ${branding.name}`,
               <p><strong>Property:</strong> ${escapeHtml(property)}</p>
 
               <p>
-                <a href="${agreementUrl}" style="display:inline-block;background:#14b8a6;color:#020617;font-weight:bold;padding:14px 22px;border-radius:10px;text-decoration:none;">
+                <a href="${trackedAgreementUrl}" style="display:inline-block;background:#14b8a6;color:#020617;font-weight:bold;padding:14px 22px;border-radius:10px;text-decoration:none;">
                   Review & Sign Agreement
                 </a>
               </p>
