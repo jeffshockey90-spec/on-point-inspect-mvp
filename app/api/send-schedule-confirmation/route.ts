@@ -183,6 +183,21 @@ export async function POST(req: Request) {
       const isRealtor =
         recipient.role.includes("realtor") || recipient.role.includes("transaction");
 
+      // Route the portal link through /api/email-click so a click on the
+      // schedule confirmation is recorded, tagged with this recipient's role
+      // (client vs realtor) and email.
+      const trackedPortalUrl = `${getBaseUrl(req)}/api/email-click?inspection_id=${encodeURIComponent(
+        String(inspection.id)
+      )}&recipient_type=${encodeURIComponent(
+        recipient.role || "client"
+      )}&recipient_email=${encodeURIComponent(recipient.email)}&target=${encodeURIComponent(portalUrl)}`;
+      // Open-tracking pixel (best-effort — some clients block/proxy images).
+      const emailOpenPixelUrl = `${getBaseUrl(req)}/api/email-open?inspection_id=${encodeURIComponent(
+        String(inspection.id)
+      )}&recipient_type=${encodeURIComponent(
+        recipient.role || "client"
+      )}&recipient_email=${encodeURIComponent(recipient.email)}`;
+
       const subject = `Inspection Confirmed - ${address || branding.name}`;
       const greeting = recipient.name ? `Hi ${escapeHtml(recipient.name)},` : "Hello,";
 
@@ -210,10 +225,12 @@ export async function POST(req: Request) {
           </p>
 
           <p>
-            <a href="${portalUrl}" style="display:inline-block;background:#14b8a6;color:#020617;font-weight:bold;padding:12px 18px;border-radius:10px;text-decoration:none;">
+            <a href="${trackedPortalUrl}" style="display:inline-block;background:#14b8a6;color:#020617;font-weight:bold;padding:12px 18px;border-radius:10px;text-decoration:none;">
               Open Client Portal
             </a>
           </p>
+
+          <img src="${emailOpenPixelUrl}" width="1" height="1" alt="" style="display:none; opacity:0; width:1px; height:1px;" />
 
           <p style="margin-top:30px;font-size:12px;color:#64748b;">
             ${escapeHtml(branding.name)}
