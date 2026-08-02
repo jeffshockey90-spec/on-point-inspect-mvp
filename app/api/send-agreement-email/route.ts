@@ -551,6 +551,12 @@ ${branding.name}`,
       )}&recipient_type=${encodeURIComponent(
         contact.role || "client"
       )}&recipient_email=${encodeURIComponent(email)}&target=${encodeURIComponent(agreementUrl)}`;
+      // Open-tracking pixel (best-effort — some mail clients block or proxy it).
+      const emailOpenPixelUrl = `${baseUrl}/api/email-open?inspection_id=${encodeURIComponent(
+        String(inspection.id)
+      )}&recipient_type=${encodeURIComponent(
+        contact.role || "client"
+      )}&recipient_email=${encodeURIComponent(email)}`;
       const subject = `Inspection Agreement - ${property}`;
 
       try {
@@ -578,6 +584,8 @@ ${branding.name}`,
                 Client Portal:<br />
                 <a href="${portalUrl}">${portalUrl}</a>
               </p>
+
+              <img src="${emailOpenPixelUrl}" width="1" height="1" alt="" style="display:none; opacity:0; width:1px; height:1px;" />
 
               <p style="margin-top:30px;font-size:12px;color:#64748b;">
                 ${escapeHtml(branding.name)}
