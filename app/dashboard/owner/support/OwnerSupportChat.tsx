@@ -11,6 +11,7 @@ type Message = {
   sender_email: string | null;
   message: string;
   created_at: string;
+  read_by_inspector?: boolean;
 };
 
 type Thread = {
@@ -315,6 +316,15 @@ export default function OwnerSupportChat() {
                             {isOwner ? "You" : selected.inspector_name || "Inspector"} · {formatDate(item.created_at)}
                           </p>
                           <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-white">{item.message}</p>
+                          {isOwner && (
+                            <p
+                              className={`mt-2 text-[11px] font-black ${
+                                item.read_by_inspector ? "text-teal-300" : "text-slate-500"
+                              }`}
+                            >
+                              {item.read_by_inspector ? "✓✓ Read" : "✓ Sent · not read yet"}
+                            </p>
+                          )}
                         </div>
                       </div>
                     );

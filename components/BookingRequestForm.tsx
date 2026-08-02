@@ -192,6 +192,7 @@ export default function BookingRequestForm({
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
+  const [smsConsent, setSmsConsent] = useState(false);
   const [photoUploading, setPhotoUploading] = useState(false);
   const [photoError, setPhotoError] = useState("");
   const [services, setServices] = useState<string[]>(["Buyer Home Inspection"]);
@@ -368,6 +369,7 @@ export default function BookingRequestForm({
           services_requested: services,
           additional_clients: cleanAdditionalClients(),
           company_slug: companySlug || "",
+          sms_consent: smsConsent,
         }),
       });
 
@@ -626,6 +628,39 @@ export default function BookingRequestForm({
             className="mt-2 box-border w-full max-w-full resize-y rounded-xl border border-slate-600 bg-[#020617] px-3 py-3 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-teal-400"
           />
         </div>
+
+        <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-700 bg-[#020817]/70 p-4 text-sm leading-6 text-slate-300">
+          <input
+            type="checkbox"
+            checked={smsConsent}
+            onChange={(event) => setSmsConsent(event.target.checked)}
+            className="mt-0.5 h-5 w-5 shrink-0 accent-teal-400"
+          />
+          <span>
+            I agree to receive text messages about my inspection (appointment
+            confirmation, reminders, and report delivery) at the phone number I
+            provided. Message &amp; data rates may apply. Msg frequency varies.
+            Reply STOP to opt out, HELP for help. See our{" "}
+            <a
+              href="/terms"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-bold text-teal-300 underline"
+            >
+              Terms
+            </a>{" "}
+            and{" "}
+            <a
+              href="/privacy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-bold text-teal-300 underline"
+            >
+              Privacy Policy
+            </a>
+            .
+          </span>
+        </label>
 
         <button
           type="submit"
