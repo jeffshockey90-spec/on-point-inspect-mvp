@@ -1,12 +1,15 @@
 import Link from "next/link";
 
 type PageProps = {
-  searchParams: Promise<{ inspection_id?: string }>;
+  searchParams: Promise<{ inspection_id?: string; portal_token?: string }>;
 };
 
 export default async function PaymentCancelledPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const inspectionId = params.inspection_id || "";
+  // Prefer the unguessable share token so the anonymous client returns to a
+  // token portal link (raw-id portal access now requires a session).
+  const portalTarget = params.portal_token || inspectionId;
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#020617] p-6 text-white">
@@ -25,9 +28,9 @@ export default async function PaymentCancelledPage({ searchParams }: PageProps) 
         </p>
 
         <div className="mt-8 flex flex-wrap gap-3">
-          {inspectionId && (
+          {portalTarget && (
             <Link
-              href={`/client-portal/${inspectionId}`}
+              href={`/client-portal/${portalTarget}`}
               className="rounded-xl bg-teal-500 px-6 py-3 font-black text-slate-950 hover:bg-teal-400"
             >
               Return to Client Portal

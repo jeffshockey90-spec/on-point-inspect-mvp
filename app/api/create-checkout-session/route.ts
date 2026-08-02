@@ -229,6 +229,9 @@ export async function POST(req: Request) {
     }
 
     const inspectionId = inspection.id;
+    // Carry the share token onto the Stripe return URLs so the (anonymous, just
+    // -paid) client lands back on their token portal instead of a raw-id link.
+    const portalReturnToken = String((inspection as any).public_share_token || "");
 
     const company = await getCompanyForInspection(supabase, inspection);
     const stripeBlocker = getStripeConnectBlocker(company);
@@ -318,8 +321,12 @@ export async function POST(req: Request) {
               ]
             : []),
         ],
-        success_url: `${appUrl}/payment-success?session_id={CHECKOUT_SESSION_ID}&stripe_account=${connectedStripeAccountId}`,
-        cancel_url: `${appUrl}/payment-cancelled?inspection_id=${inspectionId}`,
+        success_url: `${appUrl}/payment-success?session_id={CHECKOUT_SESSION_ID}&stripe_account=${connectedStripeAccountId}${
+          portalReturnToken ? `&portal_token=${encodeURIComponent(portalReturnToken)}` : ""
+        }`,
+        cancel_url: `${appUrl}/payment-cancelled?inspection_id=${inspectionId}${
+          portalReturnToken ? `&portal_token=${encodeURIComponent(portalReturnToken)}` : ""
+        }`,
       },
       {
         stripeAccount: connectedStripeAccountId,

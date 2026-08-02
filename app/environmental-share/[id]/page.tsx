@@ -226,11 +226,41 @@ export default async function PublicEnvironmentalSharePage({ params }: PageProps
     .eq("public_share_token", shareLookup)
     .maybeSingle();
 
-  // Resolve ONLY by the unguessable share token. The old numeric-id fallback
-  // let anyone enumerate sequential ids to pull mold/radon lab results, so it
-  // has been removed — legitimate share links always carry the token.
-  const inspection = inspectionByToken;
-  const inspectionError = tokenLookupError;
+  // Primary: resolve by the unguessable share token (anonymous clients reach
+  // this page via a token link). The old bare numeric-id fallback let anyone
+  // enumerate sequential ids to pull mold/radon lab results, so a raw-id lookup
+  // is now honored ONLY for a signed-in owner of the inspection (the inspector's
+  // in-app raw-id links), never anonymously.
+  let inspection = inspectionByToken;
+  let inspectionError = tokenLookupError;
+
+  if (!inspection && !inspectionError && /^\d+$/.test(shareLookup)) {
+    const { data: candidate } = await supabase
+      .from("inspections")
+      .select("*")
+      .eq("id", shareLookup)
+      .maybeSingle();
+
+    if (candidate) {
+      const { createClient: createServerSupabase } = await import(
+        "../../../utils/supabase/server"
+      );
+      const authClient = await createServerSupabase();
+      const {
+        data: { user },
+      } = await authClient.auth.getUser();
+
+      if (user) {
+        const { resolveInspectionAccessFilter } = await import(
+          "../../../lib/inspectionAccess"
+        );
+        const filter = await resolveInspectionAccessFilter(supabase, user.id);
+        if (String((candidate as any)[filter.column] || "") === String(filter.value)) {
+          inspection = candidate;
+        }
+      }
+    }
+  }
 
   const id = inspection ? String(inspection.id) : shareLookup;
 

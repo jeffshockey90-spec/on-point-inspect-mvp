@@ -1,7 +1,66 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { createClient as createSupabaseAdmin } from "@supabase/supabase-js";
+import { createServerClient } from "@supabase/ssr";
 import { getCompanyBrandingById } from "../../../lib/companyBranding";
 import { getReportDeliveryState } from "../../../lib/reportDelivery";
+
+// Resolves whether the currently signed-in user (if any) is allowed to open a
+// portal by raw inspection id: the owning inspector, a member of the owning
+// company, or a client contact whose email matches. Used only as a fallback so
+// legacy raw-id portal links keep working for authenticated users WITHOUT
+// re-opening anonymous id enumeration.
+async function authedUserOwnsInspection(admin: any, inspection: any) {
+  try {
+    const cookieStore = await cookies();
+    const authClient = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll() {},
+        },
+      }
+    );
+
+    const {
+      data: { user },
+    } = await authClient.auth.getUser();
+
+    if (!user) return false;
+
+    if (String(inspection.inspector_id || "") === user.id) return true;
+
+    if (inspection.company_id) {
+      const { data: membership } = await admin
+        .from("company_users")
+        .select("company_id")
+        .eq("user_id", user.id)
+        .eq("company_id", inspection.company_id)
+        .maybeSingle();
+      if (membership) return true;
+    }
+
+    const email = String(user.email || "").trim().toLowerCase();
+    if (email) {
+      const { data: contact } = await admin
+        .from("inspection_contacts")
+        .select("id")
+        .eq("inspection_id", inspection.id)
+        .ilike("email", email)
+        .limit(1)
+        .maybeSingle();
+      if (contact) return true;
+    }
+  } catch {
+    // fall through to no-access
+  }
+
+  return false;
+}
 
 const SHARE_TOKEN_FIELDS = [
   "public_share_token",
@@ -110,14 +169,29 @@ export async function GET(req: Request) {
 
     const supabase = getSupabaseAdmin();
 
-    // Resolve ONLY by the unguessable share token. A numeric-id fallback used
-    // to exist for pre-token links, but it let anyone enumerate sequential ids
-    // to pull client name/address/summary/financials, so it has been removed.
-    const { data: inspection, error } = await supabase
+    // Primary: resolve by the unguessable share token (anonymous clients open
+    // the portal this way from their emailed link).
+    let { data: inspection, error } = await supabase
       .from("inspections")
       .select("*")
       .eq("public_share_token", lookup)
       .maybeSingle();
+
+    // Legacy raw-id fallback, but ONLY for a signed-in user who actually owns or
+    // participates in the inspection. This keeps old raw-id portal links and the
+    // logged-in-client redirect working, without letting an anonymous caller
+    // enumerate sequential ids to read client name/address/summary/financials.
+    if (!inspection && !error && /^\d+$/.test(lookup)) {
+      const { data: candidate } = await supabase
+        .from("inspections")
+        .select("*")
+        .eq("id", lookup)
+        .maybeSingle();
+
+      if (candidate && (await authedUserOwnsInspection(supabase, candidate))) {
+        inspection = candidate;
+      }
+    }
 
     if (error) {
       console.error("Client portal inspection lookup error:", error);

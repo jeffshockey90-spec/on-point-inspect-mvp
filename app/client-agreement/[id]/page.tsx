@@ -91,23 +91,52 @@ export default async function ClientAgreementPage({
     .eq("public_share_token", id)
     .maybeSingle();
 
-  // Legacy fallback: an old raw-id link is only honored for a signed-in owner
-  // of that inspection (never anonymously).
+  // Legacy raw-id fallback. Old agreement emails linked by raw id plus a
+  // specific ?contact=<uuid>. Honor those ONLY when that contact id actually
+  // belongs to the inspection (a hard-to-guess per-recipient secret) OR the
+  // requester is a signed-in owner. A bare numeric id with neither is rejected,
+  // so agreement PII / signatures can't be enumerated.
   if (!inspection && /^\d+$/.test(String(id || ""))) {
-    const {
-      data: { user },
-    } = await (await import("../../../utils/supabase/server")).createClient().then((c) => c.auth.getUser());
-    if (user) {
-      const filter = await (
-        await import("../../../lib/inspectionAccess")
-      ).resolveInspectionAccessFilter(supabase, user.id);
-      const owned = await supabase
-        .from("inspections")
-        .select("*")
-        .eq("id", id)
-        .eq(filter.column, filter.value)
-        .maybeSingle();
-      inspection = owned.data || null;
+    const { data: candidate } = await supabase
+      .from("inspections")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (candidate) {
+      let allowed = false;
+
+      if (contact) {
+        const { data: contactRow } = await supabase
+          .from("inspection_contacts")
+          .select("id")
+          .eq("id", contact)
+          .eq("inspection_id", candidate.id)
+          .maybeSingle();
+        if (contactRow) allowed = true;
+      }
+
+      if (!allowed) {
+        const {
+          data: { user },
+        } = await (await import("../../../utils/supabase/server"))
+          .createClient()
+          .then((c) => c.auth.getUser());
+        if (user) {
+          const { resolveInspectionAccessFilter } = await import(
+            "../../../lib/inspectionAccess"
+          );
+          const filter = await resolveInspectionAccessFilter(supabase, user.id);
+          if (
+            String((candidate as any)[filter.column] || "") ===
+            String(filter.value)
+          ) {
+            allowed = true;
+          }
+        }
+      }
+
+      if (allowed) inspection = candidate;
     }
   }
 
@@ -299,7 +328,7 @@ export default async function ClientAgreementPage({
         ) : (
           <AgreementSignatureForm
             inspectionId={String(inspection.id)}
-            shareToken={String(id)}
+            shareToken={String(inspection.public_share_token || "")}
             contactId={selectedContact?.id || ""}
             defaultClientName={selectedContact?.name || inspection.client_name || ""}
             defaultClientEmail={selectedContact?.email || inspection.client_email || ""}

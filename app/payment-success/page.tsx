@@ -36,6 +36,7 @@ type PageProps = {
   searchParams: Promise<{
     session_id?: string;
     stripe_account?: string;
+    portal_token?: string;
   }>;
 };
 
@@ -119,6 +120,7 @@ export default async function PaymentSuccessPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const sessionId = params.session_id || "";
   const stripeAccountId = params.stripe_account || "";
+  const portalToken = params.portal_token || "";
 
   let inspectionId = "";
   let paid = false;
@@ -336,9 +338,9 @@ export default async function PaymentSuccessPage({ searchParams }: PageProps) {
         )}
 
         <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-          {inspectionId && (
+          {(portalToken || inspectionId) && (
             <Link
-              href={`/client-portal/${inspectionId}`}
+              href={`/client-portal/${portalToken || inspectionId}`}
               className="w-full rounded-xl bg-teal-500 px-6 py-3 text-center font-black text-slate-950 hover:bg-teal-400 sm:w-auto"
             >
               Return to Client Portal
