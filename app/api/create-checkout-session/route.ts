@@ -201,11 +201,16 @@ export async function POST(req: Request) {
 
     const supabase = getSupabaseAdmin();
 
-    // Resolve + authorize before touching payment state. Public portal callers
-    // present the unguessable share token; a signed-in inspector is authorized
-    // against their own inspections. A bare numeric id with neither is rejected,
-    // so payment status can't be flipped by enumerating sequential ids.
+    // Resolve + authorize before touching payment state. Three legitimate ways in:
+    //   (1) the unguessable share token (anonymous token-portal client),
+    //   (2) a signed-in inspector / company owner (authorizeInspection), or
+    //   (3) a signed-in client CONTACT of the inspection paying their own bill
+    //       (e.g. from a legacy numeric portal link).
+    // A bare numeric id with no session and no valid token is rejected, so
+    // payment state can't be flipped by enumerating sequential ids.
     let inspection: any = null;
+
+    // (1) share token
     if (shareToken) {
       const { data } = await supabase
         .from("inspections")
@@ -213,15 +218,51 @@ export async function POST(req: Request) {
         .eq("public_share_token", shareToken)
         .maybeSingle();
       inspection = data || null;
-    } else {
-      const user = await getSessionUser();
-      if (!user) return unauthorized();
-      inspection = await authorizeInspection(
-        supabase,
-        user.id,
-        Number(rawInspectionId),
-        "*"
-      );
+    }
+
+    // (2)/(3) numeric id — from an explicit inspectionId, or a shareToken that is
+    // actually a legacy numeric id — gated by a signed-in owner or participant.
+    if (!inspection) {
+      const numericId =
+        rawInspectionId != null && String(rawInspectionId).trim() !== ""
+          ? String(rawInspectionId).trim()
+          : /^\d+$/.test(shareToken)
+          ? shareToken
+          : "";
+
+      if (numericId) {
+        const user = await getSessionUser();
+        if (!user) return unauthorized();
+
+        // owner / company member
+        inspection = await authorizeInspection(
+          supabase,
+          user.id,
+          Number(numericId),
+          "*"
+        );
+
+        // client contact paying their own inspection
+        if (!inspection) {
+          const { data: candidate } = await supabase
+            .from("inspections")
+            .select("*")
+            .eq("id", numericId)
+            .maybeSingle();
+
+          const email = String(user.email || "").trim().toLowerCase();
+          if (candidate && email) {
+            const { data: contact } = await supabase
+              .from("inspection_contacts")
+              .select("id")
+              .eq("inspection_id", (candidate as any).id)
+              .ilike("email", email)
+              .limit(1)
+              .maybeSingle();
+            if (contact) inspection = candidate;
+          }
+        }
+      }
     }
 
     if (!inspection) {
