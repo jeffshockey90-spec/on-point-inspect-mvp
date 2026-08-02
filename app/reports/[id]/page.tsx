@@ -12,6 +12,7 @@ import { createClient as createServiceClient } from "@supabase/supabase-js";
 
 import PrintButton from "../../../components/PrintButton";
 import CollapsibleReportSection from "../../../components/CollapsibleReportSection";
+import SendSignedAgreementButton from "../../../components/SendSignedAgreementButton";
 import ReportFindingsSortable from "./ReportFindingsSortable";
 import OfflineReportCacheBridge from "../../../components/OfflineReportCacheBridge";
 import SendReportEmailButtons from "../../../components/SendReportEmailButtons";
@@ -2429,7 +2430,12 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
     radonTestForPanel = data;
   }
 
-  const { data: signedAgreementsRaw, error: signedAgreementsError } = await supabase
+  // Read signed agreements with the service-role client: inspection_agreements
+  // has RLS enabled with no inspector SELECT policy, so the RLS-scoped `supabase`
+  // client silently returns 0 rows even for the owning inspector (which made
+  // real signed agreements invisible here). Access to this page is already gated
+  // by the RLS-scoped inspection load above, so this read is safe.
+  const { data: signedAgreementsRaw, error: signedAgreementsError } = await storageSupabase
     .from("inspection_agreements")
     .select("id, contact_id, client_name, client_email, signature_role, agreement_title, signed_at, signer_ip, signer_user_agent, status")
     .eq("inspection_id", inspection.id)
@@ -4163,13 +4169,21 @@ Service-life information is a general industry estimate only. Actual service lif
                         </p>
                       </div>
 
-                      <FastLinkButton
-                        href={`/reports/${inspection.id}/signed-agreement/${agreement.id}`}
-                        loadingText="Opening Signed Agreement..."
-                        className="rounded-xl border border-emerald-500 bg-emerald-500/10 px-4 py-3 text-center text-sm font-black text-emerald-300 hover:bg-emerald-500 hover:text-slate-950"
-                      >
-                        View / Save Copy
-                      </FastLinkButton>
+                      <div className="flex flex-col gap-2 sm:min-w-[220px]">
+                        <FastLinkButton
+                          href={`/reports/${inspection.id}/signed-agreement/${agreement.id}`}
+                          loadingText="Opening Signed Agreement..."
+                          className="rounded-xl border border-emerald-500 bg-emerald-500/10 px-4 py-3 text-center text-sm font-black text-emerald-300 hover:bg-emerald-500 hover:text-slate-950"
+                        >
+                          View / Save Copy
+                        </FastLinkButton>
+
+                        <SendSignedAgreementButton
+                          inspectionId={inspection.id}
+                          agreementId={agreement.id}
+                          clientEmail={agreement.client_email}
+                        />
+                      </div>
                     </div>
                   </article>
                 ))}
