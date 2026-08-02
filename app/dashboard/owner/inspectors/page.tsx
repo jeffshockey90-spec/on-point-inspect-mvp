@@ -9,6 +9,7 @@ import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import OwnerAccountActions from "../../../../components/OwnerAccountActions";
 import OwnerInspectorBillingControls from "../../../../components/OwnerInspectorBillingControls";
+import { getSubscriptionPricing } from "../../../../lib/subscriptionPricing";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -309,6 +310,7 @@ export default async function OwnerInspectorsPage() {
   if (!owner) return <RestrictedOwner />;
 
   const admin = createAdminClient();
+  const pricing = await getSubscriptionPricing();
   const now = new Date();
   const sevenDaysAgo = new Date(now.getTime() - 1000 * 60 * 60 * 24 * 7);
   const thirtyDaysAgo = new Date(now.getTime() - 1000 * 60 * 60 * 24 * 30);
@@ -481,6 +483,8 @@ export default async function OwnerInspectorsPage() {
                         freeInspectionLimit={row.freeInspectionLimit}
                         freeInspectionsUsed={row.freeInspectionsUsed}
                         foundingMember={row.foundingMember}
+                        standardPriceCents={pricing.standardPriceCents}
+                        foundingMemberPriceCents={pricing.foundingMemberPriceCents}
                       />
                     </div>
 

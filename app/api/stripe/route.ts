@@ -3,11 +3,9 @@ import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
+import { getSubscriptionPricing } from "../../../lib/subscriptionPricing";
 
 export const dynamic = "force-dynamic";
-
-const DEFAULT_MONTHLY_PRICE_CENTS = 6900;
-const FOUNDING_MEMBER_PRICE_CENTS = 4900;
 
 async function createUserClient() {
   const cookieStore = await cookies();
@@ -98,12 +96,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Subscription is already active." }, { status: 400 });
   }
 
+  const pricing = await getSubscriptionPricing();
   const customPrice = Number(profile.subscription_price_override_cents || 0);
   const priceCents = customPrice > 0
     ? customPrice
     : profile.founding_member
-      ? FOUNDING_MEMBER_PRICE_CENTS
-      : DEFAULT_MONTHLY_PRICE_CENTS;
+      ? pricing.foundingMemberPriceCents
+      : pricing.standardPriceCents;
 
   if (!Number.isFinite(priceCents) || priceCents < 50) {
     return NextResponse.json({ error: "Invalid subscription price." }, { status: 400 });

@@ -13,13 +13,21 @@ function toBool(value: any, fallback = false) {
 function toDollars(cents: any) {
   const number = Number(cents || 0);
   if (!Number.isFinite(number) || number <= 0) return "";
-  return String(Math.round(number / 100));
+  const dollars = number / 100;
+  // Preserve cents (e.g. 3999 -> "39.99"), only drop them when whole (69).
+  return Number.isInteger(dollars) ? String(dollars) : dollars.toFixed(2);
 }
 
 function dollarsToCents(value: string) {
   const number = Number(String(value || "").replace(/[^0-9.]/g, ""));
   if (!Number.isFinite(number) || number <= 0) return 0;
   return Math.round(number * 100);
+}
+
+// "$39.99" when there are cents, "$69" when whole — never rounds 39.99 to 40.
+function formatDollars(cents: any) {
+  const dollars = (Number(cents) || 0) / 100;
+  return Number.isInteger(dollars) ? `$${dollars}` : `$${dollars.toFixed(2)}`;
 }
 
 type Props = {
@@ -34,6 +42,8 @@ type Props = {
   freeInspectionLimit?: any;
   freeInspectionsUsed?: any;
   foundingMember?: any;
+  standardPriceCents?: any;
+  foundingMemberPriceCents?: any;
 };
 
 export default function OwnerInspectorBillingControls({
@@ -48,6 +58,8 @@ export default function OwnerInspectorBillingControls({
   freeInspectionLimit,
   freeInspectionsUsed,
   foundingMember,
+  standardPriceCents,
+  foundingMemberPriceCents,
 }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -66,8 +78,15 @@ export default function OwnerInspectorBillingControls({
   const statusText = String(subscriptionStatus || "inactive");
   const used = Number(freeInspectionsUsed ?? 0) || 0;
   const limit = Number(freeLimit || 3) || 3;
-  const priceCents = exempt ? 0 : dollarsToCents(customPrice) || (founding ? 4900 : 6900);
-  const priceLabel = exempt ? "Free" : `$${Math.round(priceCents / 100)}/month`;
+  // Defaults come from the owner's GLOBAL subscription pricing, not a hardcoded
+  // $69/$49, so a new inspector with no override shows (and is charged) the
+  // current plan price.
+  const standardCents = Number(standardPriceCents) || 6900;
+  const foundingCents = Number(foundingMemberPriceCents) || 4900;
+  const priceCents = exempt
+    ? 0
+    : dollarsToCents(customPrice) || (founding ? foundingCents : standardCents);
+  const priceLabel = exempt ? "Free" : `${formatDollars(priceCents)}/month`;
 
   async function saveBilling() {
     if (busy) return;
@@ -135,7 +154,7 @@ export default function OwnerInspectorBillingControls({
           checked={founding}
           onChange={setFounding}
           title="Founding member"
-          helper="$49/month instead of the standard plan."
+          helper={`${formatDollars(foundingCents)}/month instead of the standard plan.`}
           disabled={busy || exempt}
         />
       </div>
