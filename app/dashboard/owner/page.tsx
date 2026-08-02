@@ -12,6 +12,8 @@ import DeleteDemoReportButton from "../../../components/DeleteDemoReportButton";
 import SupportUnreadBadge from "../../../components/SupportUnreadBadge";
 import AIBudgetStatus from "../../../components/AIBudgetStatus";
 import SmsStatusCard from "../../../components/SmsStatusCard";
+import SecurityEventsPanel from "../../../components/SecurityEventsPanel";
+import PushAlertsPanel from "../../../components/PushAlertsPanel";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -769,6 +771,10 @@ export default async function OwnerDashboardPage() {
         <AIBudgetStatus />
 
         <SmsStatusCard />
+
+        <SecurityEventsPanel />
+
+        <PushAlertsPanel />
 
         <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
           <MetricCard label="Total Users" value={String(totalUsers)} helper="Profiles or company user records." tone="teal" />
