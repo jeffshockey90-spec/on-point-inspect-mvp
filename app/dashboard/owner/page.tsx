@@ -14,6 +14,7 @@ import AIBudgetStatus from "../../../components/AIBudgetStatus";
 import SmsStatusCard from "../../../components/SmsStatusCard";
 import SecurityEventsPanel from "../../../components/SecurityEventsPanel";
 import PushAlertsPanel from "../../../components/PushAlertsPanel";
+import RepriceSubscribersPanel from "../../../components/RepriceSubscribersPanel";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -771,6 +772,8 @@ export default async function OwnerDashboardPage() {
         <AIBudgetStatus />
 
         <SmsStatusCard />
+
+        <RepriceSubscribersPanel />
 
         <SecurityEventsPanel />
 

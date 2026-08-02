@@ -447,10 +447,11 @@ function NewInspectionPageContent() {
 
   // The price actually used (and saved): the inspector's custom price when
   // they've overridden (and left the field non-empty), otherwise the
-  // auto-calculated total.
+  // auto-calculated total. Either way the Discount is subtracted, so the
+  // discount box works even after a custom price is entered.
   const effectiveTotal =
     priceOverridden && String(price).trim() !== ""
-      ? Number(price) || 0
+      ? Math.max(0, (Number(price) || 0) - quote.discount)
       : quote.total;
 
   const filteredRealtors = useMemo(() => {
@@ -1633,8 +1634,12 @@ function NewInspectionPageContent() {
             </div>
             {priceOverridden && (
               <p className="mt-3 text-xs text-teal-200/80">
-                Using your custom price. The breakdown above shows the
-                auto-calculated amounts for reference.
+                Using your custom price
+                {quote.discount > 0
+                  ? ` of $${Number(price) || 0}, minus the $${quote.discount} discount`
+                  : ""}
+                . The breakdown above shows the auto-calculated amounts for
+                reference.
               </p>
             )}
           </div>
