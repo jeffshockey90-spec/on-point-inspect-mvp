@@ -73,11 +73,19 @@ export default function InspectionContactsManager({
   const [portalAccess, setPortalAccess] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [savedRealtors, setSavedRealtors] = useState<any[]>([]);
 
   useEffect(() => {
     loadContacts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inspectionId]);
+
+  useEffect(() => {
+    fetch("/api/realtors", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => setSavedRealtors(Array.isArray(d) ? d : d?.realtors || []))
+      .catch(() => setSavedRealtors([]));
+  }, []);
 
   async function loadContacts() {
     if (!inspectionId) return;
@@ -194,6 +202,37 @@ export default function InspectionContactsManager({
       <div className="p-4 sm:p-5">
         {showAddForm && (
           <div className="mb-5 rounded-2xl border border-slate-700 bg-[#020817]/80 p-4">
+            {savedRealtors.length > 0 && (
+              <div className="mb-3">
+                <label className="mb-1 block text-xs font-black uppercase tracking-wide text-slate-400">
+                  Select a saved realtor (auto-fills below)
+                </label>
+                <select
+                  value=""
+                  onChange={(e) => {
+                    const picked = savedRealtors.find(
+                      (r) => String(r.id) === e.target.value
+                    );
+                    if (!picked) return;
+                    setName(picked.name || "");
+                    setEmail(picked.email || "");
+                    setPhone(picked.phone || "");
+                    setRole("realtor");
+                    setAgreementRequired(false);
+                    setPortalAccess(true);
+                  }}
+                  className={fieldClass}
+                >
+                  <option value="">— Choose a saved realtor —</option>
+                  {savedRealtors.map((r) => (
+                    <option key={r.id} value={String(r.id)}>
+                      {r.name}
+                      {r.email ? ` — ${r.email}` : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
               <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Contact name" className={fieldClass} />
               <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email address" type="email" className={fieldClass} />

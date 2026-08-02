@@ -66,6 +66,10 @@ function formatSignedDate(value: any) {
   });
 }
 
+function isImageSignature(value: any) {
+  return String(value || "").startsWith("data:image");
+}
+
 type PageProps = {
   params: Promise<{
     id: string;
@@ -324,6 +328,28 @@ export default async function ClientAgreementPage({
                 <strong>User Agent:</strong> {signedAgreement.signer_user_agent || "N/A"}
               </p>
             </div>
+
+            {signedAgreement.client_signature ? (
+              <div className="mt-5 border-t border-green-700/40 pt-4 print:border-black">
+                <p className="text-xs font-black uppercase tracking-wide text-green-300 print:text-black">
+                  Signature
+                </p>
+                <div className="mt-2 rounded-xl bg-white p-4 print:border print:border-black">
+                  {isImageSignature(signedAgreement.client_signature) ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={signedAgreement.client_signature}
+                      alt="Client signature"
+                      className="max-h-32 max-w-full object-contain"
+                    />
+                  ) : (
+                    <p className="text-3xl font-semibold italic text-slate-950">
+                      {signedAgreement.client_signature}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ) : null}
           </div>
         ) : (
           <AgreementSignatureForm
