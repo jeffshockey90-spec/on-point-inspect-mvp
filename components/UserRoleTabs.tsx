@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 
-type Counts = { all: number; inspector: number; client: number; realtor: number };
+type Counts = { all: number; inspector: number; client: number; realtor: number; other: number };
 
 export default function UserRoleTabs({ counts }: { counts: Counts }) {
-  const [tab, setTab] = useState<"all" | "inspector" | "client" | "realtor">("all");
+  const [tab, setTab] = useState<"all" | "inspector" | "client" | "realtor" | "other">("all");
 
   useEffect(() => {
     const rows = document.querySelectorAll<HTMLElement>("[data-user-role]");
@@ -20,6 +20,7 @@ export default function UserRoleTabs({ counts }: { counts: Counts }) {
     { key: "inspector", label: "Inspectors", count: counts.inspector },
     { key: "client", label: "Clients", count: counts.client },
     { key: "realtor", label: "Realtors", count: counts.realtor },
+    { key: "other", label: "Other", count: counts.other },
   ];
 
   return (

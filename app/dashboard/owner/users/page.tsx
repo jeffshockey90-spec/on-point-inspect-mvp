@@ -551,6 +551,7 @@ export default async function OwnerUsersPage() {
     inspector: userRows.filter((row) => userRoleCategory(row.role, row.reports) === "inspector").length,
     client: userRows.filter((row) => userRoleCategory(row.role, row.reports) === "client").length,
     realtor: userRows.filter((row) => userRoleCategory(row.role, row.reports) === "realtor").length,
+    other: userRows.filter((row) => userRoleCategory(row.role, row.reports) === "other").length,
   };
   const active7 = userRows.filter((row) => row.active7);
   const active30 = userRows.filter((row) => row.active30);
