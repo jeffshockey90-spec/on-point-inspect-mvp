@@ -7,7 +7,7 @@ export async function GET() {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { data, error } = await supabase
     .from("inspection_presence_sessions")
-    .select("*, inspections(id,property_address,property_latitude,property_longitude,scheduled_start_at,inspection_date,inspection_time,status)")
+    .select("*, inspections(id,property_address,property_latitude,property_longitude,inspection_date,inspection_time)")
     .eq("user_id", user.id)
     .eq("status", "active")
     .order("created_at", { ascending: false })
