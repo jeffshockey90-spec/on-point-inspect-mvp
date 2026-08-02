@@ -292,7 +292,7 @@ export default function PublicProfileActions({
 
   return (
     <section className="w-full max-w-full overflow-hidden rounded-3xl border border-teal-500/35 bg-[#020817] shadow-xl">
-      <div className="grid w-full min-w-0 gap-0 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="grid w-full min-w-0 gap-0">
         <div className="min-w-0 p-4 sm:p-6">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             <p className="text-xs font-black uppercase tracking-[0.25em] text-teal-300">
@@ -386,7 +386,7 @@ export default function PublicProfileActions({
           </div>
         </div>
 
-        <div className="flex min-w-0 items-center justify-center border-t border-slate-800 bg-[#050816]/70 p-4 sm:p-6 lg:border-l lg:border-t-0">
+        <div className="flex min-w-0 items-center justify-center border-t border-slate-800 bg-[#050816]/70 p-4 sm:p-6">
           <div className="w-full max-w-[240px] rounded-3xl border border-slate-700 bg-[#0b1220] p-4 text-center shadow-2xl shadow-black/30">
             <div className="relative rounded-3xl bg-white p-3">
               {svgMarkup ? (

@@ -53,7 +53,31 @@ export default async function EmailsPage() {
     ])
   );
 
-  const logs = (logsResult.data || []).map((log: any) => ({
+  // Also reflect FLOW's OWN open/click tracking (the email-open pixel and the
+  // email-click redirect) so status shows even before the Resend webhook is
+  // configured. Resend still provides Delivered/Bounced when its webhook is set.
+  let viewEvents: any[] = [];
+  if (inspectionIds.length > 0) {
+    const { data: viewData } = await supabase
+      .from("inspection_view_events")
+      .select("inspection_id_bigint, viewer_email, view_type, created_at")
+      .in("inspection_id_bigint", inspectionIds)
+      .in("view_type", ["email_open", "email_click"])
+      .order("created_at", { ascending: true });
+    viewEvents = viewData || [];
+  }
+  const inAppEventMap = new Map<string, string>();
+  for (const ev of viewEvents) {
+    const key = `${ev.inspection_id_bigint}|${String(ev.viewer_email || "").trim().toLowerCase()}|${ev.view_type}`;
+    if (!inAppEventMap.has(key) && ev.created_at) inAppEventMap.set(key, ev.created_at);
+  }
+
+  const logs = (logsResult.data || []).map((log: any) => {
+    const inspId = log.inspection_id_bigint || log.inspection_id || "";
+    const rcpt = String(log.recipient_email || log.recipient || "").trim().toLowerCase();
+    const inAppOpen = inAppEventMap.get(`${inspId}|${rcpt}|email_open`) || null;
+    const inAppClick = inAppEventMap.get(`${inspId}|${rcpt}|email_click`) || null;
+    return {
     id: log.id,
     email_type: log.email_type,
     recipient: log.recipient_email || log.recipient || "Unknown recipient",
@@ -63,12 +87,13 @@ export default async function EmailsPage() {
       "Unknown inspection",
     sent_at: log.sent_at || log.created_at,
     delivered_at: log.delivered_at,
-    opened_at: log.opened_at,
-    clicked_at: log.clicked_at,
+    opened_at: log.opened_at || inAppOpen,
+    clicked_at: log.clicked_at || inAppClick,
     bounced_at: log.bounced_at,
     failed_at: log.failed_at,
     status: log.status,
-  }));
+    };
+  });
 
   return (
     <main className="min-h-screen bg-[#020617] px-4 py-8 text-white md:px-6 md:py-10">
