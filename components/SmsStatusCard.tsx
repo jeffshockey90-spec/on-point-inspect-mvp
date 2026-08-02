@@ -16,6 +16,11 @@ type Status = {
 export default function SmsStatusCard() {
   const [status, setStatus] = useState<Status | null>(null);
   const [loading, setLoading] = useState(true);
+  const [testPhone, setTestPhone] = useState("");
+  const [testSending, setTestSending] = useState(false);
+  const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(
+    null
+  );
 
   useEffect(() => {
     fetch("/api/sms/status", { cache: "no-store" })
@@ -24,6 +29,32 @@ export default function SmsStatusCard() {
       .catch(() => setStatus(null))
       .finally(() => setLoading(false));
   }, []);
+
+  async function sendTest() {
+    if (!testPhone.trim()) return;
+    setTestSending(true);
+    setTestResult(null);
+    try {
+      const res = await fetch("/api/sms/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ to: testPhone.trim() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setTestResult({ ok: false, message: data?.error || "Test failed to send." });
+      } else {
+        setTestResult({
+          ok: true,
+          message: `Sent to ${data.to || testPhone}. If it doesn't arrive, your A2P campaign is still pending (carriers filter until approved).`,
+        });
+      }
+    } catch (error: any) {
+      setTestResult({ ok: false, message: error?.message || "Test failed to send." });
+    } finally {
+      setTestSending(false);
+    }
+  }
 
   if (loading || !status) return null;
 
@@ -109,6 +140,38 @@ export default function SmsStatusCard() {
               </p>
               <p className="mt-1 text-lg font-black text-white">{status.from || "—"}</p>
             </div>
+          </div>
+
+          <div className="mt-4 rounded-xl border border-slate-700 bg-[#020617]/70 p-4">
+            <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+              Send a test text
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <input
+                type="tel"
+                value={testPhone}
+                onChange={(e) => setTestPhone(e.target.value)}
+                placeholder="+1 (240) 555-0134"
+                className="min-w-[180px] flex-1 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:border-teal-400"
+              />
+              <button
+                type="button"
+                onClick={sendTest}
+                disabled={testSending || !testPhone.trim()}
+                className="rounded-lg bg-teal-500 px-4 py-2 text-sm font-black text-slate-950 transition hover:bg-teal-400 disabled:opacity-50"
+              >
+                {testSending ? "Sending..." : "Send test"}
+              </button>
+            </div>
+            {testResult && (
+              <p
+                className={`mt-2 text-xs ${
+                  testResult.ok ? "text-emerald-300" : "text-red-300"
+                }`}
+              >
+                {testResult.message}
+              </p>
+            )}
           </div>
         </>
       )}
