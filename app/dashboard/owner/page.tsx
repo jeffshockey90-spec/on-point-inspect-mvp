@@ -156,6 +156,23 @@ function formatDate(value: any) {
   });
 }
 
+function formatTokens(value: number) {
+  const tokens = getNumber(value);
+  if (tokens >= 1_000_000) return `${(tokens / 1_000_000).toFixed(2)}M`;
+  if (tokens >= 1_000) return `${(tokens / 1_000).toFixed(1)}K`;
+  return String(Math.round(tokens));
+}
+
+function usd(value: number) {
+  const amount = getNumber(value);
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount || 0);
+}
+
 function formatDateTime(value: any) {
   if (!value) return "N/A";
   const date = new Date(value);
@@ -378,7 +395,7 @@ export default async function OwnerDashboardPage() {
   const sevenDaysAgo = new Date(now.getTime() - 1000 * 60 * 60 * 24 * 7);
   const thirtyDaysAgo = new Date(now.getTime() - 1000 * 60 * 60 * 24 * 30);
 
-  const [profiles, inspectorProfiles, companyUsers, inspections, events, pushSubscriptions, nativePushTokens, deviceEvents, findings, photos, agreements, invoices, templates, inspectionContacts] = await Promise.all([
+  const [profiles, inspectorProfiles, companyUsers, inspections, events, pushSubscriptions, nativePushTokens, deviceEvents, findings, photos, agreements, invoices, templates, inspectionContacts, aiLogs, companies] = await Promise.all([
     safeSelect(admin.from("profiles").select("*"), "profiles"),
     safeSelect(admin.from("inspector_profiles").select("*"), "inspector_profiles"),
     safeSelect(admin.from("company_users").select("*"), "company_users"),
@@ -393,6 +410,8 @@ export default async function OwnerDashboardPage() {
     Promise.resolve([]),
     safeSelect(admin.from("finding_templates").select("*"), "finding_templates"),
     safeSelect(admin.from("inspection_contacts").select("inspection_id,role,email,portal_access"), "inspection_contacts"),
+    safeSelect(admin.from("ai_logs").select("user_id,inspection_id,tool,tokens_used,status,created_at").gte("created_at", thirtyDaysAgo.toISOString()).limit(50000), "ai_logs"),
+    safeSelect(admin.from("companies").select("id,name,business_name,display_name"), "companies"),
   ]);
 
   function roleLooksLikeRealtorPreview(value: unknown) {
@@ -667,6 +686,107 @@ export default async function OwnerDashboardPage() {
   const averageInspectionPrice =
     paidInspections.length > 0 ? Math.round(revenue / paidInspections.length) : 0;
 
+  // ---- AI usage (last 30 days), attributed to the inspector/company ----
+  // ai_logs.tokens_used is exact; cost is a rough blended estimate since the
+  // log stores total tokens (not input/output split). Adjust the rate if your
+  // real per-1K blended OpenAI cost differs.
+  const AI_COST_PER_1K_TOKENS = 0.005;
+  const estAiCost = (tokens: number) => (getNumber(tokens) / 1000) * AI_COST_PER_1K_TOKENS;
+
+  const profileById = new Map(profiles.map((row: any) => [String(row.id), row]));
+
+  const companyIdByUser = new Map<string, string>();
+  companyUsers.forEach((row: any) => {
+    const uid = String(row?.user_id || "");
+    const cid = String(row?.company_id || "");
+    if (uid && cid && !companyIdByUser.has(uid)) companyIdByUser.set(uid, cid);
+  });
+
+  const companyNameById = new Map<string, string>();
+  companies.forEach((row: any) => {
+    companyNameById.set(
+      String(row.id),
+      row?.name || row?.business_name || row?.display_name || `Company ${String(row.id).slice(0, 6)}`,
+    );
+  });
+
+  const inspectorNameById = new Map<string, string>();
+  inspections.forEach((ins: any) => {
+    const id = getInspectorId(ins);
+    if (id && !inspectorNameById.has(id) && ins?.inspector_name) {
+      inspectorNameById.set(id, ins.inspector_name);
+    }
+  });
+
+  type AiAgg = { calls: number; tokens: number; failures: number };
+  const aiByUser = new Map<string, AiAgg>();
+  const aiByCompany = new Map<string, AiAgg>();
+  let aiTotalCalls = 0;
+  let aiTotalTokens = 0;
+  let aiUnattributedCalls = 0;
+
+  aiLogs.forEach((log: any) => {
+    const tokens = getNumber(log?.tokens_used);
+    const failed = String(log?.status || "").toLowerCase() !== "success";
+    aiTotalCalls += 1;
+    aiTotalTokens += tokens;
+
+    const uid = String(log?.user_id || "");
+    if (!uid) {
+      aiUnattributedCalls += 1;
+      return;
+    }
+
+    const userAgg = aiByUser.get(uid) || { calls: 0, tokens: 0, failures: 0 };
+    userAgg.calls += 1;
+    userAgg.tokens += tokens;
+    if (failed) userAgg.failures += 1;
+    aiByUser.set(uid, userAgg);
+
+    const cid = companyIdByUser.get(uid);
+    if (cid) {
+      const companyAgg = aiByCompany.get(cid) || { calls: 0, tokens: 0, failures: 0 };
+      companyAgg.calls += 1;
+      companyAgg.tokens += tokens;
+      if (failed) companyAgg.failures += 1;
+      aiByCompany.set(cid, companyAgg);
+    }
+  });
+
+  const aiUserRows = [...aiByUser.entries()]
+    .map(([uid, agg]) => {
+      const profile: any = profileById.get(uid);
+      const name =
+        (profile && (profile.full_name || profile.business_name || profile.display_name || profile.name)) ||
+        inspectorNameById.get(uid) ||
+        (profile && profile.email) ||
+        `Inspector ${uid.slice(0, 6)}`;
+      const cid = companyIdByUser.get(uid);
+      return {
+        uid,
+        name,
+        email: (profile && profile.email) || "",
+        company: cid ? companyNameById.get(cid) || "" : "",
+        ...agg,
+        cost: estAiCost(agg.tokens),
+      };
+    })
+    .sort((a, b) => b.tokens - a.tokens)
+    .slice(0, 25);
+
+  const aiCompanyRows = [...aiByCompany.entries()]
+    .map(([cid, agg]) => ({
+      cid,
+      company: companyNameById.get(cid) || `Company ${cid.slice(0, 6)}`,
+      ...agg,
+      cost: estAiCost(agg.tokens),
+    }))
+    .sort((a, b) => b.tokens - a.tokens)
+    .slice(0, 25);
+
+  const aiTotalCost = estAiCost(aiTotalTokens);
+  const aiActiveInspectors = aiByUser.size;
+
   return (
     <main className="min-h-screen bg-[#020617] px-4 py-8 text-white md:px-6 md:py-10">
       <div className="mx-auto max-w-7xl space-y-8">
@@ -770,6 +890,87 @@ export default async function OwnerDashboardPage() {
         </section>
 
         <AIBudgetStatus />
+
+        <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+          <MetricCard label="AI Calls (30d)" value={String(aiTotalCalls)} helper={`${aiActiveInspectors} inspector${aiActiveInspectors === 1 ? "" : "s"} used AI.`} tone="purple" />
+          <MetricCard label="Tokens Used (30d)" value={formatTokens(aiTotalTokens)} helper="Total tokens across all AI tools." tone="teal" />
+          <MetricCard label="Est. AI Cost (30d)" value={usd(aiTotalCost)} helper={`Estimated at $${AI_COST_PER_1K_TOKENS.toFixed(3)}/1K tokens.`} tone="orange" />
+          <MetricCard label="Unattributed Calls" value={String(aiUnattributedCalls)} helper="AI calls with no signed-in user (system/native)." tone="yellow" />
+        </section>
+
+        <section className="grid gap-6 xl:grid-cols-2">
+          <Panel title="AI Usage by Inspector (30 days)" subtitle="Who is using how much AI. Tokens are exact; cost is an estimate. Top 25 by tokens.">
+            {aiUserRows.length === 0 ? (
+              <EmptyState text="No AI usage recorded in the last 30 days." />
+            ) : (
+              <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-700">
+                <div className="min-w-0 overflow-x-auto">
+                  <table className="min-w-full divide-y divide-slate-800 text-sm">
+                    <thead className="bg-[#020817] text-left text-xs uppercase tracking-wide text-slate-400">
+                      <tr>
+                        <th className="px-4 py-3">Inspector</th>
+                        <th className="px-4 py-3">Company</th>
+                        <th className="px-4 py-3 text-right">Calls</th>
+                        <th className="px-4 py-3 text-right">Tokens</th>
+                        <th className="px-4 py-3 text-right">Est. Cost</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800 bg-[#020817]/60">
+                      {aiUserRows.map((row) => (
+                        <tr key={row.uid} className="hover:bg-slate-900/70">
+                          <td className="px-4 py-3">
+                            <p className="max-w-[220px] truncate font-black text-white">{row.name}</p>
+                            {row.email && <p className="max-w-[220px] truncate text-xs text-slate-500">{row.email}</p>}
+                            {row.failures > 0 && (
+                              <p className="text-[11px] text-red-300">{row.failures} failed</p>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-slate-300">{row.company || "—"}</td>
+                          <td className="px-4 py-3 text-right font-black text-white">{row.calls}</td>
+                          <td className="px-4 py-3 text-right font-black text-teal-300">{formatTokens(row.tokens)}</td>
+                          <td className="px-4 py-3 text-right font-black text-orange-300">{usd(row.cost)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </Panel>
+
+          <Panel title="AI Usage by Company (30 days)" subtitle="AI usage rolled up per inspection company. Top 25 by tokens.">
+            {aiCompanyRows.length === 0 ? (
+              <EmptyState text="No company-attributed AI usage in the last 30 days." />
+            ) : (
+              <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-700">
+                <div className="min-w-0 overflow-x-auto">
+                  <table className="min-w-full divide-y divide-slate-800 text-sm">
+                    <thead className="bg-[#020817] text-left text-xs uppercase tracking-wide text-slate-400">
+                      <tr>
+                        <th className="px-4 py-3">Company</th>
+                        <th className="px-4 py-3 text-right">Calls</th>
+                        <th className="px-4 py-3 text-right">Tokens</th>
+                        <th className="px-4 py-3 text-right">Est. Cost</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800 bg-[#020817]/60">
+                      {aiCompanyRows.map((row) => (
+                        <tr key={row.cid} className="hover:bg-slate-900/70">
+                          <td className="px-4 py-3">
+                            <p className="max-w-[240px] truncate font-black text-white">{row.company}</p>
+                          </td>
+                          <td className="px-4 py-3 text-right font-black text-white">{row.calls}</td>
+                          <td className="px-4 py-3 text-right font-black text-teal-300">{formatTokens(row.tokens)}</td>
+                          <td className="px-4 py-3 text-right font-black text-orange-300">{usd(row.cost)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </Panel>
+        </section>
 
         <SmsStatusCard />
 
