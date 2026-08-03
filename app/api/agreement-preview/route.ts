@@ -32,12 +32,10 @@ export async function GET(req: Request) {
 
   const admin = getAdminClient();
 
-  const inspection = await authorizeInspection(
-    admin,
-    user.id,
-    inspectionId,
-    "id, company_id, custom_agreement_body, agreement_state, state, client_name, client_organization_name, address, property_address, invoice_amount, fee, price, inspection_date, inspection_time, agreement_template_ids, agreement_template_id",
-  );
+  // Select * (like the rest of the app) rather than an explicit column list -
+  // naming a column that doesn't exist would error the whole query and this
+  // helper swallows the error to null, which looks like "not found".
+  const inspection = await authorizeInspection(admin, user.id, inspectionId, "*");
 
   if (!inspection) return notFound();
 
