@@ -2,11 +2,8 @@
 
 import { useState } from "react";
 import { createClient } from "../../utils/supabase/client";
-import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
-  const router = useRouter();
-
   const supabase = createClient();
 
   const [email, setEmail] = useState("");
@@ -51,10 +48,19 @@ export default function LoginPage() {
       return;
     }
 
+    // Make sure the session (and its auth cookie) is fully established before
+    // routing. Otherwise the next request can race the cookie write and bounce
+    // back to /login - which is what happened intermittently in the app: a soft
+    // navigation ran the server middleware before the cookie was sent, so the
+    // first click after login went to /login, while a cold reopen (cookie now
+    // persisted) worked fine.
+    await supabase.auth.getSession();
+
     const redirectTo = await getRedirectAfterLogin();
 
-    router.push(redirectTo === "/dashboard" ? "/dashboard" : redirectTo);
-    router.refresh();
+    // Full-page navigation (not router.push) so the browser definitely sends the
+    // fresh session cookie to the server on the next request.
+    window.location.assign(redirectTo);
   }
 
   return (
