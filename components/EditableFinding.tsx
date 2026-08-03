@@ -28,8 +28,25 @@ const SEVERITIES = [
   "Major Concern",
 ];
 
-function EditableFinding({ finding }: { finding: any }) {
+function EditableFinding({
+  finding,
+  availableSections,
+}: {
+  finding: any;
+  availableSections?: string[];
+}) {
   const router = useRouter();
+
+  // Built-in sections plus any custom sections on this inspection, and the
+  // finding's own current section, so it can be moved into (or stay in) a
+  // custom section - not just the 12 built-ins. Deduped, order preserved.
+  const sectionOptions = Array.from(
+    new Set(
+      [...SECTIONS, ...(availableSections || []), finding.section].filter(
+        (value): value is string => Boolean(value),
+      ),
+    ),
+  );
 
   const [editing, setEditing] = useState(false);
 
@@ -635,7 +652,7 @@ function EditableFinding({ finding }: { finding: any }) {
               disabled={movingSection}
               className="min-h-[48px] w-full rounded-xl border border-purple-500/50 bg-slate-950 p-3 text-base font-black text-white outline-none focus:border-purple-300 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {SECTIONS.map((item) => (
+              {sectionOptions.map((item) => (
                 <option key={item} value={item}>
                   {item}
                 </option>
@@ -691,7 +708,7 @@ function EditableFinding({ finding }: { finding: any }) {
           label="Section"
           value={section}
           onChange={setSection}
-          options={SECTIONS}
+          options={sectionOptions}
           disabled={saving}
         />
 

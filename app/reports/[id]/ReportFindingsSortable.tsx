@@ -592,6 +592,12 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
     setDraggingSection(null);
   }
 
+  // All section names currently on this inspection (built-in + custom), so a
+  // finding can be moved into a custom section, not just the 12 built-ins.
+  const availableSections = (orderedGroups || [])
+    .map((group: any) => group.section)
+    .filter((section: string) => section && section !== "Other");
+
   return (
     <div
       id="report-findings-editor"
@@ -874,6 +880,7 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
                     finding={finding}
                     inspectionId={inspectionId}
                     allPhotos={allPhotos}
+                    availableSections={availableSections}
                     onNeedPhotoPicker={() => setPhotoPickerLoaded(true)}
                     router={router}
                   />
@@ -1954,6 +1961,7 @@ function FindingCardBase({
   finding,
   inspectionId,
   allPhotos,
+  availableSections,
   onNeedPhotoPicker,
   router,
 }: any) {
@@ -3268,6 +3276,7 @@ function FindingCardBase({
               displayFinding.observation || "",
             )}`}
             finding={displayFinding}
+            availableSections={availableSections}
           />
         </div>
 
