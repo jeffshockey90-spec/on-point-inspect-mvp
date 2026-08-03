@@ -71,6 +71,7 @@ const SECTION_ORDER = [
   "Cooling",
   "Plumbing",
   "Electrical",
+  "Fireplace",
   "Attic, Insulation & Ventilation",
   "Doors, Windows & Interior",
   "Built-in Appliances",
@@ -1281,6 +1282,12 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
           client_organization_name:
             String(formData.get("client_organization_name") || "").trim() || null,
           realtor_name: String(formData.get("realtor_name") || "").trim(),
+          realtor_email: String(formData.get("realtor_email") || "")
+            .trim()
+            .toLowerCase(),
+          realtor_phone: String(formData.get("realtor_phone") || "").trim(),
+          client_phone: String(formData.get("client_phone") || "").trim(),
+          notes: String(formData.get("notes") || "").trim(),
           inspection_date: String(formData.get("inspection_date") || "").trim(),
           inspection_time: String(formData.get("inspection_time") || "").trim(),
           square_feet: String(formData.get("square_feet") || "").trim(),
@@ -4298,6 +4305,12 @@ Service-life information is a general industry estimate only. Actual service lif
                   value={inspection.client_email}
                 />
                 <EditItem
+                  label="Client Phone"
+                  name="client_phone"
+                  value={inspection.client_phone}
+                  type="tel"
+                />
+                <EditItem
                   label="Business/Organization (if hiring on behalf of one)"
                   name="client_organization_name"
                   value={inspection.client_organization_name}
@@ -4306,6 +4319,18 @@ Service-life information is a general industry estimate only. Actual service lif
                   label="Realtor"
                   name="realtor_name"
                   value={inspection.realtor_name}
+                />
+                <EditItem
+                  label="Realtor Email"
+                  name="realtor_email"
+                  value={inspection.realtor_email || inspection.agent_email}
+                  type="email"
+                />
+                <EditItem
+                  label="Realtor Phone"
+                  name="realtor_phone"
+                  value={inspection.realtor_phone}
+                  type="tel"
                 />
                 <EditItem
                   label="Inspection Date"
@@ -4345,6 +4370,19 @@ Service-life information is a general industry estimate only. Actual service lif
                     value={inspection.state}
                   />
                   <EditItem label="Zip" name="zip" value={inspection.zip} />
+                </div>
+
+                <div className="mt-4">
+                  <label className="mb-1 block text-sm font-bold text-slate-400">
+                    Inspection Notes (internal)
+                  </label>
+                  <textarea
+                    name="notes"
+                    defaultValue={inspection.notes || ""}
+                    rows={4}
+                    placeholder="Not entered"
+                    className="w-full rounded-lg border border-slate-700 bg-[#020617] px-4 py-3 text-white outline-none focus:border-teal-400"
+                  />
                 </div>
               </div>
             </div>

@@ -74,6 +74,12 @@ export default function InspectionContactsManager({
   const [saving, setSaving] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [savedRealtors, setSavedRealtors] = useState<any[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editRole, setEditRole] = useState("client");
+  const [savingEdit, setSavingEdit] = useState(false);
 
   useEffect(() => {
     loadContacts();
@@ -173,9 +179,37 @@ export default function InspectionContactsManager({
     const data = await res.json();
     if (!res.ok) {
       alert(data.error || "Failed to update contact.");
-      return;
+      return false;
     }
     await loadContacts();
+    return true;
+  }
+
+  function startEdit(contact: any) {
+    setEditingId(contact.id);
+    setEditName(contact.name || "");
+    setEditEmail(contact.email || "");
+    setEditPhone(contact.phone || "");
+    setEditRole(contact.role || "client");
+  }
+
+  async function saveEdit(id: string) {
+    if (!editName.trim() || !editEmail.trim()) {
+      alert("Name and email are required.");
+      return;
+    }
+    setSavingEdit(true);
+    try {
+      const ok = await updateContact(id, {
+        name: editName.trim(),
+        email: editEmail.trim().toLowerCase(),
+        phone: editPhone.trim(),
+        role: editRole,
+      });
+      if (ok) setEditingId(null);
+    } finally {
+      setSavingEdit(false);
+    }
   }
 
   async function deleteContact(id: string) {
@@ -294,31 +328,57 @@ export default function InspectionContactsManager({
           <div className="space-y-3">
             {contacts.map((contact) => (
               <article key={contact.id} className="w-full overflow-hidden rounded-2xl border border-slate-700 bg-[#020817]/80 p-4 shadow-xl">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="break-words text-lg font-black text-white">{contact.name}</h3>
-                      <span className={`rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-wide ${roleBadgeClass(contact.role)}`}>{formatRole(contact.role)}</span>
-                      {contact.agreement_required ? (
-                        <StatusBadge active={Boolean(contact.agreement_signed)} activeText="Signed" inactiveText="Not Signed" />
-                      ) : (
-                        <span className="rounded-full border border-slate-600 bg-slate-800/60 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-slate-400">
-                          No Signature Needed
-                        </span>
-                      )}
-                      <StatusBadge active={Boolean(contact.portal_access)} activeText="Portal" inactiveText="No Portal" />
+                {editingId === contact.id ? (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+                      <input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Contact name" className={fieldClass} />
+                      <input value={editEmail} onChange={(e) => setEditEmail(e.target.value)} placeholder="Email address" type="email" className={fieldClass} />
+                      <input value={editPhone} onChange={(e) => setEditPhone(e.target.value)} placeholder="Phone number" className={fieldClass} />
+                      <select value={editRole} onChange={(e) => setEditRole(e.target.value)} className={fieldClass}>
+                        {ROLE_OPTIONS.map((item) => <option key={item} value={item}>{formatRole(item)}</option>)}
+                      </select>
                     </div>
-                    <div className="mt-3 space-y-1 text-sm text-slate-400">
-                      <p className="break-all"><span className="font-bold text-slate-500">Email:</span> {contact.email || "N/A"}</p>
-                      <p className="break-all"><span className="font-bold text-slate-500">Phone:</span> {contact.phone || "N/A"}</p>
+                    <div className="flex flex-wrap gap-2">
+                      <button type="button" onClick={() => saveEdit(contact.id)} disabled={savingEdit} className="rounded-xl bg-teal-500 px-5 py-2.5 text-sm font-black text-slate-950 transition hover:bg-teal-400 disabled:opacity-60">
+                        {savingEdit ? "Saving..." : "Save"}
+                      </button>
+                      <button type="button" onClick={() => setEditingId(null)} disabled={savingEdit} className="rounded-xl border border-slate-600 px-5 py-2.5 text-sm font-black text-slate-300 transition hover:bg-slate-800 disabled:opacity-60">
+                        Cancel
+                      </button>
                     </div>
                   </div>
-                  <button type="button" onClick={() => deleteContact(contact.id)} className="w-full rounded-xl border border-red-500/70 bg-red-500/10 px-4 py-2 text-sm font-black text-red-300 transition hover:bg-red-500 hover:text-white sm:w-auto">Delete</button>
-                </div>
-                <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-800 pt-4">
-                  <CompactToggle checked={Boolean(contact.agreement_required)} onChange={(checked) => updateContact(contact.id, { agreement_required: checked })} title="Agreement Required" />
-                  <CompactToggle checked={Boolean(contact.portal_access)} onChange={(checked) => updateContact(contact.id, { portal_access: checked })} title="Portal Access" />
-                </div>
+                ) : (
+                  <>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="break-words text-lg font-black text-white">{contact.name}</h3>
+                          <span className={`rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-wide ${roleBadgeClass(contact.role)}`}>{formatRole(contact.role)}</span>
+                          {contact.agreement_required ? (
+                            <StatusBadge active={Boolean(contact.agreement_signed)} activeText="Signed" inactiveText="Not Signed" />
+                          ) : (
+                            <span className="rounded-full border border-slate-600 bg-slate-800/60 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-slate-400">
+                              No Signature Needed
+                            </span>
+                          )}
+                          <StatusBadge active={Boolean(contact.portal_access)} activeText="Portal" inactiveText="No Portal" />
+                        </div>
+                        <div className="mt-3 space-y-1 text-sm text-slate-400">
+                          <p className="break-all"><span className="font-bold text-slate-500">Email:</span> {contact.email || "N/A"}</p>
+                          <p className="break-all"><span className="font-bold text-slate-500">Phone:</span> {contact.phone || "N/A"}</p>
+                        </div>
+                      </div>
+                      <div className="flex w-full gap-2 sm:w-auto">
+                        <button type="button" onClick={() => startEdit(contact)} className="flex-1 rounded-xl border border-slate-600 px-4 py-2 text-sm font-black text-slate-200 transition hover:border-teal-400 hover:text-teal-200 sm:flex-none">Edit</button>
+                        <button type="button" onClick={() => deleteContact(contact.id)} className="flex-1 rounded-xl border border-red-500/70 bg-red-500/10 px-4 py-2 text-sm font-black text-red-300 transition hover:bg-red-500 hover:text-white sm:flex-none">Delete</button>
+                      </div>
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-800 pt-4">
+                      <CompactToggle checked={Boolean(contact.agreement_required)} onChange={(checked) => updateContact(contact.id, { agreement_required: checked })} title="Agreement Required" />
+                      <CompactToggle checked={Boolean(contact.portal_access)} onChange={(checked) => updateContact(contact.id, { portal_access: checked })} title="Portal Access" />
+                    </div>
+                  </>
+                )}
               </article>
             ))}
           </div>

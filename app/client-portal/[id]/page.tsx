@@ -14,6 +14,7 @@ const SECTION_ORDER = [
   "Cooling",
   "Plumbing",
   "Electrical",
+  "Fireplace",
   "Attic, Insulation & Ventilation",
   "Doors, Windows & Interior",
   "Built-in Appliances",

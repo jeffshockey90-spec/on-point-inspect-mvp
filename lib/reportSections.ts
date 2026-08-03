@@ -20,6 +20,7 @@ const HOME_INSPECTION_ONLY_SECTIONS = new Set([
   "cooling",
   "plumbing",
   "electrical",
+  "fireplace",
   "attic, insulation & ventilation",
   "doors, windows & interior",
   "built-in appliances",
