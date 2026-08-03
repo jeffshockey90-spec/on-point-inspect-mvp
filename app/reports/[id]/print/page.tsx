@@ -560,6 +560,7 @@ export default async function PrintableReportPage({ params }: PageProps) {
           .from("photos")
           .select("*")
           .in("finding_id", findingIds)
+          .order("sort_order", { ascending: true })
           .order("created_at", { ascending: true })
       : { data: [] };
 
@@ -1308,12 +1309,18 @@ export default async function PrintableReportPage({ params }: PageProps) {
                               )}
 
                               {(finding.photos || []).map((photo: any) => (
-                                <img
-                                  key={photo.id}
-                                  src={photo.signed_url}
-                                  alt={finding.title || "Finding photo"}
-                                className={`finding-photo-print w-full rounded-xl border object-contain ${photoHeightClass}`}
-                                />
+                                <div key={photo.id}>
+                                  <img
+                                    src={photo.signed_url}
+                                    alt={photo.caption || finding.title || "Finding photo"}
+                                    className={`finding-photo-print w-full rounded-xl border object-contain ${photoHeightClass}`}
+                                  />
+                                  {photo.caption && (
+                                    <p className="mt-1 text-sm leading-6 text-slate-800">
+                                      {photo.caption}
+                                    </p>
+                                  )}
+                                </div>
                               ))}
                             </div>
                           );

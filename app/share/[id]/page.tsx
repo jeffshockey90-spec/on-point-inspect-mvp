@@ -1171,6 +1171,7 @@ export default async function PublicSharePage({
           .from("photos")
           .select("*")
           .in("finding_id", findingIds)
+          .order("sort_order", { ascending: true })
           .order("created_at", { ascending: true })
       : { data: [], error: null };
 
@@ -2721,31 +2722,38 @@ export default async function PublicSharePage({
 
                                         const photoIndex = photoItems.indexOf(media);
 
-                                        return mediaIsVideo ? (
-                                          <video
-                                            key={media.id || media.file_path || mediaUrl || mediaIndex}
-                                            src={getVideoPreviewSrc(mediaUrl)}
-                                            poster={mediaPreviewUrl && mediaPreviewUrl !== mediaUrl ? mediaPreviewUrl : undefined}
-                                            controls
-                                            muted
-                                            playsInline
-                                            preload="metadata"
-                                            className="max-h-[520px] w-full rounded-xl border border-slate-700 bg-black object-contain"
-                                          >
-                                            Your browser does not support video playback.
-                                          </video>
-                                        ) : (
-                                          <ExpandableReportImage
-                                            key={media.id || media.file_path || mediaUrl || mediaIndex}
-                                            src={mediaPreviewUrl || mediaUrl}
-                                            fullSrc={mediaUrl}
-                                            alt={`Inspection finding photo ${mediaIndex + 1}`}
-                                            badgeText="Tap to enlarge"
-                                            className="max-h-[520px] w-full object-contain"
-                                            buttonClassName="block w-full overflow-hidden rounded-xl border border-slate-700 bg-black text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
-                                            images={galleryImages}
-                                            index={photoIndex >= 0 ? photoIndex : 0}
-                                          />
+                                        return (
+                                          <div key={media.id || media.file_path || mediaUrl || mediaIndex}>
+                                            {mediaIsVideo ? (
+                                              <video
+                                                src={getVideoPreviewSrc(mediaUrl)}
+                                                poster={mediaPreviewUrl && mediaPreviewUrl !== mediaUrl ? mediaPreviewUrl : undefined}
+                                                controls
+                                                muted
+                                                playsInline
+                                                preload="metadata"
+                                                className="max-h-[520px] w-full rounded-xl border border-slate-700 bg-black object-contain"
+                                              >
+                                                Your browser does not support video playback.
+                                              </video>
+                                            ) : (
+                                              <ExpandableReportImage
+                                                src={mediaPreviewUrl || mediaUrl}
+                                                fullSrc={mediaUrl}
+                                                alt={media.caption || `Inspection finding photo ${mediaIndex + 1}`}
+                                                badgeText="Tap to enlarge"
+                                                className="max-h-[520px] w-full object-contain"
+                                                buttonClassName="block w-full overflow-hidden rounded-xl border border-slate-700 bg-black text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
+                                                images={galleryImages}
+                                                index={photoIndex >= 0 ? photoIndex : 0}
+                                              />
+                                            )}
+                                            {media.caption && (
+                                              <p className="mt-1 text-sm leading-6 text-slate-300 print:text-black">
+                                                {media.caption}
+                                              </p>
+                                            )}
+                                          </div>
                                         );
                                       })}
                                     </div>
@@ -2842,35 +2850,42 @@ export default async function PublicSharePage({
 
                                         const photoIndex = photoItems.indexOf(media);
 
-                                        return mediaIsVideo ? (
-                                          <video
-                                            key={media.id || media.file_path || mediaUrl || mediaIndex}
-                                            src={getVideoPreviewSrc(mediaUrl)}
-                                            poster={mediaPreviewUrl && mediaPreviewUrl !== mediaUrl ? mediaPreviewUrl : undefined}
-                                            controls
-                                            muted
-                                            playsInline
-                                            preload="metadata"
-                                            className={`w-full rounded-xl border border-slate-700 bg-black object-contain ${
-                                              mediaList.length > 1 ? "max-h-[520px]" : "max-h-[640px]"
-                                            }`}
-                                          >
-                                            Your browser does not support video playback.
-                                          </video>
-                                        ) : (
-                                          <ExpandableReportImage
-                                            key={media.id || media.file_path || mediaUrl || mediaIndex}
-                                            src={mediaPreviewUrl || mediaUrl}
-                                            fullSrc={mediaUrl}
-                                            alt={`Inspection finding photo ${mediaIndex + 1}`}
-                                            badgeText="Tap to enlarge"
-                                            className={`w-full object-contain ${
-                                              mediaList.length > 1 ? "max-h-[520px]" : "max-h-[640px]"
-                                            }`}
-                                            buttonClassName="block w-full overflow-hidden rounded-xl border border-slate-700 bg-black text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
-                                            images={galleryImages}
-                                            index={photoIndex >= 0 ? photoIndex : 0}
-                                          />
+                                        return (
+                                          <div key={media.id || media.file_path || mediaUrl || mediaIndex}>
+                                            {mediaIsVideo ? (
+                                              <video
+                                                src={getVideoPreviewSrc(mediaUrl)}
+                                                poster={mediaPreviewUrl && mediaPreviewUrl !== mediaUrl ? mediaPreviewUrl : undefined}
+                                                controls
+                                                muted
+                                                playsInline
+                                                preload="metadata"
+                                                className={`w-full rounded-xl border border-slate-700 bg-black object-contain ${
+                                                  mediaList.length > 1 ? "max-h-[520px]" : "max-h-[640px]"
+                                                }`}
+                                              >
+                                                Your browser does not support video playback.
+                                              </video>
+                                            ) : (
+                                              <ExpandableReportImage
+                                                src={mediaPreviewUrl || mediaUrl}
+                                                fullSrc={mediaUrl}
+                                                alt={media.caption || `Inspection finding photo ${mediaIndex + 1}`}
+                                                badgeText="Tap to enlarge"
+                                                className={`w-full object-contain ${
+                                                  mediaList.length > 1 ? "max-h-[520px]" : "max-h-[640px]"
+                                                }`}
+                                                buttonClassName="block w-full overflow-hidden rounded-xl border border-slate-700 bg-black text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
+                                                images={galleryImages}
+                                                index={photoIndex >= 0 ? photoIndex : 0}
+                                              />
+                                            )}
+                                            {media.caption && (
+                                              <p className="mt-1 text-sm leading-6 text-slate-300 print:text-black">
+                                                {media.caption}
+                                              </p>
+                                            )}
+                                          </div>
                                         );
                                       })}
                                     </div>

@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import SectionLimitations from "../../../components/SectionLimitations";
 import SectionNotesEditor from "../../../components/SectionNotesEditor";
+import PhotoCaptionField from "../../../components/PhotoCaptionField";
 import ReportDisclaimers from "../../../components/ReportDisclaimers";
 import SectionInformationChecklist from "../../../components/SectionInformationChecklist";
 import SectionReferencePhotos from "../../../components/SectionReferencePhotos";
@@ -1701,6 +1702,12 @@ function getFindingPhotos(finding: any) {
     photos.push(photo);
   });
 
+  // Respect the inspector's saved photo order (stable sort keeps insertion
+  // order for ties / un-ordered legacy photos).
+  photos.sort(
+    (a, b) => (Number(a?.sort_order) || 0) - (Number(b?.sort_order) || 0),
+  );
+
   const legacyImage =
     finding.signed_image_url ||
     finding.image_url ||
@@ -2421,6 +2428,40 @@ function FindingCardBase({
     }
   }
 
+  // Reorder this finding's photos by renumbering sort_order for the whole set,
+  // so the order is stable regardless of the photos' existing sort_order values.
+  async function moveFindingPhoto(index: number, direction: number) {
+    const target = index + direction;
+    if (target < 0 || target >= photos.length) return;
+
+    const reordered = [...photos];
+    const [moved] = reordered.splice(index, 1);
+    reordered.splice(target, 0, moved);
+
+    setMovingPhotoId(String(photos[index]?.id || ""));
+
+    try {
+      await Promise.all(
+        reordered.map((entry, position) => {
+          const photoId = String(entry?.id || "");
+          if (!photoId || entry?.isLegacyImage || photoId.startsWith("legacy-")) {
+            return Promise.resolve();
+          }
+          return supabase
+            .from("photos")
+            .update({ sort_order: position })
+            .eq("id", photoId)
+            .eq("inspection_id", inspectionId);
+        }),
+      );
+      router.refresh();
+    } catch {
+      showMessage("error", "Could not reorder photos. Please try again.");
+    } finally {
+      setMovingPhotoId(null);
+    }
+  }
+
   async function deletePhotoFromFinding(photo: any) {
     if (!photo?.id || photo.isLegacyImage) {
       showMessage(
@@ -2683,30 +2724,69 @@ function FindingCardBase({
                     />
                   )}
 
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-800 px-3 py-2 text-xs font-bold text-slate-400">
-                    <span>
-                      {isVideoMedia(photo) ? "Video" : "Photo"} {index + 1}
-                    </span>
+                  <div className="border-t border-slate-800 px-3 py-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-bold text-slate-400">
+                      <span>
+                        {isVideoMedia(photo) ? "Video" : "Photo"} {index + 1}
+                      </span>
 
-                    <div className="flex flex-wrap gap-2">
-                      {!isVideoMedia(photo) && (
-                        <span className="rounded-lg border border-slate-600 px-3 py-1 text-slate-300">
-                          Tap photo to expand
-                        </span>
-                      )}
+                      <div className="flex flex-wrap gap-2">
+                        {!isVideoMedia(photo) && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                moveFindingPhoto(index, -1);
+                              }}
+                              disabled={isBusy || index === 0}
+                              title="Move photo up"
+                              className="rounded-lg border border-slate-600 px-2 py-1 font-black text-slate-300 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-30"
+                            >
+                              ↑
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                moveFindingPhoto(index, 1);
+                              }}
+                              disabled={isBusy || index === visiblePhotos.length - 1}
+                              title="Move photo down"
+                              className="rounded-lg border border-slate-600 px-2 py-1 font-black text-slate-300 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-30"
+                            >
+                              ↓
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                setMarkupPhoto(photo);
+                                setShowMarkupEditor(true);
+                              }}
+                              disabled={isBusy}
+                              className="rounded-lg border border-purple-500 px-3 py-1 font-black text-purple-300 hover:bg-purple-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              ✏️ Markup
+                            </button>
+                          </>
+                        )}
 
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          deletePhotoFromFinding(photo);
-                        }}
-                        disabled={isBusy}
-                        className="rounded-lg border border-red-600 px-3 py-1 font-black text-red-300 hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        {isBusy ? "Working..." : "Delete"}
-                      </button>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            deletePhotoFromFinding(photo);
+                          }}
+                          disabled={isBusy}
+                          className="rounded-lg border border-red-600 px-3 py-1 font-black text-red-300 hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {isBusy ? "Working..." : "Delete"}
+                        </button>
+                      </div>
                     </div>
+
+                    <PhotoCaptionField photo={photo} inspectionId={inspectionId} />
                   </div>
                 </div>
               );
