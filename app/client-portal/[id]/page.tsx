@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import FastLinkButton from "../../../components/FastLinkButton";
 import { getInspectionShareToken } from "../../../lib/shareToken";
+import { getOnlineProcessingFee } from "../../../lib/onlinePaymentFee";
 
 const SECTION_ORDER = [
   "Inspection Details",
@@ -230,14 +231,11 @@ function getBalanceDue(inspection: any) {
   return Math.max(0, getInvoiceAmount(inspection) - getAmountPaid(inspection));
 }
 
-const PORTAL_PROCESSING_FEE_PERCENT = 3.95;
-
-function getPortalProcessingFee(balanceDue: number) {
-  if (!balanceDue || balanceDue <= 0) return 0;
-
-  return Number(
-    (balanceDue * (PORTAL_PROCESSING_FEE_PERCENT / 100)).toFixed(2),
-  );
+// Uses the same fee logic as checkout (lib/onlinePaymentFee), reading the
+// company's fee config carried on the inspection payload, so the quoted fee
+// always matches what the client is actually charged.
+function getPortalProcessingFee(balanceDue: number, inspection: any) {
+  return getOnlineProcessingFee(balanceDue, inspection);
 }
 
 function isPaymentComplete(inspection: any) {
@@ -584,7 +582,7 @@ export default function ClientPortalPage() {
   const invoiceAmount = getInvoiceAmount(inspection);
   const amountPaid = getAmountPaid(inspection);
   const balanceDue = getBalanceDue(inspection);
-  const portalProcessingFee = getPortalProcessingFee(balanceDue);
+  const portalProcessingFee = getPortalProcessingFee(balanceDue, inspection);
   const totalOnlinePayment = balanceDue + portalProcessingFee;
 
   const paymentStatus =

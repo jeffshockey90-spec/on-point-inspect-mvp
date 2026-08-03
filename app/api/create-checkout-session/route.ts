@@ -7,6 +7,7 @@ import {
   authorizeInspection,
 } from "../../../lib/apiAuth";
 import { reportSecurityEvent } from "../../../lib/securityAlerts";
+import { getOnlineProcessingFee } from "../../../lib/onlinePaymentFee";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -150,29 +151,10 @@ function getStripeConnectBlocker(company: any) {
 // processing fee to the customer." May be off by a few cents from the exact
 // real fee for non-standard cards (Amex, international, negotiated custom
 // Stripe pricing), but matches for the vast majority of US card charges.
-const STRIPE_STANDARD_PERCENT = 0.029;
-const STRIPE_STANDARD_FIXED = 0.3;
-
+// Delegates to the shared helper so the fee charged here always matches the
+// fee the client portal quotes. See lib/onlinePaymentFee.ts.
 function getPortalProcessingFee(balanceDue: number, company: any) {
-  if (!balanceDue || balanceDue <= 0) return 0;
-  if (company?.online_payment_fee_enabled === false) return 0;
-
-  const feeType = String(company?.online_payment_fee_type || "percentage").toLowerCase();
-
-  if (feeType === "stripe_fee") {
-    const totalCharged = (balanceDue + STRIPE_STANDARD_FIXED) / (1 - STRIPE_STANDARD_PERCENT);
-    return Math.round((totalCharged - balanceDue) * 100) / 100;
-  }
-
-  const amount = getNumber(company?.online_payment_fee_amount);
-  if (amount <= 0) return 0;
-
-  if (feeType === "flat") {
-    return Math.round(amount * 100) / 100;
-  }
-
-  // percentage (default) - amount is a percent of the balance due, e.g. 3.95 = 3.95%
-  return Math.round(balanceDue * (amount / 100) * 100) / 100;
+  return getOnlineProcessingFee(balanceDue, company);
 }
 
 async function logStripeEvent(supabase: any, payload: any) {

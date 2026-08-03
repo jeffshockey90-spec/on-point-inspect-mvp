@@ -259,6 +259,25 @@ export async function GET(req: Request) {
       }
     }
 
+    // Attach the company's online-payment-fee config so the portal quotes the
+    // exact fee checkout will charge (both use lib/onlinePaymentFee), instead of
+    // a hardcoded 3.95% that drifts when the company changes its fee settings.
+    if ((inspection as any).company_id) {
+      const { data: companyFee } = await supabase
+        .from("companies")
+        .select(
+          "online_payment_fee_enabled, online_payment_fee_type, online_payment_fee_amount",
+        )
+        .eq("id", (inspection as any).company_id)
+        .maybeSingle();
+
+      if (companyFee) {
+        pickedInspection.online_payment_fee_enabled = companyFee.online_payment_fee_enabled;
+        pickedInspection.online_payment_fee_type = companyFee.online_payment_fee_type;
+        pickedInspection.online_payment_fee_amount = companyFee.online_payment_fee_amount;
+      }
+    }
+
     return NextResponse.json({
       inspection: pickedInspection,
       deliverable: delivery.deliverable,
