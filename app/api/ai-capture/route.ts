@@ -54,14 +54,26 @@ function safeJsonParse(value: string) {
   return match ? JSON.parse(match[0]) : {};
 }
 
-function normalizeSection(value: any, fallback: string) {
+function normalizeSection(
+  value: any,
+  fallback: string,
+  context?: {
+    title?: string;
+    observation?: string;
+    implication?: string;
+    recommendation?: string;
+  },
+) {
   const clean = cleanText(value);
+  // Route on the full finding content, not just the AI's section label, so the
+  // defect lands in the section its actual components/wording point to (roof,
+  // plumbing, electrical, etc.) even when the model's section field is vague.
   const routed = routeFindingSection({
     section: clean,
-    title: "",
-    observation: "",
-    implication: "",
-    recommendation: "",
+    title: context?.title || "",
+    observation: context?.observation || "",
+    implication: context?.implication || "",
+    recommendation: context?.recommendation || "",
   });
 
   if (VALID_SECTIONS.includes(routed)) return routed;
@@ -175,6 +187,18 @@ Writing requirements:
 - Liability note: a short internal note explaining any cautious wording, limitation, uncertainty, or need for inspector verification. Do not use legal jargon.
 - Confidence: 0-100 based on note clarity and photo support.
 - Evidence: up to four short statements describing what supports the finding.
+- Section: choose the report section for the actual component or system the defect belongs to, not the section the inspector happened to have selected. Use the visible component to decide, for example:
+  - Roof, shingles, flashing, gutters, chimney exterior -> Roof
+  - Siding, trim, grading, driveway, walkway, deck, porch, exterior steps -> Exterior
+  - Water heater, pipes, drains, faucets, toilets, TPR valve, sump pump, hose bib -> Plumbing
+  - Panel, breakers, wiring, receptacles/outlets, GFCI/AFCI, grounding/bonding -> Electrical
+  - Furnace, boiler, gas line, flue -> Heating; condenser, AC, heat pump, refrigerant -> Cooling
+  - Foundation, crawlspace, basement, framing/joists/beams, structural cracks -> Basement, Foundation, Crawlspace & Structure
+  - Attic access, insulation, ventilation, bath/exhaust fan routing -> Attic, Insulation & Ventilation
+  - Interior doors, windows, floors, walls, ceilings, stairs, handrails -> Doors, Windows & Interior
+  - Dishwasher, range/cooktop/oven, microwave, disposal, built-in appliances -> Built-in Appliances
+  - Garage door, opener, auto-reverse/photo eyes, fire separation -> Garage
+  - Fireplace, firebox, damper, hearth -> Fireplace
 - No markdown and no text outside JSON.
 
 Allowed sections:
@@ -238,7 +262,12 @@ Keep the inspector's intent. Improve the writing without drifting away from the 
     });
 
     const parsed = safeJsonParse(response.choices[0]?.message?.content || "{}");
-    const section = normalizeSection(parsed.section, requestedSection);
+    const section = normalizeSection(parsed.section, requestedSection, {
+      title: cleanText(parsed.title),
+      observation: cleanText(parsed.observation) || existingObservation,
+      implication: cleanText(parsed.implication) || existingImplication,
+      recommendation: cleanText(parsed.recommendation) || existingRecommendation,
+    });
     const severity = normalizeWriterSeverity(parsed.severity, requestedSeverity);
     const maintenanceTip = cleanText(parsed.maintenanceTip);
     const recommendation = appendMaintenance(

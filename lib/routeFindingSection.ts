@@ -58,6 +58,10 @@ export function routeFindingSection(input: {
     text.includes("toilet") ||
     text.includes("sink") ||
     text.includes("water heater") ||
+    text.includes("tpr") ||
+    text.includes("sump pump") ||
+    text.includes("hose bib") ||
+    text.includes("sewer") ||
     text.includes("shutoff") ||
     text.includes("supply line") ||
     text.includes("waste line")
@@ -93,11 +97,15 @@ export function routeFindingSection(input: {
   }
 
   if (
-    text.includes("ac") ||
-    text.includes("a/c") ||
+    // Word-boundary match so the "ac" abbreviation doesn't match the letters
+    // inside cracked, crawlspace, access, surface, place, etc.
+    /\bac\b/.test(text) ||
+    /\ba\/c\b/.test(text) ||
     text.includes("cooling") ||
     text.includes("air conditioner") ||
+    text.includes("air conditioning") ||
     text.includes("condenser") ||
+    text.includes("compressor") ||
     text.includes("evaporator") ||
     text.includes("heat pump") ||
     text.includes("refrigerant")
@@ -154,7 +162,9 @@ export function routeFindingSection(input: {
   if (
     text.includes("dishwasher") ||
     text.includes("range") ||
+    text.includes("cooktop") ||
     text.includes("oven") ||
+    text.includes("refrigerator") ||
     text.includes("microwave") ||
     text.includes("disposal") ||
     text.includes("appliance")
@@ -178,6 +188,7 @@ export function routeFindingSection(input: {
 
   if (
     text.includes("siding") ||
+    text.includes("stucco") ||
     text.includes("trim") ||
     text.includes("grading") ||
     text.includes("walkway") ||
@@ -185,6 +196,7 @@ export function routeFindingSection(input: {
     text.includes("deck") ||
     text.includes("porch") ||
     text.includes("steps") ||
+    text.includes("fence") ||
     text.includes("exterior")
   ) {
     return "Exterior";

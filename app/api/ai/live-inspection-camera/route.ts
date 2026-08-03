@@ -85,14 +85,26 @@ function normalizeConfidence(value: any, fallback = 0.72) {
   return Math.max(0, Math.min(1, number));
 }
 
-function cleanSection(value: any, fallback = "Exterior") {
+function cleanSection(
+  value: any,
+  fallback = "Exterior",
+  context?: {
+    title?: string;
+    observation?: string;
+    implication?: string;
+    recommendation?: string;
+  },
+) {
   const clean = cleanText(value);
+  // Route on the full finding/limitation content, not just the AI's section
+  // label, so it lands in the section its actual components point to (roof,
+  // plumbing, electrical, etc.) rather than defaulting to the selected tab.
   const routed = routeFindingSection({
     section: clean,
-    title: "",
-    observation: "",
-    implication: "",
-    recommendation: "",
+    title: context?.title || "",
+    observation: context?.observation || "",
+    implication: context?.implication || "",
+    recommendation: context?.recommendation || "",
   });
 
   if (VALID_SECTIONS.includes(routed)) return routed;
@@ -204,7 +216,12 @@ function cleanSuggestion(value: any, index: number) {
     cleanText(value?.recommendation) ||
     "Inspector should verify the condition and document as needed.";
 
-  const section = cleanSection(value?.section);
+  const section = cleanSection(value?.section, "Exterior", {
+    title,
+    observation,
+    implication,
+    recommendation,
+  });
   const severity = cleanSeverity(value?.severity);
 
   return {
@@ -252,8 +269,17 @@ function cleanReminder(value: any, index: number) {
 }
 
 function cleanLimitation(value: any, index: number, fallbackSection: string) {
-  const section = cleanSection(value?.section, fallbackSection);
   const title = cleanText(value?.title) || "Inspection Limitation";
+  const limitationText =
+    cleanText(value?.limitation || value?.observation || value?.description) || "";
+  const reasonText = cleanText(value?.reason || value?.cause) || "";
+  const recommendationText = cleanText(value?.recommendation) || "";
+  const section = cleanSection(value?.section, fallbackSection, {
+    title,
+    observation: limitationText,
+    implication: reasonText,
+    recommendation: recommendationText,
+  });
 
   return {
     id:
@@ -265,13 +291,10 @@ function cleanLimitation(value: any, index: number, fallbackSection: string) {
     title,
     section,
     limitation:
-      cleanText(value?.limitation || value?.observation || value?.description) ||
-      "Visibility or access appeared limited in this area.",
-    reason:
-      cleanText(value?.reason || value?.cause) ||
-      "The limitation should be verified by the inspector.",
+      limitationText || "Visibility or access appeared limited in this area.",
+    reason: reasonText || "The limitation should be verified by the inspector.",
     recommendation:
-      cleanText(value?.recommendation) ||
+      recommendationText ||
       "Document the limitation and inspect further if access becomes available.",
     confidence: normalizeConfidence(value?.confidence, 0.72),
     region:
@@ -517,6 +540,7 @@ Rules:
 - Use cautious wording such as "appeared", "was observed", "may", and "recommend verification".
 - Do not overstate the limitation. If only possible, say "appeared" or "may have limited visibility."
 - Explain what was limited, why, and recommend further evaluation only when appropriate.
+- Set "section" to the report section for the area or system the limitation affects, based on what is visible, not the section the inspector currently has selected. For example blocked attic access -> Attic, Insulation & Ventilation; stored items in front of the electrical panel -> Electrical; belongings blocking the water heater -> Plumbing; a locked or inaccessible crawlspace -> Basement, Foundation, Crawlspace & Structure.
 - Do not include markdown or any text outside JSON.
 - If inspector-specific learning memory is provided below, match this inspector's demonstrated wording and style.
 
@@ -657,6 +681,7 @@ Return ONLY valid JSON in this exact structure:
 Rules:
 - Return multiple suggestions when multiple visible concerns are present.
 - Do not limit output to one defect.
+- For each suggestion and limitation, set "section" to the report section for the actual component or system in view, not the section the inspector currently has selected. Route by the visible component, for example: roof/shingles/flashing/gutters/chimney -> Roof; siding/trim/grading/driveway/deck/porch -> Exterior; water heater/pipes/drains/faucets/toilet/TPR/sump pump -> Plumbing; panel/breakers/wiring/receptacles/GFCI/AFCI/grounding -> Electrical; furnace/boiler/gas line/flue -> Heating; condenser/AC/heat pump/refrigerant -> Cooling; foundation/crawlspace/basement/framing/structural cracks -> Basement, Foundation, Crawlspace & Structure; attic/insulation/ventilation/exhaust fan -> Attic, Insulation & Ventilation; interior doors/windows/floors/walls/ceilings/stairs/handrails -> Doors, Windows & Interior; dishwasher/range/oven/microwave/disposal -> Built-in Appliances; garage door/opener/auto-reverse/photo eyes -> Garage; fireplace/firebox/damper/hearth -> Fireplace.
 - For every visible suggestion and every visible limitation, you MUST include a region using normalized x, y, width, and height values from 0 to 1.
 - The coordinates refer to the full supplied image: x/y are the top-left corner and width/height define the box.
 - Tightly frame the exact visible evidence. Do not omit the region for a visible condition.
