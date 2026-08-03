@@ -49,6 +49,27 @@ function formatDate(date?: string | null) {
   return formatAppValue(parsed, {});
 }
 
+// Format a bare "HH:MM" (or "HH:MM:SS") time string into a 12-hour clock label
+// like "9:00 AM". Done with plain arithmetic rather than a Date so there is no
+// timezone shift on a time-of-day that carries no date.
+export function formatAgreementTime(time?: string | null) {
+  const raw = String(time || "").trim();
+  if (!raw) return "";
+
+  const match = raw.match(/^(\d{1,2}):(\d{2})/);
+  if (!match) return raw;
+
+  let hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return raw;
+  if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return raw;
+
+  const period = hours >= 12 ? "PM" : "AM";
+  const displayHour = hours % 12 === 0 ? 12 : hours % 12;
+
+  return `${displayHour}:${String(minutes).padStart(2, "0")} ${period}`;
+}
+
 function getLicenseNumber(state?: string | null) {
   const normalized = normalizeAgreementState(state);
 
@@ -85,6 +106,7 @@ export function applyAgreementMergeFields({
   inspectorName,
   ownerName,
   inspectionDate,
+  inspectionTime,
   signedDate,
 }: {
   templateBody: string;
@@ -97,6 +119,7 @@ export function applyAgreementMergeFields({
   inspectorName?: string | null;
   ownerName?: string | null;
   inspectionDate?: string | null;
+  inspectionTime?: string | null;
   signedDate?: string | null;
 }) {
   const normalized = normalizeAgreementState(state);
@@ -107,6 +130,11 @@ export function applyAgreementMergeFields({
   const displayProperty = propertyAddress || "Inspection Property";
   const displayFee = formatFee(fee);
   const displayDate = formatDate(inspectionDate);
+  const displayTime = formatAgreementTime(inspectionTime);
+  // The appointment line shows date + time together when a time is set, so a
+  // client sees exactly when the inspection is scheduled. Falls back to the
+  // date alone (original behavior) when no time is on the inspection.
+  const displayDateTime = displayTime ? `${displayDate} at ${displayTime}` : displayDate;
   const displaySignedDate = formatDate(signedDate || inspectionDate);
 
   // {{INSPECTOR_COMPANY}}/{{INSPECTOR_OWNER}} are separate merge tokens some
@@ -129,7 +157,10 @@ export function applyAgreementMergeFields({
     "{{AGREEMENT_STATE}}": normalized,
     "{{AGREEMENT_VERSION}}": getAgreementVersion(normalized),
     "{{AGREEMENT_DATE}}": displayDate,
-    "{{INSPECTION_DATE}}": displayDate,
+    "{{INSPECTION_DATE}}": displayDateTime,
+    "{{INSPECTION_DATE_TIME}}": displayDateTime,
+    "{{INSPECTION_TIME}}": displayTime,
+    "{{APPOINTMENT_TIME}}": displayTime,
     "{{SIGNED_DATE}}": displaySignedDate,
 
     "{{CLIENT_NAME}}": displayClient,
@@ -161,15 +192,20 @@ export function applyAgreementMergeFields({
     body = body.split(key).join(value);
   }
 
-  body = body.replace(
-    /This Agreement dated:\s*(?:_+)?\s*/i,
-    `This Agreement dated: ${displayDate}\n\n`
-  );
-
-  body = body.replace(
-    /This Agreement dated\s*(?:_+)?\s*/i,
-    `This Agreement dated: ${displayDate}\n\n`
-  );
+  // Fill the "This Agreement dated:" blank, tolerating a missing colon. Only one
+  // of these runs: applying both would re-match the text we just inserted and
+  // leave a stray duplicate date line.
+  if (/This Agreement dated:/i.test(body)) {
+    body = body.replace(
+      /This Agreement dated:\s*(?:_+)?\s*/i,
+      `This Agreement dated: ${displayDate}\n\n`
+    );
+  } else {
+    body = body.replace(
+      /This Agreement dated\s*(?:_+)?\s*/i,
+      `This Agreement dated: ${displayDate}\n\n`
+    );
+  }
 
   body = body.replace(fillBlankLine("Client", displayClient), `Client: ${displayClient}\n`);
   if (displayOrganization) {
@@ -181,7 +217,8 @@ export function applyAgreementMergeFields({
   body = body.replace(fillBlankLine("Inspector", inspectorDisplay), `Inspector: ${inspectorDisplay}\n`);
   body = body.replace(fillBlankLine("Property Address", displayProperty), `Property Address: ${displayProperty}\n`);
   body = body.replace(fillBlankLine("Common Street Address", displayProperty), `Common Street Address: ${displayProperty}\n`);
-  body = body.replace(fillBlankLine("Inspection Date", displayDate), `Inspection Date: ${displayDate}\n`);
+  body = body.replace(fillBlankLine("Inspection Date", displayDateTime), `Inspection Date: ${displayDateTime}\n`);
+  body = body.replace(fillBlankLine("Inspection Time", displayTime), `Inspection Time: ${displayTime}\n`);
   body = body.replace(fillBlankLine("Fee", displayFee), `Fee: ${displayFee}\n`);
   body = body.replace(fillBlankLine("State License No\\.", inspectorLicense), `State License No.: ${inspectorLicense}\n`);
   body = body.replace(fillBlankLine("License Expiration Date", inspectorLicenseExpiration), `License Expiration Date: ${inspectorLicenseExpiration}\n`);
@@ -207,6 +244,7 @@ export function mergeAgreementBody({
   inspectorName,
   ownerName,
   inspectionDate,
+  inspectionTime,
   signedDate,
 }: {
   templateBody: string;
@@ -219,6 +257,7 @@ export function mergeAgreementBody({
   inspectorName?: string | null;
   ownerName?: string | null;
   inspectionDate?: string | null;
+  inspectionTime?: string | null;
   signedDate?: string | null;
 }) {
   const filledAgreement = applyAgreementMergeFields({
@@ -232,6 +271,7 @@ export function mergeAgreementBody({
     inspectorName,
     ownerName,
     inspectionDate,
+    inspectionTime,
     signedDate,
   });
 
@@ -255,6 +295,7 @@ export function mergeMultipleAgreementBodies({
   inspectorName,
   ownerName,
   inspectionDate,
+  inspectionTime,
   signedDate,
 }: {
   templates: any[];
@@ -267,6 +308,7 @@ export function mergeMultipleAgreementBodies({
   inspectorName?: string | null;
   ownerName?: string | null;
   inspectionDate?: string | null;
+  inspectionTime?: string | null;
   signedDate?: string | null;
 }) {
   if (!templates || templates.length === 0) {
@@ -282,6 +324,7 @@ export function mergeMultipleAgreementBodies({
       inspectorName,
       ownerName,
       inspectionDate,
+      inspectionTime,
       signedDate,
     });
   }
@@ -301,6 +344,7 @@ export function mergeMultipleAgreementBodies({
         inspectorName,
         ownerName,
         inspectionDate,
+        inspectionTime,
         signedDate,
       });
 

@@ -21,6 +21,7 @@ import SendW9Button from "../../../components/SendW9Button";
 import InspectionContactsManager from "../../../components/InspectionContactsManager";
 import EnvironmentalTestPanel from "../../../components/EnvironmentalTestPanel";
 import AgreementSelector from "../../../components/AgreementSelector";
+import AgreementBodyEditor from "../../../components/AgreementBodyEditor";
 import AgreementStatusPanel from "../../../components/AgreementStatusPanel";
 import ReportDeliveryGuard from "../../../components/ReportDeliveryGuard";
 import SendAgreementButton from "../../../components/SendAgreementButton";
@@ -1281,6 +1282,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
             String(formData.get("client_organization_name") || "").trim() || null,
           realtor_name: String(formData.get("realtor_name") || "").trim(),
           inspection_date: String(formData.get("inspection_date") || "").trim(),
+          inspection_time: String(formData.get("inspection_time") || "").trim(),
           square_feet: String(formData.get("square_feet") || "").trim(),
           year_built: String(formData.get("year_built") || "").trim(),
           city: String(formData.get("city") || "").trim(),
@@ -1334,6 +1336,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
     revalidatePath(`/reports/${inspectionId}/print`);
     revalidatePath(`/share/${inspectionId}`);
     revalidatePath(`/client-portal/${inspectionId}`);
+    revalidatePath(`/client-agreement/${inspectionId}`);
     revalidatePath("/reports");
     redirect(`/reports/${inspectionId}?details_updated=1`);
   }
@@ -2974,6 +2977,8 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
               propertyState={inspection.state}
             />
 
+            <AgreementBodyEditor inspectionId={String(inspection.id)} />
+
             <AgreementStatusPanel inspectionId={String(inspection.id)} />
             </div>
 
@@ -4307,6 +4312,12 @@ Service-life information is a general industry estimate only. Actual service lif
                   name="inspection_date"
                   value={inspection.inspection_date}
                   type="date"
+                />
+                <EditItem
+                  label="Inspection Time"
+                  name="inspection_time"
+                  value={inspection.inspection_time}
+                  type="time"
                 />
               </div>
 

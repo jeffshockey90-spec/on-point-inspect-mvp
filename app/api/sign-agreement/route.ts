@@ -225,17 +225,22 @@ export async function POST(req: Request) {
     const branding = await getCompanyBrandingById(inspection.company_id);
     const ownerName = await getCompanyOwnerName(inspection.company_id);
 
-    const agreementBody = mergeMultipleAgreementBodies({
-      templates,
-      state,
-      clientName,
-      clientOrganization: inspection.client_organization_name,
-      propertyAddress: inspection.address || inspection.property_address,
-      fee: inspection.invoice_amount || inspection.fee || inspection.price,
-      inspectorName: branding.name,
-      ownerName,
-      inspectionDate: inspection.inspection_date,
-    });
+    // Freeze whatever the client actually saw: a custom, inspector-edited body
+    // wins over the live template merge (mirrors the client-agreement page).
+    const agreementBody = inspection.custom_agreement_body?.trim()
+      ? inspection.custom_agreement_body
+      : mergeMultipleAgreementBodies({
+          templates,
+          state,
+          clientName,
+          clientOrganization: inspection.client_organization_name,
+          propertyAddress: inspection.address || inspection.property_address,
+          fee: inspection.invoice_amount || inspection.fee || inspection.price,
+          inspectorName: branding.name,
+          ownerName,
+          inspectionDate: inspection.inspection_date,
+          inspectionTime: inspection.inspection_time,
+        });
 
     const h = await headers();
 

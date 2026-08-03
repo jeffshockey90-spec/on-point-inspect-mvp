@@ -4,6 +4,7 @@ import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 import PrintButton from "../../../components/PrintButton";
 import {
+  formatAgreementTime,
   getAgreementTemplatesForInspection,
   getAgreementTitle,
   mergeMultipleAgreementBodies,
@@ -208,19 +209,25 @@ export default async function ClientAgreementPage({
   const branding = await getCompanyBrandingById(inspection.company_id);
   const ownerName = await getCompanyOwnerName(inspection.company_id);
 
+  // Precedence: a signed copy is frozen and always wins; otherwise a per-
+  // inspection custom body (the inspector edited the full text) is the source
+  // of truth; otherwise render live from the selected template(s).
   const agreementBody =
     signedAgreement?.agreement_body ||
-    mergeMultipleAgreementBodies({
-      templates,
-      state,
-      clientName: selectedContact?.name || inspection.client_name,
-      clientOrganization: inspection.client_organization_name,
-      propertyAddress: inspection.address || inspection.property_address,
-      fee: inspection.invoice_amount || inspection.fee || inspection.price,
-      inspectorName: branding.name,
-      ownerName,
-      inspectionDate: inspection.inspection_date,
-    });
+    (inspection.custom_agreement_body?.trim()
+      ? inspection.custom_agreement_body
+      : mergeMultipleAgreementBodies({
+          templates,
+          state,
+          clientName: selectedContact?.name || inspection.client_name,
+          clientOrganization: inspection.client_organization_name,
+          propertyAddress: inspection.address || inspection.property_address,
+          fee: inspection.invoice_amount || inspection.fee || inspection.price,
+          inspectorName: branding.name,
+          ownerName,
+          inspectionDate: inspection.inspection_date,
+          inspectionTime: inspection.inspection_time,
+        }));
 
   const title =
     signedAgreement?.agreement_title ||
@@ -247,6 +254,20 @@ export default async function ClientAgreementPage({
           <p className="mt-1 text-slate-400 print:text-black">
             Client: {selectedContact?.name || inspection.client_name || "Client"}
           </p>
+
+          {(inspection.inspection_date || inspection.inspection_time) && (
+            <p className="mt-1 text-slate-400 print:text-black">
+              Inspection:{" "}
+              {[
+                inspection.inspection_date
+                  ? formatAppValue(new Date(inspection.inspection_date), {})
+                  : "",
+                formatAgreementTime(inspection.inspection_time),
+              ]
+                .filter(Boolean)
+                .join(" at ")}
+            </p>
+          )}
 
           {(signedAgreement?.client_organization_name || inspection.client_organization_name) && (
             <p className="mt-1 text-slate-400 print:text-black">
