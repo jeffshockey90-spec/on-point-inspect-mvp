@@ -308,9 +308,37 @@ export default function ScheduleCalendar({
       );
   }, [events, today]);
 
+  // After a date/time change, offer to email the client + realtor an updated
+  // confirmation. Prompted (not automatic) so a status-only tweak or a quick
+  // correction doesn't fire a surprise email.
+  async function offerRescheduleNotification(inspectionId: string) {
+    const notify = window.confirm(
+      "Appointment updated. Send an updated confirmation with the new date and time to the client and realtor?"
+    );
+    if (!notify) return;
+
+    try {
+      const res = await fetch("/api/send-schedule-confirmation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inspectionId, reschedule: true }),
+      });
+      if (!res.ok) throw new Error("send failed");
+      setMessage("Updated confirmation sent.");
+    } catch {
+      setMessage("Saved, but the confirmation could not be sent.");
+    }
+  }
+
   async function saveScheduleUpdate(eventToSave: SelectedEvent) {
     setSaving(true);
     setMessage("");
+
+    const original = events.find((e) => String(e.id) === String(eventToSave.id));
+    const dateOrTimeChanged =
+      !original ||
+      original.extendedProps.date !== eventToSave.date ||
+      original.extendedProps.time !== eventToSave.time;
 
     try {
       const response = await fetch("/api/inspections/update-schedule", {
@@ -332,6 +360,10 @@ export default function ScheduleCalendar({
 
       setMessage("Saved");
       router.refresh();
+
+      if (dateOrTimeChanged) {
+        await offerRescheduleNotification(String(eventToSave.id));
+      }
     } catch (error) {
       setMessage("Could not save. Please try again.");
     } finally {
@@ -524,6 +556,7 @@ export default function ScheduleCalendar({
               }
 
               router.refresh();
+              await offerRescheduleNotification(String(info.event.id));
             } catch (error) {
               info.revert();
               alert("Could not move this appointment. Please try again.");

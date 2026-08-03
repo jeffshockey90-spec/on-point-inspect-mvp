@@ -76,7 +76,8 @@ export async function POST(req: Request) {
     const user = await getSessionUser();
     if (!user) return unauthorized();
 
-    const { inspectionId, recipientRole, recipientEmail } = await req.json();
+    const { inspectionId, recipientRole, recipientEmail, reschedule } = await req.json();
+    const isReschedule = Boolean(reschedule);
 
     if (!inspectionId) {
       return NextResponse.json({ error: "Missing inspection ID." }, { status: 400 });
@@ -198,12 +199,18 @@ export async function POST(req: Request) {
         recipient.role || "client"
       )}&recipient_email=${encodeURIComponent(recipient.email)}`;
 
-      const subject = `Inspection Confirmed - ${address || branding.name}`;
+      const subject = isReschedule
+        ? `Inspection Rescheduled - ${address || branding.name}`
+        : `Inspection Confirmed - ${address || branding.name}`;
       const greeting = recipient.name ? `Hi ${escapeHtml(recipient.name)},` : "Hello,";
 
-      const note = isRealtor
-        ? "This confirms the inspection has been scheduled."
-        : "This confirms your inspection has been scheduled.";
+      const note = isReschedule
+        ? isRealtor
+          ? "The inspection has been rescheduled. Please note the updated date and time below."
+          : "Your inspection has been rescheduled. Please note the updated date and time below."
+        : isRealtor
+          ? "This confirms the inspection has been scheduled."
+          : "This confirms your inspection has been scheduled.";
 
       const html = `
         <div style="font-family:Arial,sans-serif;line-height:1.6;color:#0f172a;padding:24px;">
@@ -240,7 +247,7 @@ export async function POST(req: Request) {
 
       const text = `${recipient.name ? `Hi ${recipient.name},` : "Hello,"}
 
-${isRealtor ? "This confirms the inspection has been scheduled." : "This confirms your inspection has been scheduled."}
+${note}
 
 Property: ${address}
 Date: ${dateText}
