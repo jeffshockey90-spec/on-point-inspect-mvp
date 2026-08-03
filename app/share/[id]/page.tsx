@@ -1133,6 +1133,19 @@ export default async function PublicSharePage({
     .eq("inspection_id", inspectionId)
     .order("sort_order", { ascending: true });
 
+  // Per-section notes written by the inspector, shown above each section.
+  const { data: sectionNotesRaw } = await supabase
+    .from("report_section_notes")
+    .select("section_name, notes")
+    .eq("inspection_id", inspectionId);
+
+  const notesBySection: Record<string, string> = {};
+  for (const row of sectionNotesRaw || []) {
+    if (row?.section_name && String(row.notes || "").trim()) {
+      notesBySection[row.section_name] = row.notes;
+    }
+  }
+
   const activeSectionOrder = filterSectionsForServiceMode(
     resolveActiveSections(
       SECTION_ORDER,
@@ -1527,8 +1540,9 @@ export default async function PublicSharePage({
     const hasChecklistInfo = Boolean(checklistBySection[group.section]);
     const hasLimitations =
       (limitationsBySection[group.section] || []).length > 0;
+    const hasNote = Boolean(notesBySection[group.section]);
 
-    return hasFindings || hasReferencePhotos || hasChecklistInfo || hasLimitations;
+    return hasFindings || hasReferencePhotos || hasChecklistInfo || hasLimitations || hasNote;
   });
 
   const otherFindings = displayFindings.filter(
@@ -2534,6 +2548,12 @@ export default async function PublicSharePage({
                           {sectionDefects} defect{sectionDefects === 1 ? "" : "s"}
                         </span>
                       </div>
+
+                      {notesBySection[group.section] && (
+                        <div className="mb-6 whitespace-pre-wrap rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm leading-6 text-amber-100 print:border-amber-500/50 print:bg-transparent print:text-black">
+                          {notesBySection[group.section]}
+                        </div>
+                      )}
 
                       {referencePhotosBySection[group.section]?.length > 0 && (
                         <div className="mb-6 rounded-xl border border-cyan-500/30 bg-cyan-950/20 p-4">

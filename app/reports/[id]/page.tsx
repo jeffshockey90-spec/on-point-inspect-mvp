@@ -1895,6 +1895,19 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
     (row: any) => row.deleted_at,
   );
 
+  // Per-section notes (shown above each section's findings). Service-role read
+  // so a company owner sees notes on a team member's inspection too. Missing
+  // table (pre-migration) just yields an empty map.
+  const { data: sectionNotesRows } = await storageSupabase
+    .from("report_section_notes")
+    .select("section_name, notes")
+    .eq("inspection_id", inspection.id);
+
+  const sectionNotesMap: Record<string, string> = {};
+  for (const row of sectionNotesRows || []) {
+    if (row?.section_name) sectionNotesMap[row.section_name] = row.notes || "";
+  }
+
   if (emailLogsResult.error) {
     console.error("Email logs load error:", emailLogsResult.error);
   }
@@ -3525,6 +3538,7 @@ Service-life information is a general industry estimate only. Actual service lif
             <ReportFindingsSortable
               groupedFindings={groupedFindingsArray}
               deletedSections={deletedReportSections}
+              sectionNotes={sectionNotesMap}
             />
           </div>
 

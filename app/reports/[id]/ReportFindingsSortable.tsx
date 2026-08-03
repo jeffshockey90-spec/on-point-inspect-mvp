@@ -4,6 +4,7 @@ import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import SectionLimitations from "../../../components/SectionLimitations";
+import SectionNotesEditor from "../../../components/SectionNotesEditor";
 import ReportDisclaimers from "../../../components/ReportDisclaimers";
 import SectionInformationChecklist from "../../../components/SectionInformationChecklist";
 import SectionReferencePhotos from "../../../components/SectionReferencePhotos";
@@ -136,7 +137,7 @@ function DeferredOpenSection({
   );
 }
 
-export default function ReportFindingsSortable({ groupedFindings, deletedSections }: any) {
+export default function ReportFindingsSortable({ groupedFindings, deletedSections, sectionNotes }: any) {
   const params = useParams();
   const router = useRouter();
   const inspectionId = String(params?.id || "");
@@ -822,6 +823,12 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
 
             <DeferredOpenSection active={!isClosed}>
               <div className="w-full max-w-full space-y-4 overflow-x-hidden p-2 sm:p-5">
+                <SectionNotesEditor
+                  inspectionId={inspectionId}
+                  section={group.section}
+                  initialNotes={sectionNotes?.[group.section] || ""}
+                />
+
                 <SectionInformationChecklist
                   inspectionId={inspectionId}
                   section={group.section}

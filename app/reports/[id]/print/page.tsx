@@ -531,6 +531,18 @@ export default async function PrintableReportPage({ params }: PageProps) {
     .eq("inspection_id", inspection.id)
     .order("sort_order", { ascending: true });
 
+  const { data: sectionNotesRaw } = await supabase
+    .from("report_section_notes")
+    .select("section_name, notes")
+    .eq("inspection_id", inspection.id);
+
+  const notesBySection: Record<string, string> = {};
+  for (const row of sectionNotesRaw || []) {
+    if (row?.section_name && String(row.notes || "").trim()) {
+      notesBySection[row.section_name] = row.notes;
+    }
+  }
+
   const activeSectionOrder = filterSectionsForServiceMode(
     resolveActiveSections(
       SECTION_ORDER,
@@ -1211,13 +1223,19 @@ export default async function PrintableReportPage({ params }: PageProps) {
 
           <div className="space-y-10">
             {groupedFindingsArray.map((group) => {
-              if (group.findings.length === 0) return null;
+              if (group.findings.length === 0 && !notesBySection[group.section]) return null;
 
               return (
                 <section key={group.section} className="section-print-block space-y-5">
                   <h3 className="border-b-4 border-teal-600 pb-2 text-3xl font-black text-teal-800">
                     {group.section}
                   </h3>
+
+                  {notesBySection[group.section] && (
+                    <div className="avoid-break whitespace-pre-wrap rounded-xl border border-amber-500 bg-amber-50 p-4 text-sm leading-6 text-slate-900">
+                      {notesBySection[group.section]}
+                    </div>
+                  )}
 
                   {group.findings.map((finding: any) => (
                     <article
