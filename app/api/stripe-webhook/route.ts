@@ -981,6 +981,175 @@ export async function POST(req: Request) {
       }
     }
 
+    // A refund (full or partial) issued in Stripe should flow back to the
+    // invoice so the app's payment records don't stay "Paid" after money is
+    // returned. charge.amount_refunded is cumulative, so recomputing from it is
+    // idempotent across redeliveries and multiple partial refunds.
+    if (event.type === "charge.refunded") {
+      const charge = event.data.object as Stripe.Charge;
+      const amountRefunded = Number(charge.amount_refunded || 0); // cents
+
+      if (amountRefunded > 0) {
+        const supabase = getSupabaseAdmin();
+        const paymentIntentId =
+          typeof charge.payment_intent === "string"
+            ? charge.payment_intent
+            : charge.payment_intent?.id || null;
+
+        let inspection: any = null;
+        if (paymentIntentId) {
+          const { data } = await supabase
+            .from("inspections")
+            .select("*")
+            .eq("stripe_payment_intent_id", paymentIntentId)
+            .maybeSingle();
+          inspection = data;
+        }
+        if (!inspection && charge.metadata?.inspection_id) {
+          const { data } = await supabase
+            .from("inspections")
+            .select("*")
+            .eq("id", charge.metadata.inspection_id)
+            .maybeSingle();
+          inspection = data;
+        }
+
+        if (inspection) {
+          const invoiceAmount =
+            Number(
+              String(
+                inspection.invoice_amount ??
+                  inspection.total_price ??
+                  inspection.total ??
+                  inspection.price ??
+                  ""
+              ).replace(/[^0-9.-]/g, "")
+            ) || 0;
+
+          const refundedDollars = amountRefunded / 100;
+          const newAmountPaid = Math.max(0, invoiceAmount - refundedDollars);
+          const newBalance = Math.max(0, invoiceAmount - newAmountPaid);
+          const fullyRefunded = newAmountPaid <= 0;
+          const newStatus = fullyRefunded ? "Refunded" : "Partial Refund";
+
+          const currentStatus = String(inspection.payment_status || "").toLowerCase();
+          const alreadyRecorded = currentStatus === newStatus.toLowerCase();
+
+          const note = `Refund recorded via Stripe: ${money(
+            refundedDollars
+          )} refunded (charge ${charge.id}).`;
+
+          await supabase
+            .from("inspections")
+            .update({
+              payment_status: newStatus,
+              invoice_status: newStatus,
+              amount_paid: newAmountPaid,
+              balance_due: newBalance,
+              ...(fullyRefunded ? { paid_at: null } : {}),
+              payment_notes: note,
+              invoice_notes: note,
+            })
+            .eq("id", inspection.id);
+
+          // Notify the inspector once (skip on redelivery of the same state).
+          if (!alreadyRecorded) {
+            await logAuditEvent(supabase, {
+              action: "stripe_charge_refunded",
+              resourceType: "inspection",
+              resourceId: String(inspection.id),
+              metadata: {
+                chargeId: charge.id,
+                amountRefunded: refundedDollars,
+                fullyRefunded,
+                eventId: event.id,
+              },
+            });
+
+            if (inspection.inspector_id) {
+              await sendPushNotification({
+                title: fullyRefunded ? "Payment Refunded" : "Partial Refund",
+                body: `${money(refundedDollars)} refunded for ${getPropertyLabel(
+                  inspection
+                )}.`,
+                url: `/reports/${inspection.id}`,
+                eventType: "payment_refunded",
+                target: "user",
+                targetUserId: inspection.inspector_id,
+              });
+            }
+          }
+        }
+      }
+    }
+
+    // A chargeback/dispute opened by the cardholder. Flag it so the inspector
+    // knows to respond in Stripe; we don't zero the balance (funds aren't gone
+    // yet) - a resulting refund would come through charge.refunded above.
+    if (event.type === "charge.dispute.created") {
+      const dispute = event.data.object as Stripe.Dispute;
+      const supabase = getSupabaseAdmin();
+
+      const paymentIntentId =
+        typeof dispute.payment_intent === "string"
+          ? dispute.payment_intent
+          : dispute.payment_intent?.id || null;
+
+      let inspection: any = null;
+      if (paymentIntentId) {
+        const { data } = await supabase
+          .from("inspections")
+          .select("*")
+          .eq("stripe_payment_intent_id", paymentIntentId)
+          .maybeSingle();
+        inspection = data;
+      }
+
+      if (inspection) {
+        const alreadyDisputed =
+          String(inspection.payment_status || "").toLowerCase() === "disputed";
+
+        const note = `Chargeback/dispute opened via Stripe${
+          dispute.reason ? ` (reason: ${dispute.reason})` : ""
+        }. Respond in your Stripe dashboard.`;
+
+        await supabase
+          .from("inspections")
+          .update({
+            payment_status: "Disputed",
+            invoice_status: "Disputed",
+            payment_notes: note,
+            invoice_notes: note,
+          })
+          .eq("id", inspection.id);
+
+        if (!alreadyDisputed) {
+          await logAuditEvent(supabase, {
+            action: "stripe_charge_disputed",
+            resourceType: "inspection",
+            resourceId: String(inspection.id),
+            metadata: {
+              disputeId: dispute.id,
+              reason: dispute.reason || null,
+              amount: Number(dispute.amount || 0) / 100,
+              eventId: event.id,
+            },
+          });
+
+          if (inspection.inspector_id) {
+            await sendPushNotification({
+              title: "⚠️ Payment Disputed",
+              body: `A chargeback was opened for ${getPropertyLabel(inspection)}. Respond in Stripe.`,
+              url: `/reports/${inspection.id}`,
+              eventType: "payment_disputed",
+              target: "user",
+              targetUserId: inspection.inspector_id,
+            });
+          }
+        }
+      }
+    }
+
     if (event.type === "invoice.paid") {
       const invoice = event.data.object as Stripe.Invoice;
       const supabase = getSupabaseAdmin();
