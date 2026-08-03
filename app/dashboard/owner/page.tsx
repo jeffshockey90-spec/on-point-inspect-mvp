@@ -731,19 +731,31 @@ export default async function OwnerDashboardPage() {
     aiTotalCalls += 1;
     aiTotalTokens += tokens;
 
-    const uid = String(log?.user_id || "");
-    if (!uid) {
+    // Attribute by the AI call's inspection first (its inspector/company own the
+    // usage), since ai_logs.user_id is often null. Fall back to the logged
+    // user_id, then to the user's company.
+    const inspId = String(log?.inspection_id || "");
+    const inspection: any = inspId ? inspectionById.get(inspId) : null;
+    const uid =
+      String(log?.user_id || "") ||
+      (inspection ? String(inspection.inspector_id || "") : "");
+    const cid =
+      (inspection ? String(inspection.company_id || "") : "") ||
+      (uid ? companyIdByUser.get(uid) || "" : "");
+
+    if (!uid && !cid) {
       aiUnattributedCalls += 1;
       return;
     }
 
-    const userAgg = aiByUser.get(uid) || { calls: 0, tokens: 0, failures: 0 };
-    userAgg.calls += 1;
-    userAgg.tokens += tokens;
-    if (failed) userAgg.failures += 1;
-    aiByUser.set(uid, userAgg);
+    if (uid) {
+      const userAgg = aiByUser.get(uid) || { calls: 0, tokens: 0, failures: 0 };
+      userAgg.calls += 1;
+      userAgg.tokens += tokens;
+      if (failed) userAgg.failures += 1;
+      aiByUser.set(uid, userAgg);
+    }
 
-    const cid = companyIdByUser.get(uid);
     if (cid) {
       const companyAgg = aiByCompany.get(cid) || { calls: 0, tokens: 0, failures: 0 };
       companyAgg.calls += 1;
