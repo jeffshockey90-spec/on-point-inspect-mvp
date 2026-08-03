@@ -8,9 +8,14 @@ const supabase = createClient(
 
 export async function POST(req: Request) {
   try {
-    const { inspectionId, field, value } = await req.json();
+    const body = await req.json();
+    const { field, value } = body;
+    // Resolve the inspection by its unguessable share token, not a raw id, so a
+    // caller can't enumerate sequential ids to flip this flag on inspections
+    // they don't hold a link to. The portal sends its route param as `lookup`.
+    const lookup = String(body?.lookup || body?.inspectionId || "").trim();
 
-    if (!inspectionId || !field || !value) {
+    if (!lookup || !field || !value) {
       return NextResponse.json(
         { error: "Missing required data" },
         { status: 400 }
@@ -41,12 +46,24 @@ export async function POST(req: Request) {
       );
     }
 
+    const { data: inspection } = await supabase
+      .from("inspections")
+      .select("id")
+      .eq("public_share_token", lookup)
+      .maybeSingle();
+
+    if (!inspection?.id) {
+      // Deliberate 404 (not 403) so a raw id can't be distinguished from a
+      // valid-but-wrong token.
+      return NextResponse.json({ error: "Not found." }, { status: 404 });
+    }
+
     const { error } = await supabase
       .from("inspections")
       .update({
         [field]: value,
       })
-      .eq("id", inspectionId);
+      .eq("id", inspection.id);
 
     if (error) {
       return NextResponse.json(

@@ -24,7 +24,9 @@ function formatEmailType(value: string | null) {
 
   if (type === "appointment_confirmed") return "Schedule Confirmation";
   if (type === "agreement_email") return "Agreement";
+  if (type === "agreement_realtor_email") return "Agreement (Realtor Forward)";
   if (type === "inspection_report") return "Report";
+  if (type === "environmental_report") return "Environmental Report";
   if (type === "repair_request") return "Repair Request";
   if (type === "review_request") return "Review Request";
 
@@ -75,7 +77,9 @@ const TYPE_FILTERS = [
   { value: "all", label: "All Types" },
   { value: "appointment_confirmed", label: "Schedule Confirmation" },
   { value: "agreement_email", label: "Agreement" },
+  { value: "agreement_realtor_email", label: "Agreement (Realtor Forward)" },
   { value: "inspection_report", label: "Report" },
+  { value: "environmental_report", label: "Environmental Report" },
   { value: "repair_request", label: "Repair Request" },
   { value: "review_request", label: "Review Request" },
 ];

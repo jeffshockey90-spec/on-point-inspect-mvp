@@ -465,7 +465,7 @@ export default function ClientPortalPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          inspectionId,
+          lookup: shareLookup,
           field,
           value,
         }),

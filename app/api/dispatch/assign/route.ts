@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
+import { sendPushNotification } from "../../../../lib/push";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -77,7 +78,7 @@ export async function POST(req: Request) {
 
     const { data: inspection } = await admin
       .from("inspections")
-      .select("id, company_id")
+      .select("id, company_id, inspector_id, property_address, address")
       .eq("id", inspectionId)
       .maybeSingle();
 
@@ -109,6 +110,25 @@ export async function POST(req: Request) {
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    // Notify the newly assigned inspector (best-effort; a push failure must not
+    // fail the reassignment). Skip if they were already the assignee.
+    if (nextInspectorId !== String(inspection.inspector_id || "")) {
+      const propertyLabel =
+        inspection.property_address || inspection.address || "an inspection";
+      try {
+        await sendPushNotification({
+          title: "New Inspection Assigned",
+          body: `You've been assigned ${propertyLabel}.`,
+          url: `/reports/${inspectionId}`,
+          eventType: "inspection_assigned",
+          target: "user",
+          targetUserId: nextInspectorId,
+        });
+      } catch (pushError) {
+        console.error("Assignment push failed:", pushError);
+      }
     }
 
     return NextResponse.json({ ok: true });

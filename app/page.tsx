@@ -123,7 +123,10 @@ async function getDashboardDestination(user: any) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (!url || !serviceKey || !email) return "/login";
+  // A signed-in user with no email/no service lookup still shouldn't be bounced
+  // back to /login (they're already authenticated - that's a dead-end loop).
+  // Send them to onboarding to get set up.
+  if (!url || !serviceKey || !email) return "/onboarding";
 
   const admin = createServiceClient(url, serviceKey, {
     auth: {
@@ -195,7 +198,9 @@ async function getDashboardDestination(user: any) {
     return "/client-portal";
   }
 
-  return "/login";
+  // Authenticated but not recognized as owner/inspector/realtor/client - land on
+  // onboarding rather than looping back to /login.
+  return "/onboarding";
 }
 
 function getNumber(value: any) {
