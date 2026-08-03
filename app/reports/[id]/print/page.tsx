@@ -532,7 +532,11 @@ export default async function PrintableReportPage({ params }: PageProps) {
     .order("sort_order", { ascending: true });
 
   const activeSectionOrder = filterSectionsForServiceMode(
-    resolveActiveSections(SECTION_ORDER, reportSectionsRaw || []),
+    resolveActiveSections(
+      SECTION_ORDER,
+      reportSectionsRaw || [],
+      (inspection as any).report_section_order,
+    ),
     inspection.service_mode,
   );
 

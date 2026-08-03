@@ -1883,7 +1883,11 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
   }
 
   const activeSectionOrder = filterSectionsForServiceMode(
-    resolveActiveSections(SECTION_ORDER, reportSectionsResult.data || []),
+    resolveActiveSections(
+      SECTION_ORDER,
+      reportSectionsResult.data || [],
+      (inspection as any).report_section_order,
+    ),
     inspection.service_mode,
   );
 

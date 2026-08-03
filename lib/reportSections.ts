@@ -56,6 +56,7 @@ export function filterSectionsForServiceMode(
 export function resolveActiveSections(
   baseSectionOrder: string[],
   overrides: ReportSectionOverride[] | null | undefined,
+  customOrder?: string[] | null,
 ): string[] {
   const rows = overrides || [];
 
@@ -76,13 +77,29 @@ export function resolveActiveSections(
   // ahead of it rather than after, so Garage still reads as "last".
   const garageIndex = baseActive.findIndex((section) => section.toLowerCase() === "garage");
 
-  if (garageIndex === -1) {
-    return [...baseActive, ...customActive];
-  }
+  const merged =
+    garageIndex === -1
+      ? [...baseActive, ...customActive]
+      : [
+          ...baseActive.slice(0, garageIndex),
+          ...customActive,
+          ...baseActive.slice(garageIndex),
+        ];
 
-  return [
-    ...baseActive.slice(0, garageIndex),
-    ...customActive,
-    ...baseActive.slice(garageIndex),
-  ];
+  // If the inspector saved a custom section order (drag-to-reorder in the
+  // builder), honor it: sections named in customOrder lead, in that order;
+  // anything not listed (e.g. a section added after the order was saved) keeps
+  // its default relative position at the end. Stable so ties preserve order.
+  const order = (customOrder || []).map((name) => name.toLowerCase().trim());
+  if (order.length === 0) return merged;
+
+  const rank = (name: string) => {
+    const index = order.indexOf(name.toLowerCase().trim());
+    return index === -1 ? Number.MAX_SAFE_INTEGER : index;
+  };
+
+  return merged
+    .map((name, index) => ({ name, index }))
+    .sort((a, b) => rank(a.name) - rank(b.name) || a.index - b.index)
+    .map((entry) => entry.name);
 }

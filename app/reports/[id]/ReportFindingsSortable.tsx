@@ -533,15 +533,28 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
     setClosedSections(next);
   }
 
+  // Persist the reordered section list so it survives refresh/publish and shows
+  // in the same order on the client share page, print/PDF, and realtor download.
+  // Fire-and-forget: the local UI already reflects the new order.
+  async function persistSectionOrder(sections: string[]) {
+    if (!inspectionId) return;
+    try {
+      await fetch("/api/report-section-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inspectionId, order: sections }),
+      });
+    } catch {}
+  }
+
   function moveSection(fromIndex: number, toIndex: number) {
     if (toIndex < 0 || toIndex >= orderedGroups.length) return;
 
-    setOrderedGroups((prev) => {
-      const next = [...prev];
-      const [moved] = next.splice(fromIndex, 1);
-      next.splice(toIndex, 0, moved);
-      return next;
-    });
+    const next = [...orderedGroups];
+    const [moved] = next.splice(fromIndex, 1);
+    next.splice(toIndex, 0, moved);
+    setOrderedGroups(next);
+    persistSectionOrder(next.map((group: any) => group.section));
   }
 
   function handleDragStart(section: string) {
@@ -558,24 +571,22 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
       return;
     }
 
-    setOrderedGroups((prev) => {
-      const next = [...prev];
+    const next = [...orderedGroups];
 
-      const fromIndex = next.findIndex(
-        (group: any) => group.section === draggingSection,
-      );
+    const fromIndex = next.findIndex(
+      (group: any) => group.section === draggingSection,
+    );
 
-      const toIndex = next.findIndex(
-        (group: any) => group.section === targetSection,
-      );
+    const toIndex = next.findIndex(
+      (group: any) => group.section === targetSection,
+    );
 
-      if (fromIndex === -1 || toIndex === -1) return prev;
-
+    if (fromIndex !== -1 && toIndex !== -1) {
       const [moved] = next.splice(fromIndex, 1);
       next.splice(toIndex, 0, moved);
-
-      return next;
-    });
+      setOrderedGroups(next);
+      persistSectionOrder(next.map((group: any) => group.section));
+    }
 
     setDraggingSection(null);
   }
