@@ -151,6 +151,29 @@ function getPropertyLabel(inspection: any) {
   );
 }
 
+// Atomically claims the one-time payment-receipt side effects (receipt email +
+// inspector push) for an inspection. Flips receipt_sent_at from null to now()
+// in a single conditional update; the row only matches for the first caller, so
+// exactly one of {webhook, webhook retry, success page} sends. Returns:
+//   true  -> this caller won the claim, send the receipt/push
+//   false -> already sent by someone else, skip
+//   null  -> the column doesn't exist yet (pre-migration); caller should fall
+//            back to its previous gate so nothing regresses before the SQL runs
+async function claimReceiptSend(
+  supabase: any,
+  inspectionId: string | number
+): Promise<boolean | null> {
+  const { data, error } = await supabase
+    .from("inspections")
+    .update({ receipt_sent_at: new Date().toISOString() })
+    .eq("id", inspectionId)
+    .is("receipt_sent_at", null)
+    .select("id");
+
+  if (error) return null;
+  return Array.isArray(data) && data.length > 0;
+}
+
 function base64Url(input: Buffer | string) {
   return Buffer.from(input)
     .toString("base64")
@@ -912,11 +935,25 @@ export async function POST(req: Request) {
                   },
                 });
 
+              }
+
+              // Receipt email + inspector "Payment Received" push fire exactly
+              // once, gated on an independent claim of receipt_sent_at rather
+              // than on alreadyPaid. Otherwise, when the payment-success page
+              // marks the inspection paid before this webhook arrives (a common
+              // race), alreadyPaid is already true here and both get dropped.
+              // claimReceiptSend returns null pre-migration - fall back to the
+              // old alreadyPaid gate then so nothing regresses before the SQL runs.
+              const receiptClaim = await claimReceiptSend(supabase, inspectionId);
+              const shouldSendReceipt =
+                receiptClaim === null ? !alreadyPaid : receiptClaim;
+
+              if (existingInspection && shouldSendReceipt) {
                 // Money here goes to the inspecting company, not to FLOW - this
                 // should notify that company's inspector, not the platform
                 // owner (unlike the subscription-billing pushes elsewhere in
                 // this file, which are genuinely about payments made to FLOW).
-                if (existingInspection?.inspector_id) {
+                if (existingInspection.inspector_id) {
                   await sendPushNotification({
                     title: "Payment Received",
                     body: `${money(totalCharged)} received for ${getPropertyLabel(
@@ -929,18 +966,16 @@ export async function POST(req: Request) {
                   });
                 }
 
-                if (existingInspection) {
-                  await sendReceiptEmail({
-                    supabase,
-                    inspection: existingInspection,
-                    session,
-                    amountPaid,
-                    balanceDue: 0,
-                    paidAt,
-                    portalProcessingFee,
-                    totalCharged,
-                  });
-                }
+                await sendReceiptEmail({
+                  supabase,
+                  inspection: existingInspection,
+                  session,
+                  amountPaid,
+                  balanceDue: 0,
+                  paidAt,
+                  portalProcessingFee,
+                  totalCharged,
+                });
               }
 
       }
