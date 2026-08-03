@@ -5,6 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 import PdfExportButton from "../../../components/PdfExportButton";
 import { getInspectionShareToken } from "../../../lib/shareToken";
 import { getCompanyBrandingById } from "../../../lib/companyBranding";
+import { isPaymentComplete, hasDeliveryOverride } from "../../../lib/reportDelivery";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -268,6 +269,59 @@ export default async function PublicEnvironmentalSharePage({ params }: PageProps
     return (
       <main className="min-h-screen bg-[#020617] p-10 text-white">
         Environmental report not found.
+      </main>
+    );
+  }
+
+  // Paywall: radon/mold lab results are what a standalone environmental job is
+  // paid for, so require payment before showing them. Gated on payment (not
+  // "published") so a client who has paid is never locked out, plus the
+  // "Deliver anyway" override. The owning inspector/owner can always preview.
+  let allowEnvironmentalView =
+    isPaymentComplete(inspection) || hasDeliveryOverride(inspection);
+
+  if (!allowEnvironmentalView) {
+    const { createClient: createServerSupabase } = await import(
+      "../../../utils/supabase/server"
+    );
+    const authClient = await createServerSupabase();
+    const {
+      data: { user },
+    } = await authClient.auth.getUser();
+
+    if (user) {
+      const { resolveInspectionAccessFilter } = await import(
+        "../../../lib/inspectionAccess"
+      );
+      const filter = await resolveInspectionAccessFilter(supabase, user.id);
+      if (String((inspection as any)[filter.column] || "") === String(filter.value)) {
+        allowEnvironmentalView = true;
+      }
+    }
+  }
+
+  if (!allowEnvironmentalView) {
+    const portalLink = inspection.public_share_token
+      ? `/client-portal/${inspection.public_share_token}`
+      : `/client-portal/${id}`;
+
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#020617] p-6 text-white">
+        <div className="max-w-md rounded-2xl border border-slate-700 bg-slate-900/60 p-8 text-center">
+          <h1 className="text-2xl font-black text-teal-300">
+            Results available after payment
+          </h1>
+          <p className="mt-3 leading-7 text-slate-300">
+            Your radon/mold lab results will be viewable here once payment is
+            complete. You can pay from your client portal.
+          </p>
+          <Link
+            href={portalLink}
+            className="mt-6 inline-block rounded-xl bg-teal-500 px-5 py-3 font-black text-slate-950 transition hover:bg-teal-400"
+          >
+            Go to Client Portal
+          </Link>
+        </div>
       </main>
     );
   }
