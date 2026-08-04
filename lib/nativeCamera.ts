@@ -16,6 +16,7 @@ type OpenNativeCameraOptions = {
   allowVideo?: boolean;
   autoSaveGallery?: boolean;
   preferredMode?: "photo" | "video";
+  muteAudio?: boolean;
 };
 
 type NativeCameraPlugin = {
@@ -128,6 +129,7 @@ export async function openNativeFieldCamera(
     allowVideo: options.allowVideo !== false,
     autoSaveGallery: options.autoSaveGallery !== false,
     preferredMode: options.preferredMode || "photo",
+    muteAudio: options.muteAudio === true,
   });
 
   if (result?.cancelled || !Array.isArray(result?.media)) return [];

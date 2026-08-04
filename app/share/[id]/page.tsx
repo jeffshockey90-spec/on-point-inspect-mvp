@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 import { resolveActiveSections, filterSectionsForServiceMode } from "../../../lib/reportSections";
+import { formatClockTime } from "../../../lib/app-time";
 import PdfExportButton from "../../../components/PdfExportButton";
 import ReportTimeTracker from "../../../components/ReportTimeTracker";
 import ClientSummaryAccordion from "../../../components/ClientSummaryAccordion";
@@ -2094,7 +2095,7 @@ export default async function PublicSharePage({
                 </>
               )}
               <Info label="Inspection Date" value={inspection.inspection_date} />
-              <Info label="Inspection Time" value={inspection.inspection_time} />
+              <Info label="Inspection Time" value={inspection.inspection_time ? formatClockTime(inspection.inspection_time) : inspection.inspection_time} />
               <Info label="Year Built" value={inspection.year_built} />
               <Info
                 label="Square Feet"

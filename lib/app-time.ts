@@ -131,6 +131,24 @@ export function formatAppTime(
   }).format(date);
 }
 
+/**
+ * Formats a bare wall-clock string ("HH:MM" or "HH:MM:SS") to a 12-hour label
+ * like "2:00 PM". Used for stored inspection_time values, which have no date and
+ * therefore shouldn't be run through time-zone conversion.
+ */
+export function formatClockTime(
+  value: string | null | undefined,
+): string {
+  const match = String(value || "")
+    .slice(0, 5)
+    .match(/^([01]\d|2[0-3]):([0-5]\d)$/);
+  if (!match) return String(value || "").trim();
+  const hours = Number(match[1]);
+  const suffix = hours >= 12 ? "PM" : "AM";
+  const displayHours = hours % 12 || 12;
+  return `${displayHours}:${match[2]} ${suffix}`;
+}
+
 export function formatAppDate(
   value: string | number | Date | null | undefined,
   preferences?: Partial<TimePreferences> | null,

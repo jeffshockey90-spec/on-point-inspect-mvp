@@ -771,6 +771,23 @@ export default function FieldCamera({
         Media is added to <strong>{destinationLabel}</strong>.
       </p>
 
+      {allowVideo && (
+        <button
+          type="button"
+          onClick={() => setMuteAudio((current) => !current)}
+          className={`mt-3 flex w-full items-center justify-between rounded-xl border px-4 py-3 text-sm font-black transition [touch-action:manipulation] ${
+            muteAudio
+              ? "border-red-400/60 bg-red-500/10 text-red-200"
+              : "border-slate-600 bg-black/30 text-slate-200"
+          }`}
+        >
+          <span>{muteAudio ? "🔇 Video sound: Off" : "🎤 Video sound: On"}</span>
+          <span className="text-xs font-bold opacity-70">
+            Tap to {muteAudio ? "unmute" : "mute"}
+          </span>
+        </button>
+      )}
+
       <button
         type="button"
         onClick={async () => {
@@ -786,6 +803,7 @@ export default function FieldCamera({
                 allowVideo,
                 autoSaveGallery,
                 preferredMode: captureMode,
+                muteAudio,
               });
 
               // Closing or cancelling the native camera is a normal result.

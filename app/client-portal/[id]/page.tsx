@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import FastLinkButton from "../../../components/FastLinkButton";
 import { getInspectionShareToken } from "../../../lib/shareToken";
 import { getOnlineProcessingFee } from "../../../lib/onlinePaymentFee";
+import { formatClockTime } from "../../../lib/app-time";
 
 const SECTION_ORDER = [
   "Inspection Details",
@@ -862,7 +863,7 @@ export default function ClientPortalPage() {
                 <Info label="Business/Organization" value={inspection.client_organization_name} />
               )}
               <Info label="Inspection Date" value={inspection.inspection_date || "N/A"} />
-              <Info label="Inspection Time" value={inspection.inspection_time || "N/A"} />
+              <Info label="Inspection Time" value={inspection.inspection_time ? formatClockTime(inspection.inspection_time) : "N/A"} />
               <Info label="Year Built" value={inspection.year_built || "N/A"} />
               <Info
                 label="Square Feet"

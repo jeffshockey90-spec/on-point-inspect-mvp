@@ -26,6 +26,7 @@ public class NativeCameraPlugin: CAPPlugin, CAPBridgedPlugin {
             controller.autoSaveGallery = call.getBool("autoSaveGallery") ?? true
             controller.preferredMode =
                 call.getString("preferredMode") == "video" ? .video : .photo
+            controller.muteAudio = call.getBool("muteAudio") ?? false
 
             controller.onFinish = { media, cancelled in
                 call.resolve([
@@ -100,6 +101,7 @@ private final class NativeFieldCameraViewController:
     var allowVideo = true
     var autoSaveGallery = true
     var preferredMode: NativeCaptureMode = .photo
+    var muteAudio = false
     var onFinish: (([[String: Any]], Bool) -> Void)?
 
     private let session = AVCaptureSession()
@@ -141,7 +143,7 @@ private final class NativeFieldCameraViewController:
                 return
             }
 
-            if self.allowVideo {
+            if self.allowVideo && !self.muteAudio {
                 AVCaptureDevice.requestAccess(for: .audio) { _ in
                     self.configureSession()
                 }
@@ -175,7 +177,7 @@ private final class NativeFieldCameraViewController:
                 self.session.addOutput(self.movieOutput)
             }
 
-            if self.allowVideo,
+            if self.allowVideo && !self.muteAudio,
                let audioDevice = AVCaptureDevice.default(for: .audio),
                let audioInput = try? AVCaptureDeviceInput(device: audioDevice),
                self.session.canAddInput(audioInput) {
