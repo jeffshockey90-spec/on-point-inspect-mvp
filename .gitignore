@@ -7,3 +7,7 @@ node_modules
 on-point-inspect-audit.zip
 *.zip
 .vercel/
+
+# Auto-generated build artifacts (regenerated on every build)
+tsconfig.tsbuildinfo
+next-env.d.ts
