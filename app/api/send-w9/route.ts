@@ -50,6 +50,7 @@ async function logEmailEvent({
   subject,
   status,
   resendId,
+  html,
   metadata = {},
 }: {
   inspectionId: any;
@@ -57,6 +58,7 @@ async function logEmailEvent({
   subject: string;
   status: "sent" | "failed";
   resendId?: string | null;
+  html?: string | null;
   metadata?: Record<string, any>;
 }) {
   try {
@@ -67,6 +69,7 @@ async function logEmailEvent({
       email_type: "w9_email",
       subject,
       message: status === "sent" ? `W9 sent to ${recipient}.` : metadata?.error || "W9 send failed.",
+      html: html || null,
       status,
       resend_id: resendId || null,
       sent_at: status === "sent" ? new Date().toISOString() : null,
@@ -206,6 +209,7 @@ export async function POST(req: Request) {
         subject,
         status: "sent",
         resendId: result?.data?.id || null,
+        html,
       });
 
       return NextResponse.json({

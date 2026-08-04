@@ -224,11 +224,8 @@ export async function POST(req: Request) {
 
     const resend = new Resend(process.env.RESEND_API_KEY);
 
-    const { error: emailError } = await resend.emails.send({
-      from,
-      to,
-      subject: `Invoice Reminder - ${property}`,
-      html: `
+    const invoiceSubject = `Invoice Reminder - ${property}`;
+    const invoiceReminderHtml = `
         <div style="margin:0;padding:0;background:#020617;font-family:Arial,sans-serif;color:#ffffff;">
           <div style="max-width:680px;margin:0 auto;padding:28px;">
             <div style="border:1px solid #1e293b;background:#0f172a;border-radius:20px;overflow:hidden;">
@@ -291,7 +288,13 @@ export async function POST(req: Request) {
             </p>
           </div>
         </div>
-      `,
+      `;
+
+    const { error: emailError } = await resend.emails.send({
+      from,
+      to,
+      subject: invoiceSubject,
+      html: invoiceReminderHtml,
     });
 
     if (emailError) {
@@ -302,6 +305,19 @@ export async function POST(req: Request) {
         { status: 500 }
       );
     }
+
+    await supabase.from("email_logs").insert({
+      inspection_id_bigint: Number(inspectionId),
+      recipient: to,
+      recipient_email: to,
+      email_type: "invoice_reminder",
+      subject: invoiceSubject,
+      message: session.url,
+      html: invoiceReminderHtml,
+      status: "sent",
+      sent_at: new Date().toISOString(),
+      metadata: { type: "invoice_reminder", balanceDue },
+    });
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

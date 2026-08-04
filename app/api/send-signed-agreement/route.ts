@@ -109,12 +109,8 @@ export async function POST(req: Request) {
       ? new Date(agreement.signed_at).toLocaleString("en-US")
       : "";
 
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    await resend.emails.send({
-      from,
-      to,
-      subject: `Your signed inspection agreement — ${property}`,
-      html: `
+    const signedSubject = `Your signed inspection agreement — ${property}`;
+    const signedHtml = `
         <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#0f172a;">
           <h2 style="color:#0f766e;margin:0 0 12px;">${esc(branding.name)}</h2>
           <p>Hi ${esc(agreement.client_name || "there")},</p>
@@ -126,8 +122,29 @@ export async function POST(req: Request) {
           </p>
           ${signedWhen ? `<p style="font-size:13px;color:#64748b;">Signed ${esc(signedWhen)}. You can view, print, or save a PDF from the link above.</p>` : ""}
           <p style="font-size:12px;color:#94a3b8;">${esc(branding.name)}</p>
-        </div>`,
+        </div>`;
+
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    const sendResult = await resend.emails.send({
+      from,
+      to,
+      subject: signedSubject,
+      html: signedHtml,
       text: `Here is a copy of your signed inspection agreement for ${property}.\n\nView / print / save a PDF: ${link}\n${signedWhen ? `\nSigned ${signedWhen}.` : ""}`,
+    });
+
+    await admin.from("email_logs").insert({
+      inspection_id_bigint: Number(inspectionId),
+      recipient: to,
+      recipient_email: to,
+      email_type: "signed_agreement",
+      subject: signedSubject,
+      message: link,
+      html: signedHtml,
+      status: "sent",
+      resend_id: sendResult?.data?.id || null,
+      sent_at: new Date().toISOString(),
+      metadata: { type: "signed_agreement", link },
     });
 
     return NextResponse.json({ ok: true, to });

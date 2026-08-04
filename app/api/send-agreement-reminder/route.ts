@@ -187,6 +187,20 @@ ${branding.name}`;
         resend_id: result.data?.id || null,
       });
 
+      await supabase.from("email_logs").insert({
+        inspection_id_bigint: Number(inspectionId),
+        recipient: email,
+        recipient_email: email,
+        email_type: "agreement_reminder",
+        subject,
+        message: portalUrl,
+        html,
+        status: "sent",
+        resend_id: result.data?.id || null,
+        sent_at: new Date().toISOString(),
+        metadata: { type: "agreement_reminder", contactId: contact.id, portalUrl },
+      });
+
       await supabase.from("client_portal_events").insert({
         inspection_id: inspectionId,
         event_type: "agreement_reminder_sent",

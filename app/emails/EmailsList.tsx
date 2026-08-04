@@ -39,6 +39,10 @@ function formatEmailType(value: string | null) {
   if (type === "environmental_report") return "Environmental Report";
   if (type === "repair_request") return "Repair Request";
   if (type === "review_request") return "Review Request";
+  if (type === "agreement_reminder") return "Agreement Reminder";
+  if (type === "invoice_reminder") return "Invoice Reminder";
+  if (type === "signed_agreement") return "Signed Agreement";
+  if (type === "w9_email") return "W-9";
 
   return (
     type
@@ -92,6 +96,10 @@ const TYPE_FILTERS = [
   { value: "environmental_report", label: "Environmental Report" },
   { value: "repair_request", label: "Repair Request" },
   { value: "review_request", label: "Review Request" },
+  { value: "agreement_reminder", label: "Agreement Reminder" },
+  { value: "invoice_reminder", label: "Invoice Reminder" },
+  { value: "signed_agreement", label: "Signed Agreement" },
+  { value: "w9_email", label: "W-9" },
 ];
 
 export default function EmailsList({ logs }: { logs: EmailLog[] }) {
