@@ -22,6 +22,13 @@ type EmailLog = {
   message: string | null;
 };
 
+// Remove the invisible open-tracking pixel before previewing, so the inspector
+// viewing a sent copy doesn't get counted as the client opening the email.
+// (Click-tracking links are already inert: the iframe sandbox blocks navigation.)
+function sanitizeForPreview(html: string) {
+  return html.replace(/<img[^>]*email-open[^>]*>/gi, "");
+}
+
 function formatEmailType(value: string | null) {
   const type = String(value || "").toLowerCase();
 
@@ -192,7 +199,7 @@ export default function EmailsList({ logs }: { logs: EmailLog[] }) {
                     {log.html ? (
                       <iframe
                         title={`Email to ${log.recipient}`}
-                        srcDoc={log.html}
+                        srcDoc={sanitizeForPreview(log.html)}
                         sandbox=""
                         className="h-[520px] w-full rounded-lg border border-slate-700 bg-white"
                       />
