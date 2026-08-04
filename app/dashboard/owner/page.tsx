@@ -15,6 +15,7 @@ import SmsStatusCard from "../../../components/SmsStatusCard";
 import SecurityEventsPanel from "../../../components/SecurityEventsPanel";
 import PushAlertsPanel from "../../../components/PushAlertsPanel";
 import RepriceSubscribersPanel from "../../../components/RepriceSubscribersPanel";
+import OwnerDashboardTabs from "../../../components/OwnerDashboardTabs";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -949,9 +950,13 @@ export default async function OwnerDashboardPage() {
           </div>
         </section>
 
-        <AIBudgetStatus />
+        <OwnerDashboardTabs />
 
-        <Panel title="Payments & Webhook Health" subtitle="Live view of Stripe payment/refund activity flowing into the app. Raw webhook delivery (200 vs failed) is on each destination's page in Stripe.">
+        <div data-owner-tab="ai">
+          <AIBudgetStatus />
+        </div>
+
+        <Panel tab="payments" title="Payments & Webhook Health" subtitle="Live view of Stripe payment/refund activity flowing into the app. Raw webhook delivery (200 vs failed) is on each destination's page in Stripe.">
           <div className="mb-5 flex flex-wrap items-center gap-3">
             <span
               className={`rounded-full border px-4 py-2 text-xs font-black uppercase tracking-wide ${
@@ -1021,14 +1026,14 @@ export default async function OwnerDashboardPage() {
           </div>
         </Panel>
 
-        <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+        <section data-owner-tab="ai" className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
           <MetricCard label="AI Calls (30d)" value={String(aiTotalCalls)} helper={`${aiActiveInspectors} inspector${aiActiveInspectors === 1 ? "" : "s"} used AI.`} tone="purple" />
           <MetricCard label="Tokens Used (30d)" value={formatTokens(aiTotalTokens)} helper="Total tokens across all AI tools." tone="teal" />
           <MetricCard label="Est. AI Cost (30d)" value={usd(aiTotalCost)} helper={`Estimated at $${AI_COST_PER_1K_TOKENS.toFixed(3)}/1K tokens.`} tone="orange" />
           <MetricCard label="Unattributed Calls" value={String(aiUnattributedCalls)} helper="AI calls with no signed-in user (system/native)." tone="yellow" />
         </section>
 
-        <section className="grid gap-6 xl:grid-cols-2">
+        <section data-owner-tab="ai" className="grid gap-6 xl:grid-cols-2">
           <Panel title="AI Usage by Inspector (30 days)" subtitle="Who is using how much AI. Tokens are exact; cost is an estimate. Top 25 by tokens.">
             {aiUserRows.length === 0 ? (
               <EmptyState text="No AI usage recorded in the last 30 days." />
@@ -1102,56 +1107,64 @@ export default async function OwnerDashboardPage() {
           </Panel>
         </section>
 
-        <SmsStatusCard />
+        <div data-owner-tab="system">
+          <SmsStatusCard />
+        </div>
 
-        <RepriceSubscribersPanel />
+        <div data-owner-tab="payments">
+          <RepriceSubscribersPanel />
+        </div>
 
-        <SecurityEventsPanel />
+        <div data-owner-tab="system">
+          <SecurityEventsPanel />
+        </div>
 
-        <PushAlertsPanel />
+        <div data-owner-tab="system">
+          <PushAlertsPanel />
+        </div>
 
-        <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+        <section data-owner-tab="overview" className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
           <MetricCard label="Total Users" value={String(totalUsers)} helper="Profiles or company user records." tone="teal" />
           <MetricCard label="Active Inspectors" value={String(activeInspectorIds.size)} helper={`Out of ${inspectorIds.size} inspectors with report activity.`} tone="green" />
           <MetricCard label="Reports Created" value={String(reportsCreated)} helper={`${reportsThisMonth} created this month.`} tone="blue" />
           <MetricCard label="Revenue" value={money(revenue)} helper={`${money(revenueThisMonth)} this month.`} tone="green" />
         </section>
 
-        <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+        <section data-owner-tab="overview" className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
           <MetricCard label="Report Viewed" value={String(reportViewedEvents.length)} helper="Client portal, share, and environmental opens." tone="purple" />
           <MetricCard label="Agreement Signed" value={String(agreementSignedEvents.length)} helper="Tracked agreement signature events." tone="teal" />
           <MetricCard label="Payment Received" value={String(paymentReceivedEvents.length)} helper="Tracked payment notification events." tone="green" />
           <MetricCard label="Review Submitted" value={String(reviewEvents.length)} helper="Review-related tracked events." tone="yellow" />
         </section>
 
-        <section className="grid gap-5 md:grid-cols-3">
+        <section data-owner-tab="devices" className="grid gap-5 md:grid-cols-3">
           <MetricCard label="Downloads / Installs" value={String(downloads)} helper="Internal install/first-open tracking. App Store Connect must be checked separately for official downloads." tone="blue" />
           <MetricCard label="Active Devices" value={String(activeDevices.size)} helper="Unique devices active in the last 30 days." tone="teal" />
           <MetricCard label="Retention" value={`${retentionRate}%`} helper="Devices with install/first-open and recent activity." tone="purple" />
         </section>
 
-        <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+        <section data-owner-tab="overview" className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
           <MetricCard label="Total Findings" value={String(liveFindings.length)} helper="Findings across live, non-demo reports." tone="orange" />
           <MetricCard label="Total Photos" value={String(livePhotos.length)} helper="Report photos connected to live inspections." tone="blue" />
           <MetricCard label="Average Paid Report" value={money(averageInspectionPrice)} helper="Average revenue from paid inspections." tone="green" />
           <MetricCard label="Invoices Paid" value={String(invoicesPaid.length)} helper="Paid invoice records detected." tone="green" />
         </section>
 
-        <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+        <section data-owner-tab="devices" className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
           <MetricCard label="Native Push Devices" value={String(nativePushEnabled.length)} helper="Enabled iOS native APNs tokens." tone="purple" />
           <MetricCard label="Web Push Devices" value={String(webPushEnabled.length)} helper="Enabled browser push subscriptions." tone="teal" />
           <MetricCard label="Total Push Devices" value={String(totalPushDevices)} helper="Native plus web push endpoints." tone="blue" />
           <MetricCard label="New Devices 7 Days" value={String(newDevices7.size)} helper={`${newDevices30.size} active/new devices in 30 days.`} tone="yellow" />
         </section>
 
-        <section className="grid gap-5 md:grid-cols-3">
+        <section data-owner-tab="overview" className="grid gap-5 md:grid-cols-3">
           <MetricCard label="Managed Users" value={String(userManagementRows.length)} helper={`${inactiveUsers} inactive, deleted, or pending deletion.`} tone="orange" />
           <MetricCard label="Top Inspector" value={topInspector?.name || "N/A"} helper={topInspector ? `${topInspector.reports} reports • ${money(topInspector.revenue)}` : "No report activity yet."} tone="teal" />
           <MetricCard label="Push Subscriptions" value={String(pushSubscriptions.length)} helper="Saved browser/device push subscriptions." tone="purple" />
           <MetricCard label="Demo Reports" value={String(demoReports.length)} helper="Public sample reports created for marketing." tone="purple" />
         </section>
 
-        <Panel title="Preview Portals" subtitle="See what real inspectors' realtors and clients actually see, using your live data - no test accounts needed.">
+        <Panel tab="users" title="Preview Portals" subtitle="See what real inspectors' realtors and clients actually see, using your live data - no test accounts needed.">
           <div className="grid gap-6 md:grid-cols-2">
             <div>
               <p className="mb-3 text-xs font-black uppercase tracking-wide text-slate-400">
@@ -1207,7 +1220,7 @@ export default async function OwnerDashboardPage() {
           </div>
         </Panel>
 
-        <Panel title="Demo Report Management" subtitle="Public sample reports created from real reports with client, realtor, agreement, and payment details removed.">
+        <Panel tab="system" title="Demo Report Management" subtitle="Public sample reports created from real reports with client, realtor, agreement, and payment details removed.">
           {demoReports.length === 0 ? (
             <EmptyState text="No demo reports created yet." />
           ) : (
@@ -1264,7 +1277,7 @@ export default async function OwnerDashboardPage() {
           )}
         </Panel>
 
-        <Panel title="Owner User Management" subtitle="System-wide user and inspector performance. Sorted by revenue and report activity.">
+        <Panel tab="users" title="Owner User Management" subtitle="System-wide user and inspector performance. Sorted by revenue and report activity.">
           {userManagementRows.length === 0 ? (
             <EmptyState text="No users found." />
           ) : (
@@ -1313,7 +1326,7 @@ export default async function OwnerDashboardPage() {
           )}
         </Panel>
 
-        <section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+        <section data-owner-tab="overview" className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
           <Panel title="Growth Metrics" subtitle="Users, reports, and revenue by month.">
             {growthRows.length === 0 ? (
               <EmptyState text="No growth data yet." />
@@ -1346,7 +1359,7 @@ export default async function OwnerDashboardPage() {
           </Panel>
         </section>
 
-        <section className="grid gap-6 xl:grid-cols-3">
+        <section data-owner-tab="overview" className="grid gap-6 xl:grid-cols-3">
           <Panel title="Device Breakdown" subtitle="Internal usage by platform and app version.">
             <div className="grid gap-4 sm:grid-cols-2">
               <MiniStat label="iOS Events" value={String(iosDeviceEvents.length)} />
@@ -1389,7 +1402,7 @@ export default async function OwnerDashboardPage() {
           </Panel>
         </section>
 
-        <section className="grid gap-6 xl:grid-cols-2">
+        <section data-owner-tab="overview" className="grid gap-6 xl:grid-cols-2">
           <Panel title="Most Used Templates" subtitle="Favorite/comment template usage when tracking is available.">
             {templateUsageRows.length === 0 ? (
               <EmptyState text="No template usage data yet." />
@@ -1418,7 +1431,7 @@ export default async function OwnerDashboardPage() {
           </Panel>
         </section>
 
-        <section className="grid gap-6 xl:grid-cols-2">
+        <section data-owner-tab="system" className="grid gap-6 xl:grid-cols-2">
           <Panel title="Recent Signups" subtitle="Newest users from profiles/company user records.">
             {recentUsers.length === 0 ? (
               <EmptyState text="No recent signups found." />
@@ -1468,7 +1481,7 @@ export default async function OwnerDashboardPage() {
           </Panel>
         </section>
 
-        <section className="rounded-2xl border border-yellow-500/30 bg-yellow-950/10 p-5 text-sm leading-6 text-yellow-100">
+        <section data-owner-tab="system" className="rounded-2xl border border-yellow-500/30 bg-yellow-950/10 p-5 text-sm leading-6 text-yellow-100">
           <strong>App Store Analytics Note:</strong> Apple download and retention numbers are not available through Supabase automatically. This dashboard tracks internal installs, first opens, and device activity after you add the tracker component. For official App Store downloads, still check App Store Connect.
         </section>
       </div>
@@ -1496,9 +1509,9 @@ function MetricCard({ label, value, helper, tone }: { label: string; value: stri
   );
 }
 
-function Panel({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
+function Panel({ title, subtitle, children, tab }: { title: string; subtitle: string; children: React.ReactNode; tab?: string }) {
   return (
-    <section className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
+    <section data-owner-tab={tab} className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
       <h2 className="text-2xl font-black text-teal-300">{title}</h2>
       <p className="mt-2 text-sm text-slate-400">{subtitle}</p>
       <div className="mt-6">{children}</div>
