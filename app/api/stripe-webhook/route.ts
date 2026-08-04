@@ -695,25 +695,41 @@ export async function POST(req: Request) {
     );
   }
 
-  if (!process.env.STRIPE_WEBHOOK_SECRET) {
+  // Accept more than one signing secret so a single endpoint URL can back
+  // multiple Stripe event destinations, each with its own secret - e.g. one
+  // "Connected accounts" destination (inspection payments/refunds) and one
+  // "Your account" destination (FLOW subscription billing). We try each secret
+  // and use whichever one verifies the signature.
+  const webhookSecrets = [
+    process.env.STRIPE_WEBHOOK_SECRET,
+    process.env.STRIPE_WEBHOOK_SECRET_2,
+  ].filter((secret): secret is string => Boolean(secret));
+
+  if (webhookSecrets.length === 0) {
     return NextResponse.json(
       { error: "Missing STRIPE_WEBHOOK_SECRET." },
       { status: 500 }
     );
   }
 
-  let event: Stripe.Event;
+  let event: Stripe.Event | null = null;
+  let lastSignatureError: any = null;
+  const stripe = getStripe();
 
-  try {
-    const stripe = getStripe();
+  for (const secret of webhookSecrets) {
+    try {
+      event = stripe.webhooks.constructEvent(body, signature, secret);
+      break;
+    } catch (error: any) {
+      lastSignatureError = error;
+    }
+  }
 
-    event = stripe.webhooks.constructEvent(
-      body,
-      signature,
-      process.env.STRIPE_WEBHOOK_SECRET
+  if (!event) {
+    console.error(
+      "Stripe webhook signature error:",
+      lastSignatureError?.message,
     );
-  } catch (error: any) {
-    console.error("Stripe webhook signature error:", error.message);
 
     return NextResponse.json(
       { error: "Invalid webhook signature." },
