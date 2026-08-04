@@ -1542,7 +1542,7 @@ function FieldPageContent() {
 
     const hadNoPhotos = photos.length === 0;
     setEquipmentResult(null);
-    setPhotos((current) => [...current, ...validFiles].slice(0, 6));
+    setPhotos((current) => [...current, ...validFiles]);
 
     // Auto-draft the wording only for the FIRST limitation photo, so adding more
     // evidence photos doesn't overwrite an edited write-up.
@@ -3477,8 +3477,8 @@ function FieldPageContent() {
       throw new Error("Add at least one photo showing why the area or component was limited.");
     }
 
-    // Single photo: send full-res (unchanged). Multiple: compress each so the
-    // combined request stays within the serverless body limit.
+    // Single photo: send full-res (unchanged). Multiple: compress each so any
+    // number of photos stays within the serverless request-size limit.
     const imageDataUrls = await Promise.all(
       images.map(async (img) =>
         images.length > 1
@@ -3487,29 +3487,45 @@ function FieldPageContent() {
       ),
     );
 
-    const response = await fetch("/api/ai/live-limitation", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      cache: "no-store",
-      body: JSON.stringify({
-        inspectionId: String(selectedReport),
-        section: effectiveSection,
-        title: limitationTitle,
-        limitation: limitationText,
-        reason: "",
-        recommendation: effectiveRecommendation.trim(),
-        imageDataUrls,
-      }),
-    });
+    // Stream photos in small batches so there's no practical cap on how many a
+    // limitation can hold. The first batch creates the limitation; later batches
+    // attach to it by id.
+    const BATCH = 4;
+    let limitationId: string | null = null;
+    let firstData: any = null;
 
-    const data = await response.json().catch(() => ({}));
+    for (let start = 0; start < imageDataUrls.length; start += BATCH) {
+      const batch = imageDataUrls.slice(start, start + BATCH);
+      const response: Response = await fetch("/api/ai/live-limitation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+        body: JSON.stringify({
+          inspectionId: String(selectedReport),
+          section: effectiveSection,
+          title: limitationTitle,
+          limitation: limitationText,
+          reason: "",
+          recommendation: effectiveRecommendation.trim(),
+          imageDataUrls: batch,
+          limitationId: limitationId || undefined,
+        }),
+      });
 
-    if (!response.ok || !data?.success) {
-      throw new Error(
-        data?.error ||
-          data?.photoError ||
-          "The limitation and photo could not be saved.",
-      );
+      const data: any = await response.json().catch(() => ({}));
+
+      if (!response.ok || !data?.success) {
+        throw new Error(
+          data?.error ||
+            data?.photoError ||
+            "The limitation and photos could not be saved.",
+        );
+      }
+
+      if (!limitationId) {
+        limitationId = data.limitation?.id || data.limitationId || null;
+        firstData = data;
+      }
     }
 
     window.dispatchEvent(
@@ -3517,8 +3533,8 @@ function FieldPageContent() {
         detail: {
           inspectionId: selectedReport,
           section: effectiveSection,
-          limitationId: data.limitation?.id || data.limitationId || null,
-          photoId: data.photo?.id || data.photoId || null,
+          limitationId,
+          photoId: firstData?.photo?.id || firstData?.photoId || null,
         },
       }),
     );
@@ -3533,7 +3549,7 @@ function FieldPageContent() {
       }),
     );
 
-    return data;
+    return firstData;
   }
 
   async function saveFieldItem() {

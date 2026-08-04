@@ -51,6 +51,7 @@ function parseDataUrl(dataUrl: string) {
 
 export async function POST(req: Request) {
   let savedLimitation: any = null;
+  let createdHere = false;
   const uploadedFilePaths: string[] = [];
 
   try {
@@ -65,6 +66,8 @@ export async function POST(req: Request) {
     const limitation = cleanText(body.limitation);
     const reason = cleanText(body.reason);
     const recommendation = cleanText(body.recommendation);
+    // Optional: attach photos to a limitation created by an earlier batch.
+    const limitationId = cleanText(body.limitationId);
     // Accept either a single imageDataUrl (legacy) or an array of imageDataUrls.
     const imageDataUrls: string[] = (
       Array.isArray(body.imageDataUrls)
@@ -78,9 +81,11 @@ export async function POST(req: Request) {
 
     const inspection = await authorizeInspection(supabase, user.id, inspectionId);
     if (!inspection) return notFound("Inspection not found.");
-    if (!section) return NextResponse.json({ error: "Missing section." }, { status: 400 });
-    if (!limitation) return NextResponse.json({ error: "Missing limitation text." }, { status: 400 });
     if (imageDataUrls.length === 0) return NextResponse.json({ error: "Add at least one photo." }, { status: 400 });
+    if (!limitationId) {
+      if (!section) return NextResponse.json({ error: "Missing section." }, { status: 400 });
+      if (!limitation) return NextResponse.json({ error: "Missing limitation text." }, { status: 400 });
+    }
 
     const { data: inspectionRow, error: inspectionError } = await supabase
       .from("inspections")
@@ -97,36 +102,52 @@ export async function POST(req: Request) {
 
     const inspectorId = inspectionRow.inspector_id;
 
-    const limitationComment = [
-      limitation,
-      reason ? `Reason: ${reason}` : "",
-      recommendation ? `Recommendation: ${recommendation}` : "",
-    ]
-      .filter(Boolean)
-      .join("\n\n");
+    if (limitationId) {
+      // Attach mode: reuse the limitation an earlier batch created.
+      const { data: existing, error: existingError } = await supabase
+        .from("section_limitations")
+        .select("*")
+        .eq("id", limitationId)
+        .eq("inspection_id", inspectionId)
+        .single();
 
-    const { data: insertedLimitation, error: limitationError } = await supabase
-      .from("section_limitations")
-      .insert({
-        inspection_id: inspectionId,
-        inspector_id: inspectorId,
-        section,
-        label: title,
-        ai_notes: reason || limitation,
-        limitation_comment: limitationComment,
-        custom_text: null,
-      })
-      .select("*")
-      .single();
+      if (existingError || !existing) {
+        return NextResponse.json({ error: "Limitation not found." }, { status: 404 });
+      }
+      savedLimitation = existing;
+    } else {
+      const limitationComment = [
+        limitation,
+        reason ? `Reason: ${reason}` : "",
+        recommendation ? `Recommendation: ${recommendation}` : "",
+      ]
+        .filter(Boolean)
+        .join("\n\n");
 
-    if (limitationError) {
-      return NextResponse.json(
-        { error: limitationError.message || "Failed to save limitation." },
-        { status: 500 },
-      );
+      const { data: insertedLimitation, error: limitationError } = await supabase
+        .from("section_limitations")
+        .insert({
+          inspection_id: inspectionId,
+          inspector_id: inspectorId,
+          section,
+          label: title,
+          ai_notes: reason || limitation,
+          limitation_comment: limitationComment,
+          custom_text: null,
+        })
+        .select("*")
+        .single();
+
+      if (limitationError) {
+        return NextResponse.json(
+          { error: limitationError.message || "Failed to save limitation." },
+          { status: 500 },
+        );
+      }
+
+      savedLimitation = insertedLimitation;
+      createdHere = true;
     }
-
-    savedLimitation = insertedLimitation;
 
     // Upload every submitted photo and attach it to this limitation.
     const photoRows: any[] = [];
@@ -178,7 +199,9 @@ export async function POST(req: Request) {
       await supabase.storage.from(PHOTO_BUCKET).remove(uploadedFilePaths);
     }
 
-    if (savedLimitation?.id) {
+    // Only remove the limitation if THIS request created it (attach-mode
+    // batches must not delete a limitation an earlier batch already saved).
+    if (createdHere && savedLimitation?.id) {
       await supabase.from("section_limitations").delete().eq("id", savedLimitation.id);
     }
 
