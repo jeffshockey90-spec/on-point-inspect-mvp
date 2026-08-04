@@ -43,6 +43,18 @@ function formatFee(fee?: string | number | null) {
 function formatDate(date?: string | null) {
   if (!date) return formatAppValue(new Date(), {});
 
+  // A bare database date ("YYYY-MM-DD") has no time or zone. Parsing it with
+  // `new Date()` treats it as UTC midnight, which then renders as the PREVIOUS
+  // day once converted to the app's timezone. Anchor it at UTC noon and format
+  // in UTC so the agreement shows the exact scheduled inspection date.
+  const match = String(date).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (match) {
+    const [, year, month, day] = match;
+    return new Intl.DateTimeFormat("en-US", { timeZone: "UTC" }).format(
+      new Date(Date.UTC(Number(year), Number(month) - 1, Number(day), 12)),
+    );
+  }
+
   const parsed = new Date(date);
   if (Number.isNaN(parsed.getTime())) return date;
 
