@@ -51,7 +51,7 @@ function parseDataUrl(dataUrl: string) {
 
 export async function POST(req: Request) {
   let savedLimitation: any = null;
-  let uploadedFilePath = "";
+  const uploadedFilePaths: string[] = [];
 
   try {
     const user = await getSessionUser();
@@ -65,7 +65,14 @@ export async function POST(req: Request) {
     const limitation = cleanText(body.limitation);
     const reason = cleanText(body.reason);
     const recommendation = cleanText(body.recommendation);
-    const imageDataUrl = cleanText(body.imageDataUrl);
+    // Accept either a single imageDataUrl (legacy) or an array of imageDataUrls.
+    const imageDataUrls: string[] = (
+      Array.isArray(body.imageDataUrls)
+        ? body.imageDataUrls
+        : [body.imageDataUrl]
+    )
+      .map((value: any) => cleanText(value))
+      .filter(Boolean);
 
     if (!inspectionId) return NextResponse.json({ error: "Missing inspectionId." }, { status: 400 });
 
@@ -73,6 +80,7 @@ export async function POST(req: Request) {
     if (!inspection) return notFound("Inspection not found.");
     if (!section) return NextResponse.json({ error: "Missing section." }, { status: 400 });
     if (!limitation) return NextResponse.json({ error: "Missing limitation text." }, { status: 400 });
+    if (imageDataUrls.length === 0) return NextResponse.json({ error: "Add at least one photo." }, { status: 400 });
 
     const { data: inspectionRow, error: inspectionError } = await supabase
       .from("inspections")
@@ -88,7 +96,6 @@ export async function POST(req: Request) {
     }
 
     const inspectorId = inspectionRow.inspector_id;
-    const parsedImage = parseDataUrl(imageDataUrl);
 
     const limitationComment = [
       limitation,
@@ -121,45 +128,54 @@ export async function POST(req: Request) {
 
     savedLimitation = insertedLimitation;
 
-    uploadedFilePath = `${inspectionId}/limitations/${savedLimitation.id}/${Date.now()}-ai-live.${parsedImage.extension}`;
+    // Upload every submitted photo and attach it to this limitation.
+    const photoRows: any[] = [];
+    for (let index = 0; index < imageDataUrls.length; index += 1) {
+      const parsedImage = parseDataUrl(imageDataUrls[index]);
+      const filePath = `${inspectionId}/limitations/${savedLimitation.id}/${Date.now()}-${index}-ai-live.${parsedImage.extension}`;
 
-    const { error: uploadError } = await supabase.storage
-      .from(PHOTO_BUCKET)
-      .upload(uploadedFilePath, parsedImage.buffer, {
-        contentType: parsedImage.mimeType,
-        upsert: true,
-      });
+      const { error: uploadError } = await supabase.storage
+        .from(PHOTO_BUCKET)
+        .upload(filePath, parsedImage.buffer, {
+          contentType: parsedImage.mimeType,
+          upsert: true,
+        });
 
-    if (uploadError) throw new Error(uploadError.message || "Photo upload failed.");
+      if (uploadError) throw new Error(uploadError.message || "Photo upload failed.");
+      uploadedFilePaths.push(filePath);
 
-    const { data: publicData } = supabase.storage
-      .from(PHOTO_BUCKET)
-      .getPublicUrl(uploadedFilePath);
+      const { data: publicData } = supabase.storage
+        .from(PHOTO_BUCKET)
+        .getPublicUrl(filePath);
 
-    const { data: photoRow, error: photoError } = await supabase
-      .from("limitation_photos")
-      .insert({
-        limitation_id: savedLimitation.id,
-        inspector_id: inspectorId,
-        photo_url: publicData.publicUrl,
-        thumbnail_url: publicData.publicUrl,
-        thumbnail_path: uploadedFilePath,
-      })
-      .select("*")
-      .single();
+      const { data: photoRow, error: photoError } = await supabase
+        .from("limitation_photos")
+        .insert({
+          limitation_id: savedLimitation.id,
+          inspector_id: inspectorId,
+          photo_url: publicData.publicUrl,
+          thumbnail_url: publicData.publicUrl,
+          thumbnail_path: filePath,
+        })
+        .select("*")
+        .single();
 
-    if (photoError) throw new Error(photoError.message || "Photo record insert failed.");
+      if (photoError) throw new Error(photoError.message || "Photo record insert failed.");
+      photoRows.push(photoRow);
+    }
 
     return NextResponse.json({
       success: true,
       limitation: savedLimitation,
       limitationId: savedLimitation?.id || null,
-      photo: photoRow,
-      photoId: photoRow?.id || null,
+      photo: photoRows[0] || null,
+      photoId: photoRows[0]?.id || null,
+      photos: photoRows,
+      photoIds: photoRows.map((row) => row?.id).filter(Boolean),
     });
   } catch (error: any) {
-    if (uploadedFilePath) {
-      await supabase.storage.from(PHOTO_BUCKET).remove([uploadedFilePath]);
+    if (uploadedFilePaths.length) {
+      await supabase.storage.from(PHOTO_BUCKET).remove(uploadedFilePaths);
     }
 
     if (savedLimitation?.id) {

@@ -1498,7 +1498,7 @@ function FieldPageContent() {
     setImplication("");
     setRecommendation("");
     setMessage(
-      "Section limitation mode selected. Choose a section, enter the limitation wording, then capture or choose one photo.",
+      "Section limitation mode selected. Choose a section, enter the limitation wording, then capture or choose one or more photos.",
     );
   }
 
@@ -1540,14 +1540,13 @@ function FieldPageContent() {
       );
     }
 
+    const hadNoPhotos = photos.length === 0;
     setEquipmentResult(null);
-    setPhotos((current) =>
-      photoType === "limitation"
-        ? validFiles.slice(0, 1)
-        : [...current, ...validFiles].slice(0, 6),
-    );
+    setPhotos((current) => [...current, ...validFiles].slice(0, 6));
 
-    if (photoType === "limitation") {
+    // Auto-draft the wording only for the FIRST limitation photo, so adding more
+    // evidence photos doesn't overwrite an edited write-up.
+    if (photoType === "limitation" && hadNoPhotos) {
       const limitationPhoto = validFiles.find((file) =>
         file.type.startsWith("image/"),
       );
@@ -3466,17 +3465,27 @@ function FieldPageContent() {
     const limitationText = String(overrides?.note ?? note ?? "").trim();
     const limitationTitle =
       String(overrides?.title ?? title ?? "").trim() || "Field Limitation";
-    const image = effectivePhotos.find((photo) => photo.type.startsWith("image/"));
+    const images = effectivePhotos.filter((photo) =>
+      photo.type.startsWith("image/"),
+    );
 
     if (!limitationText) {
       throw new Error("Enter the limitation wording before saving.");
     }
 
-    if (!image) {
-      throw new Error("Add one photo showing why the area or component was limited.");
+    if (images.length === 0) {
+      throw new Error("Add at least one photo showing why the area or component was limited.");
     }
 
-    const imageDataUrl = await fileToDataUrl(image);
+    // Single photo: send full-res (unchanged). Multiple: compress each so the
+    // combined request stays within the serverless body limit.
+    const imageDataUrls = await Promise.all(
+      images.map(async (img) =>
+        images.length > 1
+          ? fileToDataUrl(await compressImageForAiUpload(img))
+          : fileToDataUrl(img),
+      ),
+    );
 
     const response = await fetch("/api/ai/live-limitation", {
       method: "POST",
@@ -3489,7 +3498,7 @@ function FieldPageContent() {
         limitation: limitationText,
         reason: "",
         recommendation: effectiveRecommendation.trim(),
-        imageDataUrl,
+        imageDataUrls,
       }),
     });
 
@@ -3557,7 +3566,7 @@ function FieldPageContent() {
         !photos.some((photo) => photo.type.startsWith("image/")))
     ) {
       setMessage(
-        "Enter the limitation wording and add one photo showing the limitation.",
+        "Enter the limitation wording and add at least one photo showing the limitation.",
       );
       return;
     }
@@ -5030,7 +5039,7 @@ function MediaUploadButtons({
         {photoType === "reference_photo"
           ? "🖼 Choose Reference Photos"
           : photoType === "limitation"
-            ? "🖼 Choose Limitation Photo"
+            ? "🖼 Choose Limitation Photos"
             : "🖼 Choose Photos"}
         <input
           type="file"
