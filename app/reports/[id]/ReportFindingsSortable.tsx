@@ -1982,6 +1982,7 @@ function FindingCardBase({
   const [movingPhotoId, setMovingPhotoId] = useState<string | null>(null);
   const [markupPhoto, setMarkupPhoto] = useState<any | null>(null);
   const [showMarkupEditor, setShowMarkupEditor] = useState(false);
+  const [dragPhotoIndex, setDragPhotoIndex] = useState<number | null>(null);
   const [draggingOver, setDraggingOver] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [message, setMessage] = useState("");
@@ -2430,15 +2431,23 @@ function FindingCardBase({
 
   // Reorder this finding's photos by renumbering sort_order for the whole set,
   // so the order is stable regardless of the photos' existing sort_order values.
-  async function moveFindingPhoto(index: number, direction: number) {
-    const target = index + direction;
-    if (target < 0 || target >= photos.length) return;
+  // Used by both the up/down arrows and drag-and-drop.
+  async function reorderFindingPhotos(fromIndex: number, toIndex: number) {
+    if (
+      fromIndex === toIndex ||
+      fromIndex < 0 ||
+      toIndex < 0 ||
+      fromIndex >= photos.length ||
+      toIndex >= photos.length
+    ) {
+      return;
+    }
 
     const reordered = [...photos];
-    const [moved] = reordered.splice(index, 1);
-    reordered.splice(target, 0, moved);
+    const [moved] = reordered.splice(fromIndex, 1);
+    reordered.splice(toIndex, 0, moved);
 
-    setMovingPhotoId(String(photos[index]?.id || ""));
+    setMovingPhotoId(String(photos[fromIndex]?.id || ""));
 
     try {
       await Promise.all(
@@ -2460,6 +2469,10 @@ function FindingCardBase({
     } finally {
       setMovingPhotoId(null);
     }
+  }
+
+  function moveFindingPhoto(index: number, direction: number) {
+    void reorderFindingPhotos(index, index + direction);
   }
 
   async function deletePhotoFromFinding(photo: any) {
@@ -2700,10 +2713,31 @@ function FindingCardBase({
               const previewUrl = getPhotoPreviewUrl(photo);
               const isBusy = movingPhotoId === String(photo.id);
 
+              const isPhotoDraggable = !photo?.isLegacyImage && !String(photo?.id || "").startsWith("legacy-");
+
               return (
                 <div
                   key={String(photo.id || photo.file_path || url || index)}
-                  className="w-full max-w-full overflow-x-hidden rounded-xl border border-slate-700 bg-slate-950"
+                  draggable={isPhotoDraggable}
+                  onDragStart={() => setDragPhotoIndex(index)}
+                  onDragOver={(event) => {
+                    if (dragPhotoIndex !== null) event.preventDefault();
+                  }}
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    if (dragPhotoIndex !== null && dragPhotoIndex !== index) {
+                      void reorderFindingPhotos(dragPhotoIndex, index);
+                    }
+                    setDragPhotoIndex(null);
+                  }}
+                  onDragEnd={() => setDragPhotoIndex(null)}
+                  className={`w-full max-w-full overflow-x-hidden rounded-xl border bg-slate-950 transition ${
+                    dragPhotoIndex === index
+                      ? "border-teal-400 opacity-60"
+                      : dragPhotoIndex !== null
+                        ? "border-dashed border-teal-500/50"
+                        : "border-slate-700"
+                  } ${isPhotoDraggable ? "cursor-grab active:cursor-grabbing" : ""}`}
                 >
                   {isVideoMedia(photo) ? (
                     <div className="flex justify-center rounded-xl bg-black p-2">
