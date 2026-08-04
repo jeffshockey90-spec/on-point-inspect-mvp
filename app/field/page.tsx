@@ -4637,6 +4637,11 @@ function FieldPageContent() {
                   }
                   className="w-full rounded-xl border border-slate-700 bg-black p-4 leading-7 text-white"
                 />
+                {photoType === "finding" && (
+                  <p className="mt-2 text-xs font-bold text-cyan-300">
+                    ✨ The AI uses this note — tap “🤖 Analyze Defect” to draft from your note + photo, or “✍️ Generate From Note” to draft from the note alone.
+                  </p>
+                )}
               </div>
 
               {photoType === "limitation" && (
