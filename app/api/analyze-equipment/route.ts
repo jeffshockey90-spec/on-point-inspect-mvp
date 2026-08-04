@@ -3,6 +3,7 @@ import { logAIEvent } from "../../../lib/logging";
 import { getAIModel, getAIVersion } from "../../../lib/openai";
 import { inspectionBrain } from "../../../lib/ai";
 import { learningEngine } from "../../../lib/ai/LearningEngine";
+import { getSessionUser } from "../../../lib/apiAuth";
 
 export const runtime = "nodejs";
 
@@ -1551,10 +1552,14 @@ function enhanceAnalysis(parsed: EquipmentAnalysis, imageCount = 1) {
 
 export async function POST(req: Request) {
   let inspectionId: string | number | null = null;
+  // Best-effort so AI usage can be attributed to the inspector who ran it.
+  const sessionUser = await getSessionUser();
+  const attributedUserId = sessionUser?.id ?? null;
 
   try {
     if (!process.env.OPENAI_API_KEY) {
       await logAIEvent({
+        userId: attributedUserId,
         inspectionId,
         tool: "equipment_analyzer",
         status: "failed",
@@ -1602,6 +1607,7 @@ export async function POST(req: Request) {
 
     if (imageFiles.length === 0) {
       await logAIEvent({
+        userId: attributedUserId,
         inspectionId,
         tool: "equipment_analyzer",
         status: "failed",
@@ -1773,6 +1779,7 @@ Rules:
     const enhanced = parsed?.error ? parsed : enhanceAnalysis(parsed || {}, imageFiles.length);
 
     await logAIEvent({
+      userId: attributedUserId,
       inspectionId,
       tool: "equipment_analyzer",
       prompt: "Equipment Analyzer expanded intelligence photo analysis",
@@ -1817,6 +1824,7 @@ Rules:
     console.error("Analyze equipment error:", error);
 
     await logAIEvent({
+      userId: attributedUserId,
       inspectionId,
       tool: "equipment_analyzer",
       status: "failed",

@@ -278,6 +278,20 @@ export async function GET(req: Request) {
       }
     }
 
+    // Per-section notes the inspector wrote, so the portal can show them above
+    // each section (only sections with a non-empty note are returned).
+    const { data: sectionNotesRaw } = await supabase
+      .from("report_section_notes")
+      .select("section_name, notes")
+      .eq("inspection_id", inspection.id);
+
+    const sectionNotes: Record<string, string> = {};
+    for (const row of sectionNotesRaw || []) {
+      if (row?.section_name && String(row.notes || "").trim()) {
+        sectionNotes[row.section_name] = row.notes;
+      }
+    }
+
     return NextResponse.json({
       inspection: pickedInspection,
       deliverable: delivery.deliverable,
@@ -285,6 +299,7 @@ export async function GET(req: Request) {
       checklistRows: checklistResult.data || [],
       moldTest: moldResult.data || null,
       radonTest: radonResult.data || null,
+      sectionNotes,
     });
   } catch (error: any) {
     console.error("Client portal data API error:", error);

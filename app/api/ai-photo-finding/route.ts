@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "../../../utils/supabase/server";
 import { logAIEvent } from "../../../lib/logging";
 import { getAIModel } from "../../../lib/openai";
+import { getSessionUser } from "../../../lib/apiAuth";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -67,6 +68,9 @@ Use these only when they support the inspector note. If an inspector note is pro
 
 export async function POST(req: Request) {
   let inspectionId: string | number | null = null;
+  // Best-effort so AI usage can be attributed to the inspector who ran it.
+  const sessionUser = await getSessionUser();
+  const attributedUserId = sessionUser?.id ?? null;
 
   try {
     const body = await req.json();
@@ -103,6 +107,7 @@ export async function POST(req: Request) {
 
     if (!image) {
       await logAIEvent({
+        userId: attributedUserId,
         inspectionId,
         tool: "ai_capture",
         prompt: inspectorNote,
@@ -298,6 +303,7 @@ Create exactly ONE finding based on the inspector note when provided.
     };
 
     await logAIEvent({
+      userId: attributedUserId,
       inspectionId,
       tool: "ai_capture",
       prompt: inspectorNote,
@@ -320,6 +326,7 @@ Create exactly ONE finding based on the inspector note when provided.
     console.error(error);
 
     await logAIEvent({
+      userId: attributedUserId,
       inspectionId,
       tool: "ai_capture",
       status: "failed",

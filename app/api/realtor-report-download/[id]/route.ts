@@ -868,6 +868,7 @@ function buildAgentReportHtml({
   includeStandardsInPdf,
   clientNameOverride,
   clientEmailOverride,
+  sectionNotes,
 }: {
   inspection: any;
   findings: any[];
@@ -880,6 +881,7 @@ function buildAgentReportHtml({
   includeStandardsInPdf: boolean;
   clientNameOverride?: string;
   clientEmailOverride?: string;
+  sectionNotes?: Record<string, string>;
 }) {
   const property = getPropertyAddress(inspection);
   const isFull = reportMode === "full";
@@ -1081,6 +1083,12 @@ function buildAgentReportHtml({
           <div><b>Inspection Date</b><span>${escapeHtml(inspectionDate)}</span></div>
         </div>
 
+        ${
+          sectionNotes && sectionNotes[group.section]
+            ? `<div class="section-note">${escapeHtml(sectionNotes[group.section])}</div>`
+            : ""
+        }
+
         <h4 class="findings-label">Findings</h4>
         ${findingsHtml}
 
@@ -1176,6 +1184,7 @@ function buildAgentReportHtml({
     .section-info-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; border-top: 1px solid #cbd5e1; border-bottom: 1px solid #cbd5e1; padding: 12px 0; margin-bottom: 18px; }
     .section-info-strip b { display: block; color: #0f8f8f; font-size: 9px; text-transform: uppercase; letter-spacing: .1em; }
     .section-info-strip span { display: block; color: #334155; font-weight: 800; margin-top: 3px; }
+    .section-note { border: 1px solid #f59e0b; background: #fffbeb; color: #0f172a; border-radius: 8px; padding: 10px 12px; margin-bottom: 16px; font-size: 12px; line-height: 1.5; white-space: pre-wrap; }
     .findings-label { color: #020617; text-transform: uppercase; letter-spacing: .12em; margin: 14px 0 6px; font-size: 12px; border-bottom: 2px solid #0f8f8f; padding-bottom: 7px; }
 
     .finding-row { break-inside: avoid; page-break-inside: avoid; padding: 12px 0 16px; border-bottom: 1px solid #e2e8f0; }
@@ -1660,6 +1669,18 @@ export async function GET(req: Request, { params }: RouteProps) {
       .eq("inspection_id", inspectionId)
       .order("sort_order", { ascending: true });
 
+    const { data: sectionNotesRaw } = await admin
+      .from("report_section_notes")
+      .select("section_name, notes")
+      .eq("inspection_id", inspectionId);
+
+    const sectionNotesMap: Record<string, string> = {};
+    for (const row of sectionNotesRaw || []) {
+      if (row?.section_name && String(row.notes || "").trim()) {
+        sectionNotesMap[row.section_name] = row.notes;
+      }
+    }
+
     const activeSectionOrder = filterSectionsForServiceMode(
       resolveActiveSections(
         SECTION_ORDER,
@@ -1826,6 +1847,7 @@ export async function GET(req: Request, { params }: RouteProps) {
       clientNameOverride,
       clientEmailOverride,
       sectionOrder: activeSectionOrder,
+      sectionNotes: sectionNotesMap,
     });
     const property = getPropertyAddress(inspection);
 

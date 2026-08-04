@@ -367,6 +367,7 @@ export default function ClientPortalPage() {
   const [moldTest, setMoldTest] = useState<any>(null);
   const [radonTest, setRadonTest] = useState<any>(null);
   const [checklistRows, setChecklistRows] = useState<any[]>([]);
+  const [sectionNotes, setSectionNotes] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
   const [paying, setPaying] = useState(false);
@@ -442,6 +443,7 @@ export default function ClientPortalPage() {
       setMoldTest(data.moldTest || null);
       setRadonTest(data.radonTest || null);
       setChecklistRows(data.checklistRows || []);
+      setSectionNotes(data.sectionNotes || {});
     } catch (error) {
       console.error("Client portal load error:", error);
       setInspection(null);
@@ -1057,6 +1059,12 @@ export default function ClientPortalPage() {
                   className="rounded-xl border border-slate-800 bg-[#020817]/70 p-5"
                 >
                   <h3 className="text-xl font-black text-white">{section}</h3>
+
+                  {sectionNotes[section] && (
+                    <p className="mt-3 whitespace-pre-wrap rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm leading-6 text-amber-100">
+                      {sectionNotes[section]}
+                    </p>
+                  )}
 
                   <div className="mt-4 grid gap-4 md:grid-cols-2">
                     {Object.entries(checklistBySection[section]).map(

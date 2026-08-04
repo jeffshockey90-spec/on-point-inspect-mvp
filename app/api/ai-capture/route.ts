@@ -4,6 +4,7 @@ import { logAIEvent } from "../../../lib/logging";
 import { routeFindingSection, normalizeSeverity } from "../../../lib/routeFindingSection";
 import { getAIModel, getAIVersion } from "../../../lib/openai";
 import { learningEngine } from "../../../lib/ai/LearningEngine";
+import { getSessionUser } from "../../../lib/apiAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -104,6 +105,9 @@ function appendMaintenance(recommendation: string, maintenanceTip: string) {
 export async function POST(req: Request) {
   let note = "";
   let inspectionId: string | number | null = null;
+  // Best-effort so AI usage can be attributed to the inspector who ran it.
+  const sessionUser = await getSessionUser();
+  const attributedUserId = sessionUser?.id ?? null;
 
   try {
     const body = await req.json().catch(() => ({}));
@@ -295,6 +299,7 @@ Keep the inspector's intent. Improve the writing without drifting away from the 
     };
 
     await logAIEvent({
+      userId: attributedUserId,
       inspectionId,
       tool: "report_writer_3",
       prompt: note,
@@ -316,6 +321,7 @@ Keep the inspector's intent. Improve the writing without drifting away from the 
     return NextResponse.json(result);
   } catch (error: any) {
     await logAIEvent({
+      userId: attributedUserId,
       inspectionId,
       tool: "report_writer_3",
       prompt: note,
