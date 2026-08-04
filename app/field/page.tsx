@@ -979,6 +979,8 @@ function FieldPageContent() {
   const [analyzingPhoto, setAnalyzingPhoto] = useState(false);
   const [analyzingLimitation, setAnalyzingLimitation] = useState(false);
   const limitationAutoAnalyzedRef = useRef("");
+  // Optional inspector note that steers the AI when drafting a limitation.
+  const [limitationHint, setLimitationHint] = useState("");
   const [analyzingEquipment, setAnalyzingEquipment] = useState(false);
   const [equipmentResult, setEquipmentResult] =
     useState<EquipmentResult | null>(null);
@@ -1412,6 +1414,7 @@ function FieldPageContent() {
     setExistingFindingSearch("");
     setExistingFindingMedia([]);
     limitationAutoAnalyzedRef.current = "";
+    setLimitationHint("");
     setSection("Exterior");
     setSeverity("Recommended Repair");
     setNote("");
@@ -1485,6 +1488,7 @@ function FieldPageContent() {
   function setLimitationMode() {
     setPhotoType("limitation");
     limitationAutoAnalyzedRef.current = "";
+    setLimitationHint("");
     setExistingFindingId("");
     setExistingFindingSearch("");
     setExistingFindingMedia([]);
@@ -1919,9 +1923,9 @@ function FieldPageContent() {
           inspectionId: selectedReport,
           currentSection: section,
           currentSeverity: "Informational",
-          mode: "limitation_draft",
-          inspectorIntent:
-            "Draft a concise, professional home-inspection limitation based only on visible access, obstruction, stored belongings, vegetation, snow, unsafe conditions, or concealed areas. Do not invent a defect.",
+          // The endpoint's lean, note-aware limitation path keys on focus="limitation".
+          focus: "limitation",
+          note: limitationHint.trim() || undefined,
         }),
       });
 
@@ -1931,9 +1935,11 @@ function FieldPageContent() {
         throw new Error(data?.error || "AI limitation drafting failed.");
       }
 
-      const limitation = Array.isArray(data?.limitations)
-        ? data.limitations[0]
-        : null;
+      // The lean focus="limitation" path returns a single `limitation` object;
+      // keep the legacy `limitations[]` shape as a fallback.
+      const limitation =
+        data?.limitation ||
+        (Array.isArray(data?.limitations) ? data.limitations[0] : null);
 
       const fallbackSuggestion = Array.isArray(data?.suggestions)
         ? data.suggestions.find((item: any) => {
@@ -4635,6 +4641,44 @@ function FieldPageContent() {
 
               {photoType === "limitation" && (
                 <div className="mt-5 grid gap-4">
+                  <div className="rounded-2xl border border-cyan-500/40 bg-cyan-500/5 p-4">
+                    <label className="mb-2 block font-bold text-cyan-200">
+                      Inspector Note for AI (optional)
+                    </label>
+                    <textarea
+                      value={limitationHint}
+                      onChange={(event) => setLimitationHint(event.target.value)}
+                      rows={2}
+                      placeholder="Direct the AI — e.g. 'note the stored boxes blocking the crawlspace hatch' or 'snow covering the roof'"
+                      className="w-full rounded-xl border border-slate-700 bg-black p-4 leading-7 text-white"
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        void analyzeLimitationPhotoWithAI(undefined, {
+                          automatic: false,
+                        })
+                      }
+                      disabled={
+                        !online ||
+                        analyzingLimitation ||
+                        !photos.some((photo) => photo.type.startsWith("image/"))
+                      }
+                      className="mt-3 w-full rounded-xl bg-cyan-400 p-3 font-bold text-black transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
+                    >
+                      {analyzingLimitation
+                        ? "Drafting…"
+                        : note.trim()
+                          ? "🔄 Redraft with AI"
+                          : "✨ Draft limitation with AI"}
+                    </button>
+                    {!photos.some((photo) => photo.type.startsWith("image/")) && (
+                      <p className="mt-2 text-xs font-bold text-slate-400">
+                        Add a limitation photo first, then draft.
+                      </p>
+                    )}
+                  </div>
+
                   <div>
                     <label className="mb-2 block font-bold">
                       Limitation Title
