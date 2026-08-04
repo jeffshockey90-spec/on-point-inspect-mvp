@@ -38,6 +38,7 @@ export default function FieldCamera({
   const [open, setOpen] = useState(false);
   const [starting, setStarting] = useState(false);
   const [captureMode, setCaptureMode] = useState<CaptureMode>("photo");
+  const [muteAudio, setMuteAudio] = useState(false);
   const [recording, setRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [facingMode, setFacingMode] = useState<"environment" | "user">(
@@ -662,10 +663,14 @@ export default function FieldCamera({
     try {
       chunksRef.current = [];
       const mimeType = chooseRecorderMimeType();
-      const recorder = new MediaRecorder(stream, {
+      // When muted, record a video-only stream so the clip has no audio track.
+      const recordStream = muteAudio
+        ? new MediaStream(stream.getVideoTracks())
+        : stream;
+      const recorder = new MediaRecorder(recordStream, {
         ...(mimeType ? { mimeType } : {}),
         videoBitsPerSecond: 10_000_000,
-        audioBitsPerSecond: 128_000,
+        ...(muteAudio ? {} : { audioBitsPerSecond: 128_000 }),
       });
 
       recorder.ondataavailable = (event) => {
@@ -1035,7 +1040,22 @@ export default function FieldCamera({
             )}
           </button>
 
-          <div className="h-14 w-14" />
+          {captureMode === "video" ? (
+            <button
+              type="button"
+              onClick={() => setMuteAudio((current) => !current)}
+              disabled={recording}
+              aria-label={muteAudio ? "Unmute microphone" : "Mute microphone"}
+              title={muteAudio ? "Sound off — recording video only" : "Sound on"}
+              className={`flex h-14 w-14 items-center justify-center rounded-full text-2xl backdrop-blur disabled:opacity-40 ${
+                muteAudio ? "bg-red-600/80 text-white" : "bg-black/65 text-white"
+              }`}
+            >
+              {muteAudio ? "🔇" : "🎤"}
+            </button>
+          ) : (
+            <div className="h-14 w-14" />
+          )}
         </div>
       </div>
     </div>

@@ -120,6 +120,7 @@ export default function AILiveInspectionCamera({
   );
   const [torchOn, setTorchOn] = useState(false);
   const [captureMode, setCaptureMode] = useState<"photo" | "video">("photo");
+  const [muteAudio, setMuteAudio] = useState(false);
   const [recordingVideo, setRecordingVideo] = useState(false);
   const [focusPoint, setFocusPoint] = useState<{ x: number; y: number } | null>(
     null,
@@ -527,9 +528,13 @@ export default function AILiveInspectionCamera({
       ];
       const mimeType =
         supportedTypes.find((type) => MediaRecorder.isTypeSupported(type)) || "";
-      const recorder = new MediaRecorder(stream, {
+      // When muted, record a video-only stream so the clip has no audio track.
+      const recordStream = muteAudio
+        ? new MediaStream(stream.getVideoTracks())
+        : stream;
+      const recorder = new MediaRecorder(recordStream, {
         videoBitsPerSecond: 10_000_000,
-        audioBitsPerSecond: 128_000,
+        ...(muteAudio ? {} : { audioBitsPerSecond: 128_000 }),
         ...(mimeType ? { mimeType } : {}),
       });
 
@@ -1031,7 +1036,9 @@ export default function AILiveInspectionCamera({
             </div>
           )}
 
-          <div className="flex justify-center">
+          <div className="flex items-center justify-center gap-6">
+            {captureMode === "video" && <div className="h-12 w-12" />}
+
             <button
               type="button"
               onClick={handlePrimaryCapture}
@@ -1055,6 +1062,21 @@ export default function AILiveInspectionCamera({
                 <span className="mx-auto block h-7 w-7 rounded-md bg-white" />
               )}
             </button>
+
+            {captureMode === "video" && (
+              <button
+                type="button"
+                onClick={() => setMuteAudio((current) => !current)}
+                disabled={recordingVideo}
+                aria-label={muteAudio ? "Unmute microphone" : "Mute microphone"}
+                title={muteAudio ? "Sound off — recording video only" : "Sound on"}
+                className={`flex h-12 w-12 items-center justify-center rounded-full text-xl backdrop-blur disabled:opacity-40 ${
+                  muteAudio ? "bg-red-600/80 text-white" : "bg-black/65 text-white"
+                }`}
+              >
+                {muteAudio ? "🔇" : "🎤"}
+              </button>
+            )}
           </div>
         </div>
       )}

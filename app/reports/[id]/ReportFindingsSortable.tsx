@@ -1447,6 +1447,7 @@ function ReportVideo({
   const [repairing, setRepairing] = useState(false);
   const [repairError, setRepairError] = useState("");
   const [retryKey, setRetryKey] = useState(0);
+  const [muted, setMuted] = useState(true);
   const repairInProgressRef = useRef(false);
   const repairAttemptedRef = useRef(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -1556,11 +1557,24 @@ function ReportVideo({
   }
 
   return (
+    <div className="relative">
+    <button
+      type="button"
+      onClick={() => setMuted((current) => !current)}
+      aria-label={muted ? "Unmute video" : "Mute video"}
+      title={muted ? "Sound off — tap to unmute" : "Sound on — tap to mute"}
+      className={`absolute right-2 top-2 z-10 flex h-9 w-9 items-center justify-center rounded-full text-lg backdrop-blur ${
+        muted ? "bg-red-600/80 text-white" : "bg-black/60 text-white"
+      }`}
+    >
+      {muted ? "🔇" : "🔊"}
+    </button>
     <video
       ref={videoRef}
       key={`${currentUrl}-${retryKey}`}
       poster={getVideoPosterUrl(photo) || undefined}
       controls
+      muted={muted}
       playsInline
       preload="metadata"
       className={
@@ -1585,6 +1599,7 @@ function ReportVideo({
       )}
       Your browser does not support video playback.
     </video>
+    </div>
   );
 }
 
