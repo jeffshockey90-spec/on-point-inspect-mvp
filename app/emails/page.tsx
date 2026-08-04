@@ -92,6 +92,9 @@ export default async function EmailsPage() {
     bounced_at: log.bounced_at,
     failed_at: log.failed_at,
     status: log.status,
+    subject: log.subject || null,
+    html: log.html || null,
+    message: log.message || null,
     };
   });
 

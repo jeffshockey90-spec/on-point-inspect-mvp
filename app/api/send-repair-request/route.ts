@@ -150,6 +150,7 @@ async function logEmailEvent(
     subject,
     status,
     resendId,
+    html,
     metadata = {},
   }: {
     inspectionId: any;
@@ -157,6 +158,7 @@ async function logEmailEvent(
     subject: string;
     status: "sent" | "failed";
     resendId?: string | null;
+    html?: string | null;
     metadata?: Record<string, any>;
   }
 ) {
@@ -169,6 +171,7 @@ async function logEmailEvent(
       email_type: "repair_request",
       subject,
       message: status === "sent" ? `Repair request sent to ${recipient}.` : metadata?.error || "Repair request send failed.",
+      html: html || null,
       status,
       resend_id: resendId || null,
       sent_at: status === "sent" ? new Date().toISOString() : null,
@@ -776,6 +779,7 @@ export async function POST(req: Request) {
         subject,
         status: "sent",
         resendId: resendData?.id || null,
+        html,
         metadata: {
           type: "repair_request",
           recipientType: recipient.recipientType,

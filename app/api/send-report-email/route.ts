@@ -146,6 +146,7 @@ async function logEmailEvent(
     subject,
     status,
     resendId,
+    html,
     metadata = {},
   }: {
     inspectionId: any;
@@ -153,6 +154,7 @@ async function logEmailEvent(
     subject: string;
     status: "sent" | "failed";
     resendId?: string | null;
+    html?: string | null;
     metadata?: Record<string, any>;
   }
 ) {
@@ -165,6 +167,7 @@ async function logEmailEvent(
       email_type: metadata?.type || "inspection_report",
       subject,
       message: status === "sent" ? `Report email sent to ${recipient}.` : metadata?.error || "Report email send failed.",
+      html: html || null,
       status,
       resend_id: resendId || null,
       sent_at: status === "sent" ? new Date().toISOString() : null,
@@ -295,6 +298,7 @@ async function sendReportEmail({
     subject,
     status: "sent",
     resendId: resendData?.id || null,
+    html,
     metadata: {
       type: isStandaloneEnvironmentalService(inspection)
         ? "environmental_report"

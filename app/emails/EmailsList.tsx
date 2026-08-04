@@ -17,6 +17,9 @@ type EmailLog = {
   bounced_at: string | null;
   failed_at: string | null;
   status: string | null;
+  subject: string | null;
+  html: string | null;
+  message: string | null;
 };
 
 function formatEmailType(value: string | null) {
@@ -87,6 +90,7 @@ const TYPE_FILTERS = [
 export default function EmailsList({ logs }: { logs: EmailLog[] }) {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
+  const [expandedId, setExpandedId] = useState<string | number | null>(null);
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -142,19 +146,30 @@ export default function EmailsList({ logs }: { logs: EmailLog[] }) {
         <div className="space-y-3">
           {filtered.map((log) => {
             const status = getStatus(log);
+            const expanded = expandedId === log.id;
 
             return (
-              <Link
+              <div
                 key={log.id}
-                href={log.inspection_id ? `/reports/${log.inspection_id}` : "#"}
-                className="block rounded-xl border border-slate-700 bg-[#0b1220] p-4 transition hover:border-teal-500/70 active:scale-[0.99]"
+                className={`rounded-xl border bg-[#0b1220] transition ${
+                  expanded ? "border-teal-500/70" : "border-slate-700"
+                }`}
               >
-                <div className="flex flex-wrap items-start justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => setExpandedId(expanded ? null : log.id)}
+                  className="flex w-full flex-wrap items-start justify-between gap-3 p-4 text-left"
+                >
                   <div className="min-w-0">
                     <p className="font-black text-white">{formatEmailType(log.email_type)}</p>
                     <p className="mt-1 truncate text-sm text-slate-400">
                       {log.recipient} · {log.property_address}
                     </p>
+                    {log.subject && (
+                      <p className="mt-1 truncate text-xs text-slate-500">
+                        Subject: {log.subject}
+                      </p>
+                    )}
                   </div>
 
                   <div className="flex shrink-0 flex-col items-end gap-1">
@@ -166,9 +181,48 @@ export default function EmailsList({ logs }: { logs: EmailLog[] }) {
                     <span className="text-xs font-bold text-slate-500">
                       {formatDate(log.sent_at)}
                     </span>
+                    <span className="text-xs font-bold text-teal-400">
+                      {expanded ? "Hide ▲" : "View email ▼"}
+                    </span>
                   </div>
-                </div>
-              </Link>
+                </button>
+
+                {expanded && (
+                  <div className="border-t border-slate-800 p-4">
+                    {log.html ? (
+                      <iframe
+                        title={`Email to ${log.recipient}`}
+                        srcDoc={log.html}
+                        sandbox=""
+                        className="h-[520px] w-full rounded-lg border border-slate-700 bg-white"
+                      />
+                    ) : (
+                      <div className="rounded-lg border border-slate-700 bg-[#0f172a] p-4 text-sm text-slate-300">
+                        <p className="font-bold text-slate-200">
+                          The exact copy of this email wasn&apos;t captured.
+                        </p>
+                        <p className="mt-1 text-slate-400">
+                          Emails are saved in full going forward. Older sends only kept a summary:
+                        </p>
+                        {log.message && (
+                          <p className="mt-2 whitespace-pre-wrap rounded bg-black/30 p-3 text-slate-300">
+                            {log.message}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {log.inspection_id && (
+                      <Link
+                        href={`/reports/${log.inspection_id}`}
+                        className="mt-3 inline-block rounded-lg border border-slate-600 px-4 py-2 text-xs font-black text-slate-200 transition hover:border-teal-500/70"
+                      >
+                        Open inspection →
+                      </Link>
+                    )}
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>

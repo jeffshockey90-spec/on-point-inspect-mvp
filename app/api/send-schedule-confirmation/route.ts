@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { getOrCreateShareToken } from "../../../lib/shareToken";
-import { formatAppValue } from "../../../lib/app-time";
+import { formatAppValue, formatClockTime } from "../../../lib/app-time";
 import { getCompanyBrandingById, buildBrandedFromHeader } from "../../../lib/companyBranding";
 import { getSessionUser, unauthorized, notFound, authorizeInspection } from "../../../lib/apiAuth";
 import { isSmsConfigured, sendSms } from "../../../lib/sms";
@@ -55,20 +55,10 @@ function formatTime(value: any) {
   const clean = cleanText(value);
   if (!clean) return "Time to be confirmed";
 
-  const [hoursRaw, minutesRaw] = clean.split(":");
-  const hours = Number(hoursRaw);
-  const minutes = Number((minutesRaw || "00").slice(0, 2));
-
-  if (Number.isNaN(hours) || Number.isNaN(minutes)) return clean;
-
-  const date = new Date();
-  date.setHours(hours, minutes, 0, 0);
-
-  return formatAppValue(date, {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
+  // Show the exact scheduled wall-clock time (e.g. "4:30 PM"). Do NOT run it
+  // through a timezone conversion — the stored time has no zone and must appear
+  // exactly as the inspector scheduled it, matching the rest of the app.
+  return formatClockTime(clean);
 }
 
 export async function POST(req: Request) {
@@ -307,6 +297,7 @@ ${branding.name}`;
           email_type: "appointment_confirmed",
           subject,
           message: portalUrl,
+          html,
           status: "sent",
           resend_id: result?.data?.id || null,
           sent_at: new Date().toISOString(),

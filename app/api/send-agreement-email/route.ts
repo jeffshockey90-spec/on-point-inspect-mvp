@@ -212,6 +212,7 @@ async function logEmailEvent({
   subject,
   status,
   resendId,
+  html,
   metadata = {},
 }: {
   inspectionId: any;
@@ -219,6 +220,7 @@ async function logEmailEvent({
   subject: string;
   status: "sent" | "failed";
   resendId?: string | null;
+  html?: string | null;
   metadata?: Record<string, any>;
 }) {
   try {
@@ -229,6 +231,7 @@ async function logEmailEvent({
       email_type: metadata?.type || "agreement_email",
       subject,
       message: metadata?.agreementUrl || "",
+      html: html || null,
       status,
       resend_id: resendId || null,
       sent_at: status === "sent" ? new Date().toISOString() : null,
@@ -427,12 +430,7 @@ export async function POST(req: Request) {
       const subject = `Inspection Agreement To Forward - ${property}`;
       const email = realtor.email;
 
-      try {
-        const result = await resend.emails.send({
-          from: fromEmail,
-          to: email,
-          subject,
-          html: `
+      const realtorHtml = `
             <div style="font-family:Arial,sans-serif;padding:24px;line-height:1.6;color:#0f172a;">
               <h2 style="color:#0f766e;">${escapeHtml(branding.name)}</h2>
 
@@ -457,7 +455,14 @@ export async function POST(req: Request) {
                 ${escapeHtml(branding.name)}
               </p>
             </div>
-          `,
+          `;
+
+      try {
+        const result = await resend.emails.send({
+          from: fromEmail,
+          to: email,
+          subject,
+          html: realtorHtml,
           text: `Hi ${realtor.name || "there"},
 
 Please forward the link below to the client so they can review and sign their inspection agreement for ${property}.
@@ -493,6 +498,7 @@ ${branding.name}`,
           subject,
           status: "sent",
           resendId: result?.data?.id || null,
+          html: realtorHtml,
           metadata: {
             type: "agreement_realtor_email",
             links,
@@ -559,12 +565,7 @@ ${branding.name}`,
       )}&recipient_email=${encodeURIComponent(email)}`;
       const subject = `Inspection Agreement - ${property}`;
 
-      try {
-        const result = await resend.emails.send({
-          from: fromEmail,
-          to: email,
-          subject,
-          html: `
+      const clientHtml = `
             <div style="font-family:Arial,sans-serif;padding:24px;line-height:1.6;color:#0f172a;">
               <h2 style="color:#0f766e;">${escapeHtml(branding.name)}</h2>
 
@@ -591,7 +592,14 @@ ${branding.name}`,
                 ${escapeHtml(branding.name)}
               </p>
             </div>
-          `,
+          `;
+
+      try {
+        const result = await resend.emails.send({
+          from: fromEmail,
+          to: email,
+          subject,
+          html: clientHtml,
           text: `Hi ${contact.name || "there"},
 
 Please review and sign your inspection agreement for ${property}.
@@ -638,6 +646,7 @@ ${branding.name}`,
           subject,
           status: "sent",
           resendId: result?.data?.id || null,
+          html: clientHtml,
           metadata: {
             type: "agreement_email",
             agreementUrl,
