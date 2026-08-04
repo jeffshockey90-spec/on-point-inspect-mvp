@@ -4,13 +4,19 @@ import { useState } from "react";
 import type { CaptureDraft } from "../../lib/ai/captureTypes";
 import { SECTION_OPTIONS, SEVERITY_OPTIONS } from "../../lib/ai/captureTypes";
 
+type ExistingFinding = { id: string; title?: string; section?: string };
+
 type Props = {
   mediaPreviewUrl: string;
   isVideo: boolean;
   draft: CaptureDraft;
   busy: boolean;
   error?: string;
+  initialNote?: string;
+  existingFindings?: ExistingFinding[];
   onAccept: (editedDraft: CaptureDraft) => void;
+  onRegenerate?: (note: string) => void;
+  onAttachToExisting?: (findingId: string) => void;
   onRetake: () => void;
   onMarkup?: () => void;
 };
@@ -47,11 +53,22 @@ export default function CaptureConfirmCard({
   draft,
   busy,
   error,
+  initialNote,
+  existingFindings,
   onAccept,
+  onRegenerate,
+  onAttachToExisting,
   onRetake,
   onMarkup,
 }: Props) {
   const [edited, setEdited] = useState<CaptureDraft>(draft);
+  const [note, setNote] = useState(initialNote || "");
+  const [showNote, setShowNote] = useState(false);
+  const [attachTo, setAttachTo] = useState("");
+
+  const canRegenerate = Boolean(onRegenerate) && draft.kind !== "reference";
+  const canAttach =
+    Boolean(onAttachToExisting) && draft.kind === "finding" && (existingFindings?.length || 0) > 0;
 
   function update(patch: Partial<CaptureDraft>) {
     setEdited((current) => ({ ...current, ...patch }) as CaptureDraft);
@@ -94,7 +111,81 @@ export default function CaptureConfirmCard({
           </button>
         )}
 
-        <div className="mt-4 space-y-3">
+        {/* Attach this capture to a defect already in the report */}
+        {canAttach && (
+          <div className="mt-3 rounded-xl border border-white/10 bg-black/40 p-3">
+            <label className={labelClass}>Attach to an existing defect</label>
+            <select
+              className={inputClass}
+              value={attachTo}
+              onChange={(event) => setAttachTo(event.target.value)}
+              disabled={busy}
+            >
+              <option value="">— Create a new finding —</option>
+              {existingFindings!.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {(f.title || "Untitled").slice(0, 60)}
+                  {f.section ? ` · ${f.section}` : ""}
+                </option>
+              ))}
+            </select>
+            {attachTo && (
+              <p className="mt-2 text-[11px] font-bold text-cyan-200">
+                This photo/video will be added to that defect. The write-up below is skipped.
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Regenerate the AI write-up from a fresh inspector note — no retake */}
+        {canRegenerate && !attachTo && (
+          <div className="mt-3">
+            {!showNote ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setNote(initialNote || "");
+                  setShowNote(true);
+                }}
+                disabled={busy}
+                className="w-full rounded-xl border border-cyan-400/60 bg-cyan-500/10 px-4 py-2.5 text-sm font-black text-cyan-200 disabled:opacity-50"
+              >
+                ✍️ Adjust write-up from inspector note
+              </button>
+            ) : (
+              <div className="rounded-xl border border-cyan-400/40 bg-black/40 p-3">
+                <label className={labelClass}>Inspector note for AI</label>
+                <textarea
+                  className={`${inputClass} min-h-16`}
+                  value={note}
+                  autoFocus
+                  placeholder="e.g. focus on the cracked heat exchanger and note the rust at the base"
+                  onChange={(event) => setNote(event.target.value)}
+                />
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowNote(false)}
+                    disabled={busy}
+                    className="rounded-lg border border-slate-500 px-3 py-2 text-sm font-black text-white disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onRegenerate?.(note)}
+                    disabled={busy}
+                    className="rounded-lg bg-cyan-400 px-3 py-2 text-sm font-black text-black disabled:opacity-50"
+                  >
+                    🔄 Regenerate
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className={`mt-4 space-y-3 ${attachTo ? "hidden" : ""}`}>
           {edited.kind === "finding" && (
             <>
               <Field label="Title">
@@ -272,11 +363,17 @@ export default function CaptureConfirmCard({
         </button>
         <button
           type="button"
-          onClick={() => onAccept(edited)}
+          onClick={() => (attachTo ? onAttachToExisting?.(attachTo) : onAccept(edited))}
           disabled={busy}
           className="min-h-12 rounded-xl bg-emerald-400 px-2 py-3 text-sm font-black text-black disabled:opacity-50"
         >
-          {busy ? "Saving…" : draft.kind === "reference" ? "Save" : "Accept & Save"}
+          {busy
+            ? "Saving…"
+            : attachTo
+              ? "Attach to Defect"
+              : draft.kind === "reference"
+                ? "Save"
+                : "Accept & Save"}
         </button>
       </div>
     </div>

@@ -15,6 +15,8 @@ type Stage =
   | "ref_preview"
   | "capture_error";
 
+type ExistingFinding = { id: string; title?: string; section?: string; severity?: string };
+
 type Props = {
   online: boolean;
   selectedReport: string;
@@ -25,6 +27,12 @@ type Props = {
     category: CaptureCategory,
     draft: CaptureDraft,
     file: File,
+  ) => Promise<void>;
+  existingFindings?: ExistingFinding[];
+  onAttachToExisting?: (
+    findingId: string,
+    file: File,
+    isVideo: boolean,
   ) => Promise<void>;
 };
 
@@ -94,6 +102,8 @@ export default function AILiveInspectionCamera({
   currentSeverity,
   sections,
   onAccept,
+  existingFindings,
+  onAttachToExisting,
 }: Props) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -578,8 +588,9 @@ export default function AILiveInspectionCamera({
     void handlePhotoShutter();
   }
 
-  async function runDraft(frameDataUrl: string, file: File) {
+  async function runDraft(frameDataUrl: string, file: File, noteOverride?: string) {
     setDraftError("");
+    const note = typeof noteOverride === "string" ? noteOverride : noteText;
 
     try {
       if (category === "finding") {
@@ -588,7 +599,7 @@ export default function AILiveInspectionCamera({
           headers: { "Content-Type": "application/json" },
           cache: "no-store",
           body: JSON.stringify({
-            note: noteText,
+            note,
             inspectionId: selectedReport,
             section: currentSection,
             severity: currentSeverity,
@@ -624,7 +635,7 @@ export default function AILiveInspectionCamera({
             currentSection,
             currentSeverity,
             focus: "limitation",
-            note: noteText,
+            note,
           }),
         });
 
@@ -634,9 +645,9 @@ export default function AILiveInspectionCamera({
         const limitation = data.limitation;
         setDraft({
           kind: "limitation",
-          title: limitation?.title || noteText || "Inspection Limitation",
+          title: limitation?.title || note || "Inspection Limitation",
           section: limitation?.section || currentSection,
-          limitation: limitation?.limitation || noteText || "",
+          limitation: limitation?.limitation || note || "",
           reason: limitation?.reason || "",
           recommendation: limitation?.recommendation || "",
           confidence: limitation?.confidence,
@@ -651,7 +662,7 @@ export default function AILiveInspectionCamera({
         formData.append("image", file);
         formData.append("inspectionId", selectedReport || "");
         formData.append("inspection_id", selectedReport || "");
-        if (noteText.trim()) formData.append("note", noteText.trim());
+        if (note.trim()) formData.append("note", note.trim());
 
         const response = await fetch("/api/analyze-equipment", {
           method: "POST",
@@ -740,6 +751,34 @@ export default function AILiveInspectionCamera({
       setStage("note_entry");
     } catch (error: any) {
       setSaveError(error?.message || "Could not save. Try again.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // Re-run the AI write-up on the SAME captured media using a new inspector note,
+  // without making the inspector retake the photo/video.
+  function handleRegenerate(newNote: string) {
+    if (!capturedFile || !capturedFrameForAi) return;
+    setNoteText(newNote);
+    setSaveError("");
+    setStage("drafting");
+    void runDraft(capturedFrameForAi, capturedFile, newNote);
+  }
+
+  // Attach the captured media to a defect that already exists in the report,
+  // instead of creating a brand-new finding.
+  async function handleAttachToExisting(findingId: string) {
+    if (!findingId || !capturedFile || !onAttachToExisting) return;
+    setSaving(true);
+    setSaveError("");
+    try {
+      await onAttachToExisting(findingId, capturedFile, capturedIsVideo);
+      setToast("Media attached to defect.");
+      resetCaptureState();
+      setStage("note_entry");
+    } catch (error: any) {
+      setSaveError(error?.message || "Could not attach the media. Try again.");
     } finally {
       setSaving(false);
     }
@@ -1062,7 +1101,11 @@ export default function AILiveInspectionCamera({
           draft={draft}
           busy={saving}
           error={saveError}
+          initialNote={noteText}
+          existingFindings={onAttachToExisting ? existingFindings : undefined}
           onAccept={handleAccept}
+          onRegenerate={handleRegenerate}
+          onAttachToExisting={onAttachToExisting ? handleAttachToExisting : undefined}
           onRetake={handleRetake}
           onMarkup={openMarkup}
         />

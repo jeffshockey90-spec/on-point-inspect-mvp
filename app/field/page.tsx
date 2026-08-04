@@ -1743,6 +1743,42 @@ function FieldPageContent() {
     ignoreAiSuggestion(suggestion.id);
   }
 
+  // Attach a photo/video captured in the live AI camera to a defect that already
+  // exists in the report (instead of creating a new finding).
+  async function handleCameraAttachToExisting(
+    findingId: string,
+    file: File,
+    _isVideo: boolean,
+  ) {
+    const target = existingFindings.find(
+      (finding) => String(finding.id) === String(findingId),
+    );
+    if (!target) throw new Error("That defect could not be found.");
+
+    const media = await uploadPhotoFile(file, "field-media");
+    const { error: photoError } = await supabase.from("photos").insert({
+      inspection_id: selectedReport,
+      finding_id: findingId,
+      public_url: media.publicUrl,
+      file_path: media.filePath,
+      is_video: Boolean(media.isVideo),
+      mime_type: media.mimeType || (media.isVideo ? "video/mp4" : null),
+      thumbnail_url: media.thumbnailUrl || null,
+      thumbnail_path: media.thumbnailPath || null,
+    });
+    if (photoError) throw photoError;
+
+    if (!target.image_url && media.publicUrl && !media.isVideo) {
+      await supabase
+        .from("findings")
+        .update({ image_url: media.publicUrl })
+        .eq("id", findingId)
+        .eq("inspection_id", selectedReport);
+    }
+
+    setQueueTick((current) => current + 1);
+  }
+
   async function handleCameraAccept(
     category: CaptureCategory,
     draft: CaptureDraft,
@@ -3896,6 +3932,8 @@ function FieldPageContent() {
                     currentSeverity={severity}
                     sections={SECTIONS}
                     onAccept={handleCameraAccept}
+                    existingFindings={existingFindings}
+                    onAttachToExisting={handleCameraAttachToExisting}
                   />
                 )}
 
