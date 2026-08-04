@@ -59,6 +59,7 @@ export async function POST(request: Request) {
     const currentSection = VALID_SECTIONS.includes(body.currentSection)
       ? body.currentSection
       : "Exterior";
+    const note = clean(body.note).slice(0, 700);
 
     if (!images.length) {
       return NextResponse.json(
@@ -130,7 +131,11 @@ ${VALID_SEVERITIES.join(", ")}`,
             {
               type: "text",
               text: `Current section: ${currentSection}
-Organize these photos into sensible inspection groups. Do not overstate image-only conclusions.`,
+Organize these photos into sensible inspection groups. Do not overstate image-only conclusions.${
+                note
+                  ? `\n\nInspector note — follow this direction when grouping and writing the findings: ${note}`
+                  : ""
+              }`,
             },
             ...imageContent,
           ],

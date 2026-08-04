@@ -996,6 +996,8 @@ function FieldPageContent() {
   const [savingOrganizedMedia, setSavingOrganizedMedia] = useState(false);
   const [mediaGroups, setMediaGroups] = useState<AIMediaGroup[]>([]);
   const [mediaOrganizerOpen, setMediaOrganizerOpen] = useState(false);
+  // Optional inspector note that steers how AI organizes the photo session.
+  const [organizeNote, setOrganizeNote] = useState("");
   const [takingNativePhoto, setTakingNativePhoto] = useState(false);
   const [online, setOnline] = useState(true);
   const [message, setMessage] = useState("");
@@ -2973,6 +2975,7 @@ function FieldPageContent() {
         cache: "no-store",
         body: JSON.stringify({
           currentSection: section,
+          note: organizeNote.trim() || undefined,
           images,
         }),
       });
@@ -3093,6 +3096,7 @@ function FieldPageContent() {
       );
       setMediaGroups([]);
       setMediaOrganizerOpen(false);
+      setOrganizeNote("");
       setMessage(
         `${savedCount} AI-organized finding${savedCount === 1 ? "" : "s"} saved.`,
       );
@@ -4110,23 +4114,38 @@ function FieldPageContent() {
               {photos.filter((photo) =>
                 photo.type.startsWith("image/"),
               ).length >= 2 && photoType === "finding" && (
-                <button
-                  type="button"
-                  onClick={organizeSelectedPhotosWithAI}
-                  disabled={
-                    organizingMedia ||
-                    savingOrganizedMedia ||
-                    !online
-                  }
-                  className="mt-3 inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl border border-fuchsia-400 bg-fuchsia-500/15 px-4 py-3 text-sm font-black text-fuchsia-100 transition active:scale-[0.98] hover:bg-fuchsia-500/25 disabled:opacity-50"
-                >
-                  {organizingMedia && (
-                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                  )}
-                  {organizingMedia
-                    ? "Organizing Photos..."
-                    : "✨ AI Organize Multi-Photo Session"}
-                </button>
+                <>
+                  <div className="mt-3 rounded-xl border border-fuchsia-500/40 bg-fuchsia-500/5 p-3">
+                    <label className="mb-1 block text-xs font-black uppercase tracking-wide text-fuchsia-200">
+                      Inspector Note for AI (optional)
+                    </label>
+                    <textarea
+                      value={organizeNote}
+                      onChange={(event) => setOrganizeNote(event.target.value)}
+                      rows={2}
+                      placeholder="Direct the AI — e.g. 'the panel photos are one finding, the water heater is separate' or 'note the double-tap in group 1'"
+                      className="w-full rounded-lg border border-slate-700 bg-black p-3 leading-6 text-white"
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={organizeSelectedPhotosWithAI}
+                    disabled={
+                      organizingMedia ||
+                      savingOrganizedMedia ||
+                      !online
+                    }
+                    className="mt-3 inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl border border-fuchsia-400 bg-fuchsia-500/15 px-4 py-3 text-sm font-black text-fuchsia-100 transition active:scale-[0.98] hover:bg-fuchsia-500/25 disabled:opacity-50"
+                  >
+                    {organizingMedia && (
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                    )}
+                    {organizingMedia
+                      ? "Organizing Photos..."
+                      : "✨ AI Organize Multi-Photo Session"}
+                  </button>
+                </>
               )}
 
               {photos.length > 0 && (
@@ -4542,6 +4561,30 @@ function FieldPageContent() {
                         rows={3}
                         className="mt-3 w-full rounded-lg border border-slate-600 bg-black p-3 text-white"
                         placeholder="Observation"
+                      />
+
+                      <textarea
+                        value={group.implication || ""}
+                        onChange={(event) =>
+                          updateMediaGroup(group.id, {
+                            implication: event.target.value,
+                          })
+                        }
+                        rows={2}
+                        className="mt-3 w-full rounded-lg border border-slate-600 bg-black p-3 text-white"
+                        placeholder="Implication"
+                      />
+
+                      <textarea
+                        value={group.recommendation || ""}
+                        onChange={(event) =>
+                          updateMediaGroup(group.id, {
+                            recommendation: event.target.value,
+                          })
+                        }
+                        rows={2}
+                        className="mt-3 w-full rounded-lg border border-slate-600 bg-black p-3 text-white"
+                        placeholder="Recommendation"
                       />
                     </div>
                   ))}
