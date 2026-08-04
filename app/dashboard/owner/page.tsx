@@ -16,6 +16,7 @@ import SecurityEventsPanel from "../../../components/SecurityEventsPanel";
 import PushAlertsPanel from "../../../components/PushAlertsPanel";
 import RepriceSubscribersPanel from "../../../components/RepriceSubscribersPanel";
 import OwnerDashboardTabs from "../../../components/OwnerDashboardTabs";
+import { getSubscriptionPricing } from "../../../lib/subscriptionPricing";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -848,6 +849,48 @@ export default async function OwnerDashboardPage() {
     ? now.getTime() - webhookLastEventAt < 1000 * 60 * 60 * 24 * 7
     : false;
 
+  // ---- Subscriptions / MRR ----
+  const pricing = await getSubscriptionPricing();
+  const monthlyPriceCents = (profile: any) => {
+    const override = Number(profile?.subscription_price_override_cents || 0);
+    if (override > 0) return override;
+    return profile?.founding_member
+      ? pricing.foundingMemberPriceCents
+      : pricing.standardPriceCents;
+  };
+
+  const subscriberProfiles = (profiles || []).filter((p: any) => {
+    const status = String(p?.subscription_status || "").toLowerCase();
+    return status === "active" || status === "trialing";
+  });
+  const activeSubscribers = subscriberProfiles.filter(
+    (p: any) => String(p?.subscription_status || "").toLowerCase() === "active",
+  );
+  const trialingSubscribers = subscriberProfiles.filter(
+    (p: any) => String(p?.subscription_status || "").toLowerCase() === "trialing",
+  );
+  const exemptCount = (profiles || []).filter(
+    (p: any) => p?.subscription_exempt === true || p?.subscription_required === false,
+  ).length;
+
+  const mrrCents = activeSubscribers.reduce(
+    (sum: number, p: any) => sum + monthlyPriceCents(p),
+    0,
+  );
+  const mrr = mrrCents / 100;
+
+  const subscriberRows = subscriberProfiles
+    .map((p: any) => ({
+      id: String(p?.id || p?.email || ""),
+      name: getUserName(p),
+      email: getUserEmail(p),
+      status: String(p?.subscription_status || "").toLowerCase(),
+      founding: Boolean(p?.founding_member),
+      priceMonthly: monthlyPriceCents(p) / 100,
+    }))
+    .sort((a: any, b: any) => b.priceMonthly - a.priceMonthly)
+    .slice(0, 25);
+
   return (
     <main className="min-h-screen bg-[#020617] px-4 py-8 text-white md:px-6 md:py-10">
       <div className="mx-auto max-w-7xl space-y-8">
@@ -995,7 +1038,12 @@ export default async function OwnerDashboardPage() {
             </div>
 
             <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4 md:col-span-2">
-              <p className="text-xs font-black uppercase tracking-wide text-slate-500">Recent Refunds &amp; Disputes</p>
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs font-black uppercase tracking-wide text-slate-500">Recent Refunds &amp; Disputes</p>
+                <Link href="/dashboard/owner/refunds" className="text-xs font-black text-teal-300 hover:text-teal-200">
+                  View all →
+                </Link>
+              </div>
               {refundDisputeRows.length === 0 ? (
                 <p className="mt-2 text-sm text-slate-400">None recorded. Refunds and chargebacks will appear here.</p>
               ) : (
@@ -1023,6 +1071,56 @@ export default async function OwnerDashboardPage() {
                 </div>
               )}
             </div>
+          </div>
+        </Panel>
+
+        <Panel tab="payments" title="Subscriptions & MRR" subtitle="Inspector subscription billing. MRR is the sum of active subscribers' monthly prices (per-inspector override, else the global price).">
+          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
+            <div className="rounded-xl border border-green-500/40 bg-green-950/20 p-4">
+              <p className="text-xs font-black uppercase tracking-wide text-slate-500">MRR</p>
+              <p className="mt-2 text-3xl font-black text-green-300">{usd(mrr)}</p>
+              <p className="mt-1 text-xs text-slate-500">Monthly recurring revenue</p>
+            </div>
+            <MiniStat label="Active" value={String(activeSubscribers.length)} />
+            <MiniStat label="Trialing" value={String(trialingSubscribers.length)} />
+            <MiniStat label="Exempt" value={String(exemptCount)} />
+          </div>
+
+          <div className="mt-6">
+            {subscriberRows.length === 0 ? (
+              <EmptyState text="No active or trialing subscribers yet." />
+            ) : (
+              <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-700">
+                <div className="min-w-0 overflow-x-auto">
+                  <table className="min-w-full divide-y divide-slate-800 text-sm">
+                    <thead className="bg-[#020817] text-left text-xs uppercase tracking-wide text-slate-400">
+                      <tr>
+                        <th className="px-4 py-3">Inspector</th>
+                        <th className="px-4 py-3">Status</th>
+                        <th className="px-4 py-3 text-right">Monthly</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800 bg-[#020817]/60">
+                      {subscriberRows.map((row) => (
+                        <tr key={row.id} className="hover:bg-slate-900/70">
+                          <td className="px-4 py-3">
+                            <p className="max-w-[260px] truncate font-black text-white">{row.name}</p>
+                            {row.email && <p className="max-w-[260px] truncate text-xs text-slate-500">{row.email}</p>}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={`rounded-full border px-2.5 py-1 text-[11px] font-black uppercase ${row.status === "active" ? "border-green-500/40 bg-green-500/10 text-green-300" : "border-yellow-500/40 bg-yellow-500/10 text-yellow-300"}`}>
+                              {row.status}
+                            </span>
+                            {row.founding && <span className="ml-2 rounded-full border border-teal-500/40 bg-teal-500/10 px-2.5 py-1 text-[11px] font-black uppercase text-teal-300">Founding</span>}
+                          </td>
+                          <td className="px-4 py-3 text-right font-black text-green-300">{usd(row.priceMonthly)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         </Panel>
 
