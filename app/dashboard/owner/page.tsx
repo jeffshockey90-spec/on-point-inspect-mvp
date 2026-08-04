@@ -395,7 +395,7 @@ export default async function OwnerDashboardPage() {
   const sevenDaysAgo = new Date(now.getTime() - 1000 * 60 * 60 * 24 * 7);
   const thirtyDaysAgo = new Date(now.getTime() - 1000 * 60 * 60 * 24 * 30);
 
-  const [profiles, inspectorProfiles, companyUsers, inspections, events, pushSubscriptions, nativePushTokens, deviceEvents, findings, photos, agreements, invoices, templates, inspectionContacts, aiLogs, companies] = await Promise.all([
+  const [profiles, inspectorProfiles, companyUsers, inspections, events, pushSubscriptions, nativePushTokens, deviceEvents, findings, photos, agreements, invoices, templates, inspectionContacts, aiLogs, companies, stripeLogs, stripeAuditLogs] = await Promise.all([
     safeSelect(admin.from("profiles").select("*"), "profiles"),
     safeSelect(admin.from("inspector_profiles").select("*"), "inspector_profiles"),
     safeSelect(admin.from("company_users").select("*"), "company_users"),
@@ -412,6 +412,8 @@ export default async function OwnerDashboardPage() {
     safeSelect(admin.from("inspection_contacts").select("inspection_id,role,email,portal_access"), "inspection_contacts"),
     safeSelect(admin.from("ai_logs").select("user_id,inspection_id,tool,tokens_used,status,created_at").gte("created_at", thirtyDaysAgo.toISOString()).limit(50000), "ai_logs"),
     safeSelect(admin.from("companies").select("id,name,business_name,display_name"), "companies"),
+    safeSelect(admin.from("stripe_logs").select("inspection_id,amount,status,created_at").order("created_at", { ascending: false }).limit(100), "stripe_logs"),
+    safeSelect(admin.from("audit_logs").select("action,resource_id,metadata,created_at").in("action", ["stripe_payment_completed", "stripe_charge_refunded", "stripe_charge_disputed"]).order("created_at", { ascending: false }).limit(50), "audit_logs"),
   ]);
 
   function roleLooksLikeRealtorPreview(value: unknown) {
@@ -799,6 +801,52 @@ export default async function OwnerDashboardPage() {
   const aiTotalCost = estAiCost(aiTotalTokens);
   const aiActiveInspectors = aiByUser.size;
 
+  // ---- Payments & webhook health ----
+  // Most recent successful payment recorded (webhook or success-page path).
+  const paymentLog = (stripeLogs || []).find((row: any) => {
+    const status = String(row?.status || "").toLowerCase();
+    return status.includes("payment_completed") || status.includes("payment_success");
+  });
+  const lastPaymentAmount = paymentLog ? getNumber(paymentLog.amount) : 0;
+  const lastPaymentWhen = paymentLog?.created_at || null;
+  const lastPaymentInspection = paymentLog?.inspection_id
+    ? inspectionById.get(String(paymentLog.inspection_id))
+    : null;
+
+  // Recent refunds and disputes (written by the webhook's refund/dispute handlers).
+  const refundDisputeRows = (stripeAuditLogs || [])
+    .filter((row: any) =>
+      ["stripe_charge_refunded", "stripe_charge_disputed"].includes(String(row?.action)),
+    )
+    .slice(0, 8)
+    .map((row: any) => {
+      const insp: any = row?.resource_id ? inspectionById.get(String(row.resource_id)) : null;
+      const isDispute = String(row?.action) === "stripe_charge_disputed";
+      return {
+        id: `${row.action}-${row.resource_id}-${row.created_at}`,
+        type: isDispute ? "Dispute" : "Refund",
+        address: insp
+          ? insp.property_address || insp.address || `Inspection #${row.resource_id}`
+          : row?.resource_id
+            ? `Inspection #${row.resource_id}`
+            : "Unknown inspection",
+        amount: getNumber(row?.metadata?.amountRefunded ?? row?.metadata?.amount),
+        when: row?.created_at || null,
+      };
+    });
+
+  // Webhook health: most recent webhook-confirmed event (a payment the webhook
+  // recorded, or any refund/dispute). Recent = something arrived in the last 7 days.
+  const webhookTimes = [paymentLog?.created_at, (stripeAuditLogs || [])[0]?.created_at]
+    .filter(Boolean)
+    .map((value: any) => new Date(value).getTime())
+    .filter((time: number) => !Number.isNaN(time))
+    .sort((a: number, b: number) => b - a);
+  const webhookLastEventAt = webhookTimes[0] || null;
+  const webhookRecent = webhookLastEventAt
+    ? now.getTime() - webhookLastEventAt < 1000 * 60 * 60 * 24 * 7
+    : false;
+
   return (
     <main className="min-h-screen bg-[#020617] px-4 py-8 text-white md:px-6 md:py-10">
       <div className="mx-auto max-w-7xl space-y-8">
@@ -902,6 +950,76 @@ export default async function OwnerDashboardPage() {
         </section>
 
         <AIBudgetStatus />
+
+        <Panel title="Payments & Webhook Health" subtitle="Live view of Stripe payment/refund activity flowing into the app. Raw webhook delivery (200 vs failed) is on each destination's page in Stripe.">
+          <div className="mb-5 flex flex-wrap items-center gap-3">
+            <span
+              className={`rounded-full border px-4 py-2 text-xs font-black uppercase tracking-wide ${
+                webhookRecent
+                  ? "border-green-500/40 bg-green-500/10 text-green-300"
+                  : "border-yellow-500/40 bg-yellow-500/10 text-yellow-300"
+              }`}
+            >
+              {webhookRecent ? "✓ Receiving events" : "No recent webhook events"}
+            </span>
+            <span className="text-sm text-slate-400">
+              {webhookLastEventAt
+                ? `Last webhook-confirmed event: ${formatDateTime(new Date(webhookLastEventAt).toISOString())}`
+                : "No webhook-confirmed events yet — normal if there have been no payments since setup."}
+            </span>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
+              <p className="text-xs font-black uppercase tracking-wide text-slate-500">Last Payment Received</p>
+              {paymentLog ? (
+                <>
+                  <p className="mt-2 text-3xl font-black text-green-300">{money(lastPaymentAmount)}</p>
+                  <p className="mt-1 truncate text-sm text-slate-400">
+                    {lastPaymentInspection
+                      ? lastPaymentInspection.property_address || lastPaymentInspection.address || `Inspection #${paymentLog.inspection_id}`
+                      : paymentLog.inspection_id
+                        ? `Inspection #${paymentLog.inspection_id}`
+                        : "Inspection"}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500">{formatDateTime(lastPaymentWhen)}</p>
+                </>
+              ) : (
+                <p className="mt-2 text-sm text-slate-400">No payments recorded yet.</p>
+              )}
+            </div>
+
+            <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4 md:col-span-2">
+              <p className="text-xs font-black uppercase tracking-wide text-slate-500">Recent Refunds &amp; Disputes</p>
+              {refundDisputeRows.length === 0 ? (
+                <p className="mt-2 text-sm text-slate-400">None recorded. Refunds and chargebacks will appear here.</p>
+              ) : (
+                <div className="mt-3 space-y-2">
+                  {refundDisputeRows.map((row) => (
+                    <div key={row.id} className="flex items-center justify-between gap-3 rounded-lg border border-slate-800 bg-[#0f172a] px-3 py-2">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-bold text-white">{row.address}</p>
+                        <p className="text-xs text-slate-500">{formatDateTime(row.when)}</p>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-2">
+                        {row.amount > 0 && <span className="text-sm font-black text-orange-300">{money(row.amount)}</span>}
+                        <span
+                          className={`rounded-full border px-2.5 py-1 text-[11px] font-black uppercase ${
+                            row.type === "Dispute"
+                              ? "border-red-500/40 bg-red-500/10 text-red-300"
+                              : "border-orange-500/40 bg-orange-500/10 text-orange-300"
+                          }`}
+                        >
+                          {row.type}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </Panel>
 
         <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
           <MetricCard label="AI Calls (30d)" value={String(aiTotalCalls)} helper={`${aiActiveInspectors} inspector${aiActiveInspectors === 1 ? "" : "s"} used AI.`} tone="purple" />
