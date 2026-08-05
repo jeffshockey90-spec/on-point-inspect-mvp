@@ -626,7 +626,8 @@ async function loadPhotos(admin: any, inspectionId: string, findingIds: string[]
             .from("photos")
             .select("*")
             .in("finding_id", findingIds)
-            .order("sort_order", { ascending: true })
+            // photos has no sort_order column; ordering by it 400s and drops
+            // every photo/video from the report. Order by created_at only.
             .order("created_at", { ascending: true })
             .range(from, to),
         )

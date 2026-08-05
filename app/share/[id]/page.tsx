@@ -1178,7 +1178,10 @@ export default async function PublicSharePage({
         .from("photos")
         .select("*")
         .in("finding_id", findingIds)
-        .order("sort_order", { ascending: true })
+        // NOTE: the photos table has no sort_order column. Ordering by it makes
+        // PostgREST 400 and return ZERO rows, which silently drops every photo
+        // and video from the client report (findings fall back to their single
+        // legacy image_url). Order by created_at only.
         .order("created_at", { ascending: true })
         .range(from, from + PAGE - 1);
       if (error) {
