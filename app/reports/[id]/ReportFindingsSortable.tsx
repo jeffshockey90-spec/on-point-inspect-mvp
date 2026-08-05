@@ -2284,36 +2284,56 @@ function FindingCardBase({
           isVideo = true;
           showMessage("success", "Preparing video for report...");
 
-          const formData = new FormData();
-          formData.append("video", file);
+          // Conversion to MP4 is best-effort. If it fails (server timeout,
+          // unsupported codec, ffmpeg issue), fall back to saving the ORIGINAL
+          // video so it's never silently dropped — matching the Field Tool.
+          try {
+            const formData = new FormData();
+            formData.append("video", file);
 
-          const response = await fetch("/api/video-convert", {
-            method: "POST",
-            body: formData,
-          });
+            const response = await fetch("/api/video-convert", {
+              method: "POST",
+              body: formData,
+            });
 
-          if (!response.ok) {
-            const errorText = await response.text().catch(() => "");
-            throw new Error(errorText || "Video conversion failed");
+            if (!response.ok) {
+              const errorText = await response.text().catch(() => "");
+              throw new Error(errorText || "Video conversion failed");
+            }
+
+            const convertedBlob = await response.blob();
+
+            if (!convertedBlob || convertedBlob.size === 0) {
+              throw new Error("Video conversion returned an empty MP4.");
+            }
+
+            uploadFile = new File([convertedBlob], `video-${Date.now()}.mp4`, {
+              type: "video/mp4",
+            });
+          } catch (convertError) {
+            console.warn(
+              "Video conversion failed; uploading the original video instead.",
+              convertError,
+            );
+            uploadFile = file;
           }
 
-          const convertedBlob = await response.blob();
-
-          if (!convertedBlob || convertedBlob.size === 0) {
-            throw new Error("Video conversion returned an empty MP4.");
-          }
-
-          uploadFile = new File([convertedBlob], `video-${Date.now()}.mp4`, {
-            type: "video/mp4",
-          });
-
-          thumbnailFile = await createVideoThumbnailForUpload(uploadFile);
+          thumbnailFile = await createVideoThumbnailForUpload(uploadFile).catch(
+            () => null,
+          );
         } else {
           uploadFile = await createFullImageForUpload(file);
           thumbnailFile = await createThumbnailForUpload(file);
         }
 
-        const fileExt = isVideo ? "mp4" : "jpg";
+        const fileExt = isVideo
+          ? (uploadFile.name.split(".").pop() ||
+              uploadFile.type.split("/")[1] ||
+              "mp4")
+              .toLowerCase()
+              .replace(/[^a-z0-9]/g, "")
+              .slice(0, 4) || "mp4"
+          : "jpg";
         const safeName = uploadFile.name
           .replace(/\.[^/.]+$/, "")
           .replace(/[^a-zA-Z0-9-_]/g, "-")
