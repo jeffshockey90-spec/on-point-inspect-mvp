@@ -879,6 +879,7 @@ function buildAgentReportHtml({
   clientNameOverride,
   clientEmailOverride,
   sectionNotes,
+  limitations,
 }: {
   inspection: any;
   findings: any[];
@@ -892,6 +893,7 @@ function buildAgentReportHtml({
   clientNameOverride?: string;
   clientEmailOverride?: string;
   sectionNotes?: Record<string, string>;
+  limitations?: Array<{ section: string; label: string; comment: string }>;
 }) {
   const property = getPropertyAddress(inspection);
   const isFull = reportMode === "full";
@@ -1109,6 +1111,53 @@ function buildAgentReportHtml({
       </section>
     `;
   }).join("");
+
+  const limitationsList = Array.isArray(limitations) ? limitations : [];
+  const limitationsPageHtml =
+    limitationsList.length > 0
+      ? (() => {
+          const bySection = new Map<string, { label: string; comment: string }[]>();
+          for (const lim of limitationsList) {
+            const sec = normalizeSection(lim.section) || "General";
+            if (!bySection.has(sec)) bySection.set(sec, []);
+            bySection.get(sec)!.push({
+              label: lim.label || "Limitation",
+              comment: lim.comment || "",
+            });
+          }
+          const blocks = Array.from(bySection.entries())
+            .map(
+              ([sec, items]) => `
+      <div style="margin-bottom:16px;">
+        <h3 style="margin:0 0 8px;font-size:15px;color:#0f172a;border-bottom:1px solid #e2e8f0;padding-bottom:4px;">${escapeHtml(sec)}</h3>
+        ${items
+          .map(
+            (it) => `
+          <div style="margin:0 0 10px;padding:10px 12px;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc;">
+            <p style="margin:0;font-weight:800;color:#0f172a;font-size:13px;">${escapeHtml(it.label)}</p>
+            ${it.comment ? `<p style="margin:6px 0 0;color:#334155;font-size:13px;line-height:1.5;">${escapeHtml(it.comment)}</p>` : ""}
+          </div>`,
+          )
+          .join("")}
+      </div>`,
+            )
+            .join("");
+          return `
+    <section class="page report-page">
+      <header class="page-header">
+        <div class="mini-brand">${headerLogoHtml}</div>
+        <div class="header-address">${escapeHtml(property)}<br/>${escapeHtml(cityStateZip)}</div>
+      </header>
+      <div class="section-banner">
+        <span>!</span>
+        <div><p>Inspection</p><h2>Limitations</h2></div>
+      </div>
+      <p style="margin:0 0 12px;color:#334155;font-size:13px;">Areas or systems where access, visibility, or testing was limited during this inspection.</p>
+      ${blocks}
+      <footer class="black-footer"><span>${escapeHtml(companyName)}</span><span>Limitations</span></footer>
+    </section>`;
+        })()
+      : "";
 
   const standardsPagesHtml = includeStandardsInPdf
     ? buildStandardsOfPracticePagesHtml({
@@ -1340,6 +1389,8 @@ function buildAgentReportHtml({
         <footer class="black-footer"><span>${escapeHtml(companyName)}</span><span>No Findings</span></footer>
       </section>
     `}
+
+    ${limitationsPageHtml}
 
     ${standardsPagesHtml}
 
@@ -1703,6 +1754,19 @@ export async function GET(req: Request, { params }: RouteProps) {
     const findingIds = normalizedFindings.map((finding: any) => cleanText(finding.id)).filter(Boolean);
     const photosRaw = await loadPhotos(admin, inspectionId, findingIds);
 
+    // Section limitations (access/visibility/testing restrictions) — the realtor
+    // report previously omitted these entirely.
+    const { data: limitationsRaw } = await admin
+      .from("section_limitations")
+      .select("section, label, limitation_comment, ai_notes, custom_text, created_at")
+      .eq("inspection_id", inspectionId)
+      .order("created_at", { ascending: true });
+    const limitations = (limitationsRaw || []).map((lim: any) => ({
+      section: cleanText(lim.section),
+      label: cleanText(lim.custom_text || lim.label) || "Limitation",
+      comment: cleanText(lim.limitation_comment || lim.ai_notes),
+    }));
+
     // PDF files can't play video, but a finding's video should still appear as
     // its poster/thumbnail frame (getPhotoStoragePath prefers the thumbnail for
     // videos) rather than being dropped entirely.
@@ -1853,6 +1917,7 @@ export async function GET(req: Request, { params }: RouteProps) {
       clientEmailOverride,
       sectionOrder: activeSectionOrder,
       sectionNotes: sectionNotesMap,
+      limitations,
     });
     const property = getPropertyAddress(inspection);
 
