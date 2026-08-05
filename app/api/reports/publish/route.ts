@@ -16,6 +16,62 @@ function escapeHtml(value: any) {
     .replaceAll('"', "&quot;");
 }
 
+const REPORT_EMAIL_SUBJECT = "Your Home Inspection Report Is Ready";
+
+// Record every publish email (sent or failed) in email_logs so it shows up in
+// the Sent Emails list with the exact copy the recipient received, matching the
+// schema used by /api/send-report-email.
+async function logReportEmail(
+  supabase: any,
+  {
+    inspectionId,
+    recipient,
+    recipientType,
+    status,
+    resendId,
+    html,
+    reportLink,
+    error,
+  }: {
+    inspectionId: any;
+    recipient: string;
+    recipientType: "client" | "realtor";
+    status: "sent" | "failed";
+    resendId?: string | null;
+    html?: string | null;
+    reportLink?: string;
+    error?: string | null;
+  }
+) {
+  try {
+    await supabase.from("email_logs").insert({
+      inspection_id: Number(inspectionId),
+      inspection_id_bigint: Number(inspectionId),
+      recipient,
+      recipient_email: recipient,
+      email_type: "inspection_report",
+      subject: REPORT_EMAIL_SUBJECT,
+      message:
+        status === "sent"
+          ? `Report email sent to ${recipient} on publish.`
+          : error || "Report email failed to send on publish.",
+      html: html || null,
+      status,
+      resend_id: resendId || null,
+      sent_at: status === "sent" ? new Date().toISOString() : null,
+      metadata: {
+        type: "inspection_report",
+        recipientType,
+        source: "publish",
+        shareUrl: reportLink || null,
+        error: error || null,
+      },
+    });
+  } catch (logError) {
+    console.error("Publish email log insert failed:", logError);
+  }
+}
+
 async function sendReportEmail({
   to,
   name,
@@ -28,21 +84,13 @@ async function sendReportEmail({
   propertyAddress?: string;
   reportLink: string;
   branding: CompanyBranding;
-}) {
-  if (!process.env.RESEND_API_KEY) {
-    throw new Error("Missing RESEND_API_KEY.");
-  }
-
+}): Promise<{ ok: boolean; resendId: string | null; html: string; error?: string }> {
   const from = buildBrandedFromHeader(
     branding,
     "On Point Home Inspections <reports@onpointhomeinspect.com>"
   );
 
-  const { error } = await resend.emails.send({
-    from,
-    to,
-    subject: "Your Home Inspection Report Is Ready",
-    html: `
+  const html = `
       <div style="font-family: Arial, sans-serif; line-height: 1.7; color: #0f172a; max-width: 700px; margin: auto;">
         <div style="background:#0f172a;padding:30px;border-radius:12px 12px 0 0;text-align:center;">
           <h1 style="color:#14b8a6;margin:0;">
@@ -103,12 +151,29 @@ async function sendReportEmail({
           </p>
         </div>
       </div>
-    `,
+    `;
+
+  if (!process.env.RESEND_API_KEY) {
+    return { ok: false, resendId: null, html, error: "Missing RESEND_API_KEY." };
+  }
+
+  const { data, error } = await resend.emails.send({
+    from,
+    to,
+    subject: REPORT_EMAIL_SUBJECT,
+    html,
   });
 
   if (error) {
-    throw new Error(error.message || "Report email failed to send.");
+    return {
+      ok: false,
+      resendId: null,
+      html,
+      error: error.message || "Report email failed to send.",
+    };
   }
+
+  return { ok: true, resendId: data?.id || null, html };
 }
 
 function normalizeSection(value: any) {
@@ -259,33 +324,64 @@ export async function POST(req: Request) {
 
     const reportLink = `${baseUrl}/share/${shareToken}`;
 
-    const sentEmails: string[] = [];
+    const propertyAddress = inspection.property_address || inspection.address;
+
+    const recipients: Array<{
+      email: string;
+      name?: string;
+      type: "client" | "realtor";
+    }> = [];
 
     if (inspection.client_email) {
-      await sendReportEmail({
-        to: inspection.client_email,
+      recipients.push({
+        email: inspection.client_email,
         name: inspection.client_name,
-        propertyAddress: inspection.property_address || inspection.address,
-        reportLink,
-        branding,
+        type: "client",
       });
-
-      sentEmails.push(inspection.client_email);
     }
 
     if (inspection.realtor_email) {
-      await sendReportEmail({
-        to: inspection.realtor_email,
+      recipients.push({
+        email: inspection.realtor_email,
         name: inspection.realtor_name,
-        propertyAddress: inspection.property_address || inspection.address,
+        type: "realtor",
+      });
+    }
+
+    const sentEmails: string[] = [];
+    const failedEmails: Array<{ email: string; error?: string }> = [];
+
+    // Send + log each recipient independently: a bad client address must not
+    // stop the realtor from receiving (or being logged), and vice versa. Every
+    // attempt is written to email_logs so it appears in the Sent Emails list.
+    for (const recipient of recipients) {
+      const result = await sendReportEmail({
+        to: recipient.email,
+        name: recipient.name,
+        propertyAddress,
         reportLink,
         branding,
       });
 
-      sentEmails.push(inspection.realtor_email);
+      await logReportEmail(supabase, {
+        inspectionId,
+        recipient: recipient.email,
+        recipientType: recipient.type,
+        status: result.ok ? "sent" : "failed",
+        resendId: result.resendId,
+        html: result.html,
+        reportLink,
+        error: result.error,
+      });
+
+      if (result.ok) {
+        sentEmails.push(recipient.email);
+      } else {
+        failedEmails.push({ email: recipient.email, error: result.error });
+      }
     }
 
-    if (sentEmails.length === 0) {
+    if (recipients.length === 0) {
       return NextResponse.json(
         {
           error:
@@ -297,11 +393,27 @@ export async function POST(req: Request) {
       );
     }
 
+    if (sentEmails.length === 0) {
+      return NextResponse.json(
+        {
+          error: "Report was published, but the report emails failed to send.",
+          reportLink,
+          failedEmails,
+          publishGuard: guardResult,
+        },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json({
       success: true,
-      message: "Report published and emails sent successfully.",
+      message:
+        failedEmails.length > 0
+          ? `Report published. Emailed ${sentEmails.length} of ${recipients.length} recipients.`
+          : "Report published and emails sent successfully.",
       reportLink,
       sentEmails,
+      failedEmails,
       publishGuard: guardResult,
     });
   } catch (error: any) {
