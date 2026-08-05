@@ -109,6 +109,7 @@ type AIMediaGroup = {
   implication: string;
   recommendation: string;
   confidence: number;
+  aiNote?: string;
 };
 
 type UploadProgressItem = {
@@ -996,6 +997,7 @@ function FieldPageContent() {
   const [savingOrganizedMedia, setSavingOrganizedMedia] = useState(false);
   const [mediaGroups, setMediaGroups] = useState<AIMediaGroup[]>([]);
   const [mediaOrganizerOpen, setMediaOrganizerOpen] = useState(false);
+  const [regeneratingGroupId, setRegeneratingGroupId] = useState<string | null>(null);
   // Optional inspector note that steers how AI organizes the photo session.
   const [organizeNote, setOrganizeNote] = useState("");
   const [takingNativePhoto, setTakingNativePhoto] = useState(false);
@@ -3018,6 +3020,62 @@ function FieldPageContent() {
     );
   }
 
+  // Re-draft a SINGLE group's write-up from that group's photos + its own AI note,
+  // so each finding can be steered independently when they're for different things.
+  async function regenerateGroupWithAI(group: AIMediaGroup) {
+    if (regeneratingGroupId) return;
+
+    const files = group.photoIndexes
+      .map((index) => photos[index])
+      .filter((file): file is File => Boolean(file) && file.type.startsWith("image/"));
+
+    if (files.length === 0) {
+      setMessage("This group has no still photo for AI to re-draft.");
+      return;
+    }
+    if (!online) {
+      setMessage("AI needs internet to re-draft this finding.");
+      return;
+    }
+
+    setRegeneratingGroupId(group.id);
+    try {
+      const images = await Promise.all(
+        files.map(async (file) => fileToDataUrl(await compressImageForAiUpload(file))),
+      );
+
+      const response = await fetch("/api/ai-capture", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+        body: JSON.stringify({
+          note: group.aiNote || "",
+          inspectionId: selectedReport,
+          section: group.section,
+          severity: group.severity,
+          images,
+        }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data?.error || "AI could not re-draft this finding.");
+
+      updateMediaGroup(group.id, {
+        title: data.title || group.title,
+        section: SECTIONS.includes(data.section) ? data.section : group.section,
+        severity: SEVERITIES.includes(data.severity) ? data.severity : group.severity,
+        observation: data.observation || "",
+        implication: data.implication || "",
+        recommendation: data.recommendation || "",
+      });
+      setMessage("AI re-drafted this finding from your note.");
+    } catch (error: any) {
+      setMessage(error?.message || "AI could not re-draft this finding.");
+    } finally {
+      setRegeneratingGroupId(null);
+    }
+  }
+
   async function saveOrganizedMediaGroups() {
     if (savingOrganizedMedia || organizingMedia) return;
 
@@ -4476,14 +4534,16 @@ function FieldPageContent() {
                 </div>
 
                 <div className="mt-4 space-y-3">
-                  {mediaGroups.map((group) => (
+                  {mediaGroups.map((group) => {
+                    const regenerating = regeneratingGroupId === group.id;
+                    return (
                     <div
                       key={group.id}
-                      className="rounded-xl border border-slate-700 bg-black/40 p-3"
+                      className="overflow-hidden rounded-xl border border-slate-700 bg-black/40 p-3"
                     >
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div>
-                          <p className="font-black text-white">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="break-words font-black text-white">
                             {group.label}
                           </p>
                           <p className="text-xs font-bold text-slate-400">
@@ -4501,7 +4561,7 @@ function FieldPageContent() {
                                 .value as AIMediaGroup["classification"],
                             })
                           }
-                          className="rounded-lg border border-slate-600 bg-black px-3 py-2 text-sm font-bold text-white"
+                          className="w-full shrink-0 rounded-lg border border-slate-600 bg-black px-3 py-2 text-sm font-bold text-white sm:w-auto"
                         >
                           <option value="finding">Finding</option>
                           <option value="reference">Reference</option>
@@ -4511,34 +4571,40 @@ function FieldPageContent() {
                         </select>
                       </div>
 
-                      <div className="mt-3 grid gap-3 md:grid-cols-2">
-                        <select
-                          value={group.section}
-                          onChange={(event) =>
-                            updateMediaGroup(group.id, {
-                              section: event.target.value,
-                            })
-                          }
-                          className="rounded-lg border border-slate-600 bg-black p-2 text-white"
-                        >
-                          {SECTIONS.map((item) => (
-                            <option key={item}>{item}</option>
-                          ))}
-                        </select>
+                      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                        <label className="block min-w-0">
+                          <span className="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">Section</span>
+                          <select
+                            value={group.section}
+                            onChange={(event) =>
+                              updateMediaGroup(group.id, {
+                                section: event.target.value,
+                              })
+                            }
+                            className="w-full rounded-lg border border-slate-600 bg-black p-2 text-white"
+                          >
+                            {SECTIONS.map((item) => (
+                              <option key={item}>{item}</option>
+                            ))}
+                          </select>
+                        </label>
 
-                        <select
-                          value={group.severity}
-                          onChange={(event) =>
-                            updateMediaGroup(group.id, {
-                              severity: event.target.value,
-                            })
-                          }
-                          className="rounded-lg border border-slate-600 bg-black p-2 text-white"
-                        >
-                          {SEVERITIES.map((item) => (
-                            <option key={item}>{item}</option>
-                          ))}
-                        </select>
+                        <label className="block min-w-0">
+                          <span className="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">Severity</span>
+                          <select
+                            value={group.severity}
+                            onChange={(event) =>
+                              updateMediaGroup(group.id, {
+                                severity: event.target.value,
+                              })
+                            }
+                            className="w-full rounded-lg border border-slate-600 bg-black p-2 text-white"
+                          >
+                            {SEVERITIES.map((item) => (
+                              <option key={item}>{item}</option>
+                            ))}
+                          </select>
+                        </label>
                       </div>
 
                       <input
@@ -4548,6 +4614,7 @@ function FieldPageContent() {
                             title: event.target.value,
                           })
                         }
+                        placeholder="Title"
                         className="mt-3 w-full rounded-lg border border-slate-600 bg-black p-3 font-black text-white"
                       />
 
@@ -4586,8 +4653,33 @@ function FieldPageContent() {
                         className="mt-3 w-full rounded-lg border border-slate-600 bg-black p-3 text-white"
                         placeholder="Recommendation"
                       />
+
+                      {/* Per-finding AI note — steer each defect independently */}
+                      <div className="mt-3 rounded-lg border border-cyan-500/40 bg-cyan-500/5 p-3">
+                        <label className="mb-1 block text-[11px] font-black uppercase tracking-wide text-cyan-200">
+                          AI note for this finding (optional)
+                        </label>
+                        <textarea
+                          value={group.aiNote || ""}
+                          onChange={(event) =>
+                            updateMediaGroup(group.id, { aiNote: event.target.value })
+                          }
+                          rows={2}
+                          placeholder="Direct the AI for this defect only — e.g. 'call out the cracked heat exchanger'"
+                          className="w-full rounded-lg border border-slate-600 bg-black p-3 text-white"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => void regenerateGroupWithAI(group)}
+                          disabled={regenerating || Boolean(regeneratingGroupId)}
+                          className="mt-2 w-full rounded-lg bg-cyan-400 p-2.5 text-sm font-black text-black transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
+                        >
+                          {regenerating ? "Re-drafting…" : "🔄 Re-draft this finding with AI"}
+                        </button>
+                      </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 <button

@@ -100,6 +100,25 @@ Examples:
 - uncertain photos should be returned in an "Unassigned" group and not turned into a defect.
 - photoIndexes must reference the supplied zero-based indexes exactly.
 
+SECTION SELECTION IS CRITICAL. Set each group's "section" from the actual system or
+area VISIBLE in that group's photos — NOT the inspector's current section, and each
+group may be a DIFFERENT section. Choose the single best match from the valid list.
+Use EXACTLY these section names (must match one from the valid list below). Common mappings:
+- Electrical panel, breakers, wiring, outlets, disconnects -> "Electrical"
+- Water heater, pipes, drains, faucets, valves, supply lines -> "Plumbing"
+- Furnace, boiler, heat pump (heat), ductwork, thermostat -> "Heating"
+- AC condenser / evaporator, cooling equipment -> "Cooling"
+- Roof covering, shingles, flashing, chimney exterior, gutters -> "Roof"
+- Fireplace, hearth, firebox, chimney interior/flue -> "Fireplace"
+- Attic, insulation, ventilation, rafters -> "Attic, Insulation & Ventilation"
+- Foundation, crawlspace, framing, structure, basement -> "Basement, Foundation, Crawlspace & Structure"
+- Siding, grading, walkways, driveway, exterior walls, decks -> "Exterior"
+- Interior walls, ceilings, floors, windows, doors, stairs -> "Doors, Windows & Interior"
+- Dishwasher, range/oven, microwave, disposal, built-in appliances -> "Built-in Appliances"
+- Garage, garage door, opener, garage floor -> "Garage"
+If a group genuinely doesn't fit a specific system, only then fall back to the
+inspector's current section.
+
 Return ONLY JSON:
 {
   "groups": [
