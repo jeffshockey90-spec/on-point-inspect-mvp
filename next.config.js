@@ -41,9 +41,14 @@ const nextConfig = {
     NEXT_PUBLIC_BUILD_TIME: buildTime,
   },
 
-  // Bundle the ffmpeg-static binary into the video-convert serverless function.
-  // Next tree-shakes node_modules and won't trace a data file like the ffmpeg
-  // binary on its own, so spawn() fails on Vercel with a missing-path error.
+  // Video conversion (/api/video-convert) shells out to the ffmpeg-static binary.
+  // Two things are needed for that to work on Vercel:
+  // 1) Keep ffmpeg-static EXTERNAL so Next doesn't inline it — otherwise its
+  //    __dirname resolves next to the route file (…/app/api/video-convert/ffmpeg)
+  //    instead of node_modules, and spawn() fails with ENOENT.
+  // 2) Trace the actual binary (a data file Next won't include on its own) into
+  //    the function so it exists at that node_modules path.
+  serverExternalPackages: ["ffmpeg-static"],
   outputFileTracingIncludes: {
     "/api/video-convert": ["./node_modules/ffmpeg-static/**"],
   },
