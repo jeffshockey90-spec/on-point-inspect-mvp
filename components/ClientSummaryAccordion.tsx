@@ -201,6 +201,105 @@ function severityClass(value: any) {
   return "border-teal-500/50 bg-teal-500/10 text-teal-200";
 }
 
+// Swipeable carousel of a finding's photos/videos in the summary, so a client
+// can page through every piece of evidence for that finding one at a time.
+function MediaCarousel({ media, title }: { media: any[]; title: string }) {
+  const [index, setIndex] = useState(0);
+
+  if (!media || media.length === 0) return null;
+
+  const current = Math.min(index, media.length - 1);
+  const item = media[current];
+  const itemUrl = getMediaUrl(item);
+  const itemPreviewUrl = getPreviewUrl(item);
+  const itemIsVideo = isVideoMedia(item, itemUrl);
+
+  const photoItems = media.filter((m: any) => !isVideoMedia(m, getMediaUrl(m)));
+  const galleryImages = photoItems.map((m: any) => ({
+    src: getPreviewUrl(m) || getMediaUrl(m),
+    fullSrc: getMediaUrl(m),
+    alt: title,
+  }));
+  const photoIndex = photoItems.indexOf(item);
+
+  const go = (dir: number) =>
+    setIndex((i) => {
+      const base = Math.min(i, media.length - 1);
+      return (base + dir + media.length) % media.length;
+    });
+
+  return (
+    <div className="mb-4">
+      <div className="relative">
+        {itemIsVideo ? (
+          <video
+            key={itemUrl}
+            src={itemUrl}
+            poster={itemPreviewUrl && itemPreviewUrl !== itemUrl ? itemPreviewUrl : undefined}
+            controls
+            muted
+            playsInline
+            preload="metadata"
+            className="max-h-[420px] w-full rounded-xl border border-slate-700 bg-black object-contain"
+          >
+            Your browser does not support video playback.
+          </video>
+        ) : (
+          <ExpandableReportImage
+            key={itemUrl}
+            src={itemPreviewUrl || itemUrl}
+            fullSrc={itemUrl}
+            alt={`${title} media ${current + 1}`}
+            badgeText="Tap to enlarge"
+            className="max-h-[420px] w-full rounded-xl border border-slate-700 object-contain"
+            buttonClassName="block w-full overflow-hidden rounded-xl border border-slate-700 bg-black text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
+            images={galleryImages}
+            index={photoIndex >= 0 ? photoIndex : 0}
+          />
+        )}
+
+        {media.length > 1 && (
+          <>
+            <button
+              type="button"
+              aria-label="Previous"
+              onClick={(e) => { e.stopPropagation(); go(-1); }}
+              className="absolute left-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/25 bg-black/70 text-xl font-black text-white active:scale-95"
+            >
+              ‹
+            </button>
+            <button
+              type="button"
+              aria-label="Next"
+              onClick={(e) => { e.stopPropagation(); go(1); }}
+              className="absolute right-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/25 bg-black/70 text-xl font-black text-white active:scale-95"
+            >
+              ›
+            </button>
+            <span className="absolute right-2 top-2 z-10 rounded-full bg-black/75 px-2 py-1 text-[10px] font-black text-white">
+              {current + 1} / {media.length}
+            </span>
+          </>
+        )}
+      </div>
+
+      {media.length > 1 && (
+        <div className="mt-2 flex flex-wrap justify-center gap-1.5">
+          {media.map((_: any, i: number) => (
+            <button
+              key={i}
+              type="button"
+              aria-label={`Go to media ${i + 1}`}
+              onClick={() => setIndex(i)}
+              className={`h-2.5 w-2.5 rounded-full ${i === current ? "bg-cyan-300" : "bg-slate-600"}`}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function CompactSummaryCard({
   finding,
   tone,
@@ -401,52 +500,7 @@ function CompactSummaryCard({
 
             if (allMedia.length === 0) return null;
 
-            const photoItems = allMedia.filter(
-              (item: any) => !isVideoMedia(item, getMediaUrl(item)),
-            );
-            const galleryImages = photoItems.map((item: any) => ({
-              src: getPreviewUrl(item) || getMediaUrl(item),
-              fullSrc: getMediaUrl(item),
-              alt: title,
-            }));
-
-            return (
-              <div className={`mb-4 grid gap-3 ${allMedia.length > 1 ? "sm:grid-cols-2" : ""}`}>
-                {allMedia.map((item: any, mediaIndex: number) => {
-                  const itemUrl = getMediaUrl(item);
-                  const itemPreviewUrl = getPreviewUrl(item);
-                  const itemIsVideo = isVideoMedia(item, itemUrl);
-                  const photoIndex = photoItems.indexOf(item);
-
-                  return itemIsVideo ? (
-                    <video
-                      key={item.id || item.file_path || itemUrl || mediaIndex}
-                      src={itemUrl}
-                      poster={itemPreviewUrl && itemPreviewUrl !== itemUrl ? itemPreviewUrl : undefined}
-                      controls
-                      muted
-                      playsInline
-                      preload="metadata"
-                      className="max-h-[360px] w-full rounded-xl border border-slate-700 bg-black object-contain"
-                    >
-                      Your browser does not support video playback.
-                    </video>
-                  ) : (
-                    <ExpandableReportImage
-                      key={item.id || item.file_path || itemUrl || mediaIndex}
-                      src={itemPreviewUrl || itemUrl}
-                      fullSrc={itemUrl}
-                      alt={`${title} photo ${mediaIndex + 1}`}
-                      badgeText="Tap to enlarge"
-                      className="max-h-[360px] w-full rounded-xl border border-slate-700 object-contain"
-                      buttonClassName="block w-full overflow-hidden rounded-xl border border-slate-700 bg-black text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
-                      images={galleryImages}
-                      index={photoIndex >= 0 ? photoIndex : 0}
-                    />
-                  );
-                })}
-              </div>
-            );
+            return <MediaCarousel media={allMedia} title={title} />;
           })()}
 
           <div className="grid gap-3">

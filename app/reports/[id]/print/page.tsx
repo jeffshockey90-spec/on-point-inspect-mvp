@@ -141,6 +141,23 @@ function getFindingItemNumber(finding: any) {
   return String(finding?.report_item_number || finding?.item_number || finding?.repair_item_number || "").trim();
 }
 
+function isVideoPhoto(photo: any) {
+  const type = String(
+    photo?.mime_type || photo?.media_type || photo?.content_type || "",
+  ).toLowerCase();
+  const path = String(
+    photo?.file_path || photo?.storage_path || photo?.photo_path || "",
+  ).toLowerCase();
+  const url = String(photo?.signed_url || photo?.public_url || "").toLowerCase();
+  return (
+    Boolean(photo?.is_video) ||
+    type.startsWith("video/") ||
+    type.includes("quicktime") ||
+    /\.(mp4|mov|m4v|webm|avi)(\?|#|$)/.test(path) ||
+    /\.(mp4|mov|m4v|webm|avi)(\?|#|$)/.test(url)
+  );
+}
+
 function getStoragePathFromUrl(url: string | null | undefined) {
   if (!url) return "";
 
@@ -1310,11 +1327,25 @@ export default async function PrintableReportPage({ params }: PageProps) {
 
                               {(finding.photos || []).map((photo: any) => (
                                 <div key={photo.id}>
-                                  <img
-                                    src={photo.signed_url}
-                                    alt={photo.caption || finding.title || "Finding photo"}
-                                    className={`finding-photo-print w-full rounded-xl border object-contain ${photoHeightClass}`}
-                                  />
+                                  {isVideoPhoto(photo) ? (
+                                    <video
+                                      src={photo.signed_url}
+                                      poster={photo.thumbnail_url || undefined}
+                                      controls
+                                      muted
+                                      playsInline
+                                      preload="metadata"
+                                      className={`finding-photo-print w-full rounded-xl border bg-black object-contain ${photoHeightClass}`}
+                                    >
+                                      Your browser does not support video playback.
+                                    </video>
+                                  ) : (
+                                    <img
+                                      src={photo.signed_url}
+                                      alt={photo.caption || finding.title || "Finding photo"}
+                                      className={`finding-photo-print w-full rounded-xl border object-contain ${photoHeightClass}`}
+                                    />
+                                  )}
                                   {photo.caption && (
                                     <p className="mt-1 text-sm leading-6 text-slate-800">
                                       {photo.caption}

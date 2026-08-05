@@ -1703,10 +1703,10 @@ export async function GET(req: Request, { params }: RouteProps) {
     const findingIds = normalizedFindings.map((finding: any) => cleanText(finding.id)).filter(Boolean);
     const photosRaw = await loadPhotos(admin, inspectionId, findingIds);
 
-    // PDF files should never embed original phone photos or video files.
-    // Prefer a permanent thumbnail, then request a compressed 1100px transform.
+    // PDF files can't play video, but a finding's video should still appear as
+    // its poster/thumbnail frame (getPhotoStoragePath prefers the thumbnail for
+    // videos) rather than being dropped entirely.
     const photoPaths = photosRaw
-      .filter((photo: any) => !isVideoPhoto(photo))
       .map((photo: any) => getPhotoStoragePath(photo, true))
       .filter(Boolean);
 
@@ -1727,13 +1727,8 @@ export async function GET(req: Request, { params }: RouteProps) {
     ]);
 
     const photosWithUrls = photosRaw.map((photo: any) => {
-      if (isVideoPhoto(photo)) {
-        return {
-          ...photo,
-          download_url: "",
-        };
-      }
-
+      // For a video, getPhotoStoragePath(true) yields the poster/thumbnail image
+      // path, so it renders as a still frame in the PDF instead of being dropped.
       const path = getPhotoStoragePath(photo, true);
 
       return {
