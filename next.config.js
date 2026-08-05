@@ -41,6 +41,13 @@ const nextConfig = {
     NEXT_PUBLIC_BUILD_TIME: buildTime,
   },
 
+  // Bundle the ffmpeg-static binary into the video-convert serverless function.
+  // Next tree-shakes node_modules and won't trace a data file like the ffmpeg
+  // binary on its own, so spawn() fails on Vercel with a missing-path error.
+  outputFileTracingIncludes: {
+    "/api/video-convert": ["./node_modules/ffmpeg-static/**"],
+  },
+
   experimental: {
     serverActions: {
       bodySizeLimit: "25mb",

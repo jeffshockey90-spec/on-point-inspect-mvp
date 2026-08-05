@@ -168,6 +168,13 @@ export async function POST(request: NextRequest) {
     const outputPath = path.join(tempDir, "converted.mp4");
 
     await fs.writeFile(inputPath, Buffer.from(await video.arrayBuffer()));
+
+    // The traced ffmpeg binary can lose its executable bit in the serverless
+    // bundle; restore it so spawn() doesn't fail with EACCES (no-op locally).
+    if (FFMPEG_PATH) {
+      await fs.chmod(FFMPEG_PATH, 0o755).catch(() => undefined);
+    }
+
     await convertVideo(inputPath, outputPath);
 
     const stats = await fs.stat(outputPath);
