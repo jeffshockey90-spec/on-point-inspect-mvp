@@ -1,5 +1,5 @@
 
-import { formatAppValue } from "../../../lib/app-time";
+import { formatAppValue, formatDateOnly } from "../../../lib/app-time";
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 import PrintButton from "../../../components/PrintButton";
@@ -260,7 +260,7 @@ export default async function ClientAgreementPage({
               Inspection:{" "}
               {[
                 inspection.inspection_date
-                  ? formatAppValue(new Date(inspection.inspection_date), {})
+                  ? formatDateOnly(inspection.inspection_date)
                   : "",
                 formatAgreementTime(inspection.inspection_time),
               ]

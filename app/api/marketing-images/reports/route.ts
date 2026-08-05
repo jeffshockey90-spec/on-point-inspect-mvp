@@ -12,6 +12,16 @@ function cleanText(value: any) {
 
 function formatDate(value: any) {
   if (!value) return "";
+  const match = String(value).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (match) {
+    const [, y, m, d] = match;
+    return new Intl.DateTimeFormat("en-US", {
+      timeZone: "UTC",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    }).format(new Date(Date.UTC(Number(y), Number(m) - 1, Number(d), 12)));
+  }
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
   return formatAppValue(date, {

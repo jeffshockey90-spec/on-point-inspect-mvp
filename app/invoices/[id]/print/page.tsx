@@ -92,6 +92,19 @@ function getInvoiceStatus(inspection: any) {
 function formatDate(value: any) {
   if (!value) return "N/A";
 
+  // Bare "YYYY-MM-DD" (inspection date, due date) parsed with new Date() reads as
+  // UTC midnight and can render as the previous day; anchor date-only at UTC noon.
+  const match = String(value).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (match) {
+    const [, y, m, d] = match;
+    return new Intl.DateTimeFormat("en-US", {
+      timeZone: "UTC",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    }).format(new Date(Date.UTC(Number(y), Number(m) - 1, Number(d), 12)));
+  }
+
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return String(value);
 
