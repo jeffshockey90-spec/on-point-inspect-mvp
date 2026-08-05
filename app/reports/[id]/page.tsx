@@ -2078,14 +2078,26 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
 
   const findingIds = findingsRaw.map((finding: any) => finding.id);
 
-  const { data: photosRaw, error: photosError } =
-    findingIds.length > 0
-      ? await supabase
-          .from("photos")
-          .select("*")
-          .in("finding_id", findingIds)
-          .order("created_at", { ascending: true })
-      : { data: [], error: null };
+  // Page past Supabase's 1000-row cap so photo-heavy inspections load every photo.
+  let photosRaw: any[] = [];
+  let photosError: any = null;
+  if (findingIds.length > 0) {
+    const PAGE = 1000;
+    for (let from = 0; ; from += PAGE) {
+      const { data, error } = await supabase
+        .from("photos")
+        .select("*")
+        .in("finding_id", findingIds)
+        .order("created_at", { ascending: true })
+        .range(from, from + PAGE - 1);
+      if (error) {
+        photosError = error;
+        break;
+      }
+      photosRaw = photosRaw.concat(data || []);
+      if (!data || data.length < PAGE) break;
+    }
+  }
 
   if (photosError) console.error("Photos load error:", photosError);
 

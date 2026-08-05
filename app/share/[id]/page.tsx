@@ -1166,15 +1166,29 @@ export default async function PublicSharePage({
 
   const findingIds = (findingsRaw || []).map((finding: any) => finding.id);
 
-  const { data: photosRaw, error: photosError } =
-    findingIds.length > 0
-      ? await supabase
-          .from("photos")
-          .select("*")
-          .in("finding_id", findingIds)
-          .order("sort_order", { ascending: true })
-          .order("created_at", { ascending: true })
-      : { data: [], error: null };
+  // Supabase caps a single query at 1000 rows. Photo-heavy inspections exceed
+  // that, which silently truncated later findings' media (videos, added last, got
+  // cut first) — so page through until every photo/video row is loaded.
+  let photosRaw: any[] = [];
+  let photosError: any = null;
+  if (findingIds.length > 0) {
+    const PAGE = 1000;
+    for (let from = 0; ; from += PAGE) {
+      const { data, error } = await supabase
+        .from("photos")
+        .select("*")
+        .in("finding_id", findingIds)
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: true })
+        .range(from, from + PAGE - 1);
+      if (error) {
+        photosError = error;
+        break;
+      }
+      photosRaw = photosRaw.concat(data || []);
+      if (!data || data.length < PAGE) break;
+    }
+  }
 
   if (photosError) {
     console.error("Share photos load error:", photosError);

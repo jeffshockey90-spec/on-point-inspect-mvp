@@ -571,15 +571,22 @@ export default async function PrintableReportPage({ params }: PageProps) {
 
   const findingIds = (findingsRaw || []).map((finding: any) => finding.id);
 
-  const { data: photosRaw } =
-    findingIds.length > 0
-      ? await supabase
-          .from("photos")
-          .select("*")
-          .in("finding_id", findingIds)
-          .order("sort_order", { ascending: true })
-          .order("created_at", { ascending: true })
-      : { data: [] };
+  // Page past Supabase's 1000-row cap so photo-heavy inspections don't lose media.
+  let photosRaw: any[] = [];
+  if (findingIds.length > 0) {
+    const PAGE = 1000;
+    for (let from = 0; ; from += PAGE) {
+      const { data } = await supabase
+        .from("photos")
+        .select("*")
+        .in("finding_id", findingIds)
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: true })
+        .range(from, from + PAGE - 1);
+      photosRaw = photosRaw.concat(data || []);
+      if (!data || data.length < PAGE) break;
+    }
+  }
 
   const photoSignedUrlMap = await createSignedUrlMap(
     supabase,

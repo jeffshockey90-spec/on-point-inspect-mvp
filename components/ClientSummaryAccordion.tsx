@@ -322,6 +322,25 @@ function CompactSummaryCard({
   const summary = getFindingSummary(finding);
   const itemNumber = getItemNumber(finding);
   const isVideo = isVideoMedia(media || finding, fullUrl);
+
+  // All of this finding's still photos, so tapping the cover opens a swipeable
+  // lightbox gallery instead of a single image.
+  const allFindingMedia = (Array.isArray(finding?.photos) ? finding.photos : []).filter(
+    (m: any) => Boolean(getMediaUrl(m)),
+  );
+  const coverGallery = allFindingMedia
+    .filter((m: any) => !isVideoMedia(m, getMediaUrl(m)))
+    .map((m: any) => ({
+      src: getPreviewUrl(m) || getMediaUrl(m),
+      fullSrc: getMediaUrl(m),
+      alt: title,
+    }));
+  const coverIndex = Math.max(
+    0,
+    allFindingMedia.filter((m: any) => !isVideoMedia(m, getMediaUrl(m))).findIndex(
+      (m: any) => getMediaUrl(m) === fullUrl,
+    ),
+  );
   const [imageFailed, setImageFailed] = useState(false);
   const [videoOpen, setVideoOpen] = useState(false);
   const toneStyle = toneClasses(tone);
@@ -362,9 +381,11 @@ function CompactSummaryCard({
               src={previewUrl}
               fullSrc={fullUrl || previewUrl}
               alt={title}
-              badgeText="View"
+              badgeText={coverGallery.length > 1 ? `View ${coverGallery.length}` : "View"}
               className="h-full w-full object-cover"
               buttonClassName="block h-full w-full overflow-hidden bg-slate-900 text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
+              images={coverGallery.length > 1 ? coverGallery : undefined}
+              index={coverIndex}
             />
           ) : isVideo && fullUrl ? (
             <button

@@ -603,39 +603,47 @@ function dedupeDownloadPhotos(photos: any[]) {
 async function loadPhotos(admin: any, inspectionId: string, findingIds: string[]) {
   const byId = new Map<string, any>();
 
-  const findingPhotosPromise = findingIds.length
-    ? admin
+  // Page past Supabase's 1000-row cap so photo-heavy inspections keep every photo.
+  async function fetchAll(build: (from: number, to: number) => any) {
+    const PAGE = 1000;
+    const rows: any[] = [];
+    for (let from = 0; ; from += PAGE) {
+      const { data, error } = await build(from, from + PAGE - 1);
+      if (error) {
+        console.error("Agent report photos load failed:", error);
+        break;
+      }
+      rows.push(...(data || []));
+      if (!data || data.length < PAGE) break;
+    }
+    return rows;
+  }
+
+  const [findingPhotos, inspectionPhotos] = await Promise.all([
+    findingIds.length
+      ? fetchAll((from, to) =>
+          admin
+            .from("photos")
+            .select("*")
+            .in("finding_id", findingIds)
+            .order("sort_order", { ascending: true })
+            .order("created_at", { ascending: true })
+            .range(from, to),
+        )
+      : Promise.resolve([]),
+    fetchAll((from, to) =>
+      admin
         .from("photos")
         .select("*")
-        .in("finding_id", findingIds)
-        .order("sort_order", { ascending: true })
+        .eq("inspection_id", inspectionId)
         .order("created_at", { ascending: true })
-    : Promise.resolve({ data: [], error: null });
-
-  const inspectionPhotosPromise = admin
-    .from("photos")
-    .select("*")
-    .eq("inspection_id", inspectionId)
-    .order("created_at", { ascending: true });
-
-  const [findingPhotosResult, inspectionPhotosResult] = await Promise.all([
-    findingPhotosPromise,
-    inspectionPhotosPromise,
+        .range(from, to),
+    ),
   ]);
 
-  if (!findingPhotosResult.error) {
-    (findingPhotosResult.data || []).forEach((photo: any) => {
-      if (photo?.id) byId.set(String(photo.id), photo);
-    });
-  } else {
-    console.error("Agent report photos by finding_id failed:", findingPhotosResult.error);
-  }
-
-  if (!inspectionPhotosResult.error) {
-    (inspectionPhotosResult.data || []).forEach((photo: any) => {
-      if (photo?.id) byId.set(String(photo.id), photo);
-    });
-  }
+  [...findingPhotos, ...inspectionPhotos].forEach((photo: any) => {
+    if (photo?.id) byId.set(String(photo.id), photo);
+  });
 
   return Array.from(byId.values());
 }
