@@ -4,7 +4,7 @@ import { Eye, ChevronDown } from "lucide-react";
 import { formatAppValue } from "../../lib/app-time";
 import FastLinkButton from "../../components/FastLinkButton";
 import EmailAddendumButton from "../../components/EmailAddendumButton";
-import ReportDownloadLink from "../../components/ReportDownloadLink";
+import ReportDownloadButton from "../../components/ReportDownloadButton";
 import { redirect } from "next/navigation";
 import { createClient } from "../../utils/supabase/server";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
@@ -511,21 +511,23 @@ export default async function RealtorPortalPage({
                           View Report
                         </FastLinkButton>
 
-                        <ReportDownloadLink
+                        <ReportDownloadButton
                           href={`/api/realtor-report-download/${encodeURIComponent(id)}?type=full`}
+                          filename={`inspection-report-${id}-full.pdf`}
                           preparingText="Preparing Full Report..."
                           className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-emerald-500 px-4 py-3 text-center font-black text-emerald-300 transition hover:bg-emerald-500/10 active:scale-[0.98]"
                         >
                           <>Full Report Download</>
-                        </ReportDownloadLink>
+                        </ReportDownloadButton>
 
-                        <ReportDownloadLink
+                        <ReportDownloadButton
                           href={`/api/realtor-report-download/${encodeURIComponent(id)}?type=agent`}
+                          filename={`inspection-report-${id}-agent.pdf`}
                           preparingText="Preparing Agent Report..."
                           className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-lime-500 px-4 py-3 text-center font-black text-lime-300 transition hover:bg-lime-500/10 active:scale-[0.98]"
                         >
                           <>Agent Report Download</>
-                        </ReportDownloadLink>
+                        </ReportDownloadButton>
 
                         <FastLinkButton
                           href={`/repair-request?inspection_id=${encodeURIComponent(id)}&role=realtor&email=${encodeURIComponent(lookupEmail)}`}

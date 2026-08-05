@@ -4,7 +4,10 @@ import { useEffect, useRef, useState } from "react";
 
 type Props = {
   href: string;
+  children: React.ReactNode;
   filename?: string;
+  className?: string;
+  preparingText?: string;
 };
 
 function getFilenameFromDisposition(
@@ -26,17 +29,27 @@ function getFilenameFromDisposition(
   return plainMatch?.[1]?.trim() || fallback;
 }
 
+// Downloads a server-generated report PDF via fetch so the button can show an
+// accurate "Preparing..." state for the ENTIRE time the server is building the
+// file, then hands the finished blob to the browser to save. A plain <a>
+// download gives no completion signal, so its spinner can't track the real
+// work; this does.
 export default function ReportDownloadButton({
   href,
+  children,
   filename = "inspection-report.pdf",
+  className = "",
+  preparingText = "Preparing PDF...",
 }: Props) {
   const [preparing, setPreparing] = useState(false);
   const [error, setError] = useState("");
   const abortRef = useRef<AbortController | null>(null);
+  const errorTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     return () => {
       abortRef.current?.abort();
+      if (errorTimer.current) clearTimeout(errorTimer.current);
     };
   }, []);
 
@@ -45,6 +58,10 @@ export default function ReportDownloadButton({
 
     setPreparing(true);
     setError("");
+    if (errorTimer.current) {
+      clearTimeout(errorTimer.current);
+      errorTimer.current = null;
+    }
 
     const controller = new AbortController();
     abortRef.current = controller;
@@ -80,6 +97,7 @@ export default function ReportDownloadButton({
 
       anchor.href = objectUrl;
       anchor.download = downloadName;
+      anchor.rel = "noopener";
       anchor.style.display = "none";
 
       document.body.appendChild(anchor);
@@ -91,10 +109,11 @@ export default function ReportDownloadButton({
       }, 30000);
     } catch (downloadError: any) {
       if (downloadError?.name !== "AbortError") {
-        setError(
+        const message =
           downloadError?.message ||
-            "The report could not be downloaded. Please try again.",
-        );
+          "The report could not be downloaded. Please try again.";
+        setError(message);
+        errorTimer.current = setTimeout(() => setError(""), 6000);
       }
     } finally {
       abortRef.current = null;
@@ -103,28 +122,27 @@ export default function ReportDownloadButton({
   }
 
   return (
-    <div className="flex flex-col items-start gap-2">
-      <button
-        type="button"
-        onClick={startDownload}
-        disabled={preparing || !href}
-        aria-busy={preparing}
-        data-fast-click="true"
-        className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-cyan-500 bg-cyan-500/10 px-5 py-3 font-bold text-cyan-300 transition active:scale-[0.98] active:opacity-80 disabled:cursor-wait disabled:opacity-75 [touch-action:manipulation] hover:bg-cyan-500 hover:text-black"
-      >
-        {preparing ? (
-          <>
-            <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-            Preparing PDF...
-          </>
-        ) : (
-          <>⬇ Download Report</>
-        )}
-      </button>
-
-      {error ? (
-        <p className="max-w-sm text-sm font-semibold text-red-300">{error}</p>
-      ) : null}
-    </div>
+    <button
+      type="button"
+      onClick={startDownload}
+      disabled={preparing || !href}
+      aria-busy={preparing}
+      data-fast-click="true"
+      title={error || undefined}
+      className={`${className} ${
+        preparing ? "cursor-wait opacity-80" : ""
+      }`}
+    >
+      {preparing ? (
+        <>
+          <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent" />
+          <span>{preparingText}</span>
+        </>
+      ) : error ? (
+        <span>⚠ Download failed — tap to retry</span>
+      ) : (
+        children
+      )}
+    </button>
   );
 }
