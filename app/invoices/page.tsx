@@ -124,6 +124,16 @@ export default async function InvoicesPage() {
     .eq(accessFilter.column, accessFilter.value)
     .order("created_at", { ascending: false });
 
+  // Custom line-item invoices live in a separate `invoices` table. It may not
+  // exist yet (migration not run), and RLS scopes rows to the creator, so read
+  // defensively: any error (incl. missing table) just yields an empty list.
+  const { data: customInvoiceRows, error: customInvoicesError } = await supabase
+    .from("invoices")
+    .select("*")
+    .eq("inspector_id", user.id)
+    .order("created_at", { ascending: false });
+  const customInvoices = customInvoicesError ? [] : customInvoiceRows || [];
+
   if (error) {
     return (
       <main className="min-h-screen bg-[#020617] p-8 text-white">
@@ -195,12 +205,20 @@ export default async function InvoicesPage() {
               </p>
             </div>
 
-            <Link
-              href="/dashboard"
-              className="rounded-xl border border-teal-500 px-5 py-3 font-bold text-teal-300 hover:bg-teal-500/10"
-            >
-              Back to Dashboard
-            </Link>
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href="/invoices/new"
+                className="rounded-xl bg-teal-500 px-5 py-3 font-black text-slate-950 hover:bg-teal-400"
+              >
+                + New Invoice
+              </Link>
+              <Link
+                href="/dashboard"
+                className="rounded-xl border border-teal-500 px-5 py-3 font-bold text-teal-300 hover:bg-teal-500/10"
+              >
+                Back to Dashboard
+              </Link>
+            </div>
           </div>
         </section>
 
@@ -211,6 +229,67 @@ export default async function InvoicesPage() {
           <MetricCard label="Overdue" value={String(overdueInvoices.length)} helper="Past due invoices" tone="yellow" />
           <MetricCard label="Waived" value={String(waivedInvoices.length)} helper="Payment waived" tone="blue" />
         </section>
+
+        {customInvoices.length > 0 && (
+          <section className="mt-8 rounded-2xl border border-slate-700 bg-[#071224] p-6">
+            <div className="mb-4 flex items-center justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-black text-teal-300">Custom Invoices</h2>
+                <p className="mt-1 text-sm text-slate-400">
+                  Line-item invoices you built and can send with an online pay link.
+                </p>
+              </div>
+              <Link
+                href="/invoices/new"
+                className="rounded-xl border border-teal-500 px-4 py-2 text-sm font-black text-teal-300 hover:bg-teal-500/10"
+              >
+                + New Invoice
+              </Link>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[640px] text-left text-sm">
+                <thead>
+                  <tr className="border-b border-slate-700 text-xs font-black uppercase tracking-wide text-slate-400">
+                    <th className="py-2 pr-3">Invoice</th>
+                    <th className="py-2 pr-3">Client</th>
+                    <th className="py-2 pr-3">Total</th>
+                    <th className="py-2 pr-3">Status</th>
+                    <th className="py-2 pr-3">Created</th>
+                    <th className="py-2 pr-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {customInvoices.map((inv: any) => {
+                    const status = String(inv.status || "draft").toLowerCase();
+                    const statusTone =
+                      status === "paid"
+                        ? "bg-emerald-500/15 text-emerald-300"
+                        : status === "sent"
+                          ? "bg-cyan-500/15 text-cyan-300"
+                          : "bg-slate-600/20 text-slate-300";
+                    return (
+                      <tr key={inv.id} className="border-b border-slate-800">
+                        <td className="py-3 pr-3 font-bold text-white">{inv.invoice_number || "—"}</td>
+                        <td className="py-3 pr-3 text-slate-300">{inv.client_name || inv.client_email || "—"}</td>
+                        <td className="py-3 pr-3 font-bold text-white [font-variant-numeric:tabular-nums]">{money(inv.total)}</td>
+                        <td className="py-3 pr-3">
+                          <span className={`rounded-full px-2.5 py-1 text-xs font-black uppercase ${statusTone}`}>{status}</span>
+                        </td>
+                        <td className="py-3 pr-3 text-slate-400">{formatAppValue(inv.created_at, { month: "short", day: "numeric", year: "numeric" })}</td>
+                        <td className="py-3 pr-3 text-right">
+                          <Link href={`/invoices/${inv.id}/edit`} className="rounded-lg border border-slate-600 px-3 py-1 text-xs font-black text-slate-200 hover:bg-slate-800">
+                            {status === "paid" ? "View" : "Edit / Send"}
+                          </Link>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
 
         <section className="mt-8 rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
           <div className="flex flex-wrap items-end justify-between gap-4">
