@@ -59,14 +59,30 @@ export async function POST(request: NextRequest) {
     const { data: trip } = await supabase.from("mileage_trips").select("*").eq("id", tripId).eq("user_id", user.id).eq("status", "active").maybeSingle();
     if (!trip) return NextResponse.json({ error: "Active trip not found" }, { status: 404 });
     if (Number.isFinite(accuracy) && accuracy > 100) return NextResponse.json({ ok: true, ignored: "low_accuracy" });
+    const recordedAt = body.recordedAt || new Date().toISOString();
     let increment = 0;
     if (trip.last_latitude !== null && trip.last_longitude !== null) {
       increment = distanceMiles(Number(trip.last_latitude), Number(trip.last_longitude), latitude, longitude);
-      if (increment > 2) return NextResponse.json({ ok: true, ignored: "gps_jump" });
+
+      // Reject only physically-impossible GPS teleports, judged by IMPLIED SPEED
+      // rather than raw distance. Points arrive >=10s apart (sparser when the
+      // screen is off), so a legitimate highway segment between two points can be
+      // several miles. The old flat ">2 miles = jump" rule silently discarded
+      // those, which is why a multi-mile drive could read a fraction of a mile.
+      const lastAt = trip.last_recorded_at ? new Date(trip.last_recorded_at).getTime() : 0;
+      const nowAt = new Date(recordedAt).getTime();
+      const hours = lastAt && nowAt > lastAt ? (nowAt - lastAt) / 3_600_000 : 0;
+      if (hours > 0) {
+        const impliedMph = increment / hours;
+        if (impliedMph > 120) return NextResponse.json({ ok: true, ignored: "gps_jump" });
+      } else if (increment > 5) {
+        // No usable timing between points -> only reject an implausibly large hop.
+        return NextResponse.json({ ok: true, ignored: "gps_jump" });
+      }
+
       if (increment < 0.003) increment = 0;
     }
     const totalMiles = Number(trip.total_miles || 0) + increment;
-    const recordedAt = body.recordedAt || new Date().toISOString();
     const [{ error: pointError }, { error: tripError }] = await Promise.all([
       supabase.from("mileage_points").insert({ trip_id: tripId, user_id: user.id, latitude, longitude, accuracy_meters: Number.isFinite(accuracy) ? accuracy : null, recorded_at: recordedAt }),
       supabase.from("mileage_trips").update({ total_miles: totalMiles, last_latitude: latitude, last_longitude: longitude, last_recorded_at: recordedAt, updated_at: new Date().toISOString() }).eq("id", tripId).eq("user_id", user.id),
