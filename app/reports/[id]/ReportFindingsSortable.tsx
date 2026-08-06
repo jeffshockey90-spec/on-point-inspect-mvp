@@ -138,7 +138,7 @@ function DeferredOpenSection({
   );
 }
 
-export default function ReportFindingsSortable({ groupedFindings, deletedSections, sectionNotes }: any) {
+export default function ReportFindingsSortable({ groupedFindings, deletedSections, sectionNotes, weatherContext }: any) {
   const params = useParams();
   const router = useRouter();
   const inspectionId = String(params?.id || "");
@@ -839,6 +839,9 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
                 <SectionInformationChecklist
                   inspectionId={inspectionId}
                   section={group.section}
+                  weatherAddress={weatherContext?.address}
+                  weatherDate={weatherContext?.date}
+                  weatherHour={weatherContext?.hour}
                 />
 
                 <AISectionReview

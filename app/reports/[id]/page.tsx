@@ -3513,6 +3513,20 @@ Service-life information is a general industry estimate only. Actual service lif
               groupedFindings={groupedFindingsArray}
               deletedSections={deletedReportSections}
               sectionNotes={sectionNotesMap}
+              weatherContext={{
+                address: [
+                  inspection.property_address || inspection.address,
+                  inspection.city,
+                  inspection.state,
+                  inspection.zip,
+                ]
+                  .filter(Boolean)
+                  .join(", "),
+                date: inspection.inspection_date || null,
+                hour: inspection.inspection_time
+                  ? Number(String(inspection.inspection_time).slice(0, 2))
+                  : null,
+              }}
             />
           </div>
 

@@ -1066,11 +1066,18 @@ const CHECKLIST_LIBRARY: Record<string, ChecklistGroup[]> = {
 function SectionInformationChecklist({
   inspectionId,
   section,
+  weatherAddress,
+  weatherDate,
+  weatherHour,
 }: {
   inspectionId: string;
   section: string;
+  weatherAddress?: string;
+  weatherDate?: string | null;
+  weatherHour?: number | null;
 }) {
   const [open, setOpen] = useState(false);
+  const [weatherLoading, setWeatherLoading] = useState(false);
   const [selections, setSelections] = useState<SelectionRow[]>([]);
   const [optionOverrides, setOptionOverrides] = useState<OptionOverride[]>([]);
   const [otherTextByGroup, setOtherTextByGroup] = useState<Record<string, string>>({});
@@ -1093,6 +1100,69 @@ function SectionInformationChecklist({
     () => CHECKLIST_LIBRARY[section] || [{ title: "Custom Info", options: [] }],
     [section]
   );
+
+  // Only sections that actually have Temperature / Weather Conditions groups
+  // (i.e. Inspection Details) get the one-tap weather auto-fill.
+  const supportsWeather = baseGroups.some(
+    (group) => group.title === "Temperature" || group.title === "Weather Conditions"
+  );
+
+  // Fetch the actual weather for the property + inspection date/time and fill
+  // the Temperature and Weather Conditions fields. Reuses the same save paths as
+  // manual edits so the UI updates immediately and everything persists.
+  async function autofillWeather() {
+    if (weatherLoading || !supportsWeather) return;
+    if (!weatherAddress) {
+      showMessage("error", "No property address on file to look up weather.");
+      return;
+    }
+
+    setWeatherLoading(true);
+    try {
+      const params = new URLSearchParams({
+        mode: weatherDate ? "date" : "current",
+        address: weatherAddress,
+      });
+      if (weatherDate) {
+        params.set("date", weatherDate);
+        if (weatherHour != null && Number.isFinite(weatherHour)) {
+          params.set("hour", String(weatherHour));
+        }
+      }
+
+      const res = await fetch(`/api/weather?${params.toString()}`, { cache: "no-store" });
+      const json = await res.json();
+      if (!res.ok || !json?.weather) {
+        throw new Error(json?.error || "Weather lookup failed.");
+      }
+
+      const w = json.weather;
+      setOpen(true);
+
+      if (w.temperatureF != null) {
+        const tempStr = String(w.temperatureF);
+        setTextValueByGroup((prev) => ({ ...prev, Temperature: tempStr }));
+        await saveTextValue("Temperature", tempStr);
+        if (!isSelected("Temperature", "Fahrenheit (F)")) {
+          await toggleSelection("Temperature", "Fahrenheit (F)");
+        }
+      }
+
+      if (w.conditionText && !isSelected("Weather Conditions", w.conditionText)) {
+        await toggleSelection("Weather Conditions", w.conditionText);
+      }
+
+      const parts = [
+        w.temperatureF != null ? `${w.temperatureF}°F` : "",
+        w.conditionText || "",
+      ].filter(Boolean);
+      showMessage("success", `Weather set${parts.length ? `: ${parts.join(", ")}` : ""}.`);
+    } catch (error: any) {
+      showMessage("error", error?.message || "Weather lookup failed.");
+    } finally {
+      setWeatherLoading(false);
+    }
+  }
 
   useEffect(() => {
     async function load() {
@@ -1412,7 +1482,29 @@ function SectionInformationChecklist({
         </span>
       </button>
 
-
+      {supportsWeather && (
+        <div className="flex flex-wrap items-center gap-3 border-t border-slate-700 px-5 py-3">
+          <button
+            type="button"
+            onClick={autofillWeather}
+            disabled={weatherLoading}
+            aria-busy={weatherLoading}
+            className="inline-flex items-center gap-2 rounded-lg border border-sky-500 bg-sky-500/10 px-4 py-2 text-sm font-black text-sky-200 transition hover:bg-sky-500/20 disabled:cursor-wait disabled:opacity-60"
+          >
+            {weatherLoading ? (
+              <>
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                Getting weather…
+              </>
+            ) : (
+              <>🌤 Auto-fill Weather</>
+            )}
+          </button>
+          <span className="text-xs text-slate-400">
+            Fills Temperature &amp; Weather Conditions from the inspection date &amp; property location.
+          </span>
+        </div>
+      )}
 
       {message && (
         <div
