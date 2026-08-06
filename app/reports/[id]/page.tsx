@@ -52,6 +52,7 @@ import PublishReportActionButton from "../../../components/PublishReportActionBu
 import InspectorToolsDrawer, {
   type WorkspaceNotification,
 } from "../../../components/InspectorToolsDrawer";
+import PendingSubmitButton from "../../../components/PendingSubmitButton";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -1747,8 +1748,25 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
 
   const executiveSummary = String(inspection.executive_summary || "").trim();
 
-  const [emailLogsResult, viewLogsResult, equipmentResult, findingsResult, reportSectionsResult, officeAddressResult] =
-    await Promise.all([
+  // Every one of these reads only needs inspection.id, so run them in a single
+  // concurrent wave. This route is force-dynamic, so this whole render (and all
+  // these queries) re-runs on every server action -- batching them turns what
+  // used to be ~11 serial round-trips into a couple of parallel waves, which is
+  // the main reason the builder felt sluggish after each button press.
+  const [
+    emailLogsResult,
+    viewLogsResult,
+    equipmentResult,
+    findingsResult,
+    reportSectionsResult,
+    officeAddressResult,
+    sectionNotesResult,
+    repairSharesResult,
+    sampleReportResult,
+    signedAgreementsResult,
+    agreementContactsResult,
+    reportDisclaimersResult,
+  ] = await Promise.all([
       loadEmailLogs(supabase, inspection.id),
       supabase
         .from("inspection_view_events")
@@ -1777,6 +1795,36 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
             .eq("id", inspection.company_id)
             .maybeSingle()
         : Promise.resolve({ data: null, error: null }),
+      storageSupabase
+        .from("report_section_notes")
+        .select("section_name, notes")
+        .eq("inspection_id", inspection.id),
+      supabase
+        .from("repair_request_shares")
+        .select("*")
+        .eq("inspection_id", inspection.id)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("public_sample_reports")
+        .select("id, title, description, is_enabled")
+        .eq("inspection_id", inspection.id)
+        .maybeSingle(),
+      storageSupabase
+        .from("inspection_agreements")
+        .select("id, contact_id, client_name, client_email, signature_role, agreement_title, signed_at, signer_ip, signer_user_agent, status")
+        .eq("inspection_id", inspection.id)
+        .eq("status", "signed")
+        .order("signed_at", { ascending: false }),
+      supabase
+        .from("inspection_contacts")
+        .select("id, name, email, role, agreement_required, agreement_signed, signed_at")
+        .eq("inspection_id", inspection.id)
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("report_disclaimers")
+        .select("id, topic, disclaimer_text")
+        .eq("inspection_id", inspection.id)
+        .order("created_at", { ascending: true }),
     ]);
 
   const officeAddress = officeAddressResult?.data?.office_address || null;
@@ -1836,10 +1884,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
   // Per-section notes (shown above each section's findings). Service-role read
   // so a company owner sees notes on a team member's inspection too. Missing
   // table (pre-migration) just yields an empty map.
-  const { data: sectionNotesRows } = await storageSupabase
-    .from("report_section_notes")
-    .select("section_name, notes")
-    .eq("inspection_id", inspection.id);
+  const { data: sectionNotesRows } = sectionNotesResult;
 
   const sectionNotesMap: Record<string, string> = {};
   for (const row of sectionNotesRows || []) {
@@ -1867,11 +1912,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
   const equipmentInventoryRaw = equipmentResult.data || [];
   const findingsRaw = findingsResult.data || [];
 
-  const { data: repairRequestSharesRaw, error: repairRequestSharesError } = await supabase
-    .from("repair_request_shares")
-    .select("*")
-    .eq("inspection_id", inspection.id)
-    .order("created_at", { ascending: false });
+  const { data: repairRequestSharesRaw, error: repairRequestSharesError } = repairSharesResult;
 
   if (repairRequestSharesError) {
     console.error("Repair request history load error:", repairRequestSharesError);
@@ -2348,11 +2389,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
       ? `${engagementViews.length} view${engagementViews.length === 1 ? "" : "s"}`
       : "No views yet";
 
-  const { data: existingSampleReport } = await supabase
-    .from("public_sample_reports")
-    .select("id, title, description, is_enabled")
-    .eq("inspection_id", inspection.id)
-    .maybeSingle();
+  const { data: existingSampleReport } = sampleReportResult;
 
   const sampleReportBadge =
     existingSampleReport?.is_enabled === true ? "Enabled" : "Disabled";
@@ -2413,12 +2450,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
   // client silently returns 0 rows even for the owning inspector (which made
   // real signed agreements invisible here). Access to this page is already gated
   // by the RLS-scoped inspection load above, so this read is safe.
-  const { data: signedAgreementsRaw, error: signedAgreementsError } = await storageSupabase
-    .from("inspection_agreements")
-    .select("id, contact_id, client_name, client_email, signature_role, agreement_title, signed_at, signer_ip, signer_user_agent, status")
-    .eq("inspection_id", inspection.id)
-    .eq("status", "signed")
-    .order("signed_at", { ascending: false });
+  const { data: signedAgreementsRaw, error: signedAgreementsError } = signedAgreementsResult;
 
   if (signedAgreementsError) {
     console.error("Signed agreements load error:", signedAgreementsError);
@@ -2426,11 +2458,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
 
   const signedAgreements = signedAgreementsRaw || [];
 
-  const { data: agreementContactsRaw, error: agreementContactsError } = await supabase
-    .from("inspection_contacts")
-    .select("id, name, email, role, agreement_required, agreement_signed, signed_at")
-    .eq("inspection_id", inspection.id)
-    .order("created_at", { ascending: true });
+  const { data: agreementContactsRaw, error: agreementContactsError } = agreementContactsResult;
 
   if (agreementContactsError) {
     console.error("Agreement contacts load error:", agreementContactsError);
@@ -2461,11 +2489,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
       : "Needs setup";
   const firstSignedAgreement = signedAgreements[0] || null;
 
-  const { data: reportDisclaimersRaw, error: reportDisclaimersError } = await supabase
-    .from("report_disclaimers")
-    .select("id, topic, disclaimer_text")
-    .eq("inspection_id", inspection.id)
-    .order("created_at", { ascending: true });
+  const { data: reportDisclaimersRaw, error: reportDisclaimersError } = reportDisclaimersResult;
 
   if (reportDisclaimersError) {
     console.error("Report disclaimers load error:", reportDisclaimersError);
@@ -3169,12 +3193,12 @@ Service-life information is a general industry estimate only. Actual service lif
                               />
                             </div>
 
-                            <button
-                              type="submit"
+                            <PendingSubmitButton
                               className="w-full rounded-xl bg-cyan-500 px-4 py-2 text-sm font-black text-slate-950 hover:bg-cyan-400"
+                              pendingLabel="Saving..."
                             >
                               Save Equipment Note
-                            </button>
+                            </PendingSubmitButton>
                           </form>
                         </details>
 
@@ -4231,12 +4255,12 @@ Service-life information is a general industry estimate only. Actual service lif
                 Inspection Details
               </h2>
 
-              <button
-                type="submit"
+              <PendingSubmitButton
                 className="rounded-xl bg-teal-500 px-5 py-3 font-bold text-slate-950 hover:bg-teal-400"
+                pendingLabel="Saving..."
               >
                 Save Inspection Details
-              </button>
+              </PendingSubmitButton>
             </div>
 
             {detailsUpdated && (
