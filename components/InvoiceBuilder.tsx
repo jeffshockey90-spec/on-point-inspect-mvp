@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 type LineItem = { description: string; quantity: number; unitPrice: number };
@@ -36,6 +36,44 @@ export default function InvoiceBuilder({ initialInvoice, inspectionId }: Props) 
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+
+  // The inspector's price sheet, so the description field can offer their
+  // services (with the price auto-filled) plus a Custom option.
+  const [services, setServices] = useState<any[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/pricing", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json) => {
+        if (!cancelled && Array.isArray(json?.config?.services)) {
+          setServices(json.config.services);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  function serviceDefaultPrice(s: any): number {
+    if (s?.type === "flat") return Number(s.flatPrice) || 0;
+    if (s?.type === "flat_plus_per_unit") return Number(s.baseFee) || 0;
+    return Number(s.basePrice) || 0; // sqft_formula base price
+  }
+
+  function onServiceSelect(index: number, value: string) {
+    if (value === "__custom__") {
+      updateItem(index, { description: "" });
+      return;
+    }
+    const svc = services.find((s) => String(s.id) === value);
+    if (svc) {
+      updateItem(index, {
+        description: svc.name,
+        unitPrice: serviceDefaultPrice(svc),
+      });
+    }
+  }
 
   const subtotal = useMemo(
     () =>
@@ -173,7 +211,31 @@ export default function InvoiceBuilder({ initialInvoice, inspectionId }: Props) 
               <div key={i} className="grid grid-cols-12 items-end gap-2">
                 <label className="col-span-12 sm:col-span-6">
                   <span className="mb-1 block text-[10px] font-black uppercase tracking-wide text-slate-500">Description</span>
-                  <input className={inputClass} value={li.description} onChange={(e) => updateItem(i, { description: e.target.value })} placeholder="Home inspection, radon test, etc." />
+                  {services.length > 0 ? (
+                    <select
+                      className={inputClass}
+                      value={
+                        services.find((s) => s.name === li.description)?.id ?? "__custom__"
+                      }
+                      onChange={(e) => onServiceSelect(i, e.target.value)}
+                    >
+                      <option value="__custom__">Custom / other…</option>
+                      {services.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name}
+                        </option>
+                      ))}
+                    </select>
+                  ) : null}
+                  {services.length === 0 ||
+                  !services.some((s) => s.name === li.description) ? (
+                    <input
+                      className={`${inputClass}${services.length > 0 ? " mt-2" : ""}`}
+                      value={li.description}
+                      onChange={(e) => updateItem(i, { description: e.target.value })}
+                      placeholder="Home inspection, radon test, etc."
+                    />
+                  ) : null}
                 </label>
                 <label className="col-span-4 sm:col-span-2">
                   <span className="mb-1 block text-[10px] font-black uppercase tracking-wide text-slate-500">Qty</span>
