@@ -45,7 +45,7 @@ async function logReportEmail(
 ) {
   try {
     await supabase.from("email_logs").insert({
-      inspection_id: Number(inspectionId),
+      // inspection_id is a UUID column; the numeric id goes in inspection_id_bigint.
       inspection_id_bigint: Number(inspectionId),
       recipient,
       recipient_email: recipient,

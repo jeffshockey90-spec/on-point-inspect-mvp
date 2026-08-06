@@ -160,7 +160,10 @@ async function logEmailEvent(
 ) {
   try {
     await supabase.from("email_logs").insert({
-      inspection_id: Number(inspectionId),
+      // email_logs.inspection_id is a UUID column; the numeric inspection id
+      // goes in inspection_id_bigint. Writing the number into inspection_id
+      // makes the whole insert fail ("invalid input syntax for type uuid"),
+      // which silently dropped every report email from the Sent Emails list.
       inspection_id_bigint: Number(inspectionId),
       recipient,
       recipient_email: recipient,
