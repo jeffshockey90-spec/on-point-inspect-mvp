@@ -52,7 +52,6 @@ import PublishReportActionButton from "../../../components/PublishReportActionBu
 import InspectorToolsDrawer, {
   type WorkspaceNotification,
 } from "../../../components/InspectorToolsDrawer";
-import { aiPublishGuard } from "../../../lib/ai/AIPublishGuard";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -1568,72 +1567,11 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
 
     const accessFilter = await resolveInspectionAccessFilter(supabase, user.id);
 
-    const [guardInspectionResult, guardFindingsResult, guardEquipmentResult] =
-      await Promise.all([
-        supabase
-          .from("inspections")
-          .select("*")
-          .eq("id", inspectionId)
-          .eq(accessFilter.column, accessFilter.value)
-          .single(),
-        supabase
-          .from("findings")
-          .select("*")
-          .eq("inspection_id", inspectionId)
-          .order("created_at", { ascending: true }),
-        supabase
-          .from("equipment_inventory")
-          .select("*")
-          .eq("inspection_id", inspectionId)
-          .order("created_at", { ascending: true }),
-      ]);
-
-    if (guardInspectionResult.error || !guardInspectionResult.data) {
-      console.error("Publish guard inspection load error:", guardInspectionResult.error);
-      redirect(`/reports/${inspectionId}?publish_guard_error=1`);
-    }
-
-    const guardFindings = guardFindingsResult.data || [];
-    const guardFindingIds = guardFindings.map((finding: any) => finding.id).filter(Boolean);
-
-    const { data: guardPhotos, error: guardPhotosError } =
-      guardFindingIds.length > 0
-        ? await supabase.from("photos").select("*").in("finding_id", guardFindingIds)
-        : { data: [], error: null };
-
-    if (guardPhotosError) {
-      console.error("Publish guard photos load error:", guardPhotosError);
-    }
-
-    const guardPhotosByFindingId = (guardPhotos || []).reduce(
-      (acc: Record<string, any[]>, photo: any) => {
-        const findingId = String(photo.finding_id || "");
-        if (!findingId) return acc;
-        if (!acc[findingId]) acc[findingId] = [];
-        acc[findingId].push(photo);
-        return acc;
-      },
-      {},
-    );
-
-    const guardNormalizedFindings = guardFindings.map((finding: any) => ({
-      ...finding,
-      section: normalizeSection(finding.section || finding.section_name),
-      photos: guardPhotosByFindingId[String(finding.id)] || [],
-    }));
-
-    const guardResult = aiPublishGuard.analyze({
-      inspection: guardInspectionResult.data,
-      findings: guardNormalizedFindings,
-      equipment: guardEquipmentResult.data || [],
-      photos: guardPhotos || [],
-    });
-
-    if (guardResult.blocked) {
-      console.warn("AI Publish Guard blocked publish:", guardResult);
-      redirect(`/reports/${inspectionId}?publish_guard=blocked`);
-    }
-
+    // The AI Publish Guard is ADVISORY ONLY. The inspector's decision always
+    // wins, so publishing is never blocked here -- inspectors can review the
+    // guard's findings in the AI Publish Guard panel, but the Publish button
+    // always publishes. (It used to hard-block on score < 70, which stranded
+    // complete reports in Draft with no way to override from this button.)
     const now = new Date().toISOString();
 
     const { error } = await supabase
