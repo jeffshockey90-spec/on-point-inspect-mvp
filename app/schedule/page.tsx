@@ -205,7 +205,7 @@ export default async function SchedulePage() {
   const { data: company } = companyUser?.company_id
     ? await supabase
         .from("companies")
-        .select("profile_slug, office_latitude, office_longitude, office_address")
+        .select("profile_slug")
         .eq("id", companyUser.company_id)
         .maybeSingle()
     : { data: null };
@@ -243,6 +243,17 @@ export default async function SchedulePage() {
     .toISOString()
     .slice(0, 10);
 
+  // Current-conditions widget uses the device's geolocation (handled in the
+  // client component). The next upcoming inspection is passed only as a fallback
+  // for when geolocation is denied/unavailable -- never the office.
+  const firstUpcoming = sortedRows.find((r: InspectionRow) => {
+    const d = getInspectionDate(r);
+    return d && String(d).slice(0, 10) >= todayStr;
+  });
+  const widgetFallbackLat = firstUpcoming?.property_latitude ?? null;
+  const widgetFallbackLng = firstUpcoming?.property_longitude ?? null;
+  const widgetFallbackAddress = firstUpcoming ? getAddress(firstUpcoming) : null;
+
   return (
     <main className="min-h-screen bg-[#020617] p-4 text-white sm:p-6">
       <div className="mx-auto max-w-[96rem]">
@@ -278,16 +289,14 @@ export default async function SchedulePage() {
           </div>
         ) : null}
 
-        {company && (company.office_latitude || company.office_address) ? (
-          <div className="mb-6">
-            <WeatherWidget
-              lat={company.office_latitude}
-              lng={company.office_longitude}
-              address={company.office_address}
-              label="Weather · Your Area"
-            />
-          </div>
-        ) : null}
+        <div className="mb-6">
+          <WeatherWidget
+            lat={widgetFallbackLat}
+            lng={widgetFallbackLng}
+            address={widgetFallbackAddress}
+            fallbackLabel="Weather · Next Job"
+          />
+        </div>
 
         <div className="mb-6 grid gap-3 sm:grid-cols-4">
           <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-4">
