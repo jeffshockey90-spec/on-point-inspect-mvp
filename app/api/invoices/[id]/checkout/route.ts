@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { getAdminClient } from "../../../../../lib/apiAuth";
+import { getOnlineProcessingFee } from "../../../../../lib/onlinePaymentFee";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -105,6 +106,34 @@ export async function GET(req: Request, { params }: RouteProps) {
       );
     }
 
+    // Honor the company's online-payment-fee setting (same as inspection
+    // checkout): when enabled, the client pays the processing fee on top so the
+    // inspector nets the full invoice total. getOnlineProcessingFee returns 0
+    // when the fee is toggled off.
+    const balanceDue =
+      Number(invoice.balance_due) > 0
+        ? Number(invoice.balance_due)
+        : Number(invoice.total) || 0;
+    const processingFee = getOnlineProcessingFee(balanceDue, company);
+    const totalOnlinePayment = Math.round((balanceDue + processingFee) * 100) / 100;
+
+    if (processingFee > 0) {
+      stripeLineItems.push({
+        quantity: 1,
+        price_data: {
+          currency: "usd",
+          unit_amount: Math.round(processingFee * 100),
+          product_data: {
+            name: "Online Payment Processing Fee",
+            description:
+              company?.online_payment_fee_type === "stripe_fee"
+                ? "Covers the card processing fee for this payment."
+                : "Online card payment fee set by the inspector.",
+          },
+        },
+      });
+    }
+
     const metadata: Record<string, string> = {
       invoice_id: String(invoice.id),
       company_id: String(company.id),
@@ -112,6 +141,9 @@ export async function GET(req: Request, { params }: RouteProps) {
       stripe_connect_account: connectedStripeAccountId,
       charge_type: "direct_charge",
       invoice_total: String(invoice.total || 0),
+      invoice_balance_due: String(balanceDue),
+      portal_processing_fee: String(processingFee),
+      total_online_payment: String(totalOnlinePayment),
     };
     if (invoice.inspection_id) metadata.inspection_id = String(invoice.inspection_id);
 
