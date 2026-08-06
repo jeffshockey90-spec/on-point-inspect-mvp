@@ -8,6 +8,8 @@ import ScheduleCalendar from "../../components/ScheduleCalendar";
 import ScheduleReminderSettings from "../../components/ScheduleReminderSettings";
 import BookingRequestActions from "../../components/BookingRequestActions";
 import InspectorAvailabilitySettings from "../../components/InspectorAvailabilitySettings";
+import WeatherWidget from "../../components/WeatherWidget";
+import InspectionWeatherChip from "../../components/InspectionWeatherChip";
 
 type InspectionRow = Record<string, any>;
 type BookingRequestRow = Record<string, any>;
@@ -203,7 +205,7 @@ export default async function SchedulePage() {
   const { data: company } = companyUser?.company_id
     ? await supabase
         .from("companies")
-        .select("profile_slug")
+        .select("profile_slug, office_latitude, office_longitude, office_address")
         .eq("id", companyUser.company_id)
         .maybeSingle()
     : { data: null };
@@ -234,6 +236,12 @@ export default async function SchedulePage() {
   const scheduledRows = rows.filter((row) => getInspectionDate(row));
   const unscheduledRows = rows.filter((row) => !getInspectionDate(row));
   const sortedRows = sortScheduleRows(scheduledRows);
+
+  // Only show a forecast for inspections within Open-Meteo's ~16-day window.
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const forecastLimitStr = new Date(Date.now() + 16 * 86400000)
+    .toISOString()
+    .slice(0, 10);
 
   return (
     <main className="min-h-screen bg-[#020617] p-4 text-white sm:p-6">
@@ -267,6 +275,17 @@ export default async function SchedulePage() {
         {bookingRequestsError ? (
           <div className="mb-6 rounded-2xl border border-yellow-500/40 bg-yellow-950/30 p-5 text-yellow-100">
             Booking requests could not load. If this is your first install, run the booking SQL migration first. {bookingRequestsError.message}
+          </div>
+        ) : null}
+
+        {company && (company.office_latitude || company.office_address) ? (
+          <div className="mb-6">
+            <WeatherWidget
+              lat={company.office_latitude}
+              lng={company.office_longitude}
+              address={company.office_address}
+              label="Weather · Your Area"
+            />
           </div>
         ) : null}
 
@@ -467,6 +486,19 @@ export default async function SchedulePage() {
                       <p className="mt-1 text-sm text-slate-400">
                         {time || "Time not entered"}
                       </p>
+
+                      {date &&
+                      String(date).slice(0, 10) >= todayStr &&
+                      String(date).slice(0, 10) <= forecastLimitStr ? (
+                        <div className="mt-2">
+                          <InspectionWeatherChip
+                            lat={inspection.property_latitude}
+                            lng={inspection.property_longitude}
+                            address={getAddress(inspection)}
+                            date={String(date).slice(0, 10)}
+                          />
+                        </div>
+                      ) : null}
                     </div>
 
                     <div>
