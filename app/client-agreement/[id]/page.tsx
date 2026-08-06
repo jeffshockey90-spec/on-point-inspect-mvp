@@ -162,6 +162,7 @@ export default async function ClientAgreementPage({
   }
 
   let selectedContact: any = null;
+  let contactChooser: any[] = [];
 
   if (contact) {
     const { data } = await supabase
@@ -172,6 +173,32 @@ export default async function ClientAgreementPage({
       .maybeSingle();
 
     selectedContact = data;
+  }
+
+  // No specific signer in the link (e.g. a co-client opened the shared client
+  // portal link, which omits ?contact=). Work out who still needs to sign so a
+  // co-client is never shown the primary client's signed copy with no way to
+  // sign: exactly one unsigned client -> sign as them; several -> let the
+  // viewer pick which signer they are. Only runs when NO contact param was
+  // given, so a specific (even if stale) link is never silently reassigned.
+  if (!selectedContact && !contact) {
+    const { data: allContacts } = await supabase
+      .from("inspection_contacts")
+      .select("*")
+      .eq("inspection_id", inspection.id)
+      .order("created_at", { ascending: true });
+
+    const unsignedClients = (allContacts || []).filter((row: any) => {
+      const role = String(row?.role || "").toLowerCase();
+      const isClient = role === "client" || role === "co-client";
+      return isClient && row?.agreement_required !== false && !row?.agreement_signed;
+    });
+
+    if (unsignedClients.length === 1) {
+      selectedContact = unsignedClients[0];
+    } else if (unsignedClients.length > 1) {
+      contactChooser = unsignedClients;
+    }
   }
 
   await recordInspectionView({
@@ -318,7 +345,33 @@ export default async function ClientAgreementPage({
           {agreementBody}
         </div>
 
-        {signedAgreement ? (
+        {contactChooser.length > 1 ? (
+          <div className="rounded-2xl border border-cyan-700 bg-cyan-950/20 p-6">
+            <h2 className="text-2xl font-extrabold text-cyan-200">
+              Who is signing?
+            </h2>
+            <p className="mt-2 text-sm text-slate-300">
+              This inspection has more than one client. Select your name to sign
+              the agreement &mdash; each client signs separately.
+            </p>
+            <div className="mt-5 flex flex-col gap-3">
+              {contactChooser.map((choice: any) => (
+                <a
+                  key={choice.id}
+                  href={`/client-agreement/${id}?contact=${encodeURIComponent(
+                    choice.id
+                  )}${source ? `&source=${encodeURIComponent(source)}` : ""}`}
+                  className="flex items-center justify-between gap-3 rounded-xl border border-cyan-500 bg-cyan-500/10 px-5 py-4 text-left font-bold text-cyan-100 transition hover:bg-cyan-500/20"
+                >
+                  <span>{choice.name || choice.email || "Client"}</span>
+                  <span className="text-xs font-black uppercase tracking-wide text-cyan-300">
+                    {choice.role || "client"} &rsaquo;
+                  </span>
+                </a>
+              ))}
+            </div>
+          </div>
+        ) : signedAgreement ? (
           <div className="rounded-2xl border border-green-700 bg-green-950/30 p-6 print:border-black print:bg-white print:text-black">
             <h2 className="text-2xl font-extrabold text-green-300 print:text-black">
               Agreement Signed
