@@ -28,6 +28,18 @@ type OptionOverride = {
   hidden?: boolean | null;
 };
 
+// A checklist option as rendered. `custom` options are real rows in
+// section_checklist_options (identified by overrideId/optionLabel) and can be
+// hard-deleted; built-in options live in code and are hidden via an override
+// row keyed by their original label (baseOriginal).
+type RenderOption = {
+  label: string;
+  custom: boolean;
+  baseOriginal?: string;
+  overrideId?: string;
+  optionLabel?: string;
+};
+
 const CHECKLIST_LIBRARY: Record<string, ChecklistGroup[]> = {
   "Inspection Details": [
     {
@@ -1118,13 +1130,34 @@ function SectionInformationChecklist({
     load();
   }, [inspectionId, section]);
 
-  function getGroupOptions(group: ChecklistGroup) {
-    const hidden = new Set(optionOverrides.filter((item) => item.group_title === group.title && item.hidden).map((item) => item.option_label));
-    const renamed = new Map(optionOverrides.filter((item) => item.group_title === group.title && item.replacement_label && !item.hidden).map((item) => [item.option_label, item.replacement_label || item.option_label]));
-    const customAdded = optionOverrides
-      .filter((item) => item.group_title === group.title && !item.hidden && item.option_label.startsWith("__CUSTOM__:"))
-      .map((item) => item.replacement_label || item.option_label.replace("__CUSTOM__:", ""));
-    const base = group.options.filter((option) => !hidden.has(option)).map((option) => renamed.get(option) || option);
+  function getGroupOptions(group: ChecklistGroup): RenderOption[] {
+    const overridesForGroup = optionOverrides.filter((item) => item.group_title === group.title);
+    const hidden = new Set(
+      overridesForGroup.filter((item) => item.hidden).map((item) => item.option_label)
+    );
+    const renamed = new Map(
+      overridesForGroup
+        .filter((item) => item.replacement_label && !item.hidden)
+        .map((item) => [item.option_label, item.replacement_label as string])
+    );
+
+    const base: RenderOption[] = group.options
+      .filter((option) => !hidden.has(option))
+      .map((option) => ({
+        label: renamed.get(option) || option,
+        baseOriginal: option,
+        custom: false,
+      }));
+
+    const customAdded: RenderOption[] = overridesForGroup
+      .filter((item) => !item.hidden && item.option_label.startsWith("__CUSTOM__:"))
+      .map((item) => ({
+        label: item.replacement_label || item.option_label.replace("__CUSTOM__:", ""),
+        custom: true,
+        overrideId: item.id,
+        optionLabel: item.option_label,
+      }));
+
     return [...base, ...customAdded];
   }
 
@@ -1133,32 +1166,54 @@ function SectionInformationChecklist({
   }
 
   async function toggleSelection(groupTitle: string, value: string) {
-    if (saving || !inspectionId || !section) return;
-    setSaving(true);
+    if (!inspectionId || !section) return;
 
-    try {
-      const existing = selections.find((item) => item.group_title === groupTitle && item.value === value);
+    const existing = selections.find(
+      (item) => item.group_title === groupTitle && item.value === value
+    );
 
-      if (existing) {
-        const { error } = await supabase.from("section_checklist_selections").delete().eq("id", existing.id);
-        if (error) throw error;
-        setSelections((prev) => prev.filter((item) => item.id !== existing.id));
-        return;
-      }
-
-      const { data, error } = await supabase
+    // Optimistic update: reflect the toggle in the UI immediately and persist in
+    // the background. Previously every click awaited a network round-trip while a
+    // single `saving` flag disabled the entire checklist, which made clicking
+    // through options feel slow and laggy on large reports.
+    if (existing) {
+      setSelections((prev) => prev.filter((item) => item.id !== existing.id));
+      const { error } = await supabase
         .from("section_checklist_selections")
-        .insert({ inspection_id: inspectionId, section, group_title: groupTitle, value })
-        .select("*")
-        .single();
-
-      if (error) throw error;
-      if (data) setSelections((prev) => [...prev, data]);
-    } catch (error: any) {
-      showMessage("error", error?.message || "Failed to save checklist selection.");
-    } finally {
-      setSaving(false);
+        .delete()
+        .eq("id", existing.id);
+      if (error) {
+        // Roll back on failure.
+        setSelections((prev) => [...prev, existing]);
+        showMessage("error", error?.message || "Failed to update checklist selection.");
+      }
+      return;
     }
+
+    const tempId = `temp-${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+    const optimistic: SelectionRow = {
+      id: tempId,
+      inspection_id: inspectionId,
+      section,
+      group_title: groupTitle,
+      value,
+    };
+    setSelections((prev) => [...prev, optimistic]);
+
+    const { data, error } = await supabase
+      .from("section_checklist_selections")
+      .insert({ inspection_id: inspectionId, section, group_title: groupTitle, value })
+      .select("*")
+      .single();
+
+    if (error || !data) {
+      setSelections((prev) => prev.filter((item) => item.id !== tempId));
+      showMessage("error", error?.message || "Failed to save checklist selection.");
+      return;
+    }
+
+    // Swap the optimistic row for the real one from the database.
+    setSelections((prev) => prev.map((item) => (item.id === tempId ? data : item)));
   }
 
   async function saveTextValue(groupTitle: string, value: string) {
@@ -1285,19 +1340,51 @@ function SectionInformationChecklist({
     }
   }
 
-  async function hideOption(groupTitle: string, optionLabel: string) {
+  async function deleteOption(groupTitle: string, option: RenderOption) {
     if (saving) return;
-    if (!window.confirm(`Delete "${optionLabel}" from this checklist group?`)) return;
+    if (!window.confirm(`Delete "${option.label}" from this checklist group?`)) return;
     setSaving(true);
 
     try {
-      const { data, error } = await supabase
-        .from("section_checklist_options")
-        .insert({ section, group_title: groupTitle, option_label: optionLabel, hidden: true })
-        .select("*")
-        .single();
-      if (error) throw error;
-      if (data) setOptionOverrides((prev) => [...prev, data]);
+      if (option.custom && option.overrideId) {
+        // Custom options are real rows in section_checklist_options -- hard-delete
+        // so they actually disappear. (The old code inserted a hidden row keyed by
+        // the display label, which never matched the "__CUSTOM__:" row, so custom
+        // options could never be deleted.)
+        const { error } = await supabase
+          .from("section_checklist_options")
+          .delete()
+          .eq("id", option.overrideId);
+        if (error) throw error;
+        setOptionOverrides((prev) => prev.filter((item) => item.id !== option.overrideId));
+      } else {
+        // Built-in options live in code, so hide them with an override row keyed by
+        // their ORIGINAL label (what getGroupOptions filters on). Reuse an existing
+        // override row for this option if one is already present (e.g. a rename).
+        const originalLabel = option.baseOriginal || option.label;
+        const existing = optionOverrides.find(
+          (item) => item.group_title === groupTitle && item.option_label === originalLabel
+        );
+
+        if (existing) {
+          const { data, error } = await supabase
+            .from("section_checklist_options")
+            .update({ hidden: true })
+            .eq("id", existing.id)
+            .select("*")
+            .single();
+          if (error) throw error;
+          if (data) setOptionOverrides((prev) => prev.map((item) => (item.id === existing.id ? data : item)));
+        } else {
+          const { data, error } = await supabase
+            .from("section_checklist_options")
+            .insert({ section, group_title: groupTitle, option_label: originalLabel, hidden: true })
+            .select("*")
+            .single();
+          if (error) throw error;
+          if (data) setOptionOverrides((prev) => [...prev, data]);
+        }
+      }
     } catch (error: any) {
       showMessage("error", error?.message || "Failed to delete checklist option.");
     } finally {
@@ -1395,7 +1482,7 @@ function SectionInformationChecklist({
                             saving={saving}
                             onClick={() => toggleSelection(group.title, unit)}
                             onEdit={() => setEditingOption({ groupTitle: group.title, optionLabel: unit, nextLabel: unit })}
-                            onDelete={() => hideOption(group.title, unit)}
+                            onDelete={() => deleteOption(group.title, { label: unit, baseOriginal: unit, custom: false })}
                           />
                         ))}
                       </div>
@@ -1406,13 +1493,21 @@ function SectionInformationChecklist({
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {options.map((option) => (
                     <ChecklistOptionButton
-                      key={option}
-                      label={option}
-                      selected={isSelected(group.title, option)}
+                      key={option.custom ? `custom-${option.overrideId}` : `base-${option.baseOriginal}`}
+                      label={option.label}
+                      selected={isSelected(group.title, option.label)}
                       saving={saving}
-                      onClick={() => toggleSelection(group.title, option)}
-                      onEdit={() => setEditingOption({ groupTitle: group.title, optionLabel: option, nextLabel: option })}
-                      onDelete={() => hideOption(group.title, option)}
+                      onClick={() => toggleSelection(group.title, option.label)}
+                      onEdit={() =>
+                        setEditingOption({
+                          groupTitle: group.title,
+                          optionLabel: option.custom
+                            ? option.optionLabel || option.label
+                            : option.baseOriginal || option.label,
+                          nextLabel: option.label,
+                        })
+                      }
+                      onDelete={() => deleteOption(group.title, option)}
                     />
                   ))}
                 </div>
