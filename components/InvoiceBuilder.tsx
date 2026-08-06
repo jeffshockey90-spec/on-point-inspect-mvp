@@ -33,7 +33,9 @@ export default function InvoiceBuilder({ initialInvoice, inspectionId }: Props) 
       : [{ description: "", quantity: 1, unitPrice: 0 }]
   );
   const [saving, setSaving] = useState(false);
+  const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
 
   const subtotal = useMemo(
     () =>
@@ -54,36 +56,70 @@ export default function InvoiceBuilder({ initialInvoice, inspectionId }: Props) 
     setItems((prev) => (prev.length > 1 ? prev.filter((_, i) => i !== index) : prev));
   }
 
+  async function persist(): Promise<any> {
+    const payload = {
+      client_name: clientName,
+      client_email: clientEmail,
+      invoice_number: invoiceNumber,
+      due_date: dueDate || null,
+      notes,
+      line_items: items,
+      inspection_id: inspectionId || initialInvoice?.inspection_id || null,
+    };
+    const res = await fetch(
+      editing ? `/api/invoices/${initialInvoice.id}` : "/api/invoices",
+      {
+        method: editing ? "PATCH" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }
+    );
+    const json = await res.json();
+    if (!res.ok) throw new Error(json?.error || "Failed to save invoice.");
+    return json.invoice;
+  }
+
   async function save() {
-    if (saving) return;
+    if (saving || sending) return;
     setSaving(true);
     setError("");
+    setNotice("");
     try {
-      const payload = {
-        client_name: clientName,
-        client_email: clientEmail,
-        invoice_number: invoiceNumber,
-        due_date: dueDate || null,
-        notes,
-        line_items: items,
-        inspection_id: inspectionId || initialInvoice?.inspection_id || null,
-      };
-      const res = await fetch(
-        editing ? `/api/invoices/${initialInvoice.id}` : "/api/invoices",
-        {
-          method: editing ? "PATCH" : "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        }
-      );
-      const json = await res.json();
-      if (!res.ok) throw new Error(json?.error || "Failed to save invoice.");
+      await persist();
       router.push("/invoices");
       router.refresh();
     } catch (e: any) {
       setError(e?.message || "Failed to save invoice.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function saveAndSend() {
+    if (saving || sending) return;
+    if (!editing) {
+      setError("Save the invoice first, then send it.");
+      return;
+    }
+    if (!clientEmail.trim()) {
+      setError("Add a client email before sending the invoice.");
+      return;
+    }
+    setSending(true);
+    setError("");
+    setNotice("");
+    try {
+      await persist();
+      const res = await fetch(`/api/invoices/${initialInvoice.id}/send`, {
+        method: "POST",
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.error || "Failed to send invoice.");
+      setNotice(`Invoice emailed to ${json.recipient} with an online pay link.`);
+    } catch (e: any) {
+      setError(e?.message || "Failed to send invoice.");
+    } finally {
+      setSending(false);
     }
   }
 
@@ -95,6 +131,11 @@ export default function InvoiceBuilder({ initialInvoice, inspectionId }: Props) 
       {error && (
         <div className="rounded-xl border border-red-700 bg-red-950/40 px-4 py-3 text-sm font-bold text-red-200">
           {error}
+        </div>
+      )}
+      {notice && (
+        <div className="rounded-xl border border-emerald-700 bg-emerald-950/40 px-4 py-3 text-sm font-bold text-emerald-200">
+          {notice}
         </div>
       )}
 
@@ -179,10 +220,24 @@ export default function InvoiceBuilder({ initialInvoice, inspectionId }: Props) 
             "Create Invoice"
           )}
         </button>
+        {editing && (
+          <button type="button" onClick={saveAndSend} disabled={saving || sending} className="inline-flex items-center gap-2 rounded-xl border border-cyan-500 bg-cyan-500/10 px-6 py-3 font-black text-cyan-200 transition hover:bg-cyan-500/20 disabled:cursor-wait disabled:opacity-70">
+            {sending ? (
+              <>
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                Sending…
+              </>
+            ) : (
+              "Save & Send to Client"
+            )}
+          </button>
+        )}
         <button type="button" onClick={() => router.push("/invoices")} className="rounded-xl border border-slate-600 px-6 py-3 font-bold text-slate-200 hover:bg-slate-800">
           Cancel
         </button>
-        <span className="text-xs text-slate-500">Save the invoice, then use “Send” from the invoice list to email it with an online pay link.</span>
+        {!editing && (
+          <span className="text-xs text-slate-500">Create the invoice first, then reopen it to send with an online pay link.</span>
+        )}
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSessionUser, getAdminClient, unauthorized, notFound } from "../../../../lib/apiAuth";
-import { computeInvoiceTotals } from "../route";
+import { computeInvoiceTotals } from "../../../../lib/invoiceTotals";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

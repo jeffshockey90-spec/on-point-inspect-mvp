@@ -804,6 +804,41 @@ export async function POST(req: Request) {
             amount,
           },
         });
+      } else if (session.metadata?.invoice_id) {
+        // Invoice payment settlement. Separate from the inspection-payment path
+        // below (which is left unchanged). Marks the invoices row paid; the DB
+        // update is idempotent so webhook re-delivery is safe.
+        const invoiceId = session.metadata.invoice_id;
+        const supabaseInv = getSupabaseAdmin();
+
+        const { data: invoiceRow } = await supabaseInv
+          .from("invoices")
+          .select("*")
+          .eq("id", invoiceId)
+          .maybeSingle();
+
+        if (invoiceRow) {
+          const paidAtInv = new Date().toISOString();
+          const paidAmount =
+            Number(invoiceRow.total) ||
+            (session.amount_total ? session.amount_total / 100 : 0);
+
+          await supabaseInv
+            .from("invoices")
+            .update({
+              status: "paid",
+              amount_paid: paidAmount,
+              balance_due: 0,
+              paid_at: invoiceRow.paid_at || paidAtInv,
+              stripe_checkout_session_id: session.id,
+              stripe_payment_intent_id: session.payment_intent
+                ? String(session.payment_intent)
+                : invoiceRow.stripe_payment_intent_id || null,
+            })
+            .eq("id", invoiceId);
+        }
+
+        return NextResponse.json({ received: true });
       } else {
       const inspectionId =
                 session.metadata?.inspection_id || session.client_reference_id;
