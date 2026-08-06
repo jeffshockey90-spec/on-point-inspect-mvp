@@ -12,7 +12,7 @@ create table if not exists public.invoices (
   -- is what RLS checks. company_id drives branding. inspection_id is optional
   -- (invoices can be standalone).
   inspector_id uuid not null default auth.uid(),
-  company_id uuid,
+  company_id bigint,
   inspection_id bigint,
 
   -- Human-facing invoice number (e.g. INV-1042). Unique per inspector.
