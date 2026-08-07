@@ -3612,6 +3612,84 @@ function FieldPageContent() {
     return firstData;
   }
 
+  // Background save for the optimistic "finding" path: the form is already reset
+  // and the inspector has moved on, so this runs the upload + insert behind the
+  // scenes (progress still shows via the media-progress chips). If the upload
+  // fails, the work is queued offline for automatic retry so nothing is lost.
+  async function backgroundSaveFinding(snapshot: {
+    photos: File[];
+    title: string;
+    note: string;
+    section: string;
+    severity: string;
+    observation: string;
+    implication: string;
+    recommendation: string;
+    inspectionId: any;
+  }) {
+    try {
+      await saveFindingOnline({
+        photos: snapshot.photos,
+        title: snapshot.title,
+        note: snapshot.note,
+        section: snapshot.section,
+        severity: snapshot.severity,
+        observation: snapshot.observation,
+        implication: snapshot.implication,
+        recommendation: snapshot.recommendation,
+      });
+      clearCompletedProgressSoon();
+      // Refresh the existing-findings list now that the row exists.
+      setQueueTick((current) => current + 1);
+      window.dispatchEvent(
+        new CustomEvent("opi:inspection-data-changed", {
+          detail: { inspectionId: snapshot.inspectionId, source: "field-finding-background" },
+        }),
+      );
+    } catch (error: any) {
+      // Don't lose the inspector's work -- queue it offline to retry automatically.
+      if (snapshot.photos.length > 0 && (isLikelyNetworkError(error) || !isOnline())) {
+        try {
+          const { offlinePhotos, skippedCount, skippedVideos } =
+            await prepareOfflinePhotosForQueue(snapshot.photos);
+
+          addOfflineQueueItem({
+            type: "finding",
+            payload: {
+              inspection_id: snapshot.inspectionId,
+              title: snapshot.title,
+              section: snapshot.section,
+              severity: snapshot.severity,
+              inspector_note: snapshot.note,
+              note: snapshot.note,
+              caption: snapshot.note || snapshot.title,
+              observation: snapshot.observation,
+              implication: snapshot.implication,
+              recommendation: snapshot.recommendation,
+              photos: offlinePhotos,
+              run_ai_after_sync: false,
+              ai_after_sync: false,
+              offline_media_skipped_count: skippedCount,
+              offline_video_skipped_count: skippedVideos,
+            },
+          });
+          clearCompletedProgressSoon();
+          setMessage(
+            "A background upload hit a snag — that finding was saved locally and will retry automatically when service is stable.",
+          );
+        } catch {
+          setMessage(
+            "A finding could not be saved in the background. Please re-add it to try again.",
+          );
+        }
+      } else {
+        setMessage(
+          error?.message || "A finding could not be saved in the background.",
+        );
+      }
+    }
+  }
+
   async function saveFieldItem() {
     if (!selectedReport) {
       setMessage("Select a report first.");
@@ -3659,6 +3737,29 @@ function FieldPageContent() {
 
     setSaving(true);
     setMessage("");
+
+    // Optimistic path for the common case: an online NEW finding. Snapshot the
+    // form, reset it, and re-enable the button immediately so the inspector can
+    // start the next finding while this one uploads/saves in the background.
+    // (Other types and offline saves keep the synchronous flow below.)
+    if (photoType === "finding" && isOnline()) {
+      const snapshot = {
+        photos: [...photos],
+        title,
+        note,
+        section,
+        severity,
+        observation,
+        implication,
+        recommendation,
+        inspectionId: selectedReport,
+      };
+      resetForm();
+      setSaving(false);
+      setMessage("Finding is saving in the background — go ahead and start the next one.");
+      void backgroundSaveFinding(snapshot);
+      return;
+    }
 
     try {
       if (!isOnline()) {
