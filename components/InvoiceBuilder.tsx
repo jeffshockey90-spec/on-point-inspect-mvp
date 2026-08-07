@@ -135,10 +135,6 @@ export default function InvoiceBuilder({ initialInvoice, inspectionId }: Props) 
 
   async function saveAndSend() {
     if (saving || sending) return;
-    if (!editing) {
-      setError("Save the invoice first, then send it.");
-      return;
-    }
     if (!clientEmail.trim()) {
       setError("Add a client email before sending the invoice.");
       return;
@@ -147,13 +143,18 @@ export default function InvoiceBuilder({ initialInvoice, inspectionId }: Props) 
     setError("");
     setNotice("");
     try {
-      await persist();
-      const res = await fetch(`/api/invoices/${initialInvoice.id}/send`, {
+      // Save (create or update) first, then send using the resulting id -- so a
+      // brand-new invoice can be created and sent in one step.
+      const inv = await persist();
+      const targetId = inv?.id || initialInvoice?.id;
+      if (!targetId) throw new Error("Could not save the invoice.");
+      const res = await fetch(`/api/invoices/${targetId}/send`, {
         method: "POST",
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json?.error || "Failed to send invoice.");
-      setNotice(`Invoice emailed to ${json.recipient} with an online pay link.`);
+      router.push("/invoices");
+      router.refresh();
     } catch (e: any) {
       setError(e?.message || "Failed to send invoice.");
     } finally {
@@ -162,7 +163,7 @@ export default function InvoiceBuilder({ initialInvoice, inspectionId }: Props) 
   }
 
   const inputClass =
-    "w-full rounded-lg border border-slate-700 bg-[#020617] px-3 py-2 text-white outline-none focus:border-teal-400";
+    "w-full min-w-0 rounded-lg border border-slate-700 bg-[#020617] px-3 py-2 text-white outline-none focus:border-teal-400";
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -209,7 +210,7 @@ export default function InvoiceBuilder({ initialInvoice, inspectionId }: Props) 
             const amount = (Number(li.quantity) || 0) * (Number(li.unitPrice) || 0);
             return (
               <div key={i} className="grid grid-cols-12 items-end gap-2">
-                <label className="col-span-12 sm:col-span-6">
+                <label className="col-span-12 min-w-0 sm:col-span-6">
                   <span className="mb-1 block text-[10px] font-black uppercase tracking-wide text-slate-500">Description</span>
                   {services.length > 0 ? (
                     <select
@@ -237,18 +238,18 @@ export default function InvoiceBuilder({ initialInvoice, inspectionId }: Props) 
                     />
                   ) : null}
                 </label>
-                <label className="col-span-4 sm:col-span-2">
+                <label className="col-span-4 min-w-0 sm:col-span-2">
                   <span className="mb-1 block text-[10px] font-black uppercase tracking-wide text-slate-500">Qty</span>
                   <input className={inputClass} type="number" min="0" step="1" value={li.quantity} onChange={(e) => updateItem(i, { quantity: Number(e.target.value) })} />
                 </label>
-                <label className="col-span-4 sm:col-span-2">
+                <label className="col-span-4 min-w-0 sm:col-span-2">
                   <span className="mb-1 block text-[10px] font-black uppercase tracking-wide text-slate-500">Unit price</span>
                   <input className={inputClass} type="number" min="0" step="0.01" value={li.unitPrice} onChange={(e) => updateItem(i, { unitPrice: Number(e.target.value) })} />
                 </label>
-                <div className="col-span-3 sm:col-span-1 pb-2 text-right font-bold text-white [font-variant-numeric:tabular-nums]">
+                <div className="col-span-3 min-w-0 truncate pb-2 text-right font-bold text-white [font-variant-numeric:tabular-nums] sm:col-span-1">
                   {money(amount)}
                 </div>
-                <button type="button" onClick={() => removeItem(i)} disabled={items.length <= 1} className="col-span-1 pb-2 text-lg text-slate-400 hover:text-red-300 disabled:opacity-30" aria-label="Remove line item">
+                <button type="button" onClick={() => removeItem(i)} disabled={items.length <= 1} className="col-span-1 min-w-0 pb-2 text-lg text-slate-400 hover:text-red-300 disabled:opacity-30" aria-label="Remove line item">
                   ×
                 </button>
               </div>
@@ -282,24 +283,21 @@ export default function InvoiceBuilder({ initialInvoice, inspectionId }: Props) 
             "Create Invoice"
           )}
         </button>
-        {editing && (
-          <button type="button" onClick={saveAndSend} disabled={saving || sending} className="inline-flex items-center gap-2 rounded-xl border border-cyan-500 bg-cyan-500/10 px-6 py-3 font-black text-cyan-200 transition hover:bg-cyan-500/20 disabled:cursor-wait disabled:opacity-70">
-            {sending ? (
-              <>
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                Sending…
-              </>
-            ) : (
-              "Save & Send to Client"
-            )}
-          </button>
-        )}
+        <button type="button" onClick={saveAndSend} disabled={saving || sending} className="inline-flex items-center gap-2 rounded-xl border border-cyan-500 bg-cyan-500/10 px-6 py-3 font-black text-cyan-200 transition hover:bg-cyan-500/20 disabled:cursor-wait disabled:opacity-70">
+          {sending ? (
+            <>
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+              Sending…
+            </>
+          ) : editing ? (
+            "Save & Send to Client"
+          ) : (
+            "Create & Send"
+          )}
+        </button>
         <button type="button" onClick={() => router.push("/invoices")} className="rounded-xl border border-slate-600 px-6 py-3 font-bold text-slate-200 hover:bg-slate-800">
           Cancel
         </button>
-        {!editing && (
-          <span className="text-xs text-slate-500">Create the invoice first, then reopen it to send with an online pay link.</span>
-        )}
       </div>
     </div>
   );
