@@ -836,6 +836,31 @@ export async function POST(req: Request) {
                 : invoiceRow.stripe_payment_intent_id || null,
             })
             .eq("id", invoiceId);
+
+          // Atomic once-only claim: flip receipt_sent_at null -> now. Only the
+          // first delivery of this event wins, so the owner push fires exactly
+          // once even if Stripe re-delivers the webhook.
+          const { data: claimed } = await supabaseInv
+            .from("invoices")
+            .update({ receipt_sent_at: paidAtInv })
+            .eq("id", invoiceId)
+            .is("receipt_sent_at", null)
+            .select("id")
+            .maybeSingle();
+
+          if (claimed) {
+            const payer =
+              invoiceRow.client_name || invoiceRow.client_email || "A client";
+            await sendOwnerPushNotification(supabaseInv, {
+              title: "💵 Invoice Paid",
+              body: `${payer} paid $${Number(paidAmount).toFixed(2)}${
+                invoiceRow.invoice_number ? ` — invoice ${invoiceRow.invoice_number}` : ""
+              }.`,
+              url: "/invoices",
+              eventType: "invoice_paid",
+              metadata: { invoice_id: invoiceId, amount: paidAmount },
+            });
+          }
         }
 
         return NextResponse.json({ received: true });
