@@ -247,46 +247,46 @@ export default async function InvoicesPage() {
               </Link>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[640px] text-left text-sm">
-                <thead>
-                  <tr className="border-b border-slate-700 text-xs font-black uppercase tracking-wide text-slate-400">
-                    <th className="py-2 pr-3">Invoice</th>
-                    <th className="py-2 pr-3">Client</th>
-                    <th className="py-2 pr-3">Total</th>
-                    <th className="py-2 pr-3">Status</th>
-                    <th className="py-2 pr-3">Created</th>
-                    <th className="py-2 pr-3 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {customInvoices.map((inv: any) => {
-                    const status = String(inv.status || "draft").toLowerCase();
-                    const statusTone =
-                      status === "paid"
-                        ? "bg-emerald-500/15 text-emerald-300"
-                        : status === "sent"
-                          ? "bg-cyan-500/15 text-cyan-300"
-                          : "bg-slate-600/20 text-slate-300";
-                    return (
-                      <tr key={inv.id} className="border-b border-slate-800">
-                        <td className="py-3 pr-3 font-bold text-white">{inv.invoice_number || "—"}</td>
-                        <td className="py-3 pr-3 text-slate-300">{inv.client_name || inv.client_email || "—"}</td>
-                        <td className="py-3 pr-3 font-bold text-white [font-variant-numeric:tabular-nums]">{money(inv.total)}</td>
-                        <td className="py-3 pr-3">
-                          <span className={`rounded-full px-2.5 py-1 text-xs font-black uppercase ${statusTone}`}>{status}</span>
-                        </td>
-                        <td className="py-3 pr-3 text-slate-400">{formatAppValue(inv.created_at, { month: "short", day: "numeric", year: "numeric" })}</td>
-                        <td className="py-3 pr-3 text-right">
-                          <Link href={`/invoices/${inv.id}/edit`} className="rounded-lg border border-slate-600 px-3 py-1 text-xs font-black text-slate-200 hover:bg-slate-800">
-                            {status === "paid" ? "View" : "Edit / Send"}
-                          </Link>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+            <div className="space-y-3">
+              {customInvoices.map((inv: any) => {
+                const status = String(inv.status || "draft").toLowerCase();
+                const statusTone =
+                  status === "paid"
+                    ? "bg-emerald-500/15 text-emerald-300"
+                    : status === "sent"
+                      ? "bg-cyan-500/15 text-cyan-300"
+                      : "bg-slate-600/20 text-slate-300";
+                return (
+                  <div
+                    key={inv.id}
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-800 bg-[#020817]/60 p-4"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate font-bold text-white">
+                        {inv.client_name || inv.client_email || "—"}
+                      </p>
+                      <p className="mt-0.5 text-xs text-slate-400">
+                        {inv.invoice_number ? `${inv.invoice_number} · ` : ""}
+                        {formatAppValue(inv.created_at, { month: "short", day: "numeric", year: "numeric" })}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-3">
+                      <span className={`rounded-full px-2.5 py-1 text-xs font-black uppercase ${statusTone}`}>
+                        {status}
+                      </span>
+                      <span className="font-black text-white [font-variant-numeric:tabular-nums]">
+                        {money(inv.total)}
+                      </span>
+                      <Link
+                        href={`/invoices/${inv.id}/edit`}
+                        className="whitespace-nowrap rounded-lg border border-slate-600 px-3 py-1.5 text-xs font-black text-slate-200 hover:bg-slate-800"
+                      >
+                        {status === "paid" ? "View" : "Edit / Send"}
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </section>
         )}
