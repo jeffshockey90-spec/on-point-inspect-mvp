@@ -219,21 +219,6 @@ export async function POST(req: Request) {
       );
     }
 
-    const googleReviewUrl =
-      process.env.GOOGLE_REVIEW_URL ||
-      process.env.NEXT_PUBLIC_GOOGLE_REVIEW_URL ||
-      "";
-
-    if (!googleReviewUrl) {
-      return NextResponse.json(
-        {
-          error:
-            "Missing GOOGLE_REVIEW_URL. Add your Google review link to Vercel environment variables.",
-        },
-        { status: 500 }
-      );
-    }
-
     const supabase = await createSupabaseServerClient();
 
     const {
@@ -264,6 +249,38 @@ export async function POST(req: Request) {
     }
 
     const branding = await getCompanyBrandingById(inspection.company_id);
+
+    // Use the company's OWN Google review link (saved when they connect their
+    // Google Business Profile) rather than a global env var. Prefer the g.page
+    // short link, then a Place-ID write-review link, then the env var. This
+    // fixes review requests that were sending a copied Google *search* URL
+    // (session-scoped, not an actual "leave a review" link).
+    const admin = createAdminClient();
+    const { data: reviewCompany } = await admin
+      .from("companies")
+      .select("google_review_url, google_place_id")
+      .eq("id", inspection.company_id)
+      .maybeSingle();
+
+    const googleReviewUrl =
+      (reviewCompany?.google_review_url &&
+        String(reviewCompany.google_review_url).trim()) ||
+      (reviewCompany?.google_place_id
+        ? `https://search.google.com/local/writereview?placeid=${reviewCompany.google_place_id}`
+        : "") ||
+      process.env.GOOGLE_REVIEW_URL ||
+      process.env.NEXT_PUBLIC_GOOGLE_REVIEW_URL ||
+      "";
+
+    if (!googleReviewUrl) {
+      return NextResponse.json(
+        {
+          error:
+            "No Google review link is set. Connect your Google Business Profile in Settings so review requests can link to your review page.",
+        },
+        { status: 400 }
+      );
+    }
 
     let contactEmail = String(recipientEmail || "").trim();
     let recipientName = "there";
