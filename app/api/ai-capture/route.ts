@@ -184,7 +184,7 @@ Return ONLY valid JSON in this exact structure:
 }
 
 Writing requirements:
-- Observation: what was visibly observed or reported by the inspector.
+- Observation: what was visibly observed or reported by the inspector. Describe the component/condition itself, NOT the photo. Never write "in this photo", "this image shows", "pictured", "shown here", or "as seen" — write a direct field observation, not a narration of an image.
 - Implication: why it matters and the likely consequence if not corrected.
 - Recommendation: who should evaluate/correct it and what action is appropriate.
 - Maintenance tip: include only when useful; keep it separate from the core repair recommendation.

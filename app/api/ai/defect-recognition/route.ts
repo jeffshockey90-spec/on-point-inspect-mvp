@@ -316,6 +316,7 @@ Return this exact JSON structure:
 Client-facing writing rules:
 - Title should be short and specific.
 - Observation describes the visible condition only.
+- Never reference the photo, image, or camera. Do not write "in this photo", "this image shows", "pictured", "shown here", or "as seen" — describe the component/condition itself, not the picture.
 - Implication explains why it matters.
 - Recommendation says who should evaluate/repair and what should be done.
 - Do not include confidence, evidence, or internal reasoning inside observation/implication/recommendation.

@@ -54,7 +54,8 @@ Rules:
 - Do not claim code violations.
 - Do not say something is unsafe unless it is clearly a safety concern.
 - Use phrases like "appeared to be", "was observed", or "at the time of inspection" when appropriate.
-- Observation should clearly describe what was seen.
+- Observation should clearly describe the condition of the component itself.
+- Write as a direct field observation, NOT a narration of a picture. Never reference the photo, image, or camera — do not write "in this photo", "this image shows", "pictured", "shown here", "as seen", or similar. Describe the component/condition, not the image.
 - Implication should explain why it matters and what could happen if ignored.
 - Recommendation should recommend evaluation, repair, or correction by the proper qualified contractor when appropriate.
 `,

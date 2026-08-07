@@ -198,6 +198,7 @@ Use this exact JSON structure:
 Writing rules:
 - Write like a professional certified home inspector.
 - Use clear Observation, Implication, Recommendation wording.
+- Describe the component/condition itself, NOT the photo. Never write "in this photo", "this image shows", "pictured", "shown here", "as seen", or any reference to the image or camera — it reads as a direct field observation, not a narration of a picture.
 - Realtor-friendly but accurate.
 - Client-friendly and easy to understand.
 - Do not exaggerate issues.

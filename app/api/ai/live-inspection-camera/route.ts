@@ -689,6 +689,7 @@ Rules:
 - It is okay to return zero suggestions if nothing reportable is visible.
 - Keep suggestions conservative and based on visible evidence.
 - Use cautious wording such as "appeared", "was observed", "may", and "recommend verification".
+- Describe the component/condition itself, NOT the photo. Never write "in this photo", "this image shows", "pictured", "shown here", or "as seen" — write it as a direct field observation, not a narration of an image.
 - Do not claim code violations.
 - Do not diagnose concealed conditions.
 - Do not identify mold/asbestos as fact from a photo.
