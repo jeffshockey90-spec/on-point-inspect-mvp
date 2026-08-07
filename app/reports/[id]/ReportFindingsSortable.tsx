@@ -728,6 +728,12 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
             data-command-target={`report-section-${commandSlug(group.section)}`}
             onDragOver={handleDragOver}
             onDrop={() => handleDrop(group.section)}
+            // content-visibility lets the browser skip layout/paint for sections
+            // scrolled off-screen, so the builder stays responsive as more
+            // sections mount while working down the report. contain-intrinsic-size
+            // reserves height (remembered after first render) so scrolling stays
+            // stable. Progressive enhancement -- older browsers just ignore it.
+            style={{ contentVisibility: "auto", containIntrinsicSize: "auto 720px" }}
             className={`w-full max-w-full overflow-x-hidden rounded-2xl border border-slate-700 bg-[#0f172a] shadow-lg transition ${
               isDragging ? "opacity-50 ring-2 ring-teal-400" : ""
             }`}
