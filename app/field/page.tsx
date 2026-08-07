@@ -2330,11 +2330,9 @@ function FieldPageContent() {
     setMessage("");
 
     try {
-      const uploadedPhotos: UploadedPhoto[] = [];
-
-      for (const photo of effectivePhotos) {
-        uploadedPhotos.push(await uploadPhotoFile(photo, "equipment-media"));
-      }
+      const uploadedPhotos: UploadedPhoto[] = await Promise.all(
+        effectivePhotos.map((photo) => uploadPhotoFile(photo, "equipment-media")),
+      );
 
       const mainImage = uploadedPhotos.find((photo) =>
         String(photo.filePath || "").match(/\.(jpg|jpeg|png|webp|gif|heic)$/i),
@@ -3408,10 +3406,9 @@ function FieldPageContent() {
     );
     if (!selectedFinding) throw new Error("The selected finding could not be found.");
 
-    const uploadedMedia: UploadedPhoto[] = [];
-    for (const media of photos) {
-      uploadedMedia.push(await uploadPhotoFile(media, "field-media"));
-    }
+    const uploadedMedia: UploadedPhoto[] = await Promise.all(
+      photos.map((media) => uploadPhotoFile(media, "field-media")),
+    );
 
     const photoRows = uploadedMedia.map((media) => ({
       inspection_id: selectedReport,
@@ -3459,11 +3456,12 @@ function FieldPageContent() {
     const effectiveImplication = overrides?.implication ?? implication;
     const effectiveRecommendation = overrides?.recommendation ?? recommendation;
 
-    const uploadedPhotos: UploadedPhoto[] = [];
-
-    for (const photo of effectivePhotos) {
-      uploadedPhotos.push(await uploadPhotoFile(photo, "field-media"));
-    }
+    // Upload all photos concurrently rather than one-at-a-time. Each upload has
+    // its own progress id, so a multi-photo finding saves in roughly the time of
+    // a single photo instead of the sum of all of them.
+    const uploadedPhotos: UploadedPhoto[] = await Promise.all(
+      effectivePhotos.map((photo) => uploadPhotoFile(photo, "field-media")),
+    );
 
     const fallbackTitle =
       effectiveTitle.trim() || effectiveNote.trim().slice(0, 80) || "Field Finding";
