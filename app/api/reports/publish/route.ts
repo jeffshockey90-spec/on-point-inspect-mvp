@@ -5,6 +5,8 @@ import { resolveInspectionAccessFilter } from "../../../../lib/inspectionAccess"
 import { aiPublishGuard } from "../../../../lib/ai";
 import { getOrCreateShareToken } from "../../../../lib/shareToken";
 import { getCompanyBrandingById, buildBrandedFromHeader, type CompanyBranding } from "../../../../lib/companyBranding";
+import { isSmsConfigured, sendSms } from "../../../../lib/sms";
+import { smsReportReadyClient, smsReportReadyAgent } from "../../../../lib/smsTemplates";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -378,6 +380,28 @@ export async function POST(req: Request) {
         sentEmails.push(recipient.email);
       } else {
         failedEmails.push({ email: recipient.email, error: result.error });
+      }
+    }
+
+    // Best-effort: also text the report link to any recipient with a phone on
+    // file, mirroring the emails (client wording -> client, agent wording ->
+    // realtor). Never blocks or fails the publish response.
+    if (isSmsConfigured()) {
+      for (const recipient of recipients) {
+        const phone =
+          recipient.type === "client"
+            ? inspection.client_phone
+            : inspection.realtor_phone || inspection.agent_phone;
+
+        if (!phone) continue;
+
+        const link = `${reportLink}?role=${encodeURIComponent(recipient.type)}`;
+        const body =
+          recipient.type === "realtor"
+            ? smsReportReadyAgent({ company: branding.name, address: propertyAddress, link })
+            : smsReportReadyClient({ company: branding.name, address: propertyAddress, link });
+
+        await sendSms({ to: phone, body }).catch(() => null);
       }
     }
 

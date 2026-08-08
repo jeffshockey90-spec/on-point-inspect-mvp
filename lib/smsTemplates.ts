@@ -23,6 +23,15 @@ export function smsConfirmation({ company, address, date, time }: Ctx) {
   );
 }
 
+// Realtor/agent variant: the inspection belongs to their client, not to them.
+export function smsConfirmationAgent({ company, address, date, time }: Ctx) {
+  const when = [date, time].filter(Boolean).join(" at ");
+  return line(
+    company,
+    `The inspection at ${address} for your client${when ? ` is confirmed for ${when}` : " is confirmed"}.`
+  );
+}
+
 export function smsReminder({ company, address, date, time }: Ctx) {
   const when = [date, time].filter(Boolean).join(" at ");
   return line(

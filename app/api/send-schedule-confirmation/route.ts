@@ -6,7 +6,7 @@ import { formatAppValue, formatClockTime } from "../../../lib/app-time";
 import { getCompanyBrandingById, buildBrandedFromHeader } from "../../../lib/companyBranding";
 import { getSessionUser, unauthorized, notFound, authorizeInspection } from "../../../lib/apiAuth";
 import { isSmsConfigured, sendSms } from "../../../lib/sms";
-import { smsConfirmation } from "../../../lib/smsTemplates";
+import { smsConfirmation, smsConfirmationAgent } from "../../../lib/smsTemplates";
 
 export const runtime = "nodejs";
 
@@ -331,27 +331,29 @@ ${branding.name}`;
     }
 
     // Best-effort confirmation text to the client + agent (if a phone is on
-    // file and SMS is configured). Never blocks the response.
+    // file and SMS is configured). Each role gets its own wording, mirroring the
+    // emails. Never blocks the response.
     if (isSmsConfigured()) {
-      const seen = new Set<string>();
-      const phones = [
-        inspection.client_phone,
-        inspection.realtor_phone || inspection.agent_phone,
-      ].filter(Boolean);
+      const smsTargets = [
+        { phone: inspection.client_phone, type: "client" as const },
+        {
+          phone: inspection.realtor_phone || inspection.agent_phone,
+          type: "realtor" as const,
+        },
+      ].filter((target) => target.phone);
 
-      for (const phone of phones) {
-        const key = String(phone);
-        if (seen.has(key)) continue;
+      const seen = new Set<string>();
+      for (const target of smsTargets) {
+        const key = String(target.phone);
+        if (seen.has(key)) continue; // shared number -> text once (client wording wins)
         seen.add(key);
 
-        const body = smsConfirmation({
-          company: branding.name,
-          address,
-          date: dateText,
-          time: timeText,
-        });
+        const body =
+          target.type === "realtor"
+            ? smsConfirmationAgent({ company: branding.name, address, date: dateText, time: timeText })
+            : smsConfirmation({ company: branding.name, address, date: dateText, time: timeText });
 
-        await sendSms({ to: phone, body }).catch(() => null);
+        await sendSms({ to: target.phone, body }).catch(() => null);
       }
     }
 
