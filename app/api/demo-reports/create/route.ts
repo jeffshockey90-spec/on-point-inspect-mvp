@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { randomUUID } from "crypto";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import { resolveInspectionAccessFilter } from "../../../../lib/inspectionAccess";
@@ -67,6 +68,8 @@ function sanitizeInspectionForDemo(inspection: any, ownerId: string) {
     client_portal_token,
     access_token,
     share_token,
+    public_share_token,
+    report_share_token,
     ...rest
   } = inspection || {};
 
@@ -74,6 +77,12 @@ function sanitizeInspectionForDemo(inspection: any, ownerId: string) {
     ...rest,
 
     inspector_id: ownerId,
+
+    // Each inspection needs its OWN unguessable share token -- copying the
+    // source report's token violates inspections_public_share_token_unique and
+    // is what made "Create Demo Report" fail. Generate a fresh one; leave the
+    // other token columns unset so the demo doesn't reuse private links.
+    public_share_token: randomUUID().replace(/-/g, ""),
 
     // Keep report content and property context, but strip private people/payment data.
     client_name: "Sample Client",
