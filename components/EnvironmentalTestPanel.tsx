@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ChangeEvent } from "react";
+import { uploadLabReportPdf } from "../lib/labReportUpload";
 
 type MoldTest = {
   air_samples?: number | null;
@@ -69,35 +70,11 @@ function LabReportField({
     event.target.value = "";
     if (!file) return;
 
-    const isPdf =
-      file.type === "application/pdf" ||
-      file.name.toLowerCase().endsWith(".pdf");
-    if (!isPdf) {
-      setError("Please choose a PDF file.");
-      return;
-    }
-    if (file.size > 25 * 1024 * 1024) {
-      setError("That PDF is over 25 MB. Please use a smaller file.");
-      return;
-    }
-
     setError("");
     setUploading(true);
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("inspectionId", String(inspectionId));
-      fd.append("kind", kind);
-
-      const res = await fetch("/api/lab-report-upload", {
-        method: "POST",
-        body: fd,
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.error || "Upload failed.");
-      if (!data?.url) throw new Error("Upload succeeded but no link came back.");
-
-      onChange(data.url);
+      const url = await uploadLabReportPdf(file, String(inspectionId), kind);
+      onChange(url);
     } catch (err: any) {
       setError(err?.message || "Upload failed. Please try again.");
     } finally {
