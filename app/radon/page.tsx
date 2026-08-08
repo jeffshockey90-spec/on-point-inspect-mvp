@@ -4,6 +4,7 @@
 import { formatAppValue } from "../../lib/app-time";
 import Link from "next/link";
 import { useEffect, useMemo, useState, type ChangeEvent } from "react";
+import { supabase } from "../../lib/supabaseClient";
 
 function getNumber(value: any) {
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -597,20 +598,28 @@ function LabReportField({
     setError("");
     setUploading(true);
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("inspectionId", String(inspectionId));
-      fd.append("kind", "radon");
-
       const res = await fetch("/api/lab-report-upload", {
         method: "POST",
-        body: fd,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          inspectionId: String(inspectionId),
+          kind: "radon",
+          filename: file.name,
+        }),
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.error || "Upload failed.");
-      if (!data?.url) throw new Error("Upload succeeded but no link came back.");
+      const info = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(info?.error || "Upload failed.");
+      if (!info?.token || !info?.path) throw new Error("Could not start the upload.");
 
-      onChange(data.url);
+      const { error: uploadError } = await supabase.storage
+        .from("lab-reports")
+        .uploadToSignedUrl(info.path, info.token, file, {
+          contentType: "application/pdf",
+        });
+      if (uploadError) throw uploadError;
+
+      if (!info.url) throw new Error("Uploaded, but no link came back.");
+      onChange(info.url);
     } catch (err: any) {
       setError(err?.message || "Upload failed. Please try again.");
     } finally {

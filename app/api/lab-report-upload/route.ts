@@ -12,47 +12,28 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const BUCKET = "lab-reports";
-const MAX_BYTES = 25 * 1024 * 1024;
 
-// POST /api/lab-report-upload — an inspector uploads a mold/radon lab report
-// PDF for one of their inspections. Stored in the public `lab-reports` bucket
-// with an unguessable path so the resulting link works directly in the client
-// report and report emails (no expiry, unlike a signed URL). Service-role
-// upload keeps this independent of storage RLS policies.
+// POST /api/lab-report-upload — hand the browser a short-lived signed upload
+// token for a mold/radon lab report PDF on one of the inspector's own
+// inspections. The browser then uploads the file DIRECTLY to Supabase storage
+// (no Vercel 4.5MB request-body cap, so large lab PDFs work) and uses the
+// returned public URL. The bucket is public, so the link works directly in the
+// client report and report emails with no expiry.
 export async function POST(req: Request) {
   const user = await getSessionUser();
   if (!user) return unauthorized();
 
-  const form = await req.formData().catch(() => null);
-  if (!form) {
-    return NextResponse.json({ error: "Invalid upload." }, { status: 400 });
-  }
-
-  const file = form.get("file");
-  const inspectionId = String(form.get("inspectionId") || "").trim();
+  const body = await req.json().catch(() => ({}));
+  const inspectionId = String(body?.inspectionId || "").trim();
   const kind =
-    String(form.get("kind") || "").trim().toLowerCase() === "radon"
-      ? "radon"
-      : "mold";
+    String(body?.kind || "").trim().toLowerCase() === "radon" ? "radon" : "mold";
+  const filename = String(body?.filename || "").trim().toLowerCase();
 
-  if (!(file instanceof File)) {
-    return NextResponse.json({ error: "No file provided." }, { status: 400 });
-  }
   if (!inspectionId) {
     return NextResponse.json({ error: "Missing inspection ID." }, { status: 400 });
   }
-
-  const isPdf =
-    file.type === "application/pdf" ||
-    file.name.toLowerCase().endsWith(".pdf");
-  if (!isPdf) {
+  if (!filename.endsWith(".pdf")) {
     return NextResponse.json({ error: "Please upload a PDF file." }, { status: 400 });
-  }
-  if (file.size > MAX_BYTES) {
-    return NextResponse.json(
-      { error: "That PDF is over 25 MB. Please use a smaller file." },
-      { status: 400 }
-    );
   }
 
   const admin = getAdminClient();
@@ -61,27 +42,24 @@ export async function POST(req: Request) {
   const authorized = await authorizeInspection(admin, user.id, inspectionId, "id");
   if (!authorized) return notFound("Report not found.");
 
-  const buffer = Buffer.from(await file.arrayBuffer());
   const path = `${inspectionId}/${kind}-${randomUUID()}.pdf`;
 
-  const { error: uploadError } = await admin.storage.from(BUCKET).upload(path, buffer, {
-    cacheControl: "31536000",
-    upsert: false,
-    contentType: "application/pdf",
-  });
+  const { data, error } = await admin.storage
+    .from(BUCKET)
+    .createSignedUploadUrl(path);
 
-  if (uploadError) {
+  if (error || !data?.token) {
     return NextResponse.json(
-      { error: uploadError.message || "Upload failed." },
+      { error: error?.message || "Could not start the upload." },
       { status: 500 }
     );
   }
 
-  const { data } = admin.storage.from(BUCKET).getPublicUrl(path);
-  const url = data?.publicUrl || "";
-  if (!url) {
-    return NextResponse.json({ error: "Could not build the file link." }, { status: 500 });
-  }
+  const { data: pub } = admin.storage.from(BUCKET).getPublicUrl(path);
 
-  return NextResponse.json({ url });
+  return NextResponse.json({
+    path,
+    token: data.token,
+    url: pub?.publicUrl || "",
+  });
 }
