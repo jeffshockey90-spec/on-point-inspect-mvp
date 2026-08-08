@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, type ChangeEvent } from "react";
-import { supabase } from "../lib/supabaseClient";
 
 type MoldTest = {
   air_samples?: number | null;
@@ -85,25 +84,20 @@ function LabReportField({
     setError("");
     setUploading(true);
     try {
-      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-      const path = `${inspectionId}/lab-reports/${kind}-${Date.now()}-${safeName}`;
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("inspectionId", String(inspectionId));
+      fd.append("kind", kind);
 
-      const { error: uploadError } = await supabase.storage
-        .from("inspection-photos")
-        .upload(path, file, {
-          cacheControl: "31536000",
-          upsert: false,
-          contentType: "application/pdf",
-        });
-      if (uploadError) throw uploadError;
+      const res = await fetch("/api/lab-report-upload", {
+        method: "POST",
+        body: fd,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || "Upload failed.");
+      if (!data?.url) throw new Error("Upload succeeded but no link came back.");
 
-      const { data } = supabase.storage
-        .from("inspection-photos")
-        .getPublicUrl(path);
-      const publicUrl = data?.publicUrl || "";
-      if (!publicUrl) throw new Error("Could not get the uploaded file's link.");
-
-      onChange(publicUrl);
+      onChange(data.url);
     } catch (err: any) {
       setError(err?.message || "Upload failed. Please try again.");
     } finally {
