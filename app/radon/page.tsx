@@ -3,7 +3,8 @@
 
 import { formatAppValue } from "../../lib/app-time";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ChangeEvent } from "react";
+import { supabase } from "../../lib/supabaseClient";
 
 function getNumber(value: any) {
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -430,13 +431,12 @@ export default function RadonPage() {
                         type="text"
                       />
 
-                      <Field
-                        label="Official Report URL"
+                      <LabReportField
+                        inspectionId={inspection.id}
                         value={form.report_url}
                         onChange={(value) =>
                           updateForm(inspection.id, "report_url", value)
                         }
-                        type="text"
                       />
 
                       <label>
@@ -560,6 +560,116 @@ function MetricCard({
       <p className="mt-3 text-4xl font-black text-white">{value}</p>
       <p className="mt-3 text-sm leading-6 text-slate-400">{helper}</p>
     </div>
+  );
+}
+
+// Report field that accepts EITHER a pasted link OR a PDF upload. Radon
+// monitors/labs usually produce a PDF, not a URL, so this uploads the file to
+// the same public storage bucket used for photos and fills in the link.
+function LabReportField({
+  inspectionId,
+  value,
+  onChange,
+}: {
+  inspectionId: any;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    const isPdf =
+      file.type === "application/pdf" ||
+      file.name.toLowerCase().endsWith(".pdf");
+    if (!isPdf) {
+      setError("Please choose a PDF file.");
+      return;
+    }
+    if (file.size > 25 * 1024 * 1024) {
+      setError("That PDF is over 25 MB. Please use a smaller file.");
+      return;
+    }
+
+    setError("");
+    setUploading(true);
+    try {
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const path = `${inspectionId}/lab-reports/radon-${Date.now()}-${safeName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("inspection-photos")
+        .upload(path, file, {
+          cacheControl: "31536000",
+          upsert: false,
+          contentType: "application/pdf",
+        });
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from("inspection-photos")
+        .getPublicUrl(path);
+      const publicUrl = data?.publicUrl || "";
+      if (!publicUrl) throw new Error("Could not get the uploaded file's link.");
+
+      onChange(publicUrl);
+    } catch (err: any) {
+      setError(err?.message || "Upload failed. Please try again.");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  return (
+    <label>
+      <span className="text-sm font-bold text-slate-300">
+        Official Report (upload PDF or paste a link)
+      </span>
+      <input
+        type="text"
+        value={value || ""}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder="Upload the PDF, or paste a link"
+        className="mt-2 w-full rounded-xl border border-slate-700 bg-black px-4 py-3 text-white"
+      />
+      <div className="mt-2 flex flex-wrap items-center gap-3">
+        <label
+          className={`inline-flex items-center gap-2 rounded-lg border border-teal-500/50 px-3 py-2 text-sm font-bold text-teal-300 transition hover:bg-teal-500/10 ${
+            uploading ? "cursor-wait opacity-70" : "cursor-pointer"
+          }`}
+        >
+          <input
+            type="file"
+            accept="application/pdf,.pdf"
+            onChange={handleFile}
+            disabled={uploading}
+            className="hidden"
+          />
+          {uploading ? "Uploading…" : "📄 Upload PDF"}
+        </label>
+        {value && !uploading ? (
+          <a
+            href={value}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm font-bold text-teal-400 underline"
+          >
+            View current
+          </a>
+        ) : null}
+      </div>
+      {error ? (
+        <p className="mt-1 text-xs font-bold text-red-400">{error}</p>
+      ) : (
+        <p className="mt-1 text-xs text-slate-500">
+          Remember to Save after uploading.
+        </p>
+      )}
+    </label>
   );
 }
 
