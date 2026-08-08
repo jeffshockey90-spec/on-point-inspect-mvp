@@ -62,6 +62,12 @@ const PUBLIC_PREFIXES = [
   "/pricing",
   "/privacy",
   "/terms",
+  // Public inspector directory + profiles and shareable demo reports. These
+  // pages read via the service-role client and only expose public_profile_enabled
+  // companies / demo reports, so they must be reachable without a login (a
+  // prospective client or realtor opening the link should never hit a login wall).
+  "/inspectors",
+  "/demo",
 ];
 
 function cleanText(value: unknown) {
