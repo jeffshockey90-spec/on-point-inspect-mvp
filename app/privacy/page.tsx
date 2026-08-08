@@ -7,7 +7,7 @@ export default function PrivacyPolicyPage() {
         </h1>
 
         <p className="text-sm text-slate-400 mb-8">
-          Last Updated: June 5, 2026
+          Last Updated: August 7, 2026
         </p>
 
         <div className="space-y-6 text-slate-200 leading-7">
@@ -66,7 +66,40 @@ export default function PrivacyPolicyPage() {
           </p>
 
           <h2 className="text-xl font-bold text-teal-300">
-            5. Data Security
+            5. SMS / Text Message Communications
+          </h2>
+
+          <p>
+            With your consent, On Point Home Inspections LLC may send you
+            SMS/text messages related to your inspection — such as appointment
+            confirmations and reminders, report delivery notifications,
+            invoices and payment links, and review requests. Consent is
+            collected when you check the messaging-consent box on our online
+            scheduling form, or when you verbally provide your number and agree
+            to be contacted by text. Consenting to text messages is never a
+            condition of purchase.
+          </p>
+
+          <p>
+            Message frequency varies. Message and data rates may apply. You can
+            reply <strong>STOP</strong> at any time to opt out of text messages,
+            or reply <strong>HELP</strong> for assistance. Opting out of SMS will
+            not affect your ability to receive your inspection report or
+            communicate with us by other means.
+          </p>
+
+          <p>
+            <strong>
+              We do not sell, rent, or share your mobile phone number, or your
+              SMS opt-in or consent information, with any third parties or
+              affiliates for their own marketing or promotional purposes.
+            </strong>{" "}
+            Mobile numbers are used solely to deliver the inspection-related
+            messages described above.
+          </p>
+
+          <h2 className="text-xl font-bold text-teal-300">
+            6. Data Security
           </h2>
 
           <p>
@@ -76,7 +109,7 @@ export default function PrivacyPolicyPage() {
           </p>
 
           <h2 className="text-xl font-bold text-teal-300">
-            6. Account Privacy
+            7. Account Privacy
           </h2>
 
           <p>
@@ -86,7 +119,7 @@ export default function PrivacyPolicyPage() {
           </p>
 
           <h2 className="text-xl font-bold text-teal-300">
-            7. Data Retention
+            8. Data Retention
           </h2>
 
           <p>
@@ -96,7 +129,7 @@ export default function PrivacyPolicyPage() {
           </p>
 
           <h2 className="text-xl font-bold text-teal-300">
-            8. Account Deletion
+            9. Account Deletion
           </h2>
 
           <p>
@@ -107,7 +140,7 @@ export default function PrivacyPolicyPage() {
           </p>
 
           <h2 className="text-xl font-bold text-teal-300">
-            9. Third-Party Services
+            10. Third-Party Services
           </h2>
 
           <p>
@@ -118,7 +151,7 @@ export default function PrivacyPolicyPage() {
           </p>
 
           <h2 className="text-xl font-bold text-teal-300">
-            10. Children
+            11. Children
           </h2>
 
           <p>
@@ -126,7 +159,7 @@ export default function PrivacyPolicyPage() {
           </p>
 
           <h2 className="text-xl font-bold text-teal-300">
-            11. Changes
+            12. Changes
           </h2>
 
           <p>
@@ -135,7 +168,7 @@ export default function PrivacyPolicyPage() {
           </p>
 
           <h2 className="text-xl font-bold text-teal-300">
-            12. Contact
+            13. Contact
           </h2>
 
           <p>
