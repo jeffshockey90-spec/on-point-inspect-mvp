@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ChangeEvent } from "react";
+import { supabase } from "../lib/supabaseClient";
 
 type MoldTest = {
   air_samples?: number | null;
@@ -41,6 +42,117 @@ function Field({
         placeholder={placeholder}
         className="w-full rounded-xl border border-slate-700 bg-black px-4 py-3 text-white outline-none focus:border-teal-400"
       />
+    </label>
+  );
+}
+
+// Lab report field: accepts EITHER a pasted link OR a PDF upload. Labs almost
+// always send a PDF, so this uploads to the same public bucket used for photos
+// and fills in the resulting link (which the client report already surfaces).
+function LabReportField({
+  inspectionId,
+  kind,
+  value,
+  onChange,
+  helper,
+}: {
+  inspectionId: string;
+  kind: "mold" | "radon";
+  value: string;
+  onChange: (value: string) => void;
+  helper: string;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    const isPdf =
+      file.type === "application/pdf" ||
+      file.name.toLowerCase().endsWith(".pdf");
+    if (!isPdf) {
+      setError("Please choose a PDF file.");
+      return;
+    }
+    if (file.size > 25 * 1024 * 1024) {
+      setError("That PDF is over 25 MB. Please use a smaller file.");
+      return;
+    }
+
+    setError("");
+    setUploading(true);
+    try {
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const path = `${inspectionId}/lab-reports/${kind}-${Date.now()}-${safeName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("inspection-photos")
+        .upload(path, file, {
+          cacheControl: "31536000",
+          upsert: false,
+          contentType: "application/pdf",
+        });
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from("inspection-photos")
+        .getPublicUrl(path);
+      const publicUrl = data?.publicUrl || "";
+      if (!publicUrl) throw new Error("Could not get the uploaded file's link.");
+
+      onChange(publicUrl);
+    } catch (err: any) {
+      setError(err?.message || "Upload failed. Please try again.");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  return (
+    <label className="block">
+      <span className="mb-1 block text-xs font-black uppercase tracking-wide text-slate-400">
+        Lab Report (upload PDF or paste a link)
+      </span>
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Upload the PDF, or paste a link"
+        className="w-full rounded-xl border border-slate-700 bg-black px-4 py-3 text-white outline-none focus:border-teal-400"
+      />
+      <div className="mt-2 flex flex-wrap items-center gap-3">
+        <label
+          className={`inline-flex items-center gap-2 rounded-lg border border-teal-500/50 px-3 py-2 text-sm font-bold text-teal-300 transition hover:bg-teal-500/10 ${
+            uploading ? "cursor-wait opacity-70" : "cursor-pointer"
+          }`}
+        >
+          <input
+            type="file"
+            accept="application/pdf,.pdf"
+            onChange={handleFile}
+            disabled={uploading}
+            className="hidden"
+          />
+          {uploading ? "Uploading…" : "📄 Upload PDF"}
+        </label>
+        {value && !uploading ? (
+          <a
+            href={value}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm font-bold text-teal-400 underline"
+          >
+            View current
+          </a>
+        ) : null}
+      </div>
+      {error ? (
+        <p className="mt-1 text-xs font-bold text-red-400">{error}</p>
+      ) : (
+        <p className="mt-1 text-xs text-slate-500">{helper}</p>
+      )}
     </label>
   );
 }
@@ -123,15 +235,13 @@ function MoldForm({
         </label>
 
         <div className="md:col-span-2">
-          <Field
-            label="Lab Report URL"
+          <LabReportField
+            inspectionId={inspectionId}
+            kind="mold"
             value={labReportUrl}
             onChange={setLabReportUrl}
-            placeholder="https://..."
+            helper={'Shows as "View Official Mold Lab Report" on the client report. Remember to Save Mold Test.'}
           />
-          <p className="mt-1 text-xs text-slate-500">
-            This is the link that shows as "View Official Mold Lab Report" on the client report.
-          </p>
         </div>
       </div>
 
@@ -230,15 +340,13 @@ function RadonForm({
         </label>
 
         <div className="md:col-span-2">
-          <Field
-            label="Report URL"
+          <LabReportField
+            inspectionId={inspectionId}
+            kind="radon"
             value={reportUrl}
             onChange={setReportUrl}
-            placeholder="https://..."
+            helper={'Shows as "View Official Radon Device Report" on the client report. Remember to Save Radon Test.'}
           />
-          <p className="mt-1 text-xs text-slate-500">
-            This is the link that shows as "View Official Radon Device Report" on the client report.
-          </p>
         </div>
       </div>
 
