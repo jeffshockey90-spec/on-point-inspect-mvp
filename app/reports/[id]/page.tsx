@@ -38,6 +38,7 @@ import InspectionRouteCard from "../../../components/InspectionRouteCard";
 import { getDrivingDistance } from "../../../lib/geocode";
 import FastLinkButton from "../../../components/FastLinkButton";
 import CreateDemoReportButton from "../../../components/CreateDemoReportButton";
+import SendDemoReportButton from "../../../components/SendDemoReportButton";
 import SampleReportManager from "../../../components/SampleReportManager";
 import AIReportReviewPanel from "../../../components/AIReportReviewPanel";
 import LiveHouseIntelligencePanel from "../../../components/LiveHouseIntelligencePanel";
@@ -2839,6 +2840,10 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                 </FastLinkButton>
 
                 <CreateDemoReportButton inspectionId={String(inspection.id)} />
+
+                {(inspection as any).is_demo && (
+                  <SendDemoReportButton inspectionId={String(inspection.id)} />
+                )}
 
                 {isStandaloneEnvironmentalReport && (
                   <FastLinkButton
