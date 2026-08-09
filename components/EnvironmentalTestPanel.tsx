@@ -272,6 +272,38 @@ function MoldForm({
   );
 }
 
+// Classify a radon average against the EPA action level (4.0 pCi/L). Shown live
+// as the inspector types, so they instantly see whether it's elevated.
+function radonLevel(avgRaw: string) {
+  const v = Number(String(avgRaw ?? "").replace(/[^0-9.]/g, ""));
+  if (!v || !Number.isFinite(v)) {
+    return {
+      label: "Enter a value",
+      cls: "border-slate-600 bg-slate-900 text-slate-400",
+      note: "Enter the average pCi/L above and this updates automatically.",
+    };
+  }
+  if (v >= 4) {
+    return {
+      label: "Elevated — Action Recommended",
+      cls: "border-red-500/50 bg-red-500/10 text-red-300",
+      note: "At or above the EPA action level of 4.0 pCi/L. Mitigation by a qualified radon contractor is recommended.",
+    };
+  }
+  if (v >= 2) {
+    return {
+      label: "Monitor",
+      cls: "border-amber-500/50 bg-amber-500/10 text-amber-300",
+      note: "Below the 4.0 pCi/L action level but at or above 2.0. Continued monitoring or consultation may be considered.",
+    };
+  }
+  return {
+    label: "Low / Normal",
+    cls: "border-emerald-500/50 bg-emerald-500/10 text-emerald-300",
+    note: "Below the EPA action level of 4.0 pCi/L.",
+  };
+}
+
 function RadonForm({
   inspectionId,
   initial,
@@ -342,6 +374,26 @@ function RadonForm({
           </select>
         </label>
 
+        {(() => {
+          const level = radonLevel(averagePci);
+          return (
+            <div className="md:col-span-2 rounded-xl border border-slate-700 bg-[#0f172a] p-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="text-xs font-black uppercase tracking-wide text-slate-400">
+                  Radon Level
+                </span>
+                <span className={`rounded-full border px-3 py-1 text-xs font-black ${level.cls}`}>
+                  {level.label}
+                </span>
+              </div>
+              <p className="mt-2 text-xs leading-5 text-slate-400">{level.note}</p>
+              <p className="mt-1 text-[11px] text-slate-500">
+                Auto-calculated from the average above. EPA action level: 4.0 pCi/L.
+              </p>
+            </div>
+          );
+        })()}
+
         <div className="md:col-span-2">
           <LabReportField
             inspectionId={inspectionId}
@@ -377,6 +429,74 @@ function RadonForm({
   );
 }
 
+// Post the results to the client + realtor. Reuses /api/send-report-email,
+// which emails AND texts both parties (role-aware) and includes the
+// environmental report links.
+function NotifyButton({ inspectionId }: { inspectionId: string }) {
+  const [sending, setSending] = useState(false);
+  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(
+    null
+  );
+
+  async function notify() {
+    if (sending) return;
+    setSending(true);
+    setMessage(null);
+    try {
+      const res = await fetch("/api/send-report-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inspectionId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || "Failed to send.");
+      const count = Array.isArray(data?.sent) ? data.sent.length : undefined;
+      setMessage({
+        type: "success",
+        text:
+          count != null
+            ? `Sent to ${count} recipient${count === 1 ? "" : "s"} by email + text.`
+            : "Results sent to your client and realtor by email + text.",
+      });
+    } catch (error: any) {
+      setMessage({ type: "error", text: error?.message || "Failed to send." });
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <div className="rounded-2xl border border-teal-500/40 bg-teal-950/20 p-4">
+      <p className="text-sm font-black uppercase tracking-wide text-teal-300">
+        Alert everyone
+      </p>
+      <p className="mt-1 text-sm leading-6 text-slate-300">
+        Save your results above first, then send your client and realtor the report link by
+        email and text.
+      </p>
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={notify}
+          disabled={sending}
+          className="rounded-xl bg-teal-500 px-5 py-3 font-black text-slate-950 transition active:scale-[0.98] hover:bg-teal-400 disabled:cursor-wait disabled:opacity-60"
+        >
+          {sending ? "Sending…" : "📣 Notify Client & Realtor"}
+        </button>
+        {message && (
+          <span
+            className={`text-sm font-bold ${
+              message.type === "success" ? "text-emerald-300" : "text-red-300"
+            }`}
+          >
+            {message.text}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function EnvironmentalTestPanel({
   inspectionId,
   hasMold,
@@ -394,6 +514,7 @@ export default function EnvironmentalTestPanel({
     <div className="space-y-4">
       {hasMold && <MoldForm inspectionId={inspectionId} initial={moldTest} />}
       {hasRadon && <RadonForm inspectionId={inspectionId} initial={radonTest} />}
+      {(hasMold || hasRadon) && <NotifyButton inspectionId={inspectionId} />}
     </div>
   );
 }

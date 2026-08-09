@@ -328,6 +328,43 @@ function hasRadonService(inspection: any) {
   return serviceType.includes("radon") || inspection?.radon === true;
 }
 
+function envNum(value: any) {
+  const n = Number(String(value ?? "").replace(/[^0-9.]/g, ""));
+  return Number.isFinite(n) ? n : 0;
+}
+
+// Classify a radon average against the EPA action level (4.0 pCi/L) for the
+// client-facing results card.
+function radonClientInfo(avg: any) {
+  const v = envNum(avg);
+  if (!v) {
+    return {
+      label: "Pending",
+      cls: "border-slate-600 bg-slate-900 text-slate-300",
+      summary: "Radon results have not been finalized yet.",
+    };
+  }
+  if (v >= 4) {
+    return {
+      label: "Elevated — Action Recommended",
+      cls: "border-red-500/50 bg-red-500/10 text-red-200",
+      summary: `The average radon concentration was ${v} pCi/L — at or above the EPA action level of 4.0 pCi/L. Mitigation by a qualified radon contractor is recommended.`,
+    };
+  }
+  if (v >= 2) {
+    return {
+      label: "Monitor",
+      cls: "border-amber-500/50 bg-amber-500/10 text-amber-200",
+      summary: `The average radon concentration was ${v} pCi/L — below the 4.0 pCi/L action level but at or above 2.0. Continued monitoring may be considered.`,
+    };
+  }
+  return {
+    label: "Low / Normal",
+    cls: "border-emerald-500/50 bg-emerald-500/10 text-emerald-200",
+    summary: `The average radon concentration was ${v} pCi/L — below the EPA action level of 4.0 pCi/L.`,
+  };
+}
+
 function isStandaloneEnvironmentalService(inspection: any) {
   const serviceType = getServiceType(inspection);
 
@@ -613,9 +650,9 @@ export default function ClientPortalPage() {
 
   const moldReportUrl = moldTest?.lab_report_url || "";
   const radonReportUrl = radonTest?.report_url || "";
-  const showEnvironmentalLinks =
-    (hasMoldService(inspection) && moldReportUrl) ||
-    (hasRadonService(inspection) && radonReportUrl);
+  const showEnvironmentalResults =
+    (hasMoldService(inspection) && moldTest) ||
+    (hasRadonService(inspection) && radonTest);
 
   const checklistBySection = groupChecklistRows(checklistRows);
   const checklistSections = SECTION_ORDER.filter(
@@ -818,33 +855,73 @@ export default function ClientPortalPage() {
           </section>
         )}
 
-        {reportUnlocked && showEnvironmentalLinks && (
+        {reportUnlocked && showEnvironmentalResults && (
           <section className="rounded-2xl border border-purple-500/40 bg-purple-950/20 p-6 shadow-xl">
             <h2 className="text-2xl font-black text-purple-300">
-              Official Environmental Reports
+              Environmental Test Results
             </h2>
 
             <p className="mt-2 text-slate-300">
-              These links open the official third-party environmental reports from the lab or testing device.
+              Your radon and/or mold testing results are summarized below.
             </p>
 
             <div className="mt-6 grid gap-4 md:grid-cols-2">
-              {hasMoldService(inspection) && moldReportUrl && (
-                <ActionLink
-                  href={moldReportUrl}
-                  title="View Official Mold Report"
-                  description="Open the official mold lab report."
-                  tone="purple"
-                />
-              )}
+              {hasRadonService(inspection) && radonTest && (() => {
+                const info = radonClientInfo(radonTest.average_pci);
+                return (
+                  <div className="rounded-xl border border-slate-700 bg-[#0f172a] p-5">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <span className="text-sm font-black uppercase tracking-wide text-slate-400">
+                        Radon
+                      </span>
+                      <span className={`rounded-full border px-3 py-1 text-xs font-black ${info.cls}`}>
+                        {info.label}
+                      </span>
+                    </div>
+                    <p className="mt-3 text-3xl font-black text-white">
+                      {radonTest.average_pci ? `${radonTest.average_pci} pCi/L` : "Pending"}
+                    </p>
+                    <p className="mt-2 text-sm leading-6 text-slate-300">{info.summary}</p>
+                    {radonReportUrl && (
+                      <a
+                        href={radonReportUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-4 inline-block text-sm font-bold text-purple-300 underline"
+                      >
+                        View Official Radon Report &rarr;
+                      </a>
+                    )}
+                  </div>
+                );
+              })()}
 
-              {hasRadonService(inspection) && radonReportUrl && (
-                <ActionLink
-                  href={radonReportUrl}
-                  title="View Official Radon Report"
-                  description="Open the official radon device report."
-                  tone="purple"
-                />
+              {hasMoldService(inspection) && moldTest && (
+                <div className="rounded-xl border border-slate-700 bg-[#0f172a] p-5">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <span className="text-sm font-black uppercase tracking-wide text-slate-400">
+                      Mold
+                    </span>
+                    <span className="rounded-full border border-slate-600 bg-slate-900 px-3 py-1 text-xs font-black text-slate-200">
+                      {moldTest.lab_status || "Pending"}
+                    </span>
+                  </div>
+                  <p className="mt-3 text-sm leading-6 text-slate-300">
+                    {moldTest.findings ||
+                      moldTest.notes ||
+                      "Mold sampling was performed. See the official lab report for the full results."}
+                  </p>
+                  {moldReportUrl && (
+                    <a
+                      href={moldReportUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-4 inline-block text-sm font-bold text-purple-300 underline"
+                    >
+                      View Official Mold Report &rarr;
+                    </a>
+                  )}
+                </div>
               )}
             </div>
           </section>
