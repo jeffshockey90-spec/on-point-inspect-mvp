@@ -446,7 +446,7 @@ function NotifyButton({ inspectionId }: { inspectionId: string }) {
       const res = await fetch("/api/send-report-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ inspectionId }),
+        body: JSON.stringify({ inspectionId, recipientType: "all" }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || "Failed to send.");
