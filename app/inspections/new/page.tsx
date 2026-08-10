@@ -15,6 +15,7 @@ import {
 } from "../../../lib/inspectorPricing";
 import { useAddressAutocomplete } from "../../../hooks/useAddressAutocomplete";
 import NewInspectionAgreementPicker from "../../../components/NewInspectionAgreementPicker";
+import { isIOSNativeApp, openInSystemBrowser } from "../../../lib/nativePlatform";
 
 declare global {
   interface Window {
@@ -1685,13 +1686,17 @@ function NewInspectionPageContent() {
             </p>
 
             <p className="mt-3 text-sm leading-6 text-zinc-400">
-              Go to Billing to activate your subscription and keep creating inspections.
+              Activate your subscription to keep creating inspections.
             </p>
 
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
               <button
                 type="button"
-                onClick={() => router.push("/billing")}
+                onClick={() =>
+                  isIOSNativeApp()
+                    ? openInSystemBrowser("/billing")
+                    : router.push("/billing")
+                }
                 className="rounded-xl bg-teal-500 px-4 py-3 font-black text-black hover:bg-teal-400"
               >
                 Go To Billing
