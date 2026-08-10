@@ -761,6 +761,48 @@ export default function AILiveInspectionCamera({
     }
   }
 
+  // AI drafting failed but the photo/video is already captured — never make the
+  // inspector lose it. Save the media to the report with a minimal manual draft
+  // (their note + current section/severity) so it lands in the inspection and
+  // the write-up can be finished later in the report editor.
+  function handleSaveWithoutAi() {
+    if (!category || !capturedFile) return;
+    const note = noteText.trim();
+
+    let fallback: CaptureDraft;
+    if (category === "limitation") {
+      fallback = {
+        kind: "limitation",
+        title: note ? note.slice(0, 70) : "Inspection Limitation",
+        section: currentSection,
+        limitation:
+          note || "Limitation captured in the field — details to be added.",
+        reason: "",
+        recommendation: "",
+      };
+    } else if (category === "equipment") {
+      fallback = {
+        kind: "equipment",
+        section: currentSection,
+        severity: currentSeverity,
+        observation: note || "",
+        condition: "",
+      };
+    } else {
+      fallback = {
+        kind: "finding",
+        title: note ? note.slice(0, 70) : "Field photo — details pending",
+        section: currentSection,
+        severity: currentSeverity,
+        observation: note || "",
+        implication: "",
+        recommendation: "",
+      };
+    }
+
+    void handleAccept(fallback);
+  }
+
   // Re-run the AI write-up on the SAME captured media using a new inspector note,
   // without making the inspector retake the photo/video.
   function handleRegenerate(newNote: string) {
@@ -1093,11 +1135,29 @@ export default function AILiveInspectionCamera({
       {stage === "capture_error" && (
         <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-4 bg-black/85 px-6 text-center backdrop-blur-sm">
           <p className="text-sm font-bold text-red-200">{draftError}</p>
+          <p className="text-xs text-slate-300">
+            Your {capturedIsVideo ? "video" : "photo"} is safe — save it to the report now
+            and finish the write-up later, or try the AI again.
+          </p>
+          {saveError && (
+            <p className="text-xs font-bold text-red-300">{saveError}</p>
+          )}
+          <button
+            type="button"
+            onClick={handleSaveWithoutAi}
+            disabled={saving}
+            className="w-full max-w-xs rounded-xl bg-emerald-400 px-4 py-3 text-sm font-black text-black disabled:cursor-wait disabled:opacity-60"
+          >
+            {saving
+              ? "Saving…"
+              : `Save ${capturedIsVideo ? "Video" : "Photo"} Without AI`}
+          </button>
           <div className="flex gap-3">
             <button
               type="button"
               onClick={handleRetake}
-              className="rounded-xl border border-slate-500 px-4 py-3 text-sm font-black text-white"
+              disabled={saving}
+              className="rounded-xl border border-slate-500 px-4 py-3 text-sm font-black text-white disabled:opacity-60"
             >
               Retake
             </button>
@@ -1108,9 +1168,10 @@ export default function AILiveInspectionCamera({
                 capturedFrameForAi &&
                 void runDraft(capturedFrameForAi, capturedFile)
               }
-              className="rounded-xl bg-cyan-400 px-4 py-3 text-sm font-black text-black"
+              disabled={saving}
+              className="rounded-xl bg-cyan-400 px-4 py-3 text-sm font-black text-black disabled:opacity-60"
             >
-              Try Again
+              Try AI Again
             </button>
           </div>
         </div>
