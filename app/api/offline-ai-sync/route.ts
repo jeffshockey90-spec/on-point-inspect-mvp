@@ -576,6 +576,25 @@ export async function POST(req: Request) {
 
       if (error) throw error;
 
+      // Flag this row for the Field Review queue. Every finding created here is
+      // offline-sourced (it came off the IndexedDB sync queue), so mark it as
+      // offline_captured and needs_review so the inspector verifies + approves
+      // it in the report editor. Best-effort: these columns only exist after the
+      // findings-review.sql migration is run, so a missing-column error must
+      // never break the sync of an already-saved finding.
+      const { error: reviewFlagError } = await supabase
+        .from("findings")
+        .update({ needs_review: true, offline_captured: true })
+        .eq("id", finding.id)
+        .eq("inspection_id", inspectionId);
+
+      if (reviewFlagError) {
+        console.warn(
+          "Could not set Field Review flags (run supabase/findings-review.sql):",
+          reviewFlagError.message,
+        );
+      }
+
       let firstImageUrl: string | null = null;
       let photoCount = 0;
       const uploadedPhotoInputs: any[] = [];
