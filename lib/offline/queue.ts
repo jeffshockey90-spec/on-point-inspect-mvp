@@ -27,6 +27,9 @@ import {
   dispatchInspectionDataChanged,
   OFFLINE_SYNC_COMPLETE_EVENT,
 } from "../inspectionEvents";
+import { supabase } from "../supabaseClient";
+
+const PHOTO_BUCKET = "inspection-photos";
 
 export type {
   OfflineQueueRecord,
@@ -121,34 +124,68 @@ export function toMediaEntry(input: OfflineMediaInput): OfflineMediaEntry {
   };
 }
 
-/** Read a Blob as a base64 `data:` URL (used only at send time). */
-function blobToDataUrl(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === "string") resolve(reader.result);
-      else reject(new Error("Unable to read media blob."));
-    };
-    reader.onerror = () => reject(new Error("Unable to read media blob."));
-    reader.readAsDataURL(blob);
+/**
+ * Upload one Blob-backed media entry DIRECTLY to Supabase storage, bypassing the
+ * serverless function entirely. This is the key to large-video support: the
+ * bytes never travel through /api/offline-ai-sync (which is capped at ~4.5MB of
+ * request body on Vercel), only the resulting storage PATH does.
+ *
+ * Flow (mirrors app/api/lab-report-upload/route.ts + uploadToSignedUrl):
+ *  1. Ask the server for a short-lived signed upload URL. The server verifies
+ *     the signed-in user owns `inspectionId` before minting it.
+ *  2. Upload the Blob straight to storage with `uploadToSignedUrl` (no size cap
+ *     beyond what the bucket allows — images and videos alike).
+ *  3. Return a lightweight descriptor carrying the storage PATH (not base64).
+ *
+ * Throws on any failure so the caller keeps the item queued for retry.
+ */
+async function uploadMediaEntry(inspectionId: string, entry: OfflineMediaEntry) {
+  const contentType = entry.type || "application/octet-stream";
+
+  const res = await fetch("/api/offline-media-upload", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      inspectionId,
+      filename: entry.name,
+      contentType,
+    }),
   });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data?.path || !data?.token) {
+    throw new Error(data?.error || "Could not start media upload.");
+  }
+
+  const { error } = await supabase.storage
+    .from(PHOTO_BUCKET)
+    .uploadToSignedUrl(data.path, data.token, entry.blob, { contentType });
+
+  if (error) {
+    throw new Error(error.message || "Media upload failed.");
+  }
+
+  return {
+    name: entry.name,
+    type: entry.type,
+    size: entry.size,
+    lastModified: entry.lastModified,
+    is_video: entry.kind === "video",
+    storage_path: data.path as string,
+  };
 }
 
 /**
- * Build the `photos` array the sync endpoint expects (base64 objects), from the
- * Blob-backed media entries. This matches the old `OfflinePhoto` shape so
- * `app/api/offline-ai-sync/route.ts` needs no changes.
+ * Upload every media entry for one queue item directly to storage (in parallel)
+ * and return the already-uploaded descriptors (storage PATHS) the sync endpoint
+ * now expects. If ANY upload fails, this rejects — the caller then leaves the
+ * item queued so nothing is marked synced with missing media.
  */
-async function mediaEntriesToPhotoPayloads(media: OfflineMediaEntry[]) {
-  return Promise.all(
-    media.map(async (entry) => ({
-      name: entry.name,
-      type: entry.type,
-      size: entry.size,
-      lastModified: entry.lastModified,
-      base64: await blobToDataUrl(entry.blob),
-    })),
-  );
+async function mediaEntriesToPhotoPayloads(
+  inspectionId: string,
+  media: OfflineMediaEntry[],
+) {
+  return Promise.all(media.map((entry) => uploadMediaEntry(inspectionId, entry)));
 }
 
 // ---------------------------------------------------------------------------
@@ -364,12 +401,23 @@ export async function getOfflineQueueSummary() {
 // ---------------------------------------------------------------------------
 
 /**
- * Produce the exact JSON body the sync endpoint expects for one item:
- * `{ id, type, createdAt, payload: { ...payload, photos: base64[] } }`.
- * Blob -> base64 conversion happens here (send time), never at store time.
+ * Produce the JSON body the sync endpoint expects for one item:
+ * `{ id, type, createdAt, payload: { ...payload, photos: [...] } }`.
+ *
+ * Media is uploaded DIRECTLY to Supabase storage here (send time) and the body
+ * carries only the resulting storage PATHS — `{ name, type, size, is_video,
+ * storage_path }` — never base64. This keeps the POST body tiny so large videos
+ * sync fine despite the ~4.5MB serverless request-body cap. The server still
+ * accepts the legacy base64 shape for any older queued items.
+ *
+ * May throw if a media upload fails; `processOfflineQueue` treats that as a
+ * failed attempt and leaves the item queued for retry.
  */
 export async function buildSyncBody(item: OfflineQueueItem) {
-  const photos = await mediaEntriesToPhotoPayloads(item.media || []);
+  const inspectionId = String(
+    item.payload?.inspection_id || item.payload?.inspectionId || "",
+  ).trim();
+  const photos = await mediaEntriesToPhotoPayloads(inspectionId, item.media || []);
   return {
     id: item.id,
     type: item.type,

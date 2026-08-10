@@ -177,6 +177,29 @@ async function uploadOfflinePhoto({
   photo: any;
   folder?: string;
 }) {
+  // New path: the browser already uploaded the bytes DIRECTLY to storage via a
+  // signed upload URL (see /api/offline-media-upload) and only sent us the
+  // storage PATH. This is what lets large videos sync despite Vercel's ~4.5MB
+  // request-body cap — no base64 ever passes through this function. Just resolve
+  // the public URL for the already-stored object; do not re-upload.
+  if (photo?.storage_path) {
+    const filePath = String(photo.storage_path);
+    const { data: publicData } = supabase.storage
+      .from(PHOTO_BUCKET)
+      .getPublicUrl(filePath);
+
+    const isVideo =
+      Boolean(photo.is_video) || String(photo.type || "").startsWith("video/");
+
+    return {
+      filePath,
+      publicUrl: publicData.publicUrl || null,
+      mimeType: photo.type || (isVideo ? "video/mp4" : "image/jpeg"),
+    };
+  }
+
+  // Legacy fallback: older queued items still carry base64 in the body. Upload
+  // it server-side exactly as before so those items keep syncing.
   if (!photo?.base64) return null;
 
   const fileName = sanitizeFileName(photo.name || "offline-photo.jpg");
