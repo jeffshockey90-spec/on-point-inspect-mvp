@@ -2627,7 +2627,12 @@ function FieldPageContent() {
 
       setMessage(successMessage);
     } catch (error: any) {
-      setMessage(error?.message || "AI failed");
+      // AI is optional here — the note + photo stay in the form, so make it
+      // clear nothing was lost and they can just save or retry.
+      const detail = error?.message ? `${error.message} ` : "";
+      setMessage(
+        `${detail}AI couldn't generate a write-up — your note and photo are safe. Tap Save to keep this finding, or try AI again.`,
+      );
     } finally {
       setGenerating(false);
     }
