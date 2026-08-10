@@ -54,6 +54,7 @@ import InspectorToolsDrawer, {
   type WorkspaceNotification,
 } from "../../../components/InspectorToolsDrawer";
 import PendingSubmitButton from "../../../components/PendingSubmitButton";
+import FieldReviewQueue from "../../../components/FieldReviewQueue";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -2265,6 +2266,17 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
     });
   }
 
+  // Offline-captured findings freshly synced and polished by AI still need the
+  // inspector to verify the section and approve them (needs_review === true).
+  // Pre-migration rows never have this flag set, so the queue simply stays empty
+  // and the panel renders nothing.
+  const fieldReviewFindings = findingsForEditor.filter(
+    (finding: any) => finding.needs_review === true,
+  );
+  const fieldReviewSections = groupedFindingsArray
+    .map((group: any) => group.section)
+    .filter((section: string) => section && section !== "Other");
+
   const defectFindings = numberedFindings.filter((finding: any) => {
     const section = String(finding.section || "").toLowerCase();
     const title = String(finding.title || "").toLowerCase();
@@ -3514,6 +3526,12 @@ Service-life information is a general industry estimate only. Actual service lif
           </section>
 
           <div id="report-findings" data-command-target="report-findings" className="w-full max-w-none overflow-visible">
+            <FieldReviewQueue
+              inspectionId={String(inspection.id)}
+              reviewFindings={fieldReviewFindings}
+              availableSections={fieldReviewSections}
+            />
+
             <ReportFindingsSortable
               groupedFindings={groupedFindingsArray}
               deletedSections={deletedReportSections}
