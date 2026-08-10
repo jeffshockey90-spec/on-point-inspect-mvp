@@ -9,9 +9,9 @@ import {
   getOfflineQueueSummary,
   isOnline,
   processOfflineQueue,
-  setOfflineQueue,
+  setOfflineQueueItemStatus,
   startOfflineQueueAutoSync,
-} from "../lib/offlineSyncQueue";
+} from "../lib/offline/queue";
 import {
   getCachedInspectionPreload,
   saveSyncCompletionNotice,
@@ -48,11 +48,11 @@ export default function OfflineSyncStatus() {
   const [lastError, setLastError] = useState("");
   const [completionNotice, setCompletionNotice] = useState("");
 
-  function refreshStatus() {
-    const summary = getOfflineQueueSummary();
+  async function refreshStatus() {
+    const summary = await getOfflineQueueSummary();
 
     setOnline(isOnline());
-    setPendingCount(getOfflineQueue().length);
+    setPendingCount(summary.count);
     setFindingCount(summary.findingCount);
     setReferencePhotoCount(summary.referencePhotoCount);
     setFailedCount(summary.failedCount || 0);
@@ -74,17 +74,15 @@ export default function OfflineSyncStatus() {
 
     // A manual retry should run immediately instead of waiting for the next
     // exponential-backoff window. Conflicts remain paused for inspector review.
-    setOfflineQueue(
-      getOfflineQueue().map((item) =>
-        item.status === "failed"
-          ? {
-              ...item,
-              status: "queued" as const,
-              nextAttemptAt: undefined,
-              updatedAt: new Date().toISOString(),
-            }
-          : item,
-      ),
+    const queuedItems = await getOfflineQueue();
+    await Promise.all(
+      queuedItems
+        .filter((item) => item.status === "failed")
+        .map((item) =>
+          setOfflineQueueItemStatus(item.id, "queued", {
+            nextAttemptAt: undefined,
+          }),
+        ),
     );
 
     try {
@@ -308,27 +306,25 @@ export default function OfflineSyncStatus() {
           {conflictCount > 0 && (
             <button
               type="button"
-              onClick={() => {
+              onClick={async () => {
                 const confirmRetry = window.confirm(
                   "Retry conflicted items? Newer server data will still be protected by the sync API when a true edit conflict exists.",
                 );
                 if (!confirmRetry) return;
 
-                setOfflineQueue(
-                  getOfflineQueue().map((item) =>
-                    item.status === "conflict"
-                      ? {
-                          ...item,
-                          status: "queued" as const,
-                          conflict: undefined,
-                          lastError: undefined,
-                          nextAttemptAt: undefined,
-                          updatedAt: new Date().toISOString(),
-                        }
-                      : item,
-                  ),
+                const queuedItems = await getOfflineQueue();
+                await Promise.all(
+                  queuedItems
+                    .filter((item) => item.status === "conflict")
+                    .map((item) =>
+                      setOfflineQueueItemStatus(item.id, "queued", {
+                        conflict: undefined,
+                        lastError: undefined,
+                        nextAttemptAt: undefined,
+                      }),
+                    ),
                 );
-                refreshStatus();
+                await refreshStatus();
                 void syncNow();
               }}
               className="rounded-xl border border-orange-500 px-4 py-2 font-bold text-orange-200 transition active:scale-[0.98] hover:bg-orange-500/10 [touch-action:manipulation]"
@@ -340,15 +336,15 @@ export default function OfflineSyncStatus() {
           {pendingCount > 0 && (
             <button
               type="button"
-              onClick={() => {
+              onClick={async () => {
                 const confirmClear = window.confirm(
                   "Clear pending offline queue? Only do this if you are sure nothing needs synced.",
                 );
 
                 if (!confirmClear) return;
 
-                clearOfflineQueue();
-                refreshStatus();
+                await clearOfflineQueue();
+                await refreshStatus();
               }}
               className="rounded-xl border border-red-500 px-4 py-2 font-bold text-red-300 transition active:scale-[0.98] hover:bg-red-500/10 [touch-action:manipulation]"
             >

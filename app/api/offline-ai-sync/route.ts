@@ -14,7 +14,6 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const PHOTO_BUCKET = "inspection-photos";
-const MAX_PHOTOS_PER_ITEM = 6;
 
 const AI_OFFLINE_MODEL = getAIModel();
 const AI_OFFLINE_VERSION = getAIVersion("offline-field-ai-after-sync");
@@ -473,9 +472,10 @@ export async function POST(req: Request) {
       });
     }
 
-    const offlinePhotos = Array.isArray(payload.photos)
-      ? payload.photos.slice(0, MAX_PHOTOS_PER_ITEM)
-      : [];
+    // The IndexedDB offline queue stores media as raw Blobs (no cap, videos
+    // included) and only converts to base64 at send time, so accept every photo
+    // and video the queued item carries instead of truncating to a fixed count.
+    const offlinePhotos = Array.isArray(payload.photos) ? payload.photos : [];
 
     if (item.type === "reference_photo") {
       if (offlinePhotos.length === 0) {

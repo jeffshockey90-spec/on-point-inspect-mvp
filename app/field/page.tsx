@@ -29,11 +29,11 @@ import VoiceOnlyInspectionMode from "../../components/VoiceOnlyInspectionMode";
 import LiveSectionCoach from "../../components/LiveSectionCoach";
 import {
   addOfflineQueueItem,
-  filesToOfflinePhotos,
   getOfflineQueueSummary,
   isOnline,
   startOfflineQueueAutoSync,
-} from "../../lib/offlineSyncQueue";
+} from "../../lib/offline/queue";
+import { migrateOfflineFromLocalStorage } from "../../lib/offline/migrate";
 import {
   cacheReportsForOffline,
   getCachedInspectionPreload,
@@ -136,106 +136,15 @@ function notifyFieldBackgroundSyncComplete() {
   );
 }
 
-function isVideoFile(file: File) {
-  return String(file?.type || "").startsWith("video/");
-}
-
-function isImageFile(file: File) {
-  return String(file?.type || "").startsWith("image/");
-}
-
 function createLocalMediaId(file: File) {
   return `${file.name}-${file.size}-${file.lastModified}`;
 }
 
-
-const OFFLINE_LOCAL_STORAGE_SOFT_LIMIT_BYTES = 6 * 1024 * 1024;
-const OFFLINE_RAW_IMAGE_SOFT_LIMIT_BYTES = 35 * 1024 * 1024;
-
-function getOfflineStorableFiles(files: File[]) {
-  const storable: File[] = [];
-  const skipped: File[] = [];
-  let totalBytes = 0;
-
-  for (const file of files) {
-    const isImage = isImageFile(file);
-    const isVideo = isVideoFile(file);
-    const fileSize = Number(file.size || 0);
-
-    // Videos are not safe for browser localStorage. Keep the original on the phone
-    // and queue the finding text. Images are compressed later by filesToOfflinePhotos,
-    // so do not reject normal iPhone/gallery photos just because the raw file is large.
-    if (!isImage || isVideo || fileSize > OFFLINE_RAW_IMAGE_SOFT_LIMIT_BYTES) {
-      skipped.push(file);
-      continue;
-    }
-
-    if (storable.length >= 6) {
-      skipped.push(file);
-      continue;
-    }
-
-    storable.push(file);
-    totalBytes += fileSize;
-  }
-
-  return { storable, skipped, totalBytes };
-}
-
-async function prepareOfflinePhotosForQueue(files: File[]) {
-  const { storable, skipped } = getOfflineStorableFiles(files);
-
-  if (storable.length === 0) {
-    return {
-      offlinePhotos: [],
-      skipped,
-      skippedCount: skipped.length,
-      skippedVideos: skipped.filter((file) => file.type.startsWith("video/")).length,
-      quotaHit: false,
-    };
-  }
-
-  try {
-    const offlinePhotos = await filesToOfflinePhotos(storable);
-
-    return {
-      offlinePhotos,
-      skipped,
-      skippedCount: skipped.length,
-      skippedVideos: skipped.filter((file) => file.type.startsWith("video/")).length,
-      quotaHit: false,
-    };
-  } catch (error: any) {
-    const text = String(error?.message || error?.name || error || "").toLowerCase();
-    const quotaHit =
-      text.includes("quota") ||
-      text.includes("storage") ||
-      text.includes("exceeded") ||
-      text.includes("localstorage");
-
-    // Never let media storage failure block the actual finding from being queued.
-    // iPhone Safari/Capacitor WebView storage can be very small, especially after
-    // prior failed base64 video/photo attempts. The rough finding text still needs
-    // to be saved so AI can polish it after sync.
-    return {
-      offlinePhotos: [],
-      skipped: [...storable, ...skipped],
-      skippedCount: files.length,
-      skippedVideos: files.filter((file) => file.type.startsWith("video/")).length,
-      quotaHit,
-    };
-  }
-}
-
-function getOfflineMediaSkipMessage(skippedCount: number, skippedVideos: number) {
-  if (skippedCount <= 0) return "";
-
-  if (skippedVideos > 0) {
-    return ` ${skippedVideos} video${skippedVideos === 1 ? "" : "s"} could not be stored in the browser offline queue. The original video remains in your iPhone Photos; attach it after service returns.`;
-  }
-
-  return ` ${skippedCount} media file${skippedCount === 1 ? "" : "s"} were too large for the browser offline queue. Attach them after service returns.`;
-}
+// The IndexedDB offline queue stores media as raw Blobs (no size cap, videos
+// included), so every selected file — any number of photos and videos alike —
+// queues directly. Nothing is skipped for storage reasons anymore; the media is
+// passed to `addOfflineQueueItem({ media })` as raw Files and only converted to
+// base64 at send time by the queue's `buildSyncBody`.
 
 const AI_IMAGE_MAX_SIZE = 1400;
 const AI_IMAGE_QUALITY = 0.72;
@@ -1025,6 +934,14 @@ function FieldPageContent() {
     setNativeApp(isNativeCapacitorApp());
   }, []);
   useEffect(() => {
+    // Carry anything still queued on the old localStorage system over into the
+    // new IndexedDB queue exactly once (idempotent + guarded internally). Runs
+    // client-side only because effects never fire during SSR/prerender.
+    void migrateOfflineFromLocalStorage().then(() => {
+      setQueueTick((current) => current + 1);
+    });
+  }, []);
+  useEffect(() => {
     if (typeof window === "undefined") return;
 
     const stopAutoSync = startOfflineQueueAutoSync({
@@ -1077,10 +994,23 @@ function FieldPageContent() {
 
     return stopAutoSync;
   }, [reports, selectedReport]);
-  const offlineSummary = useMemo(
-    () => getOfflineQueueSummary(),
-    [message, photos.length, online, queueTick],
-  );
+  // getOfflineQueueSummary is async (IndexedDB), so load it into state via an
+  // effect keyed on the same signals the old useMemo watched.
+  const [offlineSummary, setOfflineSummary] = useState({
+    count: 0,
+    findingCount: 0,
+    referencePhotoCount: 0,
+    megabytes: 0,
+  });
+  useEffect(() => {
+    let cancelled = false;
+    void getOfflineQueueSummary().then((summary) => {
+      if (!cancelled) setOfflineSummary(summary);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [message, photos.length, online, queueTick]);
 
   const selectedOfflinePreload = useMemo(() => {
     if (!selectedReport) return null;
@@ -1809,16 +1739,64 @@ function FieldPageContent() {
       setImplication(draft.implication || "");
       setRecommendation(draft.recommendation || "");
 
-      await saveFindingOnline({
-        photos: [file],
-        title: draft.title || "",
-        note: "",
-        section: effectiveSection,
-        severity: effectiveSeverity,
-        observation: draft.observation || "",
-        implication: draft.implication || "",
-        recommendation: draft.recommendation || "",
-      });
+      // Offline fallback for the AI camera: if there's no connection, or the
+      // online save fails with a network error, queue the capture (finding +
+      // its photo/video as a raw Blob) on the IndexedDB offline queue instead of
+      // losing it. The AI polish runs after sync via /api/offline-ai-sync.
+      const queueAiCaptureOffline = async () => {
+        await addOfflineQueueItem({
+          type: "finding",
+          payload: {
+            inspection_id: selectedReport,
+            title: draft.title || "",
+            section: effectiveSection,
+            severity: effectiveSeverity,
+            inspector_note: "",
+            note: "",
+            caption: draft.title || "",
+            observation: draft.observation || "",
+            implication: draft.implication || "",
+            recommendation: draft.recommendation || "",
+            // Let the sync endpoint polish this AI capture once it uploads.
+            run_ai_after_sync: true,
+            ai_after_sync: true,
+            offline_media_skipped_count: 0,
+            offline_video_skipped_count: 0,
+          },
+          // Raw File/Blob (photo OR video) stored as a Blob, no cap.
+          media: [file],
+        });
+        setQueueTick((current) => current + 1);
+        setMessage(
+          "No signal — that AI capture (with its photo/video) was saved locally and will sync automatically when service returns.",
+        );
+      };
+
+      if (!isOnline()) {
+        await queueAiCaptureOffline();
+        resetForm();
+        return;
+      }
+
+      try {
+        await saveFindingOnline({
+          photos: [file],
+          title: draft.title || "",
+          note: "",
+          section: effectiveSection,
+          severity: effectiveSeverity,
+          observation: draft.observation || "",
+          implication: draft.implication || "",
+          recommendation: draft.recommendation || "",
+        });
+      } catch (error: any) {
+        if (isLikelyNetworkError(error) || !isOnline()) {
+          await queueAiCaptureOffline();
+          resetForm();
+          return;
+        }
+        throw error;
+      }
       resetForm();
       return;
     }
@@ -3727,10 +3705,7 @@ function FieldPageContent() {
       // Don't lose the inspector's work -- queue it offline to retry automatically.
       if (snapshot.photos.length > 0 && (isLikelyNetworkError(error) || !isOnline())) {
         try {
-          const { offlinePhotos, skippedCount, skippedVideos } =
-            await prepareOfflinePhotosForQueue(snapshot.photos);
-
-          addOfflineQueueItem({
+          await addOfflineQueueItem({
             type: "finding",
             payload: {
               inspection_id: snapshot.inspectionId,
@@ -3743,16 +3718,17 @@ function FieldPageContent() {
               observation: snapshot.observation,
               implication: snapshot.implication,
               recommendation: snapshot.recommendation,
-              photos: offlinePhotos,
               run_ai_after_sync: false,
               ai_after_sync: false,
-              offline_media_skipped_count: skippedCount,
-              offline_video_skipped_count: skippedVideos,
+              offline_media_skipped_count: 0,
+              offline_video_skipped_count: 0,
             },
+            // Raw Files/Blobs (photos AND videos, any number) stored as Blobs.
+            media: snapshot.photos,
           });
           clearCompletedProgressSoon();
           setMessage(
-            "A background upload hit a snag — that finding was saved locally and will retry automatically when service is stable.",
+            "A background upload hit a snag — that finding (with its photos and videos) was saved locally and will retry automatically when service is stable.",
           );
         } catch {
           setMessage(
@@ -3869,18 +3845,7 @@ function FieldPageContent() {
     } catch (error: any) {
       if (snapshot.photos.length > 0 && (isLikelyNetworkError(error) || !isOnline())) {
         try {
-          const { offlinePhotos, skippedCount, skippedVideos } =
-            await prepareOfflinePhotosForQueue(snapshot.photos);
-
-          if (offlinePhotos.length === 0) {
-            restoreFieldForm(snapshot);
-            setMessage(
-              "A reference photo could not be saved and was too large for the offline queue. Your selection was restored so you can retry.",
-            );
-            return;
-          }
-
-          addOfflineQueueItem({
+          await addOfflineQueueItem({
             type: "reference_photo",
             payload: {
               inspection_id: snapshot.inspectionId,
@@ -3893,12 +3858,13 @@ function FieldPageContent() {
               observation: snapshot.observation,
               implication: snapshot.implication,
               recommendation: snapshot.recommendation,
-              photos: offlinePhotos,
               run_ai_after_sync: false,
               ai_after_sync: false,
-              offline_media_skipped_count: skippedCount,
-              offline_video_skipped_count: skippedVideos,
+              offline_media_skipped_count: 0,
+              offline_video_skipped_count: 0,
             },
+            // Raw Files/Blobs (photos AND videos, any number) stored as Blobs.
+            media: snapshot.photos,
           });
           clearCompletedProgressSoon();
           setMessage(
@@ -4122,17 +4088,7 @@ function FieldPageContent() {
 
         setMessage("Saving offline locally...");
 
-        const { offlinePhotos, skippedCount, skippedVideos } =
-          await prepareOfflinePhotosForQueue(photos);
-
-        if (photoType === "reference_photo" && offlinePhotos.length === 0) {
-          setMessage(
-            "Reference photos need at least one image small enough for offline storage. Large videos/files stay on your phone and can be attached when service returns.",
-          );
-          return;
-        }
-
-        addOfflineQueueItem({
+        await addOfflineQueueItem({
           type: photoType === "reference_photo" ? "reference_photo" : "finding",
           payload: {
             inspection_id: selectedReport,
@@ -4145,41 +4101,36 @@ function FieldPageContent() {
             observation,
             implication,
             recommendation,
-            photos: offlinePhotos,
             run_ai_after_sync: photoType === "finding",
             ai_after_sync: photoType === "finding",
-            offline_media_skipped_count: skippedCount,
-            offline_video_skipped_count: skippedVideos,
+            offline_media_skipped_count: 0,
+            offline_video_skipped_count: 0,
           },
+          // Raw Files/Blobs (photos AND videos, any number) stored as Blobs.
+          media: photos,
         });
 
+        // Every selected file now queues (photos and videos alike, no cap), so
+        // each one is marked saved-locally rather than possibly skipped.
         photos.forEach((photo) => {
           const localId = createLocalMediaId(photo);
-          const canStoreOffline = offlinePhotos.some(
-            (offlinePhoto: any) =>
-              offlinePhoto.name === photo.name &&
-              Number(offlinePhoto.size || 0) === Number(photo.size || 0),
-          );
 
           setMediaProgress(localId, {
             name: photo.name || "Inspection media",
             type: photo.type.startsWith("video/") ? "video" : "photo",
-            stage: canStoreOffline
-              ? "Saved locally. Will sync when signal returns"
-              : "Too large for browser offline queue. Original remains on device",
+            stage: "Saved locally. Will sync when signal returns",
             progress: 100,
-            status: canStoreOffline ? "queued" : "error",
+            status: "queued",
           });
         });
 
         resetForm();
-        const summary = getOfflineQueueSummary();
-        const skipMessage = getOfflineMediaSkipMessage(skippedCount, skippedVideos);
+        const summary = await getOfflineQueueSummary();
 
         setMessage(
           photoType === "reference_photo"
-            ? `Saved reference photo offline. Queue: ${summary.count} item(s). It will sync when service returns.${skipMessage}`
-            : `Saved finding offline. Queue: ${summary.count} item(s). Background sync will retry automatically when service returns. AI will write the finding after sync.${skipMessage}`,
+            ? `Saved reference photo offline. Queue: ${summary.count} item(s). It will sync when service returns.`
+            : `Saved finding offline. Queue: ${summary.count} item(s). Background sync will retry automatically when service returns. AI will write the finding after sync.`,
         );
         return;
       }
@@ -4228,10 +4179,7 @@ function FieldPageContent() {
 
       if (shouldQueueAfterFailure) {
         try {
-          const { offlinePhotos, skippedCount, skippedVideos } =
-            await prepareOfflinePhotosForQueue(photos);
-
-          addOfflineQueueItem({
+          await addOfflineQueueItem({
             type: photoType === "reference_photo" ? "reference_photo" : "finding",
             payload: {
               inspection_id: selectedReport,
@@ -4244,37 +4192,30 @@ function FieldPageContent() {
               observation,
               implication,
               recommendation,
-              photos: offlinePhotos,
               run_ai_after_sync: photoType === "finding",
               ai_after_sync: photoType === "finding",
-              offline_media_skipped_count: skippedCount,
-              offline_video_skipped_count: skippedVideos,
+              offline_media_skipped_count: 0,
+              offline_video_skipped_count: 0,
             },
+            // Raw Files/Blobs (photos AND videos, any number) stored as Blobs.
+            media: photos,
           });
 
+          // Every selected file now queues (photos and videos alike, no cap).
           photos.forEach((photo) => {
-            const canStoreOffline = offlinePhotos.some(
-              (offlinePhoto: any) =>
-                offlinePhoto.name === photo.name &&
-                Number(offlinePhoto.size || 0) === Number(photo.size || 0),
-            );
-
             setMediaProgress(createLocalMediaId(photo), {
               name: photo.name || "Inspection media",
               type: photo.type.startsWith("video/") ? "video" : "photo",
-              stage: canStoreOffline
-                ? "Saved locally. Will retry when signal returns"
-                : "Too large for browser offline queue. Original remains on device",
+              stage: "Saved locally. Will retry when signal returns",
               progress: 100,
-              status: canStoreOffline ? "queued" : "error",
+              status: "queued",
             });
           });
 
           resetForm();
-          const summary = getOfflineQueueSummary();
-          const skipMessage = getOfflineMediaSkipMessage(skippedCount, skippedVideos);
+          const summary = await getOfflineQueueSummary();
           setMessage(
-            `Signal/upload issue detected. Saved locally instead of losing work. Queue: ${summary.count} item(s). Background sync will retry automatically when service returns. AI will write the finding after sync.${skipMessage}`,
+            `Signal/upload issue detected. Saved locally instead of losing work. Queue: ${summary.count} item(s). Background sync will retry automatically when service returns. AI will write the finding after sync.`,
           );
           clearCompletedProgressSoon();
           return;
