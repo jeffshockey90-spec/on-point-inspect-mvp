@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Offline — FLOW</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+      }
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        padding: 24px;
+        background: #050816;
+        color: #ffffff;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Helvetica, Arial, sans-serif;
+        text-align: center;
+      }
+      .card {
+        width: 100%;
+        max-width: 420px;
+        border: 1px solid rgba(20, 200, 210, 0.35);
+        border-radius: 24px;
+        background: #0b1220;
+        padding: 40px 28px;
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        border-radius: 999px;
+        border: 1px solid rgba(20, 200, 210, 0.4);
+        background: rgba(20, 200, 210, 0.12);
+        color: #5eead4;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+      }
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: #f87171;
+      }
+      h1 {
+        margin: 24px 0 12px;
+        font-size: 26px;
+        font-weight: 900;
+        letter-spacing: -0.01em;
+      }
+      p {
+        margin: 0 auto;
+        max-width: 320px;
+        color: #94a3b8;
+        font-size: 15px;
+        line-height: 1.6;
+      }
+      button {
+        margin-top: 28px;
+        padding: 14px 24px;
+        width: 100%;
+        border: none;
+        border-radius: 14px;
+        background: #14c8d2;
+        color: #050816;
+        font-size: 15px;
+        font-weight: 900;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+      }
+      button:active {
+        transform: scale(0.98);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <span class="badge"><span class="dot"></span> Offline</span>
+      <h1>You&rsquo;re offline</h1>
+      <p>
+        Your work is saved and will sync when you reconnect. Check your
+        connection and try again.
+      </p>
+      <button type="button" onclick="location.reload()">Try Again</button>
+    </div>
+  </body>
+</html>

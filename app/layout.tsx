@@ -5,6 +5,7 @@ import GlobalLiveActivity from "../components/GlobalLiveActivity";
 import TimeLocationEngine from "../components/time-location/TimeLocationEngine";
 import PageShell from "../components/PageShell";
 import CommandPalette from "../components/CommandPalette";
+import ServiceWorkerRegister from "../components/ServiceWorkerRegister";
 
 // App-wide UI typeface. Self-hosted by next/font at build time (no runtime
 // CDN), exposed as a CSS variable that globals.css maps onto the body font.
@@ -61,6 +62,8 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} overflow-x-hidden`}>
       <body className="min-h-screen overflow-x-hidden bg-[#050816] text-white antialiased">
+        <ServiceWorkerRegister />
+
         <Navbar />
 
         <GlobalLiveActivity />

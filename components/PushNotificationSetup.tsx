@@ -107,7 +107,7 @@ export default function PushNotificationSetup() {
         return;
       }
 
-      const registration = await navigator.serviceWorker.register("/push-sw.js");
+      const registration = await navigator.serviceWorker.register("/sw.js");
       await navigator.serviceWorker.ready;
 
       const existingSubscription = await registration.pushManager.getSubscription();
