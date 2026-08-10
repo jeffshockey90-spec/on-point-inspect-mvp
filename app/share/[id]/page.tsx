@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { headers } from "next/headers";
+import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
 import { resolveActiveSections, filterSectionsForServiceMode } from "../../../lib/reportSections";
 import { formatClockTime } from "../../../lib/app-time";
@@ -25,27 +27,60 @@ const supabase = createClient(
 );
 
 
+// Hash an IP the same salted SHA-256 way as /api/public-profile-analytics so
+// we never store or log a raw IP - only an opaque, per-inspection-comparable
+// fingerprint used to tell a returning device from a new one.
+function hashIp(value: string) {
+  const salt =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    "on-point-inspect";
+
+  return crypto.createHash("sha256").update(`${value}:${salt}`).digest("hex");
+}
+
+// A short, human-readable device label parsed from the user-agent, e.g.
+// "iPhone", "Android", "iPad", "Mac", "Windows PC", else "browser".
+function getDeviceLabel(userAgent: string | null | undefined) {
+  const ua = String(userAgent || "").toLowerCase();
+
+  if (!ua) return "browser";
+  if (ua.includes("iphone")) return "iPhone";
+  if (ua.includes("ipad")) return "iPad";
+  if (ua.includes("android")) return "Android";
+  if (ua.includes("windows")) return "Windows PC";
+  if (ua.includes("macintosh") || ua.includes("mac os")) return "Mac";
+  if (ua.includes("linux")) return "Linux";
+  return "browser";
+}
+
 async function recordInspectionView({
   inspectionId,
   viewType,
   contactId,
   viewerRole,
   viewerEmail,
+  viewerName,
   sharePathId,
+  userAgent,
+  ipHash,
 }: {
   inspectionId: string | number;
   viewType: string;
   contactId?: string | null;
   viewerRole?: string | null;
   viewerEmail?: string | null;
+  viewerName?: string | null;
   sharePathId?: string | null;
+  userAgent?: string | null;
+  ipHash?: string | null;
 }) {
   try {
     const numericInspectionId = Number(inspectionId);
 
     if (!numericInspectionId || !Number.isFinite(numericInspectionId)) return;
 
-    await supabase.from("inspection_view_events").insert({
+    const baseRow: Record<string, any> = {
       inspection_id_bigint: numericInspectionId,
       view_type: viewType,
       contact_id: contactId || null,
@@ -54,8 +89,25 @@ async function recordInspectionView({
       path: `/public-report/${sharePathId || inspectionId}`,
       metadata: {
         source: "public_share_page",
+        ...(viewerName ? { viewer_name: viewerName } : {}),
       },
-    });
+    };
+
+    // Best-effort: include the new attribution columns, but if the migration
+    // (supabase/view-attribution.sql) has not been applied yet the insert would
+    // 400 on the unknown columns and drop the whole view event. So try with the
+    // columns and, on failure, retry without them - tracking must never break.
+    const { error: insertError } = await supabase
+      .from("inspection_view_events")
+      .insert({
+        ...baseRow,
+        user_agent: userAgent || null,
+        ip_hash: ipHash || null,
+      });
+
+    if (insertError) {
+      await supabase.from("inspection_view_events").insert(baseRow);
+    }
 
     // This insert bypasses /api/track-inspection-view, so it needs its own
     // push - otherwise report views via a public share link (which is how
@@ -71,11 +123,44 @@ async function recordInspectionView({
         inspection.property_address || inspection.address || "your report";
       const role = String(viewerRole || "").trim().toLowerCase();
       const isRealtor = role.includes("realtor") || role.includes("agent") || role.includes("coordinator");
-      const viewerLabel = isRealtor ? "A realtor" : viewerEmail || "Someone";
+      const name = String(viewerName || "").trim();
+
+      // Who opened it: a named tracking link wins, then role, then email.
+      let viewerLabel: string;
+      if (name) {
+        viewerLabel = isRealtor ? `${name} (realtor)` : name;
+      } else if (isRealtor) {
+        viewerLabel = "A realtor";
+      } else {
+        viewerLabel = viewerEmail || "Someone";
+      }
+
+      // Device + returning-vs-first-view context, best-effort. Never let these
+      // extra lookups throw and swallow the push.
+      const deviceLabel = getDeviceLabel(userAgent);
+      let seenBefore = false;
+      if (ipHash) {
+        try {
+          const { data: priorView } = await supabase
+            .from("inspection_view_events")
+            .select("id")
+            .eq("inspection_id_bigint", numericInspectionId)
+            .eq("ip_hash", ipHash)
+            .limit(1)
+            .maybeSingle();
+          seenBefore = Boolean(priorView);
+        } catch (lookupError) {
+          console.error("Return-viewer lookup error:", lookupError);
+        }
+      }
+
+      const viewerContext = `${deviceLabel} · ${
+        seenBefore ? "returning viewer" : "first view"
+      }`;
 
       await sendPushNotification({
         title: isRealtor ? "Realtor Viewed Report" : "Report Viewed",
-        body: `${viewerLabel} opened ${property}.`,
+        body: `${viewerLabel} opened ${property} (${viewerContext}).`,
         url: `/reports/${numericInspectionId}`,
         eventType: "report_share",
         target: "user",
@@ -995,7 +1080,7 @@ export default async function PublicSharePage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams?: Promise<{ defect_filter?: string; contact?: string; role?: string; email?: string }>;
+  searchParams?: Promise<{ defect_filter?: string; contact?: string; role?: string; email?: string; v?: string; viewer?: string }>;
 }) {
   const resolvedParams = await params;
   const resolvedSearchParams = searchParams ? await searchParams : {};
@@ -1112,13 +1197,38 @@ export default async function PublicSharePage({
   );
 
   if (!isDemo) {
+    // Capture the request device (user-agent) and a hashed client IP so the
+    // owner's push can name the device and flag returning viewers. Best-effort:
+    // never let header/hash work break the page.
+    let requestUserAgent: string | null = null;
+    let requestIpHash: string | null = null;
+    try {
+      const requestHeaders = await headers();
+      requestUserAgent = requestHeaders.get("user-agent") || null;
+      const forwardedFor = requestHeaders.get("x-forwarded-for") || "";
+      const rawIp =
+        forwardedFor.split(",")[0]?.trim() ||
+        requestHeaders.get("x-real-ip")?.trim() ||
+        "";
+      requestIpHash = rawIp ? hashIp(rawIp) : null;
+    } catch (headerError) {
+      console.error("Share view header capture error:", headerError);
+    }
+
+    const viewerName = String(
+      resolvedSearchParams?.v || resolvedSearchParams?.viewer || ""
+    ).trim();
+
     await recordInspectionView({
       inspectionId,
       viewType: "report_share",
       contactId: resolvedSearchParams?.contact || null,
       viewerRole: resolvedSearchParams?.role || null,
       viewerEmail: resolvedSearchParams?.email || null,
+      viewerName: viewerName || null,
       sharePathId,
+      userAgent: requestUserAgent,
+      ipHash: requestIpHash,
     });
   }
 

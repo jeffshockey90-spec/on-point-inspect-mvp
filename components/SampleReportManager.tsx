@@ -32,6 +32,8 @@ export default function SampleReportManager({
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [viewerName, setViewerName] = useState("");
+  const [trackingCopied, setTrackingCopied] = useState(false);
 
   // IMPORTANT:
   // Keep this value stable between server render and client hydration.
@@ -106,6 +108,65 @@ export default function SampleReportManager({
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2000);
     } catch {}
+  }
+
+  // Robust clipboard write that falls back to the legacy execCommand path when
+  // navigator.clipboard is unavailable (older browsers / non-secure contexts).
+  async function copyToClipboard(text: string) {
+    if (!text) return false;
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+    } catch {}
+
+    try {
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      const ok = document.execCommand("copy");
+      document.body.removeChild(textarea);
+      return ok;
+    } catch {
+      return false;
+    }
+  }
+
+  // Named tracking link: opening it attributes the view to this recipient in the
+  // owner's "Report Viewed" push. Preserves the share token in publicShareUrl and
+  // appends ?role=realtor&v=<encoded name>.
+  function buildTrackingLink() {
+    const absoluteUrl = getAbsoluteUrl(publicShareUrl) || publicShareUrl;
+    if (!absoluteUrl) return "";
+
+    try {
+      const url = new URL(absoluteUrl, window.location.origin);
+      url.searchParams.set("role", "realtor");
+      const name = viewerName.trim();
+      if (name) url.searchParams.set("v", name);
+      return url.toString();
+    } catch {
+      const name = viewerName.trim();
+      const params = `role=realtor${name ? `&v=${encodeURIComponent(name)}` : ""}`;
+      return `${absoluteUrl}${absoluteUrl.includes("?") ? "&" : "?"}${params}`;
+    }
+  }
+
+  async function copyTrackingLink() {
+    const link = buildTrackingLink();
+    if (!link) return;
+
+    const ok = await copyToClipboard(link);
+    if (ok) {
+      setTrackingCopied(true);
+      window.setTimeout(() => setTrackingCopied(false), 2000);
+    }
   }
 
   return (
@@ -186,6 +247,33 @@ export default function SampleReportManager({
           Public sample link: {publicShareUrl}
         </p>
       )}
+
+      <div className="mt-4 rounded-2xl border border-teal-500/30 bg-[#020817] p-4">
+        <p className="break-words text-xs font-black uppercase tracking-wide text-teal-300">
+          Tracking Link
+        </p>
+        <p className="mt-1 break-words text-sm leading-6 text-slate-400">
+          Add the realtor&apos;s name to get a personalized link. When they open
+          it, your view notification names them and shows their device.
+        </p>
+
+        <div className="mt-3 flex max-w-full flex-col gap-3 sm:flex-row">
+          <input
+            value={viewerName}
+            onChange={(event) => setViewerName(event.target.value)}
+            placeholder="Recipient name (e.g. Jane Smith)"
+            className="w-full min-w-0 flex-1 rounded-xl border border-slate-700 bg-[#020817] p-3 text-white outline-none focus:border-teal-400"
+          />
+          <button
+            type="button"
+            onClick={copyTrackingLink}
+            disabled={!publicShareUrl}
+            className="inline-flex w-full items-center justify-center rounded-xl border border-teal-500/60 px-5 py-3 text-sm font-black text-teal-300 transition hover:bg-teal-500/10 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+          >
+            {trackingCopied ? "Copied" : "Copy tracking link"}
+          </button>
+        </div>
+      </div>
 
       {message && (
         <p className="mt-4 max-w-full break-words rounded-xl border border-emerald-500/40 bg-emerald-950/30 p-3 text-sm font-bold text-emerald-300">
