@@ -567,6 +567,7 @@ limited access or visibility.
         images: [image],
         temperature: 0.1,
         responseFormat: "json_object",
+        fast: true,
       });
 
       const parsed = safeJsonParse(brainResult.text || "{}");
@@ -755,6 +756,7 @@ If mode is "live_watch":
       images: [image],
       temperature: isLiveWatch ? 0.05 : 0.1,
       responseFormat: "json_object",
+      fast: true,
     });
 
     const parsed = safeJsonParse(brainResult.text || "{}");

@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { getAIModel } from "../openai";
+import { getAIModel, getFastAIModel } from "../openai";
 
 export type InspectionAIRequest = {
   task:
@@ -14,6 +14,9 @@ export type InspectionAIRequest = {
   images?: Array<{ mimeType: string; base64: string }>;
   temperature?: number;
   responseFormat?: "json_object" | "text";
+  // Use the fast model (lower latency) for real-time / draft output the
+  // inspector reviews — e.g. the live camera and field write-ups.
+  fast?: boolean;
 };
 
 export class InspectionBrain {
@@ -47,7 +50,7 @@ export class InspectionBrain {
       }
     }
 
-    const model = getAIModel();
+    const model = request.fast ? getFastAIModel() : getAIModel();
 
     const response = await this.client.chat.completions.create({
       model,

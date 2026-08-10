@@ -2321,13 +2321,35 @@ function FieldPageContent() {
       return;
     }
 
-    setSavingEquipment(true);
-    setEquipmentSaveLabel(
+    // Optimistic, instant-feel save: snapshot the equipment result + media,
+    // clear the form, and re-enable the button immediately so the inspector can
+    // move to the next item while the upload + inserts run in the background.
+    const snapshot = {
+      equipmentResult: er,
+      photos: [...effectivePhotos],
+      note,
+    };
+    resetForm();
+    setSavingEquipment(false);
+    setMessage(
       shouldCreateEquipmentFinding(er)
-        ? "Preparing Equipment + Finding..."
-        : "Preparing Equipment Save...",
+        ? "Equipment + finding are saving in the background — go ahead and continue."
+        : "Equipment is saving to inventory in the background — go ahead and continue.",
     );
-    setMessage("");
+    void backgroundSaveEquipment(snapshot);
+  }
+
+  // Background save for the optimistic equipment path. There is no offline queue
+  // for equipment inventory, so on failure we restore the equipment result and
+  // its media (rollback) and surface the error for a manual retry.
+  async function backgroundSaveEquipment(snapshot: {
+    equipmentResult: EquipmentResult;
+    photos: File[];
+    note: string;
+  }) {
+    const er = snapshot.equipmentResult;
+    const effectivePhotos = snapshot.photos;
+    const note = snapshot.note;
 
     try {
       const uploadedPhotos: UploadedPhoto[] = await Promise.all(
@@ -2337,8 +2359,6 @@ function FieldPageContent() {
       const mainImage = uploadedPhotos.find((photo) =>
         String(photo.filePath || "").match(/\.(jpg|jpeg|png|webp|gif|heic)$/i),
       );
-
-      setEquipmentSaveLabel("Saving Equipment Inventory...");
 
       const baseInventoryPayload = {
         inspection_id: Number(selectedReport),
@@ -2397,7 +2417,16 @@ function FieldPageContent() {
       const createFinding = shouldCreateEquipmentFinding(er);
 
       if (!createFinding) {
-        resetForm();
+        clearCompletedProgressSoon();
+        setQueueTick((current) => current + 1);
+        window.dispatchEvent(
+          new CustomEvent("opi:inspection-data-changed", {
+            detail: {
+              inspectionId: selectedReport,
+              source: "field-equipment-background",
+            },
+          }),
+        );
         setMessage(
           "Equipment saved to Equipment Inventory. It was not added as a defect.",
         );
@@ -2426,8 +2455,6 @@ function FieldPageContent() {
           ? "Monitor"
           : er.severity || "Informational";
 
-      setEquipmentSaveLabel("Creating Finding...");
-
       const { data: findingData, error: findingError } = await supabase
         .from("findings")
         .insert({
@@ -2446,8 +2473,6 @@ function FieldPageContent() {
       if (findingError) throw findingError;
 
       if (uploadedPhotos.length > 0 && findingData) {
-        setEquipmentSaveLabel("Attaching Media...");
-
         const photoRows = uploadedPhotos.map((photo) => ({
           inspection_id: selectedReport,
           finding_id: findingData.id,
@@ -2465,19 +2490,31 @@ function FieldPageContent() {
         if (photoError) throw photoError;
       }
 
-      resetForm();
+      clearCompletedProgressSoon();
+      setQueueTick((current) => current + 1);
+      window.dispatchEvent(
+        new CustomEvent("opi:inspection-data-changed", {
+          detail: {
+            inspectionId: selectedReport,
+            source: "field-equipment-background",
+          },
+        }),
+      );
       setMessage(
         "Equipment saved to Equipment Inventory and a report finding was created.",
       );
     } catch (error: any) {
-      setMessage(error?.message || "Failed to save equipment.");
-    } finally {
-      setSavingEquipment(false);
+      // No offline queue for equipment: restore the analyzed result and its
+      // media so the inspector can retry, then surface the error.
+      setEquipmentResult(er);
+      setPhotos(snapshot.photos);
       setEquipmentSaveLabel(
-        er && shouldCreateEquipmentFinding(er)
+        shouldCreateEquipmentFinding(er)
           ? "Save Equipment + Create Finding"
           : "Save To Equipment Inventory",
       );
+      setMessage(error?.message || "Failed to save equipment.");
+    } finally {
       setOnline(isOnline());
     }
   }
@@ -3094,55 +3131,68 @@ function FieldPageContent() {
     setMessage("Saving AI-organized findings...");
 
     try {
-      let savedCount = 0;
+      // Upload every group's files concurrently (each group keeps photo order
+      // via Promise.all over its own files), so a multi-photo batch saves in
+      // roughly the time of the slowest single upload instead of the sum.
+      const preparedGroups = await Promise.all(
+        approvedGroups.map(async (group) => {
+          const groupFiles = group.photoIndexes
+            .map((index) => photos[index])
+            .filter(Boolean);
 
-      for (const group of approvedGroups) {
-        const groupFiles = group.photoIndexes
-          .map((index) => photos[index])
-          .filter(Boolean);
-
-        const uploaded: UploadedPhoto[] = [];
-        for (const file of groupFiles) {
-          uploaded.push(await uploadPhotoFile(file, "field-media"));
-        }
-
-        const { data: finding, error } = await supabase
-          .from("findings")
-          .insert({
-            inspection_id: selectedReport,
-            title: group.title || group.label || "Inspection Finding",
-            section: group.section,
-            severity: group.severity,
-            observation: group.observation,
-            implication: group.implication,
-            recommendation: group.recommendation,
-            image_url:
-              uploaded.find((item) => !item.isVideo)?.publicUrl || null,
-          })
-          .select()
-          .single();
-
-        if (error) throw error;
-
-        if (uploaded.length) {
-          const { error: photoError } = await supabase.from("photos").insert(
-            uploaded.map((item) => ({
-              inspection_id: selectedReport,
-              finding_id: finding.id,
-              public_url: item.publicUrl,
-              file_path: item.filePath,
-              is_video: Boolean(item.isVideo),
-              mime_type: item.mimeType || null,
-              thumbnail_url: item.thumbnailUrl || null,
-              thumbnail_path: item.thumbnailPath || null,
-            })),
+          const uploaded: UploadedPhoto[] = await Promise.all(
+            groupFiles.map((file) => uploadPhotoFile(file, "field-media")),
           );
 
-          if (photoError) throw photoError;
-        }
+          return { group, uploaded };
+        }),
+      );
 
-        savedCount += 1;
+      // Batch the finding-row inserts: one insert for all groups. PostgREST
+      // returns the inserted rows in the same order they were provided, so we
+      // can map each returned finding back to its uploaded media by index.
+      const findingRows = preparedGroups.map(({ group, uploaded }) => ({
+        inspection_id: selectedReport,
+        title: group.title || group.label || "Inspection Finding",
+        section: group.section,
+        severity: group.severity,
+        observation: group.observation,
+        implication: group.implication,
+        recommendation: group.recommendation,
+        image_url: uploaded.find((item) => !item.isVideo)?.publicUrl || null,
+      }));
+
+      const { data: insertedFindings, error } = await supabase
+        .from("findings")
+        .insert(findingRows)
+        .select();
+
+      if (error) throw error;
+
+      const photoRows = preparedGroups.flatMap(({ uploaded }, groupIndex) => {
+        const finding = insertedFindings?.[groupIndex];
+        if (!finding || !uploaded.length) return [];
+        return uploaded.map((item) => ({
+          inspection_id: selectedReport,
+          finding_id: finding.id,
+          public_url: item.publicUrl,
+          file_path: item.filePath,
+          is_video: Boolean(item.isVideo),
+          mime_type: item.mimeType || null,
+          thumbnail_url: item.thumbnailUrl || null,
+          thumbnail_path: item.thumbnailPath || null,
+        }));
+      });
+
+      if (photoRows.length) {
+        const { error: photoError } = await supabase
+          .from("photos")
+          .insert(photoRows);
+
+        if (photoError) throw photoError;
       }
+
+      const savedCount = preparedGroups.length;
 
       const usedIndexes = new Set(
         approvedGroups.flatMap((group) => group.photoIndexes),
@@ -3352,67 +3402,89 @@ function FieldPageContent() {
     };
   }
 
-  async function saveReferencePhotosOnline() {
-    if (photos.length === 0) {
+  async function saveReferencePhotosOnline(overrides?: {
+    photos?: File[];
+    section?: string;
+    note?: string;
+    title?: string;
+  }) {
+    const effectivePhotos = overrides?.photos ?? photos;
+    const effectiveSection = overrides?.section ?? section;
+    const effectiveNote = overrides?.note ?? note;
+    const effectiveTitle = overrides?.title ?? title;
+
+    if (effectivePhotos.length === 0) {
       throw new Error("Add at least one photo for a section reference photo.");
     }
 
-    const imagePhotos = photos.filter((photo) =>
+    const imagePhotos = effectivePhotos.filter((photo) =>
       photo.type.startsWith("image/"),
     );
 
-    if (imagePhotos.length !== photos.length) {
+    if (imagePhotos.length !== effectivePhotos.length) {
       throw new Error(
         "Reference photos must be images. Videos can be saved as finding media while online.",
       );
     }
 
-    let saved = 0;
+    // Upload every reference photo concurrently, then insert the rows in one
+    // batch (matching the main finding path's Promise.all style).
+    const uploadedPhotos: UploadedPhoto[] = await Promise.all(
+      imagePhotos.map((photo) =>
+        uploadPhotoFile(
+          photo,
+          `reference-photos/${safeSectionFolder(effectiveSection)}`,
+        ),
+      ),
+    );
 
-    for (const photo of imagePhotos) {
-      const uploaded = await uploadPhotoFile(
-        photo,
-        `reference-photos/${safeSectionFolder(section)}`,
-      );
+    const caption = effectiveNote.trim() || effectiveTitle.trim() || null;
 
-      const { error } = await supabase.from("section_reference_photos").insert({
+    const { error } = await supabase.from("section_reference_photos").insert(
+      uploadedPhotos.map((uploaded) => ({
         inspection_id: selectedReport,
-        section,
-        caption: note.trim() || title.trim() || null,
+        section: effectiveSection,
+        caption,
         file_path: uploaded.filePath,
         public_url: uploaded.publicUrl,
         thumbnail_path: uploaded.thumbnailPath || null,
         thumbnail_url: uploaded.thumbnailUrl || null,
-      });
+      })),
+    );
 
-      if (error) throw error;
-      saved += 1;
-    }
+    if (error) throw error;
 
-    return saved;
+    return uploadedPhotos.length;
   }
 
-  async function saveMediaToExistingFindingOnline() {
-    if (!existingFindingId) {
+  async function saveMediaToExistingFindingOnline(overrides?: {
+    photos?: File[];
+    existingFindingId?: string;
+  }) {
+    const effectivePhotos = overrides?.photos ?? photos;
+    const effectiveExistingFindingId =
+      overrides?.existingFindingId ?? existingFindingId;
+
+    if (!effectiveExistingFindingId) {
       throw new Error("Select the existing finding that should receive this media.");
     }
 
-    if (photos.length === 0) {
+    if (effectivePhotos.length === 0) {
       throw new Error("Add at least one photo or video.");
     }
 
     const selectedFinding = existingFindings.find(
-      (finding) => String(finding.id) === String(existingFindingId),
+      (finding) => String(finding.id) === String(effectiveExistingFindingId),
     );
     if (!selectedFinding) throw new Error("The selected finding could not be found.");
 
     const uploadedMedia: UploadedPhoto[] = await Promise.all(
-      photos.map((media) => uploadPhotoFile(media, "field-media")),
+      effectivePhotos.map((media) => uploadPhotoFile(media, "field-media")),
     );
 
     const photoRows = uploadedMedia.map((media) => ({
       inspection_id: selectedReport,
-      finding_id: existingFindingId,
+      finding_id: effectiveExistingFindingId,
       public_url: media.publicUrl,
       file_path: media.filePath,
       is_video: Boolean(media.isVideo),
@@ -3429,7 +3501,7 @@ function FieldPageContent() {
       const { error: updateError } = await supabase
         .from("findings")
         .update({ image_url: firstImage.publicUrl })
-        .eq("id", existingFindingId)
+        .eq("id", effectiveExistingFindingId)
         .eq("inspection_id", selectedReport);
       if (updateError) throw updateError;
     }
@@ -3690,6 +3762,193 @@ function FieldPageContent() {
     }
   }
 
+  // Roll back the field form to a snapshot when an optimistic online save fails
+  // for a type that has no offline queue (existing-finding media, limitations).
+  // The inspector gets their exact inputs back so they can retry immediately.
+  function restoreFieldForm(snapshot: {
+    photoType: PhotoType;
+    photos: File[];
+    title: string;
+    note: string;
+    section: string;
+    severity: string;
+    observation: string;
+    implication: string;
+    recommendation: string;
+    existingFindingId: string;
+  }) {
+    setPhotoType(snapshot.photoType);
+    setExistingFindingId(snapshot.existingFindingId);
+    setSection(snapshot.section);
+    setSeverity(snapshot.severity);
+    setTitle(snapshot.title);
+    setNote(snapshot.note);
+    setObservation(snapshot.observation);
+    setImplication(snapshot.implication);
+    setRecommendation(snapshot.recommendation);
+    setPhotos(snapshot.photos);
+  }
+
+  // Background save for the optimistic "existing finding media" path. There is
+  // no offline queue for attaching to an existing finding, so on failure we
+  // restore the form (rollback) and surface the error for a manual retry.
+  async function backgroundSaveExistingFindingMedia(snapshot: {
+    photoType: PhotoType;
+    photos: File[];
+    title: string;
+    note: string;
+    section: string;
+    severity: string;
+    observation: string;
+    implication: string;
+    recommendation: string;
+    existingFindingId: string;
+    inspectionId: any;
+  }) {
+    try {
+      await saveMediaToExistingFindingOnline({
+        photos: snapshot.photos,
+        existingFindingId: snapshot.existingFindingId,
+      });
+      clearCompletedProgressSoon();
+      window.dispatchEvent(
+        new CustomEvent("opi:inspection-data-changed", {
+          detail: {
+            inspectionId: snapshot.inspectionId,
+            source: "field-existing-finding-media",
+          },
+        }),
+      );
+    } catch (error: any) {
+      restoreFieldForm(snapshot);
+      setMessage(
+        error?.message ||
+          "That media could not be attached. Your selection was restored so you can retry.",
+      );
+    }
+  }
+
+  // Background save for the optimistic "reference photo" path. Reference photos
+  // support the same offline queue as findings, so on a network failure the work
+  // is queued for automatic retry rather than lost.
+  async function backgroundSaveReferencePhotos(snapshot: {
+    photoType: PhotoType;
+    photos: File[];
+    title: string;
+    note: string;
+    section: string;
+    severity: string;
+    observation: string;
+    implication: string;
+    recommendation: string;
+    existingFindingId: string;
+    inspectionId: any;
+  }) {
+    try {
+      await saveReferencePhotosOnline({
+        photos: snapshot.photos,
+        section: snapshot.section,
+        note: snapshot.note,
+        title: snapshot.title,
+      });
+      clearCompletedProgressSoon();
+      setQueueTick((current) => current + 1);
+      window.dispatchEvent(
+        new CustomEvent("opi:inspection-data-changed", {
+          detail: {
+            inspectionId: snapshot.inspectionId,
+            source: "field-reference-photo-background",
+          },
+        }),
+      );
+    } catch (error: any) {
+      if (snapshot.photos.length > 0 && (isLikelyNetworkError(error) || !isOnline())) {
+        try {
+          const { offlinePhotos, skippedCount, skippedVideos } =
+            await prepareOfflinePhotosForQueue(snapshot.photos);
+
+          if (offlinePhotos.length === 0) {
+            restoreFieldForm(snapshot);
+            setMessage(
+              "A reference photo could not be saved and was too large for the offline queue. Your selection was restored so you can retry.",
+            );
+            return;
+          }
+
+          addOfflineQueueItem({
+            type: "reference_photo",
+            payload: {
+              inspection_id: snapshot.inspectionId,
+              title: snapshot.title,
+              section: snapshot.section,
+              severity: snapshot.severity,
+              inspector_note: snapshot.note,
+              note: snapshot.note,
+              caption: snapshot.note || snapshot.title,
+              observation: snapshot.observation,
+              implication: snapshot.implication,
+              recommendation: snapshot.recommendation,
+              photos: offlinePhotos,
+              run_ai_after_sync: false,
+              ai_after_sync: false,
+              offline_media_skipped_count: skippedCount,
+              offline_video_skipped_count: skippedVideos,
+            },
+          });
+          clearCompletedProgressSoon();
+          setMessage(
+            "A background upload hit a snag — that reference photo was saved locally and will retry automatically when service is stable.",
+          );
+        } catch {
+          restoreFieldForm(snapshot);
+          setMessage(
+            "A reference photo could not be saved in the background. Your selection was restored so you can retry.",
+          );
+        }
+      } else {
+        restoreFieldForm(snapshot);
+        setMessage(
+          error?.message ||
+            "A reference photo could not be saved. Your selection was restored so you can retry.",
+        );
+      }
+    }
+  }
+
+  // Background save for the optimistic "limitation with photo" path. Limitations
+  // have no offline queue, so on failure we roll back the form and surface the
+  // error for a manual retry.
+  async function backgroundSaveLimitation(snapshot: {
+    photoType: PhotoType;
+    photos: File[];
+    title: string;
+    note: string;
+    section: string;
+    severity: string;
+    observation: string;
+    implication: string;
+    recommendation: string;
+    existingFindingId: string;
+    inspectionId: any;
+  }) {
+    try {
+      await saveLimitationWithPhotoOnline({
+        photos: snapshot.photos,
+        title: snapshot.title,
+        note: snapshot.note,
+        section: snapshot.section,
+        recommendation: snapshot.recommendation,
+      });
+      clearCompletedProgressSoon();
+    } catch (error: any) {
+      restoreFieldForm(snapshot);
+      setMessage(
+        error?.message ||
+          "That limitation could not be saved. Your wording and photo were restored so you can retry.",
+      );
+    }
+  }
+
   async function saveFieldItem() {
     if (!selectedReport) {
       setMessage("Select a report first.");
@@ -3741,7 +4000,7 @@ function FieldPageContent() {
     // Optimistic path for the common case: an online NEW finding. Snapshot the
     // form, reset it, and re-enable the button immediately so the inspector can
     // start the next finding while this one uploads/saves in the background.
-    // (Other types and offline saves keep the synchronous flow below.)
+    // (Offline saves keep the synchronous flow below.)
     if (photoType === "finding" && isOnline()) {
       const snapshot = {
         photos: [...photos],
@@ -3758,6 +4017,85 @@ function FieldPageContent() {
       setSaving(false);
       setMessage("Finding is saving in the background — go ahead and start the next one.");
       void backgroundSaveFinding(snapshot);
+      return;
+    }
+
+    // Same instant-feel treatment for the other online save types. Each captures
+    // a full-form snapshot (so a rollback can restore it), resets the form, and
+    // hands off to a background saver. Offline saves still fall through below.
+    if (photoType === "existing_finding" && isOnline()) {
+      const selectedFinding = existingFindings.find(
+        (finding) => String(finding.id) === String(existingFindingId),
+      );
+      const findingTitle = selectedFinding?.title || "existing finding";
+      const mediaCount = photos.length;
+      const snapshot = {
+        photoType,
+        photos: [...photos],
+        title,
+        note,
+        section,
+        severity,
+        observation,
+        implication,
+        recommendation,
+        existingFindingId,
+        inspectionId: selectedReport,
+      };
+      resetForm();
+      setSaving(false);
+      setMessage(
+        `Attaching ${mediaCount} media item${mediaCount === 1 ? "" : "s"} to “${findingTitle}” in the background — you can keep working.`,
+      );
+      void backgroundSaveExistingFindingMedia(snapshot);
+      return;
+    }
+
+    if (photoType === "reference_photo" && isOnline()) {
+      const savedSection = section;
+      const snapshot = {
+        photoType,
+        photos: [...photos],
+        title,
+        note,
+        section,
+        severity,
+        observation,
+        implication,
+        recommendation,
+        existingFindingId,
+        inspectionId: selectedReport,
+      };
+      resetForm();
+      setSaving(false);
+      setMessage(
+        `Reference photos are saving to ${savedSection} in the background — go ahead and continue.`,
+      );
+      void backgroundSaveReferencePhotos(snapshot);
+      return;
+    }
+
+    if (photoType === "limitation" && isOnline()) {
+      const savedSection = section;
+      const snapshot = {
+        photoType,
+        photos: [...photos],
+        title,
+        note,
+        section,
+        severity,
+        observation,
+        implication,
+        recommendation,
+        existingFindingId,
+        inspectionId: selectedReport,
+      };
+      resetForm();
+      setSaving(false);
+      setMessage(
+        `Limitation and photo are saving to ${savedSection} in the background — go ahead and continue.`,
+      );
+      void backgroundSaveLimitation(snapshot);
       return;
     }
 

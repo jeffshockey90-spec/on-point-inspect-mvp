@@ -2,7 +2,7 @@ import OpenAI from "openai";
 import { NextResponse } from "next/server";
 import { logAIEvent } from "../../../lib/logging";
 import { routeFindingSection, normalizeSeverity } from "../../../lib/routeFindingSection";
-import { getAIModel, getAIVersion } from "../../../lib/openai";
+import { getAIModel, getFastAIModel, getAIVersion } from "../../../lib/openai";
 import { learningEngine } from "../../../lib/ai/LearningEngine";
 import { getSessionUser } from "../../../lib/apiAuth";
 
@@ -13,7 +13,10 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const AI_WRITER_MODEL = getAIModel();
+// Field write-ups are a fast first draft the inspector reviews and edits, so
+// use the fast (low-latency) model — the smart model's extra seconds per
+// finding is the main thing that made the write-up feel slow to appear.
+const AI_WRITER_MODEL = getFastAIModel();
 const AI_WRITER_VERSION = getAIVersion("report-writer-3");
 
 const VALID_SECTIONS = [
