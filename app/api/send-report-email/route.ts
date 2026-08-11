@@ -325,6 +325,17 @@ async function sendReportEmail({
   };
 }
 
+// Human label for what environmental results were posted, based on the
+// inspection's services: "Radon", "Mold", "Radon & Mold", else "Environmental".
+function environmentalResultLabel(inspection: any) {
+  const mold = hasMoldService(inspection);
+  const radon = hasRadonService(inspection);
+  if (mold && radon) return "Radon & Mold";
+  if (radon) return "Radon";
+  if (mold) return "Mold";
+  return "Environmental";
+}
+
 function buildEmailHtml({
   inspection,
   property,
@@ -333,6 +344,7 @@ function buildEmailHtml({
   moldReportUrl,
   radonReportUrl,
   branding,
+  environmentalNotice = false,
 }: {
   inspection: any;
   property: string;
@@ -341,8 +353,15 @@ function buildEmailHtml({
   moldReportUrl: string;
   radonReportUrl: string;
   branding: CompanyBranding;
+  environmentalNotice?: boolean;
 }) {
   const hasEnvironmentalLinks = Boolean(moldReportUrl || radonReportUrl);
+  // Treat an explicit environmental notification the same as a standalone
+  // environmental report for wording, so combined (home + radon/mold) reports
+  // still read as "your radon/mold results" when posted from the env panel.
+  const isEnvNotice =
+    environmentalNotice || isStandaloneEnvironmentalService(inspection);
+  const envLabel = environmentalResultLabel(inspection);
 
   const environmentalLinksHtml = hasEnvironmentalLinks
     ? `
@@ -394,8 +413,8 @@ function buildEmailHtml({
         <p>Hello,</p>
 
         <p>Your ${
-          isStandaloneEnvironmentalService(inspection)
-            ? "environmental report"
+          isEnvNotice
+            ? `${envLabel} testing results`
             : "inspection report"
         } for:</p>
 
@@ -408,8 +427,8 @@ function buildEmailHtml({
         <p>
           <a href="${trackedShareUrl}" style="display:inline-block; background:#14b8a6; color:#020617; padding:12px 18px; border-radius:10px; text-decoration:none; font-weight:bold;">
             ${
-              isStandaloneEnvironmentalService(inspection)
-                ? "View Environmental Report"
+              isEnvNotice
+                ? "View Your Results"
                 : "View Inspection Report"
             }
           </a>
@@ -442,7 +461,10 @@ function buildEmailHtml({
 
 export async function POST(req: Request) {
   try {
-    const { inspectionId, recipientType, recipientEmail } = await req.json();
+    const { inspectionId, recipientType, recipientEmail, context } = await req.json();
+    // When the send comes from the environmental panel's "Notify" button, word
+    // the email around the radon/mold results (even for a combined report).
+    const environmentalNotice = String(context || "").toLowerCase() === "environmental";
 
     if (!inspectionId) {
       return NextResponse.json(
@@ -533,9 +555,11 @@ export async function POST(req: Request) {
       inspection.address ||
       "the inspected property";
 
-    const subject = isStandaloneEnvironmentalService(inspection)
-      ? `Environmental Report Ready - ${property}`
-      : `Inspection Report Ready - ${property}`;
+    const subject = environmentalNotice
+      ? `Your ${environmentalResultLabel(inspection)} Testing Results Are Ready - ${property}`
+      : isStandaloneEnvironmentalService(inspection)
+        ? `Environmental Report Ready - ${property}`
+        : `Inspection Report Ready - ${property}`;
 
     let recipients: Recipient[] = [];
 
@@ -648,6 +672,7 @@ export async function POST(req: Request) {
         moldReportUrl,
         radonReportUrl,
         branding,
+        environmentalNotice,
       });
 
       const result = await sendReportEmail({
