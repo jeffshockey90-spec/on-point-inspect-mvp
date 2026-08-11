@@ -34,6 +34,29 @@ export type EquipmentDraft = {
   observation?: string;
   implication?: string;
   recommendation?: string;
+  // Rich equipment intelligence the analyzer also returns. Displayed read-only
+  // in the confirm card so the inspector sees the full record before saving.
+  estimatedAge?: string | number;
+  expectedServiceLife?: string;
+  estimatedLifeRemaining?: string;
+  lifeExpectancyPercent?: number;
+  maintenanceSchedule?: string;
+  maintenanceLevel?: string;
+  replacementCostEstimate?: string;
+  recallAwareness?: string;
+  knownFailurePatterns?: string[];
+  equipmentStatus?: string;
+  equipmentCategory?: string;
+  estimatedBTU?: string;
+  capacity?: string;
+  fuelType?: string;
+  refrigerant?: string;
+  efficiency?: string;
+  estimatedSEER?: string;
+  estimatedAFUE?: string;
+  estimatedHeatingEfficiency?: string;
+  clientSummary?: string;
+  confidenceScore?: number | string;
   error?: string;
   [key: string]: unknown;
 };

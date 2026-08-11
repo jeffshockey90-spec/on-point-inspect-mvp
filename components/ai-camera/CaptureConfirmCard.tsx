@@ -40,6 +40,43 @@ function Field({
   );
 }
 
+// Values the analyzer returns as "not found" — hidden from the read-only
+// intelligence display so the inspector only sees real data.
+function isKnownValue(value: unknown) {
+  const clean = String(value ?? "").trim();
+  if (!clean) return false;
+  return ![
+    "unknown",
+    "n/a",
+    "na",
+    "not available",
+    "not visible",
+    "not readable",
+    "unreadable",
+    "unable to determine",
+    "cannot determine",
+    "not determined",
+    "none",
+    "null",
+    "undefined",
+  ].includes(clean.toLowerCase());
+}
+
+// Compact read-only row for computed equipment intelligence.
+function ReadRow({ label, value }: { label: string; value: unknown }) {
+  if (!isKnownValue(value)) return null;
+  return (
+    <div className="flex items-start justify-between gap-3 border-b border-white/5 py-1.5 last:border-b-0">
+      <span className="shrink-0 text-[11px] font-black uppercase tracking-wide text-slate-400">
+        {label}
+      </span>
+      <span className="text-right text-sm font-semibold text-slate-100">
+        {String(value)}
+      </span>
+    </div>
+  );
+}
+
 const CATEGORY_LABEL: Record<CaptureDraft["kind"], string> = {
   finding: "Finding",
   limitation: "Limitation",
@@ -288,6 +325,19 @@ export default function CaptureConfirmCard({
 
           {edited.kind === "equipment" && (
             <>
+              {edited.equipmentStatus && isKnownValue(edited.equipmentStatus) && (
+                <div className="rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-3 py-2 text-sm font-black text-cyan-200">
+                  {String(edited.equipmentStatus)}
+                </div>
+              )}
+
+              <Field label="Equipment Type">
+                <input
+                  className={inputClass}
+                  value={edited.equipmentType || ""}
+                  onChange={(event) => update({ equipmentType: event.target.value })}
+                />
+              </Field>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Manufacturer">
                   <input
@@ -320,11 +370,143 @@ export default function CaptureConfirmCard({
                   />
                 </Field>
               </div>
+
+              {/* Full equipment intelligence the analyzer returned (read-only). */}
+              <div className="rounded-xl border border-white/10 bg-black/40 p-3">
+                <p className="mb-1.5 text-[11px] font-black uppercase tracking-wide text-cyan-300">
+                  AI Equipment Intelligence
+                </p>
+                <div>
+                  <ReadRow label="Estimated Age" value={edited.estimatedAge} />
+                  <ReadRow label="Expected Life" value={edited.expectedServiceLife} />
+                  <ReadRow
+                    label="Life Used"
+                    value={
+                      Number(edited.lifeExpectancyPercent) > 0
+                        ? `${Math.min(150, Math.round(Number(edited.lifeExpectancyPercent)))}% of upper typical range`
+                        : ""
+                    }
+                  />
+                  <ReadRow label="Capacity" value={edited.capacity || edited.estimatedBTU} />
+                  <ReadRow label="Fuel Type" value={edited.fuelType} />
+                  <ReadRow label="Refrigerant" value={edited.refrigerant} />
+                  <ReadRow label="Est. SEER" value={edited.estimatedSEER} />
+                  <ReadRow label="Est. AFUE" value={edited.estimatedAFUE} />
+                  <ReadRow
+                    label="Heating Efficiency"
+                    value={edited.estimatedHeatingEfficiency}
+                  />
+                  <ReadRow label="Efficiency" value={edited.efficiency} />
+                  <ReadRow
+                    label="Replacement Planning"
+                    value={edited.replacementCostEstimate}
+                  />
+                  <ReadRow
+                    label="Confidence"
+                    value={
+                      Number(edited.confidenceScore) > 0
+                        ? `${Math.round(Number(edited.confidenceScore))}%`
+                        : ""
+                    }
+                  />
+                </div>
+
+                {isKnownValue(edited.maintenanceSchedule) && (
+                  <div className="mt-3">
+                    <p className={labelClass}>Maintenance Schedule</p>
+                    <p className="mt-1 text-sm leading-6 text-slate-200">
+                      {String(edited.maintenanceSchedule)}
+                    </p>
+                  </div>
+                )}
+
+                {Array.isArray(edited.knownFailurePatterns) &&
+                  edited.knownFailurePatterns.length > 0 && (
+                    <div className="mt-3">
+                      <p className={labelClass}>Common Failure Patterns</p>
+                      <ul className="mt-1 space-y-0.5 text-sm leading-6 text-slate-200">
+                        {edited.knownFailurePatterns.slice(0, 5).map((item) => (
+                          <li key={String(item)}>• {String(item)}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                {isKnownValue(edited.recallAwareness) && (
+                  <div className="mt-3">
+                    <p className={labelClass}>Recall Awareness</p>
+                    <p className="mt-1 text-sm leading-6 text-slate-200">
+                      {String(edited.recallAwareness)}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Report write-up — editable before saving. */}
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Section">
+                  <select
+                    className={inputClass}
+                    value={
+                      SECTION_OPTIONS.includes(String(edited.section || ""))
+                        ? String(edited.section)
+                        : ""
+                    }
+                    onChange={(event) => update({ section: event.target.value })}
+                  >
+                    <option value="">—</option>
+                    {SECTION_OPTIONS.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="Severity">
+                  <select
+                    className={inputClass}
+                    value={
+                      SEVERITY_OPTIONS.includes(String(edited.severity || ""))
+                        ? String(edited.severity)
+                        : ""
+                    }
+                    onChange={(event) => update({ severity: event.target.value })}
+                  >
+                    <option value="">—</option>
+                    {SEVERITY_OPTIONS.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+              </div>
               <Field label="Condition">
                 <textarea
                   className={`${inputClass} min-h-16`}
                   value={edited.condition || ""}
                   onChange={(event) => update({ condition: event.target.value })}
+                />
+              </Field>
+              <Field label="Observation">
+                <textarea
+                  className={`${inputClass} min-h-16`}
+                  value={edited.observation || ""}
+                  onChange={(event) => update({ observation: event.target.value })}
+                />
+              </Field>
+              <Field label="Implication">
+                <textarea
+                  className={`${inputClass} min-h-16`}
+                  value={edited.implication || ""}
+                  onChange={(event) => update({ implication: event.target.value })}
+                />
+              </Field>
+              <Field label="Recommendation">
+                <textarea
+                  className={`${inputClass} min-h-16`}
+                  value={edited.recommendation || ""}
+                  onChange={(event) => update({ recommendation: event.target.value })}
                 />
               </Field>
             </>
