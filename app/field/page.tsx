@@ -2153,18 +2153,15 @@ function FieldPageContent() {
   }
 
   async function analyzeEquipmentWithAI() {
-    // TEMP DIAGNOSTIC: surface exactly what happens on tap so a silent
-    // failure/early-return becomes visible on the device.
-    const eqBusy =
-      analyzingEquipment || analyzingPhoto || generating || saving || savingEquipment;
-    const eqImgCount = photos.filter((p) => p.type.startsWith("image/")).length;
-    setMessage(
-      `Analyze Equipment tapped · photos:${eqImgCount} · online:${online} · busy:${eqBusy} · mode:${photoType}`,
-    );
-
-    if (eqBusy) {
+    if (
+      analyzingEquipment ||
+      analyzingPhoto ||
+      generating ||
+      saving ||
+      savingEquipment
+    ) {
       setMessage(
-        "Can't analyze yet — another action is still finishing. Wait a second and tap again.",
+        "Hang on — another action is still finishing. Try Analyze Equipment again in a second.",
       );
       return;
     }
@@ -2281,11 +2278,7 @@ function FieldPageContent() {
           : `Equipment analyzed using ${images.length} photo${images.length === 1 ? "" : "s"}. This appears informational and will save to Equipment Inventory only.`,
       );
     } catch (error: any) {
-      setMessage(
-        `Equipment analysis error: ${error?.name ? error.name + ": " : ""}${
-          error?.message || String(error) || "unknown error"
-        }`,
-      );
+      setMessage(error?.message || "Equipment analysis failed. Try again.");
     } finally {
       setAnalyzingEquipment(false);
     }
