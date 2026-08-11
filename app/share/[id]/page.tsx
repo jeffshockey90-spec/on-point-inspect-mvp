@@ -929,6 +929,25 @@ function getEquipmentMaintenanceNote(item: any) {
   );
 }
 
+// Percent of typical service life already used (age / max service life).
+// 0 means age could not be determined, so treat it as unconfirmed and hide it
+// rather than printing a misleading "0%" on the client's report.
+function getEquipmentLifeUsed(item: any) {
+  const num = Number(item?.life_expectancy_percent);
+  if (!Number.isFinite(num) || num <= 0) return "";
+  const capped = Math.min(Math.round(num), 150);
+  return `About ${capped}% of typical service life`;
+}
+
+// Generic, low-risk maintenance cadence for the equipment category.
+// Blank/unknown values are suppressed by the note block itself.
+function getEquipmentMaintenanceSchedule(item: any) {
+  return getEquipmentLongNote(item, [
+    "maintenance_schedule",
+    "recommended_maintenance",
+  ]);
+}
+
 
 
 
@@ -2306,6 +2325,10 @@ export default async function PublicSharePage({
                           label="Condition"
                           value={getEquipmentConditionNote(item.condition)}
                         />
+                        <ShareEquipmentLine
+                          label="Estimated Life Used"
+                          value={getEquipmentLifeUsed(item)}
+                        />
                       </div>
 
                       <ShareEquipmentNoteBlock
@@ -2316,6 +2339,11 @@ export default async function PublicSharePage({
                       <ShareEquipmentNoteBlock
                         label="Maintenance Note"
                         value={getEquipmentMaintenanceNote(item)}
+                      />
+
+                      <ShareEquipmentNoteBlock
+                        label="Recommended Maintenance"
+                        value={getEquipmentMaintenanceSchedule(item)}
                       />
                     </div>
                   );

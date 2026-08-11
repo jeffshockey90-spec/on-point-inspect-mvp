@@ -350,6 +350,24 @@ function getEquipmentMaintenanceNote(item: any) {
   );
 }
 
+// Percent of typical service life already used (age / max service life).
+// 0 means age could not be determined, so hide it rather than printing a
+// misleading "0%" on the client's report.
+function getEquipmentLifeUsed(item: any) {
+  const num = Number(item?.life_expectancy_percent);
+  if (!Number.isFinite(num) || num <= 0) return "";
+  const capped = Math.min(Math.round(num), 150);
+  return `About ${capped}% of typical service life`;
+}
+
+// Generic, low-risk maintenance cadence for the equipment category.
+function getEquipmentMaintenanceSchedule(item: any) {
+  const value =
+    item?.maintenance_schedule || item?.recommended_maintenance || "";
+  const clean = String(value).trim();
+  return isKnownEquipmentValue(clean) ? clean : "";
+}
+
 
 function PrintEquipmentNoteBlock({
   label,
@@ -1047,6 +1065,7 @@ export default async function PrintableReportPage({ params }: PageProps) {
                       <InventoryLine label="Fuel Type" value={item.fuel_type} />
                       {isHvacEquipmentItem(item) && <InventoryLine label="Refrigerant" value={item.refrigerant} />}
                       <InventoryLine label="Condition" value={getEquipmentConditionNote(item.condition)} />
+                      <InventoryLine label="Estimated Life Used" value={getEquipmentLifeUsed(item)} />
                     </div>
 
                     <PrintEquipmentNoteBlock
@@ -1057,6 +1076,11 @@ export default async function PrintableReportPage({ params }: PageProps) {
                     <PrintEquipmentNoteBlock
                       label="Maintenance Note"
                       value={getEquipmentMaintenanceNote(item)}
+                    />
+
+                    <PrintEquipmentNoteBlock
+                      label="Recommended Maintenance"
+                      value={getEquipmentMaintenanceSchedule(item)}
                     />
                   </div>
                 );
