@@ -4719,6 +4719,12 @@ function FieldPageContent() {
             </div>
             )}
 
+            {message && (
+              <div className="mt-1 rounded-xl border border-cyan-500/40 bg-cyan-950/30 px-4 py-3 text-sm font-bold leading-5 text-cyan-100">
+                {message}
+              </div>
+            )}
+
             {equipmentResult && !equipmentResult.error && (
               <div className="rounded-2xl border border-cyan-500/40 bg-cyan-950/20 p-4">
                 <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
