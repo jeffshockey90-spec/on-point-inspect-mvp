@@ -5,6 +5,14 @@ import { NextResponse, type NextRequest } from "next/server";
 
 
 
+// SEO/backlink/scraper crawlers we don't want touching the app at all. These
+// provide zero value to a home-inspection SaaS and just hammer public report
+// links. Matched case-insensitively as a substring of the User-Agent.
+// NOTE: real search engines (Googlebot, Bingbot, DuckDuckBot, Applebot) are
+// intentionally NOT here, so the public inspector directory can still be found.
+const BLOCKED_BOT_UA =
+  /MJ12bot|ShapBot|SERankingBacklinksBot|AhrefsBot|SemrushBot|DotBot|DataForSeoBot|BLEXBot|MegaIndex|Bytespider|PetalBot/i;
+
 const OWNER_ONLY_PREFIXES = ["/dashboard", "/admin", "/settings/marketing-images"];
 
 const INSPECTOR_ONLY_PREFIXES = [
@@ -246,6 +254,17 @@ async function getAccountRoute(user: { id: string; email?: string | null }) {
 }
 
 export default async function middleware(request: NextRequest) {
+  // Hard-block known SEO/backlink/scraper bots before doing any auth or DB
+  // work. Returns 403 on every path (including the public report/share pages),
+  // and short-circuits so these crawlers never cost us a Supabase lookup.
+  const userAgent = request.headers.get("user-agent") || "";
+  if (BLOCKED_BOT_UA.test(userAgent)) {
+    return new NextResponse("Forbidden", {
+      status: 403,
+      headers: { "x-robots-tag": "noindex, nofollow" },
+    });
+  }
+
   let response = NextResponse.next({
     request: { headers: request.headers },
   });
