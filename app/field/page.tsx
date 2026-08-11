@@ -2153,14 +2153,21 @@ function FieldPageContent() {
   }
 
   async function analyzeEquipmentWithAI() {
-    if (
-      analyzingEquipment ||
-      analyzingPhoto ||
-      generating ||
-      saving ||
-      savingEquipment
-    )
+    // TEMP DIAGNOSTIC: surface exactly what happens on tap so a silent
+    // failure/early-return becomes visible on the device.
+    const eqBusy =
+      analyzingEquipment || analyzingPhoto || generating || saving || savingEquipment;
+    const eqImgCount = photos.filter((p) => p.type.startsWith("image/")).length;
+    setMessage(
+      `Analyze Equipment tapped · photos:${eqImgCount} · online:${online} · busy:${eqBusy} · mode:${photoType}`,
+    );
+
+    if (eqBusy) {
+      setMessage(
+        "Can't analyze yet — another action is still finishing. Wait a second and tap again.",
+      );
       return;
+    }
 
     if (!selectedReport) {
       setMessage("Select a report before analyzing equipment.");
@@ -2198,6 +2205,8 @@ function FieldPageContent() {
       const aiImages = await Promise.all(
         images.map((image) => compressImageForAiUpload(image)),
       );
+
+      setMessage("Photo ready — calling equipment AI...");
 
       const formData = new FormData();
       aiImages.forEach((image) => {
@@ -2272,7 +2281,11 @@ function FieldPageContent() {
           : `Equipment analyzed using ${images.length} photo${images.length === 1 ? "" : "s"}. This appears informational and will save to Equipment Inventory only.`,
       );
     } catch (error: any) {
-      setMessage(error?.message || "Equipment analysis failed.");
+      setMessage(
+        `Equipment analysis error: ${error?.name ? error.name + ": " : ""}${
+          error?.message || String(error) || "unknown error"
+        }`,
+      );
     } finally {
       setAnalyzingEquipment(false);
     }
