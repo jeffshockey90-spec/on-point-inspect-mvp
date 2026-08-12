@@ -5,6 +5,8 @@ import { routeFindingSection, normalizeSeverity } from "../../../lib/routeFindin
 import { getAIModel, getFastAIModel, getAIVersion } from "../../../lib/openai";
 import { learningEngine } from "../../../lib/ai/LearningEngine";
 import { getSessionUser } from "../../../lib/apiAuth";
+import { buildWritingStyleInstructions } from "../../../lib/ai/writingStyle";
+import { loadWritingConfigForUser } from "../../../lib/ai/loadWritingConfig";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -151,6 +153,10 @@ export async function POST(req: Request) {
       inspectorLearningPatterns,
     );
 
+    // Company AI Writing Studio preferences (SOP, length, detail, tone, per-severity).
+    const writingConfig = await loadWritingConfigForUser(attributedUserId);
+    const writingStyleBlock = buildWritingStyleInstructions(writingConfig);
+
     const systemPrompt = `
 You are FLOW AI Report Writer 3.0, a senior certified home inspector and careful report editor.
 
@@ -171,6 +177,8 @@ Use the property's age and equipment context only to improve relevance, not to i
 If inspector-specific learning memory is provided below, match this inspector's demonstrated wording,
 recommendation style, and severity/section choices when supported by the visible evidence. Treat it as
 a style preference, not permission to invent or overlook evidence.
+
+${writingStyleBlock}
 
 Return ONLY valid JSON in this exact structure:
 {

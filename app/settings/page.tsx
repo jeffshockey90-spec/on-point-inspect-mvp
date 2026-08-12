@@ -8,6 +8,7 @@ import {
   Image as ImageIcon,
   Bell,
   Building2,
+  Sparkles,
 } from "lucide-react";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -669,6 +670,29 @@ export default async function SettingsPage({
               </p>
               <p className="mt-4 text-sm font-black text-amber-300 group-hover:text-amber-200">
                 Manage Company Pricing →
+              </p>
+            </FastLinkButton>
+          )}
+
+          {isCompanyOwner && (
+            <FastLinkButton
+              href="/settings/ai-writing-studio"
+              className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-teal-500/30 bg-[#0b1220] p-4 transition active:scale-[0.98] hover:border-teal-400/70 hover:bg-teal-500/10 sm:p-5 [touch-action:manipulation]"
+            >
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-500/10 text-teal-300">
+                <Sparkles className="h-6 w-6" strokeWidth={2} />
+              </div>
+              <p className="mt-4 text-xs font-black uppercase tracking-[0.2em] text-teal-300">
+                Owner Only
+              </p>
+              <h2 className="mt-2 text-lg font-black text-white sm:text-xl">
+                AI Writing Studio
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-slate-400">
+                Control how the AI writes findings — standard, length, detail, and tone.
+              </p>
+              <p className="mt-4 text-sm font-black text-teal-300 group-hover:text-teal-200">
+                Open AI Writing Studio →
               </p>
             </FastLinkButton>
           )}

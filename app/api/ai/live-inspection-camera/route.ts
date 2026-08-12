@@ -13,6 +13,8 @@ import {
   authorizeInspection,
 } from "../../../../lib/apiAuth";
 import { classifyAIServiceError } from "../../../../lib/aiServiceError";
+import { buildWritingStyleInstructions } from "../../../../lib/ai/writingStyle";
+import { loadWritingConfigForInspection } from "../../../../lib/ai/loadWritingConfig";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -603,6 +605,10 @@ limited access or visibility.
       inspectorLearningPatterns,
     );
 
+    // Company AI Writing Studio preferences (SOP, length, detail, tone, per-severity).
+    const writingConfig = await loadWritingConfigForInspection(inspectionId);
+    const writingStyleBlock = buildWritingStyleInstructions(writingConfig);
+
     const systemPrompt = `
 You are FLOW AI Second Inspector, a senior home inspection assistant watching a live inspection camera frame.
 
@@ -615,6 +621,8 @@ Analyze the frame for:
 3. Inspection limitations such as personal belongings, stored items, blocked access, inaccessible areas, snow/debris coverage, locked rooms, low clearance, unsafe access, utilities off, or components not fully visible.
 4. Inspection reminders before walking away, including missing required photos, representative overview photos, safety checks, operation/limitation checks, and data plate/documentation prompts.
 5. Equipment/data-plate scan prompts when equipment is visible.
+
+${writingStyleBlock}
 
 Return ONLY valid JSON in this exact structure:
 

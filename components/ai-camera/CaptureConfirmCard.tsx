@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { CaptureDraft } from "../../lib/ai/captureTypes";
 import { SECTION_OPTIONS, SEVERITY_OPTIONS } from "../../lib/ai/captureTypes";
+import FindingToneControl from "../FindingToneControl";
 
 type ExistingFinding = { id: string; title?: string; section?: string };
 
@@ -281,6 +282,22 @@ export default function CaptureConfirmCard({
                   onChange={(event) => update({ recommendation: event.target.value })}
                 />
               </Field>
+              <FindingToneControl
+                fields={{
+                  title: edited.title,
+                  severity: edited.severity,
+                  observation: edited.observation,
+                  implication: edited.implication,
+                  recommendation: edited.recommendation,
+                }}
+                onApply={(f) =>
+                  update({
+                    observation: f.observation,
+                    implication: f.implication,
+                    recommendation: f.recommendation,
+                  })
+                }
+              />
             </>
           )}
 
