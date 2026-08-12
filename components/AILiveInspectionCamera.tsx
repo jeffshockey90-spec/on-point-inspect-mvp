@@ -1253,6 +1253,18 @@ export default function AILiveInspectionCamera({
               Add as many angles of the <b className="text-white">same defect</b> as you want —
               wide shot, close-up, label. The AI reads them all into one finding.
             </p>
+
+            <div className="mt-3 rounded-xl border border-white/15 bg-black/40 p-3">
+              <label className="text-[11px] font-black uppercase tracking-wide text-slate-400">
+                Note for AI (optional)
+              </label>
+              <textarea
+                value={noteText}
+                onChange={(event) => setNoteText(event.target.value)}
+                placeholder="e.g. 'cracked heat exchanger — call it a safety concern', or leave blank and AI describes what it sees"
+                className="mt-1 min-h-16 w-full resize-none rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400"
+              />
+            </div>
           </div>
 
           <div className="space-y-2 px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
