@@ -15,6 +15,7 @@ import CollapsibleReportSection from "../../../components/CollapsibleReportSecti
 import SendSignedAgreementButton from "../../../components/SendSignedAgreementButton";
 import ResendConfirmationButton from "../../../components/ResendConfirmationButton";
 import ReportFindingsSortable from "./ReportFindingsSortable";
+import ReportLiveSync from "../../../components/ReportLiveSync";
 import OfflineReportCacheBridge from "../../../components/OfflineReportCacheBridge";
 import SendReportEmailButtons from "../../../components/SendReportEmailButtons";
 import SendW9Button from "../../../components/SendW9Button";
@@ -3526,6 +3527,8 @@ Service-life information is a general industry estimate only. Actual service lif
           </section>
 
           <div id="report-findings" data-command-target="report-findings" className="w-full max-w-none overflow-visible">
+            <ReportLiveSync inspectionId={inspection.id} />
+
             <FieldReviewQueue
               inspectionId={String(inspection.id)}
               reviewFindings={fieldReviewFindings}
