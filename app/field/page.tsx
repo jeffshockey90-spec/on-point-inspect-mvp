@@ -11,6 +11,7 @@ import {
   createThumbnailForUpload,
 } from "../../lib/imageVariants";
 import CommentLibrary from "../../components/CommentLibrary";
+import FindingToneControl from "../../components/FindingToneControl";
 import OfflineSyncStatus from "../../components/OfflineSyncStatus";
 import EquipmentCard from "../../components/EquipmentCard";
 import AISecondInspector, {
@@ -5047,6 +5048,23 @@ function FieldPageContent() {
                         rows={2}
                         className="mt-3 w-full rounded-lg border border-slate-600 bg-black p-3 text-white"
                         placeholder="Recommendation"
+                      />
+
+                      <FindingToneControl
+                        className="mt-3"
+                        fields={{
+                          title: group.title,
+                          observation: group.observation,
+                          implication: group.implication || "",
+                          recommendation: group.recommendation || "",
+                        }}
+                        onApply={(f) =>
+                          updateMediaGroup(group.id, {
+                            observation: f.observation,
+                            implication: f.implication,
+                            recommendation: f.recommendation,
+                          })
+                        }
                       />
 
                       {/* Per-finding AI note — steer each defect independently */}
