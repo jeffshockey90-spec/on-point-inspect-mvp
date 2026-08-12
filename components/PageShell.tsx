@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { isPortalRoute } from "../lib/navVisibility";
+import GlobalSearchButton from "./GlobalSearchButton";
 import {
   markTimePreferencesReady,
   TIME_PREFERENCES_EVENT,
@@ -32,6 +33,7 @@ export default function PageShell({ children }: { children: React.ReactNode }) {
       }`}
     >
       {children}
+      {showsNavShell && <GlobalSearchButton />}
     </div>
   );
 }
