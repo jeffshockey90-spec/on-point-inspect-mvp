@@ -10,6 +10,7 @@ import PhotoMarkupEditor from "./PhotoMarkupEditor";
 type Stage =
   | "idle"
   | "note_entry"
+  | "collecting"
   | "drafting"
   | "confirm"
   | "ref_preview"
@@ -143,7 +144,6 @@ export default function AILiveInspectionCamera({
   // Photos bundled into the CURRENT finding (multi-angle capture). Empty for
   // single-photo/non-finding captures, which keep the original one-file flow.
   const [shots, setShots] = useState<{ file: File; frame: string }[]>([]);
-  const addingMoreRef = useRef(false);
   const [referenceCaption, setReferenceCaption] = useState("");
   const [referenceSection, setReferenceSection] = useState(currentSection);
   const [showMarkup, setShowMarkup] = useState(false);
@@ -482,27 +482,30 @@ export default function AILiveInspectionCamera({
       return;
     }
 
-    // Finding photos can be bundled: capture several angles of the same defect
-    // into one finding. "Add another angle" sets addingMoreRef so the next shot
-    // appends instead of starting a new finding, then the AI analyzes them all.
+    // Finding photos go into a tray FIRST. The inspector snaps as many angles
+    // of the same defect as they want, then taps Analyze once — the AI reads
+    // them all together into a single finding. No draft happens until then.
     if (category === "finding" && !isVideo) {
-      const nextShots = addingMoreRef.current
-        ? [...shots, { file, frame: frameDataUrlForAi }]
-        : [{ file, frame: frameDataUrlForAi }];
-      addingMoreRef.current = false;
-      setShots(nextShots);
-      setStage("drafting");
-      await runDraft(
-        frameDataUrlForAi,
-        file,
-        undefined,
-        nextShots.map((s) => s.frame),
-      );
+      setShots((current) => [...current, { file, frame: frameDataUrlForAi }]);
+      setStage("collecting");
       return;
     }
 
     setStage("drafting");
     await runDraft(frameDataUrlForAi, file);
+  }
+
+  // Run the AI on ALL the tray photos → one finding.
+  async function analyzeShots() {
+    if (!shots.length) return;
+    const last = shots[shots.length - 1];
+    setStage("drafting");
+    await runDraft(
+      last.frame,
+      last.file,
+      undefined,
+      shots.map((s) => s.frame),
+    );
   }
 
   async function saveFileToDeviceGallerySafe(file: File) {
@@ -853,7 +856,6 @@ export default function AILiveInspectionCamera({
   // Snap another angle of the SAME defect. Keeps the accumulated shots + note
   // and returns to the live view; the next shutter appends and re-analyzes all.
   function handleAddAngle() {
-    addingMoreRef.current = true;
     setDraft(null);
     setDraftError("");
     setSaveError("");
@@ -887,7 +889,6 @@ export default function AILiveInspectionCamera({
     setCapturedIsVideo(false);
     setCapturedFrameForAi("");
     setShots([]);
-    addingMoreRef.current = false;
     setDraft(null);
     setDraftError("");
     setReferenceCaption("");
@@ -902,7 +903,10 @@ export default function AILiveInspectionCamera({
 
   function handleClose() {
     const pendingDecision =
-      stage === "drafting" || stage === "confirm" || stage === "ref_preview";
+      stage === "drafting" ||
+      stage === "confirm" ||
+      stage === "ref_preview" ||
+      stage === "collecting";
 
     if (
       pendingDecision &&
@@ -1221,6 +1225,60 @@ export default function AILiveInspectionCamera({
               className="rounded-xl bg-cyan-400 px-4 py-3 text-sm font-black text-black disabled:opacity-60"
             >
               Try AI Again
+            </button>
+          </div>
+        </div>
+      )}
+
+      {stage === "collecting" && (
+        <div className="absolute inset-0 z-30 flex flex-col bg-black/85 backdrop-blur-sm">
+          <div className="flex items-center justify-between px-4 pt-[max(1rem,env(safe-area-inset-top))]">
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-300">
+              {shots.length} photo{shots.length === 1 ? "" : "s"} · same defect
+            </p>
+          </div>
+
+          <div className="flex-1 overflow-y-auto px-4 py-3">
+            <div className="grid grid-cols-3 gap-2">
+              {shots.map((s, i) => (
+                <img
+                  key={i}
+                  src={s.frame}
+                  alt={`Photo ${i + 1}`}
+                  className="h-24 w-full rounded-lg border border-white/15 object-cover"
+                />
+              ))}
+            </div>
+            <p className="mt-3 text-sm leading-6 text-slate-300">
+              Add as many angles of the <b className="text-white">same defect</b> as you want —
+              wide shot, close-up, label. The AI reads them all into one finding.
+            </p>
+          </div>
+
+          <div className="space-y-2 px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+            <button
+              type="button"
+              onClick={() => setStage("note_entry")}
+              className="w-full rounded-xl border border-cyan-400/60 bg-cyan-500/10 px-4 py-3 text-sm font-black text-cyan-200 [touch-action:manipulation]"
+            >
+              ＋ Take another photo
+            </button>
+            <button
+              type="button"
+              onClick={() => void analyzeShots()}
+              className="w-full rounded-xl bg-teal-400 px-4 py-3 text-sm font-black text-slate-950 [touch-action:manipulation]"
+            >
+              ✨ Analyze {shots.length} photo{shots.length === 1 ? "" : "s"} → finding
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                resetCaptureState();
+                setStage("note_entry");
+              }}
+              className="w-full rounded-xl border border-slate-700 px-4 py-2.5 text-xs font-black text-slate-400 [touch-action:manipulation]"
+            >
+              Discard &amp; start over
             </button>
           </div>
         </div>
