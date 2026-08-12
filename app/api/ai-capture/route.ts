@@ -131,7 +131,7 @@ export async function POST(req: Request) {
       ? body.images
           .map(cleanText)
           .filter((value: string) => value.startsWith("data:image/"))
-          .slice(0, 3)
+          .slice(0, 4)
       : [];
 
     if (!note && imageDataUrls.length === 0) {

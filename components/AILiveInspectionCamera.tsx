@@ -26,7 +26,7 @@ type Props = {
   onAccept: (
     category: CaptureCategory,
     draft: CaptureDraft,
-    file: File,
+    files: File | File[],
   ) => Promise<void>;
   existingFindings?: ExistingFinding[];
   onAttachToExisting?: (
@@ -140,6 +140,10 @@ export default function AILiveInspectionCamera({
   const [capturedFrameForAi, setCapturedFrameForAi] = useState("");
   const [draft, setDraft] = useState<CaptureDraft | null>(null);
   const [draftError, setDraftError] = useState("");
+  // Photos bundled into the CURRENT finding (multi-angle capture). Empty for
+  // single-photo/non-finding captures, which keep the original one-file flow.
+  const [shots, setShots] = useState<{ file: File; frame: string }[]>([]);
+  const addingMoreRef = useRef(false);
   const [referenceCaption, setReferenceCaption] = useState("");
   const [referenceSection, setReferenceSection] = useState(currentSection);
   const [showMarkup, setShowMarkup] = useState(false);
@@ -478,6 +482,25 @@ export default function AILiveInspectionCamera({
       return;
     }
 
+    // Finding photos can be bundled: capture several angles of the same defect
+    // into one finding. "Add another angle" sets addingMoreRef so the next shot
+    // appends instead of starting a new finding, then the AI analyzes them all.
+    if (category === "finding" && !isVideo) {
+      const nextShots = addingMoreRef.current
+        ? [...shots, { file, frame: frameDataUrlForAi }]
+        : [{ file, frame: frameDataUrlForAi }];
+      addingMoreRef.current = false;
+      setShots(nextShots);
+      setStage("drafting");
+      await runDraft(
+        frameDataUrlForAi,
+        file,
+        undefined,
+        nextShots.map((s) => s.frame),
+      );
+      return;
+    }
+
     setStage("drafting");
     await runDraft(frameDataUrlForAi, file);
   }
@@ -593,7 +616,12 @@ export default function AILiveInspectionCamera({
     void handlePhotoShutter();
   }
 
-  async function runDraft(frameDataUrl: string, file: File, noteOverride?: string) {
+  async function runDraft(
+    frameDataUrl: string,
+    file: File,
+    noteOverride?: string,
+    allFrames?: string[],
+  ) {
     setDraftError("");
     const note = typeof noteOverride === "string" ? noteOverride : noteText;
 
@@ -608,7 +636,7 @@ export default function AILiveInspectionCamera({
             inspectionId: selectedReport,
             section: currentSection,
             severity: currentSeverity,
-            images: [frameDataUrl],
+            images: allFrames && allFrames.length ? allFrames : [frameDataUrl],
           }),
         });
 
@@ -748,7 +776,11 @@ export default function AILiveInspectionCamera({
           caption: referenceCaption,
         });
       } else {
-        await onAccept(category, editedDraft, capturedFile);
+        await onAccept(
+          category,
+          editedDraft,
+          shots.length ? shots.map((s) => s.file) : capturedFile,
+        );
       }
 
       setToast(`${CATEGORIES.find((c) => c.key === category)?.label} saved.`);
@@ -810,7 +842,22 @@ export default function AILiveInspectionCamera({
     setNoteText(newNote);
     setSaveError("");
     setStage("drafting");
-    void runDraft(capturedFrameForAi, capturedFile, newNote);
+    void runDraft(
+      capturedFrameForAi,
+      capturedFile,
+      newNote,
+      shots.length ? shots.map((s) => s.frame) : undefined,
+    );
+  }
+
+  // Snap another angle of the SAME defect. Keeps the accumulated shots + note
+  // and returns to the live view; the next shutter appends and re-analyzes all.
+  function handleAddAngle() {
+    addingMoreRef.current = true;
+    setDraft(null);
+    setDraftError("");
+    setSaveError("");
+    setStage("note_entry");
   }
 
   // Attach the captured media to a defect that already exists in the report,
@@ -839,6 +886,8 @@ export default function AILiveInspectionCamera({
     setCapturedPreviewUrl("");
     setCapturedIsVideo(false);
     setCapturedFrameForAi("");
+    setShots([]);
+    addingMoreRef.current = false;
     setDraft(null);
     setDraftError("");
     setReferenceCaption("");
@@ -1191,6 +1240,10 @@ export default function AILiveInspectionCamera({
           onAttachToExisting={onAttachToExisting ? handleAttachToExisting : undefined}
           onRetake={handleRetake}
           onMarkup={openMarkup}
+          extraPreviewUrls={shots.length > 1 ? shots.map((s) => s.frame) : undefined}
+          onAddAngle={
+            draft.kind === "finding" && !capturedIsVideo ? handleAddAngle : undefined
+          }
         />
       )}
 

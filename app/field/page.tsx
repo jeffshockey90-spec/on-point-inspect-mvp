@@ -1720,8 +1720,14 @@ function FieldPageContent() {
   async function handleCameraAccept(
     category: CaptureCategory,
     draft: CaptureDraft,
-    file: File,
+    fileOrFiles: File | File[],
   ) {
+    // Live camera can bundle several photos into one finding; other categories
+    // stay single. Normalize to an array and keep `file` as the primary.
+    const files = Array.isArray(fileOrFiles) ? fileOrFiles : [fileOrFiles];
+    const file = files[0];
+    if (!file) return;
+
     if (category === "finding" && draft.kind === "finding") {
       const effectiveSection = SECTIONS.includes(draft.section)
         ? draft.section
@@ -1731,7 +1737,7 @@ function FieldPageContent() {
         : severity;
 
       setPhotoType("finding");
-      setPhotos([file]);
+      setPhotos(files);
       setTitle(draft.title || "");
       setSection(effectiveSection);
       setSeverity(effectiveSeverity);
@@ -1764,8 +1770,8 @@ function FieldPageContent() {
             offline_media_skipped_count: 0,
             offline_video_skipped_count: 0,
           },
-          // Raw File/Blob (photo OR video) stored as a Blob, no cap.
-          media: [file],
+          // Raw File/Blob(s) (photo OR video) stored as Blobs, no cap.
+          media: files,
         });
         setQueueTick((current) => current + 1);
         setMessage(
@@ -1781,7 +1787,7 @@ function FieldPageContent() {
 
       try {
         await saveFindingOnline({
-          photos: [file],
+          photos: files,
           title: draft.title || "",
           note: "",
           section: effectiveSection,

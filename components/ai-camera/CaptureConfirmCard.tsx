@@ -20,6 +20,10 @@ type Props = {
   onAttachToExisting?: (findingId: string) => void;
   onRetake: () => void;
   onMarkup?: () => void;
+  // Extra angles bundled into this one finding (multi-photo capture).
+  extraPreviewUrls?: string[];
+  // Present only for photo findings — snap another angle into the same defect.
+  onAddAngle?: () => void;
 };
 
 const inputClass =
@@ -98,6 +102,8 @@ export default function CaptureConfirmCard({
   onAttachToExisting,
   onRetake,
   onMarkup,
+  extraPreviewUrls,
+  onAddAngle,
 }: Props) {
   const [edited, setEdited] = useState<CaptureDraft>(draft);
   const [note, setNote] = useState(initialNote || "");
@@ -138,6 +144,24 @@ export default function CaptureConfirmCard({
           )}
         </div>
 
+        {extraPreviewUrls && extraPreviewUrls.length > 1 && (
+          <div className="mt-2">
+            <p className="text-[11px] font-black uppercase tracking-wide text-cyan-300">
+              {extraPreviewUrls.length} photos in this finding
+            </p>
+            <div className="mt-1 flex gap-2 overflow-x-auto">
+              {extraPreviewUrls.map((url, i) => (
+                <img
+                  key={i}
+                  src={url}
+                  alt={`Angle ${i + 1}`}
+                  className="h-14 w-14 flex-none rounded-lg border border-white/15 object-cover"
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
         {!isVideo && onMarkup && (
           <button
             type="button"
@@ -146,6 +170,17 @@ export default function CaptureConfirmCard({
             className="mt-3 w-full rounded-xl border border-cyan-400/60 bg-cyan-500/10 px-4 py-2.5 text-sm font-black text-cyan-200 disabled:opacity-50"
           >
             🖊 Markup Photo (optional)
+          </button>
+        )}
+
+        {onAddAngle && (
+          <button
+            type="button"
+            onClick={onAddAngle}
+            disabled={busy}
+            className="mt-2 w-full rounded-xl border border-teal-400/60 bg-teal-500/10 px-4 py-2.5 text-sm font-black text-teal-200 disabled:opacity-50"
+          >
+            ＋ Add another angle to this defect
           </button>
         )}
 
