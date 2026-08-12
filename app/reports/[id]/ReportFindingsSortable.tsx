@@ -2794,8 +2794,8 @@ function FindingCardBase({
                       alt={`Finding photo ${index + 1}`}
                       className={
                         visiblePhotos.length === 1
-                          ? "max-h-[650px] w-full object-contain"
-                          : "h-56 w-full object-contain"
+                          ? "h-[30rem] w-full object-cover"
+                          : "h-64 w-full object-cover"
                       }
                       buttonClassName="block w-full overflow-hidden bg-black text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
                       badgeText="Tap to enlarge"

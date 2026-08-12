@@ -143,7 +143,9 @@ export default function AILiveInspectionCamera({
   const [draftError, setDraftError] = useState("");
   // Photos bundled into the CURRENT finding (multi-angle capture). Empty for
   // single-photo/non-finding captures, which keep the original one-file flow.
-  const [shots, setShots] = useState<{ file: File; frame: string }[]>([]);
+  const [shots, setShots] = useState<
+    { file: File; frame: string; isVideo: boolean }[]
+  >([]);
   const [referenceCaption, setReferenceCaption] = useState("");
   const [referenceSection, setReferenceSection] = useState(currentSection);
   const [showMarkup, setShowMarkup] = useState(false);
@@ -482,11 +484,15 @@ export default function AILiveInspectionCamera({
       return;
     }
 
-    // Finding photos go into a tray FIRST. The inspector snaps as many angles
-    // of the same defect as they want, then taps Analyze once — the AI reads
-    // them all together into a single finding. No draft happens until then.
-    if (category === "finding" && !isVideo) {
-      setShots((current) => [...current, { file, frame: frameDataUrlForAi }]);
+    // Finding media goes into a tray FIRST — photos AND videos of the same
+    // defect. The inspector adds as many as they want, then taps Analyze once;
+    // the AI reads every still (photos + a frame from each video) into one
+    // finding, and all files attach. No draft happens until then.
+    if (category === "finding") {
+      setShots((current) => [
+        ...current,
+        { file, frame: frameDataUrlForAi, isVideo },
+      ]);
       setStage("collecting");
       return;
     }
@@ -495,17 +501,14 @@ export default function AILiveInspectionCamera({
     await runDraft(frameDataUrlForAi, file);
   }
 
-  // Run the AI on ALL the tray photos → one finding.
+  // Run the AI on ALL the tray media → one finding. Only real still frames are
+  // sent to the model (photos + each video's representative frame).
   async function analyzeShots() {
     if (!shots.length) return;
     const last = shots[shots.length - 1];
+    const frames = shots.map((s) => s.frame).filter(Boolean);
     setStage("drafting");
-    await runDraft(
-      last.frame,
-      last.file,
-      undefined,
-      shots.map((s) => s.frame),
-    );
+    await runDraft(last.frame, last.file, undefined, frames);
   }
 
   async function saveFileToDeviceGallerySafe(file: File) {
@@ -849,7 +852,7 @@ export default function AILiveInspectionCamera({
       capturedFrameForAi,
       capturedFile,
       newNote,
-      shots.length ? shots.map((s) => s.frame) : undefined,
+      shots.length ? shots.map((s) => s.frame).filter(Boolean) : undefined,
     );
   }
 
@@ -1234,19 +1237,31 @@ export default function AILiveInspectionCamera({
         <div className="absolute inset-0 z-30 flex flex-col bg-black/85 backdrop-blur-sm">
           <div className="flex items-center justify-between px-4 pt-[max(1rem,env(safe-area-inset-top))]">
             <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-300">
-              {shots.length} photo{shots.length === 1 ? "" : "s"} · same defect
+              {shots.length} shot{shots.length === 1 ? "" : "s"} · same defect
             </p>
           </div>
 
           <div className="flex-1 overflow-y-auto px-4 py-3">
             <div className="grid grid-cols-3 gap-2">
               {shots.map((s, i) => (
-                <img
-                  key={i}
-                  src={s.frame}
-                  alt={`Photo ${i + 1}`}
-                  className="h-24 w-full rounded-lg border border-white/15 object-cover"
-                />
+                <div key={i} className="relative">
+                  {s.frame ? (
+                    <img
+                      src={s.frame}
+                      alt={`Shot ${i + 1}`}
+                      className="h-24 w-full rounded-lg border border-white/15 object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-24 w-full items-center justify-center rounded-lg border border-white/15 bg-black/50 text-2xl">
+                      🎥
+                    </div>
+                  )}
+                  {s.isVideo && (
+                    <span className="absolute bottom-1 right-1 rounded bg-black/75 px-1.5 py-0.5 text-[10px] font-black text-white">
+                      ▶ VIDEO
+                    </span>
+                  )}
+                </div>
               ))}
             </div>
             <p className="mt-3 text-sm leading-6 text-slate-300">
@@ -1273,14 +1288,14 @@ export default function AILiveInspectionCamera({
               onClick={() => setStage("note_entry")}
               className="w-full rounded-xl border border-cyan-400/60 bg-cyan-500/10 px-4 py-3 text-sm font-black text-cyan-200 [touch-action:manipulation]"
             >
-              ＋ Take another photo
+              ＋ Take another photo or video
             </button>
             <button
               type="button"
               onClick={() => void analyzeShots()}
               className="w-full rounded-xl bg-teal-400 px-4 py-3 text-sm font-black text-slate-950 [touch-action:manipulation]"
             >
-              ✨ Analyze {shots.length} photo{shots.length === 1 ? "" : "s"} → finding
+              ✨ Analyze {shots.length} shot{shots.length === 1 ? "" : "s"} → finding
             </button>
             <button
               type="button"
@@ -1310,10 +1325,10 @@ export default function AILiveInspectionCamera({
           onAttachToExisting={onAttachToExisting ? handleAttachToExisting : undefined}
           onRetake={handleRetake}
           onMarkup={openMarkup}
-          extraPreviewUrls={shots.length > 1 ? shots.map((s) => s.frame) : undefined}
-          onAddAngle={
-            draft.kind === "finding" && !capturedIsVideo ? handleAddAngle : undefined
+          extraPreviewUrls={
+            shots.length > 1 ? shots.map((s) => s.frame).filter(Boolean) : undefined
           }
+          onAddAngle={draft.kind === "finding" ? handleAddAngle : undefined}
         />
       )}
 
