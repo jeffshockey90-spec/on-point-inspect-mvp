@@ -151,6 +151,50 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
   const [sectionMessage, setSectionMessage] = useState("");
   const [deletedSectionsOpen, setDeletedSectionsOpen] = useState(false);
 
+  // Combine duplicate defects (same defect found at several locations) into one.
+  const [combineOpen, setCombineOpen] = useState(false);
+  const [selectedCombine, setSelectedCombine] = useState<Set<string>>(new Set());
+  const [combining, setCombining] = useState(false);
+  const [combineError, setCombineError] = useState("");
+
+  function toggleCombineSelect(id: string) {
+    setSelectedCombine((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+    setCombineError("");
+  }
+
+  async function combineSelectedFindings() {
+    const ids = Array.from(selectedCombine);
+    if (ids.length < 2) {
+      setCombineError("Select at least two defects to combine.");
+      return;
+    }
+    setCombining(true);
+    setCombineError("");
+    try {
+      const res = await fetch("/api/findings/combine", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inspectionId, findingIds: ids }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setCombineError(data.error || "Could not combine these defects.");
+        return;
+      }
+      // Reload so the merged finding + moved photos render correctly.
+      window.location.reload();
+    } catch {
+      setCombineError("Could not combine — check your connection.");
+    } finally {
+      setCombining(false);
+    }
+  }
+
   async function callReportSectionsApi(action: "create" | "delete" | "restore", sectionName: string) {
     const res = await fetch("/api/report-sections", {
       method: "POST",
@@ -640,6 +684,18 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
           + Add Section
         </button>
 
+        <button
+          type="button"
+          onClick={() => {
+            setCombineOpen((value) => !value);
+            setSelectedCombine(new Set());
+            setCombineError("");
+          }}
+          className="w-full rounded-xl border border-purple-500/60 px-4 py-3 text-sm font-black text-purple-300 transition active:scale-[0.98] hover:bg-purple-500/10 sm:w-auto sm:py-2"
+        >
+          🔗 Combine Defects
+        </button>
+
         {deletedSections && deletedSections.length > 0 && (
           <button
             type="button"
@@ -687,6 +743,92 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
       {sectionMessage && (
         <div className="w-full rounded-xl border border-red-500/40 bg-red-950/30 p-3 text-sm font-bold text-red-300">
           {sectionMessage}
+        </div>
+      )}
+
+      {combineOpen && (
+        <div className="w-full rounded-2xl border border-purple-500/40 bg-[#0f172a] p-4">
+          <p className="text-sm font-black text-slate-100">Combine duplicate defects</p>
+          <p className="mt-1 text-xs leading-5 text-slate-400">
+            Pick the same defect found at different locations (e.g. missing GFCIs in the
+            exterior, kitchen, and bathroom). AI rewrites them into one finding that lists every
+            location, keeps the most serious severity, and moves all photos onto it.
+          </p>
+
+          <div className="mt-3 max-h-[50vh] space-y-3 overflow-y-auto">
+            {(orderedGroups || []).map((group: any) => {
+              const groupFindings = group.findings || [];
+              if (!groupFindings.length) return null;
+              return (
+                <div key={group.section}>
+                  <p className="mb-1 text-xs font-black uppercase tracking-wide text-slate-500">
+                    {group.section}
+                  </p>
+                  <div className="space-y-1.5">
+                    {groupFindings.map((f: any) => {
+                      const id = String(f.id);
+                      const checked = selectedCombine.has(id);
+                      return (
+                        <label
+                          key={id}
+                          className={`flex cursor-pointer items-start gap-3 rounded-xl border px-3 py-2.5 transition ${
+                            checked
+                              ? "border-purple-400 bg-purple-500/10"
+                              : "border-slate-700 bg-[#020617] hover:border-slate-500"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleCombineSelect(id)}
+                            className="mt-0.5 h-4 w-4 accent-purple-400"
+                          />
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-sm font-bold text-white">
+                              {f.title || f.observation || "Untitled finding"}
+                            </span>
+                            {(f.location || f.severity) && (
+                              <span className="block truncate text-xs text-slate-400">
+                                {[f.severity, f.location].filter(Boolean).join(" · ")}
+                              </span>
+                            )}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {combineError && (
+            <p className="mt-3 text-sm font-bold text-red-300">{combineError}</p>
+          )}
+
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={combineSelectedFindings}
+              disabled={combining || selectedCombine.size < 2}
+              className="rounded-xl bg-purple-500 px-5 py-3 text-sm font-black text-white transition active:scale-[0.98] hover:bg-purple-400 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {combining
+                ? "Combining…"
+                : `🔗 Combine ${selectedCombine.size || ""} into one`}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setCombineOpen(false);
+                setSelectedCombine(new Set());
+                setCombineError("");
+              }}
+              className="rounded-xl border border-slate-700 px-4 py-3 text-sm font-black text-slate-300 transition hover:border-slate-500"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       )}
 
