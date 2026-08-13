@@ -146,6 +146,7 @@ export default function AILiveInspectionCamera({
   const [shots, setShots] = useState<
     { file: File; frame: string; isVideo: boolean }[]
   >([]);
+  const [attachTargetId, setAttachTargetId] = useState("");
   const [referenceCaption, setReferenceCaption] = useState("");
   const [referenceSection, setReferenceSection] = useState(currentSection);
   const [showMarkup, setShowMarkup] = useState(false);
@@ -477,18 +478,15 @@ export default function AILiveInspectionCamera({
     setCapturedPreviewUrl(isVideo ? URL.createObjectURL(file) : frameDataUrlForAi);
     setCapturedFrameForAi(frameDataUrlForAi);
 
-    if (category === "reference") {
-      setReferenceCaption("");
-      setReferenceSection(currentSection);
-      setStage("ref_preview");
-      return;
-    }
-
-    // Finding media goes into a tray FIRST — photos AND videos of the same
-    // defect. The inspector adds as many as they want, then taps Analyze once;
-    // the AI reads every still (photos + a frame from each video) into one
-    // finding, and all files attach. No draft happens until then.
-    if (category === "finding") {
+    // Findings, limitations, and reference photos all collect into a tray FIRST
+    // — capture as many as you want (photos and, for findings, videos), then
+    // finish once. Equipment stays a single capture.
+    if (
+      category === "finding" ||
+      category === "limitation" ||
+      category === "reference"
+    ) {
+      if (category === "reference") setReferenceSection(currentSection);
       setShots((current) => [
         ...current,
         { file, frame: frameDataUrlForAi, isVideo },
@@ -501,14 +499,57 @@ export default function AILiveInspectionCamera({
     await runDraft(frameDataUrlForAi, file);
   }
 
-  // Run the AI on ALL the tray media → one finding. Only real still frames are
-  // sent to the model (photos + each video's representative frame).
+  // Run the AI on ALL the tray media → one finding/limitation. Only real still
+  // frames are sent to the model (photos + each video's representative frame).
   async function analyzeShots() {
     if (!shots.length) return;
     const last = shots[shots.length - 1];
     const frames = shots.map((s) => s.frame).filter(Boolean);
     setStage("drafting");
     await runDraft(last.frame, last.file, undefined, frames);
+  }
+
+  // Attach the tray photos to an EXISTING defect without running AI at all.
+  async function attachTrayToExisting(findingId: string) {
+    if (!findingId || !shots.length || !onAttachToExisting) return;
+    setSaving(true);
+    setSaveError("");
+    try {
+      for (const s of shots) {
+        await onAttachToExisting(findingId, s.file, s.isVideo);
+      }
+      setToast("Attached to defect.");
+      resetCaptureState();
+      setStage("note_entry");
+    } catch (error: any) {
+      setSaveError(error?.message || "Could not attach. Try again.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // Save all tray photos as section reference photos (no AI).
+  async function saveReferenceShots() {
+    if (!shots.length) return;
+    setSaving(true);
+    setSaveError("");
+    try {
+      for (const s of shots) {
+        await uploadSectionReferencePhoto({
+          inspectionId: selectedReport,
+          section: referenceSection,
+          file: s.file,
+          caption: "",
+        });
+      }
+      setToast("Reference photos saved.");
+      resetCaptureState();
+      setStage("note_entry");
+    } catch (error: any) {
+      setSaveError(error?.message || "Could not save reference photos.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function saveFileToDeviceGallerySafe(file: File) {
@@ -892,6 +933,7 @@ export default function AILiveInspectionCamera({
     setCapturedIsVideo(false);
     setCapturedFrameForAi("");
     setShots([]);
+    setAttachTargetId("");
     setDraft(null);
     setDraftError("");
     setReferenceCaption("");
@@ -1237,7 +1279,12 @@ export default function AILiveInspectionCamera({
         <div className="absolute inset-0 z-30 flex flex-col bg-black/85 backdrop-blur-sm">
           <div className="flex items-center justify-between px-4 pt-[max(1rem,env(safe-area-inset-top))]">
             <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-300">
-              {shots.length} shot{shots.length === 1 ? "" : "s"} · same defect
+              {shots.length} shot{shots.length === 1 ? "" : "s"} ·{" "}
+              {category === "finding"
+                ? "same defect"
+                : category === "limitation"
+                  ? "limitation"
+                  : "reference"}
             </p>
           </div>
 
@@ -1264,22 +1311,52 @@ export default function AILiveInspectionCamera({
                 </div>
               ))}
             </div>
-            <p className="mt-3 text-sm leading-6 text-slate-300">
-              Add as many angles of the <b className="text-white">same defect</b> as you want —
-              wide shot, close-up, label. The AI reads them all into one finding.
-            </p>
-
-            <div className="mt-3 rounded-xl border border-white/15 bg-black/40 p-3">
-              <label className="text-[11px] font-black uppercase tracking-wide text-slate-400">
-                Note for AI (optional)
-              </label>
-              <textarea
-                value={noteText}
-                onChange={(event) => setNoteText(event.target.value)}
-                placeholder="e.g. 'cracked heat exchanger — call it a safety concern', or leave blank and AI describes what it sees"
-                className="mt-1 min-h-16 w-full resize-none rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400"
-              />
-            </div>
+            {category === "reference" ? (
+              <>
+                <p className="mt-3 text-sm leading-6 text-slate-300">
+                  Add as many reference photos of this area as you want, then save them all to
+                  the section.
+                </p>
+                <div className="mt-3 rounded-xl border border-white/15 bg-black/40 p-3">
+                  <label className="text-[11px] font-black uppercase tracking-wide text-slate-400">
+                    Section
+                  </label>
+                  <select
+                    value={referenceSection}
+                    onChange={(event) => setReferenceSection(event.target.value)}
+                    className="mt-1 w-full rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400"
+                  >
+                    {sections.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="mt-3 text-sm leading-6 text-slate-300">
+                  Add as many angles of the{" "}
+                  <b className="text-white">
+                    same {category === "limitation" ? "limitation" : "defect"}
+                  </b>{" "}
+                  as you want. The AI reads them all into one{" "}
+                  {category === "limitation" ? "limitation" : "finding"}.
+                </p>
+                <div className="mt-3 rounded-xl border border-white/15 bg-black/40 p-3">
+                  <label className="text-[11px] font-black uppercase tracking-wide text-slate-400">
+                    Note for AI (optional)
+                  </label>
+                  <textarea
+                    value={noteText}
+                    onChange={(event) => setNoteText(event.target.value)}
+                    placeholder="e.g. 'cracked heat exchanger — call it a safety concern', or leave blank and AI describes what it sees"
+                    className="mt-1 min-h-16 w-full resize-none rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400"
+                  />
+                </div>
+              </>
+            )}
           </div>
 
           <div className="space-y-2 px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
@@ -1288,15 +1365,64 @@ export default function AILiveInspectionCamera({
               onClick={() => setStage("note_entry")}
               className="w-full rounded-xl border border-cyan-400/60 bg-cyan-500/10 px-4 py-3 text-sm font-black text-cyan-200 [touch-action:manipulation]"
             >
-              ＋ Take another photo or video
+              ＋ Take another photo{category === "finding" ? " or video" : ""}
             </button>
-            <button
-              type="button"
-              onClick={() => void analyzeShots()}
-              className="w-full rounded-xl bg-teal-400 px-4 py-3 text-sm font-black text-slate-950 [touch-action:manipulation]"
-            >
-              ✨ Analyze {shots.length} shot{shots.length === 1 ? "" : "s"} → finding
-            </button>
+
+            {category === "reference" ? (
+              <button
+                type="button"
+                onClick={() => void saveReferenceShots()}
+                disabled={saving}
+                className="w-full rounded-xl bg-teal-400 px-4 py-3 text-sm font-black text-slate-950 disabled:opacity-60 [touch-action:manipulation]"
+              >
+                {saving
+                  ? "Saving…"
+                  : `✅ Save ${shots.length} reference photo${shots.length === 1 ? "" : "s"}`}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => void analyzeShots()}
+                className="w-full rounded-xl bg-teal-400 px-4 py-3 text-sm font-black text-slate-950 [touch-action:manipulation]"
+              >
+                ✨ Analyze {shots.length} shot{shots.length === 1 ? "" : "s"} →{" "}
+                {category === "limitation" ? "limitation" : "finding"}
+              </button>
+            )}
+
+            {category === "finding" &&
+              onAttachToExisting &&
+              (existingFindings?.length || 0) > 0 && (
+                <div className="rounded-xl border border-white/15 bg-black/40 p-3">
+                  <label className="text-[11px] font-black uppercase tracking-wide text-slate-400">
+                    Or attach to a previous defect (no AI)
+                  </label>
+                  <div className="mt-2 flex gap-2">
+                    <select
+                      value={attachTargetId}
+                      onChange={(event) => setAttachTargetId(event.target.value)}
+                      className="min-w-0 flex-1 rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400"
+                    >
+                      <option value="">Select a defect…</option>
+                      {existingFindings!.map((f) => (
+                        <option key={f.id} value={f.id}>
+                          {(f.title || "Untitled").slice(0, 50)}
+                          {f.section ? ` · ${f.section}` : ""}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      disabled={saving || !attachTargetId}
+                      onClick={() => void attachTrayToExisting(attachTargetId)}
+                      className="rounded-lg border border-cyan-400/60 bg-cyan-500/10 px-4 py-2 text-sm font-black text-cyan-200 disabled:opacity-50 [touch-action:manipulation]"
+                    >
+                      Attach
+                    </button>
+                  </div>
+                </div>
+              )}
+
             <button
               type="button"
               onClick={() => {

@@ -1820,14 +1820,14 @@ function FieldPageContent() {
         : section;
 
       setPhotoType("limitation");
-      setPhotos([file]);
+      setPhotos(files);
       setTitle(draft.title || "");
       setSection(effectiveSection);
       setNote(draft.limitation || "");
       setRecommendation(draft.recommendation || "");
 
       await saveLimitationWithPhotoOnline({
-        photos: [file],
+        photos: files,
         title: draft.title || "",
         note: draft.limitation || "",
         section: effectiveSection,
