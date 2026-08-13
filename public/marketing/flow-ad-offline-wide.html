@@ -1,0 +1,231 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<style>
+  @font-face {
+    font-family: "InterLocal";
+    src: url("../../.next/static/media/e4af272ccee01ff0-s.p.woff2") format("woff2");
+    font-weight: 100 900;
+    font-style: normal;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 1200px;
+    height: 630px;
+    font-family: "InterLocal", "Segoe UI", -apple-system, sans-serif;
+    background: #04060c;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .canvas {
+    position: relative;
+    width: 1200px;
+    height: 630px;
+    overflow: hidden;
+    background:
+      radial-gradient(760px 520px at 92% -14%, rgba(34, 211, 238, 0.22), transparent 62%),
+      radial-gradient(620px 460px at -10% 116%, rgba(20, 184, 166, 0.14), transparent 60%),
+      linear-gradient(168deg, #060a14 0%, #04060c 52%, #020409 100%);
+  }
+
+  .grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(148, 163, 184, 0.055) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148, 163, 184, 0.055) 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: radial-gradient(circle at 40% 46%, #000 26%, transparent 76%);
+    -webkit-mask-image: radial-gradient(circle at 40% 46%, #000 26%, transparent 76%);
+  }
+
+  .ghost {
+    position: absolute;
+    right: -96px;
+    bottom: -132px;
+    width: 560px;
+    opacity: 0.06;
+  }
+
+  .inner {
+    position: relative;
+    height: 100%;
+    padding: 54px 62px 50px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+
+  header img { width: 122px; display: block; }
+
+  .eyebrow {
+    margin-top: 10px;
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: 0.30em;
+    text-transform: uppercase;
+    color: #7dd3c8;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid rgba(45, 212, 191, 0.45);
+    background: rgba(20, 184, 166, 0.10);
+    color: #5eead4;
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    padding: 10px 18px;
+    border-radius: 999px;
+  }
+
+  .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #2dd4bf;
+    box-shadow: 0 0 12px 3px rgba(45, 212, 191, 0.75);
+  }
+
+  .hero { margin-top: auto; }
+
+  h1 {
+    font-size: 92px;
+    line-height: 0.90;
+    font-weight: 900;
+    letter-spacing: -0.045em;
+    color: #ffffff;
+  }
+
+  h1 .teal {
+    background: linear-gradient(96deg, #5eead4 0%, #22d3ee 52%, #0ea5b7 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .lede {
+    margin-top: 22px;
+    max-width: 700px;
+    font-size: 22px;
+    line-height: 1.45;
+    font-weight: 500;
+    color: #c3cede;
+  }
+
+  .lede b { color: #ffffff; font-weight: 800; }
+
+  ul {
+    margin-top: 26px;
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    font-size: 17px;
+    font-weight: 700;
+    color: #dce5f1;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    background: rgba(15, 23, 42, 0.55);
+    border-radius: 999px;
+    padding: 11px 20px 11px 14px;
+  }
+
+  li svg { width: 16px; height: 16px; flex: none; }
+
+  footer {
+    margin-top: auto;
+    padding-top: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+  }
+
+  .cta {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 10px;
+    background: linear-gradient(100deg, #2dd4bf 0%, #22d3ee 100%);
+    color: #03151a;
+    font-size: 23px;
+    font-weight: 900;
+    letter-spacing: -0.01em;
+    padding: 18px 30px;
+    border-radius: 14px;
+    box-shadow: 0 16px 44px -14px rgba(34, 211, 238, 0.60);
+  }
+
+  .cta small { font-size: 16px; font-weight: 800; opacity: 0.72; }
+
+  .kicker {
+    text-align: right;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.5;
+    color: #8497ad;
+  }
+
+  .kicker b { display: block; color: #dbe4f0; font-weight: 800; }
+
+  .hairline {
+    position: absolute;
+    left: 62px; right: 62px; bottom: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(45, 212, 191, 0.55), transparent);
+  }
+</style>
+</head>
+<body>
+  <div class="canvas">
+    <div class="grid"></div>
+    <img class="ghost" src="../flow-logo-mark.png" alt="" />
+
+    <div class="inner">
+      <header>
+        <div>
+          <img src="../flow-logo-mark.png" alt="FLOW" />
+          <p class="eyebrow">Home Inspection Software</p>
+        </div>
+        <div class="badge"><span class="dot"></span>New Update</div>
+      </header>
+
+      <div class="hero">
+        <h1>No signal. <span class="teal">No problem.</span></h1>
+
+        <p class="lede">
+          FLOW now works <b>fully offline</b>. Keep capturing notes, photos, and video
+          with zero bars &mdash; it all syncs the moment you&rsquo;re back online.
+        </p>
+
+        <ul>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="#2dd4bf" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Offline capture + auto-sync</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="#2dd4bf" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>AI Writing Studio</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="#2dd4bf" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Real-time report sync</li>
+        </ul>
+      </div>
+
+      <footer>
+        <div class="cta"><small>Start free at</small> app.flowinspect.app</div>
+        <p class="kicker"><b>Capture. Organize. Complete.</b>Built for inspectors who finish in the driveway.</p>
+      </footer>
+    </div>
+
+    <div class="hairline"></div>
+  </div>
+</body>
+</html>
