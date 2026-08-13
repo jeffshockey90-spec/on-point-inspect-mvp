@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { supabase } from "../lib/supabaseClient";
 
 type ChecklistGroup = {
@@ -1707,14 +1708,26 @@ function ChecklistOptionButton({
 }
 
 function Modal({ title, subtitle, children, onClose }: any) {
-  return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4">
-      <div className="w-full max-w-lg rounded-2xl border border-slate-700 bg-[#0f172a] p-5 text-white shadow-2xl">
+  if (typeof document === "undefined") return null;
+
+  // Portal to <body> so `position: fixed` centers to the viewport and can't be
+  // thrown off (or hidden behind content) by a transformed ancestor in the
+  // report editor. This is what makes it "pop up right on the screen".
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[2147483000] flex items-center justify-center bg-black/70 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-lg rounded-2xl border border-slate-700 bg-[#0f172a] p-5 text-white shadow-2xl"
+        onClick={(event) => event.stopPropagation()}
+      >
         <h3 className="text-2xl font-black text-teal-300">{title}</h3>
         {subtitle && <p className="mt-2 text-sm text-slate-400">{subtitle}</p>}
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
