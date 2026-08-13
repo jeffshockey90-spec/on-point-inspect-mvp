@@ -2792,7 +2792,11 @@ function FindingCardBase({
                       src={previewUrl || url}
                       fullSrc={url}
                       alt={`Finding photo ${index + 1}`}
-                      className="block max-h-[75vh] w-full object-cover"
+                      className={
+                        visiblePhotos.length === 1
+                          ? "block h-72 w-full object-cover"
+                          : "block h-52 w-full object-cover"
+                      }
                       buttonClassName="block w-full overflow-hidden text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
                       badgeText="Tap to enlarge"
                     />
