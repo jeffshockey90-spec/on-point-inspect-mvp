@@ -576,23 +576,26 @@ export async function POST(req: Request) {
 
       if (error) throw error;
 
-      // Flag this row for the Field Review queue. Every finding created here is
-      // offline-sourced (it came off the IndexedDB sync queue), so mark it as
-      // offline_captured and needs_review so the inspector verifies + approves
-      // it in the report editor. Best-effort: these columns only exist after the
-      // findings-review.sql migration is run, so a missing-column error must
-      // never break the sync of an already-saved finding.
-      const { error: reviewFlagError } = await supabase
-        .from("findings")
-        .update({ needs_review: true, offline_captured: true })
-        .eq("id", finding.id)
-        .eq("inspection_id", inspectionId);
+      // Flag this row for the Field Review queue. Raw offline captures (a quick
+      // note + photo, AI polished after sync) need verifying, so mark them
+      // offline_captured + needs_review. But a live-camera capture was already
+      // AI-drafted AND confirmed by the inspector on the spot (confirmed_live) --
+      // that's a normal finished finding, so we do NOT force it into review.
+      // Best-effort: these columns only exist after findings-review.sql is run, so
+      // a missing-column error must never break the sync of an already-saved row.
+      if (payload?.confirmed_live !== true) {
+        const { error: reviewFlagError } = await supabase
+          .from("findings")
+          .update({ needs_review: true, offline_captured: true })
+          .eq("id", finding.id)
+          .eq("inspection_id", inspectionId);
 
-      if (reviewFlagError) {
-        console.warn(
-          "Could not set Field Review flags (run supabase/findings-review.sql):",
-          reviewFlagError.message,
-        );
+        if (reviewFlagError) {
+          console.warn(
+            "Could not set Field Review flags (run supabase/findings-review.sql):",
+            reviewFlagError.message,
+          );
+        }
       }
 
       let firstImageUrl: string | null = null;

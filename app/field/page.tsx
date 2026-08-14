@@ -32,6 +32,7 @@ import {
   addOfflineQueueItem,
   getOfflineQueueSummary,
   isOnline,
+  processOfflineQueue,
   startOfflineQueueAutoSync,
 } from "../../lib/offline/queue";
 import { migrateOfflineFromLocalStorage } from "../../lib/offline/migrate";
@@ -1746,64 +1747,83 @@ function FieldPageContent() {
       setImplication(draft.implication || "");
       setRecommendation(draft.recommendation || "");
 
-      // Offline fallback for the AI camera: if there's no connection, or the
-      // online save fails with a network error, queue the capture (finding +
-      // its photo/video as a raw Blob) on the IndexedDB offline queue instead of
-      // losing it. The AI polish runs after sync via /api/offline-ai-sync.
-      const queueAiCaptureOffline = async () => {
-        await addOfflineQueueItem({
-          type: "finding",
-          payload: {
-            inspection_id: selectedReport,
-            title: draft.title || "",
-            section: effectiveSection,
-            severity: effectiveSeverity,
-            inspector_note: "",
-            note: "",
-            caption: draft.title || "",
-            observation: draft.observation || "",
-            implication: draft.implication || "",
-            recommendation: draft.recommendation || "",
-            // Let the sync endpoint polish this AI capture once it uploads.
-            run_ai_after_sync: true,
-            ai_after_sync: true,
-            offline_media_skipped_count: 0,
-            offline_video_skipped_count: 0,
-          },
-          // Raw File/Blob(s) (photo OR video) stored as Blobs, no cap.
-          media: files,
-        });
-        setQueueTick((current) => current + 1);
-        setMessage(
-          "No signal — that AI capture (with its photo/video) was saved locally and will sync automatically when service returns.",
-        );
-      };
+      // Instant + never-lost save. Write the finding (with its photo/video as raw
+      // Blobs) to the DURABLE IndexedDB queue FIRST -- this completes in
+      // milliseconds and survives an app close/crash/loss of signal -- then return
+      // to the camera immediately and upload in the background. The item is only
+      // removed from the queue after the server confirms the save (idempotent via
+      // offline_sync_receipts), so a finding can never be lost even if the upload
+      // fails, the app is killed, or there's no connection.
+      //
+      // AI already ran live and the inspector confirmed this draft, so we persist
+      // it EXACTLY: run_ai_after_sync:false (no re-polish, no token burn) and
+      // confirmed_live:true (the sync endpoint saves it as a normal finished
+      // finding, not a raw offline capture that needs review).
+      const queued = await addOfflineQueueItem({
+        type: "finding",
+        payload: {
+          inspection_id: selectedReport,
+          title: draft.title || "",
+          section: effectiveSection,
+          severity: effectiveSeverity,
+          inspector_note: "",
+          note: "",
+          caption: draft.title || "",
+          observation: draft.observation || "",
+          implication: draft.implication || "",
+          recommendation: draft.recommendation || "",
+          run_ai_after_sync: false,
+          ai_after_sync: false,
+          confirmed_live: true,
+          offline_created_at: new Date().toISOString(),
+          offline_media_skipped_count: 0,
+          offline_video_skipped_count: 0,
+        },
+        // Raw File/Blob(s) (photo OR video) stored as Blobs, no cap.
+        media: files,
+      });
 
-      if (!isOnline()) {
-        await queueAiCaptureOffline();
+      if (queued) {
+        setQueueTick((current) => current + 1);
+
+        // Kick an immediate background upload when online (NOT awaited -- the
+        // camera is already free for the next finding). Offline, this is a no-op
+        // and the auto-sync loop drains the queue when service returns.
+        if (isOnline()) {
+          void processOfflineQueue()
+            .then(() => setQueueTick((current) => current + 1))
+            .catch(() => {});
+          setMessage("Finding saved — uploading in the background.");
+        } else {
+          setMessage(
+            "No signal — finding saved on this device and will upload automatically when service returns.",
+          );
+        }
+
         resetForm();
         return;
       }
 
-      try {
-        await saveFindingOnline({
-          photos: files,
-          title: draft.title || "",
-          note: "",
-          section: effectiveSection,
-          severity: effectiveSeverity,
-          observation: draft.observation || "",
-          implication: draft.implication || "",
-          recommendation: draft.recommendation || "",
-        });
-      } catch (error: any) {
-        if (isLikelyNetworkError(error) || !isOnline()) {
-          await queueAiCaptureOffline();
-          resetForm();
-          return;
-        }
-        throw error;
+      // Durable local storage isn't available on this device (e.g. IndexedDB is
+      // blocked). Never drop the finding: save it directly online instead, and if
+      // that isn't possible either, throw so the camera keeps the capture on
+      // screen for the inspector to retry rather than silently losing it.
+      if (!isOnline()) {
+        throw new Error(
+          "This device can't save findings offline (local storage unavailable). Reconnect to save this finding.",
+        );
       }
+
+      await saveFindingOnline({
+        photos: files,
+        title: draft.title || "",
+        note: "",
+        section: effectiveSection,
+        severity: effectiveSeverity,
+        observation: draft.observation || "",
+        implication: draft.implication || "",
+        recommendation: draft.recommendation || "",
+      });
       resetForm();
       return;
     }
