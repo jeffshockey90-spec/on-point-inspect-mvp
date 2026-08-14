@@ -591,6 +591,69 @@ function isPublishGuardNotification(notification: WorkspaceNotification) {
   return text.includes("publish") || text.includes("publish guard") || text.includes("blocked");
 }
 
+function toolIcon(title: string) {
+  const t = title.toLowerCase();
+  if (t.includes("publish") || t.includes("guard")) return "🛡️";
+  if (t.includes("sample")) return "📄";
+  if (t.includes("engagement") || t.includes("view")) return "👁️";
+  if (t.includes("review")) return "🔍";
+  if (t.includes("assistant") || t.includes("live")) return "🤖";
+  if (t.includes("connected") || t.includes("related")) return "🔗";
+  if (t.includes("disclaimer")) return "📝";
+  if (t.includes("house") || t.includes("intelligence")) return "🏠";
+  if (t.includes("timeline") || t.includes("activity")) return "🕑";
+  if (t.includes("repair")) return "🧾";
+  if (t.includes("payment") || t.includes("invoice")) return "💳";
+  if (t.includes("agreement")) return "✍️";
+  return "🛠️";
+}
+
+function ToolRow({
+  item,
+  accent,
+  onOpen,
+}: {
+  item: EnrichedToolItem;
+  accent: string;
+  onOpen: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="flex w-full items-center gap-3 rounded-2xl border border-slate-800 bg-[#0f172a] p-3 text-left transition active:scale-[0.99] hover:border-slate-700"
+    >
+      <span
+        className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-lg"
+        style={{ background: `${accent}22`, border: `1px solid ${accent}55` }}
+      >
+        {toolIcon(item.title)}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[15px] font-black text-white">{item.title}</span>
+        {item.helper ? (
+          <span className="block text-xs text-slate-400">{item.helper}</span>
+        ) : null}
+      </span>
+      <span className="flex shrink-0 items-center gap-2">
+        {item.badge ? (
+          <span
+            className="rounded-full px-2 py-0.5 text-[10px] font-black"
+            style={{
+              background: `${accent}1f`,
+              border: `1px solid ${accent}55`,
+              color: accent,
+            }}
+          >
+            {item.badge}
+          </span>
+        ) : null}
+        <span className="text-lg text-slate-600">›</span>
+      </span>
+    </button>
+  );
+}
+
 export default function InspectorToolsDrawer({
   badge = "Ready",
   items = [],
@@ -681,6 +744,65 @@ export default function InspectorToolsDrawer({
       })),
     [items]
   );
+
+  // Redesigned nav: pinned favorites + tools grouped into clear sections.
+  const pinnedTools = useMemo(() => {
+    const wanted = [
+      "Final Publish Guard",
+      "Sample Report",
+      "AI Report Review",
+      "Live AI Inspector Assistant",
+    ];
+    return wanted
+      .map((t) => enrichedItems.find((i) => i.title === t))
+      .filter(Boolean) as EnrichedToolItem[];
+  }, [enrichedItems]);
+
+  const toolGroups = useMemo(() => {
+    const groups: { label: string; items: EnrichedToolItem[] }[] = [
+      { label: "Publish & Deliver", items: [] },
+      { label: "AI Tools", items: [] },
+      { label: "Business", items: [] },
+    ];
+    enrichedItems.forEach((item) => {
+      const t = item.title.toLowerCase();
+      if (
+        t.includes("publish") ||
+        t.includes("sample") ||
+        t.includes("engagement") ||
+        t.includes("deliver")
+      ) {
+        groups[0].items.push(item);
+      } else if (
+        t.includes("repair") ||
+        t.includes("payment") ||
+        t.includes("agreement") ||
+        t.includes("invoice") ||
+        t.includes("history")
+      ) {
+        groups[2].items.push(item);
+      } else {
+        groups[1].items.push(item);
+      }
+    });
+    return groups.filter((g) => g.items.length > 0);
+  }, [enrichedItems]);
+
+  const toneHex = (tone?: string) =>
+    (({
+      red: "#fb7185",
+      rose: "#fb7185",
+      purple: "#a78bfa",
+      violet: "#a78bfa",
+      yellow: "#fbbf24",
+      amber: "#fbbf24",
+      emerald: "#34d399",
+      green: "#34d399",
+      blue: "#38bdf8",
+      sky: "#38bdf8",
+      cyan: "#14c8d2",
+      teal: "#14c8d2",
+    }) as Record<string, string>)[tone || ""] || "#14c8d2";
 
   const statusTiles = useMemo(
     () =>
@@ -1169,34 +1291,7 @@ export default function InspectorToolsDrawer({
                 </button>
               </div>
 
-              <div className="mt-2 grid min-w-0 gap-2 sm:mt-3 sm:gap-3 xl:grid-cols-[minmax(0,1fr)_360px]">
-                <div className="-mx-3 flex max-w-full gap-2 overflow-x-auto overscroll-x-contain px-3 pb-2 pr-6 [-webkit-overflow-scrolling:touch] sm:mx-0 sm:px-0">
-                  {categories.map((category) => {
-                    const active = activeCategory === category;
-
-                    return (
-                      <button
-                        key={category}
-                        type="button"
-                        onClick={() => handleCategoryClick(category)}
-                        className={`flex shrink-0 items-center gap-2 rounded-full border px-3 py-2 text-xs font-black transition active:scale-[0.98] ${
-                          active
-                            ? "border-cyan-300 bg-cyan-500/15 text-cyan-100"
-                            : "border-slate-700 bg-[#020617] text-slate-300 hover:border-cyan-400 hover:text-cyan-200"
-                        }`}
-                      >
-                        <span>{categoryIcon(category)}</span>
-                        <span>{categoryLabel(category)}</span>
-                        {category === "attention" && attentionNotifications.length ? (
-                          <span className="rounded-full bg-red-500 px-2 py-0.5 text-[10px] text-white">
-                            {attentionNotifications.length}
-                          </span>
-                        ) : null}
-                      </button>
-                    );
-                  })}
-                </div>
-
+              <div className="mt-2 sm:mt-3">
                 <label className="relative block">
                   <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">
                     ⌕
@@ -1205,7 +1300,7 @@ export default function InspectorToolsDrawer({
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
                     placeholder="Search tools, sections, actions..."
-                    className="h-[42px] w-full rounded-full border border-slate-700 bg-[#020617] pl-9 pr-3 text-sm font-bold text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-400"
+                    className="h-[44px] w-full rounded-full border border-slate-700 bg-[#020617] pl-9 pr-3 text-sm font-bold text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-400"
                   />
                 </label>
               </div>
@@ -1267,103 +1362,174 @@ export default function InspectorToolsDrawer({
               </nav>
 
               <div className="min-h-0 min-w-0 scroll-smooth p-3 sm:p-5 xl:overflow-y-auto" ref={bodyRef}>
-                <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
-                  {statusTiles.map((tile) => {
-                    const style = urgencyStyles[tile.urgency] || urgencyStyles.success;
-                    return (
-                      <button
-                        key={tile.title}
-                        type="button"
-                        onClick={() => handleStatusTileClick(tile)}
-                        className="rounded-xl border border-slate-800 bg-[#0f172a] p-2.5 text-left transition hover:border-slate-700 active:scale-[0.99] sm:p-3.5"
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
-                            {tile.title}
-                          </span>
-                          <span className={`h-2 w-2 shrink-0 rounded-full ${style.dot}`} />
-                        </div>
-                        <p className="mt-1 text-sm font-black text-white sm:mt-1.5">{tile.label}</p>
-                        <p className="mt-0.5 text-xs font-bold text-slate-500">{tile.badge}</p>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div className={`mb-4 rounded-xl border p-2.5 sm:rounded-2xl sm:p-4 ${nextAttentionNotification ? "border-red-500/40 bg-red-500/[0.07]" : "border-emerald-500/40 bg-emerald-500/[0.07]"}`}>
-                  <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between md:gap-3">
-                    <div className="min-w-0">
-                      <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">
-                        {nextTaskCopy.eyebrow}
-                      </p>
-                      <h3 className="mt-1 break-words text-base font-black text-white sm:text-xl">
-                        {nextTaskCopy.title}
-                      </h3>
-                      <p className="mt-1 text-xs font-bold leading-5 text-slate-300 sm:text-sm sm:leading-6">
-                        {nextTaskCopy.helper}
-                      </p>
+                {!query && attentionNotifications.length > 0 ? (
+                  <div className="mb-4 rounded-2xl border border-red-500/40 bg-red-500/[0.07] p-3">
+                    <div className="mb-2 flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.8)]" />
+                      <b className="text-[11px] font-black text-red-200">
+                        {attentionNotifications.length} ITEM
+                        {attentionNotifications.length === 1 ? "" : "S"} NEED ATTENTION
+                      </b>
                     </div>
-
-                    {nextAttentionNotification ? (
-                      <button
-                        type="button"
-                        onClick={() => openNotification(nextAttentionNotification)}
-                        className="inline-flex min-h-[42px] shrink-0 items-center justify-center rounded-2xl bg-red-500 px-4 py-2.5 text-sm font-black text-white transition hover:bg-red-400 active:scale-[0.98] sm:min-h-[46px] sm:px-5 sm:py-3"
-                      >
-                        {nextTaskCopy.action} →
-                      </button>
-                    ) : (
-                      <span className="inline-flex min-h-[42px] shrink-0 items-center justify-center rounded-2xl border border-emerald-400/60 bg-emerald-500/15 px-4 py-2.5 text-sm font-black text-emerald-100 sm:min-h-[46px] sm:px-5 sm:py-3">
-                        All clear
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {activeCategory === "attention" && attentionNotifications.length > 0 ? (
-                  <div className="mb-4 space-y-2">
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
-                      {attentionNotifications.length} item
-                      {attentionNotifications.length === 1 ? "" : "s"} need attention
-                    </p>
-                    {attentionNotifications.map((n, i) => (
-                      <button
-                        key={(n as any).id || i}
-                        type="button"
-                        onClick={() => openNotification(n)}
-                        className="flex w-full items-start justify-between gap-3 rounded-xl border border-red-500/40 bg-red-500/[0.06] p-3 text-left transition hover:bg-red-500/10 active:scale-[0.99]"
-                      >
-                        <span className="min-w-0">
-                          <span className="block truncate text-sm font-black text-white">
-                            {n.title || "Attention item"}
-                          </span>
-                          {n.message ? (
-                            <span className="mt-0.5 block text-xs leading-5 text-slate-300">
-                              {n.message}
+                    <div className="space-y-2">
+                      {attentionNotifications.map((n, i) => (
+                        <button
+                          key={(n as any).id || i}
+                          type="button"
+                          onClick={() => openNotification(n)}
+                          className="flex w-full items-center gap-3 rounded-xl border border-red-500/30 bg-[#020617]/60 p-3 text-left transition hover:bg-red-500/10 active:scale-[0.99]"
+                        >
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-sm font-black text-white">
+                              {n.title || "Attention item"}
                             </span>
-                          ) : null}
-                        </span>
-                        <span className="shrink-0 text-xs font-black text-red-200">Open →</span>
-                      </button>
-                    ))}
+                            {n.message ? (
+                              <span className="mt-0.5 block truncate text-xs text-slate-400">
+                                {n.message}
+                              </span>
+                            ) : null}
+                          </span>
+                          <span className="shrink-0 text-xs font-black text-red-200">Open →</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 ) : null}
 
-                <div className="sticky top-0 z-10 -mx-3 mb-4 overflow-hidden border-b border-slate-800 bg-[#071224]/95 px-3 py-3 backdrop-blur xl:hidden">
-                  <p className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Quick Actions</p>
-                  <div className="flex max-w-full gap-2 overflow-x-auto overscroll-x-contain pb-2 pr-6 [-webkit-overflow-scrolling:touch]">
-                  {quickActions.map((item) => (
-                    <button
-                      key={item.title}
-                      type="button"
-                      onClick={() => openTool(item.title)}
-                      className="flex min-w-max shrink-0 items-center gap-2 rounded-full border border-cyan-400/40 bg-cyan-500/10 px-3 py-2 text-xs font-black text-cyan-100 transition active:scale-[0.98]"
-                    >
-                      {item.title}
-                    </button>
-                  ))}
+                {query ? (
+                  <div className="mb-4 space-y-2">
+                    {filteredItems.length ? (
+                      filteredItems.map((item) => (
+                        <ToolRow
+                          key={item.title}
+                          item={item}
+                          accent={toneHex(item.tone)}
+                          onOpen={() => openTool(item.title)}
+                        />
+                      ))
+                    ) : (
+                      <div className="rounded-2xl border border-slate-700 bg-[#020617] p-4 text-sm font-bold text-slate-400">
+                        No tools match that search.
+                      </div>
+                    )}
                   </div>
-                </div>
+                ) : (
+                  <>
+                    {pinnedTools.length ? (
+                      <>
+                        <p className="mb-2 mt-1 px-1 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+                          Pinned · most-used
+                        </p>
+                        <div className="mb-4 grid grid-cols-2 gap-2.5">
+                          {pinnedTools.map((item) => {
+                            const accent = toneHex(item.tone);
+                            return (
+                              <button
+                                key={item.title}
+                                type="button"
+                                onClick={() => openTool(item.title)}
+                                className="relative flex min-h-[92px] flex-col justify-between overflow-hidden rounded-2xl border border-slate-700 bg-[#0f172a] p-3.5 text-left transition hover:border-slate-600 active:scale-[0.98]"
+                              >
+                                <span
+                                  className="absolute inset-x-0 top-0 h-[3px]"
+                                  style={{ background: accent, opacity: 0.85 }}
+                                />
+                                <span
+                                  className="grid h-9 w-9 place-items-center rounded-xl text-lg"
+                                  style={{ background: `${accent}22`, border: `1px solid ${accent}55` }}
+                                >
+                                  {toolIcon(item.title)}
+                                </span>
+                                <span className="mt-2 text-sm font-black leading-tight text-white">
+                                  {item.title}
+                                </span>
+                                {item.badge ? (
+                                  <span
+                                    className="absolute right-2.5 top-2.5 rounded-full px-2 py-0.5 text-[10px] font-black"
+                                    style={{
+                                      background: `${accent}1f`,
+                                      border: `1px solid ${accent}55`,
+                                      color: accent,
+                                    }}
+                                  >
+                                    {item.badge}
+                                  </span>
+                                ) : null}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </>
+                    ) : null}
+
+                    {toolGroups.map((group) => (
+                      <div key={group.label}>
+                        <p className="mb-2 mt-4 px-1 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+                          {group.label}
+                        </p>
+                        <div className="space-y-2">
+                          {group.items.map((item) => (
+                            <ToolRow
+                              key={item.title}
+                              item={item}
+                              accent={toneHex(item.tone)}
+                              onOpen={() => openTool(item.title)}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+
+                    {statusTiles.filter(
+                      (t) => t.title === "Payment" || t.title === "Agreements",
+                    ).length ? (
+                      <div>
+                        <p className="mb-2 mt-4 px-1 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+                          Payments &amp; Agreements
+                        </p>
+                        <div className="space-y-2">
+                          {statusTiles
+                            .filter(
+                              (t) => t.title === "Payment" || t.title === "Agreements",
+                            )
+                            .map((tile) => {
+                              const accent =
+                                tile.title === "Payment" ? "#38bdf8" : "#fbbf24";
+                              return (
+                                <button
+                                  key={tile.title}
+                                  type="button"
+                                  onClick={() => handleStatusTileClick(tile)}
+                                  className="flex w-full items-center gap-3 rounded-2xl border border-slate-800 bg-[#0f172a] p-3 text-left transition hover:border-slate-700 active:scale-[0.99]"
+                                >
+                                  <span
+                                    className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-lg"
+                                    style={{
+                                      background: `${accent}22`,
+                                      border: `1px solid ${accent}55`,
+                                    }}
+                                  >
+                                    {tile.title === "Payment" ? "💳" : "✍️"}
+                                  </span>
+                                  <span className="min-w-0 flex-1">
+                                    <span className="block text-[15px] font-black text-white">
+                                      {tile.title === "Payment"
+                                        ? "Payments & Invoices"
+                                        : "Agreements"}
+                                    </span>
+                                    <span className="block text-xs text-slate-400">
+                                      {tile.badge || tile.label}
+                                    </span>
+                                  </span>
+                                  <span className="text-lg text-slate-600">›</span>
+                                </button>
+                              );
+                            })}
+                        </div>
+                      </div>
+                    ) : null}
+                  </>
+                )}
 
                 {children}
               </div>
