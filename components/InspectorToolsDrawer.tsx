@@ -1026,14 +1026,12 @@ export default function InspectorToolsDrawer({
 
 
   function handleCategoryClick(category: WorkspaceCategory) {
+    // Just filter to the tab — don't auto-open the first alert. Tapping
+    // "Needs Attention" should SHOW the items so the inspector can pick one,
+    // not jump straight into the publish blocker.
     setActiveCategory(category);
     setQuery("");
     setActiveTool("");
-
-    if (category !== "attention") return;
-
-    const firstAlert = attentionNotifications[0];
-    if (firstAlert) openNotification(firstAlert);
   }
 
   const totalBadgeText =
@@ -1147,7 +1145,7 @@ export default function InspectorToolsDrawer({
           />
 
           <aside className="absolute inset-0 flex min-w-0 flex-col overflow-hidden bg-[#0a0f1a] shadow-2xl lg:inset-4 lg:rounded-[2rem] lg:border lg:border-slate-800">
-            <div className="shrink-0 overflow-hidden border-b border-slate-800 bg-[#0b1220] p-3 sm:p-5">
+            <div className="shrink-0 overflow-hidden border-b border-slate-800 bg-[#0b1220] p-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:p-5 sm:pt-[max(1.25rem,env(safe-area-inset-top))]">
               <div className="flex min-w-0 items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[#14c8d2]">
@@ -1164,9 +1162,10 @@ export default function InspectorToolsDrawer({
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
-                  className="shrink-0 rounded-xl border border-slate-600 bg-[#020617] px-3 py-1.5 text-sm font-black text-slate-200 transition hover:bg-slate-800 active:scale-[0.98] sm:px-4 sm:py-2"
+                  className="flex min-h-[44px] shrink-0 items-center gap-1.5 rounded-xl border border-slate-600 bg-[#020617] px-4 py-2.5 text-sm font-black text-slate-200 transition hover:bg-slate-800 active:scale-[0.98]"
                 >
-                  Close
+                  ✕ <span className="hidden sm:inline">Close</span>
+                  <span className="sm:hidden">Close</span>
                 </button>
               </div>
 
@@ -1320,6 +1319,35 @@ export default function InspectorToolsDrawer({
                     )}
                   </div>
                 </div>
+
+                {activeCategory === "attention" && attentionNotifications.length > 0 ? (
+                  <div className="mb-4 space-y-2">
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+                      {attentionNotifications.length} item
+                      {attentionNotifications.length === 1 ? "" : "s"} need attention
+                    </p>
+                    {attentionNotifications.map((n, i) => (
+                      <button
+                        key={(n as any).id || i}
+                        type="button"
+                        onClick={() => openNotification(n)}
+                        className="flex w-full items-start justify-between gap-3 rounded-xl border border-red-500/40 bg-red-500/[0.06] p-3 text-left transition hover:bg-red-500/10 active:scale-[0.99]"
+                      >
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-black text-white">
+                            {n.title || "Attention item"}
+                          </span>
+                          {n.message ? (
+                            <span className="mt-0.5 block text-xs leading-5 text-slate-300">
+                              {n.message}
+                            </span>
+                          ) : null}
+                        </span>
+                        <span className="shrink-0 text-xs font-black text-red-200">Open →</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
 
                 <div className="sticky top-0 z-10 -mx-3 mb-4 overflow-hidden border-b border-slate-800 bg-[#071224]/95 px-3 py-3 backdrop-blur xl:hidden">
                   <p className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Quick Actions</p>
