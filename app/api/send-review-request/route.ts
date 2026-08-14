@@ -282,53 +282,64 @@ export async function POST(req: Request) {
       );
     }
 
-    let contactEmail = String(recipientEmail || "").trim();
-    let recipientName = "there";
+    const explicitEmail = String(recipientEmail || "").trim();
 
     const { data: contacts } = await supabase
       .from("inspection_contacts")
       .select("email, role, name")
       .eq("inspection_id", inspectionId);
 
-    if (recipientType === "realtor") {
-      const realtorContact = (contacts || []).find((item: any) => {
-        const role = String(item.role || "").toLowerCase();
-        return /realtor|agent|transaction/.test(role) && item.email;
+    // Collect EVERY recipient, not just the first. Buyers are equal parties on
+    // the contract, so a client review request goes to all of them.
+    const seenEmails = new Set<string>();
+    const recipientEmails: string[] = [];
+    const recipientNames: string[] = [];
+    const addRecipient = (email?: any, name?: any) => {
+      const cleanEmail = String(email || "").trim();
+      if (!cleanEmail) return;
+      const key = cleanEmail.toLowerCase();
+      if (seenEmails.has(key)) return;
+      seenEmails.add(key);
+      recipientEmails.push(cleanEmail);
+      const cleanName = String(name || "").trim();
+      if (cleanName) recipientNames.push(cleanName);
+    };
+
+    if (explicitEmail) {
+      // A specific recipient was chosen in the UI — honor just that one.
+      const match = (contacts || []).find(
+        (c: any) =>
+          String(c.email || "").toLowerCase() === explicitEmail.toLowerCase(),
+      );
+      addRecipient(explicitEmail, match?.name);
+    } else if (recipientType === "realtor") {
+      (contacts || []).forEach((c: any) => {
+        const role = String(c.role || "").toLowerCase();
+        if (/realtor|agent|transaction/.test(role)) addRecipient(c.email, c.name);
       });
-
-      if (!contactEmail) {
-        contactEmail =
-          realtorContact?.email ||
-          inspection.realtor_email ||
-          inspection.agent_email ||
-          inspection.buyer_agent_email ||
-          "";
+      if (recipientEmails.length === 0) {
+        addRecipient(inspection.realtor_email, inspection.realtor_name);
+        addRecipient(inspection.agent_email, inspection.agent_name);
+        addRecipient(inspection.buyer_agent_email, "");
       }
-
-      recipientName =
-        realtorContact?.name ||
-        inspection.realtor_name ||
-        inspection.agent_name ||
-        "there";
     } else {
-      const clientContact = (contacts || []).find((item: any) => {
-        const role = String(item.role || "").toLowerCase();
-        return ["client", "co-client"].includes(role) && item.email;
+      // Every buyer/client on the contract gets the request — both names.
+      (contacts || []).forEach((c: any) => {
+        const role = String(c.role || "").toLowerCase();
+        if (["client", "co-client", "buyer", "co-buyer"].includes(role)) {
+          addRecipient(c.email, c.name);
+        }
       });
-
-      if (!contactEmail) {
-        contactEmail =
-          clientContact?.email ||
-          inspection.client_email ||
-          inspection.email ||
-          "";
+      if (recipientEmails.length === 0) {
+        addRecipient(
+          inspection.client_email,
+          inspection.client_name || inspection.client,
+        );
+        addRecipient(inspection.email, inspection.client_name || inspection.client);
       }
-
-      recipientName =
-        clientContact?.name || inspection.client_name || inspection.client || "there";
     }
 
-    if (!contactEmail) {
+    if (recipientEmails.length === 0) {
       return NextResponse.json(
         {
           error:
@@ -339,6 +350,18 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
+
+    const contactEmail = recipientEmails.join(", ");
+    const recipientName =
+      recipientNames.length === 0
+        ? "there"
+        : recipientNames.length === 1
+          ? recipientNames[0]
+          : recipientNames.length === 2
+            ? `${recipientNames[0]} and ${recipientNames[1]}`
+            : `${recipientNames.slice(0, -1).join(", ")}, and ${
+                recipientNames[recipientNames.length - 1]
+              }`;
 
     const property =
       inspection.property_address ||
@@ -421,7 +444,7 @@ export async function POST(req: Request) {
       },
       body: JSON.stringify({
         from,
-        to: contactEmail,
+        to: recipientEmails,
         subject,
         html,
       }),
@@ -484,7 +507,7 @@ export async function POST(req: Request) {
 
     await sendOwnerPushNotification({
       title: recipientType === "realtor" ? "Agent Review Request Sent" : "Review Request Sent",
-      body: `Review request sent to ${recipientType === "realtor" ? "agent " : ""}${contactEmail} for ${getPropertyLabel(
+      body: `Review request sent to ${recipientEmails.length} ${recipientType === "realtor" ? "agent" : "buyer"}${recipientEmails.length === 1 ? "" : "s"} (${contactEmail}) for ${getPropertyLabel(
         inspection
       )}.`,
       url: `/reports/${inspectionId}`,
@@ -499,7 +522,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
-      message: `Review request sent to ${recipientType === "realtor" ? "the agent" : "the client"} (${contactEmail}).`,
+      message: `Review request sent to ${recipientEmails.length} ${recipientType === "realtor" ? "agent" : "buyer"}${recipientEmails.length === 1 ? "" : "s"} (${contactEmail}).`,
     });
   } catch (error: any) {
     console.error("Send review request error:", error);
