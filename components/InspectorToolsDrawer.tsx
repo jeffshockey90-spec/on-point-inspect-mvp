@@ -1056,7 +1056,12 @@ export default function InspectorToolsDrawer({
 
     setOpen(false);
 
-    window.setTimeout(() => {
+    // The drawer is a full-screen overlay; after closing, the report page (and
+    // its section tabs) need a moment to re-render and reveal the target tab.
+    // Retry until the target is actually VISIBLE, then scroll — a single early
+    // attempt scrolled to a still-hidden element, so nothing appeared to happen.
+    let tries = 0;
+    const attempt = () => {
       window.dispatchEvent(
         new CustomEvent("opi:command-center-jump", {
           detail: {
@@ -1065,21 +1070,30 @@ export default function InspectorToolsDrawer({
             findingIds: notification.findingIds || [],
             repairRequestId: notification.repairRequestId || null,
           },
-        })
+        }),
       );
 
-      // If this anchor lives inside the report builder's section tabs (agreement,
-      // payment, disclaimers, etc.), reveal the right tab before scrolling -
-      // otherwise the target may be hidden behind an inactive tab.
+      // Reveal the section tab that holds this anchor (agreements, payment,
+      // disclaimers, etc.) so the target isn't hidden behind an inactive tab.
       (window as any).__revealReportBuilderTab?.(targetAnchor);
 
-      const element = document.getElementById(targetAnchor) || document.querySelector(`[data-command-target="${CSS.escape(targetAnchor)}"]`);
+      const element =
+        (document.getElementById(targetAnchor) as HTMLElement | null) ||
+        (document.querySelector(
+          `[data-command-target="${CSS.escape(targetAnchor)}"]`,
+        ) as HTMLElement | null);
 
-      if (element instanceof HTMLElement) {
+      // offsetParent is null while the element is display:none (hidden tab).
+      if (element && element.offsetParent !== null) {
         element.scrollIntoView({ behavior: "smooth", block: "center" });
         flashElement(element);
+        return;
       }
-    }, 140);
+
+      if (tries++ < 8) window.setTimeout(attempt, 140);
+    };
+
+    window.setTimeout(attempt, 120);
 
     return true;
   }
