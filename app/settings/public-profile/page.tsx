@@ -744,6 +744,7 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
               initialReviewCount={company.google_review_count || 0}
               initialMapsUrl={company.google_maps_url || ""}
                 initialSyncedAt={company.google_reviews_synced_at || ""}
+                initialAlertsEnabled={company.google_review_alerts_enabled !== false}
               />
             </div>
 

@@ -24,6 +24,7 @@ export default function GoogleBusinessConnect({
   initialReviewCount = 0,
   initialMapsUrl = "",
   initialSyncedAt = "",
+  initialAlertsEnabled = true,
 }: {
   initialName?: string;
   initialPlaceId?: string;
@@ -31,6 +32,7 @@ export default function GoogleBusinessConnect({
   initialReviewCount?: number;
   initialMapsUrl?: string;
   initialSyncedAt?: string;
+  initialAlertsEnabled?: boolean;
 }) {
   const [query, setQuery] = useState(initialName || "");
   const [places, setPlaces] = useState<GooglePlaceResult[]>([]);
@@ -44,6 +46,37 @@ export default function GoogleBusinessConnect({
   const [syncing, setSyncing] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [alertsEnabled, setAlertsEnabled] = useState(initialAlertsEnabled);
+  const [savingAlerts, setSavingAlerts] = useState(false);
+
+  async function toggleReviewAlerts(next: boolean) {
+    if (savingAlerts) return;
+
+    const previous = alertsEnabled;
+    setAlertsEnabled(next); // optimistic
+    setSavingAlerts(true);
+    setError("");
+
+    try {
+      const res = await fetch("/api/google-business/review-alerts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled: next }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Unable to update review alerts.");
+      setMessage(
+        next
+          ? "New Google review alerts are ON — we'll push you when a review comes in."
+          : "New Google review alerts are OFF."
+      );
+    } catch (err: any) {
+      setAlertsEnabled(previous); // revert on failure
+      setError(err?.message || "Unable to update review alerts.");
+    } finally {
+      setSavingAlerts(false);
+    }
+  }
 
   const fastButtonBase =
     "inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-black transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]";
@@ -182,6 +215,32 @@ export default function GoogleBusinessConnect({
                 View on Google
               </a>
             )}
+          </div>
+
+          <div className="mt-4 flex items-center justify-between gap-4 rounded-xl border border-slate-700 bg-slate-950/60 p-3">
+            <div className="min-w-0">
+              <p className="text-sm font-black text-white">New review push alerts</p>
+              <p className="mt-1 text-xs leading-5 text-slate-400">
+                Get a phone push the moment a new Google review comes in.
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={alertsEnabled}
+              aria-label="Toggle new Google review push alerts"
+              onClick={() => toggleReviewAlerts(!alertsEnabled)}
+              disabled={savingAlerts}
+              className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition disabled:opacity-60 [touch-action:manipulation] ${
+                alertsEnabled ? "bg-emerald-500" : "bg-slate-600"
+              }`}
+            >
+              <span
+                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
+                  alertsEnabled ? "translate-x-6" : "translate-x-1"
+                }`}
+              />
+            </button>
           </div>
         </div>
       )}
