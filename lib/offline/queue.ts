@@ -380,6 +380,11 @@ export async function getOfflineQueueSummary() {
   const conflictCount = queue.filter((item) => item.status === "conflict").length;
   const syncingCount = queue.filter((item) => item.status === "syncing").length;
 
+  // Surface the actual server/upload error from the most recent failed item so
+  // the inspector (and support) can see WHY a sync failed, not just that it did.
+  const lastFailedError =
+    queue.find((item) => item.lastError)?.lastError || "";
+
   return {
     count: queue.length,
     findingCount,
@@ -391,6 +396,7 @@ export async function getOfflineQueueSummary() {
     syncingCount,
     skippedMediaCount,
     skippedVideoCount,
+    lastFailedError,
     bytes: totalBytes,
     megabytes: Number((totalBytes / 1024 / 1024).toFixed(2)),
   };

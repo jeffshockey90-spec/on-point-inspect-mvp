@@ -42,6 +42,7 @@ export default function OfflineSyncStatus() {
   const [syncingCount, setSyncingCount] = useState(0);
   const [skippedMediaCount, setSkippedMediaCount] = useState(0);
   const [skippedVideoCount, setSkippedVideoCount] = useState(0);
+  const [lastFailedError, setLastFailedError] = useState("");
   const [megabytes, setMegabytes] = useState(0);
   const [syncing, setSyncing] = useState(false);
   const [lastSynced, setLastSynced] = useState("");
@@ -60,6 +61,7 @@ export default function OfflineSyncStatus() {
     setSyncingCount(summary.syncingCount || 0);
     setSkippedMediaCount(summary.skippedMediaCount || 0);
     setSkippedVideoCount(summary.skippedVideoCount || 0);
+    setLastFailedError(summary.lastFailedError || "");
     setMegabytes(summary.megabytes);
   }
 
@@ -261,6 +263,12 @@ export default function OfflineSyncStatus() {
             <p className="mt-1 text-xs font-bold text-red-300">
               {failedCount} item{failedCount === 1 ? "" : "s"} need another
               retry.
+            </p>
+          )}
+
+          {lastFailedError && (
+            <p className="mt-1 break-words text-xs text-red-300/90">
+              Reason: {lastFailedError}
             </p>
           )}
 
