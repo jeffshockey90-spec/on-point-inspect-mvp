@@ -20,7 +20,11 @@ import type { DBSchema, IDBPDatabase } from "idb";
 // Types
 // ---------------------------------------------------------------------------
 
-export type OfflineQueueItemType = "finding" | "reference_photo";
+export type OfflineQueueItemType =
+  | "finding"
+  | "reference_photo"
+  | "limitation"
+  | "equipment";
 
 export type OfflineQueueStatus = "queued" | "syncing" | "failed" | "conflict";
 

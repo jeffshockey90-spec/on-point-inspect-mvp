@@ -1829,7 +1829,8 @@ function FieldPageContent() {
     }
 
     if (category === "limitation" && draft.kind === "limitation") {
-      if (!file.type.startsWith("image/")) {
+      const limitationImages = files.filter((f) => f.type.startsWith("image/"));
+      if (limitationImages.length === 0) {
         throw new Error(
           "Limitations need a photo, not a video - retake using PHOTO mode.",
         );
@@ -1839,15 +1840,51 @@ function FieldPageContent() {
         ? draft.section
         : section;
 
-      setPhotoType("limitation");
-      setPhotos(files);
-      setTitle(draft.title || "");
-      setSection(effectiveSection);
-      setNote(draft.limitation || "");
-      setRecommendation(draft.recommendation || "");
+      // Same instant + never-lost save as findings: persist to the durable queue
+      // first, return immediately, upload in the background. AI already drafted
+      // the limitation live, so it's saved as-is.
+      const queued = await addOfflineQueueItem({
+        type: "limitation",
+        payload: {
+          inspection_id: selectedReport,
+          section: effectiveSection,
+          title: draft.title || "",
+          limitation: draft.limitation || "",
+          reason: "",
+          recommendation: draft.recommendation || "",
+          confirmed_live: true,
+          run_ai_after_sync: false,
+          ai_after_sync: false,
+          offline_created_at: new Date().toISOString(),
+        },
+        media: limitationImages,
+      });
 
+      if (queued) {
+        setQueueTick((current) => current + 1);
+        if (isOnline()) {
+          void processOfflineQueue()
+            .then(() => setQueueTick((current) => current + 1))
+            .catch(() => {});
+          setMessage("Limitation saved — uploading in the background.");
+        } else {
+          setMessage(
+            "No signal — limitation saved on this device and will upload automatically when service returns.",
+          );
+        }
+        resetForm();
+        return;
+      }
+
+      // Durable local storage unavailable: save directly online instead so the
+      // limitation is never lost; if offline too, throw to keep the capture.
+      if (!isOnline()) {
+        throw new Error(
+          "This device can't save limitations offline (local storage unavailable). Reconnect to save this limitation.",
+        );
+      }
       await saveLimitationWithPhotoOnline({
-        photos: files,
+        photos: limitationImages,
         title: draft.title || "",
         note: draft.limitation || "",
         section: effectiveSection,
@@ -2325,16 +2362,9 @@ function FieldPageContent() {
       return;
     }
 
-    if (!isOnline()) {
-      setMessage(
-        "Equipment inventory saving needs internet right now. Save the media offline, then add equipment when service returns.",
-      );
-      return;
-    }
-
     // Optimistic, instant-feel save: snapshot the equipment result + media,
     // clear the form, and re-enable the button immediately so the inspector can
-    // move to the next item while the upload + inserts run in the background.
+    // move to the next item while the durable save runs in the background.
     const snapshot = {
       equipmentResult: er,
       photos: [...effectivePhotos],
@@ -2347,7 +2377,135 @@ function FieldPageContent() {
         ? "Equipment + finding are saving in the background — go ahead and continue."
         : "Equipment is saving to inventory in the background — go ahead and continue.",
     );
-    void backgroundSaveEquipment(snapshot);
+    void saveEquipmentDurable(snapshot);
+  }
+
+  // Instant + never-lost equipment save. Builds the inventory row(s) and the
+  // optional equipment finding client-side (identical mapping to the online
+  // path), then persists them + the media to the DURABLE IndexedDB queue and
+  // uploads in the background. The item is removed only after the server
+  // confirms, with retries + auto-sync, so equipment can never be lost -- and it
+  // now works offline too (previously it required a connection). Falls back to
+  // the direct online insert if durable storage is unavailable.
+  async function saveEquipmentDurable(snapshot: {
+    equipmentResult: EquipmentResult;
+    photos: File[];
+    note: string;
+  }) {
+    const er = snapshot.equipmentResult;
+    const effectivePhotos = snapshot.photos;
+    const note = snapshot.note;
+
+    try {
+      const baseInventoryPayload = {
+        inspection_id: Number(selectedReport),
+        equipment_type: cleanEquipmentValue(er.equipmentType),
+        manufacturer: cleanEquipmentValue(er.manufacturer),
+        model: cleanEquipmentValue(er.model),
+        serial: cleanEquipmentValue(er.serial),
+        manufacture_year: cleanEquipmentValue(er.manufactureYear),
+        estimated_age: cleanEquipmentValue(er.estimatedAge),
+        expected_service_life: cleanEquipmentValue(er.expectedServiceLife),
+        estimated_life_remaining: "",
+        refrigerant: cleanEquipmentValue(er.refrigerant),
+        condition: meaningfulEquipmentValue(cleanServiceLifeCondition(er.condition)),
+        inspector_note: getAiInspectorNote(er, note),
+        maintenance_note: getAiMaintenanceNote(er),
+        equipment_status: getEquipmentStatusLabel(er),
+      };
+
+      const enhancedInventoryPayload = {
+        ...baseInventoryPayload,
+        maintenance_schedule: cleanEquipmentValue(er.maintenanceSchedule) || null,
+        recall_awareness: cleanEquipmentValue(er.recallAwareness) || null,
+        known_failure_patterns: Array.isArray(er.knownFailurePatterns)
+          ? er.knownFailurePatterns
+          : [],
+        replacement_cost_estimate:
+          cleanEquipmentValue(er.replacementCostEstimate) || null,
+        life_expectancy_percent: Number(er.lifeExpectancyPercent) || null,
+      };
+
+      const createFinding = shouldCreateEquipmentFinding(er);
+      let findingPayload: Record<string, any> | null = null;
+
+      if (createFinding) {
+        let equipmentTitle = `${cleanEquipmentValue(er.manufacturer) || "Equipment"} ${
+          cleanEquipmentValue(er.equipmentType) || "Finding"
+        }`.trim();
+        const titlePrefix = getFindingTitlePrefix(er);
+        if (
+          titlePrefix &&
+          !equipmentTitle.toLowerCase().startsWith(titlePrefix.toLowerCase())
+        ) {
+          equipmentTitle = `${titlePrefix} – ${equipmentTitle}`;
+        }
+
+        findingPayload = {
+          section: er.section || "Heating",
+          severity:
+            titlePrefix === "Older Equipment"
+              ? "Monitor"
+              : er.severity || "Informational",
+          title: equipmentTitle,
+          observation: getCalmFindingObservation(er),
+          implication: getCalmFindingImplication(er),
+          recommendation: getCalmFindingRecommendation(er),
+        };
+      }
+
+      const queued = await addOfflineQueueItem({
+        type: "equipment",
+        payload: {
+          inspection_id: selectedReport,
+          inventory: enhancedInventoryPayload,
+          inventory_base: baseInventoryPayload,
+          create_finding: createFinding,
+          finding: findingPayload,
+          confirmed_live: true,
+          offline_created_at: new Date().toISOString(),
+        },
+        media: effectivePhotos,
+      });
+
+      if (queued) {
+        clearCompletedProgressSoon();
+        setQueueTick((current) => current + 1);
+        if (isOnline()) {
+          void processOfflineQueue()
+            .then(() => setQueueTick((current) => current + 1))
+            .catch(() => {});
+        }
+        window.dispatchEvent(
+          new CustomEvent("opi:inspection-data-changed", {
+            detail: {
+              inspectionId: selectedReport,
+              source: "field-equipment-durable",
+            },
+          }),
+        );
+        setMessage(
+          createFinding
+            ? "Equipment + finding saved — uploading in the background."
+            : "Equipment saved — uploading to inventory in the background.",
+        );
+        return;
+      }
+
+      // Durable storage unavailable on this device: fall back to the direct
+      // online insert so the equipment is never lost.
+      await backgroundSaveEquipment(snapshot);
+    } catch (error: any) {
+      // Restore the analyzed result + media so the inspector can retry.
+      setEquipmentResult(er);
+      setPhotos(snapshot.photos);
+      setEquipmentSaveLabel(
+        shouldCreateEquipmentFinding(er)
+          ? "Save Equipment + Create Finding"
+          : "Save To Equipment Inventory",
+      );
+      setMessage(error?.message || "Failed to save equipment.");
+    }
   }
 
   // Background save for the optimistic equipment path. There is no offline queue

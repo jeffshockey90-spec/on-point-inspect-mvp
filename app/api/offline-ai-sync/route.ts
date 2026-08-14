@@ -699,6 +699,195 @@ export async function POST(req: Request) {
       return NextResponse.json(result);
     }
 
+    if (item.type === "limitation") {
+      if (offlinePhotos.length === 0) {
+        return NextResponse.json(
+          { error: "Limitation sync requires at least one photo." },
+          { status: 400 },
+        );
+      }
+
+      // section_limitations / limitation_photos both carry inspector_id.
+      const { data: inspRow } = await supabase
+        .from("inspections")
+        .select("inspector_id")
+        .eq("id", inspectionId)
+        .maybeSingle();
+      const inspectorId = inspRow?.inspector_id || null;
+
+      const section = payload.section || "Exterior";
+      const title = cleanText(payload.title) || "Field Limitation";
+      const limitationText = cleanText(
+        payload.limitation || payload.note || payload.inspector_note,
+      );
+      const reason = cleanText(payload.reason);
+      const recommendation = cleanText(payload.recommendation);
+      const limitationComment = [
+        limitationText,
+        reason ? `Reason: ${reason}` : "",
+        recommendation ? `Recommendation: ${recommendation}` : "",
+      ]
+        .filter(Boolean)
+        .join("\n\n");
+
+      const { data: savedLimitation, error: limitationError } = await supabase
+        .from("section_limitations")
+        .insert({
+          inspection_id: inspectionId,
+          inspector_id: inspectorId,
+          section,
+          label: title,
+          ai_notes: reason || limitationText,
+          limitation_comment: limitationComment,
+          custom_text: null,
+        })
+        .select("*")
+        .single();
+
+      if (limitationError) throw limitationError;
+
+      let photoCount = 0;
+      for (const photo of offlinePhotos) {
+        const upload = await uploadOfflinePhoto({
+          inspectionId,
+          photo,
+          folder: `limitations/${safeSection(section)}`,
+        });
+        if (!upload) continue;
+
+        const { error: photoError } = await supabase
+          .from("limitation_photos")
+          .insert({
+            limitation_id: savedLimitation.id,
+            inspector_id: inspectorId,
+            photo_url: upload.publicUrl,
+            thumbnail_url: upload.publicUrl,
+            thumbnail_path: upload.filePath,
+          });
+
+        if (photoError) throw photoError;
+        photoCount += 1;
+      }
+
+      const result = {
+        ok: true,
+        synced: true,
+        type: "limitation",
+        limitation_id: savedLimitation.id,
+        photo_count: photoCount,
+      };
+
+      await saveSyncReceipt({
+        queueItemId,
+        inspectionId,
+        itemType: "limitation",
+        result,
+      });
+
+      return NextResponse.json(result);
+    }
+
+    if (item.type === "equipment") {
+      // Upload media first so the inventory row + optional finding can reference
+      // the primary image (first image among the uploaded media).
+      const uploaded: any[] = [];
+      let mainImageUrl: string | null = null;
+      let mainImagePath: string | null = null;
+
+      for (const photo of offlinePhotos) {
+        const upload = await uploadOfflinePhoto({
+          inspectionId,
+          photo,
+          folder: "equipment-media",
+        });
+        if (!upload) continue;
+        uploaded.push(upload);
+        if (!mainImageUrl && String(upload.mimeType || "").startsWith("image/")) {
+          mainImageUrl = upload.publicUrl;
+          mainImagePath = upload.filePath;
+        }
+      }
+
+      // The client already did all the equipment field mapping (identical to the
+      // online path) and sent the ready-to-insert inventory rows; we only stamp
+      // the resolved image + inspection id and insert (enhanced, then base).
+      const inventoryBase = payload.inventory_base || payload.inventory || {};
+      const inventoryEnhanced = payload.inventory || payload.inventory_base || {};
+      const imageStamp = {
+        inspection_id: Number(inspectionId),
+        image_url: mainImageUrl || "",
+        file_path: mainImagePath || "",
+      };
+
+      const { error: enhancedError } = await supabase
+        .from("equipment_inventory")
+        .insert({ ...inventoryEnhanced, ...imageStamp });
+
+      if (enhancedError) {
+        const { error: baseError } = await supabase
+          .from("equipment_inventory")
+          .insert({ ...inventoryBase, ...imageStamp });
+        if (baseError) throw baseError;
+      }
+
+      let findingId: string | number | null = null;
+      if (payload.create_finding && payload.finding) {
+        const f = payload.finding;
+        const { data: findingData, error: findingError } = await supabase
+          .from("findings")
+          .insert({
+            inspection_id: inspectionId,
+            section: cleanText(f.section) || "Heating",
+            severity: safeSeverityValue(f.severity, "Informational"),
+            title: cleanText(f.title) || "Equipment",
+            observation: cleanText(f.observation),
+            implication: cleanText(f.implication),
+            recommendation: cleanText(f.recommendation),
+            image_url: mainImageUrl,
+          })
+          .select()
+          .single();
+
+        if (findingError) throw findingError;
+        findingId = findingData.id;
+
+        if (uploaded.length > 0) {
+          const photoRows = uploaded.map((u) => ({
+            inspection_id: inspectionId,
+            finding_id: findingData.id,
+            public_url: u.publicUrl,
+            file_path: u.filePath,
+            is_video: String(u.mimeType || "").startsWith("video/"),
+            mime_type: u.mimeType || null,
+            thumbnail_url: null,
+            thumbnail_path: null,
+          }));
+
+          const { error: photoError } = await supabase
+            .from("photos")
+            .insert(photoRows);
+          if (photoError) throw photoError;
+        }
+      }
+
+      const result = {
+        ok: true,
+        synced: true,
+        type: "equipment",
+        finding_id: findingId,
+        created_finding: Boolean(findingId),
+      };
+
+      await saveSyncReceipt({
+        queueItemId,
+        inspectionId,
+        itemType: "equipment",
+        result,
+      });
+
+      return NextResponse.json(result);
+    }
+
     return NextResponse.json(
       { error: `Unsupported offline item type: ${item.type}` },
       { status: 400 },
