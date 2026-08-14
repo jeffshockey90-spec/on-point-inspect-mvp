@@ -584,11 +584,23 @@ function getBestToolMatch(keywords: string[], items: EnrichedToolItem[]) {
 }
 
 function isPublishGuardNotification(notification: WorkspaceNotification) {
+  // The most reliable signal: the notification points at the publish-guard anchor.
+  if (normalizeText(notification.targetAnchor || "") === "publish-guard") return true;
+
+  // Otherwise match on id/title/badge ONLY — never the message, which routinely
+  // says "...should be reviewed before publishing" on unrelated alerts
+  // (disclaimers, safety findings, etc.). That was hijacking every alert to the
+  // publish blocker instead of jumping to its real target.
   const text = normalizeText(
-    `${notification.id || ""} ${notification.title} ${notification.message || ""} ${notification.badge || ""} ${notification.targetAnchor || ""}`
+    `${notification.id || ""} ${notification.title || ""} ${notification.badge || ""}`,
   );
 
-  return text.includes("publish") || text.includes("publish guard") || text.includes("blocked");
+  return (
+    text.includes("publish guard") ||
+    text.includes("publish blocker") ||
+    text.includes("blocked") ||
+    (text.includes("publish") && text.includes("guard"))
+  );
 }
 
 function toolIcon(title: string) {
