@@ -381,7 +381,7 @@ export async function POST(req: Request) {
         {
           error: sendToRealtor
             ? "No client name found on this inspection to generate a signing link for."
-            : "No unsigned client/co-client agreement recipient found. Add a client/co-client contact with an email and mark Agreement Required.",
+            : "No unsigned client/co-buyer agreement recipient found. Add a client/co-buyer contact with an email and mark Agreement Required.",
         },
         { status: 400 }
       );

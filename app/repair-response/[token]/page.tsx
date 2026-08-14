@@ -309,8 +309,8 @@ export default async function RepairResponsePage({ params }: PageProps) {
     {
       value: "co-client",
       label: inspection?.co_client_email
-        ? `Co-Client - ${inspection.co_client_email}`
-        : "Co-Client",
+        ? `Co-Buyer - ${inspection.co_client_email}`
+        : "Co-Buyer",
       email: inspection?.co_client_email || "",
     },
     {

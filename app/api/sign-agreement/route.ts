@@ -191,7 +191,7 @@ export async function POST(req: Request) {
 
     if (contact && !isClientOrCoClient(contact)) {
       return NextResponse.json(
-        { error: "Only clients and co-clients can sign this agreement." },
+        { error: "Only clients and co-buyers can sign this agreement." },
         { status: 403 }
       );
     }

@@ -104,7 +104,7 @@ export async function POST(req: Request) {
 
     if (!recipients.length) {
       return NextResponse.json(
-        { error: "No unsigned required client/co-client agreement contacts found." },
+        { error: "No unsigned required client/co-buyer agreement contacts found." },
         { status: 400 }
       );
     }

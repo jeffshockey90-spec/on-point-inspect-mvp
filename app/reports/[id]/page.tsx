@@ -4186,7 +4186,7 @@ Service-life information is a general industry estimate only. Actual service lif
                 </h2>
 
                 <p className="mt-1 text-sm leading-6 text-slate-400">
-                  View, print, or save a PDF copy of each signed client/co-client agreement.
+                  View, print, or save a PDF copy of each signed client/co-buyer agreement.
                 </p>
               </div>
 
@@ -4197,7 +4197,7 @@ Service-life information is a general industry estimate only. Actual service lif
 
             {signedAgreements.length === 0 ? (
               <div className="mt-4 rounded-xl border border-slate-700 bg-[#020817]/80 p-4 text-sm leading-6 text-slate-400">
-                No signed agreements saved yet. Once a client or co-client signs, their signed copy will appear here.
+                No signed agreements saved yet. Once a client or co-buyer signs, their signed copy will appear here.
               </div>
             ) : (
               <div className="mt-4 grid gap-3">

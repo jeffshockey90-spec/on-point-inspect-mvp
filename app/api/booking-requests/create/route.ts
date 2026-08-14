@@ -477,7 +477,7 @@ function buildEmailHtml(booking: any, request: Request) {
         <tr><td><strong>Client</strong></td><td>${booking.client_name || ""}</td></tr>
         <tr><td><strong>Client Phone</strong></td><td>${booking.client_phone || ""}</td></tr>
         <tr><td><strong>Client Email</strong></td><td>${booking.client_email || ""}</td></tr>
-        <tr><td><strong>Co-Clients</strong></td><td>${normalizeAdditionalClients(booking.additional_clients).map((client) => [client.name, client.email, client.phone].filter(Boolean).join(" / ")).join("<br />")}</td></tr>
+        <tr><td><strong>Co-Buyers</strong></td><td>${normalizeAdditionalClients(booking.additional_clients).map((client) => [client.name, client.email, client.phone].filter(Boolean).join(" / ")).join("<br />")}</td></tr>
         <tr><td><strong>Realtor</strong></td><td>${booking.realtor_name || ""}</td></tr>
         <tr><td><strong>Realtor Phone</strong></td><td>${booking.realtor_phone || ""}</td></tr>
         <tr><td><strong>Realtor Email</strong></td><td>${booking.realtor_email || ""}</td></tr>

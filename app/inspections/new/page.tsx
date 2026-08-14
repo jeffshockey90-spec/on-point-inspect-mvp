@@ -817,7 +817,7 @@ function NewInspectionPageContent() {
     );
 
     if (incompleteCoClient) {
-      alert("Each co-client needs at least a name and email.");
+      alert("Each co-buyer needs at least a name and email.");
       return;
     }
 
@@ -1184,7 +1184,7 @@ function NewInspectionPageContent() {
               >
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <p className="text-sm font-black uppercase tracking-wide text-teal-300">
-                    Co-Client {index + 1}
+                    Co-Buyer {index + 1}
                   </p>
 
                   <button
@@ -1200,19 +1200,19 @@ function NewInspectionPageContent() {
                   <Input
                     value={coClient.name}
                     onChange={(value) => updateCoClient(coClient.id, "name", value)}
-                    placeholder="Co-Client Name"
+                    placeholder="Co-Buyer Name"
                   />
 
                   <Input
                     value={coClient.email}
                     onChange={(value) => updateCoClient(coClient.id, "email", value)}
-                    placeholder="Co-Client Email"
+                    placeholder="Co-Buyer Email"
                   />
 
                   <Input
                     value={coClient.phone}
                     onChange={(value) => updateCoClient(coClient.id, "phone", value)}
-                    placeholder="Co-Client Phone"
+                    placeholder="Co-Buyer Phone"
                   />
                 </div>
               </div>
@@ -1223,11 +1223,11 @@ function NewInspectionPageContent() {
               onClick={addCoClient}
               className="w-full rounded-xl border border-teal-500/50 bg-teal-500/10 px-4 py-3 text-sm font-black text-teal-300 transition hover:bg-teal-500/20"
             >
-              + Add Co-Client
+              + Add Co-Buyer
             </button>
 
             <p className="text-sm leading-6 text-zinc-400">
-              Co-clients will be added as agreement-required contacts and will receive portal access.
+              Co-buyers will be added as agreement-required contacts and will receive portal access.
             </p>
           </Card>
 

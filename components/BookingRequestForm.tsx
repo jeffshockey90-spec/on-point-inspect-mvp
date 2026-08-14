@@ -471,7 +471,7 @@ export default function BookingRequestForm({
             >
               <div className="mb-3 flex items-center justify-between gap-3">
                 <p className="text-xs font-black uppercase tracking-[0.22em] text-teal-300">
-                  Co-Client {index + 1}
+                  Co-Buyer {index + 1}
                 </p>
                 <button
                   type="button"
@@ -484,18 +484,18 @@ export default function BookingRequestForm({
 
               <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
                 <Field
-                  label="Co-Client Name"
+                  label="Co-Buyer Name"
                   value={client.name}
                   onChange={(value) => updateAdditionalClient(client.id, "name", value)}
                 />
                 <Field
-                  label="Co-Client Email"
+                  label="Co-Buyer Email"
                   type="email"
                   value={client.email}
                   onChange={(value) => updateAdditionalClient(client.id, "email", value)}
                 />
                 <Field
-                  label="Co-Client Phone"
+                  label="Co-Buyer Phone"
                   value={client.phone}
                   onChange={(value) => updateAdditionalClient(client.id, "phone", value)}
                 />

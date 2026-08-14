@@ -218,7 +218,7 @@ export default function SendReportEmailButtons({
           className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-blue-500 bg-blue-500/10 px-5 py-3 font-bold text-blue-300 transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 hover:bg-blue-500/20 sm:w-auto [touch-action:manipulation]"
           title={
             hasAnyKnownRecipient
-              ? "Send report to client, co-client, realtor, agent, and transaction coordinator contacts"
+              ? "Send report to client, co-buyer, realtor, agent, and transaction coordinator contacts"
               : "No client or realtor email found"
           }
         >
