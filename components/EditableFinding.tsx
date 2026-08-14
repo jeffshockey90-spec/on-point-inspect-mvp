@@ -129,21 +129,34 @@ function EditableFinding({
     setSaveLabel("Saving...");
 
     try {
-      const { error } = await supabase
+      const payload: Record<string, any> = {
+        title,
+        section,
+        severity,
+        location: location.trim() || null,
+        observation,
+        implication,
+        recommendation,
+        repair_request: repairRequest,
+        repair_priority: repairPriority,
+        repair_notes: repairNotes,
+      };
+
+      let { error } = await supabase
         .from("findings")
-        .update({
-          title,
-          section,
-          severity,
-          location: location.trim() || null,
-          observation,
-          implication,
-          recommendation,
-          repair_request: repairRequest,
-          repair_priority: repairPriority,
-          repair_notes: repairNotes,
-        })
+        .update(payload)
         .eq("id", finding.id);
+
+      // `location` is an optional column. If this database doesn't have it yet
+      // (older schema), drop it and save everything else so the finding still
+      // updates — this was causing "Failed to save" on any finding edit.
+      if (error && /location/i.test(error.message || "")) {
+        const { location: _omitLocation, ...withoutLocation } = payload;
+        ({ error } = await supabase
+          .from("findings")
+          .update(withoutLocation)
+          .eq("id", finding.id));
+      }
 
       if (error) {
         setSaveLabel("Failed");

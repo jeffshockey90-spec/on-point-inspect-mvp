@@ -1,9 +1,10 @@
--- Add a free-text "location" field to findings, e.g. "Northeast corner",
--- "Master bathroom", "Basement - southwest wall" - where in the property
--- the finding is, as distinct from `section` (which system of the house
--- it belongs to, e.g. "Plumbing" or "Electrical").
+-- The finding editor (and field tool) have a "Location" field (e.g. "Master
+-- bathroom", "NE corner"), but the findings table was missing the column — so
+-- saving a finding failed with a schema error ("Failed to save"). Add it.
 --
--- Additive, nullable column - safe to run any time, no backfill needed.
--- Run in the Supabase SQL Editor.
+-- Safe to run: idempotent (IF NOT EXISTS). Run once in the Supabase SQL editor.
+-- The app already saves without location as a fallback, but running this lets
+-- the Location field actually persist.
 
-alter table public.findings add column if not exists location text;
+alter table public.findings
+  add column if not exists location text;
