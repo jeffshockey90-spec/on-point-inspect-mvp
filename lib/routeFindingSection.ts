@@ -86,7 +86,7 @@ export function routeFindingSection(input: {
 
   if (
     text.includes("furnace") ||
-    text.includes("heat") ||
+    text.includes("heat exchanger") ||
     text.includes("heating") ||
     text.includes("boiler") ||
     text.includes("air handler") ||
@@ -124,7 +124,8 @@ export function routeFindingSection(input: {
     text.includes("sill plate") ||
     text.includes("pier") ||
     text.includes("settlement") ||
-    text.includes("crack")
+    text.includes("foundation crack") ||
+    text.includes("structural crack")
   ) {
     return "Basement, Foundation, Crawlspace & Structure";
   }

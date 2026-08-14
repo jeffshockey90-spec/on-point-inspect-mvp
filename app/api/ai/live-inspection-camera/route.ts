@@ -720,6 +720,20 @@ Live-watch behavior:
 - In live_watch mode, focus on safety concerns, major concerns, recommended repairs, missing documentation, blocked/limited inspection areas, or data plate reminders.
 - In live_watch mode, avoid cosmetic comments unless the visible condition is clearly reportable.
 
+Section routing — choose the report section for the ACTUAL component/system that is visible, NOT the currently selected section. Decide from the visible component, for example:
+- Shingles, flashing, gutters, downspouts, ridge/valley, soffit/fascia, chimney exterior -> Roof
+- Siding, trim, grading, driveway, walkway, deck, porch, exterior steps, exterior hose bib -> Exterior
+- Water heater, pipes, drains, faucets, toilets, TPR valve, sump pump, shutoffs, supply/waste lines, sewer -> Plumbing
+- Electrical panel, breakers, wiring, receptacles/outlets, GFCI/AFCI, junction boxes, grounding/bonding, double-tapped/open splices -> Electrical
+- Furnace, boiler, gas line, flue, heat exchanger, air handler -> Heating; condenser, AC, heat pump, refrigerant, evaporator coil -> Cooling
+- Foundation, crawlspace, basement, framing/joists/beams/columns, structural cracks, sill plate -> Basement, Foundation, Crawlspace & Structure
+- Attic access, insulation, ventilation, bath/exhaust fan routing, dryer vent -> Attic, Insulation & Ventilation
+- Interior doors, windows, floors, walls, ceilings, stairs, handrails, cabinets, countertops -> Doors, Windows & Interior
+- Dishwasher, range/cooktop/oven, microwave, disposal, built-in appliances -> Built-in Appliances
+- Garage door, opener, auto-reverse/photo eyes, garage fire-separation wall -> Garage
+- Fireplace, firebox, damper, hearth -> Fireplace
+If the visible component clearly belongs to a different section than the one selected, use the component's section.
+
 Allowed sections:
 Exterior, Roof, Basement, Foundation, Crawlspace & Structure, Heating, Cooling, Plumbing, Electrical, Fireplace, Attic, Insulation & Ventilation, Doors, Windows & Interior, Built-in Appliances, Garage.
 
