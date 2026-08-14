@@ -5,11 +5,13 @@ import { useState } from "react";
 export default function SendReviewRequestButton({
   inspectionId,
   clientEmail,
+  clientEmails,
   realtorEmail,
   reviewStatus,
 }: {
   inspectionId: string;
   clientEmail?: string | null;
+  clientEmails?: string[] | null;
   realtorEmail?: string | null;
   reviewStatus?: string | null;
 }) {
@@ -22,16 +24,35 @@ export default function SendReviewRequestButton({
 
   const hasAgent = Boolean(realtorEmail);
 
+  // All buyers on the inspection (primary + co-buyers). Fall back to the single
+  // primary email if the fuller list wasn't provided.
+  const buyerEmails = (
+    clientEmails && clientEmails.length > 0
+      ? clientEmails
+      : [clientEmail || ""]
+  ).filter(Boolean);
+  const hasBuyer = buyerEmails.length > 0;
+  const multipleBuyers = buyerEmails.length > 1;
+
   async function send(recipientType: "client" | "realtor") {
     setOpen(false);
 
-    const label = recipientType === "realtor" ? "agent" : "client";
-    const email = recipientType === "realtor" ? realtorEmail : clientEmail;
+    let confirmMessage: string;
+    if (recipientType === "realtor") {
+      confirmMessage = `Send a Google review request to the agent${
+        realtorEmail ? ` (${realtorEmail})` : ""
+      }?`;
+    } else if (multipleBuyers) {
+      confirmMessage = `Send a Google review request to all ${buyerEmails.length} buyers?\n\n${buyerEmails.join(
+        "\n"
+      )}`;
+    } else {
+      confirmMessage = `Send a Google review request to the client${
+        buyerEmails[0] ? ` (${buyerEmails[0]})` : ""
+      }?`;
+    }
 
-    const confirmed = window.confirm(
-      `Send a Google review request to the ${label}${email ? ` (${email})` : ""}?`
-    );
-
+    const confirmed = window.confirm(confirmMessage);
     if (!confirmed) return;
 
     setSending(true);
@@ -40,10 +61,13 @@ export default function SendReviewRequestButton({
       const res = await fetch("/api/send-review-request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        // For the client path we intentionally omit recipientEmail so the
+        // server fans out to every buyer contact (primary + co-buyers). For the
+        // agent path we target the specific agent email.
         body: JSON.stringify({
           inspectionId,
           recipientType,
-          recipientEmail: email || "",
+          recipientEmail: recipientType === "realtor" ? realtorEmail || "" : "",
         }),
       });
 
@@ -66,13 +90,13 @@ export default function SendReviewRequestButton({
   const buttonClass =
     "rounded-xl border border-yellow-500 px-5 py-3 font-bold text-yellow-300 transition hover:bg-yellow-500/10 disabled:cursor-not-allowed disabled:opacity-60";
 
-  // No agent on file: keep the original single-button behavior (client review).
+  // No agent on file: keep the original single-button behavior (buyer review).
   if (!hasAgent) {
     return (
       <button
         type="button"
         onClick={() => send("client")}
-        disabled={sending}
+        disabled={sending || !hasBuyer}
         className={buttonClass}
       >
         {sending
@@ -103,17 +127,27 @@ export default function SendReviewRequestButton({
             onClick={() => setOpen(false)}
             className="fixed inset-0 z-10 cursor-default"
           />
-          <div className="absolute left-0 z-20 mt-2 w-60 overflow-hidden rounded-xl border border-slate-700 bg-[#0b1220] p-1 shadow-2xl">
+          <div className="absolute left-0 z-20 mt-2 w-72 overflow-hidden rounded-xl border border-slate-700 bg-[#0b1220] p-1 shadow-2xl">
             <button
               type="button"
               onClick={() => send("client")}
-              disabled={!clientEmail}
+              disabled={!hasBuyer}
               className="block w-full rounded-lg px-3 py-2 text-left transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <span className="block text-sm font-black text-white">Ask the client</span>
-              <span className="block truncate text-xs text-slate-400">
-                {clientEmail || "No client email on file"}
+              <span className="block text-sm font-black text-white">
+                {multipleBuyers ? `Ask the buyers (${buyerEmails.length})` : "Ask the client"}
               </span>
+              {hasBuyer ? (
+                buyerEmails.map((email) => (
+                  <span key={email} className="block truncate text-xs text-slate-400">
+                    {email}
+                  </span>
+                ))
+              ) : (
+                <span className="block truncate text-xs text-slate-400">
+                  No buyer email on file
+                </span>
+              )}
             </button>
             <button
               type="button"

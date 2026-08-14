@@ -2503,6 +2503,27 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
       : "Needs setup";
   const firstSignedAgreement = signedAgreements[0] || null;
 
+  // Every buyer on the inspection (primary + co-buyers) so the review request
+  // and the "Ask the client" menu reach all of them, not just the first.
+  const reviewClientEmails: string[] = (() => {
+    const buyerRoles = new Set(["client", "co-client", "co-buyer", "buyer", "co-applicant"]);
+    const seen = new Set<string>();
+    const emails: string[] = [];
+    const push = (raw?: string | null) => {
+      const email = String(raw || "").trim();
+      if (!email) return;
+      const key = email.toLowerCase();
+      if (seen.has(key)) return;
+      seen.add(key);
+      emails.push(email);
+    };
+    push(inspection.client_email);
+    for (const contact of agreementContacts) {
+      if (buyerRoles.has(String(contact.role || "").toLowerCase())) push(contact.email);
+    }
+    return emails;
+  })();
+
   const { data: reportDisclaimersRaw, error: reportDisclaimersError } = reportDisclaimersResult;
 
   if (reportDisclaimersError) {
@@ -2892,6 +2913,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                 <SendReviewRequestButton
                   inspectionId={String(inspection.id)}
                   clientEmail={inspection.client_email}
+                  clientEmails={reviewClientEmails}
                   realtorEmail={inspection.realtor_email || inspection.agent_email}
                   reviewStatus={inspection.review_status}
                 />
