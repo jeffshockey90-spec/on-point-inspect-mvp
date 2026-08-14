@@ -2,9 +2,12 @@
 import { NextResponse } from "next/server";
 import { createClient } from "../../../../utils/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
-
-const PLACES_API_KEY =
-  process.env.GOOGLE_PLACES_API_KEY || process.env.GOOGLE_MAPS_API_KEY || "";
+import {
+  hasPlacesKey,
+  fetchPlaceCore,
+  fetchReviewsForStore,
+  replaceCompanyReviews,
+} from "../../../../lib/googlePlaces";
 
 function getAdminClient() {
   return createAdminClient(
@@ -50,51 +53,9 @@ async function getCompanyForCurrentUser() {
   return { user, company, error: "" };
 }
 
-function normalizeReview(review: any, companyId: any, placeId: string, mapsUrl: string) {
-  const text =
-    review?.text?.text ||
-    review?.originalText?.text ||
-    review?.text ||
-    "";
-
-  return {
-    company_id: companyId,
-    google_place_id: placeId,
-    google_review_name: String(review?.name || `${placeId}-${review?.publishTime || Math.random()}`),
-    author_name: String(review?.authorAttribution?.displayName || review?.author_name || "Google Reviewer"),
-    author_photo_url: String(review?.authorAttribution?.photoUri || review?.profile_photo_url || ""),
-    rating: Number(review?.rating || 0) || null,
-    review_text: String(text || ""),
-    relative_publish_time_description: String(review?.relativePublishTimeDescription || review?.relative_time_description || ""),
-    publish_time: review?.publishTime || review?.time || null,
-    original_text_language_code: String(review?.originalText?.languageCode || review?.text?.languageCode || ""),
-    google_maps_uri: mapsUrl,
-    is_enabled: true,
-    updated_at: new Date().toISOString(),
-  };
-}
-
-async function fetchPlaceDetails(placeId: string) {
-  const response = await fetch(`https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`, {
-    method: "GET",
-    headers: {
-      "X-Goog-Api-Key": PLACES_API_KEY,
-      "X-Goog-FieldMask": "id,displayName,formattedAddress,rating,userRatingCount,googleMapsUri,reviews",
-    },
-  });
-
-  const data = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    throw new Error(data?.error?.message || "Unable to sync Google reviews.");
-  }
-
-  return data;
-}
-
 export async function POST() {
   try {
-    if (!PLACES_API_KEY) {
+    if (!hasPlacesKey()) {
       return NextResponse.json({ error: "Missing GOOGLE_PLACES_API_KEY." }, { status: 500 });
     }
 
@@ -108,7 +69,7 @@ export async function POST() {
       return NextResponse.json({ error: "Connect a Google Business Profile first." }, { status: 400 });
     }
 
-    const place = await fetchPlaceDetails(placeId);
+    const place = await fetchPlaceCore(placeId);
     const admin = getAdminClient();
     const now = new Date().toISOString();
     const googleMapsUrl = String(place.googleMapsUri || company.google_maps_url || "");
@@ -127,17 +88,15 @@ export async function POST() {
 
     if (companyError) throw companyError;
 
-    const reviews = (place.reviews || [])
-      .map((review: any) => normalizeReview(review, company.id, place.id, googleMapsUrl))
-      .filter((review: any) => review.google_review_name);
-
-    if (reviews.length > 0) {
-      const { error: reviewsError } = await admin
-        .from("public_google_reviews")
-        .upsert(reviews, { onConflict: "company_id,google_review_name" });
-
-      if (reviewsError) throw reviewsError;
-    }
+    // Pull the NEWEST reviews and replace the stored mirror so a just-posted
+    // review shows up right away.
+    const reviews = await fetchReviewsForStore(
+      placeId,
+      company.id,
+      googleMapsUrl,
+      place.reviews || []
+    );
+    await replaceCompanyReviews(admin, company.id, reviews);
 
     return NextResponse.json({
       ok: true,

@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { sendPushNotification } from "../../../../lib/push";
+import {
+  hasPlacesKey,
+  fetchPlaceCore,
+  fetchReviewsForStore,
+  replaceCompanyReviews,
+} from "../../../../lib/googlePlaces";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const PLACES_API_KEY =
-  process.env.GOOGLE_PLACES_API_KEY || process.env.GOOGLE_MAPS_API_KEY || "";
 
 function createAdminClient() {
   return createServiceClient(
@@ -25,57 +28,6 @@ function isAuthorized(req: Request) {
   const authHeader = req.headers.get("authorization") || "";
   const cronHeader = req.headers.get("x-cron-secret") || "";
   return authHeader === `Bearer ${secret}` || cronHeader === secret;
-}
-
-async function fetchPlaceDetails(placeId: string) {
-  const response = await fetch(
-    `https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`,
-    {
-      method: "GET",
-      headers: {
-        "X-Goog-Api-Key": PLACES_API_KEY,
-        "X-Goog-FieldMask":
-          "id,displayName,formattedAddress,rating,userRatingCount,googleMapsUri,reviews",
-      },
-    }
-  );
-
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error(data?.error?.message || "Unable to fetch Google place.");
-  }
-  return data;
-}
-
-function normalizeReview(review: any, companyId: any, placeId: string, mapsUrl: string) {
-  const text =
-    review?.text?.text || review?.originalText?.text || review?.text || "";
-
-  return {
-    company_id: companyId,
-    google_place_id: placeId,
-    google_review_name: String(
-      review?.name || `${placeId}-${review?.publishTime || ""}`
-    ),
-    author_name: String(
-      review?.authorAttribution?.displayName || review?.author_name || "Google Reviewer"
-    ),
-    author_photo_url: String(
-      review?.authorAttribution?.photoUri || review?.profile_photo_url || ""
-    ),
-    rating: Number(review?.rating || 0) || null,
-    review_text: String(text || ""),
-    relative_publish_time_description: String(
-      review?.relativePublishTimeDescription || review?.relative_time_description || ""
-    ),
-    publish_time: review?.publishTime || review?.time || null,
-    original_text_language_code: String(
-      review?.originalText?.languageCode || review?.text?.languageCode || ""
-    ),
-    google_maps_uri: mapsUrl,
-    is_enabled: true,
-    updated_at: new Date().toISOString(),
-  };
 }
 
 // Resolve the email addresses of a company's own members so the alert reaches
@@ -116,7 +68,7 @@ async function processCompany(admin: any, company: any) {
   const placeId = String(company.google_place_id || "").trim();
   if (!placeId) return { id: company.id, skipped: "no-place-id" };
 
-  const place = await fetchPlaceDetails(placeId);
+  const place = await fetchPlaceCore(placeId);
   const now = new Date().toISOString();
   const googleMapsUrl = String(place.googleMapsUri || company.google_maps_url || "");
 
@@ -139,15 +91,15 @@ async function processCompany(admin: any, company: any) {
     })
     .eq("id", company.id);
 
-  const reviews = (place.reviews || [])
-    .map((r: any) => normalizeReview(r, company.id, place.id, googleMapsUrl))
-    .filter((r: any) => r.google_review_name);
-
-  if (reviews.length > 0) {
-    await admin
-      .from("public_google_reviews")
-      .upsert(reviews, { onConflict: "company_id,google_review_name" });
-  }
+  // Pull the NEWEST reviews (legacy sort) and replace the stored mirror so new
+  // reviews always surface on the public profile.
+  const reviews = await fetchReviewsForStore(
+    placeId,
+    company.id,
+    googleMapsUrl,
+    place.reviews || []
+  );
+  await replaceCompanyReviews(admin, company.id, reviews);
 
   // Only alert on a real increase. A first-ever run (prevCount 0) just sets the
   // baseline so we don't fire a bogus "N new reviews" burst.
@@ -200,7 +152,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (!PLACES_API_KEY) {
+    if (!hasPlacesKey()) {
       return NextResponse.json({ error: "Missing GOOGLE_PLACES_API_KEY." }, { status: 500 });
     }
 
