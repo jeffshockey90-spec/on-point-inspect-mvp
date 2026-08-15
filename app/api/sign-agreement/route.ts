@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { createClient } from "@supabase/supabase-js";
 
 import {
+  deriveServiceFees,
   getAgreementTemplatesForInspection,
   getAgreementTitle,
   getAgreementVersion,
@@ -236,6 +237,7 @@ export async function POST(req: Request) {
           clientOrganization: inspection.client_organization_name,
           propertyAddress: inspection.address || inspection.property_address,
           fee: inspection.invoice_amount || inspection.fee || inspection.price,
+          serviceFees: deriveServiceFees(inspection),
           inspectorName: branding.name,
           ownerName,
           inspectionDate: inspection.inspection_date,

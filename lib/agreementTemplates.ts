@@ -296,6 +296,66 @@ ELECTRONIC SIGNATURE ACKNOWLEDGEMENT
 By signing electronically, the Client confirms that they have read, understood, and accepted this Residential Inspection Agreement.`;
 }
 
+// Map a template's free-form service_type to a coarse service category.
+function serviceCategoryForType(serviceType?: string | null): "home" | "radon" | "mold" {
+  const value = String(serviceType || "home_inspection").toLowerCase();
+  if (value.includes("radon")) return "radon";
+  if (value.includes("mold")) return "mold";
+  return "home";
+}
+
+export type AgreementServiceFees = {
+  home?: number | string | null;
+  radon?: number | string | null;
+  mold?: number | string | null;
+};
+
+// Per-service price for one agreement template, so a bundled (merged) agreement
+// shows the radon fee on the radon agreement and the mold fee on the mold
+// agreement -- instead of the whole-inspection total on every one. Falls back to
+// the total fee when there's no positive per-service amount.
+function feeForServiceType(
+  serviceType: string | null | undefined,
+  serviceFees: AgreementServiceFees | undefined,
+  totalFee: string | number | null | undefined,
+) {
+  if (!serviceFees) return totalFee;
+  const raw = serviceFees[serviceCategoryForType(serviceType)];
+  const amount = Number(raw);
+  if (
+    raw === null ||
+    raw === undefined ||
+    raw === "" ||
+    !Number.isFinite(amount) ||
+    amount <= 0
+  ) {
+    return totalFee;
+  }
+  return amount;
+}
+
+// Split an inspection's stored fees into per-service amounts. The home portion is
+// the total minus the clearly-separate add-ons (radon, mold, travel), with any
+// bundle discount added back so each agreement shows that service's own price.
+export function deriveServiceFees(inspection: any): AgreementServiceFees {
+  const total =
+    Number(inspection?.invoice_amount ?? inspection?.price ?? inspection?.fee ?? 0) || 0;
+  const radon = Number(inspection?.radon_fee ?? 0) || 0;
+  const mold = Number(inspection?.mold_fee ?? 0) || 0;
+
+  // No add-on services: a single (home-only) agreement should keep showing the
+  // full total, exactly as before. Only split per service when radon/mold add-ons
+  // exist, so each service's agreement shows its own price.
+  if (radon <= 0 && mold <= 0) {
+    return { home: total, radon, mold };
+  }
+
+  const travel = Number(inspection?.travel_fee ?? 0) || 0;
+  const discount = Number(inspection?.discount ?? 0) || 0;
+  const home = Math.max(0, total - radon - mold - travel + discount);
+  return { home, radon, mold };
+}
+
 export function mergeMultipleAgreementBodies({
   templates,
   state,
@@ -304,6 +364,7 @@ export function mergeMultipleAgreementBodies({
   clientOrganization,
   propertyAddress,
   fee,
+  serviceFees,
   inspectorName,
   ownerName,
   inspectionDate,
@@ -317,6 +378,7 @@ export function mergeMultipleAgreementBodies({
   clientOrganization?: string | null;
   propertyAddress?: string | null;
   fee?: string | number | null;
+  serviceFees?: AgreementServiceFees;
   inspectorName?: string | null;
   ownerName?: string | null;
   inspectionDate?: string | null;
@@ -352,7 +414,8 @@ export function mergeMultipleAgreementBodies({
         coClientName,
         clientOrganization,
         propertyAddress,
-        fee,
+        // Each agreement shows its own service's price, not the bundle total.
+        fee: feeForServiceType(template?.service_type, serviceFees, fee),
         inspectorName,
         ownerName,
         inspectionDate,

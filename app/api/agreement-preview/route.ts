@@ -7,6 +7,7 @@ import {
   authorizeInspection,
 } from "../../../lib/apiAuth";
 import {
+  deriveServiceFees,
   getAgreementTemplatesForInspection,
   mergeMultipleAgreementBodies,
   normalizeAgreementState,
@@ -69,6 +70,7 @@ export async function GET(req: Request) {
       clientOrganization: inspection.client_organization_name,
       propertyAddress: inspection.address || inspection.property_address,
       fee: inspection.invoice_amount || inspection.fee || inspection.price,
+      serviceFees: deriveServiceFees(inspection),
       inspectorName: branding.name,
       ownerName,
       inspectionDate: inspection.inspection_date,
