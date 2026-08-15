@@ -343,7 +343,10 @@ export default async function ClientAgreementPage({
           </div>
         </div>
 
-        <div className="max-h-[65vh] overflow-y-auto whitespace-pre-wrap rounded-2xl border border-slate-800 bg-white p-6 leading-8 text-slate-950 shadow-xl print:max-h-none print:overflow-visible print:border-none print:shadow-none">
+        <div
+          id="agreement-body"
+          className="max-h-[65vh] overflow-y-auto whitespace-pre-wrap rounded-2xl border border-slate-800 bg-white p-6 leading-8 text-slate-950 shadow-xl print:max-h-none print:overflow-visible print:border-none print:shadow-none"
+        >
           {agreementBody}
         </div>
 

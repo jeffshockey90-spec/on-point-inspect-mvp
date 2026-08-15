@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import SignaturePad from "../../../components/SignaturePad";
 
 export default function AgreementSignatureForm({
   inspectionId,
@@ -22,7 +23,9 @@ export default function AgreementSignatureForm({
   const [clientName, setClientName] = useState(defaultClientName);
   const [clientEmail, setClientEmail] = useState(defaultClientEmail);
   const [signature, setSignature] = useState("");
+  const [mode, setMode] = useState<"draw" | "type">("draw");
   const [accepted, setAccepted] = useState(false);
+  const [hasRead, setHasRead] = useState(false);
   const [loading, setLoading] = useState(false);
   const [signed, setSigned] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -30,8 +33,48 @@ export default function AgreementSignatureForm({
   const isBusy = loading || isPending;
 
   const canSubmit = useMemo(() => {
-    return accepted && clientName.trim().length > 0 && signature.trim().length > 0;
-  }, [accepted, clientName, signature]);
+    return (
+      accepted &&
+      hasRead &&
+      clientName.trim().length > 0 &&
+      signature.trim().length > 0
+    );
+  }, [accepted, hasRead, clientName, signature]);
+
+  function switchMode(next: "draw" | "type") {
+    if (next === mode) return;
+    setMode(next);
+    setSignature(""); // don't carry a value over between draw and type
+  }
+
+  // Read-to-sign gate: enable signing once the client has scrolled through the
+  // full agreement. Short agreements that don't scroll count as read immediately.
+  // If the body element isn't found, we never block signing.
+  useEffect(() => {
+    const el = document.getElementById("agreement-body");
+    if (!el) {
+      setHasRead(true);
+      return;
+    }
+
+    const check = () => {
+      if (el.scrollHeight - el.clientHeight <= 8) {
+        setHasRead(true);
+        return;
+      }
+      if (el.scrollTop + el.clientHeight >= el.scrollHeight - 24) {
+        setHasRead(true);
+      }
+    };
+
+    check();
+    el.addEventListener("scroll", check, { passive: true });
+    window.addEventListener("resize", check);
+    return () => {
+      el.removeEventListener("scroll", check);
+      window.removeEventListener("resize", check);
+    };
+  }, []);
 
   useEffect(() => {
     async function trackAgreementView() {
@@ -160,18 +203,51 @@ export default function AgreementSignatureForm({
         </label>
       </div>
 
-      <label className="mt-5 block">
-        <span className="mb-2 block text-sm font-bold text-slate-400">Electronic Signature</span>
+      <div className="mt-5">
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <span className="text-sm font-bold text-slate-400">Electronic Signature</span>
 
-        <input
-          value={signature}
-          onChange={(e) => setSignature(e.target.value)}
-          disabled={isBusy || signed}
-          placeholder="Type full legal name"
-          autoComplete="name"
-          className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none transition focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
-        />
-      </label>
+          <div className="inline-flex overflow-hidden rounded-lg border border-slate-700">
+            <button
+              type="button"
+              onClick={() => switchMode("draw")}
+              disabled={isBusy || signed}
+              className={`px-3 py-1.5 text-xs font-black transition disabled:cursor-not-allowed ${
+                mode === "draw"
+                  ? "bg-teal-500 text-slate-950"
+                  : "bg-slate-950 text-slate-300 hover:bg-slate-800"
+              }`}
+            >
+              Draw
+            </button>
+            <button
+              type="button"
+              onClick={() => switchMode("type")}
+              disabled={isBusy || signed}
+              className={`px-3 py-1.5 text-xs font-black transition disabled:cursor-not-allowed ${
+                mode === "type"
+                  ? "bg-teal-500 text-slate-950"
+                  : "bg-slate-950 text-slate-300 hover:bg-slate-800"
+              }`}
+            >
+              Type
+            </button>
+          </div>
+        </div>
+
+        {mode === "draw" ? (
+          <SignaturePad onChange={setSignature} disabled={isBusy || signed} />
+        ) : (
+          <input
+            value={signature}
+            onChange={(e) => setSignature(e.target.value)}
+            disabled={isBusy || signed}
+            placeholder="Type full legal name"
+            autoComplete="name"
+            className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none transition focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
+          />
+        )}
+      </div>
 
       <label className="mt-5 flex cursor-pointer touch-manipulation items-start gap-3 rounded-xl border border-slate-700 bg-slate-950 p-4 transition active:scale-[0.99] has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-60">
         <input
@@ -186,6 +262,12 @@ export default function AgreementSignatureForm({
           I have read the full agreement above and agree to the terms. I understand this electronic signature is intended to represent my acceptance of the inspection agreement.
         </span>
       </label>
+
+      {!hasRead && (
+        <p className="mt-4 rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-3 text-sm font-semibold text-yellow-200">
+          Please scroll through the full agreement above to enable signing.
+        </p>
+      )}
 
       <button
         type="button"
