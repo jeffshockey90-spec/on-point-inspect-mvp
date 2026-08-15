@@ -145,6 +145,58 @@ export default function AgreementLibraryManager() {
   const [selectedPlaceholder, setSelectedPlaceholder] = useState("");
   const [copied, setCopied] = useState("");
 
+  const [aiBusy, setAiBusy] = useState("");
+  const [aiError, setAiError] = useState("");
+  const [aiInstruction, setAiInstruction] = useState("");
+  const [aiClause, setAiClause] = useState("arbitration");
+
+  async function runAgreementAi(
+    mode: "draft" | "improve" | "clause",
+    clauseKey?: string,
+  ) {
+    if (aiBusy) return;
+    if (
+      mode === "draft" &&
+      body.trim() &&
+      !window.confirm("Replace the current agreement body with an AI-drafted one?")
+    ) {
+      return;
+    }
+
+    setAiBusy(mode);
+    setAiError("");
+
+    try {
+      const res = await fetch("/api/ai/draft-agreement", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode,
+          serviceType,
+          state,
+          title,
+          instruction: aiInstruction,
+          existingBody: body,
+          clause: clauseKey,
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.body) throw new Error(data.error || "AI request failed.");
+
+      const text = String(data.body).trim();
+      if (mode === "clause") {
+        setBody((current) => (current.trim() ? `${current.trim()}\n\n${text}\n` : `${text}\n`));
+      } else {
+        setBody(text);
+      }
+    } catch (error: any) {
+      setAiError(error?.message || "AI request failed.");
+    } finally {
+      setAiBusy("");
+    }
+  }
+
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const importInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -870,6 +922,70 @@ export default function AgreementLibraryManager() {
             >
               Numbered
             </button>
+          </div>
+
+          <div className="mb-5 rounded-2xl border border-fuchsia-500/30 bg-fuchsia-500/5 p-4">
+            <p className="text-xs font-black uppercase tracking-wide text-fuchsia-300">
+              ✨ AI Assistant
+            </p>
+            <p className="mt-1 text-xs leading-5 text-slate-400">
+              Draft a full agreement for this service + state, improve the current text, or insert
+              a standard clause. Always review AI output before saving.
+            </p>
+
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => runAgreementAi("draft")}
+                disabled={Boolean(aiBusy)}
+                className="rounded-xl bg-fuchsia-500 px-4 py-2 text-sm font-black text-white transition hover:bg-fuchsia-400 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {aiBusy === "draft" ? "Drafting…" : "Draft full agreement"}
+              </button>
+
+              <select
+                value={aiClause}
+                onChange={(e) => setAiClause(e.target.value)}
+                disabled={Boolean(aiBusy)}
+                className="rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:border-fuchsia-400 disabled:opacity-50"
+              >
+                <option value="arbitration">Arbitration</option>
+                <option value="limitation_of_liability">Limitation of Liability</option>
+                <option value="scope_and_exclusions">Scope &amp; Exclusions</option>
+                <option value="mold_disclaimer">Mold Disclaimer</option>
+                <option value="radon_disclosure">Radon Disclosure</option>
+                <option value="payment_terms">Payment Terms</option>
+                <option value="confidentiality">Confidentiality</option>
+                <option value="standards_of_practice">Standards of Practice</option>
+              </select>
+              <button
+                type="button"
+                onClick={() => runAgreementAi("clause", aiClause)}
+                disabled={Boolean(aiBusy)}
+                className="rounded-xl border border-fuchsia-500/50 px-4 py-2 text-sm font-black text-fuchsia-200 transition hover:bg-fuchsia-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {aiBusy === "clause" ? "Adding…" : "Insert clause"}
+              </button>
+            </div>
+
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+              <input
+                value={aiInstruction}
+                onChange={(e) => setAiInstruction(e.target.value)}
+                placeholder="How should AI improve it? (e.g. 'make section 4 clearer', 'less alarming')"
+                className="min-w-0 flex-1 rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none placeholder:text-slate-500 focus:border-fuchsia-400"
+              />
+              <button
+                type="button"
+                onClick={() => runAgreementAi("improve")}
+                disabled={Boolean(aiBusy) || !body.trim()}
+                className="rounded-xl border border-fuchsia-500/50 px-4 py-2 text-sm font-black text-fuchsia-200 transition hover:bg-fuchsia-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {aiBusy === "improve" ? "Improving…" : "Improve"}
+              </button>
+            </div>
+
+            {aiError && <p className="mt-2 text-xs font-bold text-red-300">{aiError}</p>}
           </div>
 
           <label className="block">
