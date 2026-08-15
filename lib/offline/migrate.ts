@@ -61,29 +61,28 @@ function readLocalJson<T>(key: string): T | null {
  * Convert a base64 `data:` URL (or bare base64) into a Blob. Used to turn old
  * `OfflinePhoto.base64` entries back into real Blobs.
  */
-function base64ToBlob(base64: string, fallbackType = "image/jpeg"): Blob {
+// Decode a base64 (or data:) string to raw bytes. We store the ArrayBuffer, not
+// a Blob, so migrated media survives an iOS app restart just like freshly
+// captured media (see OfflineMediaEntry).
+function base64ToArrayBuffer(base64: string): ArrayBuffer {
   const commaIdx = base64.indexOf(",");
-  const meta = commaIdx >= 0 ? base64.slice(0, commaIdx) : "";
   const data = commaIdx >= 0 ? base64.slice(commaIdx + 1) : base64;
-
-  const typeMatch = meta.match(/data:([^;]+)/);
-  const type = typeMatch?.[1] || fallbackType;
 
   const binary = atob(data);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i += 1) {
     bytes[i] = binary.charCodeAt(i);
   }
-  return new Blob([bytes], { type });
+  return bytes.buffer;
 }
 
 /** Turn an old base64 photo object into a Blob-backed media entry. */
 function oldPhotoToMediaEntry(photo: any): OfflineMediaEntry | null {
   if (!photo?.base64) return null;
   const type = String(photo.type || "image/jpeg");
-  let blob: Blob;
+  let bytes: ArrayBuffer;
   try {
-    blob = base64ToBlob(photo.base64, type);
+    bytes = base64ToArrayBuffer(photo.base64);
   } catch {
     return null;
   }
@@ -91,10 +90,10 @@ function oldPhotoToMediaEntry(photo: any): OfflineMediaEntry | null {
     id: createId("media"),
     name: String(photo.name || `offline-photo-${Date.now()}.jpg`),
     type,
-    size: Number(photo.size || blob.size || 0),
+    size: Number(photo.size || bytes.byteLength || 0),
     lastModified: Number(photo.lastModified || Date.now()),
     kind: mediaKindForType(type),
-    blob,
+    bytes,
   };
 }
 

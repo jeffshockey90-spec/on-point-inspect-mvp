@@ -98,7 +98,9 @@ export type OfflineMediaInput =
  * Normalize an incoming File/Blob into a stored media entry. Bytes are kept as
  * a Blob; no base64, no size cap, images and videos alike.
  */
-export function toMediaEntry(input: OfflineMediaInput): OfflineMediaEntry {
+export async function toMediaEntry(
+  input: OfflineMediaInput,
+): Promise<OfflineMediaEntry> {
   const blob: Blob = input instanceof Blob ? input : input.blob;
   const asFile = input instanceof File ? input : null;
   const bag = input instanceof Blob ? {} : (input as any);
@@ -113,14 +115,19 @@ export function toMediaEntry(input: OfflineMediaInput): OfflineMediaEntry {
     (asFile && asFile.lastModified) || bag.lastModified || Date.now(),
   );
 
+  // Read the raw bytes NOW, while the source Blob is still valid (right after
+  // capture). Storing the ArrayBuffer -- not the Blob -- is what keeps the media
+  // recoverable after an iOS app restart. See OfflineMediaEntry for why.
+  const bytes = await blob.arrayBuffer();
+
   return {
     id: createId("media"),
     name,
     type,
-    size: Number(blob.size || 0),
+    size: Number(bytes.byteLength || blob.size || 0),
     lastModified,
     kind: mediaKindForType(type),
-    blob,
+    bytes,
   };
 }
 
@@ -142,6 +149,26 @@ export function toMediaEntry(input: OfflineMediaInput): OfflineMediaEntry {
 async function uploadMediaEntry(inspectionId: string, entry: OfflineMediaEntry) {
   const contentType = entry.type || "application/octet-stream";
 
+  // Reconstruct the upload body from the durable bytes (current items) or fall
+  // back to a legacy stored Blob (items queued before the bytes migration).
+  let body: Blob | null = null;
+  if (entry.bytes && entry.bytes.byteLength > 0) {
+    body = new Blob([entry.bytes], { type: contentType });
+  } else if (entry.blob && entry.blob.size > 0) {
+    body = entry.blob;
+  }
+
+  // If neither survived (a legacy Blob that iOS dropped from IndexedDB), skip
+  // this one media item rather than uploading an empty body (which Storage
+  // rejects with "No content provided" and would stick the whole finding
+  // forever). Returning null lets the finding still sync with its text intact.
+  if (!body || body.size === 0) {
+    console.warn(
+      "Offline media bytes unavailable; syncing the item without this photo/video.",
+    );
+    return null;
+  }
+
   const res = await fetch("/api/offline-media-upload", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -159,7 +186,7 @@ async function uploadMediaEntry(inspectionId: string, entry: OfflineMediaEntry) 
 
   const { error } = await supabase.storage
     .from(PHOTO_BUCKET)
-    .uploadToSignedUrl(data.path, data.token, entry.blob, { contentType });
+    .uploadToSignedUrl(data.path, data.token, body, { contentType });
 
   if (error) {
     throw new Error(error.message || "Media upload failed.");
@@ -185,7 +212,11 @@ async function mediaEntriesToPhotoPayloads(
   inspectionId: string,
   media: OfflineMediaEntry[],
 ) {
-  return Promise.all(media.map((entry) => uploadMediaEntry(inspectionId, entry)));
+  const uploaded = await Promise.all(
+    media.map((entry) => uploadMediaEntry(inspectionId, entry)),
+  );
+  // Drop any skipped (unrecoverable) media so the item still syncs.
+  return uploaded.filter(Boolean);
 }
 
 // ---------------------------------------------------------------------------
@@ -244,7 +275,7 @@ export async function addOfflineQueueItem({
     id: id || createId(),
     type,
     payload: payload || {},
-    media: (media || []).map(toMediaEntry),
+    media: await Promise.all((media || []).map(toMediaEntry)),
     createdAt: now,
     updatedAt: now,
     retryCount: 0,

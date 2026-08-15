@@ -44,8 +44,17 @@ export type OfflineMediaEntry = {
   size: number;
   lastModified: number;
   kind: OfflineMediaKind;
-  /** The real bytes. IndexedDB stores Blobs natively. */
-  blob: Blob;
+  /**
+   * The real bytes, read from the source File/Blob at enqueue time and stored as
+   * an ArrayBuffer. We deliberately do NOT store a Blob directly: iOS WebKit can
+   * hand back Blobs saved in IndexedDB as empty/unreadable after the app is
+   * reopened (the size survives but the bytes are gone), which made uploads fail
+   * with "No content provided". ArrayBuffers persist reliably; a Blob is
+   * reconstructed from these bytes at upload time.
+   */
+  bytes?: ArrayBuffer;
+  /** Legacy: older queued items stored a Blob directly (pre-bytes migration). */
+  blob?: Blob;
 };
 
 /**
