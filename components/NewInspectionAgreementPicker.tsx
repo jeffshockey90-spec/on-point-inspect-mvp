@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type AgreementTemplate = Record<string, any>;
 
@@ -8,6 +8,16 @@ function formatServiceType(value: string) {
   return String(value || "home_inspection")
     .replace(/_/g, " ")
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+// Does a template's service type belong to a requested service category?
+// service_type is free-form text the inspector sets on each template, so we
+// match by keyword: "home" -> anything with "home" (default is home_inspection),
+// "radon"/"mold" -> anything containing that word.
+function templateMatchesService(template: AgreementTemplate, category: string) {
+  const serviceType = String(template.service_type || "home_inspection").toLowerCase();
+  if (category === "home") return serviceType.includes("home");
+  return serviceType.includes(category);
 }
 
 function Badge({ children, tone = "slate" }: { children: React.ReactNode; tone?: "teal" | "green" | "yellow" | "slate" }) {
@@ -34,17 +44,30 @@ function Badge({ children, tone = "slate" }: { children: React.ReactNode; tone?:
 // form when the inspection is actually created.
 export default function NewInspectionAgreementPicker({
   propertyState,
+  services,
   onChange,
 }: {
   propertyState?: string | null;
+  /**
+   * Service categories on the inspection (e.g. ["home","radon","mold"]), derived
+   * from the selected Service. When provided, the picker auto-selects every
+   * agreement whose service type matches one of these, so choosing "Home + Radon
+   * + Mold" attaches all three agreements automatically.
+   */
+  services?: string[];
   onChange: (state: string, templateIds: string[]) => void;
 }) {
   const defaultState = (propertyState || "MD").toUpperCase();
+  const hasServices = Array.isArray(services) && services.length > 0;
+  const servicesKey = (services || []).slice().sort().join(",");
 
   const [agreementState, setAgreementState] = useState(defaultState);
   const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>([]);
   const [templates, setTemplates] = useState<AgreementTemplate[]>([]);
   const [expanded, setExpanded] = useState(false);
+  // The last service set we auto-applied. null forces a re-apply (e.g. after the
+  // state changes and a fresh template list loads).
+  const lastAppliedServicesKey = useRef<string | null>(null);
 
   useEffect(() => {
     loadTemplates(agreementState);
@@ -56,12 +79,43 @@ export default function NewInspectionAgreementPicker({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [agreementState, selectedTemplateIds]);
 
+  // Auto-select the agreements matching the inspection's services. Re-applies
+  // when the service set changes or a new state's templates load; leaves manual
+  // check/uncheck edits alone until then.
+  useEffect(() => {
+    if (!hasServices || templates.length === 0) return;
+    if (lastAppliedServicesKey.current === servicesKey) return;
+
+    const matched = templates
+      .filter((template) =>
+        (services || []).some((category) => templateMatchesService(template, category)),
+      )
+      .map((template) => template.id);
+
+    // If no per-service template exists yet (e.g. no radon agreement created),
+    // fall back to the state default so at least the primary agreement applies.
+    let nextIds = matched;
+    if (nextIds.length === 0) {
+      const defaults = templates
+        .filter((template) => template.is_default)
+        .map((template) => template.id);
+      nextIds = defaults.length > 0 ? defaults : templates[0]?.id ? [templates[0].id] : [];
+    }
+
+    lastAppliedServicesKey.current = servicesKey;
+    setSelectedTemplateIds(nextIds);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [templates, servicesKey]);
+
   async function loadTemplates(state: string) {
     const res = await fetch(`/api/agreement-templates?state=${state}&activeOnly=true`);
     const data = await res.json();
     const loadedTemplates = data.templates || [];
 
     setTemplates(loadedTemplates);
+
+    // When services drive the selection, let the auto-select effect handle it.
+    if (hasServices) return;
 
     setSelectedTemplateIds((current) => {
       if (current.length > 0) return current;
@@ -79,6 +133,8 @@ export default function NewInspectionAgreementPicker({
   function handleStateChange(nextState: string) {
     setAgreementState(nextState);
     setSelectedTemplateIds([]);
+    // Force the service auto-select to re-run against the new state's templates.
+    lastAppliedServicesKey.current = null;
   }
 
   function toggleTemplate(templateId: string) {

@@ -1463,6 +1463,11 @@ function NewInspectionPageContent() {
 
           <NewInspectionAgreementPicker
             propertyState={stateValue}
+            services={[
+              hasHomeInspection(serviceMode) ? "home" : null,
+              hasRadon(serviceMode) ? "radon" : null,
+              hasMold(serviceMode) ? "mold" : null,
+            ].filter(Boolean) as string[]}
             onChange={(state, templateIds) => {
               setAgreementState(state);
               setAgreementTemplateIds(templateIds);
