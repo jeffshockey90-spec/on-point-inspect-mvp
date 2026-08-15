@@ -296,64 +296,105 @@ ELECTRONIC SIGNATURE ACKNOWLEDGEMENT
 By signing electronically, the Client confirms that they have read, understood, and accepted this Residential Inspection Agreement.`;
 }
 
-// Map a template's free-form service_type to a coarse service category.
-function serviceCategoryForType(serviceType?: string | null): "home" | "radon" | "mold" {
-  const value = String(serviceType || "home_inspection").toLowerCase();
-  if (value.includes("radon")) return "radon";
-  if (value.includes("mold")) return "mold";
-  return "home";
+// A per-service price map keyed by canonical service key (see
+// canonicalServiceKey). e.g. { home_inspection: 400, radon: 175, sewer_scope: 150 }.
+export type AgreementServiceFees = Record<string, number | string | null | undefined>;
+
+// Normalize any service label / type / id to a stable key so an agreement's
+// service type ("Sewer Scope", "Termite Wdo", "Radon") lines up with the price
+// map stored on the inspection. "Home Inspection" -> "home_inspection".
+export function canonicalServiceKey(value?: string | null): string {
+  return String(value || "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
 }
 
-export type AgreementServiceFees = {
-  home?: number | string | null;
-  radon?: number | string | null;
-  mold?: number | string | null;
-};
+function positiveAmount(raw: any): number | null {
+  if (raw === null || raw === undefined || raw === "") return null;
+  const amount = Number(raw);
+  return Number.isFinite(amount) && amount > 0 ? amount : null;
+}
 
-// Per-service price for one agreement template, so a bundled (merged) agreement
-// shows the radon fee on the radon agreement and the mold fee on the mold
-// agreement -- instead of the whole-inspection total on every one. Falls back to
-// the total fee when there's no positive per-service amount.
+// Resolve the price for one agreement template from the inspection's per-service
+// fee map, so each agreement in a merged doc shows its OWN service's fee. Tries an
+// exact key match, then home/radon/mold family aliases (so legacy service types
+// like "Radon Test" or "Home Inspection" still resolve), then the total.
 function feeForServiceType(
   serviceType: string | null | undefined,
   serviceFees: AgreementServiceFees | undefined,
   totalFee: string | number | null | undefined,
 ) {
   if (!serviceFees) return totalFee;
-  const raw = serviceFees[serviceCategoryForType(serviceType)];
-  const amount = Number(raw);
-  if (
-    raw === null ||
-    raw === undefined ||
-    raw === "" ||
-    !Number.isFinite(amount) ||
-    amount <= 0
-  ) {
-    return totalFee;
+
+  const key = canonicalServiceKey(serviceType) || "home_inspection";
+
+  // 1. Exact canonical match (covers every custom service).
+  const exact = positiveAmount(serviceFees[key]);
+  if (exact !== null) return exact;
+
+  // 2. Built-in family aliases, matched by keyword so naming variants still work.
+  if (key.includes("radon")) {
+    const radon = positiveAmount(serviceFees.radon ?? serviceFees.radon_test);
+    if (radon !== null) return radon;
   }
-  return amount;
+  if (key.includes("mold")) {
+    const mold = positiveAmount(serviceFees.mold ?? serviceFees.mold_testing);
+    if (mold !== null) return mold;
+  }
+  if (key.includes("home") || key.includes("listing") || key.includes("construction")) {
+    const home = positiveAmount(serviceFees.home ?? serviceFees.home_inspection);
+    if (home !== null) return home;
+  }
+
+  // 3. Nothing specific -> the whole-inspection total.
+  return totalFee;
 }
 
-// Split an inspection's stored fees into per-service amounts. The home portion is
-// the total minus the clearly-separate add-ons (radon, mold, travel), with any
-// bundle discount added back so each agreement shows that service's own price.
+// Build the per-service price map for an inspection. Prefers the explicit
+// service_fees map (any service, set at inspection time); falls back to deriving
+// home/radon/mold from the legacy fee columns so older inspections still split
+// correctly. The home portion is the total minus the separate add-ons (radon,
+// mold, travel), with any bundle discount added back.
 export function deriveServiceFees(inspection: any): AgreementServiceFees {
+  const stored =
+    inspection?.service_fees && typeof inspection.service_fees === "object"
+      ? (inspection.service_fees as Record<string, any>)
+      : {};
+
+  const map: AgreementServiceFees = {};
+  for (const [rawKey, value] of Object.entries(stored)) {
+    const amount = positiveAmount(value);
+    if (amount !== null) map[canonicalServiceKey(rawKey)] = amount;
+  }
+
   const total =
     Number(inspection?.invoice_amount ?? inspection?.price ?? inspection?.fee ?? 0) || 0;
   const radon = Number(inspection?.radon_fee ?? 0) || 0;
   const mold = Number(inspection?.mold_fee ?? 0) || 0;
 
-  // No add-on services: a single (home-only) agreement should keep showing the
-  // full total, exactly as before. Only split per service when radon/mold add-ons
-  // exist, so each service's agreement shows its own price.
-  if (radon <= 0 && mold <= 0) {
-    return { home: total, radon, mold };
+  // Fill built-ins from legacy columns when the map doesn't already carry them.
+  if (map.radon == null && radon > 0) map.radon = radon;
+  if (map.mold == null && mold > 0) map.mold = mold;
+
+  if (map.home == null && map.home_inspection == null) {
+    if (radon <= 0 && mold <= 0 && Object.keys(map).length === 0) {
+      // Home-only / single-service inspection: keep the full total behavior.
+      map.home = total;
+    } else {
+      const travel = Number(inspection?.travel_fee ?? 0) || 0;
+      const discount = Number(inspection?.discount ?? 0) || 0;
+      const otherServices = Object.entries(map).reduce((sum, [key, value]) => {
+        if (key === "home" || key === "home_inspection") return sum;
+        return sum + (Number(value) || 0);
+      }, 0);
+      const home = Math.max(0, total - otherServices - travel + discount);
+      if (home > 0) map.home = home;
+    }
   }
 
-  const travel = Number(inspection?.travel_fee ?? 0) || 0;
-  const discount = Number(inspection?.discount ?? 0) || 0;
-  const home = Math.max(0, total - radon - mold - travel + discount);
-  return { home, radon, mold };
+  return map;
 }
 
 export function mergeMultipleAgreementBodies({

@@ -58,6 +58,31 @@ const serviceOptions: { value: ServiceMode; label: string }[] = [
   { value: "home_radon_mold", label: "Home + Radon + Mold" },
 ];
 
+// Extra priced services (beyond the home/radon/mold quote) an inspector can add
+// to an inspection. The value matches the agreement Service Type so each one's
+// agreement auto-attaches and shows its own price. Add any service here or via
+// "Other" with a custom label.
+const ADDON_SERVICE_OPTIONS: { value: string; label: string }[] = [
+  { value: "sewer_scope", label: "Sewer Scope" },
+  { value: "water_quality", label: "Water Quality" },
+  { value: "termite_wdo", label: "Termite / WDO" },
+  { value: "pool_spa", label: "Pool / Spa" },
+  { value: "ancillary", label: "Ancillary" },
+  { value: "other", label: "Other" },
+];
+
+type AddonService = { id: string; type: string; label: string; price: string };
+
+// Normalize a service label/type to a stable key (mirrors canonicalServiceKey in
+// lib/agreementTemplates) so stored service_fees line up with agreement types.
+function canonicalServiceKey(value: string) {
+  return String(value || "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
 const timeOptions = [
   "08:00",
   "08:30",
@@ -373,6 +398,9 @@ function NewInspectionPageContent() {
   const [serviceMode, setServiceMode] = useState<ServiceMode>(
     () => (searchParams.get("serviceMode") as ServiceMode) || "home"
   );
+  // Extra priced services beyond the home/radon/mold quote (e.g. sewer scope,
+  // termite). Each is stored per-service so its agreement shows its own price.
+  const [addonServices, setAddonServices] = useState<AddonService[]>([]);
   const [price, setPrice] = useState("500");
   // True once the inspector types a custom price, so auto-pricing stops
   // overwriting it. They can reset back to auto at any time.
@@ -454,6 +482,52 @@ function NewInspectionPageContent() {
     priceOverridden && String(price).trim() !== ""
       ? Math.max(0, (Number(price) || 0) - quote.discount)
       : quote.total;
+
+  // Add-on services add on top of the home/radon/mold quote.
+  const addonTotal = addonServices.reduce(
+    (sum, addon) => sum + Math.max(0, Number(addon.price) || 0),
+    0,
+  );
+  const grandTotal = effectiveTotal + addonTotal;
+
+  function addAddonService() {
+    setAddonServices((current) => [
+      ...current,
+      {
+        id: `${current.length}-${current.reduce((n, a) => n + a.id.length, 1)}`,
+        type: "sewer_scope",
+        label: "",
+        price: "",
+      },
+    ]);
+  }
+
+  function updateAddonService(id: string, patch: Partial<AddonService>) {
+    setAddonServices((current) =>
+      current.map((addon) => (addon.id === id ? { ...addon, ...patch } : addon)),
+    );
+  }
+
+  function removeAddonService(id: string) {
+    setAddonServices((current) => current.filter((addon) => addon.id !== id));
+  }
+
+  // The per-service price map saved on the inspection, keyed by canonical service
+  // key so each agreement's {{INSPECTION_FEE}} resolves to its own service price.
+  function buildServiceFeesMap(): Record<string, number> {
+    const map: Record<string, number> = {};
+    if (quote.includesHome && quote.base > 0) map.home_inspection = quote.base;
+    if (quote.includesRadon && quote.radonFee > 0) map.radon = quote.radonFee;
+    if (quote.includesMold && quote.moldFee > 0) map.mold = quote.moldFee;
+    for (const addon of addonServices) {
+      const key = canonicalServiceKey(
+        addon.type === "other" && addon.label.trim() ? addon.label : addon.type,
+      );
+      const amount = Math.max(0, Number(addon.price) || 0);
+      if (key && amount > 0) map[key] = amount;
+    }
+    return map;
+  }
 
   const filteredRealtors = useMemo(() => {
     const search = realtorName.trim().toLowerCase();
@@ -848,7 +922,8 @@ function NewInspectionPageContent() {
         return;
       }
 
-      const totalPrice = Number(effectiveTotal) || quote.total || 500;
+      const totalPrice = (Number(effectiveTotal) || quote.total || 500) + addonTotal;
+      const serviceFeesMap = buildServiceFeesMap();
 
       const fullAddressForImage = `${propertyAddress}, ${city || ""}, ${
         stateValue || ""
@@ -947,6 +1022,24 @@ function NewInspectionPageContent() {
 
         alert(error.message);
         return;
+      }
+
+      // Best-effort: store the per-service price map so each agreement shows its
+      // own service's fee. Done as a separate update (not in the insert) and
+      // tolerant of the column not existing yet, so a not-yet-run migration can
+      // never block creating an inspection.
+      if (data?.id && Object.keys(serviceFeesMap).length > 0) {
+        const { error: serviceFeesError } = await supabase
+          .from("inspections")
+          .update({ service_fees: serviceFeesMap })
+          .eq("id", data.id);
+
+        if (serviceFeesError) {
+          console.warn(
+            "Could not save per-service fees (run supabase/inspection-service-fees.sql):",
+            serviceFeesError.message,
+          );
+        }
       }
 
       // Best-effort: geocode the property and cache driving distance from
@@ -1454,6 +1547,97 @@ function NewInspectionPageContent() {
         </section>
 
         <section className="mt-6 rounded-2xl border border-zinc-800 bg-[#0b1220] p-5">
+          <h2 className="mb-1 text-xl font-bold text-teal-400">Additional Services</h2>
+          <p className="mb-4 text-sm text-zinc-400">
+            Add any other paid service (sewer scope, termite, water quality, etc.) with its own
+            price. Each one attaches its matching agreement and shows its own fee on the agreement
+            the client signs.
+          </p>
+
+          {addonServices.length > 0 && (
+            <div className="space-y-3">
+              {addonServices.map((addon) => (
+                <div
+                  key={addon.id}
+                  className="rounded-xl border border-zinc-800 bg-[#020817]/60 p-3"
+                >
+                  <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-end">
+                    <div>
+                      <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-zinc-500">
+                        Service
+                      </label>
+                      <select
+                        value={addon.type}
+                        onChange={(e) => updateAddonService(addon.id, { type: e.target.value })}
+                        className="w-full rounded-xl border border-zinc-700 bg-[#0b1220] px-3 py-2.5 text-white outline-none focus:border-teal-400"
+                      >
+                        {ADDON_SERVICE_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                      {addon.type === "other" && (
+                        <input
+                          value={addon.label}
+                          onChange={(e) => updateAddonService(addon.id, { label: e.target.value })}
+                          placeholder="Service name (e.g. Well Flow Test)"
+                          className="mt-2 w-full rounded-xl border border-zinc-700 bg-[#0b1220] px-3 py-2.5 text-white outline-none placeholder:text-zinc-500 focus:border-teal-400"
+                        />
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-zinc-500">
+                        Price
+                      </label>
+                      <div className="flex items-center rounded-xl border border-zinc-700 bg-[#0b1220] px-3">
+                        <span className="text-zinc-400">$</span>
+                        <input
+                          inputMode="decimal"
+                          value={addon.price}
+                          onChange={(e) =>
+                            updateAddonService(addon.id, {
+                              price: e.target.value.replace(/[^0-9.]/g, ""),
+                            })
+                          }
+                          placeholder="0"
+                          className="w-24 bg-transparent px-2 py-2.5 text-white outline-none placeholder:text-zinc-500"
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => removeAddonService(addon.id)}
+                      className="rounded-xl border border-red-500/50 px-3 py-2.5 text-sm font-bold text-red-300 hover:bg-red-500/10"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={addAddonService}
+            className="mt-3 rounded-xl border border-teal-500/60 px-4 py-2.5 text-sm font-black text-teal-300 hover:bg-teal-500/10"
+          >
+            + Add service
+          </button>
+
+          {addonTotal > 0 && (
+            <p className="mt-3 text-sm text-zinc-300">
+              Add-ons: <span className="font-bold text-white">${addonTotal.toFixed(2)}</span> ·
+              Grand total:{" "}
+              <span className="font-black text-teal-300">${grandTotal.toFixed(2)}</span>
+            </p>
+          )}
+        </section>
+
+        <section className="mt-6 rounded-2xl border border-zinc-800 bg-[#0b1220] p-5">
           <h2 className="mb-4 text-xl font-bold text-teal-400">Agreement</h2>
 
           <p className="mb-4 text-sm text-zinc-400">
@@ -1467,6 +1651,11 @@ function NewInspectionPageContent() {
               hasHomeInspection(serviceMode) ? "home" : null,
               hasRadon(serviceMode) ? "radon" : null,
               hasMold(serviceMode) ? "mold" : null,
+              ...addonServices.map((addon) =>
+                canonicalServiceKey(
+                  addon.type === "other" && addon.label.trim() ? addon.label : addon.type,
+                ),
+              ),
             ].filter(Boolean) as string[]}
             onChange={(state, templateIds) => {
               setAgreementState(state);
