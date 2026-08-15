@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
+import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
 
 import {
@@ -14,6 +15,12 @@ import { getCompanyBrandingById, getCompanyOwnerName } from "../../../lib/compan
 import { sendPushNotification } from "../../../lib/push";
 
 export const runtime = "nodejs";
+
+// The electronic-signature consent the signer affirms (ESIGN Act / UETA). Stored
+// with the signed record so we can show exactly what they consented to.
+// (Not exported: route files may only export handlers/config.)
+const ESIGN_CONSENT_TEXT =
+  "I have read and agree to this agreement, and I consent to use electronic records and electronic signatures. I understand that my electronic signature is the legal equivalent of my handwritten signature and legally binds me to this agreement.";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -253,6 +260,34 @@ export async function POST(req: Request) {
 
     const userAgent = h.get("user-agent") || "";
 
+    // Tamper-evidence: a SHA-256 of the EXACT text being signed. Any later change
+    // to the stored body would change this hash, so it proves integrity.
+    const agreementHash = crypto
+      .createHash("sha256")
+      .update(String(agreementBody || ""), "utf8")
+      .digest("hex");
+
+    // When did this signer first open the agreement? Earliest agreement-view
+    // event for this inspection, so the certificate can show viewed-at -> signed-at.
+    let viewedAt: string | null = null;
+    try {
+      const { data: firstView } = await supabase
+        .from("inspection_view_events")
+        .select("created_at")
+        .eq("inspection_id_bigint", Number(inspectionId))
+        .in("view_type", [
+          "agreement_page",
+          "agreement_viewed",
+          "agreement_reminder_page",
+        ])
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      viewedAt = firstView?.created_at || null;
+    } catch {
+      viewedAt = null;
+    }
+
     const selectedTemplateIds = templates
       .map((template) => template.id)
       .filter(Boolean);
@@ -299,6 +334,28 @@ export async function POST(req: Request) {
       .single();
 
     if (error) throw error;
+
+    // Best-effort: attach the defensibility record (hash, viewed-at, ESIGN
+    // consent). Done as a separate update so a not-yet-run migration can never
+    // block the signature itself.
+    if (agreement?.id) {
+      const { error: certError } = await supabase
+        .from("inspection_agreements")
+        .update({
+          agreement_hash: agreementHash,
+          viewed_at: viewedAt,
+          esign_consent: Boolean(accepted),
+          esign_consent_text: ESIGN_CONSENT_TEXT,
+        })
+        .eq("id", agreement.id);
+
+      if (certError) {
+        console.warn(
+          "Signature certificate fields not saved (run supabase/agreement-defensibility.sql):",
+          certError.message,
+        );
+      }
+    }
 
     if (contact?.id) {
       await supabase

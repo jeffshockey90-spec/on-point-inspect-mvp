@@ -259,7 +259,10 @@ export default function AgreementSignatureForm({
         />
 
         <span className="text-sm leading-6 text-slate-300">
-          I have read the full agreement above and agree to the terms. I understand this electronic signature is intended to represent my acceptance of the inspection agreement.
+          I have read and agree to this agreement, and I consent to use electronic
+          records and electronic signatures. I understand my electronic signature is
+          the legal equivalent of my handwritten signature and legally binds me to
+          this agreement.
         </span>
       </label>
 

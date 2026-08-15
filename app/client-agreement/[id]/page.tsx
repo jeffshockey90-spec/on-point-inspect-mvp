@@ -397,6 +397,11 @@ export default async function ClientAgreementPage({
               <p>
                 <strong>Role:</strong> {signedAgreement.signature_role || "client"}
               </p>
+              {signedAgreement.viewed_at && (
+                <p>
+                  <strong>First viewed at:</strong> {formatSignedDate(signedAgreement.viewed_at)}
+                </p>
+              )}
               <p>
                 <strong>Signed at:</strong> {formatSignedDate(signedAgreement.signed_at)}
               </p>
@@ -429,6 +434,29 @@ export default async function ClientAgreementPage({
                 </div>
               </div>
             ) : null}
+
+            {(signedAgreement.agreement_hash || signedAgreement.esign_consent_text) && (
+              <div className="mt-5 border-t border-green-700/40 pt-4 print:border-black">
+                <p className="text-xs font-black uppercase tracking-wide text-green-300 print:text-black">
+                  Certificate of Electronic Signature
+                </p>
+                {signedAgreement.esign_consent_text && (
+                  <p className="mt-2 text-xs leading-6 text-slate-300 print:text-black">
+                    &ldquo;{signedAgreement.esign_consent_text}&rdquo;
+                  </p>
+                )}
+                {signedAgreement.agreement_hash && (
+                  <p className="mt-2 break-all font-mono text-[11px] text-slate-400 print:text-black">
+                    <strong>Document SHA-256:</strong> {signedAgreement.agreement_hash}
+                  </p>
+                )}
+                <p className="mt-2 text-[11px] leading-5 text-slate-500 print:text-black">
+                  This record is protected by the tamper-evidence hash above &mdash; any change
+                  to the agreement text would alter this value. Executed electronically under the
+                  U.S. ESIGN Act and applicable state UETA.
+                </p>
+              </div>
+            )}
           </div>
         ) : (
           <AgreementSignatureForm

@@ -186,8 +186,37 @@ export default async function SignedAgreementPage({ params }: PageProps) {
             )}
             <p><strong>Email:</strong> {agreement.client_email || "N/A"}</p>
             <p><strong>Role:</strong> {agreement.signature_role || "client"}</p>
+            {agreement.viewed_at && (
+              <p><strong>First viewed:</strong> {formatSignedDate(agreement.viewed_at)}</p>
+            )}
             <p><strong>Signed:</strong> {formatSignedDate(agreement.signed_at)}</p>
+            {agreement.signer_ip && (
+              <p><strong>Signer IP:</strong> {agreement.signer_ip}</p>
+            )}
           </div>
+
+          {(agreement.agreement_hash || agreement.esign_consent_text) && (
+            <div className="mt-4 border-t border-slate-800 pt-4 print:border-black">
+              <p className="text-xs font-black uppercase tracking-wide text-teal-300 print:text-black">
+                Certificate of Electronic Signature
+              </p>
+              {agreement.esign_consent_text && (
+                <p className="mt-2 text-xs leading-6 text-slate-300 print:text-black">
+                  &ldquo;{agreement.esign_consent_text}&rdquo;
+                </p>
+              )}
+              {agreement.agreement_hash && (
+                <p className="mt-2 break-all font-mono text-[11px] text-slate-400 print:text-black">
+                  <strong>Document SHA-256:</strong> {agreement.agreement_hash}
+                </p>
+              )}
+              <p className="mt-2 text-[11px] leading-5 text-slate-500 print:text-black">
+                Protected by the tamper-evidence hash above; any change to the agreement text
+                would alter it. Executed electronically under the U.S. ESIGN Act and applicable
+                state UETA.
+              </p>
+            </div>
+          )}
         </section>
 
         <section className="rounded-2xl border border-slate-800 bg-[#0b1220] p-6 shadow-xl print:hidden">
