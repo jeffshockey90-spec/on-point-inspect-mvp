@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { US_STATES } from "../lib/usStates";
 
 type AgreementTemplate = Record<string, any>;
 
@@ -197,25 +198,22 @@ export default function NewInspectionAgreementPicker({
 
       {expanded && (
         <div className="mt-4 space-y-4">
-          <div className="grid w-full grid-cols-3 gap-2">
-            {["MD", "WV", "PA"].map((state) => {
-              const active = state === agreementState;
-              return (
-                <button
-                  key={state}
-                  type="button"
-                  onClick={() => handleStateChange(state)}
-                  className={`rounded-2xl border px-3 py-3 text-center text-sm font-black transition ${
-                    active
-                      ? "border-teal-400 bg-teal-500/15 text-teal-300"
-                      : "border-slate-700 bg-slate-950 text-white hover:border-teal-500"
-                  }`}
-                >
-                  {state}
-                </button>
-              );
-            })}
-          </div>
+          <label className="block">
+            <span className="mb-1 block text-xs font-black uppercase tracking-wide text-slate-500">
+              Agreement State
+            </span>
+            <select
+              value={agreementState}
+              onChange={(e) => handleStateChange(e.target.value)}
+              className="w-full rounded-2xl border border-slate-700 bg-slate-950 px-3 py-3 text-sm font-bold text-white outline-none focus:border-teal-400"
+            >
+              {US_STATES.map((state) => (
+                <option key={state.code} value={state.code}>
+                  {state.code} — {state.name}
+                </option>
+              ))}
+            </select>
+          </label>
 
           {Object.entries(templatesByServiceType).map(([serviceType, serviceTemplates]) => (
             <div key={serviceType} className="rounded-2xl border border-slate-700 bg-slate-950 p-4">
