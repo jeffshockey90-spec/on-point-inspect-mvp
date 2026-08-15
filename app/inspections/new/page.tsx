@@ -15,7 +15,7 @@ import {
 } from "../../../lib/inspectorPricing";
 import { useAddressAutocomplete } from "../../../hooks/useAddressAutocomplete";
 import NewInspectionAgreementPicker from "../../../components/NewInspectionAgreementPicker";
-import { isIOSNativeApp, openInSystemBrowser } from "../../../lib/nativePlatform";
+import { isIOSNativeApp } from "../../../lib/nativePlatform";
 
 declare global {
   interface Window {
@@ -1686,28 +1686,32 @@ function NewInspectionPageContent() {
             </p>
 
             <p className="mt-3 text-sm leading-6 text-zinc-400">
-              Activate your subscription to keep creating inspections.
+              {isIOSNativeApp()
+                ? "Your subscription is managed on the web. Renew at flowinspect.app from a browser, then return here to keep creating inspections."
+                : "Activate your subscription to keep creating inspections."}
             </p>
 
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              <button
-                type="button"
-                onClick={() =>
-                  isIOSNativeApp()
-                    ? openInSystemBrowser("/billing")
-                    : router.push("/billing")
-                }
-                className="rounded-xl bg-teal-500 px-4 py-3 font-black text-black hover:bg-teal-400"
-              >
-                Go To Billing
-              </button>
+              {/* App Store Guideline 3.1.1: no in-app purchase or external-purchase
+                  CTA on iOS. The billing button (which leads to checkout) shows on
+                  web/Android only; iOS gets the plain "manage on the web" message
+                  above. */}
+              {!isIOSNativeApp() && (
+                <button
+                  type="button"
+                  onClick={() => router.push("/billing")}
+                  className="rounded-xl bg-teal-500 px-4 py-3 font-black text-black hover:bg-teal-400"
+                >
+                  Go To Billing
+                </button>
+              )}
 
               <button
                 type="button"
                 onClick={() => setShowBillingPopup(false)}
                 className="rounded-xl border border-zinc-700 px-4 py-3 font-black text-white hover:bg-zinc-800"
               >
-                Cancel
+                Close
               </button>
             </div>
           </div>

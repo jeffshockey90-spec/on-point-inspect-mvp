@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { isIOSNativeApp, openInSystemBrowser } from "../lib/nativePlatform";
+import { isIOSNativeApp } from "../lib/nativePlatform";
 
 export default function SubscriptionCheckoutButton({ priceLabel }: { priceLabel: string }) {
   const [loading, setLoading] = useState(false);
@@ -40,22 +40,20 @@ export default function SubscriptionCheckoutButton({ priceLabel }: { priceLabel:
 
   if (!ready) return null;
 
-  // App Store Guideline 3.1.1: the purchase must not happen inside the iOS app.
-  // On iOS we send the inspector to flowinspect.app in the external browser
-  // (Safari), where the web checkout runs. Web and Android are unaffected.
+  // App Store Guideline 3.1.1: the iOS app must not sell the subscription and
+  // must not include a button/link/CTA that steers to an outside purchase. On
+  // iOS we show plain informational text only -- no purchase control, no link.
+  // The FLOW subscription is a B2B service managed on the web. Web and Android
+  // are unaffected.
   if (iosApp) {
     return (
       <div className="max-w-sm space-y-2">
-        <button
-          type="button"
-          onClick={() => openInSystemBrowser("/billing")}
-          className="rounded-xl bg-teal-500 px-6 py-3 font-black text-slate-950 hover:bg-teal-400"
-        >
-          Subscribe at flowinspect.app
-        </button>
-        <p className="text-sm leading-6 text-slate-300">
-          Opens flowinspect.app in your browser to start your {priceLabel}{" "}
-          subscription. Once it&apos;s active, return here to keep creating
+        <p className="text-sm font-semibold leading-6 text-slate-200">
+          Your FlowInspect subscription is managed on the web.
+        </p>
+        <p className="text-sm leading-6 text-slate-400">
+          Start or manage your {priceLabel} plan at flowinspect.app from any web
+          browser. Once it&apos;s active, sign back in here to keep creating
           inspections.
         </p>
       </div>

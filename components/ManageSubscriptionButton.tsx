@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { isIOSNativeApp, openInSystemBrowser } from "../lib/nativePlatform";
+import { isIOSNativeApp } from "../lib/nativePlatform";
 
 type ManageSubscriptionButtonProps = {
   flow?: "manage" | "cancel";
@@ -63,19 +63,17 @@ export default function ManageSubscriptionButton({
   if (!ready) return null;
 
   // App Store Guideline 3.1.1: subscription management (which can change plan /
-  // payment) must not run inside the iOS app. Show a single "manage on the web"
-  // link that opens flowinspect.app in Safari; drop the duplicate cancel button
-  // on iOS since the web portal handles cancellation too.
+  // payment) must not run inside the iOS app, and we don't include a link/CTA
+  // that steers to an outside purchase. Show plain informational text only; the
+  // web portal handles manage + cancel. Cancel renders nothing on iOS (the
+  // single manage message covers it).
   if (iosApp) {
     if (flow === "cancel") return null;
     return (
-      <button
-        type="button"
-        onClick={() => openInSystemBrowser("/billing")}
-        className={className || DEFAULT_CLASS_BY_FLOW.manage}
-      >
-        Manage at flowinspect.app
-      </button>
+      <p className="text-sm leading-6 text-slate-400">
+        Manage or cancel your subscription anytime at flowinspect.app from a web
+        browser.
+      </p>
     );
   }
 
