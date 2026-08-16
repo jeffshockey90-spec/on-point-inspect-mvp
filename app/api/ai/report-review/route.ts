@@ -105,10 +105,11 @@ export async function POST(req: Request) {
 
     const context = await aiContext.load(inspectionId);
 
-    const findingsSummary = safeArray(findings)
-      .map((finding: any) => {
+    const orderedFindings = safeArray(findings);
+    const findingsSummary = orderedFindings
+      .map((finding: any, index: number) => {
         return [
-          `ID: ${finding.id}`,
+          `Finding ${index + 1}`,
           `Section: ${cleanText(finding.section) || "Unknown"}`,
           `Severity: ${cleanText(finding.severity) || "Unknown"}`,
           `Title: ${cleanText(finding.title) || "Untitled"}`,
@@ -201,17 +202,17 @@ Return JSON in this exact structure:
   "score": 0,
   "passed": true,
   "summary": "",
-  "criticalIssues": [ { "message": "", "findingId": "", "section": "" } ],
-  "warnings": [ { "message": "", "findingId": "", "section": "" } ],
-  "suggestions": [ { "message": "", "findingId": "", "section": "" } ],
+  "criticalIssues": [ { "message": "", "findingNumber": 0, "section": "" } ],
+  "warnings": [ { "message": "", "findingNumber": 0, "section": "" } ],
+  "suggestions": [ { "message": "", "findingNumber": 0, "section": "" } ],
   "missingSystems": [],
-  "duplicateConcerns": [ { "message": "", "findingId": "", "section": "" } ],
-  "sectionConcerns": [ { "message": "", "findingId": "", "section": "" } ],
-  "photoConcerns": [ { "message": "", "findingId": "", "section": "" } ],
+  "duplicateConcerns": [ { "message": "", "findingNumber": 0, "section": "" } ],
+  "sectionConcerns": [ { "message": "", "findingNumber": 0, "section": "" } ],
+  "photoConcerns": [ { "message": "", "findingNumber": 0, "section": "" } ],
   "publishRecommendation": "Ready to publish | Review recommended | Do not publish yet"
 }
 
-For every issue that is about a specific finding, set "findingId" to that finding's ID exactly as shown in the Findings list above (and "section" to its section), so the inspector can jump straight to it. Leave "findingId" empty ("") only for report-wide items that don't map to one finding. Each item's "message" must be short and actionable.
+For every issue that is about a specific finding, set "findingNumber" to that finding's number (1, 2, 3, ...) exactly as labeled "Finding N" in the Findings list above (and "section" to its section), so the inspector can jump straight to it. Use "findingNumber": 0 only for report-wide items that don't map to a single finding. Each item's "message" must be short and actionable.
 
 Scoring guidance:
 - 90-100: clean report, only minor suggestions.
@@ -238,6 +239,22 @@ Keep items short and actionable.
       parsed = {};
     }
 
+    // Map the AI's 1-based "findingNumber" back to the real finding id so the UI
+    // can jump to it. LLMs echo small integers reliably but mangle long db ids,
+    // so we never ask the model for the raw id.
+    const attachFindingIds = (items: any) =>
+      safeArray(items).map((item: any) => {
+        if (!item || typeof item !== "object") return item;
+        const num = Number(item.findingNumber);
+        if (Number.isInteger(num) && num >= 1 && num <= orderedFindings.length) {
+          const target = orderedFindings[num - 1];
+          if (target?.id !== undefined && target?.id !== null) {
+            return { ...item, findingId: target.id };
+          }
+        }
+        return item;
+      });
+
     const result = {
       score:
         Number.isFinite(Number(parsed.score))
@@ -250,13 +267,13 @@ Keep items short and actionable.
       summary:
         cleanText(parsed.summary) ||
         "AI report review completed. Review the items below before publishing.",
-      criticalIssues: safeArray(parsed.criticalIssues),
-      warnings: safeArray(parsed.warnings),
-      suggestions: safeArray(parsed.suggestions),
+      criticalIssues: attachFindingIds(parsed.criticalIssues),
+      warnings: attachFindingIds(parsed.warnings),
+      suggestions: attachFindingIds(parsed.suggestions),
       missingSystems: safeArray(parsed.missingSystems),
-      duplicateConcerns: safeArray(parsed.duplicateConcerns),
-      sectionConcerns: safeArray(parsed.sectionConcerns),
-      photoConcerns: safeArray(parsed.photoConcerns),
+      duplicateConcerns: attachFindingIds(parsed.duplicateConcerns),
+      sectionConcerns: attachFindingIds(parsed.sectionConcerns),
+      photoConcerns: attachFindingIds(parsed.photoConcerns),
       publishRecommendation:
         cleanText(parsed.publishRecommendation) ||
         (baseReview.score >= 85 ? "Ready to publish" : "Review recommended"),
