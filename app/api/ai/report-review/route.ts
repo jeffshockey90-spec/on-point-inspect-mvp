@@ -278,7 +278,17 @@ Keep items short and actionable.
     const attachFindingIds = (items: any) =>
       safeArray(items).map((item: any) => {
         const isObj = item && typeof item === "object";
-        const message = isObj ? safeText(item) : String(item || "");
+        const message = isObj
+          ? cleanText(
+              item.message ||
+                item.title ||
+                item.issue ||
+                item.concern ||
+                item.description ||
+                item.text ||
+                "",
+            )
+          : String(item || "");
 
         let findingId: any;
 
