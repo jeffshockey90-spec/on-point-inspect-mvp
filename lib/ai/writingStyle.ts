@@ -146,6 +146,11 @@ These are wording preferences ONLY. Never invent, exaggerate, downplay, or omit 
 - Default tone: ${TONE_TEXT[c.tone]}
 Per-severity adjustments (apply the row matching the severity you assign; otherwise use the defaults above):
 ${overrideLines}
+
+Wording discipline (always apply):
+- Reserve the word "structural" for genuine structural components or defects — foundation, footings, framing, load-bearing beams/joists/headers/columns, or clear evidence of movement or settlement. A crack in drywall, plaster, stucco, brick veneer, a slab, tile, a driveway, or any cosmetic surface is NOT "structural."
+- When you are unsure whether a condition is structural, describe exactly what is visible and recommend evaluation by a qualified professional — do NOT label it "structural."
+- Prefer the specific component name (e.g., "drywall crack," "settlement crack in the garage slab") over generic alarming words, and never use "structural" to add urgency.
 `.trim();
 }
 

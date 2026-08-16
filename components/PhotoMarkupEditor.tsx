@@ -619,7 +619,7 @@ function PhotoMarkupEditor({
 
   return (
     <div className="fixed inset-0 z-[9999] flex flex-col bg-black text-white">
-      <div className="flex items-center justify-between border-b border-white/10 bg-black px-5 py-4">
+      <div className="flex items-center justify-between border-b border-white/10 bg-black px-5 pb-4 pt-[calc(env(safe-area-inset-top)+1rem)]">
         <button
           type="button"
           onClick={() => {

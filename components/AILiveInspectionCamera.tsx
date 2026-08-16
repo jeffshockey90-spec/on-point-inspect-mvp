@@ -486,7 +486,12 @@ export default function AILiveInspectionCamera({
       category === "limitation" ||
       category === "reference"
     ) {
-      if (category === "reference") setReferenceSection(currentSection);
+      // Default the reference section to the field's current section only on the
+      // FIRST photo of a batch. After that, keep whatever section the inspector
+      // picked so a second photo doesn't reset their choice.
+      if (category === "reference" && shots.length === 0) {
+        setReferenceSection(currentSection);
+      }
       setShots((current) => [
         ...current,
         { file, frame: frameDataUrlForAi, isVideo },
@@ -1000,7 +1005,7 @@ export default function AILiveInspectionCamera({
         autoPlay
         muted
         playsInline
-        className="absolute inset-0 h-full w-full bg-black object-cover"
+        className="absolute inset-0 h-full w-full bg-black object-contain"
         style={
           hardwareZoomSupportedRef.current || zoomLevel <= 1
             ? undefined
