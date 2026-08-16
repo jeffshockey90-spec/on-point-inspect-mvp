@@ -79,36 +79,18 @@ function toReviewItems(value: any): ReviewItem[] {
 // Scroll the report to the finding an item references and flash it, revealing the
 // findings section first if it isn't on screen yet.
 function jumpToFinding(findingId?: string | number, section?: string) {
-  if (typeof document === "undefined") return;
+  if (typeof window === "undefined") return;
+  const id = findingId === undefined || findingId === null ? "" : String(findingId).trim();
 
-  const attempt = (n = 0) => {
-    let el: HTMLElement | null = null;
-    if (findingId !== undefined && findingId !== null && String(findingId)) {
-      el = document.querySelector(
-        `[data-finding-id="${String(findingId).replace(/"/g, '\\"')}"]`,
-      ) as HTMLElement | null;
-    }
-
-    if (el && el.offsetParent !== null) {
-      el.scrollIntoView({ behavior: "smooth", block: "center" });
-      el.style.transition = "box-shadow 0.3s ease";
-      el.style.boxShadow = "0 0 0 3px rgba(168,85,247,0.85)";
-      window.setTimeout(() => {
-        el!.style.boxShadow = "";
-      }, 2200);
-      return;
-    }
-
-    if (n < 8) {
-      // Nudge / reveal the findings editor, then retry until the finding is visible.
-      document
-        .getElementById("report-findings")
-        ?.scrollIntoView({ behavior: "smooth", block: "start" });
-      window.setTimeout(() => attempt(n + 1), 250);
-    }
-  };
-
-  attempt();
+  // Use the finding editor's own jump mechanism: each finding listens for this
+  // event and, when its id matches, EXPANDS itself and scrolls into view (so it
+  // works even when the finding card is collapsed). Same event Command Center uses.
+  if (!id) return;
+  window.dispatchEvent(
+    new CustomEvent("opi:command-center-jump", {
+      detail: { findingIds: [id] },
+    }),
+  );
 }
 
 function scoreTone(score: number) {
