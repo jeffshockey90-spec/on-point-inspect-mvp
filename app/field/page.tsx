@@ -912,6 +912,21 @@ function FieldPageContent() {
   const [organizingMedia, setOrganizingMedia] = useState(false);
   const [savingOrganizedMedia, setSavingOrganizedMedia] = useState(false);
   const [mediaGroups, setMediaGroups] = useState<AIMediaGroup[]>([]);
+
+  // Object URLs for the media-organizer thumbnails, so the inspector can see
+  // which photos landed in which finding and move/decline them.
+  const mediaPreviewUrls = useMemo(
+    () =>
+      photos.map((file) =>
+        file.type.startsWith("image/") ? URL.createObjectURL(file) : "",
+      ),
+    [photos],
+  );
+  useEffect(
+    () => () =>
+      mediaPreviewUrls.forEach((url) => url && URL.revokeObjectURL(url)),
+    [mediaPreviewUrls],
+  );
   const [mediaOrganizerOpen, setMediaOrganizerOpen] = useState(false);
   const [regeneratingGroupId, setRegeneratingGroupId] = useState<string | null>(null);
   // Optional inspector note that steers how AI organizes the photo session.
@@ -3259,6 +3274,31 @@ function FieldPageContent() {
     );
   }
 
+  // Move one photo from its current finding-group to another (or remove it from
+  // all groups, so it won't be attached to any finding).
+  function movePhotoBetweenGroups(
+    photoIndex: number,
+    fromGroupId: string,
+    toGroupId: string | null,
+  ) {
+    setMediaGroups((current) =>
+      current.map((group) => {
+        if (group.id === fromGroupId) {
+          return {
+            ...group,
+            photoIndexes: group.photoIndexes.filter((i) => i !== photoIndex),
+          };
+        }
+        if (toGroupId && group.id === toGroupId) {
+          return group.photoIndexes.includes(photoIndex)
+            ? group
+            : { ...group, photoIndexes: [...group.photoIndexes, photoIndex] };
+        }
+        return group;
+      }),
+    );
+  }
+
   // Re-draft a SINGLE group's write-up from that group's photos + its own AI note,
   // so each finding can be steered independently when they're for different things.
   async function regenerateGroupWithAI(group: AIMediaGroup) {
@@ -5216,6 +5256,65 @@ function FieldPageContent() {
                           </select>
                         </label>
                       </div>
+
+                      {group.photoIndexes.length > 0 && (
+                        <div className="mt-3">
+                          <span className="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">
+                            Photos in this finding
+                          </span>
+                          <div className="flex flex-wrap gap-2">
+                            {group.photoIndexes.map((photoIndex) => (
+                              <div key={photoIndex} className="w-16">
+                                {mediaPreviewUrls[photoIndex] ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img
+                                    src={mediaPreviewUrls[photoIndex]}
+                                    alt=""
+                                    className="h-16 w-16 rounded-lg border border-slate-700 object-cover"
+                                  />
+                                ) : (
+                                  <div className="flex h-16 w-16 items-center justify-center rounded-lg border border-slate-700 bg-slate-800 text-[10px] text-slate-400">
+                                    media
+                                  </div>
+                                )}
+                                <select
+                                  value=""
+                                  onChange={(event) => {
+                                    const value = event.target.value;
+                                    if (!value) return;
+                                    movePhotoBetweenGroups(
+                                      photoIndex,
+                                      group.id,
+                                      value === "__remove__" ? null : value,
+                                    );
+                                  }}
+                                  className="mt-1 w-16 rounded border border-slate-600 bg-black px-1 py-1 text-[10px] font-bold text-white"
+                                >
+                                  <option value="">Move…</option>
+                                  {mediaGroups
+                                    .filter((other) => other.id !== group.id)
+                                    .map((other) => (
+                                      <option key={other.id} value={other.id}>
+                                        →{" "}
+                                        {(
+                                          other.title ||
+                                          other.label ||
+                                          other.classification ||
+                                          "group"
+                                        ).slice(0, 16)}
+                                      </option>
+                                    ))}
+                                  <option value="__remove__">✕ Remove</option>
+                                </select>
+                              </div>
+                            ))}
+                          </div>
+                          <p className="mt-1 text-[11px] leading-4 text-slate-500">
+                            Use “Move…” under a photo to send it to another finding, or Remove to
+                            leave it off.
+                          </p>
+                        </div>
+                      )}
 
                       <input
                         value={group.title}
