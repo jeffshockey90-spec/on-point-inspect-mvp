@@ -1640,10 +1640,11 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
         "",
     ).toLowerCase();
 
+    // Standalone environmental = radon/mold with NO home inspection. Must exclude
+    // home first, since "home_radon_mold" contains "radon_mold" as a substring.
     const isStandaloneEnvironmentalReport =
-      serviceType.includes("radon_only") ||
-      serviceType.includes("mold_only") ||
-      serviceType.includes("radon_mold");
+      !serviceType.includes("home") &&
+      (serviceType.includes("radon") || serviceType.includes("mold"));
 
     revalidatePath(`/reports/${inspectionId}`);
     revalidatePath(`/share/${inspectionId}`);
@@ -2415,10 +2416,11 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
       "",
   ).toLowerCase();
 
+  // Standalone environmental = radon/mold with NO home inspection. Must exclude
+  // home first, since "home_radon_mold" contains "radon_mold" as a substring.
   const isStandaloneEnvironmentalReport =
-    serviceType.includes("radon_only") ||
-    serviceType.includes("mold_only") ||
-    serviceType.includes("radon_mold");
+    !serviceType.includes("home") &&
+    (serviceType.includes("radon") || serviceType.includes("mold"));
 
   const shareHref = isStandaloneEnvironmentalReport
     ? `/environmental-share/${inspection.id}`

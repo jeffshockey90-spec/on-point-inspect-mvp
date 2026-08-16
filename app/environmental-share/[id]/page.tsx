@@ -137,6 +137,17 @@ function hasMoldService(inspection: any) {
   return raw.includes("mold") || inspection?.mold === true;
 }
 
+function hasHomeInspection(inspection: any) {
+  const raw = String(
+    inspection?.service_mode ||
+      inspection?.inspection_type ||
+      inspection?.services ||
+      ""
+  ).toLowerCase();
+
+  return raw.includes("home");
+}
+
 function getReportTitle(inspection: any) {
   const radon = hasRadonService(inspection);
   const mold = hasMoldService(inspection);
@@ -401,6 +412,15 @@ export default async function PublicEnvironmentalSharePage({ params }: PageProps
 
         <div className="p-5 md:p-10">
           <div className="mb-8 flex flex-wrap gap-3 print:hidden">
+            {hasHomeInspection(inspection) && (
+              <Link
+                href={`/share/${getInspectionShareToken(inspection) || inspection.id}`}
+                className="rounded-xl bg-teal-500 px-5 py-3 font-black text-slate-950 transition hover:bg-teal-400"
+              >
+                View Home Inspection Report
+              </Link>
+            )}
+
             <PdfExportButton />
 
             <Link
