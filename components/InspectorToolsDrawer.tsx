@@ -963,6 +963,19 @@ export default function InspectorToolsDrawer({
     };
   }, []);
 
+  // Any "jump to finding/anchor" means go to the report, so close this overlay —
+  // otherwise a jump fired from a panel INSIDE the drawer (e.g. AI Report Review's
+  // "Fix ->") scrolls the finding behind the still-open drawer and nothing appears
+  // to happen.
+  useEffect(() => {
+    function closeOnJump() {
+      setOpen(false);
+    }
+    window.addEventListener("opi:command-center-jump", closeOnJump);
+    return () =>
+      window.removeEventListener("opi:command-center-jump", closeOnJump);
+  }, []);
+
   useEffect(() => {
     if (!open || !bodyRef.current) return;
 
