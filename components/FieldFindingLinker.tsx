@@ -16,8 +16,10 @@ type FindingRow = {
 // the client-facing note.
 export default function FieldFindingLinker({
   inspectionId,
+  compact = false,
 }: {
   inspectionId: string;
+  compact?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -102,13 +104,25 @@ export default function FieldFindingLinker({
 
   return (
     <>
-      <button
-        type="button"
-        onClick={openLinker}
-        className="inline-flex items-center gap-2 rounded-xl border border-indigo-500/60 bg-indigo-500/10 px-4 py-2.5 text-sm font-black text-indigo-200 transition active:scale-[0.98] hover:bg-indigo-500/20 [touch-action:manipulation]"
-      >
-        🔗 Link Findings
-      </button>
+      {compact ? (
+        <button
+          type="button"
+          onClick={openLinker}
+          aria-label="Link findings"
+          title="Link related findings"
+          className="flex h-12 w-12 items-center justify-center rounded-full border border-indigo-400/50 bg-black/70 text-lg text-indigo-200 shadow-2xl backdrop-blur transition active:scale-95 [touch-action:manipulation]"
+        >
+          🔗
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={openLinker}
+          className="inline-flex items-center gap-2 rounded-xl border border-indigo-500/60 bg-indigo-500/10 px-4 py-2.5 text-sm font-black text-indigo-200 transition active:scale-[0.98] hover:bg-indigo-500/20 [touch-action:manipulation]"
+        >
+          🔗 Link Findings
+        </button>
+      )}
 
       {open && (
         <div className="fixed inset-0 z-[9998] flex items-end justify-center bg-black/70 p-0 sm:items-center sm:p-4">

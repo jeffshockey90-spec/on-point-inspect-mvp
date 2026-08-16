@@ -6,6 +6,7 @@ import { uploadSectionReferencePhoto } from "../lib/sectionReferencePhotos";
 import type { CaptureCategory, CaptureDraft } from "../lib/ai/captureTypes";
 import CaptureConfirmCard from "./ai-camera/CaptureConfirmCard";
 import PhotoMarkupEditor from "./PhotoMarkupEditor";
+import FieldFindingLinker from "./FieldFindingLinker";
 
 type Stage =
   | "idle"
@@ -1079,6 +1080,10 @@ export default function AILiveInspectionCamera({
           >
             🔄
           </button>
+
+          {selectedReport && (
+            <FieldFindingLinker inspectionId={String(selectedReport)} compact />
+          )}
         </div>
       </div>
 
