@@ -11,6 +11,7 @@ import SectionInformationChecklist from "../../../components/SectionInformationC
 import SectionReferencePhotos from "../../../components/SectionReferencePhotos";
 import AISectionReview from "../../../components/AISectionReview";
 import ExpandableReportImage from "../../../components/ExpandableReportImage";
+import RelatedFindingsEditor from "../../../components/RelatedFindingsEditor";
 import { supabase } from "../../../lib/supabaseClient";
 
 const PHOTO_BUCKET = "inspection-photos";
@@ -1032,6 +1033,7 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
                     finding={finding}
                     inspectionId={inspectionId}
                     allPhotos={allPhotos}
+                    allFindings={allFindings}
                     availableSections={availableSections}
                     onNeedPhotoPicker={() => setPhotoPickerLoaded(true)}
                     router={router}
@@ -2141,6 +2143,7 @@ function FindingCardBase({
   finding,
   inspectionId,
   allPhotos,
+  allFindings,
   availableSections,
   onNeedPhotoPicker,
   router,
@@ -3595,6 +3598,12 @@ function FindingCardBase({
             )}`}
             finding={displayFinding}
             availableSections={availableSections}
+          />
+
+          <RelatedFindingsEditor
+            inspectionId={String(inspectionId)}
+            finding={displayFinding}
+            allFindings={allFindings || []}
           />
         </div>
 

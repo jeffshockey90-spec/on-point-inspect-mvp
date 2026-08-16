@@ -2941,6 +2941,12 @@ export default async function PublicSharePage({
                                       value={finding.comment}
                                       tone="slate"
                                     />
+
+                                    <FindingTextCard
+                                      title="Related Observations"
+                                      value={finding.related_note}
+                                      tone="slate"
+                                    />
                                   </div>
                                 </div>
                               </details>
@@ -3071,6 +3077,12 @@ export default async function PublicSharePage({
                                     <FindingTextCard
                                       title="Additional Notes"
                                       value={finding.comment}
+                                      tone="slate"
+                                    />
+
+                                    <FindingTextCard
+                                      title="Related Observations"
+                                      value={finding.related_note}
                                       tone="slate"
                                     />
                                   </div>
@@ -3265,6 +3277,7 @@ function ClientSummaryFindingCard({
           <FindingTextCard title="Implication" value={finding.implication} tone="yellow" />
           <FindingTextCard title="Recommendation" value={finding.recommendation} tone="teal" />
           <FindingTextCard title="Additional Notes" value={finding.comment} tone="slate" />
+          <FindingTextCard title="Related Observations" value={finding.related_note} tone="slate" />
         </div>
 
         <a
