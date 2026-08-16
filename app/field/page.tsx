@@ -3173,7 +3173,7 @@ function FieldPageContent() {
     const imageEntries = photos
       .map((file, index) => ({ file, index }))
       .filter(({ file }) => file.type.startsWith("image/"))
-      .slice(0, 12);
+      .slice(0, 24);
 
     if (imageEntries.length < 2) {
       setMessage("Add at least two photos to use AI media organization.");
@@ -3196,8 +3196,8 @@ function FieldPageContent() {
       const settled = await Promise.allSettled(
         imageEntries.map(async ({ file, index }) => {
           const prepared = await compressImageForAiUpload(file, {
-            maxSize: 1024,
-            quality: 0.6,
+            maxSize: 900,
+            quality: 0.55,
           });
           return {
             originalIndex: index,

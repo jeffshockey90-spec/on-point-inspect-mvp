@@ -6,7 +6,7 @@ import { getSessionUser, unauthorized } from "../../../../lib/apiAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -55,7 +55,7 @@ export async function POST(request: Request) {
     if (!user) return unauthorized();
 
     const body = await request.json();
-    const images = Array.isArray(body.images) ? body.images.slice(0, 12) : [];
+    const images = Array.isArray(body.images) ? body.images.slice(0, 24) : [];
     const currentSection = VALID_SECTIONS.includes(body.currentSection)
       ? body.currentSection
       : "Exterior";
