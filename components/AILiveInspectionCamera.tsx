@@ -1045,14 +1045,20 @@ export default function AILiveInspectionCamera({
         className="absolute left-0 right-0 top-0 z-20 flex items-center justify-between gap-2 px-4"
         style={{ paddingTop: "max(1rem, env(safe-area-inset-top))" }}
       >
-        <button
-          type="button"
-          onClick={handleClose}
-          aria-label="Close camera"
-          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/15 bg-black/70 text-3xl font-light text-white shadow-2xl backdrop-blur active:scale-95"
-        >
-          ×
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleClose}
+            aria-label="Close camera"
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/15 bg-black/70 text-3xl font-light text-white shadow-2xl backdrop-blur active:scale-95"
+          >
+            ×
+          </button>
+
+          {selectedReport && (
+            <FieldFindingLinker inspectionId={String(selectedReport)} compact />
+          )}
+        </div>
 
         {activeCategoryMeta && (
           <span
@@ -1083,15 +1089,14 @@ export default function AILiveInspectionCamera({
           >
             🔄
           </button>
-
-          {selectedReport && (
-            <FieldFindingLinker inspectionId={String(selectedReport)} compact />
-          )}
         </div>
       </div>
 
       {zoomMax > zoomMin && stage !== "confirm" && stage !== "ref_preview" && (
-        <div className="absolute right-4 top-24 z-20 flex flex-col items-center gap-2 rounded-full border border-white/15 bg-black/60 px-2 py-3 backdrop-blur">
+        <div
+          className="absolute right-4 z-20 flex flex-col items-center gap-2 rounded-full border border-white/15 bg-black/60 px-2 py-3 backdrop-blur"
+          style={{ top: "calc(env(safe-area-inset-top) + 5.5rem)" }}
+        >
           <input
             type="range"
             min={zoomMin}
