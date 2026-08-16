@@ -114,6 +114,11 @@ export default function AILiveInspectionCamera({
   const hardwareZoomSupportedRef = useRef(false);
   const pinchStartDistRef = useRef(0);
   const pinchStartZoomRef = useRef(1);
+  // iOS exposes the ultra-wide (.5x) as a SEPARATE camera device, not as sub-1x
+  // zoom on the main lens. We detect it and switch lenses on demand. Phones with
+  // no ultra-wide never touch this path, so their stream is unchanged.
+  const ultraWideDeviceIdRef = useRef("");
+  const wideDeviceIdRef = useRef("");
   const focusResetTimerRef = useRef<number | null>(null);
   const gallerySavedKeysRef = useRef<Set<string>>(new Set());
 
@@ -134,6 +139,8 @@ export default function AILiveInspectionCamera({
   const [zoomMin, setZoomMin] = useState(1);
   const [zoomMax, setZoomMax] = useState(3);
   const [zoomOpen, setZoomOpen] = useState(false);
+  const [hasUltraWide, setHasUltraWide] = useState(false);
+  const [lens, setLens] = useState<"wide" | "ultrawide">("wide");
   const [cameraError, setCameraError] = useState("");
 
   const [stage, setStage] = useState<Stage>("idle");
@@ -256,7 +263,10 @@ export default function AILiveInspectionCamera({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [capturedPreviewUrl]);
 
-  async function startCamera(mode: "environment" | "user" = facingMode) {
+  async function startCamera(
+    mode: "environment" | "user" = facingMode,
+    deviceId?: string,
+  ) {
     if (starting) return;
 
     setStarting(true);
@@ -267,17 +277,27 @@ export default function AILiveInspectionCamera({
         throw new Error("Live camera is not supported on this device/browser.");
       }
 
+      const videoConstraints: MediaTrackConstraints = {
+        width: { ideal: 1920, min: 1280 },
+        height: { ideal: 1080, min: 720 },
+        frameRate: { ideal: 30, min: 24 },
+        advanced: [
+          { focusMode: "continuous" },
+          { exposureMode: "continuous" },
+        ] as any,
+      };
+      // Targeting a specific lens (e.g. the ultra-wide) selects it by id. The
+      // default path still picks by facing direction -- so phones WITHOUT an
+      // ultra-wide get the exact same high-quality stream as before, untouched.
+      if (deviceId) {
+        (videoConstraints as any).deviceId = { exact: deviceId };
+      } else {
+        videoConstraints.facingMode = { ideal: mode };
+        setLens("wide");
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: { ideal: mode },
-          width: { ideal: 1920, min: 1280 },
-          height: { ideal: 1080, min: 720 },
-          frameRate: { ideal: 30, min: 24 },
-          advanced: [
-            { focusMode: "continuous" },
-            { exposureMode: "continuous" },
-          ] as any,
-        },
+        video: videoConstraints,
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
@@ -313,11 +333,61 @@ export default function AILiveInspectionCamera({
         videoRef.current.srcObject = stream;
         await videoRef.current.play().catch(() => undefined);
       }
+
+      // Detect a separate ultra-wide back camera so we can offer a REAL .5x by
+      // switching lenses. Only runs on the default (facingMode) path for the back
+      // camera; it's read-only device discovery and never alters the live stream,
+      // so a phone without an ultra-wide simply keeps hasUltraWide=false.
+      if (!deviceId) {
+        wideDeviceIdRef.current = String((settings as any)?.deviceId || "");
+        if (mode === "environment") {
+          try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const backs = devices.filter(
+              (d) =>
+                d.kind === "videoinput" &&
+                /back|rear|environment/i.test(d.label),
+            );
+            const ultra = backs.find((d) => /ultra|0\.5|\bwide\b.*ultra|ultra.*wide/i.test(d.label));
+            if (
+              ultra?.deviceId &&
+              ultra.deviceId !== wideDeviceIdRef.current
+            ) {
+              ultraWideDeviceIdRef.current = ultra.deviceId;
+              setHasUltraWide(true);
+            } else {
+              setHasUltraWide(false);
+            }
+          } catch {
+            setHasUltraWide(false);
+          }
+        } else {
+          setHasUltraWide(false);
+        }
+      }
     } catch (error: any) {
       setCameraError(error?.message || "Could not start camera.");
     } finally {
       setStarting(false);
     }
+  }
+
+  // Switch between the main (wide) and ultra-wide (.5x) back cameras. Additive:
+  // only reachable when a distinct ultra-wide device was actually detected.
+  async function switchLens(target: "wide" | "ultrawide") {
+    setZoomOpen(false);
+    if (target === lens) return;
+    const id =
+      target === "ultrawide"
+        ? ultraWideDeviceIdRef.current
+        : wideDeviceIdRef.current;
+    if (!id) return;
+
+    streamRef.current?.getTracks?.().forEach((t) => t.stop());
+    setTorchOn(false);
+    await startCamera(facingMode, id);
+    setLens(target);
+    setZoomLevel(target === "ultrawide" ? 0.5 : 1);
   }
 
   function stopCamera() {
@@ -1129,20 +1199,35 @@ export default function AILiveInspectionCamera({
       {/* Collapsible zoom tab: a small pill showing the current zoom that opens the
           preset picker + fine slider, then closes on select or outside tap. Pinch-
           to-zoom on the camera view works too (see the preview container). */}
-      {zoomMax > zoomMin &&
+      {(zoomMax > zoomMin || hasUltraWide) &&
         stage !== "confirm" &&
         stage !== "ref_preview" &&
         (() => {
-          const presets: number[] = [];
-          if (zoomMin < 0.95) presets.push(Number(zoomMin.toFixed(1)));
-          presets.push(1);
-          if (zoomMax >= 2) presets.push(2);
-          if (zoomMax >= 3) presets.push(3);
-          if (zoomMax >= 5) presets.push(5);
-          const unique = Array.from(new Set(presets))
-            .filter((v) => v >= zoomMin && v <= zoomMax)
+          const wideStops: number[] = [1];
+          if (zoomMax >= 2) wideStops.push(2);
+          if (zoomMax >= 3) wideStops.push(3);
+          if (zoomMax >= 5) wideStops.push(5);
+          const wideUnique = Array.from(new Set(wideStops))
+            .filter((v) => v >= Math.max(1, zoomMin) && v <= Math.max(1, zoomMax))
             .sort((a, b) => a - b);
+          // .5x is a real ultra-wide lens switch, shown only when that camera exists.
+          const unique = hasUltraWide ? [0.5, ...wideUnique] : wideUnique;
+          const displayZoom = lens === "ultrawide" ? 0.5 : zoomLevel;
           const fmt = (v: number) => (v < 1 ? `.${Math.round(v * 10)}` : `${v}`);
+          const isActive = (v: number) =>
+            v < 1
+              ? lens === "ultrawide"
+              : lens === "wide" && Math.abs(zoomLevel - v) < 0.2;
+          const applyStop = (v: number) => {
+            if (v < 1) {
+              void switchLens("ultrawide");
+            } else if (lens === "ultrawide") {
+              void switchLens("wide").then(() => handleZoomChange(v));
+            } else {
+              void handleZoomChange(v);
+            }
+            setZoomOpen(false);
+          };
           return (
             <>
               {zoomOpen && (
@@ -1163,7 +1248,7 @@ export default function AILiveInspectionCamera({
                   aria-label="Zoom controls"
                   className="flex h-10 min-w-[3.5rem] items-center justify-center gap-1 rounded-full border border-white/20 bg-black/60 px-3 text-xs font-black text-white backdrop-blur active:scale-95"
                 >
-                  {zoomLevel.toFixed(1)}× 🔍
+                  {displayZoom.toFixed(1)}× 🔍
                 </button>
 
                 {zoomOpen && (
@@ -1171,15 +1256,12 @@ export default function AILiveInspectionCamera({
                     {unique.length >= 2 && (
                       <div className="flex items-center gap-1">
                         {unique.map((v) => {
-                          const active = Math.abs(zoomLevel - v) < 0.2;
+                          const active = isActive(v);
                           return (
                             <button
                               key={v}
                               type="button"
-                              onClick={() => {
-                                void handleZoomChange(v);
-                                setZoomOpen(false);
-                              }}
+                              onClick={() => applyStop(v)}
                               aria-label={`${fmt(v)}x zoom`}
                               className={`flex h-9 min-w-[2.25rem] items-center justify-center rounded-full px-2 text-xs font-black active:scale-95 ${
                                 active ? "bg-white text-black" : "text-white/90"
@@ -1191,16 +1273,18 @@ export default function AILiveInspectionCamera({
                         })}
                       </div>
                     )}
-                    <input
-                      type="range"
-                      min={zoomMin}
-                      max={zoomMax}
-                      step={0.1}
-                      value={zoomLevel}
-                      onChange={(e) => void handleZoomChange(Number(e.target.value))}
-                      className="w-44"
-                      aria-label="Fine zoom"
-                    />
+                    {lens === "wide" && zoomMax > zoomMin && (
+                      <input
+                        type="range"
+                        min={zoomMin}
+                        max={zoomMax}
+                        step={0.1}
+                        value={zoomLevel}
+                        onChange={(e) => void handleZoomChange(Number(e.target.value))}
+                        className="w-44"
+                        aria-label="Fine zoom"
+                      />
+                    )}
                   </div>
                 )}
               </div>
