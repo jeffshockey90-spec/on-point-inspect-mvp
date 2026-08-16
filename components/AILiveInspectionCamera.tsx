@@ -1130,7 +1130,10 @@ export default function AILiveInspectionCamera({
           if (unique.length < 2) return null;
           const fmt = (v: number) => (v < 1 ? `.${Math.round(v * 10)}` : `${v}`);
           return (
-            <div className="absolute bottom-36 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1 rounded-full border border-white/15 bg-black/60 px-1.5 py-1 backdrop-blur">
+            <div
+              className="absolute left-1/2 z-30 flex -translate-x-1/2 items-center gap-1 rounded-full border border-white/15 bg-black/60 px-1.5 py-1 backdrop-blur"
+              style={{ top: "calc(env(safe-area-inset-top) + 5.5rem)" }}
+            >
               {unique.map((v) => {
                 const active = Math.abs(zoomLevel - v) < 0.2;
                 return (
