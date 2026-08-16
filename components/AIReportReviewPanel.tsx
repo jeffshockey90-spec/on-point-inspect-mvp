@@ -69,7 +69,12 @@ function toReviewItems(value: any): ReviewItem[] {
       const text = safeText(entry);
       if (!text) return null;
       const obj = entry && typeof entry === "object" ? entry : {};
-      const findingId = obj.findingId ?? obj.finding_id ?? obj.findingID ?? undefined;
+      const rawId = obj.findingId ?? obj.finding_id ?? obj.findingID;
+      // Treat an empty/blank id as no id, so we don't render a dead "Fix →".
+      const findingId =
+        rawId !== undefined && rawId !== null && String(rawId).trim() !== ""
+          ? rawId
+          : undefined;
       const section = safeText(obj.section) || undefined;
       return { text, findingId, section } as ReviewItem;
     })
@@ -86,11 +91,23 @@ function jumpToFinding(findingId?: string | number, section?: string) {
   // event and, when its id matches, EXPANDS itself and scrolls into view (so it
   // works even when the finding card is collapsed). Same event Command Center uses.
   if (!id) return;
+
+  // Primary: the finding's own listener expands it and scrolls into view.
   window.dispatchEvent(
     new CustomEvent("opi:command-center-jump", {
       detail: { findingIds: [id] },
     }),
   );
+
+  // Backup: also scroll directly to the card in case its handler doesn't fire.
+  window.setTimeout(() => {
+    const el = document.querySelector(
+      `[data-finding-id="${id.replace(/"/g, '\\"')}"]`,
+    ) as HTMLElement | null;
+    if (el && el.offsetParent !== null) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, 300);
 }
 
 function scoreTone(score: number) {
