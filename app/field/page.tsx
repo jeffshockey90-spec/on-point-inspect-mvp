@@ -172,10 +172,15 @@ function loadImageForAiCompression(file: File) {
   });
 }
 
-async function compressImageForAiUpload(file: File) {
+async function compressImageForAiUpload(
+  file: File,
+  opts?: { maxSize?: number; quality?: number },
+) {
+  const maxSize = opts?.maxSize ?? AI_IMAGE_MAX_SIZE;
+  const quality = opts?.quality ?? AI_IMAGE_QUALITY;
   const image = await loadImageForAiCompression(file);
   const longestSide = Math.max(image.width, image.height);
-  const scale = Math.min(1, AI_IMAGE_MAX_SIZE / longestSide);
+  const scale = Math.min(1, maxSize / longestSide);
   const width = Math.max(1, Math.round(image.width * scale));
   const height = Math.max(1, Math.round(image.height * scale));
 
@@ -189,7 +194,7 @@ async function compressImageForAiUpload(file: File) {
   context.drawImage(image, 0, 0, width, height);
 
   const blob = await new Promise<Blob | null>((resolve) => {
-    canvas.toBlob(resolve, "image/jpeg", AI_IMAGE_QUALITY);
+    canvas.toBlob(resolve, "image/jpeg", quality);
   });
 
   if (!blob) throw new Error("AI could not compress that photo.");
@@ -3169,9 +3174,16 @@ function FieldPageContent() {
     setMessage("AI is organizing the selected photos...");
 
     try {
-      const images = await Promise.all(
+      // Compress smaller for organize (the AI only needs to recognize + group,
+      // not read fine print) so many photos fit under the ~4.5MB request limit
+      // that was silently failing batches. Use allSettled so one unsupported
+      // photo (e.g. an odd HEIC) can't kill the whole batch.
+      const settled = await Promise.allSettled(
         imageEntries.map(async ({ file, index }) => {
-          const prepared = await compressImageForAiUpload(file);
+          const prepared = await compressImageForAiUpload(file, {
+            maxSize: 1024,
+            quality: 0.6,
+          });
           return {
             originalIndex: index,
             name: file.name,
@@ -3179,6 +3191,22 @@ function FieldPageContent() {
           };
         }),
       );
+
+      const images = settled
+        .filter(
+          (result): result is PromiseFulfilledResult<any> =>
+            result.status === "fulfilled",
+        )
+        .map((result) => result.value);
+      const failedCount = settled.length - images.length;
+
+      if (images.length < 2) {
+        throw new Error(
+          failedCount > 0
+            ? "Those photos couldn't be prepared for AI (they may be an unsupported format). Try different photos."
+            : "Add at least two photos to use AI media organization.",
+        );
+      }
 
       const response = await fetch("/api/ai/media-organize", {
         method: "POST",
@@ -3209,7 +3237,9 @@ function FieldPageContent() {
       setMediaGroups(mappedGroups);
       setMediaOrganizerOpen(true);
       setMessage(
-        `AI organized ${imageEntries.length} photos into ${mappedGroups.length} group${mappedGroups.length === 1 ? "" : "s"}. Review before saving.`,
+        `AI organized ${images.length} photo${images.length === 1 ? "" : "s"} into ${mappedGroups.length} group${mappedGroups.length === 1 ? "" : "s"}${
+          failedCount > 0 ? ` (${failedCount} skipped)` : ""
+        }. Review before saving.`,
       );
     } catch (error: any) {
       setMessage(error?.message || "AI media organization failed.");
