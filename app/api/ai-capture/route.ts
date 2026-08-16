@@ -71,9 +71,16 @@ function normalizeSection(
   },
 ) {
   const clean = cleanText(value);
-  // Route on the full finding content, not just the AI's section label, so the
-  // defect lands in the section its actual components/wording point to (roof,
-  // plumbing, electrical, etc.) even when the model's section field is vague.
+
+  // Trust the AI's section when it's a valid one. With the inspector's note and
+  // the photo, the model picks the section far more reliably than keyword
+  // routing, which over-triggers on incidental words (a window finding that
+  // mentions "wall", a bath fan that mentions "wire", etc.) and used to override
+  // the correct choice.
+  if (VALID_SECTIONS.includes(clean)) return clean;
+
+  // Only when the model's section is vague/invalid, fall back to routing on the
+  // full finding content, then to the inspector's current section.
   const routed = routeFindingSection({
     section: clean,
     title: context?.title || "",
@@ -83,7 +90,6 @@ function normalizeSection(
   });
 
   if (VALID_SECTIONS.includes(routed)) return routed;
-  if (VALID_SECTIONS.includes(clean)) return clean;
   return VALID_SECTIONS.includes(fallback) ? fallback : "Exterior";
 }
 
@@ -221,6 +227,14 @@ ${VALID_SECTIONS.join(", ")}.
 
 Allowed severities:
 ${VALID_SEVERITIES.join(", ")}.
+
+Severity guide — assign the level that matches the visible evidence; do NOT default to "Recommended Repair":
+- Informational: general information or a normal/typical condition; no action needed.
+- Monitor: a minor condition to keep an eye on; not currently a defect.
+- Maintenance: routine upkeep (servicing, cleaning, sealing, minor wear).
+- Recommended Repair: a defect that should be repaired but is not an immediate hazard.
+- Safety Concern: a condition that poses a safety risk to occupants.
+- Major Concern: a significant or costly defect, or a system at or near failure.
 `;
 
     const userContent: any[] = [
@@ -232,11 +246,14 @@ Create one complete inspection finding.
 Inspector note / voice transcript:
 ${note || "None — describe the finding based solely on the photo(s) provided."}
 
-Preferred section:
-${requestedSection || "Choose the best section."}
+Inspector's current area (a HINT only — assign the section the note and visible evidence actually indicate, even if it differs from this):
+${requestedSection || "Not specified — choose the best section from the evidence."}
 
-Preferred severity:
-${requestedSeverity || "Choose the best severity."}
+Severity: assign from the severity guide above based on the visible evidence${
+  requestedSeverity
+    ? ` (the inspector suggested "${requestedSeverity}", but override it if the evidence points elsewhere)`
+    : " — do not default to Recommended Repair"
+}.
 
 Property year built:
 ${propertyYear || "Unknown"}

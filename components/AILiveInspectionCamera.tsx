@@ -687,7 +687,10 @@ export default function AILiveInspectionCamera({
             note,
             inspectionId: selectedReport,
             section: currentSection,
-            severity: currentSeverity,
+            // Let the AI choose the severity from the evidence rather than
+            // biasing it to the field's current value (which made everything come
+            // back "Recommended Repair"). The inspector can still adjust on confirm.
+            severity: "",
             images: allFrames && allFrames.length ? allFrames : [frameDataUrl],
           }),
         });
