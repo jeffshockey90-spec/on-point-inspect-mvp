@@ -295,8 +295,11 @@ export default function AILiveInspectionCamera({
         capabilities?.zoom?.max && capabilities.zoom.max > 1,
       );
       hardwareZoomSupportedRef.current = supportsHardwareZoom;
+      // Allow sub-1x (ultra-wide / .5x) when the camera actually reports it. We
+      // previously forced a floor of 1x, which hid .5x on phones that support it.
+      // Digital zoom can only zoom IN, so sub-1x is only offered with hardware zoom.
       setZoomMin(
-        supportsHardwareZoom ? Math.max(1, Number(capabilities.zoom?.min || 1)) : 1,
+        supportsHardwareZoom ? Math.max(0.5, Number(capabilities.zoom?.min || 1)) : 1,
       );
       setZoomMax(
         supportsHardwareZoom ? Math.min(8, Number(capabilities.zoom?.max || 3)) : 3,
@@ -1104,6 +1107,44 @@ export default function AILiveInspectionCamera({
           </span>
         </div>
       )}
+
+      {/* iPhone-style quick zoom presets (.5x / 1x / 2x / 3x, based on the lens). */}
+      {zoomMax > zoomMin &&
+        stage !== "confirm" &&
+        stage !== "ref_preview" &&
+        (() => {
+          const presets: number[] = [];
+          if (zoomMin < 0.95) presets.push(Number(zoomMin.toFixed(1)));
+          presets.push(1);
+          if (zoomMax >= 2) presets.push(2);
+          if (zoomMax >= 3) presets.push(3);
+          if (zoomMax >= 5) presets.push(5);
+          const unique = Array.from(new Set(presets))
+            .filter((v) => v >= zoomMin && v <= zoomMax)
+            .sort((a, b) => a - b);
+          if (unique.length < 2) return null;
+          const fmt = (v: number) => (v < 1 ? `.${Math.round(v * 10)}` : `${v}`);
+          return (
+            <div className="absolute bottom-36 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1 rounded-full border border-white/15 bg-black/60 px-1.5 py-1 backdrop-blur">
+              {unique.map((v) => {
+                const active = Math.abs(zoomLevel - v) < 0.2;
+                return (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => void handleZoomChange(v)}
+                    aria-label={`${fmt(v)}x zoom`}
+                    className={`flex h-9 min-w-[2.25rem] items-center justify-center rounded-full px-2 text-xs font-black transition active:scale-95 ${
+                      active ? "bg-white text-black" : "text-white/90 hover:bg-white/10"
+                    }`}
+                  >
+                    {active ? `${fmt(v)}×` : fmt(v)}
+                  </button>
+                );
+              })}
+            </div>
+          );
+        })()}
 
       {cameraError && (
         <div className="absolute left-1/2 top-1/2 z-20 w-[90%] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl border border-red-500/50 bg-red-950/90 p-4 text-center text-sm font-bold text-red-200">
