@@ -1603,6 +1603,13 @@ function ReportVideo({
   const repairAttemptedRef = useRef(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const mimeType = getVideoMimeType(photo, currentUrl);
+  const videoPoster = getVideoPosterUrl(photo);
+  // No generated poster? Append a media fragment (#t=0.1) so iOS WebKit renders
+  // the first frame as the preview instead of a black box. Harmless elsewhere.
+  const previewSrc =
+    videoPoster || !currentUrl || currentUrl.includes("#")
+      ? currentUrl
+      : `${currentUrl}#t=0.1`;
 
   useEffect(() => {
     setCurrentUrl(url);
@@ -1723,11 +1730,11 @@ function ReportVideo({
     <video
       ref={videoRef}
       key={`${currentUrl}-${retryKey}`}
-      poster={getVideoPosterUrl(photo) || undefined}
+      poster={videoPoster || undefined}
       controls
       muted={muted}
       playsInline
-      preload="metadata"
+      preload={videoPoster ? "metadata" : "auto"}
       className={
         compact
           ? "h-36 w-full bg-black object-contain"
@@ -1744,9 +1751,9 @@ function ReportVideo({
       }}
     >
       {mimeType ? (
-        <source src={currentUrl} type={mimeType} />
+        <source src={previewSrc} type={mimeType} />
       ) : (
-        <source src={currentUrl} />
+        <source src={previewSrc} />
       )}
       Your browser does not support video playback.
     </video>
@@ -2761,8 +2768,19 @@ function FindingCardBase({
                     </span>
                   </div>
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center bg-black text-xs font-black uppercase tracking-wide text-cyan-300">
-                    ▶ Video
+                  // No generated poster: show the video's first frame via the
+                  // #t=0.1 media fragment (iOS renders it) instead of a black box.
+                  <div className="relative h-full w-full bg-black">
+                    <video
+                      src={`${primaryPhotoUrl}${primaryPhotoUrl.includes("#") ? "" : "#t=0.1"}`}
+                      muted
+                      playsInline
+                      preload="metadata"
+                      className="h-full w-full object-cover"
+                    />
+                    <span className="absolute inset-0 flex items-center justify-center bg-black/25 text-3xl text-white">
+                      ▶
+                    </span>
                   </div>
                 )
               ) : (
