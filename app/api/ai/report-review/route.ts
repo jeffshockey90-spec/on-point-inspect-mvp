@@ -201,15 +201,17 @@ Return JSON in this exact structure:
   "score": 0,
   "passed": true,
   "summary": "",
-  "criticalIssues": [],
-  "warnings": [],
-  "suggestions": [],
+  "criticalIssues": [ { "message": "", "findingId": "", "section": "" } ],
+  "warnings": [ { "message": "", "findingId": "", "section": "" } ],
+  "suggestions": [ { "message": "", "findingId": "", "section": "" } ],
   "missingSystems": [],
-  "duplicateConcerns": [],
-  "sectionConcerns": [],
-  "photoConcerns": [],
+  "duplicateConcerns": [ { "message": "", "findingId": "", "section": "" } ],
+  "sectionConcerns": [ { "message": "", "findingId": "", "section": "" } ],
+  "photoConcerns": [ { "message": "", "findingId": "", "section": "" } ],
   "publishRecommendation": "Ready to publish | Review recommended | Do not publish yet"
 }
+
+For every issue that is about a specific finding, set "findingId" to that finding's ID exactly as shown in the Findings list above (and "section" to its section), so the inspector can jump straight to it. Leave "findingId" empty ("") only for report-wide items that don't map to one finding. Each item's "message" must be short and actionable.
 
 Scoring guidance:
 - 90-100: clean report, only minor suggestions.

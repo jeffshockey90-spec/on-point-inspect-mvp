@@ -58,6 +58,59 @@ function safeList(value: any): string[] {
   return value.map(safeText).filter(Boolean);
 }
 
+type ReviewItem = { text: string; findingId?: string | number; section?: string };
+
+// Keep each review item's text AND its finding/section reference so the item can
+// link straight to the finding it's about.
+function toReviewItems(value: any): ReviewItem[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry) => {
+      const text = safeText(entry);
+      if (!text) return null;
+      const obj = entry && typeof entry === "object" ? entry : {};
+      const findingId = obj.findingId ?? obj.finding_id ?? obj.findingID ?? undefined;
+      const section = safeText(obj.section) || undefined;
+      return { text, findingId, section } as ReviewItem;
+    })
+    .filter(Boolean) as ReviewItem[];
+}
+
+// Scroll the report to the finding an item references and flash it, revealing the
+// findings section first if it isn't on screen yet.
+function jumpToFinding(findingId?: string | number, section?: string) {
+  if (typeof document === "undefined") return;
+
+  const attempt = (n = 0) => {
+    let el: HTMLElement | null = null;
+    if (findingId !== undefined && findingId !== null && String(findingId)) {
+      el = document.querySelector(
+        `[data-finding-id="${String(findingId).replace(/"/g, '\\"')}"]`,
+      ) as HTMLElement | null;
+    }
+
+    if (el && el.offsetParent !== null) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.style.transition = "box-shadow 0.3s ease";
+      el.style.boxShadow = "0 0 0 3px rgba(168,85,247,0.85)";
+      window.setTimeout(() => {
+        el!.style.boxShadow = "";
+      }, 2200);
+      return;
+    }
+
+    if (n < 8) {
+      // Nudge / reveal the findings editor, then retry until the finding is visible.
+      document
+        .getElementById("report-findings")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      window.setTimeout(() => attempt(n + 1), 250);
+    }
+  };
+
+  attempt();
+}
+
 function scoreTone(score: number) {
   if (score >= 90) return "border-emerald-500/50 bg-emerald-500/10 text-emerald-300";
   if (score >= 75) return "border-yellow-500/50 bg-yellow-500/10 text-yellow-300";
@@ -89,7 +142,7 @@ function ReviewList({
   emptyText: string;
   tone?: string;
 }) {
-  const cleanItems = safeList(items);
+  const cleanItems = toReviewItems(items);
 
   return (
     <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
@@ -107,11 +160,26 @@ function ReviewList({
         <p className="mt-3 text-sm font-bold text-emerald-300">{emptyText}</p>
       ) : (
         <ul className="mt-3 space-y-2">
-          {cleanItems.map((item, index) => (
-            <li key={`${title}-${index}`} className={`text-sm leading-6 ${tone}`}>
-              {item}
-            </li>
-          ))}
+          {cleanItems.map((item, index) =>
+            item.findingId !== undefined && item.findingId !== null ? (
+              <li key={`${title}-${index}`}>
+                <button
+                  type="button"
+                  onClick={() => jumpToFinding(item.findingId, item.section)}
+                  className={`flex w-full items-start justify-between gap-2 rounded-lg border border-slate-700 bg-black/20 px-3 py-2 text-left text-sm leading-6 transition hover:border-purple-400/60 hover:bg-purple-500/10 ${tone}`}
+                >
+                  <span className="min-w-0">{item.text}</span>
+                  <span className="mt-0.5 shrink-0 text-xs font-black text-purple-300">
+                    Fix →
+                  </span>
+                </button>
+              </li>
+            ) : (
+              <li key={`${title}-${index}`} className={`text-sm leading-6 ${tone}`}>
+                {item.text}
+              </li>
+            ),
+          )}
         </ul>
       )}
     </div>
@@ -371,11 +439,26 @@ export default function AIReportReviewPanel({
               </p>
             ) : (
               <ul className="mt-3 space-y-2">
-                {review.baseIssues.slice(0, 8).map((issue, index) => (
-                  <li key={index} className="text-sm leading-6 text-slate-300">
-                    {safeText(issue?.message || issue)}
-                  </li>
-                ))}
+                {toReviewItems(review.baseIssues.slice(0, 8)).map((item, index) =>
+                  item.findingId !== undefined && item.findingId !== null ? (
+                    <li key={index}>
+                      <button
+                        type="button"
+                        onClick={() => jumpToFinding(item.findingId, item.section)}
+                        className="flex w-full items-start justify-between gap-2 rounded-lg border border-slate-700 bg-black/20 px-3 py-2 text-left text-sm leading-6 text-slate-300 transition hover:border-purple-400/60 hover:bg-purple-500/10"
+                      >
+                        <span className="min-w-0">{item.text}</span>
+                        <span className="mt-0.5 shrink-0 text-xs font-black text-purple-300">
+                          Fix →
+                        </span>
+                      </button>
+                    </li>
+                  ) : (
+                    <li key={index} className="text-sm leading-6 text-slate-300">
+                      {item.text}
+                    </li>
+                  ),
+                )}
               </ul>
             )}
           </div>
