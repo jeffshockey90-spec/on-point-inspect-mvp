@@ -60,11 +60,13 @@ function hasMoldService(inspection: any) {
 function isStandaloneEnvironmentalService(inspection: any) {
   const serviceType = getServiceType(inspection);
 
-  return (
-    serviceType.includes("radon_only") ||
-    serviceType.includes("mold_only") ||
-    serviceType.includes("radon_mold")
-  );
+  // Standalone environmental = radon/mold with NO home inspection. A combined
+  // "home_radon_mold" CONTAINS the substring "radon_mold", so rule out anything
+  // that also includes a home inspection first -- otherwise a home + radon + mold
+  // client is emailed only the environmental report link.
+  if (serviceType.includes("home")) return false;
+
+  return serviceType.includes("radon") || serviceType.includes("mold");
 }
 
 function escapeHtml(value: any) {
