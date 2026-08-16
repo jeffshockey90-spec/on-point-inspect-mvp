@@ -52,9 +52,27 @@ export async function POST(req: Request) {
       const authorizedG = await authorizeInspection(adminG, user.id, inspectionId, "id");
       if (!authorizedG) return notFound();
 
+      // Merge with any group the selected findings are already part of, so adding
+      // a new finding to an existing pair/group keeps everyone linked (full mesh)
+      // instead of silently dropping the ones you didn't re-select.
+      const expanded = new Set<string>(groupIds);
+      const { data: selected } = await adminG
+        .from("findings")
+        .select("id, related_finding_ids")
+        .eq("inspection_id", inspectionId)
+        .in("id", groupIds);
+      for (const f of selected || []) {
+        const existing = Array.isArray(f.related_finding_ids) ? f.related_finding_ids : [];
+        for (const x of existing) {
+          const s = clean(x);
+          if (s) expanded.add(s);
+        }
+      }
+      const finalGroup = Array.from(expanded);
+
       const noteG = clean(body?.note).slice(0, 2000) || null;
-      for (const id of groupIds) {
-        const others = groupIds.filter((x) => x !== id);
+      for (const id of finalGroup) {
+        const others = finalGroup.filter((x) => x !== id);
         const { error: gErr } = await adminG
           .from("findings")
           .update({ related_finding_ids: others, related_note: noteG })
@@ -62,7 +80,7 @@ export async function POST(req: Request) {
           .eq("inspection_id", inspectionId);
         if (gErr) throw gErr;
       }
-      return NextResponse.json({ ok: true, groupIds, note: noteG });
+      return NextResponse.json({ ok: true, groupIds: finalGroup, note: noteG });
     }
 
     if (!findingId) {
