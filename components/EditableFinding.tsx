@@ -3,6 +3,7 @@
 import { memo, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../lib/supabaseClient";
+import { refreshKeepScroll } from "../lib/refreshKeepScroll";
 
 const SECTIONS = [
   "Exterior",
@@ -202,7 +203,7 @@ function EditableFinding({
       setSaveLabel("Saved!");
       showMessage("success", "Finding saved.");
       setEditing(false);
-      router.refresh();
+      refreshKeepScroll(router);
     } catch (error: any) {
       setSaveLabel("Failed");
       showMessage("error", error?.message || "Failed to save finding.");
@@ -238,7 +239,7 @@ function EditableFinding({
 
       setRepairLabel("Saved!");
       showMessage("success", "Repair request saved.");
-      router.refresh();
+      refreshKeepScroll(router);
     } catch (error: any) {
       setRepairLabel("Failed");
       showMessage("error", error?.message || "Failed to save repair request.");
@@ -295,7 +296,7 @@ function EditableFinding({
       setRecommendation(data.rewritten);
       setRewriteLabel("Rewritten!");
       showMessage("success", "Finding rewritten.");
-      router.refresh();
+      refreshKeepScroll(router);
     } catch (error: any) {
       setRewriteLabel("Failed");
       showMessage("error", error?.message || "Failed to rewrite finding.");
@@ -406,7 +407,7 @@ function EditableFinding({
         );
       }
 
-      router.refresh();
+      refreshKeepScroll(router);
     } catch (error: any) {
       showMessage(
         "error",
@@ -471,7 +472,7 @@ function EditableFinding({
       }
 
       showMessage("success", "Finding duplicated.");
-      router.refresh();
+      refreshKeepScroll(router);
     } catch (error: any) {
       showMessage("error", error?.message || "Failed to duplicate finding.");
     }
@@ -512,7 +513,7 @@ function EditableFinding({
 
       setDeleteLabel("Deleted!");
       showMessage("success", "Finding deleted.");
-      router.refresh();
+      refreshKeepScroll(router);
     } catch (error: any) {
       setDeleteLabel("Failed");
       showMessage("error", error?.message || "Failed to delete finding.");

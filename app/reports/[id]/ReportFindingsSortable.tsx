@@ -13,6 +13,7 @@ import AISectionReview from "../../../components/AISectionReview";
 import ExpandableReportImage from "../../../components/ExpandableReportImage";
 import RelatedFindingsEditor from "../../../components/RelatedFindingsEditor";
 import { supabase } from "../../../lib/supabaseClient";
+import { refreshKeepScroll } from "../../../lib/refreshKeepScroll";
 
 const PHOTO_BUCKET = "inspection-photos";
 
@@ -227,7 +228,7 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
       await callReportSectionsApi("create", cleanName);
       setNewSectionName("");
       setAddSectionOpen(false);
-      router.refresh();
+      refreshKeepScroll(router);
     } catch (error: any) {
       setSectionMessage(error?.message || "Failed to add section.");
     } finally {
@@ -250,7 +251,7 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
 
     try {
       await callReportSectionsApi("delete", sectionName);
-      router.refresh();
+      refreshKeepScroll(router);
     } catch (error: any) {
       setSectionMessage(error?.message || "Failed to delete section.");
     } finally {
@@ -266,7 +267,7 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
 
     try {
       await callReportSectionsApi("restore", sectionName);
-      router.refresh();
+      refreshKeepScroll(router);
     } catch (error: any) {
       setSectionMessage(error?.message || "Failed to restore section.");
     } finally {
@@ -322,7 +323,7 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
 
       if (syncedAt && syncedAt !== lastSeen) {
         window.sessionStorage.setItem(seenKey, syncedAt);
-        router.refresh();
+        refreshKeepScroll(router);
       }
     }
 
@@ -366,7 +367,7 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
         [targetSection]: false,
       }));
 
-      router.refresh();
+      refreshKeepScroll(router);
 
       window.setTimeout(() => {
         document
@@ -407,7 +408,7 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
         }));
       }
 
-      router.refresh();
+      refreshKeepScroll(router);
 
       window.setTimeout(() => {
         if (targetSection) {
@@ -1221,7 +1222,7 @@ function AddSectionFindingForm({
       setAiNote("");
       setSeverity("Recommended Repair");
       setOpen(false);
-      router.refresh();
+      refreshKeepScroll(router);
     } catch (error: any) {
       setMessage(error?.message || "Failed to add defect.");
     } finally {
@@ -2560,7 +2561,7 @@ function FindingCardBase({
           ? "Media added to finding."
           : "Media files added to finding.",
       );
-      router.refresh();
+      refreshKeepScroll(router);
     } catch (error: any) {
       showMessage(
         "error",
@@ -2617,7 +2618,7 @@ function FindingCardBase({
 
       setShowPhotoPicker(false);
       showMessage("success", "Photo moved to this finding.");
-      router.refresh();
+      refreshKeepScroll(router);
     } catch (error: any) {
       showMessage("error", error?.message || "Failed to move photo.");
     } finally {
@@ -2659,7 +2660,7 @@ function FindingCardBase({
             .eq("inspection_id", inspectionId);
         }),
       );
-      router.refresh();
+      refreshKeepScroll(router);
     } catch {
       showMessage("error", "Could not reorder photos. Please try again.");
     } finally {
@@ -2698,7 +2699,7 @@ function FindingCardBase({
       if (error) throw error;
 
       showMessage("success", "Photo deleted from finding.");
-      router.refresh();
+      refreshKeepScroll(router);
     } catch (error: any) {
       showMessage("error", error?.message || "Failed to delete photo.");
     } finally {

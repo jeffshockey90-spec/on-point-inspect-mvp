@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { refreshKeepScroll } from "../lib/refreshKeepScroll";
 
 type Finding = {
   id: any;
@@ -22,6 +24,7 @@ export default function RelatedFindingsEditor({
   finding: Finding;
   allFindings: Finding[];
 }) {
+  const router = useRouter();
   const findingId = String(finding?.id || "");
 
   const initialRelated = Array.isArray(finding?.related_finding_ids)
@@ -94,7 +97,9 @@ export default function RelatedFindingsEditor({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Could not save links.");
-      window.location.reload();
+      setSaving(false);
+      setOpen(false);
+      refreshKeepScroll(router);
     } catch (e: any) {
       setError(e?.message || "Could not save links.");
       setSaving(false);
