@@ -3282,20 +3282,24 @@ function FieldPageContent() {
     toGroupId: string | null,
   ) {
     setMediaGroups((current) =>
-      current.map((group) => {
-        if (group.id === fromGroupId) {
-          return {
-            ...group,
-            photoIndexes: group.photoIndexes.filter((i) => i !== photoIndex),
-          };
-        }
-        if (toGroupId && group.id === toGroupId) {
-          return group.photoIndexes.includes(photoIndex)
-            ? group
-            : { ...group, photoIndexes: [...group.photoIndexes, photoIndex] };
-        }
-        return group;
-      }),
+      current
+        .map((group) => {
+          if (group.id === fromGroupId) {
+            return {
+              ...group,
+              photoIndexes: group.photoIndexes.filter((i) => i !== photoIndex),
+            };
+          }
+          if (toGroupId && group.id === toGroupId) {
+            return group.photoIndexes.includes(photoIndex)
+              ? group
+              : { ...group, photoIndexes: [...group.photoIndexes, photoIndex] };
+          }
+          return group;
+        })
+        // A finding with no photos left is no longer supported by any evidence,
+        // so drop it from the review entirely.
+        .filter((group) => group.photoIndexes.length > 0),
     );
   }
 
