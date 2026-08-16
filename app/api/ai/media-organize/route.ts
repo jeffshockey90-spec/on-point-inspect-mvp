@@ -142,15 +142,7 @@ Valid sections:
 ${VALID_SECTIONS.join(", ")}
 
 Valid severities:
-${VALID_SEVERITIES.join(", ")}
-
-Assign each finding's severity from the visible evidence — do NOT leave it blank and do NOT default everything to "Recommended Repair":
-- Informational: general information or a normal/typical condition; no action needed.
-- Monitor: a minor condition to keep an eye on; not currently a defect.
-- Maintenance: routine upkeep (servicing, cleaning, sealing, minor wear).
-- Recommended Repair: a defect that should be repaired but is not an immediate hazard.
-- Safety Concern: a condition that poses a safety risk to occupants.
-- Major Concern: a significant or costly defect, or a system at or near failure.`,
+${VALID_SEVERITIES.join(", ")}`,
         },
         {
           role: "user",
