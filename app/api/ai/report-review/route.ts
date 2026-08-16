@@ -85,7 +85,8 @@ export async function POST(req: Request) {
           .select(
             "id,title,section,severity,observation,implication,recommendation,image_url"
           )
-          .eq("inspection_id", inspectionId),
+          .eq("inspection_id", inspectionId)
+          .order("created_at", { ascending: true }),
         supabase
           .from("equipment_inventory")
           .select(
