@@ -112,6 +112,8 @@ export default function AILiveInspectionCamera({
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
   const hardwareZoomSupportedRef = useRef(false);
+  const pinchStartDistRef = useRef(0);
+  const pinchStartZoomRef = useRef(1);
   const focusResetTimerRef = useRef<number | null>(null);
   const gallerySavedKeysRef = useRef<Set<string>>(new Set());
 
@@ -131,6 +133,7 @@ export default function AILiveInspectionCamera({
   const [zoomLevel, setZoomLevel] = useState(1);
   const [zoomMin, setZoomMin] = useState(1);
   const [zoomMax, setZoomMax] = useState(3);
+  const [zoomOpen, setZoomOpen] = useState(false);
   const [cameraError, setCameraError] = useState("");
 
   const [stage, setStage] = useState<Stage>("idle");
@@ -381,6 +384,33 @@ export default function AILiveInspectionCamera({
     }
 
     return canvas.toDataURL("image/jpeg", 0.9);
+  }
+
+  // Pinch-to-zoom on the camera preview: track the two-finger distance and scale
+  // the zoom from where the pinch started.
+  function pinchDistance(touches: React.TouchList) {
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.hypot(dx, dy);
+  }
+
+  function handleCameraTouchStart(event: React.TouchEvent<HTMLDivElement>) {
+    if (event.touches.length === 2) {
+      pinchStartDistRef.current = pinchDistance(event.touches);
+      pinchStartZoomRef.current = zoomLevel;
+    }
+  }
+
+  function handleCameraTouchMove(event: React.TouchEvent<HTMLDivElement>) {
+    if (event.touches.length === 2 && pinchStartDistRef.current > 0) {
+      event.preventDefault();
+      const scale = pinchDistance(event.touches) / pinchStartDistRef.current;
+      void handleZoomChange(pinchStartZoomRef.current * scale);
+    }
+  }
+
+  function handleCameraTouchEnd(event: React.TouchEvent<HTMLDivElement>) {
+    if (event.touches.length < 2) pinchStartDistRef.current = 0;
   }
 
   async function handleCameraTapFocus(event: React.PointerEvent<HTMLDivElement>) {
@@ -1021,9 +1051,13 @@ export default function AILiveInspectionCamera({
       />
 
       <div
-        className="absolute inset-0 z-[1]"
+        className="absolute inset-0 z-[1] touch-none"
         onPointerDown={handleCameraTapFocus}
-        aria-label="Tap camera preview to focus"
+        onTouchStart={handleCameraTouchStart}
+        onTouchMove={handleCameraTouchMove}
+        onTouchEnd={handleCameraTouchEnd}
+        onTouchCancel={handleCameraTouchEnd}
+        aria-label="Tap camera preview to focus, pinch to zoom"
       />
 
       {focusPoint && (
@@ -1092,28 +1126,9 @@ export default function AILiveInspectionCamera({
         </div>
       </div>
 
-      {zoomMax > zoomMin && stage !== "confirm" && stage !== "ref_preview" && (
-        <div
-          className="absolute right-4 z-20 flex flex-col items-center gap-2 rounded-full border border-white/15 bg-black/60 px-2 py-3 backdrop-blur"
-          style={{ top: "calc(env(safe-area-inset-top) + 5.5rem)" }}
-        >
-          <input
-            type="range"
-            min={zoomMin}
-            max={zoomMax}
-            step={0.1}
-            value={zoomLevel}
-            onChange={(event) => void handleZoomChange(Number(event.target.value))}
-            className="h-24 w-6 [writing-mode:vertical-lr] [direction:rtl]"
-            aria-label="Zoom"
-          />
-          <span className="text-[10px] font-black text-white">
-            {zoomLevel.toFixed(1)}x
-          </span>
-        </div>
-      )}
-
-      {/* iPhone-style quick zoom presets (.5x / 1x / 2x / 3x, based on the lens). */}
+      {/* Collapsible zoom tab: a small pill showing the current zoom that opens the
+          preset picker + fine slider, then closes on select or outside tap. Pinch-
+          to-zoom on the camera view works too (see the preview container). */}
       {zoomMax > zoomMin &&
         stage !== "confirm" &&
         stage !== "ref_preview" &&
@@ -1127,30 +1142,69 @@ export default function AILiveInspectionCamera({
           const unique = Array.from(new Set(presets))
             .filter((v) => v >= zoomMin && v <= zoomMax)
             .sort((a, b) => a - b);
-          if (unique.length < 2) return null;
           const fmt = (v: number) => (v < 1 ? `.${Math.round(v * 10)}` : `${v}`);
           return (
-            <div
-              className="absolute left-1/2 z-30 flex -translate-x-1/2 items-center gap-1 rounded-full border border-white/15 bg-black/60 px-1.5 py-1 backdrop-blur"
-              style={{ top: "calc(env(safe-area-inset-top) + 5.5rem)" }}
-            >
-              {unique.map((v) => {
-                const active = Math.abs(zoomLevel - v) < 0.2;
-                return (
-                  <button
-                    key={v}
-                    type="button"
-                    onClick={() => void handleZoomChange(v)}
-                    aria-label={`${fmt(v)}x zoom`}
-                    className={`flex h-9 min-w-[2.25rem] items-center justify-center rounded-full px-2 text-xs font-black transition active:scale-95 ${
-                      active ? "bg-white text-black" : "text-white/90 hover:bg-white/10"
-                    }`}
-                  >
-                    {active ? `${fmt(v)}×` : fmt(v)}
-                  </button>
-                );
-              })}
-            </div>
+            <>
+              {zoomOpen && (
+                <button
+                  type="button"
+                  aria-label="Close zoom"
+                  onClick={() => setZoomOpen(false)}
+                  className="absolute inset-0 z-20 cursor-default"
+                />
+              )}
+              <div
+                className="absolute right-4 z-30 flex flex-col items-end gap-2"
+                style={{ top: "calc(env(safe-area-inset-top) + 5.5rem)" }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setZoomOpen((o) => !o)}
+                  aria-label="Zoom controls"
+                  className="flex h-10 min-w-[3.5rem] items-center justify-center gap-1 rounded-full border border-white/20 bg-black/60 px-3 text-xs font-black text-white backdrop-blur active:scale-95"
+                >
+                  {zoomLevel.toFixed(1)}× 🔍
+                </button>
+
+                {zoomOpen && (
+                  <div className="flex flex-col items-center gap-2 rounded-2xl border border-white/15 bg-black/75 p-2.5 backdrop-blur">
+                    {unique.length >= 2 && (
+                      <div className="flex items-center gap-1">
+                        {unique.map((v) => {
+                          const active = Math.abs(zoomLevel - v) < 0.2;
+                          return (
+                            <button
+                              key={v}
+                              type="button"
+                              onClick={() => {
+                                void handleZoomChange(v);
+                                setZoomOpen(false);
+                              }}
+                              aria-label={`${fmt(v)}x zoom`}
+                              className={`flex h-9 min-w-[2.25rem] items-center justify-center rounded-full px-2 text-xs font-black active:scale-95 ${
+                                active ? "bg-white text-black" : "text-white/90"
+                              }`}
+                            >
+                              {active ? `${fmt(v)}×` : fmt(v)}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                    <input
+                      type="range"
+                      min={zoomMin}
+                      max={zoomMax}
+                      step={0.1}
+                      value={zoomLevel}
+                      onChange={(e) => void handleZoomChange(Number(e.target.value))}
+                      className="w-44"
+                      aria-label="Fine zoom"
+                    />
+                  </div>
+                )}
+              </div>
+            </>
           );
         })()}
 
