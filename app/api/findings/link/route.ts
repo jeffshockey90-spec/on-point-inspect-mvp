@@ -33,11 +33,40 @@ export async function POST(req: Request) {
       ),
     );
 
-    if (!inspectionId || !findingId) {
-      return NextResponse.json(
-        { error: "Missing inspection or finding id." },
-        { status: 400 },
-      );
+    // Group mode: link a whole set of findings to EACH OTHER (full mesh), used by
+    // the field "Link Findings" tool. Each one gets the others + the shared note.
+    const groupIds: string[] = Array.from(
+      new Set(
+        (Array.isArray(body?.groupIds) ? body.groupIds : [])
+          .map((id: any) => clean(id))
+          .filter(Boolean),
+      ),
+    );
+
+    if (!inspectionId) {
+      return NextResponse.json({ error: "Missing inspection id." }, { status: 400 });
+    }
+
+    if (groupIds.length >= 2) {
+      const adminG = getAdminClient();
+      const authorizedG = await authorizeInspection(adminG, user.id, inspectionId, "id");
+      if (!authorizedG) return notFound();
+
+      const noteG = clean(body?.note).slice(0, 2000) || null;
+      for (const id of groupIds) {
+        const others = groupIds.filter((x) => x !== id);
+        const { error: gErr } = await adminG
+          .from("findings")
+          .update({ related_finding_ids: others, related_note: noteG })
+          .eq("id", id)
+          .eq("inspection_id", inspectionId);
+        if (gErr) throw gErr;
+      }
+      return NextResponse.json({ ok: true, groupIds, note: noteG });
+    }
+
+    if (!findingId) {
+      return NextResponse.json({ error: "Missing finding id." }, { status: 400 });
     }
 
     const admin = getAdminClient();

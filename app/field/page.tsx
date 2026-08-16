@@ -20,6 +20,7 @@ import AISecondInspector, {
 import InspectionCopilotPanel from "../../components/InspectionCopilotPanel";
 import OfflineReportViewer from "../../components/OfflineReportViewer";
 import AILiveInspectionCamera from "../../components/AILiveInspectionCamera";
+import FieldFindingLinker from "../../components/FieldFindingLinker";
 import type {
   CaptureCategory,
   CaptureDraft,
@@ -4705,6 +4706,12 @@ function FieldPageContent() {
                     onIgnore={ignoreAiSuggestion}
                     onClear={() => setAiSuggestions([])}
                   />
+                )}
+
+                {selectedReport && (
+                  <div className="mt-3 flex justify-end">
+                    <FieldFindingLinker inspectionId={String(selectedReport)} />
+                  </div>
                 )}
               </div>
             </div>
