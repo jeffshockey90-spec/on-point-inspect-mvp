@@ -240,20 +240,63 @@ Keep items short and actionable.
       parsed = {};
     }
 
-    // Map the AI's 1-based "findingNumber" back to the real finding id so the UI
-    // can jump to it. LLMs echo small integers reliably but mangle long db ids,
-    // so we never ask the model for the raw id.
+    // Resolve which finding each review item is about, so the UI can jump to it.
+    // We DON'T trust the model to echo an id or number reliably; instead we match
+    // by content: the finding whose title words appear in the item's text. Falls
+    // back to an explicit findingNumber the model may have provided.
+    const normalize = (value: any) =>
+      String(value || "").toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+
+    const GENERIC_TITLES = new Set(["field finding", "inspection finding", "untitled", "finding"]);
+    const findingWordSets = orderedFindings.map((finding: any) => {
+      const title = normalize(finding.title);
+      const words = GENERIC_TITLES.has(title)
+        ? []
+        : title.split(" ").filter((w) => w.length > 3);
+      return { finding, words };
+    });
+
+    const matchFindingIdByText = (text: string) => {
+      const msg = normalize(text);
+      if (!msg) return undefined;
+      let best: any = null;
+      let bestScore = 0;
+      for (const { finding, words } of findingWordSets) {
+        if (words.length === 0) continue;
+        const hits = words.filter((w) => msg.includes(w)).length;
+        const score = hits / words.length;
+        if (score > bestScore) {
+          bestScore = score;
+          best = finding;
+        }
+      }
+      // Require a solid majority of the title's words to appear, so we don't
+      // link an item to an unrelated finding.
+      return bestScore >= 0.6 ? best?.id : undefined;
+    };
+
     const attachFindingIds = (items: any) =>
       safeArray(items).map((item: any) => {
-        if (!item || typeof item !== "object") return item;
-        const num = Number(item.findingNumber);
-        if (Number.isInteger(num) && num >= 1 && num <= orderedFindings.length) {
-          const target = orderedFindings[num - 1];
-          if (target?.id !== undefined && target?.id !== null) {
-            return { ...item, findingId: target.id };
+        const isObj = item && typeof item === "object";
+        const message = isObj ? safeText(item) : String(item || "");
+
+        let findingId: any;
+
+        // 1. Explicit findingNumber if the model provided a valid one.
+        if (isObj) {
+          const num = Number(item.findingNumber);
+          if (Number.isInteger(num) && num >= 1 && num <= orderedFindings.length) {
+            findingId = orderedFindings[num - 1]?.id;
           }
         }
-        return item;
+
+        // 2. Content match on the item's text.
+        if (findingId === undefined || findingId === null) {
+          findingId = matchFindingIdByText(message);
+        }
+
+        if (findingId === undefined || findingId === null) return item;
+        return { ...(isObj ? item : {}), message, findingId };
       });
 
     const result = {
