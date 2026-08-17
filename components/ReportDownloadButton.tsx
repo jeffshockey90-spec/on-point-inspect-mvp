@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { isIOSNativeApp } from "../lib/nativePlatform";
 
 type Props = {
   href: string;
@@ -153,6 +154,13 @@ export default function ReportDownloadButton({
 
     if (!href) return;
 
+    // iOS Safari (not the native app): the OS download manager saves an
+    // attachment in ONE tap. Hand it the URL directly — no fetch, no share sheet.
+    if (isAppleMobile() && !isIOSNativeApp()) {
+      window.location.href = href;
+      return;
+    }
+
     setPreparing(true);
     setError("");
     if (errorTimer.current) {
@@ -169,15 +177,23 @@ export default function ReportDownloadButton({
       // iPhone/iPad (Safari AND the native app): a plain <a download> doesn't
       // save on iOS. Hand the finished PDF to the native share sheet, which has
       // "Save to Files" / Print and works in Safari and the app's WKWebView.
-      if (isAppleMobile()) {
+      if (isIOSNativeApp()) {
         const nav = navigator as any;
         const file = new File([blob], downloadName, { type: "application/pdf" });
 
-        // Don't share now: the build consumed the tap, and iOS blocks the share
-        // sheet outside a fresh gesture. Arm the button — the next tap saves it.
         if (nav.canShare?.({ files: [file] }) && nav.share) {
-          setReadyFile(file);
-          return;
+          // Try to save in ONE tap — works when the build was fast enough that
+          // iOS still honors the original tap.
+          try {
+            await nav.share({ files: [file], title: downloadName });
+            return;
+          } catch (shareError: any) {
+            if (shareError?.name === "AbortError") return; // user dismissed
+            // The build outran iOS's tap window — arm the button so one more
+            // (fresh) tap opens the share sheet.
+            setReadyFile(file);
+            return;
+          }
         }
 
         // No file-share support at all — open the PDF so it isn't a dead end.
