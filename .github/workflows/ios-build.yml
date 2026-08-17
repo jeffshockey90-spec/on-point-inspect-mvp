@@ -1,0 +1,138 @@
+name: iOS Build & Upload
+
+# Builds the iOS app on a cloud Mac and uploads it to App Store Connect / TestFlight.
+# No physical Mac needed. Runs only when you click "Run workflow" (manual).
+#
+# Required GitHub secrets (Settings -> Secrets and variables -> Actions):
+#   APPSTORE_API_KEY_ID      - the App Store Connect API Key ID (e.g. ABC123XYZ)
+#   APPSTORE_API_ISSUER_ID   - the Issuer ID (a UUID)
+#   APPSTORE_API_KEY_P8      - the full contents of the AuthKey_XXX.p8 file (paste it in)
+#
+# Signing is fully automatic via the API key (-allowProvisioningUpdates), so there
+# are no certificates or provisioning profiles to manage by hand.
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_number:
+        description: "Build number (blank = auto epoch, always unique)"
+        required: false
+
+concurrency:
+  group: ios-build
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: macos-14
+    timeout-minutes: 60
+    env:
+      XCODE_PROJECT: ios/App/App.xcodeproj
+      SCHEME: App
+      TEAM_ID: "59T2D423YY"
+      BUNDLE_ID: com.onpointhomeinspect.inspect
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select latest Xcode
+        run: sudo xcode-select -switch /Applications/Xcode.app
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install JS dependencies
+        run: npm ci
+
+      - name: Capacitor sync iOS (adds native plugins incl. RevenueCat)
+        run: npx cap sync ios
+
+      - name: Write App Store Connect API key
+        env:
+          KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
+          P8: ${{ secrets.APPSTORE_API_KEY_P8 }}
+        run: |
+          mkdir -p "$HOME/private_keys"
+          printf '%s' "$P8" > "$HOME/private_keys/AuthKey_${KEY_ID}.p8"
+          # altool/notarytool also look here:
+          mkdir -p "$HOME/.appstoreconnect/private_keys"
+          cp "$HOME/private_keys/AuthKey_${KEY_ID}.p8" "$HOME/.appstoreconnect/private_keys/"
+
+      - name: Determine build number
+        run: |
+          BN="${{ github.event.inputs.build_number }}"
+          if [ -z "$BN" ]; then BN="$(date -u +%s)"; fi
+          echo "BUILD_NUMBER=$BN" >> "$GITHUB_ENV"
+          echo "Using build number: $BN"
+
+      - name: Resolve Swift packages
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -project "$XCODE_PROJECT" -scheme "$SCHEME"
+
+      - name: Archive
+        env:
+          KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APPSTORE_API_ISSUER_ID }}
+        run: |
+          xcodebuild \
+            -project "$XCODE_PROJECT" \
+            -scheme "$SCHEME" \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$HOME/private_keys/AuthKey_${KEY_ID}.p8" \
+            -authenticationKeyID "$KEY_ID" \
+            -authenticationKeyIssuerID "$ISSUER_ID" \
+            DEVELOPMENT_TEAM="$TEAM_ID" \
+            CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
+            archive
+
+      - name: Export IPA
+        env:
+          KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APPSTORE_API_ISSUER_ID }}
+        run: |
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store</string>
+            <key>teamID</key><string>${TEAM_ID}</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>uploadSymbols</key><true/>
+            <key>destination</key><string>export</string>
+          </dict>
+          </plist>
+          EOF
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            -exportPath "$RUNNER_TEMP/export" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$HOME/private_keys/AuthKey_${KEY_ID}.p8" \
+            -authenticationKeyID "$KEY_ID" \
+            -authenticationKeyIssuerID "$ISSUER_ID"
+
+      - name: Upload to App Store Connect (TestFlight)
+        env:
+          KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APPSTORE_API_ISSUER_ID }}
+        run: |
+          IPA="$(find "$RUNNER_TEMP/export" -name '*.ipa' | head -n1)"
+          echo "Uploading: $IPA"
+          xcrun altool --upload-app -f "$IPA" -t ios \
+            --apiKey "$KEY_ID" --apiIssuer "$ISSUER_ID"
+
+      - name: Upload IPA as build artifact (backup)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-ipa
+          path: ${{ runner.temp }}/export/*.ipa
+          if-no-files-found: ignore
