@@ -48,7 +48,13 @@ const nextConfig = {
   //    instead of node_modules, and spawn() fails with ENOENT.
   // 2) Trace the actual binary (a data file Next won't include on its own) into
   //    the function so it exists at that node_modules path.
-  serverExternalPackages: ["ffmpeg-static"],
+  // @sparticuz/chromium needs the same treatment as ffmpeg-static and for the
+  // same reason: it resolves bin/chromium.br relative to its own __dirname, so
+  // inlining it makes that path point next to the route file and the binary
+  // "disappears" at runtime. External + traced (below) is what makes the bundled
+  // Chromium actually resolvable — without both, the PDF routes silently fall
+  // back to downloading a 50MB pack from GitHub on every cold start.
+  serverExternalPackages: ["ffmpeg-static", "@sparticuz/chromium"],
 
   experimental: {
     serverActions: {
@@ -83,8 +89,13 @@ const nextConfig = {
     // has no binary in the traced bundle and the routes fall back to pulling a
     // ~50MB pack from GitHub on every cold start — 15-30s of a 60s budget, and a
     // hard failure whenever GitHub is slow.
-    "/api/realtor-report-download/[id]": ["./node_modules/@sparticuz/chromium/**"],
-    "/api/repair-request-addendum/[token]": ["./node_modules/@sparticuz/chromium/**"],
+    //
+    // Only bin/** — that's the ~64MB of compressed payload Next won't trace on
+    // its own. The package's JS comes along via serverExternalPackages, and
+    // globbing the whole package would duplicate it in every function bundle,
+    // which matters against Vercel's 250MB unzipped function limit.
+    "/api/realtor-report-download/[id]": ["./node_modules/@sparticuz/chromium/bin/**"],
+    "/api/repair-request-addendum/[token]": ["./node_modules/@sparticuz/chromium/bin/**"],
   },
 };
 
