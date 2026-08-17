@@ -14,6 +14,7 @@ import { normalizeCompanyBranding } from "../../../lib/companyBranding";
 import { sendPushNotification } from "../../../lib/push";
 import { getReportDeliveryState } from "../../../lib/reportDelivery";
 import { getSessionUser, authorizeInspection } from "../../../lib/apiAuth";
+import { getInspectionShareToken, getOrCreateShareToken } from "../../../lib/shareToken";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -1206,6 +1207,17 @@ export default async function PublicSharePage({
         </div>
       </main>
     );
+  }
+
+  // Guarantee a share token so the report DOWNLOAD link is token-based. Without
+  // one, sharePathId falls back to the numeric id and the download route rejects
+  // the (unauthenticated) client with "This download link requires a valid
+  // shared report link". supabase here is the service-role client.
+  if (!getInspectionShareToken(inspection)) {
+    const ensured = await getOrCreateShareToken(supabase, inspection);
+    if (ensured && ensured !== String(inspection.id)) {
+      inspection.public_share_token = ensured;
+    }
   }
 
   const sharePathId = String(

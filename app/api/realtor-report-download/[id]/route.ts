@@ -1571,6 +1571,36 @@ async function renderHtmlToPdf(html: string) {
   }
 }
 
+// When the PDF is opened in a new tab (the Apple-friendly download path), an
+// error must not dump raw JSON at the viewer. If the request looks like a
+// browser navigation (Accept: text/html), render a small styled page instead.
+function wantsHtmlResponse(req: Request) {
+  return (req.headers.get("accept") || "").toLowerCase().includes("text/html");
+}
+
+function reportErrorResponse(req: Request, message: string, status: number) {
+  if (wantsHtmlResponse(req)) {
+    const html = `<!doctype html><html lang="en"><head><meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Report unavailable</title>
+<style>
+  body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background: #0b1120; color: #e2e8f0; }
+  .card { max-width: 440px; text-align: center; background: #111827; border: 1px solid #1f2937; border-radius: 18px; padding: 30px 28px; }
+  h1 { font-size: 19px; margin: 0 0 12px; }
+  p { color: #94a3b8; font-size: 15px; line-height: 1.55; margin: 0; }
+</style></head><body><div class="card">
+  <h1>Report unavailable</h1>
+  <p>${escapeHtml(message)}</p>
+</div></body></html>`;
+    return new NextResponse(html, {
+      status,
+      headers: { "Content-Type": "text/html; charset=utf-8" },
+    });
+  }
+  return NextResponse.json({ error: message }, { status });
+}
+
 function getDownloadName(property: string, reportMode: "agent" | "full") {
   const slug = cleanText(property)
     .toLowerCase()
@@ -1587,6 +1617,11 @@ export async function GET(req: Request, { params }: RouteProps) {
     const lookupValue = cleanText(id);
     const url = new URL(req.url);
     const reportMode = url.searchParams.get("type") === "full" ? "full" : "agent";
+    // Apple surfaces open the PDF in a new tab and need it served inline so the
+    // OS PDF viewer (with its native Save/Share) takes over. Default stays
+    // attachment for the classic blob-download path on other platforms.
+    const disposition =
+      url.searchParams.get("disposition") === "inline" ? "inline" : "attachment";
 
     if (!lookupValue) {
       return NextResponse.json({ error: "Missing report token." }, { status: 400 });
@@ -1634,7 +1669,7 @@ export async function GET(req: Request, { params }: RouteProps) {
 
     if (!inspection) {
       if (!/^\d+$/.test(lookupValue)) {
-        return NextResponse.json({ error: "Report link is invalid or expired." }, { status: 404 });
+        return reportErrorResponse(req, "Report link is invalid or expired.", 404);
       }
 
       const authClient = await createSupabaseServerClient();
@@ -1643,7 +1678,11 @@ export async function GET(req: Request, { params }: RouteProps) {
       userEmail = cleanEmail(user?.email);
 
       if (!user?.email) {
-        return NextResponse.json({ error: "This download link requires a valid shared report link." }, { status: 401 });
+        return reportErrorResponse(
+          req,
+          "This download link requires a valid shared report link.",
+          401,
+        );
       }
 
       inspectionId = lookupValue;
@@ -1704,7 +1743,7 @@ export async function GET(req: Request, { params }: RouteProps) {
     }
 
     if (!allowed) {
-      return NextResponse.json({ error: "You do not have access to this report." }, { status: 403 });
+      return reportErrorResponse(req, "You do not have access to this report.", 403);
     }
 
     // Delivery gate (audit C3): the owning inspector/owner may always download,
@@ -1728,9 +1767,10 @@ export async function GET(req: Request, { params }: RouteProps) {
       if (!sampleRow) {
         const delivery = await getReportDeliveryState(admin, inspection);
         if (!delivery.deliverable) {
-          return NextResponse.json(
-            { error: "This report isn't available for download yet." },
-            { status: 403 }
+          return reportErrorResponse(
+            req,
+            "This report isn't available for download yet.",
+            403,
           );
         }
       }
@@ -1966,14 +2006,15 @@ export async function GET(req: Request, { params }: RouteProps) {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${getDownloadName(property, reportMode)}"`,
+        "Content-Disposition": `${disposition}; filename="${getDownloadName(property, reportMode)}"`,
         "Cache-Control": "private, max-age=20, stale-while-revalidate=120",
       },
     });
   } catch (error: any) {
-    return NextResponse.json(
-      { error: error?.message || "Could not download realtor report." },
-      { status: 500 }
+    return reportErrorResponse(
+      req,
+      error?.message || "Could not download realtor report.",
+      500,
     );
   }
 }

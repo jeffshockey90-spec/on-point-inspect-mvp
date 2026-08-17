@@ -11,20 +11,32 @@ type Props = {
 };
 
 /**
- * iPhone, iPad, and anything embedding WKWebView (which is every browser on iOS,
- * plus the native Capacitor shell).
+ * Every Apple surface: iPhone, iPad, the native Capacitor/WKWebView shell, AND
+ * desktop Safari on a Mac.
  *
- * iPadOS reports itself as "MacIntel", so the touch-point check is what
- * separates an iPad from a real Mac — desktop Safari handles the blob download
- * fine and shouldn't take the fallback path.
+ * The fetched-blob download path below is unreliable on all of these — Safari
+ * (mobile and desktop) drops the user-gesture grant across the `await`, blob:
+ * URLs are flaky on iOS, and the WKWebView in the native app has no download
+ * handling at all. So for anything Apple we hand the browser a normal URL to
+ * open inline instead, where the OS renders the PDF with a native Save/Share.
+ *
+ * iPadOS also reports "MacIntel", but it's caught by the same branch, so we no
+ * longer need the touch-point split.
  */
-function isAppleMobile() {
+function isApplePlatform() {
   if (typeof navigator === "undefined") return false;
 
   return (
-    /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
-    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+    /iPhone|iPad|iPod|Macintosh/i.test(navigator.userAgent) ||
+    navigator.platform === "MacIntel"
   );
+}
+
+// Ask the route to serve the PDF INLINE so Safari and the native app render it
+// in the new tab (where Save/Share lives) instead of trying — and failing — to
+// hand off an attachment the WKWebView can't process.
+function withInlineDisposition(url: string) {
+  return url + (url.includes("?") ? "&" : "?") + "disposition=inline";
 }
 
 function getFilenameFromDisposition(
@@ -73,14 +85,25 @@ export default function ReportDownloadButton({
   async function startDownload() {
     if (preparing || !href) return;
 
-    // iOS can't be served by the blob path below. Safari drops the user-gesture
-    // grant across the `await`, and the WKWebView in the native app has no
-    // download handling at all — so `anchor.click()` silently does nothing and
-    // the user sees a spinner finish with no file. The route already sends
-    // Content-Disposition: attachment, so handing the URL straight to the
-    // browser inside the click gesture is the path that actually works.
-    if (isAppleMobile()) {
-      window.location.href = href;
+    // Every Apple surface (iOS/iPadOS, the native app's WKWebView, and Safari on
+    // Mac) fails the blob path below. Open the PDF inline in a NEW TAB inside the
+    // real click gesture: mobile Safari and Mac Safari both render it with a
+    // native Save/Share, and the native app either opens it in Safari or, when
+    // window.open returns null (common in WKWebView), we navigate the current
+    // view to the inline PDF as a fallback so it still renders.
+    if (isApplePlatform()) {
+      const target = withInlineDisposition(href);
+      setPreparing(true);
+      let opened: Window | null = null;
+      try {
+        opened = window.open(target, "_blank");
+      } catch {
+        opened = null;
+      }
+      if (!opened) window.location.href = target;
+      // We can't observe the new tab's load, so clear the busy state shortly
+      // after; the browser's own tab shows the real build progress meanwhile.
+      window.setTimeout(() => setPreparing(false), 4000);
       return;
     }
 

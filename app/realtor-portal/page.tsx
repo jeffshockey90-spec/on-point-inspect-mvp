@@ -5,7 +5,7 @@ import { formatAppValue } from "../../lib/app-time";
 import FastLinkButton from "../../components/FastLinkButton";
 import EmailAddendumButton from "../../components/EmailAddendumButton";
 import ReportDownloadButton from "../../components/ReportDownloadButton";
-import { getInspectionShareToken } from "../../lib/shareToken";
+import { getInspectionShareToken, getOrCreateShareToken } from "../../lib/shareToken";
 import { redirect } from "next/navigation";
 import { createClient } from "../../utils/supabase/server";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
@@ -297,6 +297,20 @@ export default async function RealtorPortalPage({
     (a: any, b: any) =>
       new Date(getInspectionDate(b) || 0).getTime() -
       new Date(getInspectionDate(a) || 0).getTime()
+  );
+
+  // Guarantee a share token on every inspection so the PDF download link is
+  // token-based. Without it the link falls back to the numeric id, which the
+  // download route rejects for realtors (they aren't the logged-in inspector)
+  // with "This download link requires a valid shared report link".
+  await Promise.all(
+    inspections.map(async (inspection: any) => {
+      if (getInspectionShareToken(inspection)) return;
+      const token = await getOrCreateShareToken(admin, inspection);
+      if (token && token !== cleanText(inspection.id)) {
+        inspection.public_share_token = token;
+      }
+    }),
   );
 
   const inspectionIds = inspections.map((inspection: any) => cleanText(inspection.id));

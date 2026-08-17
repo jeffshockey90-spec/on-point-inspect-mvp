@@ -11,6 +11,8 @@ import { createServerClient } from "@supabase/ssr";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 
 import PrintButton from "../../../components/PrintButton";
+import ReportDownloadButton from "../../../components/ReportDownloadButton";
+import { getInspectionShareToken, getOrCreateShareToken } from "../../../lib/shareToken";
 import CollapsibleReportSection from "../../../components/CollapsibleReportSection";
 import SendSignedAgreementButton from "../../../components/SendSignedAgreementButton";
 import ResendConfirmationButton from "../../../components/ResendConfirmationButton";
@@ -1750,6 +1752,18 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
   // the same reliable way the public share report does.
   const storageSupabase = createSupabaseStorageClient() || supabase;
 
+  // Guarantee a share token so the inspector's "Download PDF" link is
+  // token-based and works in any browser/new tab (the download route only
+  // accepts the numeric id from a logged-in session, which breaks when the PDF
+  // opens in a fresh tab or the native app hands it to Safari).
+  if (!getInspectionShareToken(inspection)) {
+    const ensuredToken = await getOrCreateShareToken(storageSupabase, inspection);
+    if (ensuredToken && ensuredToken !== String(inspection.id)) {
+      inspection.public_share_token = ensuredToken;
+    }
+  }
+  const reportDownloadId = getInspectionShareToken(inspection) || String(inspection.id);
+
   const executiveSummary = String(inspection.executive_summary || "").trim();
 
   // Every one of these reads only needs inspection.id, so run them in a single
@@ -2840,6 +2854,15 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                 Report &amp; Share
               </p>
               <div className="flex flex-wrap gap-3">
+                <ReportDownloadButton
+                  href={`/api/realtor-report-download/${encodeURIComponent(reportDownloadId)}?type=full`}
+                  filename={`inspection-report-${inspection.id}-full.pdf`}
+                  preparingText="Preparing PDF..."
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-500 px-5 py-3 font-bold text-black hover:bg-cyan-400"
+                >
+                  Download PDF
+                </ReportDownloadButton>
+
                 <PrintButton
                   label="Print / Save PDF"
                   className="rounded-xl bg-black px-5 py-3 font-bold text-white hover:bg-slate-800"
