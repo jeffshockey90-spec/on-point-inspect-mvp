@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { isIOSNativeApp } from "../lib/nativePlatform";
 
 type Props = {
   href: string;
@@ -12,28 +11,25 @@ type Props = {
 };
 
 /**
- * iPhone / iPad running mobile Safari (NOT the native app). iPadOS reports
- * itself as "MacIntel", so the touch-point check separates an iPad from a real
- * Mac. These get a true download via the OS download manager (a direct
- * navigation to the attachment URL), because the fetched-blob path below drops
- * the user-gesture grant across the `await` and blob: URLs are flaky on iOS.
+ * Any iPhone/iPad — the native Capacitor app AND mobile Safari (which is every
+ * browser engine on iOS). iPadOS reports itself as "MacIntel", so the
+ * touch-point check separates an iPad from a real Mac.
+ *
+ * These all get the PDF by navigating straight to the URL inside the click
+ * gesture: iOS Safari hands the attachment to the download manager (saves to
+ * Files), and the native app's WKWebView opens the PDF so the user can Save to
+ * Files / print from the share sheet. The fetched-blob path below is what breaks
+ * on iOS — Safari drops the user-gesture grant across the `await`, blob: URLs
+ * are flaky, and the WKWebView has no blob download handling — so it stays
+ * desktop-only.
  */
-function isIOSSafariBrowser() {
+function isAppleMobile() {
   if (typeof navigator === "undefined") return false;
-  if (isIOSNativeApp()) return false;
 
   return (
     /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
     (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
   );
-}
-
-// Ask the route to serve the PDF INLINE. Only used for the native iOS app, whose
-// WKWebView has no download manager and ships no native download plugin — a true
-// file download isn't possible there from the web, so we at least render the PDF
-// (the user then taps Share → Save to Files).
-function withInlineDisposition(url: string) {
-  return url + (url.includes("?") ? "&" : "?") + "disposition=inline";
 }
 
 function getFilenameFromDisposition(
@@ -82,25 +78,11 @@ export default function ReportDownloadButton({
   async function startDownload() {
     if (preparing || !href) return;
 
-    // Native iOS app: WKWebView can't download a file and we ship no native
-    // download plugin, so render the PDF inline (the only thing that works) and
-    // let the user Save to Files from the share sheet. A true one-tap download
-    // in the app requires a native build.
-    if (isIOSNativeApp()) {
-      const target = withInlineDisposition(href);
-      let opened: Window | null = null;
-      try {
-        opened = window.open(target, "_blank");
-      } catch {
-        opened = null;
-      }
-      if (!opened) window.location.href = target;
-      return;
-    }
-
-    // iPhone/iPad Safari: navigate straight to the attachment URL so iOS's
-    // download manager saves it to Files — a real download, not a preview.
-    if (isIOSSafariBrowser()) {
+    // iPhone/iPad (native app + Safari): hand the URL straight to the browser
+    // inside the click gesture. This is the path that has always worked in the
+    // native app; the blob path below silently fails there. Requires the link to
+    // be token-based (it is) so it doesn't hit the numeric-id auth wall.
+    if (isAppleMobile()) {
       window.location.href = href;
       return;
     }
