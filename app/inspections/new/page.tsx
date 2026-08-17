@@ -15,7 +15,7 @@ import {
 } from "../../../lib/inspectorPricing";
 import { useAddressAutocomplete } from "../../../hooks/useAddressAutocomplete";
 import NewInspectionAgreementPicker from "../../../components/NewInspectionAgreementPicker";
-import { isIOSNativeApp } from "../../../lib/nativePlatform";
+import { isAppleActive } from "../../../lib/entitlements";
 
 declare global {
   interface Window {
@@ -811,7 +811,7 @@ function NewInspectionPageContent() {
     const { data: profile } = await supabase
       .from("profiles")
       .select(
-        "subscription_status, subscription_exempt, subscription_required, free_inspection_limit, free_inspections_used"
+        "subscription_status, subscription_exempt, subscription_required, free_inspection_limit, free_inspections_used, apple_expires_at"
       )
       .eq("id", userId)
       .single();
@@ -844,7 +844,12 @@ function NewInspectionPageContent() {
     const exempt = profile.subscription_exempt === true;
     const status = String(profile.subscription_status || "").toLowerCase();
 
-    const active = status === "active" || status === "trialing";
+    // Entitlement can come from Stripe or Apple IAP. This mirrors
+    // can_create_inspection() in supabase/add-apple-iap.sql — if the two ever
+    // disagree, an App Store subscriber passes this check and then gets rejected
+    // by RLS on insert.
+    const active =
+      status === "active" || status === "trialing" || isAppleActive(profile);
 
     if (!required || exempt || active) {
       return {
@@ -1880,25 +1885,20 @@ function NewInspectionPageContent() {
             </p>
 
             <p className="mt-3 text-sm leading-6 text-zinc-400">
-              {isIOSNativeApp()
-                ? "Your subscription is managed on the web. Renew at flowinspect.app from a browser, then return here to keep creating inspections."
-                : "Activate your subscription to keep creating inspections."}
+              Activate your subscription to keep creating inspections.
             </p>
 
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              {/* App Store Guideline 3.1.1: no in-app purchase or external-purchase
-                  CTA on iOS. The billing button (which leads to checkout) shows on
-                  web/Android only; iOS gets the plain "manage on the web" message
-                  above. */}
-              {!isIOSNativeApp() && (
-                <button
-                  type="button"
-                  onClick={() => router.push("/billing")}
-                  className="rounded-xl bg-teal-500 px-4 py-3 font-black text-black hover:bg-teal-400"
-                >
-                  Go To Billing
-                </button>
-              )}
+              {/* Both platforms route to /billing. There it's an App Store purchase
+                  sheet on iOS (Guideline 3.1.1) and Stripe Checkout everywhere
+                  else, so nobody hits a dead end in the field. */}
+              <button
+                type="button"
+                onClick={() => router.push("/billing")}
+                className="rounded-xl bg-teal-500 px-4 py-3 font-black text-black hover:bg-teal-400"
+              >
+                Go To Billing
+              </button>
 
               <button
                 type="button"

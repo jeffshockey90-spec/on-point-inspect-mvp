@@ -3,11 +3,14 @@ import { Capacitor } from "@capacitor/core";
 /**
  * True when the web app is running inside the native iOS Capacitor shell.
  *
- * Used to hide every in-app purchase / subscription-purchase control and
- * purchase call-to-action on iOS, so the app complies with App Store Review
- * Guideline 3.1.1 (no purchasing mechanisms or CTAs other than In-App Purchase
- * inside the iOS app). Web and Android are unaffected — the FLOW subscription
- * is a B2B service sold on the web.
+ * Used to suppress every purchase control, subscription price, and pointer to an
+ * outside purchase on iOS, so the app complies with App Store Review Guideline
+ * 3.1.1 / 3.1.3 (no purchasing mechanism other than In-App Purchase, and no CTA
+ * steering to one). Web and Android are unaffected.
+ *
+ * This is the client-side check. Server components use `isIOSShellRequest()`
+ * from `lib/iosShell`, which reads the shell's user-agent marker and so can skip
+ * the markup entirely rather than hiding it after hydration.
  */
 export function isIOSNativeApp(): boolean {
   if (typeof window === "undefined") return false;
@@ -29,18 +32,3 @@ export function isIOSNativeApp(): boolean {
   );
 }
 
-/**
- * Open a URL in the device's external browser (Safari), leaving the app.
- *
- * In the Capacitor iOS shell, `window.open(url, "_blank")` is routed to the
- * system browser rather than the in-app web view — this is what makes the
- * subscription purchase happen on the web, outside the app, as required for a
- * compliant external-purchase link. `path` may be absolute or app-relative.
- */
-export function openInSystemBrowser(path: string): void {
-  if (typeof window === "undefined") return;
-  const url = /^https?:\/\//i.test(path)
-    ? path
-    : `${window.location.origin}${path.startsWith("/") ? "" : "/"}${path}`;
-  window.open(url, "_blank");
-}

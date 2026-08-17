@@ -10,6 +10,10 @@ const config: CapacitorConfig = {
   },
   ios: {
     contentInset: "never",
+    // Lets the server detect the iOS shell (see lib/iosShell.ts) so subscription
+    // pricing and purchase CTAs are never rendered inside the App Store build.
+    // Keep in sync with IOS_SHELL_UA_TAG.
+    appendUserAgent: "FlowInspectIOS",
   },
   android: {
     useLegacyBridge: true,

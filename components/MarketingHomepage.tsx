@@ -513,7 +513,20 @@ const SPOTLIGHTS: Spotlight[] = [
   },
 ];
 
-export default function MarketingHomepage() {
+/**
+ * `hideWebPricing` is set when this is served to the native iOS shell.
+ *
+ * The shell loads the live site, so this is the App Store build's launch screen
+ * for logged-out users. The web price differs from the App Store price and the
+ * pricing page routes to a Stripe purchase, so on iOS the pricing links and the
+ * trial-price copy drop out — signing up stays available, and the subscription
+ * itself is sold through In-App Purchase on /billing.
+ */
+export default function MarketingHomepage({
+  hideWebPricing = false,
+}: {
+  hideWebPricing?: boolean;
+}) {
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#020617] text-white">
       <header className="border-b border-slate-800/80">
@@ -528,12 +541,14 @@ export default function MarketingHomepage() {
           </div>
 
           <nav className="flex items-center gap-2 sm:gap-4">
-            <Link
-              href="/pricing"
-              className="hidden rounded-xl px-4 py-2 text-sm font-bold text-slate-300 transition hover:text-white sm:block"
-            >
-              Pricing
-            </Link>
+            {!hideWebPricing && (
+              <Link
+                href="/pricing"
+                className="hidden rounded-xl px-4 py-2 text-sm font-bold text-slate-300 transition hover:text-white sm:block"
+              >
+                Pricing
+              </Link>
+            )}
             <Link
               href="/login"
               className="rounded-xl border border-slate-700 px-4 py-2 text-sm font-black text-slate-200 transition hover:border-slate-500"
@@ -576,12 +591,14 @@ export default function MarketingHomepage() {
                 >
                   Start Free - No Card Required
                 </Link>
-                <Link
-                  href="/pricing"
-                  className="rounded-2xl border border-slate-700 bg-[#0b1220] px-7 py-4 text-center text-base font-black text-slate-200 transition hover:border-teal-400 active:scale-[0.98]"
-                >
-                  See Pricing
-                </Link>
+                {!hideWebPricing && (
+                  <Link
+                    href="/pricing"
+                    className="rounded-2xl border border-slate-700 bg-[#0b1220] px-7 py-4 text-center text-base font-black text-slate-200 transition hover:border-teal-400 active:scale-[0.98]"
+                  >
+                    See Pricing
+                  </Link>
+                )}
               </div>
 
               <p className="mt-5 text-sm text-slate-500">
@@ -762,12 +779,14 @@ export default function MarketingHomepage() {
             >
               Start Free
             </Link>
-            <Link
-              href="/pricing"
-              className="rounded-2xl border border-slate-700 px-8 py-4 text-base font-black text-slate-200 transition hover:border-teal-400 active:scale-[0.98]"
-            >
-              View Pricing
-            </Link>
+            {!hideWebPricing && (
+              <Link
+                href="/pricing"
+                className="rounded-2xl border border-slate-700 px-8 py-4 text-base font-black text-slate-200 transition hover:border-teal-400 active:scale-[0.98]"
+              >
+                View Pricing
+              </Link>
+            )}
           </div>
         </div>
       </section>
@@ -780,7 +799,9 @@ export default function MarketingHomepage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-            <Link href="/pricing" className="hover:text-slate-300">Pricing</Link>
+            {!hideWebPricing && (
+              <Link href="/pricing" className="hover:text-slate-300">Pricing</Link>
+            )}
             <Link href="/login" className="hover:text-slate-300">Log In</Link>
             <Link href="/signup" className="hover:text-slate-300">Sign Up</Link>
             <a href="mailto:support@onpointhomeinspect.com" className="hover:text-slate-300">Support</a>

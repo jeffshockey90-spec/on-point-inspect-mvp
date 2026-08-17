@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { formatUsdFromCents } from "../../lib/currency";
 import { getSubscriptionPricing } from "../../lib/subscriptionPricing";
+import { isIOSShellRequest } from "../../lib/iosShell";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -20,6 +22,13 @@ const FEATURES = [
 ];
 
 export default async function PricingPage() {
+  // The iOS shell loads this site through `server.url`, so /pricing would
+  // otherwise be reachable inside the App Store build — advertising the Stripe
+  // price (which differs from the App Store price) and routing to a web
+  // purchase. Both are the steering Guideline 3.1.1 prohibits, so iOS never
+  // gets this page; it buys through IOSSubscribeButton on /billing instead.
+  if (await isIOSShellRequest()) redirect("/billing");
+
   const pricing = await getSubscriptionPricing();
 
   return (

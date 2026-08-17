@@ -6,6 +6,8 @@ import SubscriptionCheckoutButton from "../../components/SubscriptionCheckoutBut
 import ManageSubscriptionButton from "../../components/ManageSubscriptionButton";
 import { formatUsdFromCents } from "../../lib/currency";
 import { getSubscriptionPricing } from "../../lib/subscriptionPricing";
+import { isIOSShellRequest } from "../../lib/iosShell";
+import { getBillingSource, isAppleActive, isStripeActive } from "../../lib/entitlements";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -27,10 +29,6 @@ async function createUserClient() {
   );
 }
 
-function isActiveStatus(status: any) {
-  const value = String(status || "").toLowerCase();
-  return value === "active" || value === "trialing";
-}
 
 export default async function BillingPage({
   searchParams,
@@ -73,8 +71,14 @@ export default async function BillingPage({
 
   const pricing = await getSubscriptionPricing();
 
+  // Entitlement can come from Stripe (web/Android) or Apple IAP (iOS) — see
+  // lib/entitlements. The two never overwrite each other, so a web subscriber
+  // opening the iOS app stays active without ever seeing a purchase prompt
+  // (App Store Review Guideline 3.1.3(b), Multiplatform Services).
+  const iosApp = await isIOSShellRequest();
   const exempt = profile?.subscription_exempt === true || profile?.subscription_required === false;
-  const active = isActiveStatus(profile?.subscription_status);
+  const active = isStripeActive(profile) || isAppleActive(profile);
+  const billingSource = getBillingSource(profile, count ?? 0);
   const customPrice = Number(profile?.subscription_price_override_cents || 0);
   const priceCents = exempt
     ? 0
@@ -92,8 +96,13 @@ export default async function BillingPage({
         <section className="rounded-3xl border border-teal-500/40 bg-[#0f172a] p-8 shadow-2xl">
           <p className="text-sm font-black uppercase tracking-[0.35em] text-teal-400">FLOW Billing</p>
           <h1 className="mt-4 text-4xl font-black text-white">Inspector Subscription</h1>
+          {/* On iOS the price shown must be the App Store price in the user's
+              storefront and currency, which only StoreKit knows — so the web
+              price is omitted here and IOSSubscribeButton renders the real one. */}
           <p className="mt-4 max-w-2xl text-slate-300">
-            Your first {freeLimit} real inspections are free. After that, FLOW is {formatUsdFromCents(priceCents)}/month unless the owner has set custom pricing or exempted your account.
+            {iosApp
+              ? `Your first ${freeLimit} real inspections are free. After that, a subscription keeps your account active.`
+              : `Your first ${freeLimit} real inspections are free. After that, FLOW is ${formatUsdFromCents(priceCents)}/month unless the owner has set custom pricing or exempted your account.`}
           </p>
 
           <div className="mt-6 flex flex-wrap gap-3">
@@ -134,10 +143,12 @@ export default async function BillingPage({
             <p className="text-xs font-black uppercase text-slate-400">Remaining</p>
             <p className="mt-3 text-3xl font-black text-teal-300">{remaining}</p>
           </div>
-          <div className="rounded-2xl border border-slate-700 bg-[#0f172a] p-5">
-            <p className="text-xs font-black uppercase text-slate-400">Monthly Price</p>
-            <p className="mt-3 text-3xl font-black text-green-300">{exempt ? "Free" : `${formatUsdFromCents(priceCents)}/mo`}</p>
-          </div>
+          {!iosApp && (
+            <div className="rounded-2xl border border-slate-700 bg-[#0f172a] p-5">
+              <p className="text-xs font-black uppercase text-slate-400">Monthly Price</p>
+              <p className="mt-3 text-3xl font-black text-green-300">{exempt ? "Free" : `${formatUsdFromCents(priceCents)}/mo`}</p>
+            </div>
+          )}
         </section>
 
         <section className="rounded-3xl border border-slate-700 bg-[#0f172a] p-8 shadow-xl">
@@ -148,7 +159,9 @@ export default async function BillingPage({
                 {exempt ? "Owner Exempt / Free" : active ? "Subscription Active" : needsSubscription ? "Subscription Required" : "Free Trial Active"}
               </h2>
               <p className="mt-3 text-slate-300">
-                Current Stripe status: {profile?.subscription_status || "inactive"}
+                {billingSource === "apple"
+                  ? "Billed through the App Store"
+                  : `Current Stripe status: ${profile?.subscription_status || "inactive"}`}
               </p>
             </div>
 
@@ -162,11 +175,14 @@ export default async function BillingPage({
                   <Link href="/dashboard" className="rounded-xl bg-teal-500 px-6 py-3 text-center font-black text-slate-950 hover:bg-teal-400">
                     Go to Dashboard
                   </Link>
-                  <ManageSubscriptionButton flow="manage" />
-                  <ManageSubscriptionButton flow="cancel" />
+                  <ManageSubscriptionButton flow="manage" billingSource={billingSource} />
+                  <ManageSubscriptionButton flow="cancel" billingSource={billingSource} />
                 </>
               ) : (
-                <SubscriptionCheckoutButton priceLabel={`${formatUsdFromCents(priceCents)}/month`} />
+                <SubscriptionCheckoutButton
+                  priceLabel={`${formatUsdFromCents(priceCents)}/month`}
+                  userId={user.id}
+                />
               )}
 
               <Link

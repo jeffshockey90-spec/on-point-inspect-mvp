@@ -7,6 +7,8 @@ type ManageSubscriptionButtonProps = {
   flow?: "manage" | "cancel";
   label?: string;
   className?: string;
+  /** Who is billing this account — decides what iOS can offer. */
+  billingSource?: "stripe" | "apple" | "exempt" | "trial" | "none";
 };
 
 const DEFAULT_CLASS_BY_FLOW: Record<string, string> = {
@@ -25,6 +27,7 @@ export default function ManageSubscriptionButton({
   flow = "manage",
   label,
   className,
+  billingSource = "stripe",
 }: ManageSubscriptionButtonProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -62,19 +65,27 @@ export default function ManageSubscriptionButton({
 
   if (!ready) return null;
 
-  // App Store Guideline 3.1.1: subscription management (which can change plan /
-  // payment) must not run inside the iOS app, and we don't include a link/CTA
-  // that steers to an outside purchase. Show plain informational text only; the
-  // web portal handles manage + cancel. Cancel renders nothing on iOS (the
-  // single manage message covers it).
   if (iosApp) {
-    if (flow === "cancel") return null;
-    return (
-      <p className="text-sm leading-6 text-slate-400">
-        Manage or cancel your subscription anytime at flowinspect.app from a web
-        browser.
-      </p>
-    );
+    // An App Store subscription is managed and cancelled in the App Store. Deep
+    // linking there is managing an Apple purchase, not steering to an outside
+    // one, so it's allowed -- and it's the only place Apple lets the user cancel.
+    // One button covers both flows, so "cancel" renders nothing.
+    if (billingSource === "apple") {
+      if (flow === "cancel") return null;
+      return (
+        <a
+          href="itms-apps://apps.apple.com/account/subscriptions"
+          className={className || DEFAULT_CLASS_BY_FLOW.manage}
+        >
+          Manage Subscription
+        </a>
+      );
+    }
+
+    // Stripe-billed on iOS (bought on the web). The Stripe portal can change
+    // payment, so it must not open in the app, and naming where to go instead
+    // would be the steering Guideline 3.1.1 prohibits. Render nothing.
+    return null;
   }
 
   return (

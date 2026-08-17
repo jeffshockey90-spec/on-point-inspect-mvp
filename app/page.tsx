@@ -15,6 +15,7 @@ import {
 } from "../lib/inspectionStatus";
 import DashboardTour from "../components/DashboardTour";
 import MarketingHomepage from "../components/MarketingHomepage";
+import { isIOSShellRequest } from "../lib/iosShell";
 import CommandSearchTrigger from "../components/CommandSearchTrigger";
 import SetupChecklist from "../components/SetupChecklist";
 import DashboardTrends from "../components/DashboardTrends";
@@ -498,7 +499,7 @@ export default async function HomePage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) return <MarketingHomepage />;
+  if (!user) return <MarketingHomepage hideWebPricing={await isIOSShellRequest()} />;
 
   const dashboardDestination = await getDashboardDestination(user);
 

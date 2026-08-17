@@ -2,14 +2,21 @@
 
 import { useEffect, useState } from "react";
 import { isIOSNativeApp } from "../lib/nativePlatform";
+import IOSSubscribeButton from "./IOSSubscribeButton";
 
-export default function SubscriptionCheckoutButton({ priceLabel }: { priceLabel: string }) {
+export default function SubscriptionCheckoutButton({
+  priceLabel,
+  userId,
+}: {
+  priceLabel: string;
+  userId: string;
+}) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [ready, setReady] = useState(false);
   const [iosApp, setIosApp] = useState(false);
 
-  // Decide platform after mount so we never flash a purchase control on iOS.
+  // Decide platform after mount so we never flash the Stripe control on iOS.
   useEffect(() => {
     setIosApp(isIOSNativeApp());
     setReady(true);
@@ -40,22 +47,14 @@ export default function SubscriptionCheckoutButton({ priceLabel }: { priceLabel:
 
   if (!ready) return null;
 
-  // App Store Guideline 3.1.1: the iOS app must not sell the subscription and
-  // must not include a button/link/CTA that steers to an outside purchase. On
-  // iOS we show plain informational text only -- no purchase control, no link.
-  // The FLOW subscription is a B2B service managed on the web. Web and Android
-  // are unaffected.
+  // App Store Guideline 3.1.1: inside the iOS app the subscription is sold with
+  // In-App Purchase, never Stripe Checkout, and we show no price or link that
+  // steers to an outside purchase -- IOSSubscribeButton takes its price text
+  // straight from StoreKit. Web and Android keep using Stripe below.
   if (iosApp) {
     return (
-      <div className="max-w-sm space-y-2">
-        <p className="text-sm font-semibold leading-6 text-slate-200">
-          Your FlowInspect subscription is managed on the web.
-        </p>
-        <p className="text-sm leading-6 text-slate-400">
-          Start or manage your {priceLabel} plan at flowinspect.app from any web
-          browser. Once it&apos;s active, sign back in here to keep creating
-          inspections.
-        </p>
+      <div className="max-w-sm">
+        <IOSSubscribeButton userId={userId} />
       </div>
     );
   }
