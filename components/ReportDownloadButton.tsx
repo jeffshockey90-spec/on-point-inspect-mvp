@@ -200,21 +200,25 @@ export default function ReportDownloadButton({
         return;
       }
 
-      // Desktop (Windows/Mac/Linux): hand the blob to the browser as a real file
-      // download.
+      // Desktop (Windows/Mac/Linux, all browsers incl. Safari): hand the blob to
+      // the browser as a real file download.
       const objectUrl = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
 
       anchor.href = objectUrl;
       anchor.download = downloadName;
       anchor.rel = "noopener";
+      anchor.target = "_self";
       anchor.style.display = "none";
 
       document.body.appendChild(anchor);
       anchor.click();
-      anchor.remove();
 
+      // Safari (macOS especially) can CANCEL the download if the anchor or its
+      // blob URL is torn down in the same tick as the click. Clean up on a delay
+      // so the download has fully started first.
       window.setTimeout(() => {
+        anchor.remove();
         URL.revokeObjectURL(objectUrl);
       }, 30000);
     } catch (downloadError: any) {
