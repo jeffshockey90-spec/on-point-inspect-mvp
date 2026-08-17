@@ -5,6 +5,7 @@ import { formatAppValue } from "../../lib/app-time";
 import FastLinkButton from "../../components/FastLinkButton";
 import EmailAddendumButton from "../../components/EmailAddendumButton";
 import ReportDownloadButton from "../../components/ReportDownloadButton";
+import { getInspectionShareToken } from "../../lib/shareToken";
 import { redirect } from "next/navigation";
 import { createClient } from "../../utils/supabase/server";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
@@ -439,6 +440,11 @@ export default async function RealtorPortalPage({
             ) : (
               inspections.map((inspection: any) => {
                 const id = cleanText(inspection.id);
+                // Prefer the share token for downloads. A numeric id makes the
+                // route fall back to session auth, which is the fragile path on
+                // mobile — the token authorizes on its own and is the same
+                // access this realtor already has to the report.
+                const downloadId = getInspectionShareToken(inspection) || id;
                 const address = getPropertyAddress(inspection);
                 const shares = sharesByInspectionId[id] || [];
                 const latestShare = shares[0] || null;
@@ -512,7 +518,7 @@ export default async function RealtorPortalPage({
                         </FastLinkButton>
 
                         <ReportDownloadButton
-                          href={`/api/realtor-report-download/${encodeURIComponent(id)}?type=full`}
+                          href={`/api/realtor-report-download/${encodeURIComponent(downloadId)}?type=full`}
                           filename={`inspection-report-${id}-full.pdf`}
                           preparingText="Preparing Full Report..."
                           className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-emerald-500 px-4 py-3 text-center font-black text-emerald-300 transition hover:bg-emerald-500/10 active:scale-[0.98]"
@@ -521,7 +527,7 @@ export default async function RealtorPortalPage({
                         </ReportDownloadButton>
 
                         <ReportDownloadButton
-                          href={`/api/realtor-report-download/${encodeURIComponent(id)}?type=agent`}
+                          href={`/api/realtor-report-download/${encodeURIComponent(downloadId)}?type=agent`}
                           filename={`inspection-report-${id}-agent.pdf`}
                           preparingText="Preparing Agent Report..."
                           className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-lime-500 px-4 py-3 text-center font-black text-lime-300 transition hover:bg-lime-500/10 active:scale-[0.98]"

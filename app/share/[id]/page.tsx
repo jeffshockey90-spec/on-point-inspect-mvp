@@ -1850,9 +1850,13 @@ export default async function PublicSharePage({
           <div className="mb-8 flex flex-wrap gap-3 print:hidden">
             <PdfExportButton />
 
+            {/* href must be the share token, not the numeric id. This page is
+                public, and the download route only accepts a numeric id from a
+                logged-in user — so passing inspectionId 401'd for every
+                anonymous client and realtor opening a shared link. */}
             {!isDemo && (
               <ReportDownloadButton
-                href={`/api/realtor-report-download/${encodeURIComponent(String(inspectionId))}?type=full`}
+                href={`/api/realtor-report-download/${encodeURIComponent(sharePathId)}?type=full`}
                 filename={`inspection-report-${inspectionId}.pdf`}
                 preparingText="Preparing PDF..."
                 className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-cyan-500 bg-cyan-500/10 px-5 py-3 font-bold text-cyan-300 transition active:scale-[0.98] active:opacity-80 [touch-action:manipulation] hover:bg-cyan-500 hover:text-black"
