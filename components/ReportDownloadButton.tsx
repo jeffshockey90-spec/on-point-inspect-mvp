@@ -75,17 +75,48 @@ export default function ReportDownloadButton({
     };
   }, []);
 
+  // Fetch the server-built PDF as a blob, surfacing the route's real error text
+  // (and a friendly timeout message) instead of a JSON dump.
+  async function fetchReportBlob(signal: AbortSignal) {
+    const response = await fetch(href, {
+      method: "GET",
+      credentials: "include",
+      cache: "no-store",
+      signal,
+    });
+
+    if (!response.ok) {
+      const raw = await response.text().catch(() => "");
+      let message = "";
+      try {
+        message = JSON.parse(raw)?.error || "";
+      } catch {
+        // The friendly HTML error page isn't JSON; pull its message line.
+        const match = raw.match(/<p[^>]*>([^<]+)<\/p>/i);
+        message = match?.[1]?.trim() || raw.slice(0, 200);
+      }
+
+      if (response.status === 504 || response.status === 408) {
+        message =
+          "This report has too many photos to build in time. We've been notified — please tell your inspector.";
+      }
+
+      throw new Error(message || `Report download failed (${response.status}).`);
+    }
+
+    const blob = await response.blob();
+    if (!blob.size) throw new Error("The generated report was empty.");
+
+    const downloadName = getFilenameFromDisposition(
+      response.headers.get("content-disposition"),
+      filename,
+    );
+
+    return { blob, downloadName };
+  }
+
   async function startDownload() {
     if (preparing || !href) return;
-
-    // iPhone/iPad (native app + Safari): hand the URL straight to the browser
-    // inside the click gesture. This is the path that has always worked in the
-    // native app; the blob path below silently fails there. Requires the link to
-    // be token-based (it is) so it doesn't hit the numeric-id auth wall.
-    if (isAppleMobile()) {
-      window.location.href = href;
-      return;
-    }
 
     setPreparing(true);
     setError("");
@@ -98,46 +129,33 @@ export default function ReportDownloadButton({
     abortRef.current = controller;
 
     try {
-      const response = await fetch(href, {
-        method: "GET",
-        credentials: "include",
-        cache: "no-store",
-        signal: controller.signal,
-      });
+      const { blob, downloadName } = await fetchReportBlob(controller.signal);
 
-      if (!response.ok) {
-        const raw = await response.text().catch(() => "");
+      // iPhone/iPad (Safari AND the native app): a plain <a download> doesn't
+      // save on iOS. Hand the finished PDF to the native share sheet, which has
+      // "Save to Files" / Print and works in Safari and the app's WKWebView.
+      if (isAppleMobile()) {
+        const nav = navigator as any;
+        const file = new File([blob], downloadName, { type: "application/pdf" });
 
-        // The route returns JSON errors; surface the message rather than dumping
-        // a JSON blob at whoever is trying to download their report.
-        let message = "";
-        try {
-          message = JSON.parse(raw)?.error || "";
-        } catch {
-          message = raw.slice(0, 200);
+        if (nav.canShare?.({ files: [file] }) && nav.share) {
+          try {
+            await nav.share({ files: [file], title: downloadName });
+            return;
+          } catch (shareError: any) {
+            // User dismissed the sheet — that's a choice, not a failure.
+            if (shareError?.name === "AbortError") return;
+            // Otherwise (e.g. the gesture expired during a long build) fall
+            // through to opening the PDF so it isn't a dead end.
+          }
         }
 
-        // 504 is the report taking longer than the function is allowed to run.
-        // That reads as "broken" unless we say what actually happened.
-        if (response.status === 504 || response.status === 408) {
-          message =
-            "This report has too many photos to build in time. We've been notified — please tell your inspector.";
-        }
-
-        throw new Error(message || `Report download failed (${response.status}).`);
+        window.location.href = href;
+        return;
       }
 
-      const blob = await response.blob();
-
-      if (!blob.size) {
-        throw new Error("The generated report was empty.");
-      }
-
-      const downloadName = getFilenameFromDisposition(
-        response.headers.get("content-disposition"),
-        filename,
-      );
-
+      // Desktop (Windows/Mac/Linux): hand the blob to the browser as a real file
+      // download.
       const objectUrl = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
 
