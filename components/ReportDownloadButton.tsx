@@ -65,6 +65,9 @@ export default function ReportDownloadButton({
 }: Props) {
   const [preparing, setPreparing] = useState(false);
   const [error, setError] = useState("");
+  // On iOS the built PDF is held here between the "build" tap and the "save"
+  // tap, because the OS share sheet only opens from a fresh user gesture.
+  const [readyFile, setReadyFile] = useState<File | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const errorTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -115,8 +118,40 @@ export default function ReportDownloadButton({
     return { blob, downloadName };
   }
 
+  // iOS second step: the PDF is already built, so open the share sheet now —
+  // this runs inside a fresh tap, which is what iOS requires for it to appear.
+  async function saveReadyFile() {
+    const file = readyFile;
+    if (!file) return;
+    const nav = navigator as any;
+    try {
+      await nav.share({ files: [file], title: file.name });
+      setReadyFile(null);
+    } catch (shareError: any) {
+      // Sheet dismissed — keep it armed so another tap can retry.
+      if (shareError?.name === "AbortError") return;
+      // Sharing genuinely failed — open the built PDF so it's not a dead end.
+      try {
+        const objectUrl = URL.createObjectURL(file);
+        window.location.href = objectUrl;
+        window.setTimeout(() => URL.revokeObjectURL(objectUrl), 30000);
+      } catch {
+        /* ignore */
+      }
+      setReadyFile(null);
+    }
+  }
+
   async function startDownload() {
-    if (preparing || !href) return;
+    if (preparing) return;
+
+    // Second tap on iOS: save the already-built PDF from this fresh gesture.
+    if (readyFile) {
+      await saveReadyFile();
+      return;
+    }
+
+    if (!href) return;
 
     setPreparing(true);
     setError("");
@@ -138,18 +173,14 @@ export default function ReportDownloadButton({
         const nav = navigator as any;
         const file = new File([blob], downloadName, { type: "application/pdf" });
 
+        // Don't share now: the build consumed the tap, and iOS blocks the share
+        // sheet outside a fresh gesture. Arm the button — the next tap saves it.
         if (nav.canShare?.({ files: [file] }) && nav.share) {
-          try {
-            await nav.share({ files: [file], title: downloadName });
-            return;
-          } catch (shareError: any) {
-            // User dismissed the sheet — that's a choice, not a failure.
-            if (shareError?.name === "AbortError") return;
-            // Otherwise (e.g. the gesture expired during a long build) fall
-            // through to opening the PDF so it isn't a dead end.
-          }
+          setReadyFile(file);
+          return;
         }
 
+        // No file-share support at all — open the PDF so it isn't a dead end.
         window.location.href = href;
         return;
       }
@@ -191,7 +222,7 @@ export default function ReportDownloadButton({
       <button
         type="button"
         onClick={startDownload}
-        disabled={preparing || !href}
+        disabled={preparing || (!href && !readyFile)}
         aria-busy={preparing}
         data-fast-click="true"
         className={`${className} ${preparing ? "cursor-wait opacity-80" : ""}`}
@@ -201,12 +232,22 @@ export default function ReportDownloadButton({
             <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent" />
             <span>{preparingText}</span>
           </>
+        ) : readyFile ? (
+          <span>⬇ Save PDF</span>
         ) : error ? (
           <span>⚠ Download failed — tap to retry</span>
         ) : (
           children
         )}
       </button>
+
+      {/* The share sheet only opens from a fresh tap, so once the PDF is built we
+          ask for that second tap explicitly instead of failing silently. */}
+      {readyFile && !preparing && (
+        <p className="text-sm font-semibold leading-5 text-emerald-300">
+          Ready — tap “Save PDF”, then choose Save to Files.
+        </p>
+      )}
 
       {/* The reason used to live only in the button's `title`, which is
           unreachable on a phone — so a realtor saw "failed" with no way to learn
