@@ -69,12 +69,27 @@ REVENUECAT_WEBHOOK_SECRET=...                 # must match the webhook header
 REVENUECAT_ENTITLEMENT_ID=pro                 # optional, defaults to "pro"
 ```
 
-### 5. Xcode
+### 5. Native rebuild (requires macOS)
 
-- Add the **In-App Purchase** capability to the app target.
-- `npx cap sync ios` to pick up the RevenueCat plugin.
-- Rebuild. The build must be new for the `appendUserAgent` marker in
-  `capacitor.config.ts` to take effect — see "Verify" below.
+This step cannot be skipped or done from the web. RevenueCat is a **native
+plugin** — its Swift code has to be compiled into the app binary. The app loads
+the live site through `server.url`, so web changes normally ship without an App
+Store build, but native plugin code can never arrive that way.
+
+- `npx cap sync ios` — adds RevenueCat to `ios/App/CapApp-SPM` (this project uses
+  Swift Package Manager, not CocoaPods).
+- Confirm **In-App Purchase** is enabled for the App ID. On current developer
+  accounts it is on by default, so usually there is nothing to change — verify
+  rather than assume.
+- Archive and upload a new build.
+
+The `appendUserAgent` marker in `capacitor.config.ts` is also native config, so
+the server-side iOS detection only starts working on this new build — see
+"Verify" below.
+
+No Mac? A macOS CI runner (GitHub Actions `macos-latest`, Codemagic) can run
+`cap sync`, `xcodebuild archive`, and the upload with an App Store Connect API
+key.
 
 ### 6. Sandbox test on a real device
 
