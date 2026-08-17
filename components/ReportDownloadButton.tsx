@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { isIOSNativeApp } from "../lib/nativePlatform";
 
 type Props = {
   href: string;
@@ -154,13 +153,6 @@ export default function ReportDownloadButton({
 
     if (!href) return;
 
-    // iOS Safari (not the native app): the OS download manager saves an
-    // attachment in ONE tap. Hand it the URL directly — no fetch, no share sheet.
-    if (isAppleMobile() && !isIOSNativeApp()) {
-      window.location.href = href;
-      return;
-    }
-
     setPreparing(true);
     setError("");
     if (errorTimer.current) {
@@ -177,7 +169,11 @@ export default function ReportDownloadButton({
       // iPhone/iPad (Safari AND the native app): a plain <a download> doesn't
       // save on iOS. Hand the finished PDF to the native share sheet, which has
       // "Save to Files" / Print and works in Safari and the app's WKWebView.
-      if (isIOSNativeApp()) {
+      // iPhone/iPad — Safari AND the native app. iOS renders a PDF inline no
+      // matter the disposition, so a plain navigation just VIEWS it (that black
+      // screen while it builds, then the PDF). The only real "save" is the OS
+      // share sheet (Save to Files / Print), which works in Safari and WKWebView.
+      if (isAppleMobile()) {
         const nav = navigator as any;
         const file = new File([blob], downloadName, { type: "application/pdf" });
 
@@ -196,8 +192,11 @@ export default function ReportDownloadButton({
           }
         }
 
-        // No file-share support at all — open the PDF so it isn't a dead end.
-        window.location.href = href;
+        // No file-share support at all — open the built PDF (blob) as a
+        // last resort so it isn't a dead end.
+        const objectUrl = URL.createObjectURL(blob);
+        window.location.href = objectUrl;
+        window.setTimeout(() => URL.revokeObjectURL(objectUrl), 30000);
         return;
       }
 
