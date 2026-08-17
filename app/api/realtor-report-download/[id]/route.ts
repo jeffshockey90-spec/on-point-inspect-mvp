@@ -15,10 +15,10 @@ import { existsSync } from "fs";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-// Vercel kills the function at this many seconds. Hobby caps at 60; on Pro this
-// can be raised to 300, which is the single biggest win for photo-heavy reports
-// — change the number here and RENDER_BUDGET_MS follows automatically.
-export const maxDuration = 60;
+// Vercel kills the function at this many seconds (Pro plan ceiling; Hobby caps
+// at 60). Photo-heavy reports were exceeding 60s and getting killed mid-render.
+// RENDER_BUDGET_MS below follows this automatically.
+export const maxDuration = 300;
 
 // Every internal timeout must fit INSIDE the function budget, with headroom to
 // serialize a response. Previously setContent was given 90s inside a 60s

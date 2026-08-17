@@ -9,7 +9,13 @@ import { getCompanyBrandingById, buildBrandedFromHeader, type CompanyBranding } 
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+// Vercel kills the function at this many seconds (Pro plan ceiling).
+export const maxDuration = 300;
+
+// Internal timeouts must fit inside the function budget, with headroom to
+// serialize a response — otherwise the platform kills the request and the caller
+// gets an opaque 504 instead of a usable error.
+const RENDER_BUDGET_MS = maxDuration * 1000 - 10_000;
 
 type RouteProps = {
   params: Promise<{
@@ -845,12 +851,16 @@ async function renderHtmlToPdf(html: string) {
 
     const page = await browser.newPage();
 
-    page.setDefaultNavigationTimeout(0);
-    page.setDefaultTimeout(0);
+    // 0 means "wait forever", which guarantees the platform kills the request
+    // rather than us returning a real error. Bound to what's left of the budget.
+    page.setDefaultNavigationTimeout(RENDER_BUDGET_MS);
+    page.setDefaultTimeout(RENDER_BUDGET_MS);
 
     await page.setContent(html, {
+      // networkidle0 waits for every image request to settle, so it needs a real
+      // ceiling — an addendum with slow photo URLs would otherwise sit here.
       waitUntil: "networkidle0",
-      timeout: 60000,
+      timeout: RENDER_BUDGET_MS,
     });
 
     await page.emulateMediaType("print");
