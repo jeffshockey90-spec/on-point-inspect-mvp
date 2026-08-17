@@ -15,7 +15,16 @@ import { existsSync } from "fs";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// Vercel kills the function at this many seconds. Hobby caps at 60; on Pro this
+// can be raised to 300, which is the single biggest win for photo-heavy reports
+// — change the number here and RENDER_BUDGET_MS follows automatically.
 export const maxDuration = 60;
+
+// Every internal timeout must fit INSIDE the function budget, with headroom to
+// serialize a response. Previously setContent was given 90s inside a 60s
+// function, so it could never fire: the platform killed the request first and
+// the caller got an opaque 504 instead of a usable error.
+const RENDER_BUDGET_MS = maxDuration * 1000 - 10_000;
 
 type RouteProps = {
   params: Promise<{
@@ -1440,8 +1449,18 @@ async function getChromiumExecutablePath() {
   }
 
   if (process.env.VERCEL || process.env.AWS_REGION) {
-    // Vercel may omit @sparticuz/chromium/bin from the traced serverless bundle.
-    // Use the pack that matches the installed @sparticuz/chromium version.
+    // Prefer the binary traced into the function bundle (see
+    // outputFileTracingIncludes in next.config.js). Fetching the remote pack
+    // costs 15-30s of a cold start and fails outright when GitHub is slow, which
+    // is what pushed big reports past the function timeout. It stays only as a
+    // fallback for the case the trace didn't include the binary.
+    try {
+      const bundled = await chromium.executablePath();
+      if (bundled) return bundled;
+    } catch (error) {
+      console.error("Bundled Chromium unavailable, falling back to remote pack:", error);
+    }
+
     return chromium.executablePath(REMOTE_CHROMIUM_PACK_URL);
   }
 
@@ -1465,6 +1484,11 @@ async function getChromiumExecutablePath() {
 
 async function renderHtmlToPdf(html: string) {
   let browser: any = null;
+  const startedAt = Date.now();
+
+  // Time left before Vercel kills us, floored so a stage never gets a
+  // nonsensical zero/negative timeout.
+  const remaining = () => Math.max(5_000, RENDER_BUDGET_MS - (Date.now() - startedAt));
 
   try {
     const executablePath = await getChromiumExecutablePath();
@@ -1490,15 +1514,21 @@ async function renderHtmlToPdf(html: string) {
 
     const page = await browser.newPage();
 
-    page.setDefaultNavigationTimeout(0);
-    page.setDefaultTimeout(0);
+    // 0 means "wait forever", which guarantees the platform kills the request
+    // instead of us returning a real error. Bound everything to what's left.
+    page.setDefaultNavigationTimeout(remaining());
+    page.setDefaultTimeout(remaining());
 
     await page.setContent(html, {
       waitUntil: "domcontentloaded",
-      timeout: 90000,
+      timeout: remaining(),
     });
 
-    await page.evaluate(async () => {
+    // Cap the image wait at a third of what's left, so a few slow/broken photo
+    // URLs can't consume the whole budget and starve the actual PDF render.
+    const imageWaitMs = Math.min(15_000, Math.floor(remaining() / 3));
+
+    await page.evaluate(async (waitMs: number) => {
       const images = Array.from(document.images);
 
       await Promise.all(
@@ -1513,11 +1543,11 @@ async function renderHtmlToPdf(html: string) {
               const finish = () => resolve();
               image.addEventListener("load", finish, { once: true });
               image.addEventListener("error", finish, { once: true });
-              window.setTimeout(finish, 15000);
+              window.setTimeout(finish, waitMs);
             })
         )
       );
-    });
+    }, imageWaitMs);
 
     await page.emulateMediaType("print");
 

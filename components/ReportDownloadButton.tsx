@@ -10,6 +10,23 @@ type Props = {
   preparingText?: string;
 };
 
+/**
+ * iPhone, iPad, and anything embedding WKWebView (which is every browser on iOS,
+ * plus the native Capacitor shell).
+ *
+ * iPadOS reports itself as "MacIntel", so the touch-point check is what
+ * separates an iPad from a real Mac — desktop Safari handles the blob download
+ * fine and shouldn't take the fallback path.
+ */
+function isAppleMobile() {
+  if (typeof navigator === "undefined") return false;
+
+  return (
+    /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+  );
+}
+
 function getFilenameFromDisposition(
   disposition: string | null,
   fallback: string,
@@ -56,6 +73,17 @@ export default function ReportDownloadButton({
   async function startDownload() {
     if (preparing || !href) return;
 
+    // iOS can't be served by the blob path below. Safari drops the user-gesture
+    // grant across the `await`, and the WKWebView in the native app has no
+    // download handling at all — so `anchor.click()` silently does nothing and
+    // the user sees a spinner finish with no file. The route already sends
+    // Content-Disposition: attachment, so handing the URL straight to the
+    // browser inside the click gesture is the path that actually works.
+    if (isAppleMobile()) {
+      window.location.href = href;
+      return;
+    }
+
     setPreparing(true);
     setError("");
     if (errorTimer.current) {
@@ -75,10 +103,25 @@ export default function ReportDownloadButton({
       });
 
       if (!response.ok) {
-        const message = await response.text().catch(() => "");
-        throw new Error(
-          message || `Report download failed (${response.status}).`,
-        );
+        const raw = await response.text().catch(() => "");
+
+        // The route returns JSON errors; surface the message rather than dumping
+        // a JSON blob at whoever is trying to download their report.
+        let message = "";
+        try {
+          message = JSON.parse(raw)?.error || "";
+        } catch {
+          message = raw.slice(0, 200);
+        }
+
+        // 504 is the report taking longer than the function is allowed to run.
+        // That reads as "broken" unless we say what actually happened.
+        if (response.status === 504 || response.status === 408) {
+          message =
+            "This report has too many photos to build in time. We've been notified — please tell your inspector.";
+        }
+
+        throw new Error(message || `Report download failed (${response.status}).`);
       }
 
       const blob = await response.blob();
@@ -113,7 +156,8 @@ export default function ReportDownloadButton({
           downloadError?.message ||
           "The report could not be downloaded. Please try again.";
         setError(message);
-        errorTimer.current = setTimeout(() => setError(""), 6000);
+        // Long enough to actually read now that it renders inline.
+        errorTimer.current = setTimeout(() => setError(""), 20000);
       }
     } finally {
       abortRef.current = null;
@@ -122,27 +166,35 @@ export default function ReportDownloadButton({
   }
 
   return (
-    <button
-      type="button"
-      onClick={startDownload}
-      disabled={preparing || !href}
-      aria-busy={preparing}
-      data-fast-click="true"
-      title={error || undefined}
-      className={`${className} ${
-        preparing ? "cursor-wait opacity-80" : ""
-      }`}
-    >
-      {preparing ? (
-        <>
-          <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent" />
-          <span>{preparingText}</span>
-        </>
-      ) : error ? (
-        <span>⚠ Download failed — tap to retry</span>
-      ) : (
-        children
+    <div className="flex flex-col gap-2">
+      <button
+        type="button"
+        onClick={startDownload}
+        disabled={preparing || !href}
+        aria-busy={preparing}
+        data-fast-click="true"
+        className={`${className} ${preparing ? "cursor-wait opacity-80" : ""}`}
+      >
+        {preparing ? (
+          <>
+            <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            <span>{preparingText}</span>
+          </>
+        ) : error ? (
+          <span>⚠ Download failed — tap to retry</span>
+        ) : (
+          children
+        )}
+      </button>
+
+      {/* The reason used to live only in the button's `title`, which is
+          unreachable on a phone — so a realtor saw "failed" with no way to learn
+          why, and no way to tell us anything useful. Render it inline instead. */}
+      {error && (
+        <p role="alert" className="text-sm font-semibold leading-5 text-red-300">
+          {error}
+        </p>
       )}
-    </button>
+    </div>
   );
 }

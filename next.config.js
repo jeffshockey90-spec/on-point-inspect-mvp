@@ -49,9 +49,6 @@ const nextConfig = {
   // 2) Trace the actual binary (a data file Next won't include on its own) into
   //    the function so it exists at that node_modules path.
   serverExternalPackages: ["ffmpeg-static"],
-  outputFileTracingIncludes: {
-    "/api/video-convert": ["./node_modules/ffmpeg-static/**"],
-  },
 
   experimental: {
     serverActions: {
@@ -73,10 +70,21 @@ const nextConfig = {
     ],
   },
 
+  // NOTE: this must stay a SINGLE key. There were previously two
+  // `outputFileTracingIncludes` literals in this object and the later one
+  // silently won, dropping the earlier includes — that class of bug is invisible
+  // until a binary goes missing at runtime in production.
   outputFileTracingIncludes: {
     "/api/repair-video": ["./node_modules/ffmpeg-static/ffmpeg"],
     "/api/convert-video": ["./node_modules/ffmpeg-static/ffmpeg"],
     "/api/video-convert": ["./node_modules/ffmpeg-static/ffmpeg"],
+
+    // Ship Chromium inside the PDF functions. Without this, @sparticuz/chromium
+    // has no binary in the traced bundle and the routes fall back to pulling a
+    // ~50MB pack from GitHub on every cold start — 15-30s of a 60s budget, and a
+    // hard failure whenever GitHub is slow.
+    "/api/realtor-report-download/[id]": ["./node_modules/@sparticuz/chromium/**"],
+    "/api/repair-request-addendum/[token]": ["./node_modules/@sparticuz/chromium/**"],
   },
 };
 
