@@ -846,7 +846,10 @@ async function renderHtmlToPdf(html: string) {
         deviceScaleFactor: 1,
       },
       executablePath,
-      headless: true,
+      // @sparticuz/chromium ships the headless-SHELL binary; the new headless
+      // engine (headless: true) makes printToPDF fail. Match the package's own
+      // binary.
+      headless: process.env.VERCEL ? (chromium as any).headless : true,
     });
 
     const page = await browser.newPage();

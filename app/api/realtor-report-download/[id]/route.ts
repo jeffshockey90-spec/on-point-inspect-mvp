@@ -1518,7 +1518,14 @@ async function renderHtmlToPdf(html: string) {
         deviceScaleFactor: 1,
       },
       executablePath,
-      headless: true,
+      // @sparticuz/chromium ships the headless-SHELL binary. Driving it with the
+      // new headless engine (headless: true) renders fine but makes the print
+      // compositor fail -> "Protocol error (Page.printToPDF): Printing failed".
+      // Use the headless value the package prescribes for its own binary.
+      headless:
+        process.env.VERCEL || process.env.AWS_REGION
+          ? (chromium as any).headless
+          : true,
     });
 
     const page = await browser.newPage();
