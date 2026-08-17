@@ -1,4 +1,14 @@
 {
+  "functions": {
+    "app/api/realtor-report-download/[id]/route.ts": {
+      "memory": 3009,
+      "maxDuration": 300
+    },
+    "app/api/repair-request-addendum/[token]/route.ts": {
+      "memory": 3009,
+      "maxDuration": 300
+    }
+  },
   "crons": [
     {
       "path": "/api/cron/ai-budget-check",

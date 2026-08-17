@@ -1491,6 +1491,15 @@ async function renderHtmlToPdf(html: string) {
   const remaining = () => Math.max(5_000, RENDER_BUDGET_MS - (Date.now() - startedAt));
 
   try {
+    // Run Chromium without the graphics/WebGL stack on serverless. It's dead
+    // weight for a print job and its memory footprint is a common trigger of
+    // "Page.printToPDF: Printing failed" on large reports.
+    if (process.env.VERCEL || process.env.AWS_REGION) {
+      try {
+        (chromium as any).setGraphicsMode = false;
+      } catch {}
+    }
+
     const executablePath = await getChromiumExecutablePath();
 
     browser = await puppeteer.launch({
@@ -1551,17 +1560,36 @@ async function renderHtmlToPdf(html: string) {
 
     await page.emulateMediaType("print");
 
-    const pdf = await page.pdf({
-      format: "Letter",
-      printBackground: true,
-      preferCSSPageSize: true,
-      margin: {
-        top: "0in",
-        right: "0in",
-        bottom: "0in",
-        left: "0in",
-      },
-    });
+    // "Protocol error (Page.printToPDF): Printing failed" is what Chromium throws
+    // when the print step runs out of memory or the renderer hiccups on a
+    // photo-heavy report. First try with the CSS @page size; if that specific
+    // failure hits, retry once with an explicit Letter size (no preferCSSPageSize
+    // and a fresh call), which sidesteps most transient print crashes.
+    const zeroMargin = { top: "0in", right: "0in", bottom: "0in", left: "0in" };
+
+    let pdf: Uint8Array;
+    try {
+      pdf = await page.pdf({
+        format: "Letter",
+        printBackground: true,
+        preferCSSPageSize: true,
+        margin: zeroMargin,
+        timeout: remaining(),
+      });
+    } catch (printError: any) {
+      const message = String(printError?.message || "");
+      if (!/printToPDF|Printing failed/i.test(message)) throw printError;
+
+      console.error("printToPDF failed once, retrying without CSS page size:", message);
+      await new Promise((resolve) => setTimeout(resolve, 750));
+      pdf = await page.pdf({
+        format: "Letter",
+        printBackground: true,
+        preferCSSPageSize: false,
+        margin: zeroMargin,
+        timeout: remaining(),
+      });
+    }
 
     return Buffer.from(pdf);
   } finally {
