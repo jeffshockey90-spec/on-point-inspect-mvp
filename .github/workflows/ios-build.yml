@@ -24,7 +24,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 60
     env:
       XCODE_PROJECT: ios/App/App.xcodeproj
@@ -36,8 +36,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Select latest Xcode
-        run: sudo xcode-select -switch /Applications/Xcode.app
+      - name: Select newest installed Xcode
+        run: |
+          LATEST="$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -1)"
+          if [ -z "$LATEST" ]; then LATEST=/Applications/Xcode.app; fi
+          echo "Selecting $LATEST"
+          sudo xcode-select -s "$LATEST"
+          xcodebuild -version
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -102,7 +107,7 @@ jobs:
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
           <dict>
-            <key>method</key><string>app-store</string>
+            <key>method</key><string>app-store-connect</string>
             <key>teamID</key><string>${TEAM_ID}</string>
             <key>signingStyle</key><string>automatic</string>
             <key>uploadSymbols</key><true/>
