@@ -129,10 +129,39 @@ jobs:
           KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
           ISSUER_ID: ${{ secrets.APPSTORE_API_ISSUER_ID }}
         run: |
+          set -o pipefail
           IPA="$(find "$RUNNER_TEMP/export" -name '*.ipa' | head -n1)"
-          echo "Uploading: $IPA"
-          xcrun altool --upload-app -f "$IPA" -t ios \
-            --apiKey "$KEY_ID" --apiIssuer "$ISSUER_ID"
+          if [ -z "$IPA" ]; then
+            echo "::error::No IPA was produced by the export step."
+            exit 1
+          fi
+          echo "Uploading: $IPA ($(du -h "$IPA" | cut -f1))"
+
+          # altool has been known to exit 0 without actually delivering the build
+          # ("green but nothing shows up in App Store Connect"). Run it verbose,
+          # capture the output, and only treat the step as successful when altool
+          # explicitly reports a successful delivery. Retry once for transient
+          # network/Apple hiccups.
+          attempt=1
+          max=2
+          while [ "$attempt" -le "$max" ]; do
+            echo "=== Upload attempt $attempt of $max ==="
+            set +e
+            xcrun altool --upload-app -f "$IPA" -t ios \
+              --apiKey "$KEY_ID" --apiIssuer "$ISSUER_ID" --verbose 2>&1 | tee upload.log
+            RC=${PIPESTATUS[0]}
+            set -e
+            if [ "$RC" -eq 0 ] && grep -qiE "No errors uploading|Delivery Successful|UPLOAD SUCCEEDED|has been delivered" upload.log; then
+              echo "✅ Build delivered to App Store Connect."
+              exit 0
+            fi
+            echo "Attempt $attempt did not confirm delivery (altool exit code: $RC)."
+            attempt=$((attempt + 1))
+            [ "$attempt" -le "$max" ] && sleep 15
+          done
+
+          echo "::error::altool did not confirm a successful delivery after $max attempts. See the verbose log above for the real reason (auth, network, duplicate build, etc.)."
+          exit 1
 
       - name: Upload IPA as build artifact (backup)
         if: always()
