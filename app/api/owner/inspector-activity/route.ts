@@ -47,19 +47,37 @@ export async function GET() {
   const { data: inspections } = await admin
     .from("inspections")
     .select(
-      "id, inspector_id, inspection_date, published, is_published, published_at, payment_status, amount_paid, paid_at, is_demo",
+      "id, inspector_id, inspection_date, published, is_published, published_at, payment_status, amount_paid, paid_at, is_demo, created_at",
     );
 
-  // Which inspections actually had a report emailed out.
+  // Report emails (with dates) so we know WHICH inspections were sent and WHEN.
   const { data: reportEmails } = await admin
     .from("email_logs")
-    .select("inspection_id_bigint, email_type")
+    .select("inspection_id_bigint, email_type, sent_at, created_at")
     .in("email_type", ["inspection_report", "environmental_report"]);
-  const sentInspectionIds = new Set(
-    (reportEmails || [])
-      .map((e: any) => String(e.inspection_id_bigint || ""))
-      .filter(Boolean),
-  );
+
+  // inspection id -> inspector id, so a report-email date maps to an inspector.
+  const inspectionToInspector = new Map<string, string>();
+  for (const r of inspections || []) {
+    inspectionToInspector.set(String(r.id), String(r.inspector_id || "(unknown)"));
+  }
+
+  const newest = (cur: string | null, d: any) =>
+    d && (!cur || String(d) > cur) ? String(d) : cur;
+
+  const sentInspectionIds = new Set<string>();
+  const lastSentByInspector = new Map<string, string>();
+  for (const e of reportEmails || []) {
+    const iid = String(e.inspection_id_bigint || "");
+    if (!iid) continue;
+    sentInspectionIds.add(iid);
+    const insp = inspectionToInspector.get(iid);
+    if (!insp) continue;
+    lastSentByInspector.set(
+      insp,
+      newest(lastSentByInspector.get(insp) || null, e.sent_at || e.created_at) || "",
+    );
+  }
 
   type Row = {
     inspector_id: string;
@@ -68,6 +86,10 @@ export async function GET() {
     published: number;
     sent: number;
     paid: number;
+    lastScheduled: string | null;
+    lastPublished: string | null;
+    lastSent: string | null;
+    lastPaid: string | null;
   };
   const byInspector = new Map<string, Row>();
 
@@ -82,14 +104,32 @@ export async function GET() {
         published: 0,
         sent: 0,
         paid: 0,
+        lastScheduled: null,
+        lastPublished: null,
+        lastSent: null,
+        lastPaid: null,
       });
     }
     const a = byInspector.get(key)!;
     a.inspections += 1;
-    if (r.inspection_date) a.scheduled += 1;
-    if (isPublished(r)) a.published += 1;
+    if (r.inspection_date) {
+      a.scheduled += 1;
+      a.lastScheduled = newest(a.lastScheduled, r.created_at || r.inspection_date);
+    }
+    if (isPublished(r)) {
+      a.published += 1;
+      a.lastPublished = newest(a.lastPublished, r.published_at || r.created_at);
+    }
     if (sentInspectionIds.has(String(r.id))) a.sent += 1;
-    if (isPaid(r)) a.paid += 1;
+    if (isPaid(r)) {
+      a.paid += 1;
+      a.lastPaid = newest(a.lastPaid, r.paid_at || r.created_at);
+    }
+  }
+
+  // Attach last-sent (from the report emails) per inspector.
+  for (const [insp, row] of byInspector) {
+    row.lastSent = lastSentByInspector.get(insp) || null;
   }
 
   const ids = [...byInspector.keys()].filter((k) => k !== "(unknown)");

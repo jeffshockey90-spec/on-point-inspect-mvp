@@ -12,7 +12,38 @@ type Inspector = {
   published: number;
   sent: number;
   paid: number;
+  lastScheduled: string | null;
+  lastPublished: string | null;
+  lastSent: string | null;
+  lastPaid: string | null;
 };
+
+function shortDate(iso: string | null) {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  const days = Math.floor((Date.now() - d.getTime()) / 86400000);
+  return { label: d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }), stale: days >= 30 };
+}
+
+// A table cell showing a count with the date it last happened underneath.
+function CountDate({ count, iso, accent }: { count: number; iso: string | null; accent?: boolean }) {
+  const d = count > 0 ? shortDate(iso) : null;
+  return (
+    <td className="px-3 py-2 text-right align-top">
+      <div className={`font-bold ${accent && count > 0 ? "text-teal-300" : count > 0 ? "text-slate-200" : "text-slate-600"}`}>
+        {count}
+      </div>
+      <div
+        className={`text-[10px] font-bold ${
+          count === 0 ? "text-slate-600" : d?.stale ? "text-amber-300" : "text-slate-500"
+        }`}
+      >
+        {count === 0 ? "—" : d ? d.label : "—"}
+      </div>
+    </td>
+  );
+}
 
 type Data = {
   funnel: { inspectors: number; scheduled: number; published: number; sent: number; paid: number };
@@ -98,21 +129,21 @@ export default function InspectorActivityPanel() {
 
           {/* Per-inspector breakdown */}
           <div className="mt-6 overflow-x-auto">
-            <table className="w-full min-w-[560px] text-left text-sm">
+            <table className="w-full min-w-[680px] text-left text-sm">
               <thead>
                 <tr className="border-b border-white/10 text-[11px] font-black uppercase tracking-wide text-slate-500">
                   <th className="py-2 pr-3">Inspector</th>
                   <th className="px-3 py-2 text-right">Inspections</th>
-                  <th className="px-3 py-2 text-right">Scheduled</th>
-                  <th className="px-3 py-2 text-right">Published</th>
-                  <th className="px-3 py-2 text-right">Sent</th>
-                  <th className="px-3 py-2 text-right">Paid</th>
+                  <th className="px-3 py-2 text-right">Scheduled<br /><span className="text-[9px] font-bold normal-case text-slate-600">count · last</span></th>
+                  <th className="px-3 py-2 text-right">Published<br /><span className="text-[9px] font-bold normal-case text-slate-600">count · last</span></th>
+                  <th className="px-3 py-2 text-right">Sent<br /><span className="text-[9px] font-bold normal-case text-slate-600">count · last</span></th>
+                  <th className="px-3 py-2 text-right">Paid<br /><span className="text-[9px] font-bold normal-case text-slate-600">count · last</span></th>
                 </tr>
               </thead>
               <tbody>
                 {data.inspectors.map((i) => (
                   <tr key={i.inspector_id} className="border-b border-white/5">
-                    <td className="py-2 pr-3">
+                    <td className="py-2 pr-3 align-top">
                       <span className="font-bold text-white">{i.email}</span>
                       {i.isOwner && (
                         <span className="ml-2 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-black text-amber-300">
@@ -120,11 +151,11 @@ export default function InspectorActivityPanel() {
                         </span>
                       )}
                     </td>
-                    <td className="px-3 py-2 text-right font-bold text-slate-200">{i.inspections}</td>
-                    <td className="px-3 py-2 text-right text-slate-300">{i.scheduled}</td>
-                    <td className="px-3 py-2 text-right text-slate-300">{i.published}</td>
-                    <td className="px-3 py-2 text-right text-slate-300">{i.sent}</td>
-                    <td className="px-3 py-2 text-right font-bold text-teal-300">{i.paid}</td>
+                    <td className="px-3 py-2 text-right align-top font-bold text-slate-200">{i.inspections}</td>
+                    <CountDate count={i.scheduled} iso={i.lastScheduled} />
+                    <CountDate count={i.published} iso={i.lastPublished} />
+                    <CountDate count={i.sent} iso={i.lastSent} />
+                    <CountDate count={i.paid} iso={i.lastPaid} accent />
                   </tr>
                 ))}
                 {data.inspectors.length === 0 && (
