@@ -15,6 +15,7 @@ import SmsStatusCard from "../../../components/SmsStatusCard";
 import SecurityEventsPanel from "../../../components/SecurityEventsPanel";
 import PushAlertsPanel from "../../../components/PushAlertsPanel";
 import RepriceSubscribersPanel from "../../../components/RepriceSubscribersPanel";
+import InspectorActivityPanel from "../../../components/InspectorActivityPanel";
 import OwnerDashboardTabs from "../../../components/OwnerDashboardTabs";
 import { getSubscriptionPricing } from "../../../lib/subscriptionPricing";
 
@@ -1234,6 +1235,10 @@ export default async function OwnerDashboardPage() {
           <MetricCard label="Payment Received" value={String(paymentReceivedEvents.length)} helper="Tracked payment notification events." tone="green" />
           <MetricCard label="Review Submitted" value={String(reviewEvents.length)} helper="Review-related tracked events." tone="yellow" />
         </section>
+
+        <div data-owner-tab="overview">
+          <InspectorActivityPanel />
+        </div>
 
         <section data-owner-tab="devices" className="grid gap-5 md:grid-cols-3">
           <MetricCard label="Downloads / Installs" value={String(downloads)} helper="Internal install/first-open tracking. App Store Connect must be checked separately for official downloads." tone="blue" />
