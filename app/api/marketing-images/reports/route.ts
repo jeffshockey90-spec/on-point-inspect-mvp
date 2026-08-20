@@ -76,12 +76,16 @@ export async function GET() {
     return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
   }
 
-  // Let Supabase RLS decide what the logged-in inspector can see.
-  // This avoids over-filtering and returning an empty dropdown.
+  // Only ever list the LOGGED-IN inspector's OWN reports. RLS alone is not
+  // enough here: the platform owner can read every inspector's rows, which made
+  // the Marketing Studio show other inspectors' reports (and would leak them to
+  // each other if an RLS policy ever slipped). Filtering by inspector_id makes
+  // this tool per-user regardless of role.
   const inspections = await safeMany(
     supabase
       .from("inspections")
       .select("*")
+      .eq("inspector_id", user.id)
       .order("created_at", { ascending: false })
       .limit(75)
   );
@@ -90,6 +94,7 @@ export async function GET() {
     supabase
       .from("reports")
       .select("*")
+      .eq("inspector_id", user.id)
       .order("created_at", { ascending: false })
       .limit(75)
   );

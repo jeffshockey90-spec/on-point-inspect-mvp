@@ -131,9 +131,20 @@ async function getInspectionRecord(supabase: any, id: string, userId: string) {
 
   if (inspection) return inspection;
 
+  // Reports-table fallback, but ONLY records this user owns. Filtering by
+  // inspector_id here (not just RLS) guarantees we never hand back another
+  // inspector's report/address/photo, even by a guessed id.
   const report =
-    (await maybeSingle(supabase.from("reports").select("*").eq("id", id))) ||
-    (await maybeSingle(supabase.from("reports").select("*").eq("inspection_id", id)));
+    (await maybeSingle(
+      supabase.from("reports").select("*").eq("id", id).eq("inspector_id", userId)
+    )) ||
+    (await maybeSingle(
+      supabase
+        .from("reports")
+        .select("*")
+        .eq("inspection_id", id)
+        .eq("inspector_id", userId)
+    ));
 
   if (!report) return null;
 
