@@ -38,6 +38,14 @@ type UserRow = {
   revenue: number;
   findings: number;
   photos: number;
+  scheduled: number;
+  published: number;
+  sent: number;
+  paid: number;
+  lastScheduled: string | null;
+  lastPublished: string | null;
+  lastSent: string | null;
+  lastPaid: string | null;
   nativePush: boolean;
   webPush: boolean;
   active7: boolean;
@@ -239,6 +247,33 @@ function getInspectionRevenue(inspection: any) {
   return getPaidAmount(inspection) || getInspectionPrice(inspection);
 }
 
+function isPublishedInspection(inspection: any) {
+  return (
+    inspection?.published === true ||
+    inspection?.is_published === true ||
+    Boolean(inspection?.published_at)
+  );
+}
+
+// Keep whichever timestamp is newer (string ISO compare is safe for ISO dates).
+function newestDate(current: string | null, candidate: any): string | null {
+  if (!candidate) return current;
+  const c = String(candidate);
+  return !current || c > current ? c : current;
+}
+
+// A short "Aug 14, 2026" label plus whether it's 30+ days stale.
+function shortDate(value: any): { label: string; stale: boolean } | null {
+  if (!value) return null;
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return null;
+  const days = Math.floor((Date.now() - d.getTime()) / 86400000);
+  return {
+    label: d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+    stale: days >= 30,
+  };
+}
+
 function getPlatformFromEvents(events: any[]) {
   const latest = events[0];
 
@@ -280,6 +315,7 @@ function buildRows({
   inspections,
   findings,
   photos,
+  reportEmails,
   nativePushTokens,
   webPushSubscriptions,
   deviceEvents,
@@ -290,6 +326,7 @@ function buildRows({
   inspections: any[];
   findings: any[];
   photos: any[];
+  reportEmails: any[];
   nativePushTokens: any[];
   webPushSubscriptions: any[];
   deviceEvents: any[];
@@ -320,6 +357,14 @@ function buildRows({
       revenue: current?.revenue || 0,
       findings: current?.findings || 0,
       photos: current?.photos || 0,
+      scheduled: current?.scheduled || 0,
+      published: current?.published || 0,
+      sent: current?.sent || 0,
+      paid: current?.paid || 0,
+      lastScheduled: current?.lastScheduled || null,
+      lastPublished: current?.lastPublished || null,
+      lastSent: current?.lastSent || null,
+      lastPaid: current?.lastPaid || null,
       nativePush: current?.nativePush || false,
       webPush: current?.webPush || false,
       active7: current?.active7 || false,
@@ -361,6 +406,14 @@ function buildRows({
         revenue: 0,
         findings: 0,
         photos: 0,
+        scheduled: 0,
+        published: 0,
+        sent: 0,
+        paid: 0,
+        lastScheduled: null,
+        lastPublished: null,
+        lastSent: null,
+        lastPaid: null,
         nativePush: false,
         webPush: false,
         active7: false,
@@ -383,6 +436,21 @@ function buildRows({
     if (isAfter(date, thirtyDaysAgo)) current.reports30 += 1;
     current.revenue += getInspectionRevenue(inspection);
 
+    // Activation flow: scheduled -> published -> (sent, handled below) -> paid,
+    // each with the date it last happened.
+    if (inspection?.inspection_date) {
+      current.scheduled += 1;
+      current.lastScheduled = newestDate(current.lastScheduled, inspection?.created_at || inspection?.inspection_date);
+    }
+    if (isPublishedInspection(inspection)) {
+      current.published += 1;
+      current.lastPublished = newestDate(current.lastPublished, inspection?.published_at || inspection?.created_at);
+    }
+    if (isPaymentComplete(inspection)) {
+      current.paid += 1;
+      current.lastPaid = newestDate(current.lastPaid, inspection?.paid_at || inspection?.created_at);
+    }
+
     const currentTime = current.lastActivity
       ? new Date(current.lastActivity).getTime()
       : 0;
@@ -398,6 +466,23 @@ function buildRows({
     const inspectionId = String(inspection?.id || "");
     const inspectorId = getInspectorId(inspection);
     if (inspectionId && inspectorId) inspectionOwner.set(inspectionId, inspectorId);
+  });
+
+  // "Sent" = a report email actually went out for that inspection. Count each
+  // inspection once (a report can be re-emailed), and track the latest send.
+  const sentPairs = new Set<string>();
+  reportEmails.forEach((email) => {
+    const inspectionId = String(email?.inspection_id_bigint || "");
+    if (!inspectionId) return;
+    const inspectorId = inspectionOwner.get(inspectionId);
+    if (!inspectorId || !rows.has(inspectorId)) return;
+    const row = rows.get(inspectorId)!;
+    const pairKey = `${inspectorId}:${inspectionId}`;
+    if (!sentPairs.has(pairKey)) {
+      sentPairs.add(pairKey);
+      row.sent += 1;
+    }
+    row.lastSent = newestDate(row.lastSent, email?.sent_at || email?.created_at);
   });
 
   findings.forEach((finding) => {
@@ -517,6 +602,7 @@ export default async function OwnerUsersPage() {
     inspections,
     findings,
     photos,
+    reportEmails,
     nativePushTokens,
     webPushSubscriptions,
     deviceEvents,
@@ -527,6 +613,13 @@ export default async function OwnerUsersPage() {
     safeSelect(admin.from("inspections").select("*"), "inspections"),
     safeSelect(admin.from("findings").select("*"), "findings"),
     safeSelect(admin.from("photos").select("*"), "photos"),
+    safeSelect(
+      admin
+        .from("email_logs")
+        .select("inspection_id_bigint, email_type, sent_at, created_at")
+        .in("email_type", ["inspection_report", "environmental_report"]),
+      "email_logs",
+    ),
     safeSelect(admin.from("app_native_push_tokens").select("*"), "app_native_push_tokens"),
     safeSelect(admin.from("app_push_subscriptions").select("*"), "app_push_subscriptions"),
     safeSelect(admin.from("app_device_events").select("*").order("created_at", { ascending: false }).limit(2000), "app_device_events"),
@@ -539,6 +632,7 @@ export default async function OwnerUsersPage() {
     inspections: inspections.filter((inspection: any) => inspection?.is_demo !== true),
     findings,
     photos,
+    reportEmails,
     nativePushTokens,
     webPushSubscriptions,
     deviceEvents,
@@ -681,6 +775,24 @@ export default async function OwnerUsersPage() {
                       </div>
                     </div>
                   </div>
+
+                  {userRoleCategory(row.role, row.reports) === "inspector" && (
+                    <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
+                      <FlowStat label="Scheduled" count={row.scheduled} iso={row.lastScheduled} />
+                      <FlowStat label="Published" count={row.published} iso={row.lastPublished} />
+                      <FlowStat label="Sent" count={row.sent} iso={row.lastSent} />
+                      <FlowStat label="Paid" count={row.paid} iso={row.lastPaid} tone="green" />
+                      <div className="rounded-xl border border-slate-800 bg-slate-950/50 p-3">
+                        <p className="text-[10px] font-black uppercase tracking-wide text-slate-500">Avg Charge</p>
+                        <p className="mt-1 text-sm font-black text-green-300">
+                          {row.paid > 0 ? money(row.revenue / row.paid) : "—"}
+                        </p>
+                        <p className="mt-0.5 text-[10px] font-bold text-slate-500">
+                          {row.paid > 0 ? `${money(row.revenue)} collected` : "no payments"}
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-[180px_180px_1fr]">
                     <div className="rounded-xl border border-slate-800 bg-slate-950/50 p-3">
@@ -856,6 +968,42 @@ function MiniStat({
       </p>
       <p className={`mt-1 truncate text-sm font-black ${classes[tone]}`}>
         {value}
+      </p>
+    </div>
+  );
+}
+
+// A flow-step cell: a count on top, and the date it last happened underneath
+// (amber when it's been 30+ days). Answers "did they do it, and how recently."
+function FlowStat({
+  label,
+  count,
+  iso,
+  tone,
+}: {
+  label: string;
+  count: number;
+  iso: string | null;
+  tone?: "green";
+}) {
+  const d = count > 0 ? shortDate(iso) : null;
+
+  return (
+    <div className="rounded-xl border border-slate-800 bg-slate-950/50 p-3">
+      <p className="text-[10px] font-black uppercase tracking-wide text-slate-500">{label}</p>
+      <p
+        className={`mt-1 text-sm font-black ${
+          count === 0 ? "text-slate-600" : tone === "green" ? "text-green-300" : "text-slate-200"
+        }`}
+      >
+        {count}
+      </p>
+      <p
+        className={`mt-0.5 text-[10px] font-bold ${
+          count === 0 ? "text-slate-600" : d?.stale ? "text-amber-300" : "text-slate-500"
+        }`}
+      >
+        {count === 0 ? "—" : d ? d.label : "—"}
       </p>
     </div>
   );
