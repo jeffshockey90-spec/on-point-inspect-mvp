@@ -52,6 +52,16 @@ function readImage(file: File): Promise<string> {
   });
 }
 
+// Route cross-origin remote images through our server proxy so sources that
+// block direct browser access (e.g. Google Street View/Places) still load.
+// Same-origin URLs, blob:, and data: URLs are returned unchanged.
+function proxiedImageSrc(src: string): string {
+  if (typeof window === "undefined") return src;
+  if (!/^https?:\/\//i.test(src)) return src;
+  if (src.startsWith(window.location.origin)) return src;
+  return `/api/marketing-images/image-proxy?url=${encodeURIComponent(src)}`;
+}
+
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise(async (resolve, reject) => {
     try {
@@ -61,8 +71,10 @@ function loadImage(src: string): Promise<HTMLImageElement> {
       // iPhone/Safari can fail drawing remote Supabase/report images onto canvas.
       // Fetching the image as a blob first turns it into a local object URL and
       // keeps preview, download, and share working with report photos and logos.
+      // Cross-origin sources (Google Street View/Places don't send CORS headers)
+      // are routed through our server proxy so the browser fetch succeeds.
       if (src.startsWith("http://") || src.startsWith("https://")) {
-        const response = await fetch(src, { cache: "no-store" });
+        const response = await fetch(proxiedImageSrc(src), { cache: "no-store" });
         if (!response.ok) throw new Error("Could not fetch image.");
 
         const blob = await response.blob();
@@ -643,7 +655,7 @@ export default function MarketingImageStudio({
   return (
     <div className="min-h-screen bg-slate-950 px-4 py-6 text-white sm:px-6 lg:px-8">
       <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[390px_1fr]">
-        <aside className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 shadow-2xl">
+        <aside className="min-w-0 rounded-3xl border border-white/10 bg-white/[0.04] p-5 shadow-2xl">
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-teal-300">
             Marketing Studio
           </p>
@@ -699,7 +711,7 @@ export default function MarketingImageStudio({
                   >
                     <div className="aspect-[16/9] bg-black">
                       <img
-                        src={reportPhotos[0].url}
+                        src={proxiedImageSrc(reportPhotos[0].url)}
                         alt={reportPhotos[0].label || "Property photo"}
                         className="h-full w-full object-cover"
                       />
@@ -868,7 +880,7 @@ export default function MarketingImageStudio({
           </div>
         </aside>
 
-        <main className="rounded-3xl border border-white/10 bg-white/[0.04] p-4 shadow-2xl sm:p-6">
+        <main className="min-w-0 rounded-3xl border border-white/10 bg-white/[0.04] p-4 shadow-2xl sm:p-6">
           <div className="mb-4 flex items-end justify-between gap-4">
             <div>
               <h2 className="text-xl font-black">Preview</h2>
