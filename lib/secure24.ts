@@ -42,6 +42,22 @@ export type Secure24Result = {
   error?: string;
 };
 
+// Resolve an inspection strictly by its share token (never a raw id). Tries all
+// three token columns since older links may use a legacy one. Returns null on
+// miss so callers can 404 without distinguishing a bad token from a raw id.
+export async function resolveInspectionByToken(
+  db: { from: (t: string) => any },
+  lookup: string,
+): Promise<any | null> {
+  const token = String(lookup || "").trim();
+  if (!token) return null;
+  for (const col of ["public_share_token", "share_token", "report_share_token"]) {
+    const { data } = await db.from("inspections").select("*").eq(col, token).maybeSingle();
+    if (data?.id) return data;
+  }
+  return null;
+}
+
 export function isSecure24Configured() {
   return Boolean(
     process.env.SECURE24_API_URL &&

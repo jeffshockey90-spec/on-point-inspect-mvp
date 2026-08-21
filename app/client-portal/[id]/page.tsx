@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import FastLinkButton from "../../../components/FastLinkButton";
 import { getInspectionShareToken } from "../../../lib/shareToken";
+import Secure24ReferralCard from "../../../components/Secure24ReferralCard";
 import { getOnlineProcessingFee } from "../../../lib/onlinePaymentFee";
 import { formatClockTime } from "../../../lib/app-time";
 
@@ -1172,6 +1173,13 @@ export default function ClientPortalPage() {
               ))}
             </div>
           </section>
+        )}
+
+        {inspection && (
+          <Secure24ReferralCard
+            shareToken={getInspectionShareToken(inspection) || shareLookup}
+            autoCheck
+          />
         )}
 
         <footer className="border-t border-slate-800 py-6 text-center text-sm text-slate-500">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ShieldCheck } from "lucide-react";
 import {
   SECURE24_BRAND,
@@ -15,15 +15,40 @@ import {
 export default function Secure24ReferralCard({
   shareToken,
   alreadyRequested = false,
+  autoCheck = false,
 }: {
   shareToken: string;
   alreadyRequested?: boolean;
+  // When true (client portal), the card doesn't trust a server pre-check -- it
+  // asks /api/secure24/status whether the inspector enabled it and hides itself
+  // if not. When false (share page), the parent already gated visibility.
+  autoCheck?: boolean;
 }) {
   const [consent, setConsent] = useState(false);
   const [status, setStatus] = useState<"idle" | "sending" | "done" | "error">(
     alreadyRequested ? "done" : "idle",
   );
   const [error, setError] = useState("");
+  // In autoCheck mode we start hidden until the status endpoint confirms it's on.
+  const [visible, setVisible] = useState(!autoCheck);
+
+  useEffect(() => {
+    if (!autoCheck || !shareToken) return;
+    let active = true;
+    fetch(`/api/secure24/status?lookup=${encodeURIComponent(shareToken)}`, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!active || !d?.enabled) return;
+        setVisible(true);
+        if (d.alreadyRequested) setStatus("done");
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [autoCheck, shareToken]);
+
+  if (!visible) return null;
 
   async function submit() {
     if (!consent || status === "sending") return;

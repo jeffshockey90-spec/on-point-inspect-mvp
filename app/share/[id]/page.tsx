@@ -1566,12 +1566,8 @@ export default async function PublicSharePage({
   // has a share token to opt in against. Off by default at every level.
   let secure24Enabled = false;
   let secure24AlreadyRequested = false;
-  if (
-    allowShareView &&
-    !isDemo &&
-    inspection?.inspector_id &&
-    inspection?.public_share_token
-  ) {
+  const secure24Token = getInspectionShareToken(inspection);
+  if (allowShareView && !isDemo && inspection?.inspector_id && secure24Token) {
     const { data: s24Setting } = await supabase
       .from("secure24_settings")
       .select("enabled")
@@ -3147,7 +3143,7 @@ export default async function PublicSharePage({
 
           {secure24Enabled && (
             <Secure24ReferralCard
-              shareToken={inspection.public_share_token}
+              shareToken={secure24Token}
               alreadyRequested={secure24AlreadyRequested}
             />
           )}

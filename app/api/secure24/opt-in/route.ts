@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
-import { submitSecure24Lead, isSecure24Configured } from "../../../../lib/secure24";
+import {
+  submitSecure24Lead,
+  isSecure24Configured,
+  resolveInspectionByToken,
+} from "../../../../lib/secure24";
 import { SECURE24_CONSENT_TEXT } from "../../../../lib/secure24Brand";
 
 export const runtime = "nodejs";
@@ -39,11 +43,7 @@ export async function POST(request: Request) {
 
   // 1. Resolve strictly by share token. 404 (not 403) on miss so a raw id
   //    can't be distinguished from a valid-but-wrong token.
-  const { data: inspection } = await db
-    .from("inspections")
-    .select("*")
-    .eq("public_share_token", lookup)
-    .maybeSingle();
+  const inspection = await resolveInspectionByToken(db, lookup);
 
   if (!inspection?.id) {
     return NextResponse.json({ error: "Report not found." }, { status: 404 });
