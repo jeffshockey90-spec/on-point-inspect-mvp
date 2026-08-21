@@ -399,7 +399,7 @@ export default async function OwnerDashboardPage() {
   const sevenDaysAgo = new Date(now.getTime() - 1000 * 60 * 60 * 24 * 7);
   const thirtyDaysAgo = new Date(now.getTime() - 1000 * 60 * 60 * 24 * 30);
 
-  const [profiles, inspectorProfiles, companyUsers, inspections, events, pushSubscriptions, nativePushTokens, deviceEvents, findings, photos, agreements, invoices, templates, inspectionContacts, aiLogs, companies, stripeLogs, stripeAuditLogs] = await Promise.all([
+  const [profiles, inspectorProfiles, companyUsers, inspections, events, pushSubscriptions, nativePushTokens, deviceEvents, findings, photos, agreements, invoices, templates, inspectionContacts, aiLogs, companies, stripeLogs, stripeAuditLogs, clientPortalEvents, googleReviews] = await Promise.all([
     safeSelect(admin.from("profiles").select("*"), "profiles"),
     safeSelect(admin.from("inspector_profiles").select("*"), "inspector_profiles"),
     safeSelect(admin.from("company_users").select("*"), "company_users"),
@@ -418,6 +418,9 @@ export default async function OwnerDashboardPage() {
     safeSelect(admin.from("companies").select("id,name,business_name,display_name"), "companies"),
     safeSelect(admin.from("stripe_logs").select("inspection_id,amount,status,created_at").order("created_at", { ascending: false }).limit(100), "stripe_logs"),
     safeSelect(admin.from("audit_logs").select("action,resource_id,metadata,created_at").in("action", ["stripe_payment_completed", "stripe_charge_refunded", "stripe_charge_disputed"]).order("created_at", { ascending: false }).limit(50), "audit_logs"),
+    // Signed agreements are logged here (NOT inspection_view_events).
+    safeSelect(admin.from("client_portal_events").select("event_type,created_at").order("created_at", { ascending: false }).limit(2000), "client_portal_events"),
+    safeSelect(admin.from("public_google_reviews").select("id,created_at").limit(2000), "public_google_reviews"),
   ]);
 
   function roleLooksLikeRealtorPreview(value: unknown) {
@@ -549,9 +552,15 @@ export default async function OwnerDashboardPage() {
   const reportViewedEvents = events.filter((event: any) =>
     ["client_portal", "report_share", "environmental_share"].includes(getViewType(event))
   );
-  const agreementSignedEvents = events.filter((event: any) => getViewType(event) === "agreement_signed");
-  const paymentReceivedEvents = events.filter((event: any) => getViewType(event) === "payment_received");
-  const reviewEvents = events.filter((event: any) => getViewType(event).includes("review"));
+  // These three used to read inspection_view_events, where they don't exist, so
+  // they always showed 0. Point each at the table that actually records it:
+  //   - signed agreements live in client_portal_events
+  //   - real payments = inspections marked paid (see paidInspections below)
+  //   - submitted reviews live in public_google_reviews
+  const agreementSignedCount = (clientPortalEvents || []).filter(
+    (event: any) => String(event?.event_type || "").toLowerCase() === "agreement_signed"
+  ).length;
+  const reviewsCount = (googleReviews || []).length;
 
   const activeDevices = new Set(
     deviceEvents
@@ -1232,9 +1241,9 @@ export default async function OwnerDashboardPage() {
 
         <section data-owner-tab="overview" className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
           <MetricCard label="Report Viewed" value={String(reportViewedEvents.length)} helper="Client portal, share, and environmental opens." tone="purple" />
-          <MetricCard label="Agreement Signed" value={String(agreementSignedEvents.length)} helper="Tracked agreement signature events." tone="teal" />
-          <MetricCard label="Payment Received" value={String(paymentReceivedEvents.length)} helper="Tracked payment notification events." tone="green" />
-          <MetricCard label="Review Submitted" value={String(reviewEvents.length)} helper="Review-related tracked events." tone="yellow" />
+          <MetricCard label="Agreement Signed" value={String(agreementSignedCount)} helper="Inspection agreements signed by clients." tone="teal" />
+          <MetricCard label="Payment Received" value={String(paidInspections.length)} helper="Inspections marked paid." tone="green" />
+          <MetricCard label="Review Submitted" value={String(reviewsCount)} helper="Client reviews collected." tone="yellow" />
         </section>
 
         <div data-owner-tab="overview" className="space-y-8">
