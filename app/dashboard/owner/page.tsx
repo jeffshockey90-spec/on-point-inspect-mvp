@@ -548,9 +548,14 @@ export default async function OwnerDashboardPage() {
   const maxRevenue = Math.max(1, ...growthRows.map((row) => row.revenue));
   const maxUsers = Math.max(1, ...growthRows.map((row) => row.users));
 
-  const reportViewedEvents = events.filter((event: any) =>
-    ["client_portal", "report_share", "environmental_share"].includes(getViewType(event))
-  );
+  // Exact count straight from the DB, so it isn't capped by the 500-row events
+  // window (which is dominated by report_time_checkpoint pings that would
+  // otherwise crowd real opens out of the count).
+  const { count: reportViewedCountRaw } = await admin
+    .from("inspection_view_events")
+    .select("id", { count: "exact", head: true })
+    .in("view_type", ["client_portal", "report_share", "environmental_share"]);
+  const reportViewedCount = reportViewedCountRaw || 0;
   // These three used to read inspection_view_events, where they don't exist, so
   // they always showed 0. Point each at the table that actually records it:
   //   - signed agreements live in client_portal_events
@@ -1243,7 +1248,7 @@ export default async function OwnerDashboardPage() {
         </section>
 
         <section data-owner-tab="overview" className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-          <MetricCard label="Report Viewed" value={String(reportViewedEvents.length)} helper="Client portal, share, and environmental opens." tone="purple" />
+          <MetricCard label="Report Viewed" value={String(reportViewedCount)} helper="Client portal, share, and environmental opens." tone="purple" />
           <MetricCard label="Agreement Signed" value={String(agreementSignedCount)} helper="Inspection agreements signed by clients." tone="teal" />
           <MetricCard label="Payment Received" value={String(paidInspections.length)} helper="Inspections marked paid." tone="green" />
           <MetricCard label="Review Submitted" value={String(reviewsCount)} helper="Google reviews across all companies." tone="yellow" />
