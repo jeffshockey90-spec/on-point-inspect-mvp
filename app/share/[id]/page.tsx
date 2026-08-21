@@ -10,6 +10,7 @@ import ClientSummaryAccordion from "../../../components/ClientSummaryAccordion";
 import ExpandableReportImage from "../../../components/ExpandableReportImage";
 import ReportDownloadButton from "../../../components/ReportDownloadButton";
 import ShareReportTabs from "../../../components/ShareReportTabs";
+import Secure24ReferralCard from "../../../components/Secure24ReferralCard";
 import { normalizeCompanyBranding } from "../../../lib/companyBranding";
 import { sendPushNotification } from "../../../lib/push";
 import { getReportDeliveryState } from "../../../lib/reportDelivery";
@@ -1559,6 +1560,35 @@ export default async function PublicSharePage({
   const standardsOfPractice = getCompanyStandards(standardsCompany);
   const showStandardsInShare = shouldShowStandardsInShare(standardsCompany);
   const branding = normalizeCompanyBranding(standardsCompany);
+
+  // Secure 24 home-security referral: only offer it when the OWNING inspector
+  // turned it on, this is a real delivered report (not a demo/sample), and it
+  // has a share token to opt in against. Off by default at every level.
+  let secure24Enabled = false;
+  let secure24AlreadyRequested = false;
+  if (
+    allowShareView &&
+    !isDemo &&
+    inspection?.inspector_id &&
+    inspection?.public_share_token
+  ) {
+    const { data: s24Setting } = await supabase
+      .from("secure24_settings")
+      .select("enabled")
+      .eq("user_id", inspection.inspector_id)
+      .maybeSingle();
+    secure24Enabled = s24Setting?.enabled === true;
+
+    if (secure24Enabled) {
+      const { data: s24Lead } = await supabase
+        .from("secure24_leads")
+        .select("id")
+        .eq("inspection_id", inspection.id)
+        .eq("status", "submitted")
+        .maybeSingle();
+      secure24AlreadyRequested = Boolean(s24Lead?.id);
+    }
+  }
 
   const { data: equipmentInventoryRaw, error: equipmentInventoryError } = await supabase
     .from("equipment_inventory")
@@ -3114,6 +3144,13 @@ export default async function PublicSharePage({
               </div>
             )}
           </section>
+
+          {secure24Enabled && (
+            <Secure24ReferralCard
+              shareToken={inspection.public_share_token}
+              alreadyRequested={secure24AlreadyRequested}
+            />
+          )}
 
           <footer className="mt-12 border-t border-slate-700 pt-6 text-sm text-slate-400">
             <p>{branding.name} • Shared Report Portal</p>

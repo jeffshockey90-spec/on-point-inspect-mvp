@@ -37,6 +37,7 @@ import StandardsOfPracticeEditor from "./StandardsOfPracticeEditor";
 import TimePreferencesSettings from "../../components/time-location/TimePreferencesSettings";
 import SettingsToggle from "../../components/SettingsToggle";
 import OnlinePaymentFeeFields from "../../components/OnlinePaymentFeeFields";
+import Secure24ReferralSettings from "../../components/Secure24ReferralSettings";
 import OfficeAddressField from "../../components/OfficeAddressField";
 import { geocodeAddress } from "../../lib/geocode";
 
@@ -1057,6 +1058,26 @@ export default async function SettingsPage({
 
                 <OnlinePaymentFeeFields defaultFeeType={feeType} defaultFeeAmount={feeAmount} />
               </div>
+            </div>
+          </section>
+
+          <section
+            id="secure24-referral"
+            className="rounded-3xl border border-slate-700 bg-[#0b1220] p-5 shadow-2xl shadow-black/20 sm:p-6"
+          >
+            <p className="text-xs font-black uppercase tracking-[0.25em] text-teal-300">
+              Referral Partners
+            </p>
+            <h2 className="mt-2 text-2xl font-black tracking-tight text-white">
+              Home-Security Referral
+            </h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">
+              Optionally offer your clients a home-security referral on their report and earn a
+              payout on installs. Off by default — you control it, and clients always opt in
+              themselves.
+            </p>
+            <div className="mt-5">
+              <Secure24ReferralSettings />
             </div>
           </section>
 
