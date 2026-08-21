@@ -399,7 +399,7 @@ export default async function OwnerDashboardPage() {
   const sevenDaysAgo = new Date(now.getTime() - 1000 * 60 * 60 * 24 * 7);
   const thirtyDaysAgo = new Date(now.getTime() - 1000 * 60 * 60 * 24 * 30);
 
-  const [profiles, inspectorProfiles, companyUsers, inspections, events, pushSubscriptions, nativePushTokens, deviceEvents, findings, photos, agreements, invoices, templates, inspectionContacts, aiLogs, companies, stripeLogs, stripeAuditLogs, clientPortalEvents, googleReviews] = await Promise.all([
+  const [profiles, inspectorProfiles, companyUsers, inspections, events, pushSubscriptions, nativePushTokens, deviceEvents, findings, photos, agreements, invoices, templates, inspectionContacts, aiLogs, companies, stripeLogs, stripeAuditLogs, clientPortalEvents] = await Promise.all([
     safeSelect(admin.from("profiles").select("*"), "profiles"),
     safeSelect(admin.from("inspector_profiles").select("*"), "inspector_profiles"),
     safeSelect(admin.from("company_users").select("*"), "company_users"),
@@ -415,12 +415,11 @@ export default async function OwnerDashboardPage() {
     safeSelect(admin.from("finding_templates").select("*"), "finding_templates"),
     safeSelect(admin.from("inspection_contacts").select("inspection_id,role,email,portal_access"), "inspection_contacts"),
     safeSelect(admin.from("ai_logs").select("user_id,inspection_id,tool,tokens_used,status,created_at").gte("created_at", thirtyDaysAgo.toISOString()).limit(50000), "ai_logs"),
-    safeSelect(admin.from("companies").select("id,name,business_name,display_name"), "companies"),
+    safeSelect(admin.from("companies").select("id,name,business_name,display_name,google_review_count,google_rating"), "companies"),
     safeSelect(admin.from("stripe_logs").select("inspection_id,amount,status,created_at").order("created_at", { ascending: false }).limit(100), "stripe_logs"),
     safeSelect(admin.from("audit_logs").select("action,resource_id,metadata,created_at").in("action", ["stripe_payment_completed", "stripe_charge_refunded", "stripe_charge_disputed"]).order("created_at", { ascending: false }).limit(50), "audit_logs"),
     // Signed agreements are logged here (NOT inspection_view_events).
     safeSelect(admin.from("client_portal_events").select("event_type,created_at").order("created_at", { ascending: false }).limit(2000), "client_portal_events"),
-    safeSelect(admin.from("public_google_reviews").select("id,created_at").limit(2000), "public_google_reviews"),
   ]);
 
   function roleLooksLikeRealtorPreview(value: unknown) {
@@ -556,11 +555,15 @@ export default async function OwnerDashboardPage() {
   // they always showed 0. Point each at the table that actually records it:
   //   - signed agreements live in client_portal_events
   //   - real payments = inspections marked paid (see paidInspections below)
-  //   - submitted reviews live in public_google_reviews
+  //   - review TOTAL comes from each company's synced Google review count
+  //     (public_google_reviews only stores 5 bodies -- Google's API cap)
   const agreementSignedCount = (clientPortalEvents || []).filter(
     (event: any) => String(event?.event_type || "").toLowerCase() === "agreement_signed"
   ).length;
-  const reviewsCount = (googleReviews || []).length;
+  const reviewsCount = (companies || []).reduce(
+    (sum: number, company: any) => sum + getNumber(company?.google_review_count),
+    0
+  );
 
   const activeDevices = new Set(
     deviceEvents
@@ -1243,7 +1246,7 @@ export default async function OwnerDashboardPage() {
           <MetricCard label="Report Viewed" value={String(reportViewedEvents.length)} helper="Client portal, share, and environmental opens." tone="purple" />
           <MetricCard label="Agreement Signed" value={String(agreementSignedCount)} helper="Inspection agreements signed by clients." tone="teal" />
           <MetricCard label="Payment Received" value={String(paidInspections.length)} helper="Inspections marked paid." tone="green" />
-          <MetricCard label="Review Submitted" value={String(reviewsCount)} helper="Client reviews collected." tone="yellow" />
+          <MetricCard label="Review Submitted" value={String(reviewsCount)} helper="Google reviews across all companies." tone="yellow" />
         </section>
 
         <div data-owner-tab="overview" className="space-y-8">
