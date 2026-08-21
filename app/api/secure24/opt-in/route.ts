@@ -95,6 +95,45 @@ export async function POST(request: Request) {
   const FirstName = parts[0] || "";
   const LastName = parts.slice(1).join(" ") || parts[0] || "";
 
+  // Secure 24's "Agent" fields identify the REFERRING INSPECTOR (their doc
+  // example is an inspection agency), which is how they credit the $200 install
+  // payout. So we send the inspector's COMPANY here -- not the real estate agent.
+  let company: any = null;
+  if (inspection.company_id) {
+    const { data } = await db
+      .from("companies")
+      .select("name, display_name, email, phone")
+      .eq("id", inspection.company_id)
+      .maybeSingle();
+    company = data;
+  }
+  let inspectorProfile: any = null;
+  if ((!company?.email || !(company?.display_name || company?.name)) && inspection.inspector_id) {
+    const { data } = await db
+      .from("profiles")
+      .select("*")
+      .eq("id", inspection.inspector_id)
+      .maybeSingle();
+    inspectorProfile = data;
+  }
+  const inspectorName = nonEmpty(
+    company?.display_name ||
+      company?.name ||
+      inspectorProfile?.full_name ||
+      inspectorProfile?.name ||
+      inspectorProfile?.display_name,
+  );
+  const inspectorPhone = nonEmpty(company?.phone);
+  const inspectorEmail = nonEmpty(company?.email || inspectorProfile?.email);
+
+  // Keep the real estate agent as context in Notes (not the credited party).
+  const realtorName = nonEmpty(inspection.realtor_name || inspection.agent_name);
+  const realtorPhone = nonEmpty(inspection.realtor_phone || inspection.agent_phone);
+  const noteParts = [`Referred via FLOW home inspection #${inspection.id}.`];
+  if (realtorName) {
+    noteParts.push(`Real estate agent: ${realtorName}${realtorPhone ? ` (${realtorPhone})` : ""}.`);
+  }
+
   const fields = {
     FirstName,
     LastName,
@@ -105,9 +144,11 @@ export async function POST(request: Request) {
     Phone: nonEmpty(inspection.client_phone),
     Email: nonEmpty(inspection.client_email),
     InspectionDate: nonEmpty(inspection.inspection_date) || undefined,
-    AgentName: nonEmpty(inspection.realtor_name || inspection.agent_name) || undefined,
-    AgentPhone: nonEmpty(inspection.realtor_phone || inspection.agent_phone) || undefined,
-    AgentEmail: nonEmpty(inspection.realtor_email || inspection.agent_email) || undefined,
+    // Referring inspector (who Secure 24 credits the install payout to).
+    AgentName: inspectorName || undefined,
+    AgentPhone: inspectorPhone || undefined,
+    AgentEmail: inspectorEmail || undefined,
+    Notes: noteParts.join(" "),
     // Ties the lead back to this FLOW inspection for monthly payout reconciliation.
     ReferenceNum: String(inspection.id),
   };

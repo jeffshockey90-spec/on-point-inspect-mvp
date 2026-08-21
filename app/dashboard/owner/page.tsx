@@ -16,6 +16,7 @@ import SecurityEventsPanel from "../../../components/SecurityEventsPanel";
 import PushAlertsPanel from "../../../components/PushAlertsPanel";
 import RepriceSubscribersPanel from "../../../components/RepriceSubscribersPanel";
 import InspectorActivityPanel from "../../../components/InspectorActivityPanel";
+import Secure24LeadsPanel from "../../../components/Secure24LeadsPanel";
 import OwnerDashboardTabs from "../../../components/OwnerDashboardTabs";
 import { getSubscriptionPricing } from "../../../lib/subscriptionPricing";
 
@@ -1236,8 +1237,9 @@ export default async function OwnerDashboardPage() {
           <MetricCard label="Review Submitted" value={String(reviewEvents.length)} helper="Review-related tracked events." tone="yellow" />
         </section>
 
-        <div data-owner-tab="overview">
+        <div data-owner-tab="overview" className="space-y-8">
           <InspectorActivityPanel />
+          <Secure24LeadsPanel />
         </div>
 
         <section data-owner-tab="devices" className="grid gap-5 md:grid-cols-3">
