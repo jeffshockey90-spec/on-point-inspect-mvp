@@ -126,13 +126,8 @@ export async function POST(request: Request) {
   const inspectorPhone = nonEmpty(company?.phone);
   const inspectorEmail = nonEmpty(company?.email || inspectorProfile?.email);
 
-  // Keep the real estate agent as context in Notes (not the credited party).
-  const realtorName = nonEmpty(inspection.realtor_name || inspection.agent_name);
-  const realtorPhone = nonEmpty(inspection.realtor_phone || inspection.agent_phone);
-  const noteParts = [`Referred via FLOW home inspection #${inspection.id}.`];
-  if (realtorName) {
-    noteParts.push(`Real estate agent: ${realtorName}${realtorPhone ? ` (${realtorPhone})` : ""}.`);
-  }
+  // We deliberately do NOT send the real estate agent's info -- the referral is
+  // between the client and the inspector; the realtor isn't part of it.
 
   const fields = {
     FirstName,
@@ -148,7 +143,7 @@ export async function POST(request: Request) {
     AgentName: inspectorName || undefined,
     AgentPhone: inspectorPhone || undefined,
     AgentEmail: inspectorEmail || undefined,
-    Notes: noteParts.join(" "),
+    Notes: `Referred via FLOW home inspection #${inspection.id}.`,
     // Ties the lead back to this FLOW inspection for monthly payout reconciliation.
     ReferenceNum: String(inspection.id),
   };
