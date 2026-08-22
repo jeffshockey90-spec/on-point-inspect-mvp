@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { headers } from "next/headers";
+import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
 import {
   computeEquipmentLife,
@@ -6,9 +8,13 @@ import {
   buildMaintenancePlan,
   type EquipmentRow,
 } from "../../../lib/homeMaintenance";
+import { isReportViewReload } from "../../../lib/reportViewThrottle";
+import { sendPushNotification } from "../../../lib/push";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+
+const HOMEOWNER_VIEW_TYPE = "homeowner_portal";
 
 const admin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -18,6 +24,75 @@ const admin = createClient(
 
 function clean(v: any) {
   return v == null ? "" : String(v).trim();
+}
+
+// Salted SHA-256 of the viewer IP — an opaque, per-inspection-comparable
+// fingerprint (never a raw IP), matching how the report share page tracks.
+function hashIp(value: string) {
+  const salt =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    "on-point-inspect";
+  return crypto.createHash("sha256").update(`${value}:${salt}`).digest("hex");
+}
+
+// Record a homeowner-portal open. Stored under its OWN view_type so it never
+// inflates report-view counts, and gated by the SAME 30-minute session throttle
+// used across the app so reloads don't re-notify the inspector.
+async function recordPortalView(inspection: any, token: string) {
+  try {
+    const numericId = Number(inspection?.id);
+    if (!numericId || !Number.isFinite(numericId)) return;
+
+    const h = await headers();
+    const userAgent = h.get("user-agent");
+    const rawIp =
+      (h.get("x-forwarded-for") || "").split(",")[0].trim() ||
+      h.get("x-real-ip") ||
+      "";
+    const ipHash = rawIp ? hashIp(rawIp) : null;
+
+    const baseRow: Record<string, any> = {
+      inspection_id_bigint: numericId,
+      view_type: HOMEOWNER_VIEW_TYPE,
+      path: `/my-home/${token}`,
+      metadata: { source: "homeowner_portal" },
+    };
+
+    // Best-effort insert; if the attribution columns don't exist, retry without.
+    const { error } = await admin
+      .from("inspection_view_events")
+      .insert({ ...baseRow, user_agent: userAgent || null, ip_hash: ipHash });
+    if (error) {
+      await admin.from("inspection_view_events").insert(baseRow);
+    }
+
+    // Notify the inspector, throttled to the same 30-min session window (dedup
+    // on THIS portal's opens) so a reload/return doesn't re-ping them.
+    if (inspection?.inspector_id) {
+      const reload = await isReportViewReload(admin, {
+        inspectionId: numericId,
+        ipHash,
+        viewTypes: [HOMEOWNER_VIEW_TYPE],
+      });
+      if (!reload) {
+        const property =
+          clean(inspection.property_address) ||
+          clean(inspection.address) ||
+          "their home";
+        await sendPushNotification({
+          title: "Homeowner Portal Opened",
+          body: `Your client opened the maintenance hub for ${property}.`,
+          url: `/reports/${numericId}`,
+          eventType: "homeowner_portal",
+          target: "user",
+          targetUserId: inspection.inspector_id,
+        });
+      }
+    }
+  } catch (error) {
+    console.error("Homeowner portal view tracking error:", error);
+  }
 }
 
 const STATUS_STYLE: Record<string, { bar: string; chip: string; text: string }> = {
@@ -65,6 +140,9 @@ export default async function HomeownerPortal({
 
   const inspectionId = inspection.id;
   const shareToken = clean(inspection.public_share_token) || String(inspectionId);
+
+  // Track the open (own view_type, same 30-min session throttle for the push).
+  await recordPortalView(inspection, lookup);
 
   const [{ data: equipmentRows }, { data: findingRows }, companyRes] = await Promise.all([
     admin.from("equipment_inventory").select("*").eq("inspection_id", inspectionId),

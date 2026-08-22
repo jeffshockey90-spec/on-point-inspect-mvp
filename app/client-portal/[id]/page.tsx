@@ -650,6 +650,7 @@ export default function ClientPortalPage() {
 
   const reportHref = getClientReportHref(inspection, inspectionId);
   const pdfHref = getClientPdfHref(inspection, inspectionId);
+  const homeHubHref = `/my-home/${getInspectionShareToken(inspection) || inspectionId}`;
 
   const moldReportUrl = moldTest?.lab_report_url || "";
   const radonReportUrl = radonTest?.report_url || "";
@@ -1091,6 +1092,17 @@ export default function ClientPortalPage() {
                   <span className="block text-lg">Repair Request</span>
                   <span className="mt-1 block text-sm font-medium text-slate-400">
                     Open repair request builder.
+                  </span>
+                </a>
+
+                <a
+                  href={homeHubHref}
+                  target="_blank"
+                  className="rounded-xl border border-emerald-500 bg-[#071224] px-6 py-4 font-bold text-emerald-300 hover:bg-emerald-500/10"
+                >
+                  <span className="block text-lg">🏠 Home Maintenance Hub</span>
+                  <span className="mt-1 block text-sm font-medium text-slate-400">
+                    Your systems, service life, and upkeep plan.
                   </span>
                 </a>
               </>

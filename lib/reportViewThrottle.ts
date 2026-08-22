@@ -17,17 +17,22 @@ export async function isReportViewReload(
     ipAddress?: string | null;
     viewerEmail?: string | null;
     minutes?: number;
+    // Override which view_type(s) count as an "open" for this check. Defaults to
+    // the report-open types; the homeowner portal passes its own type so it
+    // dedups on ITS opens with the same 30-minute session window.
+    viewTypes?: string[];
   },
 ): Promise<boolean> {
   try {
     const minutes = opts.minutes ?? 30;
     const since = new Date(Date.now() - minutes * 60_000).toISOString();
+    const types = opts.viewTypes && opts.viewTypes.length ? opts.viewTypes : OPEN_TYPES;
 
     let q = db
       .from("inspection_view_events")
       .select("id", { count: "exact", head: true })
       .eq("inspection_id_bigint", opts.inspectionId)
-      .in("view_type", OPEN_TYPES)
+      .in("view_type", types)
       .gte("created_at", since);
 
     // Identify the viewer by the strongest signal available.

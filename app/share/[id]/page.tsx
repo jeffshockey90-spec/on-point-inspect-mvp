@@ -1914,6 +1914,15 @@ export default async function PublicSharePage({
               </ReportDownloadButton>
             )}
 
+            {!isDemo && (
+              <a
+                href={`/my-home/${encodeURIComponent(sharePathId)}`}
+                className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-emerald-500 bg-emerald-500/10 px-5 py-3 font-bold text-emerald-300 transition active:scale-[0.98] [touch-action:manipulation] hover:bg-emerald-500 hover:text-black"
+              >
+                🏠 Home Maintenance Hub
+              </a>
+            )}
+
             {!isDemo && canOpenInternalReportActions && (
               <>
                 <a
