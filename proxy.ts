@@ -57,6 +57,9 @@ const PUBLIC_PREFIXES = [
   "/client",
   "/client-portal",
   "/client-agreement",
+  // Token-accessed homeowner maintenance hub (no account) — reads via the
+  // service-role client, gated by the unguessable inspection share token.
+  "/my-home",
   // Stripe redirects the (anonymous, token-portal) client back to these after
   // checkout, so they must be reachable without a session. The success page is
   // gated by the unguessable Stripe session_id; the cancelled page shows no

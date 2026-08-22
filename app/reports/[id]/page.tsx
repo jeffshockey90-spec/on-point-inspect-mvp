@@ -55,6 +55,7 @@ import ReportDisclaimers from "../../../components/ReportDisclaimers";
 import PropertyPhotoUploader from "../../../components/PropertyPhotoUploader";
 import InspectionContextEditor from "../../../components/InspectionContextEditor";
 import QuickBooksInvoiceButton from "../../../components/QuickBooksInvoiceButton";
+import HomeownerPortalLink from "../../../components/HomeownerPortalLink";
 import OpenCommandCenterToolButton from "../../../components/OpenCommandCenterToolButton";
 import PublishReportActionButton from "../../../components/PublishReportActionButton";
 import InspectorToolsDrawer, {
@@ -3063,6 +3064,8 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
             <div id="report-delivery-guard" data-command-target="report-delivery-guard">
             <ReportDeliveryGuard inspectionId={String(inspection.id)} />
             </div>
+
+            <HomeownerPortalLink token={reportDownloadId} />
 
             <section id="defect-totals" className="rounded-2xl border border-slate-700 bg-[#071224] p-4">
               <div className="mb-4">

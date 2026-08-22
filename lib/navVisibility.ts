@@ -6,6 +6,7 @@ const PORTAL_ROUTE_PREFIXES = [
   "/environmental-share",
   "/repair-request",
   "/repair-response",
+  "/my-home",
   "/embed",
   "/login",
   "/signup",
