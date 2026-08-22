@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "../../../utils/supabase/server";
 import GoogleCalendarConnect from "../../../components/GoogleCalendarConnect";
+import QuickBooksConnect from "../../../components/QuickBooksConnect";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +37,10 @@ export default async function IntegrationsPage() {
 
         <Suspense fallback={<div className="text-slate-400">Loading…</div>}>
           <GoogleCalendarConnect />
+        </Suspense>
+
+        <Suspense fallback={<div className="text-slate-400">Loading…</div>}>
+          <QuickBooksConnect />
         </Suspense>
       </div>
     </main>

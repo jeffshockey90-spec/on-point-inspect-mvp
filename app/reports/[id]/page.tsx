@@ -54,6 +54,7 @@ import AIPublishGuardPanel from "../../../components/AIPublishGuardPanel";
 import ReportDisclaimers from "../../../components/ReportDisclaimers";
 import PropertyPhotoUploader from "../../../components/PropertyPhotoUploader";
 import InspectionContextEditor from "../../../components/InspectionContextEditor";
+import QuickBooksInvoiceButton from "../../../components/QuickBooksInvoiceButton";
 import OpenCommandCenterToolButton from "../../../components/OpenCommandCenterToolButton";
 import PublishReportActionButton from "../../../components/PublishReportActionButton";
 import InspectorToolsDrawer, {
@@ -3056,6 +3057,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
 
             <div id="payment-invoice" data-command-target="payment-invoice">
             <PaymentInvoicePanel inspection={inspection} />
+            <QuickBooksInvoiceButton inspectionId={String(inspection.id)} />
             </div>
 
             <div id="report-delivery-guard" data-command-target="report-delivery-guard">
