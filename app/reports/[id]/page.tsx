@@ -46,6 +46,8 @@ import SampleReportManager from "../../../components/SampleReportManager";
 import AIReportReviewPanel from "../../../components/AIReportReviewPanel";
 import LiveHouseIntelligencePanel from "../../../components/LiveHouseIntelligencePanel";
 import InspectionCopilotPanel from "../../../components/InspectionCopilotPanel";
+import CreateReinspectionButton from "../../../components/CreateReinspectionButton";
+import ReinspectionChecklist from "../../../components/ReinspectionChecklist";
 import HouseRelationshipPanel from "../../../components/HouseRelationshipPanel";
 import LiveInspectionTimelinePanel from "../../../components/LiveInspectionTimelinePanel";
 import AIPublishGuardPanel from "../../../components/AIPublishGuardPanel";
@@ -2921,6 +2923,8 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                 >
                   Client Portal
                 </FastLinkButton>
+
+                <CreateReinspectionButton inspectionId={String(inspection.id)} />
               </div>
             </div>
 
@@ -3835,6 +3839,12 @@ Service-life information is a general industry estimate only. Actual service lif
           >
             <LiveHouseIntelligencePanel inspectionId={String(inspection.id)} />
           </AttentionPanel>
+
+          {(inspection as any).parent_inspection_id && (
+            <div className="mb-2">
+              <ReinspectionChecklist inspectionId={String(inspection.id)} />
+            </div>
+          )}
 
           <AttentionPanel
             title="Live AI Inspector Assistant"
