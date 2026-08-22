@@ -3,6 +3,7 @@ import { formatAppValue } from "../../../../lib/app-time";
 import { resolveActiveSections, filterSectionsForServiceMode } from "../../../../lib/reportSections";
 import { getReportDeliveryState } from "../../../../lib/reportDelivery";
 import { authorizeInspection } from "../../../../lib/apiAuth";
+import { getReportTranslations, makeTranslator, isSupportedLanguage } from "../../../../lib/translate";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
@@ -1652,6 +1653,8 @@ export async function GET(req: Request, { params }: RouteProps) {
     const lookupValue = cleanText(id);
     const url = new URL(req.url);
     const reportMode = url.searchParams.get("type") === "full" ? "full" : "agent";
+    // Language for the PDF (#23) — same cache/translation as the web report.
+    const pdfLang = String(url.searchParams.get("lang") || "").trim().toLowerCase();
     // Apple surfaces open the PDF in a new tab and need it served inline so the
     // OS PDF viewer (with its native Save/Share) takes over. Default stays
     // attachment for the classic blob-download path on other platforms.
@@ -1951,6 +1954,43 @@ export async function GET(req: Request, { params }: RouteProps) {
         photos: dedupeDownloadPhotos(finalPhotos.filter((photo: any) => photo?.download_url)),
       };
     });
+
+    // #23: translate the PDF's findings + section notes into the requested
+    // language (same cache the web report uses), applied in the data so the
+    // HTML builder below renders the translated report.
+    if (pdfLang && pdfLang !== "en" && isSupportedLanguage(pdfLang)) {
+      try {
+        const sources: string[] = [];
+        for (const f of findings) {
+          sources.push(
+            cleanText(f.title), cleanText(f.observation), cleanText(f.implication),
+            cleanText(f.recommendation), cleanText(f.location), cleanText(f.comment),
+          );
+        }
+        for (const k of Object.keys(sectionNotesMap)) sources.push(sectionNotesMap[k]);
+
+        const tmap = await getReportTranslations(
+          admin,
+          inspectionId,
+          pdfLang,
+          sources.filter(Boolean),
+        );
+        const t = makeTranslator(tmap);
+        for (const f of findings) {
+          if (f.title) f.title = t(f.title);
+          if (f.observation) f.observation = t(f.observation);
+          if (f.implication) f.implication = t(f.implication);
+          if (f.recommendation) f.recommendation = t(f.recommendation);
+          if (f.location) f.location = t(f.location);
+          if (f.comment) f.comment = t(f.comment);
+        }
+        for (const k of Object.keys(sectionNotesMap)) {
+          sectionNotesMap[k] = t(sectionNotesMap[k]);
+        }
+      } catch (translateError) {
+        console.error("PDF translation error:", translateError);
+      }
+    }
 
     const { data: reportClientContactsRaw, error: reportClientContactsError } =
       await admin
