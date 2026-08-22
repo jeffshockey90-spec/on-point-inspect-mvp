@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { getAIModel } from "../../../lib/openai";
+import { getSessionUser } from "../../../lib/apiAuth";
+import { loadFlowStyle } from "../../../lib/ai/flowWriter";
 
 export async function POST(req: Request) {
   try {
-    const { note } = await req.json();
+    const body = await req.json();
+    const { note } = body;
 
     if (!note) {
       return NextResponse.json({ error: "Missing note" }, { status: 400 });
@@ -17,6 +20,15 @@ export async function POST(req: Request) {
         { status: 500 }
       );
     }
+
+    // Best-effort attribution so the reusable template is written in this
+    // inspector's voice + learned edits (templates aren't tied to an inspection).
+    const sessionUser = await getSessionUser();
+    const { styleGuidance } = await loadFlowStyle({
+      userId: sessionUser?.id ?? null,
+      inspectionId: null,
+      draft: { note, section: body.section ?? null },
+    });
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -65,6 +77,7 @@ Informational
 Write professional, detailed, realtor-friendly language.
 Do not be alarmist.
 Use Observation, Implication, and Recommendation style.
+${styleGuidance ? `\n${styleGuidance}\n` : ""}
             `,
           },
           {
