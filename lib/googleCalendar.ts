@@ -190,7 +190,9 @@ export async function syncUserUpcomingInspections(admin: any, userId: string): P
     .from("google_calendar_events")
     .select("inspection_id, event_id")
     .eq("user_id", userId);
-  const eventByInspection = new Map((existing || []).map((e: any) => [String(e.inspection_id), e.event_id]));
+  const eventByInspection = new Map<string, string>(
+    (existing || []).map((e: any) => [String(e.inspection_id), String(e.event_id)] as [string, string]),
+  );
 
   const SITE = siteUrl();
   let synced = 0;
