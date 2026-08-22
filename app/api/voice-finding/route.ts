@@ -86,6 +86,7 @@ Use this exact structure:
   "title": "",
   "section": "",
   "severity": "",
+  "location": "",
   "observation": "",
   "implication": "",
   "recommendation": ""
@@ -111,6 +112,7 @@ ${VALID_SEVERITIES.join(", ")}.
 - Use Informational for non-defect information.
 - Recommend the proper qualified contractor when needed, such as electrician, plumber, HVAC contractor, roofer, qualified contractor, or garage door contractor.
 - If the user's preferred section or severity is reasonable, keep it.
+- "location": the specific room, area, or spot the inspector names (e.g. "master bathroom", "attic above the garage", "north exterior wall", "kitchen sink cabinet"). Extract it verbatim-ish into this field so it can prefill the finding's Location. Leave it an empty string if no location is stated. Do NOT invent a location.
           `,
         },
         {
@@ -136,6 +138,7 @@ ${transcript}
       title: cleanString(parsed.title) || "Inspection Finding",
       section: cleanSection,
       severity: cleanSeverity,
+      location: cleanString(parsed.location),
       observation: cleanString(parsed.observation),
       implication: cleanString(parsed.implication),
       recommendation: cleanString(parsed.recommendation),

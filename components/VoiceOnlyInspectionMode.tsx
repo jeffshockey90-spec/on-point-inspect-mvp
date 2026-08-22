@@ -98,6 +98,7 @@ export default function VoiceOnlyInspectionMode({
           title: draft.title,
           section: draft.section,
           severity: draft.severity,
+          location: draft.location || null,
           observation: draft.observation,
           implication: draft.implication,
           recommendation: draft.recommendation,

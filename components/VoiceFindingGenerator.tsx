@@ -40,6 +40,7 @@ type Draft = {
   title: string;
   section: string;
   severity: string;
+  location: string;
   observation: string;
   implication: string;
   recommendation: string;
@@ -50,6 +51,7 @@ const emptyDraft: Draft = {
   title: "",
   section: "Exterior",
   severity: "Recommended Repair",
+  location: "",
   observation: "",
   implication: "",
   recommendation: "",
@@ -132,6 +134,7 @@ export default function VoiceFindingGenerator({
       ? currentSeverity
       : "Recommended Repair",
   );
+  const [location, setLocation] = useState("");
   const [observation, setObservation] = useState("");
   const [implication, setImplication] = useState("");
   const [recommendation, setRecommendation] = useState("");
@@ -166,6 +169,7 @@ export default function VoiceFindingGenerator({
       setTitle(draft.title || "");
       setSection(draft.section || "Exterior");
       setSeverity(draft.severity || "Recommended Repair");
+      setLocation(draft.location || "");
       setObservation(draft.observation || "");
       setImplication(draft.implication || "");
       setRecommendation(draft.recommendation || "");
@@ -180,6 +184,7 @@ export default function VoiceFindingGenerator({
       title,
       section,
       severity,
+      location,
       observation,
       implication,
       recommendation,
@@ -194,6 +199,7 @@ export default function VoiceFindingGenerator({
   }, [
     hasDraft,
     implication,
+    location,
     observation,
     recommendation,
     section,
@@ -229,6 +235,7 @@ export default function VoiceFindingGenerator({
         ? currentSeverity
         : "Recommended Repair",
     );
+    setLocation("");
     setObservation("");
     setImplication("");
     setRecommendation("");
@@ -439,6 +446,7 @@ export default function VoiceFindingGenerator({
       setTitle(data.title || "");
       setSection(data.section || "Exterior");
       setSeverity(data.severity || "Recommended Repair");
+      setLocation(data.location || "");
       setObservation(data.observation || "");
       setImplication(data.implication || "");
       setRecommendation(data.recommendation || "");
@@ -464,6 +472,7 @@ export default function VoiceFindingGenerator({
       title: title.trim() || "Voice Finding",
       section,
       severity,
+      location: location.trim() || null,
       observation:
         observation.trim() ||
         (transcript.trim() ? `Inspector voice note: ${transcript.trim()}` : ""),
