@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { getAIModel } from "../../../lib/openai";
 import { resolveInspectionAccessFilter } from "../../../lib/inspectionAccess";
+import { loadFlowStyle } from "../../../lib/ai/flowWriter";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -131,6 +132,15 @@ Year Built: ${cleanText(inspection.year_built)}
 Square Feet: ${cleanText(inspection.square_feet || inspection.sqft)}
     `.trim();
 
+    // Match the inspector's voice + learned tone (voice only — finding
+    // few-shot examples would mislead a report-level summary).
+    const { styleGuidance } = await loadFlowStyle({
+      userId: user.id,
+      inspectionId: id,
+      draft: { text: findingText },
+      includeExamples: false,
+    });
+
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -144,7 +154,8 @@ Square Feet: ${cleanText(inspection.square_feet || inspection.sqft)}
           {
             role: "system",
             content:
-              "You are a senior certified home inspector writing a client- and realtor-friendly report summary from actual inspection findings. Focus on defects, safety concerns, material concerns, major repair items, meaningful limitations, and recommendations. Do not summarize normal checklist items or general property details unless they relate to a defect. Do not invent anything. Do not say systems are functional, safe, code-compliant, or in good condition unless the report specifically says so. Return only the summary text.",
+              "You are a senior certified home inspector writing a client- and realtor-friendly report summary from actual inspection findings. Focus on defects, safety concerns, material concerns, major repair items, meaningful limitations, and recommendations. Do not summarize normal checklist items or general property details unless they relate to a defect. Do not invent anything. Do not say systems are functional, safe, code-compliant, or in good condition unless the report specifically says so. Return only the summary text." +
+              (styleGuidance ? "\n\n" + styleGuidance : ""),
           },
           {
             role: "user",

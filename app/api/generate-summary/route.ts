@@ -8,6 +8,7 @@ import {
   notFound,
   authorizeInspection,
 } from "../../../lib/apiAuth";
+import { loadFlowStyle } from "../../../lib/ai/flowWriter";
 
 export const runtime = "nodejs";
 
@@ -171,13 +172,23 @@ Inspection Findings:
 ${findingsText}
 `;
 
+    // Match the inspector's voice + learned tone (voice only — finding
+    // few-shot examples would mislead a report-level summary).
+    const { styleGuidance } = await loadFlowStyle({
+      userId: user?.id ?? null,
+      inspectionId,
+      draft: { text: findingsText },
+      includeExamples: false,
+    });
+
     const response = await openai.chat.completions.create({
       model: getAIModel(),
       messages: [
         {
           role: "system",
           content:
-            "You generate professional executive summaries for home inspection reports.",
+            "You generate professional executive summaries for home inspection reports." +
+            (styleGuidance ? "\n\n" + styleGuidance : ""),
         },
         {
           role: "user",

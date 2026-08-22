@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
+import { createClient } from "../../../utils/supabase/server";
+import { loadFlowStyle } from "../../../lib/ai/flowWriter";
 
 export const runtime = "nodejs";
 
@@ -9,7 +11,9 @@ const openai = new OpenAI({
 
 export async function POST(req: Request) {
   try {
-    const { findings } = await req.json();
+    const body = await req.json();
+    const { findings } = body;
+    const inspectionId = body.inspectionId ?? body.inspection_id ?? null;
 
     if (!findings || !Array.isArray(findings)) {
       return NextResponse.json(
@@ -31,6 +35,26 @@ Recommendation: ${finding.recommendation || ""}
       )
       .join("\n");
 
+    // Identify the inspector so the summary matches THEIR voice + learned tone
+    // (voice only — finding few-shot examples would mislead a summary).
+    let userId: string | null = null;
+    try {
+      const supabase = await createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      userId = user?.id ?? null;
+    } catch {
+      userId = null;
+    }
+
+    const { styleGuidance } = await loadFlowStyle({
+      userId,
+      inspectionId,
+      draft: { text: findingsText },
+      includeExamples: false,
+    });
+
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       response_format: { type: "json_object" },
@@ -38,7 +62,8 @@ Recommendation: ${finding.recommendation || ""}
         {
           role: "system",
           content:
-            "You help a professional home inspector create concise, realtor-friendly report summaries. Return JSON only.",
+            "You help a professional home inspector create concise, realtor-friendly report summaries. Return JSON only." +
+            (styleGuidance ? "\n\n" + styleGuidance : ""),
         },
         {
           role: "user",
