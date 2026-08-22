@@ -10,6 +10,16 @@ import {
 } from "../../../lib/homeMaintenance";
 import { isReportViewReload } from "../../../lib/reportViewThrottle";
 import { sendPushNotification } from "../../../lib/push";
+import ReportLanguageSwitcher from "../../../components/ReportLanguageSwitcher";
+import UiAutoTranslate from "../../../components/UiAutoTranslate";
+import { REPORT_UI_STRINGS } from "../../../lib/uiStrings";
+import {
+  SUPPORTED_LANGUAGES,
+  isSupportedLanguage,
+  getReportTranslations,
+  getUiTranslations,
+  makeTranslator,
+} from "../../../lib/translate";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -104,10 +114,13 @@ const STATUS_STYLE: Record<string, { bar: string; chip: string; text: string }> 
 
 export default async function HomeownerPortal({
   params,
+  searchParams,
 }: {
   params: Promise<{ token: string }>;
+  searchParams?: Promise<{ lang?: string }>;
 }) {
   const { token } = await params;
+  const sp = searchParams ? await searchParams : {};
   const lookup = clean(token);
 
   // Resolve the inspection by its unguessable share token; fall back to a raw
@@ -154,7 +167,7 @@ export default async function HomeownerPortal({
     inspection.company_id
       ? admin
           .from("companies")
-          .select("name, display_name")
+          .select("name, display_name, preferred_language")
           .eq("id", inspection.company_id)
           .maybeSingle()
       : Promise.resolve({ data: null } as any),
@@ -183,25 +196,82 @@ export default async function HomeownerPortal({
   const inspectedOn = clean(inspection.inspection_date);
   const yearBuilt = clean(inspection.year_built);
 
+  // #23 Multi-language: default to the company's language (buyer can switch);
+  // translate the generated maintenance plan, equipment details, and safety
+  // items in the data, and the fixed chrome via the UI dictionary.
+  const explicitLang = String(sp?.lang || "").trim().toLowerCase();
+  const companyLang = String(company?.preferred_language || "").toLowerCase();
+  const activeLang = explicitLang || companyLang || "en";
+  const isTranslated =
+    Boolean(activeLang) && activeLang !== "en" && isSupportedLanguage(activeLang);
+
+  let t = (s: any): string => (s == null ? "" : String(s));
+  let uiMap: Record<string, string> = {};
+
+  if (isTranslated) {
+    const sources: string[] = [];
+    for (const task of plan) sources.push(task.title, task.cadence, task.why);
+    for (const e of equipment) {
+      sources.push(
+        equipmentName(e), clean(e.condition), clean(e.maintenance_schedule),
+        clean(e.recall_awareness), clean(e.known_failure_patterns), clean(e.location),
+      );
+    }
+    sources.push(...safetyItems);
+
+    try {
+      const tmap = await getReportTranslations(
+        admin,
+        inspectionId,
+        activeLang,
+        sources.filter(Boolean),
+      );
+      t = makeTranslator(tmap);
+      for (const task of plan) {
+        task.title = t(task.title);
+        task.cadence = t(task.cadence);
+        task.why = t(task.why);
+      }
+      for (let i = 0; i < safetyItems.length; i++) safetyItems[i] = t(safetyItems[i]);
+    } catch {
+      /* leave English on failure */
+    }
+    try {
+      uiMap = await getUiTranslations(admin, activeLang, REPORT_UI_STRINGS);
+    } catch {
+      uiMap = {};
+    }
+  }
+  const te = t;
+  // Chrome translator (server-side, reliable) from the UI dictionary.
+  const tc = makeTranslator(uiMap);
+
   return (
     <main className="min-h-screen bg-[#020617] px-4 py-8 text-white md:px-6 md:py-12">
+      {isTranslated && <UiAutoTranslate map={uiMap} />}
       <div className="mx-auto max-w-5xl space-y-8">
+        <div className="flex justify-end">
+          <ReportLanguageSwitcher
+            languages={SUPPORTED_LANGUAGES.map((l) => ({ code: l.code, label: l.label }))}
+            current={isTranslated ? activeLang : "en"}
+          />
+        </div>
         {/* Hero */}
         <section className="overflow-hidden rounded-3xl border border-teal-500/40 bg-gradient-to-br from-[#0f172a] to-[#0b1220] p-6 shadow-2xl md:p-10">
           <p className="text-xs font-black uppercase tracking-[0.3em] text-teal-400">
-            Your Home
+            {tc("Your Home")}
           </p>
           <h1 className="mt-3 text-3xl font-black leading-tight md:text-5xl">{address}</h1>
           {cityLine && <p className="mt-2 text-lg text-slate-300">{cityLine}</p>}
           <div className="mt-5 flex flex-wrap gap-2 text-xs font-bold">
             {yearBuilt && (
               <span className="rounded-full border border-slate-600 bg-black/30 px-3 py-1 text-slate-300">
-                Built {yearBuilt}
+                {tc("Built")} {yearBuilt}
               </span>
             )}
             {inspectedOn && (
               <span className="rounded-full border border-slate-600 bg-black/30 px-3 py-1 text-slate-300">
-                Inspected {inspectedOn}
+                {tc("Inspected")} {inspectedOn}
               </span>
             )}
             <span className="rounded-full border border-teal-500/30 bg-teal-500/10 px-3 py-1 text-teal-200">
@@ -209,21 +279,21 @@ export default async function HomeownerPortal({
             </span>
           </div>
           <p className="mt-6 max-w-2xl text-slate-300">
-            Welcome to your home&apos;s maintenance hub. Below are the major systems from your
-            inspection with their expected life, plus a simple upkeep plan to keep everything
-            running and protect your investment.
+            {tc(
+              "Welcome to your home's maintenance hub. Below are the major systems from your inspection with their expected life, plus a simple upkeep plan to keep everything running and protect your investment.",
+            )}
           </p>
           <Link
             href={`/share/${shareToken}`}
             className="mt-6 inline-flex items-center gap-2 rounded-xl bg-teal-500 px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-teal-400"
           >
-            View your full inspection report →
+            {tc("View your full inspection report")} →
           </Link>
         </section>
 
         {/* Systems & equipment */}
         <section className="space-y-4">
-          <h2 className="text-2xl font-black text-teal-300">Your Systems &amp; Equipment</h2>
+          <h2 className="text-2xl font-black text-teal-300">{tc("Your Systems & Equipment")}</h2>
           {equipment.length === 0 ? (
             <p className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6 text-slate-400">
               No equipment was catalogued for this home yet. Your full report has all the
@@ -234,11 +304,11 @@ export default async function HomeownerPortal({
               {equipment.map((row, i) => {
                 const life = computeEquipmentLife(row, currentYear);
                 const s = STATUS_STYLE[life.status];
-                const name = equipmentName(row);
+                const name = te(equipmentName(row));
                 const maker = clean(row.manufacturer);
-                const recall = clean(row.recall_awareness);
-                const known = clean(row.known_failure_patterns);
-                const maintenance = clean(row.maintenance_schedule);
+                const recall = te(clean(row.recall_awareness));
+                const known = te(clean(row.known_failure_patterns));
+                const maintenance = te(clean(row.maintenance_schedule));
                 return (
                   <div
                     key={row.id ?? i}
@@ -248,11 +318,11 @@ export default async function HomeownerPortal({
                       <div className="min-w-0">
                         <p className="truncate text-lg font-black text-white">{name}</p>
                         <p className="text-xs text-slate-400">
-                          {[maker, clean(row.location)].filter(Boolean).join(" · ") || "—"}
+                          {[maker, te(clean(row.location))].filter(Boolean).join(" · ") || "—"}
                         </p>
                       </div>
                       <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-black ${s.chip}`}>
-                        {life.status === "unknown" ? "Info" : `${life.pctUsed}% used`}
+                        {life.status === "unknown" ? tc("Info") : `${life.pctUsed}% used`}
                       </span>
                     </div>
 
@@ -277,17 +347,17 @@ export default async function HomeownerPortal({
                       </div>
                     )}
 
-                    <p className={`mt-3 text-xs font-bold ${s.text}`}>{life.statusLabel}</p>
+                    <p className={`mt-3 text-xs font-bold ${s.text}`}>{tc(life.statusLabel)}</p>
 
                     {maintenance && (
                       <p className="mt-3 border-t border-slate-800 pt-3 text-sm text-slate-300">
-                        <span className="font-black text-slate-200">Upkeep: </span>
+                        <span className="font-black text-slate-200">{tc("Upkeep:")} </span>
                         {maintenance}
                       </p>
                     )}
                     {(recall || known) && (
                       <p className="mt-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2 text-xs text-amber-200">
-                        <span className="font-black">Worth knowing: </span>
+                        <span className="font-black">{tc("Worth knowing:")} </span>
                         {[recall, known].filter(Boolean).join(" ")}
                       </p>
                     )}
@@ -300,10 +370,11 @@ export default async function HomeownerPortal({
 
         {/* Maintenance plan */}
         <section className="space-y-4">
-          <h2 className="text-2xl font-black text-teal-300">Your Maintenance Plan</h2>
+          <h2 className="text-2xl font-black text-teal-300">{tc("Your Maintenance Plan")}</h2>
           <p className="text-sm text-slate-400">
-            Tailored to the systems in your home. A little regular upkeep prevents most expensive
-            repairs.
+            {tc(
+              "Tailored to the systems in your home. A little regular upkeep prevents most expensive repairs.",
+            )}
           </p>
           <div className="grid gap-3 sm:grid-cols-2">
             {plan.map((task, i) => (
@@ -312,7 +383,7 @@ export default async function HomeownerPortal({
                   <p className="font-black text-white">{task.title}</p>
                   {task.season && (
                     <span className="shrink-0 rounded-full border border-slate-600 bg-black/30 px-2.5 py-1 text-[11px] font-black text-slate-300">
-                      {task.season}
+                      {tc(task.season)}
                     </span>
                   )}
                 </div>
@@ -328,10 +399,11 @@ export default async function HomeownerPortal({
         {/* Safety highlights */}
         {safetyItems.length > 0 && (
           <section className="rounded-2xl border border-rose-500/40 bg-rose-950/20 p-6">
-            <h2 className="text-xl font-black text-rose-200">Safety items to prioritize</h2>
+            <h2 className="text-xl font-black text-rose-200">{tc("Safety items to prioritize")}</h2>
             <p className="mt-1 text-sm text-slate-300">
-              Your inspector flagged these as safety or major concerns. See your full report for
-              the details and photos.
+              {tc(
+                "Your inspector flagged these as safety or major concerns. See your full report for the details and photos.",
+              )}
             </p>
             <ul className="mt-4 space-y-2">
               {safetyItems.map((title, i) => (
@@ -345,7 +417,7 @@ export default async function HomeownerPortal({
               href={`/share/${shareToken}`}
               className="mt-4 inline-flex text-sm font-black text-rose-200 underline hover:text-white"
             >
-              Open the full report →
+              {tc("Open the full report")} →
             </Link>
           </section>
         )}

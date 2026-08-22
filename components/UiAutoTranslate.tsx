@@ -71,6 +71,11 @@ export default function UiAutoTranslate({ map }: { map: Record<string, string> }
     const container = document.querySelector("main") || document.body;
     if (!container) return;
     walk(container);
+    // Re-run a few times to win any hydration/late-render race (the initial
+    // pass can run before all content is painted).
+    const timers = [60, 250, 700, 1500].map((ms) =>
+      window.setTimeout(() => walk(container), ms),
+    );
 
     // Re-translate nodes React re-renders (tab switches, accordions). Observing
     // childList only (not characterData) means our own nodeValue writes never
@@ -87,7 +92,10 @@ export default function UiAutoTranslate({ map }: { map: Record<string, string> }
       });
     });
     obs.observe(container, { childList: true, subtree: true });
-    return () => obs.disconnect();
+    return () => {
+      obs.disconnect();
+      timers.forEach((tmr) => window.clearTimeout(tmr));
+    };
   }, [map]);
 
   return null;
