@@ -276,41 +276,6 @@ function hasMoldService(inspection: any) {
   );
 }
 
-function isReviewRequested(inspection: any) {
-  const status = String(
-    inspection?.review_status ||
-      inspection?.google_review_status ||
-      inspection?.review_request_status ||
-      ""
-  ).toLowerCase();
-
-  return (
-    status.includes("requested") ||
-    status.includes("sent") ||
-    status.includes("received") ||
-    inspection?.review_requested === true ||
-    Boolean(inspection?.review_requested_at)
-  );
-}
-
-function isReviewReceived(inspection: any) {
-  const status = String(
-    inspection?.review_status ||
-      inspection?.google_review_status ||
-      inspection?.review_request_status ||
-      ""
-  ).toLowerCase();
-
-  return (
-    status.includes("received") ||
-    status.includes("complete") ||
-    status.includes("completed") ||
-    status.includes("left") ||
-    inspection?.review_received === true ||
-    Boolean(inspection?.review_received_at)
-  );
-}
-
 function getViewType(log: any) {
   return String(log?.view_type || "").toLowerCase();
 }
@@ -426,8 +391,8 @@ export default async function AnalyticsPage() {
     0
   );
 
-  const reviewRequestedRows = rows.filter(isReviewRequested);
-  const reviewRequestRate = getPercent(reviewRequestedRows.length, rows.length);
+  // "Requested" is computed below from actual review_request emails sent through
+  // FLOW (see the per-inspector block), not a heuristic inspection field.
 
   // --- Per-inspector additions (every query below is scoped to THIS user's
   // own inspections / company, so nothing leaks across companies) ---
@@ -453,22 +418,37 @@ export default async function AnalyticsPage() {
   const googleReviewCount = getNumber(ownCompany?.google_review_count);
   const googleRating = ownCompany?.google_rating ? Number(ownCompany.google_rating) : null;
 
-  // Reports actually emailed to clients -- constrained to this inspector's own
-  // inspection ids, so it's isolated regardless of the table's own scoping.
-  const { data: reportEmailRows } =
+  // Emails actually sent through FLOW for this inspector's own inspections
+  // (report deliveries and review requests). email_logs RLS already limits an
+  // inspector to their own inspections; the id filter keeps it tight regardless.
+  const { data: emailLogRows } =
     inspectionIds.length > 0
       ? await supabase
           .from("email_logs")
-          .select("inspection_id_bigint")
-          .in("email_type", ["inspection_report", "environmental_report"])
+          .select("inspection_id_bigint, email_type")
+          .in("email_type", ["inspection_report", "environmental_report", "review_request"])
           .in("inspection_id_bigint", inspectionIds)
       : { data: [] as any[] };
-  const sentInspectionIdSet = new Set(
-    (reportEmailRows || []).map((e: any) => String(e.inspection_id_bigint))
+  const reportEmailInspectionIds = new Set(
+    (emailLogRows || [])
+      .filter((e: any) =>
+        e.email_type === "inspection_report" || e.email_type === "environmental_report"
+      )
+      .map((e: any) => String(e.inspection_id_bigint))
+  );
+  const reviewRequestInspectionIds = new Set(
+    (emailLogRows || [])
+      .filter((e: any) => e.email_type === "review_request")
+      .map((e: any) => String(e.inspection_id_bigint))
   );
   const reportsSentCount = rows.filter((r: any) =>
-    sentInspectionIdSet.has(String(r.id))
+    reportEmailInspectionIds.has(String(r.id))
   ).length;
+  // Real review requests: inspections we actually emailed a review request for.
+  const reviewRequestedCount = rows.filter((r: any) =>
+    reviewRequestInspectionIds.has(String(r.id))
+  ).length;
+  const reviewRequestRate = getPercent(reviewRequestedCount, rows.length);
 
   // Turnaround: average days from the inspection date to publish, and to paid.
   const daysBetween = (from: any, to: any): number | null => {
@@ -1099,13 +1079,13 @@ export default async function AnalyticsPage() {
         <section className="mt-8 grid gap-6 xl:grid-cols-2">
           <Panel
             title="Review Tracking"
-            subtitle="Review requests you've sent, and your live Google review count."
+            subtitle="Review requests you've sent through FLOW, and your live Google review count."
           >
             <div className="grid gap-4 sm:grid-cols-3">
               <MiniMetric
                 label="Requested"
-                value={String(reviewRequestedRows.length)}
-                helper={`${reviewRequestRate}% of inspections`}
+                value={String(reviewRequestedCount)}
+                helper={`${reviewRequestRate}% of inspections · sent via FLOW`}
               />
               <MiniMetric
                 label="On Google"
@@ -1118,7 +1098,7 @@ export default async function AnalyticsPage() {
               />
               <MiniMetric
                 label="Not Requested"
-                value={String(Math.max(0, rows.length - reviewRequestedRows.length))}
+                value={String(Math.max(0, rows.length - reviewRequestedCount))}
                 helper="Opportunity for follow-up."
               />
             </div>
