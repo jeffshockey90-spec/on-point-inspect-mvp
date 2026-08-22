@@ -53,6 +53,7 @@ import LiveInspectionTimelinePanel from "../../../components/LiveInspectionTimel
 import AIPublishGuardPanel from "../../../components/AIPublishGuardPanel";
 import ReportDisclaimers from "../../../components/ReportDisclaimers";
 import PropertyPhotoUploader from "../../../components/PropertyPhotoUploader";
+import InspectionContextEditor from "../../../components/InspectionContextEditor";
 import OpenCommandCenterToolButton from "../../../components/OpenCommandCenterToolButton";
 import PublishReportActionButton from "../../../components/PublishReportActionButton";
 import InspectorToolsDrawer, {
@@ -2976,6 +2977,10 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
 
                 <OneTapAIFindingInsert inspectionId={String(inspection.id)} />
               </div>
+            </div>
+
+            <div className="mt-4">
+              <InspectionContextEditor inspection={inspection} />
             </div>
 
             <div>
