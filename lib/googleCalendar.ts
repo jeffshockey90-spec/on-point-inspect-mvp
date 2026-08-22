@@ -1,8 +1,20 @@
+import crypto from "crypto";
+
 // Google Calendar OAuth + event sync. FLOW had no OAuth infrastructure before
 // this; keep it self-contained. Secrets live in server env only.
 //
 // Env: GOOGLE_OAUTH_CLIENT_ID, GOOGLE_OAUTH_CLIENT_SECRET. Redirect URI is
 // derived from the site URL and must match the one registered in Google Cloud.
+
+// CSRF state bound to the user via HMAC (no cookie needed — cookies don't
+// reliably survive the OAuth redirect through Google in app webviews). The
+// callback recomputes this for the logged-in user and compares; an attacker
+// can't forge a valid state for someone else's user id.
+export function googleOAuthState(userId: string) {
+  const secret =
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.GOOGLE_OAUTH_CLIENT_SECRET || "flow-state";
+  return crypto.createHmac("sha256", secret).update(String(userId)).digest("hex");
+}
 
 const SCOPES = [
   "openid",

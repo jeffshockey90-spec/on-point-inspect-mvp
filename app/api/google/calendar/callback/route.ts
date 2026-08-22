@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
-import { exchangeCodeForTokens } from "../../../../../lib/googleCalendar";
+import { exchangeCodeForTokens, googleOAuthState } from "../../../../../lib/googleCalendar";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,10 +28,9 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
-  const cookieState = cookieStore.get("gcal_state")?.value;
 
   if (url.searchParams.get("error")) return settingsRedirect("denied");
-  if (!code || !state || !cookieState || state !== cookieState) return settingsRedirect("badstate");
+  if (!code || !state || state !== googleOAuthState(user.id)) return settingsRedirect("badstate");
 
   const tokens = await exchangeCodeForTokens(code);
   if (!tokens.access_token) return settingsRedirect("failed");
@@ -57,7 +56,5 @@ export async function GET(request: Request) {
 
   await admin.from("google_calendar_connections").upsert(patch, { onConflict: "user_id" });
 
-  const res = settingsRedirect("connected");
-  res.cookies.delete("gcal_state");
-  return res;
+  return settingsRedirect("connected");
 }

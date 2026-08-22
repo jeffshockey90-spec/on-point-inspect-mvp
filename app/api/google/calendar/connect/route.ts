@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import crypto from "crypto";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
-import { getGoogleAuthUrl, isGoogleCalendarConfigured } from "../../../../../lib/googleCalendar";
+import { getGoogleAuthUrl, googleOAuthState, isGoogleCalendarConfigured } from "../../../../../lib/googleCalendar";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,14 +24,6 @@ export async function GET() {
     );
   }
 
-  const state = crypto.randomUUID();
-  const res = NextResponse.redirect(getGoogleAuthUrl(state));
-  res.cookies.set("gcal_state", state, {
-    httpOnly: true,
-    secure: true,
-    sameSite: "lax",
-    maxAge: 600,
-    path: "/",
-  });
-  return res;
+  // State is derived from the user (HMAC) — no cookie needed.
+  return NextResponse.redirect(getGoogleAuthUrl(googleOAuthState(user.id)));
 }
