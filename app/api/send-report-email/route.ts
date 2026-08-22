@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
+import { createClient as createServiceClient } from "@supabase/supabase-js";
+import { emitWebhook } from "../../../lib/webhooks";
 import { getOrCreateShareToken } from "../../../lib/shareToken";
 import { getCompanyBrandingById, buildBrandedFromHeader, type CompanyBranding } from "../../../lib/companyBranding";
 import { resolveInspectionAccessFilter } from "../../../lib/inspectionAccess";
@@ -751,6 +753,25 @@ export async function POST(req: Request) {
         },
         { status: 500 }
       );
+    }
+
+    // Fire the report.sent webhook (best-effort) to the inspector's endpoints.
+    if (inspection?.inspector_id && sent.length) {
+      const hookAdmin = createServiceClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        { auth: { persistSession: false, autoRefreshToken: false } },
+      );
+      void emitWebhook(hookAdmin, {
+        ownerUserId: String(inspection.inspector_id),
+        event: "report.sent",
+        data: {
+          inspection_id: inspection.id,
+          property_address: inspection.property_address || inspection.address || null,
+          recipients: sent.map((s: any) => s.recipient),
+          share_url: finalShareUrl || null,
+        },
+      });
     }
 
     return NextResponse.json({
