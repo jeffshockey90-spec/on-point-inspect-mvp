@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Mic, Square, Volume2, VolumeX } from "lucide-react";
 
 type CopilotIssue = {
   id: string;
@@ -167,6 +168,37 @@ export default function InspectionCopilotPanel({
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
+  // Voice copilot: talk to it, and (optionally) have it talk back.
+  const [listening, setListening] = useState(false);
+  const [voiceReplies, setVoiceReplies] = useState(false);
+  const recognitionRef = useRef<any>(null);
+  const voiceSupported =
+    typeof window !== "undefined" &&
+    ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) &&
+    "speechSynthesis" in window;
+
+  useEffect(() => {
+    try {
+      setVoiceReplies(localStorage.getItem("copilot-voice-replies") === "1");
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const speak = useCallback((text: string) => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    const clean = String(text || "").trim();
+    if (!clean) return;
+    try {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(clean);
+      utterance.rate = 1.03;
+      window.speechSynthesis.speak(utterance);
+    } catch {
+      /* speech synthesis can throw on some devices; ignore */
+    }
+  }, []);
+
   const loadCopilot = useCallback(
     async (nextQuestion = "") => {
       if (!inspectionId || !active || inFlight.current) return;
@@ -194,6 +226,7 @@ export default function InspectionCopilotPanel({
         }
 
         setResult(data);
+        return data as CopilotResult;
       } catch (error: any) {
         setMessage(error?.message || "Inspection Copilot failed.");
       } finally {
@@ -220,11 +253,58 @@ export default function InspectionCopilotPanel({
     return [...(result.priorityIssues || []), ...(result.contradictions || [])].slice(0, compact ? 4 : 8);
   }, [result, compact]);
 
-  async function askCopilot(nextQuestion?: string) {
+  async function askCopilot(nextQuestion?: string, viaVoice = false) {
     const cleanQuestion = String(nextQuestion ?? question).trim();
     if (!cleanQuestion && result) return;
     setQuestion(cleanQuestion);
-    await loadCopilot(cleanQuestion);
+    const data = await loadCopilot(cleanQuestion);
+    // Speak the answer if voice replies are on, or the question came in by voice.
+    if ((voiceReplies || viaVoice) && data?.answer) speak(data.answer);
+  }
+
+  function toggleListening() {
+    if (!voiceSupported) return;
+    if (listening) {
+      try {
+        recognitionRef.current?.stop();
+      } catch {
+        /* ignore */
+      }
+      setListening(false);
+      return;
+    }
+    try {
+      const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      const rec = new SR();
+      rec.lang = "en-US";
+      rec.continuous = false;
+      rec.interimResults = false;
+      rec.onresult = (event: any) => {
+        const transcript = event?.results?.[0]?.[0]?.transcript || "";
+        setQuestion(transcript);
+        if (transcript.trim()) void askCopilot(transcript, true);
+      };
+      rec.onend = () => setListening(false);
+      rec.onerror = () => setListening(false);
+      recognitionRef.current = rec;
+      rec.start();
+      setListening(true);
+    } catch {
+      setListening(false);
+    }
+  }
+
+  function toggleVoiceReplies() {
+    setVoiceReplies((current) => {
+      const next = !current;
+      try {
+        localStorage.setItem("copilot-voice-replies", next ? "1" : "0");
+      } catch {
+        /* ignore */
+      }
+      if (!next && typeof window !== "undefined") window.speechSynthesis?.cancel();
+      return next;
+    });
   }
 
   async function reviewMyInspection() {
@@ -298,9 +378,25 @@ export default function InspectionCopilotPanel({
       </div>
 
       <div className="mt-5 rounded-xl border border-slate-700 bg-[#020817]/70 p-3">
-        <p className="text-xs font-black uppercase tracking-wide text-slate-400">
-          Ask Copilot
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+            Ask Copilot
+          </p>
+          {voiceSupported && (
+            <button
+              type="button"
+              onClick={toggleVoiceReplies}
+              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-black transition ${
+                voiceReplies
+                  ? "border-indigo-400 bg-indigo-500/20 text-indigo-200"
+                  : "border-slate-600 text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              {voiceReplies ? <Volume2 className="h-3.5 w-3.5" /> : <VolumeX className="h-3.5 w-3.5" />}
+              Voice replies {voiceReplies ? "on" : "off"}
+            </button>
+          )}
+        </div>
         <div className="mt-3 flex flex-wrap gap-2">
           {quickQuestions().map((item) => (
             <button
@@ -325,9 +421,23 @@ export default function InspectionCopilotPanel({
                 void askCopilot();
               }
             }}
-            placeholder="Ask: what still needs inspected, any contradictions, is it ready to publish..."
+            placeholder="Ask (or tap the mic): what still needs inspected, any contradictions, is it ready to publish..."
             className="min-w-0 flex-1 rounded-xl border border-slate-700 bg-black px-3 py-3 text-sm text-white outline-none focus:border-indigo-400"
           />
+          {voiceSupported && (
+            <button
+              type="button"
+              onClick={toggleListening}
+              aria-label={listening ? "Stop listening" : "Ask by voice"}
+              className={`shrink-0 rounded-xl px-4 py-3 text-sm font-black text-white transition ${
+                listening
+                  ? "animate-pulse bg-red-500 hover:bg-red-400"
+                  : "bg-indigo-500 hover:bg-indigo-400"
+              }`}
+            >
+              {listening ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+            </button>
+          )}
           <button
             type="button"
             onClick={() => askCopilot()}
