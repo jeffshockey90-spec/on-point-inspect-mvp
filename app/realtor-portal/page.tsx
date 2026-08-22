@@ -6,6 +6,10 @@ import FastLinkButton from "../../components/FastLinkButton";
 import EmailAddendumButton from "../../components/EmailAddendumButton";
 import ReportDownloadButton from "../../components/ReportDownloadButton";
 import { getInspectionShareToken, getOrCreateShareToken } from "../../lib/shareToken";
+import ReportLanguageSwitcher from "../../components/ReportLanguageSwitcher";
+import UiAutoTranslate from "../../components/UiAutoTranslate";
+import { REPORT_UI_STRINGS } from "../../lib/uiStrings";
+import { SUPPORTED_LANGUAGES, isSupportedLanguage, getUiTranslations } from "../../lib/translate";
 import { redirect } from "next/navigation";
 import { createClient } from "../../utils/supabase/server";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
@@ -221,7 +225,7 @@ function getStatusLabel(status: string) {
 export default async function RealtorPortalPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ preview?: string }>;
+  searchParams?: Promise<{ preview?: string; lang?: string }>;
 }) {
   const supabase = await createClient();
 
@@ -368,8 +372,29 @@ export default async function RealtorPortalPage({
   const totalSellerCredit = repairShares.reduce((sum, share) => sum + getShareSellerTotal(share), 0);
   const totalDifference = totalSellerCredit - totalRequestedCredit;
 
+  // #23 Multi-language: the realtor can view the portal in their language via
+  // ?lang= (there's no single company here, so it's an explicit choice). The
+  // reports they open translate per-inspection to that company's language.
+  const portalLang = String(resolvedSearchParams?.lang || "").trim().toLowerCase();
+  const portalTranslated = Boolean(portalLang) && portalLang !== "en" && isSupportedLanguage(portalLang);
+  let realtorUiMap: Record<string, string> = {};
+  if (portalTranslated) {
+    try {
+      realtorUiMap = await getUiTranslations(admin, portalLang, REPORT_UI_STRINGS);
+    } catch {
+      realtorUiMap = {};
+    }
+  }
+
   return (
     <main className="min-h-screen bg-[#020617] px-5 py-10 text-white md:px-8">
+      {portalTranslated && <UiAutoTranslate map={realtorUiMap} />}
+      <div className="mx-auto mb-4 flex max-w-6xl justify-end">
+        <ReportLanguageSwitcher
+          languages={SUPPORTED_LANGUAGES.map((l) => ({ code: l.code, label: l.label }))}
+          current={portalTranslated ? portalLang : "en"}
+        />
+      </div>
       <div className="mx-auto max-w-7xl">
         {isOwnerPreview && (
           <div className="mb-6 rounded-2xl border border-purple-500/50 bg-purple-500/10 px-6 py-4">

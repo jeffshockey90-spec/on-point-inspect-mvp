@@ -53,6 +53,12 @@ export const REPORT_UI_STRINGS: string[] = [
   "Location",
   // Portal
   "Report Actions Locked",
+  "Realtor Portal",
+  "My Linked Reports",
+  "View Report",
+  "Full Report Download",
+  "Agent Report Download",
+  "No reports yet",
   "Home Maintenance",
   "Your Home",
   "Your Systems & Equipment",
