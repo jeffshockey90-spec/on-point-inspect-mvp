@@ -37,6 +37,7 @@ import {
   formatExamplesForPrompt,
   resolveInspectorId,
 } from "./findingRetrieval";
+import { loadInspectionContext } from "./inspectionContext";
 
 export { FLOW_SECTIONS, FLOW_SEVERITIES };
 
@@ -117,6 +118,7 @@ export type FlowWriterParts = {
   knowledgeBlock?: string;
   learningBlock?: string;
   examplesBlock?: string;
+  contextBlock?: string; // property + live-inspection grounding
   extra?: string; // route-specific instructions (e.g. "input is a voice transcript")
 };
 
@@ -124,6 +126,7 @@ export function assembleFindingSystemPrompt(parts: FlowWriterParts): string {
   return [
     buildFindingContract(),
     parts.extra?.trim(),
+    parts.contextBlock?.trim(),
     parts.styleBlock?.trim(),
     parts.knowledgeBlock?.trim(),
     parts.learningBlock && parts.learningBlock !== "No established inspector-specific learning patterns yet."
@@ -164,6 +167,7 @@ export async function loadFlowWriter(opts: {
   inspectionId?: string | number | null;
   draft?: FlowWriterDraft;
   includeExamples?: boolean; // default true
+  includeContext?: boolean; // default true
   extra?: string;
 }): Promise<FlowWriterResult> {
   const draft = opts.draft || {};
@@ -203,6 +207,17 @@ export async function loadFlowWriter(opts: {
   // 3. Knowledge — matched defect records.
   const knowledgeBlock = buildDefectKnowledge(subject);
 
+  // Context Layer — property facts + live inspection state (best-effort).
+  let contextBlock = "";
+  if (opts.includeContext !== false && opts.inspectionId != null && opts.inspectionId !== "") {
+    try {
+      const ctx = await loadInspectionContext(opts.inspectionId);
+      contextBlock = ctx.block;
+    } catch {
+      contextBlock = "";
+    }
+  }
+
   // 4b. Brain — few-shot examples from the inspector's own published findings.
   let examplesBlock = "";
   let exampleCount = 0;
@@ -232,6 +247,7 @@ export async function loadFlowWriter(opts: {
     knowledgeBlock,
     learningBlock,
     examplesBlock,
+    contextBlock,
     extra: opts.extra,
   });
 
@@ -256,6 +272,7 @@ export async function loadFlowStyle(opts: {
   inspectionId?: string | number | null;
   draft?: FlowWriterDraft;
   includeExamples?: boolean; // default true
+  includeContext?: boolean; // default true
 }): Promise<{ styleGuidance: string; config: AiWritingConfig; exampleCount: number }> {
   const draft = opts.draft || {};
   const subject = [
@@ -291,6 +308,16 @@ export async function loadFlowStyle(opts: {
 
   const knowledgeBlock = buildDefectKnowledge(subject);
 
+  let contextBlock = "";
+  if (opts.includeContext !== false && opts.inspectionId != null && opts.inspectionId !== "") {
+    try {
+      const ctx = await loadInspectionContext(opts.inspectionId);
+      contextBlock = ctx.block;
+    } catch {
+      contextBlock = "";
+    }
+  }
+
   let examplesBlock = "";
   let exampleCount = 0;
   if (opts.includeExamples !== false) {
@@ -315,6 +342,7 @@ export async function loadFlowStyle(opts: {
   }
 
   const styleGuidance = [
+    contextBlock?.trim(),
     styleBlock?.trim(),
     knowledgeBlock?.trim(),
     learningBlock && learningBlock !== "No established inspector-specific learning patterns yet."
