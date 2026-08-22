@@ -141,6 +141,17 @@ export async function getReportTranslations(
   return map;
 }
 
+// Translate a set of fixed UI labels (buttons, tabs, headers) for a language.
+// Cached GLOBALLY under a shared bucket (inspection_id = 0) since the labels are
+// identical across every report — translate once per language, reuse forever.
+export async function getUiTranslations(
+  admin: any,
+  langCode: string,
+  labels: string[],
+): Promise<Record<string, string>> {
+  return getReportTranslations(admin, 0, langCode, labels);
+}
+
 // Convenience translator bound to a prepared map. Falls back to the original.
 export function makeTranslator(map: Record<string, string>) {
   return (value: any): string => {

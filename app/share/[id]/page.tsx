@@ -18,10 +18,13 @@ import { getSessionUser, authorizeInspection } from "../../../lib/apiAuth";
 import { getInspectionShareToken, getOrCreateShareToken } from "../../../lib/shareToken";
 import { isReportViewReload } from "../../../lib/reportViewThrottle";
 import ReportLanguageSwitcher from "../../../components/ReportLanguageSwitcher";
+import UiAutoTranslate from "../../../components/UiAutoTranslate";
+import { REPORT_UI_STRINGS } from "../../../lib/uiStrings";
 import {
   SUPPORTED_LANGUAGES,
   isSupportedLanguage,
   getReportTranslations,
+  getUiTranslations,
   makeTranslator,
 } from "../../../lib/translate";
 
@@ -1469,6 +1472,7 @@ export default async function PublicSharePage({
   const requestedLang = explicitLang || companyDefaultLang || "en";
   const isTranslated =
     Boolean(requestedLang) && requestedLang !== "en" && isSupportedLanguage(requestedLang);
+  let uiTranslationMap: Record<string, string> = {};
   if (isTranslated) {
     const sources: string[] = [];
     for (const f of findings) {
@@ -1498,6 +1502,14 @@ export default async function PublicSharePage({
     for (const k of Object.keys(notesBySection)) notesBySection[k] = t(notesBySection[k]);
     if (inspection.executive_summary) {
       inspection.executive_summary = t(inspection.executive_summary);
+    }
+
+    // UI chrome labels (buttons/tabs/headers) — translated once per language,
+    // cached globally, and applied client-side by exact match.
+    try {
+      uiTranslationMap = await getUiTranslations(supabase, requestedLang, REPORT_UI_STRINGS);
+    } catch {
+      uiTranslationMap = {};
     }
   }
 
@@ -1961,6 +1973,7 @@ export default async function PublicSharePage({
             </div>
           )}
 
+          {isTranslated && <UiAutoTranslate map={uiTranslationMap} />}
           {!isDemo && (
             <div className="mb-3 print:hidden">
               <ReportLanguageSwitcher
@@ -1989,7 +2002,7 @@ export default async function PublicSharePage({
                 preparingText="Preparing PDF..."
                 className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-cyan-500 bg-cyan-500/10 px-5 py-3 font-bold text-cyan-300 transition active:scale-[0.98] active:opacity-80 [touch-action:manipulation] hover:bg-cyan-500 hover:text-black"
               >
-                <>⬇ Download Report</>
+                <><span aria-hidden="true">⬇</span> Download Report</>
               </ReportDownloadButton>
             )}
 
@@ -1998,7 +2011,7 @@ export default async function PublicSharePage({
                 href={`/my-home/${encodeURIComponent(sharePathId)}`}
                 className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-emerald-500 bg-emerald-500/10 px-5 py-3 font-bold text-emerald-300 transition active:scale-[0.98] [touch-action:manipulation] hover:bg-emerald-500 hover:text-black"
               >
-                🏠 Home Maintenance Hub
+                <span aria-hidden="true">🏠</span> Home Maintenance Hub
               </a>
             )}
 
