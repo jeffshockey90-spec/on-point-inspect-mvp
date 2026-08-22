@@ -21,6 +21,10 @@ export default function ReportLanguageSwitcher({
   const [pending, startTransition] = useTransition();
   const [value, setValue] = useState(current || "en");
 
+  const labelFor = (code: string) =>
+    code === "en" ? "English" : languages.find((l) => l.code === code)?.label || code;
+  const pendingLabel = labelFor(value);
+
   function change(code: string) {
     setValue(code);
     const next = new URLSearchParams(params?.toString() || "");
@@ -55,6 +59,21 @@ export default function ReportLanguageSwitcher({
         ))}
       </select>
       {pending && <span className="text-xs font-bold text-teal-300/80">…</span>}
+
+      {pending && (
+        <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-[#020617]/80 backdrop-blur-sm print:hidden">
+          <div className="mx-4 max-w-sm rounded-2xl border border-teal-500/50 bg-[#0f172a] p-6 text-center shadow-2xl">
+            <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-teal-500/30 border-t-teal-400" />
+            <p className="text-base font-black text-white">
+              Preparing your report in {pendingLabel}…
+            </p>
+            <p className="mt-2 text-sm text-slate-400">
+              The first time a report is translated can take a few seconds. After that it&apos;s
+              instant.
+            </p>
+          </div>
+        </div>
+      )}
     </label>
   );
 }

@@ -5,7 +5,7 @@
 
 import OpenAI from "openai";
 import crypto from "crypto";
-import { getAIModel } from "./openai";
+import { getFastAIModel } from "./openai";
 import {
   SUPPORTED_LANGUAGES,
   languageName,
@@ -24,23 +24,19 @@ function sha(s: string) {
 // Translate a batch of strings into `languageNameStr`, preserving order/count.
 // Chunked so no single request is too large. Returns translations aligned to
 // the input; on any failure the original string is kept for that item.
-async function translateBatch(
-  strings: string[],
+async function translateChunk(
+  chunk: string[],
   languageNameStr: string,
 ): Promise<string[]> {
-  const CHUNK = 60;
-  const out: string[] = [];
-  for (let i = 0; i < strings.length; i += CHUNK) {
-    const chunk = strings.slice(i, i + CHUNK);
-    try {
-      const res = await openai.chat.completions.create({
-        model: getAIModel(),
-        temperature: 0,
-        response_format: { type: "json_object" },
-        messages: [
-          {
-            role: "system",
-            content: `You are a professional translator for U.S. home-inspection reports.
+  try {
+    const res = await openai.chat.completions.create({
+      model: getFastAIModel(),
+      temperature: 0,
+      response_format: { type: "json_object" },
+      messages: [
+        {
+          role: "system",
+          content: `You are a professional translator for U.S. home-inspection reports.
 Translate each string in the input array into ${languageNameStr}.
 Rules:
 - Return ONLY valid JSON: {"translations": ["...", "..."]} with EXACTLY the same number of items, in the same order.
@@ -48,26 +44,37 @@ Rules:
 - Do NOT translate or alter: measurements, numbers, model/serial numbers, brand names, or the section/severity label words if they are proper nouns.
 - Preserve meaning precisely; never add, omit, or editorialize.
 - If an item is empty, return it empty.`,
-          },
-          {
-            role: "user",
-            content: JSON.stringify({ strings: chunk }),
-          },
-        ],
-      });
-      const raw = res.choices[0]?.message?.content || "{}";
-      const parsed = JSON.parse(raw);
-      const arr = Array.isArray(parsed.translations) ? parsed.translations : [];
-      for (let j = 0; j < chunk.length; j++) {
-        const t = arr[j];
-        out.push(typeof t === "string" && t.trim() ? t : chunk[j]);
-      }
-    } catch {
-      // Keep originals for this chunk on failure — never break the report.
-      out.push(...chunk);
-    }
+        },
+        { role: "user", content: JSON.stringify({ strings: chunk }) },
+      ],
+    });
+    const raw = res.choices[0]?.message?.content || "{}";
+    const parsed = JSON.parse(raw);
+    const arr = Array.isArray(parsed.translations) ? parsed.translations : [];
+    return chunk.map((orig, j) =>
+      typeof arr[j] === "string" && arr[j].trim() ? arr[j] : orig,
+    );
+  } catch {
+    // Keep originals for this chunk on failure — never break the report.
+    return chunk;
   }
-  return out;
+}
+
+async function translateBatch(
+  strings: string[],
+  languageNameStr: string,
+): Promise<string[]> {
+  // Smaller chunks run IN PARALLEL, so a big report's first-time translation
+  // completes in roughly one call's time instead of sum-of-chunks.
+  const CHUNK = 25;
+  const chunks: string[][] = [];
+  for (let i = 0; i < strings.length; i += CHUNK) {
+    chunks.push(strings.slice(i, i + CHUNK));
+  }
+  const results = await Promise.all(
+    chunks.map((c) => translateChunk(c, languageNameStr)),
+  );
+  return results.flat();
 }
 
 // Return a source->translated map for the given strings in the target language,
