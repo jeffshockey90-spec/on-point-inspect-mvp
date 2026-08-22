@@ -4,34 +4,14 @@ import { createClient } from "../../../utils/supabase/server";
 import { logAIEvent } from "../../../lib/logging";
 import { getAIModel } from "../../../lib/openai";
 import { getSessionUser } from "../../../lib/apiAuth";
+import { loadFlowWriter, FLOW_SECTIONS, FLOW_SEVERITIES } from "../../../lib/ai/flowWriter";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const VALID_SECTIONS = [
-  "Exterior",
-  "Roof",
-  "Basement, Foundation, Crawlspace & Structure",
-  "Heating",
-  "Cooling",
-  "Plumbing",
-  "Electrical",
-  "Fireplace",
-  "Attic, Insulation & Ventilation",
-  "Doors, Windows & Interior",
-  "Built-in Appliances",
-  "Garage",
-];
-
-const VALID_SEVERITIES = [
-  "Recommended Repair",
-  "Safety Concern",
-  "Major Concern",
-  "Maintenance",
-  "Monitor",
-  "Informational",
-];
+const VALID_SECTIONS = FLOW_SECTIONS;
+const VALID_SEVERITIES = FLOW_SEVERITIES;
 
 function cleanText(value: any) {
   if (!value || typeof value !== "string") return "";
@@ -123,6 +103,31 @@ export async function POST(req: Request) {
       );
     }
 
+    // Build the shared FLOW Writer brain (voice + learning + knowledge +
+    // this inspector's own published examples), then layer the photo-specific
+    // rules on top so vision capture writes with the same voice as everything else.
+    const { systemPrompt: flowPrompt } = await loadFlowWriter({
+      userId: attributedUserId,
+      inspectionId,
+      draft: { note: inspectorNote },
+      extra: `INPUT: ONE inspection photo and, if provided, ONE inspector field note.
+
+Note-vs-image precedence:
+- When an inspector note is provided it is the PRIMARY SOURCE OF TRUTH; the finding MUST be about the note's concern. The photo only adds visual confirmation and detail.
+- NEVER swap the inspector's concern for a different visible condition or a background item. If the note says "plumbing leak", the finding is Plumbing even if electrical gear is visible (and vice-versa). Precedence when a note is present: NOTE > INSPECTOR MEMORY > IMAGE.
+- If note and image seem inconsistent, follow the note and use conservative wording ("reported", "observed", "appears", "recommend further evaluation").
+- If NO note is provided, analyze the single main visible concern in the photo. Create exactly ONE finding; do not combine defects or report background items.
+
+Image-narration discipline:
+- Describe the component/condition itself, NOT the photo. Never write "in this photo", "this image shows", "pictured", "shown here", or "as seen" — write it as a direct field observation.
+
+Equipment extraction (only if HVAC/electrical/plumbing/appliance/mechanical and relevant to the note or main subject):
+- Extract manufacturer, model_number, serial_number, estimated_age, equipment_type from a visible data plate. Never invent serial/model numbers; leave blank if unreadable. If the photo is a data plate, focus heavily on OCR.
+
+Return ONLY valid JSON (no markdown, no prose outside the JSON) with EXACTLY these keys:
+{"title":"","section":"","severity":"","observation":"","implication":"","recommendation":"","equipment_type":"","manufacturer":"","model_number":"","serial_number":"","estimated_age":"","notes":""}`,
+    });
+
     const response = await openai.chat.completions.create({
       model: getAIModel(),
       response_format: {
@@ -132,108 +137,7 @@ export async function POST(req: Request) {
       messages: [
         {
           role: "system",
-          content: `
-You are a senior certified home inspector writing professional inspection report findings.
-
-You are analyzing ONE inspection photo and, if provided, ONE inspector field note.
-
-The inspector note is the PRIMARY SOURCE OF TRUTH.
-
-CRITICAL RULES:
-
-1. If an inspector note is provided, the finding MUST be based on the inspector note.
-
-2. The photo exists only to provide visual confirmation and supporting details.
-
-3. NEVER ignore the inspector note in favor of another visible condition.
-
-4. NEVER create a finding for a background item when the inspector note identifies the concern.
-
-5. If the note says "plumbing leak", then the finding must be Plumbing even if electrical equipment is visible.
-
-6. If the note says "electrical issue", then the finding must be Electrical even if plumbing is visible.
-
-7. If the note identifies a specific defect, section, location, or component, that information takes precedence over image interpretation.
-
-8. Only create ONE finding.
-
-9. Do not combine multiple defects.
-
-10. Do not create findings for unrelated visible items.
-
-11. When a note is present: NOTE > INSPECTOR MEMORY > IMAGE.
-
-12. The inspector note should influence section selection, severity selection, title, observation, implication, and recommendation.
-
-13. If the note and image appear inconsistent, follow the note and use conservative wording such as "reported", "observed", "appears", or "recommend further evaluation."
-
-If no inspector note is provided:
-- Analyze the main visible inspection concern in the photo normally.
-- Create only one finding.
-- Do not create findings for background items.
-
-Return ONLY valid JSON.
-Do not include markdown.
-Do not include explanations outside the JSON.
-
-${inspectorMemoryGuidance}
-
-Use this exact JSON structure:
-
-{
-  "title": "",
-  "section": "",
-  "severity": "",
-  "observation": "",
-  "implication": "",
-  "recommendation": "",
-  "equipment_type": "",
-  "manufacturer": "",
-  "model_number": "",
-  "serial_number": "",
-  "estimated_age": "",
-  "notes": ""
-}
-
-Writing rules:
-- Write like a professional certified home inspector.
-- Use clear Observation, Implication, Recommendation wording.
-- Describe the component/condition itself, NOT the photo. Never write "in this photo", "this image shows", "pictured", "shown here", "as seen", or any reference to the image or camera — it reads as a direct field observation, not a narration of a picture.
-- Realtor-friendly but accurate.
-- Client-friendly and easy to understand.
-- Do not exaggerate issues.
-- Do not invent defects.
-- Do not state concealed damage as fact.
-- Do not claim code violations unless the note/photo clearly supports a safety concern.
-- Recommendations should name the appropriate qualified contractor when relevant.
-- Observation should be specific and based on the note/photo.
-- Implication should explain why the condition matters.
-- Recommendation should explain what should be done next.
-
-Allowed sections only:
-Exterior, Roof, Basement, Foundation, Crawlspace & Structure, Heating, Cooling, Plumbing, Electrical, Fireplace, Attic, Insulation & Ventilation, Doors, Windows & Interior, Built-in Appliances, Garage.
-
-General and Safety are NOT sections.
-
-Allowed severity values only:
-Recommended Repair, Safety Concern, Major Concern, Maintenance, Monitor, Informational.
-
-Severity guidance:
-- Informational: normal descriptive information or client awareness only.
-- Monitor: condition should be watched over time.
-- Maintenance: routine maintenance or minor upkeep.
-- Recommended Repair: correction, repair, or specialist evaluation recommended.
-- Safety Concern: clear shock, fire, fall, burn, carbon monoxide, injury, or life-safety risk.
-- Major Concern: major system failure, structural concern, significant defect, structural concern, or potentially costly repair.
-
-Equipment extraction rules:
-- If this is HVAC, electrical, plumbing, appliance, or mechanical equipment, extract visible equipment data only if relevant to the inspector note or main photo subject.
-- Never invent serial or model numbers.
-- If unreadable, leave blank.
-- If visible, identify manufacturer, model number, serial number, estimated age, and equipment type.
-- If photo is a data plate, focus heavily on OCR extraction.
-- If condition cannot be confirmed visually, state that.
-          `,
+          content: `${flowPrompt}${inspectorMemoryGuidance ? `\n\n${inspectorMemoryGuidance}` : ""}`,
         },
         {
           role: "user",

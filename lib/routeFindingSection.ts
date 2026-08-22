@@ -1,4 +1,5 @@
-const REAL_SECTIONS = [
+// Canonical vocab — the single source of truth for the whole app's AI writers.
+export const FLOW_SECTIONS = [
   "Exterior",
   "Roof",
   "Basement, Foundation, Crawlspace & Structure",
@@ -12,6 +13,18 @@ const REAL_SECTIONS = [
   "Built-in Appliances",
   "Garage",
 ];
+
+// Ordered least -> most serious.
+export const FLOW_SEVERITIES = [
+  "Informational",
+  "Monitor",
+  "Maintenance",
+  "Recommended Repair",
+  "Safety Concern",
+  "Major Concern",
+];
+
+const REAL_SECTIONS = FLOW_SECTIONS;
 
 export function routeFindingSection(input: {
   section?: string;

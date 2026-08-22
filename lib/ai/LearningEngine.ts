@@ -48,6 +48,11 @@ export class LearningEngine {
   async record(event: LearningEvent) {
     try {
       const supabase = await createClient();
+      // Stamp the lesson with the current inspector so memory is per-inspector,
+      // not global. RLS also scopes reads to inspector_id = auth.uid().
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       const changes: Record<string, { ai: any; inspector: any }> = {};
 
       const keys = new Set([
@@ -64,6 +69,7 @@ export class LearningEngine {
       }
 
       const { error } = await supabase.from("ai_learning_events").insert({
+        inspector_id: user?.id ?? null,
         inspection_id: event.inspectionId ? Number(event.inspectionId) : null,
         tool: event.tool,
         ai_prediction: event.aiPrediction || {},

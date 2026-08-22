@@ -2,6 +2,8 @@ import OpenAI from "openai";
 import { NextResponse } from "next/server";
 import { classifyAIServiceError } from "../../../lib/aiServiceError";
 import { getAIModel } from "../../../lib/openai";
+import { createClient } from "../../../utils/supabase/server";
+import { loadFlowWriter, FLOW_SECTIONS, FLOW_SEVERITIES } from "../../../lib/ai/flowWriter";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,29 +13,8 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const VALID_SECTIONS = [
-  "Exterior",
-  "Roof",
-  "Basement, Foundation, Crawlspace & Structure",
-  "Heating",
-  "Cooling",
-  "Plumbing",
-  "Electrical",
-  "Fireplace",
-  "Attic, Insulation & Ventilation",
-  "Doors, Windows & Interior",
-  "Built-in Appliances",
-  "Garage",
-];
-
-const VALID_SEVERITIES = [
-  "Recommended Repair",
-  "Safety Concern",
-  "Major Concern",
-  "Maintenance",
-  "Monitor",
-  "Informational",
-];
+const VALID_SECTIONS = FLOW_SECTIONS;
+const VALID_SEVERITIES = FLOW_SEVERITIES;
 
 function cleanString(value: any) {
   return String(value || "").trim();
@@ -58,6 +39,7 @@ export async function POST(req: Request) {
       body.severity,
       "Recommended Repair"
     );
+    const inspectionId = body.inspectionId ?? body.inspection_id ?? null;
 
     if (!transcript) {
       return NextResponse.json(
@@ -66,64 +48,44 @@ export async function POST(req: Request) {
       );
     }
 
+    // Identify the inspector from the session so voice write-ups use THEIR
+    // voice, learned edits, and published examples — the shared FLOW Writer.
+    let userId: string | null = null;
+    try {
+      const supabase = await createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      userId = user?.id ?? null;
+    } catch {
+      userId = null;
+    }
+
+    const { systemPrompt } = await loadFlowWriter({
+      userId,
+      inspectionId,
+      draft: { transcript, section: preferredSection },
+      extra: `INPUT: the inspector's spoken shorthand (a voice note). Expand it into a full professional finding — you MAY expand shorthand when the meaning is clear, but never add facts the note does not state.
+- If the inspector's preferred section (${preferredSection}) or severity (${preferredSeverity}) is reasonable for what they described, keep it.
+- "location": the specific room/area/spot the inspector names (e.g. "master bathroom", "attic above the garage", "kitchen sink cabinet). Extract it into the location field so it can prefill the finding. Leave it empty if no location is stated — do NOT invent one.
+- Do not mention code unless the voice note specifically mentions code.
+Return ONLY valid JSON with keys: title, section, severity, location, observation, implication, recommendation.`,
+    });
+
     const response = await openai.chat.completions.create({
       model: getAIModel(),
       response_format: {
         type: "json_object",
       },
       messages: [
-        {
-          role: "system",
-          content: `
-You are a senior certified home inspector writing professional report findings for a home inspection report.
-
-Convert the inspector's spoken shorthand into a clear, detailed, professional finding.
-
-Return ONLY valid JSON.
-
-Use this exact structure:
-{
-  "title": "",
-  "section": "",
-  "severity": "",
-  "location": "",
-  "observation": "",
-  "implication": "",
-  "recommendation": ""
-}
-
-Rules:
-- Do not invent facts not stated in the field note.
-- You may expand shorthand into professional language if the meaning is clear.
-- Keep the tone accurate, calm, and realtor-friendly.
-- Use Observation, Implication, Recommendation style.
-- Do not overstate risk.
-- Do not mention code unless the field note specifically mentions code.
-- General and Safety are NOT sections.
-- Section must be one of:
-${VALID_SECTIONS.join(", ")}.
-- Severity must be one of:
-${VALID_SEVERITIES.join(", ")}.
-- Use Safety Concern only when the note clearly presents a safety risk.
-- Use Major Concern only for significant defects, system failure, structural concern, active water intrusion, unsafe major equipment, or other major issue.
-- Use Recommended Repair for typical repair defects.
-- Use Maintenance for minor service/maintenance items.
-- Use Monitor when the client should watch an item over time.
-- Use Informational for non-defect information.
-- Recommend the proper qualified contractor when needed, such as electrician, plumber, HVAC contractor, roofer, qualified contractor, or garage door contractor.
-- If the user's preferred section or severity is reasonable, keep it.
-- "location": the specific room, area, or spot the inspector names (e.g. "master bathroom", "attic above the garage", "north exterior wall", "kitchen sink cabinet"). Extract it verbatim-ish into this field so it can prefill the finding's Location. Leave it an empty string if no location is stated. Do NOT invent a location.
-          `,
-        },
+        { role: "system", content: systemPrompt },
         {
           role: "user",
-          content: `
-Preferred section: ${preferredSection}
+          content: `Preferred section: ${preferredSection}
 Preferred severity: ${preferredSeverity}
 
 Inspector voice note:
-${transcript}
-          `,
+${transcript}`,
         },
       ],
     });
