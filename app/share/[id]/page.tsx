@@ -17,6 +17,13 @@ import { getReportDeliveryState } from "../../../lib/reportDelivery";
 import { getSessionUser, authorizeInspection } from "../../../lib/apiAuth";
 import { getInspectionShareToken, getOrCreateShareToken } from "../../../lib/shareToken";
 import { isReportViewReload } from "../../../lib/reportViewThrottle";
+import ReportLanguageSwitcher from "../../../components/ReportLanguageSwitcher";
+import {
+  SUPPORTED_LANGUAGES,
+  isSupportedLanguage,
+  getReportTranslations,
+  makeTranslator,
+} from "../../../lib/translate";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -1112,7 +1119,7 @@ export default async function PublicSharePage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams?: Promise<{ defect_filter?: string; contact?: string; role?: string; email?: string; v?: string; viewer?: string }>;
+  searchParams?: Promise<{ defect_filter?: string; contact?: string; role?: string; email?: string; v?: string; viewer?: string; lang?: string }>;
 }) {
   const resolvedParams = await params;
   const resolvedSearchParams = searchParams ? await searchParams : {};
@@ -1435,6 +1442,48 @@ export default async function PublicSharePage({
       photos: photosByFindingId[finding.id] || [],
     };
   });
+
+  // #23 Multi-language: when a supported non-English language is requested,
+  // translate the report's client-facing text ONCE (cached in
+  // report_translations) and apply it in place, so every downstream render —
+  // findings, summary groups, section notes — shows the translated report with
+  // no changes to the rendering code. The English report stays the source.
+  const requestedLang = String((resolvedSearchParams as any)?.lang || "")
+    .trim()
+    .toLowerCase();
+  const isTranslated =
+    Boolean(requestedLang) && requestedLang !== "en" && isSupportedLanguage(requestedLang);
+  if (isTranslated) {
+    const sources: string[] = [];
+    for (const f of findings) {
+      sources.push(
+        f.title, f.observation, f.implication, f.recommendation, f.location, f.comment,
+      );
+    }
+    for (const k of Object.keys(notesBySection)) sources.push(notesBySection[k]);
+    if (inspection.executive_summary) sources.push(inspection.executive_summary);
+
+    const tmap = await getReportTranslations(
+      supabase,
+      inspectionId,
+      requestedLang,
+      sources.filter(Boolean),
+    );
+    const t = makeTranslator(tmap);
+
+    for (const f of findings) {
+      if (f.title) f.title = t(f.title);
+      if (f.observation) f.observation = t(f.observation);
+      if (f.implication) f.implication = t(f.implication);
+      if (f.recommendation) f.recommendation = t(f.recommendation);
+      if (f.location) f.location = t(f.location);
+      if (f.comment) f.comment = t(f.comment);
+    }
+    for (const k of Object.keys(notesBySection)) notesBySection[k] = t(notesBySection[k]);
+    if (inspection.executive_summary) {
+      inspection.executive_summary = t(inspection.executive_summary);
+    }
+  }
 
   const numberedFindings = addRepairItemNumbers(findings, activeSectionOrder);
 
@@ -1896,6 +1945,20 @@ export default async function PublicSharePage({
             </div>
           )}
 
+          {!isDemo && (
+            <div className="mb-3 print:hidden">
+              <ReportLanguageSwitcher
+                languages={SUPPORTED_LANGUAGES.map((l) => ({ code: l.code, label: l.label }))}
+                current={requestedLang || "en"}
+              />
+            </div>
+          )}
+          {isTranslated && (
+            <p className="mb-3 rounded-lg border border-teal-500/30 bg-teal-500/10 px-3 py-2 text-xs text-teal-200 print:hidden">
+              This report has been translated by AI for your convenience. The original English
+              report is the official document.
+            </p>
+          )}
           <div className="mb-8 flex flex-wrap gap-3 print:hidden">
             <PdfExportButton />
 
