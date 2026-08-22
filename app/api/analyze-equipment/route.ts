@@ -4,6 +4,7 @@ import { getAIModel, getAIVersion } from "../../../lib/openai";
 import { inspectionBrain } from "../../../lib/ai";
 import { learningEngine } from "../../../lib/ai/LearningEngine";
 import { getSessionUser } from "../../../lib/apiAuth";
+import { loadFlowWriter, FLOW_SEVERITIES } from "../../../lib/ai/flowWriter";
 
 export const runtime = "nodejs";
 
@@ -71,14 +72,10 @@ const VALID_SECTIONS = [
   "General",
 ];
 
-const VALID_SEVERITIES = [
-  "Informational",
-  "Monitor",
-  "Maintenance",
-  "Recommended Repair",
-  "Safety Concern",
-  "Major Concern",
-];
+// Identical to the shared canonical ladder — alias so the 6-severity list has
+// exactly one source of truth. (Sections intentionally kept as their own literal
+// above: this route validates/returns "General", which FLOW_SECTIONS omits.)
+const VALID_SEVERITIES = FLOW_SEVERITIES;
 
 function cleanText(value: any) {
   if (value === null || value === undefined) return "";
@@ -1643,8 +1640,82 @@ export async function POST(req: Request) {
       inspectorLearningPatterns,
     );
 
-    const systemPrompt =
-      "You are the FLOW Equipment Intelligence Engine, an expert home inspection equipment analyst and data-plate reader. Return ONLY valid JSON. Think in passes: first read all visible text, then identify logos/brand marks, then identify equipment type, model, serial, manufacture date, capacity, fuel/refrigerant, and finally cross-check the result. Be accurate and conservative, but work hard before using Unknown. Carefully read visible labels, model numbers, serial numbers, capacity codes, refrigerant markings, manufacture dates, and brand/manufacturer markings. Use known HVAC, water heater, appliance, and electrical data-plate conventions only when strongly supported by visible evidence. Never invent a serial number, model number, manufacture year, refrigerant, capacity, or fuel type. If a value cannot be confirmed or strongly inferred, use Unknown. Include confidence scores and evidence for inspector review. Keep maintenance recommendations separate from identification notes. If inspector-specific learning memory is provided below, match this inspector's demonstrated wording and style in the observation/implication/recommendation/clientSummary fields without changing factual identification data.";
+    // Build the shared FLOW Writer brain (voice + learning + knowledge + this
+    // inspector's own published examples), then layer the equipment-intelligence
+    // discipline and the EXACT output JSON contract on top so equipment analysis
+    // writes with the same voice as every other AI path.
+    const { systemPrompt } = await loadFlowWriter({
+      userId: attributedUserId,
+      inspectionId,
+      draft: { note: inspectorNote },
+      extra: `INPUT: one or more equipment photos to be treated as ONE equipment record — one photo may show the full unit, another the data plate, another the serial/model label.
+
+You are the FLOW Equipment Intelligence Engine, an expert home inspection equipment analyst and data-plate reader. Think in passes: first read all visible text, then identify logos/brand marks, then identify equipment type, model, serial, manufacture date, capacity, fuel/refrigerant, and finally cross-check the result. Be accurate and conservative, but work hard before using Unknown. Carefully read visible labels, model numbers, serial numbers, capacity codes, refrigerant markings, manufacture dates, and brand/manufacturer markings. Use known HVAC, water heater, appliance, and electrical data-plate conventions only when strongly supported by visible evidence. Never invent a serial number, model number, manufacture year, refrigerant, capacity, or fuel type. If a value cannot be confirmed or strongly inferred, use Unknown. Include confidence scores and evidence for inspector review. Keep maintenance recommendations separate from identification notes. If inspector-specific learning memory is provided, match this inspector's demonstrated wording and style in the observation/implication/recommendation/clientSummary fields without changing factual identification data.
+
+Image-narration discipline: describe the equipment/component and its condition directly, NOT the photo. Never write "in this photo", "this image shows", "pictured", or "as seen".
+
+Return ONLY valid JSON in this exact format (return every key):
+
+{
+  "equipmentType": "",
+  "manufacturer": "",
+  "model": "",
+  "serial": "",
+  "manufactureYear": "",
+  "estimatedAge": "",
+  "expectedServiceLife": "",
+  "maintenanceSchedule": "",
+  "knownFailurePatterns": [],
+  "replacementCostEstimate": "",
+  "recallAwareness": "",
+  "lifeExpectancyPercent": 0,
+  "estimatedSEER": "",
+  "estimatedAFUE": "",
+  "estimatedBTU": "",
+  "estimatedHeatingEfficiency": "",
+  "equipmentCategory": "",
+  "budgetPlanning": "",
+  "maintenanceLevel": "",
+  "equipmentStatus": "",
+  "efficiency": "",
+  "capacity": "",
+  "fuelType": "",
+  "refrigerant": "",
+  "condition": "",
+  "estimatedLifeRemaining": "",
+  "clientSummary": "",
+  "section": "",
+  "severity": "",
+  "observation": "",
+  "implication": "",
+  "recommendation": "",
+  "ocrQuality": "Excellent | Good | Fair | Poor",
+  "confidenceScore": 0,
+  "reviewRequired": false,
+  "aiReasoning": "",
+  "fieldConfidence": {
+    "equipmentType": 0,
+    "manufacturer": 0,
+    "model": 0,
+    "serial": 0,
+    "manufactureYear": 0,
+    "capacity": 0,
+    "refrigerant": 0,
+    "fuelType": 0
+  },
+  "evidence": {
+    "manufacturer": [],
+    "model": [],
+    "serial": [],
+    "manufactureYear": [],
+    "capacity": [],
+    "refrigerant": [],
+    "fuelType": []
+  },
+  "reviewFlags": [],
+  "crossChecks": []
+}`,
+    });
 
     const userPrompt = `
 Analyze these equipment photos together. Use all provided images as one equipment record. One photo may show the full unit, another may show the data plate, and another may show the serial/model label.
