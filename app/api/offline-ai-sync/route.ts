@@ -9,6 +9,7 @@ import {
   notFound,
   authorizeInspection,
 } from "../../../lib/apiAuth";
+import { loadFlowWriter, FLOW_SECTIONS, FLOW_SEVERITIES } from "../../../lib/ai/flowWriter";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -72,29 +73,9 @@ async function saveSyncReceipt({
   }
 }
 
-const VALID_SECTIONS = [
-  "Exterior",
-  "Roof",
-  "Basement, Foundation, Crawlspace & Structure",
-  "Heating",
-  "Cooling",
-  "Plumbing",
-  "Electrical",
-  "Fireplace",
-  "Attic, Insulation & Ventilation",
-  "Doors, Windows & Interior",
-  "Built-in Appliances",
-  "Garage",
-];
+const VALID_SECTIONS = FLOW_SECTIONS;
 
-const VALID_SEVERITIES = [
-  "Informational",
-  "Monitor",
-  "Maintenance",
-  "Recommended Repair",
-  "Safety Concern",
-  "Major Concern",
-];
+const VALID_SEVERITIES = FLOW_SEVERITIES;
 
 function cleanText(value: any) {
   return String(value || "").trim();
@@ -236,12 +217,14 @@ async function generateAiFindingAfterSync({
   findingId,
   photoInputs,
   offlineCreatedAt,
+  userId,
 }: {
   payload: any;
   inspectionId: string;
   findingId: string | number;
   photoInputs: any[];
   offlineCreatedAt?: string;
+  userId?: string | null;
 }) {
   const inspectorNote = cleanText(payload?.inspector_note || payload?.note);
   const existingTitle = cleanText(payload?.title);
@@ -256,45 +239,26 @@ async function generateAiFindingAfterSync({
     };
   }
 
-  const systemPrompt = `
-You are the FLOW field intelligence engine.
-
-You are a senior certified home inspector writing professional inspection report findings from offline field notes.
-
-The inspector's note and manually entered text are the PRIMARY SOURCE OF TRUTH.
-Use the uploaded photos only as supporting context. Do not invent defects that are not supported by the inspector's note or visible image evidence.
-
-Return ONLY valid JSON in this exact structure:
-
-{
-  "title": "",
-  "section": "",
-  "severity": "",
-  "observation": "",
-  "implication": "",
-  "recommendation": "",
-  "reviewRequired": true,
-  "aiReasoning": ""
-}
-
-Rules:
-- Write clear, professional, client-friendly home inspection report language.
-- Keep the wording accurate and not alarmist.
-- If the inspector used cautious wording such as possible, appears, suspected, or may, preserve that caution.
-- Do not cite code unless the note clearly supports a safety concern.
-- Do not diagnose concealed conditions as fact.
-- If the existing title/observation/recommendation are already good, polish them instead of replacing them.
-- Use complete sentences.
-- No markdown.
-- No bullet points.
-- Always set reviewRequired to true because this was generated after offline sync and must be reviewed by the inspector.
-
-Allowed sections:
-Exterior, Roof, Basement, Foundation, Crawlspace & Structure, Heating, Cooling, Plumbing, Electrical, Fireplace, Attic, Insulation & Ventilation, Doors, Windows & Interior, Built-in Appliances, Garage.
-
-Allowed severities:
-Informational, Monitor, Maintenance, Recommended Repair, Safety Concern, Major Concern.
-`;
+  // Build the shared FLOW Writer brain (voice + learning + knowledge +
+  // this inspector's own published examples) so offline-synced findings are
+  // written in the same voice as every other AI capture path, then layer the
+  // offline/photo-specific rules + exact output keys on top.
+  const { systemPrompt } = await loadFlowWriter({
+    userId: userId ?? null,
+    inspectionId,
+    draft: {
+      note: inspectorNote,
+      observation: existingObservation,
+      title: existingTitle,
+      section: cleanText(payload?.section) || null,
+    },
+    extra: `INPUT: an offline-captured quick field note (the inspector's own words) plus, if provided, one or more photos taken in the field. The inspector's note and any manually entered text (title/observation/implication/recommendation) are the PRIMARY SOURCE OF TRUTH; the photos are supporting context only.
+- Do not invent defects that are not supported by the inspector's note or clearly visible image evidence.
+- If the existing title/observation/implication/recommendation are already good, POLISH them instead of replacing them; preserve the inspector's intent and any cautious wording (possible, appears, suspected, may).
+- Do not cite code unless the note clearly supports a safety concern; do not diagnose concealed conditions as fact.
+Image-narration discipline: describe the component/condition itself, NOT the photo. Never write "in this photo", "this image shows", "pictured", or "as seen" — write it as a direct field observation.
+Return ONLY valid JSON (no markdown, no prose outside the JSON) with EXACTLY these keys: {"title":"","section":"","severity":"","observation":"","implication":"","recommendation":"","reviewRequired":true,"aiReasoning":""}. Always set reviewRequired to true because this was generated after offline sync and must be reviewed by the inspector.`,
+  });
 
   const userPrompt = `
 Create a polished inspection finding from this offline field item.
@@ -658,6 +622,7 @@ export async function POST(req: Request) {
           findingId: finding.id,
           photoInputs: uploadedPhotoInputs,
           offlineCreatedAt,
+          userId: user.id,
         });
       } catch (aiError: any) {
         console.error("Offline AI after sync failed:", aiError);

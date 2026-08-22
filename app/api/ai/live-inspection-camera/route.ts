@@ -15,6 +15,11 @@ import {
 import { classifyAIServiceError } from "../../../../lib/aiServiceError";
 import { buildWritingStyleInstructions } from "../../../../lib/ai/writingStyle";
 import { loadWritingConfigForInspection } from "../../../../lib/ai/loadWritingConfig";
+import { buildDefectKnowledge } from "../../../../lib/ai/flowWriter";
+import {
+  getInspectorFindingExamples,
+  formatExamplesForPrompt,
+} from "../../../../lib/ai/findingRetrieval";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -609,6 +614,24 @@ limited access or visibility.
     const writingConfig = await loadWritingConfigForInspection(inspectionId);
     const writingStyleBlock = buildWritingStyleInstructions(writingConfig);
 
+    // Shared FLOW Writer brain: matched defect knowledge + few-shot examples
+    // from this inspector's own published findings for the section on screen.
+    const liveSubject = `${currentSection} ${cleanText(body.note)}`.trim();
+    const defectKnowledgeBlock = buildDefectKnowledge(liveSubject);
+    let publishedExamplesBlock = "";
+    try {
+      const examples = await getInspectorFindingExamples({
+        userId: user?.id ?? null,
+        inspectionId,
+        section: currentSection || null,
+        subject: liveSubject,
+        limit: 3,
+      });
+      publishedExamplesBlock = formatExamplesForPrompt(examples);
+    } catch {
+      publishedExamplesBlock = "";
+    }
+
     const systemPrompt = `
 You are FLOW AI Second Inspector, a senior home inspection assistant watching a live inspection camera frame.
 
@@ -623,7 +646,7 @@ Analyze the frame for:
 5. Equipment/data-plate scan prompts when equipment is visible.
 
 ${writingStyleBlock}
-
+${defectKnowledgeBlock ? `\n${defectKnowledgeBlock}\n` : ""}${publishedExamplesBlock ? `\n${publishedExamplesBlock}\n` : ""}
 Return ONLY valid JSON in this exact structure:
 
 {

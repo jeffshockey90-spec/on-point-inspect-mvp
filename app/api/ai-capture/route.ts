@@ -7,6 +7,11 @@ import { learningEngine } from "../../../lib/ai/LearningEngine";
 import { getSessionUser } from "../../../lib/apiAuth";
 import { buildWritingStyleInstructions } from "../../../lib/ai/writingStyle";
 import { loadWritingConfigForUser } from "../../../lib/ai/loadWritingConfig";
+import { buildDefectKnowledge } from "../../../lib/ai/flowWriter";
+import {
+  getInspectorFindingExamples,
+  formatExamplesForPrompt,
+} from "../../../lib/ai/findingRetrieval";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -163,6 +168,25 @@ export async function POST(req: Request) {
     const writingConfig = await loadWritingConfigForUser(attributedUserId);
     const writingStyleBlock = buildWritingStyleInstructions(writingConfig);
 
+    // Shared FLOW Writer brain: matched defect knowledge + few-shot examples
+    // pulled from THIS inspector's own published findings. Best-effort — a miss
+    // just leaves the (already strong) style + learning prompt untouched.
+    const retrievalSubject = `${note || ""} ${existingObservation || ""}`.trim();
+    const defectKnowledgeBlock = buildDefectKnowledge(retrievalSubject);
+    let publishedExamplesBlock = "";
+    try {
+      const examples = await getInspectorFindingExamples({
+        userId: attributedUserId,
+        inspectionId,
+        section: requestedSection || null,
+        subject: retrievalSubject,
+        limit: 3,
+      });
+      publishedExamplesBlock = formatExamplesForPrompt(examples);
+    } catch {
+      publishedExamplesBlock = "";
+    }
+
     const systemPrompt = `
 You are FLOW AI Report Writer 3.0, a senior certified home inspector and careful report editor.
 
@@ -185,7 +209,7 @@ recommendation style, and severity/section choices when supported by the visible
 a style preference, not permission to invent or overlook evidence.
 
 ${writingStyleBlock}
-
+${defectKnowledgeBlock ? `\n${defectKnowledgeBlock}\n` : ""}${publishedExamplesBlock ? `\n${publishedExamplesBlock}\n` : ""}
 Return ONLY valid JSON in this exact structure:
 {
   "title": "",
