@@ -60,6 +60,11 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: "25mb",
     },
+    // Lower peak memory during the webpack production build. The app has grown
+    // enough that Vercel's 8GB build container was hitting OOM (SIGKILL) in the
+    // "optimized production build" phase; this trades a slightly longer build
+    // for a materially smaller memory footprint.
+    webpackMemoryOptimizations: true,
   },
 
   images: {
