@@ -632,6 +632,9 @@ function RepairRequestContent() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [requestedCredits, setRequestedCredits] = useState<Record<string, string>>({});
+  const [estimates, setEstimates] = useState<Record<string, { low: number; high: number }>>({});
+  const [estimating, setEstimating] = useState(false);
+  const [estimateError, setEstimateError] = useState("");
   const [loading, setLoading] = useState(true);
   const [pdfMessage, setPdfMessage] = useState("");
   const [printingPdf, setPrintingPdf] = useState(false);
@@ -800,6 +803,76 @@ function RepairRequestContent() {
       ...prev,
       [String(findingId)]: value,
     }));
+  }
+
+  // AI ballpark repair-cost estimates for the selected findings (rough planning
+  // ranges, editable). They can seed the requested-credit amounts.
+  const estimateTotal = useMemo(() => {
+    let low = 0;
+    let high = 0;
+    let any = false;
+    for (const finding of selectedFindings) {
+      const e = estimates[String(finding.id)];
+      if (e) {
+        low += e.low;
+        high += e.high;
+        if (e.low || e.high) any = true;
+      }
+    }
+    return { low, high, any };
+  }, [selectedFindings, estimates]);
+
+  async function runEstimates() {
+    if (!selectedFindings.length || estimating) return;
+    setEstimating(true);
+    setEstimateError("");
+    try {
+      const region =
+        [inspection?.city, inspection?.state, inspection?.zip].filter(Boolean).join(", ") ||
+        inspection?.property_address ||
+        inspection?.address ||
+        "";
+      const res = await fetch("/api/ai/repair-estimate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          region,
+          findings: selectedFindings.map((finding) => ({
+            id: String(finding.id),
+            title: finding.title,
+            severity: finding.severity,
+            section: finding.section,
+            location: finding.location,
+            observation: finding.observation,
+          })),
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setEstimateError(data?.error || "Could not estimate costs. Please try again.");
+        return;
+      }
+      setEstimates((prev) => ({ ...prev, ...(data.estimates || {}) }));
+    } catch {
+      setEstimateError("Could not estimate costs. Please try again.");
+    } finally {
+      setEstimating(false);
+    }
+  }
+
+  function fillCreditsFromEstimates() {
+    setRequestedCredits((prev) => {
+      const next = { ...prev };
+      for (const finding of selectedFindings) {
+        const id = String(finding.id);
+        const e = estimates[id];
+        if (e && (e.low || e.high)) {
+          const midpoint = Math.round((e.low + e.high) / 2);
+          if (!next[id] || Number(next[id]) === 0) next[id] = String(midpoint);
+        }
+      }
+      return next;
+    });
   }
 
   const groupedFindings = useMemo(() => {
@@ -1350,6 +1423,39 @@ function RepairRequestContent() {
             </div>
           </div>
 
+          {selectedFindings.length > 0 && (
+            <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-indigo-500/40 bg-indigo-950/20 p-3">
+              <button
+                type="button"
+                onClick={runEstimates}
+                disabled={estimating}
+                className="rounded-xl bg-indigo-500 px-4 py-2.5 text-sm font-black text-white transition hover:bg-indigo-400 disabled:opacity-60"
+              >
+                {estimating ? "Estimating…" : "Estimate repair costs (AI)"}
+              </button>
+              {estimateTotal.any && (
+                <>
+                  <span className="text-sm font-bold text-indigo-100">
+                    Estimated total: {formatMoney(estimateTotal.low)}–{formatMoney(estimateTotal.high)}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={fillCreditsFromEstimates}
+                    className="rounded-xl border border-teal-500/50 px-3 py-2 text-xs font-black text-teal-300 transition hover:bg-teal-500/10"
+                  >
+                    Fill credits from estimates
+                  </button>
+                </>
+              )}
+              <span className="text-[11px] text-slate-400">
+                Rough AI planning estimate — review before sending.
+              </span>
+              {estimateError && (
+                <span className="text-xs font-bold text-red-400">{estimateError}</span>
+              )}
+            </div>
+          )}
+
           <div className="space-y-3">
             {visibleFindings.map((finding) => {
               const selected = selectedIds.includes(String(finding.id));
@@ -1399,21 +1505,30 @@ function RepairRequestContent() {
                       </p>
 
                       {selected && (
-                        <label className="mt-4 block max-w-xs">
-                          <span className="mb-1 block text-xs font-black uppercase tracking-wide text-teal-300">
-                            Requested Credit
-                          </span>
-                          <input
-                            value={String(requestedCredits[String(finding.id)] || "")}
-                            onChange={(event) =>
-                              updateRequestedCredit(String(finding.id), event.target.value)
-                            }
-                            onClick={(event) => event.stopPropagation()}
-                            placeholder="$0"
-                            inputMode="decimal"
-                            className="h-[48px] w-full rounded-xl border border-slate-700 bg-[#020617] px-4 text-sm font-black text-white outline-none transition focus:border-teal-400"
-                          />
-                        </label>
+                        <>
+                          <label className="mt-4 block max-w-xs">
+                            <span className="mb-1 block text-xs font-black uppercase tracking-wide text-teal-300">
+                              Requested Credit
+                            </span>
+                            <input
+                              value={String(requestedCredits[String(finding.id)] || "")}
+                              onChange={(event) =>
+                                updateRequestedCredit(String(finding.id), event.target.value)
+                              }
+                              onClick={(event) => event.stopPropagation()}
+                              placeholder="$0"
+                              inputMode="decimal"
+                              className="h-[48px] w-full rounded-xl border border-slate-700 bg-[#020617] px-4 text-sm font-black text-white outline-none transition focus:border-teal-400"
+                            />
+                          </label>
+                          {estimates[String(finding.id)] &&
+                          (estimates[String(finding.id)].low || estimates[String(finding.id)].high) ? (
+                            <p className="mt-2 text-xs font-bold text-indigo-300">
+                              Est. repair {formatMoney(estimates[String(finding.id)].low)}–
+                              {formatMoney(estimates[String(finding.id)].high)}
+                            </p>
+                          ) : null}
+                        </>
                       )}
                     </div>
                   </div>
