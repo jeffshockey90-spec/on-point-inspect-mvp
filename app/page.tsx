@@ -56,6 +56,7 @@ const cards = [
   { title: "New Inspection", description: "Start a new inspection.", href: "/inspections/new", icon: Plus },
   { title: "Reports", description: "View and edit reports.", href: "/reports", icon: FileText },
   { title: "Analytics", description: "Track revenue, inspections, payments, agreements, and reports.", href: "/analytics", icon: BarChart3 },
+  { title: "Timesheets", description: "On-site hours captured from GPS arrival/departure, by inspector, with CSV export for payroll.", href: "/timesheets", icon: Clock },
   { title: "Realtors", description: "Manage realtor contacts, referrals, and revenue.", href: "/realtors", icon: Building2 },
   { title: "Referral Leaderboard", description: "Rank realtor referrals, revenue, paid inspections, and outstanding balances.", href: "/realtors/leaderboard", icon: Trophy },
   { title: "Invoices", description: "Track paid, pending, overdue, and outstanding balances.", href: "/invoices", icon: DollarSign },
