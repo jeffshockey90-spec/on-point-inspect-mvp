@@ -24,8 +24,9 @@ export default function ReportLanguageSwitcher({
   function change(code: string) {
     setValue(code);
     const next = new URLSearchParams(params?.toString() || "");
-    if (code === "en") next.delete("lang");
-    else next.set("lang", code);
+    // Always set the param (including "en") so an explicit English choice is
+    // respected even when the company's default report language isn't English.
+    next.set("lang", code);
     const qs = next.toString();
     startTransition(() => {
       router.push(`${pathname}${qs ? `?${qs}` : ""}`);

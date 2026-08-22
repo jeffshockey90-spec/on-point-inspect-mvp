@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createClient } from "../../utils/supabase/client";
 import { useRouter } from "next/navigation";
+import { COUNTRIES, BUSINESS_LANGUAGES, defaultLanguageForCountry } from "../../lib/locale";
 
 const ALLOWED_ROLES = ["inspector", "client", "realtor"];
 
@@ -14,6 +15,8 @@ export default function SignupPage() {
   const [businessName, setBusinessName] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("inspector");
+  const [country, setCountry] = useState("US");
+  const [language, setLanguage] = useState("en");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
@@ -107,6 +110,8 @@ export default function SignupPage() {
             fullName: cleanedName,
             role,
             businessName: cleanedBusinessName,
+            country,
+            language,
           }),
         });
 
@@ -192,13 +197,51 @@ export default function SignupPage() {
           </select>
 
           {role === "inspector" && (
-            <input
-              required
-              placeholder="Business name"
-              value={businessName}
-              onChange={(e) => setBusinessName(e.target.value)}
-              className="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3.5 text-white outline-none transition placeholder:text-slate-500 focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20"
-            />
+            <>
+              <input
+                required
+                placeholder="Business name"
+                value={businessName}
+                onChange={(e) => setBusinessName(e.target.value)}
+                className="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3.5 text-white outline-none transition placeholder:text-slate-500 focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20"
+              />
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block">
+                  <span className="mb-1 block text-xs font-bold text-slate-400">Country</span>
+                  <select
+                    value={country}
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      setCountry(next);
+                      // Helpfully default the report language to the country's
+                      // primary language; the inspector can still change it.
+                      setLanguage(defaultLanguageForCountry(next));
+                    }}
+                    className="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3.5 text-white outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20"
+                  >
+                    {COUNTRIES.map((c) => (
+                      <option key={c.code} value={c.code}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="mb-1 block text-xs font-bold text-slate-400">Report language</span>
+                  <select
+                    value={language}
+                    onChange={(e) => setLanguage(e.target.value)}
+                    className="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3.5 text-white outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20"
+                  >
+                    {BUSINESS_LANGUAGES.map((l) => (
+                      <option key={l.code} value={l.code}>
+                        {l.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            </>
           )}
 
           <input

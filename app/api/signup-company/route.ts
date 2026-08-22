@@ -5,6 +5,7 @@ import { sendPushNotification } from "../../../lib/push";
 import { OWNER_EMAILS } from "../../../lib/ownerEmails";
 import { createClient as createServerSupabase } from "../../../utils/supabase/server";
 import { reportSecurityEvent } from "../../../lib/securityAlerts";
+import { normalizeCountry, normalizeLanguage, currencyForCountry } from "../../../lib/locale";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -136,19 +137,35 @@ export async function POST(req: Request) {
       });
     }
 
-    const { data: company, error: companyError } = await supabaseAdmin
+    const country = normalizeCountry(body?.country);
+    const preferredLanguage = normalizeLanguage(body?.language);
+    const currency = currencyForCountry(country);
+
+    // Include locale, but retry without it if the migration (company-locale.sql)
+    // hasn't been applied yet — a new inspector must always be able to sign up.
+    const baseCompany = { name: String(businessName).trim(), email, created_at: now };
+    let { data: company, error: companyError } = await supabaseAdmin
       .from("companies")
       .insert({
-        name: String(businessName).trim(),
-        email,
-        created_at: now,
+        ...baseCompany,
+        country,
+        preferred_language: preferredLanguage,
+        currency,
       })
       .select("id")
       .single();
 
     if (companyError) {
+      ({ data: company, error: companyError } = await supabaseAdmin
+        .from("companies")
+        .insert(baseCompany)
+        .select("id")
+        .single());
+    }
+
+    if (companyError || !company) {
       return NextResponse.json(
-        { error: companyError.message || "Could not create your company." },
+        { error: companyError?.message || "Could not create your company." },
         { status: 500 }
       );
     }

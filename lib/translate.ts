@@ -6,30 +6,16 @@
 import OpenAI from "openai";
 import crypto from "crypto";
 import { getAIModel } from "./openai";
+import {
+  SUPPORTED_LANGUAGES,
+  languageName,
+  isSupportedLanguage,
+} from "./locale";
+
+// Re-exported so existing server import sites (e.g. the share page) keep working.
+export { SUPPORTED_LANGUAGES, languageName, isSupportedLanguage };
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
-// Common languages for US home-inspection clients/realtors. English is the
-// source and not listed here.
-export const SUPPORTED_LANGUAGES: { code: string; name: string; label: string }[] = [
-  { code: "es", name: "Spanish", label: "Español" },
-  { code: "zh", name: "Simplified Chinese", label: "中文" },
-  { code: "vi", name: "Vietnamese", label: "Tiếng Việt" },
-  { code: "tl", name: "Tagalog", label: "Tagalog" },
-  { code: "ko", name: "Korean", label: "한국어" },
-  { code: "fr", name: "French", label: "Français" },
-  { code: "pt", name: "Portuguese", label: "Português" },
-  { code: "ru", name: "Russian", label: "Русский" },
-  { code: "ar", name: "Arabic", label: "العربية" },
-  { code: "hi", name: "Hindi", label: "हिन्दी" },
-];
-
-export function languageName(code: string): string | null {
-  return SUPPORTED_LANGUAGES.find((l) => l.code === code)?.name || null;
-}
-export function isSupportedLanguage(code: string): boolean {
-  return SUPPORTED_LANGUAGES.some((l) => l.code === code);
-}
 
 function sha(s: string) {
   return crypto.createHash("sha256").update(s).digest("hex").slice(0, 24);

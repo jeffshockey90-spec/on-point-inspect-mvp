@@ -16,6 +16,14 @@ import { createClient } from "../../utils/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import DeleteAccountSection from "./DeleteAccountSection";
 import SettingsSectionTabs from "../../components/SettingsSectionTabs";
+import {
+  COUNTRIES,
+  BUSINESS_LANGUAGES,
+  CURRENCIES,
+  normalizeCountry,
+  normalizeLanguage,
+  normalizeCurrency,
+} from "../../lib/locale";
 import AppVersionTag from "../../components/AppVersionTag";
 import TeamManagement from "../../components/TeamManagement";
 
@@ -484,6 +492,22 @@ export default async function SettingsPage({
       redirect(`/settings?error=${encodeURIComponent(updateError.message)}`);
     }
 
+    // Locale (country / report language / currency) is a separate best-effort
+    // update so a not-yet-applied company-locale.sql migration can never block
+    // the main company save.
+    try {
+      await supabase
+        .from("companies")
+        .update({
+          country: normalizeCountry(formData.get("country")),
+          preferred_language: normalizeLanguage(formData.get("preferred_language")),
+          currency: normalizeCurrency(formData.get("currency")),
+        })
+        .eq("id", company.id);
+    } catch {
+      /* locale columns may not exist yet */
+    }
+
     if (w9DocumentChanged && w9DocumentUrl) {
       await supabase.from("w9_documents").insert({
         company_id: company.id,
@@ -850,6 +874,54 @@ export default async function SettingsPage({
             <h2 className="text-xl font-black text-teal-300 sm:text-2xl">
               Company Profile
             </h2>
+
+            <div className="mt-6 rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
+              <p className="text-xs font-black uppercase tracking-wide text-teal-400">
+                Region &amp; Language
+              </p>
+              <p className="mt-1 text-xs text-slate-500">
+                Your country sets your currency; your report language is the default
+                clients see (they can switch languages on the report).
+              </p>
+              <div className="mt-4 grid gap-4 md:grid-cols-3">
+                <label className="block min-w-0">
+                  <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">Country</p>
+                  <select
+                    name="country"
+                    defaultValue={company.country || "US"}
+                    className="w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+                  >
+                    {COUNTRIES.map((c) => (
+                      <option key={c.code} value={c.code}>{c.name}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block min-w-0">
+                  <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">Default Report Language</p>
+                  <select
+                    name="preferred_language"
+                    defaultValue={company.preferred_language || "en"}
+                    className="w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+                  >
+                    {BUSINESS_LANGUAGES.map((l) => (
+                      <option key={l.code} value={l.code}>{l.label}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block min-w-0">
+                  <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">Currency</p>
+                  <select
+                    name="currency"
+                    defaultValue={company.currency || "USD"}
+                    className="w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+                  >
+                    {CURRENCIES.map((c) => (
+                      <option key={c.code} value={c.code}>{c.code} ({c.symbol}) — {c.name}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            </div>
 
             <div className="mt-6 grid gap-4 md:grid-cols-2">
               <label className="block min-w-0">

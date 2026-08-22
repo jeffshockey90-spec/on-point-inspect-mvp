@@ -1448,9 +1448,25 @@ export default async function PublicSharePage({
   // report_translations) and apply it in place, so every downstream render —
   // findings, summary groups, section notes — shows the translated report with
   // no changes to the rendering code. The English report stays the source.
-  const requestedLang = String((resolvedSearchParams as any)?.lang || "")
+  // The client's explicit choice wins; otherwise fall back to the company's
+  // default report language (set at signup / in Settings).
+  const explicitLang = String((resolvedSearchParams as any)?.lang || "")
     .trim()
     .toLowerCase();
+  let companyDefaultLang = "en";
+  try {
+    if (inspection.company_id) {
+      const { data: co } = await supabase
+        .from("companies")
+        .select("preferred_language")
+        .eq("id", inspection.company_id)
+        .maybeSingle();
+      companyDefaultLang = String((co as any)?.preferred_language || "en").toLowerCase();
+    }
+  } catch {
+    companyDefaultLang = "en";
+  }
+  const requestedLang = explicitLang || companyDefaultLang || "en";
   const isTranslated =
     Boolean(requestedLang) && requestedLang !== "en" && isSupportedLanguage(requestedLang);
   if (isTranslated) {
