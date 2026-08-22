@@ -427,12 +427,7 @@ export default async function AnalyticsPage() {
   );
 
   const reviewRequestedRows = rows.filter(isReviewRequested);
-  const reviewReceivedRows = rows.filter(isReviewReceived);
   const reviewRequestRate = getPercent(reviewRequestedRows.length, rows.length);
-  const reviewConversionRate = getPercent(
-    reviewReceivedRows.length,
-    reviewRequestedRows.length
-  );
 
   // --- Per-inspector additions (every query below is scoped to THIS user's
   // own inspections / company, so nothing leaks across companies) ---
@@ -1104,7 +1099,7 @@ export default async function AnalyticsPage() {
         <section className="mt-8 grid gap-6 xl:grid-cols-2">
           <Panel
             title="Review Tracking"
-            subtitle="Track review requests and received reviews."
+            subtitle="Review requests you've sent, and your live Google review count."
           >
             <div className="grid gap-4 sm:grid-cols-3">
               <MiniMetric
@@ -1113,9 +1108,13 @@ export default async function AnalyticsPage() {
                 helper={`${reviewRequestRate}% of inspections`}
               />
               <MiniMetric
-                label="Received"
-                value={String(reviewReceivedRows.length)}
-                helper={`${reviewConversionRate}% of requested`}
+                label="On Google"
+                value={String(googleReviewCount)}
+                helper={
+                  googleRating
+                    ? `★ ${googleRating.toFixed(1)} average rating`
+                    : "Total reviews on your Google profile."
+                }
               />
               <MiniMetric
                 label="Not Requested"
