@@ -153,3 +153,77 @@ export async function deleteCalendarEvent(accessToken: string, calendarId: strin
     { method: "DELETE", headers: { Authorization: `Bearer ${accessToken}` } },
   ).catch(() => undefined);
 }
+
+function nextDay(ymd: string) {
+  const d = new Date(`${ymd}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
+
+// Push a user's upcoming (today-or-later) inspections to their Google Calendar,
+// updating existing events rather than duplicating. Returns how many synced.
+// No-op (returns 0) if the user isn't connected. Shared by the manual sync
+// button and the auto-sync cron. `admin` must be a service-role client.
+export async function syncUserUpcomingInspections(admin: any, userId: string): Promise<number> {
+  const accessToken = await getValidAccessToken(admin, userId);
+  if (!accessToken) return 0;
+
+  const { data: conn } = await admin
+    .from("google_calendar_connections")
+    .select("calendar_id, enabled")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!conn?.enabled) return 0;
+  const calendarId = conn.calendar_id || "primary";
+
+  const today = new Date().toISOString().slice(0, 10);
+  const { data: inspections } = await admin
+    .from("inspections")
+    .select("id, property_address, address, city, state, zip, client_name, inspection_date, inspection_time")
+    .eq("inspector_id", userId)
+    .not("inspection_date", "is", null)
+    .gte("inspection_date", today)
+    .order("inspection_date", { ascending: true })
+    .limit(300);
+
+  const { data: existing } = await admin
+    .from("google_calendar_events")
+    .select("inspection_id, event_id")
+    .eq("user_id", userId);
+  const eventByInspection = new Map((existing || []).map((e: any) => [String(e.inspection_id), e.event_id]));
+
+  const SITE = siteUrl();
+  let synced = 0;
+  for (const insp of inspections || []) {
+    const date = String(insp.inspection_date).slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) continue;
+    const addr = insp.property_address || insp.address || insp.client_name || "Inspection";
+    const time = insp.inspection_time ? `${String(insp.inspection_time).trim()} ` : "";
+    const location = [insp.property_address || insp.address, insp.city, insp.state, insp.zip]
+      .filter(Boolean)
+      .join(", ");
+
+    const event = {
+      summary: `${time}Inspection - ${addr}`,
+      description: `${insp.client_name ? `Client: ${insp.client_name}\n` : ""}${SITE}/reports/${insp.id}`,
+      location: location || undefined,
+      start: { date },
+      end: { date: nextDay(date) },
+    };
+
+    const eventId = await upsertCalendarEvent(
+      accessToken,
+      calendarId,
+      eventByInspection.get(String(insp.id)) || null,
+      event,
+    );
+    if (eventId) {
+      await admin.from("google_calendar_events").upsert(
+        { inspection_id: insp.id, user_id: userId, event_id: eventId, updated_at: new Date().toISOString() },
+        { onConflict: "inspection_id" },
+      );
+      synced += 1;
+    }
+  }
+  return synced;
+}
