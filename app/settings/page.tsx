@@ -1098,6 +1098,22 @@ export default async function SettingsPage({
             </FastLinkButton>
           </section>
 
+          <section className="rounded-3xl border border-slate-800 bg-[#0b1220] p-5 shadow-xl sm:p-6">
+            <p className="text-xs font-black uppercase tracking-[0.25em] text-cyan-300">
+              Integrations
+            </p>
+            <h2 className="mt-2 text-2xl font-black tracking-tight text-white">Connected Tools</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">
+              Sync your inspections to Google Calendar and connect the tools you already use.
+            </p>
+            <FastLinkButton
+              href="/settings/integrations"
+              className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-cyan-500 px-4 py-3 text-sm font-black text-slate-950 hover:bg-cyan-400 sm:w-auto"
+            >
+              Open Integrations →
+            </FastLinkButton>
+          </section>
+
           <section
             id="public-profile"
             className="overflow-hidden rounded-3xl border border-cyan-500/30 bg-[#0b1220] shadow-2xl shadow-black/20"
