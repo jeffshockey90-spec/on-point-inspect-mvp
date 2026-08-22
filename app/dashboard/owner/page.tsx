@@ -1259,7 +1259,7 @@ export default async function OwnerDashboardPage() {
           <MetricCard label="Report Viewed" value={String(reportViewedCount)} helper="Unique report views (reloads excluded)." tone="purple" />
           <MetricCard label="Agreement Signed" value={String(agreementSignedCount)} helper="Inspection agreements signed by clients." tone="teal" />
           <MetricCard label="Payment Received" value={String(paidInspections.length)} helper="Inspections marked paid." tone="green" />
-          <MetricCard label="Review Submitted" value={String(reviewsCount)} helper="Google reviews across all companies." tone="yellow" />
+          <MetricCard label="Google Reviews" value={String(reviewsCount)} helper="Synced from linked Google profiles; grows as new reviews come in." tone="yellow" />
         </section>
 
         <div data-owner-tab="overview" className="space-y-8">
