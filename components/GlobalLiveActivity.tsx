@@ -168,6 +168,9 @@ export default function GlobalLiveActivity() {
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const notificationSoundRef = useRef<HTMLAudioElement | null>(null);
   const lastEventIdRef = useRef<string | null>(null);
+  // Suppress repeat alerts for the same viewer opening the same report within a
+  // short window, so a client reloading their report doesn't spam sound/toasts.
+  const lastAlertRef = useRef<Map<string, number>>(new Map());
 
   const inspectionMap = useMemo(() => {
     const map = new Map<string, InspectionSummary>();
@@ -407,6 +410,19 @@ export default function GlobalLiveActivity() {
 
           if (!inspectionId || !inspectionIds.includes(inspectionId)) return;
           if (!shouldShowEvent(event)) return;
+
+          // Throttle reloads: one alert per viewer + report + type per 30 min.
+          // Payment/signed/review are one-time events, so never throttle those.
+          const type = getViewType(event);
+          const throttleable = ["client_portal", "report_share", "environmental_share"].includes(type);
+          if (throttleable) {
+            const viewer = String(event.viewer_email || event.viewer_role || "anon").toLowerCase();
+            const key = `${inspectionId}|${type}|${viewer}`;
+            const nowTs = Date.now();
+            const last = lastAlertRef.current.get(key) || 0;
+            if (nowTs - last < 30 * 60 * 1000) return; // reload within window -> stay quiet
+            lastAlertRef.current.set(key, nowTs);
+          }
 
           const inspection = inspectionMap.get(inspectionId);
           const address =

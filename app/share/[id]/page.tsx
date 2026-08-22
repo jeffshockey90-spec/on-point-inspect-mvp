@@ -16,6 +16,7 @@ import { sendPushNotification } from "../../../lib/push";
 import { getReportDeliveryState } from "../../../lib/reportDelivery";
 import { getSessionUser, authorizeInspection } from "../../../lib/apiAuth";
 import { getInspectionShareToken, getOrCreateShareToken } from "../../../lib/shareToken";
+import { isReportViewReload } from "../../../lib/reportViewThrottle";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -160,14 +161,24 @@ async function recordInspectionView({
         seenBefore ? "returning viewer" : "first view"
       }`;
 
-      await sendPushNotification({
-        title: isRealtor ? "Realtor Viewed Report" : "Report Viewed",
-        body: `${viewerLabel} opened ${property} (${viewerContext}).`,
-        url: `/reports/${numericInspectionId}`,
-        eventType: "report_share",
-        target: "user",
-        targetUserId: inspection.inspector_id,
+      // Don't re-notify on reloads: skip the push if this same viewer already
+      // opened this report within the last 30 minutes.
+      const reload = await isReportViewReload(supabase, {
+        inspectionId: numericInspectionId,
+        ipHash,
+        viewerEmail,
       });
+
+      if (!reload) {
+        await sendPushNotification({
+          title: isRealtor ? "Realtor Viewed Report" : "Report Viewed",
+          body: `${viewerLabel} opened ${property} (${viewerContext}).`,
+          url: `/reports/${numericInspectionId}`,
+          eventType: "report_share",
+          target: "user",
+          targetUserId: inspection.inspector_id,
+        });
+      }
     }
   } catch (error) {
     console.error("Share view tracking error:", error);

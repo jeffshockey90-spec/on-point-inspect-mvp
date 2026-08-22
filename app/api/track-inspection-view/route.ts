@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { sendPushNotification } from "../../../lib/push";
+import { isReportViewReload } from "../../../lib/reportViewThrottle";
 
 export const runtime = "nodejs";
 
@@ -101,7 +102,14 @@ export async function POST(req: Request) {
       const property = getPropertyLabel(inspection);
       const viewer = viewerEmail || viewerRole || "Someone";
 
-      if (inspection?.inspector_id) {
+      // Skip the push on reloads: same viewer, same report, within 30 minutes.
+      const reload = await isReportViewReload(supabaseAdmin, {
+        inspectionId: numericInspectionId,
+        ipAddress: getClientIp(req),
+        viewerEmail,
+      });
+
+      if (inspection?.inspector_id && !reload) {
         await sendPushNotification({
           title: getViewTitle(viewType),
           body: `${viewer} opened ${property}.`,
