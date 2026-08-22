@@ -415,7 +415,7 @@ export default async function OwnerDashboardPage() {
     safeSelect(admin.from("finding_templates").select("*"), "finding_templates"),
     safeSelect(admin.from("inspection_contacts").select("inspection_id,role,email,portal_access"), "inspection_contacts"),
     safeSelect(admin.from("ai_logs").select("user_id,inspection_id,tool,tokens_used,status,created_at").gte("created_at", thirtyDaysAgo.toISOString()).limit(50000), "ai_logs"),
-    safeSelect(admin.from("companies").select("id,name,business_name,display_name,google_review_count,google_rating"), "companies"),
+    safeSelect(admin.from("companies").select("id,name,display_name,google_review_count,google_rating"), "companies"),
     safeSelect(admin.from("stripe_logs").select("inspection_id,amount,status,created_at").order("created_at", { ascending: false }).limit(100), "stripe_logs"),
     safeSelect(admin.from("audit_logs").select("action,resource_id,metadata,created_at").in("action", ["stripe_payment_completed", "stripe_charge_refunded", "stripe_charge_disputed"]).order("created_at", { ascending: false }).limit(50), "audit_logs"),
     // Signed agreements are logged here (NOT inspection_view_events).
