@@ -367,11 +367,21 @@ export default function DeveloperSettings({ siteUrl }: { siteUrl: string }) {
 
         <div className="mt-3 rounded-xl border border-slate-800 bg-[#020817] p-3">
           <p className="text-[11px] font-black uppercase tracking-wide text-slate-500">
-            Connect (Claude Code / Claude Desktop)
+            Connect (Claude Code / Mac / Linux)
           </p>
           <code className="mt-2 block break-all font-mono text-xs text-slate-300">
             npx mcp-remote {base}/api/mcp --header &quot;Authorization: Bearer YOUR_KEY&quot;
           </code>
+          <p className="mt-3 text-[11px] font-black uppercase tracking-wide text-slate-500">
+            Claude Desktop on Windows — use this in the config
+          </p>
+          <code className="mt-2 block break-all font-mono text-[11px] leading-5 text-slate-300">
+            {`"flow": { "command": "cmd", "args": ["/c","npx","-y","mcp-remote","${base}/api/mcp","--header","Authorization: Bearer YOUR_KEY"] }`}
+          </code>
+          <p className="mt-2 text-[11px] text-slate-500">
+            (Windows needs <code className="text-slate-400">cmd /c</code> because Node&apos;s path has a
+            space.)
+          </p>
         </div>
 
         <div className="mt-3">
