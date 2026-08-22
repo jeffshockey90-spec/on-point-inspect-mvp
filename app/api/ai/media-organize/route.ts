@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { classifyAIServiceError } from "../../../../lib/aiServiceError";
 import { getAIModel } from "../../../../lib/openai";
 import { getSessionUser, unauthorized } from "../../../../lib/apiAuth";
+import { loadFlowStyle } from "../../../../lib/ai/flowWriter";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -82,6 +83,14 @@ export async function POST(request: Request) {
       },
     ]);
 
+    // The inspector's shared FLOW Writer voice + learned edits + examples from
+    // their own published findings, so each grouped draft reads in their voice.
+    const { styleGuidance } = await loadFlowStyle({
+      userId: user.id,
+      inspectionId: body.inspectionId ?? body.inspection_id ?? null,
+      draft: { note, section: currentSection },
+    });
+
     const response = await openai.chat.completions.create({
       model: getAIModel(),
       response_format: { type: "json_object" },
@@ -142,7 +151,7 @@ Valid sections:
 ${VALID_SECTIONS.join(", ")}
 
 Valid severities:
-${VALID_SEVERITIES.join(", ")}`,
+${VALID_SEVERITIES.join(", ")}${styleGuidance ? `\n\n${styleGuidance}` : ""}`,
         },
         {
           role: "user",

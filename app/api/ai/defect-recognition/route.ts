@@ -3,6 +3,7 @@ import { getAIModel, getAIVersion } from "../../../../lib/openai";
 import { inspectionBrain } from "../../../../lib/ai";
 import { getSessionUser, unauthorized } from "../../../../lib/apiAuth";
 import { classifyAIServiceError } from "../../../../lib/aiServiceError";
+import { loadFlowStyle } from "../../../../lib/ai/flowWriter";
 
 export const runtime = "nodejs";
 
@@ -201,6 +202,10 @@ export async function POST(req: Request) {
       .filter((image) => image && image.type?.startsWith("image/"))
       .slice(0, 6);
     const note = cleanText(formData.get("note"));
+    const inspectionId =
+      cleanText(formData.get("inspectionId")) ||
+      cleanText(formData.get("inspection_id")) ||
+      null;
     const currentSection = normalizeSection(formData.get("section"), "Exterior");
     const currentSeverity = normalizeSeverity(
       formData.get("severity"),
@@ -243,6 +248,17 @@ Do not diagnose concealed conditions as fact.
 Use cautious wording when certainty is limited.
 The inspector has final authority.
 
+SEE LIKE A SENIOR HOME INSPECTOR — before writing, scan the WHOLE frame methodically for the conditions an experienced inspector catches, not just the single most obvious one:
+- Water/moisture: staining, efflorescence, rust/corrosion, active drips, prior-leak marks, mineral deposits at fittings.
+- Electrical safety: missing/painted-over GFCI, open grounds, double-tapped breakers, missing knockouts/blank covers, exposed or improperly spliced wiring, oversized/over-fused breakers.
+- Plumbing: missing or too-short TPR discharge, corroded or mixed-metal connections, unsupported or back-pitched drains, missing traps, leak evidence.
+- Heating/Cooling: corrosion near the heat exchanger, disconnected or improper flue/venting, missing condensate management, damaged coils/fins, equipment visibly past service life.
+- Roof/Exterior: lifted/missing/damaged shingles, failed or missing flashing/kickout, exposed fasteners, deteriorated sealant, damaged siding/trim, negative grading, deck ledger/guard concerns.
+- Structure: cracks with displacement, rot or moisture at framing, sagging, prior repairs, foundation movement.
+- Interior/Safety: missing or short handrails/guards, damaged or missing smoke/CO alarms, missing garage fire separation, trip hazards.
+- Always call out improper prior repairs and anything installed contrary to normal practice.
+Be specific — name the exact component and condition. If something is only partially visible, say so and recommend evaluation rather than guessing. Never invent a defect that is not visibly supported.
+
 Your job is not just to write a finding. Your job is to inspect the visible evidence.
 
 Analyze the photos in this order:
@@ -256,9 +272,12 @@ Analyze the photos in this order:
 8. Draft a professional finding.
 9. Provide confidence, evidence, and review flags.
 
+CRITICAL MULTI-DEFECT RULE:
+If more than one clearly, highly-likely defect is visible, INCLUDE ALL of them in this ONE finding — do not report only the single most severe and drop the rest. Cover each visible defect in the observation, address each in the recommendation, and set severity to the HIGHEST among them. Keep it organized and readable (a short, clear sentence per defect). List each defect you included in detectedConditions.
+Only when the visible defects belong to clearly DIFFERENT report sections/systems (e.g. an electrical issue AND a separate roof issue), write up the primary condition for this finding's section and list the other visible items in inspectorGuidance so the inspector can create separate findings in the correct sections.
+
 CRITICAL MULTI-PHOTO RULE:
-When multiple photos are provided, treat them as supporting views of one finding unless they clearly show unrelated issues.
-If unrelated issues are visible, choose the most reportable condition and mention that other visible items should be reviewed separately only in inspector guidance, not in the client-facing finding.
+When multiple photos are provided, treat them as supporting views of the same condition(s) unless they clearly show unrelated issues.
 
 CRITICAL SECTION RULE:
 You MUST choose the best matching section from the Valid sections list below.
@@ -345,9 +364,20 @@ Important:
 - The finding should sound like a professional home inspection report comment.
               `;
 
+    // Add the inspector's shared FLOW Writer voice + learned edits + examples
+    // from their own published findings. Works with or without a note — the
+    // section on screen still retrieves relevant examples for a photo-only scan.
+    const { styleGuidance } = await loadFlowStyle({
+      userId: user.id,
+      inspectionId,
+      draft: { note, section: currentSection },
+    });
+
     const brainResult = await inspectionBrain.run({
       task: "defect",
-      systemPrompt,
+      systemPrompt: styleGuidance
+        ? `${systemPrompt}\n\n${styleGuidance}`
+        : systemPrompt,
       userPrompt,
       images: images.map((image, index) => {
         const imageUrl = (imageContents[index] as any)?.image_url?.url || "";

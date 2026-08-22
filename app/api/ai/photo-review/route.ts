@@ -6,6 +6,7 @@ import {
 } from "../../../../lib/routeFindingSection";
 import { getSessionUser, unauthorized } from "../../../../lib/apiAuth";
 import { classifyAIServiceError } from "../../../../lib/aiServiceError";
+import { loadFlowStyle } from "../../../../lib/ai/flowWriter";
 
 export const runtime = "nodejs";
 
@@ -52,8 +53,8 @@ export async function POST(req: Request) {
     const user = await getSessionUser();
     if (!user) return unauthorized();
 
-    const { imageUrl, caption, currentSection } =
-      await req.json();
+    const body = await req.json();
+    const { imageUrl, caption, currentSection } = body;
 
     if (!imageUrl) {
       return NextResponse.json(
@@ -61,6 +62,14 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
+
+    // The inspector's shared FLOW Writer voice + learned edits + examples from
+    // their own published findings. Works with or without a caption/note.
+    const { styleGuidance } = await loadFlowStyle({
+      userId: user.id,
+      inspectionId: body.inspectionId ?? body.inspection_id ?? null,
+      draft: { note: caption, section: currentSection },
+    });
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
@@ -149,6 +158,7 @@ RETURN ONLY VALID JSON:
   "confidence": 0.0,
   "limitations": ""
 }
+${styleGuidance ? `\n${styleGuidance}\n` : ""}
           `,
         },
         {
