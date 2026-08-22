@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { isPaymentComplete } from "../lib/reportDelivery";
+import { formatMoney } from "../lib/locale";
 
 type InspectionPaymentStatus = {
   invoice_status?: string | null;
@@ -28,19 +29,14 @@ function getNumber(value: any) {
   return 0;
 }
 
-function money(value: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(value || 0);
-}
-
 export default function ReportDeliveryGuard({
   inspectionId,
+  currency = "USD",
 }: {
   inspectionId: string;
+  currency?: string;
 }) {
+  const money = (value: number) => formatMoney(value, currency);
   const [contacts, setContacts] = useState<any[]>([]);
   const [payment, setPayment] =
     useState<InspectionPaymentStatus | null>(null);

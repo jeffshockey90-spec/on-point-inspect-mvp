@@ -87,6 +87,26 @@ export function currencySymbol(code: string | null | undefined): string {
   return CURRENCIES.find((c) => c.code === String(code || "").toUpperCase())?.symbol || "$";
 }
 
+// Format a money amount in the given currency. Falls back safely if the code
+// isn't a valid ISO-4217 (Intl throws otherwise). Client- and server-safe.
+export function formatMoney(
+  value: number | null | undefined,
+  currency: string | null | undefined = DEFAULT_CURRENCY,
+  opts: { maximumFractionDigits?: number } = {},
+): string {
+  const code = normalizeCurrency(currency);
+  const n = Number(value) || 0;
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: code,
+      maximumFractionDigits: opts.maximumFractionDigits ?? 0,
+    }).format(n);
+  } catch {
+    return `${currencySymbol(code)}${n.toFixed(opts.maximumFractionDigits ?? 0)}`;
+  }
+}
+
 // Normalize a stored/submitted value to a valid country/currency/language.
 export function normalizeCountry(code: any): string {
   return countryByCode(code) ? String(code).toUpperCase() : DEFAULT_COUNTRY;

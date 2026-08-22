@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "../../../utils/supabase/server";
 import InvoiceBuilder from "../../../components/InvoiceBuilder";
+import { normalizeCurrency } from "../../../lib/locale";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,28 @@ export default async function NewInvoicePage({
 
   const { inspection_id } = await searchParams;
 
+  // The inspector's business currency (#29), for the invoice totals.
+  let currency = "USD";
+  try {
+    const { data: cu } = await supabase
+      .from("company_users")
+      .select("company_id")
+      .eq("user_id", user.id)
+      .not("company_id", "is", null)
+      .limit(1)
+      .maybeSingle();
+    if (cu?.company_id) {
+      const { data: co } = await supabase
+        .from("companies")
+        .select("currency")
+        .eq("id", cu.company_id)
+        .maybeSingle();
+      currency = normalizeCurrency((co as any)?.currency);
+    }
+  } catch {
+    currency = "USD";
+  }
+
   return (
     <main className="min-h-screen bg-[#020617] px-4 py-10 text-white sm:px-8">
       <div className="mx-auto max-w-4xl">
@@ -30,7 +53,7 @@ export default async function NewInvoicePage({
             Back to Invoices
           </Link>
         </div>
-        <InvoiceBuilder inspectionId={inspection_id || null} />
+        <InvoiceBuilder inspectionId={inspection_id || null} currency={currency} />
       </div>
     </main>
   );

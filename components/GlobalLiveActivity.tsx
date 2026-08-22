@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "../utils/supabase/client";
+import { formatMoney as formatMoneyLocale } from "../lib/locale";
 
 type InspectionSummary = {
   id: string | number;
@@ -88,16 +89,12 @@ function getActivityIcon(log: LiveEvent) {
   return "🔔";
 }
 
-function formatMoney(value: any) {
+function formatMoney(value: any, currency = "USD") {
   const amount = Number(value || 0);
 
   if (!Number.isFinite(amount) || amount <= 0) return "";
 
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(amount);
+  return formatMoneyLocale(amount, currency);
 }
 
 function maybeShowBrowserNotification(title: string, body: string, url: string) {
@@ -162,6 +159,7 @@ export default function GlobalLiveActivity() {
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [companyId, setCompanyId] = useState<string>("");
+  const [currency, setCurrency] = useState<string>("USD");
   const [liveActivityEnabled, setLiveActivityEnabled] = useState(true);
   const [liveActivitySoundEnabled, setLiveActivitySoundEnabled] = useState(true);
 
@@ -231,11 +229,12 @@ export default function GlobalLiveActivity() {
 
         const { data: company, error } = await supabase
           .from("companies")
-          .select("live_activity_enabled, live_activity_sound_enabled")
+          .select("live_activity_enabled, live_activity_sound_enabled, currency")
           .eq("id", companyUser.company_id)
           .maybeSingle();
 
         if (!mounted) return;
+        if (company?.currency) setCurrency(String(company.currency));
 
         if (error) {
           console.error("Live activity settings load error:", error);
@@ -482,7 +481,8 @@ export default function GlobalLiveActivity() {
   const paymentAmount = formatMoney(
     latestEvent.metadata?.amount_paid ||
       latestEvent.metadata?.total_charged ||
-      0
+      0,
+    currency,
   );
 
   return (

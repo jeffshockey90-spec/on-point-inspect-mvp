@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createClient } from "../../../../utils/supabase/server";
 import { getAdminClient } from "../../../../lib/apiAuth";
 import InvoiceBuilder from "../../../../components/InvoiceBuilder";
+import { normalizeCurrency } from "../../../../lib/locale";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +46,20 @@ export default async function EditInvoicePage({
 
   if (!invoice || !authorized) notFound();
 
+  let currency = "USD";
+  try {
+    if (invoice.company_id) {
+      const { data: co } = await admin
+        .from("companies")
+        .select("currency")
+        .eq("id", invoice.company_id)
+        .maybeSingle();
+      currency = normalizeCurrency((co as any)?.currency);
+    }
+  } catch {
+    currency = "USD";
+  }
+
   return (
     <main className="min-h-screen bg-[#020617] px-4 py-10 text-white sm:px-8">
       <div className="mx-auto max-w-4xl">
@@ -57,7 +72,7 @@ export default async function EditInvoicePage({
             Back to Invoices
           </Link>
         </div>
-        <InvoiceBuilder initialInvoice={invoice} />
+        <InvoiceBuilder initialInvoice={invoice} currency={currency} />
       </div>
     </main>
   );

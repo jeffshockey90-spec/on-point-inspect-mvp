@@ -2,20 +2,19 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { formatMoney } from "../lib/locale";
 
 type LineItem = { description: string; quantity: number; unitPrice: number };
 
 type Props = {
   initialInvoice?: any;
   inspectionId?: string | null;
+  currency?: string;
 };
 
-function money(value: number) {
-  return `$${(Number(value) || 0).toFixed(2)}`;
-}
-
-export default function InvoiceBuilder({ initialInvoice, inspectionId }: Props) {
+export default function InvoiceBuilder({ initialInvoice, inspectionId, currency = "USD" }: Props) {
   const router = useRouter();
+  const money = (value: number) => formatMoney(value, currency, { maximumFractionDigits: 2 });
   const editing = Boolean(initialInvoice?.id);
 
   const [clientName, setClientName] = useState(initialInvoice?.client_name || "");

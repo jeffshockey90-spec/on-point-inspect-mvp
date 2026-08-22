@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { supabase } from "../lib/supabaseClient";
+import { formatMoney } from "../lib/locale";
 
 type InspectionRecord = Record<string, any>;
 
@@ -16,10 +17,6 @@ function getNumber(value: any) {
     if (Number.isFinite(parsed)) return parsed;
   }
   return 0;
-}
-
-function money(value: number) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(value || 0);
 }
 
 function getInitialInvoiceAmount(inspection: InspectionRecord) {
@@ -38,9 +35,16 @@ function Badge({ children, tone }: { children: React.ReactNode; tone: "green" | 
   return <span className={`rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-wide ${classes}`}>{children}</span>;
 }
 
-export default function PaymentInvoicePanel({ inspection }: { inspection: InspectionRecord }) {
+export default function PaymentInvoicePanel({
+  inspection,
+  currency = "USD",
+}: {
+  inspection: InspectionRecord;
+  currency?: string;
+}) {
   const router = useRouter();
   const inspectionId = String(inspection?.id || "");
+  const money = (value: number) => formatMoney(value, currency);
 
   const [paymentStatus, setPaymentStatus] = useState(inspection.payment_status || inspection.invoice_status || "Unpaid");
   const [invoiceAmount, setInvoiceAmount] = useState(String(getInitialInvoiceAmount(inspection) || ""));

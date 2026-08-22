@@ -56,6 +56,7 @@ import PropertyPhotoUploader from "../../../components/PropertyPhotoUploader";
 import InspectionContextEditor from "../../../components/InspectionContextEditor";
 import QuickBooksInvoiceButton from "../../../components/QuickBooksInvoiceButton";
 import HomeownerPortalLink from "../../../components/HomeownerPortalLink";
+import { normalizeCurrency } from "../../../lib/locale";
 import OpenCommandCenterToolButton from "../../../components/OpenCommandCenterToolButton";
 import PublishReportActionButton from "../../../components/PublishReportActionButton";
 import InspectorToolsDrawer, {
@@ -1814,7 +1815,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
       inspection.company_id
         ? supabase
             .from("companies")
-            .select("office_address")
+            .select("office_address, currency")
             .eq("id", inspection.company_id)
             .maybeSingle()
         : Promise.resolve({ data: null, error: null }),
@@ -1851,6 +1852,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
     ]);
 
   const officeAddress = officeAddressResult?.data?.office_address || null;
+  const companyCurrency = normalizeCurrency(officeAddressResult?.data?.currency);
 
   let liveDistanceMiles = inspection.distance_miles ?? null;
   let liveDriveMinutes = inspection.drive_minutes ?? null;
@@ -3057,12 +3059,12 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
             </div>
 
             <div id="payment-invoice" data-command-target="payment-invoice">
-            <PaymentInvoicePanel inspection={inspection} />
+            <PaymentInvoicePanel inspection={inspection} currency={companyCurrency} />
             <QuickBooksInvoiceButton inspectionId={String(inspection.id)} />
             </div>
 
             <div id="report-delivery-guard" data-command-target="report-delivery-guard">
-            <ReportDeliveryGuard inspectionId={String(inspection.id)} />
+            <ReportDeliveryGuard inspectionId={String(inspection.id)} currency={companyCurrency} />
             </div>
 
             <HomeownerPortalLink token={reportDownloadId} />
