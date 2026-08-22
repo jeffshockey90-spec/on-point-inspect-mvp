@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
+import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { createClient } from "../../../../utils/supabase/server";
+import { classifyDefect } from "../../../../lib/dealCatalog";
+import { recomputeDealPrevalence } from "../../../../lib/dealInsights";
 import { resolveInspectionAccessFilter } from "../../../../lib/inspectionAccess";
 import { aiPublishGuard } from "../../../../lib/ai";
 import { getOrCreateShareToken } from "../../../../lib/shareToken";
@@ -315,6 +318,39 @@ export async function POST(req: Request) {
         { error: inspectionError.message },
         { status: 500 }
       );
+    }
+
+    // Common Ground auto-learns: the moment this inspection joins the published
+    // corpus, classify its findings and recompute prevalence so the "% of homes"
+    // numbers adjust with the new data — no waiting for the nightly cron. Uses a
+    // service-role client (national prevalence spans all inspectors). Fully
+    // best-effort: it must never delay-fail or block a publish.
+    try {
+      if (
+        process.env.SUPABASE_SERVICE_ROLE_KEY &&
+        process.env.NEXT_PUBLIC_SUPABASE_URL
+      ) {
+        const admin = createServiceClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL,
+          process.env.SUPABASE_SERVICE_ROLE_KEY,
+          { auth: { persistSession: false, autoRefreshToken: false } },
+        );
+        const { data: newFindings } = await admin
+          .from("findings")
+          .select("id, title, observation, section")
+          .eq("inspection_id", inspectionId)
+          .is("defect_type", null);
+        for (const f of (newFindings as any[]) || []) {
+          const key = classifyDefect(f);
+          await admin
+            .from("findings")
+            .update({ defect_type: key || "_unmatched" })
+            .eq("id", f.id);
+        }
+        await recomputeDealPrevalence(admin);
+      }
+    } catch (cgErr) {
+      console.error("Common Ground recompute on publish failed:", cgErr);
     }
 
     const branding = await getCompanyBrandingById(inspection.company_id);

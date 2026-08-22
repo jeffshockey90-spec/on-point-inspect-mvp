@@ -57,6 +57,8 @@ import InspectionContextEditor from "../../../components/InspectionContextEditor
 import QuickBooksInvoiceButton from "../../../components/QuickBooksInvoiceButton";
 import HomeownerPortalLink from "../../../components/HomeownerPortalLink";
 import { normalizeCurrency } from "../../../lib/locale";
+import { classifyDefect } from "../../../lib/dealCatalog";
+import { recomputeDealPrevalence } from "../../../lib/dealInsights";
 import OpenCommandCenterToolButton from "../../../components/OpenCommandCenterToolButton";
 import PublishReportActionButton from "../../../components/PublishReportActionButton";
 import InspectorToolsDrawer, {
@@ -1599,6 +1601,30 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
     if (error) {
       console.error("Publish report error:", error);
       redirect(`/reports/${inspectionId}?publish_error=1`);
+    }
+
+    // Common Ground auto-learns: classify this newly-published inspection's
+    // findings and recompute prevalence so the "% of homes" numbers adjust with
+    // the new data immediately. Service-role (national scope). Best-effort.
+    try {
+      const cgAdmin = createSupabaseStorageClient();
+      if (cgAdmin) {
+        const { data: newFindings } = await cgAdmin
+          .from("findings")
+          .select("id, title, observation, section")
+          .eq("inspection_id", inspectionId)
+          .is("defect_type", null);
+        for (const f of (newFindings as any[]) || []) {
+          const key = classifyDefect(f);
+          await cgAdmin
+            .from("findings")
+            .update({ defect_type: key || "_unmatched" })
+            .eq("id", f.id);
+        }
+        await recomputeDealPrevalence(cgAdmin);
+      }
+    } catch (cgErr) {
+      console.error("Common Ground recompute on publish failed:", cgErr);
     }
 
     try {
