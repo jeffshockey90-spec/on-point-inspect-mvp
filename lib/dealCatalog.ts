@@ -67,10 +67,10 @@ export const DEFECT_CATALOG: DefectCatalogEntry[] = [
     aliases: ["tpr", "temperature and pressure relief", "discharge pipe", "relief valve pipe"], ease: "handyman",
     costLow: 40, costHigh: 150, repairNote: "Add a proper discharge pipe to within ~6 inches of the floor." },
   { key: "active_leak", label: "Active plumbing leak", section: "Plumbing",
-    aliases: ["active leak", "water leak", "leaking pipe", "leak at", "dripping"], ease: "pro",
+    aliases: ["active plumbing leak", "leaking pipe", "leaking supply", "leaking drain", "leak under the sink", "leak at the fitting", "supply line leak"], ease: "pro",
     costLow: 150, costHigh: 800, repairNote: "Repair by a qualified plumber; document any resulting damage." },
   { key: "corroded_supply", label: "Corroded / mixed-metal connections", section: "Plumbing",
-    aliases: ["corrosion", "corroded", "dielectric", "mixed metal", "galvanic"], ease: "pro",
+    aliases: ["corroded pipe", "corroded fitting", "corroded connection", "dielectric union", "mixed metal", "galvanic corrosion"], ease: "pro",
     costLow: 150, costHigh: 500, repairNote: "Replace corroded fittings; add dielectric unions where dissimilar metals meet." },
   { key: "water_heater_age", label: "Water heater at/near end of life", section: "Plumbing",
     aliases: ["water heater", "end of service life water heater", "aged water heater"], ease: "pro",
@@ -81,7 +81,7 @@ export const DEFECT_CATALOG: DefectCatalogEntry[] = [
 
   // ---- Roof ----
   { key: "active_roof_leak", label: "Active roof leak / water intrusion", section: "Roof",
-    aliases: ["roof leak", "active leak roof", "ceiling stain", "water intrusion", "moisture staining"], ease: "pro",
+    aliases: ["roof leak", "roof is leaking", "leak in the roof", "active leak at the roof", "ceiling stain from roof", "water staining at the ceiling", "roof water intrusion"], ease: "pro",
     costLow: 3000, costHigh: 8000, repairNote: "Evaluation and repair by a qualified roofer before closing." },
   { key: "damaged_missing_shingles", label: "Damaged / missing shingles", section: "Roof",
     aliases: ["missing shingle", "damaged shingle", "lifted shingle", "curling shingle"], ease: "pro",

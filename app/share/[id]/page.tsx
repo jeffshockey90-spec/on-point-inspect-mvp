@@ -20,6 +20,7 @@ import { isReportViewReload } from "../../../lib/reportViewThrottle";
 import ReportLanguageSwitcher from "../../../components/ReportLanguageSwitcher";
 import UiAutoTranslate from "../../../components/UiAutoTranslate";
 import CommonGroundPanel from "../../../components/CommonGroundPanel";
+import CommonGroundSummary from "../../../components/CommonGroundSummary";
 import { classifyDefect } from "../../../lib/dealCatalog";
 import { getPrevalenceMap, buildCommonGround, type CommonGround } from "../../../lib/dealInsights";
 import { REPORT_UI_STRINGS } from "../../../lib/uiStrings";
@@ -1550,6 +1551,16 @@ export default async function PublicSharePage({
     }
   }
 
+  const cgValues = Array.from(commonGroundById.values());
+  const cgSummary = cgValues.length
+    ? {
+        total: cgValues.length,
+        standsOut: cgValues.filter((c) => c.standsOut).length,
+        routine: cgValues.filter((c) => c.tier === "common" || c.tier === "typical").length,
+        uncommon: cgValues.filter((c) => c.tier === "uncommon").length,
+      }
+    : null;
+
   const { data: checklistRows } = await supabase
     .from("section_checklist_selections")
     .select("*")
@@ -2847,6 +2858,7 @@ export default async function PublicSharePage({
           )}
 
           <section id="inspection-findings" className="scroll-mt-[180px] md:scroll-mt-[220px] mt-10">
+            {cgSummary && <CommonGroundSummary data={cgSummary} />}
             <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
               <div>
                 <p className="text-sm font-bold uppercase tracking-[0.3em] text-teal-400">

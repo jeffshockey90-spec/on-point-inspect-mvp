@@ -502,10 +502,13 @@ export default async function SettingsPage({
           country: normalizeCountry(formData.get("country")),
           preferred_language: normalizeLanguage(formData.get("preferred_language")),
           currency: normalizeCurrency(formData.get("currency")),
+          show_common_ground: String(formData.get("show_common_ground") || "") === "on",
+          show_common_ground_costs:
+            String(formData.get("show_common_ground_costs") || "") === "on",
         })
         .eq("id", company.id);
     } catch {
-      /* locale columns may not exist yet */
+      /* locale / common-ground columns may not exist yet */
     }
 
     if (w9DocumentChanged && w9DocumentUrl) {
@@ -1052,6 +1055,38 @@ export default async function SettingsPage({
                   name="show_powered_by"
                   defaultChecked={company.show_powered_by !== false}
                   ariaLabel="Show Powered by FLOW on client-facing pages"
+                />
+              </div>
+
+              <div className="flex items-center justify-between gap-4 rounded-xl border border-teal-500/30 bg-teal-500/[0.04] p-4 md:col-span-2">
+                <div className="min-w-0 flex-1">
+                  <p className="break-words text-sm font-bold leading-6 text-slate-200 sm:text-base">
+                    Show <span className="text-teal-300">Common Ground</span> on client reports
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-slate-400">
+                    Adds a panel under each finding showing how common the defect is (nationally and in your state) and how hard it is to fix — so routine issues don’t kill deals.
+                  </p>
+                </div>
+                <SettingsToggle
+                  name="show_common_ground"
+                  defaultChecked={company.show_common_ground !== false}
+                  ariaLabel="Show Common Ground on client reports"
+                />
+              </div>
+
+              <div className="flex items-center justify-between gap-4 rounded-xl border border-slate-700 bg-slate-950 p-4 md:col-span-2">
+                <div className="min-w-0 flex-1">
+                  <p className="break-words text-sm font-bold leading-6 text-slate-200 sm:text-base">
+                    Show cost estimates to the client in Common Ground
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-slate-400">
+                    Off by default — the typical repair cost range stays out of the client report until you turn it on.
+                  </p>
+                </div>
+                <SettingsToggle
+                  name="show_common_ground_costs"
+                  defaultChecked={company.show_common_ground_costs === true}
+                  ariaLabel="Show cost estimates to the client in Common Ground"
                 />
               </div>
             </div>

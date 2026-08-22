@@ -29,7 +29,10 @@ function normState(v: any): string {
 // ---------------------------------------------------------------------
 // Recompute — classify new findings, then roll up prevalence from scratch.
 // ---------------------------------------------------------------------
-export async function recomputeDealPrevalence(admin: any): Promise<{
+export async function recomputeDealPrevalence(
+  admin: any,
+  opts: { reclassify?: boolean } = {},
+): Promise<{
   classified: number;
   types: number;
   homesTotal: number;
@@ -54,15 +57,17 @@ export async function recomputeDealPrevalence(admin: any): Promise<{
   const publishedIds = inspections.map((i) => i.id);
   const nationalTotal = inspections.length;
 
-  // 2. Classify findings on published inspections that aren't classified yet.
-  //    Non-matches are stamped "_unmatched" so we don't re-check them nightly.
+  // 2. Classify findings on published inspections. Normally only the ones not
+  //    classified yet (non-matches stamped "_unmatched" so we skip them nightly);
+  //    with reclassify:true, re-run every finding (used when the catalog changes).
   let classified = 0;
-  const { data: unclassified } = await admin
+  let q = admin
     .from("findings")
     .select("id, title, observation, section")
     .in("inspection_id", publishedIds)
-    .is("defect_type", null)
     .limit(20000);
+  if (!opts.reclassify) q = q.is("defect_type", null);
+  const { data: unclassified } = await q;
   for (const f of (unclassified as any[]) || []) {
     const key = classifyDefect(f);
     await admin

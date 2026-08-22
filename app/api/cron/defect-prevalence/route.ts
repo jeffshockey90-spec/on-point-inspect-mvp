@@ -30,8 +30,11 @@ export async function GET(req: Request) {
   );
 
   try {
-    const result = await recomputeDealPrevalence(admin);
-    return NextResponse.json({ ok: true, ...result });
+    // ?reclassify=1 re-runs classification on every finding (use after the
+    // defect catalog changes); otherwise only new/unclassified findings.
+    const reclassify = new URL(req.url).searchParams.get("reclassify") === "1";
+    const result = await recomputeDealPrevalence(admin, { reclassify });
+    return NextResponse.json({ ok: true, reclassify, ...result });
   } catch (error: any) {
     return NextResponse.json(
       { error: error?.message || "Prevalence recompute failed." },
