@@ -4,6 +4,7 @@ import { createClient } from "../../utils/supabase/server";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { resolveTeamInspectorIds } from "../../lib/inspectionAccess";
 import TimesheetExport from "../../components/TimesheetExport";
+import TimesheetOverrideCell from "../../components/TimesheetOverrideCell";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -90,6 +91,7 @@ export default async function TimesheetsPage({
   const MAX_PLAUSIBLE_HOURS = 12;
 
   type Session = {
+    inspection_id: number;
     user_id: string;
     email: string;
     property: string;
@@ -97,6 +99,7 @@ export default async function TimesheetsPage({
     departed_at: string | null;
     hours: number | null;
     reason: string | null; // null = counts toward payroll; else why it's flagged
+    manual: boolean; // hours set by a manual correction
   };
   const sessions: Session[] = (sessionRows || []).map((s: any) => {
     const insp = Array.isArray(s.inspections) ? s.inspections[0] : s.inspections;
@@ -108,6 +111,7 @@ export default async function TimesheetsPage({
     if (hours == null) reason = "no departure logged";
     else if (hours > MAX_PLAUSIBLE_HOURS) reason = "unusually long — review";
     return {
+      inspection_id: Number(s.inspection_id),
       user_id: String(s.user_id),
       email: emailById.get(String(s.user_id)) || "Inspector",
       property: insp?.property_address || insp?.address || "Inspection",
@@ -115,8 +119,30 @@ export default async function TimesheetsPage({
       departed_at: s.departed_at || null,
       hours,
       reason,
+      manual: false,
     };
   });
+
+  // A manual correction (timesheet_overrides) wins over the auto-captured GPS
+  // hours — this is what makes flagged sessions payroll-usable.
+  const overrideInspIds = [...new Set(sessions.map((s) => s.inspection_id).filter(Boolean))];
+  const { data: overrideRows } = overrideInspIds.length
+    ? await admin
+        .from("timesheet_overrides")
+        .select("inspection_id, hours")
+        .in("inspection_id", overrideInspIds)
+    : { data: [] as any[] };
+  const overrideByInsp = new Map(
+    (overrideRows || []).map((o: any) => [Number(o.inspection_id), o]),
+  );
+  for (const s of sessions) {
+    const ov = overrideByInsp.get(s.inspection_id);
+    if (ov && ov.hours != null) {
+      s.hours = Number(ov.hours);
+      s.reason = null;
+      s.manual = true;
+    }
+  }
 
   const complete = sessions.filter((s) => s.reason == null);
   const needsReview = sessions.length - complete.length;
@@ -268,6 +294,7 @@ export default async function TimesheetsPage({
                   <th className="px-3 py-2">Arrived</th>
                   <th className="px-3 py-2">Departed</th>
                   <th className="px-3 py-2 text-right">Hours</th>
+                  <th className="px-3 py-2 text-right">Adjust</th>
                 </tr>
               </thead>
               <tbody>
@@ -279,7 +306,12 @@ export default async function TimesheetsPage({
                     <td className="px-3 py-2 text-slate-400">{fmtDateTime(s.departed_at)}</td>
                     <td className="px-3 py-2 text-right align-top">
                       {s.reason == null ? (
-                        <span className="font-black text-teal-300">{s.hours!.toFixed(1)}</span>
+                        <span className="font-black text-teal-300">
+                          {s.hours!.toFixed(1)}
+                          {s.manual && (
+                            <span className="ml-1 text-[10px] font-bold text-slate-500">edited</span>
+                          )}
+                        </span>
                       ) : (
                         <span className="text-[11px] font-bold text-amber-300">
                           {s.hours != null ? `${s.hours.toFixed(1)} · ` : ""}
@@ -287,11 +319,18 @@ export default async function TimesheetsPage({
                         </span>
                       )}
                     </td>
+                    <td className="px-3 py-2 text-right align-top">
+                      <TimesheetOverrideCell
+                        inspectionId={s.inspection_id}
+                        current={s.manual ? s.hours : null}
+                        manual={s.manual}
+                      />
+                    </td>
                   </tr>
                 ))}
                 {sessions.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="py-6 text-center text-slate-400">
+                    <td colSpan={6} className="py-6 text-center text-slate-400">
                       No on‑site sessions in this period. Hours are captured automatically when GPS
                       arrival/departure detection is on during an inspection.
                     </td>
