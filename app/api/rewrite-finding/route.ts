@@ -1,6 +1,8 @@
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
 import { getAIModel } from "../../../lib/openai";
+import { createClient } from "../../../utils/supabase/server";
+import { loadFlowStyle } from "../../../lib/ai/flowWriter";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -8,11 +10,31 @@ const openai = new OpenAI({
 
 export async function POST(req: Request) {
   try {
+    const body = await req.json();
     const {
       observation,
       implication,
       recommendation,
-    } = await req.json();
+    } = body;
+    const inspectionId = body.inspectionId ?? body.inspection_id ?? null;
+
+    // Identify the inspector so the rewrite matches THEIR voice + learned edits.
+    let userId: string | null = null;
+    try {
+      const supabase = await createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      userId = user?.id ?? null;
+    } catch {
+      userId = null;
+    }
+
+    const { styleGuidance } = await loadFlowStyle({
+      userId,
+      inspectionId,
+      draft: { observation, text: recommendation },
+    });
 
     const prompt = `
 You are an expert home inspection report writer.
@@ -50,7 +72,8 @@ ${recommendation}
         {
           role: "system",
           content:
-            "You professionally rewrite home inspection findings.",
+            "You professionally rewrite home inspection findings." +
+            (styleGuidance ? "\n\n" + styleGuidance : ""),
         },
         {
           role: "user",

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import { getAIModel } from "../../../lib/openai";
+import { createClient } from "../../../utils/supabase/server";
+import { loadFlowWriter } from "../../../lib/ai/flowWriter";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -8,7 +10,9 @@ const openai = new OpenAI({
 
 export async function POST(req: Request) {
   try {
-    const { imageUrl } = await req.json();
+    const body = await req.json();
+    const { imageUrl } = body;
+    const inspectionId = body.inspectionId ?? body.inspection_id ?? null;
 
     if (!imageUrl) {
       return NextResponse.json(
@@ -17,13 +21,34 @@ export async function POST(req: Request) {
       );
     }
 
+    // Identify the inspector from the session so suggestions use THEIR voice,
+    // learned edits, and published examples — the shared FLOW Writer.
+    let userId: string | null = null;
+    try {
+      const supabase = await createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      userId = user?.id ?? null;
+    } catch {
+      userId = null;
+    }
+
+    const { systemPrompt } = await loadFlowWriter({
+      userId,
+      inspectionId,
+      draft: {},
+      extra: `INPUT: a single home inspection photo, with no written note — infer the likely finding from the image alone. Only describe defects/conditions the image actually supports; if the image is ambiguous, stay conservative rather than guessing.
+- Write as a direct field observation, NOT a narration of a picture. Never reference the photo, image, or camera (no "in this photo", "this image shows", "pictured", "as seen").
+Return ONLY valid JSON with keys: section, title, severity, observation, implication, recommendation.`,
+    });
+
     const response = await openai.chat.completions.create({
       model: getAIModel(),
       messages: [
         {
           role: "system",
-          content:
-            "You are a professional home inspection assistant. Analyze inspection photos and suggest likely findings in JSON format.",
+          content: systemPrompt,
         },
         {
           role: "user",

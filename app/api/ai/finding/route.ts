@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getAIModel } from "../../../../lib/openai";
 import { getSessionUser, unauthorized } from "../../../../lib/apiAuth";
 import { classifyAIServiceError } from "../../../../lib/aiServiceError";
+import { loadFlowWriter } from "../../../../lib/ai/flowWriter";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -13,7 +14,9 @@ export async function POST(request: Request) {
     const user = await getSessionUser();
     if (!user) return unauthorized();
 
-    const { imageUrl, section, note } = await request.json();
+    const body = await request.json();
+    const { imageUrl, section, note } = body;
+    const inspectionId = body.inspectionId ?? body.inspection_id ?? null;
 
     if (!imageUrl && !note) {
       return NextResponse.json(
@@ -29,6 +32,19 @@ export async function POST(request: Request) {
       );
     }
 
+    const { systemPrompt } = await loadFlowWriter({
+      userId: user.id,
+      inspectionId,
+      draft: { note: note || null, section: section || null },
+      extra: `INPUT: a home inspection photo${
+        note ? " plus the inspector's written note" : " (no written note — use the photo only)"
+      }, for the ${section || "General"} section.
+- Write as a direct field observation, NOT a narration of a picture. Never reference the photo, image, or camera — do not write "in this photo", "this image shows", "pictured", "shown here", "as seen", or similar. Describe the component/condition itself.
+- Use phrases like "appeared to be", "was observed", or "at the time of inspection" when appropriate.
+- Do not use markdown. Do not include any text outside the JSON.
+Return ONLY valid JSON with keys: title, observation, implication, recommendation.`,
+    });
+
     const content: any[] = [
       {
         type: "text",
@@ -37,27 +53,6 @@ Analyze this home inspection finding for the ${section || "General"} section.
 
 Inspector note:
 ${note || "No written note provided. Use the photo only."}
-
-Write a professional, detailed, realtor-friendly home inspection finding.
-
-Return ONLY valid JSON:
-{
-  "title": "",
-  "observation": "",
-  "implication": "",
-  "recommendation": ""
-}
-
-Rules:
-- Do not use markdown.
-- Do not overstate.
-- Do not claim code violations.
-- Do not say something is unsafe unless it is clearly a safety concern.
-- Use phrases like "appeared to be", "was observed", or "at the time of inspection" when appropriate.
-- Observation should clearly describe the condition of the component itself.
-- Write as a direct field observation, NOT a narration of a picture. Never reference the photo, image, or camera — do not write "in this photo", "this image shows", "pictured", "shown here", "as seen", or similar. Describe the component/condition, not the image.
-- Implication should explain why it matters and what could happen if ignored.
-- Recommendation should recommend evaluation, repair, or correction by the proper qualified contractor when appropriate.
 `,
       },
     ];
@@ -76,8 +71,7 @@ Rules:
       messages: [
         {
           role: "system",
-          content:
-            "You are a senior certified home inspector writing professional inspection report comments. Return only valid JSON.",
+          content: systemPrompt,
         },
         {
           role: "user",

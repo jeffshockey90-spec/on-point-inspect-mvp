@@ -243,3 +243,87 @@ export async function loadFlowWriter(opts: {
     exampleCount,
   };
 }
+
+// ---------------------------------------------------------------------
+// loadFlowStyle — the same inspector voice/learning/examples WITHOUT the
+// "create one finding" contract. For routes that refine, adjust, re-tone,
+// or comment on EXISTING text (rewrite-finding, adjust-finding, comment
+// generators). Returns a block to append to that route's own instructions.
+// ---------------------------------------------------------------------
+
+export async function loadFlowStyle(opts: {
+  userId?: string | null;
+  inspectionId?: string | number | null;
+  draft?: FlowWriterDraft;
+  includeExamples?: boolean; // default true
+}): Promise<{ styleGuidance: string; config: AiWritingConfig; exampleCount: number }> {
+  const draft = opts.draft || {};
+  const subject = [
+    draft.title,
+    draft.text,
+    draft.note,
+    draft.observation,
+    draft.transcript,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .slice(0, 2000);
+
+  let config: AiWritingConfig = DEFAULT_AI_WRITING_CONFIG;
+  try {
+    if (opts.inspectionId != null && opts.inspectionId !== "") {
+      config = await loadWritingConfigForInspection(opts.inspectionId);
+    } else if (opts.userId) {
+      config = await loadWritingConfigForUser(opts.userId);
+    }
+  } catch {
+    config = DEFAULT_AI_WRITING_CONFIG;
+  }
+  const styleBlock = buildWritingStyleInstructions(config);
+
+  let learningBlock = "";
+  try {
+    const patterns = await learningEngine.getPatterns(180);
+    learningBlock = learningEngine.formatPatternsForPrompt(patterns);
+  } catch {
+    learningBlock = "";
+  }
+
+  const knowledgeBlock = buildDefectKnowledge(subject);
+
+  let examplesBlock = "";
+  let exampleCount = 0;
+  if (opts.includeExamples !== false) {
+    try {
+      const inspectorId = await resolveInspectorId({
+        userId: opts.userId,
+        inspectionId: opts.inspectionId,
+      });
+      if (inspectorId) {
+        const examples = await getInspectorFindingExamples({
+          inspectorId,
+          section: draft.section || null,
+          subject,
+          limit: 3,
+        });
+        exampleCount = examples.length;
+        examplesBlock = formatExamplesForPrompt(examples);
+      }
+    } catch {
+      examplesBlock = "";
+    }
+  }
+
+  const styleGuidance = [
+    styleBlock?.trim(),
+    knowledgeBlock?.trim(),
+    learningBlock && learningBlock !== "No established inspector-specific learning patterns yet."
+      ? `INSPECTOR LEARNING (how THIS inspector edits AI drafts — bias toward these):\n${learningBlock.trim()}`
+      : "",
+    examplesBlock?.trim(),
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+
+  return { styleGuidance, config, exampleCount };
+}

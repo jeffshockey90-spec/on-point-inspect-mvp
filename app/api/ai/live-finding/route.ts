@@ -7,6 +7,7 @@ import {
   notFound,
   authorizeInspection,
 } from "../../../../lib/apiAuth";
+import { FLOW_SEVERITIES } from "../../../../lib/ai/flowWriter";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,14 +25,7 @@ const supabase = createClient(
   },
 );
 
-const VALID_SEVERITIES = [
-  "Informational",
-  "Monitor",
-  "Maintenance",
-  "Recommended Repair",
-  "Safety Concern",
-  "Major Concern",
-];
+const VALID_SEVERITIES = FLOW_SEVERITIES;
 
 function cleanText(value: any) {
   return String(value || "").trim();

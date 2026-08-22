@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
+import { createClient } from "../../../utils/supabase/server";
+import { loadFlowStyle } from "../../../lib/ai/flowWriter";
 
 export const runtime = "nodejs";
 
@@ -9,7 +11,8 @@ const openai = new OpenAI({
 
 export async function POST(req: Request) {
   try {
-    const { note } = await req.json();
+    const body = await req.json();
+    const { note } = body;
 
     if (!note) {
       return NextResponse.json(
@@ -18,13 +21,34 @@ export async function POST(req: Request) {
       );
     }
 
+    const inspectionId = body.inspectionId ?? body.inspection_id ?? null;
+
+    // Identify the inspector so the comment matches THEIR voice + learning.
+    let userId: string | null = null;
+    try {
+      const supabase = await createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      userId = user?.id ?? null;
+    } catch {
+      userId = null;
+    }
+
+    const { styleGuidance } = await loadFlowStyle({
+      userId,
+      inspectionId,
+      draft: { note, section: body.section ?? null },
+    });
+
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
           content:
-            "You are helping a professional home inspector write concise, realtor-friendly inspection report comments. Return JSON only.",
+            "You are helping a professional home inspector write concise, realtor-friendly inspection report comments. Return JSON only." +
+            (styleGuidance ? "\n\n" + styleGuidance : ""),
         },
         {
           role: "user",

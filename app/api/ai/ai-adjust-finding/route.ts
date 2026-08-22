@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import { getSessionUser, unauthorized } from "../../../../lib/apiAuth";
 import { classifyAIServiceError } from "../../../../lib/aiServiceError";
+import { loadFlowStyle } from "../../../../lib/ai/flowWriter";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
@@ -30,13 +31,21 @@ export async function POST(req: Request) {
       );
     }
 
+    const inspectionId = body.inspectionId ?? body.inspection_id ?? null;
+    const { styleGuidance } = await loadFlowStyle({
+      userId: user.id,
+      inspectionId,
+      draft: { title, observation, note, section },
+    });
+
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
           content:
-            "You are a home inspection report writer. Return ONLY JSON.",
+            "You are a home inspection report writer. Return ONLY JSON." +
+            (styleGuidance ? "\n\n" + styleGuidance : ""),
         },
         {
           role: "user",

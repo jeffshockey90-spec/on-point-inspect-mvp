@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getAIModel } from "../../../../lib/openai";
 import { getSessionUser, unauthorized } from "../../../../lib/apiAuth";
 import { classifyAIServiceError } from "../../../../lib/aiServiceError";
+import { loadFlowStyle } from "../../../../lib/ai/flowWriter";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -20,13 +21,24 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing image URL" }, { status: 400 });
     }
 
+    const inspectionId = body.inspectionId ?? body.inspection_id ?? null;
+    const { styleGuidance } = await loadFlowStyle({
+      userId: user.id,
+      inspectionId,
+      draft: {
+        text: body.note ?? body.title ?? null,
+        section: body.section ?? null,
+      },
+    });
+
     const response = await openai.chat.completions.create({
       model: getAIModel(),
       messages: [
         {
           role: "system",
           content:
-            "You are a professional home inspection assistant. Return ONLY valid JSON. No markdown. No extra text.",
+            "You are a professional home inspection assistant. Return ONLY valid JSON. No markdown. No extra text." +
+            (styleGuidance ? "\n\n" + styleGuidance : ""),
         },
         {
           role: "user",

@@ -5,25 +5,14 @@ import {
   normalizeSeverity,
 } from "../../../lib/routeFindingSection";
 import { getAIModel } from "../../../lib/openai";
+import { createClient } from "../../../utils/supabase/server";
+import { loadFlowStyle, FLOW_SECTIONS } from "../../../lib/ai/flowWriter";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
 });
 
-const VALID_SECTIONS = [
-  "Exterior",
-  "Roof",
-  "Basement, Foundation, Crawlspace & Structure",
-  "Heating",
-  "Cooling",
-  "Plumbing",
-  "Electrical",
-  "Fireplace",
-  "Attic, Insulation & Ventilation",
-  "Doors, Windows & Interior",
-  "Built-in Appliances",
-  "Garage",
-];
+const VALID_SECTIONS = FLOW_SECTIONS;
 
 function safeParseAI(input: string) {
   try {
@@ -54,6 +43,19 @@ function cleanText(value: unknown, fallback = "") {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+    const inspectionId = body.inspectionId ?? body.inspection_id ?? null;
+
+    // Identify the inspector so edits match THEIR voice + learned patterns.
+    let userId: string | null = null;
+    try {
+      const supabase = await createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      userId = user?.id ?? null;
+    } catch {
+      userId = null;
+    }
 
     const mode = String(body?.mode || "create_finding");
     const isRewrite = mode === "rewrite_existing_finding";
@@ -104,6 +106,17 @@ TASK: CREATE A COMPLETE FINDING FROM THE INSPECTOR NOTE.
 Use the current fields as supporting context when present.
 `;
 
+    const { styleGuidance } = await loadFlowStyle({
+      userId,
+      inspectionId,
+      draft: {
+        title: current.title,
+        observation: current.observation,
+        note: inspectorCorrection,
+        section: current.section,
+      },
+    });
+
     const response = await openai.chat.completions.create({
       model: getAIModel(),
       response_format: { type: "json_object" },
@@ -146,7 +159,7 @@ RULES:
 - Use professional, clear, realtor-friendly, non-alarmist language.
 - Do not add facts that are not present in the inspector note or current finding.
 ${taskInstructions}
-          `.trim(),
+          `.trim() + (styleGuidance ? "\n\n" + styleGuidance : ""),
         },
         {
           role: "user",

@@ -1,34 +1,16 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import { getAIModel } from "../../../lib/openai";
+import { createClient } from "../../../utils/supabase/server";
+import { loadFlowWriter, FLOW_SECTIONS, FLOW_SEVERITIES } from "../../../lib/ai/flowWriter";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
 });
 
-const VALID_SECTIONS = [
-  "Exterior",
-  "Roof",
-  "Basement, Foundation, Crawlspace & Structure",
-  "Heating",
-  "Cooling",
-  "Plumbing",
-  "Electrical",
-  "Fireplace",
-  "Attic, Insulation & Ventilation",
-  "Doors, Windows & Interior",
-  "Built-in Appliances",
-  "Garage",
-];
+const VALID_SECTIONS = FLOW_SECTIONS;
 
-const VALID_SEVERITIES = [
-  "Informational",
-  "Monitor",
-  "Maintenance",
-  "Recommended Repair",
-  "Safety Concern",
-  "Major Concern",
-];
+const VALID_SEVERITIES = FLOW_SEVERITIES;
 
 function cleanText(value: any) {
   if (!value || typeof value !== "string") return "";
@@ -60,6 +42,7 @@ export async function POST(req: Request) {
 
     const note = cleanText(body.note);
     const requestedSection = cleanText(body.section);
+    const inspectionId = body.inspectionId ?? body.inspection_id ?? null;
 
     if (!note) {
       return NextResponse.json(
@@ -72,6 +55,32 @@ export async function POST(req: Request) {
       ? requestedSection
       : "";
 
+    // Identify the inspector from the session so the write-up uses THEIR
+    // voice, learned edits, and published examples — the shared FLOW Writer.
+    let userId: string | null = null;
+    try {
+      const supabase = await createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      userId = user?.id ?? null;
+    } catch {
+      userId = null;
+    }
+
+    const { systemPrompt } = await loadFlowWriter({
+      userId,
+      inspectionId,
+      draft: { note, section: section || null },
+      extra: `INPUT: a short inspector note that is the PRIMARY SOURCE OF TRUTH. Base the entire finding on it — do not drift, do not invent unrelated defects, do not exaggerate the concern.
+- If the note is short, expand it professionally using common home inspection language, without adding facts it does not state.
+- If the note uses cautious wording such as "possible", "appears", "suspected", "may", or "could", keep that uncertainty.
+- If the note gives a recommendation, keep that recommendation. If it gives a location, include that location.
+- If a section is provided by the inspector, strongly prefer that section unless the note clearly belongs somewhere else.
+- Do not use markdown. Do not include any text outside the JSON.
+Return ONLY valid JSON with keys: title, observation, implication, recommendation, section, severity.`,
+    });
+
     const response = await openai.chat.completions.create({
       model: getAIModel(),
       response_format: {
@@ -80,61 +89,7 @@ export async function POST(req: Request) {
       messages: [
         {
           role: "system",
-          content: `
-You are a senior certified home inspector writing professional inspection report findings.
-
-The inspector note is the PRIMARY SOURCE OF TRUTH.
-Use the inspector's note as the main guidance for:
-- what defect or condition is being reported
-- the location or system involved
-- the section
-- the severity
-- the observation
-- the implication
-- the recommendation
-
-Do not ignore the inspector note.
-Do not replace the inspector note with a generic finding.
-Do not invent unrelated defects.
-Do not exaggerate the concern.
-Do not claim code violations unless the note clearly supports a safety concern.
-Do not state concealed conditions as facts.
-Do not use markdown.
-Do not include text outside JSON.
-
-If the note is short, expand it professionally using common home inspection language.
-If the note uses cautious wording such as "possible", "appears", "suspected", "may", or "could", keep that uncertainty.
-If the note gives a recommendation, keep that recommendation.
-If the note gives a location, include that location.
-If a section is provided by the inspector, strongly prefer that section unless the note clearly belongs somewhere else.
-
-Return ONLY valid JSON.
-
-Use this exact JSON format:
-
-{
-  "title": "",
-  "observation": "",
-  "implication": "",
-  "recommendation": "",
-  "section": "",
-  "severity": ""
-}
-
-Allowed sections only:
-Exterior, Roof, Basement, Foundation, Crawlspace & Structure, Heating, Cooling, Plumbing, Electrical, Fireplace, Attic, Insulation & Ventilation, Doors, Windows & Interior, Built-in Appliances, Garage.
-
-Allowed severities only:
-Informational, Monitor, Maintenance, Recommended Repair, Safety Concern, Major Concern.
-
-Severity guidance:
-- Informational: normal descriptive information or client awareness only.
-- Monitor: condition should be watched over time.
-- Maintenance: routine maintenance or minor upkeep.
-- Recommended Repair: correction, repair, or specialist evaluation recommended.
-- Safety Concern: clear shock, fire, fall, burn, carbon monoxide, injury, or life-safety risk.
-- Major Concern: major system failure, structural concern, significant defect, or potentially costly repair.
-          `,
+          content: systemPrompt,
         },
         {
           role: "user",
