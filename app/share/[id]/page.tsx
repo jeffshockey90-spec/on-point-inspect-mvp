@@ -19,6 +19,9 @@ import { getInspectionShareToken, getOrCreateShareToken } from "../../../lib/sha
 import { isReportViewReload } from "../../../lib/reportViewThrottle";
 import ReportLanguageSwitcher from "../../../components/ReportLanguageSwitcher";
 import UiAutoTranslate from "../../../components/UiAutoTranslate";
+import CommonGroundPanel from "../../../components/CommonGroundPanel";
+import { classifyDefect } from "../../../lib/dealCatalog";
+import { getPrevalenceMap, buildCommonGround, type CommonGround } from "../../../lib/dealInsights";
 import { REPORT_UI_STRINGS } from "../../../lib/uiStrings";
 import {
   SUPPORTED_LANGUAGES,
@@ -1514,6 +1517,38 @@ export default async function PublicSharePage({
   }
 
   const numberedFindings = addRepairItemNumbers(findings, activeSectionOrder);
+
+  // Common Ground (deal insights): classify each finding to a canonical defect
+  // type, look up its prevalence (national + this state), and build the panel
+  // data keyed by finding id (robust to any downstream copying of findings).
+  const commonGroundById = new Map<string, CommonGround>();
+  let showCommonGroundCosts = false;
+  if (inspection.company_id) {
+    try {
+      const { data: cgSettings } = await supabase
+        .from("companies")
+        .select("show_common_ground, show_common_ground_costs")
+        .eq("id", inspection.company_id)
+        .maybeSingle();
+      const cgOn = (cgSettings as any)?.show_common_ground !== false; // default on
+      showCommonGroundCosts = Boolean((cgSettings as any)?.show_common_ground_costs);
+      if (cgOn) {
+        const typed = findings.map((f: any) => ({
+          f,
+          dt: f.defect_type || classifyDefect(f),
+        }));
+        const types = typed.map((x) => x.dt).filter(Boolean) as string[];
+        const prevMap = await getPrevalenceMap(supabase, types, inspection.state);
+        for (const { f, dt } of typed) {
+          if (!dt) continue;
+          const cg = buildCommonGround({ defect_type: dt, severity: f.severity }, prevMap);
+          if (cg) commonGroundById.set(String(f.id), cg);
+        }
+      }
+    } catch {
+      /* Common Ground never blocks the report */
+    }
+  }
 
   const { data: checklistRows } = await supabase
     .from("section_checklist_selections")
@@ -3242,6 +3277,12 @@ export default async function PublicSharePage({
                                   </div>
                                 </div>
                               </article>
+                              {commonGroundById.get(String(finding.id)) && (
+                                <CommonGroundPanel
+                                  data={commonGroundById.get(String(finding.id))!}
+                                  showCosts={showCommonGroundCosts}
+                                />
+                              )}
                             </div>
                           );
                         })}
