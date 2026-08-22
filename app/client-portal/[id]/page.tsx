@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import FastLinkButton from "../../../components/FastLinkButton";
 import { getInspectionShareToken } from "../../../lib/shareToken";
 import Secure24ReferralCard from "../../../components/Secure24ReferralCard";
+import PortalAutoTranslate from "../../../components/PortalAutoTranslate";
 import { getOnlineProcessingFee } from "../../../lib/onlinePaymentFee";
 import { formatClockTime } from "../../../lib/app-time";
 
@@ -665,6 +666,7 @@ export default function ClientPortalPage() {
 
   return (
     <main className="min-h-screen bg-[#020617] px-4 pb-6 pt-4 text-white md:px-8 md:pb-8">
+      <PortalAutoTranslate inspectionId={inspectionId} />
       <div className="mx-auto max-w-[80rem] space-y-6">
         <button
           type="button"
