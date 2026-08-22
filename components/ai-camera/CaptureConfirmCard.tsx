@@ -118,6 +118,45 @@ export default function CaptureConfirmCard({
     setEdited((current) => ({ ...current, ...patch }) as CaptureDraft);
   }
 
+  // Teach the per-inspector learning brain from the AI draft (the `draft` prop
+  // this card was given) vs. the finalized values the inspector accepts.
+  // Fire-and-forget; must never block or break the accept/save.
+  function emitLiveCameraLearning(finalDraft: CaptureDraft) {
+    if (draft.kind !== "finding" || finalDraft.kind !== "finding") return;
+
+    try {
+      void fetch("/api/ai/learning", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          inspectionId: null,
+          tool: "live_camera",
+          original: {
+            title: draft.title,
+            section: draft.section,
+            severity: draft.severity,
+            observation: draft.observation,
+            implication: draft.implication,
+            recommendation: draft.recommendation,
+          },
+          updated: {
+            title: finalDraft.title,
+            section: finalDraft.section,
+            severity: finalDraft.severity,
+            observation: finalDraft.observation,
+            implication: finalDraft.implication,
+            recommendation: finalDraft.recommendation,
+          },
+          accepted: true,
+          notes:
+            "Inspector accepted an AI-generated finding. Learn wording, severity, and section-routing preferences from the before/after.",
+        }),
+      }).catch(() => {});
+    } catch {
+      // Learning must never block saving.
+    }
+  }
+
   return (
     <div className="absolute inset-0 z-30 flex flex-col bg-black/85 backdrop-blur-sm">
       <div className="flex items-center justify-between px-4 pt-[max(1rem,env(safe-area-inset-top))]">
@@ -597,7 +636,14 @@ export default function CaptureConfirmCard({
         </button>
         <button
           type="button"
-          onClick={() => (attachTo ? onAttachToExisting?.(attachTo) : onAccept(edited))}
+          onClick={() => {
+            if (attachTo) {
+              onAttachToExisting?.(attachTo);
+            } else {
+              emitLiveCameraLearning(edited);
+              onAccept(edited);
+            }
+          }}
           disabled={busy}
           className="min-h-12 rounded-xl bg-emerald-400 px-2 py-3 text-sm font-black text-black disabled:opacity-50"
         >

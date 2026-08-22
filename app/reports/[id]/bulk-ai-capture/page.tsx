@@ -57,6 +57,9 @@ type BulkItem = {
   aiOriginalTitle: string;
   aiOriginalSection: string;
   aiOriginalSeverity: string;
+  aiOriginalObservation: string;
+  aiOriginalImplication: string;
+  aiOriginalRecommendation: string;
   savedFindingId: string;
   savedImageUrl: string;
   savedFilePath: string;
@@ -93,6 +96,9 @@ function makeItem(file: File): BulkItem {
     aiOriginalTitle: "",
     aiOriginalSection: "",
     aiOriginalSeverity: "",
+    aiOriginalObservation: "",
+    aiOriginalImplication: "",
+    aiOriginalRecommendation: "",
     savedFindingId: "",
     savedImageUrl: "",
     savedFilePath: "",
@@ -192,6 +198,15 @@ export default function BulkAICapturePage() {
           aiOriginalTitle: item.title || "Video Attachment",
           aiOriginalSection: item.section || "Exterior",
           aiOriginalSeverity: "Informational",
+          aiOriginalObservation:
+            item.observation ||
+            "Video media was added to document the condition observed at the time of inspection.",
+          aiOriginalImplication:
+            item.implication ||
+            "Video is provided for client reference and additional visual context.",
+          aiOriginalRecommendation:
+            item.recommendation ||
+            "Review the attached video along with the written finding. Further evaluation or repair should be performed by the appropriate qualified contractor if concerns are present.",
         });
         return;
       }
@@ -265,6 +280,9 @@ export default function BulkAICapturePage() {
         aiOriginalTitle: cleanTitle,
         aiOriginalSection: data.section || cleanSection,
         aiOriginalSeverity: cleanSeverity,
+        aiOriginalObservation: data.observation || "",
+        aiOriginalImplication: data.implication || "",
+        aiOriginalRecommendation: data.recommendation || "",
         mergedIntoId: "",
       });
     } catch (error: any) {
@@ -557,6 +575,45 @@ export default function BulkAICapturePage() {
 
     for (const item of snapshot) {
       await saveOne(item);
+    }
+
+    // Teach the per-inspector learning brain from each reviewed item's AI draft
+    // vs. the final accepted values. Fire-and-forget batch; must never slow or
+    // block the save loop above.
+    try {
+      await Promise.allSettled(
+        snapshot.map((item) =>
+          fetch("/api/ai/learning", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              inspectionId,
+              tool: "bulk_capture",
+              original: {
+                title: item.aiOriginalTitle,
+                section: item.aiOriginalSection,
+                severity: item.aiOriginalSeverity,
+                observation: item.aiOriginalObservation,
+                implication: item.aiOriginalImplication,
+                recommendation: item.aiOriginalRecommendation,
+              },
+              updated: {
+                title: item.title,
+                section: item.section,
+                severity: item.severity,
+                observation: item.observation,
+                implication: item.implication,
+                recommendation: item.recommendation,
+              },
+              accepted: true,
+              notes:
+                "Inspector accepted an AI-generated finding. Learn wording, severity, and section-routing preferences from the before/after.",
+            }),
+          }).catch(() => {}),
+        ),
+      );
+    } catch {
+      // Learning must never block saving.
     }
 
     setBusy(false);

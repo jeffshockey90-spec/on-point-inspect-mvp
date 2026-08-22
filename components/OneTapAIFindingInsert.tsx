@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { supabase } from "../lib/supabaseClient";
 import AITemplateSuggestions from "./AITemplateSuggestions";
 
@@ -59,6 +59,18 @@ export default function OneTapAIFindingInsert({ inspectionId }: Props) {
   const [recommendation, setRecommendation] = useState("");
   const [inspectorId, setInspectorId] = useState("");
 
+  // Snapshot of the AI draft, captured the moment /api/ai-photo-finding returns
+  // — before any inspector edit — so the learning brain can diff the AI draft
+  // against what actually gets inserted (identical is still a positive signal).
+  const oneTapDraftBaselineRef = useRef<{
+    title: string;
+    section: string;
+    severity: string;
+    observation: string;
+    implication: string;
+    recommendation: string;
+  } | null>(null);
+
   const busy = loading || saving || isRefreshing;
 
   function showMessage(type: MessageType, text: string) {
@@ -100,6 +112,7 @@ export default function OneTapAIFindingInsert({ inspectionId }: Props) {
     setObservation("");
     setImplication("");
     setRecommendation("");
+    oneTapDraftBaselineRef.current = null;
   }
 
   function closeModal() {
@@ -196,6 +209,17 @@ export default function OneTapAIFindingInsert({ inspectionId }: Props) {
       setObservation(data.observation || "");
       setImplication(data.implication || "");
       setRecommendation(data.recommendation || "");
+
+      // Capture the AI draft exactly as generated (pre-edit) for learning.
+      oneTapDraftBaselineRef.current = {
+        title: data.title || "",
+        section: data.section || "Exterior",
+        severity: data.severity || "Recommended Repair",
+        observation: data.observation || "",
+        implication: data.implication || "",
+        recommendation: data.recommendation || "",
+      };
+
       showMessage("success", "AI draft ready. Review and edit before inserting.");
     } catch (error: any) {
       showMessage(
@@ -277,6 +301,38 @@ export default function OneTapAIFindingInsert({ inspectionId }: Props) {
 
       setSaved(true);
       showMessage("success", "Finding inserted successfully.");
+
+      // Teach the per-inspector learning brain from the AI draft vs. what was
+      // actually inserted. Identical values are still a positive accept signal.
+      // Fire-and-forget; must never block or break the insert.
+      const oneTapBaseline = oneTapDraftBaselineRef.current;
+      if (oneTapBaseline) {
+        try {
+          await fetch("/api/ai/learning", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              inspectionId,
+              tool: "one_tap",
+              original: oneTapBaseline,
+              updated: {
+                title,
+                section,
+                severity,
+                observation,
+                implication,
+                recommendation,
+              },
+              accepted: true,
+              notes:
+                "Inspector accepted an AI-generated finding. Learn wording, severity, and section-routing preferences from the before/after.",
+            }),
+          });
+        } catch {
+          // Learning must never block saving.
+        }
+        oneTapDraftBaselineRef.current = null;
+      }
 
       startTransition(() => {
         router.refresh();
@@ -471,6 +527,9 @@ export default function OneTapAIFindingInsert({ inspectionId }: Props) {
                 onUseTemplate={(template) => {
                   if (busy) return;
                   clearMessage();
+                  // Applying a library template replaces the AI draft, so it is
+                  // no longer an AI-draft acceptance — drop the learning baseline.
+                  oneTapDraftBaselineRef.current = null;
                   setTitle(template.title || "");
                   setSection(template.section || "Exterior");
                   setSeverity(template.severity || "Recommended Repair");

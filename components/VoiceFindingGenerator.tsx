@@ -112,6 +112,18 @@ export default function VoiceFindingGenerator({
   const recognitionRef = useRef<any>(null);
   const shouldContinueRef = useRef(false);
 
+  // Snapshot of the AI-generated draft, captured the moment /api/voice-finding
+  // returns — before the inspector edits it — so the learning brain can diff
+  // the AI draft against what the inspector actually accepts on save.
+  const voiceDraftBaselineRef = useRef<{
+    title: string;
+    section: string;
+    severity: string;
+    observation: string;
+    implication: string;
+    recommendation: string;
+  } | null>(null);
+
   const storageKey = useMemo(
     () => `voice-finding-draft-${reportId}`,
     [reportId]
@@ -450,6 +462,17 @@ export default function VoiceFindingGenerator({
       setObservation(data.observation || "");
       setImplication(data.implication || "");
       setRecommendation(data.recommendation || "");
+
+      // Capture the AI draft exactly as generated (pre-edit) for learning.
+      voiceDraftBaselineRef.current = {
+        title: data.title || "",
+        section: data.section || "Exterior",
+        severity: data.severity || "Recommended Repair",
+        observation: data.observation || "",
+        implication: data.implication || "",
+        recommendation: data.recommendation || "",
+      };
+
       showMessage("success", "Voice finding drafted. Review and save it.");
     } catch (error: any) {
       showMessage("error", error.message || "Something went wrong.");
@@ -540,6 +563,37 @@ export default function VoiceFindingGenerator({
           },
         }),
       }).catch(() => undefined);
+
+      // Teach the per-inspector learning brain from the AI draft vs. what the
+      // inspector actually accepted. Fire-and-forget; must never block saving.
+      const voiceBaseline = voiceDraftBaselineRef.current;
+      if (voiceBaseline) {
+        try {
+          await fetch("/api/ai/learning", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              inspectionId: reportId,
+              tool: "voice_finding",
+              original: voiceBaseline,
+              updated: {
+                title: findingPayload.title,
+                section,
+                severity,
+                observation: findingPayload.observation,
+                implication,
+                recommendation,
+              },
+              accepted: true,
+              notes:
+                "Inspector accepted an AI-generated finding. Learn wording, severity, and section-routing preferences from the before/after.",
+            }),
+          });
+        } catch {
+          // Learning must never block saving.
+        }
+        voiceDraftBaselineRef.current = null;
+      }
 
       showMessage("success", "Voice finding saved and inspection panels refreshed.");
       clearDraft();
