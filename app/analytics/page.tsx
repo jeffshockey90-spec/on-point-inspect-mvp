@@ -434,6 +434,81 @@ export default async function AnalyticsPage() {
     reviewRequestedRows.length
   );
 
+  // --- Per-inspector additions (every query below is scoped to THIS user's
+  // own inspections / company, so nothing leaks across companies) ---
+
+  // The inspector's own company, for their Google review count. Company RLS
+  // only lets a member read their own company row, so this can't leak.
+  let ownCompany: any = null;
+  {
+    const { data: companyUser } = await supabase
+      .from("company_users")
+      .select("company_id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (companyUser?.company_id) {
+      const { data } = await supabase
+        .from("companies")
+        .select("name, google_review_count, google_rating")
+        .eq("id", companyUser.company_id)
+        .maybeSingle();
+      ownCompany = data;
+    }
+  }
+  const googleReviewCount = getNumber(ownCompany?.google_review_count);
+  const googleRating = ownCompany?.google_rating ? Number(ownCompany.google_rating) : null;
+
+  // Reports actually emailed to clients -- constrained to this inspector's own
+  // inspection ids, so it's isolated regardless of the table's own scoping.
+  const { data: reportEmailRows } =
+    inspectionIds.length > 0
+      ? await supabase
+          .from("email_logs")
+          .select("inspection_id_bigint")
+          .in("email_type", ["inspection_report", "environmental_report"])
+          .in("inspection_id_bigint", inspectionIds)
+      : { data: [] as any[] };
+  const sentInspectionIdSet = new Set(
+    (reportEmailRows || []).map((e: any) => String(e.inspection_id_bigint))
+  );
+  const reportsSentCount = rows.filter((r: any) =>
+    sentInspectionIdSet.has(String(r.id))
+  ).length;
+
+  // Turnaround: average days from the inspection date to publish, and to paid.
+  const daysBetween = (from: any, to: any): number | null => {
+    const t1 = new Date(from).getTime();
+    const t2 = new Date(to).getTime();
+    if (!Number.isFinite(t1) || !Number.isFinite(t2) || t2 < t1) return null;
+    return (t2 - t1) / 86_400_000;
+  };
+  const avgOf = (arr: number[]) =>
+    arr.length ? arr.reduce((s, x) => s + x, 0) / arr.length : null;
+  const avgDaysToPublish = avgOf(
+    rows
+      .map((r: any) => daysBetween(r.inspection_date, r.published_at))
+      .filter((d: any): d is number => d != null)
+  );
+  const avgDaysToPaid = avgOf(
+    rows
+      .map((r: any) => daysBetween(r.inspection_date, r.paid_at))
+      .filter((d: any): d is number => d != null)
+  );
+
+  // Outstanding payment aging: how old the unpaid balances are.
+  const aging = {
+    b0: { count: 0, amount: 0 }, // 0-30 days
+    b1: { count: 0, amount: 0 }, // 31-60 days
+    b2: { count: 0, amount: 0 }, // 60+ days
+  };
+  for (const inspection of paymentsPending) {
+    const age = daysBetween(getDateValue(inspection), now.toISOString());
+    if (age == null) continue;
+    const bucket = age <= 30 ? aging.b0 : age <= 60 ? aging.b1 : aging.b2;
+    bucket.count += 1;
+    bucket.amount += getBalanceDue(inspection);
+  }
+
   const emailOpenEvents = viewEvents.filter(
     (log: any) => getViewType(log) === "email_open"
   );
@@ -454,6 +529,35 @@ export default async function AnalyticsPage() {
       getViewType(log)
     )
   );
+
+  // Deduped "real" opens: collapse reloads by the same viewer within 30 minutes
+  // on the same report, so refresh spam doesn't inflate the number (matches the
+  // owner dashboard's session count).
+  const reportOpenSessions = (() => {
+    const byViewer = new Map<string, number[]>();
+    for (const log of reportOpenEvents) {
+      const insp = String(log.inspection_id_bigint || log.inspection_id || "");
+      const viewer = String(
+        log.viewer_email || log.ip_hash || log.ip_address || "anon"
+      ).toLowerCase();
+      const t = new Date(log.created_at || 0).getTime();
+      if (!Number.isFinite(t)) continue;
+      const key = `${insp}|${viewer}`;
+      const list = byViewer.get(key) || [];
+      list.push(t);
+      byViewer.set(key, list);
+    }
+    let sessions = 0;
+    for (const times of byViewer.values()) {
+      times.sort((a, b) => a - b);
+      let last = -Infinity;
+      for (const t of times) {
+        if (t - last > 30 * 60 * 1000) sessions += 1;
+        last = t;
+      }
+    }
+    return sessions;
+  })();
   const reportTimeEvents = viewEvents.filter(
     (log: any) =>
       getViewType(log) === "report_time_final" ||
@@ -783,6 +887,63 @@ export default async function AnalyticsPage() {
             helper="Signed, paid, and published."
             tone="green"
           />
+
+          <MetricCard
+            label="Reports Sent"
+            value={String(reportsSentCount)}
+            helper="Emailed to clients."
+            tone="blue"
+          />
+
+          <MetricCard
+            label="Avg Days to Deliver"
+            value={avgDaysToPublish != null ? avgDaysToPublish.toFixed(1) : "—"}
+            helper="Inspection date to report published."
+            tone="purple"
+          />
+
+          <MetricCard
+            label="Avg Days to Get Paid"
+            value={avgDaysToPaid != null ? avgDaysToPaid.toFixed(1) : "—"}
+            helper="Inspection date to payment received."
+            tone="green"
+          />
+
+          <MetricCard
+            label="Google Reviews"
+            value={String(googleReviewCount)}
+            helper={
+              googleRating
+                ? `★ ${googleRating.toFixed(1)} average — grows as reviews come in.`
+                : "Link your Google profile in settings to track this."
+            }
+            tone="yellow"
+          />
+        </section>
+
+        <section className="mt-8">
+          <Panel
+            title="Outstanding Payment Aging"
+            subtitle="How long your unpaid balances have been sitting — chase the oldest first."
+          >
+            <div className="grid gap-4 sm:grid-cols-3">
+              <MiniMetric
+                label="0–30 days"
+                value={money(aging.b0.amount)}
+                helper={`${aging.b0.count} unpaid inspection${aging.b0.count === 1 ? "" : "s"}`}
+              />
+              <MiniMetric
+                label="31–60 days"
+                value={money(aging.b1.amount)}
+                helper={`${aging.b1.count} unpaid inspection${aging.b1.count === 1 ? "" : "s"}`}
+              />
+              <MiniMetric
+                label="60+ days"
+                value={money(aging.b2.amount)}
+                helper={`${aging.b2.count} unpaid inspection${aging.b2.count === 1 ? "" : "s"}`}
+              />
+            </div>
+          </Panel>
         </section>
 
         <section className="mt-8 grid gap-6 xl:grid-cols-2">
@@ -841,8 +1002,8 @@ export default async function AnalyticsPage() {
               />
               <MiniMetric
                 label="Report / Portal Opens"
-                value={String(reportOpenEvents.length)}
-                helper="Share, portal, and environmental opens."
+                value={String(reportOpenSessions)}
+                helper="Real opens — rapid reloads merged."
               />
               <MiniMetric
                 label="Avg Read Time"
