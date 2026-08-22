@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Copy, Check, Trash2, Plus, KeyRound, Webhook, Send } from "lucide-react";
+import { Copy, Check, Trash2, Plus, KeyRound, Webhook, Send, Plug } from "lucide-react";
 
 type ApiKey = {
   id: string;
@@ -338,6 +338,55 @@ export default function DeveloperSettings({ siteUrl }: { siteUrl: string }) {
             {copied === "tested" ? "Test sent" : "Send test event"}
           </button>
         )}
+      </section>
+
+      {/* MCP */}
+      <section className="rounded-3xl border border-slate-800 bg-[#0b1220] p-5 shadow-xl sm:p-6">
+        <div className="flex items-center gap-3">
+          <Plug className="h-6 w-6 text-emerald-300" />
+          <h2 className="text-2xl font-black text-white">AI Assistant (MCP)</h2>
+        </div>
+        <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">
+          Connect your own Claude or Gemini to FLOW and let it read and edit your reports. Point
+          your MCP client at this endpoint and authenticate with an API key from above.
+        </p>
+
+        <div className="mt-4 rounded-xl border border-slate-800 bg-[#020817] p-3">
+          <p className="text-[11px] font-black uppercase tracking-wide text-slate-500">MCP endpoint</p>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <code className="break-all font-mono text-sm text-emerald-200">{base}/api/mcp</code>
+            <button
+              type="button"
+              onClick={() => copy(`${base}/api/mcp`, "mcp")}
+              className="text-[11px] font-black text-emerald-300 hover:text-emerald-200"
+            >
+              {copied === "mcp" ? "Copied" : "Copy"}
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-3 rounded-xl border border-slate-800 bg-[#020817] p-3">
+          <p className="text-[11px] font-black uppercase tracking-wide text-slate-500">
+            Connect (Claude Code / Claude Desktop)
+          </p>
+          <code className="mt-2 block break-all font-mono text-xs text-slate-300">
+            npx mcp-remote {base}/api/mcp --header &quot;Authorization: Bearer YOUR_KEY&quot;
+          </code>
+        </div>
+
+        <div className="mt-3">
+          <p className="text-[11px] font-black uppercase tracking-wide text-slate-500">Available tools</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {["list_inspections", "get_inspection", "list_findings", "update_finding"].map((t) => (
+              <span
+                key={t}
+                className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-[11px] font-black text-emerald-200"
+              >
+                {t}
+              </span>
+            ))}
+          </div>
+        </div>
       </section>
     </div>
   );
