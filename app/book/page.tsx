@@ -1,57 +1,8 @@
 import Link from "next/link";
-import { createClient as createServiceClient } from "@supabase/supabase-js";
 import BookingRequestForm from "../../components/BookingRequestForm";
+import { getBookingCompanyBySlug, getBookingAvailability } from "../../lib/booking";
 
 export const dynamic = "force-dynamic";
-
-function createAdminClient() {
-  return createServiceClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-      },
-    }
-  );
-}
-
-async function getCompanyBySlug(slug: string) {
-  if (!slug) return null;
-
-  const admin = createAdminClient();
-  const { data } = await admin
-    .from("companies")
-    .select("id, name, display_name")
-    .eq("profile_slug", slug)
-    .maybeSingle();
-
-  return data;
-}
-
-async function getAvailabilityForCompany(companyId: number | null) {
-  if (!companyId) return null;
-
-  const admin = createAdminClient();
-
-  const { data: companyUser } = await admin
-    .from("company_users")
-    .select("user_id")
-    .eq("company_id", companyId)
-    .eq("role", "owner")
-    .maybeSingle();
-
-  if (!companyUser?.user_id) return null;
-
-  const { data: availability } = await admin
-    .from("inspector_availability")
-    .select("booking_enabled, available_days, default_times, blocked_dates, timezone")
-    .eq("user_id", companyUser.user_id)
-    .maybeSingle();
-
-  return availability;
-}
 
 export default async function BookInspectionPage({
   searchParams,
@@ -60,9 +11,9 @@ export default async function BookInspectionPage({
 }) {
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const companySlug = String(resolvedSearchParams?.inspector || "").trim();
-  const company = companySlug ? await getCompanyBySlug(companySlug) : null;
+  const company = companySlug ? await getBookingCompanyBySlug(companySlug) : null;
   const companyName = company?.display_name || company?.name || "FLOW";
-  const availability = await getAvailabilityForCompany(company?.id || null);
+  const availability = await getBookingAvailability(company?.id || null);
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#020617] px-4 py-6 text-white sm:px-6 sm:py-10">

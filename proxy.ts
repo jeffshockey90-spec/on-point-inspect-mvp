@@ -67,6 +67,7 @@ const PUBLIC_PREFIXES = [
   "/forgot-password",
   "/reset-password",
   "/book",
+  "/embed",
   "/pricing",
   "/privacy",
   "/terms",

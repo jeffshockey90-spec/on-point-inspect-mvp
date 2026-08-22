@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "../../../utils/supabase/server";
 import CompanyImageUploader from "../CompanyImageUploader";
+import BookingEmbedSnippet from "../../../components/BookingEmbedSnippet";
 import PublicProfileActions from "./PublicProfileActions";
 import GoogleBusinessConnect from "./GoogleBusinessConnect";
 import PortfolioGalleryManager from "./PortfolioGalleryManager";
@@ -141,6 +142,10 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
   const publicProfileUrl = getPublicProfileUrl(company);
   const profileSlug =
     company.profile_slug || slugifyProfile(company.display_name || company.name);
+  const siteUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    "https://app.flowinspect.app";
 
   const { data: portfolioGalleryRaw, error: portfolioGalleryError } = await supabase
     .from("public_profile_gallery")
@@ -357,6 +362,20 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
                 </div>
               </div>
             </div>
+          </div>
+        </section>
+
+        <section className="rounded-3xl border border-slate-800 bg-[#0b1220] p-5 shadow-xl sm:p-6 md:p-8">
+          <p className="text-xs font-black uppercase tracking-[0.25em] text-cyan-300">
+            Booking Widget
+          </p>
+          <h2 className="mt-2 text-2xl font-black text-white">Embed booking on your website</h2>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">
+            Paste this snippet into your own website to let visitors request an inspection without
+            leaving your site. It shows the same booking form as your public page and auto-sizes to fit.
+          </p>
+          <div className="mt-5">
+            <BookingEmbedSnippet slug={profileSlug} siteUrl={siteUrl} />
           </div>
         </section>
 
