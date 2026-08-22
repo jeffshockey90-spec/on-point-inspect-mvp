@@ -47,6 +47,8 @@ import {
   CheckCircle2,
   Clock,
   Bell,
+  Split,
+  BookOpenCheck,
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -58,6 +60,7 @@ const cards = [
   { title: "Reports", description: "View and edit reports.", href: "/reports", icon: FileText },
   { title: "Analytics", description: "Track revenue, inspections, payments, agreements, and reports.", href: "/analytics", icon: BarChart3 },
   { title: "Timesheets", description: "On-site hours captured from GPS arrival/departure, by inspector, with CSV export for payroll.", href: "/timesheets", icon: Clock },
+  { title: "Pay Splits", description: "Set each inspector's commission % and see per-inspector earnings for a date range.", href: "/pay-splits", icon: Split },
   { title: "Day Route", description: "Your inspections for the day, ordered to minimize drive time, with a one-tap Google Maps route.", href: "/route", icon: Route },
   { title: "Developer API", description: "API keys and signed webhooks for Zapier, custom integrations, and AI assistants.", href: "/settings/developer", icon: Zap },
   { title: "Realtors", description: "Manage realtor contacts, referrals, and revenue.", href: "/realtors", icon: Building2 },
@@ -69,6 +72,7 @@ const cards = [
   { title: "Radon", description: "Manage radon tests, readings, devices, and results.", href: "/radon", icon: Radiation },
   { title: "Mold", description: "Track mold samples, lab reports, results, and summaries.", href: "/mold", icon: FlaskConical },
   { title: "AI Capture", description: "Create findings from photos.", href: "/ai-capture", icon: Sparkles },
+  { title: "Code Assistant", description: "Ask building-code questions (IRC) in plain language. Always verify with the local AHJ.", href: "/code-assistant", icon: BookOpenCheck },
   { title: "Equipment Analyzer", description: "Read data plates and document equipment inventory.", href: "/equipment-analyzer", icon: Search },
   { title: "Field Tool", description: "Mobile AI inspection workflow.", href: "/field", icon: Smartphone },
   { title: "Templates", description: "Manage favorite findings, templates, and reusable language.", href: "/templates", icon: LayoutTemplate },

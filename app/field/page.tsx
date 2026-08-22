@@ -18,6 +18,7 @@ import AISecondInspector, {
   type AISuggestion,
 } from "../../components/AISecondInspector";
 import InspectionCopilotPanel from "../../components/InspectionCopilotPanel";
+import CodeAssistantPanel from "../../components/CodeAssistantPanel";
 import OfflineReportViewer from "../../components/OfflineReportViewer";
 import AILiveInspectionCamera from "../../components/AILiveInspectionCamera";
 import FieldFindingLinker from "../../components/FieldFindingLinker";
@@ -950,7 +951,7 @@ function FieldPageContent() {
   const [nativeApp, setNativeApp] = useState(false);
   const [voiceOnlyOpen, setVoiceOnlyOpen] = useState(false);
   const [assistantTab, setAssistantTab] = useState<
-    "live" | "coach" | "copilot" | "review"
+    "live" | "coach" | "copilot" | "review" | "code"
   >("live");
 
   useEffect(() => {
@@ -4614,7 +4615,7 @@ function FieldPageContent() {
 
             <div className="overflow-hidden rounded-2xl border border-slate-700 bg-black/25">
               <div className="overflow-x-auto border-b border-slate-700 bg-slate-950/80 p-1">
-                <div className="grid min-w-[640px] grid-cols-4 gap-1">
+                <div className="grid min-w-[760px] grid-cols-5 gap-1">
                   <button
                     type="button"
                     onClick={() => setAssistantTab("live")}
@@ -4662,6 +4663,18 @@ function FieldPageContent() {
                   >
                     🔎 Live Review
                   </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setAssistantTab("code")}
+                    className={`min-h-[44px] rounded-xl px-3 py-2 text-sm font-black transition [touch-action:manipulation] ${
+                      assistantTab === "code"
+                        ? "bg-teal-400 text-black"
+                        : "text-slate-300 hover:bg-slate-800"
+                    }`}
+                  >
+                    📖 Code
+                  </button>
                 </div>
               </div>
 
@@ -4706,6 +4719,10 @@ function FieldPageContent() {
                     onIgnore={ignoreAiSuggestion}
                     onClear={() => setAiSuggestions([])}
                   />
+                )}
+
+                {assistantTab === "code" && (
+                  <CodeAssistantPanel compact context={section ? `Current section: ${section}` : ""} />
                 )}
 
                 {selectedReport && (
