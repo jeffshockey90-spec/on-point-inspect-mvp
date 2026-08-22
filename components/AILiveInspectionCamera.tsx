@@ -152,6 +152,18 @@ export default function AILiveInspectionCamera({
   const [capturedFrameForAi, setCapturedFrameForAi] = useState("");
   const [draft, setDraft] = useState<CaptureDraft | null>(null);
   const [draftError, setDraftError] = useState("");
+
+  // Snapshot of the AI's finding draft (pre-edit), captured the moment the live
+  // AI returns, so on accept we can teach the per-inspector learning brain the
+  // AI-draft-vs-accepted diff — the same loop the finding editor already feeds.
+  const aiFindingBaselineRef = useRef<{
+    title: string;
+    section: string;
+    severity: string;
+    observation: string;
+    implication: string;
+    recommendation: string;
+  } | null>(null);
   // Photos bundled into the CURRENT finding (multi-angle capture). Empty for
   // single-photo/non-finding captures, which keep the original one-file flow.
   const [shots, setShots] = useState<
@@ -812,6 +824,15 @@ export default function AILiveInspectionCamera({
           recommendation: data.recommendation,
           confidence: data.confidence,
         });
+        // Capture the AI draft exactly as generated (pre-edit) for learning.
+        aiFindingBaselineRef.current = {
+          title: data.title || "",
+          section: data.section || "",
+          severity: data.severity || "",
+          observation: data.observation || "",
+          implication: data.implication || "",
+          recommendation: data.recommendation || "",
+        };
         setStage("confirm");
         return;
       }
@@ -940,6 +961,37 @@ export default function AILiveInspectionCamera({
           editedDraft,
           shots.length ? shots.map((s) => s.file) : capturedFile,
         );
+
+        // Teach the per-inspector learning brain from the AI draft vs. what the
+        // inspector actually accepted. Fire-and-forget; never blocks the save.
+        const baseline = aiFindingBaselineRef.current;
+        if (category === "finding" && editedDraft.kind === "finding" && baseline) {
+          try {
+            void fetch("/api/ai/learning", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                inspectionId: selectedReport,
+                tool: "live_camera",
+                original: baseline,
+                updated: {
+                  title: editedDraft.title,
+                  section: editedDraft.section,
+                  severity: editedDraft.severity,
+                  observation: editedDraft.observation,
+                  implication: editedDraft.implication,
+                  recommendation: editedDraft.recommendation,
+                },
+                accepted: true,
+                notes:
+                  "Inspector accepted an AI-generated finding. Learn wording, severity, and section-routing preferences from the before/after.",
+              }),
+            }).catch(() => {});
+          } catch {
+            // Learning must never block saving.
+          }
+          aiFindingBaselineRef.current = null;
+        }
       }
 
       setToast(`${CATEGORIES.find((c) => c.key === category)?.label} saved.`);
