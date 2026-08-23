@@ -919,7 +919,7 @@ export default async function OwnerDashboardPage() {
     .slice(0, 25);
 
   return (
-    <main className="min-h-screen bg-[#020617] px-4 py-8 text-white md:px-6 md:py-10">
+    <main className="min-h-screen overflow-x-clip bg-[#020617] px-4 py-8 text-white md:px-6 md:py-10">
       <div className="mx-auto max-w-7xl space-y-8">
         <section className="rounded-3xl border border-teal-500/40 bg-[#0f172a] p-8 shadow-2xl">
           <div className="flex flex-wrap items-end justify-between gap-6">
@@ -1631,9 +1631,9 @@ function MetricCard({ label, value, helper, tone }: { label: string; value: stri
   };
 
   return (
-    <div className={`rounded-2xl border p-6 shadow-xl ${classes[tone]}`}>
+    <div className={`min-w-0 rounded-2xl border p-6 shadow-xl ${classes[tone]}`}>
       <p className="text-xs font-black uppercase tracking-wide text-slate-400">{label}</p>
-      <p className="mt-3 text-4xl font-black text-white">{value}</p>
+      <p className="mt-3 break-words text-4xl font-black text-white">{value}</p>
       <p className="mt-3 text-sm leading-6 text-slate-400">{helper}</p>
     </div>
   );
@@ -1641,7 +1641,7 @@ function MetricCard({ label, value, helper, tone }: { label: string; value: stri
 
 function Panel({ title, subtitle, children, tab }: { title: string; subtitle: string; children: React.ReactNode; tab?: string }) {
   return (
-    <section data-owner-tab={tab} className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
+    <section data-owner-tab={tab} className="min-w-0 rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
       <h2 className="text-2xl font-black text-teal-300">{title}</h2>
       <p className="mt-2 text-sm text-slate-400">{subtitle}</p>
       <div className="mt-6">{children}</div>
