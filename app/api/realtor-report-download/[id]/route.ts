@@ -2328,12 +2328,22 @@ export async function GET(req: Request, { params }: RouteProps) {
 
     const pdf = await renderHtmlToPdf(html);
 
+    // The PDF takes ~10s to build. For public share-link downloads (token in the
+    // URL, which is itself the access control), let Vercel's CDN cache the result
+    // so repeat downloads are served instantly from the edge instead of being
+    // regenerated — with stale-while-revalidate so it's instant after the first
+    // download and refreshes in the background. Authenticated (numeric-id)
+    // downloads stay private.
+    const cacheControl = allowedByShareToken
+      ? "public, max-age=120, s-maxage=600, stale-while-revalidate=86400"
+      : "private, max-age=20, stale-while-revalidate=120";
+
     return new NextResponse(new Uint8Array(pdf), {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `${disposition}; filename="${getDownloadName(property, reportMode)}"`,
-        "Cache-Control": "private, max-age=20, stale-while-revalidate=120",
+        "Cache-Control": cacheControl,
       },
     });
   } catch (error: any) {
