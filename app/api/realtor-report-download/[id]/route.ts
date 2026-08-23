@@ -899,6 +899,10 @@ function buildAgentReportHtml({
   clientEmailOverride,
   sectionNotes,
   limitations,
+  checklistBySection,
+  referencePhotosBySection,
+  disclaimers,
+  equipment,
 }: {
   inspection: any;
   findings: any[];
@@ -913,6 +917,10 @@ function buildAgentReportHtml({
   clientEmailOverride?: string;
   sectionNotes?: Record<string, string>;
   limitations?: Array<{ section: string; label: string; comment: string }>;
+  checklistBySection?: Record<string, Record<string, string[]>>;
+  referencePhotosBySection?: Record<string, Array<{ url: string; caption: string }>>;
+  disclaimers?: Array<{ topic: string; text: string }>;
+  equipment?: Array<{ type: string; name: string; photoUrl: string; rows: Array<[string, string]>; note: string }>;
 }) {
   const property = getPropertyAddress(inspection);
   const isFull = reportMode === "full";
@@ -932,7 +940,11 @@ function buildAgentReportHtml({
   const grouped = activeSectionOrder.map((section) => ({
     section,
     findings: defects.filter((finding) => normalizeSection(finding.section) === section),
-  })).filter((group) => group.findings.length > 0);
+  })).filter((group) =>
+    group.findings.length > 0 ||
+    Boolean(checklistBySection && checklistBySection[group.section]) ||
+    Boolean(referencePhotosBySection && referencePhotosBySection[group.section]?.length),
+  );
 
   const otherFindings = defects.filter(
     (finding) => !activeSectionOrder.includes(normalizeSection(finding.section))
@@ -990,6 +1002,21 @@ function buildAgentReportHtml({
     `;
   }).join("");
 
+  const tocExtraRow = (label: string, count: string) => `
+      <div class="toc-row">
+        <span class="toc-num">&bull;</span>
+        <span class="toc-name">${escapeHtml(label)}</span>
+        <span class="toc-dots"></span>
+        <span class="toc-count">${escapeHtml(count)}</span>
+      </div>`;
+
+  const equipmentTocHtml = (Array.isArray(equipment) && equipment.length)
+    ? tocExtraRow("Equipment Inventory", `${equipment.length} item${equipment.length === 1 ? "" : "s"}`)
+    : "";
+  const disclaimersTocHtml = (Array.isArray(disclaimers) && disclaimers.length)
+    ? tocExtraRow("Disclaimers", `${disclaimers.length} notice${disclaimers.length === 1 ? "" : "s"}`)
+    : "";
+
   const standardsTocHtml = includeStandardsInPdf
     ? `
       <div class="toc-row">
@@ -1033,9 +1060,16 @@ function buildAgentReportHtml({
 
     const findingsHtml = group.findings.map((finding: any) => {
       const sectionItemNumber = String(finding.report_item_number || "");
-      const photos = Array.isArray(finding.photos)
-        ? finding.photos.slice(0, isFull ? 6 : 3)
-        : [];
+      // Only render still images. A video whose poster/thumbnail didn't resolve
+      // leaves a plain video-file URL that an <img> can't display (blank box);
+      // drop those so the PDF never shows an empty photo.
+      const photos = (Array.isArray(finding.photos) ? finding.photos : [])
+        .filter(
+          (photo: any) =>
+            cleanText(photo?.download_url) &&
+            !/\.(mp4|mov|m4v|webm|avi|quicktime)(\?|#|$)/i.test(String(photo.download_url)),
+        )
+        .slice(0, isFull ? 6 : 3);
 
       const photoCountClass = photos.length === 1 ? "one" : photos.length === 2 ? "two" : "";
       const photoHtml = photos.length
@@ -1077,6 +1111,41 @@ function buildAgentReportHtml({
       `;
     }).join("");
 
+    const sectionInfo = checklistBySection && checklistBySection[group.section];
+    const infoHtml = sectionInfo && Object.keys(sectionInfo).length
+      ? `
+        <div class="sub-head">Information</div>
+        <div class="info-grid">
+          ${Object.entries(sectionInfo).map(([groupTitle, vals]) => `
+            <div class="info-item">
+              <span class="info-k">${escapeHtml(groupTitle)}</span>
+              <span class="info-v">${escapeHtml((vals as string[]).join(", "))}</span>
+            </div>
+          `).join("")}
+        </div>
+      `
+      : "";
+
+    const refPhotosForSection =
+      (referencePhotosBySection && referencePhotosBySection[group.section]) || [];
+    const refPhotosHtml = refPhotosForSection.length
+      ? `
+        <div class="sub-head">Reference Photos</div>
+        <div class="ref-grid">
+          ${refPhotosForSection.map((photo) => `
+            <figure class="ref-photo">
+              <img src="${escapeHtml(photo.url)}" alt="Reference photo" />
+              ${photo.caption ? `<figcaption>${escapeHtml(photo.caption)}</figcaption>` : ""}
+            </figure>
+          `).join("")}
+        </div>
+      `
+      : "";
+
+    const findingsBlock = group.findings.length
+      ? `<div class="sub-head">Findings <span class="sub-count">${group.findings.length} item${group.findings.length === 1 ? "" : "s"}</span></div>${findingsHtml}`
+      : "";
+
     return `
       <section class="page report-page" id="${escapeHtml(getSectionAnchor(group.section))}">
         <header class="page-header">
@@ -1100,8 +1169,9 @@ function buildAgentReportHtml({
             : ""
         }
 
-        <div class="sub-head">Findings <span class="sub-count">${group.findings.length} item${group.findings.length === 1 ? "" : "s"}</span></div>
-        ${findingsHtml}
+        ${infoHtml}
+        ${refPhotosHtml}
+        ${findingsBlock}
 
         <footer class="black-footer">
           <span>${escapeHtml(companyName)}</span>
@@ -1166,6 +1236,56 @@ function buildAgentReportHtml({
         headerLogoHtml,
         standardsOfPractice,
       })
+    : "";
+
+  const miniHeader = `
+        <header class="page-header">
+          <div class="mini-brand">${headerLogoHtml}</div>
+          <div class="header-address">${escapeHtml(property)}<br/>${escapeHtml(cityStateZip)}</div>
+        </header>`;
+
+  const equipmentList = Array.isArray(equipment) ? equipment : [];
+  const equipmentPageHtml = equipmentList.length
+    ? `
+      <section class="page report-page">
+        ${miniHeader}
+        <div class="section-head">
+          <p class="section-eyebrow">Inspection Reference</p>
+          <h2 class="section-name">Equipment Inventory</h2>
+        </div>
+        <div class="equip-grid">
+          ${equipmentList.map((e) => `
+            <div class="equip-card">
+              ${e.photoUrl ? `<img class="equip-img" src="${escapeHtml(e.photoUrl)}" alt="Equipment" />` : ""}
+              <p class="equip-type">${escapeHtml(e.type)}</p>
+              <h3 class="equip-name">${escapeHtml(e.name)}</h3>
+              ${e.rows.length ? `<div class="equip-rows">${e.rows.map(([k, v]) => `<div class="equip-row"><span>${escapeHtml(k)}</span><b>${escapeHtml(v)}</b></div>`).join("")}</div>` : ""}
+              ${e.note ? `<p class="equip-note">${escapeHtml(e.note)}</p>` : ""}
+            </div>
+          `).join("")}
+        </div>
+        <footer class="black-footer"><span>${escapeHtml(companyName)}</span><span>Equipment Inventory</span></footer>
+      </section>`
+    : "";
+
+  const disclaimersList = Array.isArray(disclaimers) ? disclaimers : [];
+  const disclaimersPageHtml = disclaimersList.length
+    ? `
+      <section class="page report-page">
+        ${miniHeader}
+        <div class="section-head">
+          <p class="section-eyebrow">Report Reference</p>
+          <h2 class="section-name">Disclaimers</h2>
+        </div>
+        <p class="disc-intro">These disclaimers are part of the inspection report and should be reviewed with the same care as the findings.</p>
+        ${disclaimersList.map((d) => `
+          <div class="disc-item">
+            ${d.topic ? `<h3 class="disc-topic">${escapeHtml(d.topic)}</h3>` : ""}
+            ${d.text ? `<p class="disc-text">${escapeHtml(d.text)}</p>` : ""}
+          </div>
+        `).join("")}
+        <footer class="black-footer"><span>${escapeHtml(companyName)}</span><span>Disclaimers</span></footer>
+      </section>`
     : "";
 
   return `<!doctype html>
@@ -1263,6 +1383,31 @@ function buildAgentReportHtml({
     .photos img { width: 100%; height: 208px; object-fit: cover; border-radius: 5px; border: 1px solid #e5e7eb; display: block; }
     h3 { margin: 0; font-weight: 600; color: #1f2937; }
 
+    .info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px 26px; margin-bottom: 4px; }
+    .info-item { break-inside: avoid; }
+    .info-k { display: block; color: #64748b; font-size: 10px; text-transform: uppercase; letter-spacing: .06em; font-weight: 600; margin-bottom: 3px; }
+    .info-v { color: #1f2937; font-weight: 500; }
+    .ref-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .ref-photo { margin: 0; break-inside: avoid; }
+    .ref-photo img { width: 100%; height: 178px; object-fit: cover; border-radius: 5px; border: 1px solid #e5e7eb; display: block; }
+    .ref-photo figcaption { margin-top: 5px; color: #64748b; font-size: 11px; line-height: 1.4; }
+
+    .equip-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+    .equip-card { break-inside: avoid; page-break-inside: avoid; border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px; background: #fbfcfe; }
+    .equip-img { width: 100%; height: 190px; object-fit: cover; border-radius: 5px; border: 1px solid #e5e7eb; display: block; margin-bottom: 12px; }
+    .equip-type { margin: 0; color: #0f8f8f; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
+    .equip-name { margin: 4px 0 10px; color: #1f2937; font-size: 16px; font-weight: 600; }
+    .equip-rows { display: grid; gap: 5px; }
+    .equip-row { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; }
+    .equip-row span { color: #64748b; }
+    .equip-row b { color: #1f2937; font-weight: 500; text-align: right; }
+    .equip-note { margin: 10px 0 0; color: #374151; font-size: 12px; line-height: 1.55; white-space: pre-line; }
+
+    .disc-intro { margin: 0 0 16px; color: #64748b; font-size: 12.5px; line-height: 1.6; }
+    .disc-item { break-inside: avoid; page-break-inside: avoid; margin-bottom: 16px; padding-bottom: 14px; border-bottom: 1px solid #eef2f7; }
+    .disc-topic { margin: 0 0 6px; color: #1f2937; font-size: 15px; font-weight: 600; }
+    .disc-text { margin: 0; color: #374151; line-height: 1.62; white-space: pre-line; }
+
     .standards-title { border-left: 6px solid #0f8f8f; padding: 0 0 0 18px; margin-bottom: 18px; }
     .standards-title p { margin: 0; color: #0f8f8f; font-size: 10px; text-transform: uppercase; letter-spacing: .14em; font-weight: 900; }
     .standards-title h2 { margin: 4px 0 6px; color: #020617; font-size: 28px; text-transform: uppercase; }
@@ -1355,6 +1500,8 @@ function buildAgentReportHtml({
       </header>
       <h2 class="toc-title">Table of Contents</h2>
       ${tocHtml || "<p>No sections with findings.</p>"}
+      ${equipmentTocHtml}
+      ${disclaimersTocHtml}
       ${standardsTocHtml}
       <footer class="black-footer"><span>${escapeHtml(companyName)}</span><span>Table of Contents</span></footer>
     </section>
@@ -1394,7 +1541,11 @@ function buildAgentReportHtml({
       </section>
     `}
 
+    ${equipmentPageHtml}
+
     ${limitationsPageHtml}
+
+    ${disclaimersPageHtml}
 
     ${standardsPagesHtml}
 
@@ -1869,6 +2020,97 @@ export async function GET(req: Request, { params }: RouteProps) {
       comment: cleanText(lim.limitation_comment || lim.ai_notes),
     }));
 
+    // "Information" (what was inspected — materials/methods) + section reference
+    // photos, so the PDF is as complete as the web report / Spectora: each
+    // section shows its inspected details and reference pics, not only defects.
+    const { data: checklistRows } = await admin
+      .from("section_checklist_selections")
+      .select("section, group_title, value, custom_text")
+      .eq("inspection_id", inspectionId);
+    const checklistBySection: Record<string, Record<string, string[]>> = {};
+    for (const row of (checklistRows as any[]) || []) {
+      const sec = normalizeSection(row.section);
+      const group = cleanText(row.group_title) || "Details";
+      const val = cleanText(row.custom_text || row.value);
+      if (!val || val === "__TEXT_VALUE__") continue;
+      if (!checklistBySection[sec]) checklistBySection[sec] = {};
+      if (!checklistBySection[sec][group]) checklistBySection[sec][group] = [];
+      checklistBySection[sec][group].push(val);
+    }
+
+    const { data: refPhotosRaw } = await admin
+      .from("section_reference_photos")
+      .select("*")
+      .eq("inspection_id", inspectionId)
+      .order("created_at", { ascending: true });
+    const refPhotoPaths = ((refPhotosRaw as any[]) || []).flatMap((p: any) =>
+      [p.thumbnail_path, p.file_path].filter(Boolean),
+    );
+    const [refPdfSigned, refFullSigned] = await Promise.all([
+      signedPdfImageUrlMap(admin, refPhotoPaths),
+      signedUrlMap(admin, refPhotoPaths),
+    ]);
+    const referencePhotosBySection: Record<string, Array<{ url: string; caption: string }>> = {};
+    for (const p of (refPhotosRaw as any[]) || []) {
+      const sec = normalizeSection(p.section);
+      if (!sec) continue;
+      const path = p.thumbnail_path || p.file_path;
+      const refUrl =
+        (path && (refPdfSigned[path] || refFullSigned[path])) ||
+        cleanText(p.signed_thumbnail_url) ||
+        cleanText(p.thumbnail_url) ||
+        cleanText(p.signed_url) ||
+        cleanText(p.public_url) ||
+        "";
+      if (!refUrl) continue;
+      if (!referencePhotosBySection[sec]) referencePhotosBySection[sec] = [];
+      referencePhotosBySection[sec].push({ url: refUrl, caption: cleanText(p.caption) });
+    }
+
+    // Report disclaimers + equipment inventory — part of the full report.
+    const { data: disclaimerRows } = await admin
+      .from("report_disclaimers")
+      .select("topic, disclaimer_text, created_at")
+      .eq("inspection_id", inspectionId)
+      .order("created_at", { ascending: true });
+    const disclaimers = ((disclaimerRows as any[]) || [])
+      .map((d: any) => ({ topic: cleanText(d.topic), text: cleanText(d.disclaimer_text) }))
+      .filter((d) => d.topic || d.text);
+
+    const { data: equipRows } = await admin
+      .from("equipment_inventory")
+      .select("*")
+      .eq("inspection_id", inspectionId)
+      .order("created_at", { ascending: true });
+    const equipPhotoPaths = ((equipRows as any[]) || []).flatMap((e: any) =>
+      [e.thumbnail_path, e.file_path].filter(Boolean),
+    );
+    const [equipPdfSigned, equipFullSigned] = await Promise.all([
+      signedPdfImageUrlMap(admin, equipPhotoPaths),
+      signedUrlMap(admin, equipPhotoPaths),
+    ]);
+    const equipment = ((equipRows as any[]) || []).map((e: any) => {
+      const path = e.thumbnail_path || e.file_path;
+      const photoUrl =
+        (path && (equipPdfSigned[path] || equipFullSigned[path])) ||
+        cleanText(e.signed_thumbnail_url) || cleanText(e.thumbnail_url) ||
+        cleanText(e.signed_image_url) || cleanText(e.image_url) || cleanText(e.public_url) || "";
+      return {
+        type: cleanText(e.equipment_type) || "Equipment",
+        name: [cleanText(e.manufacturer), cleanText(e.model)].filter(Boolean).join(" ") || "Equipment Record",
+        photoUrl: /\.(mp4|mov|m4v|webm|avi)(\?|#|$)/i.test(photoUrl) ? "" : photoUrl,
+        rows: ([
+          ["Serial", cleanText(e.serial)],
+          ["Manufacture Year", cleanText(e.manufacture_year)],
+          ["Estimated Age", cleanText(e.estimated_age)],
+          ["Capacity", cleanText(e.capacity)],
+          ["Fuel Type", cleanText(e.fuel_type)],
+          ["Condition", cleanText(e.condition)],
+        ] as Array<[string, string]>).filter(([, v]) => v),
+        note: cleanText(e.notes || e.inspector_note || e.ai_notes),
+      };
+    });
+
     // PDF files can't play video, but a finding's video should still appear as
     // its poster/thumbnail frame (getPhotoStoragePath prefers the thumbnail for
     // videos) rather than being dropped entirely.
@@ -2057,6 +2299,10 @@ export async function GET(req: Request, { params }: RouteProps) {
       sectionOrder: activeSectionOrder,
       sectionNotes: sectionNotesMap,
       limitations,
+      checklistBySection,
+      referencePhotosBySection,
+      disclaimers,
+      equipment,
     });
     const property = getPropertyAddress(inspection);
 
