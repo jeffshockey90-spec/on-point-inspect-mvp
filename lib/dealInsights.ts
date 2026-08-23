@@ -7,6 +7,7 @@
 // report renderer calls getPrevalenceMap()/buildCommonGround().
 
 import { classifyDefect, catalogEntry, regionalCost, EASE_LABEL, type RepairEase } from "./dealCatalog";
+import { classifyFindingsWithAI } from "./ai/classifyDefectType";
 
 // Only show percentages once enough homes have been inspected in scope, so we
 // never publish a noisy stat off 2-3 inspections. This is the denominator gate
@@ -68,13 +69,27 @@ export async function recomputeDealPrevalence(
     .limit(20000);
   if (!opts.reclassify) q = q.is("defect_type", null);
   const { data: unclassified } = await q;
-  for (const f of (unclassified as any[]) || []) {
-    const key = classifyDefect(f);
-    await admin
-      .from("findings")
-      .update({ defect_type: key || "_unmatched" })
-      .eq("id", f.id);
-    if (key) classified += 1;
+  const toClassify = (unclassified as any[]) || [];
+  if (toClassify.length) {
+    // AI-tag each finding to a catalog defect type (semantic match), which
+    // covers far more real findings than keyword aliases. Fall back to the
+    // keyword classifier when the AI declines or is unavailable, so a missing
+    // OpenAI key never regresses classification.
+    let aiKeys: (string | null)[] = [];
+    try {
+      aiKeys = await classifyFindingsWithAI(toClassify);
+    } catch {
+      aiKeys = [];
+    }
+    for (let i = 0; i < toClassify.length; i++) {
+      const f = toClassify[i];
+      const key = aiKeys[i] || classifyDefect(f);
+      await admin
+        .from("findings")
+        .update({ defect_type: key || "_unmatched" })
+        .eq("id", f.id);
+      if (key) classified += 1;
+    }
   }
 
   // 3. Roll up prevalence from all classified findings on published inspections.

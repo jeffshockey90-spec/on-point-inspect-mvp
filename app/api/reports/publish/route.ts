@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { createClient } from "../../../../utils/supabase/server";
-import { classifyDefect } from "../../../../lib/dealCatalog";
 import { recomputeDealPrevalence } from "../../../../lib/dealInsights";
 import { resolveInspectionAccessFilter } from "../../../../lib/inspectionAccess";
 import { aiPublishGuard } from "../../../../lib/ai";
@@ -335,18 +334,9 @@ export async function POST(req: Request) {
           process.env.SUPABASE_SERVICE_ROLE_KEY,
           { auth: { persistSession: false, autoRefreshToken: false } },
         );
-        const { data: newFindings } = await admin
-          .from("findings")
-          .select("id, title, observation, section")
-          .eq("inspection_id", inspectionId)
-          .is("defect_type", null);
-        for (const f of (newFindings as any[]) || []) {
-          const key = classifyDefect(f);
-          await admin
-            .from("findings")
-            .update({ defect_type: key || "_unmatched" })
-            .eq("id", f.id);
-        }
+        // recomputeDealPrevalence AI-tags every still-unclassified finding on
+        // the published inspections (this one included) before rolling up
+        // prevalence, so no separate pre-classification pass is needed here.
         await recomputeDealPrevalence(admin);
       }
     } catch (cgErr) {
