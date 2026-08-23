@@ -1979,33 +1979,32 @@ export async function GET(req: Request, { params }: RouteProps) {
     const pdfVariant = `${reportMode}-${pdfLang || "en"}`;
     const pdfCachePath = `_pdf-cache/${inspectionId}/${pdfVariant}.pdf`;
 
+    // Hash the actual content of every table that feeds the PDF (these tables
+    // only have created_at, not updated_at, so a value-edit wouldn't show up in
+    // counts/timestamps — hashing the rows catches ANY add, edit, or delete).
     let pdfSignature = "";
     try {
-      const cnt = (table: string) =>
-        admin.from(table).select("id", { count: "exact", head: true }).eq("inspection_id", inspectionId);
-      const [findAgg, photoAgg, eqC, discC, chkC, refC, limC] = await Promise.all([
-        admin.from("findings").select("updated_at", { count: "exact" })
-          .eq("inspection_id", inspectionId).order("updated_at", { ascending: false }).limit(1),
-        admin.from("photos").select("id", { count: "exact", head: true }).eq("inspection_id", inspectionId),
-        cnt("equipment_inventory"),
-        cnt("report_disclaimers"),
-        cnt("section_checklist_selections"),
-        cnt("section_reference_photos"),
-        cnt("section_limitations"),
+      const sel = (table: string, cols: string) =>
+        admin.from(table).select(cols).eq("inspection_id", inspectionId).order("created_at", { ascending: true });
+      const [f, ph, eq, di, ch, rf, li, nt] = await Promise.all([
+        sel("findings", "id,title,observation,implication,recommendation,severity,section,component,report_item_number,defect_type"),
+        sel("photos", "id,finding_id,file_path,thumbnail_path,caption,is_video"),
+        sel("equipment_inventory", "id,equipment_type,manufacturer,model,serial,manufacture_year,estimated_age,capacity,fuel_type,condition,notes,file_path,thumbnail_path"),
+        sel("report_disclaimers", "id,topic,disclaimer_text"),
+        sel("section_checklist_selections", "id,section,group_title,value,custom_text"),
+        sel("section_reference_photos", "id,section,caption,file_path,thumbnail_path"),
+        sel("section_limitations", "id,section,label,limitation_comment,custom_text"),
+        admin.from("report_section_notes").select("section_name,notes").eq("inspection_id", inspectionId).order("section_name", { ascending: true }),
       ]);
       pdfSignature = createHash("sha1")
         .update(
-          [
-            cleanText(inspection.updated_at),
-            `f${findAgg.count}:${cleanText((findAgg.data as any[])?.[0]?.updated_at)}`,
-            `p${photoAgg.count}`,
-            `e${eqC.count}`,
-            `d${discC.count}`,
-            `c${chkC.count}`,
-            `r${refC.count}`,
-            `l${limC.count}`,
-            pdfVariant,
-          ].join("|"),
+          JSON.stringify({
+            u: inspection.updated_at,
+            v: pdfVariant,
+            logo: cleanText(inspection.company_id),
+            f: f.data, ph: ph.data, eq: eq.data, di: di.data,
+            ch: ch.data, rf: rf.data, li: li.data, nt: nt.data,
+          }),
         )
         .digest("hex");
     } catch {
