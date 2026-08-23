@@ -116,8 +116,8 @@ export default function CommonGroundPanel({
               </p>
               <p className="mt-0.5 text-[10.5px] leading-snug text-slate-500">
                 {data.cost.region
-                  ? "Estimated range, adjusted for your area."
-                  : "Estimated range."}
+                  ? "Approximate range for your area — get a contractor quote for exact pricing."
+                  : "Approximate range — get a contractor quote for exact pricing."}
               </p>
             </div>
           )}
