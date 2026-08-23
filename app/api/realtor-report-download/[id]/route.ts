@@ -1013,28 +1013,18 @@ function buildAgentReportHtml({
     `;
   }).join("");
 
+  const summaryCircle = (cls: string, count: number, label: string) => `
+    <div class="sum-circle ${cls}">
+      <div class="sum-num">${count}</div>
+      <div class="sum-lbl">${label}</div>
+    </div>`;
+
   const summaryCards = `
-    <div class="summary-cards">
-      <div class="summary-card safety-major">
-        <div class="summary-icon">!</div>
-        <strong>${counts["Safety / Major"] || 0}</strong>
-        <span>Safety / Major</span>
-      </div>
-      <div class="summary-card recommended-repair">
-        <div class="summary-icon">✓</div>
-        <strong>${counts["Recommended Repair"] || 0}</strong>
-        <span>Recommended Repair</span>
-      </div>
-      <div class="summary-card maintenance-monitor">
-        <div class="summary-icon">•</div>
-        <strong>${counts["Maintenance / Monitor"] || 0}</strong>
-        <span>Maintenance / Monitor</span>
-      </div>
-      <div class="summary-card informational">
-        <div class="summary-icon">i</div>
-        <strong>${counts["Informational"] || 0}</strong>
-        <span>Informational</span>
-      </div>
+    <div class="sum-circles">
+      ${summaryCircle("safety-major", counts["Safety / Major"] || 0, "Safety / Major")}
+      ${summaryCircle("recommended-repair", counts["Recommended Repair"] || 0, "Recommended Repair")}
+      ${summaryCircle("maintenance-monitor", counts["Maintenance / Monitor"] || 0, "Maintenance / Monitor")}
+      ${summaryCircle("informational", counts["Informational"] || 0, "Informational")}
     </div>
   `;
 
@@ -1044,46 +1034,45 @@ function buildAgentReportHtml({
     const findingsHtml = group.findings.map((finding: any) => {
       const sectionItemNumber = String(finding.report_item_number || "");
       const photos = Array.isArray(finding.photos)
-        ? finding.photos.slice(0, isFull ? 4 : 2)
+        ? finding.photos.slice(0, isFull ? 6 : 3)
         : [];
 
+      const photoCountClass = photos.length === 1 ? "one" : photos.length === 2 ? "two" : "";
       const photoHtml = photos.length
-        ? `<div class="finding-photos">${photos.map((photo: any) => `<img src="${escapeHtml(photo.download_url)}" alt="Finding photo" />`).join("")}</div>`
+        ? `<div class="photos ${photoCountClass}">${photos.map((photo: any) => `<img src="${escapeHtml(photo.download_url)}" alt="Finding photo" />`).join("")}</div>`
         : "";
 
-      const observationHtml = finding.observation
-        ? `<div class="finding-note"><b>Observation</b><p>${escapeHtml(finding.observation)}</p></div>`
-        : "";
+      const note = (label: string, value: any, cls = "") => {
+        const v = cleanText(value);
+        return v ? `<p class="note ${cls}"><span class="note-k">${label}:</span> ${escapeHtml(v)}</p>` : "";
+      };
+      const observationHtml = note("Observation", finding.observation);
+      const implicationHtml = note("Implication", finding.implication);
+      const recommendationHtml = note(
+        "Recommendation",
+        finding.recommendation || getFindingText(finding),
+        "note-rec",
+      );
 
-      const implicationHtml = finding.implication
-        ? `<div class="finding-note"><b>Implication</b><p>${escapeHtml(finding.implication)}</p></div>`
-        : "";
-
-      const recommendationHtml = finding.recommendation
-        ? `<div class="finding-note recommendation"><b>Recommendation</b><p>${escapeHtml(finding.recommendation)}</p></div>`
-        : `<div class="finding-note recommendation"><b>Recommendation</b><p>${escapeHtml(getFindingText(finding))}</p></div>`;
+      const subLabel = cleanText(finding.component || finding.subsection || finding.category);
 
       return `
-        <article class="finding-row">
-          <div class="finding-main">
-            <div class="finding-title-row">
-              <span class="finding-num">${escapeHtml(sectionItemNumber)}</span>
-              <div>
-                <h3>${escapeHtml(getFindingTitle(finding))}</h3>
-                <p>${escapeHtml(group.section)} · ${escapeHtml(getSeverityBucket(finding.severity))}</p>
-              </div>
-              <span class="pill ${severityKey(finding.severity)}">${escapeHtml(getSeverityBucket(finding.severity))}</span>
+        <article class="finding">
+          <div class="finding-head">
+            <div class="finding-meta">
+              <span class="finding-ref">${escapeHtml(sectionItemNumber)}${subLabel ? " &middot; " + escapeHtml(subLabel) : ""}</span>
+              <h3 class="finding-title">${escapeHtml(getFindingTitle(finding))}</h3>
             </div>
-
-            <div class="finding-body">
-              <div class="finding-copy">
-                ${observationHtml}
-                ${implicationHtml}
-                ${recommendationHtml}
-              </div>
-              ${photoHtml}
-            </div>
+            <span class="sev-pill ${severityKey(finding.severity)}">${escapeHtml(getSeverityBucket(finding.severity))}</span>
           </div>
+
+          <div class="finding-notes">
+            ${observationHtml}
+            ${implicationHtml}
+            ${recommendationHtml}
+          </div>
+
+          ${photoHtml}
         </article>
       `;
     }).join("");
@@ -1100,18 +1089,9 @@ function buildAgentReportHtml({
           </div>
         </header>
 
-        <div class="section-banner">
-          <span>${escapeHtml(String(sectionNumber))}</span>
-          <div>
-            <p>Inspection Section</p>
-            <h2>${escapeHtml(group.section)}</h2>
-          </div>
-        </div>
-
-        <div class="section-info-strip">
-          <div><b>Documented Items</b><span>${group.findings.length}</span></div>
-          <div><b>Report Type</b><span>${isFull ? "Full Report" : "Agent Summary"}</span></div>
-          <div><b>Inspection Date</b><span>${escapeHtml(inspectionDate)}</span></div>
+        <div class="section-head">
+          <p class="section-eyebrow">Section ${escapeHtml(String(sectionNumber))}</p>
+          <h2 class="section-name">${escapeHtml(group.section)}</h2>
         </div>
 
         ${
@@ -1120,7 +1100,7 @@ function buildAgentReportHtml({
             : ""
         }
 
-        <h4 class="findings-label">Findings</h4>
+        <div class="sub-head">Findings <span class="sub-count">${group.findings.length} item${group.findings.length === 1 ? "" : "s"}</span></div>
         ${findingsHtml}
 
         <footer class="black-footer">
@@ -1198,7 +1178,7 @@ function buildAgentReportHtml({
     * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     @page { size: letter; margin: 0; }
     html, body { margin: 0; padding: 0; }
-    body { background: #0b1120; color: #0f172a; font-family: Arial, Helvetica, sans-serif; font-size: 12px; line-height: 1.45; }
+    body { background: #0b1120; color: #263143; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-size: 12.5px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
     a { color: #0f8f8f; text-decoration: none; }
 
     .screen-actions { max-width: 816px; margin: 18px auto 12px; padding: 0 12px; display: flex; gap: 10px; flex-wrap: wrap; }
@@ -1231,58 +1211,57 @@ function buildAgentReportHtml({
     .detail-card span { display: block; color: #64748b; font-size: 9px; text-transform: uppercase; letter-spacing: .12em; font-weight: 900; }
     .detail-card strong { display: block; margin-top: 8px; color: #020617; font-size: 14px; }
 
-    .toc-title, .summary-title { margin: 10px 0 30px; color: #020617; font-size: 26px; text-transform: uppercase; letter-spacing: .06em; }
-    .toc-row { display: grid; grid-template-columns: 34px auto 1fr 90px; align-items: end; gap: 9px; padding: 10px 0; border-bottom: 1px dotted #94a3b8; }
-    .toc-num { color: #0f8f8f; font-weight: 900; }
-    .toc-name { color: #020617; font-weight: 800; text-transform: uppercase; }
-    .toc-count { color: #64748b; text-align: right; font-size: 10px; }
+    .toc-title { margin: 8px 0 24px; color: #1f2937; font-size: 24px; font-weight: 400; letter-spacing: .01em; }
+    .summary-title { text-align: center; margin: 4px 0 22px; color: #1f2937; font-size: 26px; font-weight: 400; letter-spacing: .04em; }
+    .toc-row { display: grid; grid-template-columns: 34px auto 1fr 90px; align-items: end; gap: 9px; padding: 11px 0; border-bottom: 1px dotted #cbd5e1; }
+    .toc-num { color: #0f8f8f; font-weight: 700; }
+    .toc-name { color: #1f2937; font-weight: 500; letter-spacing: .01em; }
+    .toc-count { color: #94a3b8; text-align: right; font-size: 10px; }
 
-    .summary-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin: 28px 0 34px; }
-    .summary-card { border-radius: 10px; overflow: hidden; border: 1px solid #cbd5e1; background: #fff; text-align: center; min-height: 148px; }
-    .summary-icon { height: 46px; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 900; }
-    .summary-card strong { display: block; font-size: 34px; margin-top: 18px; color: #020617; }
-    .summary-card span { display: block; color: #64748b; font-size: 9px; font-weight: 900; text-transform: uppercase; padding: 0 8px; }
-    .summary-card.safety-major .summary-icon { background: #ef4444; }
-    .summary-card.recommended-repair .summary-icon { background: #f97316; }
-    .summary-card.maintenance-monitor .summary-icon { background: #0f8f8f; }
-    .summary-card.informational .summary-icon { background: #2563eb; }
+    .sum-circles { display: flex; justify-content: center; gap: 46px; margin: 10px 0 8px; flex-wrap: wrap; }
+    .sum-circle { text-align: center; }
+    .sum-num { width: 94px; height: 94px; border-radius: 999px; color: #fff; font-size: 36px; font-weight: 500; display: flex; align-items: center; justify-content: center; margin: 0 auto; }
+    .sum-lbl { margin-top: 12px; color: #64748b; font-size: 11px; letter-spacing: .09em; text-transform: uppercase; }
+    .sum-circle.safety-major .sum-num { background: #ef4444; }
+    .sum-circle.recommended-repair .sum-num { background: #f97316; }
+    .sum-circle.maintenance-monitor .sum-num { background: #0f9488; }
+    .sum-circle.informational .sum-num { background: #2563eb; }
+    .sum-divider { border: 0; border-top: 1px solid #e5e7eb; margin: 26px 0 20px; }
 
     .key-findings { margin: 0; padding: 0; list-style: none; }
-    .key-findings li { display: grid; grid-template-columns: 14px 1fr auto; gap: 10px; align-items: center; border-bottom: 1px solid #e2e8f0; padding: 8px 0; color: #334155; }
-    .key-dot { width: 11px; height: 11px; border-radius: 999px; background: #f97316; }
+    .key-findings li { display: grid; grid-template-columns: 12px 1fr auto; gap: 13px; align-items: center; border-bottom: 1px solid #f1f5f9; padding: 9px 0; color: #374151; }
+    .key-dot { width: 10px; height: 10px; border-radius: 999px; background: #f97316; }
     .key-dot.safety-major { background: #ef4444; }
-    .key-dot.maintenance-monitor { background: #0f8f8f; }
+    .key-dot.maintenance-monitor { background: #0f9488; }
     .key-dot.informational { background: #2563eb; }
-    .key-findings em { color: #64748b; font-style: normal; font-size: 9px; text-transform: uppercase; font-weight: 900; }
+    .key-findings em { color: #94a3b8; font-style: normal; font-size: 9px; text-transform: uppercase; font-weight: 600; letter-spacing: .05em; }
 
-    .section-banner { display: flex; align-items: center; gap: 18px; margin: 8px 0 22px; }
-    .section-banner > span { width: 74px; height: 58px; background: #0f8f8f; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 900; clip-path: polygon(0 0, 82% 0, 100% 50%, 82% 100%, 0 100%); }
-    .section-banner p { margin: 0; color: #64748b; font-size: 10px; text-transform: uppercase; font-weight: 900; letter-spacing: .12em; }
-    .section-banner h2 { margin: 2px 0 0; color: #020617; font-size: 28px; text-transform: uppercase; }
-    .section-info-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; border-top: 1px solid #cbd5e1; border-bottom: 1px solid #cbd5e1; padding: 12px 0; margin-bottom: 18px; }
-    .section-info-strip b { display: block; color: #0f8f8f; font-size: 9px; text-transform: uppercase; letter-spacing: .1em; }
-    .section-info-strip span { display: block; color: #334155; font-weight: 800; margin-top: 3px; }
-    .section-note { border: 1px solid #f59e0b; background: #fffbeb; color: #0f172a; border-radius: 8px; padding: 10px 12px; margin-bottom: 16px; font-size: 12px; line-height: 1.5; white-space: pre-wrap; }
-    .findings-label { color: #020617; text-transform: uppercase; letter-spacing: .12em; margin: 14px 0 6px; font-size: 12px; border-bottom: 2px solid #0f8f8f; padding-bottom: 7px; }
+    .section-head { text-align: center; margin: 4px 0 4px; }
+    .section-eyebrow { margin: 0; color: #94a3b8; font-size: 10px; letter-spacing: .26em; text-transform: uppercase; font-weight: 600; }
+    .section-name { margin: 6px 0 0; color: #1f2937; font-size: 28px; font-weight: 400; letter-spacing: .01em; }
+    .sub-head { display: flex; align-items: baseline; gap: 10px; color: #0f8f8f; font-size: 15px; font-weight: 600; border-bottom: 1px solid #cbd5e1; padding-bottom: 7px; margin: 24px 0 18px; }
+    .sub-count { color: #94a3b8; font-size: 11px; font-weight: 500; }
+    .section-note { border-left: 3px solid #f59e0b; background: #fffbeb; color: #374151; padding: 10px 14px; margin: 0 0 18px; font-size: 12px; line-height: 1.6; white-space: pre-wrap; }
 
-    .finding-row { break-inside: avoid; page-break-inside: avoid; padding: 12px 0 16px; border-bottom: 1px solid #e2e8f0; }
-    .finding-title-row { display: grid; grid-template-columns: 48px 1fr auto; gap: 12px; align-items: start; margin-bottom: 10px; }
-    .finding-num { background: #0f8f8f; color: #fff; border-radius: 4px; padding: 7px 6px; text-align: center; font-weight: 900; font-size: 11px; }
-    h3 { margin: 0; color: #020617; font-size: 15px; line-height: 1.25; }
-    .finding-title-row p { margin: 4px 0 0; color: #64748b; font-size: 10px; font-weight: 800; }
-    .pill { border-radius: 4px; padding: 6px 8px; color: #fff; background: #f97316; font-size: 9px; font-weight: 900; text-transform: uppercase; white-space: nowrap; }
-    .pill.safety-major { background: #ef4444; }
-    .pill.maintenance-monitor { background: #0f8f8f; }
-    .pill.informational { background: #2563eb; }
-    .finding-body { display: grid; grid-template-columns: 1fr 225px; gap: 16px; align-items: start; }
-    .finding-copy { display: grid; gap: 8px; }
-    .finding-note { border-left: 3px solid #0f8f8f; padding-left: 10px; }
-    .finding-note b { display: block; color: #0f8f8f; font-size: 9px; text-transform: uppercase; letter-spacing: .08em; }
-    .finding-note p { margin: 3px 0 0; color: #334155; white-space: pre-line; }
-    .finding-note.recommendation { border-left-color: #f97316; }
-    .finding-note.recommendation b { color: #f97316; }
-    .finding-photos { display: grid; gap: 8px; }
-    .finding-photos img { width: 100%; max-height: 174px; object-fit: contain; border: 1px solid #cbd5e1; background: #fff; }
+    .finding { break-inside: avoid; page-break-inside: avoid; padding: 0 0 20px; margin-bottom: 20px; border-bottom: 1px solid #eef2f7; }
+    .finding:last-child { border-bottom: 0; margin-bottom: 0; padding-bottom: 2px; }
+    .finding-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 9px; }
+    .finding-ref { display: block; color: #94a3b8; font-size: 11px; font-weight: 400; margin-bottom: 3px; }
+    .finding-title { margin: 0; color: #1f2937; font-size: 17px; font-weight: 600; line-height: 1.28; }
+    .sev-pill { flex: none; border-radius: 999px; padding: 6px 14px; color: #fff; background: #f97316; font-size: 10px; font-weight: 700; letter-spacing: .03em; white-space: nowrap; }
+    .sev-pill.safety-major { background: #ef4444; }
+    .sev-pill.maintenance-monitor { background: #0f9488; }
+    .sev-pill.informational { background: #2563eb; }
+    .finding-notes { margin: 0; }
+    .note { margin: 0 0 8px; color: #374151; line-height: 1.62; white-space: pre-line; }
+    .note:last-child { margin-bottom: 0; }
+    .note-k { font-weight: 700; color: #111827; }
+    .note-rec .note-k { color: #0f8f8f; }
+    .photos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 14px; }
+    .photos.two { grid-template-columns: repeat(2, 1fr); }
+    .photos.one { grid-template-columns: minmax(0, 440px); }
+    .photos img { width: 100%; height: 208px; object-fit: cover; border-radius: 5px; border: 1px solid #e5e7eb; display: block; }
+    h3 { margin: 0; font-weight: 600; color: #1f2937; }
 
     .standards-title { border-left: 6px solid #0f8f8f; padding: 0 0 0 18px; margin-bottom: 18px; }
     .standards-title p { margin: 0; color: #0f8f8f; font-size: 10px; text-transform: uppercase; letter-spacing: .14em; font-weight: 900; }
@@ -1320,15 +1299,10 @@ function buildAgentReportHtml({
       .screen-actions { display: none; }
       .document { width: 8.5in; margin: 0; box-shadow: none; background: #fff; }
       .page { width: 8.5in; min-height: 11in; overflow: hidden; padding: 42px 46px 62px; }
-      /* The PDF renders at Letter width (816px), which trips the max-width:840px
-         mobile rules above and collapses the whole report into a stacked phone
-         layout (full-width photos, one finding per page, pages of whitespace).
-         Restore the intended desktop layout so the PDF stays compact. */
+      /* The PDF renders at Letter width (816px), below the 840px mobile
+         breakpoint; keep the intended desktop layout for elements that still
+         have a mobile-stack rule. */
       .cover-details { grid-template-columns: repeat(3, 1fr); }
-      .summary-cards { grid-template-columns: repeat(4, 1fr); }
-      .section-info-strip { grid-template-columns: repeat(3, 1fr); }
-      .finding-body { grid-template-columns: 1fr 225px; }
-      .finding-title-row { grid-template-columns: 48px 1fr auto; }
     }
   </style>
 </head>
@@ -1394,6 +1368,8 @@ function buildAgentReportHtml({
 
       <h2 class="summary-title">Summary</h2>
       ${summaryCards}
+
+      <hr class="sum-divider" />
 
       <h2 class="summary-title">Key Findings</h2>
       <ul class="key-findings">
