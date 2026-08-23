@@ -1319,7 +1319,16 @@ function buildAgentReportHtml({
       body { background: #fff; }
       .screen-actions { display: none; }
       .document { width: 8.5in; margin: 0; box-shadow: none; background: #fff; }
-      .page { width: 8.5in; min-height: 11in; overflow: hidden; }
+      .page { width: 8.5in; min-height: 11in; overflow: hidden; padding: 42px 46px 62px; }
+      /* The PDF renders at Letter width (816px), which trips the max-width:840px
+         mobile rules above and collapses the whole report into a stacked phone
+         layout (full-width photos, one finding per page, pages of whitespace).
+         Restore the intended desktop layout so the PDF stays compact. */
+      .cover-details { grid-template-columns: repeat(3, 1fr); }
+      .summary-cards { grid-template-columns: repeat(4, 1fr); }
+      .section-info-strip { grid-template-columns: repeat(3, 1fr); }
+      .finding-body { grid-template-columns: 1fr 225px; }
+      .finding-title-row { grid-template-columns: 48px 1fr auto; }
     }
   </style>
 </head>
