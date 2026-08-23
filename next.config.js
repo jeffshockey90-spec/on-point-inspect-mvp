@@ -54,7 +54,7 @@ const nextConfig = {
   // "disappears" at runtime. External + traced (below) is what makes the bundled
   // Chromium actually resolvable — without both, the PDF routes silently fall
   // back to downloading a 50MB pack from GitHub on every cold start.
-  serverExternalPackages: ["ffmpeg-static", "@sparticuz/chromium"],
+  serverExternalPackages: ["ffmpeg-static", "@sparticuz/chromium", "sharp"],
 
   experimental: {
     serverActions: {

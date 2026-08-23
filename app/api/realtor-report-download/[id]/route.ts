@@ -12,6 +12,7 @@ import QRCode from "qrcode";
 import { randomUUID } from "crypto";
 import chromium from "@sparticuz/chromium";
 import puppeteer from "puppeteer-core";
+import sharp from "sharp";
 import { existsSync } from "fs";
 
 export const runtime = "nodejs";
@@ -552,13 +553,19 @@ function isVideoPhoto(photo: any, value?: string) {
   );
 }
 
+// Returns path -> compressed JPEG DATA URI for each image. This is the key to a
+// small PDF: Chrome's printToPDF re-encodes URL-loaded images ~50x larger than
+// their source (a 64KB photo becomes ~2.7MB embedded). Embedding a pre-shrunk
+// JPEG as a data URI instead makes Chrome keep it ~as-is (~50KB), which takes a
+// photo-heavy report from ~40MB down to a few MB. Falls back to a plain signed
+// URL if the fetch/compress fails, so a photo is never dropped.
 async function signedPdfImageUrlMap(admin: any, paths: string[]) {
   const uniquePaths = Array.from(new Set(paths.filter(Boolean)));
   const result: Record<string, string> = {};
 
   if (!uniquePaths.length) return result;
 
-  const concurrency = Math.min(24, uniquePaths.length);
+  const concurrency = Math.min(12, uniquePaths.length);
   let cursor = 0;
 
   async function worker() {
@@ -566,23 +573,36 @@ async function signedPdfImageUrlMap(admin: any, paths: string[]) {
       const path = uniquePaths[cursor];
       cursor += 1;
 
-      const { data, error } = await admin.storage
-        .from("inspection-photos")
-        .createSignedUrl(path, 60 * 60 * 24 * 7, {
-          transform: {
-            width: 1100,
-            quality: 72,
-            resize: "contain",
-          },
-        });
+      try {
+        const { data } = await admin.storage
+          .from("inspection-photos")
+          .createSignedUrl(path, 60 * 60, {
+            transform: { width: 900, quality: 78, resize: "contain" },
+          });
+        const signed = data?.signedUrl;
+        if (!signed) continue;
 
-      if (error) {
-        console.error("PDF preview image signing failed:", { path, error });
-        continue;
-      }
-
-      if (data?.signedUrl) {
-        result[path] = data.signedUrl;
+        const resp = await fetch(signed);
+        if (!resp.ok) continue;
+        const input = Buffer.from(await resp.arrayBuffer());
+        const out = await sharp(input)
+          .rotate()
+          .resize(660, null, { withoutEnlargement: true })
+          .jpeg({ quality: 58, mozjpeg: true })
+          .toBuffer();
+        result[path] = `data:image/jpeg;base64,${out.toString("base64")}`;
+      } catch (imageError) {
+        console.error("PDF image compress failed, falling back to URL:", { path });
+        try {
+          const { data } = await admin.storage
+            .from("inspection-photos")
+            .createSignedUrl(path, 60 * 60 * 24 * 7, {
+              transform: { width: 680, quality: 58, resize: "contain" },
+            });
+          if (data?.signedUrl) result[path] = data.signedUrl;
+        } catch {
+          /* leave unset — the caller has further fallbacks */
+        }
       }
     }
   }
