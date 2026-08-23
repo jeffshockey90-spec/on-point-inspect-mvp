@@ -201,6 +201,53 @@ export function catalogEntry(key: string | null | undefined): DefectCatalogEntry
   return key ? CATALOG_BY_KEY.get(key) || null : null;
 }
 
+// ---------------------------------------------------------------------
+// Regional cost adjustment.
+//
+// The catalog's costLow/High are rough U.S. national figures. A repair costs
+// very different money in Mississippi vs. the Bay Area, so we scale the range
+// by a relative construction-cost factor for the property's state (labor +
+// materials, 1.00 = national average). Approximate — refined over time — but
+// enough to make the client-facing estimate actually track their area instead
+// of a flat national number.
+export const STATE_COST_FACTOR: Record<string, number> = {
+  AL: 0.86, AK: 1.25, AZ: 0.98, AR: 0.85, CA: 1.28, CO: 1.05, CT: 1.15,
+  DE: 1.03, DC: 1.20, FL: 0.96, GA: 0.90, HI: 1.32, ID: 0.93, IL: 1.09,
+  IN: 0.93, IA: 0.93, KS: 0.90, KY: 0.88, LA: 0.88, ME: 1.00, MD: 1.08,
+  MA: 1.22, MI: 1.01, MN: 1.07, MS: 0.85, MO: 0.92, MT: 0.95, NE: 0.90,
+  NV: 1.02, NH: 1.04, NJ: 1.18, NM: 0.90, NY: 1.25, NC: 0.90, ND: 0.93,
+  OH: 0.97, OK: 0.86, OR: 1.09, PA: 1.04, RI: 1.12, SC: 0.89, SD: 0.88,
+  TN: 0.88, TX: 0.92, UT: 0.97, VT: 1.03, VA: 0.99, WA: 1.12, WV: 0.92,
+  WI: 1.02, WY: 0.93,
+};
+
+export function regionalCostFactor(state?: string | null): number {
+  const st = String(state || "").trim().toUpperCase();
+  return STATE_COST_FACTOR[st] ?? 1;
+}
+
+// Round to a readable increment so an adjusted figure reads like a real
+// estimate ($1,950) rather than a raw product ($1,943.16).
+function niceRound(n: number): number {
+  if (n <= 0) return 0;
+  const step = n < 100 ? 5 : n < 1000 ? 10 : n < 5000 ? 50 : 100;
+  return Math.round(n / step) * step;
+}
+
+// Scale a national low/high range to the property's state. Returns the state
+// code back (uppercased) when we could locate it, so the report can label the
+// estimate as local; factor 1 (unknown state or exactly-average state) still
+// carries the code through when we have one.
+export function regionalCost(
+  low: number,
+  high: number,
+  state?: string | null,
+): { low: number; high: number; factor: number; region: string | null } {
+  const region = String(state || "").trim().toUpperCase() || null;
+  const factor = regionalCostFactor(region);
+  return { low: niceRound(low * factor), high: niceRound(high * factor), factor, region };
+}
+
 // Classify a finding to a canonical defect key by alias match against its
 // title + observation (and, as a tiebreaker, prefer an entry in the same
 // section). Returns null when nothing matches — no Common Ground panel then.

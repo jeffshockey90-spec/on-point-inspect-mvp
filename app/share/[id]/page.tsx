@@ -1542,7 +1542,7 @@ export default async function PublicSharePage({
         const prevMap = await getPrevalenceMap(supabase, types, inspection.state);
         for (const { f, dt } of typed) {
           if (!dt) continue;
-          const cg = buildCommonGround({ defect_type: dt, severity: f.severity }, prevMap);
+          const cg = buildCommonGround({ defect_type: dt, severity: f.severity }, prevMap, inspection.state);
           if (cg) commonGroundById.set(String(f.id), cg);
         }
       }

@@ -108,9 +108,16 @@ export default function CommonGroundPanel({
           <p className="mt-2.5 text-[13px] leading-relaxed text-slate-400">{data.repairNote}</p>
           {showCosts && (
             <div className="mt-3">
-              <p className="text-[10.5px] font-black uppercase tracking-wider text-slate-500">Typical cost</p>
+              <p className="text-[10.5px] font-black uppercase tracking-wider text-slate-500">
+                {data.cost.region ? `Typical cost in ${data.cost.region}` : "Typical cost"}
+              </p>
               <p className="mt-0.5 text-xl font-black tabular-nums text-teal-300">
                 {money(data.cost.low)}–{money(data.cost.high)}
+              </p>
+              <p className="mt-0.5 text-[10.5px] leading-snug text-slate-500">
+                {data.cost.region
+                  ? "Estimated range, adjusted for your area."
+                  : "Estimated range."}
               </p>
             </div>
           )}

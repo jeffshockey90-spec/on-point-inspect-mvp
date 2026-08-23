@@ -6,7 +6,7 @@
 // Server-only (service-role). The cron calls recomputeDealPrevalence(); the
 // report renderer calls getPrevalenceMap()/buildCommonGround().
 
-import { classifyDefect, catalogEntry, EASE_LABEL, type RepairEase } from "./dealCatalog";
+import { classifyDefect, catalogEntry, regionalCost, EASE_LABEL, type RepairEase } from "./dealCatalog";
 
 // Only show percentages once enough homes have been inspected in scope, so we
 // never publish a noisy stat off 2-3 inspections. This is the denominator gate
@@ -180,7 +180,7 @@ export type CommonGround = {
   national: { pct: number; enough: boolean } | null;
   local: { pct: number; state: string; enough: boolean } | null;
   ease: { tier: RepairEase; label: string };
-  cost: { low: number; high: number };
+  cost: { low: number; high: number; region: string | null };
   repairNote: string;
   standsOut: boolean; // rare + serious => the negotiation item
   label: string;
@@ -193,6 +193,7 @@ const SERIOUS = /safety|major/i;
 export function buildCommonGround(
   finding: { defect_type?: string | null; severity?: string | null },
   prevMap: Record<string, PrevalenceEntry>,
+  state?: string | null,
 ): CommonGround | null {
   const key = finding.defect_type;
   if (!key || key === "_unmatched") return null;
@@ -208,12 +209,16 @@ export function buildCommonGround(
   const tier = tierForPct(nat.pct);
   const serious = SERIOUS.test(String(finding.severity || ""));
 
+  // Scale the national cost range to the property's area so the estimate is
+  // relevant to where the home actually is.
+  const cost = regionalCost(cat.costLow, cat.costHigh, state ?? local?.state ?? null);
+
   return {
     tier,
     national: { pct: nat.pct, enough: true },
     local: local ? { pct: local.pct, state: local.state, enough: true } : null,
     ease: { tier: cat.ease, label: EASE_LABEL[cat.ease] },
-    cost: { low: cat.costLow, high: cat.costHigh },
+    cost: { low: cost.low, high: cost.high, region: cost.region },
     repairNote: cat.repairNote,
     standsOut: tier === "rare" && serious,
     label: cat.label,
