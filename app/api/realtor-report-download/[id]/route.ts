@@ -9,7 +9,7 @@ import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import QRCode from "qrcode";
-import { randomUUID } from "crypto";
+import { randomUUID, createHash } from "crypto";
 import chromium from "@sparticuz/chromium";
 import puppeteer from "puppeteer-core";
 import sharp from "sharp";
@@ -1970,6 +1970,80 @@ export async function GET(req: Request, { params }: RouteProps) {
       }
     }
 
+    // -------- PDF cache (fast repeat downloads, self-invalidating) --------
+    // Building the PDF takes ~10s (Puppeteer + image compression). Cache the
+    // result in storage keyed by a content SIGNATURE; when nothing that affects
+    // the report has changed, serve the stored PDF instead of rebuilding — this
+    // is how a pre-generated report (e.g. Spectora) feels instant. Best-effort:
+    // any failure just falls through to a normal on-demand build.
+    const pdfVariant = `${reportMode}-${pdfLang || "en"}`;
+    const pdfCachePath = `_pdf-cache/${inspectionId}/${pdfVariant}.pdf`;
+
+    let pdfSignature = "";
+    try {
+      const cnt = (table: string) =>
+        admin.from(table).select("id", { count: "exact", head: true }).eq("inspection_id", inspectionId);
+      const [findAgg, photoAgg, eqC, discC, chkC, refC, limC] = await Promise.all([
+        admin.from("findings").select("updated_at", { count: "exact" })
+          .eq("inspection_id", inspectionId).order("updated_at", { ascending: false }).limit(1),
+        admin.from("photos").select("id", { count: "exact", head: true }).eq("inspection_id", inspectionId),
+        cnt("equipment_inventory"),
+        cnt("report_disclaimers"),
+        cnt("section_checklist_selections"),
+        cnt("section_reference_photos"),
+        cnt("section_limitations"),
+      ]);
+      pdfSignature = createHash("sha1")
+        .update(
+          [
+            cleanText(inspection.updated_at),
+            `f${findAgg.count}:${cleanText((findAgg.data as any[])?.[0]?.updated_at)}`,
+            `p${photoAgg.count}`,
+            `e${eqC.count}`,
+            `d${discC.count}`,
+            `c${chkC.count}`,
+            `r${refC.count}`,
+            `l${limC.count}`,
+            pdfVariant,
+          ].join("|"),
+        )
+        .digest("hex");
+    } catch {
+      pdfSignature = "";
+    }
+
+    if (pdfSignature) {
+      try {
+        const { data: cacheRow } = await admin
+          .from("report_pdf_cache")
+          .select("signature, storage_path")
+          .eq("inspection_id", String(inspectionId))
+          .eq("variant", pdfVariant)
+          .maybeSingle();
+        if (cacheRow?.signature === pdfSignature && cacheRow?.storage_path) {
+          const { data: file } = await admin.storage
+            .from("inspection-photos")
+            .download(cacheRow.storage_path);
+          if (file) {
+            const cached = Buffer.from(await file.arrayBuffer());
+            return new NextResponse(new Uint8Array(cached), {
+              status: 200,
+              headers: {
+                "Content-Type": "application/pdf",
+                "Content-Disposition": `${disposition}; filename="${getDownloadName(getPropertyAddress(inspection), reportMode)}"`,
+                "Cache-Control": allowedByShareToken
+                  ? "public, max-age=120, s-maxage=600, stale-while-revalidate=86400"
+                  : "private, max-age=20, stale-while-revalidate=120",
+                "X-Pdf-Cache": "hit",
+              },
+            });
+          }
+        }
+      } catch {
+        /* cache read failed — fall through to build */
+      }
+    }
+
     const secureOnlineReportUrl = onlineReportUrlForInspection(inspection);
 
     const brandingPromise = loadCompanyBranding(admin, inspection, userEmail);
@@ -2327,6 +2401,28 @@ export async function GET(req: Request, { params }: RouteProps) {
     const property = getPropertyAddress(inspection);
 
     const pdf = await renderHtmlToPdf(html);
+
+    // Store the freshly built PDF so the next matching download is served from
+    // cache instead of rebuilt. Best-effort — never blocks the response.
+    if (pdfSignature) {
+      try {
+        await admin.storage
+          .from("inspection-photos")
+          .upload(pdfCachePath, pdf, { contentType: "application/pdf", upsert: true });
+        await admin.from("report_pdf_cache").upsert(
+          {
+            inspection_id: String(inspectionId),
+            variant: pdfVariant,
+            signature: pdfSignature,
+            storage_path: pdfCachePath,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "inspection_id,variant" },
+        );
+      } catch (cacheStoreError) {
+        console.error("PDF cache store failed:", cacheStoreError);
+      }
+    }
 
     // The PDF takes ~10s to build. For public share-link downloads (token in the
     // URL, which is itself the access control), let Vercel's CDN cache the result
