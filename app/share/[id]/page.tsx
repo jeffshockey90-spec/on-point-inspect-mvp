@@ -7,6 +7,7 @@ import { formatClockTime } from "../../../lib/app-time";
 import PdfExportButton from "../../../components/PdfExportButton";
 import ReportTimeTracker from "../../../components/ReportTimeTracker";
 import ClientSummaryAccordion from "../../../components/ClientSummaryAccordion";
+import FindingsSeverityFilter from "../../../components/FindingsSeverityFilter";
 import ExpandableReportImage from "../../../components/ExpandableReportImage";
 import ReportDownloadButton from "../../../components/ReportDownloadButton";
 import ShareReportTabs from "../../../components/ShareReportTabs";
@@ -1841,14 +1842,38 @@ export default async function PublicSharePage({
     },
   ].filter((group) => group.findings.length > 0);
 
-  const displayFindings =
-    activeDefectFilter === "all"
-      ? numberedFindings
-      : numberedFindings.filter(
-          (finding: any) =>
-            isReportDefect(finding) &&
-            getSeverityBucket(finding.severity) === activeDefectFilter
-        );
+  // Render every finding; the in-page severity filter (FindingsSeverityFilter)
+  // hides non-matching ones instantly via CSS. activeDefectFilter is only the
+  // initial state, from a ?defect_filter deep-link.
+  const displayFindings = numberedFindings;
+
+  // getSeverityBucket already returns the slug ("safety" | "repair" |
+  // "maintenance" | "information") the filter chips use, so this is a passthrough
+  // that keeps data-sev exactly aligned with the badge each finding displays.
+  const findingSeveritySlug = (finding: any) => getSeverityBucket(finding.severity);
+  const severityFilterCounts: Record<string, number> = {
+    all: 0, safety: 0, repair: 0, maintenance: 0, information: 0,
+  };
+  for (const finding of numberedFindings) {
+    if (!isReportDefect(finding)) continue;
+    severityFilterCounts.all += 1;
+    severityFilterCounts[findingSeveritySlug(finding)] += 1;
+  }
+
+  // Instant severity filter: hide non-matching findings + empty sections based
+  // on the container's data-filter (set by FindingsSeverityFilter). Uses :has()
+  // for the empty-section case (modern browsers); findings-level hiding works
+  // everywhere. Rendered server-side so ?defect_filter deep-links have no flash.
+  const FINDINGS_FILTER_CSS = `
+    #inspection-findings[data-filter="safety"] [data-finding]:not([data-sev="safety"]),
+    #inspection-findings[data-filter="repair"] [data-finding]:not([data-sev="repair"]),
+    #inspection-findings[data-filter="maintenance"] [data-finding]:not([data-sev="maintenance"]),
+    #inspection-findings[data-filter="information"] [data-finding]:not([data-sev="information"]) { display: none !important; }
+    #inspection-findings[data-filter="safety"] [data-finding-section]:not(:has([data-finding][data-sev="safety"])),
+    #inspection-findings[data-filter="repair"] [data-finding-section]:not(:has([data-finding][data-sev="repair"])),
+    #inspection-findings[data-filter="maintenance"] [data-finding-section]:not(:has([data-finding][data-sev="maintenance"])),
+    #inspection-findings[data-filter="information"] [data-finding-section]:not(:has([data-finding][data-sev="information"])) { display: none !important; }
+  `;
 
   const groupedFindings = activeSectionOrder.map((section) => ({
     section,
@@ -2857,27 +2882,29 @@ export default async function PublicSharePage({
             </details>
           )}
 
-          <section id="inspection-findings" className="scroll-mt-[180px] md:scroll-mt-[220px] mt-10">
+          <section
+            id="inspection-findings"
+            data-filter={activeDefectFilter}
+            className="scroll-mt-[180px] md:scroll-mt-[220px] mt-10"
+          >
+            <style dangerouslySetInnerHTML={{ __html: FINDINGS_FILTER_CSS }} />
             {cgSummary && <CommonGroundSummary data={cgSummary} />}
-            <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
-              <div>
-                <p className="text-sm font-bold uppercase tracking-[0.3em] text-teal-400">
-                  Inspection Findings
-                </p>
-                <h2 className="mt-2 text-4xl font-black text-white">
-                  Findings By Section
-                </h2>
-                {activeDefectFilter !== "all" && (
-                  <p className="mt-2 text-sm font-semibold text-teal-300">
-                    Showing: {activeDefectFilterLabel[activeDefectFilter]} only
-                  </p>
-                )}
-              </div>
+            <div className="mb-5">
+              <p className="text-sm font-bold uppercase tracking-[0.3em] text-teal-400">
+                Inspection Findings
+              </p>
+              <h2 className="mt-2 text-4xl font-black text-white">
+                Findings By Section
+              </h2>
+            </div>
 
+            <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+              <FindingsSeverityFilter
+                initial={activeDefectFilter}
+                counts={severityFilterCounts}
+              />
               <div className="rounded-2xl border border-slate-700 bg-[#071224] px-5 py-3 text-sm text-slate-300">
-                {activeDefectFilter === "all"
-                  ? `${defectTotals.total} total defect${defectTotals.total === 1 ? "" : "s"} documented`
-                  : `${displayFindings.filter(isReportDefect).length} ${activeDefectFilterLabel[activeDefectFilter].toLowerCase()} finding${displayFindings.filter(isReportDefect).length === 1 ? "" : "s"}`}
+                {defectTotals.total} total defect{defectTotals.total === 1 ? "" : "s"} documented
               </div>
             </div>
 
@@ -2893,6 +2920,7 @@ export default async function PublicSharePage({
                   return (
                     <section
                       key={group.section}
+                      data-finding-section
                       id={`section-${group.section
                         .toLowerCase()
                         .replace(/[^a-z0-9]+/g, "-")}`}
@@ -2974,7 +3002,13 @@ export default async function PublicSharePage({
                           const isVideo = isVideoMedia(primaryMedia || finding, image);
 
                           return (
-                            <div key={finding.id} id={`finding-${finding.id}`} className="scroll-mt-[180px] md:scroll-mt-[220px]">
+                            <div
+                              key={finding.id}
+                              id={`finding-${finding.id}`}
+                              data-finding
+                              data-sev={findingSeveritySlug(finding)}
+                              className="scroll-mt-[180px] md:scroll-mt-[220px]"
+                            >
                               <details className="group overflow-hidden rounded-2xl border border-slate-700 bg-[#0f172a] shadow-xl md:hidden">
                                 <summary className="cursor-pointer list-none">
                                   <div className="flex gap-3 p-3">
