@@ -22,7 +22,7 @@ export const dynamic = "force-dynamic";
 // PDF cache signature, so a change here invalidates every cached PDF and forces
 // a rebuild with the new template. Without it, a template change would only show
 // on reports whose content also changed (the "changes only on one report" trap).
-const PDF_TEMPLATE_VERSION = "2026-08-24-toc-links-pagination";
+const PDF_TEMPLATE_VERSION = "2026-08-24-toc-links-pagination-topmargin";
 // Vercel kills the function at this many seconds (Pro plan ceiling; Hobby caps
 // at 60). Photo-heavy reports were exceeding 60s and getting killed mid-render.
 // RENDER_BUDGET_MS below follows this automatically.
@@ -1348,7 +1348,12 @@ function buildAgentReportHtml({
   <title>${isFull ? "Full Report" : "Agent Report"} - ${escapeHtml(property)}</title>
   <style>
     * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    @page { size: letter; margin: 0; }
+    /* A small top margin on every printed page so content (esp. on pages that
+       continue a long section) isn't jammed against the very top edge. Sides and
+       bottom stay 0 so the full-bleed footer/border keep reaching the page edges.
+       The .page min-height in @media print is reduced by the same amount so a
+       full-height section still fits one sheet without spilling a near-blank page. */
+    @page { size: letter; margin: 0.3in 0 0 0; }
     html, body { margin: 0; padding: 0; }
     body { background: #0b1120; color: #263143; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-size: 12.5px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
     a { color: #0f8f8f; text-decoration: none; }
@@ -1507,7 +1512,7 @@ function buildAgentReportHtml({
          hidden. Re-assert them: every section starts on a fresh page, and
          overflow:visible lets Chrome honor break-inside:avoid on findings so a
          finding is never split across a page boundary. */
-      .page { width: 8.5in; min-height: 11in; overflow: visible; padding: 42px 46px 62px; break-after: page; page-break-after: always; }
+      .page { width: 8.5in; min-height: 10.7in; overflow: visible; padding: 42px 46px 62px; break-after: page; page-break-after: always; }
       .page:last-child { break-after: auto; page-break-after: auto; }
       /* Keep a section title with its first finding, never orphaned at a page bottom. */
       .section-head { break-after: avoid; page-break-after: avoid; }
