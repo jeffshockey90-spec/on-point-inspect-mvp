@@ -5,6 +5,7 @@ import { formatAppValue } from "../../lib/app-time";
 import FastLinkButton from "../../components/FastLinkButton";
 import EmailAddendumButton from "../../components/EmailAddendumButton";
 import ReportDownloadButton from "../../components/ReportDownloadButton";
+import RealtorProfileEditor from "../../components/RealtorProfileEditor";
 import { getInspectionShareToken, getOrCreateShareToken } from "../../lib/shareToken";
 import ReportLanguageSwitcher from "../../components/ReportLanguageSwitcher";
 import UiAutoTranslate from "../../components/UiAutoTranslate";
@@ -256,6 +257,20 @@ export default async function RealtorPortalPage({
 
   const admin = createAdminClient();
 
+  // Realtor's own profile (headshot/logo + name + brokerage). Graceful if the
+  // realtor_profiles table isn't set up yet — falls back to an empty profile.
+  const { data: realtorProfileRow } = await admin
+    .from("realtor_profiles")
+    .select("email,name,brokerage,photo_url")
+    .ilike("email", lookupEmail)
+    .maybeSingle();
+  const realtorProfile = realtorProfileRow || {
+    email: lookupEmail,
+    name: "",
+    brokerage: "",
+    photo_url: "",
+  };
+
   const { data: contactMatchesRaw } = await admin
     .from("inspection_contacts")
     .select("*")
@@ -409,6 +424,13 @@ export default async function RealtorPortalPage({
         )}
 
         <section className="rounded-3xl border border-slate-800 bg-[#0f172a] p-6 shadow-2xl md:p-8">
+          <div className="mb-6 border-b border-slate-800 pb-6">
+            <RealtorProfileEditor
+              initial={realtorProfile}
+              canEdit={!isOwnerPreview}
+            />
+          </div>
+
           <div className="flex flex-wrap items-start justify-between gap-5">
             <div>
               <p className="text-sm font-black uppercase tracking-[0.35em] text-[#14c8d2]">
