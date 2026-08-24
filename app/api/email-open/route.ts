@@ -59,6 +59,11 @@ export async function GET(req: Request) {
       url.searchParams.get("recipientEmail") ||
       "";
 
+    const emailTypeParam =
+      url.searchParams.get("email_type") ||
+      url.searchParams.get("emailType") ||
+      "";
+
     const numericInspectionId = Number(inspectionId);
 
     if (!numericInspectionId || !Number.isFinite(numericInspectionId)) {
@@ -80,25 +85,24 @@ export async function GET(req: Request) {
       },
     });
 
-    // Best-effort update for email_logs. If these optional columns do not exist,
-    // the view event above still records the open.
-    await supabaseAdmin
-      .from("email_logs")
-      .update({
-        opened_at: new Date().toISOString(),
-      })
-      .eq("inspection_id_bigint", numericInspectionId)
-      .eq("recipient_email", recipientEmail)
-      .in("email_type", ["inspection_report", "environmental_report"]);
+    // Mark the matching email log opened. When the pixel carries the email_type
+    // (report, appointment_confirmed, agreement_email, ...) we target that type
+    // so opening a report doesn't mark the schedule confirmation opened too.
+    // Older links already in inboxes have no email_type -> fall back to reports.
+    // Only fill opened_at when it's still null so we keep the FIRST open time.
+    const targetTypes = emailTypeParam
+      ? [emailTypeParam]
+      : ["inspection_report", "environmental_report"];
 
-    await supabaseAdmin
-      .from("email_logs")
-      .update({
-        opened_at: new Date().toISOString(),
-      })
-      .eq("inspection_id", numericInspectionId)
-      .eq("recipient_email", recipientEmail)
-      .in("email_type", ["inspection_report", "environmental_report"]);
+    if (recipientEmail) {
+      await supabaseAdmin
+        .from("email_logs")
+        .update({ opened_at: new Date().toISOString() })
+        .eq("inspection_id_bigint", numericInspectionId)
+        .eq("recipient_email", recipientEmail)
+        .in("email_type", targetTypes)
+        .is("opened_at", null);
+    }
   } catch (error) {
     console.error("Email open tracking error:", error);
   }

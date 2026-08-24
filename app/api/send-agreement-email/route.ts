@@ -562,7 +562,9 @@ ${branding.name}`,
         String(inspection.id)
       )}&recipient_type=${encodeURIComponent(
         contact.role || "client"
-      )}&recipient_email=${encodeURIComponent(email)}`;
+      )}&recipient_email=${encodeURIComponent(
+        email
+      )}&email_type=agreement_email`;
       const subject = `Inspection Agreement - ${property}`;
 
       const clientHtml = `
@@ -586,7 +588,7 @@ ${branding.name}`,
                 <a href="${portalUrl}">${portalUrl}</a>
               </p>
 
-              <img src="${emailOpenPixelUrl}" width="1" height="1" alt="" style="display:none; opacity:0; width:1px; height:1px;" />
+              <img src="${emailOpenPixelUrl}" width="1" height="1" alt="" style="width:1px;height:1px;max-width:1px;max-height:1px;border:0;line-height:1px;font-size:1px;" />
 
               <p style="margin-top:30px;font-size:12px;color:#64748b;">
                 ${escapeHtml(branding.name)}

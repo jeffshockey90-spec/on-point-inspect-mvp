@@ -187,7 +187,9 @@ export async function POST(req: Request) {
         String(inspection.id)
       )}&recipient_type=${encodeURIComponent(
         recipient.role || "client"
-      )}&recipient_email=${encodeURIComponent(recipient.email)}`;
+      )}&recipient_email=${encodeURIComponent(
+        recipient.email
+      )}&email_type=appointment_confirmed`;
 
       const subject = isReschedule
         ? `Inspection Rescheduled - ${address || branding.name}`
@@ -227,7 +229,7 @@ export async function POST(req: Request) {
             </a>
           </p>
 
-          <img src="${emailOpenPixelUrl}" width="1" height="1" alt="" style="display:none; opacity:0; width:1px; height:1px;" />
+          <img src="${emailOpenPixelUrl}" width="1" height="1" alt="" style="width:1px;height:1px;max-width:1px;max-height:1px;border:0;line-height:1px;font-size:1px;" />
 
           <p style="margin-top:30px;font-size:12px;color:#64748b;">
             ${escapeHtml(branding.name)}

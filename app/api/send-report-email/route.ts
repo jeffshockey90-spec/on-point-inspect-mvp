@@ -449,7 +449,7 @@ function buildEmailHtml({
           width="1"
           height="1"
           alt=""
-          style="display:none; opacity:0; width:1px; height:1px;"
+          style="width:1px;height:1px;max-width:1px;max-height:1px;border:0;line-height:1px;font-size:1px;"
         />
 
         <hr style="border:0; border-top:1px solid #334155; margin:24px 0;" />
@@ -666,7 +666,13 @@ export async function POST(req: Request) {
           String(inspectionId)
         )}&recipient_type=${encodeURIComponent(
           recipientRoleForTracking
-        )}&recipient_email=${encodeURIComponent(recipient.email)}`;
+        )}&recipient_email=${encodeURIComponent(
+          recipient.email
+        )}&email_type=${encodeURIComponent(
+          isStandaloneEnvironmentalService(inspection)
+            ? "environmental_report"
+            : "inspection_report"
+        )}`;
 
       const html = buildEmailHtml({
         inspection,
