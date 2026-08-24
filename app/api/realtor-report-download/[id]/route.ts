@@ -22,7 +22,7 @@ export const dynamic = "force-dynamic";
 // PDF cache signature, so a change here invalidates every cached PDF and forces
 // a rebuild with the new template. Without it, a template change would only show
 // on reports whose content also changed (the "changes only on one report" trap).
-const PDF_TEMPLATE_VERSION = "2026-08-24-toc-links";
+const PDF_TEMPLATE_VERSION = "2026-08-24-toc-links-pagination";
 // Vercel kills the function at this many seconds (Pro plan ceiling; Hobby caps
 // at 60). Photo-heavy reports were exceeding 60s and getting killed mid-render.
 // RENDER_BUDGET_MS below follows this automatically.
@@ -1501,10 +1501,17 @@ function buildAgentReportHtml({
       body { background: #fff; }
       .screen-actions { display: none; }
       .document { width: 8.5in; margin: 0; box-shadow: none; background: #fff; }
-      .page { width: 8.5in; min-height: 11in; overflow: hidden; padding: 42px 46px 62px; }
       /* The PDF renders at Letter width (816px), below the 840px mobile
-         breakpoint; keep the intended desktop layout for elements that still
-         have a mobile-stack rule. */
+         breakpoint, so the mobile block above ALSO matches here and had turned
+         off the per-section page break (break-after: auto) and left overflow
+         hidden. Re-assert them: every section starts on a fresh page, and
+         overflow:visible lets Chrome honor break-inside:avoid on findings so a
+         finding is never split across a page boundary. */
+      .page { width: 8.5in; min-height: 11in; overflow: visible; padding: 42px 46px 62px; break-after: page; page-break-after: always; }
+      .page:last-child { break-after: auto; page-break-after: auto; }
+      /* Keep a section title with its first finding, never orphaned at a page bottom. */
+      .section-head { break-after: avoid; page-break-after: avoid; }
+      .finding, .equip-card, .disc-item, .info-item, .ref-photo, .standards-block { break-inside: avoid; page-break-inside: avoid; }
       .cover-details { grid-template-columns: repeat(3, 1fr); }
     }
   </style>
