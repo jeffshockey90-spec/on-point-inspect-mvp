@@ -22,7 +22,7 @@ export const dynamic = "force-dynamic";
 // PDF cache signature, so a change here invalidates every cached PDF and forces
 // a rebuild with the new template. Without it, a template change would only show
 // on reports whose content also changed (the "changes only on one report" trap).
-const PDF_TEMPLATE_VERSION = "2026-08-24-keyfinding-links-sop-cleanup-qrfix";
+const PDF_TEMPLATE_VERSION = "2026-08-24-keyfinding-links-sop-cleanup-qrfix-qrlogo";
 // Vercel kills the function at this many seconds (Pro plan ceiling; Hobby caps
 // at 60). Photo-heavy reports were exceeding 60s and getting killed mid-render.
 // RENDER_BUDGET_MS below follows this automatically.
@@ -1562,8 +1562,11 @@ function buildAgentReportHtml({
     .qr-box { width: 180px; height: 180px; margin: 24px auto; border: 2px dashed #0f8f8f; border-radius: 14px; display: flex; align-items: center; justify-content: center; color: #0f8f8f; font-weight: 900; }
     .qr-box.real { width: 220px; height: 220px; margin: 16px auto 14px; background: #fff; border: 0; border-radius: 18px; display: flex; justify-content: center; align-items: center; position: relative; padding: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.15); }
     .qr-image { width: 100%; height: 100%; object-fit: contain; display: block; }
-    .qr-logo { position: absolute; width: 58px; height: 58px; background: #fff; border-radius: 14px; display: flex; justify-content: center; align-items: center; overflow: hidden; box-shadow: 0 0 8px rgba(0,0,0,.2); }
-    .qr-logo img { width: 46px; height: 46px; object-fit: contain; display: block; }
+    /* Match the inspector-profile QR center badge: a dark rounded box with a
+       teal border and the logo padded inside (contain), instead of a plain white
+       box that made a dark logo look like a cramped black square. */
+    .qr-logo { position: absolute; width: 54px; height: 54px; background: #020617; border: 2px solid #14b8a6; border-radius: 13px; display: flex; justify-content: center; align-items: center; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.28); }
+    .qr-logo img { width: 38px; height: 38px; object-fit: contain; display: block; }
     .online-link { color: #0f8f8f; overflow-wrap: anywhere; font-weight: 800; }
 
     .black-footer { position: absolute; left: 0; right: 0; bottom: 0; height: 36px; background: #020617; color: #cbd5e1; display: flex; align-items: center; justify-content: space-between; padding: 0 46px; font-size: 9px; }
