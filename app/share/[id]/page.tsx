@@ -1684,6 +1684,25 @@ export default async function PublicSharePage({
     .eq("inspection_id", inspectionId)
     .order("created_at", { ascending: true });
 
+  // Realtor co-branding: if the report's agent set up a profile (photo/name/
+  // brokerage in the Realtor Portal), surface it on the report. Best-effort.
+  const realtorBrandingEmail = String(
+    inspection.realtor_email ||
+      inspection.agent_email ||
+      inspection.buyer_agent_email ||
+      inspection.buyers_agent_email ||
+      "",
+  ).toLowerCase().trim();
+  let realtorBranding: { name: string; brokerage: string; photo_url: string } | null = null;
+  if (realtorBrandingEmail) {
+    const { data: rp } = await supabase
+      .from("realtor_profiles")
+      .select("name, brokerage, photo_url")
+      .ilike("email", realtorBrandingEmail)
+      .maybeSingle();
+    if (rp && (rp.photo_url || rp.name)) realtorBranding = rp as any;
+  }
+
   const { data: standardsCompany } = inspection?.company_id
     ? await supabase
         .from("companies")
@@ -2426,6 +2445,29 @@ export default async function PublicSharePage({
 
               <div className="mt-5 whitespace-pre-line rounded-xl border border-slate-700 bg-[#020817]/70 p-5 text-base leading-8 text-slate-100">
                 {inspection.executive_summary}
+              </div>
+            </section>
+          )}
+
+          {!isDemo && realtorBranding && (
+            <section className="mt-8 flex items-center gap-4 rounded-2xl border border-teal-500/30 bg-[#071224] p-5 shadow-xl">
+              {realtorBranding.photo_url && (
+                <img
+                  src={realtorBranding.photo_url}
+                  alt={realtorBranding.name || "Your agent"}
+                  className="h-20 w-20 shrink-0 rounded-2xl border border-slate-700 object-cover"
+                />
+              )}
+              <div className="min-w-0">
+                <p className="text-xs font-black uppercase tracking-[0.25em] text-teal-400">
+                  Your Agent
+                </p>
+                <p className="mt-1 truncate text-xl font-black text-white">
+                  {realtorBranding.name || inspection.realtor_name}
+                </p>
+                {realtorBranding.brokerage && (
+                  <p className="truncate text-sm text-slate-400">{realtorBranding.brokerage}</p>
+                )}
               </div>
             </section>
           )}

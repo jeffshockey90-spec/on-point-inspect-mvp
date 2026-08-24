@@ -612,6 +612,26 @@ async function signedPdfImageUrlMap(admin: any, paths: string[]) {
   return result;
 }
 
+// Fetch a public image URL (e.g. a realtor's headshot from company-assets) and
+// return a small compressed JPEG data URI — same reason as signedPdfImageUrlMap:
+// a plain URL would be re-encoded ~50x larger by Chrome's printToPDF.
+async function imageUrlToDataUri(url: string, maxWidth = 360): Promise<string> {
+  try {
+    if (!url) return "";
+    const resp = await fetch(url);
+    if (!resp.ok) return "";
+    const buf = Buffer.from(await resp.arrayBuffer());
+    const out = await sharp(buf)
+      .rotate()
+      .resize(maxWidth, maxWidth, { fit: "inside", withoutEnlargement: true })
+      .jpeg({ quality: 72 })
+      .toBuffer();
+    return `data:image/jpeg;base64,${out.toString("base64")}`;
+  } catch {
+    return "";
+  }
+}
+
 function dedupeDownloadPhotos(photos: any[]) {
   const seen = new Set<string>();
   const cleanPhotos: any[] = [];
@@ -923,6 +943,7 @@ function buildAgentReportHtml({
   referencePhotosBySection,
   disclaimers,
   equipment,
+  realtorBrand,
 }: {
   inspection: any;
   findings: any[];
@@ -941,6 +962,7 @@ function buildAgentReportHtml({
   referencePhotosBySection?: Record<string, Array<{ url: string; caption: string }>>;
   disclaimers?: Array<{ topic: string; text: string }>;
   equipment?: Array<{ type: string; name: string; photoUrl: string; rows: Array<[string, string]>; note: string }>;
+  realtorBrand?: { name: string; brokerage: string; photo: string } | null;
 }) {
   const property = getPropertyAddress(inspection);
   const isFull = reportMode === "full";
@@ -1350,6 +1372,12 @@ function buildAgentReportHtml({
     .detail-card { border: 1px solid #cbd5e1; border-radius: 12px; background: #f8fafc; padding: 14px; min-height: 88px; }
     .detail-card span { display: block; color: #64748b; font-size: 9px; text-transform: uppercase; letter-spacing: .12em; font-weight: 900; }
     .detail-card strong { display: block; margin-top: 8px; color: #020617; font-size: 14px; }
+    .cover-agent { display: inline-flex; align-items: center; gap: 14px; margin: 24px auto 0; padding: 12px 18px; border: 1px solid #cbd5e1; border-radius: 12px; background: #f8fafc; }
+    .cover-agent-photo { width: 56px; height: 56px; object-fit: cover; border-radius: 10px; border: 1px solid #cbd5e1; }
+    .cover-agent-info { text-align: left; }
+    .cover-agent-info span { display: block; color: #0f8f8f; font-size: 9px; text-transform: uppercase; letter-spacing: .12em; font-weight: 700; }
+    .cover-agent-info strong { display: block; color: #1f2937; font-size: 15px; font-weight: 600; margin-top: 2px; }
+    .cover-agent-info em { display: block; color: #64748b; font-size: 12px; font-style: normal; margin-top: 1px; }
 
     .toc-title { margin: 8px 0 24px; color: #1f2937; font-size: 24px; font-weight: 400; letter-spacing: .01em; }
     .summary-title { text-align: center; margin: 4px 0 22px; color: #1f2937; font-size: 26px; font-weight: 400; letter-spacing: .04em; }
@@ -1504,6 +1532,20 @@ function buildAgentReportHtml({
         <div class="detail-card"><span>Report Type</span><strong>${isFull ? "Full Report" : "Agent Report"}</strong></div>
         <div class="detail-card"><span>Report ID</span><strong>${escapeHtml(reportId || "N/A")}</strong></div>
       </div>
+
+      ${
+        realtorBrand
+          ? `
+      <div class="cover-agent">
+        ${realtorBrand.photo ? `<img class="cover-agent-photo" src="${escapeHtml(realtorBrand.photo)}" alt="Agent" />` : ""}
+        <div class="cover-agent-info">
+          <span>Your Agent</span>
+          <strong>${escapeHtml(realtorBrand.name || realtorName)}</strong>
+          ${realtorBrand.brokerage ? `<em>${escapeHtml(realtorBrand.brokerage)}</em>` : ""}
+        </div>
+      </div>`
+          : ""
+      }
 
       <div class="teal-line"></div>
       <footer class="black-footer">
@@ -1982,11 +2024,19 @@ export async function GET(req: Request, { params }: RouteProps) {
     // Hash the actual content of every table that feeds the PDF (these tables
     // only have created_at, not updated_at, so a value-edit wouldn't show up in
     // counts/timestamps — hashing the rows catches ANY add, edit, or delete).
+    const sigRealtorEmail = cleanEmail(
+      inspection.realtor_email ||
+        inspection.agent_email ||
+        inspection.buyer_agent_email ||
+        inspection.buyers_agent_email ||
+        "",
+    );
+
     let pdfSignature = "";
     try {
       const sel = (table: string, cols: string) =>
         admin.from(table).select(cols).eq("inspection_id", inspectionId).order("created_at", { ascending: true });
-      const [f, ph, eq, di, ch, rf, li, nt] = await Promise.all([
+      const [f, ph, eq, di, ch, rf, li, nt, rb] = await Promise.all([
         sel("findings", "id,title,observation,implication,recommendation,severity,section,component,report_item_number,defect_type"),
         sel("photos", "id,finding_id,file_path,thumbnail_path,caption,is_video"),
         sel("equipment_inventory", "id,equipment_type,manufacturer,model,serial,manufacture_year,estimated_age,capacity,fuel_type,condition,notes,file_path,thumbnail_path"),
@@ -1995,6 +2045,9 @@ export async function GET(req: Request, { params }: RouteProps) {
         sel("section_reference_photos", "id,section,caption,file_path,thumbnail_path"),
         sel("section_limitations", "id,section,label,limitation_comment,custom_text"),
         admin.from("report_section_notes").select("section_name,notes").eq("inspection_id", inspectionId).order("section_name", { ascending: true }),
+        sigRealtorEmail
+          ? admin.from("realtor_profiles").select("name,brokerage,photo_url").ilike("email", sigRealtorEmail).maybeSingle()
+          : Promise.resolve({ data: null } as any),
       ]);
       pdfSignature = createHash("sha1")
         .update(
@@ -2004,6 +2057,7 @@ export async function GET(req: Request, { params }: RouteProps) {
             logo: cleanText(inspection.company_id),
             f: f.data, ph: ph.data, eq: eq.data, di: di.data,
             ch: ch.data, rf: rf.data, li: li.data, nt: nt.data,
+            re: sigRealtorEmail, rn: cleanText(inspection.realtor_name), rb: rb.data,
           }),
         )
         .digest("hex");
@@ -2378,6 +2432,35 @@ export async function GET(req: Request, { params }: RouteProps) {
     const standardsOfPractice = getCompanyStandards(branding.company);
     const includeStandardsInPdf = shouldIncludeStandardsInPdf(branding.company);
 
+    // Realtor co-branding on the report cover (if the agent set up a profile in
+    // the Realtor Portal). Photo is compressed to a data URI to keep it small.
+    const realtorBrandEmail = cleanEmail(
+      inspection.realtor_email ||
+        inspection.agent_email ||
+        inspection.buyer_agent_email ||
+        inspection.buyers_agent_email ||
+        "",
+    );
+    let realtorBrand: { name: string; brokerage: string; photo: string } | null = null;
+    if (realtorBrandEmail) {
+      try {
+        const { data: rp } = await admin
+          .from("realtor_profiles")
+          .select("name, brokerage, photo_url")
+          .ilike("email", realtorBrandEmail)
+          .maybeSingle();
+        if (rp && (rp.photo_url || rp.name)) {
+          realtorBrand = {
+            name: cleanText(rp.name),
+            brokerage: cleanText(rp.brokerage),
+            photo: rp.photo_url ? await imageUrlToDataUri(rp.photo_url, 360) : "",
+          };
+        }
+      } catch {
+        /* co-branding never blocks the report */
+      }
+    }
+
     const html = buildAgentReportHtml({
       inspection,
       findings,
@@ -2396,6 +2479,7 @@ export async function GET(req: Request, { params }: RouteProps) {
       referencePhotosBySection,
       disclaimers,
       equipment,
+      realtorBrand,
     });
     const property = getPropertyAddress(inspection);
 
