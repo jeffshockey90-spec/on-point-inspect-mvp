@@ -22,7 +22,7 @@ export const dynamic = "force-dynamic";
 // PDF cache signature, so a change here invalidates every cached PDF and forces
 // a rebuild with the new template. Without it, a template change would only show
 // on reports whose content also changed (the "changes only on one report" trap).
-const PDF_TEMPLATE_VERSION = "2026-08-24-keyfinding-links-sop-cleanup";
+const PDF_TEMPLATE_VERSION = "2026-08-24-keyfinding-links-sop-cleanup-qrfix";
 // Vercel kills the function at this many seconds (Pro plan ceiling; Hobby caps
 // at 60). Photo-heavy reports were exceeding 60s and getting killed mid-render.
 // RENDER_BUDGET_MS below follows this automatically.
@@ -427,7 +427,11 @@ function onlineReportUrlForInspection(inspection: any) {
   const appUrl = cleanText(process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL);
   const token = getInspectionShareToken(inspection);
   if (!appUrl || !token) return "";
-  return `${appUrl.replace(/\/$/, "")}/public-report/${encodeURIComponent(token)}`;
+  // The public, no-login report lives at /share/<token> (resolved by
+  // public_share_token with a service-role client). The old /public-report/
+  // path had no route and dumped scanners on the login screen; a redirect route
+  // still catches any already-printed QR codes pointing there.
+  return `${appUrl.replace(/\/$/, "")}/share/${encodeURIComponent(token)}`;
 }
 
 function getStoragePathFromUrl(url: string | null | undefined) {

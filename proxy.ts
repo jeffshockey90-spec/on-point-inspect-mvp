@@ -51,6 +51,10 @@ const PUBLIC_PREFIXES = [
   "/signup",
   "/api",
   "/share",
+  // Legacy public report link printed as a QR code in older PDFs. It redirects
+  // to /share/<token>; it must be reachable without a session or a scanning
+  // client/realtor (with no account) hits the login wall instead of the report.
+  "/public-report",
   "/environmental-share",
   "/repair-request",
   "/repair-response",
