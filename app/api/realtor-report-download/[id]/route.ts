@@ -22,7 +22,7 @@ export const dynamic = "force-dynamic";
 // PDF cache signature, so a change here invalidates every cached PDF and forces
 // a rebuild with the new template. Without it, a template change would only show
 // on reports whose content also changed (the "changes only on one report" trap).
-const PDF_TEMPLATE_VERSION = "2026-08-24-keyfinding-links";
+const PDF_TEMPLATE_VERSION = "2026-08-24-keyfinding-links-sop-cleanup";
 // Vercel kills the function at this many seconds (Pro plan ceiling; Hobby caps
 // at 60). Photo-heavy reports were exceeding 60s and getting killed mid-render.
 // RENDER_BUDGET_MS below follows this automatically.
@@ -95,6 +95,55 @@ const STANDARDS_OF_PRACTICE = [
   }
 ] as const;
 
+// A pasted standards-of-practice blob is typically one long run-on: a section
+// name on its own line (Exterior, Roof, ...) followed by "I./II./III." clauses,
+// with soft line-wraps mid-sentence and no blank lines. Parse it back into
+// { title, body } sections (clauses separated by blank lines) so it renders as
+// clean, readable blocks instead of a wall of text. Returns [] if it doesn't
+// look like that structure, so the caller can fall back to the raw blob.
+function parseCustomStandards(rawBody: string): Array<{ title: string; body: string }> {
+  const lines = String(rawBody).replace(/\r\n?/g, "\n").split("\n").map((l) => l.trim());
+  // Matches a top-level clause marker like "I. ", "IV. ", "VIII. " at line start.
+  const clause = /^(?:X|IX|VIII|VII|VI|V|IV|III|II|I)\.\s/;
+  const sections: Array<{ title: string; paragraphs: string[] }> = [];
+  let current: { title: string; paragraphs: string[] } | null = null;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (!line) continue;
+    // Drop the redundant document title and the generic group label.
+    if (line.toUpperCase() === "STANDARDS OF PRACTICE" || line === "Inspection Details") continue;
+
+    if (clause.test(line)) {
+      if (!current) {
+        current = { title: "", paragraphs: [] };
+        sections.push(current);
+      }
+      current.paragraphs.push(line);
+      continue;
+    }
+
+    // A section header is a non-clause line immediately followed by an "I." clause.
+    let j = i + 1;
+    while (j < lines.length && !lines[j]) j++;
+    const nextIsFirstClause = j < lines.length && /^I\.\s/.test(lines[j]);
+
+    if (nextIsFirstClause) {
+      current = { title: line, paragraphs: [] };
+      sections.push(current);
+    } else if (current && current.paragraphs.length) {
+      // Soft-wrapped continuation of the current clause — rejoin it.
+      current.paragraphs[current.paragraphs.length - 1] += " " + line;
+    } else if (current) {
+      current.paragraphs.push(line);
+    }
+  }
+
+  return sections
+    .map((s) => ({ title: s.title, body: s.paragraphs.join("\n\n") }))
+    .filter((s) => s.title || s.body);
+}
+
 function getCompanyStandards(company: any) {
   const customBody = String(company?.standards_of_practice_body || "").trim();
   const customTitle = String(
@@ -102,6 +151,10 @@ function getCompanyStandards(company: any) {
   ).trim();
 
   if (customBody) {
+    const parsed = parseCustomStandards(customBody);
+    // Only use the parsed version when it actually split into multiple sections;
+    // otherwise keep the raw blob so we never mangle an unexpected format.
+    if (parsed.length > 1) return parsed;
     return [
       {
         title: customTitle || "Standards of Practice",
@@ -1492,10 +1545,12 @@ function buildAgentReportHtml({
     .standards-title p { margin: 0; color: #0f8f8f; font-size: 10px; text-transform: uppercase; letter-spacing: .14em; font-weight: 900; }
     .standards-title h2 { margin: 4px 0 6px; color: #020617; font-size: 28px; text-transform: uppercase; }
     .standards-title span { display: block; color: #475569; font-size: 11px; line-height: 1.5; max-width: 650px; }
-    .standards-grid { column-count: 2; column-gap: 22px; }
-    .standards-block { break-inside: avoid; page-break-inside: avoid; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px 12px; margin: 0 0 12px; background: #f8fafc; }
-    .standards-block h3 { margin: 0 0 7px; color: #0f8f8f; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; }
-    .standards-block p { margin: 0 0 7px; color: #334155; font-size: 9.2px; line-height: 1.42; }
+    .standards-grid { display: block; }
+    .standards-block { margin: 0 0 20px; padding: 0 0 16px; border-bottom: 1px solid #e5e7eb; }
+    .standards-block:last-child { border-bottom: 0; margin-bottom: 0; }
+    .standards-block h3 { margin: 0 0 10px; color: #0f766e; font-size: 15px; font-weight: 700; letter-spacing: .01em; break-after: avoid; page-break-after: avoid; }
+    .standards-block p { margin: 0 0 9px; color: #374151; font-size: 11px; line-height: 1.6; }
+    .standards-block p:last-child { margin-bottom: 0; }
 
     .interactive-card { margin: 120px auto 0; max-width: 420px; text-align: center; }
     .interactive-icon { width: 90px; height: 90px; margin: 0 auto 18px; border-radius: 999px; background: #0f8f8f; color: white; display: flex; align-items: center; justify-content: center; font-size: 34px; font-weight: 900; }
@@ -1533,7 +1588,11 @@ function buildAgentReportHtml({
       .page:last-child { break-after: auto; page-break-after: auto; }
       /* Keep a section title with its first finding, never orphaned at a page bottom. */
       .section-head { break-after: avoid; page-break-after: avoid; }
-      .finding, .equip-card, .disc-item, .info-item, .ref-photo, .standards-block { break-inside: avoid; page-break-inside: avoid; }
+      .finding, .equip-card, .disc-item, .info-item, .ref-photo { break-inside: avoid; page-break-inside: avoid; }
+      /* Standards blocks can be long reference text; let them flow across pages
+         (only the heading stays glued to its first paragraph) so we don't get
+         big whitespace gaps from trying to keep a whole section together. */
+      .standards-block p { break-inside: avoid; page-break-inside: avoid; }
       .cover-details { grid-template-columns: repeat(3, 1fr); }
     }
   </style>
