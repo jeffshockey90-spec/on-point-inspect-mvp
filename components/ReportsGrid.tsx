@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import FastLinkButton from "./FastLinkButton";
 import DeleteInspectionButton from "./DeleteInspectionButton";
 
@@ -183,8 +184,17 @@ export default function ReportsGrid({ reports }: { reports: PreparedReport[] }) 
           {visibleReports.map((report, index) => (
             <div
               key={report.id}
-              className="group overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 shadow-xl transition duration-150 hover:-translate-y-0.5 hover:border-teal-500/70 hover:bg-[#13213a] hover:shadow-[0_0_28px_rgba(20,184,166,0.14)] active:scale-[0.99]"
+              className="group relative overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 shadow-xl transition duration-150 hover:-translate-y-0.5 hover:border-teal-500/70 hover:bg-[#13213a] hover:shadow-[0_0_28px_rgba(20,184,166,0.14)] active:scale-[0.99]"
             >
+              {/* Stretched link: makes the whole card clickable (opens the report).
+                  The action buttons below sit above this overlay (relative z-20)
+                  so Open/Delete still work. */}
+              <Link
+                href={`/reports/${report.id}`}
+                aria-label={`Open report for ${report.address}`}
+                className="absolute inset-0 z-10 rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400"
+              />
+
               <div className="relative flex h-56 items-center justify-center overflow-hidden bg-slate-950 text-slate-500">
                 {!report.propertyPhoto ? (
                   <span className="absolute inset-0 flex items-center justify-center px-4 text-center text-sm font-bold text-slate-500">
@@ -294,7 +304,7 @@ export default function ReportsGrid({ reports }: { reports: PreparedReport[] }) 
                   </div>
                 </div>
 
-                <div className="mt-6 flex flex-col gap-3">
+                <div className="relative z-20 mt-6 flex flex-col gap-3">
                   <FastLinkButton
                     href={`/reports/${report.id}`}
                     loadingText="Opening Report..."
