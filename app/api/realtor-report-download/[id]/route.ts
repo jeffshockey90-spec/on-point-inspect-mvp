@@ -17,6 +17,12 @@ import { existsSync } from "fs";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+// Bump this whenever the PDF HTML/layout template changes. It's mixed into the
+// PDF cache signature, so a change here invalidates every cached PDF and forces
+// a rebuild with the new template. Without it, a template change would only show
+// on reports whose content also changed (the "changes only on one report" trap).
+const PDF_TEMPLATE_VERSION = "2026-08-24-toc-links";
 // Vercel kills the function at this many seconds (Pro plan ceiling; Hobby caps
 // at 60). Photo-heavy reports were exceeding 60s and getting killed mid-render.
 // RENDER_BUDGET_MS below follows this automatically.
@@ -1032,41 +1038,45 @@ function buildAgentReportHtml({
     ? `<img class="cover-photo" src="${escapeHtml(propertyPhotoUrl)}" alt="Property photo" />`
     : `<div class="cover-photo no-photo">Property photo not available</div>`;
 
+  // Each TOC row is an in-document link (<a href="#anchor">) whose target is the
+  // matching section's `id` further down. Chrome's printToPDF turns these into
+  // clickable jump links inside the PDF -- click a row, land on that section
+  // (the same behavior as Spectora's report).
   const tocHtml = grouped.map((group) => {
     const sectionNumber = getSectionNumber(group.section, activeSectionOrder);
     return `
-      <div class="toc-row">
+      <a class="toc-row" href="#${escapeHtml(getSectionAnchor(group.section))}">
         <span class="toc-num">${escapeHtml(String(sectionNumber))}</span>
         <span class="toc-name">${escapeHtml(group.section)}</span>
         <span class="toc-dots"></span>
         <span class="toc-count">${group.findings.length} item${group.findings.length === 1 ? "" : "s"}</span>
-      </div>
+      </a>
     `;
   }).join("");
 
-  const tocExtraRow = (label: string, count: string) => `
-      <div class="toc-row">
+  const tocExtraRow = (label: string, count: string, anchor: string) => `
+      <a class="toc-row" href="#${escapeHtml(anchor)}">
         <span class="toc-num">&bull;</span>
         <span class="toc-name">${escapeHtml(label)}</span>
         <span class="toc-dots"></span>
         <span class="toc-count">${escapeHtml(count)}</span>
-      </div>`;
+      </a>`;
 
   const equipmentTocHtml = (Array.isArray(equipment) && equipment.length)
-    ? tocExtraRow("Equipment Inventory", `${equipment.length} item${equipment.length === 1 ? "" : "s"}`)
+    ? tocExtraRow("Equipment Inventory", `${equipment.length} item${equipment.length === 1 ? "" : "s"}`, "equipment-inventory")
     : "";
   const disclaimersTocHtml = (Array.isArray(disclaimers) && disclaimers.length)
-    ? tocExtraRow("Disclaimers", `${disclaimers.length} notice${disclaimers.length === 1 ? "" : "s"}`)
+    ? tocExtraRow("Disclaimers", `${disclaimers.length} notice${disclaimers.length === 1 ? "" : "s"}`, "disclaimers")
     : "";
 
   const standardsTocHtml = includeStandardsInPdf
     ? `
-      <div class="toc-row">
+      <a class="toc-row" href="#standards-of-practice">
         <span class="toc-num">SOP</span>
         <span class="toc-name">Standards of Practice</span>
         <span class="toc-dots"></span>
         <span class="toc-count">Reference</span>
-      </div>
+      </a>
     `
     : "";
 
@@ -1289,7 +1299,7 @@ function buildAgentReportHtml({
   const equipmentList = Array.isArray(equipment) ? equipment : [];
   const equipmentPageHtml = equipmentList.length
     ? `
-      <section class="page report-page">
+      <section class="page report-page" id="equipment-inventory">
         ${miniHeader}
         <div class="section-head">
           <p class="section-eyebrow">Inspection Reference</p>
@@ -1313,7 +1323,7 @@ function buildAgentReportHtml({
   const disclaimersList = Array.isArray(disclaimers) ? disclaimers : [];
   const disclaimersPageHtml = disclaimersList.length
     ? `
-      <section class="page report-page">
+      <section class="page report-page" id="disclaimers">
         ${miniHeader}
         <div class="section-head">
           <p class="section-eyebrow">Report Reference</p>
@@ -2052,6 +2062,7 @@ export async function GET(req: Request, { params }: RouteProps) {
       pdfSignature = createHash("sha1")
         .update(
           JSON.stringify({
+            t: PDF_TEMPLATE_VERSION,
             u: inspection.updated_at,
             v: pdfVariant,
             logo: cleanText(inspection.company_id),
