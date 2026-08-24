@@ -22,7 +22,7 @@ export const dynamic = "force-dynamic";
 // PDF cache signature, so a change here invalidates every cached PDF and forces
 // a rebuild with the new template. Without it, a template change would only show
 // on reports whose content also changed (the "changes only on one report" trap).
-const PDF_TEMPLATE_VERSION = "2026-08-24-toc-links-pagination-topmargin";
+const PDF_TEMPLATE_VERSION = "2026-08-24-keyfinding-links";
 // Vercel kills the function at this many seconds (Pro plan ceiling; Hobby caps
 // at 60). Photo-heavy reports were exceeding 60s and getting killed mid-render.
 // RENDER_BUDGET_MS below follows this automatically.
@@ -878,6 +878,15 @@ function getSectionAnchor(section: any) {
     .replace(/^-+|-+$/g, "");
 }
 
+// A stable per-finding anchor so the Key Findings summary rows can link straight
+// to each finding. Keyed on the human report item number (e.g. "8.1.1", unique
+// per report), falling back to the row id. Returns "" when neither exists.
+function getFindingAnchor(finding: any) {
+  const base = cleanText(finding?.report_item_number) || cleanText(finding?.id);
+  const slug = base.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  return slug ? `finding-${slug}` : "";
+}
+
 function severityKey(value: any) {
   return getSeverityBucket(value).toLowerCase().replace(/[^a-z]+/g, "-");
 }
@@ -1083,11 +1092,17 @@ function buildAgentReportHtml({
   const keyFindingsHtml = defects.map((finding: any) => {
     const section = normalizeSection(finding.section);
     const bucket = getSeverityBucket(finding.severity);
-    return `
-      <li>
+    const anchor = getFindingAnchor(finding);
+    const rowInner = `
         <span class="key-dot ${severityKey(finding.severity)}"></span>
         <span><strong>${escapeHtml(String(finding.report_item_number || ""))}</strong> ${escapeHtml(section)} — ${escapeHtml(getFindingTitle(finding))}</span>
-        <em>${escapeHtml(bucket)}</em>
+        <em>${escapeHtml(bucket)}</em>`;
+    // Each row links to its finding's anchor further down (clickable in the PDF).
+    return `
+      <li>
+        ${anchor
+          ? `<a class="key-link" href="#${escapeHtml(anchor)}">${rowInner}</a>`
+          : `<div class="key-link">${rowInner}</div>`}
       </li>
     `;
   }).join("");
@@ -1142,8 +1157,9 @@ function buildAgentReportHtml({
 
       const subLabel = cleanText(finding.component || finding.subsection || finding.category);
 
+      const findingAnchor = getFindingAnchor(finding);
       return `
-        <article class="finding">
+        <article class="finding"${findingAnchor ? ` id="${escapeHtml(findingAnchor)}"` : ""}>
           <div class="finding-head">
             <div class="finding-meta">
               <span class="finding-ref">${escapeHtml(sectionItemNumber)}${subLabel ? " &middot; " + escapeHtml(subLabel) : ""}</span>
@@ -1412,7 +1428,8 @@ function buildAgentReportHtml({
     .sum-divider { border: 0; border-top: 1px solid #e5e7eb; margin: 26px 0 20px; }
 
     .key-findings { margin: 0; padding: 0; list-style: none; }
-    .key-findings li { display: grid; grid-template-columns: 12px 1fr auto; gap: 13px; align-items: center; border-bottom: 1px solid #f1f5f9; padding: 9px 0; color: #374151; }
+    .key-findings li { border-bottom: 1px solid #f1f5f9; }
+    .key-link { display: grid; grid-template-columns: 12px 1fr auto; gap: 13px; align-items: center; padding: 9px 0; color: #374151; text-decoration: none; }
     .key-dot { width: 10px; height: 10px; border-radius: 999px; background: #f97316; }
     .key-dot.safety-major { background: #ef4444; }
     .key-dot.maintenance-monitor { background: #0f9488; }
