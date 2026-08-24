@@ -582,70 +582,46 @@ export default async function HomePage() {
 
   const inspectionIds = inspections.map((inspection: any) => Number(inspection.id)).filter(Boolean);
 
-  const { data: activityRaw, error: activityError } =
+  // These five reads are independent, so run them in parallel instead of
+  // sequentially — the dashboard waits for the slowest one, not the sum.
+  const emptyQueryResult = { data: [] as any[], error: null } as any;
+  const [
+    activityResult,
+    contactsResult,
+    signedAgreementsResult,
+    repairSharesResult,
+    emailLogsResult,
+  ] =
     inspectionIds.length > 0
-      ? await supabase
-          .from("inspection_view_events")
-          .select("*")
-          .in("inspection_id_bigint", inspectionIds)
-          .order("created_at", { ascending: false })
-          .limit(100)
-      : { data: [], error: null };
+      ? await Promise.all([
+          supabase
+            .from("inspection_view_events")
+            .select("*")
+            .in("inspection_id_bigint", inspectionIds)
+            .order("created_at", { ascending: false })
+            .limit(100),
+          supabase.from("inspection_contacts").select("*").in("inspection_id", inspectionIds),
+          supabase.from("inspection_agreements").select("*").in("inspection_id", inspectionIds),
+          supabase
+            .from("repair_request_shares")
+            .select("*")
+            .in("inspection_id", inspectionIds)
+            .order("created_at", { ascending: false }),
+          supabase
+            .from("email_logs")
+            .select("*")
+            .in("inspection_id_bigint", inspectionIds)
+            .order("created_at", { ascending: false })
+            .limit(20),
+        ])
+      : [emptyQueryResult, emptyQueryResult, emptyQueryResult, emptyQueryResult, emptyQueryResult];
 
-  if (activityError) {
-    console.warn("Dashboard activity load error:", activityError);
-  }
-
-  const contactsResult =
-    inspectionIds.length > 0
-      ? await supabase
-          .from("inspection_contacts")
-          .select("*")
-          .in("inspection_id", inspectionIds)
-      : { data: [], error: null };
-
-  if (contactsResult.error) {
-    console.warn("Dashboard contacts load error:", contactsResult.error);
-  }
-
-  const signedAgreementsResult =
-    inspectionIds.length > 0
-      ? await supabase
-          .from("inspection_agreements")
-          .select("*")
-          .in("inspection_id", inspectionIds)
-      : { data: [], error: null };
-
-  if (signedAgreementsResult.error) {
-    console.warn("Dashboard signed agreements load error:", signedAgreementsResult.error);
-  }
-
-  const repairSharesResult =
-    inspectionIds.length > 0
-      ? await supabase
-          .from("repair_request_shares")
-          .select("*")
-          .in("inspection_id", inspectionIds)
-          .order("created_at", { ascending: false })
-      : { data: [], error: null };
-
-  if (repairSharesResult.error) {
-    console.warn("Dashboard repair request shares load error:", repairSharesResult.error);
-  }
-
-  const emailLogsResult =
-    inspectionIds.length > 0
-      ? await supabase
-          .from("email_logs")
-          .select("*")
-          .in("inspection_id_bigint", inspectionIds)
-          .order("created_at", { ascending: false })
-          .limit(20)
-      : { data: [], error: null };
-
-  if (emailLogsResult.error) {
-    console.warn("Dashboard email logs load error:", emailLogsResult.error);
-  }
+  const activityRaw = (activityResult as any).data;
+  if ((activityResult as any).error) console.warn("Dashboard activity load error:", (activityResult as any).error);
+  if (contactsResult.error) console.warn("Dashboard contacts load error:", contactsResult.error);
+  if (signedAgreementsResult.error) console.warn("Dashboard signed agreements load error:", signedAgreementsResult.error);
+  if (repairSharesResult.error) console.warn("Dashboard repair request shares load error:", repairSharesResult.error);
+  if (emailLogsResult.error) console.warn("Dashboard email logs load error:", emailLogsResult.error);
 
   const recentEmailLogs = emailLogsResult.data || [];
 
