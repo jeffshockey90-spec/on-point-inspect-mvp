@@ -1,10 +1,9 @@
 import "./globals.css";
 import { Inter } from "next/font/google";
 import Navbar from "../components/Nav";
-import GlobalLiveActivity from "../components/GlobalLiveActivity";
 import TimeLocationEngine from "../components/time-location/TimeLocationEngine";
 import PageShell from "../components/PageShell";
-import CommandPalette from "../components/CommandPalette";
+import DeferredGlobals from "../components/DeferredGlobals";
 import ServiceWorkerRegister from "../components/ServiceWorkerRegister";
 
 // App-wide UI typeface. Self-hosted by next/font at build time (no runtime
@@ -66,11 +65,9 @@ export default function RootLayout({
 
         <Navbar />
 
-        <GlobalLiveActivity />
-
         <TimeLocationEngine />
 
-        <CommandPalette />
+        <DeferredGlobals />
 
         <PageShell>{children}</PageShell>
       </body>
