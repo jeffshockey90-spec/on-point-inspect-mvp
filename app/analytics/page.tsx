@@ -317,20 +317,64 @@ export default async function AnalyticsPage() {
 
   const inspectionIds = rows.map((inspection: any) => Number(inspection.id)).filter(Boolean);
 
-  const { data: viewEventsRaw, error: viewEventsError } =
+  // Kick off every independent read for this page at once. The heavy revenue /
+  // status aggregation below only needs `rows`, so these run while that computes,
+  // and the page waits for the slowest branch instead of ~5 serial round-trips.
+  const emptyRes = { data: [] as any[], error: null } as any;
+  const [viewEventsResult, ownCompany, emailLogRows, secure24Bundle] = await Promise.all([
     inspectionIds.length > 0
-      ? await supabase
+      ? supabase
           .from("inspection_view_events")
           .select("*")
           .in("inspection_id_bigint", inspectionIds)
           .order("created_at", { ascending: false })
-      : { data: [], error: null };
+      : Promise.resolve(emptyRes),
+    // Inspector's own company (for their Google review count) — a two-step chain.
+    (async () => {
+      const { data: companyUser } = await supabase
+        .from("company_users")
+        .select("company_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (!companyUser?.company_id) return null;
+      const { data } = await supabase
+        .from("companies")
+        .select("name, google_review_count, google_rating")
+        .eq("id", companyUser.company_id)
+        .maybeSingle();
+      return data;
+    })(),
+    // Report / review-request emails sent through FLOW for these inspections.
+    inspectionIds.length > 0
+      ? supabase
+          .from("email_logs")
+          .select("inspection_id_bigint, email_type")
+          .in("email_type", ["inspection_report", "environmental_report", "review_request"])
+          .in("inspection_id_bigint", inspectionIds)
+          .then((r: any) => (r.data || []) as any[])
+      : Promise.resolve([] as any[]),
+    // Secure 24 referral leads for this inspector / team. teamIds + settings need
+    // only user.id; the leads need teamIds, so that one waits inside this branch.
+    (async () => {
+      const teamInspectorIds = await resolveTeamInspectorIds(supabase, user.id);
+      const [settingRes, leadRes] = await Promise.all([
+        supabase.from("secure24_settings").select("enabled").eq("user_id", user.id).maybeSingle(),
+        teamInspectorIds.length > 0
+          ? supabase
+              .from("secure24_leads")
+              .select("status, consent_at, created_at")
+              .in("inspector_id", teamInspectorIds)
+          : Promise.resolve(emptyRes),
+      ]);
+      return { s24SettingRow: settingRes.data, s24LeadRows: leadRes.data };
+    })(),
+  ]);
 
-  if (viewEventsError) {
-    console.error("Analytics view events load error:", viewEventsError);
+  if (viewEventsResult.error) {
+    console.error("Analytics view events load error:", viewEventsResult.error);
   }
 
-  const viewEvents = viewEventsRaw || [];
+  const viewEvents = viewEventsResult.data || [];
 
   const inspectionsThisMonth = rows.filter((inspection: any) =>
     isSameMonth(getDateValue(inspection), now)
@@ -397,38 +441,12 @@ export default async function AnalyticsPage() {
   // --- Per-inspector additions (every query below is scoped to THIS user's
   // own inspections / company, so nothing leaks across companies) ---
 
-  // The inspector's own company, for their Google review count. Company RLS
-  // only lets a member read their own company row, so this can't leak.
-  let ownCompany: any = null;
-  {
-    const { data: companyUser } = await supabase
-      .from("company_users")
-      .select("company_id")
-      .eq("user_id", user.id)
-      .maybeSingle();
-    if (companyUser?.company_id) {
-      const { data } = await supabase
-        .from("companies")
-        .select("name, google_review_count, google_rating")
-        .eq("id", companyUser.company_id)
-        .maybeSingle();
-      ownCompany = data;
-    }
-  }
+  // ownCompany (for the Google review count) is resolved in the Promise.all above.
   const googleReviewCount = getNumber(ownCompany?.google_review_count);
   const googleRating = ownCompany?.google_rating ? Number(ownCompany.google_rating) : null;
 
-  // Emails actually sent through FLOW for this inspector's own inspections
-  // (report deliveries and review requests). email_logs RLS already limits an
-  // inspector to their own inspections; the id filter keeps it tight regardless.
-  const { data: emailLogRows } =
-    inspectionIds.length > 0
-      ? await supabase
-          .from("email_logs")
-          .select("inspection_id_bigint, email_type")
-          .in("email_type", ["inspection_report", "environmental_report", "review_request"])
-          .in("inspection_id_bigint", inspectionIds)
-      : { data: [] as any[] };
+  // emailLogRows (report deliveries + review requests sent through FLOW) is
+  // resolved in the Promise.all above.
   const reportEmailInspectionIds = new Set(
     (emailLogRows || [])
       .filter((e: any) =>
@@ -470,23 +488,11 @@ export default async function AnalyticsPage() {
       .filter((d: any): d is number => d != null)
   );
 
-  // Secure 24 referral leads generated by THIS inspector (or the owner's own
-  // team). RLS on secure24_leads only returns rows the caller owns, so this is
-  // isolated even though we pass the team id list.
-  const teamInspectorIds = await resolveTeamInspectorIds(supabase, user.id);
-  const { data: s24SettingRow } = await supabase
-    .from("secure24_settings")
-    .select("enabled")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  // Secure 24 referral leads / settings for THIS inspector (or the owner's team)
+  // are resolved in the Promise.all above. RLS on secure24_leads only returns
+  // rows the caller owns, so this stays isolated even with the team id list.
+  const { s24SettingRow, s24LeadRows } = secure24Bundle;
   const secure24Enabled = s24SettingRow?.enabled === true;
-  const { data: s24LeadRows } =
-    teamInspectorIds.length > 0
-      ? await supabase
-          .from("secure24_leads")
-          .select("status, consent_at, created_at")
-          .in("inspector_id", teamInspectorIds)
-      : { data: [] as any[] };
   const secure24Sent = (s24LeadRows || []).filter((l: any) => l.status === "submitted");
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
   const secure24ThisMonth = secure24Sent.filter((l: any) => {

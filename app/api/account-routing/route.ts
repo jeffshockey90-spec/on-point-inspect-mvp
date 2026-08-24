@@ -88,48 +88,51 @@ export async function GET() {
     if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
       const admin = createAdminClient();
 
-      try {
-        const { data: companyUserRows } = await admin
-          .from("company_users")
-          .select("company_id")
-          .eq("user_id", user.id)
-          .limit(1);
+      // These three lookups are independent, so run them together. This route
+      // gates the whole navbar render on the client, so shaving it from three
+      // serial round-trips to one parallel batch directly shrinks the window
+      // where the nav can't be clicked yet. A failing query resolves to null
+      // (same resilience as the old per-query try/catch).
+      const safe = (q: any) =>
+        Promise.resolve(q).then((r: any) => r).catch(() => ({ data: null }));
 
-        isInspector = Boolean(companyUserRows?.length);
-      } catch {}
+      const [companyUsersRes, contactsRes, fieldRes] = await Promise.all([
+        safe(
+          admin.from("company_users").select("company_id").eq("user_id", user.id).limit(1)
+        ),
+        safe(
+          admin
+            .from("inspection_contacts")
+            .select("id,role,email,portal_access")
+            .ilike("email", email)
+            .limit(20)
+        ),
+        safe(
+          admin
+            .from("inspections")
+            .select("id")
+            .or(
+              [
+                `realtor_email.ilike.${email}`,
+                `agent_email.ilike.${email}`,
+                `buyer_agent_email.ilike.${email}`,
+                `buyers_agent_email.ilike.${email}`,
+                `transaction_coordinator_email.ilike.${email}`,
+              ].join(",")
+            )
+            .limit(1)
+        ),
+      ]);
 
-      try {
-        const { data: contactRows } = await admin
-          .from("inspection_contacts")
-          .select("id,role,email,portal_access")
-          .ilike("email", email)
-          .limit(20);
+      isInspector = Boolean(companyUsersRes.data?.length);
 
-        isRealtor = Boolean(
-          (contactRows || []).some(
+      isRealtor =
+        Boolean(
+          (contactsRes.data || []).some(
             (contact: any) =>
               contact?.portal_access !== false && roleLooksLikeRealtor(contact?.role)
           )
-        );
-      } catch {}
-
-      try {
-        const { data: fieldRows } = await admin
-          .from("inspections")
-          .select("id")
-          .or(
-            [
-              `realtor_email.ilike.${email}`,
-              `agent_email.ilike.${email}`,
-              `buyer_agent_email.ilike.${email}`,
-              `buyers_agent_email.ilike.${email}`,
-              `transaction_coordinator_email.ilike.${email}`,
-            ].join(",")
-          )
-          .limit(1);
-
-        if (fieldRows?.length) isRealtor = true;
-      } catch {}
+        ) || Boolean(fieldRes.data?.length);
     }
 
     if (isOwner) isInspector = true;

@@ -227,22 +227,31 @@ export default async function RealtorDetailPage({ params }: PageProps) {
 
   const pageTeamIds = await resolveTeamInspectorIds(supabase, user.id);
 
-  const { data: realtor, error: realtorError } = await supabase
-    .from("realtors")
-    .select("*")
-    .eq("id", id)
-    .in("inspector_id", pageTeamIds)
-    .single();
+  // The realtor row, the team's inspections, and this realtor's contact logs
+  // are independent (the logs key on the same route `id` as the realtor row),
+  // so fetch all three together instead of three serial round-trips.
+  const [realtorResult, inspectionsResult, contactLogsResult] = await Promise.all([
+    supabase.from("realtors").select("*").eq("id", id).in("inspector_id", pageTeamIds).single(),
+    supabase
+      .from("inspections")
+      .select("*")
+      .in("inspector_id", pageTeamIds)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("realtor_contact_logs")
+      .select("*")
+      .eq("realtor_id", id)
+      .in("inspector_id", pageTeamIds)
+      .order("contact_date", { ascending: false })
+      .order("created_at", { ascending: false }),
+  ]);
+
+  const realtor = realtorResult.data;
+  const realtorError = realtorResult.error;
 
   if (realtorError || !realtor) redirect("/realtors");
 
-  const { data: inspectionsRaw } = await supabase
-    .from("inspections")
-    .select("*")
-    .in("inspector_id", pageTeamIds)
-    .order("created_at", { ascending: false });
-
-  const inspections = inspectionsRaw || [];
+  const inspections = inspectionsResult.data || [];
 
   const matchedInspections = inspections
     .filter((inspection: any) => {
@@ -293,15 +302,7 @@ export default async function RealtorDetailPage({ params }: PageProps) {
 
   const lastInspection = matchedInspections[0] || null;
 
-  const { data: contactLogsRaw } = await supabase
-    .from("realtor_contact_logs")
-    .select("*")
-    .eq("realtor_id", realtor.id)
-    .in("inspector_id", pageTeamIds)
-    .order("contact_date", { ascending: false })
-    .order("created_at", { ascending: false });
-
-  const contactLogs = contactLogsRaw || [];
+  const contactLogs = contactLogsResult.data || [];
 
   return (
     <main className="min-h-screen bg-[#020617] px-6 py-10 text-white">

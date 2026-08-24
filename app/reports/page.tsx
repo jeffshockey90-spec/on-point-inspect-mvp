@@ -295,51 +295,49 @@ export default async function ReportsPage() {
   const propertyPhotoPaths = rows
     .map((inspection: any) => getStoragePathFromUrl(getInspectionPropertyPhoto(inspection)))
     .filter(Boolean);
-  const signedPropertyPhotoMap = await createSignedPropertyPhotoMap(
-    storageSupabase,
-    propertyPhotoPaths
-  );
-
   const inspectionIds = rows
     .map((inspection: any) => Number(inspection.id))
     .filter(Boolean);
 
-  const { data: viewLogsRaw, error: viewLogsError } =
+  // Photo signing and the three per-inspection lookups are independent, so run
+  // them together instead of four serial round-trips.
+  const emptyResult = { data: [] as any[], error: null } as any;
+  const [
+    signedPropertyPhotoMap,
+    viewLogsResult,
+    contactsResult,
+    signedAgreementsResult,
+  ] = await Promise.all([
+    createSignedPropertyPhotoMap(storageSupabase, propertyPhotoPaths),
     inspectionIds.length > 0
-      ? await supabase
+      ? supabase
           .from("inspection_view_events")
           .select("*")
           .in("inspection_id_bigint", inspectionIds)
           .order("created_at", { ascending: false })
           .limit(500)
-      : { data: [], error: null };
+      : Promise.resolve(emptyResult),
+    inspectionIds.length > 0
+      ? supabase.from("inspection_contacts").select("*").in("inspection_id", inspectionIds)
+      : Promise.resolve(emptyResult),
+    inspectionIds.length > 0
+      ? supabase.from("inspection_agreements").select("*").in("inspection_id", inspectionIds)
+      : Promise.resolve(emptyResult),
+  ]);
 
-  if (viewLogsError) {
-    console.error("Reports page view logs error:", viewLogsError);
+  const viewLogsRaw = viewLogsResult.data;
+  if (viewLogsResult.error) {
+    console.error("Reports page view logs error:", viewLogsResult.error);
   }
 
-  const { data: contactsRaw, error: contactsError } =
-    inspectionIds.length > 0
-      ? await supabase
-          .from("inspection_contacts")
-          .select("*")
-          .in("inspection_id", inspectionIds)
-      : { data: [], error: null };
-
-  if (contactsError) {
-    console.error("Reports page contacts error:", contactsError);
+  const contactsRaw = contactsResult.data;
+  if (contactsResult.error) {
+    console.error("Reports page contacts error:", contactsResult.error);
   }
 
-  const { data: signedAgreementsRaw, error: signedAgreementsError } =
-    inspectionIds.length > 0
-      ? await supabase
-          .from("inspection_agreements")
-          .select("*")
-          .in("inspection_id", inspectionIds)
-      : { data: [], error: null };
-
-  if (signedAgreementsError) {
-    console.error("Reports page signed agreements error:", signedAgreementsError);
+  const signedAgreementsRaw = signedAgreementsResult.data;
+  if (signedAgreementsResult.error) {
+    console.error("Reports page signed agreements error:", signedAgreementsResult.error);
   }
 
   const contactsByInspectionId = (contactsRaw || []).reduce(

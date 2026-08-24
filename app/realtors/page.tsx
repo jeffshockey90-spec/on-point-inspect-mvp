@@ -69,9 +69,13 @@ export default async function RealtorsPage() {
   }
 
   const teamInspectorIds = await resolveTeamInspectorIds(supabase, user.id);
-  const { data: realtorsRaw } = await supabase.from("realtors").select("*").in("inspector_id", teamInspectorIds).order("name", { ascending: true });
-  const { data: inspectionsRaw } = await supabase.from("inspections").select("*").in("inspector_id", teamInspectorIds);
-  const inspections = inspectionsRaw || [];
+  // realtors and inspections both depend only on teamInspectorIds — fetch in parallel.
+  const [realtorsResult, inspectionsResult] = await Promise.all([
+    supabase.from("realtors").select("*").in("inspector_id", teamInspectorIds).order("name", { ascending: true }),
+    supabase.from("inspections").select("*").in("inspector_id", teamInspectorIds),
+  ]);
+  const realtorsRaw = realtorsResult.data;
+  const inspections = inspectionsResult.data || [];
 
   const realtors = (realtorsRaw || []).map((realtor: any) => {
     const matchedInspections = inspections.filter((inspection: any) => {

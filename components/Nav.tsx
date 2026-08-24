@@ -97,7 +97,9 @@ export default function Navbar() {
   const [isOwner, setIsOwner] = useState(false);
   const [isRealtor, setIsRealtor] = useState(false);
   const [isInspector, setIsInspector] = useState(false);
-  const [routingResolved, setRoutingResolved] = useState(false);
+  // routingResolved is still tracked (the setters run) but the nav no longer
+  // gates its render on it -- see the render guard below.
+  const [, setRoutingResolved] = useState(false);
   const [reportsHref, setReportsHref] = useState("/reports");
   const [dashboardHref, setDashboardHref] = useState("/");
   const [userEmail, setUserEmail] = useState("");
@@ -433,7 +435,14 @@ export default function Navbar() {
     );
   }
 
-  if (isPortalRoute(pathname) || !routingResolved) {
+  // Render the navbar immediately on app routes instead of waiting for
+  // /api/account-routing to resolve. Gating on `!routingResolved` left the nav
+  // invisible/unclickable for the whole auth + routing round-trip on every
+  // fresh load, so early taps landed on nothing -- the "have to click twice /
+  // feels delayed" problem. We start with the sensible default (inspector) nav
+  // and refine it (owner item, realtor portal collapse) the moment routing
+  // resolves. Public/portal surfaces (login, signup, share, ...) still hide it.
+  if (isPortalRoute(pathname)) {
     return null;
   }
 
