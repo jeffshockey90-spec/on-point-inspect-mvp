@@ -102,8 +102,12 @@ const CHECKLIST_LIBRARY: Record<string, ChecklistGroup[]> = {
     {
       "title": "Weather Conditions",
       "options": [
-        "Snow",
+        "Clear",
         "Cloudy",
+        "Rain",
+        "Snow",
+        "Fog",
+        "Storm",
         "Dry",
         "Hot"
       ]
@@ -1149,8 +1153,13 @@ function SectionInformationChecklist({
         }
       }
 
-      if (w.conditionText && !isSelected("Weather Conditions", w.conditionText)) {
-        await toggleSelection("Weather Conditions", w.conditionText);
+      // Select the matching Weather Conditions option. Use conditionSimple
+      // ("Clear" | "Cloudy" | "Rain" | "Snow" | "Fog" | "Storm") because those
+      // are the actual option labels — the detailed conditionText (e.g. "Partly
+      // cloudy") never matches, which is why the condition wasn't auto-filling.
+      const conditionBucket = w.conditionSimple || w.conditionText;
+      if (conditionBucket && !isSelected("Weather Conditions", conditionBucket)) {
+        await toggleSelection("Weather Conditions", conditionBucket);
       }
 
       const parts = [
