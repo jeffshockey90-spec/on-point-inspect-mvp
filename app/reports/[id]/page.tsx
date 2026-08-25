@@ -3569,40 +3569,11 @@ Service-life information is a general industry estimate only. Actual service lif
               </div>
             </div>
 
-            <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <FastLinkButton
-                href={`/field?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`}
-                loadingText="Opening Field Tool..."
-                className="rounded-xl bg-teal-500 px-4 py-3 text-center font-black text-slate-950 shadow-lg shadow-teal-950/20 hover:bg-teal-400"
-              >
-                Continue Inspection
-              </FastLinkButton>
-
-              <FastLinkButton
-                href={`/share/${inspection.id}`}
-                loadingText="Opening Preview..."
-                className="rounded-xl border border-blue-500 bg-blue-500/10 px-4 py-3 text-center font-black text-blue-300 hover:bg-blue-500/20"
-              >
-                Client Preview
-              </FastLinkButton>
-
-              <FastLinkButton
-                href={`/repair-request?inspection_id=${inspection.id}`}
-                loadingText="Opening Repair Request..."
-                className="rounded-xl border border-orange-500 bg-orange-500/10 px-4 py-3 text-center font-black text-orange-300 hover:bg-orange-500/20"
-              >
-                Repair Request
-              </FastLinkButton>
-
-              <a
-                href={`/reports/${inspection.id}/print`}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-purple-500 bg-purple-500/10 px-4 py-3 text-center font-black text-purple-300 transition hover:bg-purple-500/20 active:scale-[0.98]"
-              >
-                PDF / Print
-              </a>
-            </div>
+            {/* The Continue Inspection / Client Preview / Repair Request / PDF-Print
+                row that used to sit here duplicated the header action groups
+                (Field Tool, Client Report, Repair Request Builder, Export PDF),
+                so it was removed to cut the builder's CTA clutter. The unique
+                Next Best Action buttons above stay. */}
           </section>
 
           <div id="report-findings" data-command-target="report-findings" className="w-full max-w-none overflow-visible">
