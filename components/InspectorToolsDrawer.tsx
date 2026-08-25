@@ -1302,10 +1302,10 @@ export default function InspectorToolsDrawer({
             type="button"
             aria-label="Close inspector command center"
             onClick={() => setOpen(false)}
-            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+            className="absolute inset-0 animate-[ccFadeIn_.2s_ease-out] bg-black/60 backdrop-blur-sm motion-reduce:animate-none"
           />
 
-          <aside className="absolute inset-0 flex min-w-0 flex-col overflow-hidden bg-[#0a0f1a] shadow-2xl lg:inset-4 lg:rounded-[2rem] lg:border lg:border-slate-800">
+          <aside className="absolute inset-0 flex min-w-0 flex-col overflow-hidden bg-[#0a0f1a] shadow-2xl animate-[ccPanelIn_.22s_ease-out] motion-reduce:animate-none sm:inset-y-[6vh] sm:mx-auto sm:max-w-4xl sm:rounded-[2rem] sm:border sm:border-slate-700 sm:shadow-[0_30px_90px_-20px_rgba(0,0,0,0.85)]">
             <div className="shrink-0 overflow-hidden border-b border-slate-800 bg-[#0b1220] p-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:p-5 sm:pt-[max(1.25rem,env(safe-area-inset-top))]">
               <div className="flex min-w-0 items-start justify-between gap-3">
                 <div className="min-w-0">
