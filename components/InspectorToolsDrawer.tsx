@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import CommandCenterGenie from "./CommandCenterGenie";
 
 type ToolTone =
@@ -689,7 +689,10 @@ export default function InspectorToolsDrawer({
   const [genie, setGenie] = useState<{
     source: HTMLCanvasElement;
     rect: { left: number; top: number; right: number; bottom: number };
+    direction: "open" | "close";
   } | null>(null);
+  // After a WebGL open-genie plays, reveal the real panel with no extra CSS anim.
+  const [webglOpened, setWebglOpened] = useState(false);
 
   function webglAvailable() {
     try {
@@ -699,16 +702,29 @@ export default function InspectorToolsDrawer({
       return false;
     }
   }
+  const webglOk = useMemo(() => webglAvailable(), []);
 
   function finishClose() {
     setOpen(false);
     setClosing(false);
     setGenie(null);
-    captureRef.current = null;
+    setWebglOpened(false);
     if (closeTimerRef.current) {
       clearTimeout(closeTimerRef.current);
       closeTimerRef.current = null;
     }
+    // Keep captureRef so the NEXT open can genie-in from the last snapshot.
+  }
+
+  // CommandCenterGenie's onDone: an open-genie reveals the panel; a close-genie
+  // unmounts the drawer.
+  function onGenieDone() {
+    if (genie?.direction === "open") {
+      setGenie(null);
+      setWebglOpened(true);
+      return;
+    }
+    finishClose();
   }
 
   function requestClose() {
@@ -717,28 +733,35 @@ export default function InspectorToolsDrawer({
     const cap = captureRef.current;
     if (cap && el && webglAvailable()) {
       const r = el.getBoundingClientRect();
-      setGenie({ source: cap, rect: { left: r.left, top: r.top, right: r.right, bottom: r.bottom } });
-      return; // CommandCenterGenie plays, then calls finishClose via onDone
+      setGenie({ source: cap, rect: { left: r.left, top: r.top, right: r.right, bottom: r.bottom }, direction: "close" });
+      return; // plays, then onGenieDone -> finishClose
     }
     // Fallback: CSS genie funnel.
     setClosing(true);
     closeTimerRef.current = setTimeout(finishClose, 380);
   }
 
-  // Pre-capture the panel a moment after it opens, so the close genie has an image
-  // ready with no capture-freeze at close time. Re-captures when the active tool
-  // changes so the snapshot isn't stale. Best-effort — close falls back to CSS.
+  // Open-genie: if a snapshot from the last time is ready, unfurl it up out of the
+  // dock. useLayoutEffect runs before paint, so the real panel never flashes.
+  useLayoutEffect(() => {
+    if (!open || genie) return;
+    const cap = captureRef.current;
+    const el = asideRef.current;
+    if (cap && el && webglAvailable()) {
+      const r = el.getBoundingClientRect();
+      if (r.width > 0) {
+        setWebglOpened(false);
+        setGenie({ source: cap, rect: { left: r.left, top: r.top, right: r.right, bottom: r.bottom }, direction: "open" });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  // Pre-capture the panel a moment after it opens, so the close genie (and the
+  // next open genie) has an image ready with no capture-freeze. Best-effort.
   useEffect(() => {
-    if (!open) {
-      captureRef.current = null;
-      return;
-    }
+    if (!open) return;
     setClosing(false);
-    setGenie(null);
-    if (closeTimerRef.current) {
-      clearTimeout(closeTimerRef.current);
-      closeTimerRef.current = null;
-    }
     let cancelled = false;
     const t = setTimeout(async () => {
       try {
@@ -1388,12 +1411,25 @@ export default function InspectorToolsDrawer({
           />
 
           {genie && (
-            <CommandCenterGenie source={genie.source} rect={genie.rect} onDone={finishClose} />
+            <CommandCenterGenie
+              source={genie.source}
+              rect={genie.rect}
+              direction={genie.direction}
+              onDone={onGenieDone}
+            />
           )}
 
           <aside
             ref={asideRef}
-            className={`absolute inset-0 flex min-w-0 flex-col overflow-hidden bg-[#0a0f1a] shadow-2xl ${genie ? "opacity-0" : closing ? "cc-genie-close" : "cc-genie-open"} sm:inset-y-[6vh] sm:mx-auto sm:max-w-4xl sm:rounded-[2rem] sm:border sm:border-slate-700 sm:shadow-[0_30px_90px_-20px_rgba(0,0,0,0.85)]`}
+            className={`absolute inset-0 flex min-w-0 flex-col overflow-hidden bg-[#0a0f1a] shadow-2xl ${
+              genie || (open && !closing && !webglOpened && captureRef.current && webglOk)
+                ? "opacity-0"
+                : closing
+                  ? "cc-genie-close"
+                  : webglOpened
+                    ? ""
+                    : "cc-genie-open"
+            } sm:inset-y-[6vh] sm:mx-auto sm:max-w-5xl sm:rounded-[2rem] sm:border sm:border-slate-700 sm:shadow-[0_30px_90px_-20px_rgba(0,0,0,0.85)]`}
           >
             <div className="shrink-0 overflow-hidden border-b border-slate-800 bg-[#0b1220] p-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:p-5 sm:pt-[max(1.25rem,env(safe-area-inset-top))]">
               <div className="flex min-w-0 items-start justify-between gap-3">
@@ -1556,33 +1592,35 @@ export default function InspectorToolsDrawer({
                                 key={item.title}
                                 type="button"
                                 onClick={() => openTool(item.title)}
-                                className="relative flex min-h-[92px] flex-col justify-between overflow-hidden rounded-2xl border border-slate-700 bg-[#0f172a] p-3.5 text-left transition hover:border-slate-600 active:scale-[0.98]"
+                                className="relative flex min-h-[92px] flex-col gap-2 overflow-hidden rounded-2xl border border-slate-700 bg-[#0f172a] p-3.5 pt-4 text-left transition hover:border-slate-600 active:scale-[0.98]"
                               >
                                 <span
                                   className="absolute inset-x-0 top-0 h-[3px]"
                                   style={{ background: accent, opacity: 0.85 }}
                                 />
-                                <span
-                                  className="grid h-9 w-9 place-items-center rounded-xl text-lg"
-                                  style={{ background: `${accent}22`, border: `1px solid ${accent}55` }}
-                                >
-                                  {toolIcon(item.title)}
-                                </span>
-                                <span className="mt-2 text-sm font-black leading-tight text-white">
+                                <div className="flex items-start justify-between gap-2">
+                                  <span
+                                    className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-lg"
+                                    style={{ background: `${accent}22`, border: `1px solid ${accent}55` }}
+                                  >
+                                    {toolIcon(item.title)}
+                                  </span>
+                                  {item.badge ? (
+                                    <span
+                                      className="max-w-[55%] rounded-full px-2 py-0.5 text-right text-[9px] font-black uppercase leading-tight tracking-wide"
+                                      style={{
+                                        background: `${accent}1f`,
+                                        border: `1px solid ${accent}55`,
+                                        color: accent,
+                                      }}
+                                    >
+                                      {item.badge}
+                                    </span>
+                                  ) : null}
+                                </div>
+                                <span className="text-sm font-black leading-tight text-white">
                                   {item.title}
                                 </span>
-                                {item.badge ? (
-                                  <span
-                                    className="absolute right-2.5 top-2.5 rounded-full px-2 py-0.5 text-[10px] font-black"
-                                    style={{
-                                      background: `${accent}1f`,
-                                      border: `1px solid ${accent}55`,
-                                      color: accent,
-                                    }}
-                                  >
-                                    {item.badge}
-                                  </span>
-                                ) : null}
                               </button>
                             );
                           })}

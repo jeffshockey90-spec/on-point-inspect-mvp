@@ -10,11 +10,13 @@ import { useEffect, useRef } from "react";
 export default function CommandCenterGenie({
   source,
   rect,
+  direction = "close",
   durationMs = 540,
   onDone,
 }: {
   source: HTMLCanvasElement | HTMLImageElement;
   rect: { left: number; top: number; right: number; bottom: number };
+  direction?: "open" | "close";
   durationMs?: number;
   onDone: () => void;
 }) {
@@ -159,9 +161,11 @@ export default function CommandCenterGenie({
     };
     const render = (now: number) => {
       if (!start) start = now;
-      const p = Math.min(1, (now - start) / durationMs);
-      draw(1 - Math.pow(1 - p, 2.2)); // ease toward the dock
-      if (p < 1) raf = requestAnimationFrame(render);
+      const raw = Math.min(1, (now - start) / durationMs);
+      const s = raw * raw * (3 - 2 * raw); // smoothstep
+      // uP: 0 = full panel, 1 = fully minimized into the dock.
+      draw(direction === "open" ? 1 - s : s);
+      if (raw < 1) raf = requestAnimationFrame(render);
       else finish();
     };
     raf = requestAnimationFrame(render);
