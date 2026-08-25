@@ -678,6 +678,31 @@ export default function InspectorToolsDrawer({
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
+  // `closing` drives the genie-out animation: we keep the panel mounted for the
+  // animation, then unmount. Reset whenever the drawer (re)opens.
+  const [closing, setClosing] = useState(false);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function requestClose() {
+    if (closeTimerRef.current) return;
+    setClosing(true);
+    closeTimerRef.current = setTimeout(() => {
+      setOpen(false);
+      setClosing(false);
+      closeTimerRef.current = null;
+    }, 380);
+  }
+
+  useEffect(() => {
+    if (open) {
+      setClosing(false);
+      if (closeTimerRef.current) {
+        clearTimeout(closeTimerRef.current);
+        closeTimerRef.current = null;
+      }
+    }
+  }, [open]);
+
   const [query, setQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<WorkspaceCategory>("all");
   const [activeTool, setActiveTool] = useState("");
@@ -945,7 +970,7 @@ export default function InspectorToolsDrawer({
     document.documentElement.style.removeProperty("touch-action");
 
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") requestClose();
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
         setOpen(true);
@@ -1301,11 +1326,11 @@ export default function InspectorToolsDrawer({
           <button
             type="button"
             aria-label="Close inspector command center"
-            onClick={() => setOpen(false)}
-            className="absolute inset-0 animate-[ccFadeIn_.2s_ease-out] bg-black/60 backdrop-blur-sm motion-reduce:animate-none"
+            onClick={requestClose}
+            className={`absolute inset-0 bg-black/60 backdrop-blur-sm ${closing ? "cc-backdrop-out" : "cc-backdrop-in"}`}
           />
 
-          <aside className="absolute inset-0 flex min-w-0 flex-col overflow-hidden bg-[#0a0f1a] shadow-2xl animate-[ccPanelIn_.22s_ease-out] motion-reduce:animate-none sm:inset-y-[6vh] sm:mx-auto sm:max-w-4xl sm:rounded-[2rem] sm:border sm:border-slate-700 sm:shadow-[0_30px_90px_-20px_rgba(0,0,0,0.85)]">
+          <aside className={`absolute inset-0 flex min-w-0 flex-col overflow-hidden bg-[#0a0f1a] shadow-2xl ${closing ? "cc-genie-close" : "cc-genie-open"} sm:inset-y-[6vh] sm:mx-auto sm:max-w-4xl sm:rounded-[2rem] sm:border sm:border-slate-700 sm:shadow-[0_30px_90px_-20px_rgba(0,0,0,0.85)]`}>
             <div className="shrink-0 overflow-hidden border-b border-slate-800 bg-[#0b1220] p-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:p-5 sm:pt-[max(1.25rem,env(safe-area-inset-top))]">
               <div className="flex min-w-0 items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -1322,7 +1347,7 @@ export default function InspectorToolsDrawer({
 
                 <button
                   type="button"
-                  onClick={() => setOpen(false)}
+                  onClick={requestClose}
                   className="flex min-h-[44px] shrink-0 items-center gap-1.5 rounded-xl border border-slate-600 bg-[#020617] px-4 py-2.5 text-sm font-black text-slate-200 transition hover:bg-slate-800 active:scale-[0.98]"
                 >
                   ✕ <span className="hidden sm:inline">Close</span>

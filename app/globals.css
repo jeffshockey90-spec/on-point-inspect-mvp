@@ -113,16 +113,39 @@ img {
   background: #475569;
 }
 
-/* Inspector Command Center overlay: gentle pop-in so the drawer reads as a
-   panel floating over the report, not a hard page swap. */
-@keyframes ccPanelIn {
-  from {
+/* Inspector Command Center overlay: a macOS-dock-style "genie" open/close so the
+   panel funnels up out of / down into the bottom of the screen. transform-origin
+   is bottom-center; the panel starts as a compressed sliver near the bottom and
+   stretches into place (and reverses on close). */
+@keyframes genieOpen {
+  0% {
     opacity: 0;
-    transform: translateY(10px) scale(0.97);
+    transform: translateY(40%) scaleY(0.04);
+    clip-path: polygon(0% 0%, 100% 0%, 55% 100%, 45% 100%);
   }
-  to {
+  35% {
     opacity: 1;
-    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+    clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%);
+  }
+}
+
+@keyframes genieClose {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+    clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%);
+  }
+  65% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(40%) scaleY(0.04);
+    clip-path: polygon(0% 0%, 100% 0%, 55% 100%, 45% 100%);
   }
 }
 
@@ -132,6 +155,39 @@ img {
   }
   to {
     opacity: 1;
+  }
+}
+
+@keyframes ccFadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.cc-genie-open {
+  transform-origin: bottom center;
+  animation: genieOpen 0.42s cubic-bezier(0.33, 0.68, 0.32, 1) backwards;
+}
+.cc-genie-close {
+  transform-origin: bottom center;
+  animation: genieClose 0.38s cubic-bezier(0.6, 0.04, 0.78, 0.36) forwards;
+}
+.cc-backdrop-in {
+  animation: ccFadeIn 0.2s ease-out;
+}
+.cc-backdrop-out {
+  animation: ccFadeOut 0.28s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cc-genie-open,
+  .cc-genie-close,
+  .cc-backdrop-in,
+  .cc-backdrop-out {
+    animation: none;
   }
 }
 
