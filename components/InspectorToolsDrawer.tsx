@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import CommandCenterGenie from "./CommandCenterGenie";
 
 type ToolTone =
   | "purple"
@@ -678,29 +679,85 @@ export default function InspectorToolsDrawer({
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
-  // `closing` drives the genie-out animation: we keep the panel mounted for the
-  // animation, then unmount. Reset whenever the drawer (re)opens.
+  // `closing` drives the CSS genie-funnel exit (the fallback). When a pre-captured
+  // snapshot is ready, the WebGL genie (`genie` state) takes over the close instead
+  // and warps the panel image down into the dock.
   const [closing, setClosing] = useState(false);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const asideRef = useRef<HTMLElement | null>(null);
+  const captureRef = useRef<HTMLCanvasElement | null>(null);
+  const [genie, setGenie] = useState<{
+    source: HTMLCanvasElement;
+    rect: { left: number; top: number; right: number; bottom: number };
+  } | null>(null);
 
-  function requestClose() {
-    if (closeTimerRef.current) return;
-    setClosing(true);
-    closeTimerRef.current = setTimeout(() => {
-      setOpen(false);
-      setClosing(false);
-      closeTimerRef.current = null;
-    }, 380);
+  function webglAvailable() {
+    try {
+      const c = document.createElement("canvas");
+      return !!(c.getContext("webgl") || c.getContext("experimental-webgl"));
+    } catch {
+      return false;
+    }
   }
 
-  useEffect(() => {
-    if (open) {
-      setClosing(false);
-      if (closeTimerRef.current) {
-        clearTimeout(closeTimerRef.current);
-        closeTimerRef.current = null;
-      }
+  function finishClose() {
+    setOpen(false);
+    setClosing(false);
+    setGenie(null);
+    captureRef.current = null;
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
     }
+  }
+
+  function requestClose() {
+    if (closeTimerRef.current || genie) return;
+    const el = asideRef.current;
+    const cap = captureRef.current;
+    if (cap && el && webglAvailable()) {
+      const r = el.getBoundingClientRect();
+      setGenie({ source: cap, rect: { left: r.left, top: r.top, right: r.right, bottom: r.bottom } });
+      return; // CommandCenterGenie plays, then calls finishClose via onDone
+    }
+    // Fallback: CSS genie funnel.
+    setClosing(true);
+    closeTimerRef.current = setTimeout(finishClose, 380);
+  }
+
+  // Pre-capture the panel a moment after it opens, so the close genie has an image
+  // ready with no capture-freeze at close time. Re-captures when the active tool
+  // changes so the snapshot isn't stale. Best-effort — close falls back to CSS.
+  useEffect(() => {
+    if (!open) {
+      captureRef.current = null;
+      return;
+    }
+    setClosing(false);
+    setGenie(null);
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      try {
+        const el = asideRef.current;
+        if (!el) return;
+        const { toCanvas } = await import("html-to-image");
+        const snap = await toCanvas(el, {
+          pixelRatio: Math.min(2, window.devicePixelRatio || 1),
+          backgroundColor: "#0a0f1a",
+        });
+        if (!cancelled) captureRef.current = snap;
+      } catch {
+        /* capture failed -> close falls back to CSS funnel */
+      }
+    }, 600);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
   }, [open]);
 
   const [query, setQuery] = useState("");
@@ -1327,10 +1384,17 @@ export default function InspectorToolsDrawer({
             type="button"
             aria-label="Close inspector command center"
             onClick={requestClose}
-            className={`absolute inset-0 bg-black/60 backdrop-blur-sm ${closing ? "cc-backdrop-out" : "cc-backdrop-in"}`}
+            className={`absolute inset-0 bg-black/60 backdrop-blur-sm ${closing || genie ? "cc-backdrop-out" : "cc-backdrop-in"}`}
           />
 
-          <aside className={`absolute inset-0 flex min-w-0 flex-col overflow-hidden bg-[#0a0f1a] shadow-2xl ${closing ? "cc-genie-close" : "cc-genie-open"} sm:inset-y-[6vh] sm:mx-auto sm:max-w-4xl sm:rounded-[2rem] sm:border sm:border-slate-700 sm:shadow-[0_30px_90px_-20px_rgba(0,0,0,0.85)]`}>
+          {genie && (
+            <CommandCenterGenie source={genie.source} rect={genie.rect} onDone={finishClose} />
+          )}
+
+          <aside
+            ref={asideRef}
+            className={`absolute inset-0 flex min-w-0 flex-col overflow-hidden bg-[#0a0f1a] shadow-2xl ${genie ? "opacity-0" : closing ? "cc-genie-close" : "cc-genie-open"} sm:inset-y-[6vh] sm:mx-auto sm:max-w-4xl sm:rounded-[2rem] sm:border sm:border-slate-700 sm:shadow-[0_30px_90px_-20px_rgba(0,0,0,0.85)]`}
+          >
             <div className="shrink-0 overflow-hidden border-b border-slate-800 bg-[#0b1220] p-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:p-5 sm:pt-[max(1.25rem,env(safe-area-inset-top))]">
               <div className="flex min-w-0 items-start justify-between gap-3">
                 <div className="min-w-0">
