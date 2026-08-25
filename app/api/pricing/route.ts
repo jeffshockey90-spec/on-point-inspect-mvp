@@ -46,16 +46,10 @@ export async function GET() {
     .eq("user_id", user.id)
     .maybeSingle();
 
-  if (own?.config && Array.isArray(own.config.services)) {
-    return NextResponse.json({
-      config: own.config as InspectorPricingConfig,
-      source: "override",
-      hasOverride: true,
-      isDefault: false,
-    });
-  }
-
-  // 2) Company sheet (owner-set default for the team).
+  // 2) Company sheet (owner-set default for the team) -- fetched even when a
+  // personal override exists, so the company's CUSTOM services can be merged in
+  // below. (Base Home/Radon/Mold prices still come from the personal override.)
+  let companyConfig: InspectorPricingConfig | null = null;
   const { data: membership } = await supabase
     .from("company_users")
     .select("company_id")
@@ -74,16 +68,45 @@ export async function GET() {
       .maybeSingle();
 
     if (companySheet?.config && Array.isArray(companySheet.config.services)) {
-      return NextResponse.json({
-        config: companySheet.config as InspectorPricingConfig,
-        source: "company",
-        hasOverride: false,
-        isDefault: false,
-      });
+      companyConfig = companySheet.config as InspectorPricingConfig;
     }
   }
 
-  // 3) Platform default.
+  // Merge the company sheet's custom services (anything beyond Home/Radon/Mold)
+  // into `base` when they aren't already present. This keeps team-wide services
+  // available to every inspector even if they've set a personal price override --
+  // additive only; it never changes anyone's base prices.
+  const BASE_SERVICE_IDS = new Set(["home", "radon", "mold"]);
+  function withCompanyCustomServices(base: InspectorPricingConfig): InspectorPricingConfig {
+    if (!companyConfig) return base;
+    const present = new Set(base.services.map((s) => s.id));
+    const extras = companyConfig.services.filter(
+      (s) => !BASE_SERVICE_IDS.has(s.id) && !present.has(s.id),
+    );
+    return extras.length ? { ...base, services: [...base.services, ...extras] } : base;
+  }
+
+  if (own?.config && Array.isArray(own.config.services)) {
+    return NextResponse.json({
+      config: withCompanyCustomServices(own.config as InspectorPricingConfig),
+      source: "override",
+      hasOverride: true,
+      isDefault: false,
+    });
+  }
+
+  // 3) No personal override -- use the company sheet directly (already has its
+  // own custom services).
+  if (companyConfig) {
+    return NextResponse.json({
+      config: companyConfig,
+      source: "company",
+      hasOverride: false,
+      isDefault: false,
+    });
+  }
+
+  // 4) Platform default.
   return NextResponse.json({
     config: DEFAULT_PRICING_CONFIG,
     source: "default",

@@ -10,8 +10,10 @@ import { calculateHomeInspectionPrice } from "../../../lib/propertyPricing";
 import {
   DEFAULT_PRICING_CONFIG,
   calculateSqftFormulaPrice,
+  calculateServiceFee,
   getService,
   type InspectorPricingConfig,
+  type PricingService,
 } from "../../../lib/inspectorPricing";
 import { useAddressAutocomplete } from "../../../hooks/useAddressAutocomplete";
 import NewInspectionAgreementPicker from "../../../components/NewInspectionAgreementPicker";
@@ -30,7 +32,10 @@ type ServiceMode =
   | "radon_mold"
   | "home_radon"
   | "home_mold"
-  | "home_radon_mold";
+  | "home_radon_mold"
+  // A custom service (from Settings -> Pricing) selected as the primary service.
+  // Its value is the canonical key of the service name.
+  | (string & {});
 
 
 type RealtorContact = {
@@ -250,6 +255,24 @@ function calculateFullInspectionPrice({
   const includesRadon = hasRadon(serviceMode);
   const includesMold = hasMold(serviceMode);
 
+  // A custom service (from Settings -> Pricing) chosen as the primary Service
+  // Type: none of the built-in flags match, so we price it directly from config.
+  const customService =
+    !includesHome && !includesRadon && !includesMold
+      ? config.services.find(
+          (s) =>
+            !["home", "radon", "mold"].includes(s.id) &&
+            (canonicalServiceKey(s.name) || s.id) === serviceMode,
+        )
+      : null;
+  const customFee = customService
+    ? calculateServiceFee(customService, {
+        sqft: getNumber(squareFeet),
+        units: 1,
+        paired: false,
+      })
+    : 0;
+
   // Price from the inspector's saved pricing config (same source as the Quote
   // calculator) instead of hardcoded rates, so the saved inspection matches
   // what was quoted (audit finding H6). Falls back to default rates per service
@@ -292,11 +315,13 @@ function calculateFullInspectionPrice({
   const safeTravelFee = Math.max(0, getNumber(travelFee));
   const safeDiscount = Math.max(0, getNumber(discount));
 
-  const subtotal = base + radonFee + moldFee + safeTravelFee;
+  const subtotal = base + radonFee + moldFee + customFee + safeTravelFee;
   const total = Math.max(0, subtotal - safeDiscount);
 
   return {
     base,
+    customFee,
+    customServiceKey: customService ? String(serviceMode) : "",
     radonFee,
     moldSetupFee,
     moldAirFee,
@@ -312,7 +337,7 @@ function calculateFullInspectionPrice({
     includesHome,
     includesRadon,
     includesMold,
-    serviceLabel: getServiceLabel(serviceMode),
+    serviceLabel: customService ? customService.name : getServiceLabel(serviceMode),
   };
 }
 
@@ -490,16 +515,78 @@ function NewInspectionPageContent() {
   );
   const grandTotal = effectiveTotal + addonTotal;
 
+  // Custom services the inspector defined in Settings -> Pricing (anything beyond
+  // the built-in Home/Radon/Mold) become selectable add-ons here too, so a service
+  // added once in Pricing shows up when scheduling -- with its price pre-filled.
+  const customPricedServices = useMemo<PricingService[]>(
+    () => (pricingConfig.services || []).filter((s) => !["home", "radon", "mold"].includes(s.id)),
+    [pricingConfig],
+  );
+
+  // The primary Service Type dropdown: the built-in Home/Radon/Mold packages plus
+  // every custom service the inspector defined in Pricing, so all services live in
+  // one place. Selecting a custom one prices it from config (see
+  // calculateFullInspectionPrice).
+  const serviceTypeOptions = useMemo<{ value: string; label: string }[]>(() => {
+    const opts = [...serviceOptions];
+    const seen = new Set(opts.map((o) => o.value));
+    for (const svc of customPricedServices) {
+      const value = canonicalServiceKey(svc.name) || svc.id;
+      if (!value || seen.has(value)) continue;
+      seen.add(value);
+      opts.push({ value, label: svc.name });
+    }
+    return opts;
+  }, [customPricedServices]);
+
+  // The add-on <select> list: the inspector's own custom services first, then the
+  // standard quick-picks (deduped), then "Other".
+  const addonOptions = useMemo<{ value: string; label: string }[]>(() => {
+    const opts: { value: string; label: string }[] = [];
+    const seen = new Set<string>();
+    for (const svc of customPricedServices) {
+      const value = canonicalServiceKey(svc.name) || svc.id;
+      if (!value || seen.has(value)) continue;
+      seen.add(value);
+      opts.push({ value, label: svc.name });
+    }
+    for (const opt of ADDON_SERVICE_OPTIONS) {
+      if (seen.has(opt.value)) continue;
+      seen.add(opt.value);
+      opts.push(opt);
+    }
+    return opts;
+  }, [customPricedServices]);
+
+  // When a custom service is chosen, pre-fill its name + price from Pricing. For
+  // the standard options (and "Other") we leave label/price untouched.
+  function addonDefaultsFor(value: string): Partial<AddonService> {
+    const svc = customPricedServices.find(
+      (s) => (canonicalServiceKey(s.name) || s.id) === value,
+    );
+    if (!svc) return {};
+    const fee = calculateServiceFee(svc, {
+      sqft: Number(squareFeet) || 0,
+      units: 1,
+      paired: false,
+    });
+    return { label: svc.name, price: fee > 0 ? String(fee) : "" };
+  }
+
   function addAddonService() {
-    setAddonServices((current) => [
-      ...current,
-      {
-        id: `${current.length}-${current.reduce((n, a) => n + a.id.length, 1)}`,
-        type: "sewer_scope",
-        label: "",
-        price: "",
-      },
-    ]);
+    setAddonServices((current) => {
+      const firstValue = addonOptions[0]?.value || "sewer_scope";
+      return [
+        ...current,
+        {
+          id: `${current.length}-${current.reduce((n, a) => n + a.id.length, 1)}`,
+          type: firstValue,
+          label: "",
+          price: "",
+          ...addonDefaultsFor(firstValue),
+        },
+      ];
+    });
   }
 
   function updateAddonService(id: string, patch: Partial<AddonService>) {
@@ -519,6 +606,8 @@ function NewInspectionPageContent() {
     if (quote.includesHome && quote.base > 0) map.home_inspection = quote.base;
     if (quote.includesRadon && quote.radonFee > 0) map.radon = quote.radonFee;
     if (quote.includesMold && quote.moldFee > 0) map.mold = quote.moldFee;
+    // A custom service selected as the primary Service Type.
+    if (quote.customServiceKey && quote.customFee > 0) map[quote.customServiceKey] = quote.customFee;
     for (const addon of addonServices) {
       const key = canonicalServiceKey(
         addon.type === "other" && addon.label.trim() ? addon.label : addon.type,
@@ -1573,10 +1662,13 @@ function NewInspectionPageContent() {
                       </label>
                       <select
                         value={addon.type}
-                        onChange={(e) => updateAddonService(addon.id, { type: e.target.value })}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          updateAddonService(addon.id, { type: value, ...addonDefaultsFor(value) });
+                        }}
                         className="w-full rounded-xl border border-zinc-700 bg-[#0b1220] px-3 py-2.5 text-white outline-none focus:border-teal-400"
                       >
-                        {ADDON_SERVICE_OPTIONS.map((option) => (
+                        {addonOptions.map((option) => (
                           <option key={option.value} value={option.value}>
                             {option.label}
                           </option>
@@ -1738,7 +1830,7 @@ function NewInspectionPageContent() {
                 onChange={(e) => setServiceMode(e.target.value as ServiceMode)}
                 className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white"
               >
-                {serviceOptions.map((option) => (
+                {serviceTypeOptions.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>
