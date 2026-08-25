@@ -693,6 +693,13 @@ export default function InspectorToolsDrawer({
   } | null>(null);
   // After a WebGL open-genie plays, reveal the real panel with no extra CSS anim.
   const [webglOpened, setWebglOpened] = useState(false);
+  // One-time, invisible pre-render of the panel so the VERY FIRST open already has
+  // a snapshot to genie from (otherwise the first open falls back to the CSS funnel
+  // because no capture exists yet). Mounts the real aside under an opacity-0 /
+  // pointer-events-none container; html-to-image reads the aside's OWN styles (it's
+  // opaque), so the capture is fully rendered while the user sees nothing.
+  const [warming, setWarming] = useState(false);
+  const warmedRef = useRef(false);
 
   function webglAvailable() {
     try {
@@ -782,6 +789,56 @@ export default function InspectorToolsDrawer({
       clearTimeout(t);
     };
   }, [open]);
+
+  // Once, after the page settles, invisibly pre-render + capture the panel so the
+  // first open can genie. Skipped when WebGL/genie isn't in play or motion is reduced.
+  useEffect(() => {
+    if (warmedRef.current || !webglOk) return;
+    if (typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    let id: number | ReturnType<typeof setTimeout>;
+    const kick = () => {
+      if (warmedRef.current || captureRef.current) return;
+      setWarming(true);
+    };
+    const ric = (window as unknown as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number }).requestIdleCallback;
+    if (ric) id = ric(kick, { timeout: 3000 });
+    else id = setTimeout(kick, 1500);
+    return () => {
+      const cic = (window as unknown as { cancelIdleCallback?: (h: number) => void }).cancelIdleCallback;
+      if (ric && cic) cic(id as number);
+      else clearTimeout(id as ReturnType<typeof setTimeout>);
+    };
+  }, [webglOk]);
+
+  // Run the warm-up capture: the aside is mounted (invisible) — let it paint, snap it,
+  // stash the canvas, then unmount. Best-effort; failure just means the first open
+  // uses the CSS funnel as before.
+  useEffect(() => {
+    if (!warming) return;
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      try {
+        const el = asideRef.current;
+        if (el) {
+          const { toCanvas } = await import("html-to-image");
+          const snap = await toCanvas(el, {
+            pixelRatio: Math.min(2, window.devicePixelRatio || 1),
+            backgroundColor: "#0a0f1a",
+          });
+          if (!cancelled && !captureRef.current) captureRef.current = snap;
+        }
+      } catch {
+        /* warm-up capture failed -> first open falls back to CSS funnel */
+      } finally {
+        warmedRef.current = true;
+        if (!cancelled) setWarming(false);
+      }
+    }, 90);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [warming]);
 
   const [query, setQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<WorkspaceCategory>("all");
@@ -1401,14 +1458,19 @@ export default function InspectorToolsDrawer({
 
       {/* Alerts stay inside the Command Center instead of popping up on every report visit. */}
 
-      {open ? (
-        <div className="fixed inset-0 z-[100]">
-          <button
-            type="button"
-            aria-label="Close inspector command center"
-            onClick={requestClose}
-            className={`absolute inset-0 bg-black/60 backdrop-blur-sm ${closing || genie ? "cc-backdrop-out" : "cc-backdrop-in"}`}
-          />
+      {open || warming ? (
+        <div
+          className={`fixed inset-0 z-[100] ${warming && !open ? "pointer-events-none opacity-0" : ""}`}
+          aria-hidden={warming && !open ? true : undefined}
+        >
+          {open && (
+            <button
+              type="button"
+              aria-label="Close inspector command center"
+              onClick={requestClose}
+              className={`absolute inset-0 bg-black/60 backdrop-blur-sm ${closing || genie ? "cc-backdrop-out" : "cc-backdrop-in"}`}
+            />
+          )}
 
           {genie && (
             <CommandCenterGenie
@@ -1422,13 +1484,15 @@ export default function InspectorToolsDrawer({
           <aside
             ref={asideRef}
             className={`absolute inset-0 flex min-w-0 flex-col overflow-hidden bg-[#0a0f1a] shadow-2xl ${
-              genie || (open && !closing && !webglOpened && captureRef.current && webglOk)
-                ? "opacity-0"
-                : closing
-                  ? "cc-genie-close"
-                  : webglOpened
-                    ? ""
-                    : "cc-genie-open"
+              warming && !open
+                ? "" // warm-up: render static + opaque so the capture is fully drawn
+                : genie || (open && !closing && !webglOpened && captureRef.current && webglOk)
+                  ? "opacity-0"
+                  : closing
+                    ? "cc-genie-close"
+                    : webglOpened
+                      ? ""
+                      : "cc-genie-open"
             } sm:inset-y-[6vh] sm:mx-auto sm:max-w-5xl sm:rounded-[2rem] sm:border sm:border-slate-700 sm:shadow-[0_30px_90px_-20px_rgba(0,0,0,0.85)]`}
           >
             <div className="shrink-0 overflow-hidden border-b border-slate-800 bg-[#0b1220] p-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:p-5 sm:pt-[max(1.25rem,env(safe-area-inset-top))]">
