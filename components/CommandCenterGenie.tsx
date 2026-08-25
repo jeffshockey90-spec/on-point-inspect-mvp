@@ -30,8 +30,12 @@ export default function CommandCenterGenie({
 
     const finish = () => doneRef.current();
     const dpr = Math.min(2, window.devicePixelRatio || 1);
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
+    // Use the LAYOUT viewport (excludes the scrollbar) — the canvas is fixed
+    // inset-0 so it's laid out at clientWidth, and the panel rect is measured in
+    // the same space. Using window.innerWidth (which includes the scrollbar)
+    // shifted the warp sideways relative to the real panel.
+    const vw = document.documentElement.clientWidth;
+    const vh = document.documentElement.clientHeight;
     cv.width = Math.round(vw * dpr);
     cv.height = Math.round(vh * dpr);
 
