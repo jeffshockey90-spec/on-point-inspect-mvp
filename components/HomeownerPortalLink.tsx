@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Home, Copy, Check } from "lucide-react";
 
 // Copyable link to the buyer's Homeowner Portal (the maintenance/recall hub).
@@ -8,10 +8,16 @@ import { Home, Copy, Check } from "lucide-react";
 export default function HomeownerPortalLink({ token }: { token: string }) {
   const [copied, setCopied] = useState(false);
 
-  const origin =
-    typeof window !== "undefined" && window.location?.origin
-      ? window.location.origin
-      : "https://app.flowinspect.app";
+  // Render the same origin the server used on the first client render so
+  // hydration matches, then switch to the real window origin after mount.
+  // (Reading window.location.origin during render made SSR and the client
+  // disagree -> hydration mismatch on localhost/preview.)
+  const [origin, setOrigin] = useState("https://app.flowinspect.app");
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.location?.origin) {
+      setOrigin(window.location.origin);
+    }
+  }, []);
   const url = `${origin}/my-home/${token}`;
 
   async function copy() {
