@@ -711,6 +711,15 @@ export default function InspectorToolsDrawer({
   }
   const webglOk = useMemo(() => webglAvailable(), []);
 
+  // Use the WebGL genie only where the panel is ~full-width (phones/tablets) --
+  // there it's flawless. On desktop the panel is centered with wide margins; the
+  // WebGL warp read as a brief "contents on the right" flash on some displays, so
+  // desktop falls back to the CSS funnel, which animates the REAL centered panel
+  // directly (no snapshot/warp) and therefore can never show a content offset.
+  function canWebglGenie() {
+    return webglOk && typeof window !== "undefined" && window.innerWidth < 1024;
+  }
+
   function finishClose() {
     setOpen(false);
     setClosing(false);
@@ -738,7 +747,7 @@ export default function InspectorToolsDrawer({
     if (closeTimerRef.current || genie) return;
     const el = asideRef.current;
     const cap = captureRef.current;
-    if (cap && el && webglAvailable()) {
+    if (cap && el && canWebglGenie()) {
       const r = el.getBoundingClientRect();
       setGenie({ source: cap, rect: { left: r.left, top: r.top, right: r.right, bottom: r.bottom }, direction: "close" });
       return; // plays, then onGenieDone -> finishClose
@@ -754,7 +763,7 @@ export default function InspectorToolsDrawer({
     if (!open || genie) return;
     const cap = captureRef.current;
     const el = asideRef.current;
-    if (cap && el && webglAvailable()) {
+    if (cap && el && canWebglGenie()) {
       const r = el.getBoundingClientRect();
       if (r.width > 0) {
         setWebglOpened(false);
@@ -793,7 +802,7 @@ export default function InspectorToolsDrawer({
   // Once, after the page settles, invisibly pre-render + capture the panel so the
   // first open can genie. Skipped when WebGL/genie isn't in play or motion is reduced.
   useEffect(() => {
-    if (warmedRef.current || !webglOk) return;
+    if (warmedRef.current || !canWebglGenie()) return; // desktop uses the CSS funnel -- no snapshot needed
     if (typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
     let id: number | ReturnType<typeof setTimeout>;
     const kick = () => {
@@ -1486,7 +1495,7 @@ export default function InspectorToolsDrawer({
             className={`absolute inset-0 flex min-w-0 flex-col overflow-hidden bg-[#0a0f1a] shadow-2xl ${
               warming && !open
                 ? "" // warm-up: render static + opaque so the capture is fully drawn
-                : genie || (open && !closing && !webglOpened && captureRef.current && webglOk)
+                : genie || (open && !closing && !webglOpened && captureRef.current && canWebglGenie())
                   ? "opacity-0"
                   : closing
                     ? "cc-genie-close"
