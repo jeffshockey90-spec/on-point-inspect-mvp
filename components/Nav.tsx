@@ -3,7 +3,7 @@
 import { OWNER_EMAILS } from "../lib/ownerEmails";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import SupportUnreadBadge from "./SupportUnreadBadge";
 import { isPortalRoute } from "../lib/navVisibility";
@@ -31,25 +31,33 @@ import {
 
 
 
+// Grouped into a few labelled categories so the sidebar reads as ~4 short lists
+// instead of one long 18-item scroll. Dashboard stays ungrouped at the top;
+// items are ordered so each `group` is contiguous (the render inserts a header
+// when the group changes).
 const baseNavItems = [
   { title: "Dashboard", href: "/", icon: Home, mobileLabel: "Home" },
-  { title: "New Inspection", href: "/inspections/new", icon: Plus, mobileLabel: "New" },
-  { title: "Field Tool", href: "/field", icon: Smartphone, mobileLabel: "Field" },
-  { title: "Reports", href: "/reports", icon: FileText, mobileLabel: "Reports" },
-  { title: "Mold", href: "/mold", icon: FlaskConical, mobileLabel: "Mold" },
-  { title: "Radon", href: "/radon", icon: Radiation, mobileLabel: "Radon" },
-  { title: "Realtors", href: "/realtors", icon: Building2, mobileLabel: "Realtors" },
-  { title: "Agreements", href: "/agreements", icon: FileSignature, mobileLabel: "Agreements" },
-  { title: "Sent Emails", href: "/emails", icon: Mail, mobileLabel: "Emails" },
-  { title: "AI Capture", href: "/ai-capture", icon: Sparkles, mobileLabel: "AI" },
-  { title: "Templates", href: "/templates", icon: LayoutTemplate, mobileLabel: "Templates" },
-  { title: "Quotes", href: "/quotes", icon: Calculator, mobileLabel: "Quotes" },
-  { title: "Schedule", href: "/schedule", icon: CalendarDays, mobileLabel: "Schedule" },
-  { title: "Dispatch", href: "/dispatch", icon: Compass, mobileLabel: "Dispatch" },
-  { title: "Mileage", href: "/mileage", icon: Car, mobileLabel: "Mileage" },
-  { title: "Support", href: "/support", icon: LifeBuoy, mobileLabel: "Support" },
-  { title: "What's New", href: "/whats-new", icon: Rocket, mobileLabel: "New" },
-  { title: "Settings", href: "/settings", icon: Settings, mobileLabel: "Settings" },
+  // Inspect
+  { title: "New Inspection", href: "/inspections/new", icon: Plus, mobileLabel: "New", group: "Inspect" },
+  { title: "Schedule", href: "/schedule", icon: CalendarDays, mobileLabel: "Schedule", group: "Inspect" },
+  { title: "Field Tool", href: "/field", icon: Smartphone, mobileLabel: "Field", group: "Inspect" },
+  { title: "AI Capture", href: "/ai-capture", icon: Sparkles, mobileLabel: "AI", group: "Inspect" },
+  { title: "Dispatch", href: "/dispatch", icon: Compass, mobileLabel: "Dispatch", group: "Inspect" },
+  { title: "Mold", href: "/mold", icon: FlaskConical, mobileLabel: "Mold", group: "Inspect" },
+  { title: "Radon", href: "/radon", icon: Radiation, mobileLabel: "Radon", group: "Inspect" },
+  // Deliver
+  { title: "Reports", href: "/reports", icon: FileText, mobileLabel: "Reports", group: "Deliver" },
+  { title: "Agreements", href: "/agreements", icon: FileSignature, mobileLabel: "Agreements", group: "Deliver" },
+  { title: "Templates", href: "/templates", icon: LayoutTemplate, mobileLabel: "Templates", group: "Deliver" },
+  { title: "Sent Emails", href: "/emails", icon: Mail, mobileLabel: "Emails", group: "Deliver" },
+  // Grow
+  { title: "Realtors", href: "/realtors", icon: Building2, mobileLabel: "Realtors", group: "Grow" },
+  { title: "Quotes", href: "/quotes", icon: Calculator, mobileLabel: "Quotes", group: "Grow" },
+  { title: "Mileage", href: "/mileage", icon: Car, mobileLabel: "Mileage", group: "Grow" },
+  // Account
+  { title: "Support", href: "/support", icon: LifeBuoy, mobileLabel: "Support", group: "Account" },
+  { title: "What's New", href: "/whats-new", icon: Rocket, mobileLabel: "New", group: "Account" },
+  { title: "Settings", href: "/settings", icon: Settings, mobileLabel: "Settings", group: "Account" },
 ];
 
 const ownerNavItem = {
@@ -470,39 +478,56 @@ export default function Navbar() {
         </Link>
 
         <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-3 py-4">
-          {visibleNavItems.map((item) => {
-            const active = isActive(item.href);
-            const opening = openingHref === item.href && !active;
-            const ItemIcon = item.icon;
+          {(() => {
+            // Show category headers for the full inspector/owner nav; the trimmed
+            // realtor-portal nav (4 items) reads better as a flat list.
+            const showGroups = !(isRealtor && !isInspector);
+            let prevGroup: string | null = null;
 
-            return (
-              <Link
-                key={`${item.title}-${item.href}`}
-                href={item.href}
-                prefetch
-                onPointerEnter={() => prefetchRoute(item.href)}
-                onTouchStart={() => prefetchRoute(item.href)}
-                onClick={() => handleNavClick(item.href)}
-                aria-busy={opening}
-                className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 text-sm font-extrabold transition active:scale-[0.98] [touch-action:manipulation] ${
-                  active
-                    ? "border-white/40 bg-teal-400 text-black shadow-lg shadow-teal-500/30"
-                    : opening
-                      ? "border-teal-500 bg-[#111827] text-teal-400 opacity-80"
-                      : item.href === "/dashboard/owner"
-                        ? "border-yellow-500/60 bg-yellow-500/10 text-yellow-300 hover:border-yellow-400 hover:bg-yellow-500/20 hover:text-yellow-200"
-                        : "border-transparent text-teal-400 hover:border-teal-500 hover:bg-[#111827] hover:text-white"
-                }`}
-              >
-                <NavSpinner active={opening} />
-                {!opening && <ItemIcon className="h-[18px] w-[18px] shrink-0" strokeWidth={2.25} />}
-                <span className="flex min-w-0 flex-1 items-center gap-1 truncate">
-                  {opening ? "Opening..." : item.title}
-                </span>
-                {!opening && item.mobileLabel === "Support" && <SupportUnreadBadge />}
-              </Link>
-            );
-          })}
+            return visibleNavItems.map((item) => {
+              const active = isActive(item.href);
+              const opening = openingHref === item.href && !active;
+              const ItemIcon = item.icon;
+              const group = (item as any).group as string | undefined;
+              const groupLabel =
+                showGroups && group && group !== prevGroup ? group : null;
+              prevGroup = group || prevGroup;
+
+              return (
+                <Fragment key={`${item.title}-${item.href}`}>
+                  {groupLabel && (
+                    <p className="mt-3 px-3 pb-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
+                      {groupLabel}
+                    </p>
+                  )}
+                  <Link
+                    href={item.href}
+                    prefetch
+                    onPointerEnter={() => prefetchRoute(item.href)}
+                    onTouchStart={() => prefetchRoute(item.href)}
+                    onClick={() => handleNavClick(item.href)}
+                    aria-busy={opening}
+                    className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 text-sm font-extrabold transition active:scale-[0.98] [touch-action:manipulation] ${
+                      active
+                        ? "border-white/40 bg-teal-400 text-black shadow-lg shadow-teal-500/30"
+                        : opening
+                          ? "border-teal-500 bg-[#111827] text-teal-400 opacity-80"
+                          : item.href === "/dashboard/owner"
+                            ? "border-yellow-500/60 bg-yellow-500/10 text-yellow-300 hover:border-yellow-400 hover:bg-yellow-500/20 hover:text-yellow-200"
+                            : "border-transparent text-teal-400 hover:border-teal-500 hover:bg-[#111827] hover:text-white"
+                    }`}
+                  >
+                    <NavSpinner active={opening} />
+                    {!opening && <ItemIcon className="h-[18px] w-[18px] shrink-0" strokeWidth={2.25} />}
+                    <span className="flex min-w-0 flex-1 items-center gap-1 truncate">
+                      {opening ? "Opening..." : item.title}
+                    </span>
+                    {!opening && item.mobileLabel === "Support" && <SupportUnreadBadge />}
+                  </Link>
+                </Fragment>
+              );
+            });
+          })()}
 
           {isReportBuilderRoute(pathname) && (
             <div className="mt-4 border-t border-slate-800 pt-4">
