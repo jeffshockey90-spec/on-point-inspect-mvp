@@ -59,8 +59,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${inter.variable} overflow-x-hidden`}>
-      <body className="min-h-screen overflow-x-hidden bg-[#050816] text-white antialiased">
+    <html lang="en" className={`${inter.variable} overflow-x-clip`}>
+      <body className="min-h-screen overflow-x-clip bg-[#050816] text-white antialiased">
         <ServiceWorkerRegister />
 
         <Navbar />

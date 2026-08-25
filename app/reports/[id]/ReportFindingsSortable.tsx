@@ -567,6 +567,23 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
     }));
   }
 
+  // Jump-nav: open the target section (so it isn't collapsed) and smooth-scroll
+  // to it with a brief highlight. Lets the inspector move between the real
+  // inspection sections (Roof, Electrical, ...) instead of scrolling the whole
+  // report — the builder's biggest navigation gap.
+  function jumpToSection(section: string) {
+    setClosedSections((prev) => ({ ...prev, [section]: false }));
+    window.setTimeout(() => {
+      const el = document.getElementById(`report-section-${commandSlug(section)}`);
+      if (!el) return;
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+      el.classList.add("ring-4", "ring-cyan-300", "ring-offset-4", "ring-offset-slate-950");
+      window.setTimeout(() => {
+        el.classList.remove("ring-4", "ring-cyan-300", "ring-offset-4", "ring-offset-slate-950");
+      }, 1600);
+    }, 60);
+  }
+
   function expandAll() {
     setClosedSections({});
   }
@@ -860,6 +877,28 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
         </div>
       )}
 
+      {(orderedGroups || []).length > 1 && (
+        <nav
+          aria-label="Jump to inspection section"
+          className="sticky top-2 z-30 flex gap-2 overflow-x-auto rounded-2xl border border-slate-700 bg-[#0f172a]/95 px-2.5 py-2 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-[#0f172a]/80"
+        >
+          {(orderedGroups || []).map((group: any) => (
+            <button
+              key={group.section}
+              type="button"
+              onClick={() => jumpToSection(group.section)}
+              title={`Jump to ${group.section}`}
+              className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-slate-600 bg-slate-900 px-3 py-1.5 text-xs font-bold text-slate-200 transition hover:border-teal-400 hover:text-teal-300 active:scale-95"
+            >
+              <span>{group.section}</span>
+              <span className="rounded-full bg-slate-800 px-1.5 text-[10px] font-black text-slate-400">
+                {(group.findings || []).length}
+              </span>
+            </button>
+          ))}
+        </nav>
+      )}
+
       {(orderedGroups || []).map((group: any, index: number) => {
         const findings = group.findings || [];
         const isClosed = !!closedSections[group.section];
@@ -878,7 +917,7 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
             // reserves height (remembered after first render) so scrolling stays
             // stable. Progressive enhancement -- older browsers just ignore it.
             style={{ contentVisibility: "auto", containIntrinsicSize: "auto 720px" }}
-            className={`w-full max-w-full overflow-x-hidden rounded-2xl border border-slate-700 bg-[#0f172a] shadow-lg transition ${
+            className={`w-full max-w-full scroll-mt-20 overflow-x-hidden rounded-2xl border border-slate-700 bg-[#0f172a] shadow-lg transition ${
               isDragging ? "opacity-50 ring-2 ring-teal-400" : ""
             }`}
           >

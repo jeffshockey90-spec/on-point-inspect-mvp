@@ -2807,7 +2807,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
   ];
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[#020617] pb-[calc(100px+env(safe-area-inset-bottom))] text-white">
+    <main className="min-h-screen overflow-x-clip bg-[#020617] pb-[calc(100px+env(safe-area-inset-bottom))] text-white">
       <OfflineReportCacheBridge
         inspectionId={String(inspection.id)}
         inspection={inspection}
@@ -2870,8 +2870,8 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
           </div>
         </div>
 
-        <div className="mb-4 overflow-x-hidden overflow-y-visible rounded-2xl border border-slate-800 bg-[#0f172a] p-1.5 shadow-xl sm:p-3 md:rounded-3xl md:p-6">
-          <div className="mb-6 max-w-full space-y-4 overflow-x-hidden overflow-y-visible">
+        <div className="mb-4 overflow-x-clip overflow-y-visible rounded-2xl border border-slate-800 bg-[#0f172a] p-1.5 shadow-xl sm:p-3 md:rounded-3xl md:p-6">
+          <div className="mb-6 max-w-full space-y-4 overflow-x-clip overflow-y-visible">
             <div>
               <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-500">
                 Report &amp; Share
