@@ -12,6 +12,7 @@ import {
   getInspectorFindingExamples,
   formatExamplesForPrompt,
 } from "../../../lib/ai/findingRetrieval";
+import { MATERIAL_FIELDS } from "../../../lib/ai/checklistAutofill";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -221,7 +222,8 @@ Return ONLY valid JSON in this exact structure:
   "maintenanceTip": "",
   "liabilityNote": "",
   "confidence": 0,
-  "evidence": []
+  "evidence": [],
+  "sectionInfo": {}
 }
 
 Writing requirements:
@@ -232,6 +234,9 @@ Writing requirements:
 - Liability note: a short internal note explaining any cautious wording, limitation, uncertainty, or need for inspector verification. Do not use legal jargon.
 - Confidence: 0-100 based on note clarity and photo support.
 - Evidence: up to four short statements describing what supports the finding.
+- sectionInfo: an object identifying the visible material/type for the section you assign. Include a field ONLY for the section you chose, ONLY when you can CLEARLY identify it from the photo, and choose the value ONLY from that section's allowed options below (or, if the material is clearly something not in the list, a short specific material name). Omit any field you are not sure about — accuracy over completeness; leave it out rather than guessing. If nothing is clearly identifiable, return {}.
+  Allowed material/type fields per section (groupTitle: allowed options):
+${JSON.stringify(MATERIAL_FIELDS)}
 - Section: choose the report section for the actual component or system the defect belongs to, not the section the inspector happened to have selected. Use the visible component to decide, for example:
   - Roof, shingles, flashing, gutters, chimney exterior -> Roof
   - Siding, trim, grading, driveway, walkway, deck, porch, exterior steps -> Exterior
@@ -331,6 +336,21 @@ Keep the inspector's intent. Improve the writing without drifting away from the 
       maintenanceTip,
     );
 
+    // Keep only material fields that belong to the assigned section and carry a
+    // real value — the model can't inject fields for the wrong section, and
+    // uncertain/blank values are dropped so nothing is guessed into the report.
+    const sectionInfo: Record<string, string> = {};
+    const allowedGroups = MATERIAL_FIELDS[section]?.map((g) => g.groupTitle) || [];
+    const rawInfo =
+      parsed.sectionInfo && typeof parsed.sectionInfo === "object" ? parsed.sectionInfo : {};
+    for (const group of allowedGroups) {
+      const value = cleanText(rawInfo[group]);
+      const lower = value.toLowerCase();
+      if (value && lower !== "unknown" && lower !== "none" && lower !== "n/a" && lower !== "not visible") {
+        sectionInfo[group] = value;
+      }
+    }
+
     const result = {
       title: cleanText(parsed.title) || "Inspection Finding",
       section,
@@ -344,6 +364,7 @@ Keep the inspector's intent. Improve the writing without drifting away from the 
       evidence: Array.isArray(parsed.evidence)
         ? parsed.evidence.map(cleanText).filter(Boolean).slice(0, 4)
         : [],
+      sectionInfo,
       aiModel: AI_WRITER_MODEL,
       aiVersion: AI_WRITER_VERSION,
       photoCount: imageDataUrls.length,

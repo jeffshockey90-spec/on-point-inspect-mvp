@@ -7,6 +7,10 @@ export type FindingDraft = {
   implication: string;
   recommendation: string;
   confidence?: number;
+  // Material/type fields the AI identified for this finding's section, keyed by
+  // checklist group title (e.g. { "Siding Material": "Vinyl" }). Used to
+  // auto-fill the section's system-info checklist. See lib/ai/checklistAutofill.
+  sectionInfo?: Record<string, string>;
 };
 
 export type LimitationDraft = {

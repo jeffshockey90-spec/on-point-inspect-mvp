@@ -823,6 +823,7 @@ export default function AILiveInspectionCamera({
           implication: data.implication,
           recommendation: data.recommendation,
           confidence: data.confidence,
+          sectionInfo: data.sectionInfo || {},
         });
         // Capture the AI draft exactly as generated (pre-edit) for learning.
         aiFindingBaselineRef.current = {
@@ -1694,6 +1695,7 @@ export default function AILiveInspectionCamera({
           mediaPreviewUrl={capturedPreviewUrl}
           isVideo={capturedIsVideo}
           draft={draft}
+          inspectionId={selectedReport ? String(selectedReport) : undefined}
           busy={saving}
           error={saveError}
           initialNote={noteText}

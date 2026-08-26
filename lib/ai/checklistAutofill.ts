@@ -153,6 +153,43 @@ export function buildEquipmentFills(er: Attrs): ChecklistFill[] {
   return fills;
 }
 
+// --- Phase 2: material/type fields identified visually from a Finding photo ---
+// section -> the checklist groups the AI can fill by identifying the material.
+// Option lists MIRROR CHECKLIST_LIBRARY in SectionInformationChecklist.tsx.
+export const MATERIAL_FIELDS: Record<string, { groupTitle: string; options: string[] }[]> = {
+  "Exterior": [
+    { groupTitle: "Siding Material", options: ["Brick Veneer", "Plastic", "Logs", "Stone Veneer", "Concrete", "Stucco", "Fiber Cement", "Stone", "Wood", "Vinyl", "Shingles", "Brick", "Engineered Wood", "Masonry", "Asphalt", "Metal"] },
+    { groupTitle: "Driveway Material", options: ["Concrete", "Asphalt", "Cobblestone", "Pavers", "Gravel", "Brick", "Street Parking", "Dirt"] },
+    { groupTitle: "Appurtenance Material", options: ["Composite", "Wood", "Concrete", "Masonry"] },
+  ],
+  "Roof": [
+    { groupTitle: "Roof Covering Material", options: ["Solar", "Ceramic", "Asbestos", "Tile", "Metal", "Concrete", "Fiberglass", "Slate", "Asphalt", "Wood"] },
+    { groupTitle: "Roof Type/Style", options: ["Gambrel", "Combination", "Hip", "Mansard", "Shed", "Gable", "Flat"] },
+    { groupTitle: "Gutter Material", options: ["Aluminum", "Copper", "Vinyl", "Steel", "Seamless Aluminum", "None"] },
+  ],
+  "Basement, Foundation, Crawlspace & Structure": [
+    { groupTitle: "Foundation Material", options: ["Brick", "Concrete", "Rock", "Pier and Beam", "Stone", "Masonry Block", "Slab on Grade"] },
+  ],
+  "Garage": [
+    { groupTitle: "Garage Door Material", options: ["Aluminum", "Wood Composite", "Vinyl", "Insulated", "Steel", "Wood", "Fiberglass", "Glass"] },
+  ],
+};
+
+// Maps the AI's visually-identified material values (sectionInfo, keyed by
+// group title, returned by /api/ai-capture) to checklist fills for that section.
+export function buildMaterialFills(section: string, sectionInfo: Record<string, any> | null | undefined): ChecklistFill[] {
+  if (!section || !sectionInfo || typeof sectionInfo !== "object") return [];
+  const groups = MATERIAL_FIELDS[section];
+  if (!groups) return [];
+  const fills: ChecklistFill[] = [];
+  for (const g of groups) {
+    const raw = sectionInfo[g.groupTitle];
+    if (!isKnown(raw)) continue;
+    fills.push(optionFill(section, g.groupTitle, String(raw), g.options));
+  }
+  return fills;
+}
+
 // Writes confirmed fills to section_checklist_selections. Fills only EMPTY
 // groups by default — never overwrites a selection the inspector already made.
 // Values not in the option list are stored as custom "OTHER" rows (in the
