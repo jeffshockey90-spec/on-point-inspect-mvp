@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
+import { listUnsubscribeHeaders } from "../../../lib/emailUnsubscribe";
 import { getOrCreateShareToken } from "../../../lib/shareToken";
 import { getCompanyBrandingById, buildBrandedFromHeader } from "../../../lib/companyBranding";
 import { getSessionUser, unauthorized, notFound, authorizeInspection } from "../../../lib/apiAuth";
@@ -461,6 +462,7 @@ export async function POST(req: Request) {
         const result = await resend.emails.send({
           from: fromEmail,
           to: email,
+          headers: listUnsubscribeHeaders(email),
           subject,
           html: realtorHtml,
           text: `Hi ${realtor.name || "there"},
@@ -600,6 +602,7 @@ ${branding.name}`,
         const result = await resend.emails.send({
           from: fromEmail,
           to: email,
+          headers: listUnsubscribeHeaders(email),
           subject,
           html: clientHtml,
           text: `Hi ${contact.name || "there"},

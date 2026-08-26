@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
+import { listUnsubscribeHeaders } from "../../../lib/emailUnsubscribe";
 import { getOrCreateShareToken } from "../../../lib/shareToken";
 import { formatAppValue, formatClockTime } from "../../../lib/app-time";
 import { getCompanyBrandingById, buildBrandedFromHeader } from "../../../lib/companyBranding";
@@ -257,6 +258,7 @@ ${branding.name}`;
         const result = await resend.emails.send({
           from: fromEmail,
           to: recipient.email,
+          headers: listUnsubscribeHeaders(recipient.email),
           subject,
           html,
           text,

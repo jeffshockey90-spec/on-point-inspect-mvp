@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
+import { listUnsubscribeHeaders } from "../../../../../lib/emailUnsubscribe";
 import {
   getSessionUser,
   getAdminClient,
@@ -158,6 +159,7 @@ export async function POST(_req: Request, { params }: RouteProps) {
   const { data: sent, error: sendError } = await resend.emails.send({
     from,
     to: clientEmail,
+    headers: listUnsubscribeHeaders(clientEmail),
     subject,
     html,
   });

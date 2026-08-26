@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
+import { listUnsubscribeHeaders, isEmailUnsubscribed } from "../../../lib/emailUnsubscribe";
 import { getOrCreateShareToken } from "../../../lib/shareToken";
 import { getCompanyBrandingById, buildBrandedFromHeader } from "../../../lib/companyBranding";
 import { getSessionUser, unauthorized, notFound, authorizeInspection } from "../../../lib/apiAuth";
@@ -128,6 +129,8 @@ export async function POST(req: Request) {
     for (const contact of recipients) {
       const email = String(contact.email || "").trim().toLowerCase();
       if (!email) continue;
+      // Honor a one-click unsubscribe: reminders are non-essential, so skip.
+      if (await isEmailUnsubscribed(supabase, email)) continue;
 
       const agreementUrl = `${baseUrl}/client-agreement/${portalShareToken}?contact=${contact.id}&source=reminder`;
       const portalUrl = `${baseUrl}/client-portal/${portalShareToken}`;
@@ -167,6 +170,7 @@ ${branding.name}`;
       const result = await resend.emails.send({
         from: fromEmail,
         to: email,
+        headers: listUnsubscribeHeaders(email),
         subject,
         html,
         text,

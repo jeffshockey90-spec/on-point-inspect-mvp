@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
+import { listUnsubscribeHeaders } from "../../../lib/emailUnsubscribe";
 import {
   getSessionUser,
   unauthorized,
@@ -128,6 +129,7 @@ export async function POST(req: Request) {
     const sendResult = await resend.emails.send({
       from,
       to,
+      headers: listUnsubscribeHeaders(to),
       subject: signedSubject,
       html: signedHtml,
       text: `Here is a copy of your signed inspection agreement for ${property}.\n\nView / print / save a PDF: ${link}\n${signedWhen ? `\nSigned ${signedWhen}.` : ""}`,

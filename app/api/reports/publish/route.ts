@@ -9,6 +9,7 @@ import { getOrCreateShareToken } from "../../../../lib/shareToken";
 import { getCompanyBrandingById, buildBrandedFromHeader, type CompanyBranding } from "../../../../lib/companyBranding";
 import { isSmsConfigured, sendSms } from "../../../../lib/sms";
 import { smsReportReadyClient, smsReportReadyAgent } from "../../../../lib/smsTemplates";
+import { listUnsubscribeHeaders } from "../../../../lib/emailUnsubscribe";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -166,6 +167,7 @@ async function sendReportEmail({
     to,
     subject: REPORT_EMAIL_SUBJECT,
     html,
+    headers: listUnsubscribeHeaders(Array.isArray(to) ? to[0] : to),
   });
 
   if (error) {

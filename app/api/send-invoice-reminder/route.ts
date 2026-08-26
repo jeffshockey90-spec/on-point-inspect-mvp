@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
 import { Resend } from "resend";
+import { listUnsubscribeHeaders, isEmailUnsubscribed } from "../../../lib/emailUnsubscribe";
 import { getCompanyBrandingById, buildBrandedFromHeader } from "../../../lib/companyBranding";
 import { getSessionUser, unauthorized, notFound, authorizeInspection } from "../../../lib/apiAuth";
 
@@ -159,6 +160,11 @@ export async function POST(req: Request) {
       );
     }
 
+    // Honor a one-click unsubscribe: an invoice reminder is non-essential.
+    if (await isEmailUnsubscribed(supabase, to)) {
+      return NextResponse.json({ ok: true, skipped: "unsubscribed" });
+    }
+
     const balanceDue = getBalanceDue(inspection);
 
     if (balanceDue <= 0) {
@@ -293,6 +299,7 @@ export async function POST(req: Request) {
     const { error: emailError } = await resend.emails.send({
       from,
       to,
+      headers: listUnsubscribeHeaders(to),
       subject: invoiceSubject,
       html: invoiceReminderHtml,
     });
