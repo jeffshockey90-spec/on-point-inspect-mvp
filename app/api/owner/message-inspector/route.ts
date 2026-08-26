@@ -23,12 +23,28 @@ function escapeHtml(s: string) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-function firstName(name?: string) {
-  return String(name || "there").trim().split(/\s+/)[0] || "there";
+function capitalize(s: string) {
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 }
 
-function personalize(text: string, name?: string) {
-  return text.replace(/\{\{?\s*name\s*\}?\}/gi, firstName(name));
+// Resolve a friendly first name for the greeting. Prefers the real profile
+// name; if that's missing or is actually an email, derives a name from the
+// email's local part when it reads like one. Never returns a raw email — falls
+// back to "there" rather than pasting an address into the message.
+function firstName(name?: string, email?: string) {
+  const raw = String(name || "").trim();
+  if (raw && !raw.includes("@")) {
+    const first = raw.split(/\s+/)[0];
+    if (first) return capitalize(first);
+  }
+  const local = String(email || "").split("@")[0];
+  const token = local.replace(/[0-9]+$/, "").split(/[._-]+/)[0];
+  if (/^[a-zA-Z]{2,20}$/.test(token)) return capitalize(token);
+  return "there";
+}
+
+function personalize(text: string, name?: string, email?: string) {
+  return text.replace(/\{\{?\s*name\s*\}?\}/gi, firstName(name, email));
 }
 
 function wrapHtml(message: string) {
@@ -90,8 +106,8 @@ export async function POST(req: Request) {
   const errors: string[] = [];
 
   for (const r of recipients) {
-    const personalSubject = personalize(subject, r.name);
-    const html = wrapHtml(personalize(message, r.name));
+    const personalSubject = personalize(subject, r.name, r.email);
+    const html = wrapHtml(personalize(message, r.name, r.email));
     const { data, error } = await resend.emails.send({
       from: "FLOW <notifications@flowinspect.app>",
       to: r.email,
