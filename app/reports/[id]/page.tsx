@@ -19,6 +19,8 @@ import CollapsibleReportSection from "../../../components/CollapsibleReportSecti
 import SendSignedAgreementButton from "../../../components/SendSignedAgreementButton";
 import ResendConfirmationButton from "../../../components/ResendConfirmationButton";
 import ReportFindingsSortable from "./ReportFindingsSortable";
+import RealtimeReportSync from "../../../components/RealtimeReportSync";
+import WorkflowStateSync from "../../../components/WorkflowStateSync";
 import ReportLiveSync from "../../../components/ReportLiveSync";
 import OfflineReportCacheBridge from "../../../components/OfflineReportCacheBridge";
 import SendReportEmailButtons from "../../../components/SendReportEmailButtons";
@@ -3586,6 +3588,9 @@ Service-life information is a general industry estimate only. Actual service lif
               reviewFindings={fieldReviewFindings}
               availableSections={fieldReviewSections}
             />
+
+            <RealtimeReportSync inspectionId={String(inspection.id)} />
+            <WorkflowStateSync />
 
             <ReportFindingsSortable
               groupedFindings={groupedFindingsArray}
