@@ -975,6 +975,13 @@ export default async function OwnerDashboardPage() {
               </FastLinkButton>
 
               <FastLinkButton
+                href="/dashboard/owner/mail"
+                className="rounded-xl border border-teal-500 px-5 py-3 font-black text-teal-300 transition hover:bg-teal-500/10"
+              >
+                📧 Mail &amp; Replies
+              </FastLinkButton>
+
+              <FastLinkButton
                 href="/dashboard/owner/live"
                 className="rounded-xl border border-blue-500 px-5 py-3 font-black text-blue-300 transition hover:bg-blue-500/10"
               >
