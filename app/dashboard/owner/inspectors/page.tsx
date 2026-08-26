@@ -8,6 +8,7 @@ import { cookies } from "next/headers";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import OwnerAccountActions from "../../../../components/OwnerAccountActions";
+import OwnerReEngageInspector from "../../../../components/OwnerReEngageInspector";
 import OwnerInspectorBillingControls from "../../../../components/OwnerInspectorBillingControls";
 import { getSubscriptionPricing } from "../../../../lib/subscriptionPricing";
 
@@ -494,6 +495,9 @@ export default async function OwnerInspectorsPage() {
                       </p>
                       <div className="min-w-0 overflow-hidden">
                         <OwnerAccountActions userId={row.id} email={row.email} currentRole="inspector" />
+                      </div>
+                      <div className="mt-3 min-w-0 overflow-hidden">
+                        <OwnerReEngageInspector email={row.email} name={row.name} />
                       </div>
                     </div>
                   </div>
