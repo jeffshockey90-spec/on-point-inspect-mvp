@@ -45,10 +45,18 @@ async function requireOwner() {
   return OWNER_EMAILS.includes(String(user.email || "").toLowerCase()) ? user : null;
 }
 
+// Allow a trusted script (e.g. the post-changelog CLI run during a deploy) to
+// publish an entry without an owner session, by presenting a shared secret.
+function hasAnnounceToken(req: Request) {
+  const secret = process.env.CHANGELOG_ANNOUNCE_TOKEN;
+  if (!secret) return false;
+  return (req.headers.get("x-announce-token") || "") === secret;
+}
+
 export async function POST(req: Request) {
   const owner = await requireOwner();
 
-  if (!owner) {
+  if (!owner && !hasAnnounceToken(req)) {
     return NextResponse.json({ error: "Owner access required." }, { status: 403 });
   }
 
