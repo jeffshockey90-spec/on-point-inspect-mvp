@@ -4,6 +4,7 @@ import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { createClient } from "../../../../utils/supabase/server";
 import { OWNER_EMAILS } from "../../../../lib/ownerEmails";
 import { listUnsubscribeHeaders } from "../../../../lib/emailUnsubscribe";
+import { buildAiToolsEmail, AI_TOOLS_SUBJECT } from "../../../../lib/emailTemplates/aiToolsEmail";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -105,9 +106,15 @@ export async function POST(req: Request) {
   let failed = 0;
   const errors: string[] = [];
 
+  const isAiTools = template === "ai-tools";
+
   for (const r of recipients) {
-    const personalSubject = personalize(subject, r.name, r.email);
-    const html = wrapHtml(personalize(message, r.name, r.email));
+    const personalSubject = personalize(subject || (isAiTools ? AI_TOOLS_SUBJECT : ""), r.name, r.email);
+    // The AI-tools announcement is a fully-designed HTML email (with hosted
+    // screenshots). Every other template is the editable plain-text body.
+    const html = isAiTools
+      ? buildAiToolsEmail(firstName(r.name, r.email))
+      : wrapHtml(personalize(message, r.name, r.email));
     const { data, error } = await resend.emails.send({
       from: "FLOW <notifications@flowinspect.app>",
       to: r.email,

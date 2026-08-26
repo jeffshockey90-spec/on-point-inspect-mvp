@@ -45,6 +45,18 @@ const TEMPLATES: {
     subject: "New in FLOW — built for inspectors like you",
     body: null,
   },
+  {
+    id: "ai-tools",
+    label: "AI Camera + Field Tools (with pictures)",
+    subject: "The AI camera writes your findings for you",
+    body:
+      `Hi {name},\n\n` +
+      `If you're still typing out every finding by hand, you're leaving hours on the table. Two tools in FLOW change that:\n\n` +
+      `1) THE AI CAMERA — Point your phone at a defect, snap a photo, and FLOW writes the whole finding (title, severity, observation, implication, recommendation) for you to approve. Open it: on any report, tap Capture Tools → Field Tool → the Live Camera tab → Open AI Camera.\n\n` +
+      `2) THE COMMAND CENTER — Press Ctrl-K on any report for one workspace: AI review, publish blockers, signatures, payments, repair requests, and client engagement.\n\n` +
+      `Bonus: capture offline with no signal (AI writes the findings when you're back online), or use Bulk AI Capture to turn a whole camera roll into clean findings in one pass.\n\n` +
+      `Give it a shot on your next inspection — reply and tell me what you think.\n— Jeff`,
+  },
   { id: "custom", label: "Custom message", subject: "", body: "" },
 ];
 
@@ -175,6 +187,11 @@ export default function OwnerMailComposer({ inspectors }: { inspectors: Inspecto
               placeholder="Message"
             />
           </div>
+          {templateId === "ai-tools" && (
+            <p className="rounded-lg border border-teal-500/30 bg-teal-500/10 px-3 py-2 text-[12px] font-semibold text-teal-200">
+              📸 This one sends a <strong>designed email with screenshots</strong> of the AI Camera + Command Center. The text below is just a preview — each inspector still gets the personalized greeting.
+            </p>
+          )}
           <p className="text-[11px] text-slate-500">
             Sends from FLOW with the app logo + &quot;Open FLOW&quot; / &quot;Get the iOS App&quot; buttons. Replies go to support@flowinspect.app.
           </p>
