@@ -15,14 +15,29 @@ const TEMPLATES: {
     label: "We miss you",
     subject: "We miss you at FLOW 👋",
     body: (n) =>
-      `Hi ${n},\n\nIt's been a little while since your last inspection in FLOW — we'd love to have you back.\n\nIf anything's been getting in your way (pricing, a feature, or just getting set up), reply to this email and I'll help you personally.\n\nJump back in whenever you're ready:`,
+      `Hi ${n},\n\n` +
+      `I noticed it's been a little while since your last inspection in FLOW, and I wanted to reach out personally. Whether things got busy, you ran into a snag, or FLOW just hadn't clicked into your workflow yet — I'd genuinely love to help you get back up and running.\n\n` +
+      `Here's what FLOW does for you on every single job:\n` +
+      `• Build your report right from the field on your phone, and finish it in minutes\n` +
+      `• Let the AI draft your finding write-ups so you're not typing the same things over and over\n` +
+      `• Send the client a clean, branded report — with agreements and payment in the same flow\n` +
+      `• Keep scheduling, pricing, quotes, and delivery all in one place\n\n` +
+      `If anything's been getting in your way — pricing, a missing feature, or just getting set up — reply straight to this email and I'll help you personally. No bots, that's actually me.\n\n` +
+      `Ready whenever you are:`,
   },
   {
     id: "need-help",
     label: "Need a hand?",
     subject: "Need a hand getting the most out of FLOW?",
     body: (n) =>
-      `Hi ${n},\n\nI want to make sure FLOW is actually working for your business. If you'd like a quick walkthrough, or you've got questions, just reply to this email — happy to help.\n\nOr dive right back in here:`,
+      `Hi ${n},\n\n` +
+      `I want to make sure FLOW is genuinely earning its place in your business — not just another tool you signed up for and set aside.\n\n` +
+      `If you've got questions, want a quick walkthrough, or there's something you wish worked differently, I'd love to hear it. Honestly, a huge amount of what's in FLOW today came straight from inspectors telling us what they needed.\n\n` +
+      `A few things that make the biggest difference for most inspectors getting started:\n` +
+      `• Do the whole inspection from your phone, then finish the report in minutes\n` +
+      `• Save time with AI-assisted finding write-ups instead of typing everything by hand\n` +
+      `• Deliver a professional, branded report and collect payment without leaving FLOW\n\n` +
+      `Just reply to this email and I'll walk you through whatever you'd like. Or jump right back in here:`,
   },
   {
     id: "whats-new",
@@ -67,17 +82,21 @@ export default function OwnerReEngageInspector({ email, name }: { email: string;
       try {
         const res = await fetch("/api/changelog/list", { cache: "no-store" });
         const data = await res.json().catch(() => ({}));
-        const entries = (data.entries || []).slice(0, 4);
+        const entries = (data.entries || []).slice(0, 5);
         const lines = entries
           .map((e: any) => `• ${e.title}${e.body ? ` — ${firstSentence(e.body)}` : ""}`)
-          .join("\n");
+          .join("\n\n");
         setBody(
-          `Hi ${firstName},\n\nWe've been busy — here's what's new in FLOW:\n\n${
-            lines || "Lots of improvements across the app."
-          }\n\nCome see it all:`,
+          `Hi ${firstName},\n\n` +
+            `We've been shipping a lot lately, and I wanted to make sure you didn't miss what's new in FLOW:\n\n` +
+            `${lines || "Lots of improvements across the app to make report-building faster and delivery smoother."}\n\n` +
+            `Every one of these came from making FLOW faster and easier for inspectors like you. Log in and take a look — and if there's something you'd love to see next, just reply and let me know. I read every one.\n\n` +
+            `See it all here:`,
         );
       } catch {
-        setBody(`Hi ${firstName},\n\nWe've shipped a bunch of updates in FLOW recently. Come check them out:`);
+        setBody(
+          `Hi ${firstName},\n\nWe've shipped a bunch of updates in FLOW recently to make report-building faster and client delivery smoother. Log in and take a look — and if there's something you'd love to see next, just reply and let me know.\n\nCheck it out here:`,
+        );
       }
       setLoading(false);
     } else {
@@ -160,7 +179,7 @@ export default function OwnerReEngageInspector({ email, name }: { email: string;
           <textarea
             value={loading ? "Loading your latest updates…" : body}
             onChange={(e) => setBody(e.target.value)}
-            rows={7}
+            rows={13}
             placeholder="Message"
             className="w-full rounded-lg border border-slate-700 bg-[#0b1220] px-3 py-2 text-sm leading-6 text-white outline-none focus:border-orange-400"
           />
