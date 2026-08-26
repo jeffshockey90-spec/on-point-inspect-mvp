@@ -2,9 +2,11 @@
 
 import { useMemo, useState } from "react";
 import type { CaptureDraft } from "../../lib/ai/captureTypes";
-import { SECTION_OPTIONS, SEVERITY_OPTIONS } from "../../lib/ai/captureTypes";
+import { SECTION_OPTIONS } from "../../lib/ai/captureTypes";
 import { buildEquipmentFills, buildMaterialFills, writeChecklistFills, type ChecklistFill } from "../../lib/ai/checklistAutofill";
 import { supabase } from "../../lib/supabaseClient";
+import { useSeverityConfig } from "../../lib/severity/useSeverityConfig";
+import { severityOptions } from "../../lib/severity/severityConfig";
 import FindingToneControl from "../FindingToneControl";
 
 function fillKey(f: ChecklistFill) {
@@ -121,6 +123,13 @@ export default function CaptureConfirmCard({
   const [attachTo, setAttachTo] = useState("");
   // Section-info fields the AI read off this equipment, to auto-fill on accept.
   const [excludedFills, setExcludedFills] = useState<Set<string>>(new Set());
+
+  const severityConfig = useSeverityConfig();
+  const severityChoices = useMemo(() => {
+    const opts = severityOptions(severityConfig);
+    const cur = String((edited as any).severity || "");
+    return cur && !opts.includes(cur) ? [...opts, cur] : opts;
+  }, [severityConfig, edited]);
 
   const sectionFills = useMemo<ChecklistFill[]>(() => {
     if (edited.kind === "equipment") return buildEquipmentFills(edited as Record<string, any>);
@@ -359,7 +368,7 @@ export default function CaptureConfirmCard({
                     value={edited.severity}
                     onChange={(event) => update({ severity: event.target.value })}
                   >
-                    {SEVERITY_OPTIONS.map((option) => (
+                    {severityChoices.map((option) => (
                       <option key={option} value={option}>
                         {option}
                       </option>
@@ -589,14 +598,14 @@ export default function CaptureConfirmCard({
                   <select
                     className={inputClass}
                     value={
-                      SEVERITY_OPTIONS.includes(String(edited.severity || ""))
+                      severityChoices.includes(String(edited.severity || ""))
                         ? String(edited.severity)
                         : ""
                     }
                     onChange={(event) => update({ severity: event.target.value })}
                   >
                     <option value="">—</option>
-                    {SEVERITY_OPTIONS.map((option) => (
+                    {severityChoices.map((option) => (
                       <option key={option} value={option}>
                         {option}
                       </option>

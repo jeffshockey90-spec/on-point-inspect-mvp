@@ -14,6 +14,8 @@ import ExpandableReportImage from "../../../components/ExpandableReportImage";
 import RelatedFindingsEditor from "../../../components/RelatedFindingsEditor";
 import { supabase } from "../../../lib/supabaseClient";
 import { refreshKeepScroll } from "../../../lib/refreshKeepScroll";
+import { useSeverityConfig } from "../../../lib/severity/useSeverityConfig";
+import { severityOptions, severityLabel, severityBadgeStyle, resolveSeverity } from "../../../lib/severity/severityConfig";
 
 const PHOTO_BUCKET = "inspection-photos";
 
@@ -1100,6 +1102,8 @@ function AddSectionFindingForm({
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [severity, setSeverity] = useState("Recommended Repair");
+  const severityConfig = useSeverityConfig();
+  const severityChoices = severityOptions(severityConfig);
   const [location, setLocation] = useState("");
   const [observation, setObservation] = useState("");
   const [implication, setImplication] = useState("");
@@ -1211,7 +1215,7 @@ function AddSectionFindingForm({
       ]);
 
       setTitle(nextTitle || cleanNote.slice(0, 80));
-      setSeverity(SEVERITIES.includes(nextSeverity) ? nextSeverity : severity);
+      setSeverity(nextSeverity ? resolveSeverity(severityConfig, nextSeverity).label : severity);
       setObservation(nextObservation || cleanNote);
       setImplication(nextImplication);
       setRecommendation(nextRecommendation);
@@ -1370,7 +1374,7 @@ function AddSectionFindingForm({
               disabled={saving}
               className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {SEVERITIES.map((item) => (
+              {(severityChoices.includes(severity) ? severityChoices : [...severityChoices, severity]).map((item) => (
                 <option key={item}>{item}</option>
               ))}
             </select>
@@ -2188,6 +2192,7 @@ function FindingCardBase({
   onNeedPhotoPicker,
   router,
 }: any) {
+  const severityConfig = useSeverityConfig();
   const [showPhotoPicker, setShowPhotoPicker] = useState(false);
   const [photoPickerLimit, setPhotoPickerLimit] = useState(
     PHOTO_PICKER_PAGE_SIZE,
@@ -2852,11 +2857,10 @@ function FindingCardBase({
           <div className="min-w-0 flex-1">
             <div className="mb-1.5 flex flex-wrap items-center gap-1.5 sm:mb-2 sm:gap-2">
               <span
-                className={`rounded-full border px-3 py-1 text-[10px] font-extrabold uppercase tracking-wide ${getSeverityStyle(
-                  displayFinding.severity,
-                )}`}
+                className="rounded-full border px-3 py-1 text-[10px] font-extrabold uppercase tracking-wide"
+                style={severityBadgeStyle(severityConfig, displayFinding.severity)}
               >
-                {displayFinding.severity || "Recommended Repair"}
+                {severityLabel(severityConfig, displayFinding.severity)}
               </span>
 
               {photos.length > 0 && (
@@ -3099,11 +3103,10 @@ function FindingCardBase({
       <div className="w-full max-w-full overflow-x-hidden p-3 sm:p-6">
         <div className="mb-4 flex flex-wrap items-center gap-3">
           <span
-            className={`rounded-full border px-3 py-1 text-xs font-extrabold uppercase tracking-wide ${getSeverityStyle(
-              displayFinding.severity,
-            )}`}
+            className="rounded-full border px-3 py-1 text-xs font-extrabold uppercase tracking-wide"
+            style={severityBadgeStyle(severityConfig, displayFinding.severity)}
           >
-            {displayFinding.severity || "Recommended Repair"}
+            {severityLabel(severityConfig, displayFinding.severity)}
           </span>
 
           {displayFinding.section && (

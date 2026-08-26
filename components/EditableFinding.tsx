@@ -4,6 +4,8 @@ import { memo, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../lib/supabaseClient";
 import { refreshKeepScroll } from "../lib/refreshKeepScroll";
+import { useSeverityConfig } from "../lib/severity/useSeverityConfig";
+import { severityOptions } from "../lib/severity/severityConfig";
 
 const SECTIONS = [
   "Exterior",
@@ -20,14 +22,6 @@ const SECTIONS = [
   "Garage",
 ];
 
-const SEVERITIES = [
-  "Informational",
-  "Monitor",
-  "Maintenance",
-  "Recommended Repair",
-  "Safety Concern",
-  "Major Concern",
-];
 
 function EditableFinding({
   finding,
@@ -56,6 +50,11 @@ function EditableFinding({
   const [severity, setSeverity] = useState(
     finding.severity || "Recommended Repair"
   );
+  const severityConfig = useSeverityConfig();
+  const severityChoices = (() => {
+    const opts = severityOptions(severityConfig);
+    return severity && !opts.includes(severity) ? [...opts, severity] : opts;
+  })();
   const [location, setLocation] = useState(finding.location || "");
   const [observation, setObservation] = useState(finding.observation || "");
   const [implication, setImplication] = useState(finding.implication || "");
@@ -730,7 +729,7 @@ function EditableFinding({
           label="Severity"
           value={severity}
           onChange={setSeverity}
-          options={SEVERITIES}
+          options={severityChoices}
           disabled={saving}
         />
       </div>
