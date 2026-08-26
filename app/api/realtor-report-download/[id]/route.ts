@@ -3,6 +3,8 @@ import { formatAppValue } from "../../../../lib/app-time";
 import { resolveActiveSections, filterSectionsForServiceMode } from "../../../../lib/reportSections";
 import { getReportDeliveryState } from "../../../../lib/reportDelivery";
 import { authorizeInspection } from "../../../../lib/apiAuth";
+import { loadSeverityConfigForInspection } from "../../../../lib/severity/loadSeverityConfig";
+import { resolveSeverity } from "../../../../lib/severity/severityConfig";
 import { getReportTranslations, makeTranslator, isSupportedLanguage } from "../../../../lib/translate";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
@@ -1016,7 +1018,9 @@ function buildAgentReportHtml({
   disclaimers,
   equipment,
   realtorBrand,
+  sevColors = { safety: "#ef4444", repair: "#f97316", maintenance: "#0f9488", info: "#2563eb" },
 }: {
+  sevColors?: { safety: string; repair: string; maintenance: string; info: string };
   inspection: any;
   findings: any[];
   sectionOrder?: string[];
@@ -1478,19 +1482,19 @@ function buildAgentReportHtml({
     .sum-circle { text-align: center; }
     .sum-num { width: 94px; height: 94px; border-radius: 999px; color: #fff; font-size: 36px; font-weight: 500; display: flex; align-items: center; justify-content: center; margin: 0 auto; }
     .sum-lbl { margin-top: 12px; color: #64748b; font-size: 11px; letter-spacing: .09em; text-transform: uppercase; }
-    .sum-circle.safety-major .sum-num { background: #ef4444; }
-    .sum-circle.recommended-repair .sum-num { background: #f97316; }
-    .sum-circle.maintenance-monitor .sum-num { background: #0f9488; }
-    .sum-circle.informational .sum-num { background: #2563eb; }
+    .sum-circle.safety-major .sum-num { background: ${sevColors.safety}; }
+    .sum-circle.recommended-repair .sum-num { background: ${sevColors.repair}; }
+    .sum-circle.maintenance-monitor .sum-num { background: ${sevColors.maintenance}; }
+    .sum-circle.informational .sum-num { background: ${sevColors.info}; }
     .sum-divider { border: 0; border-top: 1px solid #e5e7eb; margin: 26px 0 20px; }
 
     .key-findings { margin: 0; padding: 0; list-style: none; }
     .key-findings li { border-bottom: 1px solid #f1f5f9; }
     .key-link { display: grid; grid-template-columns: 12px 1fr auto; gap: 13px; align-items: center; padding: 9px 0; color: #374151; text-decoration: none; }
-    .key-dot { width: 10px; height: 10px; border-radius: 999px; background: #f97316; }
-    .key-dot.safety-major { background: #ef4444; }
-    .key-dot.maintenance-monitor { background: #0f9488; }
-    .key-dot.informational { background: #2563eb; }
+    .key-dot { width: 10px; height: 10px; border-radius: 999px; background: ${sevColors.repair}; }
+    .key-dot.safety-major { background: ${sevColors.safety}; }
+    .key-dot.maintenance-monitor { background: ${sevColors.maintenance}; }
+    .key-dot.informational { background: ${sevColors.info}; }
     .key-findings em { color: #94a3b8; font-style: normal; font-size: 9px; text-transform: uppercase; font-weight: 600; letter-spacing: .05em; }
 
     .section-head { text-align: center; margin: 4px 0 4px; }
@@ -1505,10 +1509,10 @@ function buildAgentReportHtml({
     .finding-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 9px; }
     .finding-ref { display: block; color: #94a3b8; font-size: 11px; font-weight: 400; margin-bottom: 3px; }
     .finding-title { margin: 0; color: #1f2937; font-size: 17px; font-weight: 600; line-height: 1.28; }
-    .sev-pill { flex: none; border-radius: 999px; padding: 6px 14px; color: #fff; background: #f97316; font-size: 10px; font-weight: 700; letter-spacing: .03em; white-space: nowrap; }
-    .sev-pill.safety-major { background: #ef4444; }
-    .sev-pill.maintenance-monitor { background: #0f9488; }
-    .sev-pill.informational { background: #2563eb; }
+    .sev-pill { flex: none; border-radius: 999px; padding: 6px 14px; color: #fff; background: ${sevColors.repair}; font-size: 10px; font-weight: 700; letter-spacing: .03em; white-space: nowrap; }
+    .sev-pill.safety-major { background: ${sevColors.safety}; }
+    .sev-pill.maintenance-monitor { background: ${sevColors.maintenance}; }
+    .sev-pill.informational { background: ${sevColors.info}; }
     .finding-notes { margin: 0; }
     .note { margin: 0 0 8px; color: #374151; line-height: 1.62; white-space: pre-line; }
     .note:last-child { margin-bottom: 0; }
@@ -2567,6 +2571,17 @@ export async function GET(req: Request, { params }: RouteProps) {
       }
     }
 
+    // Company custom severity colors for the PDF badges/summary. Renamed/
+    // recolored defaults are reflected; the resolver falls back to the built-in
+    // hex if nothing custom is set.
+    const severityConfig = await loadSeverityConfigForInspection(inspection?.id ?? id);
+    const sevColors = {
+      safety: resolveSeverity(severityConfig, "Safety Concern").color,
+      repair: resolveSeverity(severityConfig, "Recommended Repair").color,
+      maintenance: resolveSeverity(severityConfig, "Maintenance").color,
+      info: resolveSeverity(severityConfig, "Informational").color,
+    };
+
     const html = buildAgentReportHtml({
       inspection,
       findings,
@@ -2574,6 +2589,7 @@ export async function GET(req: Request, { params }: RouteProps) {
       propertyPhotoUrl,
       branding,
       qrCodeDataUrl,
+      sevColors,
       standardsOfPractice,
       includeStandardsInPdf,
       clientNameOverride,
