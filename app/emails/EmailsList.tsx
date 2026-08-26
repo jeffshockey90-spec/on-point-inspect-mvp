@@ -102,6 +102,55 @@ const TYPE_FILTERS = [
   { value: "w9_email", label: "W-9" },
 ];
 
+// Manual fallback: re-send this exact email through the inspector's own company
+// mailbox (SMTP) instead of Resend. The email keeps its tracking pixel + click
+// links, so delivered/opened/clicked still register.
+function CompanyResendButton({ logId }: { logId: string | number }) {
+  const [state, setState] = useState<"idle" | "sending" | "done" | "error">("idle");
+  const [msg, setMsg] = useState("");
+
+  async function resend() {
+    setState("sending");
+    setMsg("");
+    try {
+      const res = await fetch("/api/email/resend-company", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ emailLogId: logId }),
+      });
+      const data = await res.json().catch(() => ({}) as any);
+      if (res.ok && data.ok) {
+        setState("done");
+        setMsg(data.delivered ? "Sent from your company email — accepted by the recipient's server." : "Sent from your company email.");
+      } else {
+        setState("error");
+        setMsg(data.message || data.error || "Couldn't send.");
+      }
+    } catch {
+      setState("error");
+      setMsg("Couldn't reach the server. Try again.");
+    }
+  }
+
+  return (
+    <div className="inline-flex flex-col gap-1">
+      <button
+        type="button"
+        onClick={resend}
+        disabled={state === "sending"}
+        className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/60 px-4 py-2 text-xs font-black text-amber-200 transition hover:border-amber-400 hover:bg-amber-500/10 disabled:opacity-60"
+      >
+        {state === "sending" ? "Sending…" : state === "done" ? "Resent ✓" : "Resend via my company email"}
+      </button>
+      {msg && (
+        <span className={`max-w-xs text-xs leading-5 ${state === "error" ? "text-red-300" : "text-emerald-300"}`}>
+          {msg}
+        </span>
+      )}
+    </div>
+  );
+}
+
 export default function EmailsList({ logs }: { logs: EmailLog[] }) {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -227,14 +276,17 @@ export default function EmailsList({ logs }: { logs: EmailLog[] }) {
                       </div>
                     )}
 
-                    {log.inspection_id && (
-                      <Link
-                        href={`/reports/${log.inspection_id}`}
-                        className="mt-3 inline-block rounded-lg border border-slate-600 px-4 py-2 text-xs font-black text-slate-200 transition hover:border-teal-500/70"
-                      >
-                        Open inspection →
-                      </Link>
-                    )}
+                    <div className="mt-3 flex flex-wrap items-start gap-2">
+                      {log.inspection_id && (
+                        <Link
+                          href={`/reports/${log.inspection_id}`}
+                          className="inline-block rounded-lg border border-slate-600 px-4 py-2 text-xs font-black text-slate-200 transition hover:border-teal-500/70"
+                        >
+                          Open inspection →
+                        </Link>
+                      )}
+                      {log.html && <CompanyResendButton logId={log.id} />}
+                    </div>
                   </div>
                 )}
               </div>
