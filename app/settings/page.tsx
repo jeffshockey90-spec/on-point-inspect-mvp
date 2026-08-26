@@ -9,6 +9,7 @@ import {
   Bell,
   Building2,
   Sparkles,
+  Mail,
 } from "lucide-react";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -676,6 +677,27 @@ export default async function SettingsPage({
             </p>
             <p className="mt-4 text-sm font-black text-emerald-300 group-hover:text-emerald-200">
               Manage Pricing →
+            </p>
+          </FastLinkButton>
+
+          <FastLinkButton
+            href="/settings/company-email"
+            className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-slate-800 bg-[#0b1220] p-4 transition active:scale-[0.98] hover:border-sky-400/70 hover:bg-sky-500/10 sm:p-5 [touch-action:manipulation]"
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-500/10 text-sky-300">
+              <Mail className="h-6 w-6" strokeWidth={2} />
+            </div>
+            <p className="mt-4 text-xs font-black uppercase tracking-[0.2em] text-sky-300">
+              Personal
+            </p>
+            <h2 className="mt-2 text-lg font-black text-white sm:text-xl">
+              Company Email
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-slate-400">
+              Connect your mailbox to resend a stuck email through it.
+            </p>
+            <p className="mt-4 text-sm font-black text-sky-300 group-hover:text-sky-200">
+              Set Up Company Email →
             </p>
           </FastLinkButton>
 

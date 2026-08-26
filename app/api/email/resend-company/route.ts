@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { createClient } from "../../../../utils/supabase/server";
-import { sendViaCompanyEmail, companyEmailConfigured } from "../../../../lib/companyEmailSmtp";
+import { sendViaSmtp, getInspectorSmtpConfig } from "../../../../lib/companyEmailSmtp";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,12 +20,13 @@ export async function POST(req: Request) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
 
-  if (!companyEmailConfigured()) {
+  const smtp = await getInspectorSmtpConfig(admin, user.id);
+  if (!smtp) {
     return NextResponse.json(
       {
         error: "not_configured",
         message:
-          "Company email isn't set up yet. Add your mail server's SMTP_HOST, SMTP_PORT, SMTP_USER, and SMTP_PASS in the app's environment settings to enable this.",
+          "Your company email isn't set up yet. Add your mail server settings under Settings → Company Email to enable this.",
       },
       { status: 400 },
     );
@@ -53,7 +54,7 @@ export async function POST(req: Request) {
     );
   }
 
-  const result = await sendViaCompanyEmail({ to, subject, html });
+  const result = await sendViaSmtp(smtp, { to, subject, html });
   if (!result.ok) {
     return NextResponse.json(
       { error: result.error || "send_failed", message: "Your company mail server rejected the send." },
