@@ -389,3 +389,239 @@ img {
     margin: 0.5in;
   }
 }
+
+/* =========================================================================
+   FLOW DESIGN SYSTEM  ("fl-" kit)
+   The refined dark identity from the dashboard redesign, as reusable tokens +
+   component classes. Additive: existing screens are untouched until they adopt
+   these classes. Convert the app screen-by-screen onto this kit.
+   ========================================================================= */
+:root {
+  --fl-ground: #0a0e13;
+  --fl-surface: #10151e;
+  --fl-surface-2: #131923;
+  --fl-raised: #1a212c;
+  --fl-line: #232b38;
+  --fl-line-2: #1a212c;
+  --fl-text: #e8ecf3;
+  --fl-muted: #8a93a3;
+  --fl-faint: #59626f;
+  --fl-accent: #1ac5b4;
+  --fl-accent-2: #12a99a;
+  --fl-accent-bg: rgba(26, 197, 180, 0.12);
+  --fl-accent-line: rgba(26, 197, 180, 0.35);
+  --fl-good: #37d6a6;
+  --fl-good-bg: rgba(55, 214, 166, 0.12);
+  --fl-warn: #f3b23f;
+  --fl-warn-bg: rgba(243, 178, 63, 0.13);
+  --fl-crit: #f76d6d;
+  --fl-crit-bg: rgba(247, 109, 109, 0.12);
+  --fl-r: 12px;
+  --fl-r-sm: 9px;
+}
+
+/* Data figures + tiny labels */
+.fl-figure {
+  font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+.fl-lbl {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fl-faint);
+}
+
+/* Surfaces */
+.fl-card {
+  background: var(--fl-surface);
+  border: 1px solid var(--fl-line-2);
+  border-radius: var(--fl-r);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+.fl-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 15px 18px;
+  border-bottom: 1px solid var(--fl-line-2);
+}
+.fl-card-head h2 {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--fl-text);
+}
+.fl-meta {
+  font-size: 12px;
+  color: var(--fl-faint);
+}
+.fl-link {
+  color: var(--fl-accent);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.fl-link:hover {
+  color: #2ad9c8;
+}
+
+/* Buttons */
+.fl-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  border-radius: var(--fl-r-sm);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: -0.01em;
+}
+.fl-btn-primary {
+  background: var(--fl-accent);
+  color: #04211d;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.12) inset,
+    0 6px 16px -8px var(--fl-accent);
+}
+.fl-btn-primary:hover {
+  background: #22d6c4;
+}
+.fl-btn-ghost {
+  border: 1px solid var(--fl-line);
+  color: var(--fl-muted);
+}
+.fl-btn-ghost:hover {
+  color: var(--fl-text);
+  border-color: #33404f;
+}
+.fl-icon-btn {
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--fl-line);
+  border-radius: var(--fl-r-sm);
+  display: grid;
+  place-items: center;
+  color: var(--fl-muted);
+}
+.fl-icon-btn:hover {
+  color: var(--fl-text);
+  border-color: #33404f;
+}
+
+/* Status pills */
+.fl-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+.fl-pill::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+.fl-pill-accent { color: var(--fl-accent); background: var(--fl-accent-bg); }
+.fl-pill-accent::before { background: var(--fl-accent); }
+.fl-pill-good { color: var(--fl-good); background: var(--fl-good-bg); }
+.fl-pill-good::before { background: var(--fl-good); }
+.fl-pill-warn { color: var(--fl-warn); background: var(--fl-warn-bg); }
+.fl-pill-warn::before { background: var(--fl-warn); }
+.fl-pill-crit { color: var(--fl-crit); background: var(--fl-crit-bg); }
+.fl-pill-crit::before { background: var(--fl-crit); }
+
+/* Status dots (list markers) */
+.fl-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+}
+.fl-dot-crit { background: var(--fl-crit); box-shadow: 0 0 0 3px var(--fl-crit-bg); }
+.fl-dot-warn { background: var(--fl-warn); box-shadow: 0 0 0 3px var(--fl-warn-bg); }
+.fl-dot-good { background: var(--fl-good); box-shadow: 0 0 0 3px var(--fl-good-bg); }
+
+/* Segmented control */
+.fl-seg {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--fl-line);
+  border-radius: 9px;
+  background: var(--fl-surface);
+}
+.fl-seg button {
+  padding: 5px 11px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--fl-muted);
+}
+.fl-seg button.on {
+  background: var(--fl-raised);
+  color: var(--fl-text);
+}
+
+/* KPI tile */
+.fl-kpi {
+  padding: 16px 17px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.fl-kpi-ico {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  background: var(--fl-surface-2);
+  border: 1px solid var(--fl-line-2);
+  color: var(--fl-muted);
+}
+.fl-kpi-val {
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  color: var(--fl-text);
+}
+.fl-delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 20px;
+}
+.fl-delta-up { color: var(--fl-good); background: var(--fl-good-bg); }
+.fl-delta-warn { color: var(--fl-warn); background: var(--fl-warn-bg); }
+.fl-delta-flat { color: var(--fl-muted); background: rgba(255, 255, 255, 0.05); }
+
+/* Progress track */
+.fl-track {
+  height: 8px;
+  border-radius: 6px;
+  background: var(--fl-surface-2);
+  overflow: hidden;
+  border: 1px solid var(--fl-line-2);
+}
+.fl-fill {
+  height: 100%;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--fl-accent-2), var(--fl-accent));
+}
+
+/* Chip (mini status card) */
+.fl-chip {
+  border: 1px solid var(--fl-line-2);
+  border-radius: var(--fl-r-sm);
+  padding: 9px 10px;
+  background: var(--fl-surface-2);
+}

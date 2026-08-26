@@ -1,17 +1,25 @@
 import "./globals.css";
-import { Inter } from "next/font/google";
+import { Manrope, JetBrains_Mono } from "next/font/google";
 import Navbar from "../components/Nav";
 import TimeLocationEngine from "../components/time-location/TimeLocationEngine";
 import PageShell from "../components/PageShell";
 import DeferredGlobals from "../components/DeferredGlobals";
 import ServiceWorkerRegister from "../components/ServiceWorkerRegister";
 
-// App-wide UI typeface. Self-hosted by next/font at build time (no runtime
-// CDN), exposed as a CSS variable that globals.css maps onto the body font.
-const inter = Inter({
+// App-wide UI typeface — Manrope (clean, geometric, professional) for UI/body,
+// JetBrains Mono for figures/labels (precise, instrument-like). Self-hosted by
+// next/font at build time (no runtime CDN), exposed as CSS variables that
+// globals.css maps onto the body + the .fl-figure utility.
+const sans = Manrope({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-sans",
+});
+
+const mono = JetBrains_Mono({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-mono",
 });
 
 export const metadata = {
@@ -59,7 +67,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${inter.variable} overflow-x-clip`}>
+    <html lang="en" className={`${sans.variable} ${mono.variable} overflow-x-clip`}>
       <body className="min-h-screen overflow-x-clip bg-[#050816] text-white antialiased">
         <ServiceWorkerRegister />
 
