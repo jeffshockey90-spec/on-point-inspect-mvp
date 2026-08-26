@@ -884,7 +884,26 @@ function FieldPageContent() {
     useState(false);
   const [title, setTitle] = useState("");
   const [section, setSection] = useState("Exterior");
+  // The selected report's ACTIVE sections (base + custom - deleted). Defaults to
+  // the base list so capture always has options even before/if the fetch fails.
+  const [activeSections, setActiveSections] = useState<string[]>(SECTIONS);
   const [severity, setSeverity] = useState("Recommended Repair");
+  useEffect(() => {
+    if (!selectedReport) {
+      setActiveSections(SECTIONS);
+      return;
+    }
+    let cancelled = false;
+    fetch(`/api/inspection-sections?inspection_id=${encodeURIComponent(selectedReport)}`, { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d) => {
+        if (!cancelled && Array.isArray(d?.sections) && d.sections.length) setActiveSections(d.sections);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedReport]);
   const [note, setNote] = useState("");
   const [observation, setObservation] = useState("");
   const [implication, setImplication] = useState("");
@@ -1652,7 +1671,7 @@ function FieldPageContent() {
       severity ||
       "Recommended Repair";
 
-    setSection(SECTIONS.includes(nextSection) ? nextSection : section);
+    setSection(activeSections.includes(nextSection) ? nextSection : section);
     setSeverity(SEVERITIES.includes(nextSeverity) ? nextSeverity : severity);
   }
 
@@ -1684,7 +1703,7 @@ function FieldPageContent() {
 
     if (suggestion.title) setTitle(suggestion.title);
 
-    if (suggestion.section && SECTIONS.includes(suggestion.section)) {
+    if (suggestion.section && activeSections.includes(suggestion.section)) {
       setSection(suggestion.section);
     }
 
@@ -1752,7 +1771,7 @@ function FieldPageContent() {
     if (!file) return;
 
     if (category === "finding" && draft.kind === "finding") {
-      const effectiveSection = SECTIONS.includes(draft.section)
+      const effectiveSection = activeSections.includes(draft.section)
         ? draft.section
         : section;
       const effectiveSeverity = SEVERITIES.includes(draft.severity)
@@ -1858,7 +1877,7 @@ function FieldPageContent() {
         );
       }
 
-      const effectiveSection = SECTIONS.includes(draft.section)
+      const effectiveSection = activeSections.includes(draft.section)
         ? draft.section
         : section;
 
@@ -2050,7 +2069,7 @@ function FieldPageContent() {
         );
       }
 
-      if (SECTIONS.includes(nextSection)) {
+      if (activeSections.includes(nextSection)) {
         setSection(nextSection);
       }
 
@@ -2788,7 +2807,7 @@ function FieldPageContent() {
       setObservation(data.observation || "");
       setImplication(data.implication || "");
       setRecommendation(data.recommendation || "");
-      setSection(SECTIONS.includes(data.section) ? data.section : "Exterior");
+      setSection(activeSections.includes(data.section) ? data.section : "Exterior");
       setSeverity(
         SEVERITIES.includes(data.severity)
           ? data.severity
@@ -3347,7 +3366,7 @@ function FieldPageContent() {
 
       updateMediaGroup(group.id, {
         title: data.title || group.title,
-        section: SECTIONS.includes(data.section) ? data.section : group.section,
+        section: activeSections.includes(data.section) ? data.section : group.section,
         severity: SEVERITIES.includes(data.severity) ? data.severity : group.severity,
         observation: data.observation || "",
         implication: data.implication || "",
@@ -4685,7 +4704,7 @@ function FieldPageContent() {
                     selectedReport={selectedReport}
                     currentSection={section}
                     currentSeverity={severity}
-                    sections={SECTIONS}
+                    sections={activeSections}
                     onAccept={handleCameraAccept}
                     existingFindings={existingFindings}
                     onAttachToExisting={handleCameraAttachToExisting}
@@ -5261,7 +5280,7 @@ function FieldPageContent() {
                             }
                             className="w-full rounded-lg border border-slate-600 bg-black p-2 text-white"
                           >
-                            {SECTIONS.map((item) => (
+                            {activeSections.map((item) => (
                               <option key={item}>{item}</option>
                             ))}
                           </select>
@@ -5522,7 +5541,7 @@ function FieldPageContent() {
                   onChange={(e) => setSection(e.target.value)}
                   className="w-full rounded-xl border border-slate-700 bg-black p-4 text-white"
                 >
-                  {SECTIONS.map((item) => (
+                  {activeSections.map((item) => (
                     <option key={item} value={item}>
                       {item}
                     </option>

@@ -22,6 +22,8 @@ type Props = {
   // The report this capture belongs to — enables writing auto-filled section
   // system-info fields on accept.
   inspectionId?: string;
+  // The report's active sections (base + custom). Defaults to the fixed list.
+  sections?: string[];
   busy: boolean;
   error?: string;
   initialNote?: string;
@@ -105,6 +107,7 @@ export default function CaptureConfirmCard({
   isVideo,
   draft,
   inspectionId,
+  sections = SECTION_OPTIONS,
   busy,
   error,
   initialNote,
@@ -123,6 +126,11 @@ export default function CaptureConfirmCard({
   const [attachTo, setAttachTo] = useState("");
   // Section-info fields the AI read off this equipment, to auto-fill on accept.
   const [excludedFills, setExcludedFills] = useState<Set<string>>(new Set());
+
+  const sectionChoices = useMemo(() => {
+    const cur = String((edited as any).section || "");
+    return cur && !sections.includes(cur) ? [...sections, cur] : sections;
+  }, [sections, edited]);
 
   const severityConfig = useSeverityConfig();
   const severityChoices = useMemo(() => {
@@ -355,7 +363,7 @@ export default function CaptureConfirmCard({
                     value={edited.section}
                     onChange={(event) => update({ section: event.target.value })}
                   >
-                    {SECTION_OPTIONS.map((option) => (
+                    {sectionChoices.map((option) => (
                       <option key={option} value={option}>
                         {option}
                       </option>
@@ -431,7 +439,7 @@ export default function CaptureConfirmCard({
                   value={edited.section}
                   onChange={(event) => update({ section: event.target.value })}
                 >
-                  {SECTION_OPTIONS.map((option) => (
+                  {sectionChoices.map((option) => (
                     <option key={option} value={option}>
                       {option}
                     </option>
@@ -580,14 +588,14 @@ export default function CaptureConfirmCard({
                   <select
                     className={inputClass}
                     value={
-                      SECTION_OPTIONS.includes(String(edited.section || ""))
+                      sectionChoices.includes(String(edited.section || ""))
                         ? String(edited.section)
                         : ""
                     }
                     onChange={(event) => update({ section: event.target.value })}
                   >
                     <option value="">—</option>
-                    {SECTION_OPTIONS.map((option) => (
+                    {sectionChoices.map((option) => (
                       <option key={option} value={option}>
                         {option}
                       </option>

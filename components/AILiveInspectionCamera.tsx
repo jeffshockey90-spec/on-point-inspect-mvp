@@ -1696,6 +1696,7 @@ export default function AILiveInspectionCamera({
           isVideo={capturedIsVideo}
           draft={draft}
           inspectionId={selectedReport ? String(selectedReport) : undefined}
+          sections={sections}
           busy={saving}
           error={saveError}
           initialNote={noteText}
