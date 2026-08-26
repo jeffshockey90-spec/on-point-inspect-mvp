@@ -29,10 +29,6 @@
     {
       "path": "/api/cron/defect-prevalence",
       "schedule": "0 8 * * *"
-    },
-    {
-      "path": "/api/cron/poll-replies",
-      "schedule": "*/5 * * * *"
     }
   ]
 }

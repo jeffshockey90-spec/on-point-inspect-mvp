@@ -3,7 +3,6 @@ import { Resend } from "resend";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { createClient } from "../../../../utils/supabase/server";
 import { OWNER_EMAILS } from "../../../../lib/ownerEmails";
-import { fetchRecentReplies, isInboundMailConfigured } from "../../../../lib/inboundMail";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -34,9 +33,9 @@ function wrapHtml(message: string) {
   </div>`;
 }
 
-// Owner-only live diagnostic: connects to the mailbox right now and reports
-// exactly what IMAP says (auth ok? IMAP enabled? how many messages?). Never
-// returns the password. Open /api/owner/replies in a browser while logged in.
+// Owner-only status: confirms the inbound pipeline is wired (secret set) and
+// how many replies are stored. Open /api/owner/replies in a browser while
+// logged in as owner.
 export async function GET() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -45,30 +44,23 @@ export async function GET() {
     return NextResponse.json({ error: "Owner only." }, { status: 403 });
   }
 
-  const configured = isInboundMailConfigured();
-  const base = {
-    configured,
-    host: process.env.ZOHO_IMAP_HOST || "imap.zoho.com",
-    port: Number(process.env.ZOHO_IMAP_PORT || 993),
-    user: process.env.ZOHO_IMAP_USER || null,
-    cronSecretSet: Boolean(process.env.CRON_SECRET),
-  };
+  const inboundSecretSet = Boolean(process.env.INBOUND_EMAIL_SECRET);
+  const { count } = await admin
+    .from("inbound_replies")
+    .select("id", { count: "exact", head: true });
+  const { data: latest } = await admin
+    .from("inbound_replies")
+    .select("from_email,subject,received_at")
+    .order("received_at", { ascending: false })
+    .limit(5);
 
-  if (!configured) {
-    return NextResponse.json({ ...base, ok: false, error: "ZOHO_IMAP_USER / ZOHO_IMAP_PASSWORD not set in this environment." });
-  }
-
-  try {
-    const msgs = await fetchRecentReplies(72);
-    return NextResponse.json({
-      ...base,
-      ok: true,
-      fetched: msgs.length,
-      sample: msgs.slice(0, 5).map((m) => ({ from: m.fromEmail, subject: m.subject, receivedAt: m.receivedAt })),
-    });
-  } catch (e: any) {
-    return NextResponse.json({ ...base, ok: false, error: e?.message || String(e) });
-  }
+  return NextResponse.json({
+    ok: true,
+    inboundSecretSet,
+    endpoint: "https://app.flowinspect.app/api/inbound/email",
+    stored: count ?? 0,
+    latest: latest || [],
+  });
 }
 
 export async function POST(req: Request) {
