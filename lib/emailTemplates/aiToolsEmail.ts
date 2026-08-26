@@ -69,11 +69,11 @@ export function buildAiToolsEmail(firstName: string): string {
 
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:22px 0 6px;">
     <tr>
-      <td style="padding-right:12px;">
-        <a href="${APP_URL}" style="display:inline-block;background:#14b8a6;color:#ffffff;font-weight:800;text-decoration:none;padding:13px 26px;border-radius:10px;">Open FLOW</a>
+      <td valign="middle" style="padding-right:14px;">
+        <a href="${APP_URL}" style="display:inline-block;background:#14b8a6;color:#ffffff;font-weight:800;text-decoration:none;padding:14px 28px;border-radius:10px;">Open FLOW</a>
       </td>
-      <td>
-        <a href="${IOS_APP_URL}" style="display:inline-block;background:#0f172a;color:#ffffff;font-weight:800;text-decoration:none;padding:13px 26px;border-radius:10px;">Get the iOS App</a>
+      <td valign="middle">
+        <a href="${IOS_APP_URL}" style="text-decoration:none;"><img src="${IMG}/app-store-badge.png" alt="Download on the App Store" height="48" style="display:block;border:0;height:48px;width:auto;" /></a>
       </td>
     </tr>
   </table>

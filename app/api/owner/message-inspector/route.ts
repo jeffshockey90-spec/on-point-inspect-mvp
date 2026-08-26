@@ -58,11 +58,11 @@ function wrapHtml(message: string) {
     <div style="margin-top:22px;font-size:15px;color:#0f172a;">${body}</div>
     <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-top:26px;">
       <tr>
-        <td style="padding-right:12px;">
-          <a href="${APP_URL}" style="display:inline-block;background:#14b8a6;color:#ffffff;font-weight:800;text-decoration:none;padding:12px 24px;border-radius:10px;">Open FLOW</a>
+        <td valign="middle" style="padding-right:14px;">
+          <a href="${APP_URL}" style="display:inline-block;background:#14b8a6;color:#ffffff;font-weight:800;text-decoration:none;padding:13px 24px;border-radius:10px;">Open FLOW</a>
         </td>
-        <td>
-          <a href="${IOS_APP_URL}" style="display:inline-block;background:#0f172a;color:#ffffff;font-weight:800;text-decoration:none;padding:12px 24px;border-radius:10px;">Get the iOS App</a>
+        <td valign="middle">
+          <a href="${IOS_APP_URL}" style="text-decoration:none;"><img src="${APP_URL}/email/app-store-badge.png" alt="Download on the App Store" height="46" style="display:block;border:0;height:46px;width:auto;" /></a>
         </td>
       </tr>
     </table>
