@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { loadSeverityConfigForInspection } from "../../../lib/severity/loadSeverityConfig";
+import { severityBadgeStyle } from "../../../lib/severity/severityConfig";
 import { headers } from "next/headers";
 import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
@@ -1174,6 +1176,9 @@ export default async function PublicSharePage({
     inspection = fallbackResult.data;
     inspectionError = fallbackResult.error;
   }
+
+  // Company custom severity colors/labels for the client-facing badges.
+  const severityConfig = await loadSeverityConfigForInspection((inspection as any)?.id);
 
   if (inspection) {
     inspectionId = String(inspection.id);
@@ -3101,9 +3106,8 @@ export default async function PublicSharePage({
                                           </span>
                                         )}
                                         <span
-                                          className={`rounded-full border px-2 py-1 text-[10px] font-black uppercase tracking-wide ${getSeverityClass(
-                                            finding.severity
-                                          )}`}
+                                          className="rounded-full border px-2 py-1 text-[10px] font-black uppercase tracking-wide"
+                                          style={severityBadgeStyle(severityConfig, finding.severity)}
                                         >
                                           {finding.severity || "Recommended Repair"}
                                         </span>
@@ -3255,9 +3259,8 @@ export default async function PublicSharePage({
                                     </div>
 
                                     <span
-                                      className={`rounded-full border px-4 py-2 text-xs font-black uppercase tracking-wide ${getSeverityClass(
-                                        finding.severity
-                                      )}`}
+                                      className="rounded-full border px-4 py-2 text-xs font-black uppercase tracking-wide"
+                                      style={severityBadgeStyle(severityConfig, finding.severity)}
                                     >
                                       {finding.severity || "Recommended Repair"}
                                     </span>
