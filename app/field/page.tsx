@@ -6,6 +6,7 @@ import { Capacitor } from "@capacitor/core";
 import { SpeechRecognition as NativeSpeechRecognition } from "@capgo/capacitor-speech-recognition";
 import { supabase } from "../../lib/supabaseClient";
 import { isLikelyNetworkError } from "../../lib/networkError";
+import { writeChecklistFills } from "../../lib/ai/checklistAutofill";
 import {
   createFullImageForUpload,
   createThumbnailForUpload,
@@ -2603,6 +2604,18 @@ function FieldPageContent() {
           .insert(baseInventoryPayload);
 
         if (fallbackInventoryError) throw fallbackInventoryError;
+      }
+
+      // Auto-fill the section's system-info checklist from what the AI read off
+      // the data plate (inspector-confirmed in the capture card). Best-effort:
+      // fills only empty groups, so it never overwrites the inspector.
+      try {
+        const fills = (er as any).__sectionFills;
+        if (Array.isArray(fills) && fills.length > 0) {
+          await writeChecklistFills(supabase, String(selectedReport), fills);
+        }
+      } catch (fillError) {
+        console.error("Section checklist autofill failed:", fillError);
       }
 
       const createFinding = shouldCreateEquipmentFinding(er);

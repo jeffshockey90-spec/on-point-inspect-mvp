@@ -1,9 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { CaptureDraft } from "../../lib/ai/captureTypes";
 import { SECTION_OPTIONS, SEVERITY_OPTIONS } from "../../lib/ai/captureTypes";
+import { buildEquipmentFills, type ChecklistFill } from "../../lib/ai/checklistAutofill";
 import FindingToneControl from "../FindingToneControl";
+
+function fillKey(f: ChecklistFill) {
+  return `${f.section}|${f.groupTitle}|${f.value}`;
+}
 
 type ExistingFinding = { id: string; title?: string; section?: string };
 
@@ -109,6 +114,27 @@ export default function CaptureConfirmCard({
   const [note, setNote] = useState(initialNote || "");
   const [showNote, setShowNote] = useState(false);
   const [attachTo, setAttachTo] = useState("");
+  // Section-info fields the AI read off this equipment, to auto-fill on accept.
+  const [excludedFills, setExcludedFills] = useState<Set<string>>(new Set());
+
+  const sectionFills = useMemo<ChecklistFill[]>(
+    () => (edited.kind === "equipment" ? buildEquipmentFills(edited as Record<string, any>) : []),
+    [edited],
+  );
+  const enabledFills = useMemo(
+    () => sectionFills.filter((f) => !excludedFills.has(fillKey(f))),
+    [sectionFills, excludedFills],
+  );
+
+  function toggleFill(f: ChecklistFill) {
+    const key = fillKey(f);
+    setExcludedFills((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
 
   const canRegenerate = Boolean(onRegenerate) && draft.kind !== "reference";
   const canAttach =
@@ -600,6 +626,52 @@ export default function CaptureConfirmCard({
                   onChange={(event) => update({ recommendation: event.target.value })}
                 />
               </Field>
+
+              {sectionFills.length > 0 && (
+                <div className="rounded-xl border border-teal-500/40 bg-teal-500/10 p-3">
+                  <p className="text-[11px] font-black uppercase tracking-wide text-teal-300">
+                    Fill section info from this photo
+                  </p>
+                  <p className="mt-0.5 text-[11px] leading-4 text-slate-400">
+                    Auto-fills the report&apos;s system-info fields. Uncheck anything you don&apos;t want. Won&apos;t overwrite fields you&apos;ve already set.
+                  </p>
+                  <div className="mt-2 space-y-1.5">
+                    {sectionFills.map((f) => {
+                      const on = !excludedFills.has(fillKey(f));
+                      const display = f.kind === "text" ? `${f.value}${f.unit ? ` ${f.unit}` : ""}` : f.value;
+                      return (
+                        <button
+                          key={fillKey(f)}
+                          type="button"
+                          onClick={() => toggleFill(f)}
+                          className="flex w-full items-center gap-2 rounded-lg border border-white/10 bg-black/30 px-2.5 py-2 text-left"
+                        >
+                          <span
+                            className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border text-xs font-black ${
+                              on ? "border-teal-400 bg-teal-400 text-black" : "border-slate-500 text-transparent"
+                            }`}
+                          >
+                            ✓
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-[11px] font-bold uppercase tracking-wide text-slate-400">
+                              {f.section} · {f.groupTitle}
+                            </span>
+                            <span className="block truncate text-sm font-black text-white">
+                              {display}
+                              {!f.matched && f.kind === "option" && (
+                                <span className="ml-1.5 rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-black text-amber-300">
+                                  NEW
+                                </span>
+                              )}
+                            </span>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </>
           )}
 
@@ -641,7 +713,11 @@ export default function CaptureConfirmCard({
               onAttachToExisting?.(attachTo);
             } else {
               emitLiveCameraLearning(edited);
-              onAccept(edited);
+              const finalDraft =
+                edited.kind === "equipment"
+                  ? ({ ...edited, __sectionFills: enabledFills } as CaptureDraft)
+                  : edited;
+              onAccept(finalDraft);
             }
           }}
           disabled={busy}
