@@ -56,6 +56,7 @@ import PropertyPhotoUploader from "../../../components/PropertyPhotoUploader";
 import InspectionContextEditor from "../../../components/InspectionContextEditor";
 import QuickBooksInvoiceButton from "../../../components/QuickBooksInvoiceButton";
 import HomeownerPortalLink from "../../../components/HomeownerPortalLink";
+import EmailDeliveryAlert from "../../../components/EmailDeliveryAlert";
 import { normalizeCurrency } from "../../../lib/locale";
 import { recomputeDealPrevalence } from "../../../lib/dealInsights";
 import OpenCommandCenterToolButton from "../../../components/OpenCommandCenterToolButton";
@@ -3042,6 +3043,11 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
               </div>
             </div>
           </div>
+
+          <EmailDeliveryAlert
+            inspectionId={String(inspection.id)}
+            currentEmails={[inspection.client_email, inspection.realtor_email]}
+          />
 
           <div className="mb-6">
             <InspectionRouteCard
