@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { supabase } from "../../../../lib/supabaseClient";
+import { useSeverityConfig } from "../../../../lib/severity/useSeverityConfig";
+import { severityBadgeStyle } from "../../../../lib/severity/severityConfig";
 
 const SEVERITY_ORDER = [
   "Major Concern",
@@ -414,6 +416,7 @@ export default function ReportSummaryPage() {
 }
 
 function SummaryFindingCard({ finding, reportId }: { finding: Finding; reportId: string }) {
+  const severityConfig = useSeverityConfig();
   const photoUrl = getPhotoUrl(finding);
   const title = cleanText(finding.title) || "Untitled Finding";
   const summary = getFindingSummary(finding);
@@ -442,7 +445,10 @@ function SummaryFindingCard({ finding, reportId }: { finding: Finding; reportId:
 
       <div className="p-4">
         <div className="mb-3 flex flex-wrap items-center gap-2">
-          <span className={`rounded-full border px-2 py-1 text-[10px] font-black uppercase tracking-wide ${getSeverityClass(finding.severity)}`}>
+          <span
+            className="rounded-full border px-2 py-1 text-[10px] font-black uppercase tracking-wide"
+            style={severityBadgeStyle(severityConfig, finding.severity)}
+          >
             {finding.severity || "Recommended Repair"}
           </span>
           <span className="rounded-full border border-slate-700 px-2 py-1 text-[10px] font-black uppercase tracking-wide text-slate-300">
