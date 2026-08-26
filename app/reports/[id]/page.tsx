@@ -4,6 +4,8 @@ import { isPaymentComplete } from "../../../lib/inspectionStatus";
 import { Camera } from "lucide-react";
 import { resolveActiveSections, filterSectionsForServiceMode } from "../../../lib/reportSections";
 import { resolveInspectionAccessFilter } from "../../../lib/inspectionAccess";
+import { loadSeverityConfigForInspection } from "../../../lib/severity/loadSeverityConfig";
+import { severityIsCritical } from "../../../lib/severity/severityConfig";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
@@ -1254,6 +1256,9 @@ function getSuggestedDisclaimerTopicsForReport(year: number | null, findings: an
 
 export default async function ReportPage({ params, searchParams }: PageProps) {
   const { id } = await params;
+  // Company custom severity config — drives which levels count as safety/critical
+  // for the summary counts + publish gating below (honors renamed/custom levels).
+  const severityConfig = await loadSeverityConfigForInspection(id);
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const propertyPhotoUpdated = getSingleSearchParam(resolvedSearchParams, "property_photo_updated") === "1";
   const propertyPhotoError = getSingleSearchParam(resolvedSearchParams, "property_photo_error");
@@ -2351,11 +2356,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
 
       acc.total += 1;
 
-      if (
-        severity.includes("safety") ||
-        severity.includes("hazard") ||
-        severity.includes("major")
-      ) {
+      if (severityIsCritical(severityConfig, finding.severity)) {
         acc.safety += 1;
       } else if (
         severity.includes("maintenance") ||
@@ -2373,7 +2374,6 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
   );
 
   const unresolvedSafetyFindings = defectFindings.filter((finding: any) => {
-    const severity = String(finding.severity || "").toLowerCase();
     const reviewed =
       finding.command_center_reviewed === true ||
       finding.reviewed === true ||
@@ -2383,11 +2383,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
 
     if (reviewed) return false;
 
-    return (
-      severity.includes("safety") ||
-      severity.includes("hazard") ||
-      severity.includes("major")
-    );
+    return severityIsCritical(severityConfig, finding.severity);
   });
 
   const unresolvedSafetyFindingIds = unresolvedSafetyFindings
