@@ -35,7 +35,19 @@ export function includesHomeInspectionService(
   // relied on being visible.
   if (!serviceMode) return true;
 
-  return String(serviceMode).toLowerCase().trim().startsWith("home");
+  const mode = String(serviceMode).toLowerCase().trim();
+  if (mode.startsWith("home")) return true;
+
+  // Only a GENUINE radon/mold-only visit (radon and/or mold, nothing else)
+  // should hide the standard home-inspection sections. Everything else -
+  // including CUSTOM services an inspector creates (e.g. "structural &
+  // mechanical") - is a full inspection and must show its standard sections in
+  // the report builder, share report, and PDF. Previously any non-"home"
+  // service_mode (all custom services) wrongly trimmed the 12 sections.
+  const environmentalOnly =
+    /^(radon|mold)(\s*[&+_/,-]?\s*(radon|mold|only|test|inspection))*$/;
+
+  return !environmentalOnly.test(mode);
 }
 
 export function filterSectionsForServiceMode(
