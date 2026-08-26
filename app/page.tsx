@@ -19,6 +19,8 @@ import { isIOSShellRequest } from "../lib/iosShell";
 import CommandSearchTrigger from "../components/CommandSearchTrigger";
 import SetupChecklist from "../components/SetupChecklist";
 import DashboardTrends from "../components/DashboardTrends";
+import DashboardGrid from "../components/DashboardGrid";
+import { normalizeLayout } from "../lib/dashboard/dashboardLayout";
 import {
   Plus,
   Smartphone,
@@ -517,9 +519,11 @@ export default async function HomePage() {
 
   const { data: tourProfile } = await supabase
     .from("profiles")
-    .select("dashboard_tour_dismissed_at")
+    .select("dashboard_tour_dismissed_at, dashboard_layout")
     .eq("id", user.id)
     .maybeSingle();
+
+  const dashboardLayout = normalizeLayout((tourProfile as any)?.dashboard_layout);
 
   const { data: latestChangelogEntries } = await supabase
     .from("changelog_entries")
@@ -924,6 +928,10 @@ export default async function HomePage() {
 
         <SetupChecklist />
 
+        <DashboardGrid
+          initialLayout={dashboardLayout}
+          widgets={[
+            { id: "kpis", node: (
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <KpiTile label="Collected" value={money(collectedRevenue)} sub="Payments received" accent="teal" />
           <KpiTile label="Outstanding" value={money(totalBalanceDue)} sub={`${unpaidInspections.length} unpaid`} accent="amber" />
@@ -931,6 +939,8 @@ export default async function HomePage() {
           <KpiTile label="Published" value={`${publishedReports.length}/${inspections.length}`} sub="Reports delivered" accent="emerald" />
         </section>
 
+            ) },
+            { id: "pipeline", node: (
         <section className="rounded-3xl border border-slate-800 bg-[#0b1220] p-6 shadow-xl">
           <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
             <div>
@@ -951,6 +961,8 @@ export default async function HomePage() {
           <PipelineFunnel stages={pipelineCounts} />
         </section>
 
+            ) },
+            { id: "active-jobs", node: (
         <section className="rounded-3xl border border-slate-800 bg-[#0b1220] p-6 shadow-xl">
           <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
             <div>
@@ -971,7 +983,11 @@ export default async function HomePage() {
           <JobsTable jobs={activeJobs} />
         </section>
 
+            ) },
+            { id: "trends", node: (
         <DashboardTrends data={monthlyTrends} />
+            ) },
+            { id: "whats-new", node: (
 
         <section className="overflow-hidden rounded-3xl border border-amber-500/30 bg-gradient-to-br from-[#0b1220] via-[#0b1220] to-amber-950/10 p-6 shadow-xl">
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -1029,6 +1045,8 @@ export default async function HomePage() {
           </div>
         </section>
 
+            ) },
+            { id: "next-attention", node: (
         <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
           <section className="rounded-3xl border border-slate-800 bg-[#0b1220] p-6 shadow-xl">
             <div className="flex flex-wrap items-start justify-between gap-4">
@@ -1171,6 +1189,8 @@ export default async function HomePage() {
           </section>
         </section>
 
+            ) },
+            { id: "activity-metrics", node: (
         <section className="grid gap-4 md:grid-cols-4">
           <ActivityMetric label="Client Views" value={String(clientViewedCount)} helper="Client portal or client report opens." />
           <ActivityMetric label="Realtor Views" value={String(realtorViewedCount)} helper="Realtor report opens from tracked links." />
@@ -1178,6 +1198,8 @@ export default async function HomePage() {
           <ActivityMetric label="Read Time" value={formatDuration(totalReadSeconds)} helper="Completed report reading sessions." />
         </section>
 
+            ) },
+            { id: "recent-tools", node: (
         <section className="grid gap-6 xl:grid-cols-[1.1fr_1.9fr]">
           <section className="rounded-2xl border border-slate-800 bg-[#0b1220] p-6 shadow-xl">
             <div className="flex items-center justify-between gap-4">
@@ -1286,6 +1308,8 @@ export default async function HomePage() {
           </section>
         </section>
 
+            ) },
+            { id: "email-activity", node: (
         <section className="rounded-2xl border border-slate-800 bg-[#0b1220] p-6 shadow-xl">
           <div>
             <h2 className="text-2xl font-black text-teal-300">
@@ -1350,6 +1374,9 @@ export default async function HomePage() {
             )}
           </div>
         </section>
+            ) },
+          ]}
+        />
       </div>
     </main>
   );
