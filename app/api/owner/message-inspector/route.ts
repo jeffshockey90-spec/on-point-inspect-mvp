@@ -63,7 +63,9 @@ export async function POST(req: Request) {
   const { error } = await resend.emails.send({
     from: "FLOW <notifications@flowinspect.app>",
     to,
-    replyTo: ownerEmail, // replies come straight back to the owner
+    // Replies go to a FLOW address (not the owner's personal email); Cloudflare
+    // Email Routing forwards support@flowinspect.app to the owner's inbox.
+    replyTo: "FLOW Support <support@flowinspect.app>",
     subject,
     html: wrapHtml(message),
     headers: listUnsubscribeHeaders(to),
