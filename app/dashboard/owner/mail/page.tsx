@@ -6,6 +6,7 @@ import { cookies } from "next/headers";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import OwnerMailComposer from "./OwnerMailComposer";
+import InboxReplies from "./InboxReplies";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -67,7 +68,7 @@ function fmt(value: any) {
   return formatAppValue(d, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 }
 
-function OwnerNav() {
+function OwnerNav({ unread = 0 }: { unread?: number }) {
   const links = [
     ["/dashboard/owner", "Owner"],
     ["/dashboard/owner/inspectors", "🧑 Inspectors"],
@@ -78,8 +79,13 @@ function OwnerNav() {
   return (
     <div className="flex flex-wrap gap-3">
       {links.map(([href, label]) => (
-        <Link key={href} href={href} className="rounded-xl border border-slate-600 px-3 py-2 text-sm font-black text-slate-200 transition hover:border-teal-400 hover:bg-teal-500/10 sm:px-4 sm:py-3">
+        <Link key={href} href={href} className="relative rounded-xl border border-slate-600 px-3 py-2 text-sm font-black text-slate-200 transition hover:border-teal-400 hover:bg-teal-500/10 sm:px-4 sm:py-3">
           {label}
+          {href === "/dashboard/owner/mail" && unread > 0 && (
+            <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-teal-500 px-1.5 text-[11px] font-black text-slate-950">
+              {unread}
+            </span>
+          )}
         </Link>
       ))}
     </div>
@@ -110,14 +116,17 @@ export default async function OwnerMailPage() {
   const admin = createAdminClient();
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 3600 * 1000);
 
-  const [profiles, inspectorProfiles, companyUsers, inspections, deviceEvents, messages] = await Promise.all([
+  const [profiles, inspectorProfiles, companyUsers, inspections, deviceEvents, messages, replies] = await Promise.all([
     safeSelect(admin.from("profiles").select("*")),
     safeSelect(admin.from("inspector_profiles").select("*")),
     safeSelect(admin.from("company_users").select("*")),
     safeSelect(admin.from("inspections").select("inspector_id,user_id,created_at,inspection_date,is_demo")),
     safeSelect(admin.from("app_device_events").select("user_email,user_id,created_at").order("created_at", { ascending: false }).limit(2000)),
     safeSelect(admin.from("owner_inspector_messages").select("*").order("sent_at", { ascending: false }).limit(100)),
+    safeSelect(admin.from("inbound_replies").select("*").order("received_at", { ascending: false }).limit(100)),
   ]);
+
+  const unreadReplies = replies.filter((r: any) => !r.is_read).length;
 
   const users = new Map<string, any>();
   [...profiles, ...companyUsers].forEach((row: any) => {
@@ -161,8 +170,25 @@ export default async function OwnerMailPage() {
                 Send a re-engagement message to one inspector, everyone, or just the quiet ones — then track opens below.
               </p>
             </div>
-            <OwnerNav />
+            <OwnerNav unread={unreadReplies} />
           </div>
+        </section>
+
+        <section className="rounded-2xl border border-slate-800 bg-[#0f172a] p-4 shadow-xl sm:p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="flex items-center gap-3 text-2xl font-black text-teal-300">
+              Inbox — replies
+              {unreadReplies > 0 && (
+                <span className="rounded-full bg-teal-500 px-2.5 py-0.5 text-sm font-black text-slate-950">
+                  {unreadReplies} new
+                </span>
+              )}
+            </h2>
+          </div>
+          <p className="mt-1 text-sm text-slate-400">
+            Replies to your FLOW emails land here and buzz your phone. Reply right from FLOW — it sends from support@flowinspect.app.
+          </p>
+          <InboxReplies replies={replies as any} />
         </section>
 
         <OwnerMailComposer inspectors={inspectors} />
