@@ -13,12 +13,27 @@ function escapeHtml(s: string) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+const APP_URL = "https://app.flowinspect.app";
+const IOS_APP_URL = "https://apps.apple.com/us/app/flow-inspection-software/id6777555077";
+
 function wrapHtml(message: string) {
   const body = escapeHtml(message).replace(/\n/g, "<br/>");
-  return `<div style="font-family:Arial,Helvetica,sans-serif;line-height:1.7;color:#0f172a;max-width:600px;margin:auto;padding:28px 24px;">
-    <div style="font-weight:800;letter-spacing:0.24em;color:#14b8a6;text-transform:uppercase;font-size:12px;">FLOW</div>
-    <div style="margin-top:18px;font-size:15px;color:#0f172a;">${body}</div>
-    <a href="https://app.flowinspect.app" style="display:inline-block;margin-top:26px;background:#14b8a6;color:#ffffff;font-weight:800;text-decoration:none;padding:12px 26px;border-radius:10px;">Open FLOW</a>
+  return `<div style="font-family:Arial,Helvetica,sans-serif;line-height:1.7;color:#0f172a;max-width:600px;margin:auto;padding:28px 24px;background:#ffffff;">
+    <a href="${APP_URL}" style="text-decoration:none;">
+      <img src="${APP_URL}/icons/icon-192-v2.png" alt="FLOW" width="52" height="52" style="border-radius:13px;vertical-align:middle;border:0;" />
+      <span style="font-weight:900;font-size:24px;color:#14b8a6;vertical-align:middle;margin-left:12px;letter-spacing:0.01em;">FLOW</span>
+    </a>
+    <div style="margin-top:22px;font-size:15px;color:#0f172a;">${body}</div>
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-top:26px;">
+      <tr>
+        <td style="padding-right:12px;">
+          <a href="${APP_URL}" style="display:inline-block;background:#14b8a6;color:#ffffff;font-weight:800;text-decoration:none;padding:12px 24px;border-radius:10px;">Open FLOW</a>
+        </td>
+        <td>
+          <a href="${IOS_APP_URL}" style="display:inline-block;background:#0f172a;color:#ffffff;font-weight:800;text-decoration:none;padding:12px 24px;border-radius:10px;">Get the iOS App</a>
+        </td>
+      </tr>
+    </table>
     <p style="margin-top:28px;font-size:12px;color:#94a3b8;">You're receiving this because you have a FLOW inspector account.</p>
   </div>`;
 }
