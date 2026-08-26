@@ -227,6 +227,9 @@ function OwnerNav() {
       <Link href="/dashboard/owner/inspectors" className="rounded-xl border border-orange-500 px-3 py-2 text-sm font-black text-orange-300 transition hover:bg-orange-500/10 sm:px-4 sm:py-3 sm:text-base">
         🧑‍ inspector
       </Link>
+      <Link href="/dashboard/owner/mail" className="rounded-xl border border-teal-500 px-3 py-2 text-sm font-black text-teal-300 transition hover:bg-teal-500/10 sm:px-4 sm:py-3 sm:text-base">
+        📧 Mail
+      </Link>
       <Link href="/dashboard/owner/live" className="rounded-xl border border-blue-500 px-3 py-2 text-sm font-black text-blue-300 transition hover:bg-blue-500/10 sm:px-4 sm:py-3 sm:text-base">
         ⚡ Live
       </Link>

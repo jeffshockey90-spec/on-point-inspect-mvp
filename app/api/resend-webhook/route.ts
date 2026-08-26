@@ -96,6 +96,24 @@ export async function POST(req: Request) {
 
     if (error) throw error;
 
+    // Also reflect status on owner -> inspector Mail-center messages (same
+    // resend_id). Best-effort and column-safe (no metadata/failed_at here).
+    try {
+      const ownerUpdates: Record<string, any> = {};
+      if (updates.delivered_at) ownerUpdates.delivered_at = updates.delivered_at;
+      if (updates.opened_at) ownerUpdates.opened_at = updates.opened_at;
+      if (updates.clicked_at) ownerUpdates.clicked_at = updates.clicked_at;
+      if (updates.bounced_at || updates.failed_at) {
+        ownerUpdates.bounced_at = updates.bounced_at || updates.failed_at;
+        ownerUpdates.status = "failed";
+      }
+      if (Object.keys(ownerUpdates).length > 0) {
+        await supabase.from("owner_inspector_messages").update(ownerUpdates).eq("resend_id", emailId);
+      }
+    } catch (e) {
+      console.error("owner_inspector_messages webhook update failed:", e);
+    }
+
     return NextResponse.json({ ok: true });
   } catch (error: any) {
     console.error("Resend webhook error:", error);

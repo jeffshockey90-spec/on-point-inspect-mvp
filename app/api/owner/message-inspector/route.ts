@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
+import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { createClient } from "../../../../utils/supabase/server";
 import { OWNER_EMAILS } from "../../../../lib/ownerEmails";
 import { listUnsubscribeHeaders } from "../../../../lib/emailUnsubscribe";
@@ -9,12 +10,26 @@ export const dynamic = "force-dynamic";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+const admin = createServiceClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  { auth: { persistSession: false, autoRefreshToken: false } },
+);
+
+const APP_URL = "https://app.flowinspect.app";
+const IOS_APP_URL = "https://apps.apple.com/us/app/flow-inspection-software/id6777555077";
+
 function escapeHtml(s: string) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-const APP_URL = "https://app.flowinspect.app";
-const IOS_APP_URL = "https://apps.apple.com/us/app/flow-inspection-software/id6777555077";
+function firstName(name?: string) {
+  return String(name || "there").trim().split(/\s+/)[0] || "there";
+}
+
+function personalize(text: string, name?: string) {
+  return text.replace(/\{\{?\s*name\s*\}?\}/gi, firstName(name));
+}
 
 function wrapHtml(message: string) {
   const body = escapeHtml(message).replace(/\n/g, "<br/>");
@@ -38,6 +53,8 @@ function wrapHtml(message: string) {
   </div>`;
 }
 
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
 export async function POST(req: Request) {
   const supabase = await createClient();
   const {
@@ -49,28 +66,62 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json().catch(() => ({}) as any);
-  const to = String(body.to || "").trim();
   const subject = String(body.subject || "").trim();
   const message = String(body.body || body.message || "").trim();
+  const template = body.template ? String(body.template) : null;
 
-  if (!to || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) {
-    return NextResponse.json({ error: "A valid recipient email is required." }, { status: 400 });
+  // Accept a batch (recipients:[{email,name}]) or a single ({to,name}).
+  let recipients: { email: string; name?: string }[] = Array.isArray(body.recipients)
+    ? body.recipients.map((r: any) => ({ email: String(r?.email || "").trim(), name: r?.name }))
+    : body.to
+      ? [{ email: String(body.to).trim(), name: body.name }]
+      : [];
+  recipients = recipients.filter((r) => EMAIL_RE.test(r.email));
+
+  if (!recipients.length) {
+    return NextResponse.json({ error: "No valid recipients." }, { status: 400 });
   }
   if (!subject || !message) {
     return NextResponse.json({ error: "Subject and message are required." }, { status: 400 });
   }
 
-  const { error } = await resend.emails.send({
-    from: "FLOW <notifications@flowinspect.app>",
-    to,
-    // Replies go to a FLOW address (not the owner's personal email); Cloudflare
-    // Email Routing forwards support@flowinspect.app to the owner's inbox.
-    replyTo: "FLOW Support <support@flowinspect.app>",
-    subject,
-    html: wrapHtml(message),
-    headers: listUnsubscribeHeaders(to),
-  });
+  let sent = 0;
+  let failed = 0;
+  const errors: string[] = [];
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ ok: true });
+  for (const r of recipients) {
+    const personalSubject = personalize(subject, r.name);
+    const html = wrapHtml(personalize(message, r.name));
+    const { data, error } = await resend.emails.send({
+      from: "FLOW <notifications@flowinspect.app>",
+      to: r.email,
+      // Replies go to a FLOW address (not the owner's personal email).
+      replyTo: "FLOW Support <support@flowinspect.app>",
+      subject: personalSubject,
+      html,
+      headers: listUnsubscribeHeaders(r.email),
+    });
+
+    if (error) {
+      failed += 1;
+      if (errors.length < 5) errors.push(error.message);
+      continue;
+    }
+    sent += 1;
+
+    try {
+      await admin.from("owner_inspector_messages").insert({
+        recipient_email: r.email.toLowerCase(),
+        recipient_name: r.name || null,
+        subject: personalSubject,
+        template,
+        resend_id: data?.id || null,
+        status: "sent",
+      });
+    } catch {
+      /* logging is best-effort */
+    }
+  }
+
+  return NextResponse.json({ ok: sent > 0, sent, failed, errors });
 }
