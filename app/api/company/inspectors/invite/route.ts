@@ -154,7 +154,7 @@ export async function POST(req: Request) {
 
       try {
         await resend.emails.send({
-          from: "FLOW <alerts@onpointhomeinspect.com>",
+          from: "FLOW <notifications@flowinspect.app>",
           to: email,
           subject: `You've been added to ${companyName} on FLOW`,
           html: `

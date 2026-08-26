@@ -6,7 +6,7 @@ import { recomputeDealPrevalence } from "../../../../lib/dealInsights";
 import { resolveInspectionAccessFilter } from "../../../../lib/inspectionAccess";
 import { aiPublishGuard } from "../../../../lib/ai";
 import { getOrCreateShareToken } from "../../../../lib/shareToken";
-import { getCompanyBrandingById, buildBrandedFromHeader, type CompanyBranding } from "../../../../lib/companyBranding";
+import { getCompanyBrandingById, buildBrandedFromHeader, brandedReplyTo, type CompanyBranding } from "../../../../lib/companyBranding";
 import { isSmsConfigured, sendSms } from "../../../../lib/sms";
 import { smsReportReadyClient, smsReportReadyAgent } from "../../../../lib/smsTemplates";
 import { listUnsubscribeHeaders } from "../../../../lib/emailUnsubscribe";
@@ -165,6 +165,7 @@ async function sendReportEmail({
   const { data, error } = await resend.emails.send({
     from,
     to,
+    replyTo: brandedReplyTo(branding),
     subject: REPORT_EMAIL_SUBJECT,
     html,
     headers: listUnsubscribeHeaders(Array.isArray(to) ? to[0] : to),

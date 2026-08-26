@@ -205,7 +205,7 @@ export async function POST(req: Request) {
         })
       ),
       resend.emails.send({
-        from: "FLOW <alerts@onpointhomeinspect.com>",
+        from: "FLOW <notifications@flowinspect.app>",
         to: OWNER_EMAILS,
         subject: `New FLOW signup: ${fullName} (${businessLabel})`,
         html: `

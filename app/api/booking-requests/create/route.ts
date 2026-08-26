@@ -523,8 +523,7 @@ async function sendOwnerEmail(booking: any, request: Request, companyEmails: Set
 
   const from =
     process.env.BOOKING_ALERT_EMAIL_FROM ||
-    process.env.RESEND_FROM_EMAIL ||
-    "FLOW <alerts@onpointhomeinspect.com>";
+    "FLOW <notifications@flowinspect.app>";
 
   try {
     const { error } = await resend.emails.send({

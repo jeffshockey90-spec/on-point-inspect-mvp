@@ -56,21 +56,33 @@ export function normalizeCompanyBranding(company: any): CompanyBranding {
   };
 }
 
-// The verified sending domain/address can't change per company (that needs
-// per-company DNS/DKIM setup with Resend), but the display name can - swap
-// just that part so the recipient's inbox shows their own inspector's
-// company name instead of the platform's, while mail still sends from the
-// one verified address.
-export function buildBrandedFromHeader(branding: CompanyBranding, envFallback: string) {
-  const configured =
-    process.env.REPORT_EMAIL_FROM ||
-    process.env.RESEND_FROM_EMAIL ||
-    envFallback;
+// FLOW's own verified platform sending domain (Resend). Every inspector's client
+// mail sends from here, with THEIR company name as the display name, so it's a
+// neutral platform sender that works for the whole SaaS -- not tied to one
+// inspector's domain. Replies are routed back to the inspector via Reply-To.
+const PLATFORM_FROM_ADDRESS = "notifications@flowinspect.app";
+
+// The verified sending address is platform-wide, but the display name is the
+// inspector's own company name, so a client's inbox shows their inspector, not
+// the platform. (`envFallback` is kept for call-site compatibility but the
+// platform address wins unless an env override is set.)
+export function buildBrandedFromHeader(branding: CompanyBranding, _envFallback?: string) {
+  // Platform address is fixed to the verified flowinspect.app domain. An optional
+  // PLATFORM_EMAIL_FROM env can override it; the older REPORT_EMAIL_FROM /
+  // RESEND_FROM_EMAIL vars (which pointed at a single inspector's domain) are
+  // intentionally ignored now.
+  const configured = process.env.PLATFORM_EMAIL_FROM || PLATFORM_FROM_ADDRESS;
 
   const addressMatch = configured.match(/<([^>]+)>/);
   const address = addressMatch ? addressMatch[1] : configured;
 
   return `${branding.name} via FLOW <${address}>`;
+}
+
+// Replies to platform mail should reach the inspector -- use their company's
+// contact email when one is set. Returns undefined when none is available.
+export function brandedReplyTo(branding: CompanyBranding): string | undefined {
+  return branding.email || undefined;
 }
 
 export async function getCompanyBrandingById(
