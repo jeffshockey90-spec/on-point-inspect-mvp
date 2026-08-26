@@ -406,13 +406,35 @@ export async function POST(req: Request) {
     // asked to receive and forward the agreement themselves - never sent
     // automatically alongside the normal client send.
     if (sendToRealtor) {
-      const realtor = getInspectionRealtor(inspection);
+      let realtor = getInspectionRealtor(inspection);
+
+      // A realtor added to an existing report lives in inspection_contacts
+      // (role "realtor"/"agent"/"coordinator"), not on the inspection row.
+      // Fall back to that contact so the forward send works either way.
+      if (!realtor.email) {
+        const { data: realtorContacts } = await supabase
+          .from("inspection_contacts")
+          .select("name,email,role")
+          .eq("inspection_id", inspectionId);
+
+        const match = (realtorContacts || []).find((c: any) => {
+          const role = String(c?.role || "").toLowerCase();
+          return (
+            Boolean(cleanText(c?.email)) &&
+            (role.includes("realtor") || role.includes("agent") || role.includes("coordinator"))
+          );
+        });
+
+        if (match) {
+          realtor = { name: cleanText(match.name) || "there", email: cleanText(match.email) };
+        }
+      }
 
       if (!realtor.email) {
         return NextResponse.json(
           {
             error:
-              "No realtor email found on this inspection. Add a realtor email first.",
+              "No realtor email found on this inspection. Add a realtor (with an email) to the contacts list first.",
           },
           { status: 400 }
         );
