@@ -45,8 +45,8 @@ function BarChart({
               y={y - 4}
               textAnchor="middle"
               fontSize="9"
-              fontWeight="700"
-              fill="#94a3b8"
+              fontWeight="600"
+              fill="#8a93a3"
             >
               {point.display}
             </text>
@@ -55,7 +55,7 @@ function BarChart({
               y={height + 15}
               textAnchor="middle"
               fontSize="9"
-              fill="#64748b"
+              fill="#59626f"
             >
               {point.label}
             </text>
@@ -70,23 +70,23 @@ function BarChart({
 // so there's no charting dependency. Rendered from the server dashboard.
 export default function DashboardTrends({ data }: { data: TrendPoint[] }) {
   return (
-    <section className="rounded-3xl border border-slate-800 bg-[#0b1220] p-6 shadow-xl">
+    <section className="rounded-xl border border-[#1a212c] bg-[#10151e] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
       <div className="mb-2 flex items-center justify-between gap-4">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.3em] text-teal-300">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-teal-300">
             Trends
           </p>
-          <h2 className="mt-1 text-2xl font-black text-white">Last 6 months</h2>
+          <h2 className="mt-1 text-2xl font-semibold text-white">Last 6 months</h2>
         </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
         <div>
-          <p className="text-xs font-black uppercase tracking-wider text-slate-500">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8a93a3]">
             Inspections
           </p>
           <BarChart
-            color="#2dd4bf"
+            color="#1ac5b4"
             points={data.map((point) => ({
               label: point.label,
               value: point.inspections,
@@ -96,11 +96,11 @@ export default function DashboardTrends({ data }: { data: TrendPoint[] }) {
         </div>
 
         <div>
-          <p className="text-xs font-black uppercase tracking-wider text-slate-500">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8a93a3]">
             Revenue collected
           </p>
           <BarChart
-            color="#34d399"
+            color="#37d6a6"
             points={data.map((point) => ({
               label: point.label,
               value: point.revenue,

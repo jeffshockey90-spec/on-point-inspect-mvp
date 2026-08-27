@@ -328,7 +328,7 @@ function getEmailLogStatus(log: any) {
     return { label: "Delivered", tone: "border-emerald-400/40 bg-emerald-500/10 text-emerald-200" };
   }
 
-  return { label: "Sent", tone: "border-slate-600 bg-slate-800/60 text-slate-300" };
+  return { label: "Sent", tone: "border-[#232b38] bg-slate-800/60 text-[#8a93a3]" };
 }
 
 function getActivityIcon(log: any) {
@@ -862,30 +862,30 @@ export default async function HomePage() {
   });
 
   return (
-    <main className="min-h-screen bg-[#020617] px-4 py-8 text-white">
+    <main className="min-h-screen bg-[#0a0e13] px-4 py-8 text-[#e8ecf3] md:px-6">
       <DashboardTour initialDismissed={Boolean(tourProfile?.dashboard_tour_dismissed_at)} />
       <div className="mx-auto max-w-[96rem] space-y-8">
-        <section className="overflow-hidden rounded-3xl border border-teal-500/30 bg-gradient-to-br from-[#0b1220] via-[#071827] to-[#020617] p-6 shadow-2xl shadow-teal-950/30 md:p-8">
-          <div className="grid gap-6 xl:grid-cols-[1.35fr_0.65fr] xl:items-start">
+        <section className="rounded-xl border border-[#1a212c] bg-[#10151e] p-6 shadow-[0_1px_2px_rgba(0,0,0,0.3)] md:p-7">
+          <div className="grid gap-6 xl:grid-cols-[1.35fr_0.65fr] xl:items-center">
             <div>
-              <p className="mb-3 text-sm font-black uppercase tracking-[0.35em] text-[#14c8d2]">
-                FLOW
+              <p className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#59626f]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#1ac5b4]" />
+                FLOW · Command Center
               </p>
 
-              <h1 className="text-4xl font-black tracking-tight text-white md:text-6xl">
-                Command Center
+              <h1 className="text-[28px] font-semibold tracking-tight text-[#e8ecf3] md:text-[34px]">
+                {getGreeting()}, {getFirstName(user.email)}
               </h1>
 
-              <p className="mt-4 max-w-3xl text-base leading-7 text-slate-300 md:text-lg">
-                {getGreeting()}, {getFirstName(user.email)}. Your inspections,
-                report delivery, payments, agreements, and repair requests are all in one place.
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-[#8a93a3]">
+                Inspections, report delivery, payments, agreements, and repair requests — all in one place.
               </p>
 
-              <div className="mt-6 flex flex-wrap gap-3">
+              <div className="mt-6 flex flex-wrap gap-2.5">
                 <Link
                   href="/inspections/new"
                   data-tour="tour-new-inspection"
-                  className="inline-flex items-center gap-2 rounded-2xl bg-teal-400 px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-teal-300 active:scale-[0.98]"
+                  className="inline-flex items-center gap-2 rounded-lg bg-[#1ac5b4] px-4 py-2.5 text-sm font-semibold text-[#06120f] transition-colors hover:bg-[#2fd8c6]"
                 >
                   <Plus className="h-4 w-4" strokeWidth={2.5} /> New Inspection
                 </Link>
@@ -893,24 +893,24 @@ export default async function HomePage() {
                 <Link
                   href="/field"
                   data-tour="tour-field-tool"
-                  className="inline-flex items-center gap-2 rounded-2xl border border-cyan-400/60 bg-cyan-500/10 px-5 py-3 text-sm font-black text-cyan-200 transition hover:bg-cyan-500/20 active:scale-[0.98]"
+                  className="inline-flex items-center gap-2 rounded-lg border border-[#232b38] bg-[#131923] px-4 py-2.5 text-sm font-semibold text-[#e8ecf3] transition-colors hover:border-[#1ac5b4]/50 hover:text-[#1ac5b4]"
                 >
-                  <Smartphone className="h-4 w-4" strokeWidth={2.5} /> Field Tool
+                  <Smartphone className="h-4 w-4" strokeWidth={2} /> Field Tool
                 </Link>
 
                 <Link
                   href="/schedule"
                   data-tour="tour-schedule"
-                  className="inline-flex items-center gap-2 rounded-2xl border border-slate-600 bg-slate-900 px-5 py-3 text-sm font-black text-slate-200 transition hover:border-teal-400 active:scale-[0.98]"
+                  className="inline-flex items-center gap-2 rounded-lg border border-[#232b38] bg-[#131923] px-4 py-2.5 text-sm font-semibold text-[#e8ecf3] transition-colors hover:border-[#1ac5b4]/50 hover:text-[#1ac5b4]"
                 >
-                  <CalendarDays className="h-4 w-4" strokeWidth={2.5} /> Schedule
+                  <CalendarDays className="h-4 w-4" strokeWidth={2} /> Schedule
                 </Link>
 
                 <Link
                   href="/import-report"
-                  className="inline-flex items-center gap-2 rounded-2xl border border-amber-400/60 bg-amber-500/10 px-5 py-3 text-sm font-black text-amber-200 transition hover:bg-amber-500/20 active:scale-[0.98]"
+                  className="inline-flex items-center gap-2 rounded-lg border border-[#232b38] bg-[#131923] px-4 py-2.5 text-sm font-semibold text-[#e8ecf3] transition-colors hover:border-[#1ac5b4]/50 hover:text-[#1ac5b4]"
                 >
-                  <FileDown className="h-4 w-4" strokeWidth={2.5} /> Import Report
+                  <FileDown className="h-4 w-4" strokeWidth={2} /> Import Report
                 </Link>
               </div>
             </div>
@@ -941,19 +941,19 @@ export default async function HomePage() {
 
             ) },
             { id: "pipeline", node: (
-        <section className="rounded-3xl border border-slate-800 bg-[#0b1220] p-6 shadow-xl">
+        <section className="rounded-xl border border-[#1a212c] bg-[#10151e] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
           <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.3em] text-teal-300">
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-teal-300">
                 Pipeline
               </p>
-              <h2 className="mt-1 text-2xl font-black text-white">
+              <h2 className="mt-1 text-2xl font-semibold text-white">
                 Every job, at a glance
               </h2>
             </div>
             <Link
               href="/reports"
-              className="rounded-xl border border-slate-700 px-4 py-2 text-sm font-black text-slate-200 transition hover:border-teal-400 hover:text-teal-200"
+              className="rounded-xl border border-[#232b38] px-4 py-2 text-sm font-semibold text-[#e8ecf3] transition hover:border-teal-400 hover:text-teal-200"
             >
               All Reports
             </Link>
@@ -963,19 +963,19 @@ export default async function HomePage() {
 
             ) },
             { id: "active-jobs", node: (
-        <section className="rounded-3xl border border-slate-800 bg-[#0b1220] p-6 shadow-xl">
+        <section className="rounded-xl border border-[#1a212c] bg-[#10151e] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
           <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.3em] text-teal-300">
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-teal-300">
                 Active Jobs
               </p>
-              <h2 className="mt-1 text-2xl font-black text-white">
+              <h2 className="mt-1 text-2xl font-semibold text-white">
                 {activeJobs.length} in progress
               </h2>
             </div>
             <Link
               href="/reports"
-              className="rounded-xl border border-slate-700 px-4 py-2 text-sm font-black text-slate-200 transition hover:border-teal-400 hover:text-teal-200"
+              className="rounded-xl border border-[#232b38] px-4 py-2 text-sm font-semibold text-[#e8ecf3] transition hover:border-teal-400 hover:text-teal-200"
             >
               View all
             </Link>
@@ -989,13 +989,13 @@ export default async function HomePage() {
             ) },
             { id: "whats-new", node: (
 
-        <section className="overflow-hidden rounded-3xl border border-amber-500/30 bg-gradient-to-br from-[#0b1220] via-[#0b1220] to-amber-950/10 p-6 shadow-xl">
+        <section className="overflow-hidden rounded-xl border border-[#f3b23f]/25 bg-[#10151e] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-[0.3em] text-amber-300">
+              <p className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.3em] text-amber-300">
                 <Rocket className="h-3.5 w-3.5" strokeWidth={2.5} /> What&apos;s New
               </p>
-              <h2 className="mt-2 text-2xl font-black text-white">
+              <h2 className="mt-2 text-2xl font-semibold text-white">
                 Latest updates to FLOW
               </h2>
             </div>
@@ -1003,13 +1003,13 @@ export default async function HomePage() {
             <div className="flex flex-wrap gap-3">
               <Link
                 href="/whats-new"
-                className="rounded-xl border border-slate-600 px-4 py-2.5 text-sm font-black text-slate-200 transition hover:border-teal-400 hover:text-teal-200"
+                className="rounded-xl border border-[#232b38] px-4 py-2.5 text-sm font-semibold text-[#e8ecf3] transition hover:border-teal-400 hover:text-teal-200"
               >
                 See All Updates
               </Link>
               <Link
                 href="/support"
-                className="inline-flex items-center gap-2 rounded-xl border border-amber-400/60 bg-amber-500/10 px-4 py-2.5 text-sm font-black text-amber-200 transition hover:bg-amber-500/20"
+                className="inline-flex items-center gap-2 rounded-xl border border-amber-400/60 bg-amber-500/10 px-4 py-2.5 text-sm font-semibold text-amber-200 transition hover:bg-amber-500/20"
               >
                 <Lightbulb className="h-4 w-4" strokeWidth={2.5} /> Suggest a Feature
               </Link>
@@ -1018,7 +1018,7 @@ export default async function HomePage() {
 
           <div className="mt-5 grid gap-3 md:grid-cols-3">
             {(latestChangelogEntries || []).length === 0 ? (
-              <div className="md:col-span-3 rounded-xl border border-dashed border-slate-700 bg-[#020617]/70 p-5 text-sm text-slate-400">
+              <div className="md:col-span-3 rounded-xl border border-dashed border-[#232b38] bg-[#131923] p-5 text-sm text-[#8a93a3]">
                 No updates posted yet. Got an idea for FLOW? Use the suggestion box above - Jeff sees it the moment
                 you submit it.
               </div>
@@ -1027,15 +1027,15 @@ export default async function HomePage() {
                 <Link
                   key={entry.id}
                   href="/whats-new"
-                  className="block rounded-xl border border-slate-700 bg-[#020617]/70 p-4 transition hover:border-amber-400/60 active:scale-[0.99]"
+                  className="block rounded-xl border border-[#232b38] bg-[#131923] p-4 transition hover:border-amber-400/60 active:scale-[0.99]"
                 >
-                  <p className="text-xs font-bold text-slate-500">
+                  <p className="text-xs font-bold text-[#59626f]">
                     {getRelativeTime(entry.published_at)}
                   </p>
-                  <p className="mt-1 font-black text-white">{entry.title}</p>
-                  <p className="mt-1 line-clamp-2 text-sm text-slate-400">{entry.body}</p>
+                  <p className="mt-1 font-semibold text-white">{entry.title}</p>
+                  <p className="mt-1 line-clamp-2 text-sm text-[#8a93a3]">{entry.body}</p>
                   {entry.credited_user_name && (
-                    <p className="mt-2 inline-flex items-center gap-1.5 text-xs font-black text-amber-300">
+                    <p className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-amber-300">
                       <Sparkles className="h-3.5 w-3.5" strokeWidth={2.5} /> Requested by {entry.credited_user_name}
                     </p>
                   )}
@@ -1048,18 +1048,18 @@ export default async function HomePage() {
             ) },
             { id: "next-attention", node: (
         <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-          <section className="rounded-3xl border border-slate-800 bg-[#0b1220] p-6 shadow-xl">
+          <section className="rounded-xl border border-[#1a212c] bg-[#10151e] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.3em] text-teal-300">
+                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-teal-300">
                   Next Up
                 </p>
 
-                <h2 className="mt-2 text-3xl font-black text-white">
+                <h2 className="mt-2 text-3xl font-semibold text-white">
                   {nextInspection ? getAddress(nextInspection) : "No inspections yet"}
                 </h2>
 
-                <p className="mt-2 text-sm text-slate-400">
+                <p className="mt-2 text-sm text-[#8a93a3]">
                   {nextInspection
                     ? `${nextInspection.client_name || "No client listed"} • ${formatInspectionDate(
                         nextInspection.inspection_date
@@ -1072,8 +1072,8 @@ export default async function HomePage() {
                 <span
                   className={
                     isPublished(nextInspection)
-                      ? "rounded-full border border-emerald-400/50 bg-emerald-500/10 px-4 py-2 text-xs font-black text-emerald-300"
-                      : "rounded-full border border-yellow-400/50 bg-yellow-500/10 px-4 py-2 text-xs font-black text-yellow-200"
+                      ? "rounded-full border border-emerald-400/50 bg-emerald-500/10 px-4 py-2 text-xs font-semibold text-emerald-300"
+                      : "rounded-full border border-yellow-400/50 bg-yellow-500/10 px-4 py-2 text-xs font-semibold text-yellow-200"
                   }
                 >
                   {isPublished(nextInspection) ? "Published" : "Draft"}
@@ -1086,21 +1086,21 @@ export default async function HomePage() {
                 <>
                   <Link
                     href={`/reports/${nextInspection.id}`}
-                    className="rounded-2xl bg-teal-400 px-5 py-4 text-center text-sm font-black text-slate-950 transition hover:bg-teal-300 active:scale-[0.98]"
+                    className="rounded-2xl bg-teal-400 px-5 py-4 text-center text-sm font-semibold text-slate-950 transition hover:bg-teal-300 active:scale-[0.98]"
                   >
                     Continue Report
                   </Link>
 
                   <Link
                     href="/field"
-                    className="rounded-2xl border border-cyan-400/60 bg-cyan-500/10 px-5 py-4 text-center text-sm font-black text-cyan-200 transition hover:bg-cyan-500/20 active:scale-[0.98]"
+                    className="rounded-2xl border border-cyan-400/60 bg-cyan-500/10 px-5 py-4 text-center text-sm font-semibold text-cyan-200 transition hover:bg-cyan-500/20 active:scale-[0.98]"
                   >
                     Field Tool
                   </Link>
 
                   <Link
                     href="/reports"
-                    className="rounded-2xl border border-slate-700 bg-[#020617] px-5 py-4 text-center text-sm font-black text-slate-200 transition hover:border-teal-400 active:scale-[0.98]"
+                    className="rounded-xl border border-[#232b38] bg-[#131923] px-5 py-4 text-center text-sm font-semibold text-[#e8ecf3] transition hover:border-teal-400 active:scale-[0.98]"
                   >
                     All Reports
                   </Link>
@@ -1108,7 +1108,7 @@ export default async function HomePage() {
               ) : (
                 <Link
                   href="/inspections/new"
-                  className="rounded-2xl bg-teal-400 px-5 py-4 text-center text-sm font-black text-slate-950 transition hover:bg-teal-300 active:scale-[0.98] sm:col-span-3"
+                  className="rounded-2xl bg-teal-400 px-5 py-4 text-center text-sm font-semibold text-slate-950 transition hover:bg-teal-300 active:scale-[0.98] sm:col-span-3"
                 >
                   Create Inspection
                 </Link>
@@ -1142,18 +1142,18 @@ export default async function HomePage() {
             ) : null}
           </section>
 
-          <section className="rounded-3xl border border-slate-800 bg-[#0b1220] p-6 shadow-xl">
+          <section className="rounded-xl border border-[#1a212c] bg-[#10151e] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.3em] text-yellow-300">
+                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-yellow-300">
                   Needs Attention
                 </p>
 
-                <h2 className="mt-2 text-3xl font-black text-white">
+                <h2 className="mt-2 text-3xl font-semibold text-white">
                   {needsAttentionCount}
                 </h2>
 
-                <p className="mt-2 text-sm leading-6 text-slate-400">
+                <p className="mt-2 text-sm leading-6 text-[#8a93a3]">
                   Showing draft reports, unpaid reports, unsigned agreements, and repair requests that need follow-up.
                 </p>
               </div>
@@ -1168,20 +1168,20 @@ export default async function HomePage() {
                 <Link
                   key={inspection.id}
                   href={`/reports/${inspection.id}`}
-                  className="block rounded-2xl border border-slate-700 bg-[#020617]/80 p-4 transition hover:border-yellow-400/70 active:scale-[0.99]"
+                  className="block rounded-2xl border border-[#232b38] bg-[#131923] p-4 transition hover:border-yellow-400/70 active:scale-[0.99]"
                 >
-                  <p className="font-black text-white">
+                  <p className="font-semibold text-white">
                     {getAddress(inspection)}
                   </p>
 
-                  <p className="mt-1 text-xs text-slate-400">
+                  <p className="mt-1 text-xs text-[#8a93a3]">
                     {items.slice(0, 3).join(" • ")}
                   </p>
                 </Link>
               ))}
 
               {attentionItems.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-slate-700 bg-[#020617]/70 p-5 text-sm text-slate-400">
+                <div className="rounded-2xl border border-dashed border-[#232b38] bg-[#131923] p-5 text-sm text-[#8a93a3]">
                   No reports needing attention right now.
                 </div>
               ) : null}
@@ -1201,21 +1201,21 @@ export default async function HomePage() {
             ) },
             { id: "recent-tools", node: (
         <section className="grid gap-6 xl:grid-cols-[1.1fr_1.9fr]">
-          <section className="rounded-2xl border border-slate-800 bg-[#0b1220] p-6 shadow-xl">
+          <section className="rounded-xl border border-[#1a212c] bg-[#10151e] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <h2 className="text-2xl font-black text-teal-300">
+                <h2 className="text-2xl font-semibold text-teal-300">
                   Recent Activity
                 </h2>
 
-                <p className="mt-2 text-sm text-slate-400">
+                <p className="mt-2 text-sm text-[#8a93a3]">
                   Report views, client portal opens, email clicks, agreements, payments, repair requests, and read time.
                 </p>
               </div>
 
               <Link
                 href="/analytics"
-                className="rounded-xl border border-teal-500/60 px-4 py-2 text-sm font-black text-teal-300 transition hover:bg-teal-500 hover:text-slate-950"
+                className="rounded-xl border border-teal-500/60 px-4 py-2 text-sm font-semibold text-teal-300 transition hover:bg-teal-500 hover:text-slate-950"
               >
                 Analytics
               </Link>
@@ -1223,7 +1223,7 @@ export default async function HomePage() {
 
             <div className="mt-6 space-y-3">
               {visibleActivity.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-slate-700 bg-[#020617]/70 p-6 text-center text-sm text-slate-400">
+                <div className="rounded-xl border border-dashed border-[#232b38] bg-[#131923] p-6 text-center text-sm text-[#8a93a3]">
                   No tracked client or realtor activity yet.
                 </div>
               ) : (
@@ -1241,7 +1241,7 @@ export default async function HomePage() {
                     <Link
                       key={log.id || `${log.created_at}-${log.view_type}`}
                       href={`/reports/${log.inspection_id_bigint || log.inspection_id}`}
-                      className="block rounded-xl border border-slate-700 bg-[#020617]/70 p-4 transition hover:border-teal-500/70 active:scale-[0.99]"
+                      className="block rounded-xl border border-[#232b38] bg-[#131923] p-4 transition hover:border-teal-500/70 active:scale-[0.99]"
                     >
                       <div className="flex gap-3">
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-500/10 text-teal-300">
@@ -1250,16 +1250,16 @@ export default async function HomePage() {
 
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-start justify-between gap-2">
-                            <p className="font-black text-white">
+                            <p className="font-semibold text-white">
                               {getActivityTitle(log)}
                             </p>
 
-                            <p className="text-xs font-bold text-slate-500">
+                            <p className="text-xs font-bold text-[#59626f]">
                               {getRelativeTime(log.created_at)}
                             </p>
                           </div>
 
-                          <p className="mt-1 truncate text-sm text-slate-400">
+                          <p className="mt-1 truncate text-sm text-[#8a93a3]">
                             {address}
                           </p>
 
@@ -1277,8 +1277,8 @@ export default async function HomePage() {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-slate-800 bg-[#0b1220] p-6 shadow-xl">
-            <h2 className="mb-5 text-2xl font-black text-teal-300">All Tools</h2>
+          <section className="rounded-xl border border-[#1a212c] bg-[#10151e] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
+            <h2 className="mb-5 text-2xl font-semibold text-teal-300">All Tools</h2>
 
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {cards.map((card) => {
@@ -1288,16 +1288,16 @@ export default async function HomePage() {
                   key={card.href + card.title}
                   href={card.href}
                   data-tour={card.title === "Getting Started" ? "tour-getting-started" : undefined}
-                  className="group flex items-center gap-3 rounded-xl border border-slate-800 bg-[#020617]/70 p-3 transition hover:border-teal-500 hover:bg-[#13213a] active:scale-[0.99]"
+                  className="group flex items-center gap-3 rounded-xl border border-[#1a212c] bg-[#131923] p-3 transition hover:border-[#1ac5b4]/50 hover:bg-white/[0.02] active:scale-[0.99]"
                 >
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-700 bg-slate-900 text-teal-300 transition group-hover:border-teal-500/60 group-hover:text-teal-200">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#232b38] bg-[#1a212c] text-teal-300 transition group-hover:border-teal-500/60 group-hover:text-teal-200">
                     <CardIcon className="h-5 w-5" strokeWidth={2} />
                   </span>
                   <span className="min-w-0">
-                    <span className="block truncate text-sm font-black text-white group-hover:text-teal-300">
+                    <span className="block truncate text-sm font-semibold text-white group-hover:text-teal-300">
                       {card.title}
                     </span>
-                    <span className="block truncate text-xs text-slate-500">
+                    <span className="block truncate text-xs text-[#59626f]">
                       {card.description}
                     </span>
                   </span>
@@ -1310,20 +1310,20 @@ export default async function HomePage() {
 
             ) },
             { id: "email-activity", node: (
-        <section className="rounded-2xl border border-slate-800 bg-[#0b1220] p-6 shadow-xl">
+        <section className="rounded-xl border border-[#1a212c] bg-[#10151e] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
           <div>
-            <h2 className="text-2xl font-black text-teal-300">
+            <h2 className="text-2xl font-semibold text-teal-300">
               Recent Email Activity
             </h2>
 
-            <p className="mt-2 text-sm text-slate-400">
+            <p className="mt-2 text-sm text-[#8a93a3]">
               Schedule confirmations, agreements, and reports sent from FLOW, with delivery and open status.
             </p>
           </div>
 
           <div className="mt-6 space-y-3">
             {recentEmailLogs.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-slate-700 bg-[#020617]/70 p-6 text-center text-sm text-slate-400">
+              <div className="rounded-xl border border-dashed border-[#232b38] bg-[#131923] p-6 text-center text-sm text-[#8a93a3]">
                 No emails sent yet.
               </div>
             ) : (
@@ -1343,27 +1343,27 @@ export default async function HomePage() {
                   <Link
                     key={log.id || `${log.created_at}-${log.recipient_email}`}
                     href={`/reports/${log.inspection_id_bigint || log.inspection_id}`}
-                    className="block rounded-xl border border-slate-700 bg-[#020617]/70 p-4 transition hover:border-teal-500/70 active:scale-[0.99]"
+                    className="block rounded-xl border border-[#232b38] bg-[#131923] p-4 transition hover:border-teal-500/70 active:scale-[0.99]"
                   >
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="font-black text-white">
+                        <p className="font-semibold text-white">
                           {formatEmailType(log.email_type)}
                         </p>
 
-                        <p className="mt-1 truncate text-sm text-slate-400">
+                        <p className="mt-1 truncate text-sm text-[#8a93a3]">
                           {log.recipient_email || log.recipient || "Unknown recipient"} · {address}
                         </p>
                       </div>
 
                       <div className="flex shrink-0 flex-col items-end gap-1">
                         <span
-                          className={`rounded-full border px-3 py-1 text-xs font-black uppercase tracking-wide ${status.tone}`}
+                          className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide ${status.tone}`}
                         >
                           {status.label}
                         </span>
 
-                        <span className="text-xs font-bold text-slate-500">
+                        <span className="text-xs font-bold text-[#59626f]">
                           {getRelativeTime(log.sent_at || log.created_at)}
                         </span>
                       </div>
@@ -1393,25 +1393,28 @@ function CommandMetric({
   helper: string;
   tone: "teal" | "yellow" | "green" | "cyan" | "orange";
 }) {
-  const classes = {
-    teal: "border-teal-400/40 bg-teal-500/10 text-teal-200",
-    yellow: "border-yellow-400/40 bg-yellow-500/10 text-yellow-100",
-    green: "border-emerald-400/40 bg-emerald-500/10 text-emerald-200",
-    cyan: "border-cyan-400/40 bg-cyan-500/10 text-cyan-200",
-    orange: "border-orange-400/40 bg-orange-500/10 text-orange-200",
-  };
+  const dot = {
+    teal: "bg-[#1ac5b4]",
+    yellow: "bg-[#f3b23f]",
+    green: "bg-[#37d6a6]",
+    cyan: "bg-[#4bb8e0]",
+    orange: "bg-[#f0954e]",
+  }[tone];
 
   return (
-    <div className={`rounded-2xl border p-4 shadow-xl ${classes[tone]}`}>
-      <p className="text-xs font-black uppercase tracking-wide opacity-80">
-        {label}
-      </p>
+    <div className="rounded-xl border border-[#1a212c] bg-[#131923] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
+      <div className="flex items-center gap-2">
+        <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8a93a3]">
+          {label}
+        </p>
+      </div>
 
-      <p className="mt-2 text-3xl font-black text-white">
+      <p className="mt-2 font-mono text-[26px] font-semibold leading-none text-[#e8ecf3] tabular-nums">
         {value}
       </p>
 
-      <p className="mt-1 text-xs leading-5 opacity-80">
+      <p className="mt-1.5 text-xs leading-5 text-[#8a93a3]">
         {helper}
       </p>
     </div>
@@ -1428,17 +1431,12 @@ function MiniStatus({
   good: boolean;
 }) {
   return (
-    <div
-      className={
-        good
-          ? "rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-3"
-          : "rounded-2xl border border-yellow-500/40 bg-yellow-500/10 p-3"
-      }
-    >
-      <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+    <div className="rounded-xl border border-[#1a212c] bg-[#131923] p-3">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8a93a3]">
         {label}
       </p>
-      <p className={good ? "mt-1 text-sm font-black text-emerald-200" : "mt-1 text-sm font-black text-yellow-100"}>
+      <p className="mt-1 flex items-center gap-1.5 text-sm font-semibold text-[#e8ecf3]">
+        <span className={`h-1.5 w-1.5 rounded-full ${good ? "bg-[#37d6a6]" : "bg-[#f3b23f]"}`} />
         {value}
       </p>
     </div>
@@ -1455,16 +1453,16 @@ function ActivityMetric({
   helper: string;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-800 bg-[#0b1220] p-5 shadow-xl">
-      <p className="text-xs font-black uppercase tracking-wide text-slate-500">
+    <div className="rounded-xl border border-[#1a212c] bg-[#10151e] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8a93a3]">
         {label}
       </p>
 
-      <p className="mt-3 text-3xl font-black text-white">
+      <p className="mt-3 font-mono text-[30px] font-semibold leading-none text-[#e8ecf3] tabular-nums">
         {value}
       </p>
 
-      <p className="mt-2 text-sm leading-5 text-slate-400">
+      <p className="mt-2 text-sm leading-5 text-[#8a93a3]">
         {helper}
       </p>
     </div>
@@ -1493,32 +1491,25 @@ function KpiTile({
   sub: string;
   accent: "teal" | "amber" | "rose" | "emerald";
 }) {
-  const ring = {
-    teal: "border-teal-500/30",
-    amber: "border-amber-500/30",
-    rose: "border-rose-500/30",
-    emerald: "border-emerald-500/30",
-  }[accent];
-
   const dot = {
-    teal: "bg-teal-400",
-    amber: "bg-amber-400",
-    rose: "bg-rose-400",
-    emerald: "bg-emerald-400",
+    teal: "bg-[#1ac5b4]",
+    amber: "bg-[#f3b23f]",
+    rose: "bg-[#f76d6d]",
+    emerald: "bg-[#37d6a6]",
   }[accent];
 
   return (
-    <div className={`rounded-2xl border ${ring} bg-[#0b1220] p-5 shadow-xl`}>
+    <div className="rounded-xl border border-[#1a212c] bg-[#10151e] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)] transition-colors hover:border-[#232b38]">
       <div className="flex items-center gap-2">
-        <span className={`h-2 w-2 rounded-full ${dot}`} />
-        <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">
+        <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8a93a3]">
           {label}
         </p>
       </div>
-      <p className="mt-3 text-4xl font-black tracking-tight text-white tabular-nums">
+      <p className="mt-3 font-mono text-[34px] font-semibold leading-none tracking-tight text-[#e8ecf3] tabular-nums">
         {value}
       </p>
-      <p className="mt-1 text-sm text-slate-500">{sub}</p>
+      <p className="mt-2 text-sm text-[#8a93a3]">{sub}</p>
     </div>
   );
 }
@@ -1536,20 +1527,20 @@ function PipelineFunnel({
         return (
           <div
             key={stage.key}
-            className="relative rounded-2xl border border-slate-800 bg-[#020617]/70 p-4"
+            className="relative rounded-xl border border-[#1a212c] bg-[#131923] p-4"
           >
             <div className="flex items-center justify-between">
-              <span className={`h-2.5 w-2.5 rounded-full ${meta.dot}`} />
-              <span className="text-3xl font-black tabular-nums text-white">
+              <span className={`h-2 w-2 rounded-full ${meta.dot}`} />
+              <span className="font-mono text-[26px] font-semibold tabular-nums text-[#e8ecf3]">
                 {stage.count}
               </span>
             </div>
-            <p className={`mt-3 text-sm font-black ${meta.color}`}>
+            <p className={`mt-3 text-sm font-semibold ${meta.color}`}>
               {stage.label}
             </p>
-            <p className="mt-0.5 text-xs text-slate-500">{stage.hint}</p>
+            <p className="mt-0.5 text-xs text-[#8a93a3]">{stage.hint}</p>
             {index < stages.length - 1 ? (
-              <span className="pointer-events-none absolute -right-3 top-1/2 hidden -translate-y-1/2 text-xl font-black text-slate-700 lg:block">
+              <span className="pointer-events-none absolute -right-3 top-1/2 hidden -translate-y-1/2 text-xl text-[#59626f] lg:block">
                 ›
               </span>
             ) : null}
@@ -1565,7 +1556,7 @@ function StagePill({ stage }: { stage: string }) {
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-black ${meta.chip} ${meta.color}`}
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${meta.chip} ${meta.color}`}
     >
       <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
       {meta.label}
@@ -1581,8 +1572,8 @@ function PaymentChip({ inspection }: { inspection: any }) {
     <span
       className={
         paid
-          ? "text-xs font-black text-emerald-300"
-          : "text-xs font-black text-orange-300"
+          ? "text-xs font-semibold text-emerald-300"
+          : "text-xs font-semibold text-orange-300"
       }
     >
       {paid ? "Paid" : balance > 0 ? `${money(balance)} due` : "Due"}
@@ -1597,7 +1588,7 @@ function JobsTable({
 }) {
   if (jobs.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-slate-700 bg-[#020617]/70 p-8 text-center text-sm text-slate-400">
+      <div className="rounded-xl border border-dashed border-[#232b38] bg-[#131923] p-8 text-center text-sm text-[#8a93a3]">
         No active jobs - everything is delivered. Nice work.
       </div>
     );
@@ -1607,23 +1598,23 @@ function JobsTable({
     <div className="overflow-x-auto">
       <table className="w-full min-w-[640px] border-collapse text-left">
         <thead>
-          <tr className="border-b border-slate-800 text-[11px] font-black uppercase tracking-wider text-slate-500">
-            <th className="px-3 py-2">Property / Client</th>
-            <th className="px-3 py-2">Stage</th>
-            <th className="px-3 py-2">Payment</th>
-            <th className="px-3 py-2">Date</th>
-            <th className="px-3 py-2 text-right">Action</th>
+          <tr className="border-b border-[#1a212c] text-[10px] font-semibold uppercase tracking-[0.12em] text-[#59626f]">
+            <th className="px-3 py-2.5">Property / Client</th>
+            <th className="px-3 py-2.5">Stage</th>
+            <th className="px-3 py-2.5">Payment</th>
+            <th className="px-3 py-2.5">Date</th>
+            <th className="px-3 py-2.5 text-right">Action</th>
           </tr>
         </thead>
         <tbody>
           {jobs.map(({ inspection, stage }) => (
             <tr
               key={inspection.id}
-              className="border-b border-slate-800/70 transition hover:bg-[#13213a]"
+              className="border-b border-[#1a212c] transition-colors hover:bg-white/[0.02]"
             >
               <td className="px-3 py-3">
-                <p className="font-black text-white">{getAddress(inspection)}</p>
-                <p className="text-xs text-slate-500">
+                <p className="font-semibold text-[#e8ecf3]">{getAddress(inspection)}</p>
+                <p className="text-xs text-[#8a93a3]">
                   {inspection.client_name || "No client listed"}
                 </p>
               </td>
@@ -1633,13 +1624,13 @@ function JobsTable({
               <td className="px-3 py-3">
                 <PaymentChip inspection={inspection} />
               </td>
-              <td className="px-3 py-3 text-sm tabular-nums text-slate-400">
+              <td className="px-3 py-3 font-mono text-sm tabular-nums text-[#8a93a3]">
                 {formatInspectionDate(inspection.inspection_date)}
               </td>
               <td className="px-3 py-3 text-right">
                 <Link
                   href={`/reports/${inspection.id}`}
-                  className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-black text-teal-300 transition hover:border-teal-400 hover:bg-teal-500/10"
+                  className="rounded-lg border border-[#232b38] px-3 py-1.5 text-xs font-semibold text-[#1ac5b4] transition-colors hover:border-[#1ac5b4]/50 hover:bg-[#1ac5b4]/10"
                 >
                   Open
                 </Link>

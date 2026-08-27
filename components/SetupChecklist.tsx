@@ -33,16 +33,16 @@ export default function SetupChecklist() {
   const pct = Math.round((done / steps.length) * 100);
 
   return (
-    <section className="rounded-3xl border border-teal-500/30 bg-gradient-to-br from-[#0b1220] to-[#071827] p-6 shadow-xl">
+    <section className="rounded-xl border border-[#1ac5b4]/25 bg-[#10151e] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.3em] text-teal-300">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-teal-300">
             Get set up
           </p>
-          <h2 className="mt-1 text-2xl font-black text-white">
+          <h2 className="mt-1 text-2xl font-semibold text-white">
             Finish setting up FLOW
           </h2>
-          <p className="mt-1 text-sm text-slate-400">
+          <p className="mt-1 text-sm text-[#8a93a3]">
             {done} of {steps.length} done
           </p>
         </div>
@@ -53,15 +53,15 @@ export default function SetupChecklist() {
             window.localStorage.setItem(DISMISS_KEY, "1");
             setDismissed(true);
           }}
-          className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-black text-slate-400 transition hover:border-slate-500 hover:text-slate-200"
+          className="rounded-lg border border-[#232b38] px-3 py-1.5 text-xs font-semibold text-[#8a93a3] transition hover:border-[#59626f] hover:text-[#e8ecf3]"
         >
           Dismiss
         </button>
       </div>
 
-      <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-slate-800">
+      <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-[#1a212c]">
         <div
-          className="h-full rounded-full bg-teal-400 transition-all"
+          className="h-full rounded-full bg-[#1ac5b4] transition-all"
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -73,22 +73,22 @@ export default function SetupChecklist() {
             href={step.href}
             className={`flex items-center gap-3 rounded-xl border p-3 transition ${
               step.done
-                ? "border-emerald-500/30 bg-emerald-500/5"
-                : "border-slate-700 bg-[#020617]/70 hover:border-teal-400/60"
+                ? "border-[#37d6a6]/30 bg-[#37d6a6]/5"
+                : "border-[#232b38] bg-[#131923] hover:border-[#1ac5b4]/50"
             }`}
           >
             <span
-              className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-black ${
+              className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
                 step.done
-                  ? "bg-emerald-500 text-slate-950"
-                  : "border border-slate-600 text-slate-500"
+                  ? "bg-[#37d6a6] text-[#06120f]"
+                  : "border border-[#232b38] text-[#59626f]"
               }`}
             >
               {step.done ? "✓" : ""}
             </span>
             <span
-              className={`text-sm font-bold ${
-                step.done ? "text-slate-500 line-through" : "text-white"
+              className={`text-sm font-semibold ${
+                step.done ? "text-[#59626f] line-through" : "text-white"
               }`}
             >
               {step.label}
