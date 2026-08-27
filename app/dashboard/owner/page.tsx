@@ -1027,8 +1027,10 @@ export default async function OwnerDashboardPage() {
           </div>
         </section>
 
+        <div className="lg:grid lg:grid-cols-[13.5rem_minmax(0,1fr)] lg:items-start lg:gap-8">
         <OwnerDashboardTabs />
 
+        <div className="min-w-0 space-y-8">
         <div data-owner-tab="ai">
           <AIBudgetStatus />
         </div>
@@ -1621,6 +1623,8 @@ export default async function OwnerDashboardPage() {
         <section data-owner-tab="system" className="rounded-2xl border border-yellow-500/30 bg-yellow-950/10 p-5 text-sm leading-6 text-yellow-100">
           <strong>App Store Analytics Note:</strong> Apple download and retention numbers are not available through Supabase automatically. This dashboard tracks internal installs, first opens, and device activity after you add the tracker component. For official App Store downloads, still check App Store Connect.
         </section>
+        </div>
+        </div>
       </div>
     </main>
   );
