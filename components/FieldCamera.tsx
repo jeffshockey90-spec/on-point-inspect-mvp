@@ -762,7 +762,7 @@ export default function FieldCamera({
 
   const card = !open ? (
     <div className="rounded-2xl border border-cyan-500/40 bg-cyan-500/10 p-4 text-white">
-      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">
+      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fl-info-text)]">
         Field Camera
       </p>
       <h2 className="mt-1 text-xl font-semibold">Photo + Video Camera</h2>
@@ -777,7 +777,7 @@ export default function FieldCamera({
           onClick={() => setMuteAudio((current) => !current)}
           className={`mt-3 flex w-full items-center justify-between rounded-xl border px-4 py-3 text-sm font-semibold transition [touch-action:manipulation] ${
             muteAudio
-              ? "border-red-400/60 bg-red-500/10 text-red-200"
+              ? "border-red-400/60 bg-red-500/10 text-[var(--fl-crit-text)]"
               : "border-[var(--fl-line)] bg-[var(--fl-surface-2)] text-[var(--fl-text)]"
           }`}
         >
@@ -890,7 +890,7 @@ export default function FieldCamera({
       )}
 
       {focusMessage && (
-        <div className="pointer-events-none absolute left-1/2 top-[38%] z-20 -translate-x-1/2 rounded-full bg-[var(--fl-surface-2)] px-4 py-2 text-xs font-semibold text-yellow-200 backdrop-blur">
+        <div className="pointer-events-none absolute left-1/2 top-[38%] z-20 -translate-x-1/2 rounded-full bg-[var(--fl-surface-2)] px-4 py-2 text-xs font-semibold text-[var(--fl-warn-text)] backdrop-blur">
           {focusMessage}
         </div>
       )}
@@ -911,7 +911,7 @@ export default function FieldCamera({
           <p className="truncate text-sm font-semibold text-[var(--fl-text)]">
             {destinationLabel}
           </p>
-          <p className="text-[11px] font-bold text-cyan-200">
+          <p className="text-[11px] font-bold text-[var(--fl-info-text)]">
             {selectedMediaCount} selected · {sessionCaptureCount} this session
           </p>
         </div>
@@ -1019,7 +1019,7 @@ export default function FieldCamera({
         )}
 
         {cameraError && (
-          <div className="mx-auto mb-3 max-w-[680px] rounded-xl border border-red-400/60 bg-red-500/10 px-4 py-3 text-center text-sm font-bold text-red-100">
+          <div className="mx-auto mb-3 max-w-[680px] rounded-xl border border-red-400/60 bg-red-500/10 px-4 py-3 text-center text-sm font-bold text-[var(--fl-crit-text)]">
             {cameraError}
           </div>
         )}

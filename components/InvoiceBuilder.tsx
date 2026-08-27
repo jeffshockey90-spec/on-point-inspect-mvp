@@ -167,12 +167,12 @@ export default function InvoiceBuilder({ initialInvoice, inspectionId, currency 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       {error && (
-        <div className="rounded-xl border border-red-700 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-200">
+        <div className="rounded-xl border border-red-700 bg-red-500/10 px-4 py-3 text-sm font-bold text-[var(--fl-crit-text)]">
           {error}
         </div>
       )}
       {notice && (
-        <div className="rounded-xl border border-emerald-700 bg-emerald-500/10 px-4 py-3 text-sm font-bold text-emerald-200">
+        <div className="rounded-xl border border-emerald-700 bg-emerald-500/10 px-4 py-3 text-sm font-bold text-[var(--fl-good-text)]">
           {notice}
         </div>
       )}
@@ -248,7 +248,7 @@ export default function InvoiceBuilder({ initialInvoice, inspectionId, currency 
                 <div className="col-span-3 min-w-0 truncate pb-2 text-right font-bold text-[var(--fl-text)] [font-variant-numeric:tabular-nums] sm:col-span-1">
                   {money(amount)}
                 </div>
-                <button type="button" onClick={() => removeItem(i)} disabled={items.length <= 1} className="col-span-1 min-w-0 pb-2 text-lg text-[var(--fl-muted)] hover:text-red-300 disabled:opacity-30" aria-label="Remove line item">
+                <button type="button" onClick={() => removeItem(i)} disabled={items.length <= 1} className="col-span-1 min-w-0 pb-2 text-lg text-[var(--fl-muted)] hover:text-[var(--fl-crit-text)] disabled:opacity-30" aria-label="Remove line item">
                   ×
                 </button>
               </div>
@@ -282,7 +282,7 @@ export default function InvoiceBuilder({ initialInvoice, inspectionId, currency 
             "Create Invoice"
           )}
         </button>
-        <button type="button" onClick={saveAndSend} disabled={saving || sending} className="inline-flex items-center gap-2 rounded-xl border border-cyan-500 bg-cyan-500/10 px-6 py-3 font-semibold text-cyan-200 transition hover:bg-cyan-500/20 disabled:cursor-wait disabled:opacity-70">
+        <button type="button" onClick={saveAndSend} disabled={saving || sending} className="inline-flex items-center gap-2 rounded-xl border border-cyan-500 bg-cyan-500/10 px-6 py-3 font-semibold text-[var(--fl-info-text)] transition hover:bg-cyan-500/20 disabled:cursor-wait disabled:opacity-70">
           {sending ? (
             <>
               <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />

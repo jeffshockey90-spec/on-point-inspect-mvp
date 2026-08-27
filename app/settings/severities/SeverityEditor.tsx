@@ -128,7 +128,7 @@ export default function SeverityEditor() {
               type="button"
               onClick={() => remove(r._key)}
               disabled={rows.length <= 1}
-              className="rounded-lg border border-[var(--fl-line)] px-2.5 py-1.5 text-xs font-bold text-[var(--fl-muted)] hover:border-red-500 hover:text-red-300 disabled:opacity-30"
+              className="rounded-lg border border-[var(--fl-line)] px-2.5 py-1.5 text-xs font-bold text-[var(--fl-muted)] hover:border-red-500 hover:text-[var(--fl-crit-text)] disabled:opacity-30"
             >
               Remove
             </button>
@@ -166,7 +166,7 @@ export default function SeverityEditor() {
           Revert to defaults
         </button>
         {msg && (
-          <span className={`text-sm font-bold ${msg.tone === "ok" ? "text-emerald-300" : "text-red-300"}`}>{msg.text}</span>
+          <span className={`text-sm font-bold ${msg.tone === "ok" ? "text-[var(--fl-good-text)]" : "text-[var(--fl-crit-text)]"}`}>{msg.text}</span>
         )}
       </div>
     </section>

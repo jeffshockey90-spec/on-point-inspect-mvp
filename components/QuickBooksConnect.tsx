@@ -69,7 +69,7 @@ export default function QuickBooksConnect() {
   return (
     <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-5">
       <div className="flex items-start gap-3">
-        <Receipt className="mt-0.5 h-6 w-6 shrink-0 text-green-300" />
+        <Receipt className="mt-0.5 h-6 w-6 shrink-0 text-[var(--fl-good-text)]" />
         <div className="min-w-0 flex-1">
           <p className="font-semibold text-[var(--fl-text)]">QuickBooks</p>
           <p className="mt-1 max-w-xl text-sm leading-6 text-[var(--fl-muted)]">
@@ -79,14 +79,14 @@ export default function QuickBooksConnect() {
           </p>
 
           {banner && (
-            <p className={`mt-3 rounded-lg border px-3 py-2 text-sm font-bold ${banner.ok ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200" : "border-amber-500/40 bg-amber-500/10 text-amber-200"}`}>
+            <p className={`mt-3 rounded-lg border px-3 py-2 text-sm font-bold ${banner.ok ? "border-emerald-500/40 bg-emerald-500/10 text-[var(--fl-good-text)]" : "border-amber-500/40 bg-amber-500/10 text-[var(--fl-warn-text)]"}`}>
               {banner.text}
             </p>
           )}
 
           {status?.connected ? (
             <div className="mt-4">
-              <p className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-200">
+              <p className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-[var(--fl-good-text)]">
                 <Check className="h-3.5 w-3.5" />
                 Connected{status.company ? ` · ${status.company}` : ""}
               </p>
@@ -104,7 +104,7 @@ export default function QuickBooksConnect() {
                   type="button"
                   onClick={disconnect}
                   disabled={busy}
-                  className="rounded-xl border border-[var(--fl-line)] px-4 py-2.5 text-sm font-semibold text-[var(--fl-muted)] transition hover:border-red-400 hover:text-red-300 disabled:opacity-50"
+                  className="rounded-xl border border-[var(--fl-line)] px-4 py-2.5 text-sm font-semibold text-[var(--fl-muted)] transition hover:border-red-400 hover:text-[var(--fl-crit-text)] disabled:opacity-50"
                 >
                   Disconnect
                 </button>
@@ -112,7 +112,7 @@ export default function QuickBooksConnect() {
               {syncMsg && <p className="mt-3 text-sm font-bold text-[var(--fl-muted)]">{syncMsg}</p>}
             </div>
           ) : status && !status.configured ? (
-            <p className="mt-4 text-sm text-amber-300">
+            <p className="mt-4 text-sm text-[var(--fl-warn-text)]">
               QuickBooks isn&apos;t configured on this account yet.
             </p>
           ) : (

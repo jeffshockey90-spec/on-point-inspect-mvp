@@ -167,7 +167,7 @@ export default function GoogleBusinessConnect({
     <div className="mb-6 rounded-2xl border border-yellow-400/30 bg-yellow-400/10 p-4 sm:p-5">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-yellow-300">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-warn-text)]">
             Google Business Profile
           </p>
           <h3 className="mt-2 text-xl font-semibold text-[var(--fl-text)]">
@@ -180,7 +180,7 @@ export default function GoogleBusinessConnect({
 
         {connectedPlaceId && (
           <div className="rounded-2xl border border-yellow-300/40 bg-[var(--fl-surface-2)] px-4 py-3 text-center">
-            <p className="text-2xl font-semibold text-yellow-200">
+            <p className="text-2xl font-semibold text-[var(--fl-warn-text)]">
               ★ {rating || "—"}
             </p>
             <p className="text-xs font-bold text-[var(--fl-muted)]">
@@ -210,7 +210,7 @@ export default function GoogleBusinessConnect({
                 href={mapsUrl}
                 target="_blank"
                 rel="noreferrer"
-                className={`${fastButtonBase} border border-yellow-300/50 text-yellow-100 hover:bg-yellow-300 hover:text-slate-950`}
+                className={`${fastButtonBase} border border-yellow-300/50 text-[var(--fl-warn-text)] hover:bg-yellow-300 hover:text-slate-950`}
               >
                 View on Google
               </a>
@@ -256,7 +256,7 @@ export default function GoogleBusinessConnect({
           type="button"
           onClick={searchGoogleBusiness}
           disabled={loading || !query.trim()}
-          className={`${fastButtonBase} border border-yellow-300/50 text-yellow-100 hover:bg-yellow-300 hover:text-slate-950`}
+          className={`${fastButtonBase} border border-yellow-300/50 text-[var(--fl-warn-text)] hover:bg-yellow-300 hover:text-slate-950`}
         >
           {loading && <FastSpinner />}
           {loading ? "Searching..." : "Search Google"}
@@ -271,7 +271,7 @@ export default function GoogleBusinessConnect({
                 <div>
                   <p className="font-semibold text-[var(--fl-text)]">{place.name}</p>
                   <p className="mt-1 text-sm text-[var(--fl-muted)]">{place.address}</p>
-                  <p className="mt-2 text-sm font-bold text-yellow-200">
+                  <p className="mt-2 text-sm font-bold text-[var(--fl-warn-text)]">
                     ★ {place.rating || "—"} · {place.reviewCount || 0} reviews
                   </p>
                 </div>
@@ -290,8 +290,8 @@ export default function GoogleBusinessConnect({
         </div>
       )}
 
-      {message && <p className="mt-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm font-bold text-emerald-300">{message}</p>}
-      {error && <p className="mt-4 rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm font-bold text-red-300">{error}</p>}
+      {message && <p className="mt-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm font-bold text-[var(--fl-good-text)]">{message}</p>}
+      {error && <p className="mt-4 rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm font-bold text-[var(--fl-crit-text)]">{error}</p>}
     </div>
   );
 }

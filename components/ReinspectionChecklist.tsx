@@ -12,8 +12,8 @@ type Finding = {
 };
 
 const STATUSES: { key: string; label: string; on: string }[] = [
-  { key: "corrected", label: "Corrected", on: "border-emerald-400 bg-emerald-500/20 text-emerald-200" },
-  { key: "not_corrected", label: "Not corrected", on: "border-red-400 bg-red-500/20 text-red-200" },
+  { key: "corrected", label: "Corrected", on: "border-emerald-400 bg-emerald-500/20 text-[var(--fl-good-text)]" },
+  { key: "not_corrected", label: "Not corrected", on: "border-red-400 bg-red-500/20 text-[var(--fl-crit-text)]" },
   { key: "not_evaluated", label: "Not evaluated", on: "border-slate-400 bg-slate-500/20 text-[var(--fl-text)]" },
 ];
 
@@ -57,9 +57,9 @@ export default function ReinspectionChecklist({ inspectionId }: { inspectionId: 
   return (
     <section className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-5 shadow-xl">
       <div className="flex items-center gap-3">
-        <RotateCcw className="h-6 w-6 text-amber-300" />
+        <RotateCcw className="h-6 w-6 text-[var(--fl-warn-text)]" />
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-amber-300">Re-inspection</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fl-warn-text)]">Re-inspection</p>
           <h2 className="mt-1 text-2xl font-semibold text-[var(--fl-text)]">Verify Prior Findings</h2>
           <p className="mt-1 text-sm text-[var(--fl-muted)]">
             Mark each item from the original inspection. {counts.corrected} corrected ·{" "}

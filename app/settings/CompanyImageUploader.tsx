@@ -194,7 +194,7 @@ export default function CompanyImageUploader({
 
           {url && (
             <div className="mt-3 rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-ground)] p-3">
-              <p className="text-xs font-bold text-emerald-300">
+              <p className="text-xs font-bold text-[var(--fl-good-text)]">
                 Image selected
               </p>
               <p className="mt-1 truncate text-xs text-[var(--fl-faint)]">
@@ -218,7 +218,7 @@ export default function CompanyImageUploader({
         )}
 
         {url && imageFailed && (
-          <div className="flex h-24 w-24 items-center justify-center rounded-2xl border border-red-500/40 bg-red-500/10 p-3 text-center text-xs font-bold text-red-200">
+          <div className="flex h-24 w-24 items-center justify-center rounded-2xl border border-red-500/40 bg-red-500/10 p-3 text-center text-xs font-bold text-[var(--fl-crit-text)]">
             Saved, preview unavailable
           </div>
         )}
@@ -250,7 +250,7 @@ export default function CompanyImageUploader({
               setImageFailed(false);
               showMessage("info", "Image cleared. Click Save Settings to keep this change.");
             }}
-            className="rounded-xl border border-[var(--fl-line)] px-5 py-3 text-sm font-bold text-[var(--fl-text)] transition hover:border-red-400 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-xl border border-[var(--fl-line)] px-5 py-3 text-sm font-bold text-[var(--fl-text)] transition hover:border-red-400 hover:text-[var(--fl-crit-text)] disabled:cursor-not-allowed disabled:opacity-60"
           >
             Clear
           </button>
@@ -261,10 +261,10 @@ export default function CompanyImageUploader({
         <p
           className={`mt-3 rounded-xl border px-4 py-3 text-xs font-bold ${
             messageType === "success"
-              ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-200"
+              ? "border-emerald-500/50 bg-emerald-500/10 text-[var(--fl-good-text)]"
               : messageType === "info"
-                ? "border-sky-500/50 bg-sky-500/10 text-sky-200"
-                : "border-red-500/50 bg-red-500/10 text-red-200"
+                ? "border-sky-500/50 bg-sky-500/10 text-[var(--fl-info-text)]"
+                : "border-red-500/50 bg-red-500/10 text-[var(--fl-crit-text)]"
           }`}
         >
           {message}

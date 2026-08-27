@@ -18,9 +18,9 @@ type Signer = {
 };
 
 const STATUS_META: Record<string, { label: string; cls: string }> = {
-  signed: { label: "All signed", cls: "border-emerald-500/40 bg-emerald-500/10 text-emerald-300" },
-  partial: { label: "Partly signed", cls: "border-yellow-500/40 bg-yellow-500/10 text-yellow-300" },
-  unsigned: { label: "Unsigned", cls: "border-red-500/40 bg-red-500/10 text-red-300" },
+  signed: { label: "All signed", cls: "border-emerald-500/40 bg-emerald-500/10 text-[var(--fl-good-text)]" },
+  partial: { label: "Partly signed", cls: "border-yellow-500/40 bg-yellow-500/10 text-[var(--fl-warn-text)]" },
+  unsigned: { label: "Unsigned", cls: "border-red-500/40 bg-red-500/10 text-[var(--fl-crit-text)]" },
   none: { label: "No signer set", cls: "border-[var(--fl-line)] bg-[var(--fl-raised)] text-[var(--fl-muted)]" },
 };
 
@@ -151,7 +151,7 @@ export default async function AgreementStatusPage() {
                               key={`${insp.id}-${i}`}
                               className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-bold ${
                                 s.agreement_signed
-                                  ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+                                  ? "border-emerald-500/40 bg-emerald-500/10 text-[var(--fl-good-text)]"
                                   : "border-[var(--fl-line)] bg-[var(--fl-raised)] text-[var(--fl-muted)]"
                               }`}
                             >

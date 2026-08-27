@@ -380,7 +380,7 @@ export default async function RealtorDetailPage({ params }: PageProps) {
               {realtor.email && (
                 <a
                   href={`mailto:${realtor.email}`}
-                  className="rounded-xl border border-cyan-500 px-4 py-2 font-bold text-cyan-300 hover:bg-cyan-500/10"
+                  className="rounded-xl border border-cyan-500 px-4 py-2 font-bold text-[var(--fl-info-text)] hover:bg-cyan-500/10"
                 >
                   Email
                 </a>
@@ -389,7 +389,7 @@ export default async function RealtorDetailPage({ params }: PageProps) {
               {realtor.phone && (
                 <a
                   href={`tel:${realtor.phone}`}
-                  className="rounded-xl border border-green-500 px-4 py-2 font-bold text-green-300 hover:bg-green-500/10"
+                  className="rounded-xl border border-green-500 px-4 py-2 font-bold text-[var(--fl-good-text)] hover:bg-green-500/10"
                 >
                   Call
                 </a>
@@ -397,7 +397,7 @@ export default async function RealtorDetailPage({ params }: PageProps) {
 
               <Link
                 href={`/inspections/new?realtor_id=${realtor.id}`}
-                className="rounded-xl border border-purple-500 px-4 py-2 font-bold text-purple-300 hover:bg-purple-500/10"
+                className="rounded-xl border border-purple-500 px-4 py-2 font-bold text-[var(--fl-purple-text)] hover:bg-purple-500/10"
               >
                 Create Inspection
               </Link>
@@ -467,7 +467,7 @@ export default async function RealtorDetailPage({ params }: PageProps) {
         <section className="mt-8 rounded-2xl border border-purple-500/40 bg-[var(--fl-surface)] p-6 shadow-xl">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h2 className="text-2xl font-semibold text-purple-300">
+              <h2 className="text-2xl font-semibold text-[var(--fl-purple-text)]">
                 Send Report To Realtor
               </h2>
 
@@ -476,7 +476,7 @@ export default async function RealtorDetailPage({ params }: PageProps) {
               </p>
             </div>
 
-            <span className="rounded-full border border-purple-500/40 bg-purple-500/10 px-4 py-2 text-sm font-semibold text-purple-200">
+            <span className="rounded-full border border-purple-500/40 bg-purple-500/10 px-4 py-2 text-sm font-semibold text-[var(--fl-purple-text)]">
               {realtor.email || "No email saved"}
             </span>
           </div>
@@ -528,7 +528,7 @@ export default async function RealtorDetailPage({ params }: PageProps) {
 
                       <ConfirmSubmitButton
                         confirmMessage="Delete this contact log entry? This cannot be undone."
-                        className="rounded-xl border border-red-500 px-4 py-2 font-bold text-red-300 hover:bg-red-500/10"
+                        className="rounded-xl border border-red-500 px-4 py-2 font-bold text-[var(--fl-crit-text)] hover:bg-red-500/10"
                       >
                         Delete
                       </ConfirmSubmitButton>
@@ -582,7 +582,7 @@ export default async function RealtorDetailPage({ params }: PageProps) {
 
                         <p
                           className={`mt-1 text-xs font-bold ${
-                            paid ? "text-green-300" : "text-yellow-300"
+                            paid ? "text-[var(--fl-good-text)]" : "text-[var(--fl-warn-text)]"
                           }`}
                         >
                           {paid ? "Paid" : `Balance Due ${money(balance)}`}

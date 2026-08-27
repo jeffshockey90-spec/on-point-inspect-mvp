@@ -39,10 +39,10 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_STYLES: Record<string, string> = {
-  new: "border-cyan-400/40 bg-cyan-500/10 text-cyan-300",
-  planned: "border-purple-400/40 bg-purple-500/10 text-purple-300",
-  in_progress: "border-amber-400/40 bg-amber-500/10 text-amber-300",
-  shipped: "border-emerald-400/40 bg-emerald-500/10 text-emerald-300",
+  new: "border-cyan-400/40 bg-cyan-500/10 text-[var(--fl-info-text)]",
+  planned: "border-purple-400/40 bg-purple-500/10 text-[var(--fl-purple-text)]",
+  in_progress: "border-amber-400/40 bg-amber-500/10 text-[var(--fl-warn-text)]",
+  shipped: "border-emerald-400/40 bg-emerald-500/10 text-[var(--fl-good-text)]",
   declined: "border-[var(--fl-faint)] bg-slate-500/10 text-[var(--fl-muted)]",
 };
 
@@ -214,7 +214,7 @@ export default function SupportPage() {
                 )}
               </div>
 
-              {error && <p className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm font-bold text-red-300">{error}</p>}
+              {error && <p className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm font-bold text-[var(--fl-crit-text)]">{error}</p>}
 
               <div className="mt-4 space-y-3">
                 <textarea
@@ -244,13 +244,13 @@ export default function SupportPage() {
           </p>
 
           {suggestionSent && (
-            <p className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm font-bold text-emerald-300">
+            <p className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm font-bold text-[var(--fl-good-text)]">
               Sent! Jeff was notified right away.
             </p>
           )}
 
           {suggestionError && (
-            <p className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm font-bold text-red-300">
+            <p className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm font-bold text-[var(--fl-crit-text)]">
               {suggestionError}
             </p>
           )}

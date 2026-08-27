@@ -20,7 +20,7 @@ export default async function IntegrationsPage() {
         <section className="rounded-2xl border border-cyan-500/40 bg-[var(--fl-surface-2)] p-6 shadow-2xl md:p-8">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-cyan-400">Settings</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[var(--fl-info-text)]">Settings</p>
               <h1 className="mt-3 text-4xl font-semibold md:text-5xl">Integrations</h1>
               <p className="mt-3 max-w-2xl text-[var(--fl-muted)]">
                 Connect FLOW to the tools you already use.

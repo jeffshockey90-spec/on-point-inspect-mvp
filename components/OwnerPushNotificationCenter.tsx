@@ -137,7 +137,7 @@ export default function OwnerPushNotificationCenter({ users, nativeCount, webCou
       <label className="block"><p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Message</p><textarea value={body} onChange={(event) => setBody(event.target.value)} rows={5} className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400" /></label>
       <TextInput label="Event Type" value={eventType} onChange={setEventType} />
 
-      {message && <div className={`rounded-xl border p-4 text-sm font-bold ${messageType === "success" ? "border-green-500/30 bg-green-500/10 text-green-200" : "border-red-500/30 bg-red-500/10 text-red-200"}`}>{message}</div>}
+      {message && <div className={`rounded-xl border p-4 text-sm font-bold ${messageType === "success" ? "border-green-500/30 bg-green-500/10 text-[var(--fl-good-text)]" : "border-red-500/30 bg-red-500/10 text-[var(--fl-crit-text)]"}`}>{message}</div>}
 
       <button type="button" onClick={sendPush} disabled={busy || (target === "user" && !selectedUser)} className="inline-flex items-center justify-center gap-2 rounded-xl bg-yellow-500 px-6 py-3 font-semibold text-slate-950 transition hover:bg-yellow-400 disabled:cursor-not-allowed disabled:opacity-60">
         {busy && <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />}
@@ -156,6 +156,6 @@ function TextInput({ label, value, onChange }: { label: string; value: string; o
   return <label className="block"><p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">{label}</p><input value={value} onChange={(event) => onChange(event.target.value)} className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400" /></label>;
 }
 function Preset({ label, tone, onClick }: { label: string; tone: string; onClick: () => void }) {
-  const classes: Record<string, string> = { blue: "border-blue-500 text-blue-300 hover:bg-blue-500/10", yellow: "border-yellow-500 text-yellow-300 hover:bg-yellow-500/10", green: "border-green-500 text-green-300 hover:bg-green-500/10", purple: "border-purple-500 text-purple-300 hover:bg-purple-500/10", orange: "border-orange-500 text-orange-300 hover:bg-orange-500/10" };
+  const classes: Record<string, string> = { blue: "border-blue-500 text-[var(--fl-info-text)] hover:bg-blue-500/10", yellow: "border-yellow-500 text-[var(--fl-warn-text)] hover:bg-yellow-500/10", green: "border-green-500 text-[var(--fl-good-text)] hover:bg-green-500/10", purple: "border-purple-500 text-[var(--fl-purple-text)] hover:bg-purple-500/10", orange: "border-orange-500 text-[var(--fl-warn-text)] hover:bg-orange-500/10" };
   return <button type="button" onClick={onClick} className={`rounded-xl border px-4 py-2 font-semibold ${classes[tone]}`}>{label}</button>;
 }

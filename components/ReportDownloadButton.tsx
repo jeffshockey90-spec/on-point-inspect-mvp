@@ -263,7 +263,7 @@ export default function ReportDownloadButton({
       {/* The share sheet only opens from a fresh tap, so once the PDF is built we
           ask for that second tap explicitly instead of failing silently. */}
       {readyFile && !preparing && (
-        <p className="text-sm font-semibold leading-5 text-emerald-300">
+        <p className="text-sm font-semibold leading-5 text-[var(--fl-good-text)]">
           Ready — tap “Save PDF”, then choose Save to Files.
         </p>
       )}
@@ -272,7 +272,7 @@ export default function ReportDownloadButton({
           unreachable on a phone — so a realtor saw "failed" with no way to learn
           why, and no way to tell us anything useful. Render it inline instead. */}
       {error && (
-        <p role="alert" className="text-sm font-semibold leading-5 text-red-300">
+        <p role="alert" className="text-sm font-semibold leading-5 text-[var(--fl-crit-text)]">
           {error}
         </p>
       )}

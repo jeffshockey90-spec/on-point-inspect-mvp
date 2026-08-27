@@ -142,7 +142,7 @@ export default function DeveloperSettings({ siteUrl }: { siteUrl: string }) {
   return (
     <div className="space-y-8">
       {error && (
-        <p className="rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm font-bold text-red-300">
+        <p className="rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm font-bold text-[var(--fl-crit-text)]">
           {error}
         </p>
       )}
@@ -150,21 +150,21 @@ export default function DeveloperSettings({ siteUrl }: { siteUrl: string }) {
       {/* API keys */}
       <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-xl sm:p-6">
         <div className="flex items-center gap-3">
-          <KeyRound className="h-6 w-6 text-cyan-300" />
+          <KeyRound className="h-6 w-6 text-[var(--fl-info-text)]" />
           <h2 className="text-2xl font-semibold text-[var(--fl-text)]">API Keys</h2>
         </div>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--fl-muted)]">
-          Use a key as <code className="text-cyan-300">Authorization: Bearer &lt;key&gt;</code> to call the
+          Use a key as <code className="text-[var(--fl-info-text)]">Authorization: Bearer &lt;key&gt;</code> to call the
           FLOW API. Keys are shown once — store them somewhere safe.
         </p>
 
         {createdKey && (
           <div className="mt-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-emerald-300">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-good-text)]">
               New key — copy it now, it won't be shown again
             </p>
             <div className="mt-2 flex flex-wrap items-center gap-2">
-              <code className="break-all rounded-lg bg-[var(--fl-surface-2)] px-3 py-2 font-mono text-xs text-emerald-200">
+              <code className="break-all rounded-lg bg-[var(--fl-surface-2)] px-3 py-2 font-mono text-xs text-[var(--fl-good-text)]">
                 {createdKey}
               </code>
               <button
@@ -222,7 +222,7 @@ export default function DeveloperSettings({ siteUrl }: { siteUrl: string }) {
               <button
                 type="button"
                 onClick={() => revokeKey(k.id)}
-                className="inline-flex items-center gap-1 rounded-lg border border-[var(--fl-line)] px-3 py-1.5 text-xs font-semibold text-[var(--fl-muted)] hover:border-red-400 hover:text-red-300"
+                className="inline-flex items-center gap-1 rounded-lg border border-[var(--fl-line)] px-3 py-1.5 text-xs font-semibold text-[var(--fl-muted)] hover:border-red-400 hover:text-[var(--fl-crit-text)]"
               >
                 <Trash2 className="h-3.5 w-3.5" />
                 Revoke
@@ -242,13 +242,13 @@ export default function DeveloperSettings({ siteUrl }: { siteUrl: string }) {
       {/* Webhooks */}
       <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-xl sm:p-6">
         <div className="flex items-center gap-3">
-          <Webhook className="h-6 w-6 text-indigo-300" />
+          <Webhook className="h-6 w-6 text-[var(--fl-purple-text)]" />
           <h2 className="text-2xl font-semibold text-[var(--fl-text)]">Webhooks</h2>
         </div>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--fl-muted)]">
           FLOW POSTs a signed JSON event to your URL when things happen. Verify the{" "}
-          <code className="text-indigo-300">X-Flow-Signature</code> header:{" "}
-          <code className="text-indigo-300">sha256 = HMAC(secret, timestamp + &quot;.&quot; + body)</code>.
+          <code className="text-[var(--fl-purple-text)]">X-Flow-Signature</code> header:{" "}
+          <code className="text-[var(--fl-purple-text)]">sha256 = HMAC(secret, timestamp + &quot;.&quot; + body)</code>.
         </p>
 
         <div className="mt-4 flex flex-wrap gap-2">
@@ -280,7 +280,7 @@ export default function DeveloperSettings({ siteUrl }: { siteUrl: string }) {
                 }
                 className={`rounded-full border px-3 py-1.5 text-[11px] font-semibold transition ${
                   on
-                    ? "border-indigo-400 bg-indigo-500/20 text-indigo-200"
+                    ? "border-indigo-400 bg-indigo-500/20 text-[var(--fl-purple-text)]"
                     : "border-[var(--fl-line)] text-[var(--fl-muted)] hover:text-[var(--fl-text)]"
                 }`}
               >
@@ -302,7 +302,7 @@ export default function DeveloperSettings({ siteUrl }: { siteUrl: string }) {
                 <button
                   type="button"
                   onClick={() => deleteWebhook(e.id)}
-                  className="inline-flex items-center gap-1 rounded-lg border border-[var(--fl-line)] px-3 py-1.5 text-xs font-semibold text-[var(--fl-muted)] hover:border-red-400 hover:text-red-300"
+                  className="inline-flex items-center gap-1 rounded-lg border border-[var(--fl-line)] px-3 py-1.5 text-xs font-semibold text-[var(--fl-muted)] hover:border-red-400 hover:text-[var(--fl-crit-text)]"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                   Delete
@@ -319,7 +319,7 @@ export default function DeveloperSettings({ siteUrl }: { siteUrl: string }) {
                 <button
                   type="button"
                   onClick={() => copy(e.secret, e.id)}
-                  className="text-[11px] font-semibold text-indigo-300 hover:text-indigo-200"
+                  className="text-[11px] font-semibold text-[var(--fl-purple-text)] hover:text-[var(--fl-purple-text)]"
                 >
                   {copied === e.id ? "Copied" : "Copy"}
                 </button>
@@ -332,7 +332,7 @@ export default function DeveloperSettings({ siteUrl }: { siteUrl: string }) {
           <button
             type="button"
             onClick={testWebhooks}
-            className="mt-4 inline-flex items-center gap-2 rounded-xl border border-indigo-500/50 px-4 py-2.5 text-sm font-semibold text-indigo-300 hover:bg-indigo-500/10"
+            className="mt-4 inline-flex items-center gap-2 rounded-xl border border-indigo-500/50 px-4 py-2.5 text-sm font-semibold text-[var(--fl-purple-text)] hover:bg-indigo-500/10"
           >
             <Send className="h-4 w-4" />
             {copied === "tested" ? "Test sent" : "Send test event"}
@@ -343,7 +343,7 @@ export default function DeveloperSettings({ siteUrl }: { siteUrl: string }) {
       {/* MCP */}
       <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-xl sm:p-6">
         <div className="flex items-center gap-3">
-          <Plug className="h-6 w-6 text-emerald-300" />
+          <Plug className="h-6 w-6 text-[var(--fl-good-text)]" />
           <h2 className="text-2xl font-semibold text-[var(--fl-text)]">AI Assistant (MCP)</h2>
         </div>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--fl-muted)]">
@@ -354,11 +354,11 @@ export default function DeveloperSettings({ siteUrl }: { siteUrl: string }) {
         <div className="mt-4 rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-ground)] p-3">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-faint)]">MCP endpoint</p>
           <div className="mt-2 flex flex-wrap items-center gap-2">
-            <code className="break-all font-mono text-sm text-emerald-200">{base}/api/mcp</code>
+            <code className="break-all font-mono text-sm text-[var(--fl-good-text)]">{base}/api/mcp</code>
             <button
               type="button"
               onClick={() => copy(`${base}/api/mcp`, "mcp")}
-              className="text-[11px] font-semibold text-emerald-300 hover:text-emerald-200"
+              className="text-[11px] font-semibold text-[var(--fl-good-text)] hover:text-[var(--fl-good-text)]"
             >
               {copied === "mcp" ? "Copied" : "Copy"}
             </button>
@@ -390,7 +390,7 @@ export default function DeveloperSettings({ siteUrl }: { siteUrl: string }) {
             {["list_inspections", "get_inspection", "list_findings", "update_finding"].map((t) => (
               <span
                 key={t}
-                className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold text-emerald-200"
+                className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold text-[var(--fl-good-text)]"
               >
                 {t}
               </span>

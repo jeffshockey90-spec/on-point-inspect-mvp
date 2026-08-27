@@ -174,7 +174,7 @@ export default async function RoutePage({
           </div>
           <div className="rounded-2xl border border-blue-500/40 bg-blue-500/10 p-6">
             <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Est. Drive</p>
-            <p className="mt-2 text-4xl font-semibold text-blue-300">{totalMiles.toFixed(0)} mi</p>
+            <p className="mt-2 text-4xl font-semibold text-[var(--fl-info-text)]">{totalMiles.toFixed(0)} mi</p>
             <p className="mt-1 text-xs text-[var(--fl-faint)]">Straight-line estimate.</p>
           </div>
         </section>
@@ -224,7 +224,7 @@ export default async function RoutePage({
           )}
 
           {missingCoords > 0 && ordered.length > 0 && (
-            <p className="mt-4 text-xs text-amber-300">
+            <p className="mt-4 text-xs text-[var(--fl-warn-text)]">
               {missingCoords} inspection{missingCoords === 1 ? "" : "s"} on this day couldn&apos;t be
               routed (no mapped location).
             </p>

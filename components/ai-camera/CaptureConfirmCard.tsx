@@ -209,7 +209,7 @@ export default function CaptureConfirmCard({
   return (
     <div className="absolute inset-0 z-30 flex flex-col bg-black/85 backdrop-blur-sm">
       <div className="flex items-center justify-between px-4 pt-[max(1rem,env(safe-area-inset-top))]">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fl-info-text)]">
           Confirm {CATEGORY_LABEL[draft.kind]}
         </p>
       </div>
@@ -234,7 +234,7 @@ export default function CaptureConfirmCard({
 
         {extraPreviewUrls && extraPreviewUrls.length > 1 && (
           <div className="mt-2">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-cyan-300">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-info-text)]">
               {extraPreviewUrls.length} photos in this finding
             </p>
             <div className="mt-1 flex gap-2 overflow-x-auto">
@@ -255,7 +255,7 @@ export default function CaptureConfirmCard({
             type="button"
             onClick={onMarkup}
             disabled={busy}
-            className="mt-3 w-full rounded-xl border border-cyan-400/60 bg-cyan-500/10 px-4 py-2.5 text-sm font-semibold text-cyan-200 disabled:opacity-50"
+            className="mt-3 w-full rounded-xl border border-cyan-400/60 bg-cyan-500/10 px-4 py-2.5 text-sm font-semibold text-[var(--fl-info-text)] disabled:opacity-50"
           >
             🖊 Markup Photo (optional)
           </button>
@@ -291,7 +291,7 @@ export default function CaptureConfirmCard({
               ))}
             </select>
             {attachTo && (
-              <p className="mt-2 text-[11px] font-bold text-cyan-200">
+              <p className="mt-2 text-[11px] font-bold text-[var(--fl-info-text)]">
                 This photo/video will be added to that defect. The write-up below is skipped.
               </p>
             )}
@@ -309,7 +309,7 @@ export default function CaptureConfirmCard({
                   setShowNote(true);
                 }}
                 disabled={busy}
-                className="w-full rounded-xl border border-cyan-400/60 bg-cyan-500/10 px-4 py-2.5 text-sm font-semibold text-cyan-200 disabled:opacity-50"
+                className="w-full rounded-xl border border-cyan-400/60 bg-cyan-500/10 px-4 py-2.5 text-sm font-semibold text-[var(--fl-info-text)] disabled:opacity-50"
               >
                 ✍️ Adjust write-up from inspector note
               </button>
@@ -466,7 +466,7 @@ export default function CaptureConfirmCard({
           {edited.kind === "equipment" && (
             <>
               {edited.equipmentStatus && isKnownValue(edited.equipmentStatus) && (
-                <div className="rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-3 py-2 text-sm font-semibold text-cyan-200">
+                <div className="rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-3 py-2 text-sm font-semibold text-[var(--fl-info-text)]">
                   {String(edited.equipmentStatus)}
                 </div>
               )}
@@ -513,7 +513,7 @@ export default function CaptureConfirmCard({
 
               {/* Full equipment intelligence the analyzer returned (read-only). */}
               <div className="rounded-xl border border-white/10 bg-[var(--fl-surface-2)] p-3">
-                <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-cyan-300">
+                <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-info-text)]">
                   AI Equipment Intelligence
                 </p>
                 <div>
@@ -696,7 +696,7 @@ export default function CaptureConfirmCard({
                         <span className="block truncate text-sm font-semibold text-[var(--fl-text)]">
                           {display}
                           {!f.matched && f.kind === "option" && (
-                            <span className="ml-1.5 rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300">
+                            <span className="ml-1.5 rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-[var(--fl-warn-text)]">
                               NEW
                             </span>
                           )}
@@ -711,7 +711,7 @@ export default function CaptureConfirmCard({
         </div>
 
         {error && (
-          <div className="mt-4 rounded-lg border border-red-500/50 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+          <div className="mt-4 rounded-lg border border-red-500/50 bg-red-500/10 px-3 py-2 text-sm text-[var(--fl-crit-text)]">
             {error}
           </div>
         )}

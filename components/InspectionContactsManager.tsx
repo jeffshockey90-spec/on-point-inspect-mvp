@@ -14,8 +14,8 @@ function formatRole(role: string) {
 function roleBadgeClass(role: string) {
   const clean = String(role || "").toLowerCase();
   if (clean.includes("client")) return "border-teal-500/40 bg-teal-500/10 text-[var(--fl-accent-text)]";
-  if (clean.includes("realtor") || clean.includes("agent")) return "border-purple-500/40 bg-purple-500/10 text-purple-300";
-  if (clean.includes("transaction")) return "border-cyan-500/40 bg-cyan-500/10 text-cyan-300";
+  if (clean.includes("realtor") || clean.includes("agent")) return "border-purple-500/40 bg-purple-500/10 text-[var(--fl-purple-text)]";
+  if (clean.includes("transaction")) return "border-cyan-500/40 bg-cyan-500/10 text-[var(--fl-info-text)]";
   return "border-[var(--fl-line)] bg-[var(--fl-raised)] text-[var(--fl-muted)]";
 }
 
@@ -24,8 +24,8 @@ function StatusBadge({ active, activeText, inactiveText }: { active: boolean; ac
     <span
       className={
         active
-          ? "rounded-full border border-green-500/40 bg-green-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-green-300"
-          : "rounded-full border border-yellow-500/40 bg-yellow-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-yellow-300"
+          ? "rounded-full border border-green-500/40 bg-green-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-good-text)]"
+          : "rounded-full border border-yellow-500/40 bg-yellow-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-warn-text)]"
       }
     >
       {active ? activeText : inactiveText}
@@ -40,7 +40,7 @@ function CompactToggle({ checked, onChange, title }: { checked: boolean; onChang
       onClick={() => onChange(!checked)}
       className={`rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-wide transition ${
         checked
-          ? "border-green-500/40 bg-green-500/10 text-green-300"
+          ? "border-green-500/40 bg-green-500/10 text-[var(--fl-good-text)]"
           : "border-[var(--fl-line)] bg-[var(--fl-raised)] text-[var(--fl-muted)]"
       }`}
     >
@@ -305,12 +305,12 @@ export default function InspectionContactsManager({
 
         {!loading && loadError && (
           <div className="rounded-2xl border border-red-500/40 bg-red-500/10 p-6 text-center">
-            <p className="text-lg font-bold text-red-200">Could not load contacts.</p>
-            <p className="mt-2 text-sm text-red-300/80">{loadError}</p>
+            <p className="text-lg font-bold text-[var(--fl-crit-text)]">Could not load contacts.</p>
+            <p className="mt-2 text-sm text-[var(--fl-crit-text)]/80">{loadError}</p>
             <button
               type="button"
               onClick={loadContacts}
-              className="mt-4 rounded-xl border border-red-400/60 px-5 py-2 text-sm font-semibold text-red-200 transition hover:bg-red-500/10"
+              className="mt-4 rounded-xl border border-red-400/60 px-5 py-2 text-sm font-semibold text-[var(--fl-crit-text)] transition hover:bg-red-500/10"
             >
               Retry
             </button>

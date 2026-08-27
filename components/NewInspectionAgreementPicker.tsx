@@ -26,9 +26,9 @@ function Badge({ children, tone = "slate" }: { children: React.ReactNode; tone?:
     tone === "teal"
       ? "border-teal-500/40 bg-teal-500/10 text-[var(--fl-accent-text)]"
       : tone === "green"
-        ? "border-green-500/40 bg-green-500/10 text-green-300"
+        ? "border-green-500/40 bg-green-500/10 text-[var(--fl-good-text)]"
         : tone === "yellow"
-          ? "border-yellow-500/40 bg-yellow-500/10 text-yellow-300"
+          ? "border-yellow-500/40 bg-yellow-500/10 text-[var(--fl-warn-text)]"
           : "border-[var(--fl-line)] bg-[var(--fl-raised)] text-[var(--fl-muted)]";
 
   return (
@@ -180,7 +180,7 @@ export default function NewInspectionAgreementPicker({
                 </div>
               ))
             ) : (
-              <p className="rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 text-sm font-bold text-yellow-300">
+              <p className="rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 text-sm font-bold text-[var(--fl-warn-text)]">
                 No agreement selected. The client won&apos;t be sent one to sign.
               </p>
             )}

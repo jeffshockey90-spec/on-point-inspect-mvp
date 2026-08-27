@@ -11,27 +11,27 @@ const TIER: Record<
 > = {
   common: {
     label: "Common — routine for homes like this",
-    text: "text-emerald-300",
+    text: "text-[var(--fl-good-text)]",
     bar: "bg-emerald-400",
-    chip: "border-emerald-500/40 bg-emerald-500/10 text-emerald-300",
+    chip: "border-emerald-500/40 bg-emerald-500/10 text-[var(--fl-good-text)]",
   },
   typical: {
     label: "Typical — seen regularly",
-    text: "text-sky-300",
+    text: "text-[var(--fl-info-text)]",
     bar: "bg-sky-400",
-    chip: "border-sky-500/40 bg-sky-500/10 text-sky-300",
+    chip: "border-sky-500/40 bg-sky-500/10 text-[var(--fl-info-text)]",
   },
   uncommon: {
     label: "Uncommon — worth budgeting for",
-    text: "text-amber-300",
+    text: "text-[var(--fl-warn-text)]",
     bar: "bg-amber-400",
-    chip: "border-amber-500/40 bg-amber-500/10 text-amber-300",
+    chip: "border-amber-500/40 bg-amber-500/10 text-[var(--fl-warn-text)]",
   },
   rare: {
     label: "Rare — seldom seen today",
-    text: "text-rose-300",
+    text: "text-[var(--fl-crit-text)]",
     bar: "bg-rose-400",
-    chip: "border-rose-500/40 bg-rose-500/10 text-rose-300",
+    chip: "border-rose-500/40 bg-rose-500/10 text-[var(--fl-crit-text)]",
   },
 };
 

@@ -20,10 +20,10 @@ export default function AIInsightCard({
 
   const riskColor =
     insight.risk === "High"
-      ? "border-red-500/40 bg-red-500/10 text-red-300"
+      ? "border-red-500/40 bg-red-500/10 text-[var(--fl-crit-text)]"
       : insight.risk === "Medium"
-      ? "border-yellow-500/40 bg-yellow-500/10 text-yellow-300"
-      : "border-emerald-500/40 bg-emerald-500/10 text-emerald-300";
+      ? "border-yellow-500/40 bg-yellow-500/10 text-[var(--fl-warn-text)]"
+      : "border-emerald-500/40 bg-emerald-500/10 text-[var(--fl-good-text)]";
 
   const Section = ({
     title,
@@ -51,7 +51,7 @@ export default function AIInsightCard({
     <div className="rounded-2xl border border-cyan-500/30 bg-[var(--fl-surface-2)] p-5 shadow-lg">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-300">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--fl-info-text)]">
             AI Intelligence
           </p>
           <h2 className="mt-1 text-xl font-semibold text-[var(--fl-text)]">
@@ -60,7 +60,7 @@ export default function AIInsightCard({
         </div>
 
         <div className="text-right">
-          <div className="text-3xl font-semibold text-cyan-300">
+          <div className="text-3xl font-semibold text-[var(--fl-info-text)]">
             {confidence}%
           </div>
           <div className="text-xs uppercase text-[var(--fl-muted)]">

@@ -1499,7 +1499,7 @@ function SectionInformationChecklist({
             onClick={autofillWeather}
             disabled={weatherLoading}
             aria-busy={weatherLoading}
-            className="inline-flex items-center gap-2 rounded-lg border border-sky-500 bg-sky-500/10 px-4 py-2 text-sm font-semibold text-sky-200 transition hover:bg-sky-500/20 disabled:cursor-wait disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-lg border border-sky-500 bg-sky-500/10 px-4 py-2 text-sm font-semibold text-[var(--fl-info-text)] transition hover:bg-sky-500/20 disabled:cursor-wait disabled:opacity-60"
           >
             {weatherLoading ? (
               <>
@@ -1520,8 +1520,8 @@ function SectionInformationChecklist({
         <div
           className={`border-t border-[var(--fl-line)] px-5 py-3 text-sm font-bold ${
             messageType === "success"
-              ? "bg-emerald-500/10 text-emerald-300"
-              : "bg-red-500/10 text-red-300"
+              ? "bg-emerald-500/10 text-[var(--fl-good-text)]"
+              : "bg-red-500/10 text-[var(--fl-crit-text)]"
           }`}
         >
           {message}
@@ -1639,7 +1639,7 @@ function SectionInformationChecklist({
                           key={item.id}
                           type="button"
                           onClick={() => removeSelection(item.id)}
-                          className="rounded-full border border-yellow-500/60 bg-yellow-500/10 px-3 py-1 text-xs font-bold text-yellow-200 hover:bg-yellow-500/20"
+                          className="rounded-full border border-yellow-500/60 bg-yellow-500/10 px-3 py-1 text-xs font-bold text-[var(--fl-warn-text)] hover:bg-yellow-500/20"
                         >
                           {item.custom_text} ×
                         </button>
@@ -1710,7 +1710,7 @@ function ChecklistOptionButton({
       </button>
       <div className="flex border-t border-[var(--fl-line)]">
         <button type="button" onClick={(event) => { event.stopPropagation(); onEdit(); }} className="flex-1 px-3 py-2 text-xs font-bold text-[var(--fl-muted)] hover:bg-[var(--fl-raised)] hover:text-[var(--fl-accent-text)]">Edit</button>
-        <button type="button" onClick={(event) => { event.stopPropagation(); onDelete(); }} className="flex-1 border-l border-[var(--fl-line)] px-3 py-2 text-xs font-bold text-[var(--fl-muted)] hover:bg-red-500/10 hover:text-red-300">Delete</button>
+        <button type="button" onClick={(event) => { event.stopPropagation(); onDelete(); }} className="flex-1 border-l border-[var(--fl-line)] px-3 py-2 text-xs font-bold text-[var(--fl-muted)] hover:bg-red-500/10 hover:text-[var(--fl-crit-text)]">Delete</button>
       </div>
     </div>
   );

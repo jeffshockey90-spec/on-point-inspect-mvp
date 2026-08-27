@@ -507,7 +507,7 @@ export default function GlobalLiveActivity() {
             <button
               type="button"
               onClick={() => setVisible(false)}
-              className="rounded-lg border border-[var(--fl-line)] px-2 py-1 text-xs font-semibold text-[var(--fl-muted)] transition hover:border-red-400 hover:text-red-300"
+              className="rounded-lg border border-[var(--fl-line)] px-2 py-1 text-xs font-semibold text-[var(--fl-muted)] transition hover:border-red-400 hover:text-[var(--fl-crit-text)]"
             >
               ✕
             </button>
@@ -516,7 +516,7 @@ export default function GlobalLiveActivity() {
           <p className="mt-2 truncate text-sm text-[var(--fl-muted)]">{address}</p>
 
           {getViewType(latestEvent) === "payment_received" && paymentAmount && (
-            <p className="mt-1 text-sm font-semibold text-green-300">
+            <p className="mt-1 text-sm font-semibold text-[var(--fl-good-text)]">
               Amount: {paymentAmount}
             </p>
           )}
@@ -535,7 +535,7 @@ export default function GlobalLiveActivity() {
               <button
                 type="button"
                 onClick={() => setSoundEnabled(true)}
-                className="rounded-lg border border-yellow-500/50 px-3 py-2 text-xs font-semibold text-yellow-300 transition hover:bg-yellow-500/10"
+                className="rounded-lg border border-yellow-500/50 px-3 py-2 text-xs font-semibold text-[var(--fl-warn-text)] transition hover:bg-yellow-500/10"
               >
                 Enable Sound
               </button>

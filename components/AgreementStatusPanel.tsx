@@ -14,13 +14,13 @@ function Badge({
 }) {
   const classes =
     tone === "green"
-      ? "border-green-500/40 bg-green-500/10 text-green-300"
+      ? "border-green-500/40 bg-green-500/10 text-[var(--fl-good-text)]"
       : tone === "yellow"
-        ? "border-yellow-500/40 bg-yellow-500/10 text-yellow-300"
+        ? "border-yellow-500/40 bg-yellow-500/10 text-[var(--fl-warn-text)]"
         : tone === "teal"
           ? "border-teal-500/40 bg-teal-500/10 text-[var(--fl-accent-text)]"
           : tone === "purple"
-            ? "border-purple-500/40 bg-purple-500/10 text-purple-300"
+            ? "border-purple-500/40 bg-purple-500/10 text-[var(--fl-purple-text)]"
             : "border-[var(--fl-line)] bg-[var(--fl-raised)] text-[var(--fl-muted)]";
 
   return (
@@ -382,7 +382,7 @@ export default function AgreementStatusPanel({
           <div className="mb-4 rounded-2xl border border-purple-500/60 bg-purple-500/10 p-4">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-purple-300">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--fl-purple-text)]">
                   Agreement Requirement Waived
                 </p>
 
@@ -414,7 +414,7 @@ export default function AgreementStatusPanel({
 
         {showWaiverForm && !waiver.agreement_waived && (
           <div className="mb-4 rounded-2xl border border-purple-500/50 bg-purple-500/10 p-4">
-            <h3 className="text-lg font-semibold text-purple-300">
+            <h3 className="text-lg font-semibold text-[var(--fl-purple-text)]">
               Waive Agreement Requirement
             </h3>
 
@@ -443,7 +443,7 @@ export default function AgreementStatusPanel({
                   type="button"
                   onClick={() => setWaiverReason(reason)}
                   disabled={waiverBusy}
-                  className="rounded-full border border-purple-500/40 bg-purple-500/10 px-3 py-2 text-xs font-bold text-purple-200 hover:bg-purple-500/20 disabled:opacity-50"
+                  className="rounded-full border border-purple-500/40 bg-purple-500/10 px-3 py-2 text-xs font-bold text-[var(--fl-purple-text)] hover:bg-purple-500/20 disabled:opacity-50"
                 >
                   {reason}
                 </button>
@@ -535,7 +535,7 @@ export default function AgreementStatusPanel({
                       </p>
 
                       {signedAgreement?.signed_at && (
-                        <p className="mt-2 text-xs font-bold text-green-300">
+                        <p className="mt-2 text-xs font-bold text-[var(--fl-good-text)]">
                           Signed: {formatDate(signedAgreement.signed_at)}
                         </p>
                       )}
@@ -556,7 +556,7 @@ export default function AgreementStatusPanel({
                           type="button"
                           onClick={() => sendReminder(contact.id)}
                           disabled={sendingReminder !== null || waiverBusy}
-                          className="w-full rounded-xl border border-yellow-500/70 px-4 py-2 text-sm font-semibold text-yellow-300 transition hover:bg-yellow-500/10 disabled:opacity-50"
+                          className="w-full rounded-xl border border-yellow-500/70 px-4 py-2 text-sm font-semibold text-[var(--fl-warn-text)] transition hover:bg-yellow-500/10 disabled:opacity-50"
                         >
                           {sendingReminder === contact.id
                             ? "Sending..."

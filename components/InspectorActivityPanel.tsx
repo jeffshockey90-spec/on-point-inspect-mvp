@@ -36,7 +36,7 @@ function CountDate({ count, iso, accent }: { count: number; iso: string | null; 
       </div>
       <div
         className={`text-[10px] font-bold ${
-          count === 0 ? "text-[var(--fl-faint)]" : d?.stale ? "text-amber-300" : "text-[var(--fl-faint)]"
+          count === 0 ? "text-[var(--fl-faint)]" : d?.stale ? "text-[var(--fl-warn-text)]" : "text-[var(--fl-faint)]"
         }`}
       >
         {count === 0 ? "—" : d ? d.label : "—"}
@@ -146,7 +146,7 @@ export default function InspectorActivityPanel() {
                     <td className="py-2 pr-3 align-top">
                       <span className="font-bold text-[var(--fl-text)]">{i.email}</span>
                       {i.isOwner && (
-                        <span className="ml-2 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-300">
+                        <span className="ml-2 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-[var(--fl-warn-text)]">
                           you
                         </span>
                       )}

@@ -51,12 +51,12 @@ export default function EmailDeliveryAlert({
   return (
     <div className="mb-6 rounded-2xl border border-red-500/50 bg-red-500/10 p-4">
       <div className="flex items-start gap-3">
-        <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-300" />
+        <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-[var(--fl-crit-text)]" />
         <div className="min-w-0 text-sm">
-          <p className="font-semibold text-red-200">
+          <p className="font-semibold text-[var(--fl-crit-text)]">
             {bounces.length === 1 ? "An email bounced — the address may be wrong" : "Emails bounced — an address may be wrong"}
           </p>
-          <p className="mt-1 leading-6 text-red-200/80">
+          <p className="mt-1 leading-6 text-[var(--fl-crit-text)]/80">
             We couldn&apos;t deliver to{" "}
             {bounces.map((b, i) => (
               <span key={b.recipient}>

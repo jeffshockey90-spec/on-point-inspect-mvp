@@ -114,7 +114,7 @@ export default function RelatedFindingsEditor({
     <div className="mb-4 rounded-xl border border-indigo-500/30 bg-indigo-500/5 p-3 sm:p-4">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-wide text-indigo-300">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-purple-text)]">
             🔗 Related Findings
           </p>
           <p className="mt-1 text-xs leading-5 text-[var(--fl-muted)]">
@@ -125,7 +125,7 @@ export default function RelatedFindingsEditor({
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className="shrink-0 rounded-lg border border-indigo-500/50 px-3 py-1.5 text-xs font-semibold text-indigo-200 transition hover:bg-indigo-500/10"
+          className="shrink-0 rounded-lg border border-indigo-500/50 px-3 py-1.5 text-xs font-semibold text-[var(--fl-purple-text)] transition hover:bg-indigo-500/10"
         >
           {open ? "Done" : linkedChips.length > 0 ? "Edit links" : "Link findings"}
         </button>
@@ -136,7 +136,7 @@ export default function RelatedFindingsEditor({
           {linkedChips.map((f) => (
             <span
               key={String(f.id)}
-              className="inline-flex max-w-full items-center rounded-full border border-indigo-500/40 bg-indigo-500/10 px-2.5 py-1 text-[11px] font-bold text-indigo-200"
+              className="inline-flex max-w-full items-center rounded-full border border-indigo-500/40 bg-indigo-500/10 px-2.5 py-1 text-[11px] font-bold text-[var(--fl-purple-text)]"
             >
               <span className="truncate">{f.title || "Finding"}</span>
             </span>
@@ -208,13 +208,13 @@ export default function RelatedFindingsEditor({
               type="button"
               onClick={draftWithAi}
               disabled={aiBusy || selectedIds.length < 1}
-              className="rounded-lg border border-indigo-500/60 px-4 py-2 text-sm font-semibold text-indigo-200 transition hover:bg-indigo-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-lg border border-indigo-500/60 px-4 py-2 text-sm font-semibold text-[var(--fl-purple-text)] transition hover:bg-indigo-500/10 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {aiBusy ? "Drafting…" : note ? "Redraft with AI" : "Draft with AI"}
             </button>
           </div>
 
-          {error && <p className="text-xs font-bold text-red-300">{error}</p>}
+          {error && <p className="text-xs font-bold text-[var(--fl-crit-text)]">{error}</p>}
 
           <button
             type="button"

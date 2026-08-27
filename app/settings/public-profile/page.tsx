@@ -244,11 +244,11 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
             <div className="min-w-0">
               <Link
                 href="/settings"
-                className="text-sm font-semibold text-cyan-300 hover:text-cyan-200"
+                className="text-sm font-semibold text-[var(--fl-info-text)] hover:text-[var(--fl-info-text)]"
               >
                 ← Back to Settings
               </Link>
-              <p className="mt-5 text-xs font-semibold uppercase tracking-[0.25em] text-cyan-300">
+              <p className="mt-5 text-xs font-semibold uppercase tracking-[0.25em] text-[var(--fl-info-text)]">
                 Public Profile
               </p>
               <h1 className="mt-3 text-3xl font-semibold tracking-tight text-[var(--fl-text)] md:text-4xl">
@@ -343,7 +343,7 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
               </div>
 
               <div id="qr-card" className="rounded-2xl border border-cyan-500/30 bg-cyan-500/10 p-4 sm:p-5">
-                <p className="text-xs font-semibold uppercase tracking-wide text-cyan-300">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-info-text)]">
                   QR Code & Sharing
                 </p>
                 <h2 className="mt-2 text-2xl font-semibold text-[var(--fl-text)]">
@@ -366,7 +366,7 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
         </section>
 
         <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-xl sm:p-6 md:p-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-cyan-300">
+          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--fl-info-text)]">
             Booking Widget
           </p>
           <h2 className="mt-2 text-2xl font-semibold text-[var(--fl-text)]">Embed booking on your website</h2>
@@ -381,7 +381,7 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
 
         {saved && (
           <div className="rounded-2xl border border-emerald-500/50 bg-emerald-500/10 p-5">
-            <h3 className="font-semibold text-emerald-300">
+            <h3 className="font-semibold text-[var(--fl-good-text)]">
               Public profile saved successfully.
             </h3>
           </div>
@@ -389,7 +389,7 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
 
         {pageError && (
           <div className="rounded-2xl border border-red-500/50 bg-red-500/10 p-5">
-            <h3 className="font-semibold text-red-300">Profile Error</h3>
+            <h3 className="font-semibold text-[var(--fl-crit-text)]">Profile Error</h3>
             <p className="mt-2 break-words text-sm leading-6 text-[var(--fl-text)]">
               {pageError}
             </p>
@@ -432,7 +432,7 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
               <span className="min-w-0">
                 <span className="block font-semibold text-[var(--fl-text)]">Identity</span>
                 <span className="mt-1 block text-sm leading-5 text-[var(--fl-muted)]">Logo, headshot, headline, contact info, and company bio.</span>
-                <span className="mt-2 block text-sm font-semibold text-cyan-300 group-hover:text-cyan-200">Open →</span>
+                <span className="mt-2 block text-sm font-semibold text-[var(--fl-info-text)] group-hover:text-[var(--fl-info-text)]">Open →</span>
               </span>
             </a>
 
@@ -444,7 +444,7 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
               <span className="min-w-0">
                 <span className="block font-semibold text-[var(--fl-text)]">Google Reviews</span>
                 <span className="mt-1 block text-sm leading-5 text-[var(--fl-muted)]">Connect, sync, and preview Google rating and review snippets.</span>
-                <span className="mt-2 block text-sm font-semibold text-yellow-300 group-hover:text-yellow-200">Open →</span>
+                <span className="mt-2 block text-sm font-semibold text-[var(--fl-warn-text)] group-hover:text-[var(--fl-warn-text)]">Open →</span>
               </span>
             </a>
 
@@ -456,7 +456,7 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
               <span className="min-w-0">
                 <span className="block font-semibold text-[var(--fl-text)]">Portfolio Gallery</span>
                 <span className="mt-1 block text-sm leading-5 text-[var(--fl-muted)]">Add photos of inspection work to your public profile.</span>
-                <span className="mt-2 block text-sm font-semibold text-emerald-300 group-hover:text-emerald-200">Open →</span>
+                <span className="mt-2 block text-sm font-semibold text-[var(--fl-good-text)] group-hover:text-[var(--fl-good-text)]">Open →</span>
               </span>
             </a>
 
@@ -480,7 +480,7 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
               <span className="min-w-0">
                 <span className="block font-semibold text-[var(--fl-text)]">QR & Sharing</span>
                 <span className="mt-1 block text-sm leading-5 text-[var(--fl-muted)]">Copy, share, download, and print the public profile QR card.</span>
-                <span className="mt-2 block text-sm font-semibold text-fuchsia-300 group-hover:text-fuchsia-200">Open →</span>
+                <span className="mt-2 block text-sm font-semibold text-[var(--fl-purple-text)] group-hover:text-[var(--fl-purple-text)]">Open →</span>
               </span>
             </a>
 
@@ -492,7 +492,7 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
               <span className="min-w-0">
                 <span className="block font-semibold text-[var(--fl-text)]">Profile Analytics</span>
                 <span className="mt-1 block text-sm leading-5 text-[var(--fl-muted)]">Views, QR scans, sample clicks, contact clicks, and bookings.</span>
-                <span className="mt-2 block text-sm font-semibold text-blue-300 group-hover:text-blue-200">Open →</span>
+                <span className="mt-2 block text-sm font-semibold text-[var(--fl-info-text)] group-hover:text-[var(--fl-info-text)]">Open →</span>
               </span>
             </a>
 
@@ -505,7 +505,7 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
               <span className="min-w-0">
                 <span className="block font-semibold text-[var(--fl-text)]">Preview Portfolio</span>
                 <span className="mt-1 block text-sm leading-5 text-[var(--fl-muted)]">Open the public profile exactly how clients and realtors see it.</span>
-                <span className="mt-2 block text-sm font-semibold text-emerald-300 group-hover:text-emerald-200">Open →</span>
+                <span className="mt-2 block text-sm font-semibold text-[var(--fl-good-text)] group-hover:text-[var(--fl-good-text)]">Open →</span>
               </span>
             </Link>
           </div>
@@ -519,7 +519,7 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
           <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 sm:p-6 md:p-8">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.25em] text-cyan-300">
+                <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--fl-info-text)]">
                   Visibility
                 </p>
                 <h2 className="mt-2 text-2xl font-semibold text-[var(--fl-text)]">
@@ -582,7 +582,7 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
           </section>
 
           <section id="identity" className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 sm:p-6 md:p-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-cyan-300">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--fl-info-text)]">
               Identity
             </p>
             <h2 className="mt-2 text-2xl font-semibold text-[var(--fl-text)]">
@@ -686,7 +686,7 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
           </section>
 
           <section id="services" className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 sm:p-6 md:p-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-cyan-300">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--fl-info-text)]">
               Profile Content
             </p>
             <h2 className="mt-2 text-2xl font-semibold text-[var(--fl-text)]">
@@ -748,7 +748,7 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
           </section>
 
           <section id="external-links" className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 sm:p-6 md:p-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-cyan-300">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--fl-info-text)]">
               Social & Reviews
             </p>
             <h2 className="mt-2 text-2xl font-semibold text-[var(--fl-text)]">
@@ -871,7 +871,7 @@ function PublicProfileAnalyticsOverview({
 
       {!analytics.analyticsAvailable && (
         <div className="mt-6 rounded-2xl border border-yellow-500/40 bg-yellow-500/10 p-4">
-          <p className="text-sm font-bold leading-6 text-yellow-100">
+          <p className="text-sm font-bold leading-6 text-[var(--fl-warn-text)]">
             Analytics table is not available yet. Run the public_profile_analytics SQL, then visit your public profile to start collecting events.
           </p>
         </div>

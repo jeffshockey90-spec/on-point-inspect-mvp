@@ -64,7 +64,7 @@ export default function AITemplateSuggestions({
     <div className="mt-5 rounded-2xl border border-cyan-700 bg-cyan-500/10 p-5">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
-          <h3 className="text-xl font-bold text-cyan-300">
+          <h3 className="text-xl font-bold text-[var(--fl-info-text)]">
             AI Template Suggestions
           </h3>
 
@@ -74,7 +74,7 @@ export default function AITemplateSuggestions({
         </div>
 
         {loading && (
-          <p className="text-sm text-cyan-300">
+          <p className="text-sm text-[var(--fl-info-text)]">
             Searching...
           </p>
         )}

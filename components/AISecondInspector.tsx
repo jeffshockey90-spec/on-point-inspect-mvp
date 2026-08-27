@@ -16,7 +16,7 @@ type AISuggestion = {
 function confidenceTone(confidence: number) {
   if (confidence >= 90) {
     return {
-      badge: "border-emerald-500/50 bg-emerald-500/10 text-emerald-300",
+      badge: "border-emerald-500/50 bg-emerald-500/10 text-[var(--fl-good-text)]",
       label: "High Confidence",
       bar: "bg-emerald-400",
     };
@@ -24,14 +24,14 @@ function confidenceTone(confidence: number) {
 
   if (confidence >= 75) {
     return {
-      badge: "border-yellow-500/50 bg-yellow-500/10 text-yellow-300",
+      badge: "border-yellow-500/50 bg-yellow-500/10 text-[var(--fl-warn-text)]",
       label: "Moderate Confidence",
       bar: "bg-yellow-400",
     };
   }
 
   return {
-    badge: "border-orange-500/50 bg-orange-500/10 text-orange-300",
+    badge: "border-orange-500/50 bg-orange-500/10 text-[var(--fl-warn-text)]",
     label: "Needs Review",
     bar: "bg-orange-400",
   };
@@ -64,18 +64,18 @@ function severityTone(severity?: string) {
   const clean = String(severity || "").toLowerCase();
 
   if (clean.includes("major") || clean.includes("safety")) {
-    return "border-red-500/50 bg-red-500/10 text-red-300";
+    return "border-red-500/50 bg-red-500/10 text-[var(--fl-crit-text)]";
   }
 
   if (clean.includes("repair")) {
-    return "border-orange-500/50 bg-orange-500/10 text-orange-300";
+    return "border-orange-500/50 bg-orange-500/10 text-[var(--fl-warn-text)]";
   }
 
   if (clean.includes("maintenance") || clean.includes("monitor")) {
-    return "border-yellow-500/50 bg-yellow-500/10 text-yellow-300";
+    return "border-yellow-500/50 bg-yellow-500/10 text-[var(--fl-warn-text)]";
   }
 
-  return "border-cyan-500/40 bg-cyan-500/10 text-cyan-300";
+  return "border-cyan-500/40 bg-cyan-500/10 text-[var(--fl-info-text)]";
 }
 
 function emptyState() {
@@ -89,11 +89,11 @@ function emptyState() {
       </p>
 
       <div className="mt-4 rounded-xl border border-purple-500/30 bg-purple-500/10 p-3">
-        <p className="text-xs font-semibold uppercase tracking-wide text-purple-300">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-purple-text)]">
           What AI will look for
         </p>
 
-        <ul className="mt-2 space-y-1 text-xs leading-5 text-purple-100">
+        <ul className="mt-2 space-y-1 text-xs leading-5 text-[var(--fl-purple-text)]">
           <li>✓ Possible reportable defects</li>
           <li>✓ Best report section and severity</li>
           <li>✓ Missing implication or recommendation details</li>
@@ -139,7 +139,7 @@ export default function AISecondInspector({
     <section className="max-h-[calc(100vh-2rem)] overflow-y-auto rounded-2xl border border-purple-500/40 bg-purple-500/10 p-4 shadow-xl">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-purple-300">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fl-purple-text)]">
             AI Second Inspector
           </p>
 
@@ -179,7 +179,7 @@ export default function AISecondInspector({
               <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-purple-300">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-purple-text)]">
                       Current AI Review
                     </p>
 
@@ -341,8 +341,8 @@ export default function AISecondInspector({
             </div>
           )}
 
-          <div className="rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-3 text-xs leading-5 text-cyan-100">
-            <p className="font-semibold uppercase tracking-wide text-cyan-300">
+          <div className="rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-3 text-xs leading-5 text-[var(--fl-info-text)]">
+            <p className="font-semibold uppercase tracking-wide text-[var(--fl-info-text)]">
               Learning note
             </p>
             <p className="mt-1">

@@ -69,7 +69,7 @@ export default function SubscriptionCheckoutButton({
       >
         {loading ? "Opening Checkout..." : `Subscribe ${priceLabel}`}
       </button>
-      {error && <p className="text-sm font-bold text-red-300">{error}</p>}
+      {error && <p className="text-sm font-bold text-[var(--fl-crit-text)]">{error}</p>}
     </div>
   );
 }

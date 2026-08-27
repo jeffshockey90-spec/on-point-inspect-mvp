@@ -26,11 +26,11 @@ function getInitialInvoiceAmount(inspection: InspectionRecord) {
 function Badge({ children, tone }: { children: React.ReactNode; tone: "green" | "orange" | "yellow" | "slate" }) {
   const classes =
     tone === "green"
-      ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+      ? "border-emerald-500/40 bg-emerald-500/10 text-[var(--fl-good-text)]"
       : tone === "orange"
-        ? "border-orange-500/50 bg-orange-500/10 text-orange-300"
+        ? "border-orange-500/50 bg-orange-500/10 text-[var(--fl-warn-text)]"
         : tone === "yellow"
-          ? "border-yellow-500/50 bg-yellow-500/10 text-yellow-300"
+          ? "border-yellow-500/50 bg-yellow-500/10 text-[var(--fl-warn-text)]"
           : "border-[var(--fl-line)] bg-[var(--fl-raised)] text-[var(--fl-muted)]";
   return <span className={`rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-wide ${classes}`}>{children}</span>;
 }
@@ -128,7 +128,7 @@ export default function PaymentInvoicePanel({
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--fl-accent-text)]">Invoice / Payment</p>
-            <h2 className={`mt-2 text-2xl font-semibold ${isPaid ? "text-emerald-300" : "text-orange-300"}`}>{isPaid ? "Payment Complete" : "Payment Required"}</h2>
+            <h2 className={`mt-2 text-2xl font-semibold ${isPaid ? "text-[var(--fl-good-text)]" : "text-[var(--fl-warn-text)]"}`}>{isPaid ? "Payment Complete" : "Payment Required"}</h2>
             <div className="mt-3 flex flex-wrap gap-2">
               <Badge tone={isPaid ? "green" : isPartial ? "yellow" : "orange"}>{paymentStatus}</Badge>
               <Badge tone="slate">Invoice {money(invoiceAmountNumber)}</Badge>
@@ -145,7 +145,7 @@ export default function PaymentInvoicePanel({
 
       <div className="p-4 sm:p-5">
         {!isPaid && (
-          <div className="mb-4 rounded-2xl border border-orange-500/50 bg-orange-500/10 p-4 text-sm font-bold leading-6 text-orange-200">
+          <div className="mb-4 rounded-2xl border border-orange-500/50 bg-orange-500/10 p-4 text-sm font-bold leading-6 text-[var(--fl-warn-text)]">
             Payment is not marked complete. Confirm payment before final report delivery unless payment is waived.
           </div>
         )}
@@ -157,11 +157,11 @@ export default function PaymentInvoicePanel({
           </div>
           <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3">
             <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Paid</p>
-            <p className="mt-1 text-xl font-semibold text-emerald-300">{money(amountPaidNumber)}</p>
+            <p className="mt-1 text-xl font-semibold text-[var(--fl-good-text)]">{money(amountPaidNumber)}</p>
           </div>
           <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3">
             <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Due</p>
-            <p className={`mt-1 text-xl font-semibold ${isPaid ? "text-emerald-300" : "text-orange-300"}`}>{money(balanceDue)}</p>
+            <p className={`mt-1 text-xl font-semibold ${isPaid ? "text-[var(--fl-good-text)]" : "text-[var(--fl-warn-text)]"}`}>{money(balanceDue)}</p>
           </div>
         </div>
 
@@ -182,7 +182,7 @@ export default function PaymentInvoicePanel({
 
         <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:flex lg:flex-wrap">
           <button type="button" onClick={markPaid} disabled={busy} className="inline-flex items-center justify-center rounded-xl bg-emerald-500 px-5 py-3 font-semibold text-slate-950 transition active:scale-[0.98] hover:bg-emerald-400 disabled:opacity-50 [touch-action:manipulation]">Mark Paid</button>
-          <button type="button" onClick={markUnpaid} disabled={busy} className="inline-flex items-center justify-center rounded-xl border border-orange-500 px-5 py-3 font-bold text-orange-300 transition active:scale-[0.98] hover:bg-orange-500/10 disabled:opacity-50 [touch-action:manipulation]">Mark Unpaid</button>
+          <button type="button" onClick={markUnpaid} disabled={busy} className="inline-flex items-center justify-center rounded-xl border border-orange-500 px-5 py-3 font-bold text-[var(--fl-warn-text)] transition active:scale-[0.98] hover:bg-orange-500/10 disabled:opacity-50 [touch-action:manipulation]">Mark Unpaid</button>
           <button type="button" onClick={markWaived} disabled={busy} className="inline-flex items-center justify-center rounded-xl border border-[var(--fl-line)] px-5 py-3 font-bold text-[var(--fl-text)] transition active:scale-[0.98] hover:bg-[var(--fl-raised)] disabled:opacity-50 [touch-action:manipulation]">Waive</button>
           <button type="button" onClick={savePaymentStatus} disabled={busy} aria-busy={busy} className="inline-flex items-center justify-center gap-2 rounded-xl bg-teal-500 px-6 py-3 font-semibold text-slate-950 transition active:scale-[0.98] hover:bg-teal-400 disabled:opacity-50 [touch-action:manipulation]">
             {busy && <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />}

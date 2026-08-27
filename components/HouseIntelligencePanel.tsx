@@ -22,9 +22,9 @@ export type HouseMemorySnapshot = {
 function confidenceTone(value?: number) {
   const confidence = Number(value || 0);
 
-  if (confidence >= 90) return "text-emerald-300";
-  if (confidence >= 75) return "text-yellow-300";
-  return "text-orange-300";
+  if (confidence >= 90) return "text-[var(--fl-good-text)]";
+  if (confidence >= 75) return "text-[var(--fl-warn-text)]";
+  return "text-[var(--fl-warn-text)]";
 }
 
 function systemComplete(memory: HouseMemorySnapshot | null, system: string) {
@@ -86,7 +86,7 @@ export default function HouseIntelligencePanel({
     <section className="rounded-2xl border border-cyan-500/40 bg-cyan-500/10 p-4 shadow-xl">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fl-info-text)]">
             House Intelligence
           </p>
 
@@ -105,7 +105,7 @@ export default function HouseIntelligencePanel({
             type="button"
             onClick={onRefresh}
             disabled={loading}
-            className="rounded-xl border border-cyan-500/40 px-3 py-2 text-xs font-semibold text-cyan-300 transition hover:bg-cyan-500/10 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-xl border border-cyan-500/40 px-3 py-2 text-xs font-semibold text-[var(--fl-info-text)] transition hover:bg-cyan-500/10 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {loading ? "Loading..." : "Refresh"}
           </button>
@@ -124,7 +124,7 @@ export default function HouseIntelligencePanel({
               <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                 Coverage
               </p>
-              <p className="mt-1 text-2xl font-semibold text-cyan-300">
+              <p className="mt-1 text-2xl font-semibold text-[var(--fl-info-text)]">
                 {progress}%
               </p>
               <div className="mt-2 h-2 overflow-hidden rounded-full bg-[var(--fl-surface-2)]">
@@ -168,7 +168,7 @@ export default function HouseIntelligencePanel({
                     key={system}
                     className={`rounded-lg border px-3 py-2 text-xs font-bold ${
                       complete
-                        ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+                        ? "border-emerald-500/40 bg-emerald-500/10 text-[var(--fl-good-text)]"
                         : "border-[var(--fl-line)] bg-[var(--fl-surface-2)] text-[var(--fl-muted)]"
                     }`}
                   >
@@ -188,7 +188,7 @@ export default function HouseIntelligencePanel({
               <div className="mt-3 space-y-3">
                 {Object.entries(groupedFacts).map(([system, items]) => (
                   <div key={system} className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3">
-                    <p className="text-sm font-semibold text-cyan-300">{system}</p>
+                    <p className="text-sm font-semibold text-[var(--fl-info-text)]">{system}</p>
 
                     <div className="mt-2 space-y-2">
                       {items.slice(0, 4).map((fact, index) => (
@@ -215,13 +215,13 @@ export default function HouseIntelligencePanel({
 
           {reminders.length > 0 && (
             <div className="rounded-xl border border-yellow-500/40 bg-yellow-500/10 p-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-yellow-300">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-warn-text)]">
                 AI Reminders
               </p>
 
               <ul className="mt-2 space-y-1">
                 {reminders.slice(0, 8).map((reminder, index) => (
-                  <li key={index} className="text-xs leading-5 text-yellow-100">
+                  <li key={index} className="text-xs leading-5 text-[var(--fl-warn-text)]">
                     ⚠ {reminder}
                   </li>
                 ))}

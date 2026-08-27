@@ -50,14 +50,14 @@ type EnrichedToolItem = ToolItem & {
 };
 
 const toneClasses: Record<ToolTone, string> = {
-  purple: "border-purple-400/50 bg-purple-500/10 text-purple-200",
-  emerald: "border-emerald-400/50 bg-emerald-500/10 text-emerald-200",
-  yellow: "border-yellow-400/50 bg-yellow-500/10 text-yellow-100",
-  blue: "border-blue-400/50 bg-blue-500/10 text-blue-200",
-  violet: "border-violet-400/50 bg-violet-500/10 text-violet-200",
-  red: "border-red-400/50 bg-red-500/10 text-red-200",
-  cyan: "border-cyan-400/50 bg-cyan-500/10 text-cyan-200",
-  green: "border-green-400/50 bg-green-500/10 text-green-200",
+  purple: "border-purple-400/50 bg-purple-500/10 text-[var(--fl-purple-text)]",
+  emerald: "border-emerald-400/50 bg-emerald-500/10 text-[var(--fl-good-text)]",
+  yellow: "border-yellow-400/50 bg-yellow-500/10 text-[var(--fl-warn-text)]",
+  blue: "border-blue-400/50 bg-blue-500/10 text-[var(--fl-info-text)]",
+  violet: "border-violet-400/50 bg-violet-500/10 text-[var(--fl-purple-text)]",
+  red: "border-red-400/50 bg-red-500/10 text-[var(--fl-crit-text)]",
+  cyan: "border-cyan-400/50 bg-cyan-500/10 text-[var(--fl-info-text)]",
+  green: "border-green-400/50 bg-green-500/10 text-[var(--fl-good-text)]",
   slate: "border-[var(--fl-faint)] bg-slate-500/10 text-[var(--fl-text)]",
 };
 
@@ -75,8 +75,8 @@ const urgencyStyles: Record<
   critical: {
     shell:
       "border-red-400/70 bg-gradient-to-br from-red-500/22 via-slate-950 to-[var(--fl-ground)] text-red-50",
-    icon: "border-red-300/70 bg-red-500/25 text-red-100",
-    badge: "border-red-300/70 bg-red-500/25 text-red-100",
+    icon: "border-red-300/70 bg-red-500/25 text-[var(--fl-crit-text)]",
+    badge: "border-red-300/70 bg-red-500/25 text-[var(--fl-crit-text)]",
     label: "Action needed",
     glow: "shadow-[0_0_40px_rgba(248,113,113,0.22)]",
     dot: "bg-red-400",
@@ -84,8 +84,8 @@ const urgencyStyles: Record<
   warning: {
     shell:
       "border-yellow-400/70 bg-gradient-to-br from-yellow-500/18 via-slate-950 to-[var(--fl-ground)] text-yellow-50",
-    icon: "border-yellow-300/70 bg-yellow-500/25 text-yellow-100",
-    badge: "border-yellow-300/70 bg-yellow-500/25 text-yellow-100",
+    icon: "border-yellow-300/70 bg-yellow-500/25 text-[var(--fl-warn-text)]",
+    badge: "border-yellow-300/70 bg-yellow-500/25 text-[var(--fl-warn-text)]",
     label: "Review",
     glow: "shadow-[0_0_40px_rgba(250,204,21,0.16)]",
     dot: "bg-yellow-300",
@@ -93,8 +93,8 @@ const urgencyStyles: Record<
   info: {
     shell:
       "border-cyan-400/70 bg-gradient-to-br from-cyan-500/18 via-slate-950 to-[var(--fl-ground)] text-cyan-50",
-    icon: "border-cyan-300/70 bg-cyan-500/25 text-cyan-100",
-    badge: "border-cyan-300/70 bg-cyan-500/25 text-cyan-100",
+    icon: "border-cyan-300/70 bg-cyan-500/25 text-[var(--fl-info-text)]",
+    badge: "border-cyan-300/70 bg-cyan-500/25 text-[var(--fl-info-text)]",
     label: "Update",
     glow: "shadow-[0_0_40px_rgba(34,211,238,0.16)]",
     dot: "bg-cyan-300",
@@ -102,8 +102,8 @@ const urgencyStyles: Record<
   success: {
     shell:
       "border-emerald-400/70 bg-gradient-to-br from-emerald-500/18 via-slate-950 to-[var(--fl-ground)] text-emerald-50",
-    icon: "border-emerald-300/70 bg-emerald-500/25 text-emerald-100",
-    badge: "border-emerald-300/70 bg-emerald-500/25 text-emerald-100",
+    icon: "border-emerald-300/70 bg-emerald-500/25 text-[var(--fl-good-text)]",
+    badge: "border-emerald-300/70 bg-emerald-500/25 text-[var(--fl-good-text)]",
     label: "Ready",
     glow: "shadow-[0_0_40px_rgba(52,211,153,0.16)]",
     dot: "bg-emerald-300",
@@ -1381,7 +1381,7 @@ export default function InspectorToolsDrawer({
         >
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-200">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--fl-info-text)]">
                 Inspector Command Center
               </p>
               <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--fl-muted)]">
@@ -1400,13 +1400,13 @@ export default function InspectorToolsDrawer({
             <span
               className={`rounded-full border px-3 py-1 text-xs font-semibold ${
                 needsAttention
-                  ? "border-red-400/60 bg-red-500/15 text-red-100"
-                  : "border-emerald-400/60 bg-emerald-500/15 text-emerald-100"
+                  ? "border-red-400/60 bg-red-500/15 text-[var(--fl-crit-text)]"
+                  : "border-emerald-400/60 bg-emerald-500/15 text-[var(--fl-good-text)]"
               }`}
             >
               {totalBadgeText}
             </span>
-            <span className="rounded-2xl border border-cyan-300/70 bg-cyan-400/10 px-5 py-3 text-sm font-semibold text-cyan-100 transition group-hover:bg-cyan-400/20 active:scale-[0.98]">
+            <span className="rounded-2xl border border-cyan-300/70 bg-cyan-400/10 px-5 py-3 text-sm font-semibold text-[var(--fl-info-text)] transition group-hover:bg-cyan-400/20 active:scale-[0.98]">
               Open Command Center →
             </span>
           </div>
@@ -1603,7 +1603,7 @@ export default function InspectorToolsDrawer({
                   <div className="mb-4 rounded-2xl border border-red-500/40 bg-red-500/[0.07] p-3">
                     <div className="mb-2 flex items-center gap-2">
                       <span className="h-2 w-2 rounded-full bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.8)]" />
-                      <b className="text-[11px] font-semibold text-red-200">
+                      <b className="text-[11px] font-semibold text-[var(--fl-crit-text)]">
                         {attentionNotifications.length} ITEM
                         {attentionNotifications.length === 1 ? "" : "S"} NEED ATTENTION
                       </b>
@@ -1626,7 +1626,7 @@ export default function InspectorToolsDrawer({
                               </span>
                             ) : null}
                           </span>
-                          <span className="shrink-0 text-xs font-semibold text-red-200">Open →</span>
+                          <span className="shrink-0 text-xs font-semibold text-[var(--fl-crit-text)]">Open →</span>
                         </button>
                       ))}
                     </div>

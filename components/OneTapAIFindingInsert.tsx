@@ -400,10 +400,10 @@ export default function OneTapAIFindingInsert({ inspectionId }: Props) {
               <div
                 className={`mb-5 rounded-xl border p-4 text-sm font-bold ${
                   messageType === "success"
-                    ? "border-emerald-500 bg-emerald-500/10 text-emerald-200"
+                    ? "border-emerald-500 bg-emerald-500/10 text-[var(--fl-good-text)]"
                     : messageType === "error"
-                      ? "border-red-500 bg-red-500/10 text-red-200"
-                      : "border-cyan-500 bg-cyan-500/10 text-cyan-200"
+                      ? "border-red-500 bg-red-500/10 text-[var(--fl-crit-text)]"
+                      : "border-cyan-500 bg-cyan-500/10 text-[var(--fl-info-text)]"
                 }`}
               >
                 {message}

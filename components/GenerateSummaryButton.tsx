@@ -91,7 +91,7 @@ export default function GenerateSummaryButton({
       )}
 
       {errorMessage && !busy && (
-        <span className="text-xs font-semibold text-red-300">
+        <span className="text-xs font-semibold text-[var(--fl-crit-text)]">
           {errorMessage}
         </span>
       )}

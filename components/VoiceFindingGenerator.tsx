@@ -661,10 +661,10 @@ export default function VoiceFindingGenerator({
         <div
           className={`mt-5 rounded-xl border px-4 py-3 text-sm font-bold ${
             messageType === "success"
-              ? "border-green-500/40 bg-green-500/10 text-green-300"
+              ? "border-green-500/40 bg-green-500/10 text-[var(--fl-good-text)]"
               : messageType === "info"
-                ? "border-blue-500/40 bg-blue-500/10 text-blue-300"
-                : "border-red-500/40 bg-red-500/10 text-red-300"
+                ? "border-blue-500/40 bg-blue-500/10 text-[var(--fl-info-text)]"
+                : "border-red-500/40 bg-red-500/10 text-[var(--fl-crit-text)]"
           }`}
         >
           {message}
@@ -687,7 +687,7 @@ export default function VoiceFindingGenerator({
           <button
             type="button"
             onClick={stopVoice}
-            className="rounded-xl border border-red-500 bg-red-500/10 px-5 py-3 font-bold text-red-300 transition active:scale-[0.98] hover:bg-red-500/20 [touch-action:manipulation]"
+            className="rounded-xl border border-red-500 bg-red-500/10 px-5 py-3 font-bold text-[var(--fl-crit-text)] transition active:scale-[0.98] hover:bg-red-500/20 [touch-action:manipulation]"
           >
             Stop Listening
           </button>

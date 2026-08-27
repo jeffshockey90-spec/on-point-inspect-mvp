@@ -65,9 +65,9 @@ export default function MileageControls({ inspectionId, purpose = "Inspection tr
       <button disabled={busy} onClick={active ? stop : start} className={`mt-4 w-full rounded-xl px-4 py-3 font-semibold ${active ? "bg-rose-500 text-white" : "bg-teal-400 text-slate-950"}`}>{busy ? "Working…" : active ? "End Mileage Trip" : "Start Mileage Trip"}</button>
 
       {permissionMissing && (
-        <div className="mt-3 rounded-xl border border-amber-500/50 bg-amber-500/10 p-3 text-sm text-amber-200">
+        <div className="mt-3 rounded-xl border border-amber-500/50 bg-amber-500/10 p-3 text-sm text-[var(--fl-warn-text)]">
           <p className="font-semibold">FLOW doesn&apos;t have location access</p>
-          <p className="mt-1 text-amber-200/90">
+          <p className="mt-1 text-[var(--fl-warn-text)]/90">
             Mileage can&apos;t record without it. Open{" "}
             <span className="font-bold">Settings → FLOW → Location</span> and choose{" "}
             <span className="font-bold">Always</span> so tracking continues while you drive.
@@ -76,9 +76,9 @@ export default function MileageControls({ inspectionId, purpose = "Inspection tr
       )}
 
       {!permissionMissing && stalled && (
-        <div className="mt-3 rounded-xl border border-amber-500/50 bg-amber-500/10 p-3 text-sm text-amber-200">
+        <div className="mt-3 rounded-xl border border-amber-500/50 bg-amber-500/10 p-3 text-sm text-[var(--fl-warn-text)]">
           <p className="font-semibold">Not recording distance yet</p>
-          <p className="mt-1 text-amber-200/90">
+          <p className="mt-1 text-[var(--fl-warn-text)]/90">
             This trip is still at 0.0 mi. If it stays there while you drive, set location to{" "}
             <span className="font-bold">Always</span> in{" "}
             <span className="font-bold">Settings → FLOW → Location</span> — with

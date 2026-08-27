@@ -150,7 +150,7 @@ export default async function ClientAgreementPage({
     return (
       <main className="min-h-screen bg-[var(--fl-ground)] p-6 text-[var(--fl-text)]">
         <div className="mx-auto max-w-3xl rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6">
-          <h1 className="text-3xl font-extrabold text-red-300">
+          <h1 className="text-3xl font-extrabold text-[var(--fl-crit-text)]">
             Agreement Not Found
           </h1>
 
@@ -352,7 +352,7 @@ export default async function ClientAgreementPage({
 
         {contactChooser.length > 1 ? (
           <div className="rounded-2xl border border-cyan-700 bg-cyan-500/10 p-6">
-            <h2 className="text-2xl font-extrabold text-cyan-200">
+            <h2 className="text-2xl font-extrabold text-[var(--fl-info-text)]">
               Who is signing?
             </h2>
             <p className="mt-2 text-sm text-[var(--fl-muted)]">
@@ -366,10 +366,10 @@ export default async function ClientAgreementPage({
                   href={`/client-agreement/${id}?contact=${encodeURIComponent(
                     choice.id
                   )}${source ? `&source=${encodeURIComponent(source)}` : ""}`}
-                  className="flex items-center justify-between gap-3 rounded-xl border border-cyan-500 bg-cyan-500/10 px-5 py-4 text-left font-bold text-cyan-100 transition hover:bg-cyan-500/20"
+                  className="flex items-center justify-between gap-3 rounded-xl border border-cyan-500 bg-cyan-500/10 px-5 py-4 text-left font-bold text-[var(--fl-info-text)] transition hover:bg-cyan-500/20"
                 >
                   <span>{choice.name || choice.email || "Client"}</span>
-                  <span className="text-xs font-semibold uppercase tracking-wide text-cyan-300">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-info-text)]">
                     {choice.role || "client"} &rsaquo;
                   </span>
                 </a>
@@ -378,7 +378,7 @@ export default async function ClientAgreementPage({
           </div>
         ) : signedAgreement ? (
           <div className="rounded-2xl border border-green-700 bg-green-500/10 p-6 print:border-black print:bg-white print:text-black">
-            <h2 className="text-2xl font-extrabold text-green-300 print:text-black">
+            <h2 className="text-2xl font-extrabold text-[var(--fl-good-text)] print:text-black">
               Agreement Signed
             </h2>
 
@@ -415,7 +415,7 @@ export default async function ClientAgreementPage({
 
             {signedAgreement.client_signature ? (
               <div className="mt-5 border-t border-green-700/40 pt-4 print:border-black">
-                <p className="text-xs font-semibold uppercase tracking-wide text-green-300 print:text-black">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-good-text)] print:text-black">
                   Signature
                 </p>
                 <div className="mt-2 rounded-xl bg-white p-4 print:border print:border-black">
@@ -437,7 +437,7 @@ export default async function ClientAgreementPage({
 
             {(signedAgreement.agreement_hash || signedAgreement.esign_consent_text) && (
               <div className="mt-5 border-t border-green-700/40 pt-4 print:border-black">
-                <p className="text-xs font-semibold uppercase tracking-wide text-green-300 print:text-black">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-good-text)] print:text-black">
                   Certificate of Electronic Signature
                 </p>
                 {signedAgreement.esign_consent_text && (

@@ -113,7 +113,7 @@ export default function DashboardGrid({ widgets, initialLayout }: Props) {
           <button
             type="button"
             onClick={reset}
-            className="rounded-xl border border-[var(--fl-line)] px-3 py-2 text-xs font-semibold text-[var(--fl-muted)] hover:border-red-500 hover:text-red-300"
+            className="rounded-xl border border-[var(--fl-line)] px-3 py-2 text-xs font-semibold text-[var(--fl-muted)] hover:border-red-500 hover:text-[var(--fl-crit-text)]"
           >
             Reset
           </button>
@@ -179,7 +179,7 @@ export default function DashboardGrid({ widgets, initialLayout }: Props) {
                   <button
                     type="button"
                     onClick={() => setVisible(w.id, false)}
-                    className="px-1 text-[var(--fl-muted)] hover:text-red-300"
+                    className="px-1 text-[var(--fl-muted)] hover:text-[var(--fl-crit-text)]"
                     title="Hide widget"
                   >
                     ✕

@@ -212,7 +212,7 @@ export default function OwnerSupportChat() {
               </div>
 
               {newMessageError && (
-                <p className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 p-2 text-xs font-bold text-red-300">
+                <p className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 p-2 text-xs font-bold text-[var(--fl-crit-text)]">
                   {newMessageError}
                 </p>
               )}
@@ -271,7 +271,7 @@ export default function OwnerSupportChat() {
           </div>
         )}
 
-        {error && <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm font-bold text-red-300">{error}</div>}
+        {error && <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm font-bold text-[var(--fl-crit-text)]">{error}</div>}
 
         <section className="grid gap-5 lg:grid-cols-[380px_1fr]">
           <div className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-4">

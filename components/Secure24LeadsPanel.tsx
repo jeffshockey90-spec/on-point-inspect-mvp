@@ -68,7 +68,7 @@ export default function Secure24LeadsPanel() {
               <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--fl-muted)]">This month</p>
             </div>
             <div className={`rounded-2xl border p-4 ${data.errors > 0 ? "border-amber-500/30 bg-amber-500/10" : "border-white/10 bg-[var(--fl-surface-2)]"}`}>
-              <p className={`text-3xl font-semibold ${data.errors > 0 ? "text-amber-300" : "text-[var(--fl-faint)]"}`}>{data.errors}</p>
+              <p className={`text-3xl font-semibold ${data.errors > 0 ? "text-[var(--fl-warn-text)]" : "text-[var(--fl-faint)]"}`}>{data.errors}</p>
               <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Failed sends</p>
             </div>
           </div>

@@ -298,7 +298,7 @@ export default function PublicProfileActions({
             <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--fl-accent-text)]">
               Marketing Kit
             </p>
-            <span className="rounded-full border border-purple-400/50 bg-purple-500/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-purple-200">
+            <span className="rounded-full border border-purple-400/50 bg-purple-500/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--fl-purple-text)]">
               Personalized QR
             </span>
           </div>
@@ -328,17 +328,17 @@ export default function PublicProfileActions({
           </div>
 
           {error && (
-            <p className="mt-4 rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm font-bold text-red-300">
+            <p className="mt-4 rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm font-bold text-[var(--fl-crit-text)]">
               {error}
             </p>
           )}
 
           {!hasCompanyLogo && (
             <div className="mt-4 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3">
-              <p className="text-sm font-bold text-amber-300">
+              <p className="text-sm font-bold text-[var(--fl-warn-text)]">
                 Upload your company logo to create a branded QR code.
               </p>
-              <p className="mt-1 text-xs leading-5 text-amber-100/80">
+              <p className="mt-1 text-xs leading-5 text-[var(--fl-warn-text)]/80">
                 Download and print are disabled until a company logo is uploaded.
               </p>
             </div>
@@ -370,7 +370,7 @@ export default function PublicProfileActions({
               <button
                 type="button"
                 onClick={copyLink}
-                className="block w-full max-w-full rounded-xl border border-[var(--fl-line)] px-4 py-3 text-center text-sm font-semibold text-[var(--fl-text)] transition active:scale-[0.98] hover:border-cyan-400 hover:text-cyan-200 [touch-action:manipulation]"
+                className="block w-full max-w-full rounded-xl border border-[var(--fl-line)] px-4 py-3 text-center text-sm font-semibold text-[var(--fl-text)] transition active:scale-[0.98] hover:border-cyan-400 hover:text-[var(--fl-info-text)] [touch-action:manipulation]"
               >
                 Copy Public Link
               </button>
@@ -378,7 +378,7 @@ export default function PublicProfileActions({
               <button
                 type="button"
                 onClick={shareProfile}
-                className="block w-full max-w-full rounded-xl border border-[var(--fl-line)] px-4 py-3 text-center text-sm font-semibold text-[var(--fl-text)] transition active:scale-[0.98] hover:border-cyan-400 hover:text-cyan-200 [touch-action:manipulation]"
+                className="block w-full max-w-full rounded-xl border border-[var(--fl-line)] px-4 py-3 text-center text-sm font-semibold text-[var(--fl-text)] transition active:scale-[0.98] hover:border-cyan-400 hover:text-[var(--fl-info-text)] [touch-action:manipulation]"
               >
                 Share Profile
               </button>
@@ -411,7 +411,7 @@ export default function PublicProfileActions({
                 </div>
               ) : (
                 <div className="absolute left-1/2 top-1/2 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-2xl border-4 border-amber-500 bg-[var(--fl-ground)] p-2 text-center shadow-xl">
-                  <span className="text-[9px] font-semibold uppercase leading-tight text-amber-300">
+                  <span className="text-[9px] font-semibold uppercase leading-tight text-[var(--fl-warn-text)]">
                     Upload
                     <br />
                     Logo
@@ -435,7 +435,7 @@ export default function PublicProfileActions({
 
             {!hasCompanyLogo && (
               <div className="mt-4 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3">
-                <p className="text-xs font-bold text-amber-300">
+                <p className="text-xs font-bold text-[var(--fl-warn-text)]">
                   Upload company logo to brand this QR.
                 </p>
               </div>

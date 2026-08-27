@@ -77,7 +77,7 @@ export default function TimesheetOverrideCell({
           type="button"
           onClick={() => save(true)}
           disabled={saving}
-          className="rounded-lg border border-[var(--fl-line)] px-2 py-1 text-[11px] font-semibold text-[var(--fl-muted)] hover:text-red-300"
+          className="rounded-lg border border-[var(--fl-line)] px-2 py-1 text-[11px] font-semibold text-[var(--fl-muted)] hover:text-[var(--fl-crit-text)]"
         >
           Clear
         </button>

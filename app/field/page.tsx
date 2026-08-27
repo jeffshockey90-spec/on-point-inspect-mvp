@@ -4550,7 +4550,7 @@ function FieldPageContent() {
           <div className="mb-4 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 text-sm text-[var(--fl-muted)]">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <span
-                className={`font-semibold ${online ? "text-green-300" : "text-yellow-300"}`}
+                className={`font-semibold ${online ? "text-[var(--fl-good-text)]" : "text-[var(--fl-warn-text)]"}`}
               >
                 {online ? "Online" : "Offline Mode"}
               </span>
@@ -4574,7 +4574,7 @@ function FieldPageContent() {
           </div>
 
           {syncNotice && (
-            <div className="mb-5 rounded-xl border border-emerald-500/50 bg-emerald-500/10 p-4 text-sm font-semibold text-emerald-200">
+            <div className="mb-5 rounded-xl border border-emerald-500/50 bg-emerald-500/10 p-4 text-sm font-semibold text-[var(--fl-good-text)]">
               {syncNotice}
             </div>
           )}
@@ -4624,7 +4624,7 @@ function FieldPageContent() {
               </select>
 
               {selectedReport && (
-                <div className="mt-3 rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-4 py-3 text-xs font-bold text-cyan-100">
+                <div className="mt-3 rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-4 py-3 text-xs font-bold text-[var(--fl-info-text)]">
                   {selectedOfflinePreload
                     ? `Offline preload ready for ${selectedOfflinePreload.inspection?.label || "this inspection"} — sections, selected report info, client info, and field workflow cache are stored on this device.`
                     : "This inspection will be cached on this device for offline use."}
@@ -4726,7 +4726,7 @@ function FieldPageContent() {
                       compact
                     />
                   ) : (
-                    <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm font-bold text-amber-100">
+                    <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm font-bold text-[var(--fl-warn-text)]">
                       Select a report to use the AI Inspector Assistant.
                     </div>
                   ))}
@@ -4771,10 +4771,10 @@ function FieldPageContent() {
                     photoType === "finding"
                       ? "border-teal-400/70 text-[var(--fl-accent-text)] focus:border-teal-300 focus:ring-teal-400/25"
                       : photoType === "existing_finding"
-                        ? "border-purple-400/70 text-purple-200 focus:border-purple-300 focus:ring-purple-400/25"
+                        ? "border-purple-400/70 text-[var(--fl-purple-text)] focus:border-purple-300 focus:ring-purple-400/25"
                         : photoType === "reference_photo"
-                          ? "border-cyan-400/70 text-cyan-200 focus:border-cyan-300 focus:ring-cyan-400/25"
-                          : "border-orange-400/70 text-orange-200 focus:border-orange-300 focus:ring-orange-400/25"
+                          ? "border-cyan-400/70 text-[var(--fl-info-text)] focus:border-cyan-300 focus:ring-cyan-400/25"
+                          : "border-orange-400/70 text-[var(--fl-warn-text)] focus:border-orange-300 focus:ring-orange-400/25"
                   }`}
                 >
                   <option value="finding">Finding / Defect</option>
@@ -4845,7 +4845,7 @@ function FieldPageContent() {
                 }}
               />
 
-              <p className="mt-3 rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-3 py-2 text-xs font-bold leading-5 text-cyan-100">
+              <p className="mt-3 rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-3 py-2 text-xs font-bold leading-5 text-[var(--fl-info-text)]">
                 Use the Field Camera below for normal photo and video capture.
                 It stays open while you switch modes. The AI Second Inspector
                 Camera remains a separate tool below it.
@@ -4865,7 +4865,7 @@ function FieldPageContent() {
               ).length >= 2 && photoType === "finding" && (
                 <>
                   <div className="mt-3 rounded-xl border border-fuchsia-500/40 bg-fuchsia-500/5 p-3">
-                    <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-fuchsia-200">
+                    <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[var(--fl-purple-text)]">
                       Inspector Note for AI (optional)
                     </label>
                     <textarea
@@ -4885,7 +4885,7 @@ function FieldPageContent() {
                       savingOrganizedMedia ||
                       !online
                     }
-                    className="mt-3 inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl border border-fuchsia-400 bg-fuchsia-500/15 px-4 py-3 text-sm font-semibold text-fuchsia-100 transition active:scale-[0.98] hover:bg-fuchsia-500/25 disabled:opacity-50"
+                    className="mt-3 inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl border border-fuchsia-400 bg-fuchsia-500/15 px-4 py-3 text-sm font-semibold text-[var(--fl-purple-text)] transition active:scale-[0.98] hover:bg-fuchsia-500/25 disabled:opacity-50"
                   >
                     {organizingMedia && (
                       <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -4923,7 +4923,7 @@ function FieldPageContent() {
             {photoType === "finding" && (
               <div className="rounded-2xl border border-purple-500/30 bg-purple-500/10 p-4">
                 <div className="mb-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-purple-300">
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fl-purple-text)]">
                     Step 2
                 </p>
                 <h2 className="text-xl font-semibold text-[var(--fl-text)]">
@@ -5015,7 +5015,7 @@ function FieldPageContent() {
             )}
 
             {message && (
-              <div className="mt-1 rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-4 py-3 text-sm font-bold leading-5 text-cyan-100">
+              <div className="mt-1 rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-4 py-3 text-sm font-bold leading-5 text-[var(--fl-info-text)]">
                 {message}
               </div>
             )}
@@ -5024,7 +5024,7 @@ function FieldPageContent() {
               <div className="rounded-2xl border border-cyan-500/40 bg-cyan-500/10 p-4">
                 <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">
+                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fl-info-text)]">
                       Equipment Detected
                     </p>
                     <h2 className="mt-1 text-xl font-semibold text-[var(--fl-text)]">
@@ -5039,7 +5039,7 @@ function FieldPageContent() {
                     </p>
                   </div>
 
-                  <span className="rounded-full border border-cyan-400/50 bg-cyan-400/10 px-3 py-1 text-xs font-semibold text-cyan-200">
+                  <span className="rounded-full border border-cyan-400/50 bg-cyan-400/10 px-3 py-1 text-xs font-semibold text-[var(--fl-info-text)]">
                     {shouldCreateEquipmentFinding(equipmentResult)
                       ? "Equipment + Finding"
                       : "Inventory Only"}
@@ -5071,13 +5071,13 @@ function FieldPageContent() {
             {photoType === "existing_finding" && (
               <div className="rounded-2xl border border-purple-500/40 bg-purple-500/10 p-4">
                 <div className="mb-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-purple-300">
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fl-purple-text)]">
                     Attach Without Duplicating
                   </p>
                   <h2 className="mt-1 text-xl font-semibold text-[var(--fl-text)]">
                     Select Existing Finding
                   </h2>
-                  <p className="mt-1 text-sm text-purple-100/80">
+                  <p className="mt-1 text-sm text-[var(--fl-purple-text)]/80">
                     The finding wording, severity, and current media stay unchanged.
                   </p>
                 </div>
@@ -5103,7 +5103,7 @@ function FieldPageContent() {
                   <div className="max-h-[430px] space-y-4 overflow-y-auto pr-1">
                     {groupedExistingFindings.map(([groupSection, findings]) => (
                       <div key={groupSection}>
-                        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-purple-200">
+                        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--fl-purple-text)]">
                           {groupSection}
                         </p>
 
@@ -5156,7 +5156,7 @@ function FieldPageContent() {
 
                 {selectedExistingFinding && (
                   <div className="mt-4 rounded-xl border border-purple-400/50 bg-[var(--fl-surface-2)] p-3">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-purple-300">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--fl-purple-text)]">
                       Adding Media To
                     </p>
                     <p className="mt-1 font-semibold text-[var(--fl-text)]">
@@ -5209,7 +5209,7 @@ function FieldPageContent() {
               <div className="rounded-2xl border border-fuchsia-500/40 bg-fuchsia-500/10 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-fuchsia-300">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--fl-purple-text)]">
                       AI Media Organization
                     </p>
                     <h2 className="mt-1 text-xl font-semibold text-[var(--fl-text)]">
@@ -5429,7 +5429,7 @@ function FieldPageContent() {
 
                       {/* Per-finding AI note — steer each defect independently */}
                       <div className="mt-3 rounded-lg border border-cyan-500/40 bg-cyan-500/5 p-3">
-                        <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-cyan-200">
+                        <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-info-text)]">
                           AI note for this finding (optional)
                         </label>
                         <textarea
@@ -5471,7 +5471,7 @@ function FieldPageContent() {
               </div>
             )}
 {equipmentResult?.error && (
-              <div className="rounded-xl border border-red-500/60 bg-red-500/10 p-4 text-sm font-bold text-red-200">
+              <div className="rounded-xl border border-red-500/60 bg-red-500/10 p-4 text-sm font-bold text-[var(--fl-crit-text)]">
                 {equipmentResult.error || "Equipment analysis failed."}
               </div>
             )}
@@ -5479,7 +5479,7 @@ function FieldPageContent() {
             {photoType === "finding" &&
               photos.some((photo) => photo.type.startsWith("video/")) &&
               !photos.some((photo) => photo.type.startsWith("image/")) && (
-                <div className="rounded-xl border border-yellow-500/50 bg-yellow-500/10 p-4 text-sm font-bold leading-6 text-yellow-100">
+                <div className="rounded-xl border border-yellow-500/50 bg-yellow-500/10 p-4 text-sm font-bold leading-6 text-[var(--fl-warn-text)]">
                   Video is saved with the finding, but AI photo recognition
                   needs at least one still photo. Add one photo if you want AI
                   to write the defect from media.
@@ -5487,8 +5487,8 @@ function FieldPageContent() {
               )}
 
             {photoType === "reference_photo" && (
-              <div className="rounded-xl border border-cyan-500/40 bg-cyan-500/10 p-4 text-sm leading-6 text-cyan-100">
-                <p className="font-semibold text-cyan-300">Reference Photo Mode</p>
+              <div className="rounded-xl border border-cyan-500/40 bg-cyan-500/10 p-4 text-sm leading-6 text-[var(--fl-info-text)]">
+                <p className="font-semibold text-[var(--fl-info-text)]">Reference Photo Mode</p>
                 <p className="mt-1">
                   Photos saved here will appear under Section Reference Photos
                   in the report/share/client views. They are not counted as
@@ -5498,8 +5498,8 @@ function FieldPageContent() {
             )}
 
             {photoType === "limitation" && (
-              <div className="rounded-xl border border-orange-500/40 bg-orange-500/10 p-4 text-sm leading-6 text-orange-100">
-                <p className="font-semibold text-orange-300">
+              <div className="rounded-xl border border-orange-500/40 bg-orange-500/10 p-4 text-sm leading-6 text-[var(--fl-warn-text)]">
+                <p className="font-semibold text-[var(--fl-warn-text)]">
                   Section Limitation + Photo
                 </p>
                 <p className="mt-1">
@@ -5530,7 +5530,7 @@ function FieldPageContent() {
 
             {photoType !== "existing_finding" && (
               <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
-                <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">
+                <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fl-info-text)]">
                   Step 3
               </p>
 
@@ -5571,7 +5571,7 @@ function FieldPageContent() {
                   className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 leading-7 text-[var(--fl-text)]"
                 />
                 {photoType === "finding" && (
-                  <p className="mt-2 text-xs font-bold text-cyan-300">
+                  <p className="mt-2 text-xs font-bold text-[var(--fl-info-text)]">
                     ✨ The AI uses this note — tap “🤖 Analyze Defect” to draft from your note + photo, or “✍️ Generate From Note” to draft from the note alone.
                   </p>
                 )}
@@ -5580,7 +5580,7 @@ function FieldPageContent() {
               {photoType === "limitation" && (
                 <div className="mt-5 grid gap-4">
                   <div className="rounded-2xl border border-cyan-500/40 bg-cyan-500/5 p-4">
-                    <label className="mb-2 block font-bold text-cyan-200">
+                    <label className="mb-2 block font-bold text-[var(--fl-info-text)]">
                       Inspector Note for AI (optional)
                     </label>
                     <textarea
@@ -5650,7 +5650,7 @@ function FieldPageContent() {
 
             {photoType === "finding" && (
               <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
-                <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">
+                <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fl-info-text)]">
                   Step 4
                 </p>
 
@@ -5773,7 +5773,7 @@ function FieldPageContent() {
                 className={`inline-flex min-h-[42px] items-center justify-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold transition active:scale-[0.98] [touch-action:manipulation] ${
                   voiceOnlyOpen
                     ? "border-emerald-400 bg-emerald-400 text-black"
-                    : "border-emerald-500/50 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20"
+                    : "border-emerald-500/50 bg-emerald-500/10 text-[var(--fl-good-text)] hover:bg-emerald-500/20"
                 }`}
               >
                 🎙️ {voiceOnlyOpen ? "Close Voice Inspection" : "Voice-Only Inspection"}
@@ -5794,8 +5794,8 @@ function FieldPageContent() {
             {photoType === "existing_finding" && (
               <div className={`rounded-xl border px-4 py-3 text-sm font-bold ${
                 existingFindingId && photos.length > 0 && online
-                  ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-200"
-                  : "border-amber-500/50 bg-amber-500/10 text-amber-100"
+                  ? "border-emerald-500/50 bg-emerald-500/10 text-[var(--fl-good-text)]"
+                  : "border-amber-500/50 bg-amber-500/10 text-[var(--fl-warn-text)]"
               }`}>
                 {!existingFindingId
                   ? "Select the finding that should receive the media."
@@ -5838,10 +5838,10 @@ function UploadProgressPanel({ items }: { items: UploadProgressItem[] }) {
   return (
     <div className="mt-4 rounded-2xl border border-cyan-500/30 bg-cyan-500/10 p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fl-info-text)]">
           Media Backup / Upload Queue
         </p>
-        <span className="rounded-full border border-cyan-400/40 px-3 py-1 text-xs font-semibold text-cyan-200">
+        <span className="rounded-full border border-cyan-400/40 px-3 py-1 text-xs font-semibold text-[var(--fl-info-text)]">
           {items.length} item{items.length === 1 ? "" : "s"}
         </span>
       </div>
@@ -5869,12 +5869,12 @@ function UploadProgressPanel({ items }: { items: UploadProgressItem[] }) {
               <span
                 className={`shrink-0 rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-wide ${
                   item.status === "done"
-                    ? "border-green-400/50 bg-green-500/10 text-green-300"
+                    ? "border-green-400/50 bg-green-500/10 text-[var(--fl-good-text)]"
                     : item.status === "queued"
-                      ? "border-yellow-400/50 bg-yellow-500/10 text-yellow-300"
+                      ? "border-yellow-400/50 bg-yellow-500/10 text-[var(--fl-warn-text)]"
                       : item.status === "error"
-                        ? "border-red-400/50 bg-red-500/10 text-red-300"
-                        : "border-cyan-400/50 bg-cyan-500/10 text-cyan-300"
+                        ? "border-red-400/50 bg-red-500/10 text-[var(--fl-crit-text)]"
+                        : "border-cyan-400/50 bg-cyan-500/10 text-[var(--fl-info-text)]"
                 }`}
               >
                 {item.status === "done"
@@ -6200,7 +6200,7 @@ function MediaPreview({
           <button
             type="button"
             onClick={onMarkup}
-            className="min-h-[42px] border-r border-[var(--fl-line)] px-3 py-2 text-xs font-semibold text-cyan-300 transition active:scale-[0.98] hover:bg-cyan-500/10 [touch-action:manipulation]"
+            className="min-h-[42px] border-r border-[var(--fl-line)] px-3 py-2 text-xs font-semibold text-[var(--fl-info-text)] transition active:scale-[0.98] hover:bg-cyan-500/10 [touch-action:manipulation]"
           >
             ✏️ Mark Up
           </button>
@@ -6211,7 +6211,7 @@ function MediaPreview({
         <button
           type="button"
           onClick={onRemove}
-          className="min-h-[42px] px-3 py-2 text-xs font-semibold text-red-300 transition active:scale-[0.98] hover:bg-red-500/10 [touch-action:manipulation]"
+          className="min-h-[42px] px-3 py-2 text-xs font-semibold text-[var(--fl-crit-text)] transition active:scale-[0.98] hover:bg-red-500/10 [touch-action:manipulation]"
         >
           Remove
         </button>

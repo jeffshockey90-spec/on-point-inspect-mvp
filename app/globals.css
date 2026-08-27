@@ -410,6 +410,12 @@ img {
   --fl-accent: #1ac5b4;
   --fl-accent-2: #12a99a;
   --fl-accent-text: #5eead4;
+  /* Readable colored text per theme (light shades wash out on a light ground). */
+  --fl-warn-text: #f5c15a;
+  --fl-good-text: #4ade9f;
+  --fl-crit-text: #ff8585;
+  --fl-info-text: #6cc7ea;
+  --fl-purple-text: #c4a5f5;
   --fl-accent-bg: rgba(26, 197, 180, 0.12);
   --fl-accent-line: rgba(26, 197, 180, 0.35);
   --fl-good: #37d6a6;
@@ -442,6 +448,11 @@ img {
   --fl-accent: #0f9e90;
   --fl-accent-2: #0c8478;
   --fl-accent-text: #0c8478;
+  --fl-warn-text: #8a5a00;
+  --fl-good-text: #0a7d5c;
+  --fl-crit-text: #c22f2f;
+  --fl-info-text: #0e6f8f;
+  --fl-purple-text: #6d28d9;
   --fl-accent-bg: rgba(15, 158, 144, 0.10);
   --fl-accent-line: rgba(15, 158, 144, 0.35);
   --fl-good: #0f9d76;

@@ -88,7 +88,7 @@ const PhotoMarkupEditor = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="rounded-xl border border-purple-700 bg-purple-500/10 p-4 text-sm font-bold text-purple-200">
+      <div className="rounded-xl border border-purple-700 bg-purple-500/10 p-4 text-sm font-bold text-[var(--fl-purple-text)]">
         Loading photo markup...
       </div>
     ),
@@ -700,7 +700,7 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
             setAddSectionOpen((value) => !value);
             setSectionMessage("");
           }}
-          className="w-full rounded-xl border border-cyan-500 px-4 py-3 text-sm font-semibold text-cyan-300 transition active:scale-[0.98] hover:bg-cyan-500/10 sm:w-auto sm:py-2"
+          className="w-full rounded-xl border border-cyan-500 px-4 py-3 text-sm font-semibold text-[var(--fl-info-text)] transition active:scale-[0.98] hover:bg-cyan-500/10 sm:w-auto sm:py-2"
         >
           + Add Section
         </button>
@@ -712,7 +712,7 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
             setSelectedCombine(new Set());
             setCombineError("");
           }}
-          className="w-full rounded-xl border border-purple-500/60 px-4 py-3 text-sm font-semibold text-purple-300 transition active:scale-[0.98] hover:bg-purple-500/10 sm:w-auto sm:py-2"
+          className="w-full rounded-xl border border-purple-500/60 px-4 py-3 text-sm font-semibold text-[var(--fl-purple-text)] transition active:scale-[0.98] hover:bg-purple-500/10 sm:w-auto sm:py-2"
         >
           🔗 Combine Defects
         </button>
@@ -721,7 +721,7 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
           <button
             type="button"
             onClick={() => setDeletedSectionsOpen((value) => !value)}
-            className="w-full rounded-xl border border-orange-500/60 px-4 py-3 text-sm font-semibold text-orange-300 transition active:scale-[0.98] hover:bg-orange-500/10 sm:w-auto sm:py-2"
+            className="w-full rounded-xl border border-orange-500/60 px-4 py-3 text-sm font-semibold text-[var(--fl-warn-text)] transition active:scale-[0.98] hover:bg-orange-500/10 sm:w-auto sm:py-2"
           >
             {deletedSectionsOpen ? "Hide" : "Show"} Deleted Sections ({deletedSections.length})
           </button>
@@ -762,7 +762,7 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
       )}
 
       {sectionMessage && (
-        <div className="w-full rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm font-bold text-red-300">
+        <div className="w-full rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm font-bold text-[var(--fl-crit-text)]">
           {sectionMessage}
         </div>
       )}
@@ -824,7 +824,7 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
           </div>
 
           {combineError && (
-            <p className="mt-3 text-sm font-bold text-red-300">{combineError}</p>
+            <p className="mt-3 text-sm font-bold text-[var(--fl-crit-text)]">{combineError}</p>
           )}
 
           <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -1041,7 +1041,7 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
                 }}
                 disabled={deletingSection === group.section}
                 title="Delete section"
-                className="flex shrink-0 items-center justify-center border-l border-[var(--fl-line)] px-3 text-sm font-semibold text-red-400 hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-40"
+                className="flex shrink-0 items-center justify-center border-l border-[var(--fl-line)] px-3 text-sm font-semibold text-[var(--fl-crit-text)] hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {deletingSection === group.section ? "…" : "🗑"}
               </button>
@@ -1327,7 +1327,7 @@ function AddSectionFindingForm({
         <div className="space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h3 className="text-lg font-semibold text-cyan-300">
+              <h3 className="text-lg font-semibold text-[var(--fl-info-text)]">
                 Add Defect To {section}
               </h3>
               <p className="mt-0.5 text-xs font-bold text-[var(--fl-muted)] sm:mt-1 sm:text-sm">
@@ -1349,7 +1349,7 @@ function AddSectionFindingForm({
 
           {message && (
             <div
-              className={`rounded-xl border px-4 py-3 text-sm font-bold ${message.includes("filled in") ? "border-emerald-500/60 bg-emerald-500/10 text-emerald-200" : "border-red-500/60 bg-red-500/10 text-red-200"}`}
+              className={`rounded-xl border px-4 py-3 text-sm font-bold ${message.includes("filled in") ? "border-emerald-500/60 bg-emerald-500/10 text-[var(--fl-good-text)]" : "border-red-500/60 bg-red-500/10 text-[var(--fl-crit-text)]"}`}
             >
               {message}
             </div>
@@ -1358,7 +1358,7 @@ function AddSectionFindingForm({
           <div className="rounded-xl border border-purple-500/50 bg-purple-500/10 p-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h4 className="text-base font-semibold text-purple-300">
+                <h4 className="text-base font-semibold text-[var(--fl-purple-text)]">
                   🤖 AI Note Inspector
                 </h4>
                 <p className="mt-1 text-sm text-[var(--fl-muted)]">
@@ -1467,7 +1467,7 @@ function getSeverityStyle(severity: string | null | undefined) {
     clean.includes("hazard") ||
     clean.includes("major")
   ) {
-    return "border-red-500/60 bg-red-500/10 text-red-300";
+    return "border-red-500/60 bg-red-500/10 text-[var(--fl-crit-text)]";
   }
 
   if (
@@ -1475,7 +1475,7 @@ function getSeverityStyle(severity: string | null | undefined) {
     clean.includes("monitor") ||
     clean.includes("minor")
   ) {
-    return "border-yellow-500/60 bg-yellow-500/10 text-yellow-300";
+    return "border-yellow-500/60 bg-yellow-500/10 text-[var(--fl-warn-text)]";
   }
 
   if (
@@ -1483,7 +1483,7 @@ function getSeverityStyle(severity: string | null | undefined) {
     clean.includes("info") ||
     clean.includes("client")
   ) {
-    return "border-blue-500/60 bg-blue-500/10 text-blue-300";
+    return "border-blue-500/60 bg-blue-500/10 text-[var(--fl-info-text)]";
   }
 
   return "border-teal-500/60 bg-teal-500/10 text-[var(--fl-accent-text)]";
@@ -1762,7 +1762,7 @@ function ReportVideo({
   if (failed) {
     return (
       <div className="flex min-h-[150px] w-full flex-col items-center justify-center gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-center">
-        <p className="text-sm font-semibold text-amber-200">
+        <p className="text-sm font-semibold text-[var(--fl-warn-text)]">
           We couldn&apos;t optimize this video automatically.
         </p>
         <p className="max-w-xl text-xs leading-5 text-[var(--fl-muted)]">
@@ -2894,7 +2894,7 @@ function FindingCardBase({
               </span>
 
               {photos.length > 0 && (
-                <span className="rounded-full border border-cyan-600 bg-cyan-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-cyan-300">
+                <span className="rounded-full border border-cyan-600 bg-cyan-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-[var(--fl-info-text)]">
                   {photos.length} media
                 </span>
               )}
@@ -2916,7 +2916,7 @@ function FindingCardBase({
               </p>
             )}
 
-            <p className="mt-2 text-xs font-semibold text-cyan-300 sm:mt-3 sm:text-sm">
+            <p className="mt-2 text-xs font-semibold text-[var(--fl-info-text)] sm:mt-3 sm:text-sm">
               Open / Edit Finding →
             </p>
           </div>
@@ -3080,7 +3080,7 @@ function FindingCardBase({
                                 setShowMarkupEditor(true);
                               }}
                               disabled={isBusy}
-                              className="rounded-lg border border-purple-500 px-3 py-1 font-semibold text-purple-300 hover:bg-purple-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+                              className="rounded-lg border border-purple-500 px-3 py-1 font-semibold text-[var(--fl-purple-text)] hover:bg-purple-500/10 disabled:cursor-not-allowed disabled:opacity-50"
                             >
                               ✏️ Markup
                             </button>
@@ -3094,7 +3094,7 @@ function FindingCardBase({
                             deletePhotoFromFinding(photo);
                           }}
                           disabled={isBusy}
-                          className="rounded-lg border border-red-600 px-3 py-1 font-semibold text-red-300 hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+                          className="rounded-lg border border-red-600 px-3 py-1 font-semibold text-[var(--fl-crit-text)] hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           {isBusy ? "Working..." : "Delete"}
                         </button>
@@ -3112,7 +3112,7 @@ function FindingCardBase({
             <button
               type="button"
               onClick={() => setShowAllPhotos(true)}
-              className="mt-3 w-full rounded-xl border border-cyan-500/50 bg-cyan-500/10 px-4 py-3 text-sm font-semibold text-cyan-300 transition hover:bg-cyan-500/20"
+              className="mt-3 w-full rounded-xl border border-cyan-500/50 bg-cyan-500/10 px-4 py-3 text-sm font-semibold text-[var(--fl-info-text)] transition hover:bg-cyan-500/20"
             >
               Load {hiddenPhotoCount} more media
             </button>
@@ -3146,7 +3146,7 @@ function FindingCardBase({
           )}
 
           {photos.length > 0 && (
-            <span className="rounded-full border border-cyan-600 bg-cyan-500/10 px-3 py-1 text-xs font-bold uppercase tracking-wide text-cyan-300">
+            <span className="rounded-full border border-cyan-600 bg-cyan-500/10 px-3 py-1 text-xs font-bold uppercase tracking-wide text-[var(--fl-info-text)]">
               {photos.length} media
             </span>
           )}
@@ -3208,7 +3208,7 @@ function FindingCardBase({
                 showMessage("error", "Failed to save template.");
               }
             }}
-            className="w-full rounded-xl border border-yellow-500 px-3 py-3 text-xs font-semibold text-yellow-300 transition active:scale-[0.98] hover:bg-yellow-500/10 sm:w-auto sm:px-4 sm:py-2 sm:text-sm"
+            className="w-full rounded-xl border border-yellow-500 px-3 py-3 text-xs font-semibold text-[var(--fl-warn-text)] transition active:scale-[0.98] hover:bg-yellow-500/10 sm:w-auto sm:px-4 sm:py-2 sm:text-sm"
           >
             ⭐ Save as Template
           </button>
@@ -3234,7 +3234,7 @@ function FindingCardBase({
               setShowPhotoPicker((prev) => !prev);
               setShowUploadPanel(false);
             }}
-            className="w-full rounded-xl border border-cyan-500 px-3 py-3 text-xs font-semibold text-cyan-300 transition active:scale-[0.98] hover:bg-cyan-500/10 sm:w-auto sm:px-4 sm:py-2 sm:text-sm"
+            className="w-full rounded-xl border border-cyan-500 px-3 py-3 text-xs font-semibold text-[var(--fl-info-text)] transition active:scale-[0.98] hover:bg-cyan-500/10 sm:w-auto sm:px-4 sm:py-2 sm:text-sm"
           >
             📎 Move Existing Photo
           </button>
@@ -3252,7 +3252,7 @@ function FindingCardBase({
               setMarkupPhoto(photos[0]);
               setShowMarkupEditor(true);
             }}
-            className="w-full rounded-xl border border-purple-500 px-3 py-3 text-xs font-semibold text-purple-300 transition active:scale-[0.98] hover:bg-purple-500/10 sm:w-auto sm:px-4 sm:py-2 sm:text-sm"
+            className="w-full rounded-xl border border-purple-500 px-3 py-3 text-xs font-semibold text-[var(--fl-purple-text)] transition active:scale-[0.98] hover:bg-purple-500/10 sm:w-auto sm:px-4 sm:py-2 sm:text-sm"
           >
             ✏️ Markup Photo
           </button>
@@ -3321,7 +3321,7 @@ function FindingCardBase({
           <div className="mb-4 w-full max-w-full overflow-x-hidden rounded-xl border border-cyan-700 bg-cyan-500/10 p-3 sm:p-4">
             <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h4 className="text-lg font-semibold text-cyan-300">
+                <h4 className="text-lg font-semibold text-[var(--fl-info-text)]">
                   Add Existing Photo To This Finding
                 </h4>
                 <p className="mt-1 text-sm text-[var(--fl-muted)]">
@@ -3421,7 +3421,7 @@ function FindingCardBase({
                         (prev) => prev + PHOTO_PICKER_PAGE_SIZE,
                       )
                     }
-                    className="mt-3 w-full rounded-xl border border-cyan-500/50 bg-cyan-500/10 px-4 py-3 text-sm font-semibold text-cyan-300 transition hover:bg-cyan-500/20"
+                    className="mt-3 w-full rounded-xl border border-cyan-500/50 bg-cyan-500/10 px-4 py-3 text-sm font-semibold text-[var(--fl-info-text)] transition hover:bg-cyan-500/20"
                   >
                     Load{" "}
                     {Math.min(
@@ -3627,7 +3627,7 @@ function FindingCardBase({
 
         <div className="mb-4 w-full max-w-full overflow-x-hidden rounded-xl border border-purple-500/50 bg-purple-500/10 p-3 sm:p-4">
           <div>
-            <h4 className="text-base font-semibold text-purple-300">
+            <h4 className="text-base font-semibold text-[var(--fl-purple-text)]">
               🤖 AI Inspector Note
             </h4>
             <p className="mt-1 text-sm leading-6 text-[var(--fl-muted)]">
@@ -3720,8 +3720,8 @@ function InlineStatusMessage({
     <div
       className={`rounded-xl border p-3 text-sm font-bold ${
         isSuccess
-          ? "border-emerald-500 bg-emerald-500/10 text-emerald-300"
-          : "border-red-500 bg-red-500/10 text-red-300"
+          ? "border-emerald-500 bg-emerald-500/10 text-[var(--fl-good-text)]"
+          : "border-red-500 bg-red-500/10 text-[var(--fl-crit-text)]"
       }`}
     >
       {message}

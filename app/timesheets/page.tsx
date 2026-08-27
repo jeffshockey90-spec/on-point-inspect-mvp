@@ -223,7 +223,7 @@ export default async function TimesheetsPage({
           </div>
           <div className="rounded-2xl border border-blue-500/40 bg-blue-500/10 p-6">
             <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Jobs on Site</p>
-            <p className="mt-2 text-4xl font-semibold text-blue-300">{complete.length}</p>
+            <p className="mt-2 text-4xl font-semibold text-[var(--fl-info-text)]">{complete.length}</p>
           </div>
           <div
             className={`rounded-2xl border p-6 ${
@@ -237,7 +237,7 @@ export default async function TimesheetsPage({
             </p>
             <p
               className={`mt-2 text-4xl font-semibold ${
-                needsReview > 0 ? "text-amber-300" : "text-[var(--fl-faint)]"
+                needsReview > 0 ? "text-[var(--fl-warn-text)]" : "text-[var(--fl-faint)]"
               }`}
             >
               {needsReview}
@@ -313,7 +313,7 @@ export default async function TimesheetsPage({
                           )}
                         </span>
                       ) : (
-                        <span className="text-[11px] font-bold text-amber-300">
+                        <span className="text-[11px] font-bold text-[var(--fl-warn-text)]">
                           {s.hours != null ? `${s.hours.toFixed(1)} · ` : ""}
                           {s.reason}
                         </span>

@@ -49,7 +49,7 @@ export default async function DemoReportsPage() {
   if (error) {
     return (
       <main className="min-h-screen bg-[var(--fl-ground)] p-8 text-[var(--fl-text)]">
-        <h1 className="text-3xl font-bold text-red-400">
+        <h1 className="text-3xl font-bold text-[var(--fl-crit-text)]">
           Error loading demo reports
         </h1>
         <p className="mt-4 text-[var(--fl-muted)]">{error.message}</p>
@@ -64,7 +64,7 @@ export default async function DemoReportsPage() {
       <div className="mx-auto max-w-7xl">
         <div className="mb-10 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 className="text-5xl font-bold text-cyan-300">
+            <h1 className="text-5xl font-bold text-[var(--fl-info-text)]">
               Demo Reports
             </h1>
 
@@ -85,7 +85,7 @@ export default async function DemoReportsPage() {
             <FastLinkButton
               href="/import-report"
               loadingText="Opening Importer..."
-              className="rounded-xl border border-amber-500 bg-amber-500/10 px-6 py-3 font-bold text-amber-300 hover:bg-amber-500/20"
+              className="rounded-xl border border-amber-500 bg-amber-500/10 px-6 py-3 font-bold text-[var(--fl-warn-text)] hover:bg-amber-500/20"
             >
               Import Report
             </FastLinkButton>
@@ -138,7 +138,7 @@ export default async function DemoReportsPage() {
                       <span>No Property Photo</span>
                     )}
 
-                    <span className="absolute left-3 top-3 rounded-full border border-cyan-400/70 bg-cyan-500/20 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-cyan-100 backdrop-blur">
+                    <span className="absolute left-3 top-3 rounded-full border border-cyan-400/70 bg-cyan-500/20 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[var(--fl-info-text)] backdrop-blur">
                       Demo
                     </span>
                   </div>

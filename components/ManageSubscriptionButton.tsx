@@ -13,9 +13,9 @@ type ManageSubscriptionButtonProps = {
 
 const DEFAULT_CLASS_BY_FLOW: Record<string, string> = {
   manage:
-    "rounded-xl border border-yellow-500 px-6 py-3 font-semibold text-yellow-300 hover:bg-yellow-500/10 disabled:opacity-60",
+    "rounded-xl border border-yellow-500 px-6 py-3 font-semibold text-[var(--fl-warn-text)] hover:bg-yellow-500/10 disabled:opacity-60",
   cancel:
-    "rounded-xl border border-red-500 px-6 py-3 font-semibold text-red-300 hover:bg-red-500/10 disabled:opacity-60",
+    "rounded-xl border border-red-500 px-6 py-3 font-semibold text-[var(--fl-crit-text)] hover:bg-red-500/10 disabled:opacity-60",
 };
 
 const DEFAULT_LABEL_BY_FLOW: Record<string, string> = {
@@ -99,7 +99,7 @@ export default function ManageSubscriptionButton({
         {loading ? "Opening..." : label || DEFAULT_LABEL_BY_FLOW[flow]}
       </button>
 
-      {error && <p className="text-sm font-bold text-red-300">{error}</p>}
+      {error && <p className="text-sm font-bold text-[var(--fl-crit-text)]">{error}</p>}
     </div>
   );
 }

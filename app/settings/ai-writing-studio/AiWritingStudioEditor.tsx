@@ -154,7 +154,7 @@ export default function AiWritingStudioEditor() {
       {/* Left: controls */}
       <div className="space-y-6">
         {!isOwner && (
-          <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm font-bold text-amber-200">
+          <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm font-bold text-[var(--fl-warn-text)]">
             Only the company owner can change these. You’re viewing the current settings.
           </div>
         )}

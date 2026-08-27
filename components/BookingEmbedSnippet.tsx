@@ -61,7 +61,7 @@ export default function BookingEmbedSnippet({
           href={src}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 rounded-xl border border-[var(--fl-line)] px-4 py-2.5 text-sm font-semibold text-[var(--fl-text)] transition hover:border-cyan-400 hover:text-cyan-300"
+          className="inline-flex items-center gap-2 rounded-xl border border-[var(--fl-line)] px-4 py-2.5 text-sm font-semibold text-[var(--fl-text)] transition hover:border-cyan-400 hover:text-[var(--fl-info-text)]"
         >
           <ExternalLink className="h-4 w-4" />
           Preview

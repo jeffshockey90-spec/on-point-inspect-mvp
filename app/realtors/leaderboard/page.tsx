@@ -265,7 +265,7 @@ export default async function RealtorLeaderboardPage() {
 
               <Link
                 href="/analytics"
-                className="rounded-xl border border-purple-500 px-5 py-3 font-bold text-purple-300 transition hover:bg-purple-500/10"
+                className="rounded-xl border border-purple-500 px-5 py-3 font-bold text-[var(--fl-purple-text)] transition hover:bg-purple-500/10"
               >
                 Analytics
               </Link>
@@ -391,7 +391,7 @@ export default async function RealtorLeaderboardPage() {
                     {item.realtor.email || "No email saved"}
                   </p>
 
-                  <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-yellow-300">
+                  <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-[var(--fl-warn-text)]">
                     No linked inspections
                   </p>
                 </Link>

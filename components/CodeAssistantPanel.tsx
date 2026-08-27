@@ -199,7 +199,7 @@ export default function CodeAssistantPanel({ compact = false, context }: Props) 
       </div>
 
       {error && (
-        <div className="mt-4 rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm font-bold text-red-100">
+        <div className="mt-4 rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm font-bold text-[var(--fl-crit-text)]">
           {error}
         </div>
       )}

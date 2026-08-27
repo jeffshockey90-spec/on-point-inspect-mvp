@@ -443,7 +443,7 @@ export default async function PublicInspectorProfilePage({
                         target="_blank"
                         rel="noreferrer"
                         data-public-profile-event="review_click"
-                        className="shrink-0 rounded-xl border border-yellow-300/50 bg-yellow-400/10 px-5 py-3 text-center font-semibold text-yellow-100 transition hover:bg-yellow-300 hover:text-slate-950"
+                        className="shrink-0 rounded-xl border border-yellow-300/50 bg-yellow-400/10 px-5 py-3 text-center font-semibold text-[var(--fl-warn-text)] transition hover:bg-yellow-300 hover:text-slate-950"
                       >
                         View Reviews →
                       </a>
@@ -626,7 +626,7 @@ export default async function PublicInspectorProfilePage({
                 data-public-profile-event="review_click"
                 target="_blank"
                 rel="noreferrer"
-                className="block rounded-2xl border border-yellow-500/40 bg-yellow-500/10 p-4 font-bold text-yellow-100 hover:border-yellow-300"
+                className="block rounded-2xl border border-yellow-500/40 bg-yellow-500/10 p-4 font-bold text-[var(--fl-warn-text)] hover:border-yellow-300"
               >
                 Google Reviews
               </a>
@@ -638,7 +638,7 @@ export default async function PublicInspectorProfilePage({
                 data-public-profile-event="facebook_click"
                 target="_blank"
                 rel="noreferrer"
-                className="block rounded-2xl border border-blue-500/40 bg-blue-500/10 p-4 font-bold text-blue-100 hover:border-blue-300"
+                className="block rounded-2xl border border-blue-500/40 bg-blue-500/10 p-4 font-bold text-[var(--fl-info-text)] hover:border-blue-300"
               >
                 Facebook
               </a>
@@ -678,7 +678,7 @@ function GoogleReviewsSection({
     <div className="rounded-2xl border border-yellow-400/30 bg-gradient-to-br from-[var(--fl-surface)] via-[var(--fl-surface)] to-yellow-950/20 p-5 shadow-2xl shadow-black/30 sm:p-8">
       <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-yellow-300">
+          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[var(--fl-warn-text)]">
             Google Reviews
           </p>
           <h2 className="mt-3 text-3xl font-semibold text-[var(--fl-text)] sm:text-4xl">
@@ -689,7 +689,7 @@ function GoogleReviewsSection({
               ? `${reviewCount} Google reviews help clients and realtors see this inspector's reputation before booking.`
               : "Read recent Google reviews and see what clients say before requesting an inspection."}
           </p>
-          <p className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-yellow-300/80">
+          <p className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-[var(--fl-warn-text)]/80">
             <span aria-hidden>↻</span> Auto-updates from Google
           </p>
         </div>
@@ -701,7 +701,7 @@ function GoogleReviewsSection({
               target="_blank"
               rel="noreferrer"
               data-public-profile-event="review_click"
-              className="rounded-xl border border-yellow-300/50 px-5 py-3 text-center font-semibold text-yellow-100 transition hover:bg-yellow-300 hover:text-slate-950"
+              className="rounded-xl border border-yellow-300/50 px-5 py-3 text-center font-semibold text-[var(--fl-warn-text)] transition hover:bg-yellow-300 hover:text-slate-950"
             >
               View on Google
             </a>
@@ -734,7 +734,7 @@ function GoogleReviewsSection({
                 )}
                 <div className="min-w-0">
                   <p className="truncate font-semibold text-[var(--fl-text)]">{review.author_name || "Google Reviewer"}</p>
-                  <p className="text-xs font-bold text-yellow-200">
+                  <p className="text-xs font-bold text-[var(--fl-warn-text)]">
                     {"★".repeat(Math.max(0, Math.min(5, Number(review.rating || 5))))}
                   </p>
                 </div>

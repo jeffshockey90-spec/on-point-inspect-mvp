@@ -31,8 +31,8 @@ function StatusPill({ enabled, supported }: { enabled: boolean; supported: boole
         enabled
           ? "border-teal-400/60 bg-teal-500/15 text-[var(--fl-accent-text)]"
           : supported
-            ? "border-blue-400/50 bg-blue-500/10 text-blue-300"
-            : "border-red-400/50 bg-red-500/10 text-red-300"
+            ? "border-blue-400/50 bg-blue-500/10 text-[var(--fl-info-text)]"
+            : "border-red-400/50 bg-red-500/10 text-[var(--fl-crit-text)]"
       }`}
     >
       {label}
@@ -257,8 +257,8 @@ export default function PushNotificationSetup() {
             <div
               className={`rounded-2xl border p-4 text-sm font-bold leading-6 ${
                 messageType === "success"
-                  ? "border-green-500/40 bg-green-500/10 text-green-300"
-                  : "border-red-500/40 bg-red-500/10 text-red-300"
+                  ? "border-green-500/40 bg-green-500/10 text-[var(--fl-good-text)]"
+                  : "border-red-500/40 bg-red-500/10 text-[var(--fl-crit-text)]"
               }`}
             >
               {message}

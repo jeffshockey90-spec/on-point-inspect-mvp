@@ -304,7 +304,7 @@ export default async function AnalyticsPage() {
   if (error) {
     return (
       <main className="min-h-screen bg-[var(--fl-ground)] p-8 text-[var(--fl-text)]">
-        <h1 className="text-3xl font-bold text-red-400">
+        <h1 className="text-3xl font-bold text-[var(--fl-crit-text)]">
           Error loading analytics
         </h1>
         <p className="mt-4 text-[var(--fl-muted)]">{error.message}</p>
@@ -1065,7 +1065,7 @@ export default async function AnalyticsPage() {
                 href={`/reports/${mostViewedReport.inspectionId}`}
                 className="mt-5 block rounded-xl border border-purple-500/40 bg-purple-500/10 p-4 transition hover:bg-purple-500/10"
               >
-                <p className="text-xs font-semibold uppercase tracking-wide text-purple-300">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-purple-text)]">
                   Most Viewed Report
                 </p>
                 <p className="mt-2 font-bold text-[var(--fl-text)]">
@@ -1404,7 +1404,7 @@ export default async function AnalyticsPage() {
                       </div>
 
                       <div className="text-right">
-                        <p className="font-semibold text-green-300">
+                        <p className="font-semibold text-[var(--fl-good-text)]">
                           {money(realtor.revenue)}
                         </p>
                         <p className="text-xs text-[var(--fl-muted)]">
@@ -1448,7 +1448,7 @@ export default async function AnalyticsPage() {
                       </div>
 
                       <div className="text-right">
-                        <p className="font-semibold text-orange-300">
+                        <p className="font-semibold text-[var(--fl-warn-text)]">
                           {money(inspection.balanceDue)}
                         </p>
                         <p className="text-xs text-[var(--fl-faint)]">
@@ -1489,13 +1489,13 @@ function MetricCard({
   tone: "green" | "teal" | "blue" | "purple" | "orange" | "yellow" | "red";
 }) {
   const colors: Record<string, string> = {
-    green: "border-green-500/40 bg-green-500/10 text-green-300",
+    green: "border-green-500/40 bg-green-500/10 text-[var(--fl-good-text)]",
     teal: "border-teal-500/40 bg-teal-500/10 text-[var(--fl-accent-text)]",
-    blue: "border-blue-500/40 bg-blue-500/10 text-blue-300",
-    purple: "border-purple-500/40 bg-purple-500/10 text-purple-300",
-    orange: "border-orange-500/40 bg-orange-500/10 text-orange-300",
-    yellow: "border-yellow-500/40 bg-yellow-500/10 text-yellow-300",
-    red: "border-red-500/40 bg-red-500/10 text-red-300",
+    blue: "border-blue-500/40 bg-blue-500/10 text-[var(--fl-info-text)]",
+    purple: "border-purple-500/40 bg-purple-500/10 text-[var(--fl-purple-text)]",
+    orange: "border-orange-500/40 bg-orange-500/10 text-[var(--fl-warn-text)]",
+    yellow: "border-yellow-500/40 bg-yellow-500/10 text-[var(--fl-warn-text)]",
+    red: "border-red-500/40 bg-red-500/10 text-[var(--fl-crit-text)]",
   };
 
   return (
@@ -1609,8 +1609,8 @@ function MiniBadge({
     <span
       className={`rounded-full border px-3 py-1 text-xs font-bold ${
         complete
-          ? "border-green-500/40 bg-green-500/10 text-green-300"
-          : "border-yellow-500/40 bg-yellow-500/10 text-yellow-300"
+          ? "border-green-500/40 bg-green-500/10 text-[var(--fl-good-text)]"
+          : "border-yellow-500/40 bg-yellow-500/10 text-[var(--fl-warn-text)]"
       }`}
     >
       {label}

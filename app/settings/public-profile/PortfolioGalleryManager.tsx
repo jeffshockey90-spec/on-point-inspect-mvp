@@ -183,7 +183,7 @@ export default function PortfolioGalleryManager({
     <section className="rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-[var(--fl-surface)] via-[var(--fl-surface)] to-emerald-950/10 p-5 shadow-xl sm:p-6 md:p-8">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-emerald-300">
+          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--fl-good-text)]">
             Portfolio Gallery
           </p>
           <h2 className="mt-2 text-2xl font-semibold text-[var(--fl-text)]">
@@ -195,14 +195,14 @@ export default function PortfolioGalleryManager({
         </div>
 
         <div className="rounded-2xl border border-emerald-400/40 bg-emerald-500/10 px-4 py-3 text-center">
-          <p className="text-2xl font-semibold text-emerald-200">{enabledImages.length}</p>
+          <p className="text-2xl font-semibold text-[var(--fl-good-text)]">{enabledImages.length}</p>
           <p className="text-xs font-bold text-[var(--fl-muted)]">Visible Photos</p>
         </div>
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_0.9fr]">
         <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 sm:p-5">
-          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-300">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-good-text)]">
             Add Photo
           </p>
 
@@ -246,7 +246,7 @@ export default function PortfolioGalleryManager({
                     <p className="mt-2 break-words text-sm text-[var(--fl-muted)]">
                       {selectedFile?.name}
                     </p>
-                    <p className="mt-3 text-xs font-bold text-emerald-300">
+                    <p className="mt-3 text-xs font-bold text-[var(--fl-good-text)]">
                       Click here to choose a different photo.
                     </p>
                   </div>
@@ -340,8 +340,8 @@ export default function PortfolioGalleryManager({
         </div>
       </div>
 
-      {message && <p className="mt-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm font-bold text-emerald-300">{message}</p>}
-      {error && <p className="mt-4 rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm font-bold text-red-300">{error}</p>}
+      {message && <p className="mt-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm font-bold text-[var(--fl-good-text)]">{message}</p>}
+      {error && <p className="mt-4 rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm font-bold text-[var(--fl-crit-text)]">{error}</p>}
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {images.length === 0 ? (
@@ -361,9 +361,9 @@ export default function PortfolioGalleryManager({
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="line-clamp-1 font-semibold text-[var(--fl-text)]">{image.title || "Untitled photo"}</p>
-                    <p className="mt-1 text-xs font-bold text-emerald-300">{image.category || "General"}</p>
+                    <p className="mt-1 text-xs font-bold text-[var(--fl-good-text)]">{image.category || "General"}</p>
                   </div>
-                  <span className={`shrink-0 rounded-full border px-2 py-1 text-[10px] font-semibold ${image.is_enabled === false ? "border-[var(--fl-line)] text-[var(--fl-muted)]" : "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"}`}>
+                  <span className={`shrink-0 rounded-full border px-2 py-1 text-[10px] font-semibold ${image.is_enabled === false ? "border-[var(--fl-line)] text-[var(--fl-muted)]" : "border-emerald-500/40 bg-emerald-500/10 text-[var(--fl-good-text)]"}`}>
                     {image.is_enabled === false ? "Hidden" : "Live"}
                   </span>
                 </div>
@@ -375,7 +375,7 @@ export default function PortfolioGalleryManager({
                     type="button"
                     onClick={() => updateImage(image.id, { is_enabled: image.is_enabled === false })}
                     disabled={saving}
-                    className="rounded-xl border border-[var(--fl-line)] px-3 py-2 text-xs font-semibold text-[var(--fl-text)] transition hover:border-emerald-400 hover:text-emerald-300 disabled:opacity-50"
+                    className="rounded-xl border border-[var(--fl-line)] px-3 py-2 text-xs font-semibold text-[var(--fl-text)] transition hover:border-emerald-400 hover:text-[var(--fl-good-text)] disabled:opacity-50"
                   >
                     {image.is_enabled === false ? "Show" : "Hide"}
                   </button>

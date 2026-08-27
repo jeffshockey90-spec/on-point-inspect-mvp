@@ -99,7 +99,7 @@ export default function SubscriptionPricingEditor() {
               </p>
             </>
           ) : (
-            <p className="mt-3 text-sm text-red-300">{error || "Unable to load pricing."}</p>
+            <p className="mt-3 text-sm text-[var(--fl-crit-text)]">{error || "Unable to load pricing."}</p>
           )}
         </div>
 
@@ -157,7 +157,7 @@ export default function SubscriptionPricingEditor() {
       )}
 
       {error && !loading && (
-        <p className="mt-4 rounded-lg border border-red-500/50 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+        <p className="mt-4 rounded-lg border border-red-500/50 bg-red-500/10 px-3 py-2 text-sm text-[var(--fl-crit-text)]">
           {error}
         </p>
       )}

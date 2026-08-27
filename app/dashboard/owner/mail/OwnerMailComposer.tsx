@@ -205,7 +205,7 @@ export default function OwnerMailComposer({ inspectors }: { inspectors: Inspecto
               {sending ? "Sending…" : targets.length > 1 ? `Send to ${targets.length}` : "Send email"}
             </button>
             {msg && (
-              <span className={`text-sm font-bold ${msg.tone === "ok" ? "text-emerald-300" : "text-red-300"}`}>{msg.text}</span>
+              <span className={`text-sm font-bold ${msg.tone === "ok" ? "text-[var(--fl-good-text)]" : "text-[var(--fl-crit-text)]"}`}>{msg.text}</span>
             )}
           </div>
         </>

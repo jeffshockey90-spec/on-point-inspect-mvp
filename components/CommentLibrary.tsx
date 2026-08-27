@@ -348,7 +348,7 @@ export default function CommentLibrary({
       </div>
 
       {message && (
-        <div className="mb-4 rounded-xl border border-green-500/40 bg-green-500/10 p-3 text-sm font-bold text-green-300">
+        <div className="mb-4 rounded-xl border border-green-500/40 bg-green-500/10 p-3 text-sm font-bold text-[var(--fl-good-text)]">
           {message}
         </div>
       )}
@@ -406,7 +406,7 @@ export default function CommentLibrary({
           className={`rounded-full border px-4 py-2 text-sm font-semibold transition active:scale-[0.98] [touch-action:manipulation] ${
             favoritesOnly
               ? "border-yellow-400 bg-yellow-400 text-slate-950"
-              : "border-yellow-500/50 bg-yellow-500/10 text-yellow-300 hover:bg-yellow-500/20"
+              : "border-yellow-500/50 bg-yellow-500/10 text-[var(--fl-warn-text)] hover:bg-yellow-500/20"
           }`}
         >
           {favoritesOnly ? "★ Favorites Only" : "☆ Show Favorites Only"}
@@ -458,7 +458,7 @@ export default function CommentLibrary({
 
                         <div className="mt-2 flex flex-wrap gap-2 text-xs font-bold">
                           {comment.is_favorite && (
-                            <span className="rounded-full border border-yellow-400/60 bg-yellow-400/10 px-2 py-1 text-yellow-300">
+                            <span className="rounded-full border border-yellow-400/60 bg-yellow-400/10 px-2 py-1 text-[var(--fl-warn-text)]">
                               ★ Favorite
                             </span>
                           )}
@@ -483,7 +483,7 @@ export default function CommentLibrary({
                         className={`rounded-lg border px-3 py-2 text-sm font-semibold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation] ${
                           comment.is_favorite
                             ? "border-yellow-400 bg-yellow-400 text-slate-950"
-                            : "border-yellow-500/60 text-yellow-300 hover:bg-yellow-500/10"
+                            : "border-yellow-500/60 text-[var(--fl-warn-text)] hover:bg-yellow-500/10"
                         }`}
                       >
                         {isFavoriteBusy
@@ -514,7 +514,7 @@ export default function CommentLibrary({
                         type="button"
                         onClick={() => startEditing(comment)}
                         disabled={isDeleting || isUsing}
-                        className="rounded-lg border border-blue-500 px-4 py-2 text-sm font-bold text-blue-300 transition active:scale-[0.98] hover:bg-blue-500/10 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
+                        className="rounded-lg border border-blue-500 px-4 py-2 text-sm font-bold text-[var(--fl-info-text)] transition active:scale-[0.98] hover:bg-blue-500/10 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
                       >
                         Edit
                       </button>
@@ -523,7 +523,7 @@ export default function CommentLibrary({
                         type="button"
                         onClick={() => deleteComment(comment)}
                         disabled={isDeleting || isUsing}
-                        className="rounded-lg border border-red-600 px-4 py-2 text-sm font-semibold text-red-300 transition active:scale-[0.98] hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
+                        className="rounded-lg border border-red-600 px-4 py-2 text-sm font-semibold text-[var(--fl-crit-text)] transition active:scale-[0.98] hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
                       >
                         {isDeleting ? "Deleting..." : "Delete"}
                       </button>

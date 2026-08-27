@@ -308,7 +308,7 @@ function SectionReferencePhotos({
           onClick={() => setOpen((prev) => !prev)}
           className="min-w-0 flex-1 text-left transition active:scale-[0.99] [touch-action:manipulation]"
         >
-          <h3 className="text-xl font-semibold text-cyan-300">
+          <h3 className="text-xl font-semibold text-[var(--fl-info-text)]">
             Section Reference Photos
           </h3>
 
@@ -364,7 +364,7 @@ function SectionReferencePhotos({
             {photos.slice(0, 6).map((photo, index) => (
               <span
                 key={photo.id}
-                className="rounded-full border border-cyan-500/60 bg-cyan-500/10 px-3 py-1 text-sm font-bold text-cyan-200"
+                className="rounded-full border border-cyan-500/60 bg-cyan-500/10 px-3 py-1 text-sm font-bold text-[var(--fl-info-text)]"
               >
                 {photo.caption || `Reference Photo ${index + 1}`}
               </span>
@@ -520,7 +520,7 @@ function SectionReferencePhotos({
                           type="button"
                           onClick={() => deletePhoto(photo)}
                           disabled={isDeleting || uploading}
-                          className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-600 px-3 py-2 font-semibold text-red-300 transition active:scale-[0.98] hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
+                          className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-600 px-3 py-2 font-semibold text-[var(--fl-crit-text)] transition active:scale-[0.98] hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
                         >
                           {isDeleting && <SmallSpinner />}
                           {isDeleting ? "Deleting..." : "Delete"}

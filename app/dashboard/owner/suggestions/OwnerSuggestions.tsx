@@ -17,10 +17,10 @@ type FeatureRequest = {
 const STATUS_OPTIONS = ["new", "planned", "in_progress", "shipped", "declined"];
 
 const STATUS_STYLES: Record<string, string> = {
-  new: "border-cyan-400/40 bg-cyan-500/10 text-cyan-300",
-  planned: "border-purple-400/40 bg-purple-500/10 text-purple-300",
-  in_progress: "border-amber-400/40 bg-amber-500/10 text-amber-300",
-  shipped: "border-emerald-400/40 bg-emerald-500/10 text-emerald-300",
+  new: "border-cyan-400/40 bg-cyan-500/10 text-[var(--fl-info-text)]",
+  planned: "border-purple-400/40 bg-purple-500/10 text-[var(--fl-purple-text)]",
+  in_progress: "border-amber-400/40 bg-amber-500/10 text-[var(--fl-warn-text)]",
+  shipped: "border-emerald-400/40 bg-emerald-500/10 text-[var(--fl-good-text)]",
   declined: "border-[var(--fl-faint)] bg-slate-500/10 text-[var(--fl-muted)]",
 };
 
@@ -182,7 +182,7 @@ export default function OwnerSuggestions() {
           </div>
         </section>
 
-        {error && <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm font-bold text-red-300">{error}</div>}
+        {error && <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm font-bold text-[var(--fl-crit-text)]">{error}</div>}
 
         <div className="flex flex-wrap gap-2">
           {["all", ...STATUS_OPTIONS].map((status) => (
@@ -245,7 +245,7 @@ export default function OwnerSuggestions() {
                     </button>
                   )}
                   {noteErrorId === request.id && (
-                    <p className="mt-2 text-xs font-bold text-red-400">
+                    <p className="mt-2 text-xs font-bold text-[var(--fl-crit-text)]">
                       Could not save the reply. Try again.
                     </p>
                   )}
@@ -294,7 +294,7 @@ export default function OwnerSuggestions() {
             </div>
 
             {publishError && (
-              <p className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 p-2 text-xs font-bold text-red-300">
+              <p className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 p-2 text-xs font-bold text-[var(--fl-crit-text)]">
                 {publishError}
               </p>
             )}

@@ -249,10 +249,10 @@ function getUserStatusLabel(row: UserManagementRow) {
 }
 
 function getUserStatusClass(row: UserManagementRow) {
-  if (row.deletedAt) return "border-red-500/40 bg-red-500/10 text-red-300";
-  if (row.deletionRequestedAt) return "border-orange-500/40 bg-orange-500/10 text-orange-300";
-  if (!row.isActive) return "border-yellow-500/40 bg-yellow-500/10 text-yellow-300";
-  return "border-green-500/40 bg-green-500/10 text-green-300";
+  if (row.deletedAt) return "border-red-500/40 bg-red-500/10 text-[var(--fl-crit-text)]";
+  if (row.deletionRequestedAt) return "border-orange-500/40 bg-orange-500/10 text-[var(--fl-warn-text)]";
+  if (!row.isActive) return "border-yellow-500/40 bg-yellow-500/10 text-[var(--fl-warn-text)]";
+  return "border-green-500/40 bg-green-500/10 text-[var(--fl-good-text)]";
 }
 
 async function safeSelect<T = any>(query: PromiseLike<{ data: T | null; error: any }>, label: string) {
@@ -383,10 +383,10 @@ export default async function OwnerDashboardPage() {
     return (
       <main className="min-h-screen bg-[var(--fl-ground)] px-6 py-10 text-[var(--fl-text)]">
         <div className="mx-auto max-w-3xl rounded-2xl border border-red-500/40 bg-red-500/10 p-8 shadow-2xl">
-          <p className="text-sm font-semibold uppercase tracking-[0.35em] text-red-300">Owner Only</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.35em] text-[var(--fl-crit-text)]">Owner Only</p>
           <h1 className="mt-4 text-4xl font-semibold">Access Restricted</h1>
           <p className="mt-4 text-[var(--fl-muted)]">This dashboard is only available to the FLOW owner account.</p>
-          <FastLinkButton href="/dashboard" className="mt-6 inline-flex rounded-xl border border-red-400 px-5 py-3 font-semibold text-red-300 hover:bg-red-500/10">
+          <FastLinkButton href="/dashboard" className="mt-6 inline-flex rounded-xl border border-red-400 px-5 py-3 font-semibold text-[var(--fl-crit-text)] hover:bg-red-500/10">
             Back to Dashboard
           </FastLinkButton>
         </div>
@@ -934,7 +934,7 @@ export default async function OwnerDashboardPage() {
             <div className="flex flex-wrap gap-3">
               <FastLinkButton
                 href="/dashboard/owner/users"
-                className="rounded-xl border border-cyan-500 px-5 py-3 font-semibold text-cyan-300 transition hover:bg-cyan-500/10"
+                className="rounded-xl border border-cyan-500 px-5 py-3 font-semibold text-[var(--fl-info-text)] transition hover:bg-cyan-500/10"
               >
                 👥 User Management
               </FastLinkButton>
@@ -948,28 +948,28 @@ export default async function OwnerDashboardPage() {
 
               <FastLinkButton
                 href="/dashboard/owner/devices"
-                className="rounded-xl border border-purple-500 px-5 py-3 font-semibold text-purple-300 transition hover:bg-purple-500/10"
+                className="rounded-xl border border-purple-500 px-5 py-3 font-semibold text-[var(--fl-purple-text)] transition hover:bg-purple-500/10"
               >
                 📱 Device Analytics
               </FastLinkButton>
 
               <FastLinkButton
                 href="/dashboard/owner/revenue"
-                className="rounded-xl border border-green-500 px-5 py-3 font-semibold text-green-300 transition hover:bg-green-500/10"
+                className="rounded-xl border border-green-500 px-5 py-3 font-semibold text-[var(--fl-good-text)] transition hover:bg-green-500/10"
               >
                 💰 Revenue Dashboard
               </FastLinkButton>
 
               <FastLinkButton
                 href="/dashboard/owner/push"
-                className="rounded-xl border border-yellow-500 px-5 py-3 font-semibold text-yellow-300 transition hover:bg-yellow-500/10"
+                className="rounded-xl border border-yellow-500 px-5 py-3 font-semibold text-[var(--fl-warn-text)] transition hover:bg-yellow-500/10"
               >
                 🔔 Push Center
               </FastLinkButton>
 
               <FastLinkButton
                 href="/dashboard/owner/inspectors"
-                className="rounded-xl border border-orange-500 px-5 py-3 font-semibold text-orange-300 transition hover:bg-orange-500/10"
+                className="rounded-xl border border-orange-500 px-5 py-3 font-semibold text-[var(--fl-warn-text)] transition hover:bg-orange-500/10"
               >
                 🧑‍🔧 Inspectors
               </FastLinkButton>
@@ -983,14 +983,14 @@ export default async function OwnerDashboardPage() {
 
               <FastLinkButton
                 href="/dashboard/owner/live"
-                className="rounded-xl border border-blue-500 px-5 py-3 font-semibold text-blue-300 transition hover:bg-blue-500/10"
+                className="rounded-xl border border-blue-500 px-5 py-3 font-semibold text-[var(--fl-info-text)] transition hover:bg-blue-500/10"
               >
                 ⚡ Live Activity
               </FastLinkButton>
 
               <FastLinkButton
                 href="/dashboard/owner/support"
-                className="inline-flex items-center gap-2 rounded-xl border border-fuchsia-500 px-5 py-3 font-semibold text-fuchsia-300 transition hover:bg-fuchsia-500/10"
+                className="inline-flex items-center gap-2 rounded-xl border border-fuchsia-500 px-5 py-3 font-semibold text-[var(--fl-purple-text)] transition hover:bg-fuchsia-500/10"
               >
                 💬 Support Chat
                 <SupportUnreadBadge />
@@ -998,14 +998,14 @@ export default async function OwnerDashboardPage() {
 
               <FastLinkButton
                 href="/dashboard/owner/suggestions"
-                className="rounded-xl border border-amber-500 px-5 py-3 font-semibold text-amber-300 transition hover:bg-amber-500/10"
+                className="rounded-xl border border-amber-500 px-5 py-3 font-semibold text-[var(--fl-warn-text)] transition hover:bg-amber-500/10"
               >
                 💡 Suggestions
               </FastLinkButton>
 
               <FastLinkButton
                 href="/dashboard/owner/changelog"
-                className="rounded-xl border border-pink-500 px-5 py-3 font-semibold text-pink-300 transition hover:bg-pink-500/10"
+                className="rounded-xl border border-pink-500 px-5 py-3 font-semibold text-[var(--fl-purple-text)] transition hover:bg-pink-500/10"
               >
                 🚀 Changelog
               </FastLinkButton>
@@ -1040,8 +1040,8 @@ export default async function OwnerDashboardPage() {
             <span
               className={`rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-wide ${
                 webhookRecent
-                  ? "border-green-500/40 bg-green-500/10 text-green-300"
-                  : "border-yellow-500/40 bg-yellow-500/10 text-yellow-300"
+                  ? "border-green-500/40 bg-green-500/10 text-[var(--fl-good-text)]"
+                  : "border-yellow-500/40 bg-yellow-500/10 text-[var(--fl-warn-text)]"
               }`}
             >
               {webhookRecent ? "✓ Receiving events" : "No recent webhook events"}
@@ -1058,7 +1058,7 @@ export default async function OwnerDashboardPage() {
               <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">Last Payment Received</p>
               {paymentLog ? (
                 <>
-                  <p className="mt-2 text-3xl font-semibold text-green-300">{money(lastPaymentAmount)}</p>
+                  <p className="mt-2 text-3xl font-semibold text-[var(--fl-good-text)]">{money(lastPaymentAmount)}</p>
                   <p className="mt-1 truncate text-sm text-[var(--fl-muted)]">
                     {lastPaymentInspection
                       ? lastPaymentInspection.property_address || lastPaymentInspection.address || `Inspection #${paymentLog.inspection_id}`
@@ -1091,12 +1091,12 @@ export default async function OwnerDashboardPage() {
                         <p className="text-xs text-[var(--fl-faint)]">{formatDateTime(row.when)}</p>
                       </div>
                       <div className="flex shrink-0 items-center gap-2">
-                        {row.amount > 0 && <span className="text-sm font-semibold text-orange-300">{money(row.amount)}</span>}
+                        {row.amount > 0 && <span className="text-sm font-semibold text-[var(--fl-warn-text)]">{money(row.amount)}</span>}
                         <span
                           className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase ${
                             row.type === "Dispute"
-                              ? "border-red-500/40 bg-red-500/10 text-red-300"
-                              : "border-orange-500/40 bg-orange-500/10 text-orange-300"
+                              ? "border-red-500/40 bg-red-500/10 text-[var(--fl-crit-text)]"
+                              : "border-orange-500/40 bg-orange-500/10 text-[var(--fl-warn-text)]"
                           }`}
                         >
                           {row.type}
@@ -1114,7 +1114,7 @@ export default async function OwnerDashboardPage() {
           <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
             <div className="rounded-xl border border-green-500/40 bg-green-500/10 p-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">MRR</p>
-              <p className="mt-2 text-3xl font-semibold text-green-300">{usd(mrr)}</p>
+              <p className="mt-2 text-3xl font-semibold text-[var(--fl-good-text)]">{usd(mrr)}</p>
               <p className="mt-1 text-xs text-[var(--fl-faint)]">Monthly recurring revenue</p>
             </div>
             <MiniStat label="Active" value={String(activeSubscribers.length)} />
@@ -1144,12 +1144,12 @@ export default async function OwnerDashboardPage() {
                             {row.email && <p className="max-w-[260px] truncate text-xs text-[var(--fl-faint)]">{row.email}</p>}
                           </td>
                           <td className="px-4 py-3">
-                            <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase ${row.status === "active" ? "border-green-500/40 bg-green-500/10 text-green-300" : "border-yellow-500/40 bg-yellow-500/10 text-yellow-300"}`}>
+                            <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase ${row.status === "active" ? "border-green-500/40 bg-green-500/10 text-[var(--fl-good-text)]" : "border-yellow-500/40 bg-yellow-500/10 text-[var(--fl-warn-text)]"}`}>
                               {row.status}
                             </span>
                             {row.founding && <span className="ml-2 rounded-full border border-teal-500/40 bg-teal-500/10 px-2.5 py-1 text-[11px] font-semibold uppercase text-[var(--fl-accent-text)]">Founding</span>}
                           </td>
-                          <td className="px-4 py-3 text-right font-semibold text-green-300">{usd(row.priceMonthly)}</td>
+                          <td className="px-4 py-3 text-right font-semibold text-[var(--fl-good-text)]">{usd(row.priceMonthly)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1191,13 +1191,13 @@ export default async function OwnerDashboardPage() {
                             <p className="max-w-[220px] truncate font-semibold text-[var(--fl-text)]">{row.name}</p>
                             {row.email && <p className="max-w-[220px] truncate text-xs text-[var(--fl-faint)]">{row.email}</p>}
                             {row.failures > 0 && (
-                              <p className="text-[11px] text-red-300">{row.failures} failed</p>
+                              <p className="text-[11px] text-[var(--fl-crit-text)]">{row.failures} failed</p>
                             )}
                           </td>
                           <td className="px-4 py-3 text-[var(--fl-muted)]">{row.company || "—"}</td>
                           <td className="px-4 py-3 text-right font-semibold text-[var(--fl-text)]">{row.calls}</td>
                           <td className="px-4 py-3 text-right font-semibold text-[var(--fl-accent-text)]">{formatTokens(row.tokens)}</td>
-                          <td className="px-4 py-3 text-right font-semibold text-orange-300">{usd(row.cost)}</td>
+                          <td className="px-4 py-3 text-right font-semibold text-[var(--fl-warn-text)]">{usd(row.cost)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1230,7 +1230,7 @@ export default async function OwnerDashboardPage() {
                           </td>
                           <td className="px-4 py-3 text-right font-semibold text-[var(--fl-text)]">{row.calls}</td>
                           <td className="px-4 py-3 text-right font-semibold text-[var(--fl-accent-text)]">{formatTokens(row.tokens)}</td>
-                          <td className="px-4 py-3 text-right font-semibold text-orange-300">{usd(row.cost)}</td>
+                          <td className="px-4 py-3 text-right font-semibold text-[var(--fl-warn-text)]">{usd(row.cost)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1322,7 +1322,7 @@ export default async function OwnerDashboardPage() {
                       className="flex items-center justify-between rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-3 transition hover:border-purple-500/50"
                     >
                       <span className="truncate text-sm font-bold text-[var(--fl-text)]">{realtor.email}</span>
-                      <span className="ml-3 shrink-0 rounded-full border border-purple-500/40 bg-purple-500/10 px-3 py-1 text-xs font-semibold text-purple-300">
+                      <span className="ml-3 shrink-0 rounded-full border border-purple-500/40 bg-purple-500/10 px-3 py-1 text-xs font-semibold text-[var(--fl-purple-text)]">
                         {realtor.count} report{realtor.count === 1 ? "" : "s"}
                       </span>
                     </a>
@@ -1348,7 +1348,7 @@ export default async function OwnerDashboardPage() {
                       className="flex items-center justify-between rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-3 transition hover:border-emerald-500/50"
                     >
                       <span className="truncate text-sm font-bold text-[var(--fl-text)]">{report.address}</span>
-                      <span className="ml-3 shrink-0 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300">
+                      <span className="ml-3 shrink-0 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-[var(--fl-good-text)]">
                         Open
                       </span>
                     </a>
@@ -1377,7 +1377,7 @@ export default async function OwnerDashboardPage() {
                     key={demo.id}
                     className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-5 shadow-xl"
                   >
-                    <p className="text-xs font-semibold uppercase tracking-wide text-fuchsia-300">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-purple-text)]">
                       Demo Report
                     </p>
 
@@ -1449,7 +1449,7 @@ export default async function OwnerDashboardPage() {
                           </span>
                         </td>
                         <td className="px-4 py-4 text-right font-semibold text-[var(--fl-text)]">{row.reports}</td>
-                        <td className="px-4 py-4 text-right font-semibold text-green-300">{money(row.revenue)}</td>
+                        <td className="px-4 py-4 text-right font-semibold text-[var(--fl-good-text)]">{money(row.revenue)}</td>
                         <td className="px-4 py-4 text-[var(--fl-muted)]">{formatDateTime(row.lastActivity || row.createdAt)}</td>
                         <td className="px-4 py-4">
                           <span className={`rounded-full border px-2 py-1 text-xs font-semibold ${getUserStatusClass(row)}`}>
@@ -1620,7 +1620,7 @@ export default async function OwnerDashboardPage() {
           </Panel>
         </section>
 
-        <section data-owner-tab="system" className="rounded-2xl border border-yellow-500/30 bg-yellow-500/10 p-5 text-sm leading-6 text-yellow-100">
+        <section data-owner-tab="system" className="rounded-2xl border border-yellow-500/30 bg-yellow-500/10 p-5 text-sm leading-6 text-[var(--fl-warn-text)]">
           <strong>App Store Analytics Note:</strong> Apple download and retention numbers are not available through Supabase automatically. This dashboard tracks internal installs, first opens, and device activity after you add the tracker component. For official App Store downloads, still check App Store Connect.
         </section>
         </div>
@@ -1633,12 +1633,12 @@ export default async function OwnerDashboardPage() {
 function MetricCard({ label, value, helper, tone }: { label: string; value: string; helper: string; tone: Tone }) {
   const classes: Record<Tone, string> = {
     teal: "border-teal-500/40 bg-teal-500/10 text-[var(--fl-accent-text)]",
-    green: "border-green-500/40 bg-green-500/10 text-green-300",
-    blue: "border-blue-500/40 bg-blue-500/10 text-blue-300",
-    purple: "border-purple-500/40 bg-purple-500/10 text-purple-300",
-    orange: "border-orange-500/40 bg-orange-500/10 text-orange-300",
-    yellow: "border-yellow-500/40 bg-yellow-500/10 text-yellow-300",
-    red: "border-red-500/40 bg-red-500/10 text-red-300",
+    green: "border-green-500/40 bg-green-500/10 text-[var(--fl-good-text)]",
+    blue: "border-blue-500/40 bg-blue-500/10 text-[var(--fl-info-text)]",
+    purple: "border-purple-500/40 bg-purple-500/10 text-[var(--fl-purple-text)]",
+    orange: "border-orange-500/40 bg-orange-500/10 text-[var(--fl-warn-text)]",
+    yellow: "border-yellow-500/40 bg-yellow-500/10 text-[var(--fl-warn-text)]",
+    red: "border-red-500/40 bg-red-500/10 text-[var(--fl-crit-text)]",
   };
 
   return (

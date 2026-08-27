@@ -107,7 +107,7 @@ export default function TeamManagement() {
       </p>
 
       {error && (
-        <p className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm font-bold text-red-300">
+        <p className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm font-bold text-[var(--fl-crit-text)]">
           {error}
         </p>
       )}
@@ -117,12 +117,12 @@ export default function TeamManagement() {
           <h3 className="text-sm font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Invite an Inspector</h3>
 
           {inviteError && (
-            <p className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 p-2 text-xs font-bold text-red-300">
+            <p className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 p-2 text-xs font-bold text-[var(--fl-crit-text)]">
               {inviteError}
             </p>
           )}
           {inviteSuccess && (
-            <p className="mt-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-2 text-xs font-bold text-emerald-300">
+            <p className="mt-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-2 text-xs font-bold text-[var(--fl-good-text)]">
               {inviteSuccess}
             </p>
           )}
@@ -181,8 +181,8 @@ export default function TeamManagement() {
                 <span
                   className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase ${
                     member.role === "owner"
-                      ? "border-amber-400/40 bg-amber-500/10 text-amber-300"
-                      : "border-cyan-400/40 bg-cyan-500/10 text-cyan-300"
+                      ? "border-amber-400/40 bg-amber-500/10 text-[var(--fl-warn-text)]"
+                      : "border-cyan-400/40 bg-cyan-500/10 text-[var(--fl-info-text)]"
                   }`}
                 >
                   {member.role}
@@ -193,7 +193,7 @@ export default function TeamManagement() {
                     type="button"
                     onClick={() => removeMember(member.userId)}
                     disabled={removingId === member.userId}
-                    className="rounded-lg border border-red-500/40 px-3 py-1.5 text-xs font-bold text-red-300 hover:bg-red-500/10 disabled:opacity-50"
+                    className="rounded-lg border border-red-500/40 px-3 py-1.5 text-xs font-bold text-[var(--fl-crit-text)] hover:bg-red-500/10 disabled:opacity-50"
                   >
                     {removingId === member.userId ? "Removing..." : "Remove"}
                   </button>

@@ -110,7 +110,7 @@ export default function FieldFindingLinker({
           onClick={openLinker}
           aria-label="Link findings"
           title="Link related findings"
-          className="flex h-12 w-12 items-center justify-center rounded-full border border-indigo-400/50 bg-[var(--fl-surface-2)] text-lg text-indigo-200 shadow-2xl backdrop-blur transition active:scale-95 [touch-action:manipulation]"
+          className="flex h-12 w-12 items-center justify-center rounded-full border border-indigo-400/50 bg-[var(--fl-surface-2)] text-lg text-[var(--fl-purple-text)] shadow-2xl backdrop-blur transition active:scale-95 [touch-action:manipulation]"
         >
           🔗
         </button>
@@ -118,7 +118,7 @@ export default function FieldFindingLinker({
         <button
           type="button"
           onClick={openLinker}
-          className="inline-flex items-center gap-2 rounded-xl border border-indigo-500/60 bg-indigo-500/10 px-4 py-2.5 text-sm font-semibold text-indigo-200 transition active:scale-[0.98] hover:bg-indigo-500/20 [touch-action:manipulation]"
+          className="inline-flex items-center gap-2 rounded-xl border border-indigo-500/60 bg-indigo-500/10 px-4 py-2.5 text-sm font-semibold text-[var(--fl-purple-text)] transition active:scale-[0.98] hover:bg-indigo-500/20 [touch-action:manipulation]"
         >
           🔗 Link Findings
         </button>
@@ -129,7 +129,7 @@ export default function FieldFindingLinker({
           <div className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl border border-indigo-500/30 bg-[var(--fl-surface)] pb-[env(safe-area-inset-bottom)] sm:rounded-2xl">
             <div className="flex items-center justify-between border-b border-[var(--fl-raised)] p-4">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-indigo-300">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-purple-text)]">
                   🔗 Link Related Findings
                 </p>
                 <p className="mt-0.5 text-xs text-[var(--fl-muted)]">
@@ -210,7 +210,7 @@ export default function FieldFindingLinker({
                       type="button"
                       onClick={draftWithAi}
                       disabled={aiBusy}
-                      className="rounded-lg border border-indigo-500/60 px-4 py-2 text-sm font-semibold text-indigo-200 transition hover:bg-indigo-500/10 disabled:opacity-50"
+                      className="rounded-lg border border-indigo-500/60 px-4 py-2 text-sm font-semibold text-[var(--fl-purple-text)] transition hover:bg-indigo-500/10 disabled:opacity-50"
                     >
                       {aiBusy ? "Drafting…" : note ? "Redraft with AI" : "Draft with AI"}
                     </button>
@@ -218,8 +218,8 @@ export default function FieldFindingLinker({
                 </div>
               )}
 
-              {error && <p className="mt-3 text-xs font-bold text-red-300">{error}</p>}
-              {done && <p className="mt-3 text-xs font-bold text-emerald-300">{done}</p>}
+              {error && <p className="mt-3 text-xs font-bold text-[var(--fl-crit-text)]">{error}</p>}
+              {done && <p className="mt-3 text-xs font-bold text-[var(--fl-good-text)]">{done}</p>}
             </div>
 
             <div className="border-t border-[var(--fl-raised)] p-4">

@@ -113,7 +113,7 @@ export default function SendRealtorReportButton({
         onClick={sendReport}
         disabled={sending || !realtorEmail}
         aria-busy={sending}
-        className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-purple-500 px-4 py-2 text-sm font-semibold text-purple-300 transition active:scale-[0.98] hover:bg-purple-500/10 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto [touch-action:manipulation]"
+        className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-purple-500 px-4 py-2 text-sm font-semibold text-[var(--fl-purple-text)] transition active:scale-[0.98] hover:bg-purple-500/10 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto [touch-action:manipulation]"
         title={realtorEmail || "No realtor email saved"}
       >
         {sending && (
@@ -126,8 +126,8 @@ export default function SendRealtorReportButton({
         <p
           className={`mt-2 max-w-sm rounded-xl border px-3 py-2 text-xs font-bold leading-5 ${
             messageType === "success"
-              ? "border-emerald-500/60 bg-emerald-500/10 text-emerald-300"
-              : "border-red-500/60 bg-red-500/10 text-red-300"
+              ? "border-emerald-500/60 bg-emerald-500/10 text-[var(--fl-good-text)]"
+              : "border-red-500/60 bg-red-500/10 text-[var(--fl-crit-text)]"
           }`}
         >
           {message}

@@ -381,7 +381,7 @@ export default function InspectorAvailabilitySettings() {
 
               <p
                 className={`mt-4 text-sm font-semibold ${
-                  bookingEnabled ? "text-emerald-300" : "text-zinc-500"
+                  bookingEnabled ? "text-[var(--fl-good-text)]" : "text-zinc-500"
                 }`}
               >
                 {bookingEnabled ? "Enabled" : "Disabled"}
@@ -467,14 +467,14 @@ export default function InspectorAvailabilitySettings() {
                         type="button"
                         onClick={() => removeTime(time)}
                         aria-label={`Remove ${formatTime(time, timeFormat)}`}
-                        className="flex h-7 w-7 items-center justify-center rounded-full text-lg leading-none text-zinc-300 transition hover:bg-red-500/20 hover:text-red-200"
+                        className="flex h-7 w-7 items-center justify-center rounded-full text-lg leading-none text-zinc-300 transition hover:bg-red-500/20 hover:text-[var(--fl-crit-text)]"
                       >
                         ×
                       </button>
                     </div>
                   ))
                 ) : (
-                  <p className="text-sm font-bold text-amber-300">
+                  <p className="text-sm font-bold text-[var(--fl-warn-text)]">
                     No appointment times have been added.
                   </p>
                 )}
@@ -534,7 +534,7 @@ export default function InspectorAvailabilitySettings() {
                       <button
                         type="button"
                         onClick={() => removeBlockedDate(date)}
-                        className="shrink-0 rounded-lg border border-red-500/30 px-3 py-2 text-xs font-semibold text-red-300 transition hover:bg-red-500/10"
+                        className="shrink-0 rounded-lg border border-red-500/30 px-3 py-2 text-xs font-semibold text-[var(--fl-crit-text)] transition hover:bg-red-500/10"
                       >
                         Remove
                       </button>
@@ -552,7 +552,7 @@ export default function InspectorAvailabilitySettings() {
           {message ? (
             <div
               role="status"
-              className="mt-5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm font-bold text-emerald-200"
+              className="mt-5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm font-bold text-[var(--fl-good-text)]"
             >
               ✓ {message}
             </div>
@@ -561,7 +561,7 @@ export default function InspectorAvailabilitySettings() {
           {error ? (
             <div
               role="alert"
-              className="mt-5 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm font-bold text-red-200"
+              className="mt-5 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm font-bold text-[var(--fl-crit-text)]"
             >
               {error}
             </div>

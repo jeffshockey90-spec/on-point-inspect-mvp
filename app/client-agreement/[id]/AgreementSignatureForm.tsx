@@ -171,7 +171,7 @@ export default function AgreementSignatureForm({
       ) : null}
 
       {errorMessage ? (
-        <div className="mt-5 rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-sm font-bold text-red-200">
+        <div className="mt-5 rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-sm font-bold text-[var(--fl-crit-text)]">
           {errorMessage}
         </div>
       ) : null}
@@ -267,7 +267,7 @@ export default function AgreementSignatureForm({
       </label>
 
       {!hasRead && (
-        <p className="mt-4 rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-3 text-sm font-semibold text-yellow-200">
+        <p className="mt-4 rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-3 text-sm font-semibold text-[var(--fl-warn-text)]">
           Please scroll through the full agreement above to enable signing.
         </p>
       )}

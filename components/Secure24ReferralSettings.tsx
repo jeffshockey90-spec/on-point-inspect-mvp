@@ -78,7 +78,7 @@ export default function Secure24ReferralSettings() {
         </button>
       </div>
 
-      {error && <p className="mt-3 text-sm font-bold text-red-400">{error}</p>}
+      {error && <p className="mt-3 text-sm font-bold text-[var(--fl-crit-text)]">{error}</p>}
     </div>
   );
 }

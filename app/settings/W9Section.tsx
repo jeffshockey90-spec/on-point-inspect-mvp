@@ -43,12 +43,12 @@ function HistoryRow({ entry, isCurrent }: { entry: HistoryEntry; isCurrent: bool
         <p className="text-xs font-bold text-[var(--fl-text)]">
           {new Date(entry.created_at).toLocaleString("en-US", { timeZone: "UTC", month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}
           {isCurrent && (
-            <span className="ml-2 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-emerald-300">
+            <span className="ml-2 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-[var(--fl-good-text)]">
               Current
             </span>
           )}
         </p>
-        {error && <p className="mt-1 text-[11px] font-bold text-red-400">{error}</p>}
+        {error && <p className="mt-1 text-[11px] font-bold text-[var(--fl-crit-text)]">{error}</p>}
       </div>
       <button
         type="button"

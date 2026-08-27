@@ -266,8 +266,8 @@ export default function SignupPage() {
             <div
               className={`rounded-xl border p-3 text-sm ${
                 isSuccess
-                  ? "border-emerald-700 bg-emerald-500/10 text-emerald-300"
-                  : "border-red-800 bg-red-500/10 text-red-300"
+                  ? "border-emerald-700 bg-emerald-500/10 text-[var(--fl-good-text)]"
+                  : "border-red-800 bg-red-500/10 text-[var(--fl-crit-text)]"
               }`}
             >
               {message}

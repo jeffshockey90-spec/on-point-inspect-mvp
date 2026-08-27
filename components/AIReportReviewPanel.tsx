@@ -111,23 +111,23 @@ function jumpToFinding(findingId?: string | number, section?: string) {
 }
 
 function scoreTone(score: number) {
-  if (score >= 90) return "border-emerald-500/50 bg-emerald-500/10 text-emerald-300";
-  if (score >= 75) return "border-yellow-500/50 bg-yellow-500/10 text-yellow-300";
-  return "border-red-500/50 bg-red-500/10 text-red-300";
+  if (score >= 90) return "border-emerald-500/50 bg-emerald-500/10 text-[var(--fl-good-text)]";
+  if (score >= 75) return "border-yellow-500/50 bg-yellow-500/10 text-[var(--fl-warn-text)]";
+  return "border-red-500/50 bg-red-500/10 text-[var(--fl-crit-text)]";
 }
 
 function recommendationTone(value: string) {
   const clean = safeText(value).toLowerCase();
 
   if (clean.includes("ready")) {
-    return "border-emerald-500/50 bg-emerald-500/10 text-emerald-300";
+    return "border-emerald-500/50 bg-emerald-500/10 text-[var(--fl-good-text)]";
   }
 
   if (clean.includes("do not")) {
-    return "border-red-500/50 bg-red-500/10 text-red-300";
+    return "border-red-500/50 bg-red-500/10 text-[var(--fl-crit-text)]";
   }
 
-  return "border-yellow-500/50 bg-yellow-500/10 text-yellow-300";
+  return "border-yellow-500/50 bg-yellow-500/10 text-[var(--fl-warn-text)]";
 }
 
 function ReviewList({
@@ -156,7 +156,7 @@ function ReviewList({
       </div>
 
       {cleanItems.length === 0 ? (
-        <p className="mt-3 text-sm font-bold text-emerald-300">{emptyText}</p>
+        <p className="mt-3 text-sm font-bold text-[var(--fl-good-text)]">{emptyText}</p>
       ) : (
         <ul className="mt-3 space-y-2">
           {cleanItems.map((item, index) =>
@@ -168,7 +168,7 @@ function ReviewList({
                   className={`flex w-full items-start justify-between gap-2 rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-3 py-2 text-left text-sm leading-6 transition hover:border-purple-400/60 hover:bg-purple-500/10 ${tone}`}
                 >
                   <span className="min-w-0">{item.text}</span>
-                  <span className="mt-0.5 shrink-0 text-xs font-semibold text-purple-300">
+                  <span className="mt-0.5 shrink-0 text-xs font-semibold text-[var(--fl-purple-text)]">
                     Fix →
                   </span>
                 </button>
@@ -259,7 +259,7 @@ export default function AIReportReviewPanel({
     <section className="mb-8 rounded-2xl border border-purple-500/40 bg-purple-500/10 p-4 shadow-xl">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-purple-300">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fl-purple-text)]">
             AI Report Review
           </p>
 
@@ -285,7 +285,7 @@ export default function AIReportReviewPanel({
       </div>
 
       {message && (
-        <div className="mt-4 rounded-xl border border-purple-500/40 bg-purple-500/10 p-3 text-sm font-bold text-purple-200">
+        <div className="mt-4 rounded-xl border border-purple-500/40 bg-purple-500/10 p-3 text-sm font-bold text-[var(--fl-purple-text)]">
           {message}
         </div>
       )}
@@ -294,11 +294,11 @@ export default function AIReportReviewPanel({
         <div className="mt-4 rounded-xl border border-amber-500/50 bg-amber-500/10 p-4">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-sm font-semibold text-amber-200">{serviceError.title}</p>
-              <p className="mt-1 max-w-3xl text-sm leading-6 text-amber-100/90">
+              <p className="text-sm font-semibold text-[var(--fl-warn-text)]">{serviceError.title}</p>
+              <p className="mt-1 max-w-3xl text-sm leading-6 text-[var(--fl-warn-text)]/90">
                 {serviceError.message}
               </p>
-              <p className="mt-2 text-xs font-bold uppercase tracking-wide text-amber-300/80">
+              <p className="mt-2 text-xs font-bold uppercase tracking-wide text-[var(--fl-warn-text)]/80">
                 Your report is safe. Publish Guard remains available.
               </p>
             </div>
@@ -323,7 +323,7 @@ export default function AIReportReviewPanel({
             </div>
           </div>
           {serviceError.code && (
-            <details className="mt-3 text-xs text-amber-200/70">
+            <details className="mt-3 text-xs text-[var(--fl-warn-text)]/70">
               <summary className="cursor-pointer font-bold">Owner diagnostics</summary>
               <p className="mt-2">Code: {serviceError.code}</p>
               {serviceError.retryAfterSeconds ? <p>Retry after: {serviceError.retryAfterSeconds}s</p> : null}
@@ -387,14 +387,14 @@ export default function AIReportReviewPanel({
             title="Critical Issues"
             items={review.criticalIssues}
             emptyText="No critical issues found."
-            tone="text-red-300"
+            tone="text-[var(--fl-crit-text)]"
           />
 
           <ReviewList
             title="Warnings"
             items={review.warnings}
             emptyText="No warnings found."
-            tone="text-yellow-300"
+            tone="text-[var(--fl-warn-text)]"
           />
 
           <ReviewList
@@ -433,7 +433,7 @@ export default function AIReportReviewPanel({
             </h3>
 
             {!review.baseIssues?.length ? (
-              <p className="mt-3 text-sm font-bold text-emerald-300">
+              <p className="mt-3 text-sm font-bold text-[var(--fl-good-text)]">
                 No base quality issues found.
               </p>
             ) : (
@@ -447,7 +447,7 @@ export default function AIReportReviewPanel({
                         className="flex w-full items-start justify-between gap-2 rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-3 py-2 text-left text-sm leading-6 text-[var(--fl-muted)] transition hover:border-purple-400/60 hover:bg-purple-500/10"
                       >
                         <span className="min-w-0">{item.text}</span>
-                        <span className="mt-0.5 shrink-0 text-xs font-semibold text-purple-300">
+                        <span className="mt-0.5 shrink-0 text-xs font-semibold text-[var(--fl-purple-text)]">
                           Fix →
                         </span>
                       </button>

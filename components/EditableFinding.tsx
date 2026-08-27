@@ -567,7 +567,7 @@ function EditableFinding({
               onClick={saveRepairRequestSettings}
               disabled={savingRepair}
               aria-busy={savingRepair}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-orange-500 px-3 py-3 text-xs font-semibold text-orange-400 transition active:scale-[0.98] hover:bg-orange-500/10 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:px-5 sm:text-sm [touch-action:manipulation]"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-orange-500 px-3 py-3 text-xs font-semibold text-[var(--fl-warn-text)] transition active:scale-[0.98] hover:bg-orange-500/10 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:px-5 sm:text-sm [touch-action:manipulation]"
             >
               <Spinner active={savingRepair} />
               {repairLabel}
@@ -616,7 +616,7 @@ function EditableFinding({
             }}
             disabled={movingSection}
             aria-expanded={movePanelOpen}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-purple-500 bg-purple-500/10 px-3 py-3 text-xs font-semibold text-purple-200 transition active:scale-[0.98] hover:bg-purple-500/20 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:px-5 sm:text-sm [touch-action:manipulation]"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-purple-500 bg-purple-500/10 px-3 py-3 text-xs font-semibold text-[var(--fl-purple-text)] transition active:scale-[0.98] hover:bg-purple-500/20 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:px-5 sm:text-sm [touch-action:manipulation]"
           >
             <Spinner active={movingSection} />
             {movingSection ? "Moving..." : "Move Finding"}
@@ -627,7 +627,7 @@ function EditableFinding({
             onClick={saveToLibrary}
             disabled={savingTemplate}
             aria-busy={savingTemplate}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-500 px-3 py-3 text-xs font-semibold text-cyan-300 transition active:scale-[0.98] hover:bg-cyan-500/10 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:px-5 sm:text-sm [touch-action:manipulation]"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-500 px-3 py-3 text-xs font-semibold text-[var(--fl-info-text)] transition active:scale-[0.98] hover:bg-cyan-500/10 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:px-5 sm:text-sm [touch-action:manipulation]"
           >
             <Spinner active={savingTemplate} />
             {templateLabel}
@@ -648,7 +648,7 @@ function EditableFinding({
         {movePanelOpen && (
           <div className="w-full max-w-full rounded-2xl border border-purple-500/60 bg-purple-500/10 p-3 shadow-xl sm:p-4">
             <div className="mb-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-purple-300">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--fl-purple-text)]">
                 Move Finding
               </p>
               <p className="mt-1 text-sm font-bold text-[var(--fl-muted)]">
@@ -795,8 +795,8 @@ function InlineStatusMessage({
     <div
       className={`rounded-xl border p-3 text-sm font-bold ${
         isSuccess
-          ? "border-emerald-500 bg-emerald-500/10 text-emerald-300"
-          : "border-red-500 bg-red-500/10 text-red-300"
+          ? "border-emerald-500 bg-emerald-500/10 text-[var(--fl-good-text)]"
+          : "border-red-500 bg-red-500/10 text-[var(--fl-crit-text)]"
       }`}
     >
       {message}

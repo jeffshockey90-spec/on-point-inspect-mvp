@@ -546,11 +546,11 @@ function getRepairRequestStatus(share: any, responseCount = 0) {
 function getRepairRequestStatusClass(status: string) {
   const clean = String(status || "").toLowerCase();
 
-  if (clean.includes("fully")) return "border-emerald-400/60 bg-emerald-500/15 text-emerald-200";
+  if (clean.includes("fully")) return "border-emerald-400/60 bg-emerald-500/15 text-[var(--fl-good-text)]";
   if (clean.includes("seller") || clean.includes("responded")) return "border-teal-400/60 bg-teal-500/15 text-[var(--fl-accent-text)]";
-  if (clean.includes("viewed")) return "border-blue-400/60 bg-blue-500/15 text-blue-200";
-  if (clean.includes("failed")) return "border-red-400/60 bg-red-500/15 text-red-200";
-  return "border-yellow-400/60 bg-yellow-500/15 text-yellow-100";
+  if (clean.includes("viewed")) return "border-blue-400/60 bg-blue-500/15 text-[var(--fl-info-text)]";
+  if (clean.includes("failed")) return "border-red-400/60 bg-red-500/15 text-[var(--fl-crit-text)]";
+  return "border-yellow-400/60 bg-yellow-500/15 text-[var(--fl-warn-text)]";
 }
 
 function getRepairRequestSelectedCount(share: any) {
@@ -962,18 +962,18 @@ function getEquipmentStatusClass(value: any) {
   const clean = String(value || "").toLowerCase();
 
   if (clean.includes("operating normally") || clean.includes("no specific")) {
-    return "border-emerald-500/40 bg-emerald-500/10 text-emerald-300";
+    return "border-emerald-500/40 bg-emerald-500/10 text-[var(--fl-good-text)]";
   }
 
   if (clean.includes("safety") || clean.includes("service recommended")) {
-    return "border-orange-500/50 bg-orange-500/10 text-orange-300";
+    return "border-orange-500/50 bg-orange-500/10 text-[var(--fl-warn-text)]";
   }
 
   if (clean.includes("near end") || clean.includes("monitor")) {
-    return "border-yellow-500/50 bg-yellow-500/10 text-yellow-300";
+    return "border-yellow-500/50 bg-yellow-500/10 text-[var(--fl-warn-text)]";
   }
 
-  return "border-cyan-500/40 bg-cyan-500/10 text-cyan-300";
+  return "border-cyan-500/40 bg-cyan-500/10 text-[var(--fl-info-text)]";
 }
 
 function formatEquipmentCapacity(item: any) {
@@ -1088,7 +1088,7 @@ function AttentionPanel({
         </div>
 
         {badge ? (
-          <span className="shrink-0 rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold text-amber-200 sm:px-3 sm:text-xs">
+          <span className="shrink-0 rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold text-[var(--fl-warn-text)] sm:px-3 sm:text-xs">
             {badge}
           </span>
         ) : null}
@@ -2748,42 +2748,42 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
       ? {
           label: latestAgreementEmail ? "Send Reminder" : "Send Agreement",
           href: "#agreement-status",
-          className: "border-red-400 bg-red-500/15 text-red-100 hover:bg-red-500/25",
+          className: "border-red-400 bg-red-500/15 text-[var(--fl-crit-text)] hover:bg-red-500/25",
           commandTool: "",
         }
       : !nextWorkspaceNotification && agreementComplete && firstSignedAgreement?.id
         ? {
             label: "View Signed Agreement",
             href: `/reports/${inspection.id}/signed-agreement/${firstSignedAgreement.id}`,
-            className: "border-emerald-400 bg-emerald-500/15 text-emerald-100 hover:bg-emerald-500/25",
+            className: "border-emerald-400 bg-emerald-500/15 text-[var(--fl-good-text)] hover:bg-emerald-500/25",
             commandTool: "",
           }
       : nextWorkspaceNotification && nextWorkspaceText.includes("payment")
         ? {
             label: "Check Invoice",
             href: "#payment-invoice",
-            className: "border-red-400 bg-red-500/15 text-red-100 hover:bg-red-500/25",
+            className: "border-red-400 bg-red-500/15 text-[var(--fl-crit-text)] hover:bg-red-500/25",
             commandTool: "",
           }
         : nextWorkspaceNotification && nextWorkspaceText.includes("publish")
           ? {
               label: "Review Publish Guard",
               href: "#",
-              className: "border-yellow-400 bg-yellow-500/15 text-yellow-100 hover:bg-yellow-500/25",
+              className: "border-yellow-400 bg-yellow-500/15 text-[var(--fl-warn-text)] hover:bg-yellow-500/25",
               commandTool: "Final Publish Guard",
             }
           : nextWorkspaceNotification && (nextWorkspaceText.includes("safety") || nextWorkspaceText.includes("finding"))
             ? {
                 label: "Review Findings",
                 href: "#report-findings",
-                className: "border-yellow-400 bg-yellow-500/15 text-yellow-100 hover:bg-yellow-500/25",
+                className: "border-yellow-400 bg-yellow-500/15 text-[var(--fl-warn-text)] hover:bg-yellow-500/25",
                 commandTool: "",
               }
             : nextWorkspaceNotification && nextWorkspaceText.includes("repair")
               ? {
                   label: "Review Repair Request",
                   href: "#repair-request-history",
-                  className: "border-cyan-400 bg-cyan-500/15 text-cyan-100 hover:bg-cyan-500/25",
+                  className: "border-cyan-400 bg-cyan-500/15 text-[var(--fl-info-text)] hover:bg-cyan-500/25",
                   commandTool: "",
                 }
               : {
@@ -2837,8 +2837,8 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
               <span
                 className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${
                   reportIsPublished
-                    ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
-                    : "border-amber-500/40 bg-amber-500/10 text-amber-300"
+                    ? "border-emerald-500/40 bg-emerald-500/10 text-[var(--fl-good-text)]"
+                    : "border-amber-500/40 bg-amber-500/10 text-[var(--fl-warn-text)]"
                 }`}
               >
                 <span className={`h-1.5 w-1.5 rounded-full ${reportIsPublished ? "bg-emerald-400" : "bg-amber-400"}`} />
@@ -2847,8 +2847,8 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
               <span
                 className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${
                   isPaymentComplete(inspection)
-                    ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
-                    : "border-amber-500/40 bg-amber-500/10 text-amber-300"
+                    ? "border-emerald-500/40 bg-emerald-500/10 text-[var(--fl-good-text)]"
+                    : "border-amber-500/40 bg-amber-500/10 text-[var(--fl-warn-text)]"
                 }`}
               >
                 <span className={`h-1.5 w-1.5 rounded-full ${isPaymentComplete(inspection) ? "bg-emerald-400" : "bg-amber-400"}`} />
@@ -2857,8 +2857,8 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
               <span
                 className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${
                   agreementComplete
-                    ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
-                    : "border-amber-500/40 bg-amber-500/10 text-amber-300"
+                    ? "border-emerald-500/40 bg-emerald-500/10 text-[var(--fl-good-text)]"
+                    : "border-amber-500/40 bg-amber-500/10 text-[var(--fl-warn-text)]"
                 }`}
               >
                 <span className={`h-1.5 w-1.5 rounded-full ${agreementComplete ? "bg-emerald-400" : "bg-amber-400"}`} />
@@ -3109,7 +3109,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                 <DefectCountCard
                   label="Safety / Major"
                   value={defectTotals.safety}
-                  tone="text-red-300"
+                  tone="text-[var(--fl-crit-text)]"
                 />
                 <DefectCountCard
                   label="Recommended Repair"
@@ -3119,12 +3119,12 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                 <DefectCountCard
                   label="Maintenance / Monitor"
                   value={defectTotals.maintenance}
-                  tone="text-yellow-300"
+                  tone="text-[var(--fl-warn-text)]"
                 />
                 <DefectCountCard
                   label="Informational"
                   value={defectTotals.information}
-                  tone="text-blue-300"
+                  tone="text-[var(--fl-info-text)]"
                 />
               </div>
             </section>
@@ -3135,7 +3135,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                 className="rounded-2xl border border-cyan-500/40 bg-cyan-500/10 p-4"
               >
                 <div className="mb-4">
-                  <h2 className="text-2xl font-extrabold text-cyan-300">
+                  <h2 className="text-2xl font-extrabold text-[var(--fl-info-text)]">
                     Equipment Inventory
                   </h2>
 
@@ -3147,13 +3147,13 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                 </div>
 
                 {equipmentUpdateError && (
-                  <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-200">
+                  <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-bold text-[var(--fl-crit-text)]">
                     Couldn&apos;t save that equipment note. Please try again.
                   </div>
                 )}
 
                 {equipmentDeleteError && (
-                  <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-200">
+                  <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-bold text-[var(--fl-crit-text)]">
                     Couldn&apos;t delete that equipment record. Please try again.
                   </div>
                 )}
@@ -3185,7 +3185,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                           />
                         )}
 
-                        <p className="text-xs font-semibold uppercase tracking-wide text-cyan-300">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-info-text)]">
                           {item.equipment_type || "Equipment"}
                         </p>
 
@@ -3247,7 +3247,7 @@ Service-life information is a general industry estimate only. Actual service lif
                         </p>
 
                         <details className="mt-4 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3">
-                          <summary className="cursor-pointer select-none text-sm font-semibold text-cyan-300">
+                          <summary className="cursor-pointer select-none text-sm font-semibold text-[var(--fl-info-text)]">
                             Edit Equipment Note
                           </summary>
 
@@ -3307,7 +3307,7 @@ Service-life information is a general industry estimate only. Actual service lif
                           <input type="hidden" name="equipment_id" value={item.id} />
                           <ConfirmSubmitButton
                             confirmMessage="Delete this equipment record? This cannot be undone."
-                            className="w-full rounded-xl border border-red-500/50 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-300 transition hover:bg-red-500/20"
+                            className="w-full rounded-xl border border-red-500/50 bg-red-500/10 px-4 py-3 text-sm font-semibold text-[var(--fl-crit-text)] transition hover:bg-red-500/20"
                           >
                             Delete Equipment
                           </ConfirmSubmitButton>
@@ -3328,12 +3328,12 @@ Service-life information is a general industry estimate only. Actual service lif
                 ? `${inspectionWatchlistItems.length} item${inspectionWatchlistItems.length === 1 ? "" : "s"} to review before you finish`
                 : "No watchlist items yet"
             }
-            accentClassName="border-cyan-500/40 text-cyan-100"
+            accentClassName="border-cyan-500/40 text-[var(--fl-info-text)]"
           >
           <section className="mb-8 rounded-2xl border border-cyan-500/40 bg-cyan-500/10 p-5 shadow-xl">
             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-200">
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--fl-info-text)]">
                   AI Inspection Watchlist
                 </p>
                 <h2 className="mt-2 text-2xl font-semibold text-[var(--fl-text)]">
@@ -3348,7 +3348,7 @@ Service-life information is a general industry estimate only. Actual service lif
 
               <a
                 href="#report-disclaimers"
-                className="w-fit rounded-xl border border-cyan-300 bg-cyan-400/10 px-4 py-3 text-sm font-semibold text-cyan-100 hover:bg-cyan-400/20"
+                className="w-fit rounded-xl border border-cyan-300 bg-cyan-400/10 px-4 py-3 text-sm font-semibold text-[var(--fl-info-text)] hover:bg-cyan-400/20"
               >
                 Review Disclaimers
               </a>
@@ -3362,7 +3362,7 @@ Service-life information is a general industry estimate only. Actual service lif
                     className="rounded-xl border border-cyan-400/30 bg-[var(--fl-ground)] p-4"
                   >
                     <p className="text-base font-semibold text-[var(--fl-text)]">{item.title}</p>
-                    <p className="mt-2 text-sm leading-6 text-cyan-100">{item.reason}</p>
+                    <p className="mt-2 text-sm leading-6 text-[var(--fl-info-text)]">{item.reason}</p>
                     {item.tips?.length ? (
                       <ul className="mt-3 space-y-1 text-xs font-bold leading-5 text-[var(--fl-muted)]">
                         {item.tips.map((tip: string) => (
@@ -3401,8 +3401,8 @@ Service-life information is a general industry estimate only. Actual service lif
                 <span
                   className={`rounded-full border px-4 py-2 text-sm font-semibold ${
                     reportIsPublished
-                      ? "border-green-400/70 bg-green-500/10 text-green-300"
-                      : "border-yellow-400/70 bg-yellow-500/10 text-yellow-200"
+                      ? "border-green-400/70 bg-green-500/10 text-[var(--fl-good-text)]"
+                      : "border-yellow-400/70 bg-yellow-500/10 text-[var(--fl-warn-text)]"
                   }`}
                 >
                   {reportIsPublished ? "Published" : "In Progress"}
@@ -3411,8 +3411,8 @@ Service-life information is a general industry estimate only. Actual service lif
                 <span
                   className={`rounded-full border px-4 py-2 text-sm font-semibold ${
                     inspectorWorkspaceNotifications.length > 0
-                      ? "border-red-400/70 bg-red-500/10 text-red-200"
-                      : "border-emerald-400/70 bg-emerald-500/10 text-emerald-200"
+                      ? "border-red-400/70 bg-red-500/10 text-[var(--fl-crit-text)]"
+                      : "border-emerald-400/70 bg-emerald-500/10 text-[var(--fl-good-text)]"
                   }`}
                 >
                   {inspectorWorkspaceNotifications.length > 0
@@ -3457,8 +3457,8 @@ Service-life information is a general industry estimate only. Actual service lif
                     key={item.label}
                     className={`rounded-xl border px-3 py-2 text-sm font-semibold ${
                       item.complete
-                        ? "border-emerald-400/50 bg-emerald-500/10 text-emerald-200"
-                        : "border-yellow-400/50 bg-yellow-500/10 text-yellow-100"
+                        ? "border-emerald-400/50 bg-emerald-500/10 text-[var(--fl-good-text)]"
+                        : "border-yellow-400/50 bg-yellow-500/10 text-[var(--fl-warn-text)]"
                     }`}
                   >
                     {item.complete ? "✓" : "⚠"} {item.label}
@@ -3485,27 +3485,27 @@ Service-life information is a general industry estimate only. Actual service lif
               </div>
 
               <div className="rounded-2xl border border-red-500/40 bg-red-500/10 p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-red-200">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-crit-text)]">
                   Safety / Major
                 </p>
                 <p className="mt-2 text-3xl font-semibold text-[var(--fl-text)]">{defectTotals.safety}</p>
-                <p className="mt-1 text-xs font-bold text-red-100/70">Priority concerns</p>
+                <p className="mt-1 text-xs font-bold text-[var(--fl-crit-text)]/70">Priority concerns</p>
               </div>
 
               <div className="rounded-2xl border border-orange-500/40 bg-orange-500/10 p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-orange-200">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-warn-text)]">
                   Client Summary
                 </p>
                 <p className="mt-2 text-3xl font-semibold text-[var(--fl-text)]">{defectTotals.total}</p>
-                <p className="mt-1 text-xs font-bold text-orange-100/70">Defects shown to client</p>
+                <p className="mt-1 text-xs font-bold text-[var(--fl-warn-text)]/70">Defects shown to client</p>
               </div>
 
               <div className="rounded-2xl border border-purple-500/40 bg-purple-500/10 p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-purple-200">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-purple-text)]">
                   Repair Requests
                 </p>
                 <p className="mt-2 text-3xl font-semibold text-[var(--fl-text)]">{repairRequestHistory.length}</p>
-                <p className="mt-1 text-xs font-bold text-purple-100/70">Negotiation history</p>
+                <p className="mt-1 text-xs font-bold text-[var(--fl-purple-text)]/70">Negotiation history</p>
               </div>
             </div>
 
@@ -3519,14 +3519,14 @@ Service-life information is a general industry estimate only. Actual service lif
                   <p className="text-xl font-semibold text-[var(--fl-text)]">
                     {nextWorkspaceNotification.title || "Review report alert"}
                   </p>
-                  <p className="mt-2 text-sm font-bold leading-6 text-red-100/80">
+                  <p className="mt-2 text-sm font-bold leading-6 text-[var(--fl-crit-text)]/80">
                     {nextWorkspaceNotification.message || "Open the Command Center and clear this before delivery."}
                   </p>
                 </div>
               ) : (
                 <div className="mt-3 rounded-2xl border border-emerald-400/50 bg-emerald-500/10 p-4">
                   <p className="text-xl font-semibold text-[var(--fl-text)]">No active blockers</p>
-                  <p className="mt-2 text-sm font-bold leading-6 text-emerald-100/80">
+                  <p className="mt-2 text-sm font-bold leading-6 text-[var(--fl-good-text)]/80">
                     Keep writing the report or use the delivery tools when you are ready.
                   </p>
                 </div>
@@ -3718,7 +3718,7 @@ Service-life information is a general industry estimate only. Actual service lif
                       <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className="rounded-full border border-orange-400/60 bg-orange-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-orange-200">
+                            <span className="rounded-full border border-orange-400/60 bg-orange-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[var(--fl-warn-text)]">
                               {item.label}
                             </span>
                             <span className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase ${getRepairRequestStatusClass(item.status)}`}>
@@ -3746,7 +3746,7 @@ Service-life information is a general industry estimate only. Actual service lif
                             <p className="mt-1 text-lg font-semibold text-[var(--fl-text)]">{item.selectedCount}</p>
                           </div>
                           <div className="rounded-xl border border-cyan-500/40 bg-cyan-500/10 p-3">
-                            <p className="text-[10px] font-semibold uppercase tracking-wide text-cyan-200">
+                            <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--fl-info-text)]">
                               Requested
                             </p>
                             <p className="mt-1 text-lg font-semibold text-[var(--fl-text)]">
@@ -3754,7 +3754,7 @@ Service-life information is a general industry estimate only. Actual service lif
                             </p>
                           </div>
                           <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3">
-                            <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-200">
+                            <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--fl-good-text)]">
                               Seller
                             </p>
                             <p className="mt-1 text-lg font-semibold text-[var(--fl-text)]">
@@ -3762,14 +3762,14 @@ Service-life information is a general industry estimate only. Actual service lif
                             </p>
                           </div>
                           <div className="rounded-xl border border-purple-500/40 bg-purple-500/10 p-3">
-                            <p className="text-[10px] font-semibold uppercase tracking-wide text-purple-200">
+                            <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--fl-purple-text)]">
                               Difference
                             </p>
                             <p className={`mt-1 text-lg font-semibold ${
                               item.difference < 0
-                                ? "text-red-200"
+                                ? "text-[var(--fl-crit-text)]"
                                 : item.difference > 0
-                                  ? "text-emerald-200"
+                                  ? "text-[var(--fl-good-text)]"
                                   : "text-[var(--fl-text)]"
                             }`}>
                               {item.responses.length ? formatRepairMoney(item.difference) : "—"}
@@ -3782,7 +3782,7 @@ Service-life information is a general industry estimate only. Actual service lif
                         <FastLinkButton
                           href={repairBuilderHref}
                           loadingText="Opening Request..."
-                          className="rounded-xl border border-orange-500 bg-orange-500/10 px-4 py-3 text-center text-sm font-semibold text-orange-200 hover:bg-orange-500/20"
+                          className="rounded-xl border border-orange-500 bg-orange-500/10 px-4 py-3 text-center text-sm font-semibold text-[var(--fl-warn-text)] hover:bg-orange-500/20"
                         >
                           Open Request
                         </FastLinkButton>
@@ -3802,7 +3802,7 @@ Service-life information is a general industry estimate only. Actual service lif
                             href={addendumHref}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-purple-500 bg-purple-500/10 px-4 py-3 text-center text-sm font-semibold text-purple-200 transition hover:bg-purple-500/20 active:scale-[0.98]"
+                            className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-purple-500 bg-purple-500/10 px-4 py-3 text-center text-sm font-semibold text-[var(--fl-purple-text)] transition hover:bg-purple-500/20 active:scale-[0.98]"
                           >
                             Open Addendum
                           </a>
@@ -3811,7 +3811,7 @@ Service-life information is a general industry estimate only. Actual service lif
                         {downloadHref ? (
                           <a
                             href={downloadHref}
-                            className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-cyan-500 bg-cyan-500/10 px-4 py-3 text-center text-sm font-semibold text-cyan-200 transition hover:bg-cyan-500/20 active:scale-[0.98]"
+                            className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-cyan-500 bg-cyan-500/10 px-4 py-3 text-center text-sm font-semibold text-[var(--fl-info-text)] transition hover:bg-cyan-500/20 active:scale-[0.98]"
                           >
                             Download
                           </a>
@@ -4110,7 +4110,7 @@ Service-life information is a general industry estimate only. Actual service lif
                       </p>
 
                       {viewer.totalSeconds > 0 && (
-                        <p className="mt-1 text-xs leading-5 text-purple-300">
+                        <p className="mt-1 text-xs leading-5 text-[var(--fl-purple-text)]">
                           <span className="font-bold text-[var(--fl-text)]">Read time:</span>{" "}
                           {formatDuration(viewer.totalSeconds)}
                         </p>
@@ -4140,12 +4140,12 @@ Service-life information is a general industry estimate only. Actual service lif
             title="Executive Summary"
             subtitle={executiveSummary ? "Saved" : "Not generated yet"}
             defaultOpen={Boolean(executiveSummary)}
-            accentClassName="border-purple-500/40 text-purple-100"
+            accentClassName="border-purple-500/40 text-[var(--fl-purple-text)]"
           >
           <section className="mb-8 rounded-2xl border border-purple-500/40 bg-[var(--fl-surface-2)] p-4 shadow-xl">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <h2 className="text-2xl font-bold text-purple-300">
+                <h2 className="text-2xl font-bold text-[var(--fl-purple-text)]">
                   Executive Summary
                 </h2>
 
@@ -4157,8 +4157,8 @@ Service-life information is a general industry estimate only. Actual service lif
               <span
                 className={`rounded-full border px-3 py-1 text-xs font-semibold ${
                   executiveSummary
-                    ? "border-green-500/40 bg-green-500/10 text-green-300"
-                    : "border-yellow-500/40 bg-yellow-500/10 text-yellow-300"
+                    ? "border-green-500/40 bg-green-500/10 text-[var(--fl-good-text)]"
+                    : "border-yellow-500/40 bg-yellow-500/10 text-[var(--fl-warn-text)]"
                 }`}
               >
                 {executiveSummary ? "Saved" : "Not Generated Yet"}
@@ -4203,7 +4203,7 @@ Service-life information is a general industry estimate only. Actual service lif
           </div>
 
           <div className="mb-8 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
-            <h2 className="mb-4 text-2xl font-bold text-amber-300">
+            <h2 className="mb-4 text-2xl font-bold text-[var(--fl-warn-text)]">
               Email W9 Form
             </h2>
 
@@ -4226,7 +4226,7 @@ Service-life information is a general industry estimate only. Actual service lif
               title="Environmental Testing"
               subtitle="Mold/radon test details and the lab report link shown on the client report"
               defaultOpen={false}
-              accentClassName="border-purple-500/40 text-purple-100"
+              accentClassName="border-purple-500/40 text-[var(--fl-purple-text)]"
             >
               <EnvironmentalTestPanel
                 inspectionId={String(inspection.id)}
@@ -4242,12 +4242,12 @@ Service-life information is a general industry estimate only. Actual service lif
             title="Signed Agreements"
             subtitle={`${signedAgreements.length} signed`}
             defaultOpen={false}
-            accentClassName="border-emerald-500/40 text-emerald-100"
+            accentClassName="border-emerald-500/40 text-[var(--fl-good-text)]"
           >
           <section className="mb-6 rounded-2xl border border-emerald-500/40 bg-[var(--fl-surface-2)] p-4 shadow-xl">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <h2 className="text-2xl font-bold text-emerald-300">
+                <h2 className="text-2xl font-bold text-[var(--fl-good-text)]">
                   Signed Agreements
                 </h2>
 
@@ -4256,7 +4256,7 @@ Service-life information is a general industry estimate only. Actual service lif
                 </p>
               </div>
 
-              <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-emerald-300">
+              <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[var(--fl-good-text)]">
                 {signedAgreements.length} Signed
               </span>
             </div>
@@ -4282,7 +4282,7 @@ Service-life information is a general industry estimate only. Actual service lif
                           {agreement.client_email || "No email saved"}
                         </p>
 
-                        <p className="mt-1 text-xs font-bold uppercase tracking-wide text-emerald-300">
+                        <p className="mt-1 text-xs font-bold uppercase tracking-wide text-[var(--fl-good-text)]">
                           {agreement.signature_role || "client"} • Signed {formatEmailStatusDate(agreement.signed_at)}
                         </p>
                       </div>
@@ -4318,13 +4318,13 @@ Service-life information is a general industry estimate only. Actual service lif
           >
           <section className="mb-6 overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)]">
             {propertyPhotoUpdated && (
-              <div className="border-b border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm font-bold text-emerald-300">
+              <div className="border-b border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm font-bold text-[var(--fl-good-text)]">
                 Property photo updated.
               </div>
             )}
 
             {propertyPhotoError && (
-              <div className="border-b border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-200">
+              <div className="border-b border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-bold text-[var(--fl-crit-text)]">
                 {getPropertyPhotoErrorMessage(propertyPhotoError)}
               </div>
             )}
@@ -4370,13 +4370,13 @@ Service-life information is a general industry estimate only. Actual service lif
             </div>
 
             {detailsUpdated && (
-              <div className="mb-6 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm font-bold text-emerald-300">
+              <div className="mb-6 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm font-bold text-[var(--fl-good-text)]">
                 Inspection details saved.
               </div>
             )}
 
             {detailsUpdateError && (
-              <div className="mb-6 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-200">
+              <div className="mb-6 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-bold text-[var(--fl-crit-text)]">
                 Couldn&apos;t save inspection details. Please try again.
               </div>
             )}
@@ -4550,7 +4550,7 @@ function ViewerRoleStatusCard({
 
           <p
             className={`mt-2 text-2xl font-semibold ${
-              viewed ? "text-green-300" : "text-yellow-300"
+              viewed ? "text-[var(--fl-good-text)]" : "text-[var(--fl-warn-text)]"
             }`}
           >
             {viewed ? "Yes" : "No"}
@@ -4560,8 +4560,8 @@ function ViewerRoleStatusCard({
         <span
           className={`rounded-full border px-3 py-1 text-xs font-semibold ${
             viewed
-              ? "border-green-500/40 bg-green-500/10 text-green-300"
-              : "border-yellow-500/40 bg-yellow-500/10 text-yellow-300"
+              ? "border-green-500/40 bg-green-500/10 text-[var(--fl-good-text)]"
+              : "border-yellow-500/40 bg-yellow-500/10 text-[var(--fl-warn-text)]"
           }`}
         >
           {totalViews} view{totalViews === 1 ? "" : "s"}
@@ -4621,7 +4621,7 @@ function EmailStatusCard({
       </p>
 
       {!log ? (
-        <p className="mt-2 text-lg font-bold text-yellow-300">{emptyText}</p>
+        <p className="mt-2 text-lg font-bold text-[var(--fl-warn-text)]">{emptyText}</p>
       ) : (
         <div className="mt-3 space-y-2 text-sm text-[var(--fl-muted)]">
           <p>
@@ -4637,12 +4637,12 @@ function EmailStatusCard({
             {formatEmailStatusDate(sentAt)}
           </p>
           {deliveredAt && (
-            <p className="text-green-300">
+            <p className="text-[var(--fl-good-text)]">
               Delivered: {formatEmailStatusDate(deliveredAt)}
             </p>
           )}
           {openedAt && (
-            <p className="text-blue-300">
+            <p className="text-[var(--fl-info-text)]">
               Opened: {formatEmailStatusDate(openedAt)}
             </p>
           )}
@@ -4652,7 +4652,7 @@ function EmailStatusCard({
             </p>
           )}
           {failedAt && (
-            <p className="text-red-300">
+            <p className="text-[var(--fl-crit-text)]">
               Failed/Bounced: {formatEmailStatusDate(failedAt)}
             </p>
           )}
@@ -4690,15 +4690,15 @@ function ViewStatusCard({
       </div>
 
       {!log ? (
-        <p className="mt-2 text-lg font-bold text-yellow-300">{emptyText}</p>
+        <p className="mt-2 text-lg font-bold text-[var(--fl-warn-text)]">{emptyText}</p>
       ) : (
         <div className="mt-3 space-y-2 text-sm text-[var(--fl-muted)]">
-          <p className="text-green-300">
+          <p className="text-[var(--fl-good-text)]">
             Opened: {formatEmailStatusDate(log.created_at)}
           </p>
 
           {getDurationSeconds(log) > 0 && (
-            <p className="text-purple-300">
+            <p className="text-[var(--fl-purple-text)]">
               Time: {formatDuration(getDurationSeconds(log))}
             </p>
           )}
@@ -4849,7 +4849,7 @@ function EquipmentNoteBlock({
 
   return (
     <div className="mt-4 w-full rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-4">
-      <p className="text-xs font-semibold uppercase tracking-wide text-cyan-300">
+      <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-info-text)]">
         {label}
       </p>
       <p className="mt-2 whitespace-pre-line text-sm leading-6 text-[var(--fl-text)]">

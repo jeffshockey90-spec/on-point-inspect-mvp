@@ -60,6 +60,6 @@ export default function OwnerAccountActions({ userId, email, currentRole = "user
   );
 }
 function ActionButton({ label, activeLabel, action, busyAction, busy, onClick, tone }: { label: string; activeLabel: string; action: string; busyAction: string; busy: boolean; onClick: () => void; tone: string }) {
-  const classes: Record<string, string> = { yellow: "border-yellow-500 text-yellow-300 hover:bg-yellow-500/10", green: "border-green-500 text-green-300 hover:bg-green-500/10", blue: "border-blue-500 text-blue-300 hover:bg-blue-500/10", purple: "border-purple-500 text-purple-300 hover:bg-purple-500/10", red: "border-red-500 text-red-300 hover:bg-red-500/10" };
+  const classes: Record<string, string> = { yellow: "border-yellow-500 text-[var(--fl-warn-text)] hover:bg-yellow-500/10", green: "border-green-500 text-[var(--fl-good-text)] hover:bg-green-500/10", blue: "border-blue-500 text-[var(--fl-info-text)] hover:bg-blue-500/10", purple: "border-purple-500 text-[var(--fl-purple-text)] hover:bg-purple-500/10", red: "border-red-500 text-[var(--fl-crit-text)] hover:bg-red-500/10" };
   return <button type="button" onClick={onClick} disabled={busy} className={`rounded-lg border px-3 py-2 text-xs font-semibold disabled:opacity-60 ${classes[tone]}`}>{busyAction === action ? activeLabel : label}</button>;
 }

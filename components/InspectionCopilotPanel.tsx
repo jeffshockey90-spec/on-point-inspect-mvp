@@ -44,15 +44,15 @@ type CopilotResult = {
 
 function scoreTone(score?: number) {
   const value = Number(score || 0);
-  if (value >= 90) return "border-emerald-500/50 bg-emerald-500/10 text-emerald-300";
-  if (value >= 75) return "border-yellow-500/50 bg-yellow-500/10 text-yellow-300";
-  return "border-red-500/50 bg-red-500/10 text-red-300";
+  if (value >= 90) return "border-emerald-500/50 bg-emerald-500/10 text-[var(--fl-good-text)]";
+  if (value >= 75) return "border-yellow-500/50 bg-yellow-500/10 text-[var(--fl-warn-text)]";
+  return "border-red-500/50 bg-red-500/10 text-[var(--fl-crit-text)]";
 }
 
 function issueTone(severity?: string) {
-  if (severity === "critical") return "border-red-500/50 bg-red-500/10 text-red-200";
-  if (severity === "warning") return "border-yellow-500/50 bg-yellow-500/10 text-yellow-100";
-  return "border-cyan-500/40 bg-cyan-500/10 text-cyan-100";
+  if (severity === "critical") return "border-red-500/50 bg-red-500/10 text-[var(--fl-crit-text)]";
+  if (severity === "warning") return "border-yellow-500/50 bg-yellow-500/10 text-[var(--fl-warn-text)]";
+  return "border-cyan-500/40 bg-cyan-500/10 text-[var(--fl-info-text)]";
 }
 
 function quickQuestions() {
@@ -320,7 +320,7 @@ export default function InspectionCopilotPanel({
     <section ref={rootRef} className="rounded-2xl border border-indigo-500/40 bg-indigo-500/10 p-4 shadow-xl">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-indigo-300">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fl-purple-text)]">
             Inspection Copilot
           </p>
           <h2 className="mt-1 text-2xl font-semibold text-[var(--fl-text)]">
@@ -353,7 +353,7 @@ export default function InspectionCopilotPanel({
       </div>
 
       {message && (
-        <div className="mt-4 rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm font-bold text-red-200">
+        <div className="mt-4 rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm font-bold text-[var(--fl-crit-text)]">
           {message}
         </div>
       )}
@@ -388,7 +388,7 @@ export default function InspectionCopilotPanel({
               onClick={toggleVoiceReplies}
               className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold transition ${
                 voiceReplies
-                  ? "border-indigo-400 bg-indigo-500/20 text-indigo-200"
+                  ? "border-indigo-400 bg-indigo-500/20 text-[var(--fl-purple-text)]"
                   : "border-[var(--fl-line)] text-[var(--fl-muted)] hover:text-[var(--fl-text)]"
               }`}
             >
@@ -404,7 +404,7 @@ export default function InspectionCopilotPanel({
               type="button"
               onClick={() => askCopilot(item)}
               disabled={loading || !inspectionId}
-              className="rounded-full border border-indigo-500/40 bg-indigo-500/10 px-3 py-2 text-xs font-semibold text-indigo-200 transition hover:bg-indigo-500/20 disabled:opacity-60"
+              className="rounded-full border border-indigo-500/40 bg-indigo-500/10 px-3 py-2 text-xs font-semibold text-[var(--fl-purple-text)] transition hover:bg-indigo-500/20 disabled:opacity-60"
             >
               {item}
             </button>
@@ -449,7 +449,7 @@ export default function InspectionCopilotPanel({
         </div>
 
         {result?.answer && (
-          <div className="mt-3 whitespace-pre-line rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-3 text-sm leading-6 text-indigo-100">
+          <div className="mt-3 whitespace-pre-line rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-3 text-sm leading-6 text-[var(--fl-purple-text)]">
             {result.answer}
           </div>
         )}
@@ -468,7 +468,7 @@ export default function InspectionCopilotPanel({
             </div>
 
             {topIssues.length === 0 ? (
-              <p className="mt-3 text-sm font-bold text-emerald-300">
+              <p className="mt-3 text-sm font-bold text-[var(--fl-good-text)]">
                 No major copilot review items detected.
               </p>
             ) : (
@@ -491,7 +491,7 @@ export default function InspectionCopilotPanel({
             </div>
 
             {result.missingSystems.length === 0 ? (
-              <p className="mt-3 text-sm font-bold text-emerald-300">
+              <p className="mt-3 text-sm font-bold text-[var(--fl-good-text)]">
                 Core systems appear represented in saved data.
               </p>
             ) : (
@@ -499,7 +499,7 @@ export default function InspectionCopilotPanel({
                 {result.missingSystems.map((system) => (
                   <span
                     key={system}
-                    className="rounded-full border border-yellow-500/40 bg-yellow-500/10 px-3 py-2 text-xs font-semibold text-yellow-200"
+                    className="rounded-full border border-yellow-500/40 bg-yellow-500/10 px-3 py-2 text-xs font-semibold text-[var(--fl-warn-text)]"
                   >
                     {system}
                   </span>
@@ -521,7 +521,7 @@ export default function InspectionCopilotPanel({
 
       {result?.relatedFindings?.length ? (
         <div className="mt-5 rounded-xl border border-cyan-500/40 bg-cyan-500/10 p-4">
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-cyan-300">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-[var(--fl-info-text)]">
             Possible Related Findings
           </h3>
 
@@ -530,7 +530,7 @@ export default function InspectionCopilotPanel({
               <div key={cluster.id} className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3">
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <p className="font-semibold text-[var(--fl-text)]">{cluster.title}</p>
-                  <span className="rounded-full border border-cyan-500/40 bg-cyan-500/10 px-2 py-1 text-xs font-semibold text-cyan-200">
+                  <span className="rounded-full border border-cyan-500/40 bg-cyan-500/10 px-2 py-1 text-xs font-semibold text-[var(--fl-info-text)]">
                     {cluster.confidence}% confidence
                   </span>
                 </div>
@@ -538,13 +538,13 @@ export default function InspectionCopilotPanel({
                 <div className="mt-3 grid gap-2">
                   {cluster.findings.map((finding, index) => (
                     <div key={`${cluster.id}-${finding.id || index}`} className="rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-3 py-2 text-xs text-[var(--fl-muted)]">
-                      <span className="font-semibold text-cyan-200">{finding.section || "General"}</span>
+                      <span className="font-semibold text-[var(--fl-info-text)]">{finding.section || "General"}</span>
                       {" — "}
                       {finding.title}
                     </div>
                   ))}
                 </div>
-                <p className="mt-3 text-xs font-bold leading-5 text-cyan-100">
+                <p className="mt-3 text-xs font-bold leading-5 text-[var(--fl-info-text)]">
                   {cluster.recommendation}
                 </p>
               </div>

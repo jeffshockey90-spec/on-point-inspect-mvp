@@ -93,10 +93,10 @@ function OwnerNav({ unread = 0 }: { unread?: number }) {
 }
 
 function statusOf(m: any) {
-  if (m.bounced_at || m.status === "failed") return { label: "Failed", tone: "border-red-500/40 bg-red-500/10 text-red-300" };
+  if (m.bounced_at || m.status === "failed") return { label: "Failed", tone: "border-red-500/40 bg-red-500/10 text-[var(--fl-crit-text)]" };
   if (m.clicked_at) return { label: "Clicked", tone: "border-teal-400/40 bg-teal-500/10 text-[var(--fl-accent-text)]" };
-  if (m.opened_at) return { label: "Opened", tone: "border-blue-400/40 bg-blue-500/10 text-blue-200" };
-  if (m.delivered_at) return { label: "Delivered", tone: "border-emerald-400/40 bg-emerald-500/10 text-emerald-200" };
+  if (m.opened_at) return { label: "Opened", tone: "border-blue-400/40 bg-blue-500/10 text-[var(--fl-info-text)]" };
+  if (m.delivered_at) return { label: "Delivered", tone: "border-emerald-400/40 bg-emerald-500/10 text-[var(--fl-good-text)]" };
   return { label: "Sent", tone: "border-[var(--fl-line)] bg-[var(--fl-raised)] text-[var(--fl-muted)]" };
 }
 
@@ -107,7 +107,7 @@ export default async function OwnerMailPage() {
       <main className="min-h-screen bg-[var(--fl-ground)] px-6 py-10 text-[var(--fl-text)]">
         <div className="mx-auto max-w-3xl rounded-2xl border border-red-500/40 bg-red-500/10 p-8">
           <h1 className="text-4xl font-semibold">Owner Only</h1>
-          <Link href="/dashboard" className="mt-6 inline-flex rounded-xl border border-red-400 px-5 py-3 font-semibold text-red-300">Back</Link>
+          <Link href="/dashboard" className="mt-6 inline-flex rounded-xl border border-red-400 px-5 py-3 font-semibold text-[var(--fl-crit-text)]">Back</Link>
         </div>
       </main>
     );

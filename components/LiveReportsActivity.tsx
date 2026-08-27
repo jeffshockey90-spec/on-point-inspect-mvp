@@ -209,7 +209,7 @@ export default function LiveReportsActivity({
             <button
               type="button"
               onClick={() => setVisible(false)}
-              className="rounded-lg border border-[var(--fl-line)] px-2 py-1 text-xs font-semibold text-[var(--fl-muted)] transition hover:border-red-400 hover:text-red-300"
+              className="rounded-lg border border-[var(--fl-line)] px-2 py-1 text-xs font-semibold text-[var(--fl-muted)] transition hover:border-red-400 hover:text-[var(--fl-crit-text)]"
             >
               ✕
             </button>
@@ -220,7 +220,7 @@ export default function LiveReportsActivity({
           </p>
 
           {getViewType(latestEvent) === "payment_received" && paymentAmount && (
-            <p className="mt-1 text-sm font-semibold text-green-300">
+            <p className="mt-1 text-sm font-semibold text-[var(--fl-good-text)]">
               Amount: {paymentAmount}
             </p>
           )}

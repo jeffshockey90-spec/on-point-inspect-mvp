@@ -84,7 +84,7 @@ export default function SmsStatusCard() {
         <span
           className={`rounded-full border px-3 py-1 text-xs font-semibold ${
             status.configured
-              ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+              ? "border-emerald-500/40 bg-emerald-500/10 text-[var(--fl-good-text)]"
               : "border-[var(--fl-line)] bg-[var(--fl-raised)] text-[var(--fl-muted)]"
           }`}
         >
@@ -107,9 +107,9 @@ export default function SmsStatusCard() {
       ) : (
         <>
           {status.lowBalance && (
-            <div className="mt-5 rounded-xl border border-amber-500/50 bg-amber-500/10 p-4 text-sm text-amber-200">
+            <div className="mt-5 rounded-xl border border-amber-500/50 bg-amber-500/10 p-4 text-sm text-[var(--fl-warn-text)]">
               <p className="font-semibold">⚠ Low SMS balance</p>
-              <p className="mt-1 text-amber-200/90">
+              <p className="mt-1 text-[var(--fl-warn-text)]/90">
                 Your Twilio balance ({money(status.balance, status.currency)}) is below{" "}
                 {money(status.threshold, status.currency)}. Top up your Twilio account so
                 texts keep sending.
@@ -124,7 +124,7 @@ export default function SmsStatusCard() {
               </p>
               <p
                 className={`mt-1 text-2xl font-semibold ${
-                  status.lowBalance ? "text-amber-300" : "text-[var(--fl-accent-text)]"
+                  status.lowBalance ? "text-[var(--fl-warn-text)]" : "text-[var(--fl-accent-text)]"
                 }`}
               >
                 {status.balanceError ? "Unavailable" : money(status.balance, status.currency)}
@@ -166,7 +166,7 @@ export default function SmsStatusCard() {
             {testResult && (
               <p
                 className={`mt-2 text-xs ${
-                  testResult.ok ? "text-emerald-300" : "text-red-300"
+                  testResult.ok ? "text-[var(--fl-good-text)]" : "text-[var(--fl-crit-text)]"
                 }`}
               >
                 {testResult.message}

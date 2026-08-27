@@ -515,7 +515,7 @@ export default function Navbar() {
                         : opening
                           ? "bg-white/[0.04] text-[#1ac5b4]"
                           : item.href === "/dashboard/owner"
-                            ? "text-yellow-300/90 hover:bg-yellow-500/10 hover:text-yellow-200"
+                            ? "text-[var(--fl-warn-text)]/90 hover:bg-yellow-500/10 hover:text-[var(--fl-warn-text)]"
                             : "text-[var(--fl-muted)] hover:bg-white/[0.04] hover:text-[var(--fl-text)]"
                     }`}
                   >
@@ -583,7 +583,7 @@ export default function Navbar() {
               disabled={loggingOut}
               aria-busy={loggingOut}
               title="Logout"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[var(--fl-line)] text-[var(--fl-muted)] transition active:scale-[0.98] hover:border-red-500/60 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[var(--fl-line)] text-[var(--fl-muted)] transition active:scale-[0.98] hover:border-red-500/60 hover:text-[var(--fl-crit-text)] disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
             >
               {loggingOut ? (
                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -620,7 +620,7 @@ export default function Navbar() {
                     : opening
                       ? "bg-[var(--fl-raised)] text-[var(--fl-accent-text)] opacity-80"
                       : item.href === "/dashboard/owner"
-                        ? "text-yellow-300 hover:bg-yellow-500/10"
+                        ? "text-[var(--fl-warn-text)] hover:bg-yellow-500/10"
                         : "text-zinc-300 hover:bg-[var(--fl-raised)] hover:text-[var(--fl-accent-text)]"
                 }`}
               >
@@ -644,7 +644,7 @@ export default function Navbar() {
             onClick={handleLogout}
             disabled={loggingOut}
             aria-busy={loggingOut}
-            className="flex h-full min-w-0 flex-1 flex-col items-center justify-center overflow-hidden px-0.5 text-center text-red-300 transition active:scale-[0.98] hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
+            className="flex h-full min-w-0 flex-1 flex-col items-center justify-center overflow-hidden px-0.5 text-center text-[var(--fl-crit-text)] transition active:scale-[0.98] hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
           >
             <span className="flex w-full items-center justify-center text-xl leading-none">
               {loggingOut ? (
@@ -665,7 +665,7 @@ export default function Navbar() {
       {userEmail && !isOwner && !isPortalRoute(pathname) && (
         <Link
           href="/support"
-          className="fixed bottom-40 right-4 z-[150] flex items-center gap-2 rounded-full border border-amber-400/60 bg-[var(--fl-surface)] px-4 py-3 text-xs font-semibold uppercase tracking-wide text-amber-300 shadow-2xl shadow-black/40 transition hover:border-amber-300 hover:text-amber-200 active:scale-[0.97] xl:bottom-20"
+          className="fixed bottom-40 right-4 z-[150] flex items-center gap-2 rounded-full border border-amber-400/60 bg-[var(--fl-surface)] px-4 py-3 text-xs font-semibold uppercase tracking-wide text-[var(--fl-warn-text)] shadow-2xl shadow-black/40 transition hover:border-amber-300 hover:text-[var(--fl-warn-text)] active:scale-[0.97] xl:bottom-20"
         >
           💡 Suggest
         </Link>

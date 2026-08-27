@@ -4,7 +4,7 @@ export default function TemplatesPage() {
   return (
     <main className="min-h-screen bg-[var(--fl-surface-2)] px-6 py-10 text-[var(--fl-text)]">
       <div className="mx-auto max-w-5xl">
-        <h1 className="mb-3 text-5xl font-bold text-cyan-400">
+        <h1 className="mb-3 text-5xl font-bold text-[var(--fl-info-text)]">
           Finding Templates
         </h1>
 

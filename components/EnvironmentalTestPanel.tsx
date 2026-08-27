@@ -152,7 +152,7 @@ function LabReportField({
         ) : null}
       </div>
       {error ? (
-        <p className="mt-1 text-xs font-bold text-red-400">{error}</p>
+        <p className="mt-1 text-xs font-bold text-[var(--fl-crit-text)]">{error}</p>
       ) : (
         <p className="mt-1 text-xs text-[var(--fl-faint)]">{helper}</p>
       )}
@@ -214,7 +214,7 @@ function MoldForm({
 
   return (
     <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
-      <h3 className="mb-4 text-xl font-bold text-purple-300">Mold Test</h3>
+      <h3 className="mb-4 text-xl font-bold text-[var(--fl-purple-text)]">Mold Test</h3>
 
       <div className="grid gap-4 md:grid-cols-2">
         <Field label="Air Samples" value={airSamples} onChange={setAirSamples} />
@@ -261,7 +261,7 @@ function MoldForm({
         {message && (
           <span
             className={`text-sm font-bold ${
-              message.type === "success" ? "text-emerald-300" : "text-red-300"
+              message.type === "success" ? "text-[var(--fl-good-text)]" : "text-[var(--fl-crit-text)]"
             }`}
           >
             {message.text}
@@ -286,20 +286,20 @@ function radonLevel(avgRaw: string) {
   if (v >= 4) {
     return {
       label: "Elevated — Action Recommended",
-      cls: "border-red-500/50 bg-red-500/10 text-red-300",
+      cls: "border-red-500/50 bg-red-500/10 text-[var(--fl-crit-text)]",
       note: "At or above the EPA action level of 4.0 pCi/L. Mitigation by a qualified radon contractor is recommended.",
     };
   }
   if (v >= 2) {
     return {
       label: "Monitor",
-      cls: "border-amber-500/50 bg-amber-500/10 text-amber-300",
+      cls: "border-amber-500/50 bg-amber-500/10 text-[var(--fl-warn-text)]",
       note: "Below the 4.0 pCi/L action level but at or above 2.0. Continued monitoring or consultation may be considered.",
     };
   }
   return {
     label: "Low / Normal",
-    cls: "border-emerald-500/50 bg-emerald-500/10 text-emerald-300",
+    cls: "border-emerald-500/50 bg-emerald-500/10 text-[var(--fl-good-text)]",
     note: "Below the EPA action level of 4.0 pCi/L.",
   };
 }
@@ -354,7 +354,7 @@ function RadonForm({
 
   return (
     <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
-      <h3 className="mb-4 text-xl font-bold text-purple-300">Radon Test</h3>
+      <h3 className="mb-4 text-xl font-bold text-[var(--fl-purple-text)]">Radon Test</h3>
 
       <div className="grid gap-4 md:grid-cols-2">
         <Field label="Average pCi/L" value={averagePci} onChange={setAveragePci} />
@@ -418,7 +418,7 @@ function RadonForm({
         {message && (
           <span
             className={`text-sm font-bold ${
-              message.type === "success" ? "text-emerald-300" : "text-red-300"
+              message.type === "success" ? "text-[var(--fl-good-text)]" : "text-[var(--fl-crit-text)]"
             }`}
           >
             {message.text}
@@ -486,7 +486,7 @@ function NotifyButton({ inspectionId }: { inspectionId: string }) {
         {message && (
           <span
             className={`text-sm font-bold ${
-              message.type === "success" ? "text-emerald-300" : "text-red-300"
+              message.type === "success" ? "text-[var(--fl-good-text)]" : "text-[var(--fl-crit-text)]"
             }`}
           >
             {message.text}

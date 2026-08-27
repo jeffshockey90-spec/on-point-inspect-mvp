@@ -87,15 +87,15 @@ function classifyRadon(value: any) {
 
 function getResultStyle(result: string) {
   if (result === "Action Recommended") {
-    return "border-red-500/40 bg-red-500/10 text-red-300";
+    return "border-red-500/40 bg-red-500/10 text-[var(--fl-crit-text)]";
   }
 
   if (result === "Monitor") {
-    return "border-yellow-500/40 bg-yellow-500/10 text-yellow-300";
+    return "border-yellow-500/40 bg-yellow-500/10 text-[var(--fl-warn-text)]";
   }
 
   if (result === "Low") {
-    return "border-green-500/40 bg-green-500/10 text-green-300";
+    return "border-green-500/40 bg-green-500/10 text-[var(--fl-good-text)]";
   }
 
   return "border-[var(--fl-faint)] bg-slate-500/10 text-[var(--fl-muted)]";
@@ -507,7 +507,7 @@ export default function RadonPage() {
 
                       <Link
                         href={`/invoices/${inspection.id}/print`}
-                        className="rounded-xl border border-cyan-500 px-5 py-3 font-bold text-cyan-300 hover:bg-cyan-500/10"
+                        className="rounded-xl border border-cyan-500 px-5 py-3 font-bold text-[var(--fl-info-text)] hover:bg-cyan-500/10"
                       >
                         Invoice PDF
                       </Link>
@@ -517,7 +517,7 @@ export default function RadonPage() {
                           href={form.report_url}
                           target="_blank"
                           rel="noreferrer"
-                          className="rounded-xl border border-purple-500 px-5 py-3 font-bold text-purple-300 hover:bg-purple-500/10"
+                          className="rounded-xl border border-purple-500 px-5 py-3 font-bold text-[var(--fl-purple-text)] hover:bg-purple-500/10"
                         >
                           Open Official Report
                         </a>
@@ -546,10 +546,10 @@ function MetricCard({
   tone: "green" | "teal" | "blue" | "red";
 }) {
   const colors: Record<string, string> = {
-    green: "border-green-500/40 bg-green-500/10 text-green-300",
+    green: "border-green-500/40 bg-green-500/10 text-[var(--fl-good-text)]",
     teal: "border-teal-500/40 bg-teal-500/10 text-[var(--fl-accent-text)]",
-    blue: "border-blue-500/40 bg-blue-500/10 text-blue-300",
-    red: "border-red-500/40 bg-red-500/10 text-red-300",
+    blue: "border-blue-500/40 bg-blue-500/10 text-[var(--fl-info-text)]",
+    red: "border-red-500/40 bg-red-500/10 text-[var(--fl-crit-text)]",
   };
 
   return (
@@ -666,7 +666,7 @@ function LabReportField({
         ) : null}
       </div>
       {error ? (
-        <p className="mt-1 text-xs font-bold text-red-400">{error}</p>
+        <p className="mt-1 text-xs font-bold text-[var(--fl-crit-text)]">{error}</p>
       ) : (
         <p className="mt-1 text-xs text-[var(--fl-faint)]">
           Remember to Save after uploading.

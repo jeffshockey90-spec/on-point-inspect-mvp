@@ -127,7 +127,7 @@ export default function W9FillModal({ onSaved }: { onSaved: (result: { path: str
 
             {viewUrl ? (
               <div className="mt-5 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4">
-                <p className="text-sm font-bold text-emerald-200">W9 generated and saved.</p>
+                <p className="text-sm font-bold text-[var(--fl-good-text)]">W9 generated and saved.</p>
                 <div className="mt-3 flex flex-wrap gap-3">
                   <a
                     href={viewUrl}
@@ -149,7 +149,7 @@ export default function W9FillModal({ onSaved }: { onSaved: (result: { path: str
             ) : (
               <div className="mt-5 space-y-4">
                 {error && (
-                  <p className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs font-bold text-red-300">
+                  <p className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs font-bold text-[var(--fl-crit-text)]">
                     {error}
                   </p>
                 )}

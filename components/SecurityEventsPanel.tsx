@@ -61,11 +61,11 @@ export default function SecurityEventsPanel() {
     <section className="rounded-2xl border border-[var(--fl-raised)] bg-gradient-to-br from-[var(--fl-surface)] to-[var(--fl-surface)] p-5 shadow-xl sm:p-6 md:p-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex gap-4">
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-rose-500/30 bg-rose-500/10 text-rose-300">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-rose-500/30 bg-rose-500/10 text-[var(--fl-crit-text)]">
             <ShieldAlert className="h-7 w-7" strokeWidth={2} />
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-rose-300">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--fl-crit-text)]">
               Security
             </p>
             <h2 className="mt-2 text-xl font-semibold text-[var(--fl-text)] sm:text-2xl">
@@ -80,8 +80,8 @@ export default function SecurityEventsPanel() {
         <span
           className={`rounded-full border px-3 py-1 text-xs font-semibold ${
             quiet
-              ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
-              : "border-rose-500/40 bg-rose-500/10 text-rose-300"
+              ? "border-emerald-500/40 bg-emerald-500/10 text-[var(--fl-good-text)]"
+              : "border-rose-500/40 bg-rose-500/10 text-[var(--fl-crit-text)]"
           }`}
         >
           {quiet ? "All clear" : `${data.summary.total24h} in 24h`}
@@ -97,7 +97,7 @@ export default function SecurityEventsPanel() {
           to start recording attempts.
         </div>
       ) : quiet ? (
-        <div className="mt-5 rounded-xl border border-emerald-700/40 bg-emerald-500/10 p-4 text-sm text-emerald-200">
+        <div className="mt-5 rounded-xl border border-emerald-700/40 bg-emerald-500/10 p-4 text-sm text-[var(--fl-good-text)]">
           No blocked intrusion attempts in the last 7 days. 🛡️
         </div>
       ) : (
@@ -113,7 +113,7 @@ export default function SecurityEventsPanel() {
                 key={s.k}
                 className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3 text-center"
               >
-                <p className="text-2xl font-semibold text-rose-300">{s.v}</p>
+                <p className="text-2xl font-semibold text-[var(--fl-crit-text)]">{s.v}</p>
                 <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-[var(--fl-faint)]">
                   {s.k}
                 </p>

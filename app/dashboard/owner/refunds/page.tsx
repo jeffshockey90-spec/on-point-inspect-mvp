@@ -130,7 +130,7 @@ export default async function OwnerRefundsPage() {
                   {rows.map((row) => (
                     <tr key={row.id} data-refund-type={row.type} className="hover:bg-[var(--fl-surface-2)]">
                       <td className="px-4 py-3">
-                        <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase ${row.type === "dispute" ? "border-red-500/40 bg-red-500/10 text-red-300" : "border-orange-500/40 bg-orange-500/10 text-orange-300"}`}>
+                        <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase ${row.type === "dispute" ? "border-red-500/40 bg-red-500/10 text-[var(--fl-crit-text)]" : "border-orange-500/40 bg-orange-500/10 text-[var(--fl-warn-text)]"}`}>
                           {row.typeLabel}
                         </span>
                         {row.reason && <p className="mt-1 text-xs text-[var(--fl-faint)]">{row.reason}</p>}
@@ -139,7 +139,7 @@ export default async function OwnerRefundsPage() {
                         <p className="max-w-[260px] truncate font-bold text-[var(--fl-text)]">{row.address}</p>
                         {row.client && <p className="text-xs text-[var(--fl-faint)]">{row.client}</p>}
                       </td>
-                      <td className="px-4 py-3 text-right font-semibold text-orange-300">{row.amount > 0 ? money(row.amount) : "—"}</td>
+                      <td className="px-4 py-3 text-right font-semibold text-[var(--fl-warn-text)]">{row.amount > 0 ? money(row.amount) : "—"}</td>
                       <td className="px-4 py-3 text-[var(--fl-muted)]">{formatDateTime(row.when)}</td>
                       <td className="px-4 py-3 text-right">
                         {row.inspectionId && (

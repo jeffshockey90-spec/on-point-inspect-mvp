@@ -14,10 +14,10 @@ type Props = {
 
 const TAB_LABELS: Array<{ key: ShareTab; label: string; tone: string }> = [
   { key: "summary", label: "Summary", tone: "border-teal-500 text-[var(--fl-accent-text)]" },
-  { key: "full", label: "Full Report", tone: "border-cyan-500 text-cyan-300" },
-  { key: "disclaimers", label: "Disclaimers", tone: "border-purple-500 text-purple-300" },
-  { key: "standards", label: "Standards", tone: "border-sky-500 text-sky-300" },
-  { key: "equipment", label: "Equipment", tone: "border-emerald-500 text-emerald-300" },
+  { key: "full", label: "Full Report", tone: "border-cyan-500 text-[var(--fl-info-text)]" },
+  { key: "disclaimers", label: "Disclaimers", tone: "border-purple-500 text-[var(--fl-purple-text)]" },
+  { key: "standards", label: "Standards", tone: "border-sky-500 text-[var(--fl-info-text)]" },
+  { key: "equipment", label: "Equipment", tone: "border-emerald-500 text-[var(--fl-good-text)]" },
 ];
 
 function classifyPanel(element: HTMLElement): ShareTab {

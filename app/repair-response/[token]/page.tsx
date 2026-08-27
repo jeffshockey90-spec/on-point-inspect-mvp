@@ -215,8 +215,8 @@ export default async function RepairResponsePage({ params }: PageProps) {
     return (
       <main className="min-h-screen bg-[var(--fl-ground)] p-4 text-[var(--fl-text)] md:p-8">
         <section className="mx-auto max-w-3xl rounded-2xl border border-red-500/40 bg-red-500/10 p-6">
-          <h1 className="text-2xl font-semibold text-red-200">Repair Request Not Found</h1>
-          <p className="mt-3 text-red-100">
+          <h1 className="text-2xl font-semibold text-[var(--fl-crit-text)]">Repair Request Not Found</h1>
+          <p className="mt-3 text-[var(--fl-crit-text)]">
             This secure repair request link is invalid or no longer available.
           </p>
         </section>
@@ -351,21 +351,21 @@ export default async function RepairResponsePage({ params }: PageProps) {
 
         <div className="mt-5 grid gap-4 md:grid-cols-4">
           <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4">
-            <p className="text-xs font-semibold uppercase text-blue-200">Selected Items</p>
+            <p className="text-xs font-semibold uppercase text-[var(--fl-info-text)]">Selected Items</p>
             <p className="mt-2 font-semibold text-[var(--fl-text)]">{selectedIds.length}</p>
           </div>
           <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4">
-            <p className="text-xs font-semibold uppercase text-blue-200">Requested Credit</p>
+            <p className="text-xs font-semibold uppercase text-[var(--fl-info-text)]">Requested Credit</p>
             <p className="mt-2 font-semibold text-[var(--fl-text)]">{formatMoney(requestedCreditTotal)}</p>
           </div>
           <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4">
-            <p className="text-xs font-semibold uppercase text-blue-200">Recipient</p>
+            <p className="text-xs font-semibold uppercase text-[var(--fl-info-text)]">Recipient</p>
             <p className="mt-2 break-words font-semibold text-[var(--fl-text)]">
               {share.recipient_email || "Secure recipient"}
             </p>
           </div>
           <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4">
-            <p className="text-xs font-semibold uppercase text-blue-200">Status</p>
+            <p className="text-xs font-semibold uppercase text-[var(--fl-info-text)]">Status</p>
             <p className="mt-2 font-semibold text-[var(--fl-text)]">
               {alreadySubmitted ? "completed" : share.status || "sent"}
             </p>
@@ -374,14 +374,14 @@ export default async function RepairResponsePage({ params }: PageProps) {
 
         {findings.length > 0 ? (
           <div className="mt-5 rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-cyan-300">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-info-text)]">
               Repair Items
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               {findings.map((finding: any) => (
                 <span
                   key={finding.id}
-                  className="rounded-full border border-cyan-400/50 bg-[var(--fl-ground)] px-3 py-1 text-xs font-semibold text-cyan-200"
+                  className="rounded-full border border-cyan-400/50 bg-[var(--fl-ground)] px-3 py-1 text-xs font-semibold text-[var(--fl-info-text)]"
                 >
                   Item #{finding.item_number}
                 </span>
@@ -392,7 +392,7 @@ export default async function RepairResponsePage({ params }: PageProps) {
 
         {share.summary ? (
           <div className="mt-5 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4">
-            <p className="text-xs font-semibold uppercase text-blue-200">Summary</p>
+            <p className="text-xs font-semibold uppercase text-[var(--fl-info-text)]">Summary</p>
             <p className="mt-3 whitespace-pre-line leading-7 text-[var(--fl-text)]">{share.summary}</p>
           </div>
         ) : null}

@@ -103,7 +103,7 @@ export default function CreateDemoReportButton({
         onClick={createDemoReport}
         disabled={busy}
         aria-busy={busy}
-        className="inline-flex items-center justify-center gap-2 rounded-xl border border-fuchsia-500 px-5 py-3 font-bold text-fuchsia-300 transition active:scale-[0.98] hover:bg-fuchsia-500/10 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
+        className="inline-flex items-center justify-center gap-2 rounded-xl border border-fuchsia-500 px-5 py-3 font-bold text-[var(--fl-purple-text)] transition active:scale-[0.98] hover:bg-fuchsia-500/10 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
       >
         {busy && (
           <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />

@@ -162,21 +162,21 @@ function toneClasses(tone: SummaryTone) {
   if (tone === "red") {
     return {
       border: "border-red-500/55",
-      count: "border-red-500/40 bg-red-500/10 text-red-200",
+      count: "border-red-500/40 bg-red-500/10 text-[var(--fl-crit-text)]",
       stripe: "border-l-red-500",
     };
   }
   if (tone === "yellow") {
     return {
       border: "border-yellow-500/45",
-      count: "border-yellow-500/40 bg-yellow-500/10 text-yellow-200",
+      count: "border-yellow-500/40 bg-yellow-500/10 text-[var(--fl-warn-text)]",
       stripe: "border-l-yellow-500",
     };
   }
   if (tone === "blue") {
     return {
       border: "border-blue-500/45",
-      count: "border-blue-500/40 bg-blue-500/10 text-blue-200",
+      count: "border-blue-500/40 bg-blue-500/10 text-[var(--fl-info-text)]",
       stripe: "border-l-blue-500",
     };
   }
@@ -190,13 +190,13 @@ function toneClasses(tone: SummaryTone) {
 function severityClass(value: any) {
   const severity = String(value || "Recommended Repair").toLowerCase();
   if (severity.includes("safety") || severity.includes("major")) {
-    return "border-red-500/50 bg-red-500/10 text-red-200";
+    return "border-red-500/50 bg-red-500/10 text-[var(--fl-crit-text)]";
   }
   if (severity.includes("maintenance") || severity.includes("monitor")) {
-    return "border-yellow-500/50 bg-yellow-500/10 text-yellow-200";
+    return "border-yellow-500/50 bg-yellow-500/10 text-[var(--fl-warn-text)]";
   }
   if (severity.includes("information")) {
-    return "border-blue-500/50 bg-blue-500/10 text-blue-200";
+    return "border-blue-500/50 bg-blue-500/10 text-[var(--fl-info-text)]";
   }
   return "border-teal-500/50 bg-teal-500/10 text-[var(--fl-accent-text)]";
 }
@@ -420,7 +420,7 @@ function CompactSummaryCard({
                   ▶
                 </span>
               </span>
-              <span className="pointer-events-none absolute bottom-2 left-2 rounded-full bg-[var(--fl-surface-2)] px-2 py-1 text-[10px] font-semibold text-cyan-200">
+              <span className="pointer-events-none absolute bottom-2 left-2 rounded-full bg-[var(--fl-surface-2)] px-2 py-1 text-[10px] font-semibold text-[var(--fl-info-text)]">
                 VIDEO
               </span>
             </button>
@@ -440,7 +440,7 @@ function CompactSummaryCard({
         >
           <div className="flex flex-wrap gap-2">
             {itemNumber && (
-              <span className="rounded-full border border-cyan-500/50 bg-cyan-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase text-cyan-200">
+              <span className="rounded-full border border-cyan-500/50 bg-cyan-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase text-[var(--fl-info-text)]">
                 Item #{itemNumber}
               </span>
             )}
@@ -462,7 +462,7 @@ function CompactSummaryCard({
           <p className="mt-3 line-clamp-2 text-sm leading-6 text-[var(--fl-muted)]">
             {summary}
           </p>
-          <p className="mt-3 text-sm font-semibold text-cyan-300">
+          <p className="mt-3 text-sm font-semibold text-[var(--fl-info-text)]">
             {open ? "Hide Details ↑" : "View Finding →"}
           </p>
         </button>
@@ -527,7 +527,7 @@ function CompactSummaryCard({
           <div className="grid gap-3">
             {finding.observation && (
               <div className="rounded-xl border border-blue-500/40 bg-blue-500/10 p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-blue-300">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-info-text)]">
                   Observation
                 </p>
                 <p className="mt-2 whitespace-pre-line text-sm leading-6 text-[var(--fl-text)]">
@@ -538,7 +538,7 @@ function CompactSummaryCard({
 
             {finding.implication && (
               <div className="rounded-xl border border-yellow-500/40 bg-yellow-500/10 p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-yellow-300">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-warn-text)]">
                   Implication
                 </p>
                 <p className="mt-2 whitespace-pre-line text-sm leading-6 text-[var(--fl-text)]">
@@ -562,7 +562,7 @@ function CompactSummaryCard({
           <a
             href={fullFindingHref}
             data-fast-click="true"
-            className="mt-4 inline-flex min-h-11 items-center rounded-xl border border-cyan-500 px-4 py-2 text-sm font-semibold text-cyan-200 active:scale-[0.98] active:opacity-80 [touch-action:manipulation]"
+            className="mt-4 inline-flex min-h-11 items-center rounded-xl border border-cyan-500 px-4 py-2 text-sm font-semibold text-[var(--fl-info-text)] active:scale-[0.98] active:opacity-80 [touch-action:manipulation]"
           >
             Open Full Report Finding
           </a>

@@ -131,7 +131,7 @@ function StripeStatusCard({ company }: { company: any }) {
 
       <h3
         className={`mt-2 text-xl font-semibold sm:text-2xl ${
-          ready ? "text-emerald-300" : "text-yellow-300"
+          ready ? "text-[var(--fl-good-text)]" : "text-[var(--fl-warn-text)]"
         }`}
       >
         {ready ? "Ready for Payments" : "Setup Required"}
@@ -320,7 +320,7 @@ export default async function SettingsPage({
             </p>
 
             {pageError && (
-              <p className="mt-5 break-words rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-200">
+              <p className="mt-5 break-words rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-sm text-[var(--fl-crit-text)]">
                 {pageError}
               </p>
             )}
@@ -393,7 +393,7 @@ export default async function SettingsPage({
             </div>
 
             <div className="mt-6 rounded-2xl border border-cyan-500/30 bg-cyan-500/10 p-4">
-              <h2 className="font-semibold text-cyan-200">What happens next?</h2>
+              <h2 className="font-semibold text-[var(--fl-info-text)]">What happens next?</h2>
               <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
                 FLOW will create your company record, link it to your inspector account as the owner, and unlock Settings, public profile management, QR code tools, payments, and branding.
               </p>
@@ -594,7 +594,7 @@ export default async function SettingsPage({
 
         {saved && (
           <div className="rounded-2xl border border-emerald-500/50 bg-emerald-500/10 p-5">
-            <h3 className="font-semibold text-emerald-300">
+            <h3 className="font-semibold text-[var(--fl-good-text)]">
               Settings saved successfully.
             </h3>
           </div>
@@ -602,7 +602,7 @@ export default async function SettingsPage({
 
         {stripeError && (
           <div className="rounded-2xl border border-red-500/50 bg-red-500/10 p-5">
-            <h3 className="font-semibold text-red-300">Stripe Connect Error</h3>
+            <h3 className="font-semibold text-[var(--fl-crit-text)]">Stripe Connect Error</h3>
 
             <p className="mt-2 break-words text-sm leading-6 text-[var(--fl-text)]">
               {stripeError}
@@ -618,7 +618,7 @@ export default async function SettingsPage({
 
         {stripeStatus && !stripeError && (
           <div className="rounded-2xl border border-sky-500/50 bg-sky-500/10 p-5">
-            <h3 className="font-semibold text-sky-300">Stripe Status</h3>
+            <h3 className="font-semibold text-[var(--fl-info-text)]">Stripe Status</h3>
 
             <p className="mt-2 break-words text-sm leading-6 text-[var(--fl-text)]">
               {stripeStatus}
@@ -628,7 +628,7 @@ export default async function SettingsPage({
 
         {pageError && !stripeError && (
           <div className="rounded-2xl border border-red-500/50 bg-red-500/10 p-5">
-            <h3 className="font-semibold text-red-300">Settings Error</h3>
+            <h3 className="font-semibold text-[var(--fl-crit-text)]">Settings Error</h3>
 
             <p className="mt-2 break-words text-sm leading-6 text-[var(--fl-text)]">
               {pageError}
@@ -642,12 +642,12 @@ export default async function SettingsPage({
             className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-4 transition active:scale-[0.98] hover:border-fuchsia-400/70 hover:bg-fuchsia-500/10 sm:p-5 [touch-action:manipulation]"
           >
             <div className="flex items-start justify-between gap-3">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-fuchsia-500/10 text-fuchsia-300">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-fuchsia-500/10 text-[var(--fl-purple-text)]">
                 <MessageCircle className="h-6 w-6" strokeWidth={2} />
               </div>
               <SupportUnreadBadge />
             </div>
-            <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-fuchsia-300">
+            <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--fl-purple-text)]">
               Support
             </p>
             <h2 className="mt-2 text-lg font-semibold text-[var(--fl-text)] sm:text-xl">
@@ -656,7 +656,7 @@ export default async function SettingsPage({
             <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
               Message Jeff for setup, billing, reports, or bugs.
             </p>
-            <p className="mt-4 text-sm font-semibold text-fuchsia-300 group-hover:text-fuchsia-200">
+            <p className="mt-4 text-sm font-semibold text-[var(--fl-purple-text)] group-hover:text-[var(--fl-purple-text)]">
               Open Support →
             </p>
           </FastLinkButton>
@@ -665,10 +665,10 @@ export default async function SettingsPage({
             href="/settings/pricing"
             className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-4 transition active:scale-[0.98] hover:border-emerald-400/70 hover:bg-emerald-500/10 sm:p-5 [touch-action:manipulation]"
           >
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-300">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 text-[var(--fl-good-text)]">
               <DollarSign className="h-6 w-6" strokeWidth={2} />
             </div>
-            <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-300">
+            <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--fl-good-text)]">
               Personal
             </p>
             <h2 className="mt-2 text-lg font-semibold text-[var(--fl-text)] sm:text-xl">
@@ -677,7 +677,7 @@ export default async function SettingsPage({
             <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
               Set your own rates for the Quotes calculator.
             </p>
-            <p className="mt-4 text-sm font-semibold text-emerald-300 group-hover:text-emerald-200">
+            <p className="mt-4 text-sm font-semibold text-[var(--fl-good-text)] group-hover:text-[var(--fl-good-text)]">
               Manage Pricing →
             </p>
           </FastLinkButton>
@@ -686,10 +686,10 @@ export default async function SettingsPage({
             href="/settings/company-email"
             className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-4 transition active:scale-[0.98] hover:border-sky-400/70 hover:bg-sky-500/10 sm:p-5 [touch-action:manipulation]"
           >
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-500/10 text-sky-300">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-500/10 text-[var(--fl-info-text)]">
               <Mail className="h-6 w-6" strokeWidth={2} />
             </div>
-            <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-sky-300">
+            <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--fl-info-text)]">
               Personal
             </p>
             <h2 className="mt-2 text-lg font-semibold text-[var(--fl-text)] sm:text-xl">
@@ -698,7 +698,7 @@ export default async function SettingsPage({
             <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
               Connect your mailbox to resend a stuck email through it.
             </p>
-            <p className="mt-4 text-sm font-semibold text-sky-300 group-hover:text-sky-200">
+            <p className="mt-4 text-sm font-semibold text-[var(--fl-info-text)] group-hover:text-[var(--fl-info-text)]">
               Set Up Company Email →
             </p>
           </FastLinkButton>
@@ -708,10 +708,10 @@ export default async function SettingsPage({
               href="/settings/company-pricing"
               className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-amber-500/30 bg-[var(--fl-surface)] p-4 transition active:scale-[0.98] hover:border-amber-400/70 hover:bg-amber-500/10 sm:p-5 [touch-action:manipulation]"
             >
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-300">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/10 text-[var(--fl-warn-text)]">
                 <Building2 className="h-6 w-6" strokeWidth={2} />
               </div>
-              <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-amber-300">
+              <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--fl-warn-text)]">
                 Owner Only
               </p>
               <h2 className="mt-2 text-lg font-semibold text-[var(--fl-text)] sm:text-xl">
@@ -720,7 +720,7 @@ export default async function SettingsPage({
               <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
                 Set the default price sheet your whole team uses.
               </p>
-              <p className="mt-4 text-sm font-semibold text-amber-300 group-hover:text-amber-200">
+              <p className="mt-4 text-sm font-semibold text-[var(--fl-warn-text)] group-hover:text-[var(--fl-warn-text)]">
                 Manage Company Pricing →
               </p>
             </FastLinkButton>
@@ -815,10 +815,10 @@ export default async function SettingsPage({
             href="/settings/public-profile"
             className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-4 transition active:scale-[0.98] hover:border-cyan-400/70 hover:bg-cyan-500/10 sm:p-5 [touch-action:manipulation]"
           >
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-500/10 text-cyan-300">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-500/10 text-[var(--fl-info-text)]">
               <Globe className="h-6 w-6" strokeWidth={2} />
             </div>
-            <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-300">
+            <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--fl-info-text)]">
               Public Profile
             </p>
             <h2 className="mt-2 text-lg font-semibold text-[var(--fl-text)] sm:text-xl">
@@ -827,7 +827,7 @@ export default async function SettingsPage({
             <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
               Logo, headshot, services, and profile link.
             </p>
-            <p className="mt-4 text-sm font-semibold text-cyan-300 group-hover:text-cyan-200">
+            <p className="mt-4 text-sm font-semibold text-[var(--fl-info-text)] group-hover:text-[var(--fl-info-text)]">
               Manage Profile →
             </p>
           </FastLinkButton>
@@ -865,11 +865,11 @@ export default async function SettingsPage({
           >
             <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
               <div className="flex gap-4">
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-amber-500/30 bg-amber-500/10 text-amber-300">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-amber-500/30 bg-amber-500/10 text-[var(--fl-warn-text)]">
                   <Bell className="h-7 w-7" strokeWidth={2} />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.25em] text-amber-300">
+                  <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--fl-warn-text)]">
                     Notifications
                   </p>
                   <h2 className="mt-2 text-xl font-semibold text-[var(--fl-text)] sm:text-2xl">
@@ -886,7 +886,7 @@ export default async function SettingsPage({
                 className={`w-full rounded-2xl border px-4 py-3 text-center text-sm font-semibold lg:w-auto ${
                   company.live_activity_enabled === false
                     ? "border-[var(--fl-line)] bg-[var(--fl-surface-2)] text-[var(--fl-muted)]"
-                    : "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+                    : "border-emerald-500/40 bg-emerald-500/10 text-[var(--fl-good-text)]"
                 }`}
               >
                 {company.live_activity_enabled === false
@@ -1254,7 +1254,7 @@ export default async function SettingsPage({
           </section>
 
           <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-xl sm:p-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-cyan-300">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--fl-info-text)]">
               Developer
             </p>
             <h2 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--fl-text)]">API &amp; Webhooks</h2>
@@ -1271,7 +1271,7 @@ export default async function SettingsPage({
           </section>
 
           <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-xl sm:p-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-cyan-300">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--fl-info-text)]">
               Integrations
             </p>
             <h2 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--fl-text)]">Connected Tools</h2>
@@ -1292,7 +1292,7 @@ export default async function SettingsPage({
           >
             <div className="flex flex-col gap-5 border-b border-[var(--fl-raised)] p-5 sm:p-6 lg:flex-row lg:items-center lg:justify-between">
               <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-[0.25em] text-cyan-300">
+                <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--fl-info-text)]">
                   Public Profile
                 </p>
                 <h2 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--fl-text)]">
@@ -1346,7 +1346,7 @@ export default async function SettingsPage({
                 <div className="mt-4 flex flex-col gap-2 sm:flex-row lg:flex-col xl:flex-row">
                   <FastLinkButton
                     href="/inspectors"
-                    className="inline-flex items-center justify-center rounded-xl border border-[var(--fl-line)] px-4 py-3 text-sm font-semibold text-[var(--fl-text)] hover:border-cyan-400 hover:text-cyan-300"
+                    className="inline-flex items-center justify-center rounded-xl border border-[var(--fl-line)] px-4 py-3 text-sm font-semibold text-[var(--fl-text)] hover:border-cyan-400 hover:text-[var(--fl-info-text)]"
                   >
                     Open Directory
                   </FastLinkButton>
@@ -1356,7 +1356,7 @@ export default async function SettingsPage({
                         (process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || "https://app.flowinspect.app").replace(/\/$/, ""),
                         ""
                       )}
-                      className="inline-flex items-center justify-center rounded-xl border border-cyan-500/60 px-4 py-3 text-sm font-semibold text-cyan-300 hover:bg-cyan-500/10"
+                      className="inline-flex items-center justify-center rounded-xl border border-cyan-500/60 px-4 py-3 text-sm font-semibold text-[var(--fl-info-text)] hover:bg-cyan-500/10"
                     >
                       Preview Profile
                     </FastLinkButton>

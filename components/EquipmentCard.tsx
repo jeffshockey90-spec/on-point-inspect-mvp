@@ -191,18 +191,18 @@ function getStatusClass(value: string) {
   const clean = value.toLowerCase();
 
   if (clean.includes("operating normally") || clean.includes("no specific")) {
-    return "border-emerald-500/40 bg-emerald-500/10 text-emerald-300";
+    return "border-emerald-500/40 bg-emerald-500/10 text-[var(--fl-good-text)]";
   }
 
   if (clean.includes("service") || clean.includes("safety")) {
-    return "border-orange-500/50 bg-orange-500/10 text-orange-300";
+    return "border-orange-500/50 bg-orange-500/10 text-[var(--fl-warn-text)]";
   }
 
   if (clean.includes("near end") || clean.includes("monitor")) {
-    return "border-yellow-500/50 bg-yellow-500/10 text-yellow-300";
+    return "border-yellow-500/50 bg-yellow-500/10 text-[var(--fl-warn-text)]";
   }
 
-  return "border-cyan-500/40 bg-cyan-500/10 text-cyan-300";
+  return "border-cyan-500/40 bg-cyan-500/10 text-[var(--fl-info-text)]";
 }
 
 function getEquipmentImageUrl(equipment: EquipmentCardProps["equipment"]) {
@@ -422,7 +422,7 @@ export default function EquipmentCard({ equipment }: EquipmentCardProps) {
         <div className="mt-4 grid gap-3 lg:grid-cols-2">
           {maintenanceSchedule && (
             <div className="rounded-xl border border-emerald-500/35 bg-emerald-500/10 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-emerald-300">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-good-text)]">
                 Maintenance Schedule
               </p>
               <p className="mt-2 text-sm leading-6 text-[var(--fl-text)]">
@@ -433,7 +433,7 @@ export default function EquipmentCard({ equipment }: EquipmentCardProps) {
 
           {knownFailurePatterns.length > 0 && (
             <div className="rounded-xl border border-yellow-500/35 bg-yellow-500/10 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-yellow-300">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-warn-text)]">
                 Common Failure Patterns
               </p>
               <ul className="mt-2 space-y-1 text-sm leading-6 text-[var(--fl-text)]">
@@ -446,7 +446,7 @@ export default function EquipmentCard({ equipment }: EquipmentCardProps) {
 
           {recallAwareness && (
             <div className="rounded-xl border border-purple-500/35 bg-purple-500/10 p-4 lg:col-span-2">
-              <p className="text-xs font-semibold uppercase tracking-wide text-purple-300">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-purple-text)]">
                 Recall Awareness
               </p>
               <p className="mt-2 text-sm leading-6 text-[var(--fl-text)]">

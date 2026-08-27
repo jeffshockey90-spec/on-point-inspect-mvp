@@ -1395,7 +1395,7 @@ function NewInspectionPageContent() {
                   <button
                     type="button"
                     onClick={() => removeCoClient(coClient.id)}
-                    className="rounded-lg border border-red-500/40 px-3 py-1 text-xs font-semibold text-red-300 hover:bg-red-500/10"
+                    className="rounded-lg border border-red-500/40 px-3 py-1 text-xs font-semibold text-[var(--fl-crit-text)] hover:bg-red-500/10"
                   >
                     Remove
                   </button>
@@ -1642,7 +1642,7 @@ function NewInspectionPageContent() {
                       setPropertyPhotoError("");
                       setPropertyLookupStatus("Property photo removed. Street View may be used when the inspection is created.");
                     }}
-                    className="rounded-xl border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-300 transition hover:border-red-400 hover:text-red-200"
+                    className="rounded-xl border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-300 transition hover:border-red-400 hover:text-[var(--fl-crit-text)]"
                   >
                     Remove Photo
                   </button>
@@ -1650,7 +1650,7 @@ function NewInspectionPageContent() {
               </div>
 
               {propertyPhotoError ? (
-                <p className="mt-3 text-sm font-bold text-red-300">
+                <p className="mt-3 text-sm font-bold text-[var(--fl-crit-text)]">
                   {propertyPhotoError}
                 </p>
               ) : null}
@@ -1725,7 +1725,7 @@ function NewInspectionPageContent() {
                     <button
                       type="button"
                       onClick={() => removeAddonService(addon.id)}
-                      className="rounded-xl border border-red-500/50 px-3 py-2.5 text-sm font-bold text-red-300 hover:bg-red-500/10"
+                      className="rounded-xl border border-red-500/50 px-3 py-2.5 text-sm font-bold text-[var(--fl-crit-text)] hover:bg-red-500/10"
                     >
                       Remove
                     </button>

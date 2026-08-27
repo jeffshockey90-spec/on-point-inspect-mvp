@@ -137,7 +137,7 @@ export default async function InvoicesPage() {
   if (error) {
     return (
       <main className="min-h-screen bg-[var(--fl-ground)] p-8 text-[var(--fl-text)]">
-        <h1 className="text-3xl font-semibold text-red-400">
+        <h1 className="text-3xl font-semibold text-[var(--fl-crit-text)]">
           Error loading invoices
         </h1>
         <p className="mt-4 text-[var(--fl-muted)]">{error.message}</p>
@@ -252,9 +252,9 @@ export default async function InvoicesPage() {
                 const status = String(inv.status || "draft").toLowerCase();
                 const statusTone =
                   status === "paid"
-                    ? "bg-emerald-500/15 text-emerald-300"
+                    ? "bg-emerald-500/15 text-[var(--fl-good-text)]"
                     : status === "sent"
-                      ? "bg-cyan-500/15 text-cyan-300"
+                      ? "bg-cyan-500/15 text-[var(--fl-info-text)]"
                       : "bg-slate-600/20 text-[var(--fl-muted)]";
                 return (
                   <div
@@ -358,8 +358,8 @@ export default async function InvoicesPage() {
                         </td>
 
                         <td className="py-4 pr-4 font-bold text-[var(--fl-text)]">{money(inspection.invoiceAmount)}</td>
-                        <td className="py-4 pr-4 text-green-300">{money(inspection.amountPaid)}</td>
-                        <td className="py-4 pr-4 font-bold text-red-300">{money(inspection.balanceDue)}</td>
+                        <td className="py-4 pr-4 text-[var(--fl-good-text)]">{money(inspection.amountPaid)}</td>
+                        <td className="py-4 pr-4 font-bold text-[var(--fl-crit-text)]">{money(inspection.balanceDue)}</td>
                         <td className="py-4 pr-4 text-[var(--fl-muted)]">{inspection.payment_method || "N/A"}</td>
                         <td className="py-4 pr-4 text-[var(--fl-muted)]">{formatDate(inspection.invoice_due_date)}</td>
 
@@ -374,7 +374,7 @@ export default async function InvoicesPage() {
 
                             <Link
                               href={`/invoices/${inspection.id}/print`}
-                              className="inline-flex rounded-lg border border-cyan-500 px-3 py-2 text-xs font-semibold text-cyan-300 transition hover:bg-cyan-500/10"
+                              className="inline-flex rounded-lg border border-cyan-500 px-3 py-2 text-xs font-semibold text-[var(--fl-info-text)] transition hover:bg-cyan-500/10"
                             >
                               Invoice PDF
                             </Link>
@@ -412,13 +412,13 @@ function MetricCard({
   tone: "green" | "teal" | "blue" | "purple" | "orange" | "yellow" | "red";
 }) {
   const colors: Record<string, string> = {
-    green: "border-green-500/40 bg-green-500/10 text-green-300",
+    green: "border-green-500/40 bg-green-500/10 text-[var(--fl-good-text)]",
     teal: "border-teal-500/40 bg-teal-500/10 text-[var(--fl-accent-text)]",
-    blue: "border-blue-500/40 bg-blue-500/10 text-blue-300",
-    purple: "border-purple-500/40 bg-purple-500/10 text-purple-300",
-    orange: "border-orange-500/40 bg-orange-500/10 text-orange-300",
-    yellow: "border-yellow-500/40 bg-yellow-500/10 text-yellow-300",
-    red: "border-red-500/40 bg-red-500/10 text-red-300",
+    blue: "border-blue-500/40 bg-blue-500/10 text-[var(--fl-info-text)]",
+    purple: "border-purple-500/40 bg-purple-500/10 text-[var(--fl-purple-text)]",
+    orange: "border-orange-500/40 bg-orange-500/10 text-[var(--fl-warn-text)]",
+    yellow: "border-yellow-500/40 bg-yellow-500/10 text-[var(--fl-warn-text)]",
+    red: "border-red-500/40 bg-red-500/10 text-[var(--fl-crit-text)]",
   };
 
   return (
@@ -433,17 +433,17 @@ function MetricCard({
 function InvoiceStatusBadge({ status, overdue }: { status: string; overdue: boolean }) {
   if (overdue) {
     return (
-      <span className="rounded-full border border-red-500/40 bg-red-500/10 px-3 py-1 text-xs font-semibold text-red-300">
+      <span className="rounded-full border border-red-500/40 bg-red-500/10 px-3 py-1 text-xs font-semibold text-[var(--fl-crit-text)]">
         Overdue
       </span>
     );
   }
 
   const styles: Record<string, string> = {
-    Paid: "border-green-500/40 bg-green-500/10 text-green-300",
-    Unpaid: "border-red-500/40 bg-red-500/10 text-red-300",
-    Partial: "border-orange-500/40 bg-orange-500/10 text-orange-300",
-    Waived: "border-yellow-500/40 bg-yellow-500/10 text-yellow-300",
+    Paid: "border-green-500/40 bg-green-500/10 text-[var(--fl-good-text)]",
+    Unpaid: "border-red-500/40 bg-red-500/10 text-[var(--fl-crit-text)]",
+    Partial: "border-orange-500/40 bg-orange-500/10 text-[var(--fl-warn-text)]",
+    Waived: "border-yellow-500/40 bg-yellow-500/10 text-[var(--fl-warn-text)]",
   };
 
   return (

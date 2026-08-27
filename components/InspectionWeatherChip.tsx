@@ -66,14 +66,14 @@ export default function InspectionWeatherChip({ lat, lng, address, date }: Props
   return (
     <span
       title={`${day.conditionText}${day.precipChance != null ? ` · ${day.precipChance}% precip` : ""}`}
-      className="inline-flex items-center gap-1.5 rounded-full border border-sky-500/40 bg-sky-500/10 px-2.5 py-1 text-xs font-bold text-sky-200"
+      className="inline-flex items-center gap-1.5 rounded-full border border-sky-500/40 bg-sky-500/10 px-2.5 py-1 text-xs font-bold text-[var(--fl-info-text)]"
     >
       <span>{EMOJI[day.conditionSimple] || "🌡️"}</span>
       <span className="[font-variant-numeric:tabular-nums]">
         {day.highF}°/{day.lowF}°
       </span>
       {day.precipChance != null && day.precipChance >= 30 && (
-        <span className="text-sky-300">💧{day.precipChance}%</span>
+        <span className="text-[var(--fl-info-text)]">💧{day.precipChance}%</span>
       )}
     </span>
   );

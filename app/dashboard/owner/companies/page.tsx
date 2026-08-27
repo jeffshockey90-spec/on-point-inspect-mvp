@@ -53,12 +53,12 @@ function formatDate(value: any) {
 function subscriptionLabel(profile: any) {
   if (!profile) return { label: "No Owner Profile", tone: "border-[var(--fl-line)] bg-[var(--fl-raised)] text-[var(--fl-muted)]" };
   if (profile.subscription_exempt === true || profile.subscription_required === false) {
-    return { label: "Exempt", tone: "border-blue-500/40 bg-blue-500/10 text-blue-200" };
+    return { label: "Exempt", tone: "border-blue-500/40 bg-blue-500/10 text-[var(--fl-info-text)]" };
   }
 
   const status = String(profile.subscription_status || "").toLowerCase();
   if (status === "active" || status === "trialing") {
-    return { label: profile.founding_member ? "Active (Founding)" : "Active", tone: "border-green-500/40 bg-green-500/10 text-green-200" };
+    return { label: profile.founding_member ? "Active (Founding)" : "Active", tone: "border-green-500/40 bg-green-500/10 text-[var(--fl-good-text)]" };
   }
 
   const used = Number(profile.free_inspections_used ?? 0);
@@ -67,7 +67,7 @@ function subscriptionLabel(profile: any) {
     return { label: `Free Trial (${used}/${limit})`, tone: "border-teal-500/40 bg-teal-500/10 text-[var(--fl-accent-text)]" };
   }
 
-  return { label: "Needs Subscription", tone: "border-red-500/40 bg-red-500/10 text-red-200" };
+  return { label: "Needs Subscription", tone: "border-red-500/40 bg-red-500/10 text-[var(--fl-crit-text)]" };
 }
 
 export default async function OwnerCompaniesPage() {
@@ -153,7 +153,7 @@ export default async function OwnerCompaniesPage() {
             <div className="flex flex-wrap gap-3">
               <FastLinkButton
                 href="/dashboard/owner/users"
-                className="rounded-xl border border-cyan-500 px-5 py-3 font-semibold text-cyan-300 transition hover:bg-cyan-500/10"
+                className="rounded-xl border border-cyan-500 px-5 py-3 font-semibold text-[var(--fl-info-text)] transition hover:bg-cyan-500/10"
               >
                 👥 User Management
               </FastLinkButton>
@@ -222,15 +222,15 @@ export default async function OwnerCompaniesPage() {
                       <td className="py-3 pr-4 text-[var(--fl-muted)]">{formatDate(row.createdAt)}</td>
                       <td className="py-3 pr-4">
                         {row.isDeleted ? (
-                          <span className="rounded-full border border-red-500/40 bg-red-500/10 px-3 py-1 text-xs font-semibold text-red-200">
+                          <span className="rounded-full border border-red-500/40 bg-red-500/10 px-3 py-1 text-xs font-semibold text-[var(--fl-crit-text)]">
                             Deleted
                           </span>
                         ) : row.isActive ? (
-                          <span className="rounded-full border border-green-500/40 bg-green-500/10 px-3 py-1 text-xs font-semibold text-green-200">
+                          <span className="rounded-full border border-green-500/40 bg-green-500/10 px-3 py-1 text-xs font-semibold text-[var(--fl-good-text)]">
                             Active
                           </span>
                         ) : (
-                          <span className="rounded-full border border-yellow-500/40 bg-yellow-500/10 px-3 py-1 text-xs font-semibold text-yellow-200">
+                          <span className="rounded-full border border-yellow-500/40 bg-yellow-500/10 px-3 py-1 text-xs font-semibold text-[var(--fl-warn-text)]">
                             Suspended
                           </span>
                         )}
@@ -239,7 +239,7 @@ export default async function OwnerCompaniesPage() {
                         {row.ownerUserId ? (
                           <Link
                             href={`/dashboard/owner/users?highlight=${encodeURIComponent(row.ownerUserId)}`}
-                            className="font-bold text-cyan-300 hover:text-cyan-200"
+                            className="font-bold text-[var(--fl-info-text)] hover:text-[var(--fl-info-text)]"
                           >
                             View in Users →
                           </Link>

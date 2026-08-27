@@ -88,7 +88,7 @@ export default function SendReviewRequestButton({
   }
 
   const buttonClass =
-    "rounded-xl border border-yellow-500 px-5 py-3 font-bold text-yellow-300 transition hover:bg-yellow-500/10 disabled:cursor-not-allowed disabled:opacity-60";
+    "rounded-xl border border-yellow-500 px-5 py-3 font-bold text-[var(--fl-warn-text)] transition hover:bg-yellow-500/10 disabled:cursor-not-allowed disabled:opacity-60";
 
   // No agent on file: keep the original single-button behavior (buyer review).
   if (!hasAgent) {

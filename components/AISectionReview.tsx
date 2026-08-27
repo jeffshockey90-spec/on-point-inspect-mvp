@@ -474,10 +474,10 @@ function AISectionReview({
 
   if (isComplete) {
     return (
-      <div className="rounded-xl border border-emerald-500/50 bg-emerald-500/10 p-4 text-emerald-100">
+      <div className="rounded-xl border border-emerald-500/50 bg-emerald-500/10 p-4 text-[var(--fl-good-text)]">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-300">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--fl-good-text)]">
               AI Section Review
             </p>
             <h3 className="mt-1 text-lg font-semibold">✅ {section} marked complete</h3>
@@ -489,7 +489,7 @@ function AISectionReview({
           <button
             type="button"
             onClick={reopenReview}
-            className="rounded-xl border border-emerald-400/70 px-4 py-2 text-sm font-semibold text-emerald-100 transition active:scale-[0.98] hover:bg-emerald-400 hover:text-black"
+            className="rounded-xl border border-emerald-400/70 px-4 py-2 text-sm font-semibold text-[var(--fl-good-text)] transition active:scale-[0.98] hover:bg-emerald-400 hover:text-black"
           >
             Reopen Review
           </button>
@@ -504,7 +504,7 @@ function AISectionReview({
         <button
           type="button"
           onClick={() => setDismissed(false)}
-          className="text-sm font-semibold text-cyan-300 hover:text-cyan-200"
+          className="text-sm font-semibold text-[var(--fl-info-text)] hover:text-[var(--fl-info-text)]"
         >
           🤖 Show AI Section Review for {section}
         </button>
@@ -516,7 +516,7 @@ function AISectionReview({
     <div className={`rounded-xl border p-4 text-[var(--fl-text)] ${borderClass}`}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-300">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--fl-info-text)]">
             AI Section Review
           </p>
           <h3 className="mt-1 text-lg font-semibold">
@@ -534,10 +534,10 @@ function AISectionReview({
 
       {review.completed.length > 0 && (
         <div className="mt-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-300">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--fl-good-text)]">
             Documented
           </p>
-          <div className="space-y-1 text-sm font-bold text-emerald-100">
+          <div className="space-y-1 text-sm font-bold text-[var(--fl-good-text)]">
             {review.completed.slice(0, 4).map((item) => (
               <p key={item}>✅ {item}</p>
             ))}
@@ -547,21 +547,21 @@ function AISectionReview({
 
       {review.missing.length > 0 ? (
         <div className="mt-4 rounded-lg border border-yellow-500/30 bg-[var(--fl-surface-2)] p-3">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-yellow-300">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--fl-warn-text)]">
             Check Before Leaving
           </p>
           <div className="space-y-3">
             {review.missing.map((item) => (
               <div key={item.id} className="rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3">
                 <div className="flex flex-wrap items-start justify-between gap-2">
-                  <p className="font-semibold text-yellow-100">⚠ {item.title}</p>
+                  <p className="font-semibold text-[var(--fl-warn-text)]">⚠ {item.title}</p>
                   <span
                     className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold ${
                       item.severity === "critical"
-                        ? "border-red-400/60 text-red-200"
+                        ? "border-red-400/60 text-[var(--fl-crit-text)]"
                         : item.severity === "warning"
-                          ? "border-yellow-400/60 text-yellow-200"
-                          : "border-cyan-400/60 text-cyan-200"
+                          ? "border-yellow-400/60 text-[var(--fl-warn-text)]"
+                          : "border-cyan-400/60 text-[var(--fl-info-text)]"
                     }`}
                   >
                     {item.severity}
@@ -573,7 +573,7 @@ function AISectionReview({
           </div>
         </div>
       ) : (
-        <div className="mt-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm font-bold text-emerald-100">
+        <div className="mt-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm font-bold text-[var(--fl-good-text)]">
           ✅ AI does not see any major missing documentation signals for this section based on current findings and media.
         </div>
       )}

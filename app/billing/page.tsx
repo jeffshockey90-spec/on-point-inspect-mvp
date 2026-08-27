@@ -108,7 +108,7 @@ export default async function BillingPage({
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
               href="/support"
-              className="rounded-xl border border-blue-500 px-5 py-3 font-semibold text-blue-300 transition hover:bg-blue-500/10"
+              className="rounded-xl border border-blue-500 px-5 py-3 font-semibold text-[var(--fl-info-text)] transition hover:bg-blue-500/10"
             >
               💬 Need Help? Contact Support
             </Link>
@@ -123,13 +123,13 @@ export default async function BillingPage({
         </section>
 
         {params.success && (
-          <div className="rounded-2xl border border-green-500/40 bg-green-500/10 p-5 font-bold text-green-200">
+          <div className="rounded-2xl border border-green-500/40 bg-green-500/10 p-5 font-bold text-[var(--fl-good-text)]">
             Payment started successfully. Your account will update as soon as Stripe confirms the subscription.
           </div>
         )}
 
         {params.cancelled && (
-          <div className="rounded-2xl border border-yellow-500/40 bg-yellow-500/10 p-5 font-bold text-yellow-200">
+          <div className="rounded-2xl border border-yellow-500/40 bg-yellow-500/10 p-5 font-bold text-[var(--fl-warn-text)]">
             Checkout was cancelled. You can subscribe any time.
           </div>
         )}
@@ -146,7 +146,7 @@ export default async function BillingPage({
           {!iosApp && (
             <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-5">
               <p className="text-xs font-semibold uppercase text-[var(--fl-muted)]">Monthly Price</p>
-              <p className="mt-3 text-3xl font-semibold text-green-300">{exempt ? "Free" : `${formatUsdFromCents(priceCents)}/mo`}</p>
+              <p className="mt-3 text-3xl font-semibold text-[var(--fl-good-text)]">{exempt ? "Free" : `${formatUsdFromCents(priceCents)}/mo`}</p>
             </div>
           )}
         </section>
@@ -187,7 +187,7 @@ export default async function BillingPage({
 
               <Link
                 href="/support"
-                className="rounded-xl border border-blue-500 px-6 py-3 text-center font-semibold text-blue-300 hover:bg-blue-500/10"
+                className="rounded-xl border border-blue-500 px-6 py-3 text-center font-semibold text-[var(--fl-info-text)] hover:bg-blue-500/10"
               >
                 Contact Support
               </Link>

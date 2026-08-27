@@ -35,26 +35,26 @@ type Props = {
 
 function severityClasses(severity: CoachIssue["severity"]) {
   if (severity === "critical") {
-    return "border-red-500/50 bg-red-500/10 text-red-100";
+    return "border-red-500/50 bg-red-500/10 text-[var(--fl-crit-text)]";
   }
 
   if (severity === "warning") {
-    return "border-yellow-500/50 bg-yellow-500/10 text-yellow-100";
+    return "border-yellow-500/50 bg-yellow-500/10 text-[var(--fl-warn-text)]";
   }
 
-  return "border-cyan-500/40 bg-cyan-500/10 text-cyan-100";
+  return "border-cyan-500/40 bg-cyan-500/10 text-[var(--fl-info-text)]";
 }
 
 function scoreClasses(score: number) {
   if (score >= 90) {
-    return "border-emerald-400/50 bg-emerald-500/10 text-emerald-200";
+    return "border-emerald-400/50 bg-emerald-500/10 text-[var(--fl-good-text)]";
   }
 
   if (score >= 70) {
-    return "border-yellow-400/50 bg-yellow-500/10 text-yellow-100";
+    return "border-yellow-400/50 bg-yellow-500/10 text-[var(--fl-warn-text)]";
   }
 
-  return "border-red-400/50 bg-red-500/10 text-red-100";
+  return "border-red-400/50 bg-red-500/10 text-[var(--fl-crit-text)]";
 }
 
 function dispatchCoachEvent(
@@ -231,7 +231,7 @@ export default function LiveSectionCoach({
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-300">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--fl-good-text)]">
             Section Coach
           </p>
           {!compact && (
@@ -255,7 +255,7 @@ export default function LiveSectionCoach({
             onClick={() => void refresh()}
             disabled={!online || loading || !inspectionId}
             aria-label="Refresh Section Coach"
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-emerald-400/50 bg-[var(--fl-surface-2)] text-lg font-semibold text-emerald-100 active:scale-95 disabled:opacity-40"
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-emerald-400/50 bg-[var(--fl-surface-2)] text-lg font-semibold text-[var(--fl-good-text)] active:scale-95 disabled:opacity-40"
           >
             {loading ? "…" : "↻"}
           </button>
@@ -264,7 +264,7 @@ export default function LiveSectionCoach({
             <button
               type="button"
               onClick={() => setOpen((current) => !current)}
-              className="min-h-10 rounded-xl border border-emerald-400/60 px-3 py-2 text-xs font-semibold text-emerald-100 active:scale-[0.98]"
+              className="min-h-10 rounded-xl border border-emerald-400/60 px-3 py-2 text-xs font-semibold text-[var(--fl-good-text)] active:scale-[0.98]"
             >
               {open ? "Collapse" : "Open"}
             </button>
@@ -275,7 +275,7 @@ export default function LiveSectionCoach({
       {(open || compact) && (
         <div className="mt-3 space-y-3">
           {!online && (
-            <div className="rounded-xl border border-yellow-500/50 bg-yellow-500/10 p-3 text-sm font-bold text-yellow-100">
+            <div className="rounded-xl border border-yellow-500/50 bg-yellow-500/10 p-3 text-sm font-bold text-[var(--fl-warn-text)]">
               Section Coach will refresh when internet service returns.
             </div>
           )}
@@ -297,7 +297,7 @@ export default function LiveSectionCoach({
 
               <div className="mt-3 grid grid-cols-3 gap-2 text-center">
                 <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2 py-2">
-                  <p className="text-base font-semibold text-emerald-200">
+                  <p className="text-base font-semibold text-[var(--fl-good-text)]">
                     {completedCount}
                   </p>
                   <p className="text-[10px] font-bold text-[var(--fl-muted)]">
@@ -306,7 +306,7 @@ export default function LiveSectionCoach({
                 </div>
 
                 <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-2 py-2">
-                  <p className="text-base font-semibold text-yellow-200">
+                  <p className="text-base font-semibold text-[var(--fl-warn-text)]">
                     {reminderCount}
                   </p>
                   <p className="text-[10px] font-bold text-[var(--fl-muted)]">
@@ -315,7 +315,7 @@ export default function LiveSectionCoach({
                 </div>
 
                 <div className="rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-2 py-2">
-                  <p className="text-base font-semibold text-cyan-200">
+                  <p className="text-base font-semibold text-[var(--fl-info-text)]">
                     {photoNeededCount}
                   </p>
                   <p className="text-[10px] font-bold text-[var(--fl-muted)]">
@@ -328,7 +328,7 @@ export default function LiveSectionCoach({
 
           {importantIssues.length > 0 ? (
             <div className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-yellow-200">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--fl-warn-text)]">
                 Before You Leave This Section
               </p>
 
@@ -396,7 +396,7 @@ export default function LiveSectionCoach({
               ))}
             </div>
           ) : review ? (
-            <div className="rounded-xl border border-emerald-400/50 bg-emerald-500/10 p-3 text-sm font-semibold text-emerald-100">
+            <div className="rounded-xl border border-emerald-400/50 bg-emerald-500/10 p-3 text-sm font-semibold text-[var(--fl-good-text)]">
               ✓ No blocking Section Coach items are currently detected.
             </div>
           ) : null}
@@ -410,7 +410,7 @@ export default function LiveSectionCoach({
                 {review.completedItems.map((item) => (
                   <span
                     key={item}
-                    className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-200"
+                    className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-bold text-[var(--fl-good-text)]"
                   >
                     ✓ {item}
                   </span>
@@ -420,7 +420,7 @@ export default function LiveSectionCoach({
           ) : null}
 
           {message && (
-            <div className="rounded-xl border border-cyan-500/40 bg-cyan-500/10 p-3 text-sm font-bold text-cyan-100">
+            <div className="rounded-xl border border-cyan-500/40 bg-cyan-500/10 p-3 text-sm font-bold text-[var(--fl-info-text)]">
               {message}
             </div>
           )}

@@ -226,7 +226,7 @@ export default function OfflineAIQueue({ reportId }: { reportId: string }) {
               )}
 
               {item.error && (
-                <p className="mt-2 text-sm text-red-300">{item.error}</p>
+                <p className="mt-2 text-sm text-[var(--fl-crit-text)]">{item.error}</p>
               )}
             </div>
           ))

@@ -50,7 +50,7 @@ export default function InspectionContextEditor({
     <section className="rounded-2xl border border-indigo-500/40 bg-indigo-500/10 p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-indigo-300">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-[var(--fl-purple-text)]">
             AI Context for this inspection
           </h3>
           <p className="mt-1 text-xs text-[var(--fl-muted)]">
@@ -66,7 +66,7 @@ export default function InspectionContextEditor({
               setSaved(false);
               setEditing(true);
             }}
-            className="shrink-0 rounded-lg border border-indigo-400/50 px-3 py-1.5 text-xs font-semibold text-indigo-200 hover:border-indigo-300 hover:text-[var(--fl-text)]"
+            className="shrink-0 rounded-lg border border-indigo-400/50 px-3 py-1.5 text-xs font-semibold text-[var(--fl-purple-text)] hover:border-indigo-300 hover:text-[var(--fl-text)]"
           >
             {value.trim() ? "Edit" : "Add context"}
           </button>
@@ -107,7 +107,7 @@ export default function InspectionContextEditor({
               Cancel
             </button>
           </div>
-          {error && <p className="text-xs font-bold text-rose-400">{error}</p>}
+          {error && <p className="text-xs font-bold text-[var(--fl-crit-text)]">{error}</p>}
         </div>
       ) : value.trim() ? (
         <p className="mt-3 whitespace-pre-wrap rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface-2)] p-3 text-sm text-[var(--fl-text)]">
@@ -121,7 +121,7 @@ export default function InspectionContextEditor({
       )}
 
       {saved && !editing && (
-        <p className="mt-2 text-xs font-bold text-emerald-400">
+        <p className="mt-2 text-xs font-bold text-[var(--fl-good-text)]">
           Saved — the AI will use this on every write-up for this report.
         </p>
       )}

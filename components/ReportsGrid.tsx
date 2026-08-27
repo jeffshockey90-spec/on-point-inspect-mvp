@@ -285,7 +285,7 @@ export default function ReportsGrid({ reports }: { reports: PreparedReport[] }) 
                     />
 
                     {report.activity.inspectorViewed && (
-                      <span className="rounded-full border border-blue-500/40 bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-300">
+                      <span className="rounded-full border border-blue-500/40 bg-blue-500/10 px-3 py-1 text-xs font-semibold text-[var(--fl-info-text)]">
                         🔎 Inspector Viewed
                       </span>
                     )}
@@ -339,8 +339,8 @@ function StatusBadge({
     <span
       className={
         good
-          ? "rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300"
-          : "rounded-full border border-amber-500/40 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-300"
+          ? "rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-[var(--fl-good-text)]"
+          : "rounded-full border border-amber-500/40 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-[var(--fl-warn-text)]"
       }
     >
       {good ? goodLabel : badLabel}
@@ -361,7 +361,7 @@ function EngagementBadge({
     <span
       className={
         active
-          ? "rounded-full border border-green-500/40 bg-green-500/10 px-3 py-1 text-xs font-semibold text-green-300"
+          ? "rounded-full border border-green-500/40 bg-green-500/10 px-3 py-1 text-xs font-semibold text-[var(--fl-good-text)]"
           : "rounded-full border border-[var(--fl-line)] bg-[var(--fl-raised)] px-3 py-1 text-xs font-semibold text-[var(--fl-muted)]"
       }
     >

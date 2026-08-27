@@ -60,7 +60,7 @@ export default function WhatsNewPage() {
         </section>
 
         {error && (
-          <p className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm font-bold text-red-300">
+          <p className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm font-bold text-[var(--fl-crit-text)]">
             {error}
           </p>
         )}
@@ -83,7 +83,7 @@ export default function WhatsNewPage() {
                     {formatDate(entry.published_at)}
                   </p>
                   {entry.credited_user_name && (
-                    <span className="rounded-full border border-amber-400/40 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-300">
+                    <span className="rounded-full border border-amber-400/40 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-[var(--fl-warn-text)]">
                       ✨ Requested by {entry.credited_user_name}
                     </span>
                   )}

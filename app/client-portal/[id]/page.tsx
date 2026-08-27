@@ -349,20 +349,20 @@ function radonClientInfo(avg: any) {
   if (v >= 4) {
     return {
       label: "Elevated — Action Recommended",
-      cls: "border-red-500/50 bg-red-500/10 text-red-200",
+      cls: "border-red-500/50 bg-red-500/10 text-[var(--fl-crit-text)]",
       summary: `The average radon concentration was ${v} pCi/L — at or above the EPA action level of 4.0 pCi/L. Mitigation by a qualified radon contractor is recommended.`,
     };
   }
   if (v >= 2) {
     return {
       label: "Monitor",
-      cls: "border-amber-500/50 bg-amber-500/10 text-amber-200",
+      cls: "border-amber-500/50 bg-amber-500/10 text-[var(--fl-warn-text)]",
       summary: `The average radon concentration was ${v} pCi/L — below the 4.0 pCi/L action level but at or above 2.0. Continued monitoring may be considered.`,
     };
   }
   return {
     label: "Low / Normal",
-    cls: "border-emerald-500/50 bg-emerald-500/10 text-emerald-200",
+    cls: "border-emerald-500/50 bg-emerald-500/10 text-[var(--fl-good-text)]",
     summary: `The average radon concentration was ${v} pCi/L — below the EPA action level of 4.0 pCi/L.`,
   };
 }
@@ -680,8 +680,8 @@ export default function ClientPortalPage() {
           <div
             className={`rounded-2xl border p-4 text-sm font-bold shadow-xl ${
               messageType === "success"
-                ? "border-green-500/40 bg-green-500/10 text-green-300"
-                : "border-red-500/40 bg-red-500/10 text-red-300"
+                ? "border-green-500/40 bg-green-500/10 text-[var(--fl-good-text)]"
+                : "border-red-500/40 bg-red-500/10 text-[var(--fl-crit-text)]"
             }`}
           >
             {message}
@@ -726,19 +726,19 @@ export default function ClientPortalPage() {
 
               {reportUnlocked ? (
                 <div className="rounded-2xl border border-green-500/40 bg-green-500/10 px-6 py-4 text-center">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-green-300">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-good-text)]">
                     Report Access
                   </p>
-                  <p className="mt-1 text-2xl font-semibold text-green-300">
+                  <p className="mt-1 text-2xl font-semibold text-[var(--fl-good-text)]">
                     Unlocked
                   </p>
                 </div>
               ) : (
                 <div className="rounded-2xl border border-yellow-500/40 bg-yellow-500/10 px-6 py-4 text-center">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-yellow-300">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-warn-text)]">
                     Report Access
                   </p>
-                  <p className="mt-1 text-2xl font-semibold text-yellow-300">
+                  <p className="mt-1 text-2xl font-semibold text-[var(--fl-warn-text)]">
                     Locked
                   </p>
                 </div>
@@ -777,7 +777,7 @@ export default function ClientPortalPage() {
 
         {!reportUnlocked && (
           <section className="rounded-2xl border border-yellow-500/40 bg-yellow-500/10 p-6 shadow-xl">
-            <h2 className="text-2xl font-semibold text-yellow-300">
+            <h2 className="text-2xl font-semibold text-[var(--fl-warn-text)]">
               Report Access Requirements
             </h2>
 
@@ -808,7 +808,7 @@ export default function ClientPortalPage() {
 
         {reportUnlocked && (
           <section className="rounded-2xl border border-green-500/40 bg-green-500/10 p-6 shadow-xl">
-            <h2 className="text-2xl font-semibold text-green-300">
+            <h2 className="text-2xl font-semibold text-[var(--fl-good-text)]">
               Your Report Is Ready
             </h2>
 
@@ -847,7 +847,7 @@ export default function ClientPortalPage() {
 
         {reportUnlocked && inspection.executive_summary && (
           <section className="rounded-2xl border border-purple-500/40 bg-purple-500/10 p-6 shadow-xl">
-            <h2 className="text-2xl font-semibold text-purple-300">
+            <h2 className="text-2xl font-semibold text-[var(--fl-purple-text)]">
               Executive Summary
             </h2>
 
@@ -863,7 +863,7 @@ export default function ClientPortalPage() {
 
         {reportUnlocked && showEnvironmentalResults && (
           <section className="rounded-2xl border border-purple-500/40 bg-purple-500/10 p-6 shadow-xl">
-            <h2 className="text-2xl font-semibold text-purple-300">
+            <h2 className="text-2xl font-semibold text-[var(--fl-purple-text)]">
               Environmental Test Results
             </h2>
 
@@ -893,7 +893,7 @@ export default function ClientPortalPage() {
                         href={radonReportUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="mt-4 inline-block text-sm font-bold text-purple-300 underline"
+                        className="mt-4 inline-block text-sm font-bold text-[var(--fl-purple-text)] underline"
                       >
                         View Official Radon Report &rarr;
                       </a>
@@ -922,7 +922,7 @@ export default function ClientPortalPage() {
                       href={moldReportUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="mt-4 inline-block text-sm font-bold text-purple-300 underline"
+                      className="mt-4 inline-block text-sm font-bold text-[var(--fl-purple-text)] underline"
                     >
                       View Official Mold Report &rarr;
                     </a>
@@ -983,7 +983,7 @@ export default function ClientPortalPage() {
                     highlight="warning"
                   />
 
-                  <p className="rounded-xl border border-yellow-500/40 bg-yellow-500/10 p-3 text-xs leading-5 text-yellow-200">
+                  <p className="rounded-xl border border-yellow-500/40 bg-yellow-500/10 p-3 text-xs leading-5 text-[var(--fl-warn-text)]">
                     Online card payments through the portal include a small processing fee.
                     Other approved payment methods may be available without this online fee.
                   </p>
@@ -1027,7 +1027,7 @@ export default function ClientPortalPage() {
           <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {agreementSigned ? (
               agreementWaived ? (
-                <div className="rounded-xl border border-green-500/40 bg-green-500/10 px-6 py-4 text-left font-bold text-green-300">
+                <div className="rounded-xl border border-green-500/40 bg-green-500/10 px-6 py-4 text-left font-bold text-[var(--fl-good-text)]">
                   <span className="block text-lg">Agreement Waived</span>
                   <span className="mt-1 block text-sm font-medium opacity-80">
                     This requirement is complete.
@@ -1037,7 +1037,7 @@ export default function ClientPortalPage() {
                 <FastLinkButton
                   href={`/client-agreement/${shareLookup}`}
                   loadingText="Opening Signed Agreement..."
-                  className="rounded-xl border border-green-500/50 bg-green-500/10 px-6 py-4 text-left font-bold text-green-300 hover:bg-green-500/20"
+                  className="rounded-xl border border-green-500/50 bg-green-500/10 px-6 py-4 text-left font-bold text-[var(--fl-good-text)] hover:bg-green-500/20"
                 >
                   <span>
                     <span className="block text-lg">✓ Agreement Signed</span>
@@ -1078,7 +1078,7 @@ export default function ClientPortalPage() {
                 <a
                   href={pdfHref}
                   target="_blank"
-                  className="rounded-xl border border-cyan-500 bg-[var(--fl-surface-2)] px-6 py-4 font-bold text-cyan-300 hover:bg-cyan-500/10"
+                  className="rounded-xl border border-cyan-500 bg-[var(--fl-surface-2)] px-6 py-4 font-bold text-[var(--fl-info-text)] hover:bg-cyan-500/10"
                 >
                   <span className="block text-lg">Download PDF</span>
                   <span className="mt-1 block text-sm font-medium text-[var(--fl-muted)]">
@@ -1089,7 +1089,7 @@ export default function ClientPortalPage() {
                 <a
                   href={`/repair-request?inspection_id=${inspectionId}&token=${shareLookup}`}
                   target="_blank"
-                  className="rounded-xl border border-orange-500 bg-[var(--fl-surface-2)] px-6 py-4 font-bold text-orange-300 hover:bg-orange-500/10"
+                  className="rounded-xl border border-orange-500 bg-[var(--fl-surface-2)] px-6 py-4 font-bold text-[var(--fl-warn-text)] hover:bg-orange-500/10"
                 >
                   <span className="block text-lg">Repair Request</span>
                   <span className="mt-1 block text-sm font-medium text-[var(--fl-muted)]">
@@ -1100,7 +1100,7 @@ export default function ClientPortalPage() {
                 <a
                   href={homeHubHref}
                   target="_blank"
-                  className="rounded-xl border border-emerald-500 bg-[var(--fl-surface-2)] px-6 py-4 font-bold text-emerald-300 hover:bg-emerald-500/10"
+                  className="rounded-xl border border-emerald-500 bg-[var(--fl-surface-2)] px-6 py-4 font-bold text-[var(--fl-good-text)] hover:bg-emerald-500/10"
                 >
                   <span className="block text-lg">🏠 Home Maintenance Hub</span>
                   <span className="mt-1 block text-sm font-medium text-[var(--fl-muted)]">
@@ -1124,7 +1124,7 @@ export default function ClientPortalPage() {
               onClick={() => updateStatus("review_status", "Submitted")}
               disabled={updatingReview}
               aria-busy={updatingReview}
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-yellow-500 bg-[var(--fl-surface-2)] px-6 py-4 text-left font-bold text-yellow-300 transition active:scale-[0.98] hover:bg-yellow-500/10 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-yellow-500 bg-[var(--fl-surface-2)] px-6 py-4 text-left font-bold text-[var(--fl-warn-text)] transition active:scale-[0.98] hover:bg-yellow-500/10 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
             >
               {updatingReview && (
                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -1156,7 +1156,7 @@ export default function ClientPortalPage() {
                   <h3 className="text-xl font-semibold text-[var(--fl-text)]">{section}</h3>
 
                   {sectionNotes[section] && (
-                    <p className="mt-3 whitespace-pre-wrap rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm leading-6 text-amber-100">
+                    <p className="mt-3 whitespace-pre-wrap rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm leading-6 text-[var(--fl-warn-text)]">
                       {sectionNotes[section]}
                     </p>
                   )}
@@ -1231,7 +1231,7 @@ function StatusCard({
 
       <p
         className={`mt-2 text-3xl font-semibold ${
-          complete ? "text-green-300" : "text-yellow-300"
+          complete ? "text-[var(--fl-good-text)]" : "text-[var(--fl-warn-text)]"
         }`}
       >
         {complete ? "✓" : "•"} {status}
@@ -1255,8 +1255,8 @@ function RequirementRow({
     <div
       className={`rounded-xl border p-4 ${
         complete
-          ? "border-green-500/40 bg-green-500/10 text-green-300"
-          : "border-yellow-500/40 bg-yellow-500/10 text-yellow-300"
+          ? "border-green-500/40 bg-green-500/10 text-[var(--fl-good-text)]"
+          : "border-yellow-500/40 bg-yellow-500/10 text-[var(--fl-warn-text)]"
       }`}
     >
       <p className="font-bold">
@@ -1282,10 +1282,10 @@ function ActionLink({
     tone === "teal"
       ? "border-teal-500 text-[var(--fl-accent-text)] hover:bg-teal-500/10"
       : tone === "cyan"
-      ? "border-cyan-500 text-cyan-300 hover:bg-cyan-500/10"
+      ? "border-cyan-500 text-[var(--fl-info-text)] hover:bg-cyan-500/10"
       : tone === "purple"
-      ? "border-purple-500 text-purple-300 hover:bg-purple-500/10"
-      : "border-orange-500 text-orange-300 hover:bg-orange-500/10";
+      ? "border-purple-500 text-[var(--fl-purple-text)] hover:bg-purple-500/10"
+      : "border-orange-500 text-[var(--fl-warn-text)] hover:bg-orange-500/10";
 
   const isExternal =
     href.startsWith("http://") ||
@@ -1350,9 +1350,9 @@ function PaymentLine({
 }) {
   const color =
     highlight === "success"
-      ? "text-green-400"
+      ? "text-[var(--fl-good-text)]"
       : highlight === "warning"
-      ? "text-orange-300"
+      ? "text-[var(--fl-warn-text)]"
       : "text-[var(--fl-accent-text)]";
 
   return (

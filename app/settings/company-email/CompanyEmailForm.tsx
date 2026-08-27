@@ -160,7 +160,7 @@ export default function CompanyEmailForm() {
           {msg && (
             <span
               className={`text-sm font-bold ${
-                msg.tone === "ok" ? "text-emerald-300" : msg.tone === "err" ? "text-red-300" : "text-[var(--fl-muted)]"
+                msg.tone === "ok" ? "text-[var(--fl-good-text)]" : msg.tone === "err" ? "text-[var(--fl-crit-text)]" : "text-[var(--fl-muted)]"
               }`}
             >
               {msg.text}

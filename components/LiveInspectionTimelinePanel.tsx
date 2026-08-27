@@ -27,11 +27,11 @@ type TimelineResult = {
 };
 
 function toneClass(tone: TimelineEventTone) {
-  if (tone === "critical") return "border-red-500/50 bg-red-500/10 text-red-200";
-  if (tone === "warning") return "border-yellow-500/50 bg-yellow-500/10 text-yellow-100";
-  if (tone === "success") return "border-emerald-500/50 bg-emerald-500/10 text-emerald-200";
-  if (tone === "ai") return "border-purple-500/50 bg-purple-500/10 text-purple-100";
-  return "border-cyan-500/40 bg-cyan-500/10 text-cyan-100";
+  if (tone === "critical") return "border-red-500/50 bg-red-500/10 text-[var(--fl-crit-text)]";
+  if (tone === "warning") return "border-yellow-500/50 bg-yellow-500/10 text-[var(--fl-warn-text)]";
+  if (tone === "success") return "border-emerald-500/50 bg-emerald-500/10 text-[var(--fl-good-text)]";
+  if (tone === "ai") return "border-purple-500/50 bg-purple-500/10 text-[var(--fl-purple-text)]";
+  return "border-cyan-500/40 bg-cyan-500/10 text-[var(--fl-info-text)]";
 }
 
 function sourceIcon(source: InspectionTimelineEvent["source"]) {
@@ -151,7 +151,7 @@ export default function LiveInspectionTimelinePanel({ inspectionId }: { inspecti
     <section ref={rootRef} className="rounded-2xl border border-sky-500/40 bg-sky-500/10 p-4 shadow-xl" style={{ contentVisibility: "auto", containIntrinsicSize: "700px" }}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-300">Live Inspection Timeline</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fl-info-text)]">Live Inspection Timeline</p>
           <h2 className="mt-1 text-2xl font-semibold text-[var(--fl-text)]">AI Activity Timeline</h2>
           <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">Tracks findings, equipment, media, report activity, and AI follow-up reminders as the inspection develops.</p>
         </div>
@@ -160,7 +160,7 @@ export default function LiveInspectionTimelinePanel({ inspectionId }: { inspecti
         </button>
       </div>
 
-      {message && <div className="mt-4 rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm font-bold text-red-200">{message}</div>}
+      {message && <div className="mt-4 rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm font-bold text-[var(--fl-crit-text)]">{message}</div>}
 
       <div className="mt-5 grid gap-3 sm:grid-cols-3">
         <SmallStat label="Findings" value={result?.findingCount ?? "—"} />
@@ -172,7 +172,7 @@ export default function LiveInspectionTimelinePanel({ inspectionId }: { inspecti
         <div className="mt-5 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Timeline Highlights</p>
           <div className="mt-3 flex flex-wrap gap-2">
-            {result.highlights.map((item, index) => <span key={index} className="rounded-full border border-sky-500/40 bg-sky-500/10 px-3 py-2 text-xs font-semibold text-sky-200">{item}</span>)}
+            {result.highlights.map((item, index) => <span key={index} className="rounded-full border border-sky-500/40 bg-sky-500/10 px-3 py-2 text-xs font-semibold text-[var(--fl-info-text)]">{item}</span>)}
           </div>
         </div>
       ) : null}

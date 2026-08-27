@@ -106,7 +106,7 @@ export default function SendW9Button({ inspectionId }: { inspectionId: string })
           onClick={() => sendW9("client")}
           disabled={sending !== null || !contactClientEmail}
           aria-busy={sending === "client"}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-amber-500 bg-amber-500/10 px-5 py-3 font-bold text-amber-300 transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 hover:bg-amber-500/20 sm:w-auto [touch-action:manipulation]"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-amber-500 bg-amber-500/10 px-5 py-3 font-bold text-[var(--fl-warn-text)] transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 hover:bg-amber-500/20 sm:w-auto [touch-action:manipulation]"
           title={contactClientEmail || "No client email found"}
         >
           <Spinner active={sending === "client"} />
@@ -118,7 +118,7 @@ export default function SendW9Button({ inspectionId }: { inspectionId: string })
           onClick={() => sendW9("realtor")}
           disabled={sending !== null || !contactRealtorEmail}
           aria-busy={sending === "realtor"}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-purple-500 px-5 py-3 font-bold text-purple-300 transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 hover:bg-purple-500/10 sm:w-auto [touch-action:manipulation]"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-purple-500 px-5 py-3 font-bold text-[var(--fl-purple-text)] transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 hover:bg-purple-500/10 sm:w-auto [touch-action:manipulation]"
           title={contactRealtorEmail || "No realtor email found"}
         >
           <Spinner active={sending === "realtor"} />
@@ -139,7 +139,7 @@ export default function SendW9Button({ inspectionId }: { inspectionId: string })
             onClick={() => sendW9("custom")}
             disabled={sending !== null}
             aria-busy={sending === "custom"}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-500 px-5 py-3 font-bold text-cyan-300 transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 hover:bg-cyan-500/10 sm:w-auto [touch-action:manipulation]"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-500 px-5 py-3 font-bold text-[var(--fl-info-text)] transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 hover:bg-cyan-500/10 sm:w-auto [touch-action:manipulation]"
           >
             <Spinner active={sending === "custom"} />
             {sending === "custom" ? "Sending..." : "Send"}
@@ -151,10 +151,10 @@ export default function SendW9Button({ inspectionId }: { inspectionId: string })
         <div
           className={`mt-3 whitespace-pre-line rounded-xl border px-4 py-3 text-sm font-bold ${
             notice.type === "success"
-              ? "border-emerald-500 bg-emerald-500/10 text-emerald-200"
+              ? "border-emerald-500 bg-emerald-500/10 text-[var(--fl-good-text)]"
               : notice.type === "error"
-                ? "border-red-500 bg-red-500/10 text-red-200"
-                : "border-cyan-500 bg-cyan-500/10 text-cyan-200"
+                ? "border-red-500 bg-red-500/10 text-[var(--fl-crit-text)]"
+                : "border-cyan-500 bg-cyan-500/10 text-[var(--fl-info-text)]"
           }`}
         >
           {notice.message}

@@ -51,7 +51,7 @@ export default function SendSignedAgreementButton({
         {busy ? "Sending…" : "Email copy to client"}
       </button>
       {msg && (
-        <p className={`text-xs font-bold ${msg.ok ? "text-emerald-300" : "text-red-300"}`}>
+        <p className={`text-xs font-bold ${msg.ok ? "text-[var(--fl-good-text)]" : "text-[var(--fl-crit-text)]"}`}>
           {msg.text}
         </p>
       )}

@@ -148,18 +148,18 @@ function statusClass(status: string) {
   const lower = status.toLowerCase();
 
   if (lower.includes("complete") || lower.includes("done")) {
-    return "border-emerald-400/40 bg-emerald-500/10 text-emerald-200";
+    return "border-emerald-400/40 bg-emerald-500/10 text-[var(--fl-good-text)]";
   }
 
   if (lower.includes("cancel")) {
-    return "border-red-400/40 bg-red-500/10 text-red-200";
+    return "border-red-400/40 bg-red-500/10 text-[var(--fl-crit-text)]";
   }
 
   if (lower.includes("draft") || lower.includes("pending")) {
-    return "border-yellow-400/40 bg-yellow-500/10 text-yellow-200";
+    return "border-yellow-400/40 bg-yellow-500/10 text-[var(--fl-warn-text)]";
   }
 
-  return "border-cyan-400/40 bg-cyan-500/10 text-cyan-200";
+  return "border-cyan-400/40 bg-cyan-500/10 text-[var(--fl-info-text)]";
 }
 
 function sortScheduleRows(rows: InspectionRow[]) {
@@ -278,13 +278,13 @@ export default async function SchedulePage() {
         </div>
 
         {error ? (
-          <div className="mb-6 rounded-2xl border border-red-500/40 bg-red-500/10 p-6 text-red-100">
+          <div className="mb-6 rounded-2xl border border-red-500/40 bg-red-500/10 p-6 text-[var(--fl-crit-text)]">
             Schedule could not load: {error.message}
           </div>
         ) : null}
 
         {bookingRequestsError ? (
-          <div className="mb-6 rounded-2xl border border-yellow-500/40 bg-yellow-500/10 p-5 text-yellow-100">
+          <div className="mb-6 rounded-2xl border border-yellow-500/40 bg-yellow-500/10 p-5 text-[var(--fl-warn-text)]">
             Booking requests could not load. If this is your first install, run the booking SQL migration first. {bookingRequestsError.message}
           </div>
         ) : null}
@@ -312,7 +312,7 @@ export default async function SchedulePage() {
             <p className="text-xs font-bold uppercase tracking-widest text-[var(--fl-faint)]">
               Unscheduled
             </p>
-            <p className="mt-2 text-3xl font-bold text-yellow-200">
+            <p className="mt-2 text-3xl font-bold text-[var(--fl-warn-text)]">
               {unscheduledRows.length}
             </p>
           </div>
@@ -377,7 +377,7 @@ export default async function SchedulePage() {
                       </p>
                     </div>
 
-                    <span className="rounded-full border border-yellow-400/40 bg-yellow-500/10 px-3 py-1 text-xs font-semibold text-yellow-200">
+                    <span className="rounded-full border border-yellow-400/40 bg-yellow-500/10 px-3 py-1 text-xs font-semibold text-[var(--fl-warn-text)]">
                       Pending
                     </span>
                   </div>
@@ -423,11 +423,11 @@ export default async function SchedulePage() {
 
         {unscheduledRows.length > 0 ? (
           <div className="mb-8 rounded-2xl border border-yellow-500/30 bg-yellow-500/10 p-5">
-            <h2 className="text-lg font-bold text-yellow-100">
+            <h2 className="text-lg font-bold text-[var(--fl-warn-text)]">
               Reports missing a schedule date
             </h2>
 
-            <p className="mt-2 text-sm text-yellow-100/70">
+            <p className="mt-2 text-sm text-[var(--fl-warn-text)]/70">
               These reports will not appear on the calendar until a date is added.
             </p>
 

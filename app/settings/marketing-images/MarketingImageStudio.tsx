@@ -846,7 +846,7 @@ export default function MarketingImageStudio({
             </details>
 
             {error ? (
-              <p className="rounded-2xl border border-red-400/30 bg-red-400/10 px-4 py-3 text-sm text-red-100">
+              <p className="rounded-2xl border border-red-400/30 bg-red-400/10 px-4 py-3 text-sm text-[var(--fl-crit-text)]">
                 {error}
               </p>
             ) : null}

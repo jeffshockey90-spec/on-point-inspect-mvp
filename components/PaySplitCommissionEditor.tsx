@@ -72,7 +72,7 @@ export default function PaySplitCommissionEditor({
   return (
     <div className="space-y-3">
       {error && (
-        <p className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm font-bold text-red-300">
+        <p className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm font-bold text-[var(--fl-crit-text)]">
           {error}
         </p>
       )}
@@ -89,7 +89,7 @@ export default function PaySplitCommissionEditor({
               <p className="truncate text-sm font-semibold text-[var(--fl-text)]">
                 {member.name}
                 {member.role === "owner" && (
-                  <span className="ml-2 rounded-full border border-amber-400/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-300">
+                  <span className="ml-2 rounded-full border border-amber-400/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-[var(--fl-warn-text)]">
                     Owner
                   </span>
                 )}

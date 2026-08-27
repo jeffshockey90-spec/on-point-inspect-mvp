@@ -130,8 +130,8 @@ export default function IOSSubscribeButton({ userId }: { userId: string }) {
         Restore Purchases
       </button>
 
-      {notice && <p className="text-sm font-bold text-yellow-300">{notice}</p>}
-      {error && <p className="text-sm font-bold text-red-300">{error}</p>}
+      {notice && <p className="text-sm font-bold text-[var(--fl-warn-text)]">{notice}</p>}
+      {error && <p className="text-sm font-bold text-[var(--fl-crit-text)]">{error}</p>}
     </div>
   );
 }

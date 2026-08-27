@@ -161,13 +161,13 @@ export default function PropertyPhotoUploader({
       </div>
 
       {status && (
-        <p className="mt-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs font-bold text-emerald-300">
+        <p className="mt-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs font-bold text-[var(--fl-good-text)]">
           {status}
         </p>
       )}
 
       {error && (
-        <p className="mt-3 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs font-bold text-red-200">
+        <p className="mt-3 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs font-bold text-[var(--fl-crit-text)]">
           {error}
         </p>
       )}

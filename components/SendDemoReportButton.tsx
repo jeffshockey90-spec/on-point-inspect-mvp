@@ -56,7 +56,7 @@ export default function SendDemoReportButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="rounded-xl border border-fuchsia-500 px-5 py-3 font-bold text-fuchsia-300 transition hover:bg-fuchsia-500/10"
+        className="rounded-xl border border-fuchsia-500 px-5 py-3 font-bold text-[var(--fl-purple-text)] transition hover:bg-fuchsia-500/10"
       >
         📤 Send Demo Report
       </button>
@@ -66,17 +66,17 @@ export default function SendDemoReportButton({
   return (
     <div className="w-full max-w-md rounded-2xl border border-fuchsia-500/40 bg-fuchsia-500/10 p-4">
       <div className="mb-3 flex items-center justify-between">
-        <p className="text-sm font-semibold uppercase tracking-wide text-fuchsia-300">Send Demo Report</p>
+        <p className="text-sm font-semibold uppercase tracking-wide text-[var(--fl-purple-text)]">Send Demo Report</p>
         <button type="button" onClick={() => setOpen(false)} className="text-lg text-[var(--fl-muted)] hover:text-[var(--fl-text)]" aria-label="Close">
           ×
         </button>
       </div>
 
       {error && (
-        <div className="mb-3 rounded-lg border border-red-700 bg-red-500/10 px-3 py-2 text-xs font-bold text-red-200">{error}</div>
+        <div className="mb-3 rounded-lg border border-red-700 bg-red-500/10 px-3 py-2 text-xs font-bold text-[var(--fl-crit-text)]">{error}</div>
       )}
       {notice && (
-        <div className="mb-3 rounded-lg border border-emerald-700 bg-emerald-500/10 px-3 py-2 text-xs font-bold text-emerald-200">{notice}</div>
+        <div className="mb-3 rounded-lg border border-emerald-700 bg-emerald-500/10 px-3 py-2 text-xs font-bold text-[var(--fl-good-text)]">{notice}</div>
       )}
 
       <div className="space-y-2">

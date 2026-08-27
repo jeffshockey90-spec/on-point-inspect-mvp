@@ -107,11 +107,11 @@ export default function PushAlertsPanel() {
     <section className="rounded-2xl border border-[var(--fl-raised)] bg-gradient-to-br from-[var(--fl-surface)] to-[var(--fl-surface)] p-5 shadow-xl sm:p-6 md:p-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex gap-4">
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-indigo-500/30 bg-indigo-500/10 text-indigo-300">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-indigo-500/30 bg-indigo-500/10 text-[var(--fl-purple-text)]">
             <BellRing className="h-7 w-7" strokeWidth={2} />
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-indigo-300">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--fl-purple-text)]">
               Notifications
             </p>
             <h2 className="mt-2 text-xl font-semibold text-[var(--fl-text)] sm:text-2xl">Push Alerts</h2>
@@ -132,7 +132,7 @@ export default function PushAlertsPanel() {
       </div>
 
       {note && (
-        <p className="mt-4 rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-3 text-sm text-indigo-200">
+        <p className="mt-4 rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-3 text-sm text-[var(--fl-purple-text)]">
           {note}
         </p>
       )}
@@ -157,13 +157,13 @@ export default function PushAlertsPanel() {
                         <p className="truncate text-xs text-[var(--fl-faint)]">Fires when {a.when}.</p>
                       </div>
                       <div className="flex shrink-0 items-center gap-2">
-                        {state === "ok" && <span className="text-xs font-bold text-emerald-400">Sent ✓</span>}
-                        {state === "fail" && <span className="text-xs font-bold text-red-400">Failed</span>}
+                        {state === "ok" && <span className="text-xs font-bold text-[var(--fl-good-text)]">Sent ✓</span>}
+                        {state === "fail" && <span className="text-xs font-bold text-[var(--fl-crit-text)]">Failed</span>}
                         <button
                           type="button"
                           onClick={() => sendTest(a)}
                           disabled={state === "sending" || testingAll}
-                          className="rounded-lg border border-indigo-500/50 px-3 py-1.5 text-xs font-semibold text-indigo-300 transition hover:bg-indigo-500/10 disabled:opacity-50"
+                          className="rounded-lg border border-indigo-500/50 px-3 py-1.5 text-xs font-semibold text-[var(--fl-purple-text)] transition hover:bg-indigo-500/10 disabled:opacity-50"
                         >
                           {state === "sending" ? "…" : "Test"}
                         </button>

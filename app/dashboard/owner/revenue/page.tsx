@@ -431,7 +431,7 @@ export default async function OwnerRevenuePage() {
     return (
       <main className="min-h-screen bg-[var(--fl-ground)] px-6 py-10 text-[var(--fl-text)]">
         <div className="mx-auto max-w-3xl rounded-2xl border border-red-500/40 bg-red-500/10 p-8 shadow-2xl">
-          <p className="text-sm font-semibold uppercase tracking-[0.35em] text-red-300">
+          <p className="text-sm font-semibold uppercase tracking-[0.35em] text-[var(--fl-crit-text)]">
             Owner Only
           </p>
           <h1 className="mt-4 text-4xl font-semibold">Access Restricted</h1>
@@ -440,7 +440,7 @@ export default async function OwnerRevenuePage() {
           </p>
           <Link
             href="/dashboard"
-            className="mt-6 inline-flex rounded-xl border border-red-400 px-5 py-3 font-semibold text-red-300 hover:bg-red-500/10"
+            className="mt-6 inline-flex rounded-xl border border-red-400 px-5 py-3 font-semibold text-[var(--fl-crit-text)] hover:bg-red-500/10"
           >
             Back to Dashboard
           </Link>
@@ -553,7 +553,7 @@ export default async function OwnerRevenuePage() {
         <section className="rounded-2xl border border-green-500/40 bg-[var(--fl-surface)] p-8 shadow-2xl">
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-green-400">
+              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-[var(--fl-good-text)]">
                 Owner Revenue Dashboard
               </p>
               <h1 className="mt-4 text-5xl font-semibold text-[var(--fl-text)]">
@@ -567,14 +567,14 @@ export default async function OwnerRevenuePage() {
             <div className="flex flex-wrap gap-3">
               <Link
                 href="/dashboard/owner/users"
-                className="rounded-xl border border-cyan-500 px-5 py-3 font-semibold text-cyan-300 transition hover:bg-cyan-500/10"
+                className="rounded-xl border border-cyan-500 px-5 py-3 font-semibold text-[var(--fl-info-text)] transition hover:bg-cyan-500/10"
               >
                 👥 Users
               </Link>
 
               <Link
                 href="/dashboard/owner/devices"
-                className="rounded-xl border border-purple-500 px-5 py-3 font-semibold text-purple-300 transition hover:bg-purple-500/10"
+                className="rounded-xl border border-purple-500 px-5 py-3 font-semibold text-[var(--fl-purple-text)] transition hover:bg-purple-500/10"
               >
                 📱 Devices
               </Link>
@@ -620,7 +620,7 @@ export default async function OwnerRevenuePage() {
                   <div key={row.month} className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
                     <div className="mb-3 flex items-center justify-between gap-4">
                       <p className="font-semibold text-[var(--fl-text)]">{row.month}</p>
-                      <p className="text-sm font-semibold text-green-300">{money(row.revenue)}</p>
+                      <p className="text-sm font-semibold text-[var(--fl-good-text)]">{money(row.revenue)}</p>
                     </div>
 
                     <GrowthBar label="Revenue" value={row.revenue} max={maxMonthlyRevenue} tone="green" display={money(row.revenue)} />
@@ -689,7 +689,7 @@ export default async function OwnerRevenuePage() {
                           </p>
                         </div>
 
-                        <p className="shrink-0 font-semibold text-green-300">
+                        <p className="shrink-0 font-semibold text-[var(--fl-good-text)]">
                           {money(getInspectionRevenue(inspection))}
                         </p>
                       </div>
@@ -702,7 +702,7 @@ export default async function OwnerRevenuePage() {
                           Open Report
                         </Link>
 
-                        <span className="rounded-lg border border-green-500/30 bg-green-500/10 px-3 py-2 text-xs font-semibold text-green-300">
+                        <span className="rounded-lg border border-green-500/30 bg-green-500/10 px-3 py-2 text-xs font-semibold text-[var(--fl-good-text)]">
                           Paid
                         </span>
                       </div>
@@ -759,11 +759,11 @@ export default async function OwnerRevenuePage() {
                             {money(amount)}
                           </td>
 
-                          <td className="px-4 py-4 text-right font-semibold text-green-300">
+                          <td className="px-4 py-4 text-right font-semibold text-[var(--fl-good-text)]">
                             {money(paid)}
                           </td>
 
-                          <td className="px-4 py-4 text-right font-semibold text-orange-300">
+                          <td className="px-4 py-4 text-right font-semibold text-[var(--fl-warn-text)]">
                             {money(balance)}
                           </td>
 
@@ -780,7 +780,7 @@ export default async function OwnerRevenuePage() {
           )}
         </Panel>
 
-        <section className="rounded-2xl border border-yellow-500/30 bg-yellow-500/10 p-5 text-sm leading-6 text-yellow-100">
+        <section className="rounded-2xl border border-yellow-500/30 bg-yellow-500/10 p-5 text-sm leading-6 text-[var(--fl-warn-text)]">
           <strong>Revenue note:</strong> This dashboard uses your internal Supabase report, invoice, radon, and mold records. Stripe should still be treated as the official payment ledger for reconciliation.
         </section>
       </div>
@@ -801,12 +801,12 @@ function MetricCard({
 }) {
   const classes: Record<Tone, string> = {
     teal: "border-teal-500/40 bg-teal-500/10 text-[var(--fl-accent-text)]",
-    green: "border-green-500/40 bg-green-500/10 text-green-300",
-    blue: "border-blue-500/40 bg-blue-500/10 text-blue-300",
-    purple: "border-purple-500/40 bg-purple-500/10 text-purple-300",
-    orange: "border-orange-500/40 bg-orange-500/10 text-orange-300",
-    yellow: "border-yellow-500/40 bg-yellow-500/10 text-yellow-300",
-    red: "border-red-500/40 bg-red-500/10 text-red-300",
+    green: "border-green-500/40 bg-green-500/10 text-[var(--fl-good-text)]",
+    blue: "border-blue-500/40 bg-blue-500/10 text-[var(--fl-info-text)]",
+    purple: "border-purple-500/40 bg-purple-500/10 text-[var(--fl-purple-text)]",
+    orange: "border-orange-500/40 bg-orange-500/10 text-[var(--fl-warn-text)]",
+    yellow: "border-yellow-500/40 bg-yellow-500/10 text-[var(--fl-warn-text)]",
+    red: "border-red-500/40 bg-red-500/10 text-[var(--fl-crit-text)]",
   };
 
   return (
@@ -898,7 +898,7 @@ function SimpleBar({
           <p className="font-semibold text-[var(--fl-text)]">{label}</p>
           <p className="mt-1 text-xs text-[var(--fl-faint)]">{count}</p>
         </div>
-        <p className="font-semibold text-green-300">{value}</p>
+        <p className="font-semibold text-[var(--fl-good-text)]">{value}</p>
       </div>
 
       <div className="h-3 overflow-hidden rounded-full bg-[var(--fl-surface-2)]">
@@ -919,7 +919,7 @@ function InspectorRevenueCard({ row }: { row: InspectorRevenueRow }) {
           </p>
         </div>
 
-        <p className="shrink-0 font-semibold text-green-300">{money(row.revenue)}</p>
+        <p className="shrink-0 font-semibold text-[var(--fl-good-text)]">{money(row.revenue)}</p>
       </div>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
@@ -955,12 +955,12 @@ function Badge({
 }) {
   const classes: Record<Tone, string> = {
     teal: "border-teal-500/30 bg-teal-500/10 text-[var(--fl-accent-text)]",
-    green: "border-green-500/30 bg-green-500/10 text-green-300",
-    blue: "border-blue-500/30 bg-blue-500/10 text-blue-300",
-    purple: "border-purple-500/30 bg-purple-500/10 text-purple-300",
-    orange: "border-orange-500/30 bg-orange-500/10 text-orange-300",
-    yellow: "border-yellow-500/30 bg-yellow-500/10 text-yellow-300",
-    red: "border-red-500/30 bg-red-500/10 text-red-300",
+    green: "border-green-500/30 bg-green-500/10 text-[var(--fl-good-text)]",
+    blue: "border-blue-500/30 bg-blue-500/10 text-[var(--fl-info-text)]",
+    purple: "border-purple-500/30 bg-purple-500/10 text-[var(--fl-purple-text)]",
+    orange: "border-orange-500/30 bg-orange-500/10 text-[var(--fl-warn-text)]",
+    yellow: "border-yellow-500/30 bg-yellow-500/10 text-[var(--fl-warn-text)]",
+    red: "border-red-500/30 bg-red-500/10 text-[var(--fl-crit-text)]",
   };
 
   return (

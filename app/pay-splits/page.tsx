@@ -364,10 +364,10 @@ export default async function PaySplitsPage({
                             {formatMoney(row.gross, currency)}
                           </td>
                           <td className="px-4 py-3 text-right font-semibold text-[var(--fl-muted)]">{row.pct}%</td>
-                          <td className="px-4 py-3 text-right font-semibold text-green-300">
+                          <td className="px-4 py-3 text-right font-semibold text-[var(--fl-good-text)]">
                             {formatMoney(row.inspectorCut, currency)}
                           </td>
-                          <td className="px-4 py-3 text-right font-semibold text-blue-300">
+                          <td className="px-4 py-3 text-right font-semibold text-[var(--fl-info-text)]">
                             {formatMoney(row.companyCut, currency)}
                           </td>
                         </tr>
@@ -381,10 +381,10 @@ export default async function PaySplitsPage({
                           {formatMoney(totals.gross, currency)}
                         </td>
                         <td className="px-4 py-3 text-right font-semibold text-[var(--fl-faint)]">—</td>
-                        <td className="px-4 py-3 text-right font-semibold text-green-300">
+                        <td className="px-4 py-3 text-right font-semibold text-[var(--fl-good-text)]">
                           {formatMoney(totals.inspectorCut, currency)}
                         </td>
-                        <td className="px-4 py-3 text-right font-semibold text-blue-300">
+                        <td className="px-4 py-3 text-right font-semibold text-[var(--fl-info-text)]">
                           {formatMoney(totals.companyCut, currency)}
                         </td>
                       </tr>
@@ -449,9 +449,9 @@ function MetricCard({
 }) {
   const colors: Record<string, string> = {
     teal: "border-teal-500/40 bg-teal-500/10 text-[var(--fl-accent-text)]",
-    green: "border-green-500/40 bg-green-500/10 text-green-300",
-    blue: "border-blue-500/40 bg-blue-500/10 text-blue-300",
-    purple: "border-purple-500/40 bg-purple-500/10 text-purple-300",
+    green: "border-green-500/40 bg-green-500/10 text-[var(--fl-good-text)]",
+    blue: "border-blue-500/40 bg-blue-500/10 text-[var(--fl-info-text)]",
+    purple: "border-purple-500/40 bg-purple-500/10 text-[var(--fl-purple-text)]",
   };
 
   return (

@@ -198,14 +198,14 @@ function resultClass(result: string) {
   const clean = String(result || "").toLowerCase();
 
   if (clean.includes("action") || clean.includes("elevated")) {
-    return "border-red-500/40 bg-red-500/10 text-red-300";
+    return "border-red-500/40 bg-red-500/10 text-[var(--fl-crit-text)]";
   }
 
   if (clean.includes("monitor") || clean.includes("pending")) {
-    return "border-yellow-500/40 bg-yellow-500/10 text-yellow-300";
+    return "border-yellow-500/40 bg-yellow-500/10 text-[var(--fl-warn-text)]";
   }
 
-  return "border-green-500/40 bg-green-500/10 text-green-300";
+  return "border-green-500/40 bg-green-500/10 text-[var(--fl-good-text)]";
 }
 
 export default async function EnvironmentalReportPage({ params }: PageProps) {
@@ -289,7 +289,7 @@ export default async function EnvironmentalReportPage({ params }: PageProps) {
 
           <Link
             href={`/environmental-share/${inspection.id}`}
-            className="rounded-xl border border-cyan-500 px-5 py-3 font-bold text-cyan-300 hover:bg-cyan-500/10"
+            className="rounded-xl border border-cyan-500 px-5 py-3 font-bold text-[var(--fl-info-text)] hover:bg-cyan-500/10"
           >
             Public Environmental Report
           </Link>

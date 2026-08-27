@@ -863,7 +863,7 @@ function EquipmentTestContent() {
           </p>
 
           {!inspectionId && (
-            <p className="mt-3 rounded-xl border border-yellow-500/40 bg-yellow-500/10 p-3 text-sm text-yellow-200">
+            <p className="mt-3 rounded-xl border border-yellow-500/40 bg-yellow-500/10 p-3 text-sm text-[var(--fl-warn-text)]">
               Test mode only. To save to a report, open this page
               from a report.
             </p>
@@ -953,13 +953,13 @@ function EquipmentTestContent() {
             </button>
 
             {!shouldCreateFinding(result) && (
-              <p className="rounded-xl border border-blue-500/40 bg-blue-500/10 p-3 text-sm text-blue-200">
+              <p className="rounded-xl border border-blue-500/40 bg-blue-500/10 p-3 text-sm text-[var(--fl-info-text)]">
                 This appears to be informational equipment data only. It will be saved to Equipment Inventory and will not count as a defect.
               </p>
             )}
 
             {saveError && (
-              <p className="rounded-xl bg-red-500/10 p-3 text-red-300">
+              <p className="rounded-xl bg-red-500/10 p-3 text-[var(--fl-crit-text)]">
                 {saveError}
               </p>
             )}
@@ -984,7 +984,7 @@ function EquipmentTestContent() {
               </div>
 
               <div>
-                <h3 className="font-bold text-yellow-400">
+                <h3 className="font-bold text-[var(--fl-warn-text)]">
                   Implication
                 </h3>
 
@@ -994,7 +994,7 @@ function EquipmentTestContent() {
               </div>
 
               <div>
-                <h3 className="font-bold text-red-400">
+                <h3 className="font-bold text-[var(--fl-crit-text)]">
                   Recommendation
                 </h3>
 
@@ -1007,7 +1007,7 @@ function EquipmentTestContent() {
         )}
 
         {result?.error && (
-          <pre className="overflow-auto rounded-2xl bg-red-500/10 p-4 text-sm text-red-100">
+          <pre className="overflow-auto rounded-2xl bg-red-500/10 p-4 text-sm text-[var(--fl-crit-text)]">
             {JSON.stringify(result, null, 2)}
           </pre>
         )}
@@ -1085,13 +1085,13 @@ function EnhancedEquipmentIntelligence({ result }: { result: EquipmentResult }) 
       </div>
 
       {result.intelligenceFlags?.r22Detected && (
-        <p className="mt-4 rounded-xl border border-orange-500/40 bg-orange-500/10 p-3 text-sm font-semibold text-orange-200">
+        <p className="mt-4 rounded-xl border border-orange-500/40 bg-orange-500/10 p-3 text-sm font-semibold text-[var(--fl-warn-text)]">
           R-22 refrigerant detected. This refrigerant is obsolete and can be expensive to service.
         </p>
       )}
 
       {result.intelligenceFlags?.problemPanelDetected && (
-        <p className="mt-4 rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm font-semibold text-red-200">
+        <p className="mt-4 rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm font-semibold text-[var(--fl-crit-text)]">
           Potential problem electrical panel detected: {result.intelligenceFlags.problemPanelType}. Electrical contractor evaluation is recommended.
         </p>
       )}

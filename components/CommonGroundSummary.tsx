@@ -21,7 +21,7 @@ export default function CommonGroundSummary({ data }: { data: CommonGroundSummar
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="rounded-xl border border-emerald-500/40 bg-gradient-to-b from-emerald-500/10 to-transparent p-4">
-          <div className="text-3xl font-semibold leading-none text-emerald-300 tabular-nums">
+          <div className="text-3xl font-semibold leading-none text-[var(--fl-good-text)] tabular-nums">
             {data.routine}
           </div>
           <h4 className="mt-2 text-[15px] font-semibold text-[var(--fl-text)]">Mostly routine</h4>
@@ -39,7 +39,7 @@ export default function CommonGroundSummary({ data }: { data: CommonGroundSummar
         >
           <div
             className={`text-3xl font-semibold leading-none tabular-nums ${
-              data.standsOut > 0 ? "text-rose-300" : "text-[var(--fl-muted)]"
+              data.standsOut > 0 ? "text-[var(--fl-crit-text)]" : "text-[var(--fl-muted)]"
             }`}
           >
             {data.standsOut}
@@ -53,7 +53,7 @@ export default function CommonGroundSummary({ data }: { data: CommonGroundSummar
         </div>
       </div>
       {data.uncommon > 0 && (
-        <p className="mt-3 text-[13px] text-amber-300/90">
+        <p className="mt-3 text-[13px] text-[var(--fl-warn-text)]/90">
           {data.uncommon} finding{data.uncommon === 1 ? "" : "s"} {data.uncommon === 1 ? "is" : "are"} uncommon — often a bigger‑ticket or aging‑system item worth budgeting for.
         </p>
       )}

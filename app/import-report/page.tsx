@@ -804,7 +804,7 @@ export default function ImportReportPage() {
     <main className="min-h-screen bg-[var(--fl-ground)] px-4 py-8 text-[var(--fl-text)] md:px-8">
       <div className="mx-auto max-w-6xl">
         <header className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6 shadow-xl">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-300">
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[var(--fl-warn-text)]">
             FLOW 1.5
           </p>
 
@@ -817,7 +817,7 @@ export default function ImportReportPage() {
           </p>
         </header>
 
-        <section className="mt-6 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-5 text-amber-100">
+        <section className="mt-6 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-5 text-[var(--fl-warn-text)]">
           <h2 className="text-xl font-semibold">Safe Import Rules</h2>
           <p className="mt-2 leading-7">
             Imported reports are created as drafts only. Nothing is published, emailed, invoiced, or sent to the client automatically.
@@ -885,7 +885,7 @@ export default function ImportReportPage() {
             </div>
           ) : (
             <div>
-              <h2 className="text-2xl font-bold text-amber-300">1. Upload PDF</h2>
+              <h2 className="text-2xl font-bold text-[var(--fl-warn-text)]">1. Upload PDF</h2>
 
               <input
                 type="file"
@@ -906,7 +906,7 @@ export default function ImportReportPage() {
           )}
 
           {errorMessage && (
-            <p className="mt-4 rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-red-200">
+            <p className="mt-4 rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-[var(--fl-crit-text)]">
               {errorMessage}
             </p>
           )}
@@ -943,7 +943,7 @@ export default function ImportReportPage() {
 
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4">
                 <div>
-                  <p className="text-sm font-semibold uppercase tracking-wide text-amber-300">
+                  <p className="text-sm font-semibold uppercase tracking-wide text-[var(--fl-warn-text)]">
                     Ready to save
                   </p>
                   <p className="mt-1 text-sm text-[var(--fl-muted)]">
@@ -965,7 +965,7 @@ export default function ImportReportPage() {
                     type="button"
                     onClick={() => createImportedInspection(true)}
                     disabled={!!creating || activeFindings.length === 0}
-                    className="rounded-xl border border-cyan-400 bg-cyan-500/15 px-6 py-3 font-semibold text-cyan-100 hover:bg-cyan-500/25 disabled:opacity-50"
+                    className="rounded-xl border border-cyan-400 bg-cyan-500/15 px-6 py-3 font-semibold text-[var(--fl-info-text)] hover:bg-cyan-500/25 disabled:opacity-50"
                   >
                     {creating === "demo" ? "Saving Demo..." : "Save as Demo Report"}
                   </button>
@@ -1124,7 +1124,7 @@ export default function ImportReportPage() {
                     type="button"
                     onClick={() => createImportedInspection(true)}
                     disabled={!!creating || activeFindings.length === 0}
-                    className="rounded-xl border border-cyan-400 bg-cyan-500/15 px-6 py-3 font-semibold text-cyan-100 hover:bg-cyan-500/25 disabled:opacity-50"
+                    className="rounded-xl border border-cyan-400 bg-cyan-500/15 px-6 py-3 font-semibold text-[var(--fl-info-text)] hover:bg-cyan-500/25 disabled:opacity-50"
                   >
                     {creating === "demo" ? "Saving Demo..." : "Save as Demo Report"}
                   </button>
@@ -1156,7 +1156,7 @@ export default function ImportReportPage() {
                         <button
                           type="button"
                           onClick={() => removeFinding(index)}
-                          className="rounded-lg border border-red-500/50 px-3 py-2 text-sm font-bold text-red-300 hover:bg-red-500/10"
+                          className="rounded-lg border border-red-500/50 px-3 py-2 text-sm font-bold text-[var(--fl-crit-text)] hover:bg-red-500/10"
                         >
                           Remove
                         </button>
@@ -1230,15 +1230,15 @@ function severityBadgeClass(severity: string) {
   const clean = String(severity || "").toLowerCase();
 
   if (clean.includes("safety") || clean.includes("major")) {
-    return "border-red-400/70 bg-red-500/15 text-red-200";
+    return "border-red-400/70 bg-red-500/15 text-[var(--fl-crit-text)]";
   }
 
   if (clean.includes("maintenance") || clean.includes("monitor")) {
-    return "border-amber-400/70 bg-amber-500/15 text-amber-200";
+    return "border-amber-400/70 bg-amber-500/15 text-[var(--fl-warn-text)]";
   }
 
   if (clean.includes("information")) {
-    return "border-sky-400/70 bg-sky-500/15 text-sky-200";
+    return "border-sky-400/70 bg-sky-500/15 text-[var(--fl-info-text)]";
   }
 
   return "border-teal-400/70 bg-teal-500/15 text-[var(--fl-accent-text)]";

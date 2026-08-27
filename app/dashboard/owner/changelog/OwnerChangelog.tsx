@@ -154,7 +154,7 @@ export default function OwnerChangelog() {
           <h2 className="text-xl font-semibold text-[var(--fl-text)]">Post an Update</h2>
 
           {postError && (
-            <p className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 p-2 text-xs font-bold text-red-300">
+            <p className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 p-2 text-xs font-bold text-[var(--fl-crit-text)]">
               {postError}
             </p>
           )}
@@ -189,7 +189,7 @@ export default function OwnerChangelog() {
           </div>
         </section>
 
-        {error && <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm font-bold text-red-300">{error}</div>}
+        {error && <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm font-bold text-[var(--fl-crit-text)]">{error}</div>}
 
         <div className="space-y-4">
           {loading ? (
@@ -243,7 +243,7 @@ export default function OwnerChangelog() {
                       <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-accent-text)]">{formatDate(entry.published_at)}</p>
                       <div className="flex items-center gap-2">
                         {entry.credited_user_name && (
-                          <span className="rounded-full border border-amber-400/40 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-300">
+                          <span className="rounded-full border border-amber-400/40 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-[var(--fl-warn-text)]">
                             ✨ Requested by {entry.credited_user_name}
                           </span>
                         )}
@@ -255,7 +255,7 @@ export default function OwnerChangelog() {
                         </button>
                         <button
                           onClick={() => deleteEntry(entry.id)}
-                          className="rounded-lg border border-red-500/50 px-3 py-1.5 text-xs font-semibold text-red-300 hover:bg-red-500/10"
+                          className="rounded-lg border border-red-500/50 px-3 py-1.5 text-xs font-semibold text-[var(--fl-crit-text)] hover:bg-red-500/10"
                         >
                           Delete
                         </button>

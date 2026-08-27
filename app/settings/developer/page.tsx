@@ -23,7 +23,7 @@ export default async function DeveloperSettingsPage() {
         <section className="rounded-2xl border border-cyan-500/40 bg-[var(--fl-surface-2)] p-6 shadow-2xl md:p-8">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-cyan-400">
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[var(--fl-info-text)]">
                 Developer
               </p>
               <h1 className="mt-3 text-4xl font-semibold md:text-5xl">API &amp; Webhooks</h1>

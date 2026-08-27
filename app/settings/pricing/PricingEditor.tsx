@@ -167,7 +167,7 @@ export default function PricingEditor({
   return (
     <div className="space-y-6">
       {mode === "company" && (
-        <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-200">
+        <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-[var(--fl-warn-text)]">
           This is your <span className="font-semibold">company price sheet</span>. Every
           inspector on your team uses it unless they set their own override.
         </div>
@@ -206,13 +206,13 @@ export default function PricingEditor({
       )}
 
       {error && (
-        <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-sm font-bold text-red-300">
+        <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-sm font-bold text-[var(--fl-crit-text)]">
           {error}
         </div>
       )}
 
       {saved && (
-        <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-sm font-bold text-emerald-300">
+        <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-sm font-bold text-[var(--fl-good-text)]">
           Pricing saved. The Quotes calculator will use these rates.
         </div>
       )}
@@ -381,7 +381,7 @@ function CustomServiceCard({
         <button
           type="button"
           onClick={onRemove}
-          className="mt-6 shrink-0 rounded-xl border border-red-500/50 px-3 py-2 text-xs font-semibold text-red-300 hover:bg-red-500/10"
+          className="mt-6 shrink-0 rounded-xl border border-red-500/50 px-3 py-2 text-xs font-semibold text-[var(--fl-crit-text)] hover:bg-red-500/10"
         >
           Remove
         </button>

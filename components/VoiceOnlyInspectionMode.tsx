@@ -270,7 +270,7 @@ export default function VoiceOnlyInspectionMode({
 
   return (
     <div className="rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-white">
-      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-300">
+      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--fl-good-text)]">
         Voice-Only Inspection
       </p>
       <h2 className="mt-1 text-xl font-semibold">
@@ -300,21 +300,21 @@ export default function VoiceOnlyInspectionMode({
         </p>
         <p className="mt-1 font-bold text-[var(--fl-text)]">{status}</p>
         {liveTranscript && (
-          <p className="mt-2 text-sm leading-6 text-emerald-100">
+          <p className="mt-2 text-sm leading-6 text-[var(--fl-good-text)]">
             “{liveTranscript}”
           </p>
         )}
       </div>
 
       {error && (
-        <div className="mt-3 rounded-xl border border-red-500/50 bg-red-500/10 p-3 text-sm font-bold text-red-100">
+        <div className="mt-3 rounded-xl border border-red-500/50 bg-red-500/10 p-3 text-sm font-bold text-[var(--fl-crit-text)]">
           {error}
         </div>
       )}
 
       {savedFindings.length > 0 && (
         <div className="mt-4 space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-300">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--fl-good-text)]">
             Recently Saved
           </p>
           {savedFindings.map((finding) => (

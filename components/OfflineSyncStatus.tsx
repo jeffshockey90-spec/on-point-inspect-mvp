@@ -246,7 +246,7 @@ export default function OfflineSyncStatus() {
           )}
 
           {skippedMediaCount > 0 && (
-            <p className="mt-1 text-xs font-bold text-yellow-200">
+            <p className="mt-1 text-xs font-bold text-[var(--fl-warn-text)]">
               {skippedMediaCount} large media file
               {skippedMediaCount === 1 ? "" : "s"} skipped from browser
               offline storage
@@ -260,26 +260,26 @@ export default function OfflineSyncStatus() {
           )}
 
           {failedCount > 0 && (
-            <p className="mt-1 text-xs font-bold text-red-300">
+            <p className="mt-1 text-xs font-bold text-[var(--fl-crit-text)]">
               {failedCount} item{failedCount === 1 ? "" : "s"} need another
               retry.
             </p>
           )}
 
           {lastFailedError && (
-            <p className="mt-1 break-words text-xs text-red-300/90">
+            <p className="mt-1 break-words text-xs text-[var(--fl-crit-text)]/90">
               Reason: {lastFailedError}
             </p>
           )}
 
           {syncingCount > 0 && (
-            <p className="mt-1 text-xs font-bold text-cyan-300">
+            <p className="mt-1 text-xs font-bold text-[var(--fl-info-text)]">
               {syncingCount} item{syncingCount === 1 ? " is" : "s are"} uploading now.
             </p>
           )}
 
           {conflictCount > 0 && (
-            <p className="mt-1 text-xs font-bold text-orange-300">
+            <p className="mt-1 text-xs font-bold text-[var(--fl-warn-text)]">
               {conflictCount} item{conflictCount === 1 ? " has" : "s have"} a sync conflict and will not overwrite newer server data automatically.
             </p>
           )}
@@ -291,11 +291,11 @@ export default function OfflineSyncStatus() {
           )}
 
           {lastError && (
-            <p className="mt-1 text-xs font-bold text-red-300">{lastError}</p>
+            <p className="mt-1 text-xs font-bold text-[var(--fl-crit-text)]">{lastError}</p>
           )}
 
           {completionNotice && (
-            <p className="mt-1 text-xs font-semibold text-emerald-300">
+            <p className="mt-1 text-xs font-semibold text-[var(--fl-good-text)]">
               {completionNotice}
             </p>
           )}
@@ -335,7 +335,7 @@ export default function OfflineSyncStatus() {
                 await refreshStatus();
                 void syncNow();
               }}
-              className="rounded-xl border border-orange-500 px-4 py-2 font-bold text-orange-200 transition active:scale-[0.98] hover:bg-orange-500/10 [touch-action:manipulation]"
+              className="rounded-xl border border-orange-500 px-4 py-2 font-bold text-[var(--fl-warn-text)] transition active:scale-[0.98] hover:bg-orange-500/10 [touch-action:manipulation]"
             >
               Review / Retry Conflicts
             </button>
@@ -354,7 +354,7 @@ export default function OfflineSyncStatus() {
                 await clearOfflineQueue();
                 await refreshStatus();
               }}
-              className="rounded-xl border border-red-500 px-4 py-2 font-bold text-red-300 transition active:scale-[0.98] hover:bg-red-500/10 [touch-action:manipulation]"
+              className="rounded-xl border border-red-500 px-4 py-2 font-bold text-[var(--fl-crit-text)] transition active:scale-[0.98] hover:bg-red-500/10 [touch-action:manipulation]"
             >
               Clear Queue
             </button>

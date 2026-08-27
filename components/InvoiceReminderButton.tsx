@@ -43,7 +43,7 @@ export default function InvoiceReminderButton({
       type="button"
       onClick={sendReminder}
       disabled={loading}
-      className="rounded-lg border border-yellow-500 px-3 py-2 text-xs font-semibold text-yellow-300 transition hover:bg-yellow-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+      className="rounded-lg border border-yellow-500 px-3 py-2 text-xs font-semibold text-[var(--fl-warn-text)] transition hover:bg-yellow-500/10 disabled:cursor-not-allowed disabled:opacity-50"
     >
       {loading ? "Sending..." : "Send Reminder"}
     </button>

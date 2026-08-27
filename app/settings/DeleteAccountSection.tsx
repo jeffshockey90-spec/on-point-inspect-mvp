@@ -60,7 +60,7 @@ export default function DeleteAccountSection() {
 
   return (
     <section className="mt-10 rounded-2xl border border-red-500/40 bg-red-500/10 p-6">
-      <h2 className="text-xl font-bold text-red-300">Delete Account</h2>
+      <h2 className="text-xl font-bold text-[var(--fl-crit-text)]">Delete Account</h2>
 
       <p className="mt-3 text-sm leading-6 text-[var(--fl-muted)]">
         Permanently deleting your account may remove your inspections, reports,
@@ -79,7 +79,7 @@ export default function DeleteAccountSection() {
         placeholder="DELETE"
       />
 
-      {message && <p className="mt-3 text-sm text-red-300">{message}</p>}
+      {message && <p className="mt-3 text-sm text-[var(--fl-crit-text)]">{message}</p>}
 
       <button
         type="button"

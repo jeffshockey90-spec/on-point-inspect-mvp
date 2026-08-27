@@ -77,9 +77,9 @@ export default function Secure24ReferralCard({
     return (
       <section className="mt-10 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-6">
         <div className="flex items-center gap-3">
-          <ShieldCheck className="h-6 w-6 shrink-0 text-emerald-400" />
+          <ShieldCheck className="h-6 w-6 shrink-0 text-[var(--fl-good-text)]" />
           <div>
-            <p className="font-semibold text-emerald-300">Request sent</p>
+            <p className="font-semibold text-[var(--fl-good-text)]">Request sent</p>
             <p className="mt-1 text-sm text-[var(--fl-muted)]">
               Thanks — {SECURE24_BRAND} will reach out to you about home security.
             </p>
@@ -122,7 +122,7 @@ export default function Secure24ReferralCard({
           </div>
 
           {status === "error" && (
-            <p className="mt-3 text-sm font-bold text-red-400">{error}</p>
+            <p className="mt-3 text-sm font-bold text-[var(--fl-crit-text)]">{error}</p>
           )}
         </div>
       </div>

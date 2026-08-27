@@ -138,7 +138,7 @@ export default function OwnerReEngageInspector({ email, name }: { email: string;
         type="button"
         onClick={() => setOpen(true)}
         disabled={!email}
-        className="w-full rounded-xl border border-orange-500/50 px-4 py-2.5 text-sm font-semibold text-orange-300 transition hover:bg-orange-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+        className="w-full rounded-xl border border-orange-500/50 px-4 py-2.5 text-sm font-semibold text-[var(--fl-warn-text)] transition hover:bg-orange-500/10 disabled:cursor-not-allowed disabled:opacity-50"
         title={email ? "" : "No email on file"}
       >
         ✉️ Re-engage
@@ -149,7 +149,7 @@ export default function OwnerReEngageInspector({ email, name }: { email: string;
   return (
     <div className="space-y-3 rounded-xl border border-orange-500/40 bg-orange-500/10 p-3">
       <div className="flex items-center justify-between">
-        <p className="text-xs font-semibold uppercase tracking-wide text-orange-300">Re-engage by email</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-warn-text)]">Re-engage by email</p>
         <button type="button" onClick={() => setOpen(false)} className="text-xs font-bold text-[var(--fl-muted)] hover:text-[var(--fl-text)]">
           Close
         </button>
@@ -199,7 +199,7 @@ export default function OwnerReEngageInspector({ email, name }: { email: string;
       )}
 
       {result && (
-        <p className={`text-sm font-bold ${result.ok ? "text-emerald-300" : "text-red-300"}`}>{result.text}</p>
+        <p className={`text-sm font-bold ${result.ok ? "text-[var(--fl-good-text)]" : "text-[var(--fl-crit-text)]"}`}>{result.text}</p>
       )}
     </div>
   );

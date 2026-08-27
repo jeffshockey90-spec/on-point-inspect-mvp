@@ -120,7 +120,7 @@ export default function RealtorProfileEditor({
             className="w-full rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-2.5 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400 disabled:opacity-60"
           />
 
-          {error && <p className="text-sm font-semibold text-red-400">{error}</p>}
+          {error && <p className="text-sm font-semibold text-[var(--fl-crit-text)]">{error}</p>}
 
           <div className="flex flex-wrap gap-2">
             <button

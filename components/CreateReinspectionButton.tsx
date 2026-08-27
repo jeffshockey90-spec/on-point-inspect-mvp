@@ -48,7 +48,7 @@ export default function CreateReinspectionButton({ inspectionId }: { inspectionI
         <RotateCcw className="h-4 w-4" />
         {busy ? "Creating…" : "Re-inspection"}
       </button>
-      {error && <span className="mt-1 text-xs font-bold text-red-400">{error}</span>}
+      {error && <span className="mt-1 text-xs font-bold text-[var(--fl-crit-text)]">{error}</span>}
     </span>
   );
 }

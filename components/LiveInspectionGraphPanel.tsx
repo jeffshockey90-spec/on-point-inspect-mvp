@@ -4,9 +4,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { InspectionGraphResult } from "../lib/ai/InspectionGraph";
 
 function scoreTone(score: number) {
-  if (score >= 85) return "border-emerald-500/50 bg-emerald-500/10 text-emerald-200";
-  if (score >= 65) return "border-yellow-500/50 bg-yellow-500/10 text-yellow-100";
-  return "border-red-500/50 bg-red-500/10 text-red-100";
+  if (score >= 85) return "border-emerald-500/50 bg-emerald-500/10 text-[var(--fl-good-text)]";
+  if (score >= 65) return "border-yellow-500/50 bg-yellow-500/10 text-[var(--fl-warn-text)]";
+  return "border-red-500/50 bg-red-500/10 text-[var(--fl-crit-text)]";
 }
 
 export default function LiveInspectionGraphPanel({
@@ -74,7 +74,7 @@ export default function LiveInspectionGraphPanel({
         className="flex w-full items-center justify-between gap-3 text-left"
       >
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--fl-info-text)]">
             House Digital Twin
           </p>
           <h2 className="mt-1 text-lg font-semibold text-[var(--fl-text)]">
@@ -99,7 +99,7 @@ export default function LiveInspectionGraphPanel({
             <div className="h-full rounded-full bg-cyan-400" style={{ width: `${current.score}%` }} />
           </div>
           {current.missingRequirements.length > 0 && (
-            <p className="mt-2 text-xs text-yellow-100">
+            <p className="mt-2 text-xs text-[var(--fl-warn-text)]">
               Missing: {current.missingRequirements.join(", ")}
             </p>
           )}
@@ -122,7 +122,7 @@ export default function LiveInspectionGraphPanel({
                   {section.findingCount} findings · {section.photoCount} photos · {section.equipmentCount} equipment
                 </p>
                 {section.missingRequirements.length > 0 && (
-                  <p className="mt-2 line-clamp-3 text-[11px] text-yellow-100">
+                  <p className="mt-2 line-clamp-3 text-[11px] text-[var(--fl-warn-text)]">
                     Verify: {section.missingRequirements.join(", ")}
                   </p>
                 )}
@@ -132,7 +132,7 @@ export default function LiveInspectionGraphPanel({
 
           {graph.relationships.length > 0 && (
             <div className="rounded-xl border border-purple-500/30 bg-purple-500/10 p-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-purple-200">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-purple-text)]">
                 Connected Intelligence
               </p>
               <div className="mt-3 space-y-2">
@@ -140,12 +140,12 @@ export default function LiveInspectionGraphPanel({
                   <div key={relationship.id} className="rounded-lg bg-[var(--fl-surface-2)] p-3">
                     <div className="flex items-start justify-between gap-2">
                       <p className="text-sm font-semibold text-[var(--fl-text)]">{relationship.title}</p>
-                      <span className="text-[11px] font-semibold text-purple-200">
+                      <span className="text-[11px] font-semibold text-[var(--fl-purple-text)]">
                         {Math.round(relationship.confidence * 100)}%
                       </span>
                     </div>
                     <p className="mt-1 text-xs leading-5 text-[var(--fl-muted)]">{relationship.explanation}</p>
-                    <p className="mt-1 text-xs font-bold leading-5 text-purple-100">{relationship.recommendation}</p>
+                    <p className="mt-1 text-xs font-bold leading-5 text-[var(--fl-purple-text)]">{relationship.recommendation}</p>
                   </div>
                 ))}
               </div>

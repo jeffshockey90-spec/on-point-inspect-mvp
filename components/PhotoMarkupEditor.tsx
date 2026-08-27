@@ -655,8 +655,8 @@ function PhotoMarkupEditor({
         <div
           className={`mx-4 mt-3 rounded-xl border px-4 py-3 text-sm font-bold ${
             messageType === "success"
-              ? "border-emerald-500 bg-emerald-500/10 text-emerald-300"
-              : "border-red-500 bg-red-500/10 text-red-300"
+              ? "border-emerald-500 bg-emerald-500/10 text-[var(--fl-good-text)]"
+              : "border-red-500 bg-red-500/10 text-[var(--fl-crit-text)]"
           }`}
         >
           {message}
@@ -1005,7 +1005,7 @@ function PhotoMarkupEditor({
             type="button"
             onClick={clearAll}
             disabled={items.length === 0 || saving}
-            className="flex min-w-[72px] flex-col items-center justify-center rounded-xl px-3 py-2 text-xs font-semibold text-red-300 transition active:scale-[0.96] hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-40 [touch-action:manipulation]"
+            className="flex min-w-[72px] flex-col items-center justify-center rounded-xl px-3 py-2 text-xs font-semibold text-[var(--fl-crit-text)] transition active:scale-[0.96] hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-40 [touch-action:manipulation]"
           >
             <span className="text-2xl leading-none">✕</span>
             <span>Clear All</span>

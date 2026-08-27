@@ -136,7 +136,7 @@ export default function CompanyDocumentUploader({
 
       {path && (
         <div className="mt-3 flex flex-wrap items-center gap-3 rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-ground)] p-3">
-          <p className="text-xs font-bold text-emerald-300">
+          <p className="text-xs font-bold text-[var(--fl-good-text)]">
             W9 on file{uploadedAt ? ` · uploaded ${new Date(uploadedAt).toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" })}` : ""}
           </p>
           <button
@@ -175,7 +175,7 @@ export default function CompanyDocumentUploader({
               setUploadedAt(null);
               showMessage("info", "Cleared. Click Save Settings to keep this change.");
             }}
-            className="rounded-xl border border-[var(--fl-line)] px-5 py-3 text-sm font-bold text-[var(--fl-text)] transition hover:border-red-400 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-xl border border-[var(--fl-line)] px-5 py-3 text-sm font-bold text-[var(--fl-text)] transition hover:border-red-400 hover:text-[var(--fl-crit-text)] disabled:cursor-not-allowed disabled:opacity-60"
           >
             Clear
           </button>
@@ -186,10 +186,10 @@ export default function CompanyDocumentUploader({
         <p
           className={`mt-3 rounded-xl border px-4 py-3 text-xs font-bold ${
             messageType === "success"
-              ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-200"
+              ? "border-emerald-500/50 bg-emerald-500/10 text-[var(--fl-good-text)]"
               : messageType === "info"
-                ? "border-sky-500/50 bg-sky-500/10 text-sky-200"
-                : "border-red-500/50 bg-red-500/10 text-red-200"
+                ? "border-sky-500/50 bg-sky-500/10 text-[var(--fl-info-text)]"
+                : "border-red-500/50 bg-red-500/10 text-[var(--fl-crit-text)]"
           }`}
         >
           {message}

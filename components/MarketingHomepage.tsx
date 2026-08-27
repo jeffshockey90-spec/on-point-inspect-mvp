@@ -117,10 +117,10 @@ function FieldCaptureMockup() {
   return (
     <div className="overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] shadow-2xl shadow-black/40">
       <div className="flex items-center justify-between px-5 pt-5">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fl-info-text)]">
           Confirm Finding
         </p>
-        <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-[9px] font-semibold uppercase text-emerald-300">
+        <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-[9px] font-semibold uppercase text-[var(--fl-good-text)]">
           Offline Ready
         </span>
       </div>
@@ -148,7 +148,7 @@ function FieldCaptureMockup() {
             </div>
             <div>
               <p className={fieldLabel}>Severity</p>
-              <p className={`${fieldBox} text-orange-300`}>Recommended Repair</p>
+              <p className={`${fieldBox} text-[var(--fl-warn-text)]`}>Recommended Repair</p>
             </div>
           </div>
           <div>
@@ -172,7 +172,7 @@ function FieldCaptureMockup() {
             sizes="(max-width: 768px) 90vw, 420px"
             className="object-cover"
           />
-          <span className="absolute bottom-2 left-2 rounded-full border border-red-400/60 bg-red-500/10 px-2 py-0.5 text-[9px] font-semibold uppercase text-red-200">
+          <span className="absolute bottom-2 left-2 rounded-full border border-red-400/60 bg-red-500/10 px-2 py-0.5 text-[9px] font-semibold uppercase text-[var(--fl-crit-text)]">
             Water Leak at Pressure Tank
           </span>
         </div>
@@ -234,7 +234,7 @@ function BookingMockup() {
   const activeDates = [3, 4, 5, 6, 7, 10, 11, 12, 13, 14];
   return (
     <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-6 shadow-2xl shadow-black/40 md:p-7">
-      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-cyan-300">Public Booking Page</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--fl-info-text)]">Public Booking Page</p>
       <p className="mt-2 text-sm text-[var(--fl-muted)]">flowinspect.app/book?inspector=your-company</p>
 
       <div className="mt-5 rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-ground)] p-4">
@@ -263,7 +263,7 @@ function BookingMockup() {
 
       <div className="mt-4 grid grid-cols-3 gap-2">
         {["10:00 AM", "2:00 PM", "4:30 PM"].map((time) => (
-          <div key={time} className="rounded-xl border border-cyan-500/40 bg-cyan-500/10 py-2 text-center text-xs font-semibold text-cyan-200">
+          <div key={time} className="rounded-xl border border-cyan-500/40 bg-cyan-500/10 py-2 text-center text-xs font-semibold text-[var(--fl-info-text)]">
             {time}
           </div>
         ))}
@@ -285,14 +285,14 @@ function RepairRequestMockup() {
     { title: "Plumbing - Minor Leak", credit: "$120", status: "Declined", tone: "red" },
   ];
   const toneClass: Record<string, string> = {
-    emerald: "border-emerald-500/40 bg-emerald-500/10 text-emerald-300",
-    yellow: "border-yellow-500/40 bg-yellow-500/10 text-yellow-300",
-    red: "border-red-500/40 bg-red-500/10 text-red-300",
+    emerald: "border-emerald-500/40 bg-emerald-500/10 text-[var(--fl-good-text)]",
+    yellow: "border-yellow-500/40 bg-yellow-500/10 text-[var(--fl-warn-text)]",
+    red: "border-red-500/40 bg-red-500/10 text-[var(--fl-crit-text)]",
   };
   return (
     <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-6 shadow-2xl shadow-black/40 md:p-7">
       <div className="flex items-center justify-between">
-        <p className="text-xs font-semibold uppercase tracking-[0.25em] text-orange-300">Repair Request</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--fl-warn-text)]">Repair Request</p>
         <span className="rounded-full border border-[var(--fl-line)] bg-[var(--fl-ground)] px-3 py-1 text-[10px] font-semibold uppercase text-[var(--fl-muted)]">
           $1,050 Requested
         </span>
@@ -323,7 +323,7 @@ function RepairRequestMockup() {
 function DispatchMockup() {
   return (
     <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-6 shadow-2xl shadow-black/40 md:p-7">
-      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-purple-300">Team Dispatch</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--fl-purple-text)]">Team Dispatch</p>
 
       <div className="mt-5 space-y-3">
         <div className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-ground)] p-4">
@@ -415,17 +415,17 @@ function MobileAppMockup() {
           </div>
           <div className="mt-6 space-y-2 px-2">
             <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-2 shadow-lg">
-              <p className="text-[7px] font-semibold uppercase tracking-wide text-emerald-300">FLOW &middot; Payment</p>
+              <p className="text-[7px] font-semibold uppercase tracking-wide text-[var(--fl-good-text)]">FLOW &middot; Payment</p>
               <p className="mt-0.5 text-[8px] font-bold text-[var(--fl-text)]">Payment Received</p>
               <p className="text-[7px] text-[var(--fl-muted)]">$450 for 711 Sampson Rock Rd</p>
             </div>
             <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-2 shadow-lg">
-              <p className="text-[7px] font-semibold uppercase tracking-wide text-cyan-300">FLOW &middot; Report</p>
+              <p className="text-[7px] font-semibold uppercase tracking-wide text-[var(--fl-info-text)]">FLOW &middot; Report</p>
               <p className="mt-0.5 text-[8px] font-bold text-[var(--fl-text)]">Realtor Viewed Report</p>
               <p className="text-[7px] text-[var(--fl-muted)]">Just now</p>
             </div>
             <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-2 shadow-lg">
-              <p className="text-[7px] font-semibold uppercase tracking-wide text-yellow-300">FLOW &middot; Reminder</p>
+              <p className="text-[7px] font-semibold uppercase tracking-wide text-[var(--fl-warn-text)]">FLOW &middot; Reminder</p>
               <p className="mt-0.5 text-[8px] font-bold text-[var(--fl-text)]">Inspection Tomorrow</p>
               <p className="text-[7px] text-[var(--fl-muted)]">9:00 AM &middot; 1099 Specks Run Rd</p>
             </div>
@@ -628,7 +628,7 @@ export default function MarketingHomepage({
                       <p className="font-bold text-[var(--fl-text)]">711 Sampson Rock Rd</p>
                       <p className="text-xs text-[var(--fl-faint)]">Report published &middot; Payment received</p>
                     </div>
-                    <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-emerald-300">
+                    <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-[var(--fl-good-text)]">
                       Complete
                     </span>
                   </div>
@@ -637,7 +637,7 @@ export default function MarketingHomepage({
                       <p className="font-bold text-[var(--fl-text)]">1099 Specks Run Rd</p>
                       <p className="text-xs text-[var(--fl-faint)]">Agreement sent &middot; Awaiting signature</p>
                     </div>
-                    <span className="rounded-full border border-yellow-500/40 bg-yellow-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-yellow-300">
+                    <span className="rounded-full border border-yellow-500/40 bg-yellow-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-[var(--fl-warn-text)]">
                       Pending
                     </span>
                   </div>
@@ -646,7 +646,7 @@ export default function MarketingHomepage({
                       <p className="font-bold text-[var(--fl-text)]">Repair Request</p>
                       <p className="text-xs text-[var(--fl-faint)]">Seller responded &middot; 4 of 5 items agreed</p>
                     </div>
-                    <span className="rounded-full border border-cyan-500/40 bg-cyan-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-cyan-300">
+                    <span className="rounded-full border border-cyan-500/40 bg-cyan-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-[var(--fl-info-text)]">
                       Responded
                     </span>
                   </div>

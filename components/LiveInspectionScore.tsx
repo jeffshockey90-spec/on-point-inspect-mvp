@@ -33,15 +33,15 @@ type CompletenessResult = {
 };
 
 function scoreTone(score: number) {
-  if (score >= 90) return "border-emerald-400/50 bg-emerald-500/10 text-emerald-200";
-  if (score >= 70) return "border-yellow-400/50 bg-yellow-500/10 text-yellow-100";
-  return "border-red-400/50 bg-red-500/10 text-red-100";
+  if (score >= 90) return "border-emerald-400/50 bg-emerald-500/10 text-[var(--fl-good-text)]";
+  if (score >= 70) return "border-yellow-400/50 bg-yellow-500/10 text-[var(--fl-warn-text)]";
+  return "border-red-400/50 bg-red-500/10 text-[var(--fl-crit-text)]";
 }
 
 function issueTone(severity: CompletenessIssue["severity"]) {
-  if (severity === "critical") return "border-red-500/50 bg-red-500/10 text-red-100";
-  if (severity === "warning") return "border-yellow-500/50 bg-yellow-500/10 text-yellow-100";
-  return "border-cyan-500/40 bg-cyan-500/10 text-cyan-100";
+  if (severity === "critical") return "border-red-500/50 bg-red-500/10 text-[var(--fl-crit-text)]";
+  if (severity === "warning") return "border-yellow-500/50 bg-yellow-500/10 text-[var(--fl-warn-text)]";
+  return "border-cyan-500/40 bg-cyan-500/10 text-[var(--fl-info-text)]";
 }
 
 function LiveInspectionScore({
@@ -188,7 +188,7 @@ function LiveInspectionScore({
           ))}
 
           {!topIssues.length && result && (
-            <div className="rounded-xl border border-emerald-400/40 bg-emerald-500/10 p-3 text-sm font-semibold text-emerald-100">
+            <div className="rounded-xl border border-emerald-400/40 bg-emerald-500/10 p-3 text-sm font-semibold text-[var(--fl-good-text)]">
               ✓ No blocking completeness issues are currently detected.
             </div>
           )}

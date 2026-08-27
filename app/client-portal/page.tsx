@@ -139,8 +139,8 @@ export default async function ClientPortalListPage() {
                   <span
                     className={`rounded-full border px-4 py-2 text-xs font-semibold uppercase ${
                       published
-                        ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-300"
-                        : "border-yellow-500/50 bg-yellow-500/10 text-yellow-300"
+                        ? "border-emerald-500/50 bg-emerald-500/10 text-[var(--fl-good-text)]"
+                        : "border-yellow-500/50 bg-yellow-500/10 text-[var(--fl-warn-text)]"
                     }`}
                   >
                     {published ? "Report Ready" : "In Progress"}

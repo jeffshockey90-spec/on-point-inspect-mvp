@@ -96,7 +96,7 @@ export default function ResetPasswordPage() {
 
         {invalidLink ? (
           <div className="mt-6 space-y-4">
-            <div className="rounded-lg border border-red-800 bg-red-500/10 p-3 text-sm text-red-300">
+            <div className="rounded-lg border border-red-800 bg-red-500/10 p-3 text-sm text-[var(--fl-crit-text)]">
               This reset link is invalid or has expired.
             </div>
 
@@ -149,7 +149,7 @@ export default function ResetPasswordPage() {
             </div>
 
             {message && (
-              <div className="rounded-lg border border-red-800 bg-red-500/10 p-3 text-sm text-red-300">
+              <div className="rounded-lg border border-red-800 bg-red-500/10 p-3 text-sm text-[var(--fl-crit-text)]">
                 {message}
               </div>
             )}

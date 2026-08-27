@@ -57,11 +57,11 @@ export default function InvoicePaymentButton({
         onClick={openPayment}
         disabled={loading}
         title="Online card payments include a small portal processing fee."
-        className="rounded-lg border border-green-500 px-3 py-2 text-xs font-semibold text-green-300 transition hover:bg-green-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+        className="rounded-lg border border-green-500 px-3 py-2 text-xs font-semibold text-[var(--fl-good-text)] transition hover:bg-green-500/10 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {loading ? "Opening..." : "Pay Online"}
       </button>
-      {error && <p className="text-xs font-bold text-red-400">{error}</p>}
+      {error && <p className="text-xs font-bold text-[var(--fl-crit-text)]">{error}</p>}
     </div>
   );
 }

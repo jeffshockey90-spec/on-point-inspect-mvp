@@ -276,7 +276,7 @@ export default async function OwnerDeviceAnalyticsPage() {
     return (
       <main className="min-h-screen bg-[var(--fl-ground)] px-6 py-10 text-[var(--fl-text)]">
         <div className="mx-auto max-w-3xl rounded-2xl border border-red-500/40 bg-red-500/10 p-8 shadow-2xl">
-          <p className="text-sm font-semibold uppercase tracking-[0.35em] text-red-300">
+          <p className="text-sm font-semibold uppercase tracking-[0.35em] text-[var(--fl-crit-text)]">
             Owner Only
           </p>
           <h1 className="mt-4 text-4xl font-semibold">Access Restricted</h1>
@@ -285,7 +285,7 @@ export default async function OwnerDeviceAnalyticsPage() {
           </p>
           <Link
             href="/dashboard"
-            className="mt-6 inline-flex rounded-xl border border-red-400 px-5 py-3 font-semibold text-red-300 hover:bg-red-500/10"
+            className="mt-6 inline-flex rounded-xl border border-red-400 px-5 py-3 font-semibold text-[var(--fl-crit-text)] hover:bg-red-500/10"
           >
             Back to Dashboard
           </Link>
@@ -391,7 +391,7 @@ export default async function OwnerDeviceAnalyticsPage() {
             <div className="flex flex-wrap gap-3">
               <Link
                 href="/dashboard/owner/users"
-                className="rounded-xl border border-cyan-500 px-5 py-3 font-semibold text-cyan-300 transition hover:bg-cyan-500/10"
+                className="rounded-xl border border-cyan-500 px-5 py-3 font-semibold text-[var(--fl-info-text)] transition hover:bg-cyan-500/10"
               >
                 👥 Users
               </Link>
@@ -540,7 +540,7 @@ export default async function OwnerDeviceAnalyticsPage() {
           </div>
         </Panel>
 
-        <section className="rounded-2xl border border-yellow-500/30 bg-yellow-500/10 p-5 text-sm leading-6 text-yellow-100">
+        <section className="rounded-2xl border border-yellow-500/30 bg-yellow-500/10 p-5 text-sm leading-6 text-[var(--fl-warn-text)]">
           <strong>Important:</strong> These are internal FLOW usage metrics from Supabase. Official App Store download numbers still come from App Store Connect. This page shows devices that opened/used the app after tracking was installed.
         </section>
       </div>
@@ -561,12 +561,12 @@ function MetricCard({
 }) {
   const classes: Record<Tone, string> = {
     teal: "border-teal-500/40 bg-teal-500/10 text-[var(--fl-accent-text)]",
-    green: "border-green-500/40 bg-green-500/10 text-green-300",
-    blue: "border-blue-500/40 bg-blue-500/10 text-blue-300",
-    purple: "border-purple-500/40 bg-purple-500/10 text-purple-300",
-    orange: "border-orange-500/40 bg-orange-500/10 text-orange-300",
-    yellow: "border-yellow-500/40 bg-yellow-500/10 text-yellow-300",
-    red: "border-red-500/40 bg-red-500/10 text-red-300",
+    green: "border-green-500/40 bg-green-500/10 text-[var(--fl-good-text)]",
+    blue: "border-blue-500/40 bg-blue-500/10 text-[var(--fl-info-text)]",
+    purple: "border-purple-500/40 bg-purple-500/10 text-[var(--fl-purple-text)]",
+    orange: "border-orange-500/40 bg-orange-500/10 text-[var(--fl-warn-text)]",
+    yellow: "border-yellow-500/40 bg-yellow-500/10 text-[var(--fl-warn-text)]",
+    red: "border-red-500/40 bg-red-500/10 text-[var(--fl-crit-text)]",
   };
 
   return (
@@ -644,12 +644,12 @@ function Badge({
 }) {
   const classes: Record<Tone, string> = {
     teal: "border-teal-500/30 bg-teal-500/10 text-[var(--fl-accent-text)]",
-    green: "border-green-500/30 bg-green-500/10 text-green-300",
-    blue: "border-blue-500/30 bg-blue-500/10 text-blue-300",
-    purple: "border-purple-500/30 bg-purple-500/10 text-purple-300",
-    orange: "border-orange-500/30 bg-orange-500/10 text-orange-300",
-    yellow: "border-yellow-500/30 bg-yellow-500/10 text-yellow-300",
-    red: "border-red-500/30 bg-red-500/10 text-red-300",
+    green: "border-green-500/30 bg-green-500/10 text-[var(--fl-good-text)]",
+    blue: "border-blue-500/30 bg-blue-500/10 text-[var(--fl-info-text)]",
+    purple: "border-purple-500/30 bg-purple-500/10 text-[var(--fl-purple-text)]",
+    orange: "border-orange-500/30 bg-orange-500/10 text-[var(--fl-warn-text)]",
+    yellow: "border-yellow-500/30 bg-yellow-500/10 text-[var(--fl-warn-text)]",
+    red: "border-red-500/30 bg-red-500/10 text-[var(--fl-crit-text)]",
   };
 
   return (

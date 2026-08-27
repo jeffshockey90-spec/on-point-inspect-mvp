@@ -492,7 +492,7 @@ export default async function FindingTemplatesPage({
 
                       <button
                         type="submit"
-                        className="rounded-xl border border-red-500 px-5 py-3 font-bold text-red-300 hover:bg-red-500/10"
+                        className="rounded-xl border border-red-500 px-5 py-3 font-bold text-[var(--fl-crit-text)] hover:bg-red-500/10"
                       >
                         Delete
                       </button>

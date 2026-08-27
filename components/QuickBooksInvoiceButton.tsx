@@ -56,13 +56,13 @@ export default function QuickBooksInvoiceButton({
         type="button"
         onClick={send}
         disabled={busy}
-        className="inline-flex items-center gap-2 rounded-xl border border-green-500/50 bg-green-500/10 px-4 py-2.5 text-sm font-semibold text-green-200 transition hover:bg-green-500/20 disabled:opacity-50"
+        className="inline-flex items-center gap-2 rounded-xl border border-green-500/50 bg-green-500/10 px-4 py-2.5 text-sm font-semibold text-[var(--fl-good-text)] transition hover:bg-green-500/20 disabled:opacity-50"
       >
         <Receipt className="h-4 w-4" />
         {busy ? "Sending…" : "Send invoice to QuickBooks"}
       </button>
       {msg && (
-        <p className={`mt-2 text-sm font-bold ${ok ? "text-emerald-300" : "text-amber-300"}`}>
+        <p className={`mt-2 text-sm font-bold ${ok ? "text-[var(--fl-good-text)]" : "text-[var(--fl-warn-text)]"}`}>
           {msg}
         </p>
       )}

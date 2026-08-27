@@ -98,7 +98,7 @@ export default function WeatherWidget({
 
   return (
     <div className="rounded-2xl border border-sky-500/30 bg-sky-500/10 p-5">
-      <p className="text-xs font-semibold uppercase tracking-wider text-sky-300">{locLabel}</p>
+      <p className="text-xs font-semibold uppercase tracking-wider text-[var(--fl-info-text)]">{locLabel}</p>
       {state === "loading" ? (
         <p className="mt-3 text-sm text-[var(--fl-muted)]">Loading conditions…</p>
       ) : (

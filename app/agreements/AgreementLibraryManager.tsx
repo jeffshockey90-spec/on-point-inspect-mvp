@@ -631,12 +631,12 @@ export default function AgreementLibraryManager() {
         {loading && <p className="text-sm text-[var(--fl-muted)]">Loading templates...</p>}
 
         {!loading && loadError && (
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm font-bold text-red-200">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm font-bold text-[var(--fl-crit-text)]">
             {loadError}
             <button
               type="button"
               onClick={loadTemplates}
-              className="rounded-lg border border-red-400/60 px-3 py-1.5 text-xs font-bold text-red-200 hover:bg-red-500/20"
+              className="rounded-lg border border-red-400/60 px-3 py-1.5 text-xs font-bold text-[var(--fl-crit-text)] hover:bg-red-500/20"
             >
               Retry
             </button>
@@ -687,7 +687,7 @@ export default function AgreementLibraryManager() {
                   </div>
 
                   {!template.is_active && (
-                    <p className="mt-2 text-xs font-bold text-red-300">Inactive</p>
+                    <p className="mt-2 text-xs font-bold text-[var(--fl-crit-text)]">Inactive</p>
                   )}
                 </button>
 
@@ -704,7 +704,7 @@ export default function AgreementLibraryManager() {
                     type="button"
                     onClick={() => duplicateTemplate(template)}
                     disabled={duplicatingId === template.id}
-                    className="rounded-lg border border-sky-500 px-3 py-2 text-xs font-bold text-sky-300 hover:bg-sky-500/10 disabled:opacity-50"
+                    className="rounded-lg border border-sky-500 px-3 py-2 text-xs font-bold text-[var(--fl-info-text)] hover:bg-sky-500/10 disabled:opacity-50"
                   >
                     {duplicatingId === template.id ? "Copying..." : "Duplicate"}
                   </button>
@@ -848,7 +848,7 @@ export default function AgreementLibraryManager() {
           </p>
 
           {selectedPlaceholder && (
-            <div className="mt-3 rounded-xl border border-yellow-500 bg-yellow-500/10 p-3 text-sm text-yellow-200">
+            <div className="mt-3 rounded-xl border border-yellow-500 bg-yellow-500/10 p-3 text-sm text-[var(--fl-warn-text)]">
               Selected: <span className="break-all font-mono font-bold">{selectedPlaceholder}</span>. Now click inside the agreement body.
             </div>
           )}
@@ -925,7 +925,7 @@ export default function AgreementLibraryManager() {
           </div>
 
           <div className="mb-5 rounded-2xl border border-fuchsia-500/30 bg-fuchsia-500/5 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-fuchsia-300">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-purple-text)]">
               ✨ AI Assistant
             </p>
             <p className="mt-1 text-xs leading-5 text-[var(--fl-muted)]">
@@ -962,7 +962,7 @@ export default function AgreementLibraryManager() {
                 type="button"
                 onClick={() => runAgreementAi("clause", aiClause)}
                 disabled={Boolean(aiBusy)}
-                className="rounded-xl border border-fuchsia-500/50 px-4 py-2 text-sm font-semibold text-fuchsia-200 transition hover:bg-fuchsia-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-xl border border-fuchsia-500/50 px-4 py-2 text-sm font-semibold text-[var(--fl-purple-text)] transition hover:bg-fuchsia-500/10 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {aiBusy === "clause" ? "Adding…" : "Insert clause"}
               </button>
@@ -979,13 +979,13 @@ export default function AgreementLibraryManager() {
                 type="button"
                 onClick={() => runAgreementAi("improve")}
                 disabled={Boolean(aiBusy) || !body.trim()}
-                className="rounded-xl border border-fuchsia-500/50 px-4 py-2 text-sm font-semibold text-fuchsia-200 transition hover:bg-fuchsia-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-xl border border-fuchsia-500/50 px-4 py-2 text-sm font-semibold text-[var(--fl-purple-text)] transition hover:bg-fuchsia-500/10 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {aiBusy === "improve" ? "Improving…" : "Improve"}
               </button>
             </div>
 
-            {aiError && <p className="mt-2 text-xs font-bold text-red-300">{aiError}</p>}
+            {aiError && <p className="mt-2 text-xs font-bold text-[var(--fl-crit-text)]">{aiError}</p>}
           </div>
 
           <label className="block">

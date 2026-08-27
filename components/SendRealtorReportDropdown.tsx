@@ -186,10 +186,10 @@ export default function SendRealtorReportDropdown({
         <div
           className={`mt-4 rounded-xl border px-4 py-3 text-sm font-bold whitespace-pre-line ${
             messageType === "success"
-              ? "border-emerald-500 bg-emerald-500/10 text-emerald-300"
+              ? "border-emerald-500 bg-emerald-500/10 text-[var(--fl-good-text)]"
               : messageType === "warning"
-                ? "border-yellow-500 bg-yellow-500/10 text-yellow-300"
-                : "border-red-500 bg-red-500/10 text-red-300"
+                ? "border-yellow-500 bg-yellow-500/10 text-[var(--fl-warn-text)]"
+                : "border-red-500 bg-red-500/10 text-[var(--fl-crit-text)]"
           }`}
         >
           {message}
@@ -197,7 +197,7 @@ export default function SendRealtorReportDropdown({
       )}
 
       {!realtorEmail && (
-        <p className="mt-3 text-sm font-bold text-yellow-300">
+        <p className="mt-3 text-sm font-bold text-[var(--fl-warn-text)]">
           Add an email address to this realtor before sending reports.
         </p>
       )}

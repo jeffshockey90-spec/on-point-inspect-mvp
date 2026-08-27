@@ -184,7 +184,7 @@ export default function ReportDeliveryGuard({
   if (!hasAgreementBlock && !hasPaymentBlock) {
     return (
       <div className="mb-6 rounded-2xl border border-emerald-500 bg-emerald-500/10 p-5">
-        <h2 className="text-2xl font-extrabold text-emerald-300">
+        <h2 className="text-2xl font-extrabold text-[var(--fl-good-text)]">
           Delivery Requirements Complete
         </h2>
 
@@ -196,7 +196,7 @@ export default function ReportDeliveryGuard({
 
         {agreementWaived && (
           <div className="mt-4 rounded-xl border border-purple-500/50 bg-purple-500/10 p-4">
-            <p className="font-semibold text-purple-300">
+            <p className="font-semibold text-[var(--fl-purple-text)]">
               Agreement Requirement Waived
             </p>
 
@@ -225,7 +225,7 @@ export default function ReportDeliveryGuard({
 
   return (
     <div className="mb-6 rounded-2xl border border-yellow-500 bg-yellow-500/10 p-5">
-      <h2 className="text-2xl font-extrabold text-yellow-300">
+      <h2 className="text-2xl font-extrabold text-[var(--fl-warn-text)]">
         Delivery Requirements Pending
       </h2>
 
@@ -236,7 +236,7 @@ export default function ReportDeliveryGuard({
 
       {hasAgreementBlock && (
         <div className="mt-5 rounded-xl border border-yellow-500 bg-yellow-500/10 p-4">
-          <h3 className="font-semibold text-yellow-300">
+          <h3 className="font-semibold text-[var(--fl-warn-text)]">
             Agreement Signatures Pending
           </h3>
 
@@ -249,7 +249,7 @@ export default function ReportDeliveryGuard({
             {unsignedRequiredContacts.map((contact) => (
               <span
                 key={contact.id}
-                className="rounded-xl border border-yellow-500 px-3 py-2 text-sm font-bold text-yellow-300"
+                className="rounded-xl border border-yellow-500 px-3 py-2 text-sm font-bold text-[var(--fl-warn-text)]"
               >
                 {contact.name || contact.email}
               </span>
@@ -260,7 +260,7 @@ export default function ReportDeliveryGuard({
 
       {hasPaymentBlock && (
         <div className="mt-5 rounded-xl border border-orange-500 bg-orange-500/10 p-4">
-          <h3 className="font-semibold text-orange-300">
+          <h3 className="font-semibold text-[var(--fl-warn-text)]">
             Payment Not Complete
           </h3>
 
@@ -269,7 +269,7 @@ export default function ReportDeliveryGuard({
               <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                 Status
               </p>
-              <p className="mt-1 text-lg font-semibold text-orange-300">
+              <p className="mt-1 text-lg font-semibold text-[var(--fl-warn-text)]">
                 {paymentStatus}
               </p>
             </div>
@@ -278,7 +278,7 @@ export default function ReportDeliveryGuard({
               <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                 Amount Paid
               </p>
-              <p className="mt-1 text-lg font-semibold text-orange-300">
+              <p className="mt-1 text-lg font-semibold text-[var(--fl-warn-text)]">
                 {money(amountPaid)}
               </p>
             </div>
@@ -287,7 +287,7 @@ export default function ReportDeliveryGuard({
               <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                 Balance Due
               </p>
-              <p className="mt-1 text-lg font-semibold text-orange-300">
+              <p className="mt-1 text-lg font-semibold text-[var(--fl-warn-text)]">
                 {money(balanceDue)}
               </p>
             </div>

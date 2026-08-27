@@ -321,11 +321,11 @@ export default async function PaymentSuccessPage({ searchParams }: PageProps) {
               Inspection Balance Paid: {money(balancePaid)}
             </p>
 
-            <p className="font-bold text-yellow-300">
+            <p className="font-bold text-[var(--fl-warn-text)]">
               Online Payment Fee: {money(portalProcessingFee)}
             </p>
 
-            <p className="font-semibold text-green-300">
+            <p className="font-semibold text-[var(--fl-good-text)]">
               Total Charged Online: {money(totalPaid)}
             </p>
 

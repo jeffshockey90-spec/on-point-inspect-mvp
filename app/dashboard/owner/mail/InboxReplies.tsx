@@ -109,7 +109,7 @@ export default function InboxReplies({ replies }: { replies: Reply[] }) {
                   {unread && <span className="h-2 w-2 shrink-0 rounded-full bg-teal-400" aria-label="unread" />}
                   <span className="truncate font-semibold text-[var(--fl-text)]">{r.from_name || r.from_email}</span>
                   {r.replied_at && (
-                    <span className="rounded-full border border-emerald-400/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-200">
+                    <span className="rounded-full border border-emerald-400/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-[var(--fl-good-text)]">
                       REPLIED
                     </span>
                   )}
@@ -177,7 +177,7 @@ export default function InboxReplies({ replies }: { replies: Reply[] }) {
             )}
 
             {msg && msg.id === r.id && (
-              <p className={`mt-2 text-sm font-bold ${msg.tone === "ok" ? "text-emerald-300" : "text-red-300"}`}>
+              <p className={`mt-2 text-sm font-bold ${msg.tone === "ok" ? "text-[var(--fl-good-text)]" : "text-[var(--fl-crit-text)]"}`}>
                 {msg.text}
               </p>
             )}

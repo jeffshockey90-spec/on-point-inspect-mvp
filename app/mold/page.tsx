@@ -69,14 +69,14 @@ function classifyMold(status: any) {
 
 function getResultStyle(result: string) {
   if (result === "Action Recommended") {
-    return "border-red-500/40 bg-red-500/10 text-red-300";
+    return "border-red-500/40 bg-red-500/10 text-[var(--fl-crit-text)]";
   }
 
   if (result === "Normal") {
-    return "border-green-500/40 bg-green-500/10 text-green-300";
+    return "border-green-500/40 bg-green-500/10 text-[var(--fl-good-text)]";
   }
 
-  return "border-yellow-500/40 bg-yellow-500/10 text-yellow-300";
+  return "border-yellow-500/40 bg-yellow-500/10 text-[var(--fl-warn-text)]";
 }
 
 function buildSummary({
@@ -611,7 +611,7 @@ export default function MoldPage() {
                       <button
                         type="button"
                         onClick={() => copySummary(inspection.id)}
-                        className="rounded-xl border border-yellow-500 px-5 py-3 font-bold text-yellow-300 hover:bg-yellow-500/10"
+                        className="rounded-xl border border-yellow-500 px-5 py-3 font-bold text-[var(--fl-warn-text)] hover:bg-yellow-500/10"
                       >
                         Copy Client Summary
                       </button>
@@ -625,7 +625,7 @@ export default function MoldPage() {
 
                       <Link
                         href={`/invoices/${inspection.id}/print`}
-                        className="rounded-xl border border-cyan-500 px-5 py-3 font-bold text-cyan-300 hover:bg-cyan-500/10"
+                        className="rounded-xl border border-cyan-500 px-5 py-3 font-bold text-[var(--fl-info-text)] hover:bg-cyan-500/10"
                       >
                         Invoice PDF
                       </Link>
@@ -635,7 +635,7 @@ export default function MoldPage() {
                           href={form.lab_report_url}
                           target="_blank"
                           rel="noreferrer"
-                          className="rounded-xl border border-purple-500 px-5 py-3 font-bold text-purple-300 hover:bg-purple-500/10"
+                          className="rounded-xl border border-purple-500 px-5 py-3 font-bold text-[var(--fl-purple-text)] hover:bg-purple-500/10"
                         >
                           Open Lab Report
                         </a>
@@ -664,12 +664,12 @@ function MetricCard({
   tone: "green" | "teal" | "blue" | "red" | "purple" | "yellow";
 }) {
   const colors: Record<string, string> = {
-    green: "border-green-500/40 bg-green-500/10 text-green-300",
+    green: "border-green-500/40 bg-green-500/10 text-[var(--fl-good-text)]",
     teal: "border-teal-500/40 bg-teal-500/10 text-[var(--fl-accent-text)]",
-    blue: "border-blue-500/40 bg-blue-500/10 text-blue-300",
-    red: "border-red-500/40 bg-red-500/10 text-red-300",
-    purple: "border-purple-500/40 bg-purple-500/10 text-purple-300",
-    yellow: "border-yellow-500/40 bg-yellow-500/10 text-yellow-300",
+    blue: "border-blue-500/40 bg-blue-500/10 text-[var(--fl-info-text)]",
+    red: "border-red-500/40 bg-red-500/10 text-[var(--fl-crit-text)]",
+    purple: "border-purple-500/40 bg-purple-500/10 text-[var(--fl-purple-text)]",
+    yellow: "border-yellow-500/40 bg-yellow-500/10 text-[var(--fl-warn-text)]",
   };
 
   return (
@@ -797,7 +797,7 @@ function LabReportField({
         ) : null}
       </div>
       {error ? (
-        <p className="mt-1 text-xs font-bold text-red-400">{error}</p>
+        <p className="mt-1 text-xs font-bold text-[var(--fl-crit-text)]">{error}</p>
       ) : (
         <p className="mt-1 text-xs text-[var(--fl-faint)]">
           Remember to Save after uploading.

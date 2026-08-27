@@ -195,10 +195,10 @@ function RestrictedOwner() {
   return (
     <main className="min-h-screen bg-[var(--fl-ground)] px-6 py-10 text-[var(--fl-text)]">
       <div className="mx-auto max-w-3xl rounded-2xl border border-red-500/40 bg-red-500/10 p-8 shadow-2xl">
-        <p className="text-sm font-semibold uppercase tracking-[0.35em] text-red-300">Owner Only</p>
+        <p className="text-sm font-semibold uppercase tracking-[0.35em] text-[var(--fl-crit-text)]">Owner Only</p>
         <h1 className="mt-4 text-4xl font-semibold">Access Restricted</h1>
         <p className="mt-4 text-[var(--fl-muted)]">This owner tool is only available to the FLOW owner account.</p>
-        <Link href="/dashboard" className="mt-6 inline-flex rounded-xl border border-red-400 px-5 py-3 font-semibold text-red-300 hover:bg-red-500/10">
+        <Link href="/dashboard" className="mt-6 inline-flex rounded-xl border border-red-400 px-5 py-3 font-semibold text-[var(--fl-crit-text)] hover:bg-red-500/10">
           Back to Dashboard
         </Link>
       </div>
@@ -212,25 +212,25 @@ function OwnerNav() {
       <Link href="/dashboard/owner" className="rounded-xl border border-teal-500 px-3 py-2 text-sm font-semibold text-[var(--fl-accent-text)] transition hover:bg-teal-500/10 sm:px-4 sm:py-3 sm:text-base">
         Owner
       </Link>
-      <Link href="/dashboard/owner/users" className="rounded-xl border border-cyan-500 px-3 py-2 text-sm font-semibold text-cyan-300 transition hover:bg-cyan-500/10 sm:px-4 sm:py-3 sm:text-base">
+      <Link href="/dashboard/owner/users" className="rounded-xl border border-cyan-500 px-3 py-2 text-sm font-semibold text-[var(--fl-info-text)] transition hover:bg-cyan-500/10 sm:px-4 sm:py-3 sm:text-base">
         👥 Users
       </Link>
-      <Link href="/dashboard/owner/devices" className="rounded-xl border border-purple-500 px-3 py-2 text-sm font-semibold text-purple-300 transition hover:bg-purple-500/10 sm:px-4 sm:py-3 sm:text-base">
+      <Link href="/dashboard/owner/devices" className="rounded-xl border border-purple-500 px-3 py-2 text-sm font-semibold text-[var(--fl-purple-text)] transition hover:bg-purple-500/10 sm:px-4 sm:py-3 sm:text-base">
         📱 Devices
       </Link>
-      <Link href="/dashboard/owner/revenue" className="rounded-xl border border-green-500 px-3 py-2 text-sm font-semibold text-green-300 transition hover:bg-green-500/10 sm:px-4 sm:py-3 sm:text-base">
+      <Link href="/dashboard/owner/revenue" className="rounded-xl border border-green-500 px-3 py-2 text-sm font-semibold text-[var(--fl-good-text)] transition hover:bg-green-500/10 sm:px-4 sm:py-3 sm:text-base">
         💰 Revenue
       </Link>
-      <Link href="/dashboard/owner/push" className="rounded-xl border border-yellow-500 px-3 py-2 text-sm font-semibold text-yellow-300 transition hover:bg-yellow-500/10 sm:px-4 sm:py-3 sm:text-base">
+      <Link href="/dashboard/owner/push" className="rounded-xl border border-yellow-500 px-3 py-2 text-sm font-semibold text-[var(--fl-warn-text)] transition hover:bg-yellow-500/10 sm:px-4 sm:py-3 sm:text-base">
         🔔 Push Center
       </Link>
-      <Link href="/dashboard/owner/inspectors" className="rounded-xl border border-orange-500 px-3 py-2 text-sm font-semibold text-orange-300 transition hover:bg-orange-500/10 sm:px-4 sm:py-3 sm:text-base">
+      <Link href="/dashboard/owner/inspectors" className="rounded-xl border border-orange-500 px-3 py-2 text-sm font-semibold text-[var(--fl-warn-text)] transition hover:bg-orange-500/10 sm:px-4 sm:py-3 sm:text-base">
         🧑‍ inspector
       </Link>
       <Link href="/dashboard/owner/mail" className="rounded-xl border border-teal-500 px-3 py-2 text-sm font-semibold text-[var(--fl-accent-text)] transition hover:bg-teal-500/10 sm:px-4 sm:py-3 sm:text-base">
         📧 Mail
       </Link>
-      <Link href="/dashboard/owner/live" className="rounded-xl border border-blue-500 px-3 py-2 text-sm font-semibold text-blue-300 transition hover:bg-blue-500/10 sm:px-4 sm:py-3 sm:text-base">
+      <Link href="/dashboard/owner/live" className="rounded-xl border border-blue-500 px-3 py-2 text-sm font-semibold text-[var(--fl-info-text)] transition hover:bg-blue-500/10 sm:px-4 sm:py-3 sm:text-base">
         ⚡ Live
       </Link>
       <Link href="/dashboard/owner/system" className="rounded-xl border border-[var(--fl-faint)] px-3 py-2 text-sm font-semibold text-[var(--fl-text)] transition hover:bg-[var(--fl-raised)] sm:px-4 sm:py-3 sm:text-base">
@@ -243,12 +243,12 @@ function OwnerNav() {
 function MetricCard({ label, value, helper, tone }: { label: string; value: string; helper: string; tone: Tone }) {
   const classes: Record<Tone, string> = {
     teal: "border-teal-500/40 bg-teal-500/10 text-[var(--fl-accent-text)]",
-    green: "border-green-500/40 bg-green-500/10 text-green-300",
-    blue: "border-blue-500/40 bg-blue-500/10 text-blue-300",
-    purple: "border-purple-500/40 bg-purple-500/10 text-purple-300",
-    orange: "border-orange-500/40 bg-orange-500/10 text-orange-300",
-    yellow: "border-yellow-500/40 bg-yellow-500/10 text-yellow-300",
-    red: "border-red-500/40 bg-red-500/10 text-red-300",
+    green: "border-green-500/40 bg-green-500/10 text-[var(--fl-good-text)]",
+    blue: "border-blue-500/40 bg-blue-500/10 text-[var(--fl-info-text)]",
+    purple: "border-purple-500/40 bg-purple-500/10 text-[var(--fl-purple-text)]",
+    orange: "border-orange-500/40 bg-orange-500/10 text-[var(--fl-warn-text)]",
+    yellow: "border-yellow-500/40 bg-yellow-500/10 text-[var(--fl-warn-text)]",
+    red: "border-red-500/40 bg-red-500/10 text-[var(--fl-crit-text)]",
   };
 
   return (
@@ -277,12 +277,12 @@ function EmptyState({ text }: { text: string }) {
 function Badge({ children, tone }: { children: React.ReactNode; tone: Tone }) {
   const classes: Record<Tone, string> = {
     teal: "border-teal-500/30 bg-teal-500/10 text-[var(--fl-accent-text)]",
-    green: "border-green-500/30 bg-green-500/10 text-green-300",
-    blue: "border-blue-500/30 bg-blue-500/10 text-blue-300",
-    purple: "border-purple-500/30 bg-purple-500/10 text-purple-300",
-    orange: "border-orange-500/30 bg-orange-500/10 text-orange-300",
-    yellow: "border-yellow-500/30 bg-yellow-500/10 text-yellow-300",
-    red: "border-red-500/30 bg-red-500/10 text-red-300",
+    green: "border-green-500/30 bg-green-500/10 text-[var(--fl-good-text)]",
+    blue: "border-blue-500/30 bg-blue-500/10 text-[var(--fl-info-text)]",
+    purple: "border-purple-500/30 bg-purple-500/10 text-[var(--fl-purple-text)]",
+    orange: "border-orange-500/30 bg-orange-500/10 text-[var(--fl-warn-text)]",
+    yellow: "border-yellow-500/30 bg-yellow-500/10 text-[var(--fl-warn-text)]",
+    red: "border-red-500/30 bg-red-500/10 text-[var(--fl-crit-text)]",
   };
 
   return <span className={`rounded-full border px-2 py-1 text-xs font-semibold ${classes[tone]}`}>{children}</span>;
@@ -292,12 +292,12 @@ function MiniStat({ label, value, tone }: { label: string; value: string; tone: 
   const valueClass: Record<"white" | Tone, string> = {
     white: "text-[var(--fl-text)]",
     teal: "text-[var(--fl-accent-text)]",
-    green: "text-green-300",
-    blue: "text-blue-300",
-    purple: "text-purple-300",
-    orange: "text-orange-300",
-    yellow: "text-yellow-300",
-    red: "text-red-300",
+    green: "text-[var(--fl-good-text)]",
+    blue: "text-[var(--fl-info-text)]",
+    purple: "text-[var(--fl-purple-text)]",
+    orange: "text-[var(--fl-warn-text)]",
+    yellow: "text-[var(--fl-warn-text)]",
+    red: "text-[var(--fl-crit-text)]",
   };
 
   return (
@@ -407,7 +407,7 @@ export default async function OwnerInspectorsPage() {
         <section className="rounded-2xl border border-orange-500/40 bg-[var(--fl-surface)] p-4 shadow-2xl sm:p-6 md:p-8">
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-orange-400">Owner Inspector Management</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-[var(--fl-warn-text)]">Owner Inspector Management</p>
               <h1 className="mt-4 text-3xl font-semibold text-[var(--fl-text)] sm:text-4xl md:text-5xl">Inspectors, Production & Activity</h1>
               <p className="mt-4 max-w-3xl text-lg leading-8 text-[var(--fl-muted)]">
                 Track inspector activity, report production, revenue, push setup, and recent usage.

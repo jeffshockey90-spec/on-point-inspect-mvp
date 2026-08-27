@@ -111,13 +111,13 @@ export default function ReportTemplatesEditor() {
                     </div>
                   </div>
                   <button type="button" onClick={() => edit(t)} className="fl-btn fl-btn-ghost">Edit</button>
-                  <button type="button" onClick={() => remove(t)} className="rounded-lg border border-[var(--fl-line)] px-3 py-2 text-xs font-bold text-[var(--fl-muted)] hover:border-red-500 hover:text-red-300">Delete</button>
+                  <button type="button" onClick={() => remove(t)} className="rounded-lg border border-[var(--fl-line)] px-3 py-2 text-xs font-bold text-[var(--fl-muted)] hover:border-red-500 hover:text-[var(--fl-crit-text)]">Delete</button>
                 </li>
               ))}
             </ul>
           )}
           <button type="button" onClick={startNew} className="fl-btn fl-btn-primary">+ New template</button>
-          {msg && <span className={`ml-3 text-sm font-bold ${msg.tone === "ok" ? "text-emerald-300" : "text-red-300"}`}>{msg.text}</span>}
+          {msg && <span className={`ml-3 text-sm font-bold ${msg.tone === "ok" ? "text-[var(--fl-good-text)]" : "text-[var(--fl-crit-text)]"}`}>{msg.text}</span>}
         </>
       )}
 
@@ -151,7 +151,7 @@ export default function ReportTemplatesEditor() {
                       <button type="button" onClick={() => moveSection(i, 1)} disabled={i === draft.sections.length - 1} className="h-4 leading-none text-[var(--fl-muted)] hover:text-[var(--fl-text)] disabled:opacity-30">▼</button>
                     </span>
                     <span className="min-w-0 flex-1 text-sm font-bold text-[var(--fl-text)]">{s}</span>
-                    <button type="button" onClick={() => removeSection(i)} className="text-[var(--fl-faint)] hover:text-red-300">✕</button>
+                    <button type="button" onClick={() => removeSection(i)} className="text-[var(--fl-faint)] hover:text-[var(--fl-crit-text)]">✕</button>
                   </li>
                 ))}
               </ul>
@@ -175,7 +175,7 @@ export default function ReportTemplatesEditor() {
           <div className="flex flex-wrap items-center gap-3 border-t border-[var(--fl-raised)] pt-4">
             <button type="button" onClick={save} disabled={saving} className="fl-btn fl-btn-primary disabled:opacity-60">{saving ? "Saving…" : "Save template"}</button>
             <button type="button" onClick={() => { setDraft(null); setMsg(null); }} className="fl-btn fl-btn-ghost">Cancel</button>
-            {msg && <span className={`text-sm font-bold ${msg.tone === "ok" ? "text-emerald-300" : "text-red-300"}`}>{msg.text}</span>}
+            {msg && <span className={`text-sm font-bold ${msg.tone === "ok" ? "text-[var(--fl-good-text)]" : "text-[var(--fl-crit-text)]"}`}>{msg.text}</span>}
           </div>
         </div>
       )}

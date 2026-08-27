@@ -116,7 +116,7 @@ export default function FindingToneControl({
         </div>
       )}
 
-      {err && <p className="mt-2 text-xs font-bold text-rose-300">{err}</p>}
+      {err && <p className="mt-2 text-xs font-bold text-[var(--fl-crit-text)]">{err}</p>}
       <p className="mt-2 text-[11px] leading-4 text-[var(--fl-faint)]">
         Rewrites wording only — it won’t downplay a real safety issue.
       </p>

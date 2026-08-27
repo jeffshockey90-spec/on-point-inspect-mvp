@@ -441,13 +441,13 @@ export default function BookingRequestForm({
       </div>
 
       {success ? (
-        <div className="mt-5 rounded-2xl border border-emerald-400/40 bg-emerald-500/10 p-4 text-sm font-bold text-emerald-200">
+        <div className="mt-5 rounded-2xl border border-emerald-400/40 bg-emerald-500/10 p-4 text-sm font-bold text-[var(--fl-good-text)]">
           Request sent. You will receive confirmation after the inspector reviews it.
         </div>
       ) : null}
 
       {error ? (
-        <div className="mt-5 rounded-2xl border border-red-400/40 bg-red-500/10 p-4 text-sm font-bold text-red-200">
+        <div className="mt-5 rounded-2xl border border-red-400/40 bg-red-500/10 p-4 text-sm font-bold text-[var(--fl-crit-text)]">
           {error}
         </div>
       ) : null}
@@ -476,7 +476,7 @@ export default function BookingRequestForm({
                 <button
                   type="button"
                   onClick={() => removeAdditionalClient(client.id)}
-                  className="rounded-lg border border-red-500/40 px-3 py-1 text-xs font-semibold text-red-200 transition hover:bg-red-500/10"
+                  className="rounded-lg border border-red-500/40 px-3 py-1 text-xs font-semibold text-[var(--fl-crit-text)] transition hover:bg-red-500/10"
                 >
                   Remove
                 </button>
@@ -591,7 +591,7 @@ export default function BookingRequestForm({
                 <button
                   type="button"
                   onClick={() => update("property_image_url", "")}
-                  className="rounded-xl border border-[var(--fl-line)] px-4 py-3 text-sm font-semibold text-[var(--fl-muted)] transition hover:border-red-400 hover:text-red-200"
+                  className="rounded-xl border border-[var(--fl-line)] px-4 py-3 text-sm font-semibold text-[var(--fl-muted)] transition hover:border-red-400 hover:text-[var(--fl-crit-text)]"
                 >
                   Remove Photo
                 </button>
@@ -599,7 +599,7 @@ export default function BookingRequestForm({
             </div>
 
             {photoError ? (
-              <p className="mt-2 text-xs font-bold text-red-300">{photoError}</p>
+              <p className="mt-2 text-xs font-bold text-[var(--fl-crit-text)]">{photoError}</p>
             ) : null}
           </div>
 

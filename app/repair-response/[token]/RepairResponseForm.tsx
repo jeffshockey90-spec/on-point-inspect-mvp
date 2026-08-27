@@ -118,19 +118,19 @@ function getResponseStyle(value: string) {
 
 function getResponseBadgeStyle(value: string) {
   if (value === "agree_to_repair" || value === "already_repaired") {
-    return "border-emerald-400/60 bg-emerald-500/15 text-emerald-200";
+    return "border-emerald-400/60 bg-emerald-500/15 text-[var(--fl-good-text)]";
   }
 
   if (value === "credit_buyer") {
-    return "border-blue-400/60 bg-blue-500/15 text-blue-200";
+    return "border-blue-400/60 bg-blue-500/15 text-[var(--fl-info-text)]";
   }
 
   if (value === "decline") {
-    return "border-red-400/60 bg-red-500/15 text-red-200";
+    return "border-red-400/60 bg-red-500/15 text-[var(--fl-crit-text)]";
   }
 
   if (value === "needs_discussion") {
-    return "border-yellow-400/60 bg-yellow-500/15 text-yellow-100";
+    return "border-yellow-400/60 bg-yellow-500/15 text-[var(--fl-warn-text)]";
   }
 
   return "border-[var(--fl-line)] bg-[var(--fl-surface-2)] text-[var(--fl-muted)]";
@@ -452,7 +452,7 @@ export default function RepairResponseForm({
 
   if (!findings.length) {
     return (
-      <section className="rounded-2xl border border-yellow-400/30 bg-yellow-500/10 p-5 text-yellow-100">
+      <section className="rounded-2xl border border-yellow-400/30 bg-yellow-500/10 p-5 text-[var(--fl-warn-text)]">
         No repair request items were found for this secure link.
       </section>
     );
@@ -472,10 +472,10 @@ export default function RepairResponseForm({
           </div>
 
           <div className="flex flex-wrap gap-2 text-xs font-semibold">
-            <span className="rounded-full border border-cyan-500/40 bg-cyan-500/10 px-3 py-1 text-cyan-100">
+            <span className="rounded-full border border-cyan-500/40 bg-cyan-500/10 px-3 py-1 text-[var(--fl-info-text)]">
               Requested {formatMoney(requestedCreditTotal)}
             </span>
-            <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-emerald-100">
+            <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-[var(--fl-good-text)]">
               Seller {formatMoney(sellerCreditTotal)}
             </span>
           </div>
@@ -489,7 +489,7 @@ export default function RepairResponseForm({
         </div>
 
         {!locked && !allAnswered ? (
-          <p className="mt-2 text-xs font-bold text-yellow-100">
+          <p className="mt-2 text-xs font-bold text-[var(--fl-warn-text)]">
             Answer every item before submitting.
           </p>
         ) : null}
@@ -506,11 +506,11 @@ export default function RepairResponseForm({
             </h2>
           </div>
           {locked ? (
-            <span className="w-fit rounded-full border border-emerald-400/60 bg-emerald-500/15 px-4 py-2 text-sm font-semibold text-emerald-200">
+            <span className="w-fit rounded-full border border-emerald-400/60 bg-emerald-500/15 px-4 py-2 text-sm font-semibold text-[var(--fl-good-text)]">
               Response Submitted
             </span>
           ) : (
-            <span className="w-fit rounded-full border border-yellow-400/60 bg-yellow-500/15 px-4 py-2 text-sm font-semibold text-yellow-100">
+            <span className="w-fit rounded-full border border-yellow-400/60 bg-yellow-500/15 px-4 py-2 text-sm font-semibold text-[var(--fl-warn-text)]">
               Waiting for Submission
             </span>
           )}
@@ -525,7 +525,7 @@ export default function RepairResponseForm({
 
         <div className="mt-5 grid gap-3 sm:grid-cols-2">
           <div className="rounded-xl border border-cyan-500/40 bg-cyan-500/10 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-cyan-200">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-info-text)]">
               Requested Credit
             </p>
             <p className="mt-2 text-2xl font-semibold text-[var(--fl-text)]">
@@ -534,7 +534,7 @@ export default function RepairResponseForm({
           </div>
 
           <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-emerald-200">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-good-text)]">
               Seller Credit Offered
             </p>
             <p className="mt-2 text-2xl font-semibold text-[var(--fl-text)]">
@@ -555,7 +555,7 @@ export default function RepairResponseForm({
           <div className="flex flex-col gap-5">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
               <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-purple-200">
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fl-purple-text)]">
                   {fullyExecuted ? "Fully Executed" : sellerSigned ? "Seller Signed" : "Addendum Ready"}
                 </p>
                 <h2 className="mt-2 text-2xl font-semibold text-[var(--fl-text)]">
@@ -568,20 +568,20 @@ export default function RepairResponseForm({
                 <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
                   <span className={`rounded-full border px-3 py-1 ${
                     buyerSigned
-                      ? "border-emerald-400/60 bg-emerald-500/15 text-emerald-200"
-                      : "border-yellow-400/60 bg-yellow-500/15 text-yellow-100"
+                      ? "border-emerald-400/60 bg-emerald-500/15 text-[var(--fl-good-text)]"
+                      : "border-yellow-400/60 bg-yellow-500/15 text-[var(--fl-warn-text)]"
                   }`}>
                     {buyerSigned ? "Buyer Signed" : "Buyer Pending"}
                   </span>
                   <span className={`rounded-full border px-3 py-1 ${
                     sellerSigned
-                      ? "border-emerald-400/60 bg-emerald-500/15 text-emerald-200"
-                      : "border-yellow-400/60 bg-yellow-500/15 text-yellow-100"
+                      ? "border-emerald-400/60 bg-emerald-500/15 text-[var(--fl-good-text)]"
+                      : "border-yellow-400/60 bg-yellow-500/15 text-[var(--fl-warn-text)]"
                   }`}>
                     {sellerSigned ? "Seller Signed" : "Seller Pending"}
                   </span>
                   {sellerSignedAt ? (
-                    <span className="rounded-full border border-cyan-400/50 bg-cyan-500/10 px-3 py-1 text-cyan-100">
+                    <span className="rounded-full border border-cyan-400/50 bg-cyan-500/10 px-3 py-1 text-[var(--fl-info-text)]">
                       Seller signed {formatSignedDate(sellerSignedAt)}
                     </span>
                   ) : null}
@@ -593,7 +593,7 @@ export default function RepairResponseForm({
                   href={`/api/repair-request-addendum/${encodeURIComponent(token)}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-purple-400 bg-[var(--fl-ground)] px-4 py-3 text-sm font-semibold text-purple-200 transition hover:bg-purple-500/10 active:scale-[0.98]"
+                  className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-purple-400 bg-[var(--fl-ground)] px-4 py-3 text-sm font-semibold text-[var(--fl-purple-text)] transition hover:bg-purple-500/10 active:scale-[0.98]"
                 >
                   Open
                 </a>
@@ -610,7 +610,7 @@ export default function RepairResponseForm({
                   onClick={emailAddendum}
                   disabled={emailingAddendum || addendumRecipientCount === 0}
                   data-fast-click="true"
-                  className="min-h-[48px] rounded-xl border border-cyan-400 bg-[var(--fl-ground)] px-4 py-3 text-sm font-semibold text-cyan-200 transition hover:bg-cyan-500/10 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="min-h-[48px] rounded-xl border border-cyan-400 bg-[var(--fl-ground)] px-4 py-3 text-sm font-semibold text-[var(--fl-info-text)] transition hover:bg-cyan-500/10 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {emailingAddendum ? "Emailing..." : `Email Selected (${addendumRecipientCount})`}
                 </button>
@@ -640,7 +640,7 @@ export default function RepairResponseForm({
                 className="flex w-full items-center justify-between gap-3 text-left"
               >
                 <span>
-                  <span className="block text-xs font-semibold uppercase tracking-wide text-purple-200">
+                  <span className="block text-xs font-semibold uppercase tracking-wide text-[var(--fl-purple-text)]">
                     Email Recipients
                   </span>
                   <span className="mt-1 block text-sm font-bold text-[var(--fl-muted)]">
@@ -649,7 +649,7 @@ export default function RepairResponseForm({
                       : "No recipients selected"}
                   </span>
                 </span>
-                <span className="rounded-full border border-purple-400/50 px-3 py-1 text-xs font-semibold text-purple-200">
+                <span className="rounded-full border border-purple-400/50 px-3 py-1 text-xs font-semibold text-[var(--fl-purple-text)]">
                   {showRecipientPicker ? "Hide ▲" : "Show ▼"}
                 </span>
               </button>
@@ -671,7 +671,7 @@ export default function RepairResponseForm({
                             onClick={() => toggleAddendumRecipient(email)}
                             className={`relative flex min-h-[76px] w-full items-start gap-3 rounded-xl border px-3 py-3 text-left transition active:scale-[0.99] ${
                               checked
-                                ? "border-cyan-300 bg-cyan-500/15 text-cyan-100 shadow-[0_0_22px_rgba(6,182,212,0.16)]"
+                                ? "border-cyan-300 bg-cyan-500/15 text-[var(--fl-info-text)] shadow-[0_0_22px_rgba(6,182,212,0.16)]"
                                 : "border-[var(--fl-line)] bg-[var(--fl-surface-2)] text-[var(--fl-muted)] hover:border-cyan-500"
                             }`}
                           >
@@ -694,7 +694,7 @@ export default function RepairResponseForm({
                         );
                       })
                     ) : (
-                      <p className="rounded-lg border border-yellow-500/40 bg-yellow-500/10 px-3 py-2 text-sm font-bold text-yellow-100">
+                      <p className="rounded-lg border border-yellow-500/40 bg-yellow-500/10 px-3 py-2 text-sm font-bold text-[var(--fl-warn-text)]">
                         No saved contacts found. Add a custom email below.
                       </p>
                     )}
@@ -704,7 +704,7 @@ export default function RepairResponseForm({
                     <button
                       type="button"
                       onClick={() => setShowCustomAddendumEmail(true)}
-                      className="min-h-[48px] w-full rounded-xl border border-cyan-400 bg-cyan-500/10 px-5 py-3 text-sm font-semibold text-cyan-200 transition hover:bg-cyan-500/20 active:scale-[0.98]"
+                      className="min-h-[48px] w-full rounded-xl border border-cyan-400 bg-cyan-500/10 px-5 py-3 text-sm font-semibold text-[var(--fl-info-text)] transition hover:bg-cyan-500/20 active:scale-[0.98]"
                     >
                       + Add Recipient
                     </button>
@@ -732,7 +732,7 @@ export default function RepairResponseForm({
                           setShowCustomAddendumEmail(false);
                           setAddendumMessage("");
                         }}
-                        className="min-h-[48px] rounded-xl border border-cyan-400 bg-cyan-500/10 px-5 py-3 text-sm font-semibold text-cyan-200 transition hover:bg-cyan-500/20 active:scale-[0.98]"
+                        className="min-h-[48px] rounded-xl border border-cyan-400 bg-cyan-500/10 px-5 py-3 text-sm font-semibold text-[var(--fl-info-text)] transition hover:bg-cyan-500/20 active:scale-[0.98]"
                       >
                         Add
                       </button>
@@ -754,7 +754,7 @@ export default function RepairResponseForm({
           </div>
 
           {addendumMessage ? (
-            <p className="mt-4 rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-4 py-3 text-sm font-bold text-cyan-100">
+            <p className="mt-4 rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-4 py-3 text-sm font-bold text-[var(--fl-info-text)]">
               {addendumMessage}
             </p>
           ) : null}
@@ -788,7 +788,7 @@ export default function RepairResponseForm({
                 </p>
 
                 {parseMoneyValue(requestedCredit) > 0 ? (
-                  <p className="mt-3 w-fit rounded-full border border-cyan-400/60 bg-cyan-500/15 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-cyan-200">
+                  <p className="mt-3 w-fit rounded-full border border-cyan-400/60 bg-cyan-500/15 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[var(--fl-info-text)]">
                     Requested Credit: {formatMoney(requestedCredit)}
                   </p>
                 ) : null}
@@ -887,7 +887,7 @@ export default function RepairResponseForm({
       <section className="rounded-2xl border border-cyan-500/40 bg-cyan-500/10 p-5 shadow-xl">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-200">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fl-info-text)]">
               Electronic Signatures
             </p>
             <h2 className="mt-2 text-2xl font-semibold text-[var(--fl-text)]">
@@ -900,8 +900,8 @@ export default function RepairResponseForm({
 
           <span className={`w-fit rounded-full border px-4 py-2 text-sm font-semibold ${
             sellerPrintedName.trim() && sellerSignature.trim()
-              ? "border-emerald-400/60 bg-emerald-500/15 text-emerald-200"
-              : "border-yellow-400/60 bg-yellow-500/15 text-yellow-100"
+              ? "border-emerald-400/60 bg-emerald-500/15 text-[var(--fl-good-text)]"
+              : "border-yellow-400/60 bg-yellow-500/15 text-[var(--fl-warn-text)]"
           }`}>
             {sellerPrintedName.trim() && sellerSignature.trim()
               ? sellerSignedAt
@@ -944,7 +944,7 @@ export default function RepairResponseForm({
               />
             </label>
             {buyerSignature.trim() ? (
-              <p className="mt-3 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs font-bold text-emerald-100">
+              <p className="mt-3 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs font-bold text-[var(--fl-good-text)]">
                 {buyerSignedAt
                   ? `Buyer signed electronically on ${formatSignedDate(buyerSignedAt)}.`
                   : "Buyer signature will be dated automatically when submitted."}
@@ -985,7 +985,7 @@ export default function RepairResponseForm({
             </label>
             <p className={`mt-3 rounded-xl border px-3 py-2 text-xs leading-5 ${
               sellerSignedAt
-                ? "border-emerald-500/40 bg-emerald-500/10 font-bold text-emerald-100"
+                ? "border-emerald-500/40 bg-emerald-500/10 font-bold text-[var(--fl-good-text)]"
                 : "border-[var(--fl-line)] bg-[var(--fl-surface-2)] text-[var(--fl-muted)]"
             }`}>
               {sellerSignedAt

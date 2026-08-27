@@ -49,28 +49,28 @@ function slugify(value?: string) {
 
 function scoreTone(score?: number) {
   const value = Number(score || 0);
-  if (value >= 90) return "border-emerald-500/50 bg-emerald-500/10 text-emerald-300";
-  if (value >= 75) return "border-yellow-500/50 bg-yellow-500/10 text-yellow-300";
-  return "border-red-500/50 bg-red-500/10 text-red-300";
+  if (value >= 90) return "border-emerald-500/50 bg-emerald-500/10 text-[var(--fl-good-text)]";
+  if (value >= 75) return "border-yellow-500/50 bg-yellow-500/10 text-[var(--fl-warn-text)]";
+  return "border-red-500/50 bg-red-500/10 text-[var(--fl-crit-text)]";
 }
 
 function issueTone(severity?: string) {
-  if (severity === "critical") return "border-red-500/50 bg-red-500/10 text-red-100";
-  if (severity === "warning") return "border-amber-500/50 bg-amber-500/10 text-amber-100";
-  return "border-cyan-500/40 bg-cyan-500/10 text-cyan-100";
+  if (severity === "critical") return "border-red-500/50 bg-red-500/10 text-[var(--fl-crit-text)]";
+  if (severity === "warning") return "border-amber-500/50 bg-amber-500/10 text-[var(--fl-warn-text)]";
+  return "border-cyan-500/40 bg-cyan-500/10 text-[var(--fl-info-text)]";
 }
 
 function recommendationTone(value?: string) {
   const clean = String(value || "").toLowerCase();
-  if (clean.includes("ready") && !clean.includes("not")) return "border-emerald-500/50 bg-emerald-500/10 text-emerald-300";
-  if (clean.includes("do not")) return "border-red-500/50 bg-red-500/10 text-red-300";
-  return "border-yellow-500/50 bg-yellow-500/10 text-yellow-300";
+  if (clean.includes("ready") && !clean.includes("not")) return "border-emerald-500/50 bg-emerald-500/10 text-[var(--fl-good-text)]";
+  if (clean.includes("do not")) return "border-red-500/50 bg-red-500/10 text-[var(--fl-crit-text)]";
+  return "border-yellow-500/50 bg-yellow-500/10 text-[var(--fl-warn-text)]";
 }
 
 function confidenceTone(value = 0) {
-  if (value >= 95) return "border-emerald-400/40 bg-emerald-400/10 text-emerald-200";
-  if (value >= 80) return "border-amber-400/40 bg-amber-400/10 text-amber-100";
-  return "border-red-400/40 bg-red-400/10 text-red-100";
+  if (value >= 95) return "border-emerald-400/40 bg-emerald-400/10 text-[var(--fl-good-text)]";
+  if (value >= 80) return "border-amber-400/40 bg-amber-400/10 text-[var(--fl-warn-text)]";
+  return "border-red-400/40 bg-red-400/10 text-[var(--fl-crit-text)]";
 }
 
 function priorityLabel(issue: PublishGuardIssue) {
@@ -194,10 +194,10 @@ function IssueCard({
 
           <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
             <button type="button" onClick={openSection} className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-xs font-semibold hover:bg-white/15">Open Section</button>
-            <button type="button" onClick={openCamera} className="rounded-lg border border-cyan-400/30 bg-cyan-400/10 px-3 py-2 text-xs font-semibold text-cyan-100 hover:bg-cyan-400/20">Open AI Camera</button>
-            <button type="button" onClick={startFinding} className="rounded-lg border border-rose-400/30 bg-rose-400/10 px-3 py-2 text-xs font-semibold text-rose-100 hover:bg-rose-400/20">Add Finding</button>
-            <button type="button" onClick={addLimitation} className="rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-xs font-semibold text-amber-100 hover:bg-amber-400/20">Add Limitation</button>
-            <button type="button" onClick={markReviewed} disabled={resolved} className="rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 text-xs font-semibold text-emerald-100 hover:bg-emerald-400/20 disabled:opacity-50">{resolved ? "Reviewed" : "Mark Reviewed"}</button>
+            <button type="button" onClick={openCamera} className="rounded-lg border border-cyan-400/30 bg-cyan-400/10 px-3 py-2 text-xs font-semibold text-[var(--fl-info-text)] hover:bg-cyan-400/20">Open AI Camera</button>
+            <button type="button" onClick={startFinding} className="rounded-lg border border-rose-400/30 bg-rose-400/10 px-3 py-2 text-xs font-semibold text-[var(--fl-crit-text)] hover:bg-rose-400/20">Add Finding</button>
+            <button type="button" onClick={addLimitation} className="rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-xs font-semibold text-[var(--fl-warn-text)] hover:bg-amber-400/20">Add Limitation</button>
+            <button type="button" onClick={markReviewed} disabled={resolved} className="rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 text-xs font-semibold text-[var(--fl-good-text)] hover:bg-emerald-400/20 disabled:opacity-50">{resolved ? "Reviewed" : "Mark Reviewed"}</button>
             <button type="button" onClick={() => setOpen(false)} className="rounded-lg border border-[var(--fl-faint)] bg-slate-500/10 px-3 py-2 text-xs font-semibold text-[var(--fl-text)] hover:bg-slate-500/20">Collapse</button>
           </div>
         </div>
@@ -257,14 +257,14 @@ export default function AIPublishGuardPanel({ inspectionId }: { inspectionId: st
     <section className="rounded-2xl border border-rose-500/40 bg-rose-500/10 p-4 shadow-xl">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-rose-300">AI Publish Guard</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fl-crit-text)]">AI Publish Guard</p>
           <h2 className="mt-1 text-2xl font-semibold text-[var(--fl-text)]">AI Quality Control Center</h2>
           <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">Finds missing safety evidence, incomplete systems, contradictions, missing media, and liability-sensitive documentation—then gives you one-tap ways to resolve each item.</p>
         </div>
         <button type="button" onClick={runGuard} disabled={loading || !inspectionId} className="rounded-xl bg-rose-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-rose-400 disabled:cursor-not-allowed disabled:opacity-60">{loading ? "Checking..." : result ? "Run Again" : "Run Publish Guard"}</button>
       </div>
 
-      {message && <div className="mt-4 rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-sm font-bold text-rose-100">{message}</div>}
+      {message && <div className="mt-4 rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-sm font-bold text-[var(--fl-crit-text)]">{message}</div>}
 
       <div className="mt-5 grid gap-3 sm:grid-cols-3">
         <div className={`rounded-xl border p-4 ${effectiveScore === null ? "border-[var(--fl-line)] bg-[var(--fl-surface-2)] text-[var(--fl-muted)]" : scoreTone(effectiveScore)}`}>
@@ -290,10 +290,10 @@ export default function AIPublishGuardPanel({ inspectionId }: { inspectionId: st
           <aside className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
             <h3 className="text-sm font-semibold uppercase tracking-wide text-[var(--fl-muted)]">System Status</h3>
             <div className="mt-3 space-y-2">
-              {groupedSections.length === 0 ? <p className="text-sm font-bold text-emerald-300">✓ All reviewed systems are clear.</p> : groupedSections.map(([section, meta]) => (
+              {groupedSections.length === 0 ? <p className="text-sm font-bold text-[var(--fl-good-text)]">✓ All reviewed systems are clear.</p> : groupedSections.map(([section, meta]) => (
                 <button key={section} type="button" onClick={() => findAndScrollToSection(section)} className="flex w-full items-center justify-between rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-3 py-2 text-left hover:bg-white/5">
                   <span className="text-sm font-semibold text-[var(--fl-text)]">{section}</span>
-                  <span className={meta.critical ? "text-xs font-semibold text-red-300" : "text-xs font-semibold text-amber-300"}>{meta.critical ? "●" : "⚠"} {meta.issueCount}</span>
+                  <span className={meta.critical ? "text-xs font-semibold text-[var(--fl-crit-text)]" : "text-xs font-semibold text-[var(--fl-warn-text)]"}>{meta.critical ? "●" : "⚠"} {meta.issueCount}</span>
                 </button>
               ))}
             </div>
@@ -306,7 +306,7 @@ export default function AIPublishGuardPanel({ inspectionId }: { inspectionId: st
               <h3 className="text-sm font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Actionable Publish Guard Issues</h3>
               <span className="rounded-full border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-2 py-1 text-xs font-semibold text-[var(--fl-muted)]">{activeIssues.length}</span>
             </div>
-            {displayedIssues.length === 0 ? <p className="mt-3 text-sm font-bold text-emerald-300">No unresolved publish guard issues detected.</p> : <div className="mt-3 space-y-3">{displayedIssues.map((issue) => <IssueCard key={issue.id} issue={issue} inspectionId={inspectionId} resolved={resolvedIds.includes(issue.id)} onResolved={(id) => setResolvedIds((current) => current.includes(id) ? current : [...current, id])} />)}</div>}
+            {displayedIssues.length === 0 ? <p className="mt-3 text-sm font-bold text-[var(--fl-good-text)]">No unresolved publish guard issues detected.</p> : <div className="mt-3 space-y-3">{displayedIssues.map((issue) => <IssueCard key={issue.id} issue={issue} inspectionId={inspectionId} resolved={resolvedIds.includes(issue.id)} onResolved={(id) => setResolvedIds((current) => current.includes(id) ? current : [...current, id])} />)}</div>}
             {activeIssues.length > displayedIssues.length && <p className="mt-3 text-xs font-bold text-[var(--fl-muted)]">Showing the first {displayedIssues.length} of {activeIssues.length} unresolved issues.</p>}
           </div>
         </div>

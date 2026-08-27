@@ -198,8 +198,8 @@ export default function SendFullReportButton({ inspectionId }: Props) {
         aria-busy={sending}
         className={`inline-flex w-full items-center justify-center gap-2 rounded-xl border px-5 py-3 font-bold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto [touch-action:manipulation] ${
           guardOverrideReady
-            ? "border-yellow-500 bg-yellow-500/10 text-yellow-200 hover:bg-yellow-500/20"
-            : "border-purple-500 text-purple-300 hover:bg-purple-500/10"
+            ? "border-yellow-500 bg-yellow-500/10 text-[var(--fl-warn-text)] hover:bg-yellow-500/20"
+            : "border-purple-500 text-[var(--fl-purple-text)] hover:bg-purple-500/10"
         }`}
       >
         {sending && (
@@ -228,10 +228,10 @@ export default function SendFullReportButton({ inspectionId }: Props) {
         <div
           className={`whitespace-pre-line rounded-xl border px-4 py-3 text-sm font-bold ${
             messageType === "success"
-              ? "border-emerald-500 bg-emerald-500/10 text-emerald-300"
+              ? "border-emerald-500 bg-emerald-500/10 text-[var(--fl-good-text)]"
               : messageType === "warning"
-                ? "border-yellow-500 bg-yellow-500/10 text-yellow-300"
-                : "border-red-500 bg-red-500/10 text-red-300"
+                ? "border-yellow-500 bg-yellow-500/10 text-[var(--fl-warn-text)]"
+                : "border-red-500 bg-red-500/10 text-[var(--fl-crit-text)]"
           }`}
         >
           {message}

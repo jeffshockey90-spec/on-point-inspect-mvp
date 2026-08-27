@@ -32,24 +32,24 @@ type HouseRelationshipResult = {
 
 function severityTone(severity?: RelationshipSeverity) {
   if (severity === "critical") {
-    return "border-red-500/50 bg-red-500/10 text-red-200";
+    return "border-red-500/50 bg-red-500/10 text-[var(--fl-crit-text)]";
   }
 
   if (severity === "concern") {
-    return "border-orange-500/50 bg-orange-500/10 text-orange-200";
+    return "border-orange-500/50 bg-orange-500/10 text-[var(--fl-warn-text)]";
   }
 
   if (severity === "monitor") {
-    return "border-yellow-500/50 bg-yellow-500/10 text-yellow-100";
+    return "border-yellow-500/50 bg-yellow-500/10 text-[var(--fl-warn-text)]";
   }
 
-  return "border-cyan-500/40 bg-cyan-500/10 text-cyan-100";
+  return "border-cyan-500/40 bg-cyan-500/10 text-[var(--fl-info-text)]";
 }
 
 function confidenceTone(confidence: number) {
-  if (confidence >= 90) return "text-emerald-300";
-  if (confidence >= 75) return "text-yellow-300";
-  return "text-orange-300";
+  if (confidence >= 90) return "text-[var(--fl-good-text)]";
+  if (confidence >= 75) return "text-[var(--fl-warn-text)]";
+  return "text-[var(--fl-warn-text)]";
 }
 
 function categoryLabel(category: string) {
@@ -242,7 +242,7 @@ export default function HouseRelationshipPanel({
     <section ref={rootRef} className="rounded-2xl border border-fuchsia-500/40 bg-fuchsia-500/10 p-4 shadow-xl">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-fuchsia-300">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fl-purple-text)]">
             House Relationship Engine
           </p>
 
@@ -268,7 +268,7 @@ export default function HouseRelationshipPanel({
       </div>
 
       {message && (
-        <div className="mt-4 rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm font-bold text-red-200">
+        <div className="mt-4 rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm font-bold text-[var(--fl-crit-text)]">
           {message}
         </div>
       )}
@@ -296,7 +296,7 @@ export default function HouseRelationshipPanel({
           <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
             Status
           </p>
-          <p className="mt-1 text-lg font-semibold text-fuchsia-200">
+          <p className="mt-1 text-lg font-semibold text-[var(--fl-purple-text)]">
             {result?.relationshipCount ? "Review Suggested" : "Monitoring"}
           </p>
         </div>
@@ -310,13 +310,13 @@ export default function HouseRelationshipPanel({
 
       {result?.suggestions?.length ? (
         <div className="mt-5 rounded-xl border border-yellow-500/40 bg-yellow-500/10 p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-yellow-300">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-warn-text)]">
             AI Suggestions
           </p>
 
           <ul className="mt-3 space-y-2">
             {result.suggestions.map((suggestion, index) => (
-              <li key={index} className="text-sm leading-6 text-yellow-100">
+              <li key={index} className="text-sm leading-6 text-[var(--fl-warn-text)]">
                 ⚠ {suggestion}
               </li>
             ))}
@@ -331,7 +331,7 @@ export default function HouseRelationshipPanel({
             findings or equipment records to compare.
           </div>
         ) : relationships.length === 0 ? (
-          <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-sm font-bold leading-6 text-emerald-300">
+          <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-sm font-bold leading-6 text-[var(--fl-good-text)]">
             No strong cross-finding relationships detected yet.
           </div>
         ) : (

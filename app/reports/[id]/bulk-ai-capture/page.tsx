@@ -658,7 +658,7 @@ export default function BulkAICapturePage() {
           />
 
           <div className="mt-5 rounded-2xl border border-purple-800 bg-purple-500/10 p-4">
-            <h3 className="text-lg font-extrabold text-purple-300">AI Guidance Memory</h3>
+            <h3 className="text-lg font-extrabold text-[var(--fl-purple-text)]">AI Guidance Memory</h3>
 
             <p className="mt-1 text-sm text-[var(--fl-muted)]">
               Optional saved guidance for how you want Bulk AI Capture to write and route findings on this device.
@@ -675,7 +675,7 @@ export default function BulkAICapturePage() {
             <button
               type="button"
               onClick={saveAIMemory}
-              className="mt-3 rounded-xl border border-purple-500 px-5 py-2 font-bold text-purple-200 hover:bg-purple-500/10"
+              className="mt-3 rounded-xl border border-purple-500 px-5 py-2 font-bold text-[var(--fl-purple-text)] hover:bg-purple-500/10"
             >
               Save AI Guidance Memory
             </button>
@@ -713,7 +713,7 @@ export default function BulkAICapturePage() {
             <button
               onClick={clearMergePlan}
               disabled={busy || mergedCount === 0}
-              className="rounded-xl border border-yellow-600 px-6 py-3 font-bold text-yellow-300 transition hover:bg-yellow-500/10 disabled:opacity-50"
+              className="rounded-xl border border-yellow-600 px-6 py-3 font-bold text-[var(--fl-warn-text)] transition hover:bg-yellow-500/10 disabled:opacity-50"
             >
               Clear Merge Plan
             </button>
@@ -835,7 +835,7 @@ function MergePreviewPanel({
     <section className="rounded-2xl border border-cyan-700 bg-cyan-500/10 p-6">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-semibold text-cyan-300">Review Merge Plan</h2>
+          <h2 className="text-2xl font-semibold text-[var(--fl-info-text)]">Review Merge Plan</h2>
 
           <p className="mt-1 text-sm text-[var(--fl-muted)]">
             Nothing has merged yet. Review these matches, then confirm if they look correct.
@@ -873,7 +873,7 @@ function MergePreviewPanel({
               key={`${merge.sourceId}-${merge.targetId}`}
               className="rounded-xl border border-cyan-800 bg-[var(--fl-surface-2)] p-4"
             >
-              <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-cyan-300">
+              <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--fl-info-text)]">
                 Merge Match {index + 1} · {Math.round(merge.confidence * 100)}% confidence
               </p>
 
@@ -969,7 +969,7 @@ function PhotoReviewCard({
 
       {isMergedChild && mergedIntoItem && (
         <div className="mb-5 rounded-xl border border-cyan-700 bg-cyan-500/10 p-4">
-          <p className="text-sm font-semibold uppercase tracking-wide text-cyan-300">
+          <p className="text-sm font-semibold uppercase tracking-wide text-[var(--fl-info-text)]">
             This photo will merge into:
           </p>
 
@@ -983,7 +983,7 @@ function PhotoReviewCard({
 
       {mergedChildren.length > 0 && (
         <div className="mb-5 rounded-xl border border-cyan-700 bg-cyan-500/10 p-4">
-          <p className="text-sm font-semibold uppercase tracking-wide text-cyan-300">
+          <p className="text-sm font-semibold uppercase tracking-wide text-[var(--fl-info-text)]">
             Photos merging into this finding:
           </p>
 
@@ -1057,7 +1057,7 @@ function PhotoReviewCard({
                 type="button"
                 onClick={() => updateItem(item.id, { mergedIntoId: "" })}
                 disabled={busy}
-                className="rounded-lg border border-yellow-500 px-4 py-2 text-sm font-bold text-yellow-300 hover:bg-yellow-500/10 disabled:opacity-50"
+                className="rounded-lg border border-yellow-500 px-4 py-2 text-sm font-bold text-[var(--fl-warn-text)] hover:bg-yellow-500/10 disabled:opacity-50"
               >
                 Unmerge
               </button>
@@ -1065,7 +1065,7 @@ function PhotoReviewCard({
           </div>
 
           {item.error && (
-            <p className="mt-3 rounded-lg border border-red-800 bg-red-500/10 p-3 text-sm text-red-200">
+            <p className="mt-3 rounded-lg border border-red-800 bg-red-500/10 p-3 text-sm text-[var(--fl-crit-text)]">
               {item.error}
             </p>
           )}
@@ -1132,7 +1132,7 @@ function PhotoReviewCard({
             item.estimatedAge ||
             item.notes) && (
             <div className="rounded-xl border border-blue-800 bg-blue-500/10 p-4">
-              <h4 className="mb-3 font-bold text-blue-300">Equipment Data</h4>
+              <h4 className="mb-3 font-bold text-[var(--fl-info-text)]">Equipment Data</h4>
 
               <div className="grid gap-3 md:grid-cols-2">
                 <SmallInput

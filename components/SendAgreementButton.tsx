@@ -91,7 +91,7 @@ export default function SendAgreementButton({
         </button>
       ) : (
         <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3">
-          <p className="mb-2 text-xs font-bold text-amber-200">
+          <p className="mb-2 text-xs font-bold text-[var(--fl-warn-text)]">
             Only use this if the realtor specifically asked to receive and forward the
             agreement to the client themselves - this does not replace sending it directly
             to the client.

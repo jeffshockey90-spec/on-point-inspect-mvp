@@ -106,7 +106,7 @@ export default function AgreementBodyEditor({
             Selected Agreements panel above.
           </p>
           {hasCustomBody && (
-            <span className="mt-3 inline-flex items-center rounded-full border border-amber-400/40 bg-amber-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-amber-300">
+            <span className="mt-3 inline-flex items-center rounded-full border border-amber-400/40 bg-amber-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-warn-text)]">
               Custom text is active — overriding the selected template
             </span>
           )}
@@ -128,7 +128,7 @@ export default function AgreementBodyEditor({
           {loading ? (
             <p className="text-sm font-bold text-[var(--fl-muted)]">Loading agreement…</p>
           ) : loadError ? (
-            <p className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-300">
+            <p className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm font-bold text-[var(--fl-crit-text)]">
               {loadError}
             </p>
           ) : signed ? (

@@ -78,11 +78,11 @@ export default function RepriceSubscribersPanel() {
     <section className="rounded-2xl border border-[var(--fl-raised)] bg-gradient-to-br from-[var(--fl-surface)] to-[var(--fl-surface)] p-5 shadow-xl sm:p-6 md:p-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex gap-4">
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-amber-500/30 bg-amber-500/10 text-amber-300">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-amber-500/30 bg-amber-500/10 text-[var(--fl-warn-text)]">
             <RefreshCcw className="h-7 w-7" strokeWidth={2} />
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-amber-300">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--fl-warn-text)]">
               Subscriptions
             </p>
             <h2 className="mt-2 text-xl font-semibold text-[var(--fl-text)] sm:text-2xl">
@@ -105,13 +105,13 @@ export default function RepriceSubscribersPanel() {
           No active subscribers yet — nothing to re-price.
         </div>
       ) : wouldChange.length === 0 ? (
-        <div className="mt-5 rounded-xl border border-emerald-700/40 bg-emerald-500/10 p-4 text-sm text-emerald-200">
+        <div className="mt-5 rounded-xl border border-emerald-700/40 bg-emerald-500/10 p-4 text-sm text-[var(--fl-good-text)]">
           All {preview.totalActive} active subscribers are already on their current plan price. ✅
         </div>
       ) : (
         <>
           <div className="mt-5 rounded-xl border border-amber-500/40 bg-amber-500/10 p-4">
-            <p className="text-sm font-semibold text-amber-200">
+            <p className="text-sm font-semibold text-[var(--fl-warn-text)]">
               {wouldChange.length} subscriber(s) are on an old price:
             </p>
             <div className="mt-3 max-h-52 overflow-y-auto">
@@ -121,7 +121,7 @@ export default function RepriceSubscribersPanel() {
                     <tr key={i} className="text-[var(--fl-muted)]">
                       <td className="py-1.5 pr-3 font-semibold text-[var(--fl-text)]">{r.label}</td>
                       <td className="py-1.5 pr-3 text-[var(--fl-muted)]">{money(r.fromCents)}/mo</td>
-                      <td className="py-1.5 text-emerald-300">→ {money(r.toCents)}/mo</td>
+                      <td className="py-1.5 text-[var(--fl-good-text)]">→ {money(r.toCents)}/mo</td>
                     </tr>
                   ))}
                 </tbody>
@@ -152,7 +152,7 @@ export default function RepriceSubscribersPanel() {
       )}
 
       {done && (
-        <p className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-200">
+        <p className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-[var(--fl-good-text)]">
           Done — {done.changed} re-priced, {done.unchanged} already current
           {done.failed ? `, ${done.failed} failed (check logs)` : ""}.
         </p>

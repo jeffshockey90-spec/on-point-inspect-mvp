@@ -49,8 +49,8 @@ function StepCard({ step, index }: { step: Step; index: number }) {
             <span
               className={`rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-wide ${
                 step.complete
-                  ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-300"
-                  : "border-yellow-500/50 bg-yellow-500/10 text-yellow-200"
+                  ? "border-emerald-500/50 bg-emerald-500/10 text-[var(--fl-good-text)]"
+                  : "border-yellow-500/50 bg-yellow-500/10 text-[var(--fl-warn-text)]"
               }`}
             >
               {step.complete ? "Complete" : "Next"}
@@ -164,7 +164,7 @@ export default function OnboardingChecklist({
 
               <Link
                 href="/field"
-                className="rounded-2xl border border-cyan-400/60 bg-cyan-500/10 px-5 py-3 text-sm font-semibold text-cyan-200 transition hover:bg-cyan-500/20 active:scale-[0.98]"
+                className="rounded-2xl border border-cyan-400/60 bg-cyan-500/10 px-5 py-3 text-sm font-semibold text-[var(--fl-info-text)] transition hover:bg-cyan-500/20 active:scale-[0.98]"
               >
                 📱 Open Field Tool
               </Link>
@@ -203,7 +203,7 @@ export default function OnboardingChecklist({
       </section>
 
       <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6 shadow-xl">
-        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-purple-300">
+        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--fl-purple-text)]">
           First Inspection Walkthrough
         </p>
 
@@ -222,7 +222,7 @@ export default function OnboardingChecklist({
               key={number}
               className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4"
             >
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-500/15 text-lg font-semibold text-purple-200">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-500/15 text-lg font-semibold text-[var(--fl-purple-text)]">
                 {number}
               </div>
               <h3 className="mt-4 text-lg font-semibold text-[var(--fl-text)]">{title}</h3>

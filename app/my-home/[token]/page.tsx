@@ -106,9 +106,9 @@ async function recordPortalView(inspection: any, token: string) {
 }
 
 const STATUS_STYLE: Record<string, { bar: string; chip: string; text: string }> = {
-  healthy: { bar: "bg-emerald-400", chip: "border-emerald-500/40 bg-emerald-500/10 text-emerald-200", text: "text-emerald-300" },
-  aging: { bar: "bg-amber-400", chip: "border-amber-500/40 bg-amber-500/10 text-amber-200", text: "text-amber-300" },
-  "near-end": { bar: "bg-rose-400", chip: "border-rose-500/40 bg-rose-500/10 text-rose-200", text: "text-rose-300" },
+  healthy: { bar: "bg-emerald-400", chip: "border-emerald-500/40 bg-emerald-500/10 text-[var(--fl-good-text)]", text: "text-[var(--fl-good-text)]" },
+  aging: { bar: "bg-amber-400", chip: "border-amber-500/40 bg-amber-500/10 text-[var(--fl-warn-text)]", text: "text-[var(--fl-warn-text)]" },
+  "near-end": { bar: "bg-rose-400", chip: "border-rose-500/40 bg-rose-500/10 text-[var(--fl-crit-text)]", text: "text-[var(--fl-crit-text)]" },
   unknown: { bar: "bg-slate-500", chip: "border-[var(--fl-line)] bg-[var(--fl-raised)] text-[var(--fl-muted)]", text: "text-[var(--fl-muted)]" },
 };
 
@@ -356,7 +356,7 @@ export default async function HomeownerPortal({
                       </p>
                     )}
                     {(recall || known) && (
-                      <p className="mt-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2 text-xs text-amber-200">
+                      <p className="mt-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2 text-xs text-[var(--fl-warn-text)]">
                         <span className="font-semibold">{tc("Worth knowing:")} </span>
                         {[recall, known].filter(Boolean).join(" ")}
                       </p>
@@ -399,7 +399,7 @@ export default async function HomeownerPortal({
         {/* Safety highlights */}
         {safetyItems.length > 0 && (
           <section className="rounded-2xl border border-rose-500/40 bg-rose-500/10 p-6">
-            <h2 className="text-xl font-semibold text-rose-200">{tc("Safety items to prioritize")}</h2>
+            <h2 className="text-xl font-semibold text-[var(--fl-crit-text)]">{tc("Safety items to prioritize")}</h2>
             <p className="mt-1 text-sm text-[var(--fl-muted)]">
               {tc(
                 "Your inspector flagged these as safety or major concerns. See your full report for the details and photos.",
@@ -415,7 +415,7 @@ export default async function HomeownerPortal({
             </ul>
             <Link
               href={`/share/${shareToken}`}
-              className="mt-4 inline-flex text-sm font-semibold text-rose-200 underline hover:text-[var(--fl-text)]"
+              className="mt-4 inline-flex text-sm font-semibold text-[var(--fl-crit-text)] underline hover:text-[var(--fl-text)]"
             >
               {tc("Open the full report")} →
             </Link>

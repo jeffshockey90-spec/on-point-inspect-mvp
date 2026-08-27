@@ -128,7 +128,7 @@ export default function LoginPage() {
           </div>
 
           {message && (
-            <div className="rounded-xl border border-red-800 bg-red-500/10 p-3 text-sm text-red-300">
+            <div className="rounded-xl border border-red-800 bg-red-500/10 p-3 text-sm text-[var(--fl-crit-text)]">
               {message}
             </div>
           )}

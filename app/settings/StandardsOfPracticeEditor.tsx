@@ -38,7 +38,7 @@ export default function StandardsOfPracticeEditor({
       <div className="border-b border-[var(--fl-raised)] p-5 sm:p-6 md:p-8">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-cyan-300">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--fl-info-text)]">
               Report Settings
             </p>
             <h2 className="mt-2 text-xl font-semibold text-[var(--fl-text)] sm:text-2xl">
@@ -55,7 +55,7 @@ export default function StandardsOfPracticeEditor({
             className={`inline-flex rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-wide ${
               usingDefault
                 ? "border-teal-400/60 bg-teal-500/15 text-[var(--fl-accent-text)]"
-                : "border-cyan-400/60 bg-cyan-500/15 text-cyan-200"
+                : "border-cyan-400/60 bg-cyan-500/15 text-[var(--fl-info-text)]"
             }`}
           >
             {usingDefault ? "Using FLOW Default" : "Custom SOP Active"}
@@ -102,7 +102,7 @@ export default function StandardsOfPracticeEditor({
               <button
                 type="button"
                 onClick={clearCustomStandards}
-                className="w-full rounded-xl border border-[var(--fl-line)] px-4 py-3 text-sm font-semibold text-[var(--fl-text)] transition active:scale-[0.98] hover:border-cyan-400 hover:text-cyan-300 sm:w-auto lg:w-full xl:w-auto"
+                className="w-full rounded-xl border border-[var(--fl-line)] px-4 py-3 text-sm font-semibold text-[var(--fl-text)] transition active:scale-[0.98] hover:border-cyan-400 hover:text-[var(--fl-info-text)] sm:w-auto lg:w-full xl:w-auto"
               >
                 Clear Custom SOP
               </button>

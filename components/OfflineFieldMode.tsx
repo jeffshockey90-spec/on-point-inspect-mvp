@@ -266,8 +266,8 @@ export default function OfflineFieldMode({
           <div
             className={`rounded-full border px-4 py-2 text-sm font-bold ${
               online
-                ? "border-green-500/40 bg-green-500/20 text-green-300"
-                : "border-red-500/40 bg-red-500/20 text-red-300"
+                ? "border-green-500/40 bg-green-500/20 text-[var(--fl-good-text)]"
+                : "border-red-500/40 bg-red-500/20 text-[var(--fl-crit-text)]"
             }`}
           >
             {online ? "ONLINE" : "OFFLINE"}
@@ -366,7 +366,7 @@ export default function OfflineFieldMode({
           type="button"
           onClick={syncNow}
           disabled={!online || syncing || queueCount === 0}
-          className="rounded-xl border border-green-500 px-5 py-3 font-bold text-green-300 transition hover:bg-green-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-xl border border-green-500 px-5 py-3 font-bold text-[var(--fl-good-text)] transition hover:bg-green-500/10 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {syncing ? "Syncing..." : "Sync Now"}
         </button>
@@ -382,7 +382,7 @@ export default function OfflineFieldMode({
             <button
               type="button"
               onClick={clearLocalDrafts}
-              className="rounded-lg border border-red-500/40 px-3 py-2 text-sm font-bold text-red-300 hover:bg-red-500/10"
+              className="rounded-lg border border-red-500/40 px-3 py-2 text-sm font-bold text-[var(--fl-crit-text)] hover:bg-red-500/10"
             >
               Clear Local List
             </button>
@@ -405,7 +405,7 @@ export default function OfflineFieldMode({
                       {formatAppValue(new Date(draft.createdAt), {})}
                     </p>
 
-                    <p className="mt-2 inline-flex rounded-full border border-yellow-500/40 bg-yellow-500/10 px-2 py-1 text-xs font-bold text-yellow-300">
+                    <p className="mt-2 inline-flex rounded-full border border-yellow-500/40 bg-yellow-500/10 px-2 py-1 text-xs font-bold text-[var(--fl-warn-text)]">
                       Waiting in offline queue
                       {draft.photoCount > 0
                         ? ` • ${draft.photoCount} photo${

@@ -78,7 +78,7 @@ export default function ResendConfirmationButton({
         </button>
       </div>
       {msg && (
-        <p className={`mt-2 text-xs font-bold ${msg.ok ? "text-emerald-300" : "text-red-300"}`}>
+        <p className={`mt-2 text-xs font-bold ${msg.ok ? "text-[var(--fl-good-text)]" : "text-[var(--fl-crit-text)]"}`}>
           {msg.text}
         </p>
       )}

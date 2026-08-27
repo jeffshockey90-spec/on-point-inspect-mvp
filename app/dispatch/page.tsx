@@ -189,7 +189,7 @@ export default async function DispatchPage() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-[var(--fl-muted)]">Outstanding Balance</span>
-                      <span className="font-bold text-orange-300">{formatUsd(stat.outstanding)}</span>
+                      <span className="font-bold text-[var(--fl-warn-text)]">{formatUsd(stat.outstanding)}</span>
                     </div>
                   </div>
                 </div>

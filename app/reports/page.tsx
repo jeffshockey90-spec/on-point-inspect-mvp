@@ -282,7 +282,7 @@ export default async function ReportsPage() {
   if (error) {
     return (
       <main className="min-h-screen bg-[var(--fl-ground)] p-8 text-[var(--fl-text)]">
-        <h1 className="text-3xl font-bold text-red-400">
+        <h1 className="text-3xl font-bold text-[var(--fl-crit-text)]">
           Error loading reports
         </h1>
         <p className="mt-4 text-[var(--fl-muted)]">{error.message}</p>
@@ -462,7 +462,7 @@ export default async function ReportsPage() {
             <FastLinkButton
               href="/demo-reports"
               loadingText="Opening Demos..."
-              className="rounded-xl border border-cyan-500 bg-cyan-500/10 px-6 py-3 font-bold text-cyan-300 hover:bg-cyan-500/20"
+              className="rounded-xl border border-cyan-500 bg-cyan-500/10 px-6 py-3 font-bold text-[var(--fl-info-text)] hover:bg-cyan-500/20"
             >
               Demo Reports
             </FastLinkButton>
@@ -470,7 +470,7 @@ export default async function ReportsPage() {
             <FastLinkButton
               href="/import-report"
               loadingText="Opening Importer..."
-              className="rounded-xl border border-amber-500 bg-amber-500/10 px-6 py-3 font-bold text-amber-300 hover:bg-amber-500/20"
+              className="rounded-xl border border-amber-500 bg-amber-500/10 px-6 py-3 font-bold text-[var(--fl-warn-text)] hover:bg-amber-500/20"
             >
               Import Report
             </FastLinkButton>

@@ -178,7 +178,7 @@ export default function InsertFavoriteFindingButton({
         type="button"
         onClick={() => setOpen(true)}
         disabled={busy}
-        className="inline-flex items-center justify-center rounded-xl border border-yellow-500 bg-yellow-500/10 px-5 py-3 font-bold text-yellow-300 transition active:scale-[0.98] hover:bg-yellow-500/20 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
+        className="inline-flex items-center justify-center rounded-xl border border-yellow-500 bg-yellow-500/10 px-5 py-3 font-bold text-[var(--fl-warn-text)] transition active:scale-[0.98] hover:bg-yellow-500/20 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
       >
         + Insert Favorite Finding
       </button>
@@ -189,7 +189,7 @@ export default function InsertFavoriteFindingButton({
             <div className="border-b border-[var(--fl-line)] p-5">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <h2 className="text-2xl font-semibold text-yellow-300">
+                  <h2 className="text-2xl font-semibold text-[var(--fl-warn-text)]">
                     Insert Favorite Finding
                   </h2>
                   <p className="mt-1 text-sm text-[var(--fl-muted)]">
@@ -235,7 +235,7 @@ export default function InsertFavoriteFindingButton({
                   className={`rounded-xl border px-4 py-3 text-sm font-semibold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation] ${
                     favoritesOnly
                       ? "border-yellow-400 bg-yellow-400 text-slate-950"
-                      : "border-yellow-500/50 bg-yellow-500/10 text-yellow-300 hover:bg-yellow-500/20"
+                      : "border-yellow-500/50 bg-yellow-500/10 text-[var(--fl-warn-text)] hover:bg-yellow-500/20"
                   }`}
                 >
                   {favoritesOnly ? "★ Favorites" : "All Templates"}
@@ -273,7 +273,7 @@ export default function InsertFavoriteFindingButton({
                               </span>
 
                               {template.is_favorite && (
-                                <span className="rounded-full border border-yellow-400/60 bg-yellow-400/10 px-2 py-1 text-yellow-300">
+                                <span className="rounded-full border border-yellow-400/60 bg-yellow-400/10 px-2 py-1 text-[var(--fl-warn-text)]">
                                   ★ Favorite
                                 </span>
                               )}

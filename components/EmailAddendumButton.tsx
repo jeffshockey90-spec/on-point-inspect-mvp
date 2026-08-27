@@ -47,7 +47,7 @@ export default function EmailAddendumButton({
         onClick={emailAddendum}
         disabled={sending}
         data-fast-click="true"
-        className="min-h-[48px] w-full rounded-xl border border-cyan-400 px-4 py-3 text-center font-semibold text-cyan-200 transition hover:bg-cyan-500/10 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+        className="min-h-[48px] w-full rounded-xl border border-cyan-400 px-4 py-3 text-center font-semibold text-[var(--fl-info-text)] transition hover:bg-cyan-500/10 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
       >
         {sending
           ? "Emailing..."
@@ -57,7 +57,7 @@ export default function EmailAddendumButton({
       </button>
 
       {message ? (
-        <p className="rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 py-2 text-xs font-bold text-cyan-100">
+        <p className="rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 py-2 text-xs font-bold text-[var(--fl-info-text)]">
           {message}
         </p>
       ) : null}

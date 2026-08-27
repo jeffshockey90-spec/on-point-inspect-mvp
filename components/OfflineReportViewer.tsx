@@ -12,15 +12,15 @@ function getSeverityStyle(severity: any) {
   const clean = String(severity || "Recommended Repair").toLowerCase();
 
   if (clean.includes("safety") || clean.includes("major") || clean.includes("hazard")) {
-    return "border-red-500/60 bg-red-500/10 text-red-200";
+    return "border-red-500/60 bg-red-500/10 text-[var(--fl-crit-text)]";
   }
 
   if (clean.includes("monitor") || clean.includes("maintenance")) {
-    return "border-yellow-500/60 bg-yellow-500/10 text-yellow-100";
+    return "border-yellow-500/60 bg-yellow-500/10 text-[var(--fl-warn-text)]";
   }
 
   if (clean.includes("info")) {
-    return "border-blue-500/60 bg-blue-500/10 text-blue-200";
+    return "border-blue-500/60 bg-blue-500/10 text-[var(--fl-info-text)]";
   }
 
   return "border-teal-500/60 bg-teal-500/10 text-[var(--fl-accent-text)]";
@@ -97,7 +97,7 @@ export default function OfflineReportViewer({
 
   if (!cache) {
     return (
-      <div className="rounded-2xl border border-red-500/50 bg-red-500/10 p-5 text-red-100">
+      <div className="rounded-2xl border border-red-500/50 bg-red-500/10 p-5 text-[var(--fl-crit-text)]">
         <h2 className="text-xl font-semibold">Offline report is not cached yet</h2>
         <p className="mt-2 text-sm leading-6">
           Open this report once while online before the inspection, then the Field Tool can show the cached report with no signal.
@@ -106,7 +106,7 @@ export default function OfflineReportViewer({
           <button
             type="button"
             onClick={onClose}
-            className="mt-4 rounded-xl border border-red-300 px-4 py-2 font-semibold text-red-100"
+            className="mt-4 rounded-xl border border-red-300 px-4 py-2 font-semibold text-[var(--fl-crit-text)]"
           >
             Back to Field Tool
           </button>
@@ -122,7 +122,7 @@ export default function OfflineReportViewer({
     <div className="space-y-4 rounded-2xl border border-cyan-500/40 bg-[var(--fl-surface-2)] p-4 text-[var(--fl-text)]">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-cyan-300">
+          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--fl-info-text)]">
             Offline Report Viewer
           </p>
           <h1 className="mt-1 text-2xl font-semibold">{label || `Inspection ${inspectionId}`}</h1>
@@ -142,7 +142,7 @@ export default function OfflineReportViewer({
         )}
       </div>
 
-      <div className="rounded-xl border border-yellow-500/50 bg-yellow-500/10 p-3 text-sm font-bold text-yellow-100">
+      <div className="rounded-xl border border-yellow-500/50 bg-yellow-500/10 p-3 text-sm font-bold text-[var(--fl-warn-text)]">
         Offline mode is read-only. Add new notes/photos in the Field Tool. They will sync to the live report when service returns.
       </div>
 
@@ -181,7 +181,7 @@ export default function OfflineReportViewer({
                       <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)]">
                         {photoUrl ? (
                           isVideo(firstPhoto) ? (
-                            <div className="flex h-full w-full items-center justify-center text-xs font-semibold text-cyan-300">
+                            <div className="flex h-full w-full items-center justify-center text-xs font-semibold text-[var(--fl-info-text)]">
                               ▶ Video
                             </div>
                           ) : (
@@ -200,7 +200,7 @@ export default function OfflineReportViewer({
                             {finding.severity || "Recommended Repair"}
                           </span>
                           {photos.length > 0 && (
-                            <span className="rounded-full border border-cyan-500/50 bg-cyan-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-cyan-200">
+                            <span className="rounded-full border border-cyan-500/50 bg-cyan-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-[var(--fl-info-text)]">
                               {photos.length} media
                             </span>
                           )}

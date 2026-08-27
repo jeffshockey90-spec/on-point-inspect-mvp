@@ -50,7 +50,7 @@ const CATEGORIES: {
     key: "finding",
     label: "Findings",
     activeClass: "bg-red-500 text-white",
-    idleClass: "border-red-400/60 text-red-200",
+    idleClass: "border-red-400/60 text-[var(--fl-crit-text)]",
     icon: "🛠️",
     supportsVideo: true,
   },
@@ -58,7 +58,7 @@ const CATEGORIES: {
     key: "limitation",
     label: "Limitations",
     activeClass: "bg-amber-400 text-black",
-    idleClass: "border-amber-400/60 text-amber-200",
+    idleClass: "border-amber-400/60 text-[var(--fl-warn-text)]",
     icon: "🚧",
     supportsVideo: false,
   },
@@ -66,7 +66,7 @@ const CATEGORIES: {
     key: "equipment",
     label: "Equipment",
     activeClass: "bg-blue-500 text-white",
-    idleClass: "border-blue-400/60 text-blue-200",
+    idleClass: "border-blue-400/60 text-[var(--fl-info-text)]",
     icon: "🔧",
     supportsVideo: false,
   },
@@ -1137,7 +1137,7 @@ export default function AILiveInspectionCamera({
 
   const cameraUi = !open ? (
     <div className="rounded-2xl border border-cyan-500/40 bg-cyan-500/10 p-4 text-white">
-      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">
+      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fl-info-text)]">
         AI Capture Camera
       </p>
       <h2 className="mt-1 text-xl font-semibold">Findings · Limitations · Equipment · Reference</h2>
@@ -1191,7 +1191,7 @@ export default function AILiveInspectionCamera({
       )}
 
       {focusMessage && (
-        <div className="pointer-events-none absolute left-1/2 top-[38%] z-[22] -translate-x-1/2 rounded-full bg-[var(--fl-surface-2)] px-4 py-2 text-xs font-semibold text-yellow-200 backdrop-blur">
+        <div className="pointer-events-none absolute left-1/2 top-[38%] z-[22] -translate-x-1/2 rounded-full bg-[var(--fl-surface-2)] px-4 py-2 text-xs font-semibold text-[var(--fl-warn-text)] backdrop-blur">
           {focusMessage}
         </div>
       )}
@@ -1231,7 +1231,7 @@ export default function AILiveInspectionCamera({
             onClick={toggleTorch}
             className={`flex h-12 w-12 items-center justify-center rounded-full border text-lg shadow-2xl backdrop-blur active:scale-95 ${
               torchOn
-                ? "border-yellow-300 bg-yellow-400/30 text-yellow-200"
+                ? "border-yellow-300 bg-yellow-400/30 text-[var(--fl-warn-text)]"
                 : "border-white/15 bg-[var(--fl-surface-2)] text-[var(--fl-text)]"
             }`}
             aria-label="Toggle flash"
@@ -1346,7 +1346,7 @@ export default function AILiveInspectionCamera({
         })()}
 
       {cameraError && (
-        <div className="absolute left-1/2 top-1/2 z-20 w-[90%] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl border border-red-500/50 bg-red-500/10 p-4 text-center text-sm font-bold text-red-200">
+        <div className="absolute left-1/2 top-1/2 z-20 w-[90%] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl border border-red-500/50 bg-red-500/10 p-4 text-center text-sm font-bold text-[var(--fl-crit-text)]">
           {cameraError}
         </div>
       )}
@@ -1477,7 +1477,7 @@ export default function AILiveInspectionCamera({
       {stage === "drafting" && (
         <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-4 bg-black/80 backdrop-blur-sm">
           <span className="h-10 w-10 animate-spin rounded-full border-4 border-cyan-400 border-t-transparent" />
-          <p className="text-sm font-semibold text-cyan-200">
+          <p className="text-sm font-semibold text-[var(--fl-info-text)]">
             AI is drafting your {activeCategoryMeta?.label.toLowerCase()}…
           </p>
         </div>
@@ -1485,13 +1485,13 @@ export default function AILiveInspectionCamera({
 
       {stage === "capture_error" && (
         <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-4 bg-black/85 px-6 text-center backdrop-blur-sm">
-          <p className="text-sm font-bold text-red-200">{draftError}</p>
+          <p className="text-sm font-bold text-[var(--fl-crit-text)]">{draftError}</p>
           <p className="text-xs text-[var(--fl-muted)]">
             Your {capturedIsVideo ? "video" : "photo"} is safe — save it to the report now
             and finish the write-up later, or try the AI again.
           </p>
           {saveError && (
-            <p className="text-xs font-bold text-red-300">{saveError}</p>
+            <p className="text-xs font-bold text-[var(--fl-crit-text)]">{saveError}</p>
           )}
           <button
             type="button"
@@ -1531,7 +1531,7 @@ export default function AILiveInspectionCamera({
       {stage === "collecting" && (
         <div className="absolute inset-0 z-30 flex flex-col bg-black/85 backdrop-blur-sm">
           <div className="flex items-center justify-between px-4 pt-[max(1rem,env(safe-area-inset-top))]">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fl-info-text)]">
               {shots.length} shot{shots.length === 1 ? "" : "s"} ·{" "}
               {category === "finding"
                 ? "same defect"
@@ -1616,7 +1616,7 @@ export default function AILiveInspectionCamera({
             <button
               type="button"
               onClick={() => setStage("note_entry")}
-              className="w-full rounded-xl border border-cyan-400/60 bg-cyan-500/10 px-4 py-3 text-sm font-semibold text-cyan-200 [touch-action:manipulation]"
+              className="w-full rounded-xl border border-cyan-400/60 bg-cyan-500/10 px-4 py-3 text-sm font-semibold text-[var(--fl-info-text)] [touch-action:manipulation]"
             >
               ＋ Take another photo{category === "finding" ? " or video" : ""}
             </button>
@@ -1668,7 +1668,7 @@ export default function AILiveInspectionCamera({
                       type="button"
                       disabled={saving || !attachTargetId}
                       onClick={() => void attachTrayToExisting(attachTargetId)}
-                      className="rounded-lg border border-cyan-400/60 bg-cyan-500/10 px-4 py-2 text-sm font-semibold text-cyan-200 disabled:opacity-50 [touch-action:manipulation]"
+                      className="rounded-lg border border-cyan-400/60 bg-cyan-500/10 px-4 py-2 text-sm font-semibold text-[var(--fl-info-text)] disabled:opacity-50 [touch-action:manipulation]"
                     >
                       Attach
                     </button>
@@ -1728,7 +1728,7 @@ export default function AILiveInspectionCamera({
               type="button"
               onClick={openMarkup}
               disabled={saving}
-              className="mt-3 w-full rounded-xl border border-cyan-400/60 bg-cyan-500/10 px-4 py-2.5 text-sm font-semibold text-cyan-200 disabled:opacity-50"
+              className="mt-3 w-full rounded-xl border border-cyan-400/60 bg-cyan-500/10 px-4 py-2.5 text-sm font-semibold text-[var(--fl-info-text)] disabled:opacity-50"
             >
               🖊 Markup Photo (optional)
             </button>
@@ -1762,7 +1762,7 @@ export default function AILiveInspectionCamera({
               />
             </div>
             {saveError && (
-              <div className="mt-4 rounded-lg border border-red-500/50 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+              <div className="mt-4 rounded-lg border border-red-500/50 bg-red-500/10 px-3 py-2 text-sm text-[var(--fl-crit-text)]">
                 {saveError}
               </div>
             )}
@@ -1800,7 +1800,7 @@ export default function AILiveInspectionCamera({
       )}
 
       {!online && (
-        <div className="pointer-events-none absolute bottom-2 left-1/2 z-20 -translate-x-1/2 rounded-full bg-[var(--fl-surface-2)] px-3 py-1 text-[10px] font-semibold text-amber-300">
+        <div className="pointer-events-none absolute bottom-2 left-1/2 z-20 -translate-x-1/2 rounded-full bg-[var(--fl-surface-2)] px-3 py-1 text-[10px] font-semibold text-[var(--fl-warn-text)]">
           Offline — AI drafting needs a connection
         </div>
       )}

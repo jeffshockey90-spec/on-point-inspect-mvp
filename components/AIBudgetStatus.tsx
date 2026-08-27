@@ -106,13 +106,13 @@ export default function AIBudgetStatus() {
                 {money(status.spentSinceSetUsd)} spent since balance was last set &middot; alert threshold {money(status.thresholdUsd)}
               </p>
               {status.low && (
-                <p className="mt-2 text-sm font-semibold text-red-300">
+                <p className="mt-2 text-sm font-semibold text-[var(--fl-crit-text)]">
                   ⚠️ Balance is at or below your alert threshold.
                 </p>
               )}
             </>
           ) : (
-            <p className="mt-3 text-sm text-red-300">{error || "Unable to load AI budget."}</p>
+            <p className="mt-3 text-sm text-[var(--fl-crit-text)]">{error || "Unable to load AI budget."}</p>
           )}
         </div>
 
@@ -171,7 +171,7 @@ export default function AIBudgetStatus() {
       )}
 
       {error && !loading && (
-        <p className="mt-4 rounded-lg border border-red-500/50 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+        <p className="mt-4 rounded-lg border border-red-500/50 bg-red-500/10 px-3 py-2 text-sm text-[var(--fl-crit-text)]">
           {error}
         </p>
       )}

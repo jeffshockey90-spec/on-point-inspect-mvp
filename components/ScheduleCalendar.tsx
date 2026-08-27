@@ -460,25 +460,25 @@ export default function ScheduleCalendar({
         </div>
 
         <div className="flex flex-wrap content-start gap-2 text-xs font-bold">
-          <span className="rounded-full border border-cyan-400/30 bg-cyan-500/10 px-3 py-1 text-cyan-100">
+          <span className="rounded-full border border-cyan-400/30 bg-cyan-500/10 px-3 py-1 text-[var(--fl-info-text)]">
             Home Inspection
           </span>
-          <span className="rounded-full border border-purple-400/30 bg-purple-500/10 px-3 py-1 text-purple-100">
+          <span className="rounded-full border border-purple-400/30 bg-purple-500/10 px-3 py-1 text-[var(--fl-purple-text)]">
             Radon
           </span>
-          <span className="rounded-full border border-orange-400/30 bg-orange-500/10 px-3 py-1 text-orange-100">
+          <span className="rounded-full border border-orange-400/30 bg-orange-500/10 px-3 py-1 text-[var(--fl-warn-text)]">
             Mold
           </span>
-          <span className="rounded-full border border-blue-400/30 bg-blue-500/10 px-3 py-1 text-blue-100">
+          <span className="rounded-full border border-blue-400/30 bg-blue-500/10 px-3 py-1 text-[var(--fl-info-text)]">
             Reinspection
           </span>
-          <span className="rounded-full border border-rose-400/30 bg-rose-500/10 px-3 py-1 text-rose-100">
+          <span className="rounded-full border border-rose-400/30 bg-rose-500/10 px-3 py-1 text-[var(--fl-crit-text)]">
             Commercial
           </span>
-          <span className="rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1 text-emerald-100">
+          <span className="rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1 text-[var(--fl-good-text)]">
             Completed
           </span>
-          <span className="rounded-full border border-red-400/30 bg-red-500/10 px-3 py-1 text-red-100">
+          <span className="rounded-full border border-red-400/30 bg-red-500/10 px-3 py-1 text-[var(--fl-crit-text)]">
             Cancelled
           </span>
         </div>
@@ -735,7 +735,7 @@ export default function ScheduleCalendar({
                 type="button"
                 disabled={deleting}
                 onClick={deleteInspection}
-                className="rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-100 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm font-semibold text-[var(--fl-crit-text)] transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {deleting ? "Deleting..." : "Delete"}
               </button>

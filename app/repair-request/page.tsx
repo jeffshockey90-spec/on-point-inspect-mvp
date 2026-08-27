@@ -123,7 +123,7 @@ function getSeverityStyle(severity: string) {
     clean.includes("hazard") ||
     clean.includes("major")
   ) {
-    return "border-red-500/60 bg-red-500/10 text-red-300";
+    return "border-red-500/60 bg-red-500/10 text-[var(--fl-crit-text)]";
   }
 
   if (
@@ -131,11 +131,11 @@ function getSeverityStyle(severity: string) {
     clean.includes("monitor") ||
     clean.includes("minor")
   ) {
-    return "border-yellow-500/60 bg-yellow-500/10 text-yellow-300";
+    return "border-yellow-500/60 bg-yellow-500/10 text-[var(--fl-warn-text)]";
   }
 
   if (clean.includes("information") || clean.includes("info")) {
-    return "border-blue-500/60 bg-blue-500/10 text-blue-300";
+    return "border-blue-500/60 bg-blue-500/10 text-[var(--fl-info-text)]";
   }
 
   return "border-teal-500/60 bg-teal-500/10 text-[var(--fl-accent-text)]";
@@ -150,11 +150,11 @@ function getStoragePathFromUrl(url: string | null | undefined) {
 }
 
 const RESPONSE_STATUS_OPTIONS: Record<string, { label: string; icon: string; tone: string }> = {
-  agree_to_repair: { label: "Agree to Repair", icon: "✅", tone: "border-green-500/40 bg-green-500/10 text-green-300" },
-  already_repaired: { label: "Already Repaired", icon: "🔧", tone: "border-green-500/40 bg-green-500/10 text-green-300" },
-  credit_buyer: { label: "Credit Buyer", icon: "💲", tone: "border-cyan-500/40 bg-cyan-500/10 text-cyan-300" },
-  decline: { label: "Decline", icon: "❌", tone: "border-red-500/40 bg-red-500/10 text-red-300" },
-  needs_discussion: { label: "Needs Discussion", icon: "💬", tone: "border-yellow-500/40 bg-yellow-500/10 text-yellow-300" },
+  agree_to_repair: { label: "Agree to Repair", icon: "✅", tone: "border-green-500/40 bg-green-500/10 text-[var(--fl-good-text)]" },
+  already_repaired: { label: "Already Repaired", icon: "🔧", tone: "border-green-500/40 bg-green-500/10 text-[var(--fl-good-text)]" },
+  credit_buyer: { label: "Credit Buyer", icon: "💲", tone: "border-cyan-500/40 bg-cyan-500/10 text-[var(--fl-info-text)]" },
+  decline: { label: "Decline", icon: "❌", tone: "border-red-500/40 bg-red-500/10 text-[var(--fl-crit-text)]" },
+  needs_discussion: { label: "Needs Discussion", icon: "💬", tone: "border-yellow-500/40 bg-yellow-500/10 text-[var(--fl-warn-text)]" },
 };
 
 function getResponseStatusMeta(status: string) {
@@ -1197,7 +1197,7 @@ function RepairRequestContent() {
 
             <div className="grid w-full grid-cols-1 gap-3 rounded-xl border border-cyan-500 bg-[var(--fl-ground)] p-2 sm:grid-cols-[minmax(0,1fr)_auto] xl:col-span-2">
               <label className="min-w-0">
-                <span className="mb-1 block px-1 text-[10px] font-semibold uppercase tracking-wide text-cyan-300">
+                <span className="mb-1 block px-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--fl-info-text)]">
                   Send To
                 </span>
                 <select
@@ -1223,7 +1223,7 @@ function RepairRequestContent() {
                 type="button"
                 onClick={emailRepairRequest}
                 disabled={emailingRepairRequest}
-                data-fast-click="true" className="min-h-[48px] w-full rounded-xl border border-cyan-500 bg-[var(--fl-ground)] px-5 py-3 font-bold text-cyan-300 transition hover:border-cyan-400 hover:bg-cyan-500/10 hover:shadow-[0_0_22px_rgba(6,182,212,0.18)] active:scale-[0.98] disabled:opacity-60 sm:mt-[18px] sm:w-auto"
+                data-fast-click="true" className="min-h-[48px] w-full rounded-xl border border-cyan-500 bg-[var(--fl-ground)] px-5 py-3 font-bold text-[var(--fl-info-text)] transition hover:border-cyan-400 hover:bg-cyan-500/10 hover:shadow-[0_0_22px_rgba(6,182,212,0.18)] active:scale-[0.98] disabled:opacity-60 sm:mt-[18px] sm:w-auto"
               >
                 {emailingRepairRequest ? "Sending..." : "Email Repair Request"}
               </button>
@@ -1257,7 +1257,7 @@ function RepairRequestContent() {
             <button
               type="button"
               onClick={() => setSelectedIds([])}
-              className="min-h-[48px] w-full rounded-xl border border-red-500 bg-[var(--fl-ground)] px-5 py-3 font-bold text-red-300 transition hover:border-red-400 hover:bg-red-500/10 active:scale-[0.98]"
+              className="min-h-[48px] w-full rounded-xl border border-red-500 bg-[var(--fl-ground)] px-5 py-3 font-bold text-[var(--fl-crit-text)] transition hover:border-red-400 hover:bg-red-500/10 active:scale-[0.98]"
             >
               Clear All
             </button>
@@ -1265,7 +1265,7 @@ function RepairRequestContent() {
             <button
               type="button"
               onClick={selectSafetyOnly}
-              className="min-h-[48px] w-full rounded-xl border border-orange-500 bg-[var(--fl-ground)] px-5 py-3 font-bold text-orange-300 transition hover:border-orange-400 hover:bg-orange-500/10 active:scale-[0.98]"
+              className="min-h-[48px] w-full rounded-xl border border-orange-500 bg-[var(--fl-ground)] px-5 py-3 font-bold text-[var(--fl-warn-text)] transition hover:border-orange-400 hover:bg-orange-500/10 active:scale-[0.98]"
             >
               Safety Only
             </button>
@@ -1274,7 +1274,7 @@ function RepairRequestContent() {
 
         {responsesLoaded && responseShares.length > 0 && (
           <div className="mb-6 space-y-4 rounded-2xl border border-purple-500/40 bg-purple-500/5 p-4 print:hidden md:p-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-purple-300">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--fl-purple-text)]">
               Seller / Agent Responses
             </p>
 
@@ -1304,8 +1304,8 @@ function RepairRequestContent() {
                     <span
                       className={`rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-wide ${
                         hasResponded
-                          ? "border-green-500/40 bg-green-500/10 text-green-300"
-                          : "border-yellow-500/40 bg-yellow-500/10 text-yellow-300"
+                          ? "border-green-500/40 bg-green-500/10 text-[var(--fl-good-text)]"
+                          : "border-yellow-500/40 bg-yellow-500/10 text-[var(--fl-warn-text)]"
                       }`}
                     >
                       {hasResponded ? "Responded" : "Waiting"}
@@ -1353,7 +1353,7 @@ function RepairRequestContent() {
         ) : null}
 
         {emailMessage ? (
-          <p className="mb-6 rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-4 py-3 text-sm font-bold text-cyan-200 print:hidden">
+          <p className="mb-6 rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-4 py-3 text-sm font-bold text-[var(--fl-info-text)] print:hidden">
             {emailMessage}
           </p>
         ) : null}
@@ -1435,7 +1435,7 @@ function RepairRequestContent() {
               </button>
               {estimateTotal.any && (
                 <>
-                  <span className="text-sm font-bold text-indigo-100">
+                  <span className="text-sm font-bold text-[var(--fl-purple-text)]">
                     Estimated total: {formatMoney(estimateTotal.low)}–{formatMoney(estimateTotal.high)}
                   </span>
                   <button
@@ -1451,7 +1451,7 @@ function RepairRequestContent() {
                 Rough AI planning estimate — review before sending.
               </span>
               {estimateError && (
-                <span className="text-xs font-bold text-red-400">{estimateError}</span>
+                <span className="text-xs font-bold text-[var(--fl-crit-text)]">{estimateError}</span>
               )}
             </div>
           )}
@@ -1479,7 +1479,7 @@ function RepairRequestContent() {
 
                     <div className="min-w-0 flex-1 overflow-hidden">
                       <div className="mb-2 flex max-w-full flex-wrap gap-2">
-                        <span className="max-w-full break-words rounded-full border border-cyan-500/60 bg-cyan-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-cyan-300">
+                        <span className="max-w-full break-words rounded-full border border-cyan-500/60 bg-cyan-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[var(--fl-info-text)]">
                           Item #{getFindingNumber(finding)}
                         </span>
 
@@ -1523,7 +1523,7 @@ function RepairRequestContent() {
                           </label>
                           {estimates[String(finding.id)] &&
                           (estimates[String(finding.id)].low || estimates[String(finding.id)].high) ? (
-                            <p className="mt-2 text-xs font-bold text-indigo-300">
+                            <p className="mt-2 text-xs font-bold text-[var(--fl-purple-text)]">
                               Est. repair {formatMoney(estimates[String(finding.id)].low)}–
                               {formatMoney(estimates[String(finding.id)].high)}
                             </p>
@@ -1545,7 +1545,7 @@ function RepairRequestContent() {
                   Math.min(prev + FINDING_RENDER_PAGE_SIZE, findings.length),
                 )
               }
-              className="mt-4 min-h-[48px] w-full rounded-xl border border-cyan-500 bg-cyan-500/10 px-5 py-3 text-sm font-semibold text-cyan-300 transition hover:bg-cyan-500/20 active:scale-[0.98]"
+              className="mt-4 min-h-[48px] w-full rounded-xl border border-cyan-500 bg-cyan-500/10 px-5 py-3 text-sm font-semibold text-[var(--fl-info-text)] transition hover:bg-cyan-500/20 active:scale-[0.98]"
             >
               Load {Math.min(FINDING_RENDER_PAGE_SIZE, hiddenFindingCount)} more finding
               {Math.min(FINDING_RENDER_PAGE_SIZE, hiddenFindingCount) === 1 ? "" : "s"}

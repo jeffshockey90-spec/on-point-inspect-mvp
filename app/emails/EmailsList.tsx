@@ -55,7 +55,7 @@ function formatEmailType(value: string | null) {
 
 function getStatus(log: EmailLog) {
   if (log.bounced_at || log.failed_at || log.status === "failed") {
-    return { label: "Failed", tone: "border-red-500/40 bg-red-500/10 text-red-300" };
+    return { label: "Failed", tone: "border-red-500/40 bg-red-500/10 text-[var(--fl-crit-text)]" };
   }
 
   if (log.clicked_at) {
@@ -63,11 +63,11 @@ function getStatus(log: EmailLog) {
   }
 
   if (log.opened_at) {
-    return { label: "Opened", tone: "border-blue-400/40 bg-blue-500/10 text-blue-200" };
+    return { label: "Opened", tone: "border-blue-400/40 bg-blue-500/10 text-[var(--fl-info-text)]" };
   }
 
   if (log.delivered_at) {
-    return { label: "Delivered", tone: "border-emerald-400/40 bg-emerald-500/10 text-emerald-200" };
+    return { label: "Delivered", tone: "border-emerald-400/40 bg-emerald-500/10 text-[var(--fl-good-text)]" };
   }
 
   return { label: "Sent", tone: "border-[var(--fl-line)] bg-[var(--fl-raised)] text-[var(--fl-muted)]" };
@@ -138,12 +138,12 @@ function CompanyResendButton({ logId }: { logId: string | number }) {
         type="button"
         onClick={resend}
         disabled={state === "sending"}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/60 px-4 py-2 text-xs font-semibold text-amber-200 transition hover:border-amber-400 hover:bg-amber-500/10 disabled:opacity-60"
+        className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/60 px-4 py-2 text-xs font-semibold text-[var(--fl-warn-text)] transition hover:border-amber-400 hover:bg-amber-500/10 disabled:opacity-60"
       >
         {state === "sending" ? "Sending…" : state === "done" ? "Resent ✓" : "Resend via my company email"}
       </button>
       {msg && (
-        <span className={`max-w-xs text-xs leading-5 ${state === "error" ? "text-red-300" : "text-emerald-300"}`}>
+        <span className={`max-w-xs text-xs leading-5 ${state === "error" ? "text-[var(--fl-crit-text)]" : "text-[var(--fl-good-text)]"}`}>
           {msg}
         </span>
       )}

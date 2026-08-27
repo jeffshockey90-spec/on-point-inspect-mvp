@@ -72,15 +72,15 @@ function getSeverityClass(severityValue: any) {
   const bucket = getSeverityBucket(severityValue);
 
   if (bucket === "major" || bucket === "safety") {
-    return "border-red-500/50 bg-red-500/15 text-red-200";
+    return "border-red-500/50 bg-red-500/15 text-[var(--fl-crit-text)]";
   }
 
   if (bucket === "maintenance" || bucket === "monitor") {
-    return "border-yellow-500/50 bg-yellow-500/15 text-yellow-200";
+    return "border-yellow-500/50 bg-yellow-500/15 text-[var(--fl-warn-text)]";
   }
 
   if (bucket === "information") {
-    return "border-blue-500/50 bg-blue-500/15 text-blue-200";
+    return "border-blue-500/50 bg-blue-500/15 text-[var(--fl-info-text)]";
   }
 
   return "border-teal-500/50 bg-teal-500/15 text-[var(--fl-accent-text)]";
@@ -301,7 +301,7 @@ export default function ReportSummaryPage() {
               type="button"
               onClick={generateSummary}
               disabled={loading || saving}
-              className="rounded-xl border border-purple-500 px-5 py-3 font-bold text-purple-300 hover:bg-purple-500/10 disabled:opacity-60"
+              className="rounded-xl border border-purple-500 px-5 py-3 font-bold text-[var(--fl-purple-text)] hover:bg-purple-500/10 disabled:opacity-60"
             >
               {loading ? "Generating..." : "Generate Summary"}
             </button>
@@ -464,7 +464,7 @@ function SummaryFindingCard({ finding, reportId }: { finding: Finding; reportId:
           {summary}
         </p>
 
-        <p className="mt-4 text-sm font-semibold text-cyan-300">
+        <p className="mt-4 text-sm font-semibold text-[var(--fl-info-text)]">
           Open Finding →
         </p>
       </div>

@@ -92,7 +92,7 @@ export default function EditableInspectionDetails({
       </div>
 
       {saved && (
-        <p className="mb-4 rounded-xl border border-green-500/40 bg-green-500/10 p-3 text-sm font-bold text-green-300 print:hidden">
+        <p className="mb-4 rounded-xl border border-green-500/40 bg-green-500/10 p-3 text-sm font-bold text-[var(--fl-good-text)] print:hidden">
           Inspection details saved.
         </p>
       )}
