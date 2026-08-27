@@ -76,14 +76,19 @@ export async function POST(req: Request) {
 
     const body = await req.json().catch(() => ({}));
     const message = String(body.message || "").trim();
+    const attachmentUrl = String(body.attachmentUrl || "").trim();
+    const attachmentName = String(body.attachmentName || "").trim();
+    const attachmentType = String(body.attachmentType || "").trim();
 
-    if (!message) {
+    if (!message && !attachmentUrl) {
       return NextResponse.json({ error: "Message is required." }, { status: 400 });
     }
 
     if (message.length > 4000) {
       return NextResponse.json({ error: "Message is too long." }, { status: 400 });
     }
+
+    const previewText = message || `📎 ${attachmentName || "Attachment"}`;
 
     const admin = createAdminClient();
 
@@ -113,7 +118,7 @@ export async function POST(req: Request) {
           inspector_email: user.email || null,
           inspector_name: inspectorName,
           status: "open",
-          last_message: message,
+          last_message: previewText,
           last_message_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
@@ -135,6 +140,9 @@ export async function POST(req: Request) {
         sender_email: user.email || null,
         sender_role: "inspector",
         message,
+        attachment_url: attachmentUrl || null,
+        attachment_name: attachmentName || null,
+        attachment_type: attachmentType || null,
         read_by_owner: false,
         read_by_inspector: true,
       });
@@ -149,7 +157,7 @@ export async function POST(req: Request) {
       .from("inspector_support_threads")
       .update({
         status: "open",
-        last_message: message,
+        last_message: previewText,
         last_message_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         unread_owner_count: nextUnreadOwnerCount,
@@ -164,14 +172,14 @@ export async function POST(req: Request) {
 
     await sendOwnerPush(
       "💬 New Inspector Message",
-      `${inspectorName}: ${cleanPreview(message)}`,
+      `${inspectorName}: ${cleanPreview(previewText)}`,
       "/dashboard/owner/support"
     );
 
     return NextResponse.json({
       thread: {
         ...thread,
-        last_message: message,
+        last_message: previewText,
         last_message_at: new Date().toISOString(),
         messages: messages || [],
       },

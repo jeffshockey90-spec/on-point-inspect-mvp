@@ -329,12 +329,16 @@ export async function POST(req: Request) {
     const body = await req.json().catch(() => ({}));
     const threadId = String(body.threadId || "").trim();
     const message = String(body.message || "").trim();
+    const attachmentUrl = String(body.attachmentUrl || "").trim();
+    const attachmentName = String(body.attachmentName || "").trim();
+    const attachmentType = String(body.attachmentType || "").trim();
+    const previewText = message || `📎 ${attachmentName || "Attachment"}`;
 
     if (!threadId) {
       return NextResponse.json({ error: "Missing thread ID." }, { status: 400 });
     }
 
-    if (!message) {
+    if (!message && !attachmentUrl) {
       return NextResponse.json({ error: "Message is required." }, { status: 400 });
     }
 
@@ -365,6 +369,9 @@ export async function POST(req: Request) {
         sender_email: owner.email || null,
         sender_role: "owner",
         message,
+        attachment_url: attachmentUrl || null,
+        attachment_name: attachmentName || null,
+        attachment_type: attachmentType || null,
         read_by_owner: true,
         read_by_inspector: false,
       });
@@ -379,7 +386,7 @@ export async function POST(req: Request) {
       .from("inspector_support_threads")
       .update({
         status: "open",
-        last_message: message,
+        last_message: previewText,
         last_message_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         unread_inspector_count: nextUnreadInspectorCount,
@@ -390,7 +397,7 @@ export async function POST(req: Request) {
       admin,
       String(thread.inspector_id || ""),
       String(thread.inspector_email || ""),
-      message
+      previewText
     );
 
     return NextResponse.json({ ok: true });

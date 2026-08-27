@@ -2,7 +2,7 @@
 
 
 import { formatAppValue } from "../../lib/app-time";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "../../utils/supabase/client";
 
@@ -11,8 +11,40 @@ type Message = {
   sender_role: string;
   sender_email: string | null;
   message: string;
+  attachment_url?: string | null;
+  attachment_name?: string | null;
+  attachment_type?: string | null;
   created_at: string;
 };
+
+function AttachmentView({
+  url,
+  name,
+  type,
+}: {
+  url: string;
+  name?: string | null;
+  type?: string | null;
+}) {
+  const isImage = (type || "").startsWith("image/") || /\.(png|jpe?g|gif|webp)$/i.test(url);
+  if (isImage) {
+    return (
+      <a href={url} target="_blank" rel="noopener noreferrer" className="mt-2 block">
+        <img src={url} alt={name || "attachment"} className="max-h-52 rounded-lg border border-[var(--fl-line)]" />
+      </a>
+    );
+  }
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="mt-2 inline-flex items-center gap-2 rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-3 py-2 text-sm font-semibold text-[var(--fl-accent-text)] hover:border-teal-400"
+    >
+      📎 {name || "Download attachment"}
+    </a>
+  );
+}
 
 type Thread = {
   id: string;
@@ -64,6 +96,9 @@ export default function SupportPage() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [message, setMessage] = useState("");
+  const [attachment, setAttachment] = useState<{ url: string; name: string; type: string } | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [thread, setThread] = useState<Thread | null>(null);
   const [error, setError] = useState("");
 
@@ -150,9 +185,27 @@ export default function SupportPage() {
     }
   }
 
+  async function uploadAttachment(file: File) {
+    try {
+      setUploading(true);
+      setError("");
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/support/upload", { method: "POST", body: form });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Upload failed.");
+      setAttachment({ url: data.url, name: data.name, type: data.type || "" });
+    } catch (err: any) {
+      setError(err?.message || "Upload failed.");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
   async function sendMessage() {
     const clean = message.trim();
-    if (!clean || sending) return;
+    if ((!clean && !attachment) || sending || uploading) return;
 
     try {
       setSending(true);
@@ -161,13 +214,19 @@ export default function SupportPage() {
       const res = await fetch("/api/support/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: clean }),
+        body: JSON.stringify({
+          message: clean,
+          attachmentUrl: attachment?.url || "",
+          attachmentName: attachment?.name || "",
+          attachmentType: attachment?.type || "",
+        }),
       });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Message failed to send.");
 
       setMessage("");
+      setAttachment(null);
       setThread(data.thread || null);
     } catch (err: any) {
       setError(err?.message || "Message failed to send.");
@@ -206,7 +265,12 @@ export default function SupportPage() {
                           <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                             {isOwner ? "Owner Reply" : "You"} · {formatDate(item.created_at)}
                           </p>
-                          <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[var(--fl-text)]">{item.message}</p>
+                          {item.message && (
+                            <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[var(--fl-text)]">{item.message}</p>
+                          )}
+                          {item.attachment_url && (
+                            <AttachmentView url={item.attachment_url} name={item.attachment_name} type={item.attachment_type} />
+                          )}
                         </div>
                       </div>
                     );
@@ -224,13 +288,43 @@ export default function SupportPage() {
                   placeholder="Type your message to Jeff..."
                   className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
                 />
-                <button
-                  onClick={sendMessage}
-                  disabled={sending || !message.trim()}
-                  className="w-full rounded-xl bg-teal-500 px-5 py-4 font-semibold text-black hover:bg-teal-400 disabled:opacity-50"
-                >
-                  {sending ? "Sending..." : "Send Message"}
-                </button>
+
+                {attachment && (
+                  <div className="flex items-center justify-between gap-3 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-3 py-2 text-sm">
+                    <span className="truncate text-[var(--fl-text)]">📎 {attachment.name}</span>
+                    <button type="button" onClick={() => setAttachment(null)} className="shrink-0 text-[var(--fl-crit-text)] hover:underline">
+                      Remove
+                    </button>
+                  </div>
+                )}
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) void uploadAttachment(f);
+                  }}
+                />
+
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading || sending}
+                    className="shrink-0 rounded-xl border border-[var(--fl-line)] px-4 py-4 font-semibold text-[var(--fl-text)] hover:border-teal-400 disabled:opacity-50"
+                  >
+                    {uploading ? "Uploading..." : "📎 Attach"}
+                  </button>
+                  <button
+                    onClick={sendMessage}
+                    disabled={sending || uploading || (!message.trim() && !attachment)}
+                    className="w-full rounded-xl bg-teal-500 px-5 py-4 font-semibold text-black hover:bg-teal-400 disabled:opacity-50"
+                  >
+                    {sending ? "Sending..." : "Send Message"}
+                  </button>
+                </div>
               </div>
             </>
           )}
