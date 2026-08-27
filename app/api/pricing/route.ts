@@ -77,12 +77,24 @@ export async function GET() {
   // available to every inspector even if they've set a personal price override --
   // additive only; it never changes anyone's base prices.
   const BASE_SERVICE_IDS = new Set(["home", "radon", "mold"]);
+  const normalizeServiceName = (name: unknown) =>
+    String(name || "").trim().toLowerCase().replace(/\s+/g, " ");
   function withCompanyCustomServices(base: InspectorPricingConfig): InspectorPricingConfig {
     if (!companyConfig) return base;
     const present = new Set(base.services.map((s) => s.id));
-    const extras = companyConfig.services.filter(
-      (s) => !BASE_SERVICE_IDS.has(s.id) && !present.has(s.id),
-    );
+    // Dedupe by normalized name too, so a company service whose name matches one
+    // the inspector already has (e.g. "Mechanical And" vs "Mechanical and") is
+    // not merged in as a confusing near-duplicate -- and so two near-duplicate
+    // company services don't both merge in.
+    const seenNames = new Set(base.services.map((s) => normalizeServiceName((s as any).name)));
+    const extras: InspectorPricingConfig["services"] = [];
+    for (const s of companyConfig.services) {
+      if (BASE_SERVICE_IDS.has(s.id) || present.has(s.id)) continue;
+      const nm = normalizeServiceName((s as any).name);
+      if (seenNames.has(nm)) continue;
+      seenNames.add(nm);
+      extras.push(s);
+    }
     return extras.length ? { ...base, services: [...base.services, ...extras] } : base;
   }
 
