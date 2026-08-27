@@ -84,6 +84,29 @@ export async function POST(_req: Request, { params }: RouteProps) {
     );
   }
 
+  // Send to all clients: the invoice's own client email + any co-buyers /
+  // co-clients on the linked inspection (never the realtor).
+  const recipientEmails: string[] = [clientEmail.toLowerCase()];
+  if (invoice.inspection_id) {
+    const { data: coContacts } = await admin
+      .from("inspection_contacts")
+      .select("email, role")
+      .eq("inspection_id", invoice.inspection_id);
+    for (const c of coContacts || []) {
+      const role = String(c?.role || "").toLowerCase();
+      const email = String(c?.email || "").trim().toLowerCase();
+      const isClient =
+        !role.includes("realtor") &&
+        !role.includes("agent") &&
+        !role.includes("transaction") &&
+        (role.includes("client") || role.includes("buyer") || role.includes("homeowner"));
+      if (isClient && email.includes("@") && email.includes(".")) {
+        recipientEmails.push(email);
+      }
+    }
+  }
+  const clientEmails = Array.from(new Set(recipientEmails)).filter(Boolean);
+
   const lineItems = Array.isArray(invoice.line_items) ? invoice.line_items : [];
   if (lineItems.length === 0 || Number(invoice.total) <= 0) {
     return NextResponse.json(
@@ -156,38 +179,49 @@ export async function POST(_req: Request, { params }: RouteProps) {
       </div>
     </div>`;
 
-  const { data: sent, error: sendError } = await resend.emails.send({
-    from,
-    to: clientEmail,
-    headers: listUnsubscribeHeaders(clientEmail),
-    subject,
-    html,
-  });
+  let sentCount = 0;
+  let lastError: any = null;
 
-  // Log to email_logs. inspection_id is a UUID column -- only inspection_id_bigint
-  // takes the numeric id (and only when the invoice is tied to an inspection).
-  // message is NOT NULL in some DBs, so always set it.
-  try {
-    await admin.from("email_logs").insert({
-      inspection_id_bigint: invoice.inspection_id ? Number(invoice.inspection_id) : null,
-      recipient: clientEmail,
-      recipient_email: clientEmail,
-      email_type: "invoice",
+  for (const recipient of clientEmails) {
+    const { data: sent, error: sendError } = await resend.emails.send({
+      from,
+      to: recipient,
+      headers: listUnsubscribeHeaders(recipient),
       subject,
-      message: sendError ? `Invoice email failed: ${sendError.message}` : payLink,
       html,
-      status: sendError ? "failed" : "sent",
-      resend_id: sent?.id || null,
-      sent_at: sendError ? null : new Date().toISOString(),
-      metadata: { invoice_id: invoice.id, payLink },
     });
-  } catch (logError) {
-    console.error("Invoice email log insert failed:", logError);
+
+    // Log to email_logs. inspection_id is a UUID column -- only inspection_id_bigint
+    // takes the numeric id (and only when the invoice is tied to an inspection).
+    // message is NOT NULL in some DBs, so always set it.
+    try {
+      await admin.from("email_logs").insert({
+        inspection_id_bigint: invoice.inspection_id ? Number(invoice.inspection_id) : null,
+        recipient,
+        recipient_email: recipient,
+        email_type: "invoice",
+        subject,
+        message: sendError ? `Invoice email failed: ${sendError.message}` : payLink,
+        html,
+        status: sendError ? "failed" : "sent",
+        resend_id: sent?.id || null,
+        sent_at: sendError ? null : new Date().toISOString(),
+        metadata: { invoice_id: invoice.id, payLink },
+      });
+    } catch (logError) {
+      console.error("Invoice email log insert failed:", logError);
+    }
+
+    if (sendError) {
+      lastError = sendError;
+      continue;
+    }
+    sentCount += 1;
   }
 
-  if (sendError) {
+  if (sentCount === 0) {
     return NextResponse.json(
-      { error: sendError.message || "Invoice email failed to send." },
+      { error: lastError?.message || "Invoice email failed to send." },
       { status: 500 }
     );
   }
@@ -197,5 +231,5 @@ export async function POST(_req: Request, { params }: RouteProps) {
     .update({ status: invoice.status === "paid" ? "paid" : "sent", sent_at: new Date().toISOString() })
     .eq("id", invoice.id);
 
-  return NextResponse.json({ success: true, recipient: clientEmail });
+  return NextResponse.json({ success: true, sent: sentCount });
 }
