@@ -883,7 +883,7 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
         {/* Desktop: vertical section rail */}
         {(orderedGroups || []).length > 1 && (
           <aside className="hidden xl:block" aria-label="Jump to inspection section">
-            <div className="sticky top-20 space-y-0.5">
+            <div className="sticky top-20 max-h-[calc(100vh-6rem)] space-y-0.5 overflow-y-auto pr-1">
               <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#59626f]">
                 Sections
               </p>

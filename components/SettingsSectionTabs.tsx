@@ -132,7 +132,7 @@ export default function SettingsSectionTabs({
 
       {/* Desktop: vertical left rail, grouped by category */}
       <nav className="hidden lg:block" aria-label="Settings sections">
-        <div className="sticky top-20 space-y-6">
+        <div className="sticky top-20 max-h-[calc(100vh-6rem)] space-y-6 overflow-y-auto pr-1">
           {groups.map((group) => (
             <div key={group.name || "_"}>
               {group.name ? (

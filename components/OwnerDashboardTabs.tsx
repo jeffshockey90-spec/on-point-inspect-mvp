@@ -52,7 +52,7 @@ export default function OwnerDashboardTabs() {
 
       {/* Desktop: vertical left rail */}
       <nav className="hidden lg:block" aria-label="Owner dashboard sections">
-        <div className="sticky top-20 space-y-0.5">
+        <div className="sticky top-20 max-h-[calc(100vh-6rem)] space-y-0.5 overflow-y-auto pr-1">
           {TABS.map((t) => {
             const active = tab === t.key;
             return (

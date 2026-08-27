@@ -306,7 +306,7 @@ export default async function SettingsPage({
     const defaultEmail = String(user.email || "");
 
     return (
-      <main className="min-h-screen bg-[#050816] px-4 py-4 pb-28 text-white md:p-8 md:pb-10">
+      <main className="min-h-screen bg-[#0a0e13] px-4 py-4 pb-28 text-white md:p-8 md:pb-10">
         <div className="mx-auto max-w-5xl space-y-6">
           <section className="rounded-2xl border border-teal-500/40 bg-[#10151e] p-5 shadow-2xl shadow-black/20 sm:p-8">
             <p className="text-xs font-semibold uppercase tracking-[0.25em] text-teal-300">
@@ -575,7 +575,7 @@ export default async function SettingsPage({
   const isCompanyOwner = Boolean(ownerMembership);
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[#050816] px-4 py-4 pb-28 text-white md:p-8 md:pb-10">
+    <main className="min-h-screen overflow-x-clip bg-[#0a0e13] px-4 py-4 pb-28 text-white md:p-8 md:pb-10">
       <div className="mx-auto max-w-6xl space-y-6">
         <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-5 shadow-2xl shadow-black/20 sm:p-6 md:p-8">
           <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#14c8d2] sm:tracking-[0.35em]">
