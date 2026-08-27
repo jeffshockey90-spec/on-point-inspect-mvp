@@ -2012,6 +2012,17 @@ export async function GET(req: Request, { params }: RouteProps) {
     let user: any = null;
     let userEmail = "";
 
+    // Always read the session, even when the inspection was resolved via a share
+    // token. Otherwise the owning inspector/owner downloading their own report
+    // through the token link is treated as anonymous and blocked by the delivery
+    // gate on an unpublished/unpaid report.
+    try {
+      const sessionClient = await createSupabaseServerClient();
+      const sessionResult = await sessionClient.auth.getUser();
+      user = sessionResult.data.user || null;
+      userEmail = cleanEmail(user?.email);
+    } catch {}
+
     if (!inspection) {
       if (!/^\d+$/.test(lookupValue)) {
         return reportErrorResponse(req, "Report link is invalid or expired.", 404);
