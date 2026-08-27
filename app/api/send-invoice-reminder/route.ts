@@ -151,18 +151,44 @@ export async function POST(req: Request) {
 
     const branding = await getCompanyBrandingById(inspection.company_id);
 
-    const to = getValidEmail(inspection.client_email);
+    // A payment reminder goes to ALL clients (primary + co-buyers / co-clients),
+    // never the realtor. Gather from inspection_contacts + the primary email.
+    const { data: reminderContacts } = await supabase
+      .from("inspection_contacts")
+      .select("email, role")
+      .eq("inspection_id", inspectionId);
 
-    if (!to) {
+    const isClientRole = (role: any) => {
+      const r = String(role || "").toLowerCase();
+      if (r.includes("realtor") || r.includes("agent") || r.includes("transaction")) {
+        return false;
+      }
+      return (
+        r === "client" ||
+        r.includes("client") ||
+        r.includes("buyer") ||
+        r.includes("homeowner")
+      );
+    };
+
+    const clientEmails = Array.from(
+      new Set(
+        [
+          inspection.client_email,
+          ...(reminderContacts || [])
+            .filter((c: any) => isClientRole(c.role))
+            .map((c: any) => c.email),
+        ]
+          .map((value) => getValidEmail(value).toLowerCase())
+          .filter(Boolean),
+      ),
+    );
+
+    if (!clientEmails.length) {
       return NextResponse.json(
-        { error: "No valid client_email found for this inspection." },
+        { error: "No valid client email found for this inspection." },
         { status: 400 }
       );
-    }
-
-    // Honor a one-click unsubscribe: an invoice reminder is non-essential.
-    if (await isEmailUnsubscribed(supabase, to)) {
-      return NextResponse.json({ ok: true, skipped: "unsubscribed" });
     }
 
     const balanceDue = getBalanceDue(inspection);
@@ -191,7 +217,7 @@ export async function POST(req: Request) {
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       payment_method_types: ["card"],
-      customer_email: to,
+      customer_email: clientEmails[0],
       client_reference_id: String(inspectionId),
       metadata: {
         inspection_id: String(inspectionId),
@@ -296,37 +322,51 @@ export async function POST(req: Request) {
         </div>
       `;
 
-    const { error: emailError } = await resend.emails.send({
-      from,
-      to,
-      headers: listUnsubscribeHeaders(to),
-      subject: invoiceSubject,
-      html: invoiceReminderHtml,
-    });
+    let sentCount = 0;
+    const failed: string[] = [];
 
-    if (emailError) {
-      console.error("Invoice reminder email error:", emailError);
+    for (const recipient of clientEmails) {
+      // Honor a one-click unsubscribe per recipient; a reminder is non-essential.
+      if (await isEmailUnsubscribed(supabase, recipient)) continue;
 
+      const { error: emailError } = await resend.emails.send({
+        from,
+        to: recipient,
+        headers: listUnsubscribeHeaders(recipient),
+        subject: invoiceSubject,
+        html: invoiceReminderHtml,
+      });
+
+      if (emailError) {
+        console.error("Invoice reminder email error:", emailError);
+        failed.push(recipient);
+        continue;
+      }
+
+      sentCount += 1;
+
+      await supabase.from("email_logs").insert({
+        inspection_id_bigint: Number(inspectionId),
+        recipient,
+        recipient_email: recipient,
+        email_type: "invoice_reminder",
+        subject: invoiceSubject,
+        message: session.url,
+        html: invoiceReminderHtml,
+        status: "sent",
+        sent_at: new Date().toISOString(),
+        metadata: { type: "invoice_reminder", balanceDue },
+      });
+    }
+
+    if (sentCount === 0) {
       return NextResponse.json(
-        { error: "Failed to send reminder email." },
+        { error: "Could not send the reminder to any client (all unsubscribed or invalid)." },
         { status: 500 }
       );
     }
 
-    await supabase.from("email_logs").insert({
-      inspection_id_bigint: Number(inspectionId),
-      recipient: to,
-      recipient_email: to,
-      email_type: "invoice_reminder",
-      subject: invoiceSubject,
-      message: session.url,
-      html: invoiceReminderHtml,
-      status: "sent",
-      sent_at: new Date().toISOString(),
-      metadata: { type: "invoice_reminder", balanceDue },
-    });
-
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, sent: sentCount, failed });
   } catch (error: any) {
     console.error("Invoice reminder error:", error);
 

@@ -10,7 +10,7 @@ export default function InvoiceReminderButton({
   const [loading, setLoading] = useState(false);
 
   async function sendReminder() {
-    if (!confirm("Send invoice reminder email to this client?")) return;
+    if (!confirm("Send a payment reminder to all clients on this inspection?")) return;
 
     try {
       setLoading(true);
@@ -30,7 +30,12 @@ export default function InvoiceReminderButton({
         return;
       }
 
-      alert("Invoice reminder sent.");
+      const count = Number(data?.sent) || 0;
+      alert(
+        count > 1
+          ? `Payment reminder sent to ${count} clients.`
+          : "Payment reminder sent.",
+      );
     } catch {
       alert("Could not send reminder email.");
     } finally {
