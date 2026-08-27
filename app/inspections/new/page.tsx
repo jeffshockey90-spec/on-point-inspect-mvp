@@ -1311,6 +1311,24 @@ function NewInspectionPageContent() {
         }
       });
 
+      // Auto-apply a report template linked to this service type, if the
+      // company set one up. Best-effort — never blocks the redirect.
+      try {
+        const tData = await fetch("/api/report-templates", { cache: "no-store" }).then((r) => r.json());
+        const match = (tData?.templates || []).find(
+          (t: any) => t?.service_key && String(t.service_key) === String(serviceMode),
+        );
+        if (match?.id) {
+          await fetch("/api/report-templates/apply", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ inspectionId: String(data.id), templateId: match.id }),
+          });
+        }
+      } catch {
+        /* template auto-apply is best-effort */
+      }
+
       router.push(`/reports/${data.id}`);
     } finally {
       setSaving(false);

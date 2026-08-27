@@ -21,6 +21,7 @@ import ResendConfirmationButton from "../../../components/ResendConfirmationButt
 import ReportFindingsSortable from "./ReportFindingsSortable";
 import RealtimeReportSync from "../../../components/RealtimeReportSync";
 import WorkflowStateSync from "../../../components/WorkflowStateSync";
+import ReportTemplateSwitcher from "../../../components/ReportTemplateSwitcher";
 import ReportLiveSync from "../../../components/ReportLiveSync";
 import OfflineReportCacheBridge from "../../../components/OfflineReportCacheBridge";
 import SendReportEmailButtons from "../../../components/SendReportEmailButtons";
@@ -3589,6 +3590,10 @@ Service-life information is a general industry estimate only. Actual service lif
 
             <RealtimeReportSync inspectionId={String(inspection.id)} />
             <WorkflowStateSync />
+            <ReportTemplateSwitcher
+              inspectionId={String(inspection.id)}
+              currentTemplateId={(inspection as any).report_template_id || null}
+            />
 
             <ReportFindingsSortable
               groupedFindings={groupedFindingsArray}

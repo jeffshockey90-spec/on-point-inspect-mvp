@@ -11,6 +11,7 @@ import {
   Sparkles,
   Mail,
   Gauge,
+  Layers,
 } from "lucide-react";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -770,6 +771,24 @@ export default async function SettingsPage({
               </p>
             </FastLinkButton>
           )}
+
+          <FastLinkButton
+            href="/settings/report-templates"
+            className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-slate-800 bg-[#0b1220] p-4 transition active:scale-[0.98] hover:border-teal-400/70 hover:bg-teal-500/10 sm:p-5 [touch-action:manipulation]"
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-500/10 text-teal-300">
+              <Layers className="h-6 w-6" strokeWidth={2} />
+            </div>
+            <h2 className="mt-4 text-lg font-black text-white sm:text-xl">
+              Report Templates
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-slate-400">
+              Build section sets for specialty inspections — auto-apply them by service type.
+            </p>
+            <p className="mt-4 text-sm font-black text-teal-300 group-hover:text-teal-200">
+              Manage Templates →
+            </p>
+          </FastLinkButton>
 
           <FastLinkButton
             href="/billing"
