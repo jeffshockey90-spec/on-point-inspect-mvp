@@ -232,7 +232,7 @@ export async function POST(req: Request) {
 
     const invoiceSubject = `Invoice Reminder - ${property}`;
     const invoiceReminderHtml = `
-        <div style="margin:0;padding:0;background:var(--fl-ground);font-family:Arial,sans-serif;color:#ffffff;">
+        <div style="margin:0;padding:0;background:#020617;font-family:Arial,sans-serif;color:#ffffff;">
           <div style="max-width:680px;margin:0 auto;padding:28px;">
             <div style="border:1px solid #1e293b;background:#0f172a;border-radius:20px;overflow:hidden;">
               <div style="background:#071224;padding:28px;border-bottom:1px solid #1e293b;">
@@ -256,7 +256,7 @@ export async function POST(req: Request) {
                   Payment is still outstanding for the inspection at:
                 </p>
 
-                <div style="border:1px solid #334155;background:var(--fl-ground);border-radius:14px;padding:18px;margin-bottom:22px;">
+                <div style="border:1px solid #334155;background:#020617;border-radius:14px;padding:18px;margin-bottom:22px;">
                   <p style="margin:0;color:#94a3b8;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">
                     Property
                   </p>
@@ -274,7 +274,7 @@ export async function POST(req: Request) {
                   </p>
                 </div>
 
-                <a href="${session.url}" style="display:inline-block;background:#14b8a6;color:var(--fl-ground);text-decoration:none;font-weight:900;padding:14px 22px;border-radius:12px;">
+                <a href="${session.url}" style="display:inline-block;background:#14b8a6;color:#020617;text-decoration:none;font-weight:900;padding:14px 22px;border-radius:12px;">
                   Pay Invoice
                 </a>
 

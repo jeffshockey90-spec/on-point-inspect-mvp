@@ -115,7 +115,7 @@ export async function POST(req: Request) {
         }
 
         <div style="text-align:center;margin:28px 0;">
-          <a href="${demoLink}" style="display:inline-block;background:#14b8a6;color:var(--fl-ground);padding:14px 26px;border-radius:10px;text-decoration:none;font-weight:bold;font-size:16px;">
+          <a href="${demoLink}" style="display:inline-block;background:#14b8a6;color:#020617;padding:14px 26px;border-radius:10px;text-decoration:none;font-weight:bold;font-size:16px;">
             View Sample Report
           </a>
         </div>

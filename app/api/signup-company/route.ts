@@ -215,7 +215,7 @@ export async function POST(req: Request) {
             <p style="margin:0 0 4px;color:#334155;">${email}</p>
             <p style="margin:0 0 16px;color:#334155;">Business: <strong>${businessLabel}</strong></p>
             <p style="margin:16px 0;">
-              <a href="https://app.flowinspect.app/dashboard/owner/users" style="display:inline-block;background:#14b8a6;color:var(--fl-ground);font-weight:bold;padding:12px 18px;border-radius:10px;text-decoration:none;">
+              <a href="https://app.flowinspect.app/dashboard/owner/users" style="display:inline-block;background:#14b8a6;color:#020617;font-weight:bold;padding:12px 18px;border-radius:10px;text-decoration:none;">
                 View in Owner Dashboard
               </a>
             </p>

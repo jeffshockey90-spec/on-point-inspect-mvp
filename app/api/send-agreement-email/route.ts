@@ -466,7 +466,7 @@ export async function POST(req: Request) {
                   (link: any) => `
                 <p>
                   <strong>${escapeHtml(link.name)}</strong><br />
-                  <a href="${link.url}" style="display:inline-block;margin-top:6px;background:#14b8a6;color:var(--fl-ground);font-weight:bold;padding:14px 22px;border-radius:10px;text-decoration:none;">
+                  <a href="${link.url}" style="display:inline-block;margin-top:6px;background:#14b8a6;color:#020617;font-weight:bold;padding:14px 22px;border-radius:10px;text-decoration:none;">
                     Review & Sign Agreement
                   </a>
                 </p>
@@ -602,7 +602,7 @@ ${branding.name}`,
               <p><strong>Property:</strong> ${escapeHtml(property)}</p>
 
               <p>
-                <a href="${trackedAgreementUrl}" style="display:inline-block;background:#14b8a6;color:var(--fl-ground);font-weight:bold;padding:14px 22px;border-radius:10px;text-decoration:none;">
+                <a href="${trackedAgreementUrl}" style="display:inline-block;background:#14b8a6;color:#020617;font-weight:bold;padding:14px 22px;border-radius:10px;text-decoration:none;">
                   Review & Sign Agreement
                 </a>
               </p>

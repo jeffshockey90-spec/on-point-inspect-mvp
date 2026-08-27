@@ -240,10 +240,10 @@ function buildRepairRequestEmailHtml({
         <p style="font-size:20px; font-weight:700; color:#0f172a; margin:0 0 18px 0;">${escapeHtml(property)}</p>
         <p style="font-size:16px; line-height:1.5; margin:0 0 22px 0;">is ready to review and respond to.</p>
         <p style="margin:0 0 12px 0;">
-          <a href="${escapeHtml(trackedResponseUrl)}" style="display:inline-block; background:#14b8a6; color:var(--fl-ground); padding:14px 20px; border-radius:10px; text-decoration:none; font-weight:700;">Respond to Repair Request</a>
+          <a href="${escapeHtml(trackedResponseUrl)}" style="display:inline-block; background:#14b8a6; color:#020617; padding:14px 20px; border-radius:10px; text-decoration:none; font-weight:700;">Respond to Repair Request</a>
         </p>
         <p style="margin:0 0 24px 0;">
-          <a href="${escapeHtml(trackedRepairRequestUrl)}" style="display:inline-block; background:var(--fl-ground); color:#5eead4; padding:12px 18px; border-radius:10px; text-decoration:none; font-weight:700;">View / Download Repair Request</a>
+          <a href="${escapeHtml(trackedRepairRequestUrl)}" style="display:inline-block; background:#020617; color:#5eead4; padding:12px 18px; border-radius:10px; text-decoration:none; font-weight:700;">View / Download Repair Request</a>
         </p>
         <div style="background:#f1f5f9; border:1px solid #cbd5e1; border-radius:12px; padding:18px; margin:0 0 22px 0;">
           <h2 style="font-size:18px; margin:0 0 10px 0; color:#0f172a;">Repair Request Summary</h2>

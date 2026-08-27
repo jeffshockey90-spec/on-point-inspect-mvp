@@ -143,7 +143,7 @@ export async function POST(req: Request) {
           <p>This is a reminder to review and sign your residential inspection agreement for:</p>
           <p><strong>${propertyAddress}</strong></p>
           <p>
-            <a href="${agreementUrl}" style="display:inline-block;background:#14b8a6;color:var(--fl-ground);font-weight:bold;padding:12px 18px;border-radius:10px;text-decoration:none;">
+            <a href="${agreementUrl}" style="display:inline-block;background:#14b8a6;color:#020617;font-weight:bold;padding:12px 18px;border-radius:10px;text-decoration:none;">
               Review & Sign Agreement
             </a>
           </p>
