@@ -422,6 +422,17 @@ export default function ImportReportPage() {
   const [parsing, setParsing] = useState(false);
   const [creating, setCreating] = useState<false | "draft" | "demo">(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [maskInfo, setMaskInfo] = useState(false);
+
+  // Fake but realistic names to swap in when masking personal info (demos /
+  // privacy). Chosen once per parsed report so they stay stable.
+  const fakeNames = useMemo(() => {
+    const clients = ["Jordan Bennett", "Taylor Morgan", "Casey Reed", "Alex Harper", "Riley Brooks", "Morgan Ellis", "Sam Delgado"];
+    const realtors = ["Jamie Carter", "Drew Sullivan", "Sydney Price", "Cameron Hayes", "Avery Coleman", "Quinn Foster"];
+    const pick = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
+    return { client: pick(clients), realtor: pick(realtors) };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [parsedReport.propertyAddress, parsedReport.clientName]);
 
   const activeFindings = useMemo(
     () =>
@@ -645,15 +656,27 @@ export default function ImportReportPage() {
             inspector_id: user.id,
             company_id: companyId,
 
-            client_name: saveAsDemo ? "Sample Client" : parsedReport.clientName || "Imported Client",
-            client_email: saveAsDemo ? null : parsedReport.clientEmail.trim().toLowerCase() || null,
-            client_phone: saveAsDemo ? null : parsedReport.clientPhone || null,
+            client_name: saveAsDemo
+              ? "Sample Client"
+              : maskInfo
+                ? fakeNames.client
+                : parsedReport.clientName || "Imported Client",
+            client_email: saveAsDemo || maskInfo ? null : parsedReport.clientEmail.trim().toLowerCase() || null,
+            client_phone: saveAsDemo || maskInfo ? null : parsedReport.clientPhone || null,
 
-            realtor_name: saveAsDemo ? "Sample Realtor" : parsedReport.realtorName || null,
-            realtor_email: saveAsDemo ? null : parsedReport.realtorEmail.trim().toLowerCase() || null,
-            realtor_phone: saveAsDemo ? null : parsedReport.realtorPhone || null,
-            agent_name: saveAsDemo ? "Sample Realtor" : parsedReport.realtorName || null,
-            agent_email: saveAsDemo ? null : parsedReport.realtorEmail.trim().toLowerCase() || null,
+            realtor_name: saveAsDemo
+              ? "Sample Realtor"
+              : maskInfo
+                ? fakeNames.realtor
+                : parsedReport.realtorName || null,
+            realtor_email: saveAsDemo || maskInfo ? null : parsedReport.realtorEmail.trim().toLowerCase() || null,
+            realtor_phone: saveAsDemo || maskInfo ? null : parsedReport.realtorPhone || null,
+            agent_name: saveAsDemo
+              ? "Sample Realtor"
+              : maskInfo
+                ? fakeNames.realtor
+                : parsedReport.realtorName || null,
+            agent_email: saveAsDemo || maskInfo ? null : parsedReport.realtorEmail.trim().toLowerCase() || null,
 
             property_address: demoAddress,
             address: demoAddress,
@@ -751,7 +774,7 @@ export default function ImportReportPage() {
 
       const inspectionContacts = [];
 
-      if (!saveAsDemo && parsedReport.clientEmail.trim()) {
+      if (!saveAsDemo && !maskInfo && parsedReport.clientEmail.trim()) {
         inspectionContacts.push({
           inspection_id: inspection.id,
           inspector_id: user.id,
@@ -764,7 +787,7 @@ export default function ImportReportPage() {
         });
       }
 
-      if (!saveAsDemo && parsedReport.realtorEmail.trim()) {
+      if (!saveAsDemo && !maskInfo && parsedReport.realtorEmail.trim()) {
         inspectionContacts.push({
           inspection_id: inspection.id,
           inspector_id: user.id,
@@ -951,6 +974,21 @@ export default function ImportReportPage() {
                   </p>
                 </div>
 
+                <label className="mb-4 flex cursor-pointer items-start gap-3 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3">
+                  <input
+                    type="checkbox"
+                    checked={maskInfo}
+                    onChange={(e) => setMaskInfo(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 accent-teal-500"
+                  />
+                  <span className="text-sm">
+                    <span className="font-semibold text-[var(--fl-text)]">Mask personal info</span>
+                    <span className="block text-xs text-[var(--fl-muted)]">
+                      Replace the client &amp; realtor names with realistic fake names and drop their emails/phones — for privacy when sharing a converted report. (The property address is kept; edit it below if needed.)
+                    </span>
+                  </span>
+                </label>
+
                 <div className="flex flex-wrap gap-3">
                   <button
                     type="button"
@@ -1109,6 +1147,21 @@ export default function ImportReportPage() {
                     {activeFindings.length} finding{activeFindings.length === 1 ? "" : "s"} found. Photos detected: {photoCount}. Click any photo to open the full image.
                   </p>
                 </div>
+
+                <label className="mb-4 flex cursor-pointer items-start gap-3 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3">
+                  <input
+                    type="checkbox"
+                    checked={maskInfo}
+                    onChange={(e) => setMaskInfo(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 accent-teal-500"
+                  />
+                  <span className="text-sm">
+                    <span className="font-semibold text-[var(--fl-text)]">Mask personal info</span>
+                    <span className="block text-xs text-[var(--fl-muted)]">
+                      Replace the client &amp; realtor names with realistic fake names and drop their emails/phones — for privacy when sharing a converted report. (The property address is kept; edit it below if needed.)
+                    </span>
+                  </span>
+                </label>
 
                 <div className="flex flex-wrap gap-3">
                   <button
