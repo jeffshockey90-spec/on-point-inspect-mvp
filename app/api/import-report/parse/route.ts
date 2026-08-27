@@ -415,8 +415,11 @@ async function extractAndUploadPhotos(
     const { data } = admin.storage.from("company-assets").getPublicUrl(path);
     if (data?.publicUrl) {
       out.push({ page, url: data.publicUrl });
+      // The property cover photo is the largest image near the START of the PDF
+      // (cover page), regardless of the page it maps to -- Spectora often nests
+      // the cover image so page detection returns 0.
       const area = w * h;
-      if (page > 0 && page <= 2 && area > coverArea) {
+      if (idx <= 8 && area > coverArea) {
         coverArea = area;
         coverUrl = data.publicUrl;
       }
