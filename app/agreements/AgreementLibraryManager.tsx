@@ -721,7 +721,7 @@ export default function AgreementLibraryManager() {
                     type="button"
                     onClick={() => deleteTemplate(template)}
                     disabled={deleting}
-                    className="rounded-lg border border-red-500 px-3 py-2 text-xs font-bold text-red-300 hover:bg-red-500 hover:text-white disabled:opacity-50"
+                    className="rounded-lg border border-red-500 px-3 py-2 text-xs font-bold text-[var(--fl-crit-text)] hover:bg-red-500 hover:text-[var(--fl-text)] disabled:opacity-50"
                   >
                     Delete
                   </button>
@@ -749,7 +749,7 @@ export default function AgreementLibraryManager() {
               type="button"
               onClick={() => deleteTemplate(selected)}
               disabled={deleting}
-              className="rounded-xl border border-red-500 bg-red-500/10 px-4 py-2 text-sm font-bold text-red-300 hover:bg-red-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-xl border border-red-500 bg-red-500/10 px-4 py-2 text-sm font-bold text-[var(--fl-crit-text)] hover:bg-red-500 hover:text-[var(--fl-text)] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {deleting ? "Deleting..." : "🗑 Delete Agreement"}
             </button>

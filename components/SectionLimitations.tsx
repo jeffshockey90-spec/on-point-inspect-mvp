@@ -920,7 +920,7 @@ function SectionLimitations({
                       className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition ${
                         selected
                           ? "border-teal-400 bg-teal-500/15 text-teal-100"
-                          : "border-[var(--fl-line)] bg-[var(--fl-ground)] text-white hover:border-teal-400 hover:bg-teal-500/10"
+                          : "border-[var(--fl-line)] bg-[var(--fl-ground)] text-[var(--fl-text)] hover:border-teal-400 hover:bg-teal-500/10"
                       } disabled:cursor-not-allowed disabled:opacity-60`}
                     >
                       <span
@@ -963,7 +963,7 @@ function SectionLimitations({
                       className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition ${
                         selected
                           ? "border-cyan-300 bg-cyan-500/20 text-[var(--fl-info-text)]"
-                          : "border-[var(--fl-line)] bg-[var(--fl-ground)] text-white hover:border-cyan-400 hover:bg-cyan-500/10"
+                          : "border-[var(--fl-line)] bg-[var(--fl-ground)] text-[var(--fl-text)] hover:border-cyan-400 hover:bg-cyan-500/10"
                       } disabled:cursor-not-allowed disabled:opacity-60`}
                       title={template.limitation_text}
                     >

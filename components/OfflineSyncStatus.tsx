@@ -267,7 +267,7 @@ export default function OfflineSyncStatus() {
           )}
 
           {lastFailedError && (
-            <p className="mt-1 break-words text-xs text-[var(--fl-crit-text)]/90">
+            <p className="mt-1 break-words text-xs text-[var(--fl-crit-text)]">
               Reason: {lastFailedError}
             </p>
           )}

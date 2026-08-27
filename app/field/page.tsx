@@ -4950,7 +4950,7 @@ function FieldPageContent() {
                     !online ||
                     !photos.some((photo) => photo.type.startsWith("image/"))
                   }
-                  className="w-full rounded-xl border border-purple-500 bg-purple-500/10 p-4 text-lg font-bold text-purple-200 transition active:scale-[0.98] hover:bg-purple-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
+                  className="w-full rounded-xl border border-purple-500 bg-purple-500/10 p-4 text-lg font-bold text-[var(--fl-purple-text)] transition active:scale-[0.98] hover:bg-purple-500 hover:text-[var(--fl-text)] disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
                 >
                   {analyzingPhoto ? "Analyzing Defect..." : "🤖 Analyze Defect"}
                 </button>
@@ -4968,7 +4968,7 @@ function FieldPageContent() {
                     !online ||
                     !photos.some((photo) => photo.type.startsWith("image/"))
                   }
-                  className="w-full rounded-xl border border-cyan-500 bg-cyan-500/10 p-4 text-lg font-bold text-cyan-200 transition active:scale-[0.98] hover:bg-cyan-500 hover:text-black disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
+                  className="w-full rounded-xl border border-cyan-500 bg-cyan-500/10 p-4 text-lg font-bold text-[var(--fl-info-text)] transition active:scale-[0.98] hover:bg-cyan-500 hover:text-black disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
                 >
                   {analyzingEquipment
                     ? "Analyzing Equipment..."
@@ -4985,7 +4985,7 @@ function FieldPageContent() {
                     saving ||
                     savingEquipment
                   }
-                  className="w-full rounded-xl border border-emerald-500 bg-emerald-500/10 p-4 text-lg font-bold text-emerald-200 transition active:scale-[0.98] hover:bg-emerald-500 hover:text-black disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
+                  className="w-full rounded-xl border border-emerald-500 bg-emerald-500/10 p-4 text-lg font-bold text-[var(--fl-good-text)] transition active:scale-[0.98] hover:bg-emerald-500 hover:text-black disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
                 >
                   {dictating ? "⏹ Stop Listening" : "🎤 Dictate Finding"}
                 </button>
@@ -5077,7 +5077,7 @@ function FieldPageContent() {
                   <h2 className="mt-1 text-xl font-semibold text-[var(--fl-text)]">
                     Select Existing Finding
                   </h2>
-                  <p className="mt-1 text-sm text-[var(--fl-purple-text)]/80">
+                  <p className="mt-1 text-sm text-[var(--fl-purple-text)]">
                     The finding wording, severity, and current media stay unchanged.
                   </p>
                 </div>
@@ -5959,7 +5959,7 @@ function MediaUploadButtons({
 
   return (
     <div className={`grid gap-3 ${imageOnlyMode ? "md:grid-cols-1" : "md:grid-cols-2"}`}>
-      <label className="cursor-pointer rounded-xl border border-cyan-500 bg-cyan-500/10 p-4 text-center font-bold text-cyan-300 transition active:scale-[0.98] hover:bg-cyan-500 hover:text-black [touch-action:manipulation]">
+      <label className="cursor-pointer rounded-xl border border-cyan-500 bg-cyan-500/10 p-4 text-center font-bold text-[var(--fl-info-text)] transition active:scale-[0.98] hover:bg-cyan-500 hover:text-black [touch-action:manipulation]">
         {photoType === "reference_photo"
           ? "🖼 Choose Reference Photos"
           : photoType === "limitation"
@@ -5975,7 +5975,7 @@ function MediaUploadButtons({
       </label>
 
       {!imageOnlyMode && (
-        <label className="cursor-pointer rounded-xl border border-purple-500 bg-purple-500/10 p-4 text-center font-bold text-purple-300 transition active:scale-[0.98] hover:bg-purple-500 hover:text-white [touch-action:manipulation]">
+        <label className="cursor-pointer rounded-xl border border-purple-500 bg-purple-500/10 p-4 text-center font-bold text-[var(--fl-purple-text)] transition active:scale-[0.98] hover:bg-purple-500 hover:text-[var(--fl-text)] [touch-action:manipulation]">
           🎥 Choose Videos
           <input
             type="file"

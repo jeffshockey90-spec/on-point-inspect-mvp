@@ -351,7 +351,7 @@ export default function AgreementStatusPanel({
                   type="button"
                   onClick={() => sendReminder()}
                   disabled={sendingReminder !== null || waiverBusy}
-                  className="w-full rounded-2xl border border-yellow-500/70 bg-yellow-500/10 px-5 py-3 text-sm font-semibold text-yellow-300 transition hover:bg-yellow-500 hover:text-slate-950 disabled:opacity-50 sm:w-auto"
+                  className="w-full rounded-2xl border border-yellow-500/70 bg-yellow-500/10 px-5 py-3 text-sm font-semibold text-[var(--fl-warn-text)] transition hover:bg-yellow-500 hover:text-slate-950 disabled:opacity-50 sm:w-auto"
                 >
                   {sendingReminder === "all" ? "Sending..." : "Remind All"}
                 </button>
@@ -362,7 +362,7 @@ export default function AgreementStatusPanel({
                 type="button"
                 onClick={() => setShowWaiverForm((value) => !value)}
                 disabled={waiverBusy}
-                className="w-full rounded-2xl border border-purple-500/70 bg-purple-500/10 px-5 py-3 text-sm font-semibold text-purple-300 transition hover:bg-purple-500 hover:text-white disabled:opacity-50 sm:w-auto"
+                className="w-full rounded-2xl border border-purple-500/70 bg-purple-500/10 px-5 py-3 text-sm font-semibold text-[var(--fl-purple-text)] transition hover:bg-purple-500 hover:text-[var(--fl-text)] disabled:opacity-50 sm:w-auto"
               >
                 Waive Agreement Requirement
               </button>
@@ -404,7 +404,7 @@ export default function AgreementStatusPanel({
                 type="button"
                 onClick={removeWaiver}
                 disabled={waiverBusy}
-                className="rounded-xl border border-red-500/70 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-500 hover:text-white disabled:opacity-50"
+                className="rounded-xl border border-red-500/70 bg-red-500/10 px-4 py-2 text-sm font-semibold text-[var(--fl-crit-text)] transition hover:bg-red-500 hover:text-[var(--fl-text)] disabled:opacity-50"
               >
                 {waiverBusy ? "Working..." : "Remove Waiver"}
               </button>
@@ -545,7 +545,7 @@ export default function AgreementStatusPanel({
                       {signed && signedAgreement?.id && (
                         <Link
                           href={`/reports/${inspectionId}/signed-agreement/${signedAgreement.id}`}
-                          className="w-full rounded-xl border border-green-500/70 bg-green-500/10 px-4 py-2 text-center text-sm font-semibold text-green-300 transition hover:bg-green-500 hover:text-slate-950"
+                          className="w-full rounded-xl border border-green-500/70 bg-green-500/10 px-4 py-2 text-center text-sm font-semibold text-[var(--fl-good-text)] transition hover:bg-green-500 hover:text-slate-950"
                         >
                           View Signed Agreement
                         </Link>

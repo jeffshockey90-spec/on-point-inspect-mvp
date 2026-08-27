@@ -787,7 +787,7 @@ function MediaUploadButtons({
         />
       </label>
 
-      <label className="cursor-pointer rounded-xl border border-cyan-500 bg-cyan-500/10 p-4 text-center font-bold text-cyan-300 hover:bg-cyan-500 hover:text-black">
+      <label className="cursor-pointer rounded-xl border border-cyan-500 bg-cyan-500/10 p-4 text-center font-bold text-[var(--fl-info-text)] hover:bg-cyan-500 hover:text-black">
         🖼 Choose Photos
         <input
           type="file"
@@ -798,7 +798,7 @@ function MediaUploadButtons({
         />
       </label>
 
-      <label className="cursor-pointer rounded-xl border border-purple-500 bg-purple-500/10 p-4 text-center font-bold text-purple-300 hover:bg-purple-500 hover:text-white">
+      <label className="cursor-pointer rounded-xl border border-purple-500 bg-purple-500/10 p-4 text-center font-bold text-[var(--fl-purple-text)] hover:bg-purple-500 hover:text-[var(--fl-text)]">
         🎥 Choose Videos
         <input
           type="file"

@@ -253,7 +253,7 @@ function MoldForm({
           type="button"
           onClick={save}
           disabled={saving}
-          className="rounded-xl border border-purple-500 bg-purple-500/10 px-5 py-3 font-bold text-purple-300 transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 hover:bg-purple-500 hover:text-slate-950"
+          className="rounded-xl border border-purple-500 bg-purple-500/10 px-5 py-3 font-bold text-[var(--fl-purple-text)] transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 hover:bg-purple-500 hover:text-slate-950"
         >
           {saving ? "Saving..." : "Save Mold Test"}
         </button>
@@ -410,7 +410,7 @@ function RadonForm({
           type="button"
           onClick={save}
           disabled={saving}
-          className="rounded-xl border border-purple-500 bg-purple-500/10 px-5 py-3 font-bold text-purple-300 transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 hover:bg-purple-500 hover:text-slate-950"
+          className="rounded-xl border border-purple-500 bg-purple-500/10 px-5 py-3 font-bold text-[var(--fl-purple-text)] transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 hover:bg-purple-500 hover:text-slate-950"
         >
           {saving ? "Saving..." : "Save Radon Test"}
         </button>

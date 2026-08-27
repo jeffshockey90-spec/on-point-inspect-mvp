@@ -306,7 +306,7 @@ export default function InspectionContactsManager({
         {!loading && loadError && (
           <div className="rounded-2xl border border-red-500/40 bg-red-500/10 p-6 text-center">
             <p className="text-lg font-bold text-[var(--fl-crit-text)]">Could not load contacts.</p>
-            <p className="mt-2 text-sm text-[var(--fl-crit-text)]/80">{loadError}</p>
+            <p className="mt-2 text-sm text-[var(--fl-crit-text)]">{loadError}</p>
             <button
               type="button"
               onClick={loadContacts}
@@ -370,7 +370,7 @@ export default function InspectionContactsManager({
                       </div>
                       <div className="flex w-full gap-2 sm:w-auto">
                         <button type="button" onClick={() => startEdit(contact)} className="flex-1 rounded-xl border border-[var(--fl-line)] px-4 py-2 text-sm font-semibold text-[var(--fl-text)] transition hover:border-teal-400 hover:text-[var(--fl-accent-text)] sm:flex-none">Edit</button>
-                        <button type="button" onClick={() => deleteContact(contact.id)} className="flex-1 rounded-xl border border-red-500/70 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-500 hover:text-white sm:flex-none">Delete</button>
+                        <button type="button" onClick={() => deleteContact(contact.id)} className="flex-1 rounded-xl border border-red-500/70 bg-red-500/10 px-4 py-2 text-sm font-semibold text-[var(--fl-crit-text)] transition hover:bg-red-500 hover:text-[var(--fl-text)] sm:flex-none">Delete</button>
                       </div>
                     </div>
                     <div className="mt-4 flex flex-wrap gap-2 border-t border-[var(--fl-raised)] pt-4">

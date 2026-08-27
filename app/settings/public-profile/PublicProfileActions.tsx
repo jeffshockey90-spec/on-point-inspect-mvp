@@ -338,7 +338,7 @@ export default function PublicProfileActions({
               <p className="text-sm font-bold text-[var(--fl-warn-text)]">
                 Upload your company logo to create a branded QR code.
               </p>
-              <p className="mt-1 text-xs leading-5 text-[var(--fl-warn-text)]/80">
+              <p className="mt-1 text-xs leading-5 text-[var(--fl-warn-text)]">
                 Download and print are disabled until a company logo is uploaded.
               </p>
             </div>

@@ -383,7 +383,7 @@ export default function PortfolioGalleryManager({
                     type="button"
                     onClick={() => deleteImage(image.id)}
                     disabled={saving}
-                    className="rounded-xl border border-red-500/50 px-3 py-2 text-xs font-semibold text-red-300 transition hover:bg-red-500 hover:text-white disabled:opacity-50"
+                    className="rounded-xl border border-red-500/50 px-3 py-2 text-xs font-semibold text-[var(--fl-crit-text)] transition hover:bg-red-500 hover:text-[var(--fl-text)] disabled:opacity-50"
                   >
                     Delete
                   </button>

@@ -3489,7 +3489,7 @@ Service-life information is a general industry estimate only. Actual service lif
                   Safety / Major
                 </p>
                 <p className="mt-2 text-3xl font-semibold text-[var(--fl-text)]">{defectTotals.safety}</p>
-                <p className="mt-1 text-xs font-bold text-[var(--fl-crit-text)]/70">Priority concerns</p>
+                <p className="mt-1 text-xs font-bold text-[var(--fl-crit-text)]">Priority concerns</p>
               </div>
 
               <div className="rounded-2xl border border-orange-500/40 bg-orange-500/10 p-4">
@@ -3497,7 +3497,7 @@ Service-life information is a general industry estimate only. Actual service lif
                   Client Summary
                 </p>
                 <p className="mt-2 text-3xl font-semibold text-[var(--fl-text)]">{defectTotals.total}</p>
-                <p className="mt-1 text-xs font-bold text-[var(--fl-warn-text)]/70">Defects shown to client</p>
+                <p className="mt-1 text-xs font-bold text-[var(--fl-warn-text)]">Defects shown to client</p>
               </div>
 
               <div className="rounded-2xl border border-purple-500/40 bg-purple-500/10 p-4">
@@ -3505,7 +3505,7 @@ Service-life information is a general industry estimate only. Actual service lif
                   Repair Requests
                 </p>
                 <p className="mt-2 text-3xl font-semibold text-[var(--fl-text)]">{repairRequestHistory.length}</p>
-                <p className="mt-1 text-xs font-bold text-[var(--fl-purple-text)]/70">Negotiation history</p>
+                <p className="mt-1 text-xs font-bold text-[var(--fl-purple-text)]">Negotiation history</p>
               </div>
             </div>
 
@@ -3519,14 +3519,14 @@ Service-life information is a general industry estimate only. Actual service lif
                   <p className="text-xl font-semibold text-[var(--fl-text)]">
                     {nextWorkspaceNotification.title || "Review report alert"}
                   </p>
-                  <p className="mt-2 text-sm font-bold leading-6 text-[var(--fl-crit-text)]/80">
+                  <p className="mt-2 text-sm font-bold leading-6 text-[var(--fl-crit-text)]">
                     {nextWorkspaceNotification.message || "Open the Command Center and clear this before delivery."}
                   </p>
                 </div>
               ) : (
                 <div className="mt-3 rounded-2xl border border-emerald-400/50 bg-emerald-500/10 p-4">
                   <p className="text-xl font-semibold text-[var(--fl-text)]">No active blockers</p>
-                  <p className="mt-2 text-sm font-bold leading-6 text-[var(--fl-good-text)]/80">
+                  <p className="mt-2 text-sm font-bold leading-6 text-[var(--fl-good-text)]">
                     Keep writing the report or use the delivery tools when you are ready.
                   </p>
                 </div>
@@ -4291,7 +4291,7 @@ Service-life information is a general industry estimate only. Actual service lif
                         <FastLinkButton
                           href={`/reports/${inspection.id}/signed-agreement/${agreement.id}`}
                           loadingText="Opening Signed Agreement..."
-                          className="rounded-xl border border-emerald-500 bg-emerald-500/10 px-4 py-3 text-center text-sm font-semibold text-emerald-300 hover:bg-emerald-500 hover:text-slate-950"
+                          className="rounded-xl border border-emerald-500 bg-emerald-500/10 px-4 py-3 text-center text-sm font-semibold text-[var(--fl-good-text)] hover:bg-emerald-500 hover:text-slate-950"
                         >
                           View / Save Copy
                         </FastLinkButton>

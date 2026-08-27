@@ -595,7 +595,7 @@ function AISectionReview({
               target.scrollIntoView({ behavior: "smooth", block: "center" });
             }
           }}
-          className="rounded-xl border border-orange-500 px-4 py-2 text-sm font-semibold text-orange-200 transition active:scale-[0.98] hover:bg-orange-500 hover:text-black"
+          className="rounded-xl border border-orange-500 px-4 py-2 text-sm font-semibold text-[var(--fl-warn-text)] transition active:scale-[0.98] hover:bg-orange-500 hover:text-black"
         >
           Add Limitation If Needed
         </button>

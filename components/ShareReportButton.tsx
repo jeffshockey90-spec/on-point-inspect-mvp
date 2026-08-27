@@ -52,7 +52,7 @@ export default function ShareReportButton({
       onClick={copyLink}
       disabled={status === "copying"}
       aria-busy={status === "copying"}
-      className="rounded-xl border border-blue-500 px-5 py-3 font-bold text-blue-300 transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70 hover:bg-blue-500 hover:text-black print:hidden"
+      className="rounded-xl border border-blue-500 px-5 py-3 font-bold text-[var(--fl-info-text)] transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70 hover:bg-blue-500 hover:text-black print:hidden"
     >
       {label}
     </button>

@@ -73,7 +73,7 @@ export default function SendAgreementButton({
         onClick={() => sendAgreement("client")}
         disabled={sending !== null}
         aria-busy={sending === "client"}
-        className="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-500 bg-emerald-500/10 px-5 py-3 font-bold text-emerald-300 transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 hover:bg-emerald-500 hover:text-slate-950 [touch-action:manipulation]"
+        className="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-500 bg-emerald-500/10 px-5 py-3 font-bold text-[var(--fl-good-text)] transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 hover:bg-emerald-500 hover:text-slate-950 [touch-action:manipulation]"
       >
         {sending === "client" && (
           <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -101,7 +101,7 @@ export default function SendAgreementButton({
             onClick={() => sendAgreement("realtor")}
             disabled={sending !== null}
             aria-busy={sending === "realtor"}
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-amber-500 bg-amber-500/10 px-5 py-3 font-bold text-amber-300 transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 hover:bg-amber-500 hover:text-slate-950 [touch-action:manipulation]"
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-amber-500 bg-amber-500/10 px-5 py-3 font-bold text-[var(--fl-warn-text)] transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 hover:bg-amber-500 hover:text-slate-950 [touch-action:manipulation]"
           >
             {sending === "realtor" && (
               <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />

@@ -126,7 +126,7 @@ export default function CodeAssistantPanel({ compact = false, context }: Props) 
 
   return (
     <section
-      className={`rounded-2xl border border-teal-500/40 bg-teal-500/5 text-white ${
+      className={`rounded-2xl border border-teal-500/40 bg-teal-500/5 text-[var(--fl-text)] ${
         compact ? "p-3" : "p-5"
       }`}
     >

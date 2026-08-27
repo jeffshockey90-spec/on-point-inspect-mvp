@@ -1701,7 +1701,7 @@ function ChecklistOptionButton({
   onDelete: () => void;
 }) {
   return (
-    <div className={`rounded-xl border transition ${selected ? "border-teal-400 bg-teal-500/15 text-teal-100" : "border-[var(--fl-line)] bg-[var(--fl-ground)] text-white hover:border-teal-400"}`}>
+    <div className={`rounded-xl border transition ${selected ? "border-teal-400 bg-teal-500/15 text-teal-100" : "border-[var(--fl-line)] bg-[var(--fl-ground)] text-[var(--fl-text)] hover:border-teal-400"}`}>
       <button type="button" onClick={onClick} disabled={saving} className="flex w-full items-center gap-3 px-4 py-3 text-left disabled:cursor-not-allowed disabled:opacity-60">
         <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-2 ${selected ? "border-teal-300 bg-teal-400 text-slate-950" : "border-white"}`}>
           {selected ? "✓" : ""}

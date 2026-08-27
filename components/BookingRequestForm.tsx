@@ -529,7 +529,7 @@ export default function BookingRequestForm({
                   onClick={() => toggleService(service)}
                   className={`flex min-h-[64px] w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition ${
                     checked
-                      ? "border-teal-400 bg-teal-500/15 text-white shadow-[0_0_0_1px_rgba(45,212,191,0.35)]"
+                      ? "border-teal-400 bg-teal-500/15 text-[var(--fl-text)] shadow-[0_0_0_1px_rgba(45,212,191,0.35)]"
                       : "border-zinc-700 bg-[var(--fl-ground)] text-zinc-200 hover:border-teal-500/50"
                   }`}
                 >

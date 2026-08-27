@@ -269,7 +269,7 @@ export default function VoiceOnlyInspectionMode({
   }
 
   return (
-    <div className="rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-white">
+    <div className="rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-[var(--fl-text)]">
       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--fl-good-text)]">
         Voice-Only Inspection
       </p>

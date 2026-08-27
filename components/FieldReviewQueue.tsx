@@ -165,13 +165,13 @@ export default function FieldReviewQueue({
             🕑
           </span>
           <div className="min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--fl-warn-text)]/80">
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--fl-warn-text)]">
               Offline Sync
             </p>
             <h2 className="text-base font-semibold text-[var(--fl-warn-text)] sm:text-lg">
               Field Review · {count} finding{count === 1 ? "" : "s"} to approve
             </h2>
-            <p className="mt-0.5 text-xs font-bold text-[var(--fl-warn-text)]/70">
+            <p className="mt-0.5 text-xs font-bold text-[var(--fl-warn-text)]">
               Verify the section and severity, then approve — or edit the note
               and re-polish.
             </p>
@@ -192,7 +192,7 @@ export default function FieldReviewQueue({
           )}
 
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm font-bold text-[var(--fl-warn-text)]/80">
+            <p className="text-sm font-bold text-[var(--fl-warn-text)]">
               These were captured in the field and polished by AI after syncing.
             </p>
             <button

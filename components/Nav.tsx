@@ -515,7 +515,7 @@ export default function Navbar() {
                         : opening
                           ? "bg-white/[0.04] text-[#1ac5b4]"
                           : item.href === "/dashboard/owner"
-                            ? "text-[var(--fl-warn-text)]/90 hover:bg-yellow-500/10 hover:text-[var(--fl-warn-text)]"
+                            ? "text-[var(--fl-warn-text)] hover:bg-yellow-500/10 hover:text-[var(--fl-warn-text)]"
                             : "text-[var(--fl-muted)] hover:bg-white/[0.04] hover:text-[var(--fl-text)]"
                     }`}
                   >

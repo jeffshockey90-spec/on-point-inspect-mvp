@@ -225,7 +225,7 @@ export default function LiveSectionCoach({
 
   return (
     <section
-      className={`rounded-2xl border border-emerald-500/40 bg-emerald-500/10 text-white ${
+      className={`rounded-2xl border border-emerald-500/40 bg-emerald-500/10 text-[var(--fl-text)] ${
         compact ? "p-3" : "p-4"
       }`}
     >

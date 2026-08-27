@@ -56,7 +56,7 @@ export default function EmailDeliveryAlert({
           <p className="font-semibold text-[var(--fl-crit-text)]">
             {bounces.length === 1 ? "An email bounced — the address may be wrong" : "Emails bounced — an address may be wrong"}
           </p>
-          <p className="mt-1 leading-6 text-[var(--fl-crit-text)]/80">
+          <p className="mt-1 leading-6 text-[var(--fl-crit-text)]">
             We couldn&apos;t deliver to{" "}
             {bounces.map((b, i) => (
               <span key={b.recipient}>

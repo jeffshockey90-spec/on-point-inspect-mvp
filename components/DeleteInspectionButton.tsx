@@ -62,7 +62,7 @@ export default function DeleteInspectionButton({
       onClick={handleDelete}
       disabled={deleting}
       aria-busy={deleting}
-      className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-500 px-5 py-3 font-bold text-red-300 transition active:scale-[0.98] hover:bg-red-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
+      className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-500 px-5 py-3 font-bold text-[var(--fl-crit-text)] transition active:scale-[0.98] hover:bg-red-500 hover:text-[var(--fl-text)] disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
     >
       {deleting && (
         <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />

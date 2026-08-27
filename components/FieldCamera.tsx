@@ -761,7 +761,7 @@ export default function FieldCamera({
   }
 
   const card = !open ? (
-    <div className="rounded-2xl border border-cyan-500/40 bg-cyan-500/10 p-4 text-white">
+    <div className="rounded-2xl border border-cyan-500/40 bg-cyan-500/10 p-4 text-[var(--fl-text)]">
       <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fl-info-text)]">
         Field Camera
       </p>
@@ -1066,7 +1066,7 @@ export default function FieldCamera({
               aria-label={muteAudio ? "Unmute microphone" : "Mute microphone"}
               title={muteAudio ? "Sound off — recording video only" : "Sound on"}
               className={`flex h-14 w-14 items-center justify-center rounded-full text-2xl backdrop-blur disabled:opacity-40 ${
-                muteAudio ? "bg-red-600/80 text-white" : "bg-[var(--fl-surface-2)] text-white"
+                muteAudio ? "bg-red-600/80 text-[var(--fl-text)]" : "bg-[var(--fl-surface-2)] text-[var(--fl-text)]"
               }`}
             >
               {muteAudio ? "🔇" : "🎤"}

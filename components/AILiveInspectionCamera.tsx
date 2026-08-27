@@ -1136,7 +1136,7 @@ export default function AILiveInspectionCamera({
   const activeCategoryMeta = CATEGORIES.find((c) => c.key === category) || null;
 
   const cameraUi = !open ? (
-    <div className="rounded-2xl border border-cyan-500/40 bg-cyan-500/10 p-4 text-white">
+    <div className="rounded-2xl border border-cyan-500/40 bg-cyan-500/10 p-4 text-[var(--fl-text)]">
       <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fl-info-text)]">
         AI Capture Camera
       </p>
@@ -1464,7 +1464,7 @@ export default function AILiveInspectionCamera({
                 aria-label={muteAudio ? "Unmute microphone" : "Mute microphone"}
                 title={muteAudio ? "Sound off — recording video only" : "Sound on"}
                 className={`flex h-12 w-12 items-center justify-center rounded-full text-xl backdrop-blur disabled:opacity-40 ${
-                  muteAudio ? "bg-red-600/80 text-white" : "bg-[var(--fl-surface-2)] text-white"
+                  muteAudio ? "bg-red-600/80 text-[var(--fl-text)]" : "bg-[var(--fl-surface-2)] text-[var(--fl-text)]"
                 }`}
               >
                 {muteAudio ? "🔇" : "🎤"}

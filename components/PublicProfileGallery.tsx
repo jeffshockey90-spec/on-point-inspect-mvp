@@ -194,7 +194,7 @@ export default function PublicProfileGallery({
               <button
                 type="button"
                 onClick={closeGallery}
-                className="rounded-xl border border-[var(--fl-line)] px-4 py-3 text-sm font-semibold text-[var(--fl-text)] transition hover:border-red-400 hover:bg-red-500 hover:text-white"
+                className="rounded-xl border border-[var(--fl-line)] px-4 py-3 text-sm font-semibold text-[var(--fl-text)] transition hover:border-red-400 hover:bg-red-500 hover:text-[var(--fl-text)]"
               >
                 ✕ Close
               </button>
@@ -212,7 +212,7 @@ export default function PublicProfileGallery({
                   <button
                     type="button"
                     onClick={showPrevious}
-                    className="absolute left-3 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-[var(--fl-surface-2)] text-2xl font-semibold text-white backdrop-blur transition hover:bg-teal-500 hover:text-slate-950 sm:left-5 sm:h-14 sm:w-14"
+                    className="absolute left-3 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-[var(--fl-surface-2)] text-2xl font-semibold text-[var(--fl-text)] backdrop-blur transition hover:bg-teal-500 hover:text-slate-950 sm:left-5 sm:h-14 sm:w-14"
                     aria-label="Previous photo"
                   >
                     ‹
@@ -221,7 +221,7 @@ export default function PublicProfileGallery({
                   <button
                     type="button"
                     onClick={showNext}
-                    className="absolute right-3 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-[var(--fl-surface-2)] text-2xl font-semibold text-white backdrop-blur transition hover:bg-teal-500 hover:text-slate-950 sm:right-5 sm:h-14 sm:w-14"
+                    className="absolute right-3 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-[var(--fl-surface-2)] text-2xl font-semibold text-[var(--fl-text)] backdrop-blur transition hover:bg-teal-500 hover:text-slate-950 sm:right-5 sm:h-14 sm:w-14"
                     aria-label="Next photo"
                   >
                     ›

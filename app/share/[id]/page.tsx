@@ -2060,7 +2060,7 @@ export default async function PublicSharePage({
               <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[var(--fl-purple-text)]">
                 Demo Report
               </p>
-              <p className="mt-2 text-sm leading-6 text-[var(--fl-purple-text)]/90">
+              <p className="mt-2 text-sm leading-6 text-[var(--fl-purple-text)]">
                 This is a public sample report. Client, realtor, agreement, payment, and editable report actions are hidden.
               </p>
             </div>
@@ -2093,7 +2093,7 @@ export default async function PublicSharePage({
                 href={`/api/realtor-report-download/${encodeURIComponent(sharePathId)}?type=full${isTranslated ? `&lang=${encodeURIComponent(requestedLang)}` : ""}`}
                 filename={`inspection-report-${inspectionId}.pdf`}
                 preparingText="Preparing PDF..."
-                className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-cyan-500 bg-cyan-500/10 px-5 py-3 font-bold text-cyan-300 transition active:scale-[0.98] active:opacity-80 [touch-action:manipulation] hover:bg-cyan-500 hover:text-black"
+                className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-cyan-500 bg-cyan-500/10 px-5 py-3 font-bold text-[var(--fl-info-text)] transition active:scale-[0.98] active:opacity-80 [touch-action:manipulation] hover:bg-cyan-500 hover:text-black"
               >
                 <><span aria-hidden="true">⬇</span> Download Report</>
               </ReportDownloadButton>
@@ -2102,7 +2102,7 @@ export default async function PublicSharePage({
             {!isDemo && (
               <a
                 href={`/my-home/${encodeURIComponent(sharePathId)}`}
-                className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-emerald-500 bg-emerald-500/10 px-5 py-3 font-bold text-emerald-300 transition active:scale-[0.98] [touch-action:manipulation] hover:bg-emerald-500 hover:text-black"
+                className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-emerald-500 bg-emerald-500/10 px-5 py-3 font-bold text-[var(--fl-good-text)] transition active:scale-[0.98] [touch-action:manipulation] hover:bg-emerald-500 hover:text-black"
               >
                 <span aria-hidden="true">🏠</span> Home Maintenance Hub
               </a>
@@ -3575,7 +3575,7 @@ function ClientSummaryFindingCard({
           href={`#section-${String(finding.section || "other")
             .toLowerCase()
             .replace(/[^a-z0-9]+/g, "-")}`}
-          className="mt-4 inline-flex rounded-xl border border-cyan-500/50 px-4 py-3 text-sm font-semibold text-cyan-300 transition hover:bg-cyan-500 hover:text-black"
+          className="mt-4 inline-flex rounded-xl border border-cyan-500/50 px-4 py-3 text-sm font-semibold text-[var(--fl-info-text)] transition hover:bg-cyan-500 hover:text-black"
         >
           Open This Item In Full Report →
         </a>

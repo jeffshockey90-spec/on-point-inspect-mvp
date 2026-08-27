@@ -327,7 +327,7 @@ function SectionReferencePhotos({
 
         <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
           <label
-            className={`inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-cyan-500 px-4 py-2 text-sm font-semibold text-cyan-300 transition active:scale-[0.98] hover:bg-cyan-500 hover:text-slate-950 [touch-action:manipulation] ${
+            className={`inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-cyan-500 px-4 py-2 text-sm font-semibold text-[var(--fl-info-text)] transition active:scale-[0.98] hover:bg-cyan-500 hover:text-slate-950 [touch-action:manipulation] ${
               uploading ? "cursor-not-allowed opacity-60" : ""
             }`}
           >
@@ -400,7 +400,7 @@ function SectionReferencePhotos({
                   type="button"
                   onClick={takeNativeReferencePhoto}
                   disabled={uploading}
-                  className="rounded-xl border border-emerald-500 bg-emerald-500/10 p-4 text-center font-semibold text-emerald-300 transition active:scale-[0.98] hover:bg-emerald-500 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
+                  className="rounded-xl border border-emerald-500 bg-emerald-500/10 p-4 text-center font-semibold text-[var(--fl-good-text)] transition active:scale-[0.98] hover:bg-emerald-500 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
                 >
                   <span className="inline-flex items-center justify-center gap-2">
                     {uploading && <SmallSpinner />}
@@ -410,7 +410,7 @@ function SectionReferencePhotos({
               )}
 
               <label
-                className={`rounded-xl border border-cyan-500 bg-cyan-500/10 p-4 text-center font-semibold text-cyan-300 transition active:scale-[0.98] hover:bg-cyan-500 hover:text-slate-950 [touch-action:manipulation] ${
+                className={`rounded-xl border border-cyan-500 bg-cyan-500/10 p-4 text-center font-semibold text-[var(--fl-info-text)] transition active:scale-[0.98] hover:bg-cyan-500 hover:text-slate-950 [touch-action:manipulation] ${
                   uploading ? "cursor-not-allowed opacity-60" : "cursor-pointer"
                 }`}
               >

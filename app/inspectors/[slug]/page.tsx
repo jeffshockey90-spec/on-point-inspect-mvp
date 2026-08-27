@@ -689,7 +689,7 @@ function GoogleReviewsSection({
               ? `${reviewCount} Google reviews help clients and realtors see this inspector's reputation before booking.`
               : "Read recent Google reviews and see what clients say before requesting an inspection."}
           </p>
-          <p className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-[var(--fl-warn-text)]/80">
+          <p className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-[var(--fl-warn-text)]">
             <span aria-hidden>↻</span> Auto-updates from Google
           </p>
         </div>

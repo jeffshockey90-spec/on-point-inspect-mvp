@@ -86,7 +86,7 @@ export default function LiveVisionPlatformPanel({ inspectionId, section, online 
   );
 
   return (
-    <section className="space-y-3 rounded-2xl border border-violet-400/40 bg-violet-500/10 p-3 text-white">
+    <section className="space-y-3 rounded-2xl border border-violet-400/40 bg-violet-500/10 p-3 text-[var(--fl-text)]">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--fl-purple-text)]">AI Vision Platform</p>

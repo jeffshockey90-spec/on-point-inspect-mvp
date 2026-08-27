@@ -1318,7 +1318,7 @@ function AddSectionFindingForm({
           <button
             type="button"
             onClick={() => setOpen(true)}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-purple-500 bg-purple-500/10 px-5 py-3 text-sm font-semibold text-purple-300 transition active:scale-[0.98] hover:bg-purple-500 hover:text-white sm:w-auto [touch-action:manipulation]"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-purple-500 bg-purple-500/10 px-5 py-3 text-sm font-semibold text-[var(--fl-purple-text)] transition active:scale-[0.98] hover:bg-purple-500 hover:text-[var(--fl-text)] sm:w-auto [touch-action:manipulation]"
           >
             🤖 AI Note Inspector
           </button>
@@ -1798,7 +1798,7 @@ function ReportVideo({
       aria-label={muted ? "Unmute video" : "Mute video"}
       title={muted ? "Sound off — tap to unmute" : "Sound on — tap to mute"}
       className={`absolute right-2 top-2 z-10 flex h-9 w-9 items-center justify-center rounded-full text-lg backdrop-blur ${
-        muted ? "bg-red-600/80 text-white" : "bg-[var(--fl-surface-2)] text-white"
+        muted ? "bg-red-600/80 text-[var(--fl-text)]" : "bg-[var(--fl-surface-2)] text-[var(--fl-text)]"
       }`}
     >
       {muted ? "🔇" : "🔊"}
@@ -2966,7 +2966,7 @@ function FindingCardBase({
                   "Marked reviewed in Command Center. If the finding is still a safety concern, update the severity or recommendation before publishing.",
                 );
               }}
-              className="rounded-xl border border-emerald-500 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-300 hover:bg-emerald-500 hover:text-slate-950"
+              className="rounded-xl border border-emerald-500 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-[var(--fl-good-text)] hover:bg-emerald-500 hover:text-slate-950"
             >
               Mark Reviewed
             </button>
@@ -3299,7 +3299,7 @@ function FindingCardBase({
                 />
               </label>
 
-              <label className="cursor-pointer rounded-xl border border-cyan-500 bg-cyan-500/10 p-4 text-center font-semibold text-cyan-300 hover:bg-cyan-500 hover:text-slate-950">
+              <label className="cursor-pointer rounded-xl border border-cyan-500 bg-cyan-500/10 p-4 text-center font-semibold text-[var(--fl-info-text)] hover:bg-cyan-500 hover:text-slate-950">
                 {uploadingPhotos ? "Uploading..." : "🖼 Choose Media"}
                 <input
                   type="file"

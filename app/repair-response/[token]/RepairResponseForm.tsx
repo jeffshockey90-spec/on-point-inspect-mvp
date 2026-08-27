@@ -837,7 +837,7 @@ export default function RepairResponseForm({
                       data-fast-click="true"
                       className={`min-h-[74px] rounded-xl border px-3 py-3 text-left transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70 ${
                         active
-                          ? "border-teal-300 bg-teal-500/20 text-white shadow-[0_0_20px_rgba(20,184,166,0.18)]"
+                          ? "border-teal-300 bg-teal-500/20 text-[var(--fl-text)] shadow-[0_0_20px_rgba(20,184,166,0.18)]"
                           : "border-[var(--fl-line)] bg-[var(--fl-ground)] text-[var(--fl-muted)] hover:border-teal-500 hover:bg-teal-500/10"
                       }`}
                     >

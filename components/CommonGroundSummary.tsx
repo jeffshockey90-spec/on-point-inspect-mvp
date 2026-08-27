@@ -53,7 +53,7 @@ export default function CommonGroundSummary({ data }: { data: CommonGroundSummar
         </div>
       </div>
       {data.uncommon > 0 && (
-        <p className="mt-3 text-[13px] text-[var(--fl-warn-text)]/90">
+        <p className="mt-3 text-[13px] text-[var(--fl-warn-text)]">
           {data.uncommon} finding{data.uncommon === 1 ? "" : "s"} {data.uncommon === 1 ? "is" : "are"} uncommon — often a bigger‑ticket or aging‑system item worth budgeting for.
         </p>
       )}

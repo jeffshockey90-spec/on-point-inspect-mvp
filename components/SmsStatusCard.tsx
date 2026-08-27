@@ -109,7 +109,7 @@ export default function SmsStatusCard() {
           {status.lowBalance && (
             <div className="mt-5 rounded-xl border border-amber-500/50 bg-amber-500/10 p-4 text-sm text-[var(--fl-warn-text)]">
               <p className="font-semibold">⚠ Low SMS balance</p>
-              <p className="mt-1 text-[var(--fl-warn-text)]/90">
+              <p className="mt-1 text-[var(--fl-warn-text)]">
                 Your Twilio balance ({money(status.balance, status.currency)}) is below{" "}
                 {money(status.threshold, status.currency)}. Top up your Twilio account so
                 texts keep sending.

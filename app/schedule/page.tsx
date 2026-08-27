@@ -427,7 +427,7 @@ export default async function SchedulePage() {
               Reports missing a schedule date
             </h2>
 
-            <p className="mt-2 text-sm text-[var(--fl-warn-text)]/70">
+            <p className="mt-2 text-sm text-[var(--fl-warn-text)]">
               These reports will not appear on the calendar until a date is added.
             </p>
 

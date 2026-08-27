@@ -295,10 +295,10 @@ export default function AIReportReviewPanel({
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="text-sm font-semibold text-[var(--fl-warn-text)]">{serviceError.title}</p>
-              <p className="mt-1 max-w-3xl text-sm leading-6 text-[var(--fl-warn-text)]/90">
+              <p className="mt-1 max-w-3xl text-sm leading-6 text-[var(--fl-warn-text)]">
                 {serviceError.message}
               </p>
-              <p className="mt-2 text-xs font-bold uppercase tracking-wide text-[var(--fl-warn-text)]/80">
+              <p className="mt-2 text-xs font-bold uppercase tracking-wide text-[var(--fl-warn-text)]">
                 Your report is safe. Publish Guard remains available.
               </p>
             </div>
@@ -323,7 +323,7 @@ export default function AIReportReviewPanel({
             </div>
           </div>
           {serviceError.code && (
-            <details className="mt-3 text-xs text-[var(--fl-warn-text)]/70">
+            <details className="mt-3 text-xs text-[var(--fl-warn-text)]">
               <summary className="cursor-pointer font-bold">Owner diagnostics</summary>
               <p className="mt-2">Code: {serviceError.code}</p>
               {serviceError.retryAfterSeconds ? <p>Retry after: {serviceError.retryAfterSeconds}s</p> : null}

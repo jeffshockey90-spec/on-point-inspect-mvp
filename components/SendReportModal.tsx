@@ -90,7 +90,7 @@ On Point Home Inspections LLC
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="rounded-xl border border-purple-500 px-5 py-3 font-bold text-purple-300 transition hover:bg-purple-500 hover:text-black print:hidden"
+        className="rounded-xl border border-purple-500 px-5 py-3 font-bold text-[var(--fl-purple-text)] transition hover:bg-purple-500 hover:text-black print:hidden"
       >
         Send Report
       </button>
@@ -154,7 +154,7 @@ On Point Home Inspections LLC
                         `Subject: ${clientSubject}\n\n${clientBody}`
                       )
                     }
-                    className="rounded-xl border border-blue-500 px-4 py-2 font-bold text-blue-300 hover:bg-blue-500 hover:text-black"
+                    className="rounded-xl border border-blue-500 px-4 py-2 font-bold text-[var(--fl-info-text)] hover:bg-blue-500 hover:text-black"
                   >
                     {copied === "client" ? "Copied!" : "Copy Email"}
                   </button>
@@ -199,7 +199,7 @@ On Point Home Inspections LLC
                         `Subject: ${realtorSubject}\n\n${realtorBody}`
                       )
                     }
-                    className="rounded-xl border border-blue-500 px-4 py-2 font-bold text-blue-300 hover:bg-blue-500 hover:text-black"
+                    className="rounded-xl border border-blue-500 px-4 py-2 font-bold text-[var(--fl-info-text)] hover:bg-blue-500 hover:text-black"
                   >
                     {copied === "realtor" ? "Copied!" : "Copy Email"}
                   </button>
@@ -260,7 +260,7 @@ function LinkBox({
         <button
           type="button"
           onClick={onCopy}
-          className="rounded-lg border border-blue-500 px-3 py-2 text-sm font-bold text-blue-300 hover:bg-blue-500 hover:text-black"
+          className="rounded-lg border border-blue-500 px-3 py-2 text-sm font-bold text-[var(--fl-info-text)] hover:bg-blue-500 hover:text-black"
         >
           {copied ? "Copied!" : "Copy"}
         </button>

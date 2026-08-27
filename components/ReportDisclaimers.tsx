@@ -1012,7 +1012,7 @@ function ReportDisclaimers({
                     className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition ${
                       selected
                         ? "border-yellow-400 bg-yellow-500/15 text-[var(--fl-warn-text)]"
-                        : "border-[var(--fl-line)] bg-[var(--fl-ground)] text-white hover:border-yellow-400 hover:bg-yellow-500/10"
+                        : "border-[var(--fl-line)] bg-[var(--fl-ground)] text-[var(--fl-text)] hover:border-yellow-400 hover:bg-yellow-500/10"
                     } disabled:cursor-not-allowed disabled:opacity-60`}
                   >
                     <span

@@ -586,7 +586,7 @@ function MediaUploadButtons({
         />
       </label>
 
-      <label className={`rounded-xl border border-cyan-500 bg-cyan-500/10 p-4 text-center font-bold text-cyan-300 transition active:scale-[0.98] hover:bg-cyan-500 hover:text-black [touch-action:manipulation] ${disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}>
+      <label className={`rounded-xl border border-cyan-500 bg-cyan-500/10 p-4 text-center font-bold text-[var(--fl-info-text)] transition active:scale-[0.98] hover:bg-cyan-500 hover:text-black [touch-action:manipulation] ${disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}>
         🖼 Choose Photo
         <input
           type="file"
@@ -597,7 +597,7 @@ function MediaUploadButtons({
         />
       </label>
 
-      <label className={`rounded-xl border border-purple-500 bg-purple-500/10 p-4 text-center font-bold text-purple-300 transition active:scale-[0.98] hover:bg-purple-500 hover:text-white [touch-action:manipulation] ${disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}>
+      <label className={`rounded-xl border border-purple-500 bg-purple-500/10 p-4 text-center font-bold text-[var(--fl-purple-text)] transition active:scale-[0.98] hover:bg-purple-500 hover:text-[var(--fl-text)] [touch-action:manipulation] ${disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}>
         🎥 Choose Video
         <input
           type="file"
